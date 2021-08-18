@@ -1,0 +1,206 @@
+{
+  "rules": {
+    "InsertGlobalRule": [
+      {
+        "import_key_word": "torch",
+        "insert_content": [
+          "import torch.npu",
+          "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')"
+        ],
+        "feature_switch": ["specify_device", "distributed"]
+      },
+      {
+        "import_key_word": "",
+        "insert_content": [
+          "import os",
+          "NPU_CALCULATE_DEVICE = 0",
+          "if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):\n    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))"
+        ],
+        "feature_switch": ["specify_device", "distributed"]
+      },
+      {
+        "import_key_word": "",
+        "insert_content": [
+          "import ascend_function"
+        ],
+        "feature_switch": ["similar"]
+      }
+    ],
+    "ArgsModifyRule": [
+      {
+        "func_name": "to",
+        "arg_idx": 0,
+        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "white_list": ["cpu", "type|bool|int|short|long|half|float|double|complex", "memory_format", "grad"],
+        "feature_switch": ["specify_device", "distributed"]
+      },
+      {
+        "func_name": "set_device",
+        "arg_idx": 0,
+        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "white_list": ["rank"],
+        "feature_switch": ["specify_device", "distributed"]
+      },
+      {
+        "func_name": "torch.device",
+        "arg_idx": 0,
+        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "feature_switch": ["specify_device", "distributed"]
+      },
+      {
+        "func_name": "cuda",
+        "arg_idx": 0,
+        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "feature_switch": ["specify_device", "distributed"]
+      },
+      {
+        "func_name": "torch.load",
+        "arg_keyword": "map_location",
+        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "white_list": ["cpu"],
+        "feature_switch": ["specify_device", "distributed"]
+      }
+    ],
+    "FuncNameModifyRule": [
+      {
+        "old_name": "cuda",
+        "new_name": "npu"
+      },
+      {
+        "old_name": "Conv3d",
+        "new_name": "ascend_function.similar_api.Conv3d",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "max_unpool2d",
+        "new_name": "ascend_function.similar_api.max_unpool2d",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "max_unpool1d",
+        "new_name": "ascend_function.similar_api.max_unpool1d",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "MaxUnpool2d",
+        "new_name": "ascend_function.similar_api.MaxUnpool2d",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "MaxUnpool1d",
+        "new_name": "ascend_function.similar_api.MaxUnpool1d",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "get_device_properties",
+        "new_name": "ascend_function.similar_api.get_device_properties",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "set_default_tensor_type",
+        "new_name": "ascend_function.similar_api.set_default_tensor_type",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+            {
+        "old_name": "ReplicationPad2d",
+        "new_name": "torch.nn.ZeroPad2d",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "ReflectionPad2d",
+        "new_name": "torch.nn.ZeroPad2d",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "SyncBatchNorm",
+        "new_name": "ascend_function.similar_api.SyncBatchNorm",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "torch.nn.SyncBatchNorm.convert_sync_batchnorm",
+        "new_name": "ascend_function.similar_api.SyncBatchNorm.convert_sync_batchnorm",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "torch.nn.functional.pad",
+        "new_name": "ascend_function.pad",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "apex.parallel.DistributedDataParallel",
+        "new_name": "ascend_function.ApexDistributedDataParallel",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "torch.nn.parallel.DistributedDataParallel",
+        "new_name": "ascend_function.TorchDistributedDataParallel",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      },
+      {
+        "old_name": "torch.repeat_interleave",
+        "new_name": "ascend_function.repeat_interleave",
+        "replace_module": true,
+        "feature_switch": ["similar"]
+      }
+    ],
+    "ModuleNameModifyRule": [
+      {
+        "old_name": "cuda",
+        "new_name": "npu",
+        "parent_module": "torch"
+      },
+      {
+        "old_name": "cuda",
+        "new_name": "npu",
+        "parent_module": "torch.version"
+      }
+    ],
+    "ReplaceStringRule": [
+      {
+        "str_old": "cuda",
+        "str_new": "npu",
+        "strict": true
+      },
+      {
+        "str_old": "cuda:",
+        "str_new": "npu:",
+        "strict": false
+      },
+      {
+        "str_old": "nccl",
+        "str_new": "hccl",
+        "strict": true
+      },
+      {
+        "str_old": "NCCL",
+        "str_new": "HCCL",
+        "strict": true
+      },
+      {
+        "str_old": "torch.cuda",
+        "str_new": "torch.npu",
+        "strict": false
+      }
+    ],
+    "ReplaceAttributeRule": [
+      {
+        "old_name": "is_cuda",
+        "new_name": "is_npu"
+      }
+    ]
+  }
+}

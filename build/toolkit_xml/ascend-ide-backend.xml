@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<file_info value="ascend-ide-backend" copy_type="source" src_path="ascend-ide-backend" dst_path="tools" install_path="tools">
+    <file value="ms_fmk_transplt"/>
+</file_info>
