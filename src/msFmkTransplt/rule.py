@@ -14,6 +14,7 @@ from libcst._flatten_sentinel import FlattenSentinel
 from libcst._removal_sentinel import RemovalSentinel
 import libcst.matchers as m
 import transplant_logger as translog
+from libcst.metadata import ParentNodeProvider
 
 
 class InsertGlobalRule(RuleVisitor):
@@ -120,6 +121,39 @@ class FuncNameModifyRule(RuleVisitor):
         if "." in self.old_name:
             return self.old_name == full_func_name
         return self.old_name == full_func_name.split(".")[-1]
+
+    def __reverse_orelse(self, orelse, original_node):
+        if isinstance(orelse, libcst.Name):
+            if orelse.value == self.old_name:
+                orelse = orelse.with_changes(value=self.new_name)
+                self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
+                                      (self.old_name, self.new_name))
+
+        if isinstance(orelse, libcst.IfExp):
+            if orelse.body.value == self.old_name:
+                body = orelse.body.with_changes(value=self.new_name)
+                orelse = orelse.with_changes(body=body)
+                self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
+                                      (self.old_name, self.new_name))
+            orelse = orelse.with_changes(orelse=self.__reverse_orelse(orelse.orelse, original_node))
+        return orelse
+
+    def leave_IfExp(
+            self, original_node: "libcst.IfExp", updated_node: "libcst.IfExp"
+    ) -> "libcst.BaseExpression":
+        parent = self.get_metadata(ParentNodeProvider, original_node)
+        if not isinstance(parent, libcst.Call):
+            return updated_node
+
+        body = updated_node.body
+        if body.value == self.old_name:
+            body = body.with_changes(value=self.new_name)
+            updated_node = updated_node.with_changes(body=body)
+            self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
+                                  (self.old_name, self.new_name))
+
+        updated_node = updated_node.with_changes(orelse=self.__reverse_orelse(updated_node.orelse, original_node))
+        return updated_node
 
 
 class ModuleNameModifyRule(RuleVisitor):

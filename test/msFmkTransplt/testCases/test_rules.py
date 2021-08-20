@@ -276,6 +276,68 @@ scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_iter // 2
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
 
+    def test_If_Exp_rule(self):
+        test_cases = (('''def functionA(args):
+    print("functionA ", args)
+
+def functionB(args):
+    print("functionB ", args)
+
+def functionC(args):
+    print("functionC ", args)
+
+(functionA if True else functionA)("666")''', '''def functionA(args):
+    print("functionA ", args)
+
+def functionB(args):
+    print("functionB ", args)
+
+def functionC(args):
+    print("functionC ", args)
+
+(FUNCTIONA if True else FUNCTIONA)("666")'''),
+                      ('''def functionA(args):
+    print("functionA ", args)
+
+def functionB(args):
+    print("functionB ", args)
+
+def functionC(args):
+    print("functionC ", args)
+
+(functionA if True else functionA if True else functionA)("666")''', '''def functionA(args):
+    print("functionA ", args)
+
+def functionB(args):
+    print("functionB ", args)
+
+def functionC(args):
+    print("functionC ", args)
+
+(FUNCTIONA if True else FUNCTIONA if True else FUNCTIONA)("666")'''),
+                      ('''def functionA(args):
+    print("functionA ", args)
+
+def functionB(args):
+    print("functionB ", args)
+
+def functionC(args):
+    print("functionC ", args)
+
+(functionA if True else functionB if True else functionA)("666")''', '''def functionA(args):
+    print("functionA ", args)
+
+def functionB(args):
+    print("functionB ", args)
+
+def functionC(args):
+    print("functionC ", args)
+
+(FUNCTIONA if True else functionB if True else FUNCTIONA)("666")'''))
+        rule = self.rule_module.FuncNameModifyRule("functionA", "FUNCTIONA", True)
+        for test_case in test_cases:
+            self._check_modify(rule, test_case[0], test_case[1])
+
     def test_ascend_function(self):
         import torch
         import torch.nn.functional as F
