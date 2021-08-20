@@ -22,36 +22,45 @@ class MsFmkTransplt(object):
         self.rule_list = []
 
     def __para_check_valid(self, args):
-        if not os.path.exists(args.input):
+        input = os.path.realpath(args.input)
+        output = os.path.realpath(args.output)
+
+        if not os.path.exists(input):
             raise ValueError('Input %s does not exist!' % args.input)
 
-        if not os.access(args.input, os.R_OK):
+        if not os.access(input, os.R_OK):
             raise PermissionError('Input %s is not readable!' % args.input)
 
-        if not os.path.isdir(args.output):
+        if not os.path.isdir(output):
             raise ValueError('Output %s is not a valid directory!' % args.output)
 
-        if not os.access(args.output, os.W_OK):
+        if not os.access(output, os.W_OK):
             raise PermissionError('Output %s is not writeable!' % args.output)
 
         commonpath = os.path.commonpath([os.path.realpath(args.input), os.path.realpath(args.output)])
-        if commonpath == os.path.realpath(args.input):
+        if commonpath == input:
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
-        if args.rule and not os.path.exists(args.rule):
+        self.__check_custom_rule_param_valid(args)
+        self.__check_distributed_rule_param_valid(args)
+
+    def __check_custom_rule_param_valid(self, args):
+        if not args.rule:
+            return
+        rule = os.path.realpath(args.rule)
+        if not os.path.exists(rule):
             raise ValueError('Custom rule file %s does not exist!' % args.rule)
 
-        if args.rule and not os.access(args.rule, os.R_OK):
+        if not os.access(rule, os.R_OK):
             raise PermissionError('Custom rule file %s is not readable!' % args.rule)
-
-        self.__check_distributed_rule_param_valid(args)
 
     def __check_distributed_rule_param_valid(self, args):
         if not hasattr(args, 'main'):
             return
-        if not args.main.endswith('.py'):
+        main_file = os.path.realpath(args.main)
+        if not main_file.endswith('.py'):
             raise ValueError('Main file %s should be a python file!' % args.main)
-        if not os.path.exists(args.main):
+        if not os.path.exists(main_file):
             raise ValueError('Main file %s does not exist!' % args.main)
         commonpath = os.path.commonpath([os.path.realpath(args.input), os.path.realpath(args.main)])
         if commonpath != os.path.realpath(args.input):
@@ -59,7 +68,7 @@ class MsFmkTransplt(object):
                 raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
             if os.path.isfile(args.input):
                 raise ValueError('Main file %s should be the input file %s' % (args.main, args.input))
-        if not os.access(args.main, os.R_OK):
+        if not os.access(main_file, os.R_OK):
             raise PermissionError('Main file %s is not readable!' % args.main)
         if not args.target_model:
             raise ValueError('Target model variable is not set!')
