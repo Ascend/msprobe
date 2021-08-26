@@ -106,10 +106,7 @@ class FuncNameModifyRule(RuleVisitor):
             else:
                 return updated_node
         else:
-            new_name_list = self.new_name.split(".")
-            new_func = libcst.Name(new_name_list[-1])
-            for i in range(len(new_name_list) - 2, -1, -1):
-                new_func = libcst.Attribute(value=libcst.Name(new_name_list[i]), attr=new_func)
+            new_func = self.__set_value_of_attr_with_module_replace()
             self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
                                   (self.old_name, self.new_name))
             return updated_node.with_changes(func=new_func)
@@ -122,17 +119,43 @@ class FuncNameModifyRule(RuleVisitor):
             return self.old_name == full_func_name
         return self.old_name == full_func_name.split(".")[-1]
 
+    def __get_value_of_attr(self, body):
+        if isinstance(body, libcst.Attribute):
+            return body.attr.value
+        return body.value
+
+    def __set_value_of_attr_with_no_module_replace(self, body):
+        if isinstance(body, libcst.Attribute):
+            attr = body.attr.with_changes(value=self.new_name)
+            body = body.with_changes(attr=attr)
+
+        if isinstance(body, libcst.Name):
+            body = body.with_changes(value=self.new_name)
+
+        return body
+
+    def __set_value_of_attr_with_module_replace(self):
+        new_name_list = self.new_name.split(".")
+        new_func = libcst.Name(new_name_list[-1])
+        for i in range(len(new_name_list) - 2, -1, -1):
+            new_func = libcst.Attribute(value=libcst.Name(new_name_list[i]), attr=new_func)
+        return new_func
+
+    def __set_value_of_attr(self, body):
+        if not self.replace_module:
+            body = self.__set_value_of_attr_with_no_module_replace(body)
+        else:
+            body = self.__set_value_of_attr_with_module_replace()
+        return body
+
     def __reverse_orelse(self, orelse, original_node):
-        if isinstance(orelse, libcst.Name):
-            if orelse.value == self.old_name:
-                orelse = orelse.with_changes(value=self.new_name)
-                self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
-                                      (self.old_name, self.new_name))
+        if isinstance(orelse, libcst.Name) or isinstance(orelse, libcst.Attribute):
+            if self.__compare_func_name(self.__get_value_of_attr(orelse)):
+                return self.__set_value_of_attr(orelse)
 
         if isinstance(orelse, libcst.IfExp):
-            if orelse.body.value == self.old_name:
-                body = orelse.body.with_changes(value=self.new_name)
-                orelse = orelse.with_changes(body=body)
+            if self.__compare_func_name(self.__get_value_of_attr(orelse.body)):
+                orelse = orelse.with_changes(body=self.__set_value_of_attr(orelse.body))
                 self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
                                       (self.old_name, self.new_name))
             orelse = orelse.with_changes(orelse=self.__reverse_orelse(orelse.orelse, original_node))
@@ -146,8 +169,8 @@ class FuncNameModifyRule(RuleVisitor):
             return updated_node
 
         body = updated_node.body
-        if body.value == self.old_name:
-            body = body.with_changes(value=self.new_name)
+        if self.__compare_func_name(self.__get_value_of_attr(body)):
+            body = self.__set_value_of_attr(body)
             updated_node = updated_node.with_changes(body=body)
             self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
                                   (self.old_name, self.new_name))

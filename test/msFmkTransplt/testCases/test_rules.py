@@ -334,9 +334,36 @@ def functionC(args):
     print("functionC ", args)
 
 (FUNCTIONA if True else functionB if True else FUNCTIONA)("666")'''))
-        rule = self.rule_module.FuncNameModifyRule("functionA", "FUNCTIONA", True)
+        rule = self.rule_module.FuncNameModifyRule("functionA", "FUNCTIONA", False)
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
+
+    def test_If_Exp_rule1(self):
+        test_cases1 = (('''(torch.cuda if True else torch.cuda if True else torch.cuda)(666)''',
+                        '''(torch.npu if True else torch.npu if True else torch.npu)(666)'''),
+                       ('''(torch.cuda if True else torch.cuda if True else torch.cuda)(666)''',
+                        '''(torch1.npu if True else torch1.npu if True else torch1.npu)(666)'''),
+                       ('''(cuda if True else cuda)(666)''',
+                        '''(torch1.npu if True else torch1.npu)(666)'''),
+                       ('''(torch.m.n.cuda if True else torch.m.n.cuda if True else torch.m.n.cuda)(666)''',
+                        '''(torch.m.n.npu if True else torch.m.n.npu if True else torch.m.n.npu)(666)'''),
+                       ('''(torch.m.n.cuda if True else torch.m.n.cuda if True else torch.m.n.cuda)(666)''',
+                        '''(torch1.npu if True else torch1.npu if True else torch1.npu)(666)'''),
+                       ('''(torch.m.n.cuda if True else cuda1 if True else torch.m.n.cuda)(666)''',
+                        '''(torch1.npu if True else cuda1 if True else torch1.npu)(666)'''),
+                       )
+        rule = self.rule_module.FuncNameModifyRule("cuda", "npu", False)
+        self._check_modify(rule, test_cases1[0][0], test_cases1[0][1])
+        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        self._check_modify(rule, test_cases1[1][0], test_cases1[1][1])
+        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        self._check_modify(rule, test_cases1[2][0], test_cases1[2][1])
+        rule = self.rule_module.FuncNameModifyRule("cuda", "npu", False)
+        self._check_modify(rule, test_cases1[3][0], test_cases1[3][1])
+        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        self._check_modify(rule, test_cases1[4][0], test_cases1[4][1])
+        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        self._check_modify(rule, test_cases1[5][0], test_cases1[5][1])
 
     def test_ascend_function(self):
         import torch
