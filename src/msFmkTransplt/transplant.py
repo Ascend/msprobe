@@ -170,3 +170,10 @@ class CodeTransformer(libcst.CSTTransformer):
         for rule in self.rule_list:
             updated_node = rule.leave_SimpleStatementLine(original_node, updated_node)
         return updated_node
+
+    def leave_IfExp(
+        self, original_node: "libcst.IfExp", updated_node: "libcst.IfExp"
+    ) -> "libcst.BaseExpression":
+        for rule in self.rule_list:
+            updated_node = rule.leave_IfExp(original_node, updated_node)
+        return updated_node
