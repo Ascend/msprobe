@@ -351,6 +351,8 @@ def functionC(args):
                         '''(torch1.npu if True else torch1.npu if True else torch1.npu)(666)'''),
                        ('''(torch.m.n.cuda if True else cuda1 if True else torch.m.n.cuda)(666)''',
                         '''(torch1.npu if True else cuda1 if True else torch1.npu)(666)'''),
+                       ('''(torch.m.n.cuda if torch.m.n.cuda() else cuda1 if True else torch.m.n.cuda)(666)''',
+                        '''(torch1.npu if torch1.npu() else cuda1 if True else torch1.npu)(666)'''),
                        )
         rule = self.rule_module.FuncNameModifyRule("cuda", "npu", False)
         self._check_modify(rule, test_cases1[0][0], test_cases1[0][1])
@@ -364,6 +366,8 @@ def functionC(args):
         self._check_modify(rule, test_cases1[4][0], test_cases1[4][1])
         rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
         self._check_modify(rule, test_cases1[5][0], test_cases1[5][1])
+        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        self._check_modify(rule, test_cases1[6][0], test_cases1[6][1])
 
     def test_ascend_function(self):
         import torch
