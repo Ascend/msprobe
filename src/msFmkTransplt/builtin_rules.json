@@ -162,11 +162,6 @@
         "old_name": "cuda",
         "new_name": "npu",
         "parent_module": "torch"
-      },
-      {
-        "old_name": "cuda",
-        "new_name": "npu",
-        "parent_module": "torch.version"
       }
     ],
     "ReplaceStringRule": [

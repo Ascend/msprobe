@@ -443,7 +443,7 @@ if __name__ == "__main__":
     train_loader_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
     train_loader_batch_size = int(2 / int(os.getenv('NPU_WORLD_SIZE')))
     train_loader = data.DataLoader(trainset, batch_size=train_loader_batch_size,
-                                   shuffle=False, num_workers=10, drop_last=True, pin_memory = False, sampler = train_loader_sampler)
+                                   shuffle=False, num_workers=10, drop_last=True, pin_memory = True, sampler = train_loader_sampler)
 
     for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_loader):
         print(i, img.size(), gt_score.size(), gt_geo.size(), ignored_map.size())

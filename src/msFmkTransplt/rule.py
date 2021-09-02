@@ -360,7 +360,7 @@ class DataLoaderRule(RuleVisitor):
         return updated_node.with_changes(value=new_value)
 
     def __adapt_dataloader_args(self, args):
-        arg_change_dict = {'shuffle': 'False', 'pin_memory': 'False', 'drop_last': 'True',
+        arg_change_dict = {'shuffle': 'False', 'pin_memory': 'True', 'drop_last': 'True',
                            'sampler': self.dataloader_target + '_sampler'}
         new_args = []
         for arg in args:

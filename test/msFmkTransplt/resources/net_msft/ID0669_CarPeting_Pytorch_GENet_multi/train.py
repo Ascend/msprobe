@@ -126,14 +126,14 @@ trainloader_batch_size = int(args.batch_size / int(os.getenv('NPU_WORLD_SIZE')))
 
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=trainloader_batch_size,
                                           num_workers=args.workers,
-                                          pin_memory=False,
+                                          pin_memory=True,
                                           shuffle=False, drop_last = True, sampler = trainloader_sampler)
 valloader_sampler = torch.utils.data.distributed.DistributedSampler(valset)
 valloader_batch_size = int(args.test_batch_size / int(os.getenv('NPU_WORLD_SIZE')))
 
 valloader = torch.utils.data.DataLoader(valset, batch_size=valloader_batch_size, shuffle=False,
                                         num_workers=args.workers,
-                                        pin_memory=False, drop_last = True, sampler = valloader_sampler)
+                                        pin_memory=True, drop_last = True, sampler = valloader_sampler)
 
 error_history = []
 epoch_step = json.loads(args.epoch_step)

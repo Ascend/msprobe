@@ -12,7 +12,7 @@ def _lazy_import():
     import torch
     from torchvision import _C as C
     _C = C
-    if hasattr(_C, "CUDA_VERSION") and torch.version.npu is not None:
+    if hasattr(_C, "CUDA_VERSION") and torch.version.cuda is not None:
         tv_version = str(_C.CUDA_VERSION)
         if int(tv_version) < 10000:
             tv_major = int(tv_version[0])
@@ -20,7 +20,7 @@ def _lazy_import():
         else:
             tv_major = int(tv_version[0:2])
             tv_minor = int(tv_version[3])
-        t_version = torch.version.npu
+        t_version = torch.version.cuda
         t_version = t_version.split('.')
         t_major = int(t_version[0])
         t_minor = int(t_version[1])

@@ -6,3 +6,4 @@ date, name, issue/requirement/DTS, reason
 2021-08-13 15:56:56, chenzeren, AR20210628319374, 支持API等价替换, MaxUnPool2d -> MaxUnpool2d
 2021-08-16 20:51:43, chenzeren, AR20210628319374, 等价替换需求用例补充
 2021-08-17 21:21:47, chenzeren, AR20210723197103, 支持单卡转多卡用例补充
+2021-09-02 17:02:58, name, issue/requirement/DTS, reason

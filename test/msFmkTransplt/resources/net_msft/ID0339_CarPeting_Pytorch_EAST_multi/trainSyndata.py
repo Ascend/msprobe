@@ -128,7 +128,7 @@ if __name__ == '__main__':
     train_loader_source_sampler = torch.utils.data.distributed.DistributedSampler(trainset_)
     train_loader_source_batch_size = int(args.batch_size / int(os.getenv('NPU_WORLD_SIZE')))
     train_loader_source = data.DataLoader(trainset_, batch_size=train_loader_source_batch_size,
-                                          shuffle=False, num_workers=args.num_workers, drop_last=True, pin_memory = False, sampler = train_loader_source_sampler)
+                                          shuffle=False, num_workers=args.num_workers, drop_last=True, pin_memory = True, sampler = train_loader_source_sampler)
 
     f_score = 0.6
     for epoch in range(args.epoch_iter):
