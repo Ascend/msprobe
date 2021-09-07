@@ -308,7 +308,7 @@ def main():
         batch_size=train_loader_batch_size,
         shuffle=False,
         num_workers=config['num_workers'],
-        drop_last=True, pin_memory = False, sampler = train_loader_sampler)
+        drop_last=True, pin_memory = True, sampler = train_loader_sampler)
     val_loader_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
     val_loader_batch_size = int(config['batch_size'] / int(os.getenv('NPU_WORLD_SIZE')))
     val_loader = torch.utils.data.DataLoader(
@@ -316,7 +316,7 @@ def main():
         batch_size=val_loader_batch_size,
         shuffle=False,
         num_workers=config['num_workers'],
-        drop_last=True, pin_memory = False, sampler = val_loader_sampler)
+        drop_last=True, pin_memory = True, sampler = val_loader_sampler)
 
     log = OrderedDict([
         ('epoch', []),

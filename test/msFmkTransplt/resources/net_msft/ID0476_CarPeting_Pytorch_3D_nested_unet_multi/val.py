@@ -93,7 +93,7 @@ def main():
         batch_size=val_loader_batch_size,
         shuffle=False,
         num_workers=config['num_workers'],
-        drop_last=True, pin_memory = False, sampler = val_loader_sampler)
+        drop_last=True, pin_memory = True, sampler = val_loader_sampler)
 
     avg_meter = AverageMeter()
 
