@@ -221,8 +221,14 @@ class ArgsModifyRule(RuleVisitor):
         if target_idx < 0:
             target_idx = self.__get_target_arg_idx(args)
         if 0 <= target_idx < len(args) and self.__need_modify(args[target_idx]):
-            args[target_idx] = self.__generate_new_arg(args[target_idx])
-            self._record_position(original_node, OperatorType.MODIFY,
+            if not self.arg_new:
+                args.pop(target_idx)
+                self._record_position(original_node, OperatorType.DELETE,
+                                      "delete the arg at position %s of function %s" %
+                                      (target_idx, self.func_name))
+            else:
+                args[target_idx] = self.__generate_new_arg(args[target_idx])
+                self._record_position(original_node, OperatorType.MODIFY,
                                   "change the arg at position %s of function %s to %s" %
                                   (target_idx, self.func_name, self.arg_new))
             return updated_node.with_changes(args=args)
