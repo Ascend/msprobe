@@ -229,8 +229,8 @@ class ArgsModifyRule(RuleVisitor):
             else:
                 args[target_idx] = self.__generate_new_arg(args[target_idx])
                 self._record_position(original_node, OperatorType.MODIFY,
-                                  "change the arg at position %s of function %s to %s" %
-                                  (target_idx, self.func_name, self.arg_new))
+                                      "change the arg at position %s of function %s to %s" %
+                                      (target_idx, self.func_name, self.arg_new))
             return updated_node.with_changes(args=args)
 
         return updated_node

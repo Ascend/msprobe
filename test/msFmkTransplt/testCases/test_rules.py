@@ -33,6 +33,7 @@ class TestRules(unittest.TestCase):
     def test_args_modify_rule(self):
         load_rule = self.rule_module.ArgsModifyRule('torch.load', '"npu:0"', -1, 'map_location', ['cpu'])
         normal_rule = self.rule_module.ArgsModifyRule('func', '"npu:0"', 0)
+        arg_delete_rule = self.rule_module.ArgsModifyRule('func', '', 1)
 
         load_cases = (
             # map_location not specified
@@ -59,6 +60,11 @@ class TestRules(unittest.TestCase):
                        ("funcA('cuda', args)", "funcA('cuda', args)"))
         for test_case in normal_case:
             self._check_modify(normal_rule, test_case[0], test_case[1])
+
+        arg_delete_cases = (("func('npu', args)", "func('npu', )"),
+                            ("funcA('npu', args)", "funcA('npu', args)"))
+        for test_case in arg_delete_cases:
+            self._check_modify(arg_delete_rule, test_case[0], test_case[1])
 
     def test_specify_device_insert_rule(self):
         rule_with_key_word = self.rule_module.InsertGlobalRule(["import key", "key.insert()"], "torch")
