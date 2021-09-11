@@ -157,7 +157,7 @@ class MsFmkTransplt(object):
     def get_main_file(self, args):
         if not hasattr(args, 'main'):
             return ''
-        if os.path.isfile(args.main):
+        if os.path.isfile(args.input):
             return os.path.basename(args.main)
         return os.path.relpath(args.main, args.input)
 

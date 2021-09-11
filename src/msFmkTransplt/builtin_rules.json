@@ -48,6 +48,12 @@
         "feature_switch": ["specify_device", "distributed"]
       },
       {
+        "func_name": "torch.device",
+        "arg_idx": 1,
+        "arg_new": "",
+        "feature_switch": ["specify_device", "distributed"]
+      },
+      {
         "func_name": "cuda",
         "arg_idx": 0,
         "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
