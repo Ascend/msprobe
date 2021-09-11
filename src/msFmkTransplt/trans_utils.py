@@ -94,6 +94,8 @@ def init_rule_to_list(key, rule_dict, rule_list, feature_switch):
 
 def get_special_rule(args):
     special_rule_list = [rule_module.PythonVersionConvertRule()]
+    if hasattr(args, 'amp_model'):
+        special_rule_list = [rule_module.InitapexRule(), rule_module.amp2apex(args.amp_model)]
     if hasattr(args, 'main'):
         special_rule_list.extend([rule_module.InitProcessGroupRule(),
                                   rule_module.DataLoaderRule(),

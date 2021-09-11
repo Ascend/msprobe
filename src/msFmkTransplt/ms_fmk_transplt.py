@@ -83,6 +83,8 @@ class MsFmkTransplt(object):
         parser.add_argument('-sim', '--similar', action='store_true',
                             help='Replaces certain unsupported APIs with functionally similar ones. '
                                  'Note that this may result in accuracy loss and performance degradation')
+        parser.add_argument('-a', '--amp_model', metavar='model', default='model', help='The variable name of the '
+                                                                                        'amp target model')
         subparsers = parser.add_subparsers(help='commands')
         self.__distributed_parser(subparsers)
         return parser.parse_args()
@@ -176,6 +178,8 @@ class MsFmkTransplt(object):
             if args.similar:
                 self.__copy_function_pack()
         except BaseException as exp:
+            import traceback
+            traceback.print_exc()
             translog.error(exp)
             return 1
 

@@ -187,7 +187,7 @@ class ModuleNameModifyRule(RuleVisitor):
         self.parent_module = parent_module
 
     def leave_Attribute(
-        self, original_node: "libcst.Attribute", updated_node: "libcst.Attribute"
+            self, original_node: "libcst.Attribute", updated_node: "libcst.Attribute"
     ) -> "libcst.BaseExpression":
         parent_full_name = self.get_full_name_for_node(original_node.value)
         if self.module_name == original_node.attr.value and parent_full_name == self.parent_module:
@@ -318,11 +318,18 @@ class InitProcessGroupRule(InsertGlobalRule):
     def visit_main_file(self, is_main_file):
         self.insert_flag = is_main_file
 
-    def visit_ImportAlias(self, node: "libcst.ImportAlias") -> Optional[bool]:
-        return False
 
-    def visit_ImportFrom(self, node: "libcst.ImportFrom") -> Optional[bool]:
-        return False
+class InitapexRule(InsertGlobalRule):
+    def __init__(self):
+        insert_content = ["from apex import amp"]
+        super(InitapexRule, self).__init__(insert_content, "")
+        self.insert_flag = False
+
+    def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
+        qualified_name = self.get_full_name_for_node(node)
+        if qualified_name == 'torch.cuda.amp.autocast':
+            self.insert_flag = True
+        return True
 
 
 class DataLoaderRule(RuleVisitor):
@@ -505,3 +512,207 @@ class DistributedDataParallelRule(RuleVisitor):
     def clean(self):
         self.insert_flag = False
         self.changes_info = []
+
+
+class MyScopeVisitor(libcst.CSTVisitor):
+    METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider, libcst.metadata.QualifiedNameProvider)
+
+    def __init__(self):
+        super(MyScopeVisitor, self).__init__()
+        self.loss_name = ''
+        self.optimizer_name = ''
+        self.scaler_name = ''
+        self.find_scaler = False
+        self.scale_dict = {}
+        self.step_dict = {}
+
+    def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        target = node.targets[0].target
+        if not m.matches(node.value, m.Call()):
+            return True
+        qualified_name = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, node.value))[0].name
+        if qualified_name == "torch.cuda.amp.GradScaler":
+            tmp_name = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, target))[0].name
+            self.scaler_name = tmp_name.split('>.')[-1]
+            self.find_scaler = True
+            self.optimizer_name = self.step_dict.get(self.scaler_name, '')
+            self.loss_name = self.scale_dict.get(self.scaler_name, '')
+        return True
+
+    def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
+        qualified_name = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, node))
+        if len(qualified_name) == 0 or len(node.args) == 0 or not hasattr(node.args[0].value, 'value'):
+            return True
+        value = node.args[0].value.value
+        qualified_name = qualified_name[0].name.split('>.')[-1]
+        if len(qualified_name.split('.')) != 2:
+            return True
+        key_name, func_name = qualified_name.split('.')
+        if func_name == 'scale':
+            self.scale_dict[key_name] = value
+            if self.find_scaler:
+                self.loss_name = self.scale_dict[self.scaler_name]
+        if func_name == 'step':
+            self.step_dict[key_name] = value
+            if self.find_scaler:
+                self.optimizer_name = self.step_dict[self.scaler_name]
+        return True
+
+
+class amp2apex(RuleVisitor):
+    '''
+        Convert torch.cuda.amp to apex.amp
+    '''
+    def __init__(self, model):
+        super(amp2apex, self).__init__()
+        self.scaler_name = ''
+        self.loss_name = ''
+        self.optimizer_name = ''
+        self.model_name = model
+        self.delete_update = False
+        self.delete_loss = False
+        self.delete_optimizer = False
+        self.delete_Gradscaler = False
+        self.find_optimizer = False
+        self.find_model = False
+        self.model_ddp = None
+
+    def visit_Module(self, node: "libcst.Module") -> Optional[bool]:
+        visitor = MyScopeVisitor()
+        wrapper = libcst.metadata.MetadataWrapper(node)
+        wrapper.visit(visitor)
+        self.loss_name = visitor.loss_name
+        self.optimizer_name = visitor.optimizer_name
+        self.scaler_name = visitor.scaler_name
+
+    def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        if not m.matches(node.value, m.Call()):
+            return True
+        if self.get_full_name_for_node(node.value) == "torch.cuda.amp.GradScaler":
+            self.delete_Gradscaler = True
+        return True
+
+    def __adapt_model_ddp(self, original_node, updated_nodes):
+        model_ddp_list = ['torch.nn.parallel.DistributedDataParallel', 'torch.nn.DataParallel']
+        if not m.matches(original_node.body[0], m.Assign(value=m.Call())) or \
+                self.get_full_name_for_node(original_node.body[0].value) not in model_ddp_list:
+            return
+        self.find_model = True
+        if self.find_optimizer:
+            self.find_optimizer = False
+            return
+        self.model_ddp = original_node
+        updated_nodes.pop()
+
+    def __generator_apex_initialize(self, original_node, updated_nodes):
+        if not m.matches(original_node.body[0], m.Assign(value=m.Call())):
+            return
+        target = original_node.body[0].targets[0].target
+        if self.get_full_name_for_node(target) != self.optimizer_name:
+            return
+        apex_initialize_statement = libcst.parse_statement(
+            '%s, %s = amp.initialize(%s, %s, opt_level="O2", loss_scale="32")'
+            % (self.model_name, self.optimizer_name, self.model_name, self.optimizer_name))
+        updated_nodes.append(apex_initialize_statement)
+        if self.find_model:
+            self.find_optimizer = True
+            self.find_model = False
+            updated_nodes.append(self.model_ddp)
+
+    def __remove_torch_cuda_amp(self, original_node, updated_nodes):
+        if not m.matches(original_node.body[0], m.Import()):
+            return
+        if self.get_full_name_for_node(original_node.body[0].names[0].name) == 'torch.cuda.amp':
+            updated_nodes.pop()
+
+    def __delete_loss(self, updated_nodes):
+        if self.delete_loss:
+            self.delete_loss = False
+            updated_nodes.pop()
+
+    def __delete_optimizer(self, updated_nodes):
+        if self.delete_optimizer:
+            self.delete_optimizer = False
+            apex_loss_statement = libcst.parse_statement(
+                'with amp.scale_loss(%s, %s) as scaled_loss:\n'
+                '   scaled_loss.backward()\n' % (self.loss_name, self.optimizer_name)
+            )
+            optimizer_statement = libcst.parse_statement('%s.step()' % (self.optimizer_name))
+            updated_nodes.pop()
+            updated_nodes.append(apex_loss_statement)
+            updated_nodes.append(optimizer_statement)
+
+    def __delete_Gradscaler(self, updated_nodes):
+        if self.delete_Gradscaler:
+            self.delete_Gradscaler = False
+            updated_nodes.pop()
+
+    def __delete_update(self, updated_nodes):
+        if self.delete_update:
+            self.delete_update = False
+            updated_nodes.pop()
+
+    def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
+        qualified_name = self.get_full_name_for_node(node)
+        scale_str = f'{self.scaler_name}.scale'
+        optimizer_str = f'{self.scaler_name}.step'
+        update_str = f'{self.scaler_name}.update'
+        if qualified_name == scale_str:
+            self.delete_loss = True
+        if qualified_name == optimizer_str:
+            self.delete_optimizer = True
+        if qualified_name == update_str:
+            self.delete_update = True
+        return True
+
+    def leave_SimpleStatementLine(self, original_node: "libcst.SimpleStatementLine",
+                                  updated_node: "libcst.SimpleStatementLine"
+                                  ) -> Union[
+        "libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
+
+        updated_nodes = [updated_node]
+
+        self.__generator_apex_initialize(original_node, updated_nodes)
+        self.__adapt_model_ddp(original_node, updated_nodes)
+        self.__delete_loss(updated_nodes)
+        self.__delete_optimizer(updated_nodes)
+        self.__delete_Gradscaler(updated_nodes)
+        self.__delete_update(updated_nodes)
+        self.__remove_torch_cuda_amp(original_node, updated_nodes)
+
+        if len(updated_nodes) != 0:
+            return libcst.FlattenSentinel(updated_nodes)
+        else:
+            return libcst.RemovalSentinel.REMOVE
+
+    def leave_Call(
+            self, original_node: "libcst.Call", updated_node: "libcst.Call"
+    ) -> "libcst.BaseExpression":
+        qualified_name = self.get_full_name_for_node(original_node)
+        model_ddp_list = ['torch.nn.parallel.DistributedDataParallel', 'torch.nn.DataParallel']
+        if qualified_name not in model_ddp_list:
+            return updated_node
+        args = []
+        return updated_node.with_changes(args=args)
+
+    def leave_With(self, original_node: "libcst.With", updated_node: "libcst.With") \
+            -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
+        item = original_node.items[0].item
+        if not m.matches(item, m.Call()):
+            return original_node
+        if self.get_full_name_for_node(item) == "torch.cuda.amp.autocast":
+            loss_statement = updated_node.body.body
+            return libcst.FlattenSentinel(loss_statement)
+        return original_node
+
+    def clean(self):
+        self.scaler_name = ''
+        self.loss_name = ''
+        self.optimizer_name = ''
+        self.delete_update = False
+        self.delete_loss = False
+        self.delete_optimizer = False
+        self.delete_Gradscaler = False
+        self.find_optimizer = False
+        self.find_model = False
+        self.model_ddp = None
