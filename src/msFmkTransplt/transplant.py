@@ -188,4 +188,3 @@ class CodeTransformer(libcst.CSTTransformer):
         for rule in self.rule_list:
             updated_node = rule.leave_With(original_node, updated_node)
         return updated_node
-
