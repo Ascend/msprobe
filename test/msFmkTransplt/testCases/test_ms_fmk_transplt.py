@@ -65,17 +65,7 @@ class TestMsFmkTransplt(unittest.TestCase):
         self.standard_py_file_list = []
         self.list_python_file(self.abs_input_path)
         self.has_error = False
-        src_list = ["src.msFmkTransplt"]
-        self.cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
-                                     omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
-        self.cov.start()
 
-    def tearDown(self):
-        self.cov.stop()
-        self.cov.save()
-        self.cov.combine()
-        self.cov.report()
-        self.cov.html_report(directory="./report")
 
     def list_python_file(self, path):
         files = os.listdir(path)
@@ -89,7 +79,6 @@ class TestMsFmkTransplt(unittest.TestCase):
                 self.standard_py_file_list.append(sub_file.replace(self.abs_input_path, self.standard_dir))
 
     def test_main(self):
-        return
         result_dict = transplt(self.abs_input_path, self.abs_output_path)
 
         self.assertFalse(TRANS_ERROR in result_dict.values())
@@ -210,7 +199,13 @@ if __name__ == '__main__':
         update_standard()
     else:
         out = io.BytesIO()
-        runner = xmlrunner.XMLTestRunner(output=out)
-        unittest.main(testRunner=runner, exit=False)
-        with open('./final.xml', 'wb') as report:
-            report.write(transform(out.getvalue()))
+        src_list = ["src.msFmkTransplt"]
+        cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
+                                     omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
+        cov.start()
+        unittest.main(exit=False)
+        cov.stop()
+        cov.save()
+        cov.combine()
+        cov.report()
+        cov.html_report(directory="./report")

@@ -14,21 +14,9 @@ sys.path.append(os.path.abspath("../../../src/msFmkTransplt"))
 class TestRules(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        src_list = ["src.msFmkTransplt.rule", "src.msFmkTransplt.ascend_function.similar_api"]
-        cls.cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
-                                    omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
-        cls.cov.start()
-
         import src.msFmkTransplt.rule as rule_module
         cls.rule_module = rule_module
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls.cov.stop()
-        cls.cov.save()
-        cls.cov.combine()
-        cls.cov.report()
-        cls.cov.xml_report(outfile="./coverage.xml")
 
     def test_args_modify_rule(self):
         load_rule = self.rule_module.ArgsModifyRule('torch.load', '"npu:0"', -1, 'map_location', ['cpu'])
