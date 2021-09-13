@@ -318,6 +318,12 @@ class InitProcessGroupRule(InsertGlobalRule):
     def visit_main_file(self, is_main_file):
         self.insert_flag = is_main_file
 
+    def visit_ImportAlias(self, node: "libcst.ImportAlias") -> Optional[bool]:
+        return False
+
+    def visit_ImportFrom(self, node: "libcst.ImportFrom") -> Optional[bool]:
+        return False
+
 
 class InitApexRule(InsertGlobalRule):
     def __init__(self):
@@ -330,6 +336,12 @@ class InitApexRule(InsertGlobalRule):
         if qualified_name == 'torch.cuda.amp.autocast':
             self.insert_flag = True
         return True
+
+    def visit_ImportAlias(self, node: "libcst.ImportAlias") -> Optional[bool]:
+        return False
+
+    def visit_ImportFrom(self, node: "libcst.ImportFrom") -> Optional[bool]:
+        return False
 
 
 class DataLoaderRule(RuleVisitor):
@@ -602,7 +614,7 @@ class Amp2Apex(RuleVisitor):
         """
         adjust the position between ddp(model) and optimizer declaration
         """
-        model_ddp_list = ['torch.nn.parallel.DistributedDataParallel', 'torch.nn.DataParallel']
+        model_ddp_list = ('torch.nn.parallel.DistributedDataParallel', 'torch.nn.DataParallel')
         if not m.matches(original_node.body[0], m.Assign(value=m.Call())) or \
                 self.get_full_name_for_node(original_node.body[0].value) not in model_ddp_list:
             return
@@ -617,10 +629,10 @@ class Amp2Apex(RuleVisitor):
         """
         Generate apex.amp initialization code, like model, optimizer = amp.initialize(model, optimizer)
         """
-        if not m.matches(original_node.body[0], m.Assign(value=m.Call())):
+        if not m.matches(original_node.body[0], m.Assign(value=m.Call())) or len(self.optimizer_name) == 0:
             return
         target = original_node.body[0].targets[0].target
-        if self.get_full_name_for_node(target) != self.optimizer_name or len(self.optimizer_name) == 0:
+        if self.get_full_name_for_node(target) != self.optimizer_name:
             return
         apex_initialize_statement = libcst.parse_statement(
             '%s, %s = amp.initialize(%s, %s, opt_level="O2", loss_scale="32")'

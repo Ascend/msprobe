@@ -84,7 +84,7 @@ class MsFmkTransplt(object):
                             help='Replaces certain unsupported APIs with functionally similar ones. '
                                  'Note that this may result in accuracy loss and performance degradation')
         parser.add_argument('-a', '--amp_model', metavar='model', default='', help='The variable name of the '
-                                                                                        'amp target model')
+                                                                                   'amp target model')
         subparsers = parser.add_subparsers(help='commands')
         self.__distributed_parser(subparsers)
         return parser.parse_args()
