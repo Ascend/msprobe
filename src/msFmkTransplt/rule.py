@@ -627,7 +627,7 @@ class Amp2Apex(RuleVisitor):
 
     def __generator_apex_initialize(self, original_node, updated_nodes):
         """
-        Generate apex.amp initialization code, like model, optimizer = amp.initialize(model, optimizer)
+        Generate apex.amp initialization code
         """
         if not m.matches(original_node.body[0], m.Assign(value=m.Call())) or len(self.optimizer_name) == 0:
             return
