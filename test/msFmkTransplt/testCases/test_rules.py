@@ -130,7 +130,8 @@ class TestRules(unittest.TestCase):
                       ("# this is old_str", "# this is old_str", "# this is old_str"),
                       ("\"\"\"this is old_str\"\"\"", "\"\"\"this is old_str\"\"\"", "\"\"\"this is new_str\"\"\""),
                       ("func('old_str:%s' % tmp)", "func('old_str:%s' % tmp)", "func('new_str:%s' % tmp)"),
-                      ("import old_str", "import old_str", "import old_str"))
+                      ("import old_str", "import old_str", "import old_str"),
+                      ("A = f'old_str{abc}'", "A = f'old_str{abc}'", "A = f'new_str{abc}'"))
 
         for test_case in test_cases:
             self._check_modify(strict_rule, test_case[0], test_case[1])

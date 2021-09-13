@@ -234,6 +234,17 @@ class ReplaceStringRule(RuleVisitor):
 
         return updated_node
 
+    def leave_FormattedStringText(
+            self, original_node: "libcst.FormattedStringText", updated_node: "libcst.FormattedStringText"
+    ) -> "libcst.BaseExpression":
+        if not self.strict and self.str_old in original_node.value:
+            new_value = original_node.value.replace(self.str_old, self.str_new)
+            self._record_position(original_node, OperatorType.MODIFY, "replace string \"%s\" with \"%s\"" %
+                                  (self.str_old, self.str_new))
+            return updated_node.with_changes(value=new_value)
+
+        return updated_node
+
 
 class ReplaceAttributeRule(RuleVisitor):
     def __init__(self, old_name, new_name):
