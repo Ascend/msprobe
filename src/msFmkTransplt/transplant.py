@@ -131,6 +131,13 @@ class CodeTransformer(libcst.CSTTransformer):
             updated_node = rule.leave_SimpleString(original_node, updated_node)
         return updated_node
 
+    def leave_FormattedStringText(
+        self, original_node: "libcst.FormattedStringText", updated_node: "libcst.FormattedStringText"
+    ) -> "libcst.BaseExpression":
+        for rule in self.rule_list:
+            updated_node = rule.leave_FormattedStringText(original_node, updated_node)
+        return updated_node
+
     def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
         for rule in self.rule_list:
             rule.visit_Call(node)
