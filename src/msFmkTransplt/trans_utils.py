@@ -94,7 +94,7 @@ def init_rule_to_list(key, rule_dict, rule_list, feature_switch):
 
 def get_special_rule(args):
     special_rule_list = [rule_module.PythonVersionConvertRule()]
-    if args.amp_model != "":
+    if args.amp_model:
         if hasattr(args, 'main'):
             special_rule_list.extend([rule_module.InitApexRule(), rule_module.Amp2Apex(args.amp_model, args.main)])
         else:

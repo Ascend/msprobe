@@ -178,8 +178,6 @@ class MsFmkTransplt(object):
             if args.similar:
                 self.__copy_function_pack()
         except BaseException as exp:
-            import traceback
-            traceback.print_exc()
             translog.error(exp)
             return 1
 
