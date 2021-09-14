@@ -90,6 +90,11 @@ class CodeTransformer(libcst.CSTTransformer):
                 rule.visit_main_file(is_main_file)
             rule.set_warp_visitor(self)
 
+    def visit_Module(self, node: "libcst.Module") -> Optional[bool]:
+        for rule in self.rule_list:
+            rule.visit_Module(node)
+        return True
+
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         for rule in self.rule_list:
             rule.visit_Assign(node)
@@ -183,4 +188,10 @@ class CodeTransformer(libcst.CSTTransformer):
     ) -> "libcst.BaseExpression":
         for rule in self.rule_list:
             updated_node = rule.leave_IfExp(original_node, updated_node)
+        return updated_node
+
+    def leave_With(self, original_node: "libcst.With", updated_node: "libcst.With") \
+            -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
+        for rule in self.rule_list:
+            updated_node = rule.leave_With(original_node, updated_node)
         return updated_node
