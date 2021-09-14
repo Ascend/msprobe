@@ -10,9 +10,7 @@ import sys
 import unittest
 import unittest.mock as mock
 import difflib
-import xmlrunner
 import io
-from xmlrunner.extra.xunit_plugin import transform
 from multiprocessing import Process
 from multiprocessing import Manager
 from test_rules import TestRules as TestBuildRules
@@ -21,8 +19,6 @@ import coverage
 
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/msFmkTransplt"))
-
-from src.msFmkTransplt.ms_fmk_transplt import MsFmkTransplt
 
 TRANS_ERROR=1
 
@@ -40,6 +36,7 @@ class Args(object):
 
 
 def run(mock_args, net_name, result_dict, output_path):
+    from src.msFmkTransplt.ms_fmk_transplt import MsFmkTransplt
     try:
         ms_fmk_transplt = MsFmkTransplt()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
@@ -54,6 +51,7 @@ def run(mock_args, net_name, result_dict, output_path):
 class TestMsFmkTransplt(unittest.TestCase):
 
     def setUp(self):
+        import src.msFmkTransplt.ms_fmk_transplt
         self.abs_input_path = os.path.abspath('../resources/net')
         shutil.rmtree("../test_result/", ignore_errors=True)
         os.makedirs("../test_result/net_msft", exist_ok=True)
@@ -65,17 +63,7 @@ class TestMsFmkTransplt(unittest.TestCase):
         self.standard_py_file_list = []
         self.list_python_file(self.abs_input_path)
         self.has_error = False
-        src_list = ["src.msFmkTransplt"]
-        self.cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
-                                     omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
-        self.cov.start()
 
-    def tearDown(self):
-        self.cov.stop()
-        self.cov.save()
-        self.cov.combine()
-        self.cov.report()
-        self.cov.xml_report(outfile="./coverage.xml")
 
     def list_python_file(self, path):
         files = os.listdir(path)
@@ -208,8 +196,13 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        out = io.BytesIO()
-        runner = xmlrunner.XMLTestRunner(output=out)
-        unittest.main(testRunner=runner, exit=False)
-        with open('./final.xml', 'wb') as report:
-            report.write(transform(out.getvalue()))
+        src_list = ["src.msFmkTransplt"]
+        cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
+                                     omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
+        cov.start()
+        unittest.main(exit=False)
+        cov.stop()
+        cov.save()
+        cov.combine()
+        cov.report()
+        cov.html_report(directory="./report")

@@ -14,21 +14,9 @@ sys.path.append(os.path.abspath("../../../src/msFmkTransplt"))
 class TestRules(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        src_list = ["src.msFmkTransplt.rule", "src.msFmkTransplt.ascend_function.similar_api"]
-        cls.cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
-                                    omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
-        cls.cov.start()
-
         import src.msFmkTransplt.rule as rule_module
         cls.rule_module = rule_module
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls.cov.stop()
-        cls.cov.save()
-        cls.cov.combine()
-        cls.cov.report()
-        cls.cov.xml_report(outfile="./coverage.xml")
 
     def test_args_modify_rule(self):
         load_rule = self.rule_module.ArgsModifyRule('torch.load', '"npu:0"', -1, 'map_location', ['cpu'])
@@ -385,11 +373,23 @@ def functionC(args):
         max_unpool2d = sim_api.MaxUnpool2d(kernel_size=(2, 2))
         result = max_unpool2d(in_tensor, [1, 3])
         self.assertTrue(out_tensor.shape == result.shape)
+        out_tensor = F.max_unpool2d(in_tensor, indices=torch.Tensor([[[[1, 3]]]]).long(), kernel_size=(2, 2), output_size=[2, 3])
+        result = max_unpool2d(in_tensor, [1, 3], output_size=[2, 3])
+        self.assertTrue(out_tensor.shape == result.shape)
+        out_tensor = F.max_unpool2d(in_tensor, indices=torch.Tensor([[[[1, 3]]]]).long(), kernel_size=(2, 2), output_size=[1, 1, 2, 3])
+        result = max_unpool2d(in_tensor, [1, 3], output_size=[1, 1, 2, 3])
+        self.assertTrue(out_tensor.shape == result.shape)
 
         in_tensor = torch.Tensor([[[1, 2]]])
         out_tensor = F.max_unpool1d(in_tensor, indices=torch.Tensor([[[1,3]]]).long(), kernel_size=2)
         max_unpool1d = sim_api.MaxUnpool1d(kernel_size=2)
         result = max_unpool1d(in_tensor, [1, 3])
+        self.assertTrue(out_tensor.shape == result.shape)
+        result = max_unpool1d(in_tensor, [1, 3], [4])
+        out_tensor = F.max_unpool1d(in_tensor, indices=torch.Tensor([[[1,3]]]).long(), kernel_size=2, output_size=[4])
+        self.assertTrue(out_tensor.shape == result.shape)
+        result = max_unpool1d(in_tensor, [1, 3], [1, 1, 4])
+        out_tensor = F.max_unpool1d(in_tensor, indices=torch.Tensor([[[1,3]]]).long(), kernel_size=2, output_size=[1, 1, 4])
         self.assertTrue(out_tensor.shape == result.shape)
 
         in_tensor = torch.randn((4, 4, 5, 5, 5))
