@@ -10,9 +10,7 @@ import sys
 import unittest
 import unittest.mock as mock
 import difflib
-import xmlrunner
 import io
-from xmlrunner.extra.xunit_plugin import transform
 from multiprocessing import Process
 from multiprocessing import Manager
 from test_rules import TestRules as TestBuildRules
@@ -21,8 +19,6 @@ import coverage
 
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/msFmkTransplt"))
-
-from src.msFmkTransplt.ms_fmk_transplt import MsFmkTransplt
 
 TRANS_ERROR=1
 
@@ -40,6 +36,7 @@ class Args(object):
 
 
 def run(mock_args, net_name, result_dict, output_path):
+    from src.msFmkTransplt.ms_fmk_transplt import MsFmkTransplt
     try:
         ms_fmk_transplt = MsFmkTransplt()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
@@ -54,6 +51,7 @@ def run(mock_args, net_name, result_dict, output_path):
 class TestMsFmkTransplt(unittest.TestCase):
 
     def setUp(self):
+        import src.msFmkTransplt.ms_fmk_transplt
         self.abs_input_path = os.path.abspath('../resources/net')
         shutil.rmtree("../test_result/", ignore_errors=True)
         os.makedirs("../test_result/net_msft", exist_ok=True)
@@ -198,7 +196,6 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        out = io.BytesIO()
         src_list = ["src.msFmkTransplt"]
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
                                      omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
