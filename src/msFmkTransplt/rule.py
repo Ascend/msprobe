@@ -483,6 +483,13 @@ class DistributedDataParallelRule(RuleVisitor):
         self.insert_flag = False
         self.model_target = model
         self.amp_flag = amp_flag
+        self.optimizer_name = ''
+
+    def visit_Module(self, node: "libcst.Module") -> Optional[bool]:
+        visitor = ScaleScopeVisitor()
+        wrapper = libcst.metadata.MetadataWrapper(node)
+        wrapper.visit(visitor)
+        self.optimizer_name = visitor.optimizer_name
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         target = node.targets[0].target
@@ -510,7 +517,7 @@ class DistributedDataParallelRule(RuleVisitor):
         if not self.insert_flag:
             return updated_node
         self.insert_flag = False
-        if self.amp_flag:
+        if self.amp_flag and self.optimizer_name:
             return updated_node
         to_device_statement = libcst.parse_statement(
             "%s = %s.to(f'npu:{NPU_CALCULATE_DEVICE}')" % (self.model_target, self.model_target))
@@ -526,6 +533,7 @@ class DistributedDataParallelRule(RuleVisitor):
 
     def clean(self):
         self.insert_flag = False
+        self.optimizer_name = ''
         self.changes_info = []
 
 
@@ -614,6 +622,8 @@ class Amp2Apex(RuleVisitor):
         """
         adjust the position between ddp(model) and optimizer declaration
         """
+        if not self.scaler_name:
+            return
         model_ddp_list = ('torch.nn.parallel.DistributedDataParallel', 'torch.nn.DataParallel')
         if not m.matches(original_node.body[0], m.Assign(value=m.Call())) or \
                 self.get_full_name_for_node(original_node.body[0].value) not in model_ddp_list:
@@ -739,6 +749,8 @@ class Amp2Apex(RuleVisitor):
     def leave_Call(
             self, original_node: "libcst.Call", updated_node: "libcst.Call"
     ) -> "libcst.BaseExpression":
+        if not self.scaler_name:
+            return updated_node
         qualified_name = self.get_full_name_for_node(original_node)
         model_ddp_list = ('torch.nn.parallel.DistributedDataParallel', 'torch.nn.DataParallel')
         if qualified_name not in model_ddp_list:
