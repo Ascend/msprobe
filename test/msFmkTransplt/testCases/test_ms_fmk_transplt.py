@@ -203,6 +203,7 @@ if __name__ == '__main__':
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
                                      omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
         if len(sys.argv) > 1 and sys.argv[1] == 'mr':
+            del sys.argv[1]
             out = io.BytesIO()
             runner = xmlrunner.XMLTestRunner(output=out)
             cov.start()
