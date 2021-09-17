@@ -13,6 +13,8 @@ import difflib
 import io
 from multiprocessing import Process
 from multiprocessing import Manager
+
+from xmlrunner import xmlrunner
 from xmlrunner.extra.xunit_plugin import transform
 from test_rules import TestRules as TestBuildRules
 
@@ -197,19 +199,26 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        out = io.BytesIO()
         src_list = ["src.msFmkTransplt"]
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
                                      omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
-        cov.start()
-        unittest.main(output=out, exit=False)
-        cov.stop()
-        with open('./final.xml', 'wb') as report:
-            report.write(transform(out.getvalue()))
-        cov.save()
-        cov.combine()
-        cov.report()
         if len(sys.argv) > 1 and sys.argv[1] == 'mr':
+            out = io.BytesIO()
+            runner = xmlrunner.XMLTestRunner(output=out)
+            cov.start()
+            unittest.main(output=out, exit=False)
+            cov.stop()
+            with open('./final.xml', 'wb') as report:
+                report.write(transform(out.getvalue()))
+            cov.save()
+            cov.combine()
+            cov.report()
             cov.xml_report(outfile="./coverage.xml")
         else:
+            cov.start()
+            unittest.main(exit=False)
+            cov.stop()
+            cov.save()
+            cov.combine()
+            cov.report()
             cov.html_report(directory="./report")
