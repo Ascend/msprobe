@@ -14,7 +14,7 @@ import io
 from multiprocessing import Process
 from multiprocessing import Manager
 
-from xmlrunner import xmlrunner
+import xmlrunner
 from xmlrunner.extra.xunit_plugin import transform
 from test_rules import TestRules as TestBuildRules
 
