@@ -206,7 +206,7 @@ if __name__ == '__main__':
             out = io.BytesIO()
             runner = xmlrunner.XMLTestRunner(output=out)
             cov.start()
-            unittest.main(output=out, exit=False)
+            unittest.main(testRunner=runner, exit=False)
             cov.stop()
             with open('./final.xml', 'wb') as report:
                 report.write(transform(out.getvalue()))
