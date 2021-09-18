@@ -388,10 +388,10 @@ class DataLoaderRule(RuleVisitor):
     ]:
         if not (self.insert_flag and m.matches(original_node, m.Assign(value=m.Call()))):
             return updated_node
-        args = original_node.value.args
+        args = updated_node.value.args
         self.dataloader_target = self.get_full_name_for_node(original_node.targets[0].target)
         self.dataloader_targets.append(self.dataloader_target)
-        new_value = original_node.value.with_changes(args=self.__adapt_dataloader_args(args))
+        new_value = updated_node.value.with_changes(args=self.__adapt_dataloader_args(args))
         self._record_position(original_node, OperatorType.MODIFY, 'adapt args for DataLoader')
         return updated_node.with_changes(value=new_value)
 
@@ -402,7 +402,10 @@ class DataLoaderRule(RuleVisitor):
         for arg in args:
             # train_set arg
             if not arg.keyword or arg.keyword.value == 'dataset':
-                self.data_set_target = self.get_code_for_node(arg.value)
+                value = self.get_code_for_node(arg.value)
+                # escape **params
+                if not value.startswith('*'):
+                    self.data_set_target = value
                 new_args.append(arg)
                 continue
             # batch_size arg
@@ -454,7 +457,7 @@ class DataLoaderRule(RuleVisitor):
         if 'epoch' in for_target or 'epoch' in iter_target:
             set_epoch_statements, insert_len = self.__generate_set_epoch_statement(original_node, for_target)
             if set_epoch_statements:
-                body = set_epoch_statements + list(original_node.body.body)
+                body = set_epoch_statements + list(updated_node.body.body)
                 new_body = libcst.IndentedBlock(body=tuple(body), header=original_node.body.header,
                                                 indent=original_node.body.indent, footer=original_node.body.footer)
                 original_position = self.get_metadata(libcst.metadata.PositionProvider, original_node.body.body[0])
