@@ -377,7 +377,7 @@ class DataLoaderRule(RuleVisitor):
 
     def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
         qualified_name = self.get_full_name_for_node(node)
-        if qualified_name == 'torch.utils.data.DataLoader':
+        if qualified_name in ('torch.utils.data.DataLoader', 'torch.utils.data.dataloader.DataLoader'):
             self.insert_flag = True
         return True
 
@@ -402,10 +402,9 @@ class DataLoaderRule(RuleVisitor):
         for arg in args:
             # train_set arg
             if not arg.keyword or arg.keyword.value == 'dataset':
-                value = self.get_code_for_node(arg.value)
                 # escape **params
-                if not value.startswith('*'):
-                    self.data_set_target = value
+                if not arg.star.startswith('*'):
+                    self.data_set_target = self.get_code_for_node(arg.value)
                 new_args.append(arg)
                 continue
             # batch_size arg
