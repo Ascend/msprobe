@@ -33,6 +33,7 @@ class Args(object):
         self.specify_device = False
         self.device_id = 0
         self.similar = True
+        self.amp_model = ''
         if main:
             self.main = main
             self.target_model = target_model
