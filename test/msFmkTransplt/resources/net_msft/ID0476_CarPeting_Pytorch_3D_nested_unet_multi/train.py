@@ -371,7 +371,7 @@ def main():
             print("=> early stopping")
             break
 
-        torch.cuda.empty_cache()
+        torch.npu.empty_cache()
 
 
 if __name__ == '__main__':

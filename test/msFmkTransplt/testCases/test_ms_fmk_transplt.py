@@ -33,6 +33,7 @@ class Args(object):
         self.specify_device = False
         self.device_id = 0
         self.similar = True
+        self.amp_model = ''
         if main:
             self.main = main
             self.target_model = target_model
@@ -207,7 +208,7 @@ if __name__ == '__main__':
             out = io.BytesIO()
             runner = xmlrunner.XMLTestRunner(output=out)
             cov.start()
-            unittest.main(testRunner=runner, exit=False)
+            result = unittest.main(testRunner=runner, exit=False)
             cov.stop()
             with open('./final.xml', 'wb') as report:
                 report.write(transform(out.getvalue()))
@@ -217,9 +218,11 @@ if __name__ == '__main__':
             cov.xml_report(outfile="./coverage.xml")
         else:
             cov.start()
-            unittest.main(exit=False)
+            result = unittest.main(exit=False)
             cov.stop()
             cov.save()
             cov.combine()
             cov.report()
             cov.html_report(directory="./report")
+        if (len(result.result.failures) + len(result.result.errors)) > 0:
+            exit(1)
