@@ -149,7 +149,7 @@ if is_train is True:
         tims = time.time()
         for i, (images, labels) in enumerate(train_loader):
             if is_mixup:
-                inputs, targets_a, targets_b, lam = mixup_data(images.cuda(), labels.cuda(), alpha=1.0)
+                inputs, targets_a, targets_b, lam = mixup_data(images.npu(), labels.npu(), alpha=1.0)
                 inputs, targets_a, targets_b = map(Variable, (inputs,
                                                               targets_a, targets_b))
                 outputs = model(inputs)
@@ -158,9 +158,9 @@ if is_train is True:
                 loss.backward()
                 optimizer.step()
             else:
-                images = Variable(images.cuda())
+                images = Variable(images.npu())
                 # print(images.data)
-                labels = Variable(labels.cuda())
+                labels = Variable(labels.npu())
                 # Forward + Backward + Optimize
                 optimizer.zero_grad()
                 outputs = model(images)

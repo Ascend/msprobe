@@ -125,9 +125,9 @@ if is_train is True:
         model.train()
         tims = time.time()
         for i, (images, labels) in enumerate(train_loader):
-            images = Variable(images.cuda())
+            images = Variable(images.npu())
             # print(images.data)
-            labels = Variable(labels.cuda())
+            labels = Variable(labels.npu())
 
             # Forward + Backward + Optimize
             optimizer.zero_grad()
