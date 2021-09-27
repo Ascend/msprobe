@@ -231,7 +231,7 @@ def train(data_loader):
             self._check_modify(rule, test_case[0], test_case[1])
 
     def test_distributed_data_parallel_rule(self):
-        rule = self.rule_module.DistributedDataParallelRule('model')
+        rule = self.rule_module.DistributedDataParallelRule('model', '')
 
         test_cases = (
             (
