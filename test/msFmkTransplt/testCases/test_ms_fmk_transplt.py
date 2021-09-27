@@ -224,5 +224,5 @@ if __name__ == '__main__':
             cov.combine()
             cov.report()
             cov.html_report(directory="./report")
-        if result.result.errors > 0:
+        if len(result.result.errors) > 0:
             exit(1)
