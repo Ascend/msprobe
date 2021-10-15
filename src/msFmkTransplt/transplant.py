@@ -21,7 +21,8 @@ class Transplant(object):
         self.rule_list = rule_list
         self.main_file = main_file
 
-    def __need_analysis(self, file, commonprefix):
+    @staticmethod
+    def __need_analysis(file, commonprefix):
         if file.endswith('.py'):
             return True
         translog.info('%s is not a python script, skip.' % os.path.relpath(file, commonprefix))
@@ -130,14 +131,14 @@ class CodeTransformer(libcst.CSTTransformer):
         return updated_node
 
     def leave_SimpleString(
-        self, original_node: "libcst.SimpleString", updated_node: "libcst.SimpleString"
+            self, original_node: "libcst.SimpleString", updated_node: "libcst.SimpleString"
     ) -> "libcst.BaseExpression":
         for rule in self.rule_list:
             updated_node = rule.leave_SimpleString(original_node, updated_node)
         return updated_node
 
     def leave_FormattedStringText(
-        self, original_node: "libcst.FormattedStringText", updated_node: "libcst.FormattedStringText"
+            self, original_node: "libcst.FormattedStringText", updated_node: "libcst.FormattedStringText"
     ) -> "libcst.BaseExpression":
         for rule in self.rule_list:
             updated_node = rule.leave_FormattedStringText(original_node, updated_node)
@@ -168,7 +169,7 @@ class CodeTransformer(libcst.CSTTransformer):
         return updated_node
 
     def leave_Assign(
-        self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
+            self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
     ) -> Union[
         "libcst.BaseSmallStatement", FlattenSentinel["libcst.BaseSmallStatement"], RemovalSentinel
     ]:
@@ -184,7 +185,7 @@ class CodeTransformer(libcst.CSTTransformer):
         return updated_node
 
     def leave_IfExp(
-        self, original_node: "libcst.IfExp", updated_node: "libcst.IfExp"
+            self, original_node: "libcst.IfExp", updated_node: "libcst.IfExp"
     ) -> "libcst.BaseExpression":
         for rule in self.rule_list:
             updated_node = rule.leave_IfExp(original_node, updated_node)

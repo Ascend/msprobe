@@ -48,8 +48,8 @@ class InsertGlobalRule(RuleVisitor):
             insert_len += content.count("\n") + 1 if content.count("\n") > 0 else 1
         for i, body_item in enumerate(updated_node.body):
             if self.insert_flag and self.__verify_insert_position(body_item):
-                new_body = new_body + [libcst.parse_statement(content, config=original_node.config_for_parsing)
-                                       for content in self.insert_content]
+                for content in self.insert_content:
+                    new_body.append(libcst.parse_statement(content, config=original_node.config_for_parsing))
                 original_index = min(i, len(original_node.body) - 1)
                 original_position = self.get_metadata(libcst.metadata.PositionProvider,
                                                       original_node.body[original_index])
@@ -64,7 +64,8 @@ class InsertGlobalRule(RuleVisitor):
         )
         return updated_node
 
-    def __verify_insert_position(self, body_item):
+    @staticmethod
+    def __verify_insert_position(body_item):
         if not isinstance(body_item, libcst.SimpleStatementLine):
             return True
         if isinstance(body_item.body[0], (libcst.Import, libcst.ImportFrom, libcst.ImportStar)):
@@ -119,7 +120,8 @@ class FuncNameModifyRule(RuleVisitor):
             return self.old_name == full_func_name
         return self.old_name == full_func_name.split(".")[-1]
 
-    def __get_value_of_attr(self, body):
+    @staticmethod
+    def __get_value_of_attr(body):
         if isinstance(body, libcst.Attribute):
             return body.attr.value
         return body.value
@@ -362,9 +364,9 @@ class InitApexRule(InsertGlobalRule):
 
 
 class DataLoaderRule(RuleVisitor):
-    '''
+    """
     wraper dataset with DistributedSampler.
-    '''
+    """
 
     def __init__(self):
         super(DataLoaderRule, self).__init__()
@@ -415,7 +417,9 @@ class DataLoaderRule(RuleVisitor):
                 arg = arg.with_changes(value=libcst.Name(arg_change_dict.get(arg.keyword.value)))
                 arg_change_dict.pop(arg.keyword.value)
             new_args.append(arg)
-        added_args = [libcst.Arg(keyword=libcst.Name(k), value=libcst.Name(v)) for k, v in arg_change_dict.items()]
+        added_args = []
+        for k, v in arg_change_dict.items():
+            added_args.append(libcst.Arg(keyword=libcst.Name(k), value=libcst.Name(v)))
         new_args.extend(added_args)
         return new_args
 
@@ -471,16 +475,22 @@ class DataLoaderRule(RuleVisitor):
     def __generate_set_epoch_statement(self, node, epoch_target):
         scope = self.get_metadata(libcst.metadata.ScopeProvider, node)
         # train_loader assign in scope
-        set_epoch_statements = [libcst.parse_statement("%s.sampler.set_epoch(%s)" % (target, epoch_target))
-                                for target in self.dataloader_targets if target in scope]
+        set_epoch_statements = []
+        for target in self.dataloader_targets:
+            if target in scope:
+                set_epoch_statements.append(libcst.parse_statement("%s.sampler.set_epoch(%s)" % (target, epoch_target)))
         if set_epoch_statements:
             return set_epoch_statements, len(set_epoch_statements)
         # variable name contains loader
-        maybe_dataloader_variables = [assign.name for assign in scope.assignments if 'loader' in assign.name]
-        maybe_set_epoch_statements = [libcst.parse_statement(
-            'if isinstance(%s, torch.utils.data.DataLoader):\n    %s.sampler.set_epoch(%s)' % (
-                dataloader_variable, dataloader_variable, epoch_target)) for
-            dataloader_variable in maybe_dataloader_variables]
+        maybe_dataloader_variables = []
+        for assign in scope.assignments:
+            if 'loader' in assign.name:
+                maybe_dataloader_variables.append(assign.name)
+        maybe_set_epoch_statements = []
+        for dataloader_variable in maybe_dataloader_variables:
+            maybe_set_epoch_statements.append(libcst.parse_statement(
+                'if isinstance(%s, torch.utils.data.DataLoader):\n    %s.sampler.set_epoch(%s)' % (
+                    dataloader_variable, dataloader_variable, epoch_target)))
         return maybe_set_epoch_statements, len(maybe_set_epoch_statements) * 2
 
     def clean(self):
@@ -513,7 +523,9 @@ class DistributedDataParallelRule(RuleVisitor):
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         target = node.targets[0].target
         if hasattr(target, 'elements'):
-            target_pure_full_names = [self.get_full_name_for_node(element.value) for element in target.elements]
+            target_pure_full_names = []
+            for element in target.elements:
+                target_pure_full_names.append(self.get_full_name_for_node(element.value))
             if self.model_target in target_pure_full_names:
                 self.insert_flag = True
         else:
@@ -604,9 +616,10 @@ class ScaleScopeVisitor(libcst.CSTVisitor):
 
 
 class Amp2Apex(RuleVisitor):
-    '''
-        Convert torch.cuda.amp to apex.amp
-    '''
+    """
+    Convert torch.cuda.amp to apex.amp
+    """
+
     def __init__(self, model, main_name):
         super(Amp2Apex, self).__init__()
         self.scaler_name = ''
