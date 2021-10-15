@@ -22,13 +22,13 @@ class MsFmkTransplt(object):
         self.rule_list = []
 
     def __para_check_valid(self, args):
-        input = os.path.realpath(args.input)
+        input_path = os.path.realpath(args.input)
         output = os.path.realpath(args.output)
 
-        if not os.path.exists(input):
+        if not os.path.exists(input_path):
             raise ValueError('Input %s does not exist!' % args.input)
 
-        if not os.access(input, os.R_OK):
+        if not os.access(input_path, os.R_OK):
             raise PermissionError('Input %s is not readable!' % args.input)
 
         if not os.path.isdir(output):
@@ -44,7 +44,8 @@ class MsFmkTransplt(object):
         self.__check_custom_rule_param_valid(args)
         self.__check_distributed_rule_param_valid(args)
 
-    def __check_custom_rule_param_valid(self, args):
+    @staticmethod
+    def __check_custom_rule_param_valid(args):
         if not args.rule:
             return
         rule = os.path.realpath(args.rule)
@@ -54,7 +55,8 @@ class MsFmkTransplt(object):
         if not os.access(rule, os.R_OK):
             raise PermissionError('Custom rule file %s is not readable!' % args.rule)
 
-    def __check_distributed_rule_param_valid(self, args):
+    @staticmethod
+    def __check_distributed_rule_param_valid(args):
         if not hasattr(args, 'main'):
             return
         main_file = os.path.realpath(args.main)
@@ -89,7 +91,8 @@ class MsFmkTransplt(object):
         self.__distributed_parser(subparsers)
         return parser.parse_args()
 
-    def __distributed_parser(self, subparsers):
+    @staticmethod
+    def __distributed_parser(subparsers):
         distributed_parser = subparsers.add_parser('distributed',
                                                    help='Specified this argument only when you want to transplant '
                                                         'a single GPU script to a distributed NPU script')
@@ -156,7 +159,8 @@ class MsFmkTransplt(object):
         if self.custom_rule_file:
             self.rule_list = utils.get_custom_rule(self.custom_rule_file, self.rule_list)
 
-    def get_main_file(self, args):
+    @staticmethod
+    def get_main_file(args):
         if not hasattr(args, 'main'):
             return ''
         if os.path.isfile(args.input):

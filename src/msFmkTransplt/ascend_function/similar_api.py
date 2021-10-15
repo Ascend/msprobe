@@ -27,22 +27,22 @@ def max_unpool2d(input, indices, kernel_size, stride=None, padding=0, output_siz
     but the output content will be different.
 
     Args:
-        The description of argument refers to torch.nn.functional.max_unpool2d
+    The description of argument refers to torch.nn.functional.max_unpool2d
 
     Returns:
-        The output will be different like this:
-        [[1,2]] -> torch.nn.functional.max_unpool1d -> [[1,0,0,2], [0,0,0,0]]
-        [[1,2]] -> ascend_function.similar_api.max_unpool1d -> [1,1,2,2], [1,1,2,2]]
+    The output will be different like this:
+    [[1,2]] -> torch.nn.functional.max_unpool1d -> [[1,0,0,2], [0,0,0,0]]
+    [[1,2]] -> ascend_function.similar_api.max_unpool1d -> [1,1,2,2], [1,1,2,2]]
     """
     _kernel_size = _pair(kernel_size)
     if stride is not None:
         _stride = _pair(stride)
     else:
         _stride = _kernel_size
-    padding = _pair(padding)
+    padding_pair = _pair(padding)
     if output_size is None:
-        _size = ((input.shape[2] - 1) * _stride[0] + _kernel_size[0] - 2 * padding[0],
-                 (input.shape[3] - 1) * _stride[1] + _kernel_size[1] - 2 * padding[1])
+        _size = ((input.shape[2] - 1) * _stride[0] + _kernel_size[0] - 2 * padding_pair[0],
+                 (input.shape[3] - 1) * _stride[1] + _kernel_size[1] - 2 * padding_pair[1])
     elif len(output_size) == 2:
         _size = (output_size[0], output_size[1])
     elif len(output_size) == 4:
@@ -59,21 +59,21 @@ def max_unpool1d(input, indices, kernel_size, stride=None, padding=0, output_siz
     but the output content will be different.
 
     Args:
-        The description of arguments refers to torch.nn.functional.max_unpool1d
+    The description of arguments refers to torch.nn.functional.max_unpool1d
 
     Returns:
-        The output will be different like this:
-        [[1,2]] -> torch.nn.functional.max_unpool1d -> [[1,0,0,2]]
-        [[1,2]] -> ascend_function.similar_api.max_unpool1d -> [1,1,2,2]]
+    The output will be different like this:
+    [[1,2]] -> torch.nn.functional.max_unpool1d -> [[1,0,0,2]]
+    [[1,2]] -> ascend_function.similar_api.max_unpool1d -> [1,1,2,2]]
     """
     _kernel_size = _single(kernel_size)
     if stride is not None:
         _stride = _single(stride)
     else:
         _stride = kernel_size
-    padding = _single(padding)
+    padding_single = _single(padding)
     if output_size is None:
-        _size = (input.shape[2] - 1) * _stride[0] + _kernel_size[0] - 2 * padding[0]
+        _size = (input.shape[2] - 1) * _stride[0] + _kernel_size[0] - 2 * padding_single[0]
     elif len(output_size) == 1:
         _size = output_size[0]
     elif len(output_size) == 3:
@@ -89,10 +89,10 @@ def repeat_interleave(self, repeats, dim=None):
     Alternative implementation of torch.repeat_interleave to ensure consistent output,
     but the efficiency may decrease.
     Args:
-        The description of arguments refers to torch.repeat_interleave
+    The description of arguments refers to torch.repeat_interleave
 
     Returns:
-        The description of return value refers to torch.repeat_interleave
+    The description of return value refers to torch.repeat_interleave
     """
     if not isinstance(repeats, (int, torch.Tensor)):
         raise RuntimeError("repeats must be int or Tensor")
@@ -161,10 +161,10 @@ def pad(input, pad, mode='constant', value=0):
     Use to replace torch.nn.functional.pad.
     Function pad on npu now only support constant mode and 4-dim or 5-dim tensor.
     Args:
-        Refers to torch.nn.functional.pad.
+    Refers to torch.nn.functional.pad.
 
     Returns:
-        pad result on constant mode
+    pad result on constant mode
     """
     sub_dim = 4 - input.dim()
     if sub_dim <= 0:
@@ -190,7 +190,7 @@ def get_device_properties(device):
     torch.npu.get_device_properties is not support for the time being.
 
     Returns:
-        Class StubDeviceProperties
+    Class StubDeviceProperties
     """
     return StubDeviceProperties()
 
@@ -223,15 +223,15 @@ class Conv3d(torch.nn.Conv3d):
                  padding=0, dilation=1, groups=1,
                  bias=True, padding_mode='zeros'):
         kernel_size = _triple(kernel_size)
-        stride = _triple(stride)
-        padding = _triple(padding)
-        dilation = _triple(dilation)
-        kernel_size = (kernel_size[0] + (dilation[0] - 1) * (kernel_size[0] - 1),
-                       kernel_size[1] + (dilation[1] - 1) * (kernel_size[1] - 1),
-                       kernel_size[2] + (dilation[2] - 1) * (kernel_size[2] - 1))
+        stride_triple = _triple(stride)
+        padding_triple = _triple(padding)
+        dilation_triple = _triple(dilation)
+        kernel_size = (kernel_size[0] + (dilation_triple[0] - 1) * (kernel_size[0] - 1),
+                       kernel_size[1] + (dilation_triple[1] - 1) * (kernel_size[1] - 1),
+                       kernel_size[2] + (dilation_triple[2] - 1) * (kernel_size[2] - 1))
         dilation = (1, 1, 1)
         super(Conv3d, self).__init__(
-            in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias, padding_mode)
+            in_channels, out_channels, kernel_size, stride_triple, padding_triple, dilation, groups, bias, padding_mode)
 
 
 class SyncBatchNorm(torch.nn.SyncBatchNorm):
@@ -255,10 +255,10 @@ class SyncBatchNorm(torch.nn.SyncBatchNorm):
         """
         Use to replace torch.nn.SyncBatchNorm.convert_sync_batchnorm.
         Args:
-            The description of arguments refers to torch.nn.SyncBatchNorm.convert_sync_batchnorm.
+        The description of arguments refers to torch.nn.SyncBatchNorm.convert_sync_batchnorm.
 
         Returns:
-            return module without doing any operation.
+        return module without doing any operation.
         """
         return module
 
