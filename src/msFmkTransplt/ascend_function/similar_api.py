@@ -231,7 +231,8 @@ class Conv3d(torch.nn.Conv3d):
                        kernel_size[2] + (dilation_triple[2] - 1) * (kernel_size[2] - 1))
         dilation = (1, 1, 1)
         super(Conv3d, self).__init__(
-            in_channels, out_channels, kernel_size, stride_triple, padding_triple, dilation, groups, bias, padding_mode)
+            in_channels, out_channels, kernel_size, stride_triple,
+            padding_triple, dilation, groups, bias, padding_mode)
 
 
 class SyncBatchNorm(torch.nn.SyncBatchNorm):

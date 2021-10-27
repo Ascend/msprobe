@@ -478,7 +478,8 @@ class DataLoaderRule(RuleVisitor):
         set_epoch_statements = []
         for target in self.dataloader_targets:
             if target in scope:
-                set_epoch_statements.append(libcst.parse_statement("%s.sampler.set_epoch(%s)" % (target, epoch_target)))
+                set_epoch_statements.append(
+                    libcst.parse_statement("%s.sampler.set_epoch(%s)" % (target, epoch_target)))
         if set_epoch_statements:
             return set_epoch_statements, len(set_epoch_statements)
         # variable name contains loader
