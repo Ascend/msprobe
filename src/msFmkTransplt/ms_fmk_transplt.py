@@ -184,8 +184,7 @@ class MsFmkTransplt(object):
         except BaseException as exp:
             translog.error(exp)
             return 1
-        finally:
-            pass
+
         return 0
 
 if __name__ == '__main__':
