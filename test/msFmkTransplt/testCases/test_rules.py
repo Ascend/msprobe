@@ -365,6 +365,28 @@ def functionC(args):
         rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
         self._check_modify(rule, test_cases1[6][0], test_cases1[6][1])
 
+    def test_assign_definition(self):
+        test_cases = (
+            ('''student = student.cuda()
+teacher = teacher.cuda()
+pre1 = student(image)
+pre2 = teacher(image)
+''', '''student = student.npu()
+teacher = teacher.npu()
+pre1 = student(image)
+pre2 = teacher(image)
+'''), ('''student, teacher = student.cuda(), teacher.cuda()
+pre1 = student(image)
+pre2 = teacher(image)
+''', '''student, teacher = student.npu(), teacher.npu()
+pre1 = student(image)
+pre2 = teacher(image)
+''')
+        )
+        rule = self.rule_module.FuncNameModifyRule("cuda", "npu", False)
+        for test_case in test_cases:
+            self._check_modify(rule, test_case[0], test_case[1])
+
     def test_ascend_function(self):
         import torch
         import torch.nn.functional as F

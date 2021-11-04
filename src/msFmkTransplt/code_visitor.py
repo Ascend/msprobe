@@ -77,7 +77,7 @@ class RuleVisitor(libcst.CSTTransformer):
     def manage_variable_definition(self, target, node):
         if isinstance(target.target, libcst.Tuple) and isinstance(node.value, libcst.Tuple):
             for tar, val in zip(target.target.elements, node.value.elements):
-                if isinstance(val, libcst.Call):
+                if isinstance(val.value, libcst.Call):
                     continue
                 assign_key = self.get_full_name_for_node(tar.value)
                 assign_value = self.get_full_name_for_node(val.value)
