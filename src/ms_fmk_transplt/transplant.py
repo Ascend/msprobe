@@ -3,16 +3,18 @@
 # Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 
 import os
+from typing import Optional
+from typing import Union
+
 import libcst
 from libcst._flatten_sentinel import FlattenSentinel
 from libcst._removal_sentinel import RemovalSentinel
-import transplant_logger as translog
+
 import trans_utils as utils
-from trans_utils import TransplantException
+import transplant_logger as translog
 from code_visitor import ApiVisitor
 from rule import InitProcessGroupRule
-from typing import Optional
-from typing import Union
+from trans_utils import TransplantException
 
 
 class Transplant(object):
