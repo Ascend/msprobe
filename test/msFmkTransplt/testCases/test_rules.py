@@ -9,13 +9,13 @@ import sys
 import os
 
 sys.path.append(os.path.abspath("../../../"))
-sys.path.append(os.path.abspath("../../../src/msFmkTransplt"))
+sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 
 
 class TestRules(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        import src.msFmkTransplt.rule as rule_module
+        import src.ms_fmk_transplt.rule as rule_module
         cls.rule_module = rule_module
 
 
@@ -390,7 +390,7 @@ pre2 = teacher(image)
     def test_ascend_function(self):
         import torch
         import torch.nn.functional as F
-        import src.msFmkTransplt.ascend_function.similar_api as sim_api
+        import src.ms_fmk_transplt.ascend_function.similar_api as sim_api
         in_tensor = torch.Tensor([[[[1, 2]]]])
         out_tensor = F.max_unpool2d(in_tensor, indices=torch.Tensor([[[[1,3]]]]).long(), kernel_size=(2,2))
         max_unpool2d = sim_api.MaxUnpool2d(kernel_size=(2, 2))

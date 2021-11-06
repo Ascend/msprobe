@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 ALL_MODULES = {
     # module_dir: module_output_dir
-    'msFmkTransplt': 'ms_fmk_transplt',
+    'ms_fmk_transplt': 'ms_fmk_transplt',
 }
 
 
