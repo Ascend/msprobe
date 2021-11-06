@@ -21,7 +21,7 @@ from test_rules import TestRules as TestBuildRules
 import coverage
 
 sys.path.append(os.path.abspath("../../../"))
-sys.path.append(os.path.abspath("../../../src/msFmkTransplt"))
+sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 
 TRANS_ERROR=1
 
@@ -40,7 +40,7 @@ class Args(object):
 
 
 def run(mock_args, net_name, result_dict, output_path):
-    from src.msFmkTransplt.ms_fmk_transplt import MsFmkTransplt
+    from src.ms_fmk_transplt.ms_fmk_transplt import MsFmkTransplt
     try:
         ms_fmk_transplt = MsFmkTransplt()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
@@ -55,7 +55,7 @@ def run(mock_args, net_name, result_dict, output_path):
 class TestMsFmkTransplt(unittest.TestCase):
 
     def setUp(self):
-        import src.msFmkTransplt.ms_fmk_transplt
+        import src.ms_fmk_transplt.ms_fmk_transplt
         self.abs_input_path = os.path.abspath('../resources/net')
         shutil.rmtree("../test_result/", ignore_errors=True)
         os.makedirs("../test_result/net_msft", exist_ok=True)
@@ -192,7 +192,7 @@ def update_standard():
     with open('../resources/updateLog.txt', 'a+') as f:
         now_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         f.write(f"{now_time}, name, issue/requirement/DTS, reason\n")
-    print("The update time has been written into test/msFmkTransplt/resources/updateLog.txt, "
+    print("The update time has been written into test/ms_fmk_transplt/resources/updateLog.txt, "
           "please continue to add the name and reason for modification in it.")
 
 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        src_list = ["src.msFmkTransplt"]
+        src_list = ["src.ms_fmk_transplt"]
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
                                      omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
         if len(sys.argv) > 1 and sys.argv[1] == 'mr':

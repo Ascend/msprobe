@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
-import os
-import torch.nn.functional as F
-import torch
 import itertools
+import os
+
+import torch
+import torch.nn.functional as F
 from torch.nn.modules.utils import _single, _pair, _triple
 
 

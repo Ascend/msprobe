@@ -3,18 +3,20 @@
 # Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 
 import re
-import libcst
-from code_visitor import RuleVisitor
-from code_visitor import OperatorType
-from typing import Optional
 from typing import List
+from typing import Optional
 from typing import Union
+
+import libcst
 import libcst.helpers as helper
+import libcst.matchers as m
 from libcst._flatten_sentinel import FlattenSentinel
 from libcst._removal_sentinel import RemovalSentinel
-import libcst.matchers as m
-import transplant_logger as translog
 from libcst.metadata import ParentNodeProvider
+
+import transplant_logger as translog
+from code_visitor import OperatorType
+from code_visitor import RuleVisitor
 
 
 class InsertGlobalRule(RuleVisitor):

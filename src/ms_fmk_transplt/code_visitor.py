@@ -66,9 +66,6 @@ class RuleVisitor(libcst.CSTTransformer):
     def set_warp_visitor(self, warp_visitor):
         self.warp_visitor = warp_visitor
 
-    def is_finish(self):
-        return True
-
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         for target in node.targets:
             self.manage_variable_definition(target, node)
