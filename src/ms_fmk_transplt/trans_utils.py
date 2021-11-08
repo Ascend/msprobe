@@ -12,16 +12,16 @@ class TransplantException(Exception):
     pass
 
 
-def write_csv(content_list, script_file, script_dir, type):
+def write_csv(content_list, script_file, script_dir, csv_type):
     header_dict = {
         "change_list": ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'),
         "unsupported_op": ('File', 'Start Line', 'End Line', 'OP', 'Tips')
     }
     if os.path.isfile(script_dir):
-        csv_file = os.path.join(os.path.dirname(script_dir), '%s.csv' % type)
+        csv_file = os.path.join(os.path.dirname(script_dir), '%s.csv' % csv_type)
     else:
-        csv_file = os.path.join(script_dir, '%s.csv' % type)
-    header = header_dict.get(type)
+        csv_file = os.path.join(script_dir, '%s.csv' % csv_type)
+    header = header_dict.get(csv_type)
     if not os.path.exists(csv_file):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
@@ -115,8 +115,8 @@ def change_mode(dir_path):
         return
     os.chmod(dir_path, 0o750)
     for root, dirs, files in os.walk(dir_path):
-        for dir in dirs:
-            os.chmod(os.path.join(root, dir), 0o750)
+        for dir_itr in dirs:
+            os.chmod(os.path.join(root, dir_itr), 0o750)
         for file in files:
             if file.endswith('.sh'):
                 os.chmod(os.path.join(root, file), 0o750)
