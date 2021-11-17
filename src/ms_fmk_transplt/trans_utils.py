@@ -48,9 +48,10 @@ def get_file_content(file):
         return file_handle.read()
 
 
-def write_file_content(file, code):
-    with open(file, 'w', encoding='utf8', newline='') as file_handle:
-        return file_handle.write(code)
+def write_file_content(file, code, permission=0o640):
+    with os.fdopen(os.open(file, os.O_WRONLY | os.O_CREAT, permission), 'w', encoding='utf8', newline='') as file_handle:
+        file_handle.truncate()
+        file_handle.write(code)
 
 
 def get_custom_rule(file, rule_list):
@@ -140,6 +141,4 @@ do
     please input your shell script here > output_npu_${i}.log 2>&1 &
     let rank++
 done'''
-    with open(os.path.join(path, 'run_distributed_npu.sh'), 'w', encoding='utf-8') as shell_file:
-        shell_file.write(code)
-    change_mode(os.path.join(path, 'run_distributed_npu.sh'))
+    write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code)
