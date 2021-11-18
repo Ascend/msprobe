@@ -49,7 +49,8 @@ def get_file_content(file):
 
 
 def write_file_content(file, code, permission=0o640):
-    with os.fdopen(os.open(file, os.O_WRONLY | os.O_CREAT, permission), 'w', encoding='utf8', newline='') as file_handle:
+    with os.fdopen(os.open(file, os.O_WRONLY | os.O_CREAT, permission),
+                   'w', encoding='utf8', newline='') as file_handle:
         file_handle.truncate()
         file_handle.write(code)
 
