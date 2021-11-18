@@ -651,6 +651,8 @@ class Amp2Apex(RuleVisitor):
             return True
         if self.get_full_name_for_node(node.value) == "torch.cuda.amp.GradScaler":
             self.delete_scaler_gardscaler = True
+            self._record_position(node, OperatorType.DELETE,
+                                  "delete the torch.cuda.amp.Gradscaler statement")
         return True
 
     def __adapt_model_ddp(self, original_node, updated_nodes):
@@ -680,15 +682,22 @@ class Amp2Apex(RuleVisitor):
         if self.get_full_name_for_node(target) != self.optimizer_name:
             return
         apex_initialize_statement = libcst.parse_statement(
-            '%s, %s = amp.initialize(%s, %s, opt_level="O2", loss_scale="32")'
+            '%s, %s = amp.initialize(%s, %s, opt_level="O1", loss_scale="32")'
             % (self.model_name, self.optimizer_name, self.model_name, self.optimizer_name))
         updated_nodes.append(apex_initialize_statement)
+        original_position = self.get_metadata(libcst.metadata.PositionProvider, original_node)
+        self.changes_info.append([original_position.start.line + 1,
+                                  original_position.start.line + 1,
+                                  OperatorType.INSERT.name, "init statement of apex"])
         if self.main_file_name:
             ddp_statement = libcst.parse_statement(
                 'if not isinstance(%s, torch.nn.parallel.DistributedDataParallel):\n'
                 '    %s = torch.nn.parallel.DistributedDataParallel(%s, device_ids=[NPU_CALCULATE_DEVICE], '
                 'broadcast_buffers=False)' % (self.model_name, self.model_name, self.model_name))
             updated_nodes.append(ddp_statement)
+            self.changes_info.append([original_position.start.line + 1,
+                                      original_position.start.line + 3,
+                                      OperatorType.INSERT.name, "init statement of DistributedDataParallel"])
         if self.find_model:
             self.find_optimizer = True
             self.find_model = False
@@ -699,6 +708,8 @@ class Amp2Apex(RuleVisitor):
         Delete the import of torch.cuda.amp
         """
         if not m.matches(original_node.body[0], m.Import()) and not m.matches(original_node.body[0], m.ImportFrom()):
+            return
+        if m.matches(original_node.body[0].names, m.ImportStar()):
             return
         if self.get_full_name_for_node(original_node.body[0].names[0].name) == 'torch.cuda.amp':
             updated_nodes.pop()
@@ -754,10 +765,16 @@ class Amp2Apex(RuleVisitor):
         update_str = f'{self.scaler_name}.update'
         if qualified_name == scale_str:
             self.delete_scaler_loss = True
+            self._record_position(node, OperatorType.DELETE,
+                                  "delete the scaler scale statement")
         if qualified_name == optimizer_str:
             self.delete_scaler_optimizer = True
+            self._record_position(node, OperatorType.MODIFY,
+                                  "change the scaler.step() to optimizer.step()")
         if qualified_name == update_str:
             self.delete_scaler_update = True
+            self._record_position(node, OperatorType.DELETE,
+                                  "delete the scaler update statement")
         return True
 
     def leave_SimpleStatementLine(self, original_node: "libcst.SimpleStatementLine",
