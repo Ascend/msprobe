@@ -48,9 +48,11 @@ def get_file_content(file):
         return file_handle.read()
 
 
-def write_file_content(file, code):
-    with open(file, 'w', encoding='utf8', newline='') as file_handle:
-        return file_handle.write(code)
+def write_file_content(file, code, permission=0o640):
+    with os.fdopen(os.open(file, os.O_WRONLY | os.O_CREAT, permission),
+                   'w', encoding='utf8', newline='') as file_handle:
+        file_handle.truncate()
+        file_handle.write(code)
 
 
 def get_custom_rule(file, rule_list):
