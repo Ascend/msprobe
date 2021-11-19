@@ -142,4 +142,4 @@ do
     please input your shell script here > output_npu_${i}.log 2>&1 &
     let rank++
 done'''
-    write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code)
+    write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code, permission=0o750)
