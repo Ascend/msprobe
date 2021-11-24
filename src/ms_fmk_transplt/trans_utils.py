@@ -27,7 +27,7 @@ def write_csv(content_list, script_file, script_dir, csv_type):
         data_frame.to_csv(csv_file, index=False)
     rel_script_file_name = os.path.relpath(script_file, script_dir) if os.path.isdir(script_dir) else \
         os.path.basename(script_file)
-    new_data = pd.DataFrame([[rel_script_file_name] + content for content in content_list])
+    new_data = pd.DataFrame(list([rel_script_file_name] + content for content in content_list))
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
     change_mode(csv_file)
 
