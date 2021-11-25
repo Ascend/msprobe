@@ -127,5 +127,6 @@ class RuleVisitor(libcst.CSTTransformer):
             return self.warp_visitor.get_metadata(key, node, default)
         return super(RuleVisitor, self).get_metadata(key, node, default)
 
-    def get_code_for_node(self, node: libcst.CSTNode) -> str:
+    @staticmethod
+    def get_code_for_node(node: libcst.CSTNode) -> str:
         return libcst.Module('').code_for_node(node)
