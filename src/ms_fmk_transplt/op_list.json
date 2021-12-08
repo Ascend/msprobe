@@ -5,7 +5,7 @@
     "torch.load": "Please confirm that the parameter 'map_location' of 'torch.load' is set to NPU device.",
     "torch.nn.DataParallel": "'torch.nn.DataParallel' is not recommend to use now! Please replace it with 'torch.nn.parallel.DistributedDataParallel'.",
     "torch.is_complex": "Currently, complex judgment is supported, but complex related operations are not supported due to hardware limitations.",
-    "torch.set_flush_denormal": "Limitation: Only x86 architecture is supported.",
+    "torch.set_flush_denormal": "Only x86 architecture is supported.",
     "torch.sparse_coo_tensor": "Unsupported due to hardware limitations.",
     "torch.conj": "Unsupported due to hardware limitations.",
     "torch.imag": "Unsupported due to hardware limitations.",
