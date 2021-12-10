@@ -78,7 +78,7 @@ else:
 
 
 model = WideResNet(args.depth, args.width, num_classes=NO_CLASSES, mlp=args.mlp, extra_params=args.extra_params)
-model = model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
 

@@ -127,7 +127,7 @@ def change_mode(dir_path):
 
 
 def generate_distributed_shell_file(path):
-    code = '''export MASTER_ADDR=localhost
+    code = '''export MASTER_ADDR=127.0.0.1
 export MASTER_PORT=29688
 export HCCL_WHITELIST_DISABLE=1
 

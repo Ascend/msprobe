@@ -117,15 +117,11 @@ if __name__ == '__main__':
         device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
 
     model = EAST(pretrained=False)
-    model = model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+    model = model.npu()
     if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
     data_parallel = False
     if torch.npu.device_count() > 1:
-        model = nn.DataParallel(model)
-        model = model.to(f'npu:{NPU_CALCULATE_DEVICE}')
-        if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-            model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
         data_parallel = True
     model.to(f'npu:{NPU_CALCULATE_DEVICE}')
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)

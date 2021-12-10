@@ -102,7 +102,7 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 model = ResidualAttentionModel().npu()
-model = model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
 print(model)
