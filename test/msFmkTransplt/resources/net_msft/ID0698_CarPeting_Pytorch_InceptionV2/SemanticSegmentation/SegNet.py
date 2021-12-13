@@ -111,23 +111,23 @@ class SegNet(nn.Module):
         x5p, id5 = F.max_pool2d(x5, kernel_size=2, stride=2, return_indices=True)
 
         # Stage 5d
-        x5d = ascend_function.similar_api.max_unpool2d(x5p, id5, kernel_size=2, stride=2, output_size=x5_size)
+        x5d = F.max_unpool2d(x5p, id5, kernel_size=2, stride=2, output_size=x5_size)
         x5d = self.conv_up5(x5d)
 
         # Stage 4d
-        x4d = ascend_function.similar_api.max_unpool2d(x5d, id4, kernel_size=2, stride=2, output_size=x4_size)
+        x4d = F.max_unpool2d(x5d, id4, kernel_size=2, stride=2, output_size=x4_size)
         x4d = self.conv_up4(x4d)
 
         # Stage 3d
-        x3d = ascend_function.similar_api.max_unpool2d(x4d, id3, kernel_size=2, stride=2, output_size=x3_size)
+        x3d = F.max_unpool2d(x4d, id3, kernel_size=2, stride=2, output_size=x3_size)
         x3d = self.conv_up3(x3d)
 
         # Stage 2d
-        x2d = ascend_function.similar_api.max_unpool2d(x3d, id2, kernel_size=2, stride=2, output_size=x2_size)
+        x2d = F.max_unpool2d(x3d, id2, kernel_size=2, stride=2, output_size=x2_size)
         x2d = self.conv_up2(x2d)
 
         # Stage 1d
-        x1d = ascend_function.similar_api.max_unpool2d(x2d, id1, kernel_size=2, stride=2, output_size=x1_size)
+        x1d = F.max_unpool2d(x2d, id1, kernel_size=2, stride=2, output_size=x1_size)
         x1d = self.conv_up1(x1d)
 
         out = self.outconv(x1d)

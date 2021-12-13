@@ -79,30 +79,6 @@
         "feature_switch": ["similar"]
       },
       {
-        "old_name": "max_unpool2d",
-        "new_name": "ascend_function.similar_api.max_unpool2d",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "max_unpool1d",
-        "new_name": "ascend_function.similar_api.max_unpool1d",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "MaxUnpool2d",
-        "new_name": "ascend_function.similar_api.MaxUnpool2d",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "MaxUnpool1d",
-        "new_name": "ascend_function.similar_api.MaxUnpool1d",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
         "old_name": "get_device_properties",
         "new_name": "ascend_function.similar_api.get_device_properties",
         "replace_module": true,
