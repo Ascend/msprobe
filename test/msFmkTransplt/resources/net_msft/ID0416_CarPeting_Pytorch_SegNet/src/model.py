@@ -278,34 +278,34 @@ class SegNet(nn.Module):
         dim_d = x_4.size()
 
         # Decoder Stage - 5
-        x_4d = ascend_function.similar_api.max_unpool2d(x_4, indices_4, kernel_size=2, stride=2, output_size=dim_4)
+        x_4d = F.max_unpool2d(x_4, indices_4, kernel_size=2, stride=2, output_size=dim_4)
         x_42d = F.relu(self.decoder_convtr_42(x_4d))
         x_41d = F.relu(self.decoder_convtr_41(x_42d))
         x_40d = F.relu(self.decoder_convtr_40(x_41d))
         dim_4d = x_40d.size()
 
         # Decoder Stage - 4
-        x_3d = ascend_function.similar_api.max_unpool2d(x_40d, indices_3, kernel_size=2, stride=2, output_size=dim_3)
+        x_3d = F.max_unpool2d(x_40d, indices_3, kernel_size=2, stride=2, output_size=dim_3)
         x_32d = F.relu(self.decoder_convtr_32(x_3d))
         x_31d = F.relu(self.decoder_convtr_31(x_32d))
         x_30d = F.relu(self.decoder_convtr_30(x_31d))
         dim_3d = x_30d.size()
 
         # Decoder Stage - 3
-        x_2d = ascend_function.similar_api.max_unpool2d(x_30d, indices_2, kernel_size=2, stride=2, output_size=dim_2)
+        x_2d = F.max_unpool2d(x_30d, indices_2, kernel_size=2, stride=2, output_size=dim_2)
         x_22d = F.relu(self.decoder_convtr_22(x_2d))
         x_21d = F.relu(self.decoder_convtr_21(x_22d))
         x_20d = F.relu(self.decoder_convtr_20(x_21d))
         dim_2d = x_20d.size()
 
         # Decoder Stage - 2
-        x_1d = ascend_function.similar_api.max_unpool2d(x_20d, indices_1, kernel_size=2, stride=2, output_size=dim_1)
+        x_1d = F.max_unpool2d(x_20d, indices_1, kernel_size=2, stride=2, output_size=dim_1)
         x_11d = F.relu(self.decoder_convtr_11(x_1d))
         x_10d = F.relu(self.decoder_convtr_10(x_11d))
         dim_1d = x_10d.size()
 
         # Decoder Stage - 1
-        x_0d = ascend_function.similar_api.max_unpool2d(x_10d, indices_0, kernel_size=2, stride=2, output_size=dim_0)
+        x_0d = F.max_unpool2d(x_10d, indices_0, kernel_size=2, stride=2, output_size=dim_0)
         x_01d = F.relu(self.decoder_convtr_01(x_0d))
         x_00d = self.decoder_convtr_00(x_01d)
         dim_0d = x_00d.size()

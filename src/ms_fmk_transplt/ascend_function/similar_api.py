@@ -3,6 +3,7 @@
 # Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 import itertools
 import os
+import re
 
 import torch
 import torch.nn.functional as F
@@ -20,69 +21,6 @@ class StubDeviceProperties(object):
         self.minor = 1
         self.total_memory = 15171
         self.multi_processor_count = 10
-
-
-def max_unpool2d(input, indices, kernel_size, stride=None, padding=0, output_size=None):
-    """
-    Use the interpolate instead of max_unpool1d to ensure that the output tensor shape is consistent,
-    but the output content will be different.
-
-    Args:
-    The description of argument refers to torch.nn.functional.max_unpool2d
-
-    Returns:
-    The output will be different like this:
-    [[1,2]] -> torch.nn.functional.max_unpool1d -> [[1,0,0,2], [0,0,0,0]]
-    [[1,2]] -> ascend_function.similar_api.max_unpool1d -> [1,1,2,2], [1,1,2,2]]
-    """
-    _kernel_size = _pair(kernel_size)
-    if stride is not None:
-        _stride = _pair(stride)
-    else:
-        _stride = _kernel_size
-    padding_pair = _pair(padding)
-    if output_size is None:
-        _size = ((input.shape[2] - 1) * _stride[0] + _kernel_size[0] - 2 * padding_pair[0],
-                 (input.shape[3] - 1) * _stride[1] + _kernel_size[1] - 2 * padding_pair[1])
-    elif len(output_size) == 2:
-        _size = (output_size[0], output_size[1])
-    elif len(output_size) == 4:
-        _size = (output_size[2], output_size[3])
-    else:
-        raise ValueError(f"output_size should be a sequence containing 2 or 4 elements, but it has a length of "
-                         f"'{len(output_size)}'")
-    return F.interpolate(input, size=_size).type_as(input)
-
-
-def max_unpool1d(input, indices, kernel_size, stride=None, padding=0, output_size=None):
-    """
-    Use the interpolate instead of max_unpool1d to ensure that the output tensor shape is consistent,
-    but the output content will be different.
-
-    Args:
-    The description of arguments refers to torch.nn.functional.max_unpool1d
-
-    Returns:
-    The output will be different like this:
-    [[1,2]] -> torch.nn.functional.max_unpool1d -> [[1,0,0,2]]
-    [[1,2]] -> ascend_function.similar_api.max_unpool1d -> [1,1,2,2]]
-    """
-    _kernel_size = _single(kernel_size)
-    if stride is not None:
-        _stride = _single(stride)
-    else:
-        _stride = kernel_size
-    padding_single = _single(padding)
-    if output_size is None:
-        _size = (input.shape[2] - 1) * _stride[0] + _kernel_size[0] - 2 * padding_single[0]
-    elif len(output_size) == 1:
-        _size = output_size[0]
-    elif len(output_size) == 3:
-        _size = output_size[2]
-    else:
-        raise ValueError(f"output_size should be a sequence containing 1 or 3 elements, but it has a length of "
-                         f"'{len(output_size)}'")
-    return F.interpolate(input, size=_size).type_as(input)
 
 
 def repeat_interleave(self, repeats, dim=None):
@@ -178,11 +116,16 @@ def pad(input, pad, mode='constant', value=0):
 
 def set_default_tensor_type(type):
     """
-    NPU does not support set_default_tensor_type for the time being, so nothing will be done here.
-    After replacing torch.set_default_tensor_type with this function, the user may need to modify the
-    dtype of some tensors in the network.
+    NPU shares dtypes with CPU. So, param which like NPU dtypes will be replaced with CPU dtypes here.But this won't
+    affect the operation of tensor on NPU.
     """
-    pass
+    type_str = str(type)
+    match_pattern = re.compile("'(.*)'")
+    match_res = match_pattern.findall(type_str)
+    if match_res:
+        type_str = match_res[0]
+    type_str = type_str.replace('torch.npu', 'torch')
+    torch.set_default_tensor_type(type_str)
 
 
 def get_device_properties(device):
@@ -194,24 +137,6 @@ def get_device_properties(device):
     Class StubDeviceProperties
     """
     return StubDeviceProperties()
-
-
-class MaxUnpool2d(torch.nn.MaxUnpool2d):
-    """
-    Use to replace torch.nn.MaxUnpool2d.
-    Refers to ascend_function.similar_api.max_unpool2d.
-    """
-    def forward(self, input, indices, output_size=None):
-        return max_unpool2d(input, indices, self.kernel_size, self.stride, self.padding, output_size)
-
-
-class MaxUnpool1d(torch.nn.MaxUnpool1d):
-    """
-    Use to replace torch.nn.MaxUnpool1d.
-    Refers to ascend_function.similar_api.max_unpool1d.
-    """
-    def forward(self, input, indices, output_size=None):
-        return max_unpool1d(input, indices, self.kernel_size, self.stride, self.padding, output_size)
 
 
 class Conv3d(torch.nn.Conv3d):

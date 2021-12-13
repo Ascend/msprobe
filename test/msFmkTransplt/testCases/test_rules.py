@@ -391,30 +391,6 @@ pre2 = teacher(image)
         import torch
         import torch.nn.functional as F
         import src.ms_fmk_transplt.ascend_function.similar_api as sim_api
-        in_tensor = torch.Tensor([[[[1, 2]]]])
-        out_tensor = F.max_unpool2d(in_tensor, indices=torch.Tensor([[[[1,3]]]]).long(), kernel_size=(2,2))
-        max_unpool2d = sim_api.MaxUnpool2d(kernel_size=(2, 2))
-        result = max_unpool2d(in_tensor, [1, 3])
-        self.assertTrue(out_tensor.shape == result.shape)
-        out_tensor = F.max_unpool2d(in_tensor, indices=torch.Tensor([[[[1, 3]]]]).long(), kernel_size=(2, 2), output_size=[2, 3])
-        result = max_unpool2d(in_tensor, [1, 3], output_size=[2, 3])
-        self.assertTrue(out_tensor.shape == result.shape)
-        out_tensor = F.max_unpool2d(in_tensor, indices=torch.Tensor([[[[1, 3]]]]).long(), kernel_size=(2, 2), output_size=[1, 1, 2, 3])
-        result = max_unpool2d(in_tensor, [1, 3], output_size=[1, 1, 2, 3])
-        self.assertTrue(out_tensor.shape == result.shape)
-
-        in_tensor = torch.Tensor([[[1, 2]]])
-        out_tensor = F.max_unpool1d(in_tensor, indices=torch.Tensor([[[1,3]]]).long(), kernel_size=2)
-        max_unpool1d = sim_api.MaxUnpool1d(kernel_size=2)
-        result = max_unpool1d(in_tensor, [1, 3])
-        self.assertTrue(out_tensor.shape == result.shape)
-        result = max_unpool1d(in_tensor, [1, 3], [4])
-        out_tensor = F.max_unpool1d(in_tensor, indices=torch.Tensor([[[1,3]]]).long(), kernel_size=2, output_size=[4])
-        self.assertTrue(out_tensor.shape == result.shape)
-        result = max_unpool1d(in_tensor, [1, 3], [1, 1, 4])
-        out_tensor = F.max_unpool1d(in_tensor, indices=torch.Tensor([[[1,3]]]).long(), kernel_size=2, output_size=[1, 1, 4])
-        self.assertTrue(out_tensor.shape == result.shape)
-
         in_tensor = torch.randn((4, 4, 5, 5, 5))
         torch_conv3d = torch.nn.Conv3d(in_channels=4, out_channels=4, kernel_size=(2, 2, 2), dilation=2)
         conv_3d = sim_api.Conv3d(in_channels=4, out_channels=4, kernel_size=(2, 2, 2), dilation=2)
@@ -464,6 +440,18 @@ pre2 = teacher(image)
         torch_result = F.pad(in_tensor, (1, 1))
         result = sim_api.pad(in_tensor, (1, 1))
         self.assertTrue(torch_result.equal(result))
+
+        sim_api.set_default_tensor_type(torch.DoubleTensor)
+        fp_64_tensor_1 = torch.zeros([2, 2])
+        self.assertEqual(fp_64_tensor_1.dtype, torch.float64)
+
+        sim_api.set_default_tensor_type('torch.npu.FloatTensor')
+        fp_32_tensor_2 = torch.zeros([2, 2])
+        self.assertEqual(fp_32_tensor_2.dtype, torch.float32)
+
+        sim_api.set_default_tensor_type('torch.DoubleTensor')
+        fp_64_tensor_2 = torch.zeros([2, 2])
+        self.assertEqual(fp_64_tensor_2.dtype, torch.float64)
 
     def _check_modify(self, rule, code, expected_result):
         wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
