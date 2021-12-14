@@ -444,7 +444,7 @@ class DataLoaderRule(RuleVisitor):
                                   OperatorType.INSERT.name, "init statement of DistributedSampler"])
         if self.batch_size_target:
             batch_size_statement = libcst.parse_statement(
-                "%s = int(%s / int(os.getenv('NPU_WORLD_SIZE')))"
+                "%s = max(int(%s / int(os.getenv('NPU_WORLD_SIZE'))), 1)"
                 % (self.dataloader_target + '_batch_size', self.batch_size_target))
             updated_nodes.append(batch_size_statement)
             self.changes_info.append([original_position.start.line + 1,

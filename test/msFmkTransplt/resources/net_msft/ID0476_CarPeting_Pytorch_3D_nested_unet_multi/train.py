@@ -298,7 +298,7 @@ def main():
         num_classes=config['num_classes'],
         transform=val_transform)
     train_loader_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-    train_loader_batch_size = int(config['batch_size'] / int(os.getenv('NPU_WORLD_SIZE')))
+    train_loader_batch_size = max(int(config['batch_size'] / int(os.getenv('NPU_WORLD_SIZE'))), 1)
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -307,7 +307,7 @@ def main():
         num_workers=config['num_workers'],
         drop_last=True, pin_memory = True, sampler = train_loader_sampler)
     val_loader_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
-    val_loader_batch_size = int(config['batch_size'] / int(os.getenv('NPU_WORLD_SIZE')))
+    val_loader_batch_size = max(int(config['batch_size'] / int(os.getenv('NPU_WORLD_SIZE'))), 1)
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=val_loader_batch_size,

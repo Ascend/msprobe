@@ -84,7 +84,7 @@ def main():
         num_classes=config['num_classes'],
         transform=val_transform)
     val_loader_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
-    val_loader_batch_size = int(config['batch_size'] / int(os.getenv('NPU_WORLD_SIZE')))
+    val_loader_batch_size = max(int(config['batch_size'] / int(os.getenv('NPU_WORLD_SIZE'))), 1)
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=val_loader_batch_size,
