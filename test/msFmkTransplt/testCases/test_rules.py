@@ -242,7 +242,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_iter // 2], gamma=0.1)
                 ''',
                 '''model = EAST(pretrained=False)
-model = model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
 
@@ -258,13 +258,36 @@ optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_iter // 2], gamma=0.1)
                 ''',
                 '''model, dataset = EAST(pretrained=False), DateSet()
-model = model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
 
 model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_iter // 2], gamma=0.1)
+                '''
+            ), (
+                '''import torch
+from apex import amp
+
+model = EAST()
+model = model.cuda()
+model = model.npu()
+model = model.to(device)
+model, opt = amp.initialize(model, opt)
+model = torch.nn.DataParallel(model)
+                ''',
+                '''import torch
+from apex import amp
+
+model = EAST()
+model = model.npu()
+if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+model = model.cuda()
+model = model.npu()
+model = model.to(device)
+model, opt = amp.initialize(model, opt)
                 '''
             )
         )

@@ -232,7 +232,7 @@ if __name__ == '__main__':
 	res_img     = '/home/wwj/workspace/Sence_Text_detection/AAAI_EAST/Baseline/EAST_v1/evaluate/result/'
 	device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
 	model = EAST().to(f'npu:{NPU_CALCULATE_DEVICE}')
-	model = model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+	model = model.npu()
 	if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
 		model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
 	model.load_state_dict(torch.load(model_path))

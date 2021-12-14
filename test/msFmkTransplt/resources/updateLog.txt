@@ -11,3 +11,4 @@ date, name, issue/requirement/DTS, reason
 2021-09-27 11:18:28, chenzeren, issue #10\11\12, 单卡转多卡问题修复
 2021-11-15 22:49:56, chenzeren, issue #18, 门禁精简
 2021-12-09 17:15:40, wangshiling, issue #24, 更新相似API替换列表
+2021-12-10 12:21:54, zhouyanming, DTS DTS2021121006730, 优化DDP插入规则 & 修改MASTER_ADDR默认为127.0.0.1

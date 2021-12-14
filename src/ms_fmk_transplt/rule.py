@@ -529,21 +529,43 @@ class DistributedDataParallelRule(RuleVisitor):
             target_pure_full_names = []
             for element in target.elements:
                 target_pure_full_names.append(self.get_full_name_for_node(element.value))
-            if self.model_target in target_pure_full_names:
+            if self.model_target in target_pure_full_names and self.__need_insert_ddp(node.value):
                 self.insert_flag = True
         else:
             target_full_name = self.get_full_name_for_node(target)
             if target_full_name == self.model_target:
-                # escape "model = None"
-                value = self.get_code_for_node(node.value)
-                if not value or value == 'None':
-                    return True
-                # escape "model = model.npu()", "model = model.to()"
-                if m.matches(node.value, m.Call()) and self.get_full_name_for_node(
-                        node.value) in [self.model_target + '.npu', self.model_target + '.to']:
+                if not self.__need_insert_ddp(node.value):
                     return True
                 self.insert_flag = True
         return True
+
+    def __need_insert_ddp(self, value):
+        # escape "model = None"
+        node_value = self.get_code_for_node(value)
+        if not node_value or node_value == 'None':
+            return False
+        if not m.matches(value, m.Call()):
+            return True
+        # 1. escape model.cuda(), model.npu(), model.to()
+        escape_funcs = [self.model_target + '.cuda', self.model_target + '.npu', self.model_target + '.to']
+        if self.get_full_name_for_node(value) in escape_funcs:
+            return False
+        # 2. escape model = func(model, ...),like torch.nn.DataParallel(model), amp.initialize(model,...)
+        for arg in value.args:
+            if self.get_code_for_node(arg.value) == self.model_target:
+                return False
+        return True
+
+    def leave_Assign(
+        self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
+    ) -> Union[
+        "libcst.BaseSmallStatement", FlattenSentinel["libcst.BaseSmallStatement"], RemovalSentinel
+    ]:
+        # for distributed rule, delete model = torch.nn.DataParallel(model)
+        if m.matches(original_node.value, m.Call()) and self.get_full_name_for_node(
+                original_node.value) == 'torch.nn.DataParallel':
+            return libcst.RemovalSentinel.REMOVE
+        return updated_node
 
     def leave_SimpleStatementLine(
             self, original_node: "libcst.SimpleStatementLine", updated_node: "libcst.SimpleStatementLine"
@@ -554,7 +576,7 @@ class DistributedDataParallelRule(RuleVisitor):
         if self.amp_flag and self.optimizer_name:
             return updated_node
         to_device_statement = libcst.parse_statement(
-            "%s = %s.to(f'npu:{NPU_CALCULATE_DEVICE}')" % (self.model_target, self.model_target))
+            "%s = %s.npu()" % (self.model_target, self.model_target))
         ddp_statement = libcst.parse_statement(
             'if not isinstance(%s, torch.nn.parallel.DistributedDataParallel):\n'
             '    %s = torch.nn.parallel.DistributedDataParallel(%s, device_ids=[NPU_CALCULATE_DEVICE], '
