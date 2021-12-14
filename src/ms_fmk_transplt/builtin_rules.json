@@ -56,7 +56,7 @@
       {
         "func_name": "cuda",
         "arg_idx": 0,
-        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "arg_new": "",
         "feature_switch": ["specify_device", "distributed"]
       },
       {
