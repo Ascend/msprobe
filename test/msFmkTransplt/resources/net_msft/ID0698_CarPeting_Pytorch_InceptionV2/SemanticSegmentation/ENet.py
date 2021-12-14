@@ -128,7 +128,7 @@ class UpBottleneck(nn.Module):
             nn.Dropout2d(p=p)
         )
         self.upsample_conv = Conv1x1BN(in_places, places)
-        self.upsample_unpool = ascend_function.similar_api.MaxUnpool2d(kernel_size=2)
+        self.upsample_unpool = nn.MaxUnpool2d(kernel_size=2)
         self.relu = nn.ReLU(inplace=True) if is_relu else nn.PReLU()
 
     def forward(self, x, indices):
