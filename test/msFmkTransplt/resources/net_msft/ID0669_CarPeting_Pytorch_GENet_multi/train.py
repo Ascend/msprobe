@@ -121,17 +121,15 @@ elif args.dataset == 'cifar100':
 else:
     raise ValueError('Pick a dataset (ii)')
 trainloader_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
-trainloader_batch_size = int(args.batch_size / int(os.getenv('NPU_WORLD_SIZE')))
 
 
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=trainloader_batch_size,
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
                                           num_workers=args.workers,
                                           pin_memory=True,
                                           shuffle=False, drop_last = True, sampler = trainloader_sampler)
 valloader_sampler = torch.utils.data.distributed.DistributedSampler(valset)
-valloader_batch_size = int(args.test_batch_size / int(os.getenv('NPU_WORLD_SIZE')))
 
-valloader = torch.utils.data.DataLoader(valset, batch_size=valloader_batch_size, shuffle=False,
+valloader = torch.utils.data.DataLoader(valset, batch_size=args.test_batch_size, shuffle=False,
                                         num_workers=args.workers,
                                         pin_memory=True, drop_last = True, sampler = valloader_sampler)
 

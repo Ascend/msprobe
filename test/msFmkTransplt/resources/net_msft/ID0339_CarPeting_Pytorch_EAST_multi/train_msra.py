@@ -125,8 +125,7 @@ if __name__ == '__main__':
 
     trainset = MSRA_TD500(args.msra_data,args.hust_path,args.is_box_pseudo)
     train_loader_target_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
-    train_loader_target_batch_size = int(args.batch_size / int(os.getenv('NPU_WORLD_SIZE')))
-    train_loader_target = data.DataLoader(trainset, batch_size=train_loader_target_batch_size,
+    train_loader_target = data.DataLoader(trainset, batch_size=args.batch_size,
                                           shuffle=False, num_workers=args.num_workers, drop_last=True, pin_memory = True, sampler = train_loader_target_sampler)
 
     f_score = 0.5
