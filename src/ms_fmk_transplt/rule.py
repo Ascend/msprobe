@@ -377,7 +377,6 @@ class DataLoaderRule(RuleVisitor):
         self.dataloader_targets = []
         self.dataloader_target = ''
         self.data_set_target = ''
-        self.batch_size_target = ''
 
     def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
         qualified_name = self.get_full_name_for_node(node)
@@ -411,10 +410,6 @@ class DataLoaderRule(RuleVisitor):
                     self.data_set_target = self.get_code_for_node(arg.value)
                 new_args.append(arg)
                 continue
-            # batch_size arg
-            if arg.keyword.value == 'batch_size':
-                self.batch_size_target = self.get_code_for_node(arg.value)
-                arg = arg.with_changes(value=libcst.Name(self.dataloader_target + '_batch_size'))
             if arg.keyword.value in arg_change_dict.keys():
                 arg = arg.with_changes(value=libcst.Name(arg_change_dict.get(arg.keyword.value)))
                 arg_change_dict.pop(arg.keyword.value)
@@ -433,25 +428,14 @@ class DataLoaderRule(RuleVisitor):
         self.insert_flag = False
         if not m.matches(original_node.body[0], m.Assign(value=m.Call())):
             return updated_node
-        updated_nodes = []
         train_sampler_statement = libcst.parse_statement(
             "%s = torch.utils.data.distributed.DistributedSampler(%s)" % (
                 self.dataloader_target + '_sampler', self.data_set_target))
-        updated_nodes.append(train_sampler_statement)
         original_position = self.get_metadata(libcst.metadata.PositionProvider, original_node)
         self.changes_info.append([original_position.start.line,
                                   original_position.start.line,
                                   OperatorType.INSERT.name, "init statement of DistributedSampler"])
-        if self.batch_size_target:
-            batch_size_statement = libcst.parse_statement(
-                "%s = max(int(%s / int(os.getenv('NPU_WORLD_SIZE'))), 1)"
-                % (self.dataloader_target + '_batch_size', self.batch_size_target))
-            updated_nodes.append(batch_size_statement)
-            self.changes_info.append([original_position.start.line + 1,
-                                      original_position.start.line + 1,
-                                      OperatorType.INSERT.name, "add statement of batch_size partition"])
-        updated_nodes.append(updated_node)
-        return libcst.FlattenSentinel(updated_nodes)
+        return libcst.FlattenSentinel([train_sampler_statement, updated_node])
 
     def leave_For(
             self, original_node: "libcst.For", updated_node: "libcst.For"
@@ -502,7 +486,6 @@ class DataLoaderRule(RuleVisitor):
         self.dataloader_targets = []
         self.dataloader_target = ''
         self.data_set_target = ''
-        self.batch_size_target = ''
 
 
 class DistributedDataParallelRule(RuleVisitor):

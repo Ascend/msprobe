@@ -87,16 +87,14 @@ test_dataset = datasets.CIFAR10(root='./data/',
                               train=False,
                               transform=test_transform)
 train_loader_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-train_loader_batch_size = max(int(64 / int(os.getenv('NPU_WORLD_SIZE'))), 1)
 
 # Data Loader (Input Pipeline)
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=train_loader_batch_size, # 64
+                                           batch_size=64, # 64
                                            shuffle=False, num_workers=8, pin_memory = True, drop_last = True, sampler = train_loader_sampler)
 test_loader_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
-test_loader_batch_size = max(int(20 / int(os.getenv('NPU_WORLD_SIZE'))), 1)
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-                                          batch_size=test_loader_batch_size,
+                                          batch_size=20,
                                           shuffle=False, pin_memory = True, drop_last = True, sampler = test_loader_sampler)
 
 classes = ('plane', 'car', 'bird', 'cat',
