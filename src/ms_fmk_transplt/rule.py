@@ -330,7 +330,10 @@ class ReplaceAttributeRule(RuleVisitor):
 
 class InitProcessGroupRule(InsertGlobalRule):
     def __init__(self):
-        insert_content = ["NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))",
+        insert_content = ["import torch.npu",
+                          "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n"
+                          "    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')",
+                          "NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))",
                           "RANK = int(os.getenv('RANK'))",
                           "torch.distributed.init_process_group('hccl', rank=RANK, world_size=NPU_WORLD_SIZE)"]
         super(InitProcessGroupRule, self).__init__(insert_content, "")

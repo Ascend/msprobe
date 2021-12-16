@@ -4,14 +4,11 @@ from torch.nn import init
 import functools
 from torch.autograd import Variable
 import numpy as np
-import torch.npu
 import os
 import ascend_function
 NPU_CALCULATE_DEVICE = 0
 if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
     NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
-if torch.npu.current_device() != NPU_CALCULATE_DEVICE:
-    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')
 
 class ResidualBlock(nn.Module):
     def __init__(self, input_channels, output_channels, stride=1):

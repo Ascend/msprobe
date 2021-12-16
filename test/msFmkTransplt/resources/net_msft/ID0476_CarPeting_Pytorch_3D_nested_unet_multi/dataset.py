@@ -4,14 +4,11 @@ import cv2
 import numpy as np
 import torch
 import torch.utils.data
-import torch.npu
 import os
 import ascend_function
 NPU_CALCULATE_DEVICE = 0
 if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
     NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
-if torch.npu.current_device() != NPU_CALCULATE_DEVICE:
-    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')
 
 
 class Dataset(torch.utils.data.Dataset):

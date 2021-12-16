@@ -166,6 +166,9 @@ if __name__ == '__main__':
     train()
                 ''',
                 '''import torch
+import torch.npu
+if torch.npu.current_device() != NPU_CALCULATE_DEVICE:
+    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')
 NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))
 RANK = int(os.getenv('RANK'))
 torch.distributed.init_process_group('hccl', rank=RANK, world_size=NPU_WORLD_SIZE)
