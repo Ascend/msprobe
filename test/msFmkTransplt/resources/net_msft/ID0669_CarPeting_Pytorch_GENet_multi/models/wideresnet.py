@@ -3,14 +3,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .blocks import *
-import torch.npu
 import os
 import ascend_function
 NPU_CALCULATE_DEVICE = 0
 if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
     NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
-if torch.npu.current_device() != NPU_CALCULATE_DEVICE:
-    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')
 
 
 

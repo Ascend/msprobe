@@ -13,14 +13,11 @@ import time
 # from model.residual_attention_network_pre import ResidualAttentionModel
 # based https://github.com/liudaizong/Residual-Attention-Network
 from model.residual_attention_network import ResidualAttentionModel_92_32input_update as ResidualAttentionModel
-import torch.npu
 import os
 import ascend_function
 NPU_CALCULATE_DEVICE = 0
 if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
     NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
-if torch.npu.current_device() != NPU_CALCULATE_DEVICE:
-    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')
 
 model_file = 'model_92_sgd_mixup300_normal20.pkl'
 
