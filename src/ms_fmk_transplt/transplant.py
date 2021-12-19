@@ -14,6 +14,7 @@ import trans_utils as utils
 import transplant_logger as translog
 from code_visitor import ApiVisitor
 from rule import InitProcessGroupRule
+from trans_utils import count_files
 from trans_utils import TransplantException
 
 
@@ -55,12 +56,17 @@ class Transplant(object):
             self.__analysis_dir()
 
     def __analysis_dir(self):
+        py_file_counts = count_files(self.script_dir)
+        count = 0
+        translog.set_process_info('[Process:%0.2f%%]' % (count / py_file_counts * 100))
         for root, dirs, files in os.walk(self.script_dir):
             for f in files:
                 file = os.path.join(root, f)
                 if not self.__need_analysis(file, self.script_dir):
                     continue
                 self.__analysis_file(file, self.script_dir)
+                count += 1
+                translog.set_process_info('[Process:%0.2f%%]' % (count / py_file_counts * 100))
 
     def __analysis_file(self, file, commonprefix):
         translog.info('Start analysis %s.' % os.path.relpath(file, commonprefix))

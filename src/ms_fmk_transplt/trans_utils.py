@@ -143,3 +143,12 @@ do
     let rank++
 done'''
     write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code, permission=0o750)
+
+
+def count_files(path, suffix='.py'):
+    count = 0
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith(suffix):
+                count += 1
+    return count
