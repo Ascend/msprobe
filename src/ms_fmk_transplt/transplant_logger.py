@@ -29,11 +29,11 @@ def set_process_info(process):
 
 
 def debug(msg):
-    logger.debug("%-18s%s" % (process_info, msg) if process_info else msg)
+    logger.debug("%-2s%-18s%s" % ('', process_info, msg) if process_info else "%-2s%s" % ('', msg))
 
 
 def info(msg):
-    logger.info("%-18s%s" % (process_info, msg) if process_info else msg)
+    logger.info("%-3s%-18s%s" % ('', process_info, msg) if process_info else "%-3s%s" % ('', msg))
 
 
 def warning(msg):
@@ -41,4 +41,4 @@ def warning(msg):
 
 
 def error(msg):
-    logger.error("%-18s%s" % (process_info, msg) if process_info else msg)
+    logger.error("%-2s%-18s%s" % ('', process_info, msg) if process_info else "%-2s%s" % ('', msg))
