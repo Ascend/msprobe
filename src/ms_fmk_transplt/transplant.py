@@ -14,8 +14,7 @@ import trans_utils as utils
 import transplant_logger as translog
 from code_visitor import ApiVisitor
 from rule import InitProcessGroupRule
-from trans_utils import count_files
-from trans_utils import TransplantException
+from trans_utils import count_files, TransplantException
 
 
 class Transplant(object):
