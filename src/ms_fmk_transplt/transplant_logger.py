@@ -28,17 +28,24 @@ def set_progress_info(progress):
     progress_info = progress
 
 
+def log_format(sep, msg):
+    if progress_info:
+        return ' ' * sep + f'{progress_info:20s}' + msg
+    else:
+        return ' ' * sep + msg
+
+
 def debug(msg):
-    logger.debug("%-2s%-20s%s" % ('', progress_info, msg) if progress_info else "%-2s%s" % ('', msg))
+    logger.debug(log_format(2, msg))
 
 
 def info(msg):
-    logger.info("%-3s%-20s%s" % ('', progress_info, msg) if progress_info else "%-3s%s" % ('', msg))
+    logger.info(log_format(3, msg))
 
 
 def warning(msg):
-    logger.warning("%-20s%s" % (progress_info, msg) if progress_info else msg)
+    logger.warning(log_format(0, msg))
 
 
 def error(msg):
-    logger.error("%-2s%-20s%s" % ('', progress_info, msg) if progress_info else "%-2s%s" % ('', msg))
+    logger.error(log_format(2, msg))
