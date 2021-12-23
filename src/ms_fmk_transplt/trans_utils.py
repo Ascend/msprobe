@@ -120,10 +120,13 @@ def change_mode(dir_path):
         for dir_itr in dirs:
             os.chmod(os.path.join(root, dir_itr), 0o750)
         for file in files:
+            file_path = os.path.join(root, file)
+            if os.path.islink(file_path):
+                continue
             if file.endswith('.sh'):
                 os.chmod(os.path.join(root, file), 0o750)
                 continue
-            os.chmod(os.path.join(root, file), 0o640)
+            os.chmod(file_path, 0o640)
 
 
 def generate_distributed_shell_file(path):
@@ -149,6 +152,9 @@ def count_files(path, suffix='.py'):
     count = 0
     for root, dirs, files in os.walk(path):
         for file in files:
+            file_path = os.path.join(root, file)
+            if os.path.islink(file_path):
+                continue
             if file.endswith(suffix):
                 count += 1
     return count
