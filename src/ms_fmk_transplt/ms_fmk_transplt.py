@@ -113,7 +113,7 @@ class MsFmkTransplt(object):
                 os.makedirs(self.output)
             if os.path.exists(self.output):
                 shutil.rmtree(self.output)
-            shutil.copytree(self.input, self.output)
+            shutil.copytree(self.input, self.output, symlinks=True)
         utils.change_mode(self.output)
 
     def __init_custom_para(self, args):

@@ -30,9 +30,9 @@ def set_progress_info(progress):
 
 def log_format(sep, msg):
     if progress_info:
-        return ' ' * sep + f'{progress_info:20s}' + msg
+        return ' ' * sep + f'{progress_info:20s}' + str(msg)
     else:
-        return ' ' * sep + msg
+        return ' ' * sep + str(msg)
 
 
 def debug(msg):

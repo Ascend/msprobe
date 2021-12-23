@@ -25,7 +25,7 @@ class Transplant(object):
 
     @staticmethod
     def __need_analysis(file):
-        return file.endswith('.py')
+        return (not os.path.islink(file)) and file.endswith('.py')
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
