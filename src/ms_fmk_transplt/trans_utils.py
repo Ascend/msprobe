@@ -118,7 +118,9 @@ def change_mode(dir_path):
     os.chmod(dir_path, 0o750)
     for root, dirs, files in os.walk(dir_path):
         for dir_itr in dirs:
-            os.chmod(os.path.join(root, dir_itr), 0o750)
+            dir_iter_path = os.path.join(root, dir_itr)
+            if not os.path.islink(dir_iter_path):
+                os.chmod(dir_iter_path, 0o750)
         for file in files:
             file_path = os.path.join(root, file)
             if os.path.islink(file_path):
