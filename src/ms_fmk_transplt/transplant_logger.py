@@ -7,6 +7,7 @@ import os
 
 LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+progress_info = ''
 
 logger.basicConfig(level=logger.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
@@ -22,17 +23,29 @@ def init_logging_file(filename):
     logger.getLogger().addHandler(file_handler)
 
 
+def set_progress_info(progress):
+    global progress_info
+    progress_info = progress
+
+
+def log_format(sep, msg):
+    if progress_info:
+        return ' ' * sep + f'{progress_info:20s}' + msg
+    else:
+        return ' ' * sep + msg
+
+
 def debug(msg):
-    logger.debug("%-2s%s" % ('', msg))
+    logger.debug(log_format(2, msg))
 
 
 def info(msg):
-    logger.info("%-3s%s" % ('', msg))
+    logger.info(log_format(3, msg))
 
 
 def warning(msg):
-    logger.warning(msg)
+    logger.warning(log_format(0, msg))
 
 
 def error(msg):
-    logger.error("%-2s%s" % ('', msg))
+    logger.error(log_format(2, msg))

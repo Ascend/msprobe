@@ -14,7 +14,7 @@ import trans_utils as utils
 import transplant_logger as translog
 from code_visitor import ApiVisitor
 from rule import InitProcessGroupRule
-from trans_utils import TransplantException
+from trans_utils import count_files, TransplantException
 
 
 class Transplant(object):
@@ -24,11 +24,8 @@ class Transplant(object):
         self.main_file = main_file
 
     @staticmethod
-    def __need_analysis(file, commonprefix):
-        if file.endswith('.py'):
-            return True
-        translog.info('%s is not a python script, skip.' % os.path.relpath(file, commonprefix))
-        return False
+    def __need_analysis(file):
+        return file.endswith('.py')
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
@@ -48,19 +45,24 @@ class Transplant(object):
         if not os.access(self.script_dir, os.R_OK):
             raise TransplantException('%s is not readable.' % self.script_dir)
 
-        if os.path.isfile(self.script_dir) and self.__need_analysis(self.script_dir, os.path.dirname(self.script_dir)):
+        if os.path.isfile(self.script_dir) and self.__need_analysis(self.script_dir):
             self.__analysis_file(self.script_dir, os.path.dirname(self.script_dir))
 
         if os.path.isdir(self.script_dir):
             self.__analysis_dir()
 
     def __analysis_dir(self):
+        py_file_counts = count_files(self.script_dir)
+        count = 0
+        translog.set_progress_info(f'[Progress:{count / py_file_counts * 100:6.2f}%]')
         for root, dirs, files in os.walk(self.script_dir):
             for f in files:
                 file = os.path.join(root, f)
-                if not self.__need_analysis(file, self.script_dir):
+                if not self.__need_analysis(file):
                     continue
                 self.__analysis_file(file, self.script_dir)
+                count += 1
+                translog.set_progress_info(f'[Progress:{count / py_file_counts * 100:6.2f}%]')
 
     def __analysis_file(self, file, commonprefix):
         translog.info('Start analysis %s.' % os.path.relpath(file, commonprefix))
