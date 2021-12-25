@@ -53,6 +53,9 @@ class Transplant(object):
 
     def __analysis_dir(self):
         py_file_counts = count_files(self.script_dir)
+        if not py_file_counts:
+            translog.warning('there are no py files in the folder.')
+            return
         count = 0
         translog.set_progress_info(f'[Progress:{count / py_file_counts * 100:6.2f}%]')
         for root, dirs, files in os.walk(self.script_dir):
