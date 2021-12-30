@@ -165,13 +165,15 @@ def transplt_multi(input_path, output_path, standard_dir=None):
 
 
 def transplant_amp(input_path, output_path, standard_dir=None):
+    model_dict = {
+        'barlowtwins_amp': 'model'
+    }
     args = []
     transplt_files = []
-    for file in os.listdir(input_path):
-        if not file.endswith("_amp"):
-            continue
+    for file, target_model in model_dict.items():
         transplt_files.append(file)
-        mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path, test_amp=True))
+        mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path,
+                                                target_model=target_model, test_amp=True))
         args.append([mock_args, file, standard_dir])
     return transplant(args, transplt_files, output_path, name=' amp')
 
