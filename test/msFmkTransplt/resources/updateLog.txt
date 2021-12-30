@@ -14,3 +14,4 @@ date, name, issue/requirement/DTS, reason
 2021-12-10 12:21:54, zhouyanming, DTS DTS2021121006730, 优化DDP插入规则 & 修改MASTER_ADDR默认为127.0.0.1
 2021-12-14 20:01:57, zhouyanming, issue #26, 单卡转多卡时不切分batch_size
 2021-12-15 18:16:24, zhouyanming, issue #27, 单转多场景删除过多的set_device
+2021-12-30 15:32:32, zhouyanming, issue #32, 新增每日冒烟用例混合精度一张

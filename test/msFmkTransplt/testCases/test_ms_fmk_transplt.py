@@ -26,20 +26,20 @@ sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 TRANS_ERROR=1
 
 class Args(object):
-    def __init__(self, input_path, output_path, main=None, target_model='model'):
+    def __init__(self, input_path, output_path, main=None, target_model='model', test_amp=False):
         self.input = input_path
         self.output = output_path
         self.rule = ''
         self.specify_device = False
         self.device_id = 0
         self.similar = True
-        self.amp_model = ''
+        self.amp_model = target_model if test_amp else ''
         if main:
             self.main = main
             self.target_model = target_model
 
 
-def run(mock_args, net_name, result_dict, output_path):
+def run(mock_args, net_name, output_path, result_dict):
     from src.ms_fmk_transplt.ms_fmk_transplt import MsFmkTransplt
     try:
         ms_fmk_transplt = MsFmkTransplt()
@@ -81,11 +81,15 @@ class TestMsFmkTransplt(unittest.TestCase):
                 self.standard_py_file_list.append(sub_file.replace(self.abs_input_path, self.standard_dir))
 
     def test_main(self):
-        result_dict = transplt(self.abs_input_path, self.abs_output_path)
+        result_dict = transplt_normal(self.abs_input_path, self.abs_output_path)
 
         self.assertFalse(TRANS_ERROR in result_dict.values())
 
         result_dict = transplt_multi(self.abs_input_path, self.abs_output_path)
+
+        self.assertFalse(TRANS_ERROR in result_dict.values())
+
+        result_dict = transplant_amp(self.abs_input_path, self.abs_output_path)
 
         self.assertFalse(TRANS_ERROR in result_dict.values())
 
@@ -132,49 +136,62 @@ class TestMsFmkTransplt(unittest.TestCase):
         return content.get("reports")
 
 
-def transplt(input_path, output_path, standard_dir=None):
-    process_list = []
-    result_dict = Manager().dict()
+def transplt_normal(input_path, output_path, standard_dir=None):
+    args = []
+    transplt_files = []
     for file in os.listdir(input_path):
-        if file.endswith("_multi"):
+        if file.endswith("_multi") or file.endswith("_amp"):
             continue
+        transplt_files.append(file)
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path))
-        process = Process(target=run, args=(mock_args, file, result_dict, standard_dir))
-        process.start()
-        process_list.append(process)
-    for process in process_list:
-        process.join()
-    for file in os.listdir(input_path):
-        if file.endswith("_multi"):
-            continue
-        os.rename(output_path + '/' + file + '_msft', output_path + '/' + file)
-    for key, value in result_dict.items():
-        if value != 0:
-            print(f"{key} translates failed.")
-    return result_dict
+        args.append([mock_args, file, standard_dir])
+    return transplant(args, transplt_files, output_path)
 
 
 def transplt_multi(input_path, output_path, standard_dir=None):
-    process_list = []
-    result_dict = Manager().dict()
     main_file_dict = {
         'ID0339_CarPeting_Pytorch_EAST_multi': input_path + '/ID0339_CarPeting_Pytorch_EAST_multi/train_ICDAR15.py',
         'ID0476_CarPeting_Pytorch_3D_nested_unet_multi': input_path + '/ID0476_CarPeting_Pytorch_3D_nested_unet_multi/train.py',
         'ID0478_CarPeting_Pytorch_3D_attentionnet_multi': input_path + '/ID0478_CarPeting_Pytorch_3D_attentionnet_multi/train.py',
         'ID0669_CarPeting_Pytorch_GENet_multi': input_path + '/ID0669_CarPeting_Pytorch_GENet_multi/train.py',
     }
+    args = []
+    transplt_files = []
     for file, main_file in main_file_dict.items():
+        transplt_files.append(file)
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path, main_file))
-        process = Process(target=run, args=(mock_args, file, result_dict, standard_dir))
+        args.append([mock_args, file, standard_dir])
+    return transplant(args, transplt_files, output_path, ' multi')
+
+
+def transplant_amp(input_path, output_path, standard_dir=None):
+    model_dict = {
+        'barlowtwins_amp': 'model'
+    }
+    args = []
+    transplt_files = []
+    for file, target_model in model_dict.items():
+        transplt_files.append(file)
+        mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path,
+                                                target_model=target_model, test_amp=True))
+        args.append([mock_args, file, standard_dir])
+    return transplant(args, transplt_files, output_path, name=' amp')
+
+
+def transplant(args, transplt_files, output_path, name=''):
+    process_list = []
+    result_dict = Manager().dict()
+    for arg in args:
+        process = Process(target=run, args=tuple(arg + [result_dict]))
         process.start()
         process_list.append(process)
     for process in process_list:
         process.join()
-    for file in main_file_dict.keys():
+    for file in transplt_files:
         os.rename(output_path + '/' + file + '_msft', output_path + '/' + file)
     for key, value in result_dict.items():
         if value != 0:
-            print(f"{key} multi translates failed.")
+            print(f"{key}{name} translates failed.")
     return result_dict
 
 
@@ -184,7 +201,7 @@ def update_standard():
     shutil.rmtree(standard_dir, ignore_errors=True)
     os.makedirs(standard_dir)
 
-    transplt(abs_input_path, standard_dir, standard_dir)
+    transplt_normal(abs_input_path, standard_dir, standard_dir)
     transplt_multi(abs_input_path, standard_dir, standard_dir)
 
     print("Standard file update finished.")
