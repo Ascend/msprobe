@@ -148,7 +148,7 @@ def main_worker(gpu, args):
             torch.save(state, args.checkpoint_dir / 'checkpoint.pth')
     if args.rank == 0:
         # save final model
-        torch.save(model.module.backbone.state_dict(),
+        torch.save(model.backbone.state_dict(),
                    args.checkpoint_dir / 'resnet50.pth')
 
 
