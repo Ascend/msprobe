@@ -16,3 +16,4 @@ date, name, issue/requirement/DTS, reason
 2021-12-15 18:16:24, zhouyanming, issue #27, 单转多场景删除过多的set_device
 2021-12-30 15:32:32, zhouyanming, issue #32, 新增每日冒烟用例混合精度一张
 2022-01-04 15:32:32, zhouyanming, issue #33, 修复门禁用例报错
+2022-01-05 14:36:34, chenzeren, issue #34, 门禁精简
