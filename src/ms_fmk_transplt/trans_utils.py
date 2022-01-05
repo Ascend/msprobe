@@ -159,4 +159,5 @@ def count_files(path, suffix='.py'):
                 continue
             if file.endswith(suffix):
                 count += 1
+
     return count
