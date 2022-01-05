@@ -203,6 +203,7 @@ def update_standard():
 
     transplt_normal(abs_input_path, standard_dir, standard_dir)
     transplt_multi(abs_input_path, standard_dir, standard_dir)
+    transplant_amp(abs_input_path, standard_dir, standard_dir)
 
     print("Standard file update finished.")
 
