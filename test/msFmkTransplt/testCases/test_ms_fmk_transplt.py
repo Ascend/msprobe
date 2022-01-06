@@ -105,7 +105,6 @@ class TestMsFmkTransplt(unittest.TestCase):
         with open(output_file, 'r', encoding='utf-8') as out_file:
             output_content = out_file.read().splitlines()
         result = list(difflib.unified_diff(standard_content, output_content, n=0))
-
         if result:
             print('\n\n-------------------------------------------------------------------------', flush=True)
             print(f'[ERROR] {output_file.replace(self.abs_output_path, "")} conversion results are inconsistent.',
@@ -141,7 +140,6 @@ def transplt_normal(input_path, output_path, standard_dir=None):
     for file in os.listdir(input_path):
         if file.endswith("_multi") or file.endswith("_amp"):
             continue
-
         transplt_files.append(file)
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path))
         args.append([mock_args, file, standard_dir])
