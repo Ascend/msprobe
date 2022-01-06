@@ -109,7 +109,7 @@ class TestMsFmkTransplt(unittest.TestCase):
         result = list(difflib.unified_diff(standard_content, output_content, n=0))
         if result:
             print('\n\n-------------------------------------------------------------------------', flush=True)
-            print(f'[Error] {output_file.replace(self.abs_output_path, "")} conversion results are inconsistent.',
+            print(f'[ERROR] {output_file.replace(self.abs_output_path, "")} conversion results are inconsistent.',
                   flush=True)
             print('\n'.join(result), flush=True)
             print('-------------------------------------------------------------------------', flush=True)
@@ -191,7 +191,7 @@ def transplant(args, transplt_files, output_path, name=''):
         os.rename(output_path + '/' + file + '_msft', output_path + '/' + file)
     for key, value in result_dict.items():
         if value != 0:
-            print(f"{key}{name} translates failed.")
+            print(f"[ERROR]{key}{name} translates failed.")
     return result_dict
 
 
