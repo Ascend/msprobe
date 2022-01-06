@@ -104,6 +104,7 @@ class TestMsFmkTransplt(unittest.TestCase):
             standard_content = st_file.read().splitlines()
         with open(output_file, 'r', encoding='utf-8') as out_file:
             output_content = out_file.read().splitlines()
+
         result = list(difflib.unified_diff(standard_content, output_content, n=0))
 
         if result:
