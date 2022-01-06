@@ -54,7 +54,6 @@ def run(mock_args, net_name, output_path, result_dict):
 class TestMsFmkTransplt(unittest.TestCase):
 
     def setUp(self):
-        import src.ms_fmk_transplt.ms_fmk_transplt
         self.abs_input_path = os.path.abspath('../resources/net')
         shutil.rmtree("../test_result/", ignore_errors=True)
         os.makedirs("../test_result/net_msft", exist_ok=True)
