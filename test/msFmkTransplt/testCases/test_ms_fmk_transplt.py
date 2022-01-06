@@ -15,6 +15,7 @@ from multiprocessing import Manager, Process
 
 import xmlrunner
 from xmlrunner.extra.xunit_plugin import transform
+from test_rules import TestRules as TestBuildRules
 
 import coverage
 
