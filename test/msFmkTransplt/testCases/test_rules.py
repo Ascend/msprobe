@@ -3,7 +3,6 @@
 # Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 
 import unittest
-import coverage
 import libcst
 import sys
 import os
