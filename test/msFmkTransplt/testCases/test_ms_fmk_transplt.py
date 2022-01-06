@@ -11,8 +11,7 @@ import unittest
 import unittest.mock as mock
 import difflib
 import io
-from multiprocessing import Process
-from multiprocessing import Manager
+from multiprocessing import Manager, Process
 
 import xmlrunner
 from xmlrunner.extra.xunit_plugin import transform
