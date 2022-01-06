@@ -140,6 +140,7 @@ def transplt_normal(input_path, output_path, standard_dir=None):
     for file in os.listdir(input_path):
         if file.endswith("_multi") or file.endswith("_amp"):
             continue
+
         transplt_files.append(file)
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path))
         args.append([mock_args, file, standard_dir])
