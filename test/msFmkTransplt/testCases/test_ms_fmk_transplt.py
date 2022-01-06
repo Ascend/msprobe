@@ -69,7 +69,6 @@ class TestMsFmkTransplt(unittest.TestCase):
 
     def list_python_file(self, path):
         files = os.listdir(path)
-
         for file_name in files:
             sub_file = path + '/' + file_name
             if os.path.isdir(sub_file) and os.path.basename(sub_file) != 'ascend_function':
