@@ -105,6 +105,7 @@ class TestMsFmkTransplt(unittest.TestCase):
         with open(output_file, 'r', encoding='utf-8') as out_file:
             output_content = out_file.read().splitlines()
         result = list(difflib.unified_diff(standard_content, output_content, n=0))
+
         if result:
             print('\n\n-------------------------------------------------------------------------', flush=True)
             print(f'[ERROR] {output_file.replace(self.abs_output_path, "")} conversion results are inconsistent.',
