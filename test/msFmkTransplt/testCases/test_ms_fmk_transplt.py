@@ -190,7 +190,7 @@ def transplant(args, transplt_files, output_path, name=''):
         os.rename(output_path + '/' + file + '_msft', output_path + '/' + file)
     for key, value in result_dict.items():
         if value != 0:
-            print(f"[ERROR]{key}{name} translates failed.")
+            print(f"[ERROR]{key}{name} translates failed.", flush=True)
     return result_dict
 
 
