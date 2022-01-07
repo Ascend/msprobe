@@ -536,7 +536,7 @@ class DistributedDataParallelRule(RuleVisitor):
         escape_funcs = [self.model_target + '.cuda', self.model_target + '.npu', self.model_target + '.to']
         if self.get_full_name_for_node(value) in escape_funcs:
             return False
-        # 2. escape model = func(model, ...),like torch.nn.DataParallel(model), amp.initialize(model,...)
+        # 2. escape func(model, ...),like torch.nn.DataParallel(model), amp.initialize(model,...)
         for arg in value.args:
             if self.get_code_for_node(arg.value) == self.model_target:
                 return False
@@ -547,7 +547,7 @@ class DistributedDataParallelRule(RuleVisitor):
     ) -> Union[
         "libcst.BaseSmallStatement", FlattenSentinel["libcst.BaseSmallStatement"], RemovalSentinel
     ]:
-        # for distributed rule, delete model = torch.nn.DataParallel(model)
+        # for distributed rule, delete torch.nn.DataParallel(model)
         if m.matches(original_node.value, m.Call()) and self.get_full_name_for_node(
                 original_node.value) == 'torch.nn.DataParallel':
             return libcst.RemovalSentinel.REMOVE
