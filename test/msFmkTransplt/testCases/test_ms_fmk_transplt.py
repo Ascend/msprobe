@@ -155,6 +155,7 @@ def transplt_multi(input_path, output_path, standard_dir=None):
     }
     args = []
     transplt_files = []
+
     for file, main_file in main_file_dict.items():
         transplt_files.append(file)
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path, main_file))
