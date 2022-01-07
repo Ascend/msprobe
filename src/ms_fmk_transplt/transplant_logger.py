@@ -3,6 +3,7 @@
 # Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 
 import logging as logger
+from logging.handlers import RotatingFileHandler
 import os
 
 LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
@@ -18,7 +19,7 @@ def init_logging_file(filename):
         os.makedirs(file_path)
 
     formatter = logger.Formatter(LOG_FORMAT, DATE_FORMAT)
-    file_handler = logger.FileHandler(filename=filename, encoding="utf-8")
+    file_handler = RotatingFileHandler(filename=filename, encoding="utf-8", maxBytes=1024 ** 2, backupCount=10)
     file_handler.setFormatter(formatter)
     logger.getLogger().addHandler(file_handler)
 
