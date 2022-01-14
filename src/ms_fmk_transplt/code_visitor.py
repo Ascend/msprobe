@@ -7,6 +7,7 @@ from enum import Enum
 from enum import auto
 import libcst
 import libcst.helpers as helper
+import libcst.matchers as m
 import transplant_logger as translog
 
 
@@ -74,15 +75,16 @@ class RuleVisitor(libcst.CSTTransformer):
     def manage_variable_definition(self, target, node):
         if isinstance(target.target, libcst.Tuple) and isinstance(node.value, libcst.Tuple):
             for tar, val in zip(target.target.elements, node.value.elements):
-                if isinstance(val.value, libcst.Call):
+                # escape "output = model(input)[-1]","output = model[-1]"
+                if m.findall(node, m.Call() | m.Subscript()):
                     continue
                 assign_key = self.get_full_name_for_node(tar.value)
                 assign_value = self.get_full_name_for_node(val.value)
-                # escape None, False
+                # escape "xxx=None","xxx=False"
                 if assign_key and assign_value and not assign_value.startswith('builtins.'):
                     self.variable_dict[assign_key] = assign_value
         else:
-            if isinstance(node.value, libcst.Call):
+            if m.findall(node, m.Call() | m.Subscript()):
                 return
             assign_key = self.get_full_name_for_node(target.target)
             assign_value = self.get_full_name_for_node(node.value)
