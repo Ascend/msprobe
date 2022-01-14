@@ -77,7 +77,7 @@ class InsertGlobalRule(RuleVisitor):
         return True
 
     def clean(self):
-        self.changes_info = []
+        super().clean()
         self.insert_flag = False
 
 
@@ -395,7 +395,8 @@ class DataLoaderRule(RuleVisitor):
         if not (self.insert_flag and m.matches(original_node, m.Assign(value=m.Call()))):
             return updated_node
         args = updated_node.value.args
-        self.dataloader_target = self.get_full_name_for_node(original_node.targets[0].target)
+        self.dataloader_target = self.get_full_name_for_node(original_node.targets[0].target,
+                                                             with_variable_replace=False)
         self.dataloader_targets.append(self.dataloader_target)
         new_value = updated_node.value.with_changes(args=self.__adapt_dataloader_args(args))
         self._record_position(original_node, OperatorType.MODIFY, 'adapt args for DataLoader')
@@ -484,8 +485,8 @@ class DataLoaderRule(RuleVisitor):
         return maybe_set_epoch_statements, len(maybe_set_epoch_statements) * 2
 
     def clean(self):
+        super().clean()
         self.insert_flag = False
-        self.changes_info = []
         self.dataloader_targets = []
         self.dataloader_target = ''
         self.data_set_target = ''
@@ -510,6 +511,7 @@ class DistributedDataParallelRule(RuleVisitor):
         self.optimizer_name = visitor.optimizer_name
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        super().visit_Assign(node)
         target = node.targets[0].target
         if hasattr(target, 'elements'):
             target_pure_full_names = []
@@ -574,9 +576,9 @@ class DistributedDataParallelRule(RuleVisitor):
         return libcst.FlattenSentinel([updated_node, to_device_statement, ddp_statement])
 
     def clean(self):
+        super().clean()
         self.insert_flag = False
         self.optimizer_name = ''
-        self.changes_info = []
 
 
 class ScaleScopeVisitor(libcst.CSTVisitor):
@@ -592,6 +594,7 @@ class ScaleScopeVisitor(libcst.CSTVisitor):
         self.step_dict = {}
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        super().visit_Assign(node)
         target = node.targets[0].target
         if not m.matches(node.value, m.Call()):
             return True
@@ -655,6 +658,7 @@ class Amp2Apex(RuleVisitor):
         self.scaler_name = visitor.scaler_name
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        super().visit_Assign(node)
         if not m.matches(node.value, m.Call()):
             return True
         if self.get_full_name_for_node(node.value) == "torch.cuda.amp.GradScaler":
@@ -828,6 +832,7 @@ class Amp2Apex(RuleVisitor):
         return updated_node
 
     def clean(self):
+        super().clean()
         self.scaler_name = ''
         self.loss_name = ''
         self.optimizer_name = ''
