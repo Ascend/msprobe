@@ -415,7 +415,7 @@ class DataLoaderRule(RuleVisitor):
                 new_args.append(arg)
                 continue
             if arg.keyword.value in arg_change_dict.keys():
-                arg = arg.with_changes(value=libcst.Name(arg_change_dict.get(arg.keyword.value)))
+                arg = arg.with_changes(value=libcst.parse_expression(arg_change_dict.get(arg.keyword.value)))
                 arg_change_dict.pop(arg.keyword.value)
             new_args.append(arg)
         added_args = []
