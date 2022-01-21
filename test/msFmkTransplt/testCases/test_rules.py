@@ -15,7 +15,9 @@ class TestRules(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         import src.ms_fmk_transplt.rule as rule_module
+        import src.ms_fmk_transplt.distributed_rule as distributed_rule_module
         cls.rule_module = rule_module
+        cls.distributed_rule_module = distributed_rule_module
 
 
     def test_args_modify_rule(self):
@@ -152,7 +154,7 @@ class TestRules(unittest.TestCase):
             self._check_modify(rule, test_case[0], test_case[1])
 
     def test_init_process_group_rule(self):
-        rule = self.rule_module.InitProcessGroupRule()
+        rule = self.distributed_rule_module.InitProcessGroupRule()
 
         test_cases = (
             (
@@ -187,7 +189,7 @@ if __name__ == '__main__':
 
 
     def test_dataloader_rule(self):
-        rule = self.rule_module.DataLoaderRule()
+        rule = self.distributed_rule_module.DataLoaderRule()
 
         test_cases = (
             (
@@ -232,7 +234,7 @@ def train(data_loader):
             self._check_modify(rule, test_case[0], test_case[1])
 
     def test_distributed_data_parallel_rule(self):
-        rule = self.rule_module.DistributedDataParallelRule('model', '')
+        rule = self.distributed_rule_module.DistributedDataParallelRule('model', '')
 
         test_cases = (
             (
@@ -282,13 +284,13 @@ model = torch.nn.DataParallel(model)
 from apex import amp
 
 model = EAST()
-model = model.npu()
-if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
 model = model.cuda()
 model = model.npu()
 model = model.to(device)
 model, opt = amp.initialize(model, opt)
+model = model.npu()
+if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
                 '''
             )
         )

@@ -108,7 +108,11 @@ class MsFmkTransplt(object):
             self.output = os.path.join(args.output, os.path.split(self.input)[1])
             shutil.copyfile(self.input, self.output)
         if os.path.isdir(self.input):
-            self.output = os.path.join(args.output, os.path.split(self.input)[1] + '_msft')
+            if hasattr(args, 'main'):
+                project_suffix = '_multi_msft'
+            else:
+                project_suffix = '_msft'
+            self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
             if not os.path.exists(self.output):
                 os.makedirs(self.output)
             if os.path.exists(self.output):
@@ -182,6 +186,8 @@ class MsFmkTransplt(object):
             if args.similar:
                 self.__copy_function_pack()
         except BaseException as exp:
+            import traceback
+            traceback.print_exc()
             translog.error(exp)
             return 1
 

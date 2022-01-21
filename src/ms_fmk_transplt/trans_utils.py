@@ -5,6 +5,7 @@
 import json
 import os
 import pandas as pd
+import distributed_rule
 import rule as rule_module
 
 
@@ -102,9 +103,9 @@ def get_special_rule(args):
         else:
             special_rule_list.extend([rule_module.InitApexRule(), rule_module.Amp2Apex(args.amp_model, '')])
     if hasattr(args, 'main'):
-        special_rule_list.extend([rule_module.InitProcessGroupRule(),
-                                  rule_module.DataLoaderRule(),
-                                  rule_module.DistributedDataParallelRule(args.target_model, args.amp_model)])
+        special_rule_list.extend([distributed_rule.InitProcessGroupRule(),
+                                  distributed_rule.DataLoaderRule(),
+                                  distributed_rule.DistributedDataParallelRule(args.target_model, args.amp_model)])
     return special_rule_list
 
 
