@@ -14,7 +14,10 @@ import trans_utils as utils
 import transplant_logger as translog
 from code_visitor import ApiVisitor
 from rule import InitProcessGroupRule
-from trans_utils import count_files, TransplantException
+from trans_utils import TransplantException, walk_input_path
+
+
+MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
 
 
 class Transplant(object):
@@ -22,6 +25,7 @@ class Transplant(object):
         self.script_dir = script_dir
         self.rule_list = rule_list
         self.main_file = main_file
+        self.py_file_counts = 0
 
     @staticmethod
     def __need_analysis(file):
@@ -51,8 +55,14 @@ class Transplant(object):
         if os.path.isdir(self.script_dir):
             self.__analysis_dir()
 
+    def set_py_file_counts(self, py_file_counts):
+        self.py_file_counts = py_file_counts
+
     def __analysis_dir(self):
-        py_file_counts = count_files(self.script_dir)
+        if self.py_file_counts:
+            py_file_counts = self.py_file_counts
+        else:
+            py_file_counts, _ = walk_input_path(self.script_dir)
         if not py_file_counts:
             translog.warning('There are no python files in the folder.')
             return
@@ -68,9 +78,13 @@ class Transplant(object):
                 translog.set_progress_info(f'[Progress:{count / py_file_counts * 100:6.2f}%]')
 
     def __analysis_file(self, file, commonprefix):
-        translog.info('Start analysis %s.' % os.path.relpath(file, commonprefix))
+        file_relative_path = os.path.relpath(file, commonprefix)
+        if os.path.getsize(file) > MAX_PYTHON_FILE_SIZE:
+            translog.warning('The size of %s exceeds 10M, skip.' % file_relative_path)
+            return
+        translog.info('Start analysis %s.' % file_relative_path)
         self.__analysis_code(file)
-        translog.info('Analysis %s complete.' % os.path.relpath(file, commonprefix))
+        translog.info('Analysis %s complete.' % file_relative_path)
 
     def __visit_rule(self, file, module):
         current_file_name = os.path.basename(file) if os.path.isfile(self.script_dir) else \

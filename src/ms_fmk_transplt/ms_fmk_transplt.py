@@ -11,6 +11,10 @@ from transplant import Transplant
 import trans_utils as utils
 
 
+MAX_PYTHON_FILE_COUNT = 5000
+MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
+
+
 class MsFmkTransplt(object):
     TRANSPLANT_OUTPUT_PATH_SUFFIX = '_msft'
 
@@ -20,6 +24,7 @@ class MsFmkTransplt(object):
         self.custom_rule_file = ''
         self.feature_switch = ['normal']
         self.rule_list = []
+        self.py_file_counts = 0
 
     def __para_check_valid(self, args):
         input_path = os.path.realpath(args.input)
@@ -87,6 +92,8 @@ class MsFmkTransplt(object):
                                  'Note that this may result in accuracy loss and performance degradation')
         parser.add_argument('-a', '--amp_model', metavar='model', default='', help='The variable name of the '
                                                                                    'amp target model')
+        parser.add_argument('-c', '--check_input_valid', default=True, type=bool,
+                            help='Whether to check the input path')
         subparsers = parser.add_subparsers(help='commands')
         self.__distributed_parser(subparsers)
         return parser.parse_args()
@@ -159,6 +166,27 @@ class MsFmkTransplt(object):
         if self.custom_rule_file:
             self.rule_list = utils.get_custom_rule(self.custom_rule_file, self.rule_list)
 
+    def __check_input_valid(self, args):
+        if not args.check_input_valid:
+            return
+        translog.info("Start to check input path...")
+        if os.path.isfile(args.input):
+            if not args.input.endswith('.py'):
+                raise utils.InputCheckException('The input file is not a python file.')
+            return
+        self.py_file_counts, total_size = utils.walk_input_path(args.input, check_total_size=True)
+        if not self.py_file_counts:
+            raise utils.InputCheckException('There are no python files in the folder.')
+        if self.py_file_counts > MAX_PYTHON_FILE_COUNT:
+            utils.user_interactive_confirm(
+                'The input path contains more than 5000 python files, do you want to continue?')
+        free_size = shutil.disk_usage(args.output).free / utils.GB
+        if total_size >= free_size:
+            raise utils.InputCheckException(
+                'The size of input path is too large, and the remaining disk space is not enough.')
+        if total_size > MAX_SIZE_OF_INPUT_PATH:
+            utils.user_interactive_confirm('The size of the input path exceeds 50G, do you want to continue?')
+
     @staticmethod
     def get_main_file(args):
         if not hasattr(args, 'main'):
@@ -172,12 +200,14 @@ class MsFmkTransplt(object):
 
         try:
             self.__para_check_valid(args)
+            self.__check_input_valid(args)
             self.__init_self_para(args)
             self.__init_logger()
             translog.info('Initialing rules...')
             self.__init_rules(args)
             translog.info('MsFmkTransplt start working now, please wait for a moment.')
             transplant = Transplant(self.output, self.rule_list, self.get_main_file(args))
+            transplant.set_py_file_counts(self.py_file_counts)
             transplant.run()
             if args.similar:
                 self.__copy_function_pack()

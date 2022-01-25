@@ -8,7 +8,14 @@ import pandas as pd
 import rule as rule_module
 
 
+GB = 1024 ** 3
+
+
 class TransplantException(Exception):
+    pass
+
+
+class InputCheckException(Exception):
     pass
 
 
@@ -150,14 +157,27 @@ done'''
     write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code, permission=0o750)
 
 
-def count_files(path, suffix='.py'):
-    count = 0
+def walk_input_path(path, check_total_size=False):
+    py_file_counts = 0
+    total_size = 0
     for root, dirs, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)
             if os.path.islink(file_path):
                 continue
-            if file.endswith(suffix):
-                count += 1
+            if file.endswith('.py'):
+                py_file_counts += 1
+            if check_total_size:
+                total_size += os.path.getsize(file_path)
+    return py_file_counts, total_size / GB
 
-    return count
+
+def user_interactive_confirm(message):
+    while True:
+        check_message = input(message + " Enter 'continue' or 'c' to continue or enter 'exit' to exit: ")
+        if check_message == "continue" or check_message == "c":
+            break
+        elif check_message == "exit":
+            exit(0)
+        else:
+            print("Input is error, please enter 'exit' or 'c' or 'continue'.")
