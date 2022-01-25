@@ -92,7 +92,7 @@ class MsFmkTransplt(object):
                                  'Note that this may result in accuracy loss and performance degradation')
         parser.add_argument('-a', '--amp_model', metavar='model', default='', help='The variable name of the '
                                                                                    'amp target model')
-        parser.add_argument('-c', '--check_input_valid', default=True, type=bool,
+        parser.add_argument('-n', '--no_input_valid_check', action='store_true',
                             help='Whether to check the input path')
         subparsers = parser.add_subparsers(help='commands')
         self.__distributed_parser(subparsers)
@@ -167,7 +167,7 @@ class MsFmkTransplt(object):
             self.rule_list = utils.get_custom_rule(self.custom_rule_file, self.rule_list)
 
     def __check_input_valid(self, args):
-        if not args.check_input_valid:
+        if args.no_input_valid_check:
             return
         translog.info("Start to check input path...")
         if os.path.isfile(args.input):
