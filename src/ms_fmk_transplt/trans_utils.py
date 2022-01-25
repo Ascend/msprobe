@@ -165,6 +165,8 @@ def walk_input_path(path, check_total_size=False):
             file_path = os.path.join(root, file)
             if os.path.islink(file_path):
                 continue
+            if not os.path.exists(file_path):
+                continue
             if file.endswith('.py'):
                 py_file_counts += 1
             if check_total_size:
