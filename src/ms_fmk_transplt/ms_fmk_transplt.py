@@ -12,7 +12,7 @@ import trans_utils as utils
 
 
 MAX_PYTHON_FILE_COUNT = 5000
-MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
+MAX_SIZE_OF_INPUT_PATH = 50 # GB
 
 
 class MsFmkTransplt(object):
