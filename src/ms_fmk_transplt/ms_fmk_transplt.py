@@ -37,8 +37,7 @@ class MsFmkTransplt(object):
         if not os.access(output, os.W_OK):
             raise PermissionError('Output %s is not writeable!' % args.output)
 
-        commonpath = os.path.commonpath([os.path.realpath(args.input), os.path.realpath(args.output)])
-        if commonpath == input:
+        if self.__check_is_subdirectory(os.path.realpath(args.input), os.path.realpath(args.output)):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
         self.__check_custom_rule_param_valid(args)
@@ -55,8 +54,7 @@ class MsFmkTransplt(object):
         if not os.access(rule, os.R_OK):
             raise PermissionError('Custom rule file %s is not readable!' % args.rule)
 
-    @staticmethod
-    def __check_distributed_rule_param_valid(args):
+    def __check_distributed_rule_param_valid(self, args):
         if not hasattr(args, 'main'):
             return
         main_file = os.path.realpath(args.main)
@@ -64,8 +62,7 @@ class MsFmkTransplt(object):
             raise ValueError('Main file %s should be a python file!' % args.main)
         if not os.path.exists(main_file):
             raise ValueError('Main file %s does not exist!' % args.main)
-        commonpath = os.path.commonpath([os.path.realpath(args.input), os.path.realpath(args.main)])
-        if commonpath != os.path.realpath(args.input):
+        if not self.__check_is_subdirectory(os.path.realpath(args.input), os.path.realpath(args.main)):
             if os.path.isdir(args.input):
                 raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
             if os.path.isfile(args.input):
@@ -166,6 +163,13 @@ class MsFmkTransplt(object):
         if os.path.isfile(args.input):
             return os.path.basename(args.main)
         return os.path.relpath(args.main, args.input)
+
+    @staticmethod
+    def __check_is_subdirectory(path_may_be_parent, path_may_be_child):
+        if path_may_be_parent[0] != path_may_be_child[0]:
+            return False
+        commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
+        return commonpath == path_may_be_parent
 
     def main(self):
         args = self.__parse_command()
