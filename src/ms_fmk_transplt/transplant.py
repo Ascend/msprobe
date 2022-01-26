@@ -59,15 +59,11 @@ class Transplant(object):
         self.py_file_counts = py_file_counts
 
     def __analysis_dir(self):
-        if self.py_file_counts:
-            py_file_counts = self.py_file_counts
-        else:
-            py_file_counts, _ = walk_input_path(self.script_dir)
-        if not py_file_counts:
+        if not self.py_file_counts:
             translog.warning('There are no python files in the folder.')
             return
         count = 0
-        translog.set_progress_info(f'[Progress:{count / py_file_counts * 100:6.2f}%]')
+        translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
         for root, dirs, files in os.walk(self.script_dir):
             for f in files:
                 file = os.path.join(root, f)
@@ -75,7 +71,7 @@ class Transplant(object):
                     continue
                 self.__analysis_file(file, self.script_dir)
                 count += 1
-                translog.set_progress_info(f'[Progress:{count / py_file_counts * 100:6.2f}%]')
+                translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
 
     def __analysis_file(self, file, commonprefix):
         file_relative_path = os.path.relpath(file, commonprefix)
