@@ -157,7 +157,7 @@ done'''
     write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code, permission=0o750)
 
 
-def walk_input_path(path, check_total_size=False):
+def walk_input_path(path):
     py_file_counts = 0
     total_size = 0
     for root, dirs, files in os.walk(path):
@@ -169,8 +169,7 @@ def walk_input_path(path, check_total_size=False):
                 continue
             if file.endswith('.py'):
                 py_file_counts += 1
-            if check_total_size:
-                total_size += os.path.getsize(file_path)
+            total_size += os.path.getsize(file_path)
     return py_file_counts, total_size / GB
 
 

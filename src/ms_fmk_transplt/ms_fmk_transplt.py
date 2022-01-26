@@ -170,7 +170,7 @@ class MsFmkTransplt(object):
             if not args.input.endswith('.py'):
                 raise utils.InputCheckException('The input file is not a python file.')
             return
-        self.py_file_counts, total_size = utils.walk_input_path(args.input, check_total_size=True)
+        self.py_file_counts, total_size = utils.walk_input_path(args.input)
         if not self.py_file_counts:
             raise utils.InputCheckException('There are no python files in the folder.')
         if self.py_file_counts > MAX_PYTHON_FILE_COUNT:
