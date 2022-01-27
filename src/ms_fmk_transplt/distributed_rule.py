@@ -46,19 +46,33 @@ class DataLoaderRule(RuleVisitor):
         self.dataloader_targets = []
         self.dataloader_target = ''
         self.data_set_target = ''
+        self.dataloader_in_assign = True
 
     def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
         qualified_name = self.get_full_name_for_node(node)
         if qualified_name in ('torch.utils.data.DataLoader', 'torch.utils.data.dataloader.DataLoader'):
             self.insert_flag = True
+            parent_node = self.get_metadata(libcst.metadata.ParentNodeProvider, node)
+            self.dataloader_in_assign = isinstance(parent_node, libcst.Assign)
         return True
+
+    def leave_Call(
+        self, original_node: "libcst.Call", updated_node: "libcst.Call"
+    ) -> "libcst.BaseExpression":
+        if not self.insert_flag:
+            return updated_node
+        if self.dataloader_in_assign:
+            return updated_node
+        args = updated_node.args
+
+
 
     def leave_Assign(
             self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
     ) -> Union[
         "libcst.BaseSmallStatement", FlattenSentinel["libcst.BaseSmallStatement"], RemovalSentinel
     ]:
-        if not (self.insert_flag and m.matches(original_node, m.Assign(value=m.Call()))):
+        if not (self.insert_flag and self.dataloader_in_assign and m.matches(original_node, m.Assign(value=m.Call()))):
             return updated_node
         args = updated_node.value.args
         self.dataloader_target = self.get_full_name_for_node(original_node.targets[0].target)
@@ -92,7 +106,7 @@ class DataLoaderRule(RuleVisitor):
     def leave_SimpleStatementLine(
             self, original_node: "libcst.SimpleStatementLine", updated_node: "libcst.SimpleStatementLine"
     ) -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
-        if not self.insert_flag:
+        if not (self.insert_flag and self.dataloader_in_assign):
             return updated_node
         self.insert_flag = False
         if not m.matches(original_node.body[0], m.Assign(value=m.Call())):
@@ -156,6 +170,7 @@ class DataLoaderRule(RuleVisitor):
         self.dataloader_targets = []
         self.dataloader_target = ''
         self.data_set_target = ''
+        self.dataloader_in_assign = True
 
 
 class DistributedDataParallelRule(RuleVisitor):
