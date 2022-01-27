@@ -175,13 +175,14 @@ class MsFmkTransplt(object):
             raise utils.InputCheckException('There are no python files in the folder.')
         if self.py_file_counts > MAX_PYTHON_FILE_COUNT:
             utils.user_interactive_confirm(
-                'The input path contains more than 5000 python files, do you want to continue?')
+                f'The input path contains more than {MAX_PYTHON_FILE_COUNT} python files, do you want to continue?')
         free_size = shutil.disk_usage(args.output).free / utils.GB
         if total_size >= free_size:
             raise utils.InputCheckException(
                 'The size of input path is too large, and the remaining disk space is not enough.')
         if total_size > MAX_SIZE_OF_INPUT_PATH:
-            utils.user_interactive_confirm('The size of the input path exceeds 50G, do you want to continue?')
+            utils.user_interactive_confirm(
+                f'The size of the input path exceeds {MAX_SIZE_OF_INPUT_PATH}G, do you want to continue?')
 
     @staticmethod
     def get_main_file(args):
