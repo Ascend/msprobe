@@ -54,7 +54,8 @@ class MsFmkTransplt(object):
         if not os.access(rule, os.R_OK):
             raise PermissionError('Custom rule file %s is not readable!' % args.rule)
 
-    def __check_distributed_rule_param_valid(self, args):
+    @staticmethod
+    def __check_distributed_rule_param_valid(args):
         if not hasattr(args, 'main'):
             return
         main_file = os.path.realpath(args.main)
@@ -62,7 +63,7 @@ class MsFmkTransplt(object):
             raise ValueError('Main file %s should be a python file!' % args.main)
         if not os.path.exists(main_file):
             raise ValueError('Main file %s does not exist!' % args.main)
-        if not self.__check_is_subdirectory(args.input, args.main):
+        if not MsFmkTransplt.__check_is_subdirectory(args.input, args.main):
             if os.path.isdir(args.input):
                 raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
             if os.path.isfile(args.input):
