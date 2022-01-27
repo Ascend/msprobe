@@ -37,7 +37,7 @@ class MsFmkTransplt(object):
         if not os.access(output, os.W_OK):
             raise PermissionError('Output %s is not writeable!' % args.output)
 
-        if self.__check_is_subdirectory(os.path.realpath(args.input), os.path.realpath(args.output)):
+        if self.__check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
         self.__check_custom_rule_param_valid(args)
@@ -62,7 +62,7 @@ class MsFmkTransplt(object):
             raise ValueError('Main file %s should be a python file!' % args.main)
         if not os.path.exists(main_file):
             raise ValueError('Main file %s does not exist!' % args.main)
-        if not self.__check_is_subdirectory(os.path.realpath(args.input), os.path.realpath(args.main)):
+        if not self.__check_is_subdirectory(args.input, args.main):
             if os.path.isdir(args.input):
                 raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
             if os.path.isfile(args.input):
@@ -166,6 +166,8 @@ class MsFmkTransplt(object):
 
     @staticmethod
     def __check_is_subdirectory(path_may_be_parent, path_may_be_child):
+        path_may_be_parent = os.path.realpath(path_may_be_parent)
+        path_may_be_child = os.path.realpath(path_may_be_child)
         if path_may_be_parent[0] != path_may_be_child[0]:
             return False
         commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
