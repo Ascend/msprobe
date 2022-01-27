@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
+
 from typing import Optional, Union
 
 import libcst
@@ -91,7 +95,6 @@ class DataLoaderRule(RuleVisitor):
         if not self.insert_flag:
             return updated_node
         self.insert_flag = False
-        m.FunctionDef
         if not m.matches(original_node.body[0], m.Assign(value=m.Call())):
             return updated_node
         train_sampler_statement = libcst.parse_statement(
@@ -182,7 +185,7 @@ class DistributedDataParallelRule(RuleVisitor):
         if m.findall(node, m.Assign(value=m.Call() & m.MatchIfTrue(
                 lambda call_node: self.get_full_name_for_node(call_node) == 'apex.amp.initialize'))):
             self.has_apex_initialize = True
-m.ClassDef
+
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         if self.add_after_if:
             return True
