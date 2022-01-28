@@ -201,6 +201,8 @@ class MsFmkTransplt(object):
             transplant.run()
             if args.similar:
                 self.__copy_function_pack()
+        except SystemExit:
+            return 1
         except BaseException as exp:
             translog.error(exp)
             return 1

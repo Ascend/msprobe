@@ -162,6 +162,7 @@ done'''
 def walk_input_path(path, output_path):
     py_file_counts = 0
     total_size = 0
+    already_check_file_count_flag = False
     already_check_max_size_flag = False
     output_free_size = shutil.disk_usage(output_path).free
     for root, dirs, files in os.walk(path):
@@ -171,10 +172,11 @@ def walk_input_path(path, output_path):
                 continue
             if file.endswith('.py'):
                 py_file_counts += 1
-            if py_file_counts >= MAX_PYTHON_FILE_COUNT:
+            if not already_check_file_count_flag and py_file_counts >= MAX_PYTHON_FILE_COUNT:
                 user_interactive_confirm(
                     f'The input path contains more than {MAX_PYTHON_FILE_COUNT} python files. '
                     f'Do you want to continue?')
+                already_check_file_count_flag = True
             total_size += os.path.getsize(file_path)
             if total_size >= output_free_size:
                 raise InputCheckException(
