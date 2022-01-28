@@ -173,16 +173,16 @@ def walk_input_path(path, output_path):
                 py_file_counts += 1
             if py_file_counts >= MAX_PYTHON_FILE_COUNT:
                 user_interactive_confirm(
-                    f'The input path contains more than {MAX_PYTHON_FILE_COUNT} python files, '
-                    f'do you want to continue?')
+                    f'The input path contains more than {MAX_PYTHON_FILE_COUNT} python files. '
+                    f'Do you want to continue?')
             total_size += os.path.getsize(file_path)
             if total_size >= output_free_size:
                 raise InputCheckException(
                     'The size of input path is too large, and the remaining disk space is not enough.')
             if not already_check_max_size_flag and total_size >= MAX_SIZE_OF_INPUT_PATH:
                 user_interactive_confirm(
-                    f'The size of the input path exceeds {int(MAX_SIZE_OF_INPUT_PATH / 1024 ** 3)}G, '
-                    f'do you want to continue?')
+                    f'The size of the input path exceeds {int(MAX_SIZE_OF_INPUT_PATH / 1024 ** 3)}G. '
+                    f'Do you want to continue?')
                 already_check_max_size_flag = True
     return py_file_counts
 
