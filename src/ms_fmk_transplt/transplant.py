@@ -76,11 +76,12 @@ class Transplant(object):
     def __analysis_file(self, file, commonprefix):
         file_relative_path = os.path.relpath(file, commonprefix)
         if os.path.getsize(file) > MAX_PYTHON_FILE_SIZE:
-            translog.warning('The size of %s exceeds 10M, skip.' % file_relative_path)
+            translog.warning(
+                f'The size of {file_relative_path} exceeds {int(MAX_PYTHON_FILE_SIZE / 1024 ** 2)}M, skip.')
             return
-        translog.info('Start analysis %s.' % file_relative_path)
+        translog.info(f'Start analysis {file_relative_path}.')
         self.__analysis_code(file)
-        translog.info('Analysis %s complete.' % file_relative_path)
+        translog.info(f'Analysis {file_relative_path} complete.')
 
     def __visit_rule(self, file, module):
         current_file_name = os.path.basename(file) if os.path.isfile(self.script_dir) else \
