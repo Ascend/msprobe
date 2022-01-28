@@ -11,10 +11,6 @@ from transplant import Transplant
 import trans_utils as utils
 
 
-MAX_PYTHON_FILE_COUNT = 5000
-MAX_SIZE_OF_INPUT_PATH = 50 # GB
-
-
 class MsFmkTransplt(object):
     TRANSPLANT_OUTPUT_PATH_SUFFIX = '_msft'
 
@@ -170,19 +166,9 @@ class MsFmkTransplt(object):
             if not args.input.endswith('.py'):
                 raise utils.InputCheckException('The input file is not a python file.')
             return
-        self.py_file_counts, total_size = utils.walk_input_path(args.input)
+        self.py_file_counts = utils.walk_input_path(args.input, args.output)
         if not self.py_file_counts:
             raise utils.InputCheckException('There are no python files in the folder.')
-        if self.py_file_counts > MAX_PYTHON_FILE_COUNT:
-            utils.user_interactive_confirm(
-                f'The input path contains more than {MAX_PYTHON_FILE_COUNT} python files, do you want to continue?')
-        free_size = shutil.disk_usage(args.output).free / utils.GB
-        if total_size >= free_size:
-            raise utils.InputCheckException(
-                'The size of input path is too large, and the remaining disk space is not enough.')
-        if total_size > MAX_SIZE_OF_INPUT_PATH:
-            utils.user_interactive_confirm(
-                f'The size of the input path exceeds {MAX_SIZE_OF_INPUT_PATH}G, do you want to continue?')
 
     @staticmethod
     def get_main_file(args):

@@ -14,7 +14,7 @@ import trans_utils as utils
 import transplant_logger as translog
 from code_visitor import ApiVisitor
 from rule import InitProcessGroupRule
-from trans_utils import TransplantException, walk_input_path
+from trans_utils import TransplantException
 
 
 MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
