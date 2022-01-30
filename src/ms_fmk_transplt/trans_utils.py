@@ -8,7 +8,6 @@ import shutil
 import pandas as pd
 import rule as rule_module
 
-
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
 
@@ -18,6 +17,10 @@ class TransplantException(Exception):
 
 
 class InputCheckException(Exception):
+    pass
+
+
+class SoftlinkCheckException(Exception):
     pass
 
 
@@ -31,6 +34,8 @@ def write_csv(content_list, script_file, script_dir, csv_type):
     else:
         csv_file = os.path.join(script_dir, '%s.csv' % csv_type)
     header = header_dict.get(csv_type)
+    if os.path.exists(csv_file):
+        remove_path(csv_file)
     if not os.path.exists(csv_file):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
@@ -198,3 +203,12 @@ def user_interactive_confirm(message):
             exit(0)
         else:
             print("Input is error, please enter 'exit' or 'c' or 'continue'.")
+
+
+def remove_path(path):
+    if not os.path.exists(path):
+        return
+    if os.path.islink(path) or os.path.isfile(path):
+        os.remove(path)
+    if os.path.isdir(path):
+        shutil.rmtree(path)
