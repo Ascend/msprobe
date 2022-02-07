@@ -173,7 +173,7 @@ class MsFmkTransplt(object):
         if os.path.isdir(self.input):
             self.output = os.path.join(args.output, os.path.split(self.input)[1] + '_msft')
         if os.path.islink(self.output):
-            raise utils.SoftlinkCheckException(f'The output path {self.output} exists and is a soft link.')
+            raise utils.SoftlinkCheckException(f"The output path {self.output} shouldn't be a soft link.")
         if os.path.exists(self.output):
             utils.user_interactive_confirm('The output directory already exists. Do you want to overwrite?')
             utils.remove_path(self.output)
