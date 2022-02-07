@@ -24,7 +24,7 @@ class MsFmkTransplt(object):
 
     def __para_check_valid(self, args):
         if os.path.islink(args.input):
-            raise utils.SoftlinkCheckException("Input path doesn't support soft link")
+            raise utils.SoftlinkCheckException("Input path doesn't support soft link.")
 
         input_path = os.path.realpath(args.input)
         output = os.path.realpath(args.output)
@@ -71,7 +71,7 @@ class MsFmkTransplt(object):
         if not hasattr(args, 'main'):
             return
         if os.path.islink(args.main):
-            raise utils.SoftlinkCheckException("Main file path doesn't support soft link")
+            raise utils.SoftlinkCheckException("Main file path doesn't support soft link.")
         main_file = os.path.realpath(args.main)
         if not main_file.endswith('.py'):
             raise ValueError('Main file %s should be a python file!' % args.main)
