@@ -8,6 +8,7 @@ import shutil
 import pandas as pd
 import rule as rule_module
 
+
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
 
