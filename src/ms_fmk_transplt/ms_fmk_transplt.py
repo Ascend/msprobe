@@ -20,6 +20,7 @@ class MsFmkTransplt(object):
         self.custom_rule_file = ''
         self.feature_switch = ['normal']
         self.rule_list = []
+        self.py_file_counts = 0
 
     def __para_check_valid(self, args):
         input_path = os.path.realpath(args.input)
@@ -157,6 +158,16 @@ class MsFmkTransplt(object):
         if self.custom_rule_file:
             self.rule_list = utils.get_custom_rule(self.custom_rule_file, self.rule_list)
 
+    def __check_input_valid(self, args):
+        translog.info("Start to check input path...")
+        if os.path.isfile(args.input):
+            if not args.input.endswith('.py'):
+                raise utils.InputCheckException('The input file is not a python file.')
+            return
+        self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), os.path.realpath(args.output))
+        if not self.py_file_counts:
+            raise utils.InputCheckException('There are no python files in the folder.')
+
     @staticmethod
     def get_main_file(args):
         if not hasattr(args, 'main'):
@@ -179,15 +190,19 @@ class MsFmkTransplt(object):
 
         try:
             self.__para_check_valid(args)
+            self.__check_input_valid(args)
             self.__init_self_para(args)
             self.__init_logger()
             translog.info('Initialing rules...')
             self.__init_rules(args)
             translog.info('MsFmkTransplt start working now, please wait for a moment.')
             transplant = Transplant(self.output, self.rule_list, self.get_main_file(args))
+            transplant.set_py_file_counts(self.py_file_counts)
             transplant.run()
             if args.similar:
                 self.__copy_function_pack()
+        except SystemExit:
+            return 1
         except BaseException as exp:
             translog.error(exp)
             return 1
