@@ -78,7 +78,6 @@ class InsertGlobalRule(RuleVisitor):
 
     def clean(self):
         super().clean()
-        self.changes_info = []
         self.insert_flag = False
 
 
@@ -377,6 +376,7 @@ class Amp2Apex(RuleVisitor):
         self.scaler_name = visitor.scaler_name
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        super().visit_Assign(node)
         if not m.matches(node.value, m.Call()):
             return True
         if self.get_full_name_for_node(node.value) == "torch.cuda.amp.GradScaler":
@@ -409,7 +409,7 @@ class Amp2Apex(RuleVisitor):
         if not m.matches(original_node.body[0], m.Assign(value=m.Call())) or len(self.optimizer_name) == 0:
             return
         target = original_node.body[0].targets[0].target
-        if self.get_full_name_for_node(target) != self.optimizer_name:
+        if self.get_full_name_for_node(target, with_variable_replace=False) != self.optimizer_name:
             return
         apex_initialize_statement = libcst.parse_statement(
             '%s, %s = amp.initialize(%s, %s, opt_level="O1", loss_scale="32")'

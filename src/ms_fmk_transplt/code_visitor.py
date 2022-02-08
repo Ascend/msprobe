@@ -7,6 +7,7 @@ from enum import Enum
 from enum import auto
 import libcst
 import libcst.helpers as helper
+import libcst.matchers as m
 import transplant_logger as translog
 
 
@@ -74,18 +75,20 @@ class RuleVisitor(libcst.CSTTransformer):
     def manage_variable_definition(self, target, node):
         if isinstance(target.target, libcst.Tuple) and isinstance(node.value, libcst.Tuple):
             for tar, val in zip(target.target.elements, node.value.elements):
-                if isinstance(val.value, libcst.Call):
+                # escape "output = model(input)[-1]","output = model[-1]"
+                if m.findall(node, m.Call() | m.Subscript()):
                     continue
                 assign_key = self.get_full_name_for_node(tar.value)
                 assign_value = self.get_full_name_for_node(val.value)
-                if assign_key and assign_value:
+                # escape "xxx=None","xxx=False"
+                if assign_key and assign_value and not assign_value.startswith('builtins.'):
                     self.variable_dict[assign_key] = assign_value
         else:
-            if isinstance(node.value, libcst.Call):
+            if m.findall(node, m.Call() | m.Subscript()):
                 return
             assign_key = self.get_full_name_for_node(target.target)
             assign_value = self.get_full_name_for_node(node.value)
-            if assign_key and assign_value:
+            if assign_key and assign_value and not assign_value.startswith('builtins.'):
                 self.variable_dict[assign_key] = assign_value
 
     def _record_position(self, original_node: "libcst.CSTNode", opt: "OperatorType", desc: "str"):
@@ -99,7 +102,7 @@ class RuleVisitor(libcst.CSTTransformer):
             translog.info(msg)
         return self.changes_info
 
-    def get_full_name_for_node(self, node: Union[str, libcst.CSTNode]) -> Optional[str]:
+    def get_full_name_for_node(self, node: Union[str, libcst.CSTNode], with_variable_replace=True) -> Optional[str]:
         name_list = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, node))
         if name_list:
             qualified_name = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, node))[0].name
@@ -108,7 +111,8 @@ class RuleVisitor(libcst.CSTTransformer):
 
         if qualified_name:
             split_name = qualified_name.split('>.')[-1].split('.')
-            split_name[0] = self.variable_dict.get(split_name[0], split_name[0])
+            if with_variable_replace:
+                split_name[0] = self.variable_dict.get(split_name[0], split_name[0])
             qualified_name = '.'.join(split_name)
 
         return qualified_name

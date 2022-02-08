@@ -4,12 +4,21 @@
 
 import json
 import os
+import shutil
 import pandas as pd
 import distributed_rule
 import rule as rule_module
 
 
+MAX_PYTHON_FILE_COUNT = 5000
+MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
+
+
 class TransplantException(Exception):
+    pass
+
+
+class InputCheckException(Exception):
     pass
 
 
@@ -151,14 +160,42 @@ done'''
     write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code, permission=0o750)
 
 
-def count_files(path, suffix='.py'):
-    count = 0
+def walk_input_path(path, output_path):
+    py_file_counts = 0
+    total_size = 0
+    already_check_file_count_flag = False
+    already_check_max_size_flag = False
+    output_free_size = shutil.disk_usage(output_path).free
     for root, dirs, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)
-            if os.path.islink(file_path):
+            if os.path.islink(file_path) or (not os.path.exists(file_path)):
                 continue
-            if file.endswith(suffix):
-                count += 1
+            if file.endswith('.py'):
+                py_file_counts += 1
+            if not already_check_file_count_flag and py_file_counts >= MAX_PYTHON_FILE_COUNT:
+                user_interactive_confirm(
+                    f'The input path contains more than {MAX_PYTHON_FILE_COUNT} python files. '
+                    f'Do you want to continue?')
+                already_check_file_count_flag = True
+            total_size += os.path.getsize(file_path)
+            if total_size >= output_free_size:
+                raise InputCheckException(
+                    'The size of input path is too large, and the remaining disk space is not enough.')
+            if not already_check_max_size_flag and total_size >= MAX_SIZE_OF_INPUT_PATH:
+                user_interactive_confirm(
+                    f'The size of the input path exceeds {int(MAX_SIZE_OF_INPUT_PATH / 1024 ** 3)}G. '
+                    f'Do you want to continue?')
+                already_check_max_size_flag = True
+    return py_file_counts
 
-    return count
+
+def user_interactive_confirm(message):
+    while True:
+        check_message = input(message + " Enter 'continue' or 'c' to continue or enter 'exit' to exit: ")
+        if check_message == "continue" or check_message == "c":
+            break
+        elif check_message == "exit":
+            exit(0)
+        else:
+            print("Input is error, please enter 'exit' or 'c' or 'continue'.")

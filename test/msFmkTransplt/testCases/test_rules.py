@@ -227,6 +227,17 @@ def train(data_loader):
             data_loader.sampler.set_epoch(epoch)
         model.train()
             '''
+            ), (
+                '''from torch.utils.data.dataloader import DataLoader
+dataloader = None
+dataloader = DataLoader(train_data, sampler=train_sampler, 
+                        batch_size=args.train_batch_size)
+                ''', '''from torch.utils.data.dataloader import DataLoader
+dataloader = None
+dataloader_sampler = torch.utils.data.distributed.DistributedSampler(train_data)
+dataloader = DataLoader(train_data, sampler=dataloader_sampler, 
+                        batch_size=args.train_batch_size, shuffle = False, pin_memory = True, drop_last = True)
+                '''
             )
         )
 
@@ -291,6 +302,18 @@ model, opt = amp.initialize(model, opt)
 model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+                '''
+            ), (
+                '''import torch
+if config['deep_supervision']:
+    output = model(input)[-1]
+else:
+    output = model(input)
+                ''','''import torch
+if config['deep_supervision']:
+    output = model(input)[-1]
+else:
+    output = model(input)
                 '''
             )
         )

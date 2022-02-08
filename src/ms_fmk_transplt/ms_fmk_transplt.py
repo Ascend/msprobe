@@ -20,6 +20,7 @@ class MsFmkTransplt(object):
         self.custom_rule_file = ''
         self.feature_switch = ['normal']
         self.rule_list = []
+        self.py_file_counts = 0
 
     def __para_check_valid(self, args):
         input_path = os.path.realpath(args.input)
@@ -37,8 +38,7 @@ class MsFmkTransplt(object):
         if not os.access(output, os.W_OK):
             raise PermissionError('Output %s is not writeable!' % args.output)
 
-        commonpath = os.path.commonpath([os.path.realpath(args.input), os.path.realpath(args.output)])
-        if commonpath == input:
+        if self.__check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
         self.__check_custom_rule_param_valid(args)
@@ -64,8 +64,7 @@ class MsFmkTransplt(object):
             raise ValueError('Main file %s should be a python file!' % args.main)
         if not os.path.exists(main_file):
             raise ValueError('Main file %s does not exist!' % args.main)
-        commonpath = os.path.commonpath([os.path.realpath(args.input), os.path.realpath(args.main)])
-        if commonpath != os.path.realpath(args.input):
+        if not MsFmkTransplt.__check_is_subdirectory(args.input, args.main):
             if os.path.isdir(args.input):
                 raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
             if os.path.isfile(args.input):
@@ -163,6 +162,16 @@ class MsFmkTransplt(object):
         if self.custom_rule_file:
             self.rule_list = utils.get_custom_rule(self.custom_rule_file, self.rule_list)
 
+    def __check_input_valid(self, args):
+        translog.info("Start to check input path...")
+        if os.path.isfile(args.input):
+            if not args.input.endswith('.py'):
+                raise utils.InputCheckException('The input file is not a python file.')
+            return
+        self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), os.path.realpath(args.output))
+        if not self.py_file_counts:
+            raise utils.InputCheckException('There are no python files in the folder.')
+
     @staticmethod
     def get_main_file(args):
         if not hasattr(args, 'main'):
@@ -171,23 +180,34 @@ class MsFmkTransplt(object):
             return os.path.basename(args.main)
         return os.path.relpath(args.main, args.input)
 
+    @staticmethod
+    def __check_is_subdirectory(path_may_be_parent, path_may_be_child):
+        path_may_be_parent = os.path.realpath(path_may_be_parent)
+        path_may_be_child = os.path.realpath(path_may_be_child)
+        if path_may_be_parent[0] != path_may_be_child[0]:
+            return False
+        commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
+        return commonpath == path_may_be_parent
+
     def main(self):
         args = self.__parse_command()
 
         try:
             self.__para_check_valid(args)
+            self.__check_input_valid(args)
             self.__init_self_para(args)
             self.__init_logger()
             translog.info('Initialing rules...')
             self.__init_rules(args)
             translog.info('MsFmkTransplt start working now, please wait for a moment.')
             transplant = Transplant(self.output, self.rule_list, self.get_main_file(args))
+            transplant.set_py_file_counts(self.py_file_counts)
             transplant.run()
             if args.similar:
                 self.__copy_function_pack()
+        except SystemExit:
+            return 1
         except BaseException as exp:
-            import traceback
-            traceback.print_exc()
             translog.error(exp)
             return 1
 
