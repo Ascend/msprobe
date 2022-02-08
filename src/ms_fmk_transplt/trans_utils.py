@@ -7,6 +7,7 @@ import os
 import shutil
 import pandas as pd
 import rule as rule_module
+import transplant_logger as translog
 
 
 MAX_PYTHON_FILE_COUNT = 5000
@@ -22,6 +23,10 @@ class InputCheckException(Exception):
 
 
 class SoftlinkCheckException(Exception):
+    pass
+
+
+class DeleteFileException(Exception):
     pass
 
 
@@ -209,7 +214,10 @@ def user_interactive_confirm(message):
 def remove_path(path):
     if not os.path.exists(path):
         return
-    if os.path.islink(path) or os.path.isfile(path):
-        os.remove(path)
-    if os.path.isdir(path):
-        shutil.rmtree(path)
+    try:
+        if os.path.islink(path) or os.path.isfile(path):
+            os.remove(path)
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+    except PermissionError as exp:
+        raise DeleteFileException(f'Failed to delete {path}: {exp}')
