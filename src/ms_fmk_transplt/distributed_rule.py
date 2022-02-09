@@ -44,14 +44,22 @@ class DataLoaderRule(RuleVisitor):
         self.insert_flag = False
         # may find more than one DataLoader Assign, like train_loader/val_loader
         self.dataloader_targets = []
-        self.dataloader_target = ''
+        self.dict_dataloader_target = ''
         self.data_set_target = ''
 
-    def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
-        qualified_name = self.get_full_name_for_node(node)
-        if qualified_name in ('torch.utils.data.DataLoader', 'torch.utils.data.dataloader.DataLoader'):
-            self.insert_flag = True
-        return True
+    def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        dataloader_call = ('torch.utils.data.DataLoader', 'torch.utils.data.dataloader.DataLoader')
+        if not m.findall(node, m.Call() & m.MatchIfTrue(
+                lambda call_node: self.get_full_name_for_node(call_node) in dataloader_call)):
+            return True
+        self.insert_flag = True
+        dataloader_target = self.get_full_name_for_node(node.targets[0].target,
+                                                        with_variable_replace=False)
+        if m.matches(node.value, m.Call()):
+            self.dataloader_targets.append(dataloader_target)
+        # slove like "dataloaders = {x:Dataloader(...) for x in ['train', 'valid']}"
+        if m.matches(node.value, m.DictComp()):
+            self.dict_dataloader_target = dataloader_target
 
     def leave_Call(
         self, original_node: "libcst.Call", updated_node: "libcst.Call"
@@ -60,24 +68,8 @@ class DataLoaderRule(RuleVisitor):
             return updated_node
         return updated_node.with_changes(args=self.__adapt_dataloader_args(updated_node.args))
 
-    def leave_Assign(
-            self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
-    ) -> Union[
-        "libcst.BaseSmallStatement", FlattenSentinel["libcst.BaseSmallStatement"], RemovalSentinel
-    ]:
-        if not (self.insert_flag and m.matches(original_node, m.Assign(value=m.Call()))):
-            return updated_node
-        args = updated_node.value.args
-        self.dataloader_target = self.get_full_name_for_node(original_node.targets[0].target,
-                                                             with_variable_replace=False)
-        self.dataloader_targets.append(self.dataloader_target)
-        new_value = updated_node.value.with_changes(args=self.__adapt_dataloader_args(args))
-        self._record_position(original_node, OperatorType.MODIFY, 'adapt args for DataLoader')
-        return updated_node.with_changes(value=new_value)
-
     def __adapt_dataloader_args(self, args):
-        arg_change_dict = {'shuffle': 'False', 'pin_memory': 'True', 'drop_last': 'True',
-                           'sampler': self.dataloader_target + '_sampler'}
+        arg_change_dict = {'shuffle': 'False', 'pin_memory': 'True', 'drop_last': 'True'}
         new_args = []
         for arg in args:
             # train_set arg
@@ -87,6 +79,9 @@ class DataLoaderRule(RuleVisitor):
                     self.data_set_target = self.get_code_for_node(arg.value)
                 new_args.append(arg)
                 continue
+            # delete origin sampler value
+            if arg.keyword == 'sampler':
+                continue
             if arg.keyword.value in arg_change_dict.keys():
                 arg = arg.with_changes(value=libcst.parse_expression(arg_change_dict.get(arg.keyword.value)))
                 arg_change_dict.pop(arg.keyword.value)
@@ -94,25 +89,11 @@ class DataLoaderRule(RuleVisitor):
         added_args = []
         for k, v in arg_change_dict.items():
             added_args.append(libcst.Arg(keyword=libcst.Name(k), value=libcst.Name(v)))
+        # add new sampler value
+        added_args.append(libcst.Arg(keyword=libcst.Name('sampler'), value=libcst.parse_expression(
+            f'torch.utils.data.distributed.DistributedSampler({self.data_set_target})')))
         new_args.extend(added_args)
         return new_args
-
-    def leave_SimpleStatementLine(
-            self, original_node: "libcst.SimpleStatementLine", updated_node: "libcst.SimpleStatementLine"
-    ) -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
-        if not self.insert_flag:
-            return updated_node
-        self.insert_flag = False
-        if not m.matches(original_node.body[0], m.Assign(value=m.Call())):
-            return updated_node
-        train_sampler_statement = libcst.parse_statement(
-            "%s = torch.utils.data.distributed.DistributedSampler(%s)" % (
-                self.dataloader_target + '_sampler', self.data_set_target))
-        original_position = self.get_metadata(libcst.metadata.PositionProvider, original_node)
-        self.changes_info.append([original_position.start.line,
-                                  original_position.start.line,
-                                  OperatorType.INSERT.name, "init statement of DistributedSampler"])
-        return libcst.FlattenSentinel([train_sampler_statement, updated_node])
 
     def leave_For(
             self, original_node: "libcst.For", updated_node: "libcst.For"
@@ -143,6 +124,10 @@ class DataLoaderRule(RuleVisitor):
             if target in scope:
                 set_epoch_statements.append(
                     libcst.parse_statement("%s.sampler.set_epoch(%s)" % (target, epoch_target)))
+        if self.dict_dataloader_target and self.dict_dataloader_target in scope:
+            set_epoch_statements.append(
+                libcst.parse_statement(f'for loader in {self.dict_dataloader_target}.values():\n'
+                                       f'    loader.sampler.set_epoch({epoch_target})'))
         if set_epoch_statements:
             return set_epoch_statements, len(set_epoch_statements)
         # variable name contains loader
@@ -161,7 +146,7 @@ class DataLoaderRule(RuleVisitor):
         super().clean()
         self.insert_flag = False
         self.dataloader_targets = []
-        self.dataloader_target = ''
+        self.dict_dataloader_target = ''
         self.data_set_target = ''
 
 
@@ -195,17 +180,18 @@ class DistributedDataParallelRule(RuleVisitor):
             self.has_apex_initialize = True
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        super().visit_Assign(node)
         if self.add_after_if:
             return True
         target = node.targets[0].target
         if hasattr(target, 'elements'):
             target_pure_full_names = []
             for element in target.elements:
-                target_pure_full_names.append(self.get_full_name_for_node(element.value))
+                target_pure_full_names.append(self.get_full_name_for_node(element.value, with_variable_replace=False))
             if self.model_target in target_pure_full_names and self.__need_insert_ddp(node.value):
                 self.insert_flag = True
         else:
-            target_full_name = self.get_full_name_for_node(target)
+            target_full_name = self.get_full_name_for_node(target, with_variable_replace=False)
             if target_full_name == self.model_target:
                 if not self.__need_insert_ddp(node.value):
                     return True
@@ -221,11 +207,11 @@ class DistributedDataParallelRule(RuleVisitor):
             return False
         if not m.matches(value, m.Call()):
             return True
-        full_name = self.get_full_name_for_node(value)
         # 1. escape model.cuda(), model.npu(), model.to()
         escape_funcs = [self.model_target + '.cuda', self.model_target + '.npu', self.model_target + '.to']
-        if full_name in escape_funcs:
+        if self.get_full_name_for_node(value) in escape_funcs:
             return False
+        # 2. escape func(model, ...),like torch.nn.DataParallel(model)
         for arg in value.args:
             if self.get_code_for_node(arg.value) == self.model_target:
                 return False
@@ -257,7 +243,7 @@ class DistributedDataParallelRule(RuleVisitor):
         return updated_node.with_changes(func=libcst.parse_expression('.'.join(names)))
 
     def leave_Assign(
-            self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
+        self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
     ) -> Union[
         "libcst.BaseSmallStatement", FlattenSentinel["libcst.BaseSmallStatement"], RemovalSentinel
     ]:
