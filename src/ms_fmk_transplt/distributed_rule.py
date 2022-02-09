@@ -46,14 +46,11 @@ class DataLoaderRule(RuleVisitor):
         self.dataloader_targets = []
         self.dataloader_target = ''
         self.data_set_target = ''
-        self.dataloader_in_assign = True
 
     def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
         qualified_name = self.get_full_name_for_node(node)
         if qualified_name in ('torch.utils.data.DataLoader', 'torch.utils.data.dataloader.DataLoader'):
             self.insert_flag = True
-            parent_node = self.get_metadata(libcst.metadata.ParentNodeProvider, node)
-            self.dataloader_in_assign = isinstance(parent_node, libcst.Assign)
         return True
 
     def leave_Call(
@@ -61,21 +58,18 @@ class DataLoaderRule(RuleVisitor):
     ) -> "libcst.BaseExpression":
         if not self.insert_flag:
             return updated_node
-        if self.dataloader_in_assign:
-            return updated_node
-        args = updated_node.args
-
-
+        return updated_node.with_changes(args=self.__adapt_dataloader_args(updated_node.args))
 
     def leave_Assign(
             self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
     ) -> Union[
         "libcst.BaseSmallStatement", FlattenSentinel["libcst.BaseSmallStatement"], RemovalSentinel
     ]:
-        if not (self.insert_flag and self.dataloader_in_assign and m.matches(original_node, m.Assign(value=m.Call()))):
+        if not (self.insert_flag and m.matches(original_node, m.Assign(value=m.Call()))):
             return updated_node
         args = updated_node.value.args
-        self.dataloader_target = self.get_full_name_for_node(original_node.targets[0].target)
+        self.dataloader_target = self.get_full_name_for_node(original_node.targets[0].target,
+                                                             with_variable_replace=False)
         self.dataloader_targets.append(self.dataloader_target)
         new_value = updated_node.value.with_changes(args=self.__adapt_dataloader_args(args))
         self._record_position(original_node, OperatorType.MODIFY, 'adapt args for DataLoader')
@@ -94,7 +88,7 @@ class DataLoaderRule(RuleVisitor):
                 new_args.append(arg)
                 continue
             if arg.keyword.value in arg_change_dict.keys():
-                arg = arg.with_changes(value=libcst.Name(arg_change_dict.get(arg.keyword.value)))
+                arg = arg.with_changes(value=libcst.parse_expression(arg_change_dict.get(arg.keyword.value)))
                 arg_change_dict.pop(arg.keyword.value)
             new_args.append(arg)
         added_args = []
@@ -106,7 +100,7 @@ class DataLoaderRule(RuleVisitor):
     def leave_SimpleStatementLine(
             self, original_node: "libcst.SimpleStatementLine", updated_node: "libcst.SimpleStatementLine"
     ) -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
-        if not (self.insert_flag and self.dataloader_in_assign):
+        if not self.insert_flag:
             return updated_node
         self.insert_flag = False
         if not m.matches(original_node.body[0], m.Assign(value=m.Call())):
@@ -166,11 +160,10 @@ class DataLoaderRule(RuleVisitor):
     def clean(self):
         super().clean()
         self.insert_flag = False
-        self.changes_info = []
         self.dataloader_targets = []
         self.dataloader_target = ''
         self.data_set_target = ''
-        self.dataloader_in_assign = True
+
 
 
 class DistributedDataParallelRule(RuleVisitor):
