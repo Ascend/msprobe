@@ -108,7 +108,7 @@ class MsFmkTransplt(object):
             shutil.copyfile(self.input, self.output)
         if os.path.isdir(self.input):
             if hasattr(args, 'main'):
-                project_suffix = '_multi_msft'
+                project_suffix = '_msft_multi'
             else:
                 project_suffix = '_msft'
             self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)

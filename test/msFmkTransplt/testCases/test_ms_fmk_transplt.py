@@ -189,7 +189,7 @@ def transplant(args, transplt_files, output_path, name=''):
         process.join()
     for file in transplt_files:
         if name == ' multi':
-            os.rename(output_path + '/' + file + '_multi_msft', output_path + '/' + file)
+            os.rename(output_path + '/' + file + '_msft_multi', output_path + '/' + file)
         else:
             os.rename(output_path + '/' + file + '_msft', output_path + '/' + file)
     for key, value in result_dict.items():
