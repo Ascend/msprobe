@@ -314,6 +314,27 @@ if config['deep_supervision']:
 else:
     output = model(input)
                 '''
+            ), (
+                '''import torch
+from apex import amp
+
+model = EAST()
+if args.fp16:
+    model, opt = amp.initialize(model, opt)
+if args.resume:
+    model = model.load_state_dict('model.npz')
+    ''', '''import torch
+from apex import amp
+
+model = EAST()
+if args.fp16:
+    model, opt = amp.initialize(model, opt)
+model = model.npu()
+if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+if args.resume:
+    model = model.module.load_state_dict('model.npz')
+    '''
             )
         )
 
