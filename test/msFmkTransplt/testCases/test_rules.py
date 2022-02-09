@@ -237,6 +237,28 @@ dataloader = DataLoader(train_data, sampler=train_sampler,
 dataloader = None
 dataloader = DataLoader(train_data, batch_size=args.train_batch_size, shuffle = False, pin_memory = True, drop_last = True, sampler = torch.utils.data.distributed.DistributedSampler(train_data))
                 '''
+            ), (
+                '''import torch
+
+dataloaders = {
+        x: torch.utils.data.DataLoader(face_dataset[x], batch_size=batch_size, shuffle=False,
+                                       num_workers=num_workers)
+        for x in ['train', 'valid']}
+
+for epoch in epochs:
+    pass
+                ''', '''import torch
+
+dataloaders = {
+        x: torch.utils.data.DataLoader(face_dataset[x], batch_size=batch_size, shuffle=False,
+                                       num_workers=num_workers, pin_memory = True, drop_last = True, sampler = torch.utils.data.distributed.DistributedSampler(face_dataset[x]))
+        for x in ['train', 'valid']}
+
+for epoch in epochs:
+    for loader in dataloaders.values():
+        loader.sampler.set_epoch(epoch)
+    pass
+                '''
             )
         )
 
