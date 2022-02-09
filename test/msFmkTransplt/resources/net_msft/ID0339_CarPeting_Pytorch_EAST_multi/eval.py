@@ -110,7 +110,7 @@ if __name__ == '__main__':
     model.to(f'npu:{NPU_CALCULATE_DEVICE}')
 
     print("loading pretrained model from ",args.resume)
-    model.load_state_dict(torch.load(args.resume))
+    model.module.load_state_dict(torch.load(args.resume))
     # print(getresult(args.output_path))
     test(model,args.eval_path,args.output_path)
 

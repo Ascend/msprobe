@@ -63,7 +63,7 @@ def main():
 
     _, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=41)
 
-    model.load_state_dict(torch.load('models/%s/model.pth' %
+    model.module.load_state_dict(torch.load('models/%s/model.pth' %
                                      config['name']))
     model.eval()
 
@@ -80,13 +80,12 @@ def main():
         mask_ext=config['mask_ext'],
         num_classes=config['num_classes'],
         transform=val_transform)
-    val_loader_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=config['batch_size'],
         shuffle=False,
         num_workers=config['num_workers'],
-        drop_last=True, pin_memory = True, sampler = val_loader_sampler)
+        drop_last=True, pin_memory = True, sampler = torch.utils.data.distributed.DistributedSampler(val_dataset))
 
     avg_meter = AverageMeter()
 

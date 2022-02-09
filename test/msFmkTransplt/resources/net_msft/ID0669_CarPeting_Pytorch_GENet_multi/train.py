@@ -120,18 +120,16 @@ elif args.dataset == 'cifar100':
 
 else:
     raise ValueError('Pick a dataset (ii)')
-trainloader_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
 
 
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
                                           num_workers=args.workers,
                                           pin_memory=True,
-                                          shuffle=False, drop_last = True, sampler = trainloader_sampler)
-valloader_sampler = torch.utils.data.distributed.DistributedSampler(valset)
+                                          shuffle=False, drop_last = True, sampler = torch.utils.data.distributed.DistributedSampler(trainset))
 
 valloader = torch.utils.data.DataLoader(valset, batch_size=args.test_batch_size, shuffle=False,
                                         num_workers=args.workers,
-                                        pin_memory=True, drop_last = True, sampler = valloader_sampler)
+                                        pin_memory=True, drop_last = True, sampler = torch.utils.data.distributed.DistributedSampler(valset))
 
 error_history = []
 epoch_step = json.loads(args.epoch_step)
@@ -280,7 +278,7 @@ if __name__ == '__main__':
 
     else:
         if not args.deploy:
-            model.load_state_dict(torch.load(filename)['state_dict'])
+            model.module.load_state_dict(torch.load(filename)['state_dict'])
         epoch = 0
         validate()
     print("success")

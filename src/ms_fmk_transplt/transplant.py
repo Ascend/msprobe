@@ -13,7 +13,7 @@ from libcst._removal_sentinel import RemovalSentinel
 import trans_utils as utils
 import transplant_logger as translog
 from code_visitor import ApiVisitor
-from rule import InitProcessGroupRule
+from distributed_rule import InitProcessGroupRule
 from trans_utils import TransplantException
 
 
@@ -129,6 +129,11 @@ class CodeTransformer(libcst.CSTTransformer):
             rule.visit_ImportFrom(node)
         return True
 
+    def visit_If(self, node: "libcst.If") -> Optional[bool]:
+        for rule in self.rule_list:
+            rule.visit_If(node)
+        return True
+
     def leave_For(
             self, original_node: "libcst.For", updated_node: "libcst.For"
     ) -> Union["libcst.BaseStatement", libcst.RemovalSentinel]:
@@ -213,4 +218,11 @@ class CodeTransformer(libcst.CSTTransformer):
             -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
         for rule in self.rule_list:
             updated_node = rule.leave_With(original_node, updated_node)
+        return updated_node
+
+    def leave_If(
+        self, original_node: "libcst.If", updated_node: "libcst.If"
+    ) -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
+        for rule in self.rule_list:
+            updated_node = rule.leave_If(original_node, updated_node)
         return updated_node
