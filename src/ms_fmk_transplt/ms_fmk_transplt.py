@@ -80,12 +80,13 @@ class MsFmkTransplt(object):
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
         parser.add_argument('-r', '--rule', default='', metavar='FILE', help='Custom rules file path')
         parser.add_argument('-s', '--specify-device', dest='specify_device', action='store_true',
-                            help='Use specified device which is set by environment variable NPU_CALCULATE_DEVICE')
+                            help='This option is required only if you want to use the NPU_CALCULATE_DEVICE '
+                                 'environment variable to specify the running device.')
         parser.add_argument('-sim', '--similar', action='store_true',
                             help='Replaces certain unsupported APIs with functionally similar ones. '
                                  'Note that this may result in accuracy loss and performance degradation')
-        parser.add_argument('-a', '--amp_model', metavar='model', default='', help='The variable name of the '
-                                                                                   'amp target model')
+        parser.add_argument('-a', '--amp_model', metavar='model', default='',
+                            help='This option is required only if you want to convert torch.cuda.amp to apex.amp')
         subparsers = parser.add_subparsers(help='commands')
         self.__distributed_parser(subparsers)
         return parser.parse_args()
@@ -93,12 +94,14 @@ class MsFmkTransplt(object):
     @staticmethod
     def __distributed_parser(subparsers):
         distributed_parser = subparsers.add_parser('distributed',
-                                                   help='Specified this argument only when you want to transplant '
-                                                        'a single GPU script to a distributed NPU script')
+                                                   help='This option is required only if you want to transplant '
+                                                        'a single GPU script to a distributed NPU script. '
+                                                        'Ensure that your code is a single GPU script.')
         distributed_parser.add_argument('-m', '--main', default='', metavar='FILE', required=True,
-                                        help='The entry python file of the project')
+                                        help='The entry python file of the project, for example, train.py main.py.')
         distributed_parser.add_argument('-t', '--target_model', metavar='model', default='model',
-                                        help='The variable name of the target model')
+                                        help='The variable name of the target model, for example, '
+                                             '"model=LeNet() model", "self.model=LeNet() self.model"')
 
     def __init_default_para(self, args):
         self.input = os.path.realpath(args.input)
