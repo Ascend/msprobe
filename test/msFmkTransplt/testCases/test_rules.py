@@ -197,21 +197,22 @@ if __name__ == '__main__':
 
 trainset = ICDAR15(args.train_data,args.train_gt)
 train_loader_target = data.DataLoader(trainset, batch_size=args.batch_size,
-                                      shuffle=True, num_workers=args.num_workers, drop_last=True)
+                                      shuffle=True, num_workers=args.num_workers, 
+                                      drop_last=True)
 f_score = 0.5
 for epoch in range(args.epoch_iter):
-    train( epoch, model, optimizer,train_loader_target,criterion)
+    train(epoch, model, optimizer,train_loader_target,criterion)
             ''',
             '''from torch.utils import data
 
 trainset = ICDAR15(args.train_data,args.train_gt)
-train_loader_target_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
 train_loader_target = data.DataLoader(trainset, batch_size=args.batch_size,
-                                      shuffle=False, num_workers=args.num_workers, drop_last=True, pin_memory = True, sampler = train_loader_target_sampler)
+                                      shuffle=False, num_workers=args.num_workers, 
+                                      drop_last=True, pin_memory = True, sampler = torch.utils.data.distributed.DistributedSampler(trainset))
 f_score = 0.5
 for epoch in range(args.epoch_iter):
     train_loader_target.sampler.set_epoch(epoch)
-    train( epoch, model, optimizer,train_loader_target,criterion)
+    train(epoch, model, optimizer,train_loader_target,criterion)
             '''), (
                 '''from torch.utils import data
 
@@ -234,9 +235,7 @@ dataloader = DataLoader(train_data, sampler=train_sampler,
                         batch_size=args.train_batch_size)
                 ''', '''from torch.utils.data.dataloader import DataLoader
 dataloader = None
-dataloader_sampler = torch.utils.data.distributed.DistributedSampler(train_data)
-dataloader = DataLoader(train_data, sampler=dataloader_sampler, 
-                        batch_size=args.train_batch_size, shuffle = False, pin_memory = True, drop_last = True)
+dataloader = DataLoader(train_data, batch_size=args.train_batch_size, shuffle = False, pin_memory = True, drop_last = True, sampler = torch.utils.data.distributed.DistributedSampler(train_data))
                 '''
             )
         )

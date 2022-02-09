@@ -66,6 +66,7 @@ class DataLoaderRule(RuleVisitor):
     ) -> "libcst.BaseExpression":
         if not self.insert_flag:
             return updated_node
+        self.insert_flag = False
         return updated_node.with_changes(args=self.__adapt_dataloader_args(updated_node.args))
 
     def __adapt_dataloader_args(self, args):
@@ -80,7 +81,7 @@ class DataLoaderRule(RuleVisitor):
                 new_args.append(arg)
                 continue
             # delete origin sampler value
-            if arg.keyword == 'sampler':
+            if arg.keyword.value == 'sampler':
                 continue
             if arg.keyword.value in arg_change_dict.keys():
                 arg = arg.with_changes(value=libcst.parse_expression(arg_change_dict.get(arg.keyword.value)))
