@@ -118,9 +118,8 @@ if __name__ == '__main__':
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_iter // 2], gamma=0.1)
 
     trainset_ = SynthText(train_img_path, train_gt_path)
-    train_loader_source_sampler = torch.utils.data.distributed.DistributedSampler(trainset_)
     train_loader_source = data.DataLoader(trainset_, batch_size=args.batch_size,
-                                          shuffle=False, num_workers=args.num_workers, drop_last=True, pin_memory = True, sampler = train_loader_source_sampler)
+                                          shuffle=False, num_workers=args.num_workers, drop_last=True, pin_memory = True, sampler = torch.utils.data.distributed.DistributedSampler(trainset_))
 
     f_score = 0.6
     for epoch in range(args.epoch_iter):

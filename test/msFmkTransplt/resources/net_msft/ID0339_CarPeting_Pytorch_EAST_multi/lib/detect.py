@@ -232,7 +232,7 @@ if __name__ == '__main__':
 	model = model.npu()
 	if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
 		model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
-	model.load_state_dict(torch.load(model_path))
+	model.module.load_state_dict(torch.load(model_path))
 	model.eval()
 
 	image_list = os.listdir(img_path)

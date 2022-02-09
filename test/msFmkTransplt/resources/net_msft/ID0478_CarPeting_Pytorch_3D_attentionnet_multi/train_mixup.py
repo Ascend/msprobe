@@ -102,16 +102,14 @@ train_dataset = datasets.CIFAR10(root='./data/',
 test_dataset = datasets.CIFAR10(root='./data/',
                               train=False,
                               transform=test_transform)
-train_loader_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
 
 # Data Loader (Input Pipeline)
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                            batch_size=64, # 64
-                                           shuffle=False, num_workers=8, pin_memory = True, drop_last = True, sampler = train_loader_sampler)
-test_loader_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
+                                           shuffle=False, num_workers=8, pin_memory = True, drop_last = True, sampler = torch.utils.data.distributed.DistributedSampler(train_dataset))
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                           batch_size=20,
-                                          shuffle=False, pin_memory = True, drop_last = True, sampler = test_loader_sampler)
+                                          shuffle=False, pin_memory = True, drop_last = True, sampler = torch.utils.data.distributed.DistributedSampler(test_dataset))
 
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
@@ -131,7 +129,7 @@ acc_best = 0
 total_epoch = 320
 if is_train is True:
     if is_pretrain == True:
-        model.load_state_dict((torch.load(model_file)))
+        model.module.load_state_dict((torch.load(model_file)))
     # Training
     for epoch in range(total_epoch):
         train_loader.sampler.set_epoch(epoch)

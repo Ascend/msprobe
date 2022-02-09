@@ -134,9 +134,8 @@ if __name__ == '__main__':
     #
     # target domain
     trainset = ICDAR15(args.train_data,args.train_gt)
-    train_loader_target_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
     train_loader_target = data.DataLoader(trainset, batch_size=args.batch_size,
-                                          shuffle=False, num_workers=args.num_workers, drop_last=True, pin_memory = True, sampler = train_loader_target_sampler)
+                                          shuffle=False, num_workers=args.num_workers, drop_last=True, pin_memory = True, sampler = torch.utils.data.distributed.DistributedSampler(trainset))
 
 
     f_score = 0.5

@@ -433,9 +433,8 @@ if __name__ == "__main__":
     model.to(f'npu:{NPU_CALCULATE_DEVICE}')
 
     trainset = ICDAR15(train_img_path,train_gt_path)
-    train_loader_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
     train_loader = data.DataLoader(trainset, batch_size=2,
-                                   shuffle=False, num_workers=10, drop_last=True, pin_memory = True, sampler = train_loader_sampler)
+                                   shuffle=False, num_workers=10, drop_last=True, pin_memory = True, sampler = torch.utils.data.distributed.DistributedSampler(trainset))
 
     for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_loader):
         print(i, img.size(), gt_score.size(), gt_geo.size(), ignored_map.size())

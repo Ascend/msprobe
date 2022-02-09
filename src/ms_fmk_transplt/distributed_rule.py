@@ -48,6 +48,7 @@ class DataLoaderRule(RuleVisitor):
         self.data_set_target = ''
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        super().visit_Assign(node)
         dataloader_call = ('torch.utils.data.DataLoader', 'torch.utils.data.dataloader.DataLoader')
         if not m.findall(node, m.Call() & m.MatchIfTrue(
                 lambda call_node: self.get_full_name_for_node(call_node) in dataloader_call)):
@@ -60,6 +61,7 @@ class DataLoaderRule(RuleVisitor):
         # slove like "dataloaders = {x:Dataloader(...) for x in ['train', 'valid']}"
         if m.matches(node.value, m.DictComp()):
             self.dict_dataloader_target = dataloader_target
+        return True
 
     def leave_Call(
         self, original_node: "libcst.Call", updated_node: "libcst.Call"
@@ -151,7 +153,6 @@ class DataLoaderRule(RuleVisitor):
         self.data_set_target = ''
 
 
-
 class DistributedDataParallelRule(RuleVisitor):
     '''
     wrapper model with DistributedDataParallel.
@@ -179,6 +180,15 @@ class DistributedDataParallelRule(RuleVisitor):
         if m.findall(node, m.Assign(value=m.Call() & m.MatchIfTrue(
                 lambda call_node: self.get_full_name_for_node(call_node) == 'apex.amp.initialize'))):
             self.has_apex_initialize = True
+
+    def visit_If(self, node: "libcst.If") -> Optional[bool]:
+        if self.has_apex_initialize and m.findall(node, m.Assign(value=m.Call() & m.MatchIfTrue(
+                lambda call_node: self.get_full_name_for_node(call_node) == 'apex.amp.initialize'))):
+            scope = self.get_metadata(libcst.metadata.ScopeProvider, node)
+            # consider self.model
+            if self.model_target in scope or (self.model_target.startswith('self.') and 'self' in scope):
+                self.add_after_if = True
+        return True
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         super().visit_Assign(node)
@@ -220,28 +230,6 @@ class DistributedDataParallelRule(RuleVisitor):
 
     def __is_amp_initialize(self, value):
         return m.matches(value, m.Call()) and self.get_full_name_for_node(value) == 'apex.amp.initialize'
-
-    def visit_If(self, node: "libcst.If") -> Optional[bool]:
-        if self.has_apex_initialize and m.findall(node, m.Assign(value=m.Call() & m.MatchIfTrue(
-                lambda call_node: self.get_full_name_for_node(call_node) == 'apex.amp.initialize'))):
-            scope = self.get_metadata(libcst.metadata.ScopeProvider, node)
-            # consider self.model
-            if self.model_target in scope:
-                self.add_after_if = True
-        return True
-
-    def leave_Call(
-        self, original_node: "libcst.Call", updated_node: "libcst.Call"
-    ) -> "libcst.BaseExpression":
-        if not self.already_add_ddp:
-            return updated_node
-        need_add_module_func = [self.model_target + '.load_state_dict', self.model_target + '.load_from']
-        full_name = self.get_full_name_for_node(original_node)
-        if full_name not in need_add_module_func:
-            return updated_node
-        names = full_name.split('.')
-        names[-1] = 'module.' + names[-1]
-        return updated_node.with_changes(func=libcst.parse_expression('.'.join(names)))
 
     def leave_Assign(
         self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
@@ -285,6 +273,19 @@ class DistributedDataParallelRule(RuleVisitor):
                                   OperatorType.INSERT.name, "init statement of DistributedDataParallel"])
         self.already_add_ddp = True
         return libcst.FlattenSentinel([updated_node, to_device_statement, ddp_statement])
+
+    def leave_Call(
+        self, original_node: "libcst.Call", updated_node: "libcst.Call"
+    ) -> "libcst.BaseExpression":
+        if not self.already_add_ddp:
+            return updated_node
+        need_add_module_func = [self.model_target + '.load_state_dict', self.model_target + '.load_from']
+        full_name = self.get_full_name_for_node(original_node)
+        if full_name not in need_add_module_func:
+            return updated_node
+        names = full_name.split('.')
+        names[-1] = 'module.' + names[-1]
+        return updated_node.with_changes(func=libcst.parse_expression('.'.join(names)))
 
     def clean(self):
         super().clean()
