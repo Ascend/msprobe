@@ -22,6 +22,7 @@ class ScaleScopeVisitor(RuleVisitor):
         self.step_dict = {}
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
+        super().visit_Assign(node)
         if not m.matches(node.value, m.Call()):
             return True
         qualified_name = self.get_full_name_for_node(node.value)
