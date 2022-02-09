@@ -17,7 +17,7 @@ class ScaleScopeVisitor(RuleVisitor):
         self.loss_name = ''
         self.optimizer_name = ''
         self.scaler_name = ''
-        self.find_scaler = False
+        self.found_scaler = False
         self.scale_dict = {}
         self.step_dict = {}
 
@@ -29,7 +29,7 @@ class ScaleScopeVisitor(RuleVisitor):
         if qualified_name == "torch.cuda.amp.GradScaler":
             target = node.targets[0].target
             self.scaler_name = self.get_full_name_for_node(target)
-            self.find_scaler = True
+            self.found_scaler = True
             self.optimizer_name = self.step_dict.get(self.scaler_name, '')
             self.loss_name = self.scale_dict.get(self.scaler_name, '')
         return True
@@ -44,10 +44,10 @@ class ScaleScopeVisitor(RuleVisitor):
         key_name, func_name = qualified_name.split('.')
         if func_name == 'scale':
             self.scale_dict[key_name] = value
-            if self.find_scaler:
+            if self.found_scaler:
                 self.loss_name = self.scale_dict.get(self.scaler_name)
         if func_name == 'step':
             self.step_dict[key_name] = value
-            if self.find_scaler:
+            if self.found_scaler:
                 self.optimizer_name = self.step_dict.get(self.scaler_name)
         return True
