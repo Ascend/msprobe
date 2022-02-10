@@ -9,7 +9,6 @@ import shutil
 import pandas as pd
 import distributed_rule
 import rule as rule_module
-import transplant_logger as translog
 
 
 MAX_PYTHON_FILE_COUNT = 5000
