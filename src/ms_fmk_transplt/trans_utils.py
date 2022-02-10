@@ -218,7 +218,7 @@ def remove_path(path):
     try:
         if os.path.islink(path) or os.path.isfile(path):
             os.remove(path)
-        if os.path.isdir(path):
+        elif os.path.isdir(path):
             shutil.rmtree(path)
     except PermissionError as exp:
         raise DeleteFileException(f'Failed to delete {path}: {exp}')

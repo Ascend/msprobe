@@ -119,7 +119,7 @@ class MsFmkTransplt(object):
                                         help='The variable name of the target model, for example, '
                                              '"model=LeNet() model", "self.model=LeNet() self.model"')
 
-    def __init_default_para(self):
+    def __copy_project(self):
         translog.info("Start to copy files...")
         if os.path.isfile(self.input):
             shutil.copyfile(self.input, self.output)
@@ -152,10 +152,6 @@ class MsFmkTransplt(object):
         translog.info(f"Package ascend_function has been copy to the output dir, "
                       f"please add {os.path.dirname(dst_path)} to PYTHONPATH before run net.")
 
-    def __init_self_para(self, args):
-        self.__init_default_para()
-        self.__init_custom_para(args)
-
     def __init_logger(self):
         log_file = 'msFmkTranspltlog.txt'
         if os.path.isfile(self.input):
@@ -182,8 +178,6 @@ class MsFmkTransplt(object):
             else:
                 project_suffix = '_msft'
             self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
-        if os.path.islink(self.output):
-            raise utils.SoftlinkCheckException(f"The output path {self.output} shouldn't be a soft link.")
         if os.path.exists(self.output):
             utils.user_interactive_confirm('The output directory already exists. Do you want to overwrite?')
             utils.remove_path(self.output)
@@ -223,7 +217,8 @@ class MsFmkTransplt(object):
             self.__para_check_valid(args)
             self.__check_output_valid(args)
             self.__check_input_valid(args)
-            self.__init_self_para(args)
+            self.__copy_project()
+            self.__init_custom_para(args)
             self.__init_logger()
             translog.info('Initialing rules...')
             self.__init_rules(args)
