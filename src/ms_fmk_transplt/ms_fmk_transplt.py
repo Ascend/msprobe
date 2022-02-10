@@ -82,6 +82,9 @@ class MsFmkTransplt(object):
                 raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
             if os.path.isfile(args.input):
                 raise ValueError('Main file %s should be the input file %s' % (args.main, args.input))
+        if not MsFmkTransplt.__check_path_owner_consistent(main_file):
+            utils.user_interactive_confirm(
+                'Main file path is insecure because it does not belong to you. Do you want to continue?')
         if not os.access(main_file, os.R_OK):
             raise PermissionError('Main file %s is not readable!' % args.main)
         if not args.target_model:
