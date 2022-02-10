@@ -35,7 +35,7 @@ class MsFmkTransplt(object):
         if not os.access(input_path, os.R_OK):
             raise PermissionError('Input %s is not readable!' % args.input)
 
-        if not self.__check_path_owner_consistent(input_path):
+        if not utils.check_path_owner_consistent(input_path):
             utils.user_interactive_confirm(
                 'The input path is insecure because it does not belong to you. Do you want to continue?')
 
@@ -45,7 +45,7 @@ class MsFmkTransplt(object):
         if not os.access(output, os.W_OK):
             raise PermissionError('Output %s is not writeable!' % args.output)
 
-        if not self.__check_path_owner_consistent(output):
+        if not utils.check_path_owner_consistent(output):
             utils.user_interactive_confirm(
                 'The output path is insecure because it does not belong to you. Do you want to continue?')
 
@@ -82,7 +82,7 @@ class MsFmkTransplt(object):
                 raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
             if os.path.isfile(args.input):
                 raise ValueError('Main file %s should be the input file %s' % (args.main, args.input))
-        if not MsFmkTransplt.__check_path_owner_consistent(main_file):
+        if not utils.check_path_owner_consistent(main_file):
             utils.user_interactive_confirm(
                 'Main file path is insecure because it does not belong to you. Do you want to continue?')
         if not os.access(main_file, os.R_OK):
@@ -198,15 +198,6 @@ class MsFmkTransplt(object):
         self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), output_free_size)
         if not self.py_file_counts:
             raise utils.InputCheckException('There are no python files in the folder.')
-
-    @staticmethod
-    def __check_path_owner_consistent(path):
-        try:
-            import pwd
-            file_owner = pwd.getpwuid(os.stat(path).st_uid).pw_name
-            return file_owner == os.getlogin()
-        except ImportError:
-            return True
 
     @staticmethod
     def get_main_file(args):

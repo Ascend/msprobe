@@ -4,6 +4,7 @@
 
 import json
 import os
+import platform
 import shutil
 import pandas as pd
 import distributed_rule
@@ -221,3 +222,15 @@ def remove_path(path):
             shutil.rmtree(path)
     except PermissionError as exp:
         raise DeleteFileException(f'Failed to delete {path}: {exp}')
+
+
+def check_path_owner_consistent(path):
+    if platform.system().lower() == 'windows':
+        return True
+    try:
+        import pwd
+        file_owner = pwd.getpwuid(os.stat(path).st_uid).pw_name
+        return file_owner == os.getlogin()
+    except ImportError:
+        user_interactive_confirm(f'Failed to check owner consistency for path {path}. Do you want to continue?')
+        return True
