@@ -188,7 +188,10 @@ def transplant(args, transplt_files, output_path, name=''):
     for process in process_list:
         process.join()
     for file in transplt_files:
-        os.rename(output_path + '/' + file + '_msft', output_path + '/' + file)
+        if name == ' multi':
+            os.rename(output_path + '/' + file + '_msft_multi', output_path + '/' + file)
+        else:
+            os.rename(output_path + '/' + file + '_msft', output_path + '/' + file)
     for key, value in result_dict.items():
         if value != 0:
             print(f"[ERROR]{key}{name} translates failed.", flush=True)

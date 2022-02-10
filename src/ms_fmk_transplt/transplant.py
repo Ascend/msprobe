@@ -13,7 +13,7 @@ from libcst._removal_sentinel import RemovalSentinel
 import trans_utils as utils
 import transplant_logger as translog
 from code_visitor import ApiVisitor
-from rule import InitProcessGroupRule
+from distributed_rule import InitProcessGroupRule
 from trans_utils import TransplantException
 
 
@@ -59,9 +59,6 @@ class Transplant(object):
         self.py_file_counts = py_file_counts
 
     def __analysis_dir(self):
-        if not self.py_file_counts:
-            translog.warning('There are no python files in the folder.')
-            return
         count = 0
         translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
         for root, dirs, files in os.walk(self.script_dir):
@@ -127,6 +124,11 @@ class CodeTransformer(libcst.CSTTransformer):
     def visit_ImportFrom(self, node: "libcst.ImportFrom") -> Optional[bool]:
         for rule in self.rule_list:
             rule.visit_ImportFrom(node)
+        return True
+
+    def visit_If(self, node: "libcst.If") -> Optional[bool]:
+        for rule in self.rule_list:
+            rule.visit_If(node)
         return True
 
     def leave_For(
@@ -213,4 +215,11 @@ class CodeTransformer(libcst.CSTTransformer):
             -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
         for rule in self.rule_list:
             updated_node = rule.leave_With(original_node, updated_node)
+        return updated_node
+
+    def leave_If(
+        self, original_node: "libcst.If", updated_node: "libcst.If"
+    ) -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
+        for rule in self.rule_list:
+            updated_node = rule.leave_If(original_node, updated_node)
         return updated_node

@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import pandas as pd
+import distributed_rule
 import rule as rule_module
 import transplant_logger as translog
 
@@ -122,9 +123,9 @@ def get_special_rule(args):
         else:
             special_rule_list.extend([rule_module.InitApexRule(), rule_module.Amp2Apex(args.amp_model, '')])
     if hasattr(args, 'main'):
-        special_rule_list.extend([rule_module.InitProcessGroupRule(),
-                                  rule_module.DataLoaderRule(),
-                                  rule_module.DistributedDataParallelRule(args.target_model, args.amp_model)])
+        special_rule_list.extend([distributed_rule.InitProcessGroupRule(),
+                                  distributed_rule.DataLoaderRule(),
+                                  distributed_rule.DistributedDataParallelRule(args.target_model, args.amp_model)])
     return special_rule_list
 
 
@@ -170,12 +171,11 @@ done'''
     write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code, permission=0o750)
 
 
-def walk_input_path(path, output_path):
+def walk_input_path(path, output_free_size):
     py_file_counts = 0
     total_size = 0
     already_check_file_count_flag = False
     already_check_max_size_flag = False
-    output_free_size = shutil.disk_usage(output_path).free
     for root, dirs, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)

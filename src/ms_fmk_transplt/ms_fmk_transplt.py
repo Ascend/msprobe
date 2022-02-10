@@ -37,7 +37,7 @@ class MsFmkTransplt(object):
 
         if not self.__check_path_owner_consistent(input_path):
             utils.user_interactive_confirm(
-                'This input path is insecure because it does not belong to you. Do you want to continue?')
+                'The input path is insecure because it does not belong to you. Do you want to continue?')
 
         if not os.path.isdir(output):
             raise ValueError('Output %s is not a valid directory!' % args.output)
@@ -47,7 +47,7 @@ class MsFmkTransplt(object):
 
         if not self.__check_path_owner_consistent(output):
             utils.user_interactive_confirm(
-                'This output path is insecure because it does not belong to you. Do you want to continue?')
+                'The output path is insecure because it does not belong to you. Do you want to continue?')
 
         if self.__check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
@@ -93,12 +93,13 @@ class MsFmkTransplt(object):
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
         parser.add_argument('-r', '--rule', default='', metavar='FILE', help='Custom rules file path')
         parser.add_argument('-s', '--specify-device', dest='specify_device', action='store_true',
-                            help='Use specified device which is set by environment variable NPU_CALCULATE_DEVICE')
+                            help='This option is required only if you want to use the NPU_CALCULATE_DEVICE '
+                                 'environment variable to specify the running device.')
         parser.add_argument('-sim', '--similar', action='store_true',
                             help='Replaces certain unsupported APIs with functionally similar ones. '
                                  'Note that this may result in accuracy loss and performance degradation')
-        parser.add_argument('-a', '--amp_model', metavar='model', default='', help='The variable name of the '
-                                                                                   'amp target model')
+        parser.add_argument('-a', '--amp_model', metavar='model', default='',
+                            help='This option is required only if you want to convert torch.cuda.amp to apex.amp')
         subparsers = parser.add_subparsers(help='commands')
         self.__distributed_parser(subparsers)
         return parser.parse_args()
@@ -106,12 +107,14 @@ class MsFmkTransplt(object):
     @staticmethod
     def __distributed_parser(subparsers):
         distributed_parser = subparsers.add_parser('distributed',
-                                                   help='Specified this argument only when you want to transplant '
-                                                        'a single GPU script to a distributed NPU script')
+                                                   help='This option is required only if you want to transplant '
+                                                        'a single GPU script to a distributed NPU script. '
+                                                        'Ensure that your code is a single GPU script.')
         distributed_parser.add_argument('-m', '--main', default='', metavar='FILE', required=True,
-                                        help='The entry python file of the project')
+                                        help='The entry python file of the project, for example, train.py main.py.')
         distributed_parser.add_argument('-t', '--target_model', metavar='model', default='model',
-                                        help='The variable name of the target model')
+                                        help='The variable name of the target model, for example, '
+                                             '"model=LeNet() model", "self.model=LeNet() self.model"')
 
     def __init_default_para(self):
         translog.info("Start to copy files...")
@@ -171,7 +174,11 @@ class MsFmkTransplt(object):
         if os.path.isfile(self.input):
             self.output = os.path.join(args.output, os.path.split(self.input)[1])
         if os.path.isdir(self.input):
-            self.output = os.path.join(args.output, os.path.split(self.input)[1] + '_msft')
+            if hasattr(args, 'main'):
+                project_suffix = '_msft_multi'
+            else:
+                project_suffix = '_msft'
+            self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
         if os.path.islink(self.output):
             raise utils.SoftlinkCheckException(f"The output path {self.output} shouldn't be a soft link.")
         if os.path.exists(self.output):
@@ -184,7 +191,8 @@ class MsFmkTransplt(object):
             if not args.input.endswith('.py'):
                 raise utils.InputCheckException('The input file is not a python file.')
             return
-        self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), os.path.realpath(args.output))
+        output_free_size = shutil.disk_usage(os.path.realpath(args.output)).free
+        self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), output_free_size)
         if not self.py_file_counts:
             raise utils.InputCheckException('There are no python files in the folder.')
 

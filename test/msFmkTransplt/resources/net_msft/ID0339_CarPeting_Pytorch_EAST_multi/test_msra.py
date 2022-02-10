@@ -147,7 +147,7 @@ if __name__ == '__main__':
     args.resume = os.path.join(args.workspace,args.resume)
     print("loading pretrained model from ",args.resume)
 
-    model.load_state_dict(torch.load(args.resume))
+    model.module.load_state_dict(torch.load(args.resume))
     for ther in range(416,2000,32):
         ther_ = 448
         print("threshold:",ther_)
