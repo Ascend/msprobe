@@ -4,6 +4,7 @@
 
 import json
 import os
+import platform
 import shutil
 import pandas as pd
 import distributed_rule
@@ -22,6 +23,14 @@ class InputCheckException(Exception):
     pass
 
 
+class SoftlinkCheckException(Exception):
+    pass
+
+
+class DeleteFileException(Exception):
+    pass
+
+
 def write_csv(content_list, script_file, script_dir, csv_type):
     header_dict = {
         "change_list": ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'),
@@ -32,6 +41,8 @@ def write_csv(content_list, script_file, script_dir, csv_type):
     else:
         csv_file = os.path.join(script_dir, '%s.csv' % csv_type)
     header = header_dict.get(csv_type)
+    if os.path.exists(csv_file):
+        remove_path(csv_file)
     if not os.path.exists(csv_file):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
@@ -160,12 +171,11 @@ done'''
     write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code, permission=0o750)
 
 
-def walk_input_path(path, output_path):
+def walk_input_path(path, output_free_size):
     py_file_counts = 0
     total_size = 0
     already_check_file_count_flag = False
     already_check_max_size_flag = False
-    output_free_size = shutil.disk_usage(output_path).free
     for root, dirs, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)
@@ -199,3 +209,27 @@ def user_interactive_confirm(message):
             exit(0)
         else:
             print("Input is error, please enter 'exit' or 'c' or 'continue'.")
+
+
+def remove_path(path):
+    if not os.path.exists(path):
+        return
+    try:
+        if os.path.islink(path) or os.path.isfile(path):
+            os.remove(path)
+        elif os.path.isdir(path):
+            shutil.rmtree(path)
+    except PermissionError as exp:
+        raise DeleteFileException(f'Failed to delete {path}: {exp}')
+
+
+def check_path_owner_consistent(path):
+    if platform.system().lower() == 'windows':
+        return True
+    try:
+        import pwd
+        file_owner = pwd.getpwuid(os.stat(path).st_uid).pw_name
+        return file_owner == os.getlogin()
+    except ImportError:
+        user_interactive_confirm(f'Failed to check owner consistency for path {path}. Do you want to continue?')
+        return True

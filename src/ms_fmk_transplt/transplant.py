@@ -29,7 +29,7 @@ class Transplant(object):
 
     @staticmethod
     def __need_analysis(file):
-        return (not os.path.islink(file)) and file.endswith('.py')
+        return (not os.path.islink(file)) and os.path.exists(file) and file.endswith('.py')
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
@@ -59,9 +59,6 @@ class Transplant(object):
         self.py_file_counts = py_file_counts
 
     def __analysis_dir(self):
-        if not self.py_file_counts:
-            translog.warning('There are no python files in the folder.')
-            return
         count = 0
         translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
         for root, dirs, files in os.walk(self.script_dir):

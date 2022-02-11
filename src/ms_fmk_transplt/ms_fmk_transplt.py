@@ -23,6 +23,9 @@ class MsFmkTransplt(object):
         self.py_file_counts = 0
 
     def __para_check_valid(self, args):
+        if os.path.islink(args.input):
+            raise utils.SoftlinkCheckException("Input path doesn't support soft link.")
+
         input_path = os.path.realpath(args.input)
         output = os.path.realpath(args.output)
 
@@ -32,11 +35,19 @@ class MsFmkTransplt(object):
         if not os.access(input_path, os.R_OK):
             raise PermissionError('Input %s is not readable!' % args.input)
 
+        if not utils.check_path_owner_consistent(input_path):
+            utils.user_interactive_confirm(
+                'The input path is insecure because it does not belong to you. Do you want to continue?')
+
         if not os.path.isdir(output):
             raise ValueError('Output %s is not a valid directory!' % args.output)
 
         if not os.access(output, os.W_OK):
             raise PermissionError('Output %s is not writeable!' % args.output)
+
+        if not utils.check_path_owner_consistent(output):
+            utils.user_interactive_confirm(
+                'The output path is insecure because it does not belong to you. Do you want to continue?')
 
         if self.__check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
@@ -59,6 +70,8 @@ class MsFmkTransplt(object):
     def __check_distributed_rule_param_valid(args):
         if not hasattr(args, 'main'):
             return
+        if os.path.islink(args.main):
+            raise utils.SoftlinkCheckException("Main file path doesn't support soft link.")
         main_file = os.path.realpath(args.main)
         if not main_file.endswith('.py'):
             raise ValueError('Main file %s should be a python file!' % args.main)
@@ -103,22 +116,11 @@ class MsFmkTransplt(object):
                                         help='The variable name of the target model, for example, '
                                              '"model=LeNet() model", "self.model=LeNet() self.model"')
 
-    def __init_default_para(self, args):
-        self.input = os.path.realpath(args.input)
+    def __copy_project(self):
         translog.info("Start to copy files...")
         if os.path.isfile(self.input):
-            self.output = os.path.join(args.output, os.path.split(self.input)[1])
             shutil.copyfile(self.input, self.output)
         if os.path.isdir(self.input):
-            if hasattr(args, 'main'):
-                project_suffix = '_msft_multi'
-            else:
-                project_suffix = '_msft'
-            self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
-            if not os.path.exists(self.output):
-                os.makedirs(self.output)
-            if os.path.exists(self.output):
-                shutil.rmtree(self.output)
             shutil.copytree(self.input, self.output, symlinks=True)
         utils.change_mode(self.output)
 
@@ -147,16 +149,14 @@ class MsFmkTransplt(object):
         translog.info(f"Package ascend_function has been copy to the output dir, "
                       f"please add {os.path.dirname(dst_path)} to PYTHONPATH before run net.")
 
-    def __init_self_para(self, args):
-        self.__init_default_para(args)
-        self.__init_custom_para(args)
-
     def __init_logger(self):
         log_file = 'msFmkTranspltlog.txt'
         if os.path.isfile(self.input):
             log_file = os.path.join(os.path.dirname(self.output), 'msFmkTranspltlog.txt')
         if os.path.isdir(self.input):
             log_file = os.path.join(self.output, 'msFmkTranspltlog.txt')
+        if os.path.exists(log_file):
+            utils.remove_path(log_file)
         translog.init_logging_file(log_file)
         utils.change_mode(log_file)
 
@@ -165,13 +165,28 @@ class MsFmkTransplt(object):
         if self.custom_rule_file:
             self.rule_list = utils.get_custom_rule(self.custom_rule_file, self.rule_list)
 
+    def __check_output_valid(self, args):
+        self.input = os.path.realpath(args.input)
+        if os.path.isfile(self.input):
+            self.output = os.path.join(args.output, os.path.split(self.input)[1])
+        if os.path.isdir(self.input):
+            if hasattr(args, 'main'):
+                project_suffix = '_msft_multi'
+            else:
+                project_suffix = '_msft'
+            self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
+        if os.path.exists(self.output):
+            utils.user_interactive_confirm('The output directory already exists. Do you want to overwrite?')
+            utils.remove_path(self.output)
+
     def __check_input_valid(self, args):
         translog.info("Start to check input path...")
         if os.path.isfile(args.input):
             if not args.input.endswith('.py'):
                 raise utils.InputCheckException('The input file is not a python file.')
             return
-        self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), os.path.realpath(args.output))
+        output_free_size = shutil.disk_usage(os.path.realpath(args.output)).free
+        self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), output_free_size)
         if not self.py_file_counts:
             raise utils.InputCheckException('There are no python files in the folder.')
 
@@ -197,8 +212,10 @@ class MsFmkTransplt(object):
 
         try:
             self.__para_check_valid(args)
+            self.__check_output_valid(args)
             self.__check_input_valid(args)
-            self.__init_self_para(args)
+            self.__copy_project()
+            self.__init_custom_para(args)
             self.__init_logger()
             translog.info('Initialing rules...')
             self.__init_rules(args)
