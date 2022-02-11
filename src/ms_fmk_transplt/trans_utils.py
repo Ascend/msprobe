@@ -13,7 +13,7 @@ import rule as rule_module
 
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
-MAX_SIZE_OF_RULE_FILE = 10 * 1024 **  2
+MAX_SIZE_OF_RULE_FILE = 10 * 1024 ** 2
 
 
 class TransplantException(Exception):
