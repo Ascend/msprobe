@@ -59,12 +59,20 @@ class MsFmkTransplt(object):
     def __check_custom_rule_param_valid(args):
         if not args.rule:
             return
+        if os.path.islink(args.rule):
+            raise utils.SoftlinkCheckException("Custom rule file doesn't support soft link.")
         rule = os.path.realpath(args.rule)
         if not os.path.exists(rule):
             raise ValueError('Custom rule file %s does not exist!' % args.rule)
 
+        if not (os.path.isfile(rule) and rule.endswith('.json')):
+            raise ValueError('Custom rule file %s should be a json file!' % args.rule)
+
         if not os.access(rule, os.R_OK):
             raise PermissionError('Custom rule file %s is not readable!' % args.rule)
+
+        if not os.path.getsize(rule) >= utils.MAX_SIZE_OF_RULE_FILE:
+            raise ValueError('Custom rule file is too large.')
 
     @staticmethod
     def __check_distributed_rule_param_valid(args):
