@@ -71,6 +71,10 @@ class MsFmkTransplt(object):
         if not os.access(rule, os.R_OK):
             raise PermissionError('Custom rule file %s is not readable!' % args.rule)
 
+        if not utils.check_path_owner_consistent(rule):
+            utils.user_interactive_confirm(
+                'Custom rule file is insecure because it does not belong to you. Do you want to continue?')
+
         if os.path.getsize(rule) >= utils.MAX_SIZE_OF_RULE_FILE:
             raise ValueError('Custom rule file is too large.')
 
