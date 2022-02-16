@@ -68,6 +68,10 @@ class MsFmkTransplt(object):
         if os.path.islink(args.rule):
             raise utils.SoftlinkCheckException("Custom rule file doesn't support soft link.")
         rule = os.path.realpath(args.rule)
+
+        if len(rule) > utils.MAX_PARAM_LENGTH:
+            raise ValueError('The real path of custom rule file is too long.')
+
         if not os.path.exists(rule):
             raise ValueError('Custom rule file %s does not exist!' % args.rule)
 
@@ -91,6 +95,8 @@ class MsFmkTransplt(object):
         if os.path.islink(args.main):
             raise utils.SoftlinkCheckException("Main file path doesn't support soft link.")
         main_file = os.path.realpath(args.main)
+        if len(main_file) > utils.MAX_PARAM_LENGTH:
+            raise ValueError('The real path of main file is too long.')
         if not main_file.endswith('.py'):
             raise ValueError('Main file %s should be a python file!' % args.main)
         if not os.path.exists(main_file):
