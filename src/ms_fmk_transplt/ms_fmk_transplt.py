@@ -29,7 +29,7 @@ class MsFmkTransplt(object):
         input_path = os.path.realpath(args.input)
         output = os.path.realpath(args.output)
 
-        if len(input_path) > utils.MAX_PARAM_LENGTH:
+        if len(input_path) > utils.MAX_PATH_LENGTH:
             raise ValueError('The real path of input is too long.')
 
         if not os.path.exists(input_path):
@@ -42,7 +42,7 @@ class MsFmkTransplt(object):
             utils.user_interactive_confirm(
                 'The input path is insecure because it does not belong to you. Do you want to continue?')
 
-        if len(output) > utils.MAX_PARAM_LENGTH:
+        if len(output) > utils.MAX_PATH_LENGTH:
             raise ValueError('The real path of output is too long.')
 
         if not os.path.isdir(output):
@@ -69,7 +69,7 @@ class MsFmkTransplt(object):
             raise utils.SoftlinkCheckException("Custom rule file doesn't support soft link.")
         rule = os.path.realpath(args.rule)
 
-        if len(rule) > utils.MAX_PARAM_LENGTH:
+        if len(rule) > utils.MAX_PATH_LENGTH:
             raise ValueError('The real path of custom rule file is too long.')
 
         if not os.path.exists(rule):
@@ -95,7 +95,7 @@ class MsFmkTransplt(object):
         if os.path.islink(args.main):
             raise utils.SoftlinkCheckException("Main file path doesn't support soft link.")
         main_file = os.path.realpath(args.main)
-        if len(main_file) > utils.MAX_PARAM_LENGTH:
+        if len(main_file) > utils.MAX_PATH_LENGTH:
             raise ValueError('The real path of main file is too long.')
         if not main_file.endswith('.py'):
             raise ValueError('Main file %s should be a python file!' % args.main)

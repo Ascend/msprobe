@@ -15,7 +15,7 @@ import transplant_logger as translog
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
 MAX_SIZE_OF_RULE_FILE = 10 * 1024 ** 2
-MAX_PARAM_LENGTH = 256
+MAX_PATH_LENGTH = 256
 MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
 
 
@@ -254,7 +254,7 @@ def check_file_need_analysis(file, commonprefix, record=False):
             translog.warning(
                 f'The size of {file_relative_path} exceeds {int(MAX_PYTHON_FILE_SIZE / 1024 ** 2)}M, skip.')
         return False
-    if len(os.path.realpath(file)) > MAX_PARAM_LENGTH:
+    if len(os.path.realpath(file)) > MAX_PATH_LENGTH:
         if record:
             translog.warning(f'The real path of {file_relative_path} is too long, skip.')
         return False
