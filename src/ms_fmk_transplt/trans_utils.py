@@ -185,7 +185,7 @@ def walk_input_path(path, output_free_size):
             file_path = os.path.join(root, file)
             if os.path.islink(file_path) or (not os.path.exists(file_path)):
                 continue
-            if check_file_need_analysis(file, path):
+            if check_file_need_analysis(file_path, path):
                 py_file_counts += 1
             if not already_check_file_count_flag and py_file_counts >= MAX_PYTHON_FILE_COUNT:
                 user_interactive_confirm(
