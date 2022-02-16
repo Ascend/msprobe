@@ -29,6 +29,9 @@ class MsFmkTransplt(object):
         input_path = os.path.realpath(args.input)
         output = os.path.realpath(args.output)
 
+        if len(input_path) > utils.MAX_PARAM_LENGTH:
+            raise ValueError('The real path of input is too long.')
+
         if not os.path.exists(input_path):
             raise ValueError('Input %s does not exist!' % args.input)
 
@@ -38,6 +41,9 @@ class MsFmkTransplt(object):
         if not utils.check_path_owner_consistent(input_path):
             utils.user_interactive_confirm(
                 'The input path is insecure because it does not belong to you. Do you want to continue?')
+
+        if len(output) > utils.MAX_PARAM_LENGTH:
+            raise ValueError('The real path of output is too long.')
 
         if not os.path.isdir(output):
             raise ValueError('Output %s is not a valid directory!' % args.output)
