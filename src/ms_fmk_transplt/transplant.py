@@ -17,9 +17,6 @@ from distributed_rule import InitProcessGroupRule
 from trans_utils import TransplantException
 
 
-MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
-
-
 class Transplant(object):
     def __init__(self, script_dir, rule_list, main_file):
         self.script_dir = script_dir
@@ -28,8 +25,8 @@ class Transplant(object):
         self.py_file_counts = 0
 
     @staticmethod
-    def __need_analysis(file):
-        return (not os.path.islink(file)) and os.path.exists(file) and file.endswith('.py')
+    def __need_analysis(file, commonprefix):
+        return utils.check_file_need_analysis(file, commonprefix, record=True)
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
@@ -49,7 +46,7 @@ class Transplant(object):
         if not os.access(self.script_dir, os.R_OK):
             raise TransplantException('%s is not readable.' % self.script_dir)
 
-        if os.path.isfile(self.script_dir) and self.__need_analysis(self.script_dir):
+        if os.path.isfile(self.script_dir) and self.__need_analysis(self.script_dir, os.path.dirname(self.script_dir)):
             self.__analysis_file(self.script_dir, os.path.dirname(self.script_dir))
 
         if os.path.isdir(self.script_dir):
@@ -64,7 +61,7 @@ class Transplant(object):
         for root, dirs, files in os.walk(self.script_dir):
             for f in files:
                 file = os.path.join(root, f)
-                if not self.__need_analysis(file):
+                if not self.__need_analysis(file, self.script_dir):
                     continue
                 self.__analysis_file(file, self.script_dir)
                 count += 1
@@ -72,10 +69,6 @@ class Transplant(object):
 
     def __analysis_file(self, file, commonprefix):
         file_relative_path = os.path.relpath(file, commonprefix)
-        if os.path.getsize(file) > MAX_PYTHON_FILE_SIZE:
-            translog.warning(
-                f'The size of {file_relative_path} exceeds {int(MAX_PYTHON_FILE_SIZE / 1024 ** 2)}M, skip.')
-            return
         translog.info(f'Start analysis {file_relative_path}.')
         self.__analysis_code(file)
         translog.info(f'Analysis {file_relative_path} complete.')
