@@ -9,11 +9,15 @@ import shutil
 import pandas as pd
 import distributed_rule
 import rule as rule_module
+import transplant_logger as translog
 
 
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
 MAX_SIZE_OF_RULE_FILE = 10 * 1024 ** 2
+WINDOWS_PATH_LENGTH_LIMIT = 256
+LINUX_FILE_NAME_LENGTH_LIMIT = 255
+MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
 
 
 class TransplantException(Exception):
@@ -182,7 +186,7 @@ def walk_input_path(path, output_free_size):
             file_path = os.path.join(root, file)
             if os.path.islink(file_path) or (not os.path.exists(file_path)):
                 continue
-            if file.endswith('.py'):
+            if check_file_need_analysis(file_path, path):
                 py_file_counts += 1
             if not already_check_file_count_flag and py_file_counts >= MAX_PYTHON_FILE_COUNT:
                 user_interactive_confirm(
@@ -234,3 +238,33 @@ def check_path_owner_consistent(path):
     except ImportError:
         user_interactive_confirm(f'Failed to check owner consistency for path {path}. Do you want to continue?')
         return True
+
+
+def check_path_length_valid(path):
+    path = os.path.realpath(path)
+    if platform.system().lower() == 'windows':
+        return len(path) <= WINDOWS_PATH_LENGTH_LIMIT
+    else:
+        return len(os.path.basename(path)) <= LINUX_FILE_NAME_LENGTH_LIMIT
+
+
+def check_file_need_analysis(file, commonprefix, record=False):
+    if not os.path.exists(file):
+        return False
+    if not file.endswith('.py'):
+        return False
+    file_relative_path = os.path.relpath(file, commonprefix)
+    if os.path.islink(file):
+        if record:
+            translog.warning(f'{file_relative_path} is a soft link, skip.')
+        return False
+    if os.path.getsize(file) > MAX_PYTHON_FILE_SIZE:
+        if record:
+            translog.warning(
+                f'The size of {file_relative_path} exceeds {int(MAX_PYTHON_FILE_SIZE / 1024 ** 2)}M, skip.')
+        return False
+    if not check_path_length_valid(file):
+        if record:
+            translog.warning(f'The real path or file name of {file_relative_path} is too long, skip.')
+        return False
+    return True
