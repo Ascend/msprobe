@@ -16,7 +16,7 @@ MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
 MAX_SIZE_OF_RULE_FILE = 10 * 1024 ** 2
 WINDOWS_PATH_LENGTH_LIMIT = 256
-lINUX_FILE_NAME_LENGTH_LIMIT = 255
+LINUX_FILE_NAME_LENGTH_LIMIT = 255
 MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
 
 
@@ -245,7 +245,7 @@ def check_path_length_valid(path):
     if platform.system().lower() == 'windows':
         return len(path) <= WINDOWS_PATH_LENGTH_LIMIT
     else:
-        return len(os.path.basename(path)) <= lINUX_FILE_NAME_LENGTH_LIMIT
+        return len(os.path.basename(path)) <= LINUX_FILE_NAME_LENGTH_LIMIT
 
 
 def check_file_need_analysis(file, commonprefix, record=False):
