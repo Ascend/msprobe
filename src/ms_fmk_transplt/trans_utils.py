@@ -15,7 +15,8 @@ import transplant_logger as translog
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
 MAX_SIZE_OF_RULE_FILE = 10 * 1024 ** 2
-MAX_PATH_LENGTH = 256
+WINDOWS_PATH_LENGTH_LIMIT = 256
+lINUX_FILE_NAME_LENGTH_LIMIT = 255
 MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
 
 
@@ -239,6 +240,14 @@ def check_path_owner_consistent(path):
         return True
 
 
+def check_path_length_valid(path):
+    path = os.path.realpath(path)
+    if platform.system().lower() == 'windows':
+        return len(path) <= WINDOWS_PATH_LENGTH_LIMIT
+    else:
+        return len(os.path.basename(path)) <= lINUX_FILE_NAME_LENGTH_LIMIT
+
+
 def check_file_need_analysis(file, commonprefix, record=False):
     if not os.path.exists(file):
         return False
@@ -254,7 +263,7 @@ def check_file_need_analysis(file, commonprefix, record=False):
             translog.warning(
                 f'The size of {file_relative_path} exceeds {int(MAX_PYTHON_FILE_SIZE / 1024 ** 2)}M, skip.')
         return False
-    if len(os.path.realpath(file)) > MAX_PATH_LENGTH:
+    if not check_path_length_valid(file):
         if record:
             translog.warning(f'The real path of {file_relative_path} is too long, skip.')
         return False
