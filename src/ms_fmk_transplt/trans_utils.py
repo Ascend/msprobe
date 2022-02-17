@@ -265,6 +265,6 @@ def check_file_need_analysis(file, commonprefix, record=False):
         return False
     if not check_path_length_valid(file):
         if record:
-            translog.warning(f'The real path of {file_relative_path} is too long, skip.')
+            translog.warning(f'The real path or file name of {file_relative_path} is too long, skip.')
         return False
     return True
