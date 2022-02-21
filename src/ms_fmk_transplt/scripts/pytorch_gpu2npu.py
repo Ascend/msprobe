@@ -59,6 +59,10 @@ class MsFmkTransplt(object):
         if self.__check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
+        if not args.version not in ['1.5.0', '1.8.1']:
+            raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
+
+        self.__check_main_file_param_valid(args)
         self.__check_custom_rule_param_valid(args)
         self.__check_distributed_rule_param_valid(args)
 
@@ -89,31 +93,39 @@ class MsFmkTransplt(object):
         if os.path.getsize(rule) >= utils.MAX_SIZE_OF_RULE_FILE:
             raise ValueError('Custom rule file is too large.')
 
-        if not args.version not in ['1.5.0', '1.8.1']:
-            raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
-
     @staticmethod
     def __check_distributed_rule_param_valid(args):
         if not hasattr(args, 'target_model'):
             return
+        if not args.target_model:
+            raise ValueError('Target model variable is not set!')
+
+    @staticmethod
+    def __check_main_file_param_valid(args):
+        if args.version == '1.8.1' and not args.main:
+            raise ValueError('Main file should be set for pytorch 1.8.1.')
+        if args.specify_device and not args.main:
+            raise ValueError('Main file should be set when you want to specify the running device.')
+        if hasattr(args, 'target_model') and not args.main:
+            raise ValueError('Main file should be set for distributed transplant.')
+        if not args.main:
+            return
         if os.path.islink(args.main):
             raise utils.SoftlinkCheckException("Main file path doesn't support soft link.")
-        # main_file = os.path.realpath(args.main)
-        # if not utils.check_path_length_valid(main_file):
-        #     raise ValueError('The real path or file name of main file is too long.')
-        # if not main_file.endswith('.py'):
-        #     raise ValueError('Main file %s should be a python file!' % args.main)
-        # if not os.path.exists(main_file):
-        #     raise ValueError('Main file %s does not exist!' % args.main)
+        main_file = os.path.realpath(args.main)
+        if not utils.check_path_length_valid(main_file):
+            raise ValueError('The real path or file name of main file is too long.')
+        if not main_file.endswith('.py'):
+            raise ValueError('Main file %s should be a python file!' % args.main)
+        if not os.path.exists(main_file):
+            raise ValueError('Main file %s does not exist!' % args.main)
         if not MsFmkTransplt.__check_is_subdirectory(args.input, args.main):
             if os.path.isdir(args.input):
                 raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
             if os.path.isfile(args.input):
                 raise ValueError('Main file %s should be the input file %s' % (args.main, args.input))
-        # if not os.access(main_file, os.R_OK):
-        #     raise PermissionError('Main file %s is not readable!' % args.main)
-        if not args.target_model:
-            raise ValueError('Target model variable is not set!')
+        if not os.access(main_file, os.R_OK):
+            raise PermissionError('Main file %s is not readable!' % args.main)
 
     def __parse_command(self):
         parser = argparse.ArgumentParser()
