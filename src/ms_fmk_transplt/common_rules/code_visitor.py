@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 
-from typing import Optional, Union, Type, TypeVar
 from enum import Enum
 from enum import auto
+from typing import Optional, Union, Type, TypeVar
+
 import libcst
 import libcst.helpers as helper
 import libcst.matchers as m
-import transplant_logger as translog
 
+from ms_fmk_transplt.utils import transplant_logger as translog
 
 _T = TypeVar("_T")
 _UNDEFINED_DEFAULT = object()

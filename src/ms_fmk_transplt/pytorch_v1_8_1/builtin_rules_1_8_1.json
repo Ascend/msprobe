@@ -1,0 +1,24 @@
+{
+  "rules": {
+    "InsertMainFileRule": [
+      {
+        "insert_content": [
+          "import torch",
+          "import torch_npu"
+        ]
+      }
+    ],
+    "FuncNameModifyRule": [
+      {
+        "old_name": "torch.cuda.amp.autocast",
+        "new_name": "torch.npu.amp.NpuAutocast",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.amp.GradScaler",
+        "new_name": "torch.npu.amp.NpuGradScaler",
+        "replace_module": true
+      }
+    ]
+  }
+}

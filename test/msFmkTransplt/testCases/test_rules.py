@@ -8,22 +8,22 @@ import sys
 import os
 
 sys.path.append(os.path.abspath("../../../"))
-sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
+sys.path.append(os.path.abspath("../../../src"))
 
 
 class TestRules(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        import src.ms_fmk_transplt.rule as rule_module
-        import src.ms_fmk_transplt.distributed_rule as distributed_rule_module
-        cls.rule_module = rule_module
-        cls.distributed_rule_module = distributed_rule_module
+        import ms_fmk_transplt.common_rules.common_rule as common_rule
+        import ms_fmk_transplt.distributed_rules.distributed_rule as distributed_rule
+        cls.common_rule = common_rule
+        cls.distributed_rule = distributed_rule
 
 
     def test_args_modify_rule(self):
-        load_rule = self.rule_module.ArgsModifyRule('torch.load', '"npu:0"', -1, 'map_location', ['cpu'])
-        normal_rule = self.rule_module.ArgsModifyRule('func', '"npu:0"', 0)
-        arg_delete_rule = self.rule_module.ArgsModifyRule('func', '', 1)
+        load_rule = self.common_rule.ArgsModifyRule('torch.load', '"npu:0"', -1, 'map_location', ['cpu'])
+        normal_rule = self.common_rule.ArgsModifyRule('func', '"npu:0"', 0)
+        arg_delete_rule = self.common_rule.ArgsModifyRule('func', '', 1)
 
         load_cases = (
             # map_location not specified
@@ -56,106 +56,27 @@ class TestRules(unittest.TestCase):
         for test_case in arg_delete_cases:
             self._check_modify(arg_delete_rule, test_case[0], test_case[1])
 
-    def test_specify_device_insert_rule(self):
-        rule_with_key_word = self.rule_module.InsertGlobalRule(["import key", "key.insert()"], "torch")
-        rule_without_key_word = self.rule_module.InsertGlobalRule(["import key", "key.insert()"], "")
+    def test_insert_global_rule(self):
+        rule = self.common_rule.InsertGlobalRule(["import key", "key.insert()"])
         test_cases = (("import torch\ntest_case_with_key_word()",
-                       "import torch\nimport key\nkey.insert()\ntest_case_with_key_word()",
                        "import torch\nimport key\nkey.insert()\ntest_case_with_key_word()"),
                       ("from torch import nn\ntest_case_with_key_word()",
-                       "from torch import nn\nimport key\nkey.insert()\ntest_case_with_key_word()",
                        "from torch import nn\nimport key\nkey.insert()\ntest_case_with_key_word()"),
                       ("import numpy\ntest_case_without_key_word()",
-                       "import numpy\ntest_case_without_key_word()",
                        "import numpy\nimport key\nkey.insert()\ntest_case_without_key_word()")
                       )
         for test_case in test_cases:
-            self._check_modify(rule_with_key_word, test_case[0], test_case[1])
-            self._check_modify(rule_without_key_word, test_case[0], test_case[2])
-            rule_with_key_word.clean()
-            rule_without_key_word.clean()
-
-    def test_func_name_modify_rule(self):
-        rule = self.rule_module.FuncNameModifyRule("old_name", "new_name", False)
-        test_cases = (("old_name()", "new_name()"),
-                      ("AA.old_name()", "AA.new_name()"),
-                      ("AA.BB.old_name()", "AA.BB.new_name()"),
-                      ("AA.old_name.BB(old_name())", "AA.old_name.BB(new_name())"),
-                      ("AA.old_name.old_name()", "AA.old_name.new_name()"))
-
-        for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
+            rule.clean()
 
-        rule = self.rule_module.FuncNameModifyRule("old_name", "AA.BB.new_name", True)
-        test_cases = (("old_name()", "AA.BB.new_name()"),
-                      ("AA.old_name()", "AA.BB.new_name()"),
-                      ("AA.old_name.BB(old_name())", "AA.old_name.BB(AA.BB.new_name())"),
-                      ("DD.old_name.old_name()", "AA.BB.new_name()"))
-        for test_case in test_cases:
-            self._check_modify(rule, test_case[0], test_case[1])
-
-        rule = self.rule_module.FuncNameModifyRule("CC.DD.old_name", "AA.BB.new_name", True)
-        test_cases = (("CC.DD.old_name()", "AA.BB.new_name()"),
-                      ("import CC.DD as CD\nCD.old_name()", "import CC.DD as CD\nAA.BB.new_name()"),
-                      ("CD = CC.DD\nCD.old_name()", "CD = CC.DD\nAA.BB.new_name()"))
-
-        for test_case in test_cases:
-            self._check_modify(rule, test_case[0], test_case[1])
-
-    def test_module_name_modify_rule(self):
-        rule = self.rule_module.ModuleNameModifyRule("old_name", "new_name", "AA.BB")
-
-        test_cases = (("import AA.BB.old_name", "import AA.BB.new_name"),
-                      ("import AA.BB.old_name as old\nold.func()", "import AA.BB.new_name as old\nold.func()"),
-                      ("import AA.BB as AB\nAB.old_name", "import AA.BB as AB\nAB.new_name"),
-                      ("AA.BB.old_name.func()", "AA.BB.new_name.func()"),
-                      ("old_name.func()", "old_name.func()"),
-                      ("CC.old_name.func()", "CC.old_name.func()"),
-                      ("CC.DD.old_name()", "CC.DD.old_name()"))
-
-        for test_case in test_cases:
-            self._check_modify(rule, test_case[0], test_case[1])
-
-    def test_replace_string_rule(self):
-        strict_rule = self.rule_module.ReplaceStringRule("old_str", "new_str", True)
-        normal_rule = self.rule_module.ReplaceStringRule("old_str", "new_str", False)
-
-        test_cases = (("A = 'old_str'", "A = 'new_str'", "A = 'new_str'"),
-                      ("A = \"old_str\"", "A = \"new_str\"", "A = \"new_str\""),
-                      ("func(A = 'old_str')", "func(A = 'new_str')", "func(A = 'new_str')"),
-                      ("# this is old_str", "# this is old_str", "# this is old_str"),
-                      ("\"\"\"this is old_str\"\"\"", "\"\"\"this is old_str\"\"\"", "\"\"\"this is new_str\"\"\""),
-                      ("func('old_str:%s' % tmp)", "func('old_str:%s' % tmp)", "func('new_str:%s' % tmp)"),
-                      ("import old_str", "import old_str", "import old_str"),
-                      ("A = f'old_str{abc}'", "A = f'old_str{abc}'", "A = f'new_str{abc}'"))
-
-        for test_case in test_cases:
-            self._check_modify(strict_rule, test_case[0], test_case[1])
-            self._check_modify(normal_rule, test_case[0], test_case[2])
-
-    def test_replace_attribute_rule(self):
-        # this rule will replace import module and function name
-        rule = self.rule_module.ReplaceAttributeRule("old_name", "new_name")
-
-        test_cases = (("a = func()\na.old_name", "a = func()\na.new_name"),
-                      ("func().old_name", "func().new_name"))
-
-        for test_case in test_cases:
-            self._check_modify(rule, test_case[0], test_case[1])
-
-    def test_python_version_convert_rule(self):
-        rule = self.rule_module.PythonVersionConvertRule()
-
-        test_cases = (("hasattr(model.module, 'optimizer')", "hasattr(model.modules, 'optimizer')"),
-                      ("if hasattr(model.module, 'optimizer'):\n    pass",
-                       "if hasattr(model.modules, 'optimizer'):\n    pass"))
-
-        for test_case in test_cases:
-            self._check_modify(rule, test_case[0], test_case[1])
-
-    def test_init_process_group_rule(self):
-        rule = self.distributed_rule_module.InitProcessGroupRule()
-
+    def test_insert_main_file_rule(self):
+        init_process_group_content = ["import torch.npu",
+                                      "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n"
+                                      "    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')",
+                                      "NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))",
+                                      "RANK = int(os.getenv('RANK'))",
+                                      "torch.distributed.init_process_group('hccl', rank=RANK, world_size=NPU_WORLD_SIZE)"]
+        rule = self.common_rule.InsertMainFileRule(init_process_group_content)
         test_cases = (
             (
                 '''import torch
@@ -182,14 +103,91 @@ if __name__ == '__main__':
                 '''
             ),
         )
-
         for test_case in test_cases:
             rule.visit_main_file(True)
             self._check_modify(rule, test_case[0], test_case[1])
+            rule.clean()
 
+    def test_func_name_modify_rule(self):
+        rule = self.common_rule.FuncNameModifyRule("old_name", "new_name", False)
+        test_cases = (("old_name()", "new_name()"),
+                      ("AA.old_name()", "AA.new_name()"),
+                      ("AA.BB.old_name()", "AA.BB.new_name()"),
+                      ("AA.old_name.BB(old_name())", "AA.old_name.BB(new_name())"),
+                      ("AA.old_name.old_name()", "AA.old_name.new_name()"))
+
+        for test_case in test_cases:
+            self._check_modify(rule, test_case[0], test_case[1])
+
+        rule = self.common_rule.FuncNameModifyRule("old_name", "AA.BB.new_name", True)
+        test_cases = (("old_name()", "AA.BB.new_name()"),
+                      ("AA.old_name()", "AA.BB.new_name()"),
+                      ("AA.old_name.BB(old_name())", "AA.old_name.BB(AA.BB.new_name())"),
+                      ("DD.old_name.old_name()", "AA.BB.new_name()"))
+        for test_case in test_cases:
+            self._check_modify(rule, test_case[0], test_case[1])
+
+        rule = self.common_rule.FuncNameModifyRule("CC.DD.old_name", "AA.BB.new_name", True)
+        test_cases = (("CC.DD.old_name()", "AA.BB.new_name()"),
+                      ("import CC.DD as CD\nCD.old_name()", "import CC.DD as CD\nAA.BB.new_name()"),
+                      ("CD = CC.DD\nCD.old_name()", "CD = CC.DD\nAA.BB.new_name()"))
+
+        for test_case in test_cases:
+            self._check_modify(rule, test_case[0], test_case[1])
+
+    def test_module_name_modify_rule(self):
+        rule = self.common_rule.ModuleNameModifyRule("old_name", "new_name", "AA.BB")
+
+        test_cases = (("import AA.BB.old_name", "import AA.BB.new_name"),
+                      ("import AA.BB.old_name as old\nold.func()", "import AA.BB.new_name as old\nold.func()"),
+                      ("import AA.BB as AB\nAB.old_name", "import AA.BB as AB\nAB.new_name"),
+                      ("AA.BB.old_name.func()", "AA.BB.new_name.func()"),
+                      ("old_name.func()", "old_name.func()"),
+                      ("CC.old_name.func()", "CC.old_name.func()"),
+                      ("CC.DD.old_name()", "CC.DD.old_name()"))
+
+        for test_case in test_cases:
+            self._check_modify(rule, test_case[0], test_case[1])
+
+    def test_replace_string_rule(self):
+        strict_rule = self.common_rule.ReplaceStringRule("old_str", "new_str", True)
+        normal_rule = self.common_rule.ReplaceStringRule("old_str", "new_str", False)
+
+        test_cases = (("A = 'old_str'", "A = 'new_str'", "A = 'new_str'"),
+                      ("A = \"old_str\"", "A = \"new_str\"", "A = \"new_str\""),
+                      ("func(A = 'old_str')", "func(A = 'new_str')", "func(A = 'new_str')"),
+                      ("# this is old_str", "# this is old_str", "# this is old_str"),
+                      ("\"\"\"this is old_str\"\"\"", "\"\"\"this is old_str\"\"\"", "\"\"\"this is new_str\"\"\""),
+                      ("func('old_str:%s' % tmp)", "func('old_str:%s' % tmp)", "func('new_str:%s' % tmp)"),
+                      ("import old_str", "import old_str", "import old_str"),
+                      ("A = f'old_str{abc}'", "A = f'old_str{abc}'", "A = f'new_str{abc}'"))
+
+        for test_case in test_cases:
+            self._check_modify(strict_rule, test_case[0], test_case[1])
+            self._check_modify(normal_rule, test_case[0], test_case[2])
+
+    def test_replace_attribute_rule(self):
+        # this rule will replace import module and function name
+        rule = self.common_rule.ReplaceAttributeRule("old_name", "new_name")
+
+        test_cases = (("a = func()\na.old_name", "a = func()\na.new_name"),
+                      ("func().old_name", "func().new_name"))
+
+        for test_case in test_cases:
+            self._check_modify(rule, test_case[0], test_case[1])
+
+    def test_python_version_convert_rule(self):
+        rule = self.common_rule.PythonVersionConvertRule()
+
+        test_cases = (("hasattr(model.module, 'optimizer')", "hasattr(model.modules, 'optimizer')"),
+                      ("if hasattr(model.module, 'optimizer'):\n    pass",
+                       "if hasattr(model.modules, 'optimizer'):\n    pass"))
+
+        for test_case in test_cases:
+            self._check_modify(rule, test_case[0], test_case[1])
 
     def test_dataloader_rule(self):
-        rule = self.distributed_rule_module.DataLoaderRule()
+        rule = self.distributed_rule.DataLoaderRule()
 
         test_cases = (
             (
@@ -266,7 +264,7 @@ for epoch in epochs:
             self._check_modify(rule, test_case[0], test_case[1])
 
     def test_distributed_data_parallel_rule(self):
-        rule = self.distributed_rule_module.DistributedDataParallelRule('model', '')
+        rule = self.distributed_rule.DistributedDataParallelRule('model', '')
 
         test_cases = (
             (
@@ -421,7 +419,7 @@ def functionC(args):
     print("functionC ", args)
 
 (FUNCTIONA if True else functionB if True else FUNCTIONA)("666")'''))
-        rule = self.rule_module.FuncNameModifyRule("functionA", "FUNCTIONA", False)
+        rule = self.common_rule.FuncNameModifyRule("functionA", "FUNCTIONA", False)
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
 
@@ -441,19 +439,19 @@ def functionC(args):
                        ('''(torch.m.n.cuda if torch.m.n.cuda() else cuda1 if True else torch.m.n.cuda)(666)''',
                         '''(torch1.npu if torch1.npu() else cuda1 if True else torch1.npu)(666)'''),
                        )
-        rule = self.rule_module.FuncNameModifyRule("cuda", "npu", False)
+        rule = self.common_rule.FuncNameModifyRule("cuda", "npu", False)
         self._check_modify(rule, test_cases1[0][0], test_cases1[0][1])
-        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        rule = self.common_rule.FuncNameModifyRule("cuda", "torch1.npu", True)
         self._check_modify(rule, test_cases1[1][0], test_cases1[1][1])
-        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        rule = self.common_rule.FuncNameModifyRule("cuda", "torch1.npu", True)
         self._check_modify(rule, test_cases1[2][0], test_cases1[2][1])
-        rule = self.rule_module.FuncNameModifyRule("cuda", "npu", False)
+        rule = self.common_rule.FuncNameModifyRule("cuda", "npu", False)
         self._check_modify(rule, test_cases1[3][0], test_cases1[3][1])
-        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        rule = self.common_rule.FuncNameModifyRule("cuda", "torch1.npu", True)
         self._check_modify(rule, test_cases1[4][0], test_cases1[4][1])
-        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        rule = self.common_rule.FuncNameModifyRule("cuda", "torch1.npu", True)
         self._check_modify(rule, test_cases1[5][0], test_cases1[5][1])
-        rule = self.rule_module.FuncNameModifyRule("cuda", "torch1.npu", True)
+        rule = self.common_rule.FuncNameModifyRule("cuda", "torch1.npu", True)
         self._check_modify(rule, test_cases1[6][0], test_cases1[6][1])
 
     def test_assign_definition(self):
@@ -474,14 +472,14 @@ pre1 = student(image)
 pre2 = teacher(image)
 ''')
         )
-        rule = self.rule_module.FuncNameModifyRule("cuda", "npu", False)
+        rule = self.common_rule.FuncNameModifyRule("cuda", "npu", False)
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
 
     def test_ascend_function(self):
         import torch
         import torch.nn.functional as F
-        import src.ms_fmk_transplt.ascend_function.similar_api as sim_api
+        import ms_fmk_transplt.ascend_function.similar_api as sim_api
         in_tensor = torch.randn((4, 4, 5, 5, 5))
         torch_conv3d = torch.nn.Conv3d(in_channels=4, out_channels=4, kernel_size=(2, 2, 2), dilation=2)
         conv_3d = sim_api.Conv3d(in_channels=4, out_channels=4, kernel_size=(2, 2, 2), dilation=2)
