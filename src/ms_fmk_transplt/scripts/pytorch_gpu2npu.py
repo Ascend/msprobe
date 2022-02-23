@@ -59,7 +59,7 @@ class MsFmkTransplt(object):
         if self.__check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
-        if not args.version not in ['1.5.0', '1.8.1']:
+        if args.version not in ['1.5.0', '1.8.1']:
             raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
 
         self.__check_main_file_param_valid(args)
@@ -262,8 +262,6 @@ class MsFmkTransplt(object):
         except SystemExit:
             return 1
         except BaseException as exp:
-            import traceback
-            traceback.print_exc()
             translog.error(exp)
             return 1
 
