@@ -1,0 +1,1 @@
+from pytorch_gpu2npu.pytorch_v1_5_0.amp_to_apex_rule import InitApexRule, Amp2Apex

@@ -3,9 +3,9 @@ from typing import Optional, Union
 import libcst
 from libcst import matchers as m, FlattenSentinel, RemovalSentinel
 
-from ms_fmk_transplt.common_rules import InsertGlobalRule
-from ms_fmk_transplt.common_rules.code_visitor import RuleVisitor, OperatorType
-from ms_fmk_transplt.utils.scope_visitors import ScaleScopeVisitor
+from pytorch_gpu2npu.common_rules import InsertGlobalRule
+from pytorch_gpu2npu.common_rules.code_visitor import RuleVisitor, OperatorType
+from pytorch_gpu2npu.utils.scope_visitors import ScaleScopeVisitor
 
 
 class InitApexRule(InsertGlobalRule):

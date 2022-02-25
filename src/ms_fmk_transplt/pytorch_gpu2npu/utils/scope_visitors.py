@@ -7,7 +7,7 @@ from typing import Optional
 import libcst
 from libcst import matchers as m
 
-from ms_fmk_transplt.common_rules import RuleVisitor
+from pytorch_gpu2npu.common_rules import RuleVisitor
 
 
 class ScaleScopeVisitor(RuleVisitor):

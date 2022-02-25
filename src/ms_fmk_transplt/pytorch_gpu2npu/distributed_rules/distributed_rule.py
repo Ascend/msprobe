@@ -7,9 +7,9 @@ from typing import Optional, Union
 import libcst
 from libcst import FlattenSentinel, RemovalSentinel, matchers as m
 
-from ms_fmk_transplt.common_rules import RuleVisitor, OperatorType
-from ms_fmk_transplt.utils import transplant_logger as translog
-from ms_fmk_transplt.utils.scope_visitors import ScaleScopeVisitor
+from pytorch_gpu2npu.common_rules import RuleVisitor, OperatorType
+from pytorch_gpu2npu.utils import transplant_logger as translog
+from pytorch_gpu2npu.utils.scope_visitors import ScaleScopeVisitor
 
 
 class DataLoaderRule(RuleVisitor):

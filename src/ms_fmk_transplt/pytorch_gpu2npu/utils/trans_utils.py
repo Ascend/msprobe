@@ -9,10 +9,10 @@ import shutil
 
 import pandas as pd
 
-import ms_fmk_transplt.common_rules.common_rule as rule_module
-from ms_fmk_transplt.distributed_rules import distributed_rule
-from ms_fmk_transplt.pytorch_v1_5_0 import InitApexRule, Amp2Apex
-from ms_fmk_transplt.utils import transplant_logger as translog
+import pytorch_gpu2npu.common_rules.common_rule as rule_module
+from pytorch_gpu2npu.distributed_rules import distributed_rule
+from pytorch_gpu2npu.pytorch_v1_5_0 import InitApexRule, Amp2Apex
+from pytorch_gpu2npu.utils import transplant_logger as translog
 
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3

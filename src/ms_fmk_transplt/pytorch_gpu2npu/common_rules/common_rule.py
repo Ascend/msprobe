@@ -9,8 +9,8 @@ import libcst
 from libcst import matchers as m
 from libcst.metadata import ParentNodeProvider
 
-from ms_fmk_transplt.common_rules.code_visitor import OperatorType
-from ms_fmk_transplt.common_rules.code_visitor import RuleVisitor
+from pytorch_gpu2npu.common_rules.code_visitor import OperatorType
+from pytorch_gpu2npu.common_rules.code_visitor import RuleVisitor
 
 
 class InsertGlobalRule(RuleVisitor):

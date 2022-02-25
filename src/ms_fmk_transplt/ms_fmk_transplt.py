@@ -7,9 +7,9 @@ import os
 import shutil
 import sys
 
-import ms_fmk_transplt.utils.trans_utils as utils
-import ms_fmk_transplt.utils.transplant_logger as translog
-from ms_fmk_transplt.scripts.transplant import Transplant
+import pytorch_gpu2npu.utils.trans_utils as utils
+import pytorch_gpu2npu.utils.transplant_logger as translog
+from transplant import Transplant
 
 
 class MsFmkTransplt(object):

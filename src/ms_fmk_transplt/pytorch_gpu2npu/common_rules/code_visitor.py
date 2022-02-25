@@ -10,7 +10,7 @@ import libcst
 import libcst.helpers as helper
 import libcst.matchers as m
 
-from ms_fmk_transplt.utils import transplant_logger as translog
+from pytorch_gpu2npu.utils import transplant_logger as translog
 
 _T = TypeVar("_T")
 _UNDEFINED_DEFAULT = object()
