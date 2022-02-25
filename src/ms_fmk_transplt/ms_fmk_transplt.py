@@ -178,7 +178,7 @@ class MsFmkTransplt(object):
             self.feature_switch.append('distributed')
 
     def __copy_function_pack(self):
-        function_pack_dir = os.path.join(os.path.dirname(__file__), '../ascend_function')
+        function_pack_dir = os.path.join(os.path.dirname(__file__), 'ascend_function')
         if os.path.isdir(self.output):
             dst_path = os.path.join(self.output, 'ascend_function')
         elif os.path.isfile(self.output):
