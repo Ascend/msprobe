@@ -20,7 +20,7 @@ from test_rules import TestRules as TestBuildRules
 import coverage
 
 sys.path.append(os.path.abspath("../../../"))
-sys.path.append(os.path.abspath("../../../src"))
+sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 
 TRANS_ERROR=1
 
@@ -40,7 +40,7 @@ class Args(object):
 
 
 def run(mock_args, net_name, output_path, result_dict):
-    from ms_fmk_transplt.scripts.pytorch_gpu2npu import MsFmkTransplt
+    from ms_fmk_transplt import MsFmkTransplt
     try:
         ms_fmk_transplt = MsFmkTransplt()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
