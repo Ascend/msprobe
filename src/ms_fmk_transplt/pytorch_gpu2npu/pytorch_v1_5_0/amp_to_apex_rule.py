@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
+
 from typing import Optional, Union
 
 import libcst
