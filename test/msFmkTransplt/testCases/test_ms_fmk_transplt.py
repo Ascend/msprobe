@@ -40,7 +40,7 @@ class Args(object):
 
 
 def run(mock_args, net_name, output_path, result_dict):
-    from ms_fmk_transplt import MsFmkTransplt
+    from src.ms_fmk_transplt.ms_fmk_transplt import MsFmkTransplt
     try:
         ms_fmk_transplt = MsFmkTransplt()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
