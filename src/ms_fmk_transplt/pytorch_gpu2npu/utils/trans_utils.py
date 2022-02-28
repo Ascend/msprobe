@@ -61,7 +61,7 @@ def write_csv(content_list, script_file, script_dir, csv_type):
 
 
 def get_op_list(version):
-    if version == '1.8.0':
+    if version == '1.8.1':
         op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/op_list_1_8_1.json')
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_5_0/op_list_1_5_0.json')
@@ -287,9 +287,9 @@ def check_file_need_analysis(file, commonprefix, record=False):
     return True
 
 
-def get_main_file(args):
-    if not args.main:
+def get_main_file(main_file_path, input_path):
+    if not main_file_path:
         return ''
-    if os.path.isfile(args.input):
-        return os.path.basename(args.main)
-    return os.path.relpath(os.path.realpath(args.main), os.path.realpath(args.input))
+    if os.path.isfile(input_path):
+        return os.path.basename(main_file_path)
+    return os.path.relpath(os.path.realpath(main_file_path), os.path.realpath(input_path))

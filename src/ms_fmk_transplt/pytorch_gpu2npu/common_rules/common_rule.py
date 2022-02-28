@@ -14,10 +14,11 @@ from pytorch_gpu2npu.common_rules.code_visitor import RuleVisitor
 
 
 class InsertGlobalRule(RuleVisitor):
-    def __init__(self, insert_content):
+    def __init__(self, insert_content, init_insert_flag=True):
         super(InsertGlobalRule, self).__init__()
         self.insert_content = insert_content
-        self.insert_flag = True
+        self.init_insert_flag = init_insert_flag
+        self.insert_flag = self.init_insert_flag
 
     def visit_Module(self, node: "libcst.Module") -> Optional[bool]:
         if not m.findall(node, m.ImportAlias() | m.ImportFrom()):
@@ -59,20 +60,15 @@ class InsertGlobalRule(RuleVisitor):
 
     def clean(self):
         super().clean()
-        self.insert_flag = True
+        self.insert_flag = self.init_insert_flag
 
 
 class InsertMainFileRule(InsertGlobalRule):
     def __init__(self, insert_content):
-        super(InsertMainFileRule, self).__init__(insert_content)
-        self.insert_flag = False
+        super(InsertMainFileRule, self).__init__(insert_content, False)
 
     def visit_main_file(self, is_main_file):
         self.insert_flag = is_main_file
-
-    def clean(self):
-        super().clean()
-        self.insert_flag = False
 
 
 class FuncNameModifyRule(RuleVisitor):

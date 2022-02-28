@@ -230,7 +230,7 @@ class MsFmkTransplt(object):
         output_free_size = shutil.disk_usage(os.path.realpath(args.output)).free
         self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), output_free_size)
         if not self.py_file_counts:
-            raise utils.InputCheckException('There are no python files in the folder.')
+            raise utils.InputCheckException('There are no valid python files in the folder.')
 
     @staticmethod
     def __check_is_subdirectory(path_may_be_parent, path_may_be_child):
