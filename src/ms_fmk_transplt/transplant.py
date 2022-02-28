@@ -21,7 +21,6 @@ class Transplant(object):
     def __init__(self, script_dir, rule_list, args):
         self.script_dir = script_dir
         self.rule_list = rule_list
-        self.main_file = utils.get_main_file(args)
         self.main_file = utils.get_main_file(args.main, args.input) if args.main else ''
         self.args = args
         self.py_file_counts = 0

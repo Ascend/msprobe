@@ -288,8 +288,6 @@ def check_file_need_analysis(file, commonprefix, record=False):
 
 
 def get_main_file(main_file_path, input_path):
-    if not main_file_path:
-        return ''
     if os.path.isfile(input_path):
         return os.path.basename(main_file_path)
     return os.path.relpath(os.path.realpath(main_file_path), os.path.realpath(input_path))
