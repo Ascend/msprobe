@@ -132,7 +132,7 @@ class MsFmkTransplt(object):
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
         parser.add_argument('-m', '--main', default='', metavar='FILE',
-                            help='The entry python file of the project, for example, train.py main.py.')
+                            help='The entry python file of the project, for example, train.py main.py')
         parser.add_argument('-r', '--rule', default='', metavar='FILE', help='Custom rules file path')
         parser.add_argument('-s', '--specify-device', dest='specify_device', action='store_true',
                             help='This option is required only if you want to use the NPU_CALCULATE_DEVICE '
@@ -143,7 +143,7 @@ class MsFmkTransplt(object):
         parser.add_argument('-a', '--amp_model', metavar='model', default='',
                             help='This option is required only if you want to convert torch.cuda.amp to apex.amp')
         parser.add_argument('-v', '--version', default='1.5.0',
-                            help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently.')
+                            help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
         subparsers = parser.add_subparsers(help='commands')
         self.__distributed_parser(subparsers)
         return parser.parse_args()
