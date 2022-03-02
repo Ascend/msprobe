@@ -6,11 +6,13 @@ import json
 import os
 import platform
 import shutil
-import pandas as pd
-import distributed_rule
-import rule as rule_module
-import transplant_logger as translog
 
+import pandas as pd
+
+import pytorch_gpu2npu.common_rules.common_rule as rule_module
+from pytorch_gpu2npu.distributed_rules import distributed_rule
+from pytorch_gpu2npu.pytorch_v1_5_0 import InitApexRule, Amp2Apex
+from pytorch_gpu2npu.utils import transplant_logger as translog
 
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
@@ -58,8 +60,12 @@ def write_csv(content_list, script_file, script_dir, csv_type):
     change_mode(csv_file)
 
 
-def get_op_list():
-    ops = get_file_content_bytes(os.path.join(os.path.dirname(__file__), 'op_list.json'))
+def get_op_list(version):
+    if version == '1.8.1':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/op_list_1_8_1.json')
+    else:
+        op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_5_0/op_list_1_5_0.json')
+    ops = get_file_content_bytes(op_list_path)
     op_list = json.loads(ops).get('op_list')
     return op_list
 
@@ -97,12 +103,24 @@ def get_custom_rule(file, rule_list):
 
 def get_builtin_rule(feature_switch, args):
     rule_list = get_special_rule(args)
-    rules = get_file_content(os.path.join(os.path.dirname(__file__), 'builtin_rules.json'))
-    rule_dict = json.loads(rules).get('rules', {})
-    for key in rule_dict:
-        init_rule_to_list(key, rule_dict, rule_list, feature_switch)
+    # rules for different version
+    if args.version == '1.8.1':
+        rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/builtin_rules_1_8_1.json')
+        get_rule_from_json_file(feature_switch, rule_list, rules_json_file_1_8_0)
+    # common rules
+    common_rules_json_file = os.path.join(os.path.dirname(__file__), '../common_rules/builtin_rules.json')
+    get_rule_from_json_file(feature_switch, rule_list, common_rules_json_file)
 
     return rule_list
+
+
+def get_rule_from_json_file(feature_switch, rule_list, json_file):
+    if not os.path.exists(json_file):
+        return
+    json_file_content = get_file_content(json_file)
+    rule_dict = json.loads(json_file_content).get('rules', {})
+    for key in rule_dict:
+        init_rule_to_list(key, rule_dict, rule_list, feature_switch)
 
 
 def init_rule_to_list(key, rule_dict, rule_list, feature_switch):
@@ -123,13 +141,12 @@ def init_rule_to_list(key, rule_dict, rule_list, feature_switch):
 def get_special_rule(args):
     special_rule_list = [rule_module.PythonVersionConvertRule()]
     if args.amp_model:
-        if hasattr(args, 'main'):
-            special_rule_list.extend([rule_module.InitApexRule(), rule_module.Amp2Apex(args.amp_model, args.main)])
+        if hasattr(args, 'target_model'):
+            special_rule_list.extend([InitApexRule(), Amp2Apex(args.amp_model, args.main)])
         else:
-            special_rule_list.extend([rule_module.InitApexRule(), rule_module.Amp2Apex(args.amp_model, '')])
-    if hasattr(args, 'main'):
-        special_rule_list.extend([distributed_rule.InitProcessGroupRule(),
-                                  distributed_rule.DataLoaderRule(),
+            special_rule_list.extend([InitApexRule(), Amp2Apex(args.amp_model, '')])
+    if hasattr(args, 'target_model'):
+        special_rule_list.extend([distributed_rule.DataLoaderRule(),
                                   distributed_rule.DistributedDataParallelRule(args.target_model, args.amp_model)])
     return special_rule_list
 
@@ -268,3 +285,9 @@ def check_file_need_analysis(file, commonprefix, record=False):
             translog.warning(f'The real path or file name of {file_relative_path} is too long, skip.')
         return False
     return True
+
+
+def get_main_file(main_file_path, input_path):
+    if os.path.isfile(input_path):
+        return os.path.basename(main_file_path)
+    return os.path.relpath(os.path.realpath(main_file_path), os.path.realpath(input_path))

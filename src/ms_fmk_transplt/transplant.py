@@ -10,18 +10,19 @@ import libcst
 from libcst._flatten_sentinel import FlattenSentinel
 from libcst._removal_sentinel import RemovalSentinel
 
-import trans_utils as utils
-import transplant_logger as translog
-from code_visitor import ApiVisitor
-from distributed_rule import InitProcessGroupRule
-from trans_utils import TransplantException
+import pytorch_gpu2npu.utils.trans_utils as utils
+import pytorch_gpu2npu.utils.transplant_logger as translog
+from pytorch_gpu2npu.common_rules import InsertMainFileRule
+from pytorch_gpu2npu.common_rules.code_visitor import ApiVisitor
+from pytorch_gpu2npu.utils.trans_utils import TransplantException
 
 
 class Transplant(object):
-    def __init__(self, script_dir, rule_list, main_file):
+    def __init__(self, script_dir, rule_list, args):
         self.script_dir = script_dir
         self.rule_list = rule_list
-        self.main_file = main_file
+        self.main_file = utils.get_main_file(args.main, args.input) if args.main else ''
+        self.args = args
         self.py_file_counts = 0
 
     @staticmethod
@@ -32,7 +33,7 @@ class Transplant(object):
         code = utils.get_file_content_bytes(file)
         wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
 
-        api_visitor = ApiVisitor(utils.get_op_list())
+        api_visitor = ApiVisitor(utils.get_op_list(self.args.version))
         module = wrapper.visit(api_visitor)
         op_list = api_visitor.print_unsupported_ops()
         utils.write_csv(op_list, file, self.script_dir, "unsupported_op")
@@ -95,7 +96,7 @@ class CodeTransformer(libcst.CSTTransformer):
         super().__init__()
         self.rule_list = rule_list
         for rule in self.rule_list:
-            if isinstance(rule, InitProcessGroupRule):
+            if isinstance(rule, InsertMainFileRule):
                 rule.visit_main_file(is_main_file)
             rule.set_warp_visitor(self)
 

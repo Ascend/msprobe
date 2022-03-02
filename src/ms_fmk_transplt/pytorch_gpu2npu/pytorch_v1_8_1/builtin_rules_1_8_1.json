@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "InsertMainFileRule": [
+      {
+        "insert_content": [
+          "import torch",
+          "import torch_npu"
+        ]
+      }
+    ]
+  }
+}

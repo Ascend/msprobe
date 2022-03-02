@@ -6,9 +6,10 @@ import argparse
 import os
 import shutil
 import sys
-import transplant_logger as translog
+
+import pytorch_gpu2npu.utils.trans_utils as utils
+import pytorch_gpu2npu.utils.transplant_logger as translog
 from transplant import Transplant
-import trans_utils as utils
 
 
 class MsFmkTransplt(object):
@@ -58,6 +59,10 @@ class MsFmkTransplt(object):
         if self.__check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
+        if args.version not in ['1.5.0', '1.8.1']:
+            raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
+
+        self.__check_main_file_param_valid(args)
         self.__check_custom_rule_param_valid(args)
         self.__check_distributed_rule_param_valid(args)
 
@@ -90,7 +95,20 @@ class MsFmkTransplt(object):
 
     @staticmethod
     def __check_distributed_rule_param_valid(args):
-        if not hasattr(args, 'main'):
+        if not hasattr(args, 'target_model'):
+            return
+        if not args.target_model:
+            raise ValueError('Target model variable is not set!')
+
+    @staticmethod
+    def __check_main_file_param_valid(args):
+        if args.version == '1.8.1' and not args.main:
+            raise ValueError('Main file should be set for pytorch 1.8.1.')
+        if args.specify_device and not args.main:
+            raise ValueError('Main file should be set when you want to specify the running device.')
+        if hasattr(args, 'target_model') and not args.main:
+            raise ValueError('Main file should be set for distributed transplant.')
+        if not args.main:
             return
         if os.path.islink(args.main):
             raise utils.SoftlinkCheckException("Main file path doesn't support soft link.")
@@ -108,13 +126,13 @@ class MsFmkTransplt(object):
                 raise ValueError('Main file %s should be the input file %s' % (args.main, args.input))
         if not os.access(main_file, os.R_OK):
             raise PermissionError('Main file %s is not readable!' % args.main)
-        if not args.target_model:
-            raise ValueError('Target model variable is not set!')
 
     def __parse_command(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
+        parser.add_argument('-m', '--main', default='', metavar='FILE',
+                            help='The entry python file of the project, for example, train.py main.py')
         parser.add_argument('-r', '--rule', default='', metavar='FILE', help='Custom rules file path')
         parser.add_argument('-s', '--specify-device', dest='specify_device', action='store_true',
                             help='This option is required only if you want to use the NPU_CALCULATE_DEVICE '
@@ -124,6 +142,8 @@ class MsFmkTransplt(object):
                                  'Note that this may result in accuracy loss and performance degradation')
         parser.add_argument('-a', '--amp_model', metavar='model', default='',
                             help='This option is required only if you want to convert torch.cuda.amp to apex.amp')
+        parser.add_argument('-v', '--version', default='1.5.0',
+                            help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
         subparsers = parser.add_subparsers(help='commands')
         self.__distributed_parser(subparsers)
         return parser.parse_args()
@@ -134,8 +154,6 @@ class MsFmkTransplt(object):
                                                    help='This option is required only if you want to transplant '
                                                         'a single GPU script to a distributed NPU script. '
                                                         'Ensure that your code is a single GPU script.')
-        distributed_parser.add_argument('-m', '--main', default='', metavar='FILE', required=True,
-                                        help='The entry python file of the project, for example, train.py main.py.')
         distributed_parser.add_argument('-t', '--target_model', metavar='model', default='model',
                                         help='The variable name of the target model, for example, '
                                              '"model=LeNet() model", "self.model=LeNet() self.model"')
@@ -154,7 +172,7 @@ class MsFmkTransplt(object):
             self.feature_switch.append('specify_device')
         if args.similar:
             self.feature_switch.append('similar')
-        if hasattr(args, 'main'):
+        if hasattr(args, 'target_model'):
             utils.generate_distributed_shell_file(self.output if os.path.isdir(self.output) else
                                                   os.path.dirname(self.output))
             self.feature_switch.append('distributed')
@@ -194,7 +212,7 @@ class MsFmkTransplt(object):
         if os.path.isfile(self.input):
             self.output = os.path.join(args.output, os.path.split(self.input)[1])
         if os.path.isdir(self.input):
-            if hasattr(args, 'main'):
+            if hasattr(args, 'target_model'):
                 project_suffix = '_msft_multi'
             else:
                 project_suffix = '_msft'
@@ -212,15 +230,7 @@ class MsFmkTransplt(object):
         output_free_size = shutil.disk_usage(os.path.realpath(args.output)).free
         self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), output_free_size)
         if not self.py_file_counts:
-            raise utils.InputCheckException('There are no python files in the folder.')
-
-    @staticmethod
-    def get_main_file(args):
-        if not hasattr(args, 'main'):
-            return ''
-        if os.path.isfile(args.input):
-            return os.path.basename(args.main)
-        return os.path.relpath(args.main, args.input)
+            raise utils.InputCheckException('There are no valid python files in the folder.')
 
     @staticmethod
     def __check_is_subdirectory(path_may_be_parent, path_may_be_child):
@@ -244,7 +254,7 @@ class MsFmkTransplt(object):
             translog.info('Initialing rules...')
             self.__init_rules(args)
             translog.info('MsFmkTransplt start working now, please wait for a moment.')
-            transplant = Transplant(self.output, self.rule_list, self.get_main_file(args))
+            transplant = Transplant(self.output, self.rule_list, args)
             transplant.set_py_file_counts(self.py_file_counts)
             transplant.run()
             if args.similar:

@@ -1,16 +1,26 @@
 {
   "rules": {
-    "InsertGlobalRule": [
+    "InsertMainFileRule": [
       {
-        "import_key_word": "torch",
         "insert_content": [
           "import torch.npu",
           "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')"
         ],
         "feature_switch": ["specify_device"]
       },
+       {
+        "insert_content": [
+          "import torch.npu",
+          "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')",
+          "NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))",
+          "RANK = int(os.getenv('RANK'))",
+          "torch.distributed.init_process_group('hccl', rank=RANK, world_size=NPU_WORLD_SIZE)"
+        ],
+         "feature_switch": ["distributed"]
+      }
+    ],
+    "InsertGlobalRule": [
       {
-        "import_key_word": "",
         "insert_content": [
           "import os",
           "NPU_CALCULATE_DEVICE = 0",
@@ -19,7 +29,6 @@
         "feature_switch": ["specify_device", "distributed"]
       },
       {
-        "import_key_word": "",
         "insert_content": [
           "import ascend_function"
         ],

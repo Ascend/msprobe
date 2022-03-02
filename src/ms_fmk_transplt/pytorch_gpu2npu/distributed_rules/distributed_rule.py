@@ -7,31 +7,9 @@ from typing import Optional, Union
 import libcst
 from libcst import FlattenSentinel, RemovalSentinel, matchers as m
 
-from code_visitor import RuleVisitor, OperatorType
-from rule import InsertGlobalRule
-from scope_visitors import ScaleScopeVisitor
-import transplant_logger as translog
-
-
-class InitProcessGroupRule(InsertGlobalRule):
-    def __init__(self):
-        insert_content = ["import torch.npu",
-                          "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n"
-                          "    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')",
-                          "NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))",
-                          "RANK = int(os.getenv('RANK'))",
-                          "torch.distributed.init_process_group('hccl', rank=RANK, world_size=NPU_WORLD_SIZE)"]
-        super(InitProcessGroupRule, self).__init__(insert_content, "")
-        self.insert_flag = False
-
-    def visit_main_file(self, is_main_file):
-        self.insert_flag = is_main_file
-
-    def visit_ImportAlias(self, node: "libcst.ImportAlias") -> Optional[bool]:
-        return False
-
-    def visit_ImportFrom(self, node: "libcst.ImportFrom") -> Optional[bool]:
-        return False
+from pytorch_gpu2npu.common_rules import RuleVisitor, OperatorType
+from pytorch_gpu2npu.utils import transplant_logger as translog
+from pytorch_gpu2npu.utils.scope_visitors import ScaleScopeVisitor
 
 
 class DataLoaderRule(RuleVisitor):

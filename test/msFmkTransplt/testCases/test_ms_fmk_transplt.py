@@ -25,17 +25,18 @@ sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 TRANS_ERROR=1
 
 class Args(object):
-    def __init__(self, input_path, output_path, main=None, target_model='model', test_amp=False):
+    def __init__(self, input_path, output_path, main='', target_model=None, amp_model='', version='1.5.0'):
         self.input = input_path
         self.output = output_path
         self.rule = ''
         self.specify_device = False
         self.device_id = 0
         self.similar = True
-        self.amp_model = target_model if test_amp else ''
-        if main:
-            self.main = main
+        self.amp_model = amp_model
+        self.main = main
+        if target_model:
             self.target_model = target_model
+        self.version = version
 
 
 def run(mock_args, net_name, output_path, result_dict):
@@ -159,7 +160,7 @@ def transplt_multi(input_path, output_path, standard_dir=None):
 
     for file, main_file in main_file_dict.items():
         transplt_files.append(file)
-        mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path, main_file))
+        mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path, main_file, target_model='model'))
         args.append([mock_args, file, standard_dir])
     return transplant(args, transplt_files, output_path, ' multi')
 
@@ -170,10 +171,10 @@ def transplant_amp(input_path, output_path, standard_dir=None):
     }
     args = []
     transplt_files = []
-    for file, target_model in model_dict.items():
+    for file, amp_model in model_dict.items():
         transplt_files.append(file)
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path,
-                                                target_model=target_model, test_amp=True))
+                                                amp_model=amp_model))
         args.append([mock_args, file, standard_dir])
     return transplant(args, transplt_files, output_path, name=' amp')
 
