@@ -14,6 +14,12 @@ from pytorch_gpu2npu.distributed_rules import distributed_rule
 from pytorch_gpu2npu.pytorch_v1_5_0 import InitApexRule, Amp2Apex
 from pytorch_gpu2npu.utils import transplant_logger as translog
 
+try:
+    import jedi
+    IS_JEDI_INSTALLED = True
+except ImportError:
+    IS_JEDI_INSTALLED = False
+
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
 MAX_SIZE_OF_RULE_FILE = 10 * 1024 ** 2
@@ -291,3 +297,17 @@ def get_main_file(main_file_path, input_path):
     if os.path.isfile(input_path):
         return os.path.basename(main_file_path)
     return os.path.relpath(os.path.realpath(main_file_path), os.path.realpath(input_path))
+
+
+def name_to_jedi_position(file, line, name):
+    with open(file, 'r', encoding='utf-8') as file_handler:
+        file_lines = file_handler.readlines()
+        if line > len(file_lines):
+            return {}
+        content = file_lines[line - 1]
+    if not name or not content:
+        return {}
+    column = content.find(name)
+    if column == -1:
+        return {}
+    return {'line':line, 'column': column}

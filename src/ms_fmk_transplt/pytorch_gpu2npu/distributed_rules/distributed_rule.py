@@ -10,6 +10,7 @@ from libcst import FlattenSentinel, RemovalSentinel, matchers as m
 from pytorch_gpu2npu.common_rules import RuleVisitor, OperatorType
 from pytorch_gpu2npu.utils import transplant_logger as translog
 from pytorch_gpu2npu.utils.scope_visitors import ScaleScopeVisitor
+from pytorch_gpu2npu.utils import trans_utils as utils
 
 
 class DataLoaderRule(RuleVisitor):
@@ -24,6 +25,10 @@ class DataLoaderRule(RuleVisitor):
         self.dataloader_targets = []
         self.dict_dataloader_target = ''
         self.data_set_target = ''
+        self.global_reference_visiter = None
+
+    def set_global_reference_visiter(self, global_reference_visiter):
+        self.global_reference_visiter = global_reference_visiter
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         super().visit_Assign(node)
@@ -99,7 +104,7 @@ class DataLoaderRule(RuleVisitor):
 
     def __generate_set_epoch_statement(self, node, epoch_target):
         scope = self.get_metadata(libcst.metadata.ScopeProvider, node)
-        # train_loader assign in scope
+        # 1. train_loader assign in scope
         set_epoch_statements = []
         for target in self.dataloader_targets:
             if target in scope:
@@ -111,17 +116,87 @@ class DataLoaderRule(RuleVisitor):
                                        f'    loader.sampler.set_epoch({epoch_target})'))
         if set_epoch_statements:
             return set_epoch_statements, len(set_epoch_statements)
-        # variable name contains loader
+        # 2. variable name contains loader
         maybe_dataloader_variables = []
         for assign in scope.assignments:
             if 'loader' in assign.name:
                 maybe_dataloader_variables.append(assign.name)
+
+        if not maybe_dataloader_variables and isinstance(scope, libcst.metadata.scope_provider.FunctionScope):
+            # 3. start global scope analysis
+            maybe_dataloader_variables = self.__get_dataloder_variable_from_global_scope(scope.node)
         maybe_set_epoch_statements = []
         for dataloader_variable in maybe_dataloader_variables:
             maybe_set_epoch_statements.append(libcst.parse_statement(
                 'if isinstance(%s, torch.utils.data.DataLoader):\n    %s.sampler.set_epoch(%s)' % (
                     dataloader_variable, dataloader_variable, epoch_target)))
         return maybe_set_epoch_statements, len(maybe_set_epoch_statements) * 2
+
+    def __get_dataloder_variable_from_global_scope(self, func_def_node):
+        func_line = self.get_metadata(libcst.metadata.PositionProvider, func_def_node).start.line
+        func_name = self.get_full_name_for_node(func_def_node.name, with_variable_replace=False)
+        dataloader_variables = []
+        # global_scope_visiter not set
+        if not self.global_reference_visiter:
+            return dataloader_variables
+
+        # step1: get func usages
+        usages = self.global_reference_visiter.find_usages(func_line, func_name)
+        if not usages:
+            return dataloader_variables
+
+        # step2: handle usage info
+        script, func_usage_position = self.__handle_usage_info(usages[0], func_name)
+
+        # step3: get func usage params
+        params = self.__get_func_usage_params(script, func_usage_position, func_name)
+        if not params:
+            return dataloader_variables
+
+        # step4: get param definition to find Dataloader
+        dataloader_param_indexs = self.__get_dataloader_param_indexs(script, params)
+        func_dataloader_params = list(
+            self.get_code_for_node(func_def_node.params.params[index].name) for index in dataloader_param_indexs)
+        dataloader_variables.extend(func_dataloader_params)
+        return dataloader_variables
+
+    def __handle_usage_info(self, usage, func_name):
+        target_file = str(usage.module_path)
+        script = self.global_reference_visiter.get_jedi_script(target_file)
+        func_usage_position = utils.name_to_jedi_position(target_file, usage.line, func_name)
+        return script, func_usage_position
+
+    def __get_func_usage_params(self, jedi_script, func_usage_position, func_name):
+        first_param = jedi_script._module_node.get_leaf_for_position(
+            (func_usage_position.get('line'), func_usage_position.get('column') + len(func_name) + 2))
+        parent = first_param.parent
+        # find failed or the function doesn't have params
+        if parent.type != 'arglist':
+            return []
+        else:
+            return parent.children
+
+    def __get_dataloader_param_indexs(self, jedi_script, jedi_params):
+        from parso.python.tree import Name, Operator
+        dataloader_param_indexs = []
+        index = 0
+        for param in jedi_params:
+            # escape sep like ","
+            if isinstance(param, Operator):
+                continue
+            if not isinstance(param, Name):
+                index += 1
+                # can't resolve a_dict[xxx], args.xxx
+                continue
+
+            completions = jedi_script.complete(param.start_pos[0], param.start_pos[1] + 1)
+            for completion in completions:
+                if completion.name != param.value:
+                    continue
+                if 'DataLoader' in completion.description:
+                    dataloader_param_indexs.append(index)
+            index += 1
+        return dataloader_param_indexs
 
     def clean(self):
         super().clean()
