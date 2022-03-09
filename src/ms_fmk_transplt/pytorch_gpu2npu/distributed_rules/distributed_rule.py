@@ -25,10 +25,10 @@ class DataLoaderRule(RuleVisitor):
         self.dataloader_targets = []
         self.dict_dataloader_target = ''
         self.data_set_target = ''
-        self.global_reference_visiter = None
+        self.global_reference_visitor = None
 
-    def set_global_reference_visiter(self, global_reference_visiter):
-        self.global_reference_visiter = global_reference_visiter
+    def set_global_reference_visitor(self, global_reference_visitor):
+        self.global_reference_visitor = global_reference_visitor
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         super().visit_Assign(node)
@@ -136,12 +136,12 @@ class DataLoaderRule(RuleVisitor):
         func_line = self.get_metadata(libcst.metadata.PositionProvider, func_def_node).start.line
         func_name = self.get_full_name_for_node(func_def_node.name, with_variable_replace=False)
         dataloader_variables = []
-        # global_scope_visiter not set
-        if not self.global_reference_visiter:
+        # global_scope_visitor not set
+        if not self.global_reference_visitor:
             return dataloader_variables
 
         # step1: get func usages
-        usages = self.global_reference_visiter.find_usages(func_line, func_name)
+        usages = self.global_reference_visitor.find_usages(func_line, func_name)
         if not usages:
             return dataloader_variables
 
@@ -162,7 +162,7 @@ class DataLoaderRule(RuleVisitor):
 
     def __handle_usage_info(self, usage, func_name):
         target_file = str(usage.module_path)
-        script = self.global_reference_visiter.get_jedi_script(target_file)
+        script = self.global_reference_visitor.get_jedi_script(target_file)
         func_usage_position = utils.name_to_jedi_position(target_file, usage.line, func_name)
         return script, func_usage_position
 

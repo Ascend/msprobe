@@ -134,6 +134,16 @@ class TestMsFmkTransplt(unittest.TestCase):
             self.fail("Load json permission error!")
         return content.get("reports")
 
+    def test_tran_utils(self):
+        from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
+        file = os.path.realpath(__file__)
+        position = utils.name_to_jedi_position(file, 12, 'difflib')
+        self.assertEqual(position, {'line':12, 'column': 7})
+
+        project = os.path.join(os.path.dirname(__file__), '../resources/net/barlowtwins_amp')
+        py_file_counts = utils.walk_input_path(project, output_free_size=1024 ** 3)
+        self.assertEqual(py_file_counts, 5)
+
 
 def transplt_normal(input_path, output_path, standard_dir=None):
     args = []

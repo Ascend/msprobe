@@ -14,8 +14,8 @@ sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 class TestRules(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        import pytorch_gpu2npu.common_rules.common_rule as common_rule
-        import pytorch_gpu2npu.distributed_rules.distributed_rule as distributed_rule
+        import src.ms_fmk_transplt.pytorch_gpu2npu.common_rules.common_rule as common_rule
+        import src.ms_fmk_transplt.pytorch_gpu2npu.distributed_rules.distributed_rule as distributed_rule
         cls.common_rule = common_rule
         cls.distributed_rule = distributed_rule
 
@@ -479,7 +479,7 @@ pre2 = teacher(image)
     def test_ascend_function(self):
         import torch
         import torch.nn.functional as F
-        import ascend_function.similar_api as sim_api
+        import src.ms_fmk_transplt.ascend_function.similar_api as sim_api
         in_tensor = torch.randn((4, 4, 5, 5, 5))
         torch_conv3d = torch.nn.Conv3d(in_channels=4, out_channels=4, kernel_size=(2, 2, 2), dilation=2)
         conv_3d = sim_api.Conv3d(in_channels=4, out_channels=4, kernel_size=(2, 2, 2), dilation=2)
