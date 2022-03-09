@@ -114,7 +114,8 @@ if __name__ == '__main__':
                       ("AA.old_name()", "AA.new_name()"),
                       ("AA.BB.old_name()", "AA.BB.new_name()"),
                       ("AA.old_name.BB(old_name())", "AA.old_name.BB(new_name())"),
-                      ("AA.old_name.old_name()", "AA.old_name.new_name()"))
+                      ("AA.old_name.old_name()", "AA.old_name.new_name()"),
+                      ("(other_name if xxx else old_name)()", "(other_name if xxx else new_name)()"))
 
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
@@ -123,7 +124,8 @@ if __name__ == '__main__':
         test_cases = (("old_name()", "AA.BB.new_name()"),
                       ("AA.old_name()", "AA.BB.new_name()"),
                       ("AA.old_name.BB(old_name())", "AA.old_name.BB(AA.BB.new_name())"),
-                      ("DD.old_name.old_name()", "AA.BB.new_name()"))
+                      ("DD.old_name.old_name()", "AA.BB.new_name()"),
+                      ("(other_name if xxx else old_name)()", "(other_name if xxx else AA.BB.new_name)()"))
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
 
