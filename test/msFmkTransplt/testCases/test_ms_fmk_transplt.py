@@ -154,6 +154,7 @@ def transplt_multi(input_path, output_path, standard_dir=None):
         'ID0476_CarPeting_Pytorch_3D_nested_unet_multi': input_path + '/ID0476_CarPeting_Pytorch_3D_nested_unet_multi/train.py',
         'ID0478_CarPeting_Pytorch_3D_attentionnet_multi': input_path + '/ID0478_CarPeting_Pytorch_3D_attentionnet_multi/train.py',
         'ID0669_CarPeting_Pytorch_GENet_multi': input_path + '/ID0669_CarPeting_Pytorch_GENet_multi/train.py',
+        'ID0338_CarPeting_Pytorch_FOTS_MS_multi': input_path + '/ID0338_CarPeting_Pytorch_FOTS_MS_multi/main.py'
     }
     args = []
     transplt_files = []
