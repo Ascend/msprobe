@@ -154,7 +154,7 @@ class DataLoaderRule(RuleVisitor):
             return dataloader_variables
 
         # step4: get param definition to find Dataloader
-        dataloader_param_indexs = self.__get_dataloader_param_indexs(script, params)
+        dataloader_param_indexs = self.__get_dataloader_param_indexs(script, params, dataloader_variables)
         func_dataloader_params = list(
             self.get_code_for_node(func_def_node.params.params[index].name) for index in dataloader_param_indexs)
         dataloader_variables.extend(func_dataloader_params)
@@ -176,27 +176,34 @@ class DataLoaderRule(RuleVisitor):
         else:
             return parent.children
 
-    def __get_dataloader_param_indexs(self, jedi_script, jedi_params):
-        from parso.python.tree import Name, Operator
+    def __get_dataloader_param_indexs(self, jedi_script, jedi_params, dataloader_variables):
+        from parso.python.tree import Name, Operator, PythonNode
         dataloader_param_indexs = []
         index = 0
         for param in jedi_params:
             # escape sep like ","
             if isinstance(param, Operator):
                 continue
-            if not isinstance(param, Name):
-                index += 1
-                # can't resolve a_dict[xxx], args.xxx
-                continue
-
-            completions = jedi_script.complete(param.start_pos[0], param.start_pos[1] + 1)
-            for completion in completions:
-                if completion.name != param.value:
-                    continue
-                if 'DataLoader' in completion.description:
+            # handle keyword param, like "tran_dl=dl"
+            if isinstance(param, PythonNode) and param.type == 'argument' and isinstance(param.get_last_leaf(), Name):
+                if self.__is_dataloader_param(jedi_script, param.get_last_leaf()):
+                    dataloader_variables.append(param.get_first_leaf().value)
+            # handle name param, like dl
+            if isinstance(param, Name):
+                if self.__is_dataloader_param(jedi_script, param):
                     dataloader_param_indexs.append(index)
+            # can't resolve a_dict[xxx], args.xxx, *(xxx), **{xxx}
             index += 1
         return dataloader_param_indexs
+
+    def __is_dataloader_param(self, jedi_script, param):
+        completions = jedi_script.complete(param.end_pos[0], param.end_pos[1])
+        for completion in completions:
+            if completion.name != param.value:
+                continue
+            if 'DataLoader' in completion.description:
+                return True
+        return False
 
     def clean(self):
         super().clean()
