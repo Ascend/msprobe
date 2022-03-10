@@ -134,6 +134,16 @@ class TestMsFmkTransplt(unittest.TestCase):
             self.fail("Load json permission error!")
         return content.get("reports")
 
+    def test_tran_utils(self):
+        from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
+        file = os.path.realpath(__file__)
+        position = utils.name_to_jedi_position(file, 12, 'difflib')
+        self.assertEqual(position, {'line':12, 'column': 7})
+
+        project = os.path.join(os.path.dirname(__file__), '../resources/net/barlowtwins_amp')
+        py_file_counts = utils.walk_input_path(project, output_free_size=1024 ** 3)
+        self.assertEqual(py_file_counts, 5)
+
 
 def transplt_normal(input_path, output_path, standard_dir=None):
     args = []
@@ -154,6 +164,7 @@ def transplt_multi(input_path, output_path, standard_dir=None):
         'ID0476_CarPeting_Pytorch_3D_nested_unet_multi': input_path + '/ID0476_CarPeting_Pytorch_3D_nested_unet_multi/train.py',
         'ID0478_CarPeting_Pytorch_3D_attentionnet_multi': input_path + '/ID0478_CarPeting_Pytorch_3D_attentionnet_multi/train.py',
         'ID0669_CarPeting_Pytorch_GENet_multi': input_path + '/ID0669_CarPeting_Pytorch_GENet_multi/train.py',
+        'ID0338_CarPeting_Pytorch_FOTS_MS_multi': input_path + '/ID0338_CarPeting_Pytorch_FOTS_MS_multi/main.py'
     }
     args = []
     transplt_files = []

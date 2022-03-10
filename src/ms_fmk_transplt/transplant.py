@@ -14,6 +14,7 @@ import pytorch_gpu2npu.utils.trans_utils as utils
 import pytorch_gpu2npu.utils.transplant_logger as translog
 from pytorch_gpu2npu.common_rules import InsertMainFileRule
 from pytorch_gpu2npu.common_rules.code_visitor import ApiVisitor
+from pytorch_gpu2npu.distributed_rules import DataLoaderRule
 from pytorch_gpu2npu.utils.trans_utils import TransplantException
 
 
@@ -24,6 +25,15 @@ class Transplant(object):
         self.main_file = utils.get_main_file(args.main, args.input) if args.main else ''
         self.args = args
         self.py_file_counts = 0
+
+        self.global_reference_visitor = None
+        if hasattr(args, 'target_model'):
+            if utils.IS_JEDI_INSTALLED:
+                from pytorch_gpu2npu.global_analysis import GlobalReferenceVisitor
+                self.global_reference_visitor = GlobalReferenceVisitor(self.script_dir)
+            else:
+                translog.warning('Since jedi is not correctly installed, global analysis will not take effect. You '
+                                 'can install it via pip.')
 
     @staticmethod
     def __need_analysis(file, commonprefix):
@@ -69,6 +79,8 @@ class Transplant(object):
                 translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
 
     def __analysis_file(self, file, commonprefix):
+        if self.global_reference_visitor:
+            self.global_reference_visitor.visit_file(file)
         file_relative_path = os.path.relpath(file, commonprefix)
         translog.info(f'Start analysis {file_relative_path}.')
         self.__analysis_code(file)
@@ -78,7 +90,8 @@ class Transplant(object):
         current_file_name = os.path.basename(file) if os.path.isfile(self.script_dir) else \
             os.path.relpath(file, self.script_dir)
         code_transformer = CodeTransformer(self.rule_list,
-                                           current_file_name == self.main_file if self.main_file else False)
+                                           current_file_name == self.main_file if self.main_file else False,
+                                           global_reference_visitor=self.global_reference_visitor)
         wrapper = libcst.metadata.MetadataWrapper(module)
         new_module = wrapper.visit(code_transformer)
         change_info_list = code_transformer.print_change_info()
@@ -92,12 +105,14 @@ class CodeTransformer(libcst.CSTTransformer):
     METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider, libcst.metadata.ScopeProvider,
                              libcst.metadata.QualifiedNameProvider, libcst.metadata.ParentNodeProvider)
 
-    def __init__(self, rule_list, is_main_file):
+    def __init__(self, rule_list, is_main_file, global_reference_visitor=None):
         super().__init__()
         self.rule_list = rule_list
         for rule in self.rule_list:
             if isinstance(rule, InsertMainFileRule):
                 rule.visit_main_file(is_main_file)
+            if isinstance(rule, DataLoaderRule):
+                rule.set_global_reference_visitor(global_reference_visitor)
             rule.set_warp_visitor(self)
 
     def visit_Module(self, node: "libcst.Module") -> Optional[bool]:
