@@ -17,6 +17,7 @@ class DataLoaderRule(RuleVisitor):
     """
     wraper dataset with DistributedSampler.
     """
+    DATALOADER_FUNCS = ('torch.utils.data.DataLoader', 'torch.utils.data.dataloader.DataLoader')
 
     def __init__(self):
         super(DataLoaderRule, self).__init__()
@@ -32,9 +33,8 @@ class DataLoaderRule(RuleVisitor):
 
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         super().visit_Assign(node)
-        dataloader_call = ('torch.utils.data.DataLoader', 'torch.utils.data.dataloader.DataLoader')
         if not m.findall(node, m.Call() & m.MatchIfTrue(
-                lambda call_node: self.get_full_name_for_node(call_node) in dataloader_call)):
+                lambda call_node: self.get_full_name_for_node(call_node) in self.DATALOADER_FUNCS)):
             return True
         self.insert_flag = True
         dataloader_target = self.get_full_name_for_node(node.targets[0].target,
@@ -49,7 +49,7 @@ class DataLoaderRule(RuleVisitor):
     def leave_Call(
         self, original_node: "libcst.Call", updated_node: "libcst.Call"
     ) -> "libcst.BaseExpression":
-        if not self.insert_flag:
+        if not (self.insert_flag and self.get_full_name_for_node(original_node) in self.DATALOADER_FUNCS):
             return updated_node
         self.insert_flag = False
         return updated_node.with_changes(args=self.__adapt_dataloader_args(updated_node.args))
