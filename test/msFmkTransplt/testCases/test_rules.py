@@ -259,6 +259,20 @@ for epoch in epochs:
         loader.sampler.set_epoch(epoch)
     pass
                 '''
+            ), (
+                '''import torch
+
+val_loader = torch.utils.data.DataLoader(
+        datasets.ImageFolder(valdir, val_transforms),
+        batch_size=args.batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True)
+                        ''', '''import torch
+
+val_loader = torch.utils.data.DataLoader(
+        datasets.ImageFolder(valdir, val_transforms),
+        batch_size=args.batch_size, shuffle=False,
+        num_workers=args.workers, pin_memory=True, drop_last = True, sampler = torch.utils.data.distributed.DistributedSampler(datasets.ImageFolder(valdir, val_transforms)))
+                        '''
             )
         )
 
