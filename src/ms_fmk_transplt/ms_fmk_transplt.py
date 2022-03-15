@@ -62,7 +62,6 @@ class MsFmkTransplt(object):
         if args.version not in ['1.5.0', '1.8.1']:
             raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
 
-        self.__check_main_file_param_valid(args)
         self.__check_custom_rule_param_valid(args)
         self.__check_distributed_rule_param_valid(args)
 
@@ -95,20 +94,7 @@ class MsFmkTransplt(object):
 
     @staticmethod
     def __check_distributed_rule_param_valid(args):
-        if not hasattr(args, 'target_model'):
-            return
-        if not args.target_model:
-            raise ValueError('Target model variable is not set!')
-
-    @staticmethod
-    def __check_main_file_param_valid(args):
-        if args.version == '1.8.1' and not args.main:
-            raise ValueError('Main file should be set for pytorch 1.8.1.')
-        if args.specify_device and not args.main:
-            raise ValueError('Main file should be set when you want to specify the running device.')
-        if hasattr(args, 'target_model') and not args.main:
-            raise ValueError('Main file should be set for distributed transplant.')
-        if not args.main:
+        if not hasattr(args, 'main'):
             return
         if os.path.islink(args.main):
             raise utils.SoftlinkCheckException("Main file path doesn't support soft link.")
@@ -126,13 +112,13 @@ class MsFmkTransplt(object):
                 raise ValueError('Main file %s should be the input file %s' % (args.main, args.input))
         if not os.access(main_file, os.R_OK):
             raise PermissionError('Main file %s is not readable!' % args.main)
+        if not args.target_model:
+            raise ValueError('Target model variable is not set!')
 
     def __parse_command(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
-        parser.add_argument('-m', '--main', default='', metavar='FILE',
-                            help='The entry python file of the project, for example, train.py main.py')
         parser.add_argument('-r', '--rule', default='', metavar='FILE', help='Custom rules file path')
         parser.add_argument('-s', '--specify-device', dest='specify_device', action='store_true',
                             help='This option is required only if you want to use the NPU_CALCULATE_DEVICE '
@@ -154,6 +140,8 @@ class MsFmkTransplt(object):
                                                    help='This option is required only if you want to transplant '
                                                         'a single GPU script to a distributed NPU script. '
                                                         'Ensure that your code is a single GPU script.')
+        distributed_parser.add_argument('-m', '--main', default='', metavar='FILE', required=True,
+                                        help='The entry python file of the project, for example, train.py main.py.')
         distributed_parser.add_argument('-t', '--target_model', metavar='model', default='model',
                                         help='The variable name of the target model, for example, '
                                              '"model=LeNet() model", "self.model=LeNet() self.model"')
@@ -172,7 +160,7 @@ class MsFmkTransplt(object):
             self.feature_switch.append('specify_device')
         if args.similar:
             self.feature_switch.append('similar')
-        if hasattr(args, 'target_model'):
+        if hasattr(args, 'main'):
             utils.generate_distributed_shell_file(self.output if os.path.isdir(self.output) else
                                                   os.path.dirname(self.output))
             self.feature_switch.append('distributed')
@@ -212,7 +200,7 @@ class MsFmkTransplt(object):
         if os.path.isfile(self.input):
             self.output = os.path.join(args.output, os.path.split(self.input)[1])
         if os.path.isdir(self.input):
-            if hasattr(args, 'target_model'):
+            if hasattr(args, 'main'):
                 project_suffix = '_msft_multi'
             else:
                 project_suffix = '_msft'

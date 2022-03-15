@@ -147,11 +147,11 @@ def init_rule_to_list(key, rule_dict, rule_list, feature_switch):
 def get_special_rule(args):
     special_rule_list = [rule_module.PythonVersionConvertRule()]
     if args.amp_model:
-        if hasattr(args, 'target_model'):
+        if hasattr(args, 'main'):
             special_rule_list.extend([InitApexRule(), Amp2Apex(args.amp_model, args.main)])
         else:
             special_rule_list.extend([InitApexRule(), Amp2Apex(args.amp_model, '')])
-    if hasattr(args, 'target_model'):
+    if hasattr(args, 'main'):
         special_rule_list.extend([distributed_rule.DataLoaderRule(),
                                   distributed_rule.DistributedDataParallelRule(args.target_model, args.amp_model)])
     return special_rule_list

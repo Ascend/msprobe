@@ -7,12 +7,12 @@ from typing import Optional, Union
 import libcst
 from libcst import matchers as m, FlattenSentinel, RemovalSentinel
 
-from pytorch_gpu2npu.common_rules import InsertGlobalRule
+from pytorch_gpu2npu.common_rules import BaseInsertGlobalRule
 from pytorch_gpu2npu.common_rules.code_visitor import RuleVisitor, OperatorType
 from pytorch_gpu2npu.utils.scope_visitors import ScaleScopeVisitor
 
 
-class InitApexRule(InsertGlobalRule):
+class InitApexRule(BaseInsertGlobalRule):
     def __init__(self):
         insert_content = ["from apex import amp"]
         super(InitApexRule, self).__init__(insert_content)
@@ -23,10 +23,6 @@ class InitApexRule(InsertGlobalRule):
         if qualified_name == 'torch.cuda.amp.autocast':
             self.insert_flag = True
         return True
-
-    def clean(self):
-        super().clean()
-        self.insert_flag = False
 
 
 class Amp2Apex(RuleVisitor):

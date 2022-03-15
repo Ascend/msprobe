@@ -21,6 +21,7 @@
     ],
     "InsertGlobalRule": [
       {
+        "import_key_word": "",
         "insert_content": [
           "import os",
           "NPU_CALCULATE_DEVICE = 0",
@@ -29,6 +30,7 @@
         "feature_switch": ["specify_device", "distributed"]
       },
       {
+        "import_key_word": "",
         "insert_content": [
           "import ascend_function"
         ],
