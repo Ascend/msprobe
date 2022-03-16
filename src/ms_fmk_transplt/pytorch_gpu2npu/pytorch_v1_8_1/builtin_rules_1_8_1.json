@@ -10,11 +10,6 @@
     ],
     "FuncNameModifyRule": [
       {
-        "old_name": "torch.cuda.can_device_access_peer",
-        "new_name": "torch_npu.npu.can_device_access_peer",
-        "replace_module": true
-      },
-      {
         "old_name": "torch.cuda.current_device",
         "new_name": "torch_npu.npu.current_device",
         "replace_module": true
@@ -42,16 +37,6 @@
       {
         "old_name": "torch.cuda.device_of",
         "new_name": "torch_npu.npu.device_of",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.get_device_properties",
-        "new_name": "torch_npu.npu.get_device_properties",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.get_gencode_flags",
-        "new_name": "torch_npu.npu.get_gencode_flags",
         "replace_module": true
       },
       {
@@ -185,11 +170,6 @@
         "replace_module": true
       },
       {
-        "old_name": "torch.cuda.set_per_process_memory_fraction",
-        "new_name": "torch_npu.npu.set_per_process_memory_fraction",
-        "replace_module": true
-      },
-      {
         "old_name": "torch.cuda.memory_cached",
         "new_name": "torch_npu.npu.memory_cached",
         "replace_module": true
@@ -210,83 +190,8 @@
         "replace_module": true
       },
       {
-        "old_name": "torch.cuda.amp.custom_fwd",
-        "new_name": "torch_npu.npu.amp.custom_fwd",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.custom_bwd",
-        "new_name": "torch_npu.npu.amp.custom_bwd",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.get_backoff_factor",
-        "new_name": "torch_npu.npu.amp.GradScaler.get_backoff_factor",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.get_growth_factor",
-        "new_name": "torch_npu.npu.amp.GradScaler.get_growth_factor",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.get_growth_interval",
-        "new_name": "torch_npu.npu.amp.GradScaler.get_growth_interval",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.get_scale",
-        "new_name": "torch_npu.npu.amp.GradScaler.get_scale",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.is_enabled",
-        "new_name": "torch_npu.npu.amp.GradScaler.is_enabled",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.load_state_dict",
-        "new_name": "torch_npu.npu.amp.GradScaler.load_state_dict",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.scale",
-        "new_name": "torch_npu.npu.amp.GradScaler.scale",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.set_backoff_factor",
-        "new_name": "torch_npu.npu.amp.GradScaler.set_backoff_factor",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.set_growth_factor",
-        "new_name": "torch_npu.npu.amp.GradScaler.set_growth_factor",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.set_growth_interval",
-        "new_name": "torch_npu.npu.amp.GradScaler.set_growth_interval",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.state_dict",
-        "new_name": "torch_npu.npu.amp.GradScaler.state_dict",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.step",
-        "new_name": "torch_npu.npu.amp.GradScaler.step",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.unscale_",
-        "new_name": "torch_npu.npu.amp.GradScaler.unscale_",
-        "replace_module": true
-      },
-      {
-        "old_name": "torch.cuda.amp.GradScaler.update",
-        "new_name": "torch_npu.npu.amp.GradScaler.update",
+        "old_name": "torch.cuda.amp.GradScaler",
+        "new_name": "torch_npu.npu.amp.GradScaler",
         "replace_module": true
       }
     ]
