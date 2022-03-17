@@ -5,6 +5,7 @@
 import json
 import os
 import platform
+import re
 import shutil
 
 import pandas as pd
@@ -313,3 +314,8 @@ def name_to_jedi_position(file, line, name):
     if column == -1:
         return {}
     return {'line':line, 'column': column}
+
+
+def check_model_name_valid(name):
+    if not re.match("^([a-zA-Z_]\\w*\\.)*([a-zA-Z_]\\w*)$", name):
+        raise ValueError('Target model variable name is not valid!')

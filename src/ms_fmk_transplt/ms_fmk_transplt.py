@@ -59,6 +59,9 @@ class MsFmkTransplt(object):
         if self.__check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
+        if args.amp_model:
+            utils.check_model_name_valid(args.amp_model)
+
         if args.version not in ['1.5.0', '1.8.1']:
             raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
 
@@ -113,7 +116,8 @@ class MsFmkTransplt(object):
         if not os.access(main_file, os.R_OK):
             raise PermissionError('Main file %s is not readable!' % args.main)
         if not args.target_model:
-            raise ValueError('Target model variable is not set!')
+            raise ValueError('Target model variable name is not set!')
+        utils.check_model_name_valid(args.target_model)
 
     def __parse_command(self):
         parser = argparse.ArgumentParser()
