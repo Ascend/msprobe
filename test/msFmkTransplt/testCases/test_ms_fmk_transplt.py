@@ -144,6 +144,13 @@ class TestMsFmkTransplt(unittest.TestCase):
         py_file_counts = utils.walk_input_path(project, output_free_size=1024 ** 3)
         self.assertEqual(py_file_counts, 5)
 
+        invalid_model_names = ['123', '12model', '{}', 'model*#']
+        for invalid_model_name in invalid_model_names:
+            self.assertRaises(ValueError, utils.check_model_name_valid, invalid_model_name)
+
+        valid_model_names = ['model', '_model', 'self.model', 'self.model1_']
+        for valid_model_name in valid_model_names:
+            self.assertEqual(utils.check_model_name_valid(valid_model_name), None)
 
 def transplt_normal(input_path, output_path, standard_dir=None):
     args = []
