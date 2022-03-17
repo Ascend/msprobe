@@ -1,11 +1,198 @@
 {
   "rules": {
-    "InsertMainFileRule": [
+    "InsertGlobalRule": [
       {
+        "import_key_word": "torch",
         "insert_content": [
-          "import torch",
           "import torch_npu"
         ]
+      }
+    ],
+    "FuncNameModifyRule": [
+      {
+        "old_name": "torch.cuda.current_device",
+        "new_name": "torch_npu.npu.current_device",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.current_stream",
+        "new_name": "torch_npu.npu.current_stream",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.default_stream",
+        "new_name": "torch_npu.npu.default_stream",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.device",
+        "new_name": "torch_npu.npu.device",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.device_count",
+        "new_name": "torch_npu.npu.device_count",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.device_of",
+        "new_name": "torch_npu.npu.device_of",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.init",
+        "new_name": "torch_npu.npu.init",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.is_available",
+        "new_name": "torch_npu.npu.is_available",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.is_initialized",
+        "new_name": "torch_npu.npu.is_initialized",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.set_device",
+        "new_name": "torch_npu.npu.set_device",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.stream",
+        "new_name": "torch_npu.npu.stream",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.synchronize",
+        "new_name": "torch_npu.npu.synchronize",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Stream",
+        "new_name": "torch_npu.npu.Stream",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Stream.record_event",
+        "new_name": "torch_npu.npu.Stream.record_event",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Stream.synchronize",
+        "new_name": "torch_npu.npu.Stream.synchronize",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Stream.wait_event",
+        "new_name": "torch_npu.npu.Stream.wait_event",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Stream.wait_stream",
+        "new_name": "torch_npu.npu.Stream.wait_stream",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Event",
+        "new_name": "torch_npu.npu.Event",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Event.elapsed_time",
+        "new_name": "torch_npu.npu.Event.elapsed_time",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Event.query",
+        "new_name": "torch_npu.npu.Event.query",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Event.record",
+        "new_name": "torch_npu.npu.Event.record",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Event.synchronize",
+        "new_name": "torch_npu.npu.Event.synchronize",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.Event.wait",
+        "new_name": "torch_npu.npu.Event.wait",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.empty_cache",
+        "new_name": "torch_npu.npu.empty_cache",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.memory_stats",
+        "new_name": "torch_npu.npu.memory_stats",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.memory_summary",
+        "new_name": "torch_npu.npu.memory_summary",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.memory_snapshot",
+        "new_name": "torch_npu.npu.memory_snapshot",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.memory_allocated",
+        "new_name": "torch_npu.npu.memory_allocated",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.max_memory_allocated",
+        "new_name": "torch_npu.npu.max_memory_allocated",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.reset_max_memory_allocated",
+        "new_name": "torch_npu.npu.reset_max_memory_allocated",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.memory_reserved",
+        "new_name": "torch_npu.npu.memory_reserved",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.max_memory_reserved",
+        "new_name": "torch_npu.npu.max_memory_reserved",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.memory_cached",
+        "new_name": "torch_npu.npu.memory_cached",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.max_memory_cached",
+        "new_name": "torch_npu.npu.max_memory_cached",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.reset_max_memory_cached",
+        "new_name": "torch_npu.npu.reset_max_memory_cached",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.amp.autocast",
+        "new_name": "torch_npu.npu.amp.autocast",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.cuda.amp.GradScaler",
+        "new_name": "torch_npu.npu.amp.GradScaler",
+        "replace_module": true
       }
     ]
   }

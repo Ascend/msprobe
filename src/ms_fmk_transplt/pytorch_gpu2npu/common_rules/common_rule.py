@@ -6,24 +6,18 @@ import re
 from typing import List, Optional
 
 import libcst
-from libcst import matchers as m
+import libcst.helpers as helper
 from libcst.metadata import ParentNodeProvider
 
 from pytorch_gpu2npu.common_rules.code_visitor import OperatorType
 from pytorch_gpu2npu.common_rules.code_visitor import RuleVisitor
 
 
-class InsertGlobalRule(RuleVisitor):
-    def __init__(self, insert_content, init_insert_flag=True):
-        super(InsertGlobalRule, self).__init__()
+class BaseInsertGlobalRule(RuleVisitor):
+    def __init__(self, insert_content):
+        super(BaseInsertGlobalRule, self).__init__()
         self.insert_content = insert_content
-        self.init_insert_flag = init_insert_flag
-        self.insert_flag = self.init_insert_flag
-
-    def visit_Module(self, node: "libcst.Module") -> Optional[bool]:
-        if not m.findall(node, m.ImportAlias() | m.ImportFrom()):
-            self.insert_flag = False
-        return True
+        self.insert_flag = False
 
     def leave_Module(self, original_node: "libcst.Module", updated_node: "libcst.Module") -> "libcst.Module":
         new_body = []
@@ -60,12 +54,35 @@ class InsertGlobalRule(RuleVisitor):
 
     def clean(self):
         super().clean()
-        self.insert_flag = self.init_insert_flag
+        self.insert_flag = False
 
 
-class InsertMainFileRule(InsertGlobalRule):
+class InsertGlobalRule(BaseInsertGlobalRule):
+    def __init__(self, insert_content, import_key_word=''):
+        super(InsertGlobalRule, self).__init__(insert_content)
+        self.import_key_word = import_key_word
+
+    def visit_ImportAlias(self, node: "libcst.ImportAlias") -> Optional[bool]:
+        # if import_key_word isn't setted, default no limit
+        if not self.insert_flag and not self.import_key_word:
+            self.insert_flag = True
+        if not self.insert_flag and self.import_key_word in node.evaluated_name:
+            self.insert_flag = True
+        return True
+
+    def visit_ImportFrom(self, node: "libcst.ImportFrom") -> Optional[bool]:
+        # if import_key_word isn't setted, default no limit
+        if not self.insert_flag and not self.import_key_word:
+            self.insert_flag = True
+        full_name = helper.get_full_name_for_node(node.module)
+        if not self.insert_flag and full_name and self.import_key_word in full_name:
+            self.insert_flag = True
+        return True
+
+
+class InsertMainFileRule(BaseInsertGlobalRule):
     def __init__(self, insert_content):
-        super(InsertMainFileRule, self).__init__(insert_content, False)
+        super(InsertMainFileRule, self).__init__(insert_content)
 
     def visit_main_file(self, is_main_file):
         self.insert_flag = is_main_file

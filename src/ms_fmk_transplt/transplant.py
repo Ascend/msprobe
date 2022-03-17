@@ -22,12 +22,12 @@ class Transplant(object):
     def __init__(self, script_dir, rule_list, args):
         self.script_dir = script_dir
         self.rule_list = rule_list
-        self.main_file = utils.get_main_file(args.main, args.input) if args.main else ''
+        self.main_file = utils.get_main_file(args.main, args.input) if hasattr(args, 'main') else ''
         self.args = args
         self.py_file_counts = 0
 
         self.global_reference_visitor = None
-        if hasattr(args, 'target_model'):
+        if hasattr(args, 'main'):
             if utils.IS_JEDI_INSTALLED:
                 from pytorch_gpu2npu.global_analysis import GlobalReferenceVisitor
                 self.global_reference_visitor = GlobalReferenceVisitor(self.script_dir)

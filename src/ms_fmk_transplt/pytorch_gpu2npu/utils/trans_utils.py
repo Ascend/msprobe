@@ -5,6 +5,7 @@
 import json
 import os
 import platform
+import re
 import shutil
 
 import pandas as pd
@@ -147,11 +148,11 @@ def init_rule_to_list(key, rule_dict, rule_list, feature_switch):
 def get_special_rule(args):
     special_rule_list = [rule_module.PythonVersionConvertRule()]
     if args.amp_model:
-        if hasattr(args, 'target_model'):
+        if hasattr(args, 'main'):
             special_rule_list.extend([InitApexRule(), Amp2Apex(args.amp_model, args.main)])
         else:
             special_rule_list.extend([InitApexRule(), Amp2Apex(args.amp_model, '')])
-    if hasattr(args, 'target_model'):
+    if hasattr(args, 'main'):
         special_rule_list.extend([distributed_rule.DataLoaderRule(),
                                   distributed_rule.DistributedDataParallelRule(args.target_model, args.amp_model)])
     return special_rule_list
@@ -313,3 +314,8 @@ def name_to_jedi_position(file, line, name):
     if column == -1:
         return {}
     return {'line':line, 'column': column}
+
+
+def check_model_name_valid(name):
+    if not re.match("^([a-zA-Z_]\\w*\\.)*([a-zA-Z_]\\w*)$", name):
+        raise ValueError('Target model variable name is not valid!')
