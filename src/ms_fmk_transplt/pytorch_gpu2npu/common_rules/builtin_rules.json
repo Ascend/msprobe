@@ -1,13 +1,6 @@
 {
   "rules": {
     "InsertMainFileRule": [
-      {
-        "insert_content": [
-          "import torch.npu",
-          "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')"
-        ],
-        "feature_switch": ["specify_device"]
-      },
        {
         "insert_content": [
           "import torch.npu",
@@ -20,6 +13,14 @@
       }
     ],
     "InsertGlobalRule": [
+      {
+        "import_key_word": "torch",
+        "insert_content": [
+          "import torch.npu",
+          "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')"
+        ],
+        "feature_switch": ["specify_device"]
+      },
       {
         "import_key_word": "",
         "insert_content": [
