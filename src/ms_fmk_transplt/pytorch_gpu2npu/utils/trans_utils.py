@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 
+import getpass
 import json
 import os
 import platform
@@ -258,7 +259,7 @@ def check_path_owner_consistent(path):
     try:
         import pwd
         file_owner = pwd.getpwuid(os.stat(path).st_uid).pw_name
-        return file_owner == os.getlogin()
+        return file_owner == getpass.getuser()
     except ImportError:
         user_interactive_confirm(f'Failed to check owner consistency for path {path}. Do you want to continue?')
         return True
