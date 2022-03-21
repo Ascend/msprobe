@@ -258,7 +258,7 @@ def check_path_owner_consistent(path):
     try:
         import pwd
         file_owner = pwd.getpwuid(os.stat(path).st_uid).pw_name
-        return file_owner == pwd.getpwuid(os.getuid())[0]
+        return file_owner == pwd.getpwuid(os.getuid()).pw_name
     except ImportError:
         user_interactive_confirm(f'Failed to check owner consistency for path {path}. Do you want to continue?')
         return True
