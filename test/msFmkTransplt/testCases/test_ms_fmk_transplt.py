@@ -138,6 +138,14 @@ class TestMsFmkTransplt(unittest.TestCase):
         from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
         file = os.path.realpath(__file__)
 
+        # remove_path
+        dir_path = './test_delete'
+        os.makedirs(dir_path)
+        os.chmod(dir_path, 0o000)
+        self.assertRaises(utils.DeleteFileException, utils.remove_path, dir_path)
+        os.chmod(dir_path, 0o700)
+        utils.remove_path(dir_path)
+
         # get_main_file
         main_file = utils.get_main_file(file, file)
         self.assertEqual(main_file, os.path.basename(file))
