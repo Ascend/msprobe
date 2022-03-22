@@ -222,7 +222,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        src_list = ["src.ms_fmk_transplt"]
+        src_list = ["src.ms_fmk_transplt", "pytorch_gpu2npu"]
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
                                      omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
         if len(sys.argv) > 1 and sys.argv[1] == 'mr':
