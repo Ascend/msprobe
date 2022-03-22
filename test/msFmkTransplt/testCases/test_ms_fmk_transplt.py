@@ -134,23 +134,6 @@ class TestMsFmkTransplt(unittest.TestCase):
             self.fail("Load json permission error!")
         return content.get("reports")
 
-    def test_tran_utils(self):
-        from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
-        file = os.path.realpath(__file__)
-        position = utils.name_to_jedi_position(file, 12, 'difflib')
-        self.assertEqual(position, {'line':12, 'column': 7})
-
-        project = os.path.join(os.path.dirname(__file__), '../resources/net/barlowtwins_amp')
-        py_file_counts = utils.walk_input_path(project, output_free_size=1024 ** 3)
-        self.assertEqual(py_file_counts, 5)
-
-        invalid_model_names = ['123', '12model', '{}', 'model*#']
-        for invalid_model_name in invalid_model_names:
-            self.assertRaises(ValueError, utils.check_model_name_valid, invalid_model_name)
-
-        valid_model_names = ['model', '_model', 'self.model', 'self.model1_']
-        for valid_model_name in valid_model_names:
-            self.assertEqual(utils.check_model_name_valid(valid_model_name), None)
 
 def transplt_normal(input_path, output_path, standard_dir=None):
     args = []
@@ -239,7 +222,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        src_list = ["src.ms_fmk_transplt"]
+        src_list = ["src.ms_fmk_transplt", "pytorch_gpu2npu"]
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
                                      omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
         if len(sys.argv) > 1 and sys.argv[1] == 'mr':

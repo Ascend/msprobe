@@ -65,6 +65,10 @@ class RuleVisitor(libcst.CSTTransformer):
         self.changes_info = []
         self.variable_dict = {}
 
+    @staticmethod
+    def get_code_for_node(node: libcst.CSTNode) -> str:
+        return libcst.Module('').code_for_node(node)
+
     def set_warp_visitor(self, warp_visitor):
         self.warp_visitor = warp_visitor
 
@@ -91,10 +95,6 @@ class RuleVisitor(libcst.CSTTransformer):
             assign_value = self.get_full_name_for_node(node.value)
             if assign_key and assign_value and not assign_value.startswith('builtins.'):
                 self.variable_dict[assign_key] = assign_value
-
-    def _record_position(self, original_node: "libcst.CSTNode", opt: "OperatorType", desc: "str"):
-        original_position = self.get_metadata(libcst.metadata.PositionProvider, original_node)
-        self.changes_info.append([original_position.start.line, original_position.end.line, opt.name, desc])
 
     def print_change_info(self):
         for change_info in self.changes_info:
@@ -132,6 +132,6 @@ class RuleVisitor(libcst.CSTTransformer):
             return self.warp_visitor.get_metadata(key, node, default)
         return super(RuleVisitor, self).get_metadata(key, node, default)
 
-    @staticmethod
-    def get_code_for_node(node: libcst.CSTNode) -> str:
-        return libcst.Module('').code_for_node(node)
+    def _record_position(self, original_node: "libcst.CSTNode", opt: "OperatorType", desc: "str"):
+        original_position = self.get_metadata(libcst.metadata.PositionProvider, original_node)
+        self.changes_info.append([original_position.start.line, original_position.end.line, opt.name, desc])
