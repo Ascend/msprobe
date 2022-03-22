@@ -165,7 +165,8 @@ class MsFmkTransplt(object):
         if args.similar:
             self.feature_switch.append('similar')
         if hasattr(args, 'main'):
-            utils.generate_distributed_shell_file(self.output if os.path.isdir(self.output) else
+            utils.generate_distributed_shell_file(self.output if
+                                                  os.path.isdir(self.output) else
                                                   os.path.dirname(self.output))
             self.feature_switch.append('distributed')
 
@@ -261,8 +262,8 @@ class MsFmkTransplt(object):
 
 
 if __name__ == '__main__':
-    ret = MsFmkTransplt().main()
-    if ret != 0:
+    result = MsFmkTransplt().main()
+    if result != 0:
         translog.error('MsFmkTransplt run fail!')
-        sys.exit(ret)
+        sys.exit(result)
     translog.info('MsFmkTransplt run success, welcome to the next use.')

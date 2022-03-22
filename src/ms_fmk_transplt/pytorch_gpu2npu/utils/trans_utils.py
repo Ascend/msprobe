@@ -205,7 +205,7 @@ def walk_input_path(path, output_free_size):
     total_size = 0
     already_check_file_count_flag = False
     already_check_max_size_flag = False
-    for root, dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)
             if os.path.islink(file_path) or (not os.path.exists(file_path)):

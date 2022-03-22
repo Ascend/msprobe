@@ -28,6 +28,27 @@ class DataLoaderRule(RuleVisitor):
         self.data_set_target = ''
         self.global_reference_visitor = None
 
+    @staticmethod
+    def __get_func_usage_params(jedi_script, func_usage_position, func_name):
+        first_param = jedi_script._module_node.get_leaf_for_position(
+            (func_usage_position.get('line'), func_usage_position.get('column') + len(func_name) + 2))
+        parent = first_param.parent
+        # find failed or the function doesn't have params
+        if parent.type != 'arglist':
+            return []
+        else:
+            return parent.children
+
+    @staticmethod
+    def __is_dataloader_param(jedi_script, param):
+        completions = jedi_script.complete(param.end_pos[0], param.end_pos[1])
+        for completion in completions:
+            if completion.name != param.value:
+                continue
+            if 'DataLoader' in completion.description:
+                return True
+        return False
+
     def set_global_reference_visitor(self, global_reference_visitor):
         self.global_reference_visitor = global_reference_visitor
 
@@ -54,33 +75,6 @@ class DataLoaderRule(RuleVisitor):
         self.insert_flag = False
         return updated_node.with_changes(args=self.__adapt_dataloader_args(updated_node.args))
 
-    def __adapt_dataloader_args(self, args):
-        arg_change_dict = {'shuffle': 'False', 'pin_memory': 'True', 'drop_last': 'True'}
-        new_args = []
-        for arg in args:
-            # train_set arg
-            if not arg.keyword or arg.keyword.value == 'dataset':
-                # escape **params
-                if not arg.star.startswith('*'):
-                    self.data_set_target = self.get_code_for_node(arg.value)
-                new_args.append(arg)
-                continue
-            # delete origin sampler value
-            if arg.keyword.value == 'sampler':
-                continue
-            if arg.keyword.value in arg_change_dict.keys():
-                arg = arg.with_changes(value=libcst.parse_expression(arg_change_dict.get(arg.keyword.value)))
-                arg_change_dict.pop(arg.keyword.value)
-            new_args.append(arg)
-        added_args = []
-        for k, v in arg_change_dict.items():
-            added_args.append(libcst.Arg(keyword=libcst.Name(k), value=libcst.Name(v)))
-        # add new sampler value
-        added_args.append(libcst.Arg(keyword=libcst.Name('sampler'), value=libcst.parse_expression(
-            f'torch.utils.data.distributed.DistributedSampler({self.data_set_target})')))
-        new_args.extend(added_args)
-        return new_args
-
     def leave_For(
             self, original_node: "libcst.For", updated_node: "libcst.For"
     ) -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
@@ -101,6 +95,40 @@ class DataLoaderRule(RuleVisitor):
             else:
                 translog.warning("failed to set_epoch for sampler and you need to set it yourself")
         return updated_node
+
+    def clean(self):
+        super().clean()
+        self.insert_flag = False
+        self.dataloader_targets = []
+        self.dict_dataloader_target = ''
+        self.data_set_target = ''
+
+    def __adapt_dataloader_args(self, args):
+        arg_change_dict = {'shuffle': 'False', 'pin_memory': 'True', 'drop_last': 'True'}
+        new_args = []
+        for arg in args:
+            # train_set arg
+            if not arg.keyword or arg.keyword.value == 'dataset':
+                # escape **params
+                if not arg.star.startswith('*'):
+                    self.data_set_target = self.get_code_for_node(arg.value)
+                new_args.append(arg)
+                continue
+            # delete origin sampler value
+            if arg.keyword.value == 'sampler':
+                continue
+            if arg.keyword.value in arg_change_dict.keys():
+                arg = arg.with_changes(value=libcst.parse_expression(arg_change_dict.get(arg.keyword.value)))
+                arg_change_dict.pop(arg.keyword.value)
+            new_args.append(arg)
+        added_args = []
+        for keyword, value in arg_change_dict.items():
+            added_args.append(libcst.Arg(keyword=libcst.Name(keyword), value=libcst.Name(value)))
+        # add new sampler value
+        added_args.append(libcst.Arg(keyword=libcst.Name('sampler'), value=libcst.parse_expression(
+            f'torch.utils.data.distributed.DistributedSampler({self.data_set_target})')))
+        new_args.extend(added_args)
+        return new_args
 
     def __generate_set_epoch_statement(self, node, epoch_target):
         scope = self.get_metadata(libcst.metadata.ScopeProvider, node)
@@ -166,16 +194,6 @@ class DataLoaderRule(RuleVisitor):
         func_usage_position = utils.name_to_jedi_position(target_file, usage.line, func_name)
         return script, func_usage_position
 
-    def __get_func_usage_params(self, jedi_script, func_usage_position, func_name):
-        first_param = jedi_script._module_node.get_leaf_for_position(
-            (func_usage_position.get('line'), func_usage_position.get('column') + len(func_name) + 2))
-        parent = first_param.parent
-        # find failed or the function doesn't have params
-        if parent.type != 'arglist':
-            return []
-        else:
-            return parent.children
-
     def __get_dataloader_param_indexs(self, jedi_script, jedi_params, dataloader_variables):
         from parso.python.tree import Name, Operator, PythonNode
         dataloader_param_indexs = []
@@ -195,22 +213,6 @@ class DataLoaderRule(RuleVisitor):
             # can't resolve a_dict[xxx], args.xxx, *(xxx), **{xxx}
             index += 1
         return dataloader_param_indexs
-
-    def __is_dataloader_param(self, jedi_script, param):
-        completions = jedi_script.complete(param.end_pos[0], param.end_pos[1])
-        for completion in completions:
-            if completion.name != param.value:
-                continue
-            if 'DataLoader' in completion.description:
-                return True
-        return False
-
-    def clean(self):
-        super().clean()
-        self.insert_flag = False
-        self.dataloader_targets = []
-        self.dict_dataloader_target = ''
-        self.data_set_target = ''
 
 
 class DistributedDataParallelRule(RuleVisitor):
@@ -234,12 +236,6 @@ class DistributedDataParallelRule(RuleVisitor):
         wrapper.visit(visitor)
         self.optimizer_name = visitor.optimizer_name
         self.__check_apex_initialize(node)
-
-    def __check_apex_initialize(self, node):
-        # check "model, opt = amp.initialize(model, opt)"
-        if m.findall(node, m.Assign(value=m.Call() & m.MatchIfTrue(
-                lambda call_node: self.get_full_name_for_node(call_node) == 'apex.amp.initialize'))):
-            self.has_apex_initialize = True
 
     def visit_If(self, node: "libcst.If") -> Optional[bool]:
         if self.has_apex_initialize and m.findall(node, m.Assign(value=m.Call() & m.MatchIfTrue(
@@ -268,28 +264,6 @@ class DistributedDataParallelRule(RuleVisitor):
                     return True
                 self.insert_flag = True
         return True
-
-    def __need_insert_ddp(self, value):
-        if self.has_apex_initialize:
-            return self.__is_amp_initialize(value)
-        # escape "model = None"
-        node_value = self.get_code_for_node(value)
-        if not node_value or node_value == 'None':
-            return False
-        if not m.matches(value, m.Call()):
-            return True
-        # 1. escape model.cuda(), model.npu(), model.to()
-        escape_funcs = [self.model_target + '.cuda', self.model_target + '.npu', self.model_target + '.to']
-        if self.get_full_name_for_node(value) in escape_funcs:
-            return False
-        # 2. escape func(model, ...),like torch.nn.DataParallel(model)
-        for arg in value.args:
-            if self.get_code_for_node(arg.value) == self.model_target:
-                return False
-        return True
-
-    def __is_amp_initialize(self, value):
-        return m.matches(value, m.Call()) and self.get_full_name_for_node(value) == 'apex.amp.initialize'
 
     def leave_Assign(
         self, original_node: "libcst.Assign", updated_node: "libcst.Assign"
@@ -320,20 +294,6 @@ class DistributedDataParallelRule(RuleVisitor):
         self.add_after_if = False
         return self.__add_ddp_statement(original_node, updated_node)
 
-    def __add_ddp_statement(self, original_node, updated_node):
-        to_device_statement = libcst.parse_statement(
-            "%s = %s.npu()" % (self.model_target, self.model_target))
-        ddp_statement = libcst.parse_statement(
-            'if not isinstance(%s, torch.nn.parallel.DistributedDataParallel):\n'
-            '    %s = torch.nn.parallel.DistributedDataParallel(%s, device_ids=[NPU_CALCULATE_DEVICE], '
-            'broadcast_buffers=False)' % (self.model_target, self.model_target, self.model_target))
-        original_position = self.get_metadata(libcst.metadata.PositionProvider, original_node)
-        self.changes_info.append([original_position.start.line + 1,
-                                  original_position.start.line + 3,
-                                  OperatorType.INSERT.name, "init statement of DistributedDataParallel"])
-        self.already_add_ddp = True
-        return libcst.FlattenSentinel([updated_node, to_device_statement, ddp_statement])
-
     def leave_Call(
         self, original_node: "libcst.Call", updated_node: "libcst.Call"
     ) -> "libcst.BaseExpression":
@@ -354,3 +314,45 @@ class DistributedDataParallelRule(RuleVisitor):
         self.has_apex_initialize = False
         self.add_after_if = False
         self.already_add_ddp = False
+
+    def __check_apex_initialize(self, node):
+        # check "model, opt = amp.initialize(model, opt)"
+        if m.findall(node, m.Assign(value=m.Call() & m.MatchIfTrue(
+                lambda call_node: self.get_full_name_for_node(call_node) == 'apex.amp.initialize'))):
+            self.has_apex_initialize = True
+
+    def __need_insert_ddp(self, value):
+        if self.has_apex_initialize:
+            return self.__is_amp_initialize(value)
+        # escape "model = None"
+        node_value = self.get_code_for_node(value)
+        if not node_value or node_value == 'None':
+            return False
+        if not m.matches(value, m.Call()):
+            return True
+        # 1. escape model.cuda(), model.npu(), model.to()
+        escape_funcs = [self.model_target + '.cuda', self.model_target + '.npu', self.model_target + '.to']
+        if self.get_full_name_for_node(value) in escape_funcs:
+            return False
+        # 2. escape func(model, ...),like torch.nn.DataParallel(model)
+        for arg in value.args:
+            if self.get_code_for_node(arg.value) == self.model_target:
+                return False
+        return True
+
+    def __is_amp_initialize(self, value):
+        return m.matches(value, m.Call()) and self.get_full_name_for_node(value) == 'apex.amp.initialize'
+
+    def __add_ddp_statement(self, original_node, updated_node):
+        to_device_statement = libcst.parse_statement(
+            "%s = %s.npu()" % (self.model_target, self.model_target))
+        ddp_statement = libcst.parse_statement(
+            'if not isinstance(%s, torch.nn.parallel.DistributedDataParallel):\n'
+            '    %s = torch.nn.parallel.DistributedDataParallel(%s, device_ids=[NPU_CALCULATE_DEVICE], '
+            'broadcast_buffers=False)' % (self.model_target, self.model_target, self.model_target))
+        original_position = self.get_metadata(libcst.metadata.PositionProvider, original_node)
+        self.changes_info.append([original_position.start.line + 1,
+                                  original_position.start.line + 3,
+                                  OperatorType.INSERT.name, "init statement of DistributedDataParallel"])
+        self.already_add_ddp = True
+        return libcst.FlattenSentinel([updated_node, to_device_statement, ddp_statement])
