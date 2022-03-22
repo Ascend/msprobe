@@ -137,13 +137,25 @@ class TestMsFmkTransplt(unittest.TestCase):
     def test_tran_utils(self):
         from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
         file = os.path.realpath(__file__)
+
+        # get_main_file
+        main_file = utils.get_main_file(file, file)
+        self.assertEqual(main_file, os.path.basename(file))
+
+        # name_to_jedi_position
         position = utils.name_to_jedi_position(file, 12, 'difflib')
         self.assertEqual(position, {'line':12, 'column': 7})
+        position = utils.name_to_jedi_position(file, 10000, 'os')
+        self.assertEqual(position, {})
+        position = utils.name_to_jedi_position(file, 12, 'os')
+        self.assertEqual(position, {})
 
+        # walk_input_path
         project = os.path.join(os.path.dirname(__file__), '../resources/net/barlowtwins_amp')
         py_file_counts = utils.walk_input_path(project, output_free_size=1024 ** 3)
         self.assertEqual(py_file_counts, 5)
 
+        # check_model_name_valid
         invalid_model_names = ['123', '12model', '{}', 'model*#']
         for invalid_model_name in invalid_model_names:
             self.assertRaises(ValueError, utils.check_model_name_valid, invalid_model_name)
