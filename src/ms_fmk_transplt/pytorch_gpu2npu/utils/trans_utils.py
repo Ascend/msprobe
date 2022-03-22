@@ -266,7 +266,7 @@ def check_path_owner_consistent(path):
         return True
 
     file_owner = pwd.getpwuid(os.stat(path).st_uid).pw_name
-    return file_owner == os.getlogin()
+    return file_owner == pwd.getpwuid(os.getuid()).pw_name
 
 
 def check_path_length_valid(path):
