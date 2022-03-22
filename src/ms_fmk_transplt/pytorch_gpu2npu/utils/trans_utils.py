@@ -17,9 +17,10 @@ from pytorch_gpu2npu.utils import transplant_logger as translog
 
 try:
     import jedi
-    IS_JEDI_INSTALLED = True
 except ImportError:
     IS_JEDI_INSTALLED = False
+else:
+    IS_JEDI_INSTALLED = True
 
 MAX_PYTHON_FILE_COUNT = 5000
 MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
@@ -60,8 +61,11 @@ def write_csv(content_list, script_file, script_dir, csv_type):
     if not os.path.exists(csv_file):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
-    rel_script_file_name = os.path.relpath(script_file, script_dir) if os.path.isdir(script_dir) else \
-        os.path.basename(script_file)
+
+    if os.path.isdir(script_dir):
+        rel_script_file_name = os.path.relpath(script_file, script_dir)
+    else:
+        rel_script_file_name = os.path.basename(script_file)
     new_data = pd.DataFrame(list(([rel_script_file_name] + content) for content in content_list))
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
     change_mode(csv_file)
@@ -257,11 +261,12 @@ def check_path_owner_consistent(path):
         return True
     try:
         import pwd
-        file_owner = pwd.getpwuid(os.stat(path).st_uid).pw_name
-        return file_owner == os.getlogin()
     except ImportError:
         user_interactive_confirm(f'Failed to check owner consistency for path {path}. Do you want to continue?')
         return True
+
+    file_owner = pwd.getpwuid(os.stat(path).st_uid).pw_name
+    return file_owner == os.getlogin()
 
 
 def check_path_length_valid(path):

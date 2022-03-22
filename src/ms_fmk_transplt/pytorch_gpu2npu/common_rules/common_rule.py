@@ -95,6 +95,12 @@ class FuncNameModifyRule(RuleVisitor):
         self.new_name = new_name
         self.replace_module = replace_module
 
+    @staticmethod
+    def __get_value_of_attr(body):
+        if isinstance(body, libcst.Attribute):
+            return body.attr.value
+        return body.value
+
     def leave_Call(
             self, original_node: "libcst.Call", updated_node: "libcst.Call"
     ) -> "libcst.Call":
@@ -122,18 +128,29 @@ class FuncNameModifyRule(RuleVisitor):
             return updated_node.with_changes(func=new_func)
         return updated_node
 
+    def leave_IfExp(
+            self, original_node: "libcst.IfExp", updated_node: "libcst.IfExp"
+    ) -> "libcst.BaseExpression":
+        parent = self.get_metadata(ParentNodeProvider, original_node)
+        if not isinstance(parent, libcst.Call):
+            return updated_node
+
+        body = updated_node.body
+        if self.__compare_func_name(self.__get_value_of_attr(body)):
+            body = self.__set_value_of_attr(body)
+            updated_node = updated_node.with_changes(body=body)
+            self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
+                                  (self.old_name, self.new_name))
+
+        updated_node = updated_node.with_changes(orelse=self.__reverse_orelse(updated_node.orelse, original_node))
+        return updated_node
+
     def __compare_func_name(self, full_func_name):
         if not full_func_name:
             return False
         if "." in self.old_name:
             return self.old_name == full_func_name
         return self.old_name == full_func_name.split(".")[-1]
-
-    @staticmethod
-    def __get_value_of_attr(body):
-        if isinstance(body, libcst.Attribute):
-            return body.attr.value
-        return body.value
 
     def __set_value_of_attr_with_no_module_replace(self, body):
         if isinstance(body, libcst.Attribute):
@@ -171,23 +188,6 @@ class FuncNameModifyRule(RuleVisitor):
                                       (self.old_name, self.new_name))
             orelse = orelse.with_changes(orelse=self.__reverse_orelse(orelse.orelse, original_node))
         return orelse
-
-    def leave_IfExp(
-            self, original_node: "libcst.IfExp", updated_node: "libcst.IfExp"
-    ) -> "libcst.BaseExpression":
-        parent = self.get_metadata(ParentNodeProvider, original_node)
-        if not isinstance(parent, libcst.Call):
-            return updated_node
-
-        body = updated_node.body
-        if self.__compare_func_name(self.__get_value_of_attr(body)):
-            body = self.__set_value_of_attr(body)
-            updated_node = updated_node.with_changes(body=body)
-            self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
-                                  (self.old_name, self.new_name))
-
-        updated_node = updated_node.with_changes(orelse=self.__reverse_orelse(updated_node.orelse, original_node))
-        return updated_node
 
 
 class ModuleNameModifyRule(RuleVisitor):

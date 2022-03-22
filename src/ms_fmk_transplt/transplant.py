@@ -39,18 +39,6 @@ class Transplant(object):
     def __need_analysis(file, commonprefix):
         return utils.check_file_need_analysis(file, commonprefix, record=True)
 
-    def __analysis_code(self, file):
-        code = utils.get_file_content_bytes(file)
-        wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-
-        api_visitor = ApiVisitor(utils.get_op_list(self.args.version))
-        module = wrapper.visit(api_visitor)
-        op_list = api_visitor.print_unsupported_ops()
-        utils.write_csv(op_list, file, self.script_dir, "unsupported_op")
-
-        new_module = self.__visit_rule(file, module)
-        utils.write_file_content(file, new_module.code)
-
     def run(self):
         translog.info('Analysis start...')
 
@@ -66,12 +54,24 @@ class Transplant(object):
     def set_py_file_counts(self, py_file_counts):
         self.py_file_counts = py_file_counts
 
+    def __analysis_code(self, file):
+        code = utils.get_file_content_bytes(file)
+        wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
+
+        api_visitor = ApiVisitor(utils.get_op_list(self.args.version))
+        module = wrapper.visit(api_visitor)
+        op_list = api_visitor.print_unsupported_ops()
+        utils.write_csv(op_list, file, self.script_dir, "unsupported_op")
+
+        new_module = self.__visit_rule(file, module)
+        utils.write_file_content(file, new_module.code)
+
     def __analysis_dir(self):
         count = 0
         translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
-        for root, dirs, files in os.walk(self.script_dir):
-            for f in files:
-                file = os.path.join(root, f)
+        for root, _, files in os.walk(self.script_dir):
+            for current_file in files:
+                file = os.path.join(root, current_file)
                 if not self.__need_analysis(file, self.script_dir):
                     continue
                 self.__analysis_file(file, self.script_dir)
@@ -87,8 +87,10 @@ class Transplant(object):
         translog.info(f'Analysis {file_relative_path} complete.')
 
     def __visit_rule(self, file, module):
-        current_file_name = os.path.basename(file) if os.path.isfile(self.script_dir) else \
-            os.path.relpath(file, self.script_dir)
+        if os.path.isfile(self.script_dir):
+            current_file_name = os.path.basename(file)
+        else:
+            current_file_name = os.path.relpath(file, self.script_dir)
         code_transformer = CodeTransformer(self.rule_list,
                                            current_file_name == self.main_file if self.main_file else False,
                                            global_reference_visitor=self.global_reference_visitor)

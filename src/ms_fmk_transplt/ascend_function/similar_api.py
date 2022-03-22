@@ -166,16 +166,6 @@ class SyncBatchNorm(torch.nn.SyncBatchNorm):
     Use to replace torch.nn.SyncBatchNorm.
     The forward method of this class is consistent with the process where need_sync is false in torch.nn.SyncBatchNorm.
     """
-    def forward(self, input):
-        self._check_input_dim(input)
-        if self.momentum is None:
-            exponential_average_factor = 0.0
-        else:
-            exponential_average_factor = self.momentum
-        return F.batch_norm(
-            input, self.running_mean, self.running_var, self.weight, self.bias,
-            self.training or not self.track_running_stats,
-            exponential_average_factor, self.eps)
 
     @classmethod
     def convert_sync_batchnorm(cls, module, process_group=None):
@@ -188,6 +178,17 @@ class SyncBatchNorm(torch.nn.SyncBatchNorm):
         return module without doing any operation.
         """
         return module
+
+    def forward(self, input):
+        self._check_input_dim(input)
+        if self.momentum is None:
+            exponential_average_factor = 0.0
+        else:
+            exponential_average_factor = self.momentum
+        return F.batch_norm(
+            input, self.running_mean, self.running_var, self.weight, self.bias,
+            self.training or not self.track_running_stats,
+            exponential_average_factor, self.eps)
 
 
 class ApexDistributedDataParallel(torch.nn.parallel.DistributedDataParallel):

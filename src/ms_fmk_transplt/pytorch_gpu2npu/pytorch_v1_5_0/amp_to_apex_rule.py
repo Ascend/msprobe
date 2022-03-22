@@ -63,6 +63,80 @@ class Amp2Apex(RuleVisitor):
                                   "delete the torch.cuda.amp.Gradscaler statement")
         return True
 
+    def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
+        qualified_name = self.get_full_name_for_node(node)
+        scale_str = f'{self.scaler_name}.scale'
+        optimizer_str = f'{self.scaler_name}.step'
+        update_str = f'{self.scaler_name}.update'
+        if qualified_name == scale_str:
+            self.delete_scaler_loss = True
+            self._record_position(node, OperatorType.DELETE,
+                                  "delete the scaler scale statement")
+        if qualified_name == optimizer_str:
+            self.delete_scaler_optimizer = True
+            self._record_position(node, OperatorType.MODIFY,
+                                  "change the scaler.step() to optimizer.step()")
+        if qualified_name == update_str:
+            self.delete_scaler_update = True
+            self._record_position(node, OperatorType.DELETE,
+                                  "delete the scaler update statement")
+        return True
+
+    def leave_SimpleStatementLine(self, original_node: "libcst.SimpleStatementLine",
+                                  updated_node: "libcst.SimpleStatementLine"
+                                  ) -> Union["libcst.BaseStatement",
+                                             FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
+
+        updated_nodes = [updated_node]
+        self.__generator_apex_initialize(original_node, updated_nodes)
+        self.__adapt_model_ddp(original_node, updated_nodes)
+        self.__delete_scaler_loss(updated_nodes)
+        self.__delete_scaler_optimizer(updated_nodes)
+        self.__delete_scaler_gardscaler(updated_nodes)
+        self.__delete_scaler_update(updated_nodes)
+        self.__remove_torch_cuda_amp(original_node, updated_nodes)
+
+        if len(updated_nodes) == 1:
+            return updated_node
+        elif len(updated_nodes) != 0:
+            return libcst.FlattenSentinel(updated_nodes)
+        else:
+            return libcst.RemovalSentinel.REMOVE
+
+    def leave_Call(
+            self, original_node: "libcst.Call", updated_node: "libcst.Call"
+    ) -> "libcst.BaseExpression":
+        if not self.scaler_name:
+            return updated_node
+        qualified_name = self.get_full_name_for_node(original_node)
+        model_ddp_list = ('torch.nn.parallel.DistributedDataParallel', 'torch.nn.DataParallel')
+        if qualified_name not in model_ddp_list:
+            return updated_node
+        return updated_node.with_changes(args=[])
+
+    def leave_With(self, original_node: "libcst.With", updated_node: "libcst.With") \
+            -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
+        item = original_node.items[0].item
+        if not m.matches(item, m.Call()):
+            return updated_node
+        if self.get_full_name_for_node(item) == "torch.cuda.amp.autocast":
+            loss_statement = updated_node.body.body
+            return libcst.FlattenSentinel(loss_statement)
+        return updated_node
+
+    def clean(self):
+        super().clean()
+        self.scaler_name = ''
+        self.loss_name = ''
+        self.optimizer_name = ''
+        self.delete_scaler_update = False
+        self.delete_scaler_loss = False
+        self.delete_scaler_optimizer = False
+        self.delete_scaler_gardscaler = False
+        self.find_optimizer = False
+        self.find_model = False
+        self.model_ddp = None
+
     def __adapt_model_ddp(self, original_node, updated_nodes):
         """
         adjust the position between ddp(model) and optimizer declaration
@@ -165,77 +239,3 @@ class Amp2Apex(RuleVisitor):
         if self.delete_scaler_update:
             self.delete_scaler_update = False
             updated_nodes.pop()
-
-    def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
-        qualified_name = self.get_full_name_for_node(node)
-        scale_str = f'{self.scaler_name}.scale'
-        optimizer_str = f'{self.scaler_name}.step'
-        update_str = f'{self.scaler_name}.update'
-        if qualified_name == scale_str:
-            self.delete_scaler_loss = True
-            self._record_position(node, OperatorType.DELETE,
-                                  "delete the scaler scale statement")
-        if qualified_name == optimizer_str:
-            self.delete_scaler_optimizer = True
-            self._record_position(node, OperatorType.MODIFY,
-                                  "change the scaler.step() to optimizer.step()")
-        if qualified_name == update_str:
-            self.delete_scaler_update = True
-            self._record_position(node, OperatorType.DELETE,
-                                  "delete the scaler update statement")
-        return True
-
-    def leave_SimpleStatementLine(self, original_node: "libcst.SimpleStatementLine",
-                                  updated_node: "libcst.SimpleStatementLine"
-                                  ) -> Union["libcst.BaseStatement",
-                                             FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
-
-        updated_nodes = [updated_node]
-        self.__generator_apex_initialize(original_node, updated_nodes)
-        self.__adapt_model_ddp(original_node, updated_nodes)
-        self.__delete_scaler_loss(updated_nodes)
-        self.__delete_scaler_optimizer(updated_nodes)
-        self.__delete_scaler_gardscaler(updated_nodes)
-        self.__delete_scaler_update(updated_nodes)
-        self.__remove_torch_cuda_amp(original_node, updated_nodes)
-
-        if len(updated_nodes) == 1:
-            return updated_node
-        elif len(updated_nodes) != 0:
-            return libcst.FlattenSentinel(updated_nodes)
-        else:
-            return libcst.RemovalSentinel.REMOVE
-
-    def leave_Call(
-            self, original_node: "libcst.Call", updated_node: "libcst.Call"
-    ) -> "libcst.BaseExpression":
-        if not self.scaler_name:
-            return updated_node
-        qualified_name = self.get_full_name_for_node(original_node)
-        model_ddp_list = ('torch.nn.parallel.DistributedDataParallel', 'torch.nn.DataParallel')
-        if qualified_name not in model_ddp_list:
-            return updated_node
-        return updated_node.with_changes(args=[])
-
-    def leave_With(self, original_node: "libcst.With", updated_node: "libcst.With") \
-            -> Union["libcst.BaseStatement", FlattenSentinel["libcst.BaseStatement"], RemovalSentinel]:
-        item = original_node.items[0].item
-        if not m.matches(item, m.Call()):
-            return updated_node
-        if self.get_full_name_for_node(item) == "torch.cuda.amp.autocast":
-            loss_statement = updated_node.body.body
-            return libcst.FlattenSentinel(loss_statement)
-        return updated_node
-
-    def clean(self):
-        super().clean()
-        self.scaler_name = ''
-        self.loss_name = ''
-        self.optimizer_name = ''
-        self.delete_scaler_update = False
-        self.delete_scaler_loss = False
-        self.delete_scaler_optimizer = False
-        self.delete_scaler_gardscaler = False
-        self.find_optimizer = False
-        self.find_model = False
-        self.model_ddp = None

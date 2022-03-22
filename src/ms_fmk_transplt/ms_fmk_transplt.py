@@ -23,51 +23,6 @@ class MsFmkTransplt(object):
         self.rule_list = []
         self.py_file_counts = 0
 
-    def __para_check_valid(self, args):
-        if os.path.islink(args.input):
-            raise utils.SoftlinkCheckException("Input path doesn't support soft link.")
-
-        input_path = os.path.realpath(args.input)
-        output = os.path.realpath(args.output)
-
-        if not utils.check_path_length_valid(input_path):
-            raise ValueError('The real path or file name of input is too long.')
-
-        if not os.path.exists(input_path):
-            raise ValueError('Input %s does not exist!' % args.input)
-
-        if not os.access(input_path, os.R_OK):
-            raise PermissionError('Input %s is not readable!' % args.input)
-
-        if not utils.check_path_owner_consistent(input_path):
-            utils.user_interactive_confirm(
-                'The input path is insecure because it does not belong to you. Do you want to continue?')
-
-        if not utils.check_path_length_valid(output):
-            raise ValueError('The real path or file name of output is too long.')
-
-        if not os.path.isdir(output):
-            raise ValueError('Output %s is not a valid directory!' % args.output)
-
-        if not os.access(output, os.W_OK):
-            raise PermissionError('Output %s is not writeable!' % args.output)
-
-        if not utils.check_path_owner_consistent(output):
-            utils.user_interactive_confirm(
-                'The output path is insecure because it does not belong to you. Do you want to continue?')
-
-        if self.__check_is_subdirectory(args.input, args.output):
-            raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
-
-        if args.amp_model:
-            utils.check_model_name_valid(args.amp_model)
-
-        if args.version not in ['1.5.0', '1.8.1']:
-            raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
-
-        self.__check_custom_rule_param_valid(args)
-        self.__check_distributed_rule_param_valid(args)
-
     @staticmethod
     def __check_custom_rule_param_valid(args):
         if not args.rule:
@@ -119,6 +74,72 @@ class MsFmkTransplt(object):
             raise ValueError('Target model variable name is not set!')
         utils.check_model_name_valid(args.target_model)
 
+    @staticmethod
+    def __distributed_parser(subparsers):
+        distributed_parser = subparsers.add_parser('distributed',
+                                                   help='This option is required only if you want to transplant '
+                                                        'a single GPU script to a distributed NPU script. '
+                                                        'Ensure that your code is a single GPU script.')
+        distributed_parser.add_argument('-m', '--main', default='', metavar='FILE', required=True,
+                                        help='The entry python file of the project, for example, train.py main.py.')
+        distributed_parser.add_argument('-t', '--target_model', metavar='model', default='model',
+                                        help='The variable name of the target model, for example, '
+                                             '"model=LeNet() model", "self.model=LeNet() self.model"')
+
+    @staticmethod
+    def __check_is_subdirectory(path_may_be_parent, path_may_be_child):
+        path_may_be_parent = os.path.realpath(path_may_be_parent)
+        path_may_be_child = os.path.realpath(path_may_be_child)
+        if path_may_be_parent[0] != path_may_be_child[0]:
+            return False
+        commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
+        return commonpath == path_may_be_parent
+
+    def __para_check_valid(self, args):
+        if os.path.islink(args.input):
+            raise utils.SoftlinkCheckException("Input path doesn't support soft link.")
+
+        input_path = os.path.realpath(args.input)
+        output = os.path.realpath(args.output)
+
+        if not utils.check_path_length_valid(input_path):
+            raise ValueError('The real path or file name of input is too long.')
+
+        if not os.path.exists(input_path):
+            raise ValueError('Input %s does not exist!' % args.input)
+
+        if not os.access(input_path, os.R_OK):
+            raise PermissionError('Input %s is not readable!' % args.input)
+
+        if not utils.check_path_owner_consistent(input_path):
+            utils.user_interactive_confirm(
+                'The input path is insecure because it does not belong to you. Do you want to continue?')
+
+        if not utils.check_path_length_valid(output):
+            raise ValueError('The real path or file name of output is too long.')
+
+        if not os.path.isdir(output):
+            raise ValueError('Output %s is not a valid directory!' % args.output)
+
+        if not os.access(output, os.W_OK):
+            raise PermissionError('Output %s is not writeable!' % args.output)
+
+        if not utils.check_path_owner_consistent(output):
+            utils.user_interactive_confirm(
+                'The output path is insecure because it does not belong to you. Do you want to continue?')
+
+        if self.__check_is_subdirectory(args.input, args.output):
+            raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
+
+        if args.amp_model:
+            utils.check_model_name_valid(args.amp_model)
+
+        if args.version not in ['1.5.0', '1.8.1']:
+            raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
+
+        self.__check_custom_rule_param_valid(args)
+        self.__check_distributed_rule_param_valid(args)
+
     def __parse_command(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
@@ -138,18 +159,6 @@ class MsFmkTransplt(object):
         self.__distributed_parser(subparsers)
         return parser.parse_args()
 
-    @staticmethod
-    def __distributed_parser(subparsers):
-        distributed_parser = subparsers.add_parser('distributed',
-                                                   help='This option is required only if you want to transplant '
-                                                        'a single GPU script to a distributed NPU script. '
-                                                        'Ensure that your code is a single GPU script.')
-        distributed_parser.add_argument('-m', '--main', default='', metavar='FILE', required=True,
-                                        help='The entry python file of the project, for example, train.py main.py.')
-        distributed_parser.add_argument('-t', '--target_model', metavar='model', default='model',
-                                        help='The variable name of the target model, for example, '
-                                             '"model=LeNet() model", "self.model=LeNet() self.model"')
-
     def __copy_project(self):
         translog.info("Start to copy files...")
         if os.path.isfile(self.input):
@@ -165,9 +174,8 @@ class MsFmkTransplt(object):
         if args.similar:
             self.feature_switch.append('similar')
         if hasattr(args, 'main'):
-            utils.generate_distributed_shell_file(self.output if
-                                                  os.path.isdir(self.output) else
-                                                  os.path.dirname(self.output))
+            shell_file_path = self.output if os.path.isdir(self.output) else os.path.dirname(self.output)
+            utils.generate_distributed_shell_file(shell_file_path)
             self.feature_switch.append('distributed')
 
     def __copy_function_pack(self):
@@ -224,15 +232,6 @@ class MsFmkTransplt(object):
         self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), output_free_size)
         if not self.py_file_counts:
             raise utils.InputCheckException('There are no valid python files in the folder.')
-
-    @staticmethod
-    def __check_is_subdirectory(path_may_be_parent, path_may_be_child):
-        path_may_be_parent = os.path.realpath(path_may_be_parent)
-        path_may_be_child = os.path.realpath(path_may_be_child)
-        if path_may_be_parent[0] != path_may_be_child[0]:
-            return False
-        commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
-        return commonpath == path_may_be_parent
 
     def main(self):
         args = self.__parse_command()
