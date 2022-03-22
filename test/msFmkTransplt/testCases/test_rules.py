@@ -16,8 +16,10 @@ class TestRules(unittest.TestCase):
     def setUpClass(cls) -> None:
         import src.ms_fmk_transplt.pytorch_gpu2npu.common_rules.common_rule as common_rule
         import src.ms_fmk_transplt.pytorch_gpu2npu.distributed_rules.distributed_rule as distributed_rule
+        from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
         cls.common_rule = common_rule
         cls.distributed_rule = distributed_rule
+        cls.utils = utils
 
 
     def test_args_modify_rule(self):
@@ -564,6 +566,43 @@ pre2 = teacher(image)
         wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
         new_module = wrapper.visit(rule)
         self.assertEqual(expected_result, new_module.code)
+
+    def test_tran_utils(self):
+        file = os.path.realpath(__file__)
+
+        # remove_path
+        dir_path = './test_delete'
+        os.makedirs(dir_path)
+        os.chmod(dir_path, 0o000)
+        self.assertRaises(self.utils.DeleteFileException, self.utils.remove_path, dir_path)
+        os.chmod(dir_path, 0o700)
+        self.utils.remove_path(dir_path)
+
+        # get_main_file
+        main_file = self.utils.get_main_file(file, file)
+        self.assertEqual(main_file, os.path.basename(file))
+
+        # name_to_jedi_position
+        position = self.utils.name_to_jedi_position(file, 8, 'os')
+        self.assertEqual(position, {'line': 8, 'column': 7})
+        position = self.utils.name_to_jedi_position(file, 10000, 'os')
+        self.assertEqual(position, {})
+        position = self.utils.name_to_jedi_position(file, 12, 'os')
+        self.assertEqual(position, {})
+
+        # walk_input_path
+        project = os.path.join(os.path.dirname(__file__), '../resources/net/barlowtwins_amp')
+        py_file_counts = self.utils.walk_input_path(project, output_free_size=1024 ** 3)
+        self.assertEqual(py_file_counts, 5)
+
+        # check_model_name_valid
+        invalid_model_names = ['123', '12model', '{}', 'model*#']
+        for invalid_model_name in invalid_model_names:
+            self.assertRaises(ValueError, self.utils.check_model_name_valid, invalid_model_name)
+
+        valid_model_names = ['model', '_model', 'self.model', 'self.model1_']
+        for valid_model_name in valid_model_names:
+            self.assertEqual(self.utils.check_model_name_valid(valid_model_name), None)
 
 
 if __name__ == '__main__':
