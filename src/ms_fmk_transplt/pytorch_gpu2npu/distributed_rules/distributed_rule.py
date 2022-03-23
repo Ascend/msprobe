@@ -183,8 +183,8 @@ class DataLoaderRule(RuleVisitor):
 
         # step4: get param definition to find Dataloader
         dataloader_param_indexs = self.__get_dataloader_param_indexs(script, params, dataloader_variables)
-        func_dataloader_params = list(
-            self.get_code_for_node(func_def_node.params.params[index].name) for index in dataloader_param_indexs)
+        func_dataloader_params = list(self.get_code_for_node(func_def_node.params.params[index].name)
+                                      for index in dataloader_param_indexs)
         dataloader_variables.extend(func_dataloader_params)
         return dataloader_variables
 

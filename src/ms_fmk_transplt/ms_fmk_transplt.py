@@ -95,6 +95,30 @@ class MsFmkTransplt(object):
         commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
         return commonpath == path_may_be_parent
 
+    def main(self):
+        args = self.__parse_command()
+
+        try:
+            self.__para_check_valid(args)
+            self.__check_output_valid(args)
+            self.__check_input_valid(args)
+            self.__copy_project()
+            self.__init_custom_para(args)
+            self.__init_logger()
+            translog.info('Initialing rules...')
+            self.__init_rules(args)
+            translog.info('MsFmkTransplt start working now, please wait for a moment.')
+            transplant = Transplant(self.output, self.rule_list, args)
+            transplant.set_py_file_counts(self.py_file_counts)
+            transplant.run()
+            if args.similar:
+                self.__copy_function_pack()
+        except BaseException as exp:
+            translog.error(exp)
+            return 1
+
+        return 0
+
     def __para_check_valid(self, args):
         if os.path.islink(args.input):
             raise utils.SoftlinkCheckException("Input path doesn't support soft link.")
@@ -232,32 +256,6 @@ class MsFmkTransplt(object):
         self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), output_free_size)
         if not self.py_file_counts:
             raise utils.InputCheckException('There are no valid python files in the folder.')
-
-    def main(self):
-        args = self.__parse_command()
-
-        try:
-            self.__para_check_valid(args)
-            self.__check_output_valid(args)
-            self.__check_input_valid(args)
-            self.__copy_project()
-            self.__init_custom_para(args)
-            self.__init_logger()
-            translog.info('Initialing rules...')
-            self.__init_rules(args)
-            translog.info('MsFmkTransplt start working now, please wait for a moment.')
-            transplant = Transplant(self.output, self.rule_list, args)
-            transplant.set_py_file_counts(self.py_file_counts)
-            transplant.run()
-            if args.similar:
-                self.__copy_function_pack()
-        except SystemExit:
-            return 1
-        except BaseException as exp:
-            translog.error(exp)
-            return 1
-
-        return 0
 
 
 if __name__ == '__main__':
