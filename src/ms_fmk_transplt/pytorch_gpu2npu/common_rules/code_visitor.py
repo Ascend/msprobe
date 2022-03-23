@@ -40,9 +40,13 @@ class ApiVisitor(libcst.CSTVisitor):
         return True
 
     def print_unsupported_ops(self):
-        for op in self.unsupported_op_list:
-            msg = "%-21s %-35s %s" % ("line: %s ~ %s" % (op[0], op[1]), "Operation Type: UNSUPPORTED",
-                                      "Message: %s" % op[3] if op[3] else "Message: %s is not supported now!" % op[2])
+        for unsupported_op in self.unsupported_op_list:
+            if unsupported_op[3]:
+                unsupported_op_info = "Message: %s" % unsupported_op[3]
+            else:
+                unsupported_op_info = "Message: %s is not supported now!" % unsupported_op[2]
+            msg = "%-21s %-35s %s" % ("line: %s ~ %s" % (unsupported_op[0], unsupported_op[1]),
+                                      "Operation Type: UNSUPPORTED", unsupported_op_info)
             translog.warning(msg)
         return self.unsupported_op_list
 

@@ -239,7 +239,7 @@ def user_interactive_confirm(message):
         if check_message == "continue" or check_message == "c":
             break
         elif check_message == "exit":
-            exit(0)
+            raise TransplantException("User canceled.")
         else:
             print("Input is error, please enter 'exit' or 'c' or 'continue'.")
 
