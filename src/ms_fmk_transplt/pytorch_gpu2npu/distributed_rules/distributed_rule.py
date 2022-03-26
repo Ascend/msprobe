@@ -62,7 +62,7 @@ class DataLoaderRule(RuleVisitor):
                                                         with_variable_replace=False)
         if m.matches(node.value, m.Call()):
             self.dataloader_targets.append(dataloader_target)
-        # slove like "dataloaders = {x:Dataloader(...) for x in ['train', 'valid']}"
+        # solve like "dataloaders = {x:Dataloader(...) for x in ['train', 'valid']}"
         if m.matches(node.value, m.DictComp()):
             self.dict_dataloader_target = dataloader_target
         return True
