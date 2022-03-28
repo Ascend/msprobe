@@ -327,8 +327,6 @@ def check_model_name_valid(name):
 
 
 def clear_parso_cache():
-    if not IS_JEDI_INSTALLED:
-        return
     from jedi.settings import cache_directory
     from parso.cache import clear_cache
     if not os.path.exists(cache_directory):
@@ -340,8 +338,6 @@ def clear_parso_cache():
 
 
 def refresh_parso_cache():
-    if not IS_JEDI_INSTALLED:
-        return
     from jedi.settings import cache_directory
     clear_parso_cache()
     os.makedirs(cache_directory, mode=0o700)
