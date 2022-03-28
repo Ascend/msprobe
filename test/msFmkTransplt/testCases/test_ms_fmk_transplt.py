@@ -41,6 +41,8 @@ class Args(object):
 
 def run(mock_args, net_name, output_path, result_dict):
     from src.ms_fmk_transplt.ms_fmk_transplt import MsFmkTransplt
+    from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
+    utils.refresh_parso_cache = mock.Mock(return_value=None)
     try:
         ms_fmk_transplt = MsFmkTransplt()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
