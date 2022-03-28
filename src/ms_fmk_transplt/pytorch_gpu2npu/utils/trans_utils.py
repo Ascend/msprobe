@@ -332,6 +332,7 @@ def clear_parso_cache():
     if not os.path.exists(cache_directory):
         return
     try:
+        # shutil.rmtree can't handle file and soft link
         clear_cache(cache_directory)
     except OSError:
         remove_path(cache_directory)
