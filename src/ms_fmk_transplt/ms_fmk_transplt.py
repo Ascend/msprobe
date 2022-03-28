@@ -116,6 +116,8 @@ class MsFmkTransplt(object):
         except BaseException as exp:
             translog.error(exp)
             return 1
+        finally:
+            utils.clear_parso_cache()
 
         return 0
 

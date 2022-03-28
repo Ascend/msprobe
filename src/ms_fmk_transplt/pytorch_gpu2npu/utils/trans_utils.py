@@ -324,3 +324,24 @@ def name_to_jedi_position(file, line, name):
 def check_model_name_valid(name):
     if not re.match("^([a-zA-Z_]\\w*\\.)*([a-zA-Z_]\\w*)$", name):
         raise ValueError('Target model variable name is not valid!')
+
+
+def clear_parso_cache():
+    if not IS_JEDI_INSTALLED:
+        return
+    from jedi.settings import cache_directory
+    from parso.cache import clear_cache
+    if not os.path.exists(cache_directory):
+        return
+    try:
+        clear_cache(cache_directory)
+    except OSError:
+        remove_path(cache_directory)
+
+
+def refresh_parso_cache():
+    if not IS_JEDI_INSTALLED:
+        return
+    from jedi.settings import cache_directory
+    clear_parso_cache()
+    os.makedirs(cache_directory, mode=0o700)
