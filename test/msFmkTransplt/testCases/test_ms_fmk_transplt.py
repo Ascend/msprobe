@@ -80,19 +80,8 @@ class TestMsFmkTransplt(unittest.TestCase):
                 self.standard_py_file_list.append(sub_file.replace(self.abs_input_path, self.standard_dir))
 
     def test_main(self):
-        # result_dict = transplt_normal(self.abs_input_path, self.abs_output_path)
-        #
-        # self.assertFalse(TRANS_ERROR in result_dict.values())
-        #
-        # result_dict = transplt_multi(self.abs_input_path, self.abs_output_path)
-        #
-        # self.assertFalse(TRANS_ERROR in result_dict.values())
-        #
-        # result_dict = transplant_amp(self.abs_input_path, self.abs_output_path)
-        #
-        # self.assertFalse(TRANS_ERROR in result_dict.values())
-        # trans_funcs = [transplt_normal, transplt_multi, transplant_amp, transplant_1_8]
-        trans_funcs = [transplt_normal, transplt_multi, transplant_amp, transplant_1_8]
+        trans_funcs = [get_normal_transplant_params, get_multi_transplant_params,
+                       get_amp_transplant_params, get_1_8_transplant_params]
         all_args = []
         all_transplt_files = []
         for func in trans_funcs:
@@ -147,11 +136,11 @@ class TestMsFmkTransplt(unittest.TestCase):
         return content.get("reports")
 
 
-def transplt_normal(input_path, output_path, standard_dir=None):
+def get_normal_transplant_params(input_path, output_path, standard_dir=None):
     args = []
     transplt_files = []
     for file in os.listdir(input_path):
-        if file.endswith("_multi") or file.endswith("_amp") or file.endswith('1.8'):
+        if file.endswith("_multi") or file.endswith("_amp") or file.endswith('_1.8'):
             continue
         transplt_files.append([file, ''])
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path))
@@ -160,7 +149,7 @@ def transplt_normal(input_path, output_path, standard_dir=None):
     return [args, transplt_files, output_path]
 
 
-def transplt_multi(input_path, output_path, standard_dir=None):
+def get_multi_transplant_params(input_path, output_path, standard_dir=None):
     main_file_dict = {
         'ID0339_CarPeting_Pytorch_EAST_multi': input_path + '/ID0339_CarPeting_Pytorch_EAST_multi/train_ICDAR15.py',
         'ID0476_CarPeting_Pytorch_3D_nested_unet_multi': input_path + '/ID0476_CarPeting_Pytorch_3D_nested_unet_multi/train.py',
@@ -178,7 +167,7 @@ def transplt_multi(input_path, output_path, standard_dir=None):
     return [args, transplt_files, output_path]
 
 
-def transplant_amp(input_path, output_path, standard_dir=None):
+def get_amp_transplant_params(input_path, output_path, standard_dir=None):
     model_dict = {
         'barlowtwins_amp': 'model'
     }
@@ -192,7 +181,7 @@ def transplant_amp(input_path, output_path, standard_dir=None):
     return [args, transplt_files, output_path]
 
 
-def transplant_1_8(input_path, output_path, standard_dir=None):
+def get_1_8_transplant_params(input_path, output_path, standard_dir=None):
     model_names = [
         'ID1550_CarPeting_Pytorch_mBART_1.8'
     ]
@@ -232,9 +221,16 @@ def update_standard():
     shutil.rmtree(standard_dir, ignore_errors=True)
     os.makedirs(standard_dir)
 
-    transplt_normal(abs_input_path, standard_dir, standard_dir)
-    transplt_multi(abs_input_path, standard_dir, standard_dir)
-    transplant_amp(abs_input_path, standard_dir, standard_dir)
+    trans_funcs = [get_normal_transplant_params, get_multi_transplant_params,
+                   get_amp_transplant_params, get_1_8_transplant_params]
+    all_args = []
+    all_transplt_files = []
+    for func in trans_funcs:
+        args, transplt_files, output_path = func(abs_input_path, standard_dir, standard_dir)
+        all_args.extend(args)
+        all_transplt_files.extend(transplt_files)
+    transplant(all_args, all_transplt_files, standard_dir)
+
     print("Standard file update finished.")
 
     with open('../resources/updateLog.txt', 'a+') as f:
