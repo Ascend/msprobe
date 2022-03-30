@@ -11,7 +11,7 @@ import unittest
 import unittest.mock as mock
 import difflib
 import io
-from multiprocessing import Manager, Process
+from multiprocessing import cpu_count, Manager, Process, Pool
 
 import xmlrunner
 from xmlrunner.extra.xunit_plugin import transform
@@ -80,15 +80,27 @@ class TestMsFmkTransplt(unittest.TestCase):
                 self.standard_py_file_list.append(sub_file.replace(self.abs_input_path, self.standard_dir))
 
     def test_main(self):
-        result_dict = transplt_normal(self.abs_input_path, self.abs_output_path)
+        # result_dict = transplt_normal(self.abs_input_path, self.abs_output_path)
+        #
+        # self.assertFalse(TRANS_ERROR in result_dict.values())
+        #
+        # result_dict = transplt_multi(self.abs_input_path, self.abs_output_path)
+        #
+        # self.assertFalse(TRANS_ERROR in result_dict.values())
+        #
+        # result_dict = transplant_amp(self.abs_input_path, self.abs_output_path)
+        #
+        # self.assertFalse(TRANS_ERROR in result_dict.values())
+        # trans_funcs = [transplt_normal, transplt_multi, transplant_amp, transplant_1_8]
+        trans_funcs = [transplt_normal, transplt_multi, transplant_amp, transplant_1_8]
+        all_args = []
+        all_transplt_files = []
+        for func in trans_funcs:
+            args, transplt_files, output_path = func(self.abs_input_path, self.abs_output_path)
+            all_args.extend(args)
+            all_transplt_files.extend(transplt_files)
 
-        self.assertFalse(TRANS_ERROR in result_dict.values())
-
-        result_dict = transplt_multi(self.abs_input_path, self.abs_output_path)
-
-        self.assertFalse(TRANS_ERROR in result_dict.values())
-
-        result_dict = transplant_amp(self.abs_input_path, self.abs_output_path)
+        result_dict = transplant(all_args, all_transplt_files, self.abs_output_path)
 
         self.assertFalse(TRANS_ERROR in result_dict.values())
 
@@ -139,13 +151,13 @@ def transplt_normal(input_path, output_path, standard_dir=None):
     args = []
     transplt_files = []
     for file in os.listdir(input_path):
-        if file.endswith("_multi") or file.endswith("_amp"):
+        if file.endswith("_multi") or file.endswith("_amp") or file.endswith('1.8'):
             continue
-        transplt_files.append(file)
+        transplt_files.append([file, ''])
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path))
         args.append([mock_args, file, standard_dir])
 
-    return transplant(args, transplt_files, output_path)
+    return [args, transplt_files, output_path]
 
 
 def transplt_multi(input_path, output_path, standard_dir=None):
@@ -160,10 +172,10 @@ def transplt_multi(input_path, output_path, standard_dir=None):
     transplt_files = []
 
     for file, main_file in main_file_dict.items():
-        transplt_files.append(file)
+        transplt_files.append([file, 'multi'])
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path, main_file))
         args.append([mock_args, file, standard_dir])
-    return transplant(args, transplt_files, output_path, ' multi')
+    return [args, transplt_files, output_path]
 
 
 def transplant_amp(input_path, output_path, standard_dir=None):
@@ -173,14 +185,28 @@ def transplant_amp(input_path, output_path, standard_dir=None):
     args = []
     transplt_files = []
     for file, target_model in model_dict.items():
-        transplt_files.append(file)
+        transplt_files.append([file, 'amp'])
         mock_args = mock.Mock(return_value=Args(input_path + '/' + file, output_path,
                                                 target_model=target_model, test_amp=True))
         args.append([mock_args, file, standard_dir])
-    return transplant(args, transplt_files, output_path, name=' amp')
+    return [args, transplt_files, output_path]
 
 
-def transplant(args, transplt_files, output_path, name=''):
+def transplant_1_8(input_path, output_path, standard_dir=None):
+    model_names = [
+        'ID1550_CarPeting_Pytorch_mBART_1.8'
+    ]
+    args = []
+    transplt_files = []
+    for model_name in model_names:
+        transplt_files.append([model_name, '1_8_1'])
+        mock_args = mock.Mock(return_value=Args(input_path + '/' + model_name, output_path,
+                                                version='1.8.1'))
+        args.append([mock_args, model_name, standard_dir])
+    return [args, transplt_files, output_path]
+
+
+def transplant(args, transplt_files, output_path):
     process_list = []
     result_dict = Manager().dict()
     for arg in args:
@@ -189,14 +215,14 @@ def transplant(args, transplt_files, output_path, name=''):
         process_list.append(process)
     for process in process_list:
         process.join()
-    for file in transplt_files:
-        if name == ' multi':
+    for file, suffix in transplt_files:
+        if suffix == 'multi':
             os.rename(output_path + '/' + file + '_msft_multi', output_path + '/' + file)
         else:
             os.rename(output_path + '/' + file + '_msft', output_path + '/' + file)
     for key, value in result_dict.items():
         if value != 0:
-            print(f"[ERROR]{key}{name} translates failed.", flush=True)
+            print(f"[ERROR]{key} translates failed.", flush=True)
     return result_dict
 
 
