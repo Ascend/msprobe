@@ -183,7 +183,7 @@ def get_amp_transplant_params(input_path, output_path, standard_dir=None):
 
 def get_1_8_transplant_params(input_path, output_path, standard_dir=None):
     model_names = [
-        'ID1550_CarPeting_Pytorch_mBART_1.8'
+        'ID0339_CarPeting_Pytorch_EAST_1.8'
     ]
     args = []
     transplt_files = []
