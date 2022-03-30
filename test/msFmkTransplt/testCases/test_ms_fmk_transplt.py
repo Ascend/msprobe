@@ -41,7 +41,9 @@ class Args(object):
 
 def run(mock_args, net_name, output_path, result_dict):
     from src.ms_fmk_transplt.ms_fmk_transplt import MsFmkTransplt
+    from src.ms_fmk_transplt.transplant import utils
     try:
+        utils.refresh_parso_cache = mock.Mock(side_effect=mock_refresh_parso_cache())
         ms_fmk_transplt = MsFmkTransplt()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
         ret = ms_fmk_transplt.main()
@@ -82,8 +84,6 @@ class TestMsFmkTransplt(unittest.TestCase):
                 self.output_py_file_list.append(sub_file.replace(self.abs_input_path, self.abs_output_path))
                 self.standard_py_file_list.append(sub_file.replace(self.abs_input_path, self.standard_dir))
 
-    @mock.patch('src.ms_fmk_transplt.pytorch_gpu2npu.utils.trans_utils.refresh_parso_cache',
-                mock.Mock(side_effect=mock_refresh_parso_cache))
     def test_main(self):
         result_dict = transplt_normal(self.abs_input_path, self.abs_output_path)
 
