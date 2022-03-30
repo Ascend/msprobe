@@ -29,6 +29,7 @@ class Transplant(object):
         self.global_reference_visitor = None
         if hasattr(args, 'main'):
             if utils.IS_JEDI_INSTALLED:
+                utils.refresh_parso_cache()
                 from pytorch_gpu2npu.global_analysis import GlobalReferenceVisitor
                 self.global_reference_visitor = GlobalReferenceVisitor(self.script_dir)
             else:

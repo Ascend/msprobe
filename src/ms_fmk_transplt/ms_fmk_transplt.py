@@ -116,6 +116,9 @@ class MsFmkTransplt(object):
         except BaseException as exp:
             translog.error(exp)
             return 1
+        finally:
+            if utils.IS_JEDI_INSTALLED:
+                utils.clear_parso_cache()
 
         return 0
 
