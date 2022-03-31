@@ -10,6 +10,7 @@ import argparse
 import os
 import cv2
 from torchvision import transforms
+import torch_npu
 import ascend_function
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 

@@ -15,6 +15,7 @@ from evaluate.script import getresult
 import argparse
 import os
 from lib.utils import setup_logger
+import torch_npu
 import ascend_function
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -108,7 +109,7 @@ if __name__ == '__main__':
 
     model = EAST(pretrained=False)
     data_parallel = False
-    if torch.npu.device_count() > 1:
+    if torch_npu.npu.device_count() > 1:
         model = nn.DataParallel(model)
         data_parallel = True
     model.to(device)
@@ -129,6 +130,5 @@ if __name__ == '__main__':
     f_score = 0.5
     for epoch in range(args.epoch_iter):
         train( epoch, model, optimizer,train_loader_target,criterion)
-
 
 

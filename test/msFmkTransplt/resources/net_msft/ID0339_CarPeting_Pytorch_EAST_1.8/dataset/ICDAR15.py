@@ -8,16 +8,11 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils import data
 import scipy.io as sio
+import os
 from lib.utils import adjust_box_sort
+import torch_npu
 import ascend_function
-# from prefetch_generator import BackgroundGenerator
-#
-# class DataLoaderX(data.DataLoader):
-#
-#     def __iter__(self):
-#         return BackgroundGenerator(super().__iter__())
-
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 def cal_distance(x1, y1, x2, y2):
     '''calculate the Euclidean distance'''
@@ -276,7 +271,7 @@ def adjust_height(img, vertices, ratio=0.2):
         img         : adjusted PIL Image
         new_vertices: adjusted vertices
     '''
-    ratio_h = 1 + ratio * (np.random.rand() * 2 - 1)  #[0.8, 1.2]
+    ratio_h = 1 + ratio * (np.random.rand() * 2 - 1)
     old_h = img.height
     new_h = int(np.around(old_h * ratio_h))
     img = img.resize((img.width, new_h), Image.BILINEAR)
@@ -320,22 +315,21 @@ def get_score_geo(img, vertices, labels, scale, length):
     '''
     score_map = np.zeros((int(img.height * scale), int(img.width * scale), 1), np.float32)
     geo_map = np.zeros((int(img.height * scale), int(img.width * scale), 5), np.float32)
-    ignored_map = np.ones((int(img.height * scale), int(img.width * scale), 1), np.float32)
+    valid_map = np.ones((int(img.height * scale), int(img.width * scale), 1), np.float32)
 
     index = np.arange(0, length, int(1 / scale))
-    index_x, index_y = np.meshgrid(index, index) # Return coordinate matrices from coordinate vectors.
+    index_x, index_y = np.meshgrid(index, index)
     polys = []
-    # ig = []
+    ignor = []
+
     for i, vertice in enumerate(vertices):
-        # if labels[i] == "###":
-        #     ig.append(vertice)
-        #     continue
-        #得到0.3缩放后的score map
+
         poly = np.around(scale * shrink_poly(vertice).reshape((4, 2))).astype(np.int32)  # scaled & shrinked
         polys.append(poly)
+        if labels[i]==0:
+            ignor.append(poly)
         temp_mask = np.zeros(score_map.shape[:-1], np.float32)
         cv2.fillPoly(temp_mask, [poly], 1)
-
 
         theta = find_min_rect_angle(vertice)
         rotate_mat = get_rotate_mat(theta)
@@ -357,10 +351,11 @@ def get_score_geo(img, vertices, labels, scale, length):
         geo_map[:, :, 2] += d3[index_y, index_x] * temp_mask
         geo_map[:, :, 3] += d4[index_y, index_x] * temp_mask
         geo_map[:, :, 4] += theta * temp_mask
-    # cv2.fillPoly(ignored_map, ig, 0)
+
+    cv2.fillPoly(valid_map, ignor, 0)
     cv2.fillPoly(score_map, polys, 1)
     return torch.Tensor(score_map).permute(2, 0, 1), torch.Tensor(geo_map).permute(2, 0, 1), torch.Tensor(
-        ignored_map).permute(2, 0, 1)
+        valid_map).permute(2, 0, 1)
 
 
 def extract_vertices(lines):
@@ -374,113 +369,68 @@ def extract_vertices(lines):
     labels = []
     vertices = []
     for line in lines:
-        vertices.append(list(map(int, line.rstrip('\n').lstrip('\ufeff').split(',')[:8])))
+        box = list(map(int, line.rstrip('\n').lstrip('\ufeff').split(',')[:8]))
+        box = adjust_box_sort(box)
+        vertices.append(box)
         label = 0 if '###' in line else 1
         labels.append(label)
     return np.array(vertices), np.array(labels)
 
 
-class SynthText(data.Dataset):
-    def __init__(self, synthtext_data_root, synthtext_matpath, scale=0.25, length=640):
-        super(SynthText, self).__init__()
-
-        self.data_root = synthtext_data_root
-        self.matpath = synthtext_matpath
-        self.mat = sio.loadmat(self.matpath)
-        self.image_list = []
-        for i in self.mat['imnames'][0]:
-            path = ''.join(i)
-            path = os.path.join(synthtext_data_root, path)
-            self.image_list.append(path)
+class ICDAR15(data.Dataset):
+    def __init__(self,img_path,gt_path, scale=0.25, length=512):
+        super(ICDAR15, self).__init__()
+        self.img_files = [os.path.join(img_path, img_file) for img_file in sorted(os.listdir(img_path))]
+        self.gt_files = [os.path.join(gt_path, img_file) for img_file in sorted(os.listdir(gt_path))]
 
         self.scale = scale
         self.length = length
 
-    def parse_mat(self, mat, image_id):
-        """
-        .mat file parser
-        :param mat_path: (str), mat file path
-        :return: (list), TextInstance
-        """
-        labels = []
-        vertices = []
-        if len(mat.shape) < 3:
-            number = 1
-        else:
-            number = mat.shape[2]
-        for cell in range(number):
-            if number == 1:
-                x1 = mat[0][0]
-                x2 = mat[0][1]
-                x3 = mat[0][2]
-                x4 = mat[0][3]
-
-                y1 = mat[1][0]
-                y2 = mat[1][1]
-                y3 = mat[1][2]
-                y4 = mat[1][3]
-            else:
-                x1 = mat[0][0][cell]
-                x2 = mat[0][1][cell]
-                x3 = mat[0][2][cell]
-                x4 = mat[0][3][cell]
-
-                y1 = mat[1][0][cell]
-                y2 = mat[1][1][cell]
-                y3 = mat[1][2][cell]
-                y4 = mat[1][3][cell]
-
-            oriented_box = [int(x1), int(y1), int(x2), int(y2), int(x3), int(y3), int(x4), int(y4)]
-            oriented_box = adjust_box_sort(oriented_box)
-            oriented_box = np.asarray(oriented_box)
-            vertices.append(oriented_box)
-            labels.append(1)
-
-        return np.array(vertices), np.array(labels)
 
     def __len__(self):
-        return len(self.image_list)-1
+        return len(self.img_files)
 
     def __getitem__(self, index):
+        with open(self.gt_files[index],"r") as f:
+            lines = f.readlines()
+        vertices, labels = extract_vertices(lines)
+        img = Image.open(self.img_files[index])
 
-        # source domain data SynthText
-        image_id = self.image_list[index]
-        img = Image.open(image_id)
-        annotation_id = self.mat['wordBB'][0][index]
-        vertices, labels = self.parse_mat(annotation_id,image_id)
-
+        # labels = np.array([])
+        # vertices = np.array([])
+        # print(labels.shape)
+        # if labels.shape[0] == 0:
+        #     labels=np.array([1])
+        #     vertices = np.array([[0,0,0,0,0,0,0,0]])
         img, vertices = adjust_height(img, vertices)
         img, vertices = rotate_img(img, vertices)
         img, vertices = crop_img(img, vertices, labels, self.length)
-
-        # ratio_w = self.length/img.width
-        # ratio_h = self.length/img.height
-
-        # vertices[:, [0, 2, 4, 6]] = vertices[:, [0, 2, 4, 6]] * ratio_w
-        # vertices[:, [1, 3, 5, 7]] = vertices[:, [1, 3, 5, 7]] * ratio_h
-        # img = cv2.resize(img,(self.length,self.length))
-        # img = img.resize((self.length, self.length), Image.BILINEAR)
-
-
         transform = transforms.Compose([transforms.ColorJitter(0.5, 0.5, 0.5, 0.25), \
                                         transforms.ToTensor(), \
-                                        transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
+                                        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))])
 
         score_map, geo_map, ignored_map = get_score_geo(img, vertices, labels, self.scale, self.length)
-
         return transform(img), score_map, geo_map, ignored_map
 
 if __name__ == "__main__":
-    train_img_path = os.path.abspath('/data/glusterfs_cv_04/11121171/data/SynthText/')
-    train_gt_path = os.path.abspath('/data/glusterfs_cv_04/11121171/data/SynthText/gt.mat')
+    from network.model import EAST
 
-    trainset = SynthText(train_img_path, train_gt_path)
-    # train_loader = DataLoaderX(trainset, batch_size=10,
-    #                                shuffle=True, num_workers=3, drop_last=True)
+    from torch import nn
+    train_img_path = os.path.abspath('/data/c00506053/downloaded_datasets/ICDAR2015/Text-Localization/ch4_training_images')
+    train_gt_path = os.path.abspath("/data/c00506053/downloaded_datasets/ICDAR2015/Text-Localization/ch4_training_localization_transcription_gt")
 
-    # for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_loader):
-    #     print(img.shape)
-        # print(gt_score.shape)
-        # print(gt_geo.shape)
-        # print(ignored_map.shape)
-        # break
+    device = torch.device("cpu")
+    model = EAST(pretrained=False)
+    data_parallel = False
+    if torch_npu.npu.device_count() > 1:
+        model = nn.DataParallel(model)
+        data_parallel = True
+    model.to(device)
+
+    trainset = ICDAR15(train_img_path,train_gt_path)
+    train_loader = data.DataLoader(trainset, batch_size=2,
+                                   shuffle=True, num_workers=10, drop_last=True)
+
+    for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_loader):
+        print(i, img.size(), gt_score.size(), gt_geo.size(), ignored_map.size())
+        break

@@ -18,3 +18,4 @@ date, name, issue/requirement/DTS, reason
 2022-01-04 15:32:32, zhouyanming, issue #33, 修复门禁用例报错
 2022-01-05 14:36:34, chenzeren, issue #34, 门禁精简
 2022-02-09 12:38:23, zhouyanming, AR20220110001811, 多卡易用性提升
+2022-03-30 17:39:23, zhouyanming, DTS2022033004656, 新增1.8测试用例&测试用例优化

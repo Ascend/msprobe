@@ -7,6 +7,7 @@ import os
 import torch
 import torchvision.transforms as transforms
 from torch.utils import data
+import torch_npu
 import ascend_function
 
 

@@ -2,7 +2,7 @@ import torch
 from torch.utils import data
 from torch import nn
 from torch.optim import lr_scheduler
-from dataset.SynthText import SynthText
+from dataset.MSRA_TD500 import MSRA_TD500
 from network.model import EAST
 from network.loss import Loss
 import os
@@ -10,34 +10,36 @@ import time
 import numpy as np
 from PIL import Image, ImageDraw
 from tqdm import tqdm
-from lib.detect import detect
-from evaluate.script import getresult
+from lib.detect import detect_msra
+from evaluate.msra.eval import get_msra_result
 import argparse
 import os
 from lib.utils import setup_logger
+import torch_npu
 import ascend_function
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='EAST reimplementation')
 
 # Model path
-parser.add_argument('--exp_name',default= "SynthText", help='Where to store logs and models')
-parser.add_argument('--resume', default="/data/glusterfs_cv_04/11121171/AAAI_EAST/Baseline/EAST_v1/model_save/model_epoch_826.pth", type=str,
+parser.add_argument('--exp_name',default= "MSRA", help='Where to store logs and models')
+parser.add_argument('--resume', default="/home/wwj/workspace/Sence_Text_detection/AAAI_EAST/Baseline/EAST_v1/worksapce/SynthText/synthtext_1_model.pth", type=str,
                     help='Checkpoint state_dict file to resume training from')
-parser.add_argument('--t_eval_path', default="/data/data_weijiawu/Sence_Text_detection/Paper-ACCV/DomainAdaptive/ICDAR2015/EAST_v2/ICDAR15/Test/image/", type=str,
-                    help='the test image of target domain ')
-parser.add_argument('--t_output_path', default="/home/wwj/workspace/Sence_Text_detection/AAAI_EAST/Baseline/EAST_v1/evaluate/submit/", type=str,
-                    help='the predicted output of target domain')
-parser.add_argument('--workspace', default="/home/wwj/workspace/Sence_Text_detection/AAAI_EAST/Baseline/EAST_v1/worksapce/", type=str,
+parser.add_argument('--msra_data', default='/home/xjc/Dataset/MSRA-TD500/', type=str,
+                    help='the path of training data ')
+parser.add_argument('--hust_path', default="/home/xjc/Dataset/HUST-TR400/", type=str,
+                    help='the label of training data')
+parser.add_argument('--workspace', default="/home/xjc/Desktop/CVPR_SemiText/SemiText/EAST_box_supervision/worksapce/", type=str,
                     help='save model')
+parser.add_argument('--gt_name', default="msra_gt.zip", type=str, help='gt name')
+parser.add_argument('--is_box_pseudo', default=True, type=bool, help='gt name')
 
 # Training strategy
-parser.add_argument('--epoch_iter', default=8000, type = int,
+parser.add_argument('--epoch_iter', default=400, type = int,
                     help='the max epoch iter')
 parser.add_argument('--batch_size', default=8, type = int,
                     help='batch size of training')
-# parser.add_argument('--cdua', default=True, type=str2bool,
-#                     help='Use CUDA to train model')
 parser.add_argument('--lr', '--learning-rate', default=1e-3, type=float,
                     help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float,
@@ -58,7 +60,7 @@ parser.add_argument('--npu', action="store_true",
 args = parser.parse_args()
 
 
-def train(epoch,  model, optimizer,train_loader_source,criterion,f_score):
+def train(epoch,  model, optimizer,train_loader_source,scheduler,criterion):
     model.train()
     scheduler.step()
     epoch_loss = 0
@@ -66,8 +68,6 @@ def train(epoch,  model, optimizer,train_loader_source,criterion,f_score):
 
     for i, (img_target, gt_score_target, gt_geo_target, valid_map_target) in enumerate(train_loader_source):
         start_time = time.time()
-
-        # source domain training
         img, gt_score, gt_geo, valid_map  = img_target.to(device), gt_score_target.to(device), gt_geo_target.to(device), valid_map_target.to(device)
 
         pred_score, pred_geo = model(img)
@@ -78,23 +78,22 @@ def train(epoch,  model, optimizer,train_loader_source,criterion,f_score):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        if i%50 == 0:
-            logger.info('Epoch is [{}/{}], mini-batch is [{}/{}], time consumption is {:.8f}, batch_loss is {:.8f}'.format( \
-                epoch + 1, args.epoch_iter, i + 1, int(len(train_loader_source)), time.time() - start_time, loss.item()))
 
-    logger.info('epoch_loss is {:.8f}, epoch_time is {:.8f}'.format(epoch_loss / int(1000 / args.batch_size),time.time() - epoch_time))
+        if i%20==0:
+            logger.info('Epoch is [{}/{}], mini-batch is [{}/{}], time consumption is {:.8f}, batch_loss is {:.8f}'.format( \
+            epoch + 1, args.epoch_iter, i + 1, int(len(train_loader_source)), time.time() - start_time, loss.item()))
+
+        # if i>4000 and i%1000==0:
+        #     f_score = test(epoch, model, args.t_eval_path, args.t_output_path, f_score, args.save_model)
+    logger.info('epoch_loss is {:.8f}, epoch_time is {:.8f}'.format(epoch_loss / int(7200 / args.batch_size),time.time() - epoch_time))
     logger.info(time.asctime(time.localtime(time.time())))
 
 
 
 if __name__ == '__main__':
-    train_img_path = os.path.abspath('/data/data_weijiawu/SynthText')
-    train_gt_path = os.path.abspath('/data/data_weijiawu/SynthText/gt.mat')
-
     args.workspace = os.path.join(args.workspace, args.exp_name)
     os.makedirs(args.workspace, exist_ok=True)
-
-    logger = setup_logger(os.path.join(args.workspace, 'train_synthtext_log'))
+    logger = setup_logger(os.path.join(args.workspace, 'train_MSRA_log'))
     criterion = Loss()
     device = torch.device("cpu")
     if args.gpu:
@@ -103,26 +102,26 @@ if __name__ == '__main__':
         device = torch.device("npu")
 
     model = EAST(pretrained=False)
+    # model = nn.DataParallel(model)
     data_parallel = False
-    if torch.npu.device_count() > 1:
+    if torch_npu.npu.device_count() > 1:
         model = nn.DataParallel(model)
         data_parallel = True
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_iter // 2], gamma=0.1)
+    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[150,220], gamma=0.1)
 
-    trainset_ = SynthText(train_img_path, train_gt_path)
-    train_loader_source = data.DataLoader(trainset_, batch_size=args.batch_size,
+    # 先产生第一次的pseudo-label
+    logger.info("loading pretrained model from "+args.resume)
+    # model.load_state_dict(torch.load(args.resume))
+
+    trainset = MSRA_TD500(args.msra_data,args.hust_path,args.is_box_pseudo)
+    train_loader_target = data.DataLoader(trainset, batch_size=args.batch_size,
                                           shuffle=True, num_workers=args.num_workers, drop_last=True)
 
-    f_score = 0.6
+    f_score = 0.5
     for epoch in range(args.epoch_iter):
-
-        f_score = train( epoch, model, optimizer,train_loader_source,criterion,f_score)
-
-        state_dict = model.module.state_dict() if data_parallel else model.state_dict()
-        torch.save(state_dict, os.path.join(args.workspace, 'synthtext_{}_model.pth'.format(epoch + 1)))
-
+        train( epoch, model, optimizer,train_loader_target,scheduler,criterion)
 
 
 

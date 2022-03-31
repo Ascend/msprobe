@@ -11,6 +11,7 @@ import scipy.io as sio
 import os
 import mmcv
 from lib.utils import adjust_box_sort
+import torch_npu
 import ascend_function
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 

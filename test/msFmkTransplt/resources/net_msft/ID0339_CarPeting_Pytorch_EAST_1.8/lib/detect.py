@@ -8,6 +8,7 @@ import numpy as np
 import lanms
 from tqdm import tqdm
 from evaluate.script import getresult
+import torch_npu
 import ascend_function
 def resize_img(img,short_line=1024):
 	'''resize image to be divisible by 32
@@ -223,7 +224,7 @@ if __name__ == '__main__':
 	img_path    = '/data/data_weijiawu/ICDAR17/val_image/'
 	model_path  = '/home/wwj/workspace/Sence_Text_detection/AAAI_EAST/Baseline/EAST_v1/worksapce/ICDAR17/best_model_aug.pth'
 	res_img     = '/home/wwj/workspace/Sence_Text_detection/AAAI_EAST/Baseline/EAST_v1/evaluate/result/'
-	device = torch.device("npu:0" if torch.npu.is_available() else "cpu")
+	device = torch.device("npu:0" if torch_npu.npu.is_available() else "cpu")
 	model = EAST().to(device)
 	model.load_state_dict(torch.load(model_path))
 	model.eval()
