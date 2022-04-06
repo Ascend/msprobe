@@ -259,14 +259,7 @@ def remove_path(path):
 def check_path_owner_consistent(path):
     if platform.system().lower() == 'windows':
         return True
-    try:
-        import pwd
-    except ImportError:
-        user_interactive_confirm(f'Failed to check owner consistency for path {path}. Do you want to continue?')
-        return True
-
-    file_owner = pwd.getpwuid(os.stat(path).st_uid).pw_name
-    return file_owner == pwd.getpwuid(os.getuid()).pw_name
+    return os.stat(path).st_uid == os.getuid()
 
 
 def check_path_length_valid(path):
