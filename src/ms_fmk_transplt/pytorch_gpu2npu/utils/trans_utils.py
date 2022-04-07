@@ -259,6 +259,7 @@ def remove_path(path):
 def check_path_owner_consistent(path):
     if platform.system().lower() == 'windows':
         return True
+    # st_uid:user ID of owner, os.getuid: Return the current process's user id.
     return os.stat(path).st_uid == os.getuid()
 
 
