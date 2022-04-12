@@ -112,8 +112,12 @@ class MsFmkTransplt(object):
             transplant.set_py_file_counts(self.py_file_counts)
             transplant.run()
             if args.similar:
-                self.__copy_function_pack()
+                self.__copy_function_pack('ascend_function')
+            if args.modelarts:
+                self.__copy_function_pack('ascend_modelarts_function')
         except BaseException as exp:
+            import traceback
+            traceback.print_exc()
             translog.error(exp)
             return 1
         finally:
@@ -182,6 +186,8 @@ class MsFmkTransplt(object):
                             help='This option is required only if you want to convert torch.cuda.amp to apex.amp')
         parser.add_argument('-v', '--version', default='1.5.0',
                             help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
+        parser.add_argument('-m', '--modelarts', action='store_true',
+                            help='Convert to a ModelArts-compatible project.')
         subparsers = parser.add_subparsers(help='commands')
         self.__distributed_parser(subparsers)
         return parser.parse_args()
@@ -205,18 +211,18 @@ class MsFmkTransplt(object):
             utils.generate_distributed_shell_file(shell_file_path)
             self.feature_switch.append('distributed')
 
-    def __copy_function_pack(self):
-        function_pack_dir = os.path.join(os.path.dirname(__file__), 'ascend_function')
+    def __copy_function_pack(self, pack_name):
+        function_pack_dir = os.path.join(os.path.dirname(__file__), pack_name)
         if os.path.isdir(self.output):
-            dst_path = os.path.join(self.output, 'ascend_function')
+            dst_path = os.path.join(self.output, pack_name)
         elif os.path.isfile(self.output):
-            dst_path = os.path.join(os.path.dirname(self.output), 'ascend_function')
+            dst_path = os.path.join(os.path.dirname(self.output), pack_name)
         else:
             return
         shutil.rmtree(dst_path, ignore_errors=True)
         shutil.copytree(function_pack_dir, dst_path)
         utils.change_mode(dst_path)
-        translog.info(f"Package ascend_function has been copy to the output dir, "
+        translog.info(f"Package {pack_name} has been copy to the output dir, "
                       f"please add {os.path.dirname(dst_path)} to PYTHONPATH before run net.")
 
     def __init_logger(self):

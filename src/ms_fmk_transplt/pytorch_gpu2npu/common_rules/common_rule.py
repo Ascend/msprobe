@@ -238,23 +238,16 @@ class ArgsModifyRule(RuleVisitor):
                                       "delete the arg at position %s of function %s" %
                                       (target_idx, self.func_name))
             else:
-                args[target_idx] = self.__generate_new_arg(args[target_idx])
+                new_arg = self._generate_new_arg(args[target_idx])
+                args[target_idx] = new_arg
                 self._record_position(original_node, OperatorType.MODIFY,
                                       "change the arg at position %s of function %s to %s" %
-                                      (target_idx, self.func_name, self.arg_new))
+                                      (target_idx, self.func_name, self.get_code_for_node(new_arg.value)))
             return updated_node.with_changes(args=args)
 
         return updated_node
 
-    def __get_target_arg_idx(self, args: List["libcst.Arg"]):
-        target = -1
-        for idx, arg in enumerate(args):
-            if arg.keyword is not None and arg.keyword.value == self.arg_keyword:
-                target = idx
-                break
-        return target
-
-    def __generate_new_arg(self, origin_arg: "libcst.Arg"):
+    def _generate_new_arg(self, origin_arg: "libcst.Arg"):
         if not self.arg_keyword:
             return libcst.Arg(libcst.parse_expression(self.arg_new))
         else:
@@ -263,6 +256,14 @@ class ArgsModifyRule(RuleVisitor):
                 equal=libcst.AssignEqual(whitespace_before=libcst.SimpleWhitespace(''),
                                          whitespace_after=libcst.SimpleWhitespace('')),
                 value=libcst.parse_expression(self.arg_new))
+
+    def __get_target_arg_idx(self, args: List["libcst.Arg"]):
+        target = -1
+        for idx, arg in enumerate(args):
+            if arg.keyword is not None and arg.keyword.value == self.arg_keyword:
+                target = idx
+                break
+        return target
 
     def __need_modify(self, arg: "libcst.Arg"):
         arg_str = libcst.parse_module("").code_for_node(arg)
