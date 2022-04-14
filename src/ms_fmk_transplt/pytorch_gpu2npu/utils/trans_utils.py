@@ -56,8 +56,6 @@ def write_csv(content_list, script_file, script_dir, csv_type):
     else:
         csv_file = os.path.join(script_dir, '%s.csv' % csv_type)
     header = header_dict.get(csv_type)
-    if os.path.exists(csv_file):
-        remove_path(csv_file)
     if not os.path.exists(csv_file):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
