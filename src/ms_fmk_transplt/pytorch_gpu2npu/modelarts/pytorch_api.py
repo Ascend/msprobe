@@ -69,12 +69,14 @@ FILE_HANDLER_API = {
     },
     'pandas.read_csv': {
         'arg_no': 0,
+    },'pandas.read_json': {
+        'arg_no': 0,
     },
     # cv2
     'cv2.imread': {
         'arg_no': 0,
     },
-    #
+    # torch
     'torch.load': {
         'arg_no': 0,
     },
