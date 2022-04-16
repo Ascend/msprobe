@@ -4,6 +4,7 @@
 
 import atexit
 import os
+import shutil
 from enum import Enum, auto
 import pathlib
 from collections import namedtuple
@@ -58,6 +59,24 @@ class ModelArtsPathManager:
     @staticmethod
     def log_error(msg):
         print('[ERROR] ' + str(msg))
+
+    @staticmethod
+    def _check_obs_path_size_valid(obs_path, local_path):
+        local_path_free_size = shutil.disk_usage(local_path).free
+        if not mox.file.is_directory(obs_path):
+            obs_path_total_size = mox.file.get_size(obs_path)
+            if obs_path_total_size >= local_path_free_size:
+                raise ValueError('The obs path is too large, and the remaining disk space is not enough.')
+            return
+        obs_path_total_size = 0
+        for root, _, files in mox.file.walk(obs_path):
+            for file in files:
+                obs_file_path = os.path.join(root, file)
+                if not mox.file.exists(obs_file_path):
+                    continue
+                obs_path_total_size += mox.file.get_size(obs_file_path)
+                if obs_path_total_size >= local_path_free_size:
+                    raise ValueError('The obs path is too large, and the remaining disk space is not enough.')
 
     def get_path(self, *args, **kwargs):
         if len(args) > 0:
@@ -139,6 +158,7 @@ class ModelArtsPathManager:
             if path_type == ModelArtsPathManager.PathType.DIR:
                 os.makedirs(local_path, exist_ok=True)
                 self.log_info(f'Download directory from {obs_path} to {local_path} ...')
+                self._check_obs_path_size_valid(obs_path, local_path)
                 mox.file.copy_parallel(obs_path, local_path)
             else:
                 os.makedirs(os.path.dirname(local_path), exist_ok=True)
