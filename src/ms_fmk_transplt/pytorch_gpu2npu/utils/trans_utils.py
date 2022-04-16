@@ -115,10 +115,6 @@ def get_builtin_rule(feature_switch, args):
     rule_list = get_special_rule(args)
     # rules for different version
     if args.modelarts:
-        # from pytorch_gpu2npu.modelarts.path_wrapper_converter import ModelArtsPathWrapperRule
-        # rule_module.ModelArtsPathWrapperRule = ModelArtsPathWrapperRule
-        # rule_json_file_modelarts = os.path.join(os.path.dirname(__file__), '../modelarts/modelarts_rules.json')
-        # get_rule_from_json_file(feature_switch, rule_list, rule_json_file_modelarts)
         rule_list.extend(get_modelarts_rule())
     if args.version == '1.8.1':
         rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/builtin_rules_1_8_1.json')
