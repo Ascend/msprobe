@@ -69,7 +69,8 @@ FILE_HANDLER_API = {
     },
     'pandas.read_csv': {
         'arg_no': 0,
-    },'pandas.read_json': {
+    },
+    'pandas.read_json': {
         'arg_no': 0,
     },
     # cv2
