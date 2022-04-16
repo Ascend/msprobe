@@ -238,24 +238,13 @@ class ArgsModifyRule(RuleVisitor):
                                       "delete the arg at position %s of function %s" %
                                       (target_idx, self.func_name))
             else:
-                new_arg = self._generate_new_arg(args[target_idx])
-                args[target_idx] = new_arg
+                args[target_idx] = self.__generate_new_arg(args[target_idx])
                 self._record_position(original_node, OperatorType.MODIFY,
                                       "change the arg at position %s of function %s to %s" %
-                                      (target_idx, self.func_name, self.get_code_for_node(new_arg.value)))
+                                      (target_idx, self.func_name, self.arg_new))
             return updated_node.with_changes(args=args)
 
         return updated_node
-
-    def _generate_new_arg(self, origin_arg: "libcst.Arg"):
-        if not self.arg_keyword:
-            return libcst.Arg(libcst.parse_expression(self.arg_new))
-        else:
-            return origin_arg.with_changes(
-                keyword=libcst.Name(self.arg_keyword),
-                equal=libcst.AssignEqual(whitespace_before=libcst.SimpleWhitespace(''),
-                                         whitespace_after=libcst.SimpleWhitespace('')),
-                value=libcst.parse_expression(self.arg_new))
 
     def __get_target_arg_idx(self, args: List["libcst.Arg"]):
         target = -1
@@ -264,6 +253,16 @@ class ArgsModifyRule(RuleVisitor):
                 target = idx
                 break
         return target
+
+    def __generate_new_arg(self, origin_arg: "libcst.Arg"):
+        if not self.arg_keyword:
+            return libcst.Arg(libcst.parse_expression(self.arg_new))
+        else:
+            return origin_arg.with_changes(
+                keyword=libcst.Name(self.arg_keyword),
+                equal=libcst.AssignEqual(whitespace_before=libcst.SimpleWhitespace(''),
+                                         whitespace_after=libcst.SimpleWhitespace('')),
+                value=libcst.parse_expression(self.arg_new))
 
     def __need_modify(self, arg: "libcst.Arg"):
         arg_str = libcst.parse_module("").code_for_node(arg)
