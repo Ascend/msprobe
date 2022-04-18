@@ -16,6 +16,7 @@ from multiprocessing import cpu_count, Manager, Process, Pool
 import xmlrunner
 from xmlrunner.extra.xunit_plugin import transform
 from test_rules import TestRules as TestBuildRules
+from test_modelarts import TestModelArtsPathManager
 
 import coverage
 
