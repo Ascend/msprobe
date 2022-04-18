@@ -644,35 +644,6 @@ pre2 = teacher(image)
         for valid_model_name in valid_model_names:
             self.assertEqual(self.utils.check_model_name_valid(valid_model_name), None)
 
-    def test_modelarts_path_manager(self):
-        from src.ms_fmk_transplt.ascend_modelarts_function import ModelArtsPathManager
-
-        # get path not on modelarts
-        manager = ModelArtsPathManager()
-        manager._is_run_on_modelarts = False
-        manager.project_path = '/workspace/project'
-        assert manager.get_path('./data') == './data'
-        assert manager.get_path('/data/dataset') == '/data/dataset'
-        assert manager.get_path(root='./data') == './data'
-
-        # get path on modelarts
-        manager = ModelArtsPathManager()
-        manager._is_run_on_modelarts = True
-        manager.project_path = '/workspace/project'
-        manager._input_path_mapping = {
-            '/home/x2mindspore/dataset/imagenet': ModelArtsPathManager.PathPair(ModelArtsPathManager.PathType.DIR,
-                                                                                '/modelarts/dataset/imagenet',
-                                                                                's3://dataset/imagenet')
-        }
-        manager._output_path_mapping = {}
-        assert manager.get_path('./data') == '/workspace/project/data'
-        assert manager.get_path('data') == '/workspace/project/data'
-        assert manager.get_path('/home/x2mindspore/dataset/imagenet') == '/modelarts/dataset/imagenet'
-        assert manager.get_path('/home/x2mindspore/dataset/imagenet/') == '/modelarts/dataset/imagenet'
-        assert manager.get_path('/home/x2mindspore/dataset/imagenet/train') == '/modelarts/dataset/imagenet/train'
-        assert manager.get_path('/home/x2mindspore/dataset/imagenet/train/') == '/modelarts/dataset/imagenet/train'
-        assert manager.get_path('/home/x2mindspore/dataset2/imagenet') == '/home/x2mindspore/dataset2/imagenet'
-
 
 if __name__ == '__main__':
     unittest.main()
