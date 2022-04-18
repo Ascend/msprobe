@@ -4,7 +4,7 @@
 
 from pytorch_gpu2npu.common_rules.common_rule import BaseInsertGlobalRule
 from pytorch_gpu2npu.modelarts.path_wrapper_rule import ModelArtsPathWrapperRule
-from pytorch_gpu2npu.modelarts.pytorch_api import FILE_HANDLER_API
+from pytorch_gpu2npu.modelarts.file_handler_api import FILE_HANDLER_API
 
 
 def get_modelarts_rule():
