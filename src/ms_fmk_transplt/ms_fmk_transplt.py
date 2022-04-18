@@ -116,8 +116,6 @@ class MsFmkTransplt(object):
             if args.modelarts:
                 self.__copy_function_pack('ascend_modelarts_function')
         except BaseException as exp:
-            import traceback
-            traceback.print_exc()
             translog.error(exp)
             return 1
         finally:

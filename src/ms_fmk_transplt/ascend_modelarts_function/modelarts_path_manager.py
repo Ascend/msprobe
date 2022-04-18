@@ -163,6 +163,7 @@ class ModelArtsPathManager:
             else:
                 os.makedirs(os.path.dirname(local_path), exist_ok=True)
                 self.log_info(f'Download file from {obs_path} to {local_path} ...')
+                self._check_obs_path_size_valid(obs_path, local_path)
                 mox.file.copy(obs_path, local_path)
             self.log_info('Done.')
 

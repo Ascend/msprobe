@@ -52,7 +52,13 @@ FILE_HANDLER_API = {
     'numpy.load': {
         'arg_no': 0,
     },
+    'numpy.loadtxt': {
+        'arg_no': 0,
+    },
     'numpy.save': {
+        'arg_no': 0,
+    },
+    'numpy.savetxt': {
         'arg_no': 0,
     },
     # PIL
@@ -75,6 +81,37 @@ FILE_HANDLER_API = {
     },
     # cv2
     'cv2.imread': {
+        'arg_no': 0,
+    },
+    'cv2.imwrite': {
+        'arg_no': 0,
+    },
+    # matplotlib
+    'matplotlib.pyplot.savefig': {
+        'arg_no': 0,
+    },
+    # tensorboardX
+    'tensorboardX.SummaryWriter': {
+        'arg_no': 0,
+    },
+    # json
+    'json.load': {
+        'arg_no': 0,
+    },
+    # scipy
+    'scipy.io.loadmat': {
+        'arg_no': 0,
+    },
+    # mmcv
+    'mmcv.imread': {
+        'arg_no': 0,
+    },
+    # tarfile
+    'tarfile.open': {
+        'arg_no': 0,
+    },
+    # codecs
+    'codecs.open': {
         'arg_no': 0,
     },
     # torch
