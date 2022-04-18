@@ -3,7 +3,7 @@
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 
 from pytorch_gpu2npu.common_rules.common_rule import BaseInsertGlobalRule
-from pytorch_gpu2npu.modelarts.path_wrapper_converter import ModelArtsPathWrapperRule
+from pytorch_gpu2npu.modelarts.path_wrapper_rule import ModelArtsPathWrapperRule
 from pytorch_gpu2npu.modelarts.pytorch_api import FILE_HANDLER_API
 
 

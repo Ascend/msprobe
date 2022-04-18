@@ -41,7 +41,7 @@ class ModelArtsPathManager:
         if not self._is_run_on_modelarts:
             return
 
-        self.project_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        self.project_path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
         self._input_path_mapping = self._parse_input_path_mapping()
         self._output_path_mapping = self._parse_output_path_mapping()
 

@@ -9,16 +9,16 @@ from pytorch_gpu2npu.common_rules.common_rule import BaseInsertGlobalRule
 
 
 class ModelArtsPathWrapperRule(RuleVisitor):
-    def __init__(self, data_api_dict, add_import_rule: BaseInsertGlobalRule):
+    def __init__(self, path_handler_api_dict, add_import_rule: BaseInsertGlobalRule):
         super(ModelArtsPathWrapperRule, self).__init__()
-        self.data_api_dict = data_api_dict
+        self.path_handler_api_dict = path_handler_api_dict
         self.add_import_rule = add_import_rule
 
     def leave_Call(
             self, original_node: "libcst.Call", updated_node: "libcst.Call"
     ) -> "libcst.BaseExpression":
         full_name = self.get_full_name_for_node(original_node)
-        api_info = self.data_api_dict.get(full_name)
+        api_info = self.path_handler_api_dict.get(full_name)
         if not api_info:
             return updated_node
         self.add_import_rule.insert_flag = True

@@ -16,9 +16,11 @@ class TestRules(unittest.TestCase):
     def setUpClass(cls) -> None:
         import src.ms_fmk_transplt.pytorch_gpu2npu.common_rules.common_rule as common_rule
         import src.ms_fmk_transplt.pytorch_gpu2npu.distributed_rules.distributed_rule as distributed_rule
+        import src.ms_fmk_transplt.pytorch_gpu2npu.modelarts as modelarts_rule
         from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
         cls.common_rule = common_rule
         cls.distributed_rule = distributed_rule
+        cls.modelarts_rule = modelarts_rule
         cls.utils = utils
 
 
@@ -443,6 +445,44 @@ def functionC(args):
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
 
+    def test_modelarts_path_warpper_rule(self):
+        path_handler_api_dict = {
+            'builtins.open': {
+                'arg_no': 0,
+            },
+            'torch.save': {
+                'arg_no': 1,
+            },
+        }
+        add_import_rule = self.common_rule.BaseInsertGlobalRule(insert_content=[])
+        path_wrapper_rule = self.modelarts_rule.ModelArtsPathWrapperRule(path_handler_api_dict, add_import_rule)
+        test_cases = (
+            (
+                '''import shutil
+import torch
+
+def save_checkpoint(state, is_best, filename='checkpoint.ckpt'):
+    torch.save(state, filename)
+    if is_best:
+        shutil.copyfile(filename, 'model_best.ckpt')
+
+torch.save(data, open('traindata.pt', 'wb'))
+                ''', '''import shutil
+import torch
+
+def save_checkpoint(state, is_best, filename='checkpoint.ckpt'):
+    torch.save(state, ModelArtsPathManager().get_path(filename))
+    if is_best:
+        shutil.copyfile(filename, 'model_best.ckpt')
+
+torch.save(data, ModelArtsPathManager().get_path(open(ModelArtsPathManager().get_path('traindata.pt'), 'wb')))
+                '''
+            ),
+        )
+
+        for test_case in test_cases:
+            self._check_modify(path_wrapper_rule, test_case[0], test_case[1])
+
     def test_If_Exp_rule1(self):
         test_cases1 = (('''(torch.cuda if True else torch.cuda if True else torch.cuda)(666)''',
                         '''(torch.npu if True else torch.npu if True else torch.npu)(666)'''),
@@ -603,6 +643,35 @@ pre2 = teacher(image)
         valid_model_names = ['model', '_model', 'self.model', 'self.model1_']
         for valid_model_name in valid_model_names:
             self.assertEqual(self.utils.check_model_name_valid(valid_model_name), None)
+
+    def test_modelarts_path_manager(self):
+        from src.ms_fmk_transplt.ascend_modelarts_function import ModelArtsPathManager
+
+        # get path not on modelarts
+        manager = ModelArtsPathManager()
+        manager._is_run_on_modelarts = False
+        manager.project_path = '/workspace/project'
+        assert manager.get_path('./data') == './data'
+        assert manager.get_path('/data/dataset') == '/data/dataset'
+        assert manager.get_path(root='./data') == './data'
+
+        # get path on modelarts
+        manager = ModelArtsPathManager()
+        manager._is_run_on_modelarts = True
+        manager.project_path = '/workspace/project'
+        manager._input_path_mapping = {
+            '/home/x2mindspore/dataset/imagenet': ModelArtsPathManager.PathPair(ModelArtsPathManager.PathType.DIR,
+                                                                                '/modelarts/dataset/imagenet',
+                                                                                's3://dataset/imagenet')
+        }
+        manager._output_path_mapping = {}
+        assert manager.get_path('./data') == '/workspace/project/data'
+        assert manager.get_path('data') == '/workspace/project/data'
+        assert manager.get_path('/home/x2mindspore/dataset/imagenet') == '/modelarts/dataset/imagenet'
+        assert manager.get_path('/home/x2mindspore/dataset/imagenet/') == '/modelarts/dataset/imagenet'
+        assert manager.get_path('/home/x2mindspore/dataset/imagenet/train') == '/modelarts/dataset/imagenet/train'
+        assert manager.get_path('/home/x2mindspore/dataset/imagenet/train/') == '/modelarts/dataset/imagenet/train'
+        assert manager.get_path('/home/x2mindspore/dataset2/imagenet') == '/home/x2mindspore/dataset2/imagenet'
 
 
 if __name__ == '__main__':
