@@ -28,10 +28,10 @@ FILE_HANDLER_API = {
     },
     # shutil
     'shutil.copy': {
-        'arg_no': 0,
+        'arg_no': [0, 1],
     },
     'shutil.copyfile': {
-        'arg_no': 0,
+        'arg_no': [0, 1],
     },
     'shutil.rmtree': {
         'arg_no': 0,

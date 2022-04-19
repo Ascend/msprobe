@@ -453,6 +453,9 @@ def functionC(args):
             'torch.save': {
                 'arg_no': 1,
             },
+            'shutil.copyfile': {
+                'arg_no': [0, 1],
+            },
         }
         add_import_rule = self.common_rule.BaseInsertGlobalRule(insert_content=[])
         path_wrapper_rule = self.modelarts_rule.ModelArtsPathWrapperRule(path_handler_api_dict, add_import_rule)
@@ -464,7 +467,7 @@ import torch
 def save_checkpoint(state, is_best, filename='checkpoint.ckpt'):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.ckpt')
+        shutil.copyfile(filename, dst='model_best.ckpt')
 
 torch.save(data, open('traindata.pt', 'wb'))
                 ''', '''import shutil
@@ -473,7 +476,7 @@ import torch
 def save_checkpoint(state, is_best, filename='checkpoint.ckpt'):
     torch.save(state, ModelArtsPathManager().get_path(filename))
     if is_best:
-        shutil.copyfile(filename, 'model_best.ckpt')
+        shutil.copyfile(ModelArtsPathManager().get_path(filename), dst=ModelArtsPathManager().get_path('model_best.ckpt'))
 
 torch.save(data, ModelArtsPathManager().get_path(open(ModelArtsPathManager().get_path('traindata.pt'), 'wb')))
                 '''
