@@ -11,11 +11,12 @@ import unittest
 import unittest.mock as mock
 import difflib
 import io
-from multiprocessing import cpu_count, Manager, Process, Pool
+from multiprocessing import Manager, Process
 
 import xmlrunner
 from xmlrunner.extra.xunit_plugin import transform
 from test_rules import TestRules as TestBuildRules
+from test_modelarts import TestModelArtsPathManager
 
 import coverage
 
@@ -32,6 +33,7 @@ class Args(object):
         self.specify_device = False
         self.device_id = 0
         self.similar = True
+        self.modelarts = False
         self.amp_model = target_model if test_amp else ''
         if main:
             self.main = main
@@ -49,6 +51,7 @@ def run(mock_args, net_name, output_path, result_dict):
         ret = ms_fmk_transplt.main()
         if output_path is not None:
             shutil.rmtree(output_path + "/" + net_name + '_msft/ascend_function')
+            shutil.rmtree(output_path + "/" + net_name + '_msft/ascend_modelarts_function', ignore_errors=True)
         result_dict[net_name] = 0 if ret == 0 else TRANS_ERROR
     except Exception as e:
         print(repr(e))
@@ -77,7 +80,8 @@ class TestMsFmkTransplt(unittest.TestCase):
         files = os.listdir(path)
         for file_name in files:
             sub_file = path + '/' + file_name
-            if os.path.isdir(sub_file) and os.path.basename(sub_file) != 'ascend_function':
+            if os.path.isdir(sub_file) and os.path.basename(sub_file) != ['ascend_function',
+                                                                          'ascend_modelarts_function']:
                 self.list_python_file(sub_file)
             elif os.path.isfile(sub_file) and sub_file.endswith(".py"):
                 self.input_py_file_list.append(sub_file)

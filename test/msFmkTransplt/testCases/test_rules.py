@@ -16,9 +16,11 @@ class TestRules(unittest.TestCase):
     def setUpClass(cls) -> None:
         import src.ms_fmk_transplt.pytorch_gpu2npu.common_rules.common_rule as common_rule
         import src.ms_fmk_transplt.pytorch_gpu2npu.distributed_rules.distributed_rule as distributed_rule
+        import src.ms_fmk_transplt.pytorch_gpu2npu.modelarts as modelarts_rule
         from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
         cls.common_rule = common_rule
         cls.distributed_rule = distributed_rule
+        cls.modelarts_rule = modelarts_rule
         cls.utils = utils
 
 
@@ -442,6 +444,47 @@ def functionC(args):
         rule = self.common_rule.FuncNameModifyRule("functionA", "FUNCTIONA", False)
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
+
+    def test_modelarts_path_warpper_rule(self):
+        path_handler_api_dict = {
+            'builtins.open': {
+                'arg_no': 0,
+            },
+            'torch.save': {
+                'arg_no': 1,
+            },
+            'shutil.copyfile': {
+                'arg_no': [0, 1],
+            },
+        }
+        add_import_rule = self.common_rule.BaseInsertGlobalRule(insert_content=[])
+        path_wrapper_rule = self.modelarts_rule.ModelArtsPathWrapperRule(path_handler_api_dict, add_import_rule)
+        test_cases = (
+            (
+                '''import shutil
+import torch
+
+def save_checkpoint(state, is_best, filename='checkpoint.ckpt'):
+    torch.save(state, filename)
+    if is_best:
+        shutil.copyfile(filename, dst='model_best.ckpt')
+
+torch.save(data, open('traindata.pt', 'wb'))
+                ''', '''import shutil
+import torch
+
+def save_checkpoint(state, is_best, filename='checkpoint.ckpt'):
+    torch.save(state, ModelArtsPathManager().get_path(filename))
+    if is_best:
+        shutil.copyfile(ModelArtsPathManager().get_path(filename), dst=ModelArtsPathManager().get_path('model_best.ckpt'))
+
+torch.save(data, ModelArtsPathManager().get_path(open(ModelArtsPathManager().get_path('traindata.pt'), 'wb')))
+                '''
+            ),
+        )
+
+        for test_case in test_cases:
+            self._check_modify(path_wrapper_rule, test_case[0], test_case[1])
 
     def test_If_Exp_rule1(self):
         test_cases1 = (('''(torch.cuda if True else torch.cuda if True else torch.cuda)(666)''',

@@ -12,6 +12,7 @@ import pandas as pd
 
 import pytorch_gpu2npu.common_rules.common_rule as rule_module
 from pytorch_gpu2npu.distributed_rules import distributed_rule
+from pytorch_gpu2npu.modelarts import get_modelarts_rule
 from pytorch_gpu2npu.pytorch_v1_5_0 import InitApexRule, Amp2Apex
 from pytorch_gpu2npu.utils import transplant_logger as translog
 
@@ -113,6 +114,8 @@ def get_custom_rule(file, rule_list):
 def get_builtin_rule(feature_switch, args):
     rule_list = get_special_rule(args)
     # rules for different version
+    if args.modelarts:
+        rule_list.extend(get_modelarts_rule())
     if args.version == '1.8.1':
         rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/builtin_rules_1_8_1.json')
         get_rule_from_json_file(feature_switch, rule_list, rules_json_file_1_8_0)
