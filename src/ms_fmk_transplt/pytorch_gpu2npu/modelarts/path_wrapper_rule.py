@@ -62,11 +62,12 @@ class ModelArtsPathWrapperRule(RuleVisitor):
         api_name, api_info = self._get_mapped_info(full_name)
         if api_info is None:
             return updated_node
-        self.add_import_rule.insert_flag = True
         args = updated_node.args
         args_to_wrap = self._get_arg_idx_to_wrap(api_name, args, api_info)
         if not args_to_wrap:
             return updated_node
+
+        self.add_import_rule.insert_flag = True
         new_args = list(args)
         for arg_idx in args_to_wrap:
             arg_code = libcst.parse_module('').code_for_node(args[arg_idx].value)
