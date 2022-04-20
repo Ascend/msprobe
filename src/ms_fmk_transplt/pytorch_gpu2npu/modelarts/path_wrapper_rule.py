@@ -5,7 +5,7 @@
 import libcst
 import libcst.matchers as m
 
-from pytorch_gpu2npu.common_rules.code_visitor import OperatorType, RuleVisitor
+from pytorch_gpu2npu.common_rules.code_visitor import RuleVisitor
 from pytorch_gpu2npu.common_rules.common_rule import BaseInsertGlobalRule
 import pytorch_gpu2npu.utils.transplant_logger as logger
 
