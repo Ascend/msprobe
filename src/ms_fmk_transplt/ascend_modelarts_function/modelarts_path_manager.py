@@ -122,7 +122,9 @@ class ModelArtsPathManager:
     def _parse_output_path_mapping(self):
         output_path_mapping = {}
         for local_path, obs_path in PATH_MAPPING_CONFIG.get('output').items():
-            if mox.file.is_directory(obs_path):
+            if not mox.file.exists(obs_path):
+                path_type = ModelArtsPathManager.PathType.UNDEFINED
+            elif mox.file.is_directory(obs_path):
                 path_type = ModelArtsPathManager.PathType.DIR
             else:
                 path_type = ModelArtsPathManager.PathType.FILE
