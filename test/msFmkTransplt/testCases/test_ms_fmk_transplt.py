@@ -54,8 +54,6 @@ def run(mock_args, net_name, output_path, result_dict):
             shutil.rmtree(output_path + "/" + net_name + '_msft/ascend_modelarts_function', ignore_errors=True)
         result_dict[net_name] = 0 if ret == 0 else TRANS_ERROR
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         print(repr(e))
         result_dict[net_name] = TRANS_ERROR
 
