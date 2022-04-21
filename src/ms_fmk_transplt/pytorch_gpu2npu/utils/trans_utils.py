@@ -196,7 +196,7 @@ export RANK_SIZE=${#NPUS[@]}
 rank=0
 for i in ${NPUS[@]}
 do
-    export NPU_CALCULATE_DEVICE=${i}
+    export DEVICE_ID=${i}
     export RANK_ID=${rank}
     echo run process ${rank}
     please input your shell script here > output_npu_${i}.log 2>&1 &

@@ -348,7 +348,7 @@ class DistributedDataParallelRule(RuleVisitor):
             "%s = %s.npu()" % (self.model_target, self.model_target))
         ddp_statement = libcst.parse_statement(
             'if not isinstance(%s, torch.nn.parallel.DistributedDataParallel):\n'
-            '    %s = torch.nn.parallel.DistributedDataParallel(%s, device_ids=[NPU_CALCULATE_DEVICE], '
+            '    %s = torch.nn.parallel.DistributedDataParallel(%s, device_ids=[DEVICE_ID], '
             'broadcast_buffers=False)' % (self.model_target, self.model_target, self.model_target))
         original_position = self.get_metadata(libcst.metadata.PositionProvider, original_node)
         self.changes_info.append([original_position.start.line + 1,

@@ -4,7 +4,7 @@
        {
         "insert_content": [
           "import torch.npu",
-          "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')",
+          "if torch.npu.current_device() != DEVICE_ID:\n    torch.npu.set_device(f'npu:{DEVICE_ID}')",
           "RANK_SIZE = int(os.getenv('RANK_SIZE'))",
           "RANK_ID = int(os.getenv('RANK_ID'))",
           "torch.distributed.init_process_group('hccl', rank=RANK_ID, world_size=RANK_SIZE)"
@@ -17,7 +17,7 @@
         "import_key_word": "torch",
         "insert_content": [
           "import torch.npu",
-          "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')"
+          "if torch.npu.current_device() != DEVICE_ID:\n    torch.npu.set_device(f'npu:{DEVICE_ID}')"
         ],
         "feature_switch": ["specify_device"]
       },
@@ -26,7 +26,7 @@
         "insert_content": [
           "import os",
           "DEVICE_ID= 0",
-          "if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):\n    DEVICE_ID= int(os.getenv('NPU_CALCULATE_DEVICE'))"
+          "if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):\n    DEVICE_ID= int(os.getenv('DEVICE_ID'))"
         ],
         "feature_switch": ["specify_device", "distributed"]
       },
@@ -42,21 +42,21 @@
       {
         "func_name": "to",
         "arg_idx": 0,
-        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "arg_new": "f'npu:{DEVICE_ID}'",
         "white_list": ["cpu", "type|bool|int|short|long|half|float|double|complex", "memory_format", "grad"],
         "feature_switch": ["specify_device", "distributed"]
       },
       {
         "func_name": "set_device",
         "arg_idx": 0,
-        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "arg_new": "f'npu:{DEVICE_ID}'",
         "white_list": ["rank"],
         "feature_switch": ["specify_device", "distributed"]
       },
       {
         "func_name": "torch.device",
         "arg_idx": 0,
-        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "arg_new": "f'npu:{DEVICE_ID}'",
         "feature_switch": ["specify_device", "distributed"]
       },
       {
@@ -74,7 +74,7 @@
       {
         "func_name": "torch.load",
         "arg_keyword": "map_location",
-        "arg_new": "f'npu:{NPU_CALCULATE_DEVICE}'",
+        "arg_new": "f'npu:{DEVICE_ID}'",
         "white_list": ["cpu"],
         "feature_switch": ["specify_device", "distributed"]
       }
