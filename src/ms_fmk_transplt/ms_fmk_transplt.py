@@ -175,7 +175,7 @@ class MsFmkTransplt(object):
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
         parser.add_argument('-r', '--rule', default='', metavar='FILE', help='Custom rules file path')
         parser.add_argument('-s', '--specify-device', dest='specify_device', action='store_true',
-                            help='This option is required only if you want to use the NPU_CALCULATE_DEVICE '
+                            help='This option is required only if you want to use the DEVICE_ID'
                                  'environment variable to specify the running device.')
         parser.add_argument('-sim', '--similar', action='store_true',
                             help='Replaces certain unsupported APIs with functionally similar ones. '
