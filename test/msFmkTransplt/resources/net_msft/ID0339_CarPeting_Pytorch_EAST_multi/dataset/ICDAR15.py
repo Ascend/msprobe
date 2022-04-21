@@ -12,9 +12,9 @@ import os
 from lib.utils import adjust_box_sort
 import os
 import ascend_function
-NPU_CALCULATE_DEVICE = 0
-if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
-    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
+DEVICE_ID= 0
+if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
+    DEVICE_ID= int(os.getenv('DEVICE_ID'))
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 def cal_distance(x1, y1, x2, y2):
@@ -422,15 +422,15 @@ if __name__ == "__main__":
     train_img_path = os.path.abspath('/data/c00506053/downloaded_datasets/ICDAR2015/Text-Localization/ch4_training_images')
     train_gt_path = os.path.abspath("/data/c00506053/downloaded_datasets/ICDAR2015/Text-Localization/ch4_training_localization_transcription_gt")
 
-    device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
+    device = torch.device(f'npu:{DEVICE_ID}')
     model = EAST(pretrained=False)
     model = model.npu()
     if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
     data_parallel = False
     if torch.npu.device_count() > 1:
         data_parallel = True
-    model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+    model.to(f'npu:{DEVICE_ID}')
 
     trainset = ICDAR15(train_img_path,train_gt_path)
     train_loader = data.DataLoader(trainset, batch_size=2,

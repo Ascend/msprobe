@@ -14,16 +14,16 @@ from model import FOTSModel
 from modules.parse_polys import parse_polys
 import os
 import ascend_function
-NPU_CALCULATE_DEVICE = 0
-if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
-    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
+DEVICE_ID= 0
+if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
+    DEVICE_ID= int(os.getenv('DEVICE_ID'))
 
 
 def restore_checkpoint(folder, contunue):
-    model = FOTSModel().to(f'npu:{NPU_CALCULATE_DEVICE}')
+    model = FOTSModel().to(f'npu:{DEVICE_ID}')
     model = model.npu()
     if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=32, verbose=True, threshold=0.05, threshold_mode='rel')
 
@@ -100,7 +100,7 @@ def detection_loss(pred, gt):
     y_pred_cls, y_pred_geo, theta_pred = pred
     y_true_cls, y_true_geo, theta_gt, training_mask = gt
     y_true_cls, theta_gt = y_true_cls.unsqueeze(1), theta_gt.unsqueeze(1)
-    y_true_cls, y_true_geo, theta_gt = y_true_cls.to(f'npu:{NPU_CALCULATE_DEVICE}'), y_true_geo.to(f'npu:{NPU_CALCULATE_DEVICE}'), theta_gt.to(f'npu:{NPU_CALCULATE_DEVICE}')
+    y_true_cls, y_true_geo, theta_gt = y_true_cls.to(f'npu:{DEVICE_ID}'), y_true_geo.to(f'npu:{DEVICE_ID}'), theta_gt.to(f'npu:{DEVICE_ID}')
 
     raw_cls_loss = torch.nn.functional.binary_cross_entropy_with_logits(input=y_pred_cls, target=y_true_cls, weight=None, reduction='none')
 
@@ -215,7 +215,7 @@ def fit(start_epoch, model, loss_func, opt, lr_scheduler, best_score, max_batche
         for cropped, classification, regression, thetas, training_mask in pbar:
             if batch_per_iter_cnt == 0:
                 optimizer.zero_grad()
-            prediction = model(cropped.to(f'npu:{NPU_CALCULATE_DEVICE}'))
+            prediction = model(cropped.to(f'npu:{DEVICE_ID}'))
 
             if 0:
                 for batch_id in range(cropped.shape[0]):
@@ -292,7 +292,7 @@ def fit(start_epoch, model, loss_func, opt, lr_scheduler, best_score, max_batche
                 val_loss = 0.0
                 val_loss_count = 0
                 for cropped, classification, regression, thetas, training_mask, file_names in valid_dl:
-                    prediction = model(cropped.to(f'npu:{NPU_CALCULATE_DEVICE}'))
+                    prediction = model(cropped.to(f'npu:{DEVICE_ID}'))
                     loss = loss_func(prediction, (classification, regression, thetas, training_mask, file_names))
                     val_loss += loss.item()
                     val_loss_count += len(cropped)

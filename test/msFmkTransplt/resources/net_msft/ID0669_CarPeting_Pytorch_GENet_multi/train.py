@@ -12,14 +12,14 @@ from utils import *
 import torch.npu
 import os
 import ascend_function
-NPU_CALCULATE_DEVICE = 0
-if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
-    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
-if torch.npu.current_device() != NPU_CALCULATE_DEVICE:
-    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')
-NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))
-RANK = int(os.getenv('RANK'))
-torch.distributed.init_process_group('hccl', rank=RANK, world_size=NPU_WORLD_SIZE)
+DEVICE_ID= 0
+if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
+    DEVICE_ID= int(os.getenv('DEVICE_ID'))
+if torch.npu.current_device() != DEVICE_ID:
+    torch.npu.set_device(f'npu:{DEVICE_ID}')
+RANK_SIZE = int(os.getenv('RANK_SIZE'))
+RANK_ID = int(os.getenv('RANK_ID'))
+torch.distributed.init_process_group('hccl', rank=RANK_ID, world_size=RANK_SIZE)
 
 
 writer = SummaryWriter()
@@ -56,7 +56,7 @@ parser.add_argument('--extent', default=0, type=int, help='Extent for pooling')
 args = parser.parse_args()
 print(args)
 os.environ["CUDA_VISIBLE_DEVICES"] = args.GPU
-device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
+device = torch.device(f'npu:{DEVICE_ID}')
 
 
 if not os.path.exists('checkpoints/'):
@@ -80,10 +80,10 @@ else:
 model = WideResNet(args.depth, args.width, num_classes=NO_CLASSES, mlp=args.mlp, extra_params=args.extra_params)
 model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
 
 get_no_params(model)
-model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+model.to(f'npu:{DEVICE_ID}')
 
 
 print('Standard Aug')
@@ -151,7 +151,7 @@ def train():
         # measure data loading time
         data_time.update(time.time() - end)
 
-        input, target = input.to(f'npu:{NPU_CALCULATE_DEVICE}'), target.to(f'npu:{NPU_CALCULATE_DEVICE}')
+        input, target = input.to(f'npu:{DEVICE_ID}'), target.to(f'npu:{DEVICE_ID}')
 
         output = model(input)
 
@@ -208,7 +208,7 @@ def validate():
         # measure data loading time
         data_time.update(time.time() - end)
 
-        input, target = input.to(f'npu:{NPU_CALCULATE_DEVICE}'), target.to(f'npu:{NPU_CALCULATE_DEVICE}')
+        input, target = input.to(f'npu:{DEVICE_ID}'), target.to(f'npu:{DEVICE_ID}')
 
         # compute output
         output = model(input)
