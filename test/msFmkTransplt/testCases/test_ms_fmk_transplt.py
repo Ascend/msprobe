@@ -50,7 +50,10 @@ def run(mock_args, net_name, output_path, result_dict):
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
         ret = ms_fmk_transplt.main()
         if output_path is not None:
-            shutil.rmtree(output_path + "/" + net_name + '_msft/ascend_function')
+            if hasattr(mock_args.return_value, 'main'):
+                shutil.rmtree(output_path + "/" + net_name + '_msft_multi/ascend_function')
+            else:
+                shutil.rmtree(output_path + "/" + net_name + '_msft/ascend_function')
         result_dict[net_name] = 0 if ret == 0 else TRANS_ERROR
     except Exception as e:
         print(repr(e))
