@@ -15,9 +15,9 @@ import time
 from model.residual_attention_network import ResidualAttentionModel_92_32input_update as ResidualAttentionModel
 import os
 import ascend_function
-NPU_CALCULATE_DEVICE = 0
-if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
-    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
+DEVICE_ID= 0
+if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
+    DEVICE_ID= int(os.getenv('DEVICE_ID'))
 
 model_file = 'model_92_sgd_mixup300_normal20.pkl'
 
@@ -116,7 +116,7 @@ classes = ('plane', 'car', 'bird', 'cat',
 model = ResidualAttentionModel().npu()
 model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
 print(model)
 
 is_mixup = True

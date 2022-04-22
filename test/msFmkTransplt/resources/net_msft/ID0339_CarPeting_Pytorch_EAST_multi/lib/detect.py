@@ -10,9 +10,9 @@ from tqdm import tqdm
 from evaluate.script import getresult
 import os
 import ascend_function
-NPU_CALCULATE_DEVICE = 0
-if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
-    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
+DEVICE_ID= 0
+if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
+    DEVICE_ID= int(os.getenv('DEVICE_ID'))
 def resize_img(img,short_line=1024):
 	'''resize image to be divisible by 32
 	'''
@@ -152,7 +152,7 @@ def detect_17(img, model, device, short_line=864):
 	'''
 	img, ratio_h, ratio_w = resize_img(img,short_line= short_line)
 	with torch.no_grad():
-		score, geo = model(load_pil(img).to(f'npu:{NPU_CALCULATE_DEVICE}'))
+		score, geo = model(load_pil(img).to(f'npu:{DEVICE_ID}'))
 	boxes = get_boxes(score.squeeze(0).cpu().numpy(), geo.squeeze(0).cpu().numpy(), score_thresh=0.9, nms_thresh=0.3)
 
 	return adjust_ratio(boxes, ratio_w, ratio_h)
@@ -168,7 +168,7 @@ def detect_msra(img, model, device, short_line=448):
 	'''
 	img, ratio_h, ratio_w = resize_img(img,short_line= short_line)
 	with torch.no_grad():
-		score, geo = model(load_pil(img).to(f'npu:{NPU_CALCULATE_DEVICE}'))
+		score, geo = model(load_pil(img).to(f'npu:{DEVICE_ID}'))
 	boxes = get_boxes(score.squeeze(0).cpu().numpy(), geo.squeeze(0).cpu().numpy(), score_thresh=0.9, nms_thresh=0.2)
 
 	return adjust_ratio(boxes, ratio_w, ratio_h)
@@ -184,7 +184,7 @@ def detect_15(img, model, device, short_line=864):
 	'''
 	img, ratio_h, ratio_w = resize_img(img,short_line= short_line)
 	with torch.no_grad():
-		score, geo = model(load_pil(img).to(f'npu:{NPU_CALCULATE_DEVICE}'))
+		score, geo = model(load_pil(img).to(f'npu:{DEVICE_ID}'))
 	boxes = get_boxes(score.squeeze(0).cpu().numpy(), geo.squeeze(0).cpu().numpy(), score_thresh=0.9, nms_thresh=0.2)
 
 	return adjust_ratio(boxes, ratio_w, ratio_h)
@@ -227,11 +227,11 @@ if __name__ == '__main__':
 	img_path    = '/data/data_weijiawu/ICDAR17/val_image/'
 	model_path  = '/home/wwj/workspace/Sence_Text_detection/AAAI_EAST/Baseline/EAST_v1/worksapce/ICDAR17/best_model_aug.pth'
 	res_img     = '/home/wwj/workspace/Sence_Text_detection/AAAI_EAST/Baseline/EAST_v1/evaluate/result/'
-	device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
-	model = EAST().to(f'npu:{NPU_CALCULATE_DEVICE}')
+	device = torch.device(f'npu:{DEVICE_ID}')
+	model = EAST().to(f'npu:{DEVICE_ID}')
 	model = model.npu()
 	if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-		model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+		model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
 	model.module.load_state_dict(torch.load(model_path))
 	model.eval()
 

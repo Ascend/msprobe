@@ -17,9 +17,9 @@ import os
 from lib.utils import setup_logger
 import os
 import ascend_function
-NPU_CALCULATE_DEVICE = 0
-if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
-    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
+DEVICE_ID= 0
+if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
+    DEVICE_ID= int(os.getenv('DEVICE_ID'))
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -71,7 +71,7 @@ def train(epoch,  model, optimizer,train_loader_source,scheduler,criterion):
 
     for i, (img_target, gt_score_target, gt_geo_target, valid_map_target) in enumerate(train_loader_source):
         start_time = time.time()
-        img, gt_score, gt_geo, valid_map  = img_target.to(f'npu:{NPU_CALCULATE_DEVICE}'), gt_score_target.to(f'npu:{NPU_CALCULATE_DEVICE}'), gt_geo_target.to(f'npu:{NPU_CALCULATE_DEVICE}'), valid_map_target.to(f'npu:{NPU_CALCULATE_DEVICE}')
+        img, gt_score, gt_geo, valid_map  = img_target.to(f'npu:{DEVICE_ID}'), gt_score_target.to(f'npu:{DEVICE_ID}'), gt_geo_target.to(f'npu:{DEVICE_ID}'), valid_map_target.to(f'npu:{DEVICE_ID}')
 
         pred_score, pred_geo = model(img)
 
@@ -98,21 +98,21 @@ if __name__ == '__main__':
     os.makedirs(args.workspace, exist_ok=True)
     logger = setup_logger(os.path.join(args.workspace, 'train_MSRA_log'))
     criterion = Loss()
-    device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
+    device = torch.device(f'npu:{DEVICE_ID}')
     if args.gpu:
-        device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
+        device = torch.device(f'npu:{DEVICE_ID}')
     if args.npu:
-        device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
+        device = torch.device(f'npu:{DEVICE_ID}')
 
     model = EAST(pretrained=False)
     model = model.npu()
     if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
     # model = nn.DataParallel(model)
     data_parallel = False
     if torch.npu.device_count() > 1:
         data_parallel = True
-    model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+    model.to(f'npu:{DEVICE_ID}')
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[150,220], gamma=0.1)
 

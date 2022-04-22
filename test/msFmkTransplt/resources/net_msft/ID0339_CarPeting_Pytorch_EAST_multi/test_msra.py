@@ -13,9 +13,9 @@ import shutil
 from torchvision import transforms
 import os
 import ascend_function
-NPU_CALCULATE_DEVICE = 0
-if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
-    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
+DEVICE_ID= 0
+if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
+    DEVICE_ID= int(os.getenv('DEVICE_ID'))
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 parser = argparse.ArgumentParser(description='EAST reimplementation')
@@ -128,21 +128,21 @@ def test(model,args,ther_):
 
 if __name__ == '__main__':
 
-    device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
+    device = torch.device(f'npu:{DEVICE_ID}')
     if args.gpu:
-        device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
+        device = torch.device(f'npu:{DEVICE_ID}')
     if args.npu:
-        device = torch.device(f'npu:{NPU_CALCULATE_DEVICE}')
+        device = torch.device(f'npu:{DEVICE_ID}')
 
     model = EAST()
     model = model.npu()
     if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
     data_parallel = False
     # if torch.cuda.device_count() > 1:
     #     model = nn.DataParallel(model)
     #     data_parallel = True
-    model.to(f'npu:{NPU_CALCULATE_DEVICE}')
+    model.to(f'npu:{DEVICE_ID}')
     args.workspace = os.path.join(args.workspace, args.exp_name)
     args.resume = os.path.join(args.workspace,args.resume)
     print("loading pretrained model from ",args.resume)

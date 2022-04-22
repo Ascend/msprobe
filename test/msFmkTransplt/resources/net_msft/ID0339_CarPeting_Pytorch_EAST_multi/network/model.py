@@ -5,9 +5,9 @@ import torch.nn.functional as F
 import math
 import os
 import ascend_function
-NPU_CALCULATE_DEVICE = 0
-if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
-    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
+DEVICE_ID= 0
+if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
+    DEVICE_ID= int(os.getenv('DEVICE_ID'))
 
 
 cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']

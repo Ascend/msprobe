@@ -75,11 +75,11 @@ class TestRules(unittest.TestCase):
 
     def test_insert_main_file_rule(self):
         init_process_group_content = ["import torch.npu",
-                                      "if torch.npu.current_device() != NPU_CALCULATE_DEVICE:\n"
-                                      "    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')",
-                                      "NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))",
-                                      "RANK = int(os.getenv('RANK'))",
-                                      "torch.distributed.init_process_group('hccl', rank=RANK, world_size=NPU_WORLD_SIZE)"]
+                                      "if torch.npu.current_device() != DEVICE_ID:\n"
+                                      "    torch.npu.set_device(f'npu:{DEVICE_ID}')",
+                                      "RANK_SIZE = int(os.getenv('RANK_SIZE'))",
+                                      "RANK_ID = int(os.getenv('RANK_ID'))",
+                                      "torch.distributed.init_process_group('hccl', rank=RANK_ID, world_size=RANK_SIZE)"]
         rule = self.common_rule.InsertMainFileRule(init_process_group_content)
         test_cases = (
             (
@@ -93,11 +93,11 @@ if __name__ == '__main__':
                 ''',
                 '''import torch
 import torch.npu
-if torch.npu.current_device() != NPU_CALCULATE_DEVICE:
-    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')
-NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))
-RANK = int(os.getenv('RANK'))
-torch.distributed.init_process_group('hccl', rank=RANK, world_size=NPU_WORLD_SIZE)
+if torch.npu.current_device() != DEVICE_ID:
+    torch.npu.set_device(f'npu:{DEVICE_ID}')
+RANK_SIZE = int(os.getenv('RANK_SIZE'))
+RANK_ID = int(os.getenv('RANK_ID'))
+torch.distributed.init_process_group('hccl', rank=RANK_ID, world_size=RANK_SIZE)
 
 def train():
     pass
@@ -299,7 +299,7 @@ scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_iter // 2
                 '''model = EAST(pretrained=False)
 model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
 
 model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -315,7 +315,7 @@ scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_iter // 2
                 '''model, dataset = EAST(pretrained=False), DateSet()
 model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
 
 model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
@@ -342,7 +342,7 @@ model = model.to(device)
 model, opt = amp.initialize(model, opt)
 model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
                 '''
             ), (
                 '''import torch
@@ -373,7 +373,7 @@ if args.fp16:
     model, opt = amp.initialize(model, opt)
 model = model.npu()
 if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
 if args.resume:
     model = model.module.load_state_dict('model.npz')
     '''

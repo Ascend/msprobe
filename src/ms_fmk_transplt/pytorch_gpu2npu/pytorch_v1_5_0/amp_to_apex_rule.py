@@ -174,7 +174,7 @@ class Amp2Apex(RuleVisitor):
         if self.main_file_name:
             ddp_statement = libcst.parse_statement(
                 'if not isinstance(%s, torch.nn.parallel.DistributedDataParallel):\n'
-                '    %s = torch.nn.parallel.DistributedDataParallel(%s, device_ids=[NPU_CALCULATE_DEVICE], '
+                '    %s = torch.nn.parallel.DistributedDataParallel(%s, device_ids=[DEVICE_ID], '
                 'broadcast_buffers=False)' % (self.model_name, self.model_name, self.model_name))
             updated_nodes.append(ddp_statement)
             self.changes_info.append([original_position.start.line + 1,

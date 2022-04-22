@@ -23,14 +23,14 @@ from utils import AverageMeter, str2bool
 import torch.npu
 import os
 import ascend_function
-NPU_CALCULATE_DEVICE = 0
-if os.getenv('NPU_CALCULATE_DEVICE') and str.isdigit(os.getenv('NPU_CALCULATE_DEVICE')):
-    NPU_CALCULATE_DEVICE = int(os.getenv('NPU_CALCULATE_DEVICE'))
-if torch.npu.current_device() != NPU_CALCULATE_DEVICE:
-    torch.npu.set_device(f'npu:{NPU_CALCULATE_DEVICE}')
-NPU_WORLD_SIZE = int(os.getenv('NPU_WORLD_SIZE'))
-RANK = int(os.getenv('RANK'))
-torch.distributed.init_process_group('hccl', rank=RANK, world_size=NPU_WORLD_SIZE)
+DEVICE_ID= 0
+if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
+    DEVICE_ID= int(os.getenv('DEVICE_ID'))
+if torch.npu.current_device() != DEVICE_ID:
+    torch.npu.set_device(f'npu:{DEVICE_ID}')
+RANK_SIZE = int(os.getenv('RANK_SIZE'))
+RANK_ID = int(os.getenv('RANK_ID'))
+torch.distributed.init_process_group('hccl', rank=RANK_ID, world_size=RANK_SIZE)
 
 ARCH_NAMES = archs.__all__
 LOSS_NAMES = losses.__all__
@@ -231,7 +231,7 @@ def main():
                                            config['deep_supervision'])
     model = model.npu()
     if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[NPU_CALCULATE_DEVICE], broadcast_buffers=False)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
 
     model = model.npu()
 
