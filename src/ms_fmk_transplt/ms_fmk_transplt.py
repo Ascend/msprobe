@@ -115,6 +115,7 @@ class MsFmkTransplt(object):
                 self.__copy_function_pack('ascend_function')
             if args.modelarts:
                 self.__copy_function_pack('ascend_modelarts_function')
+            translog.info('MsFmkTransplt run success, welcome to the next use.')
         except BaseException as exp:
             translog.error(exp)
             translog.error('MsFmkTransplt run fail!')
@@ -124,7 +125,6 @@ class MsFmkTransplt(object):
                 utils.clear_parso_cache()
             self.__set_report_files_unmodifiable()
 
-        translog.info('MsFmkTransplt run success, welcome to the next use.')
         return 0
 
     def __set_report_files_unmodifiable(self):
