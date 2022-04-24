@@ -117,12 +117,23 @@ class MsFmkTransplt(object):
                 self.__copy_function_pack('ascend_modelarts_function')
         except BaseException as exp:
             translog.error(exp)
+            translog.error('MsFmkTransplt run fail!')
             return 1
         finally:
             if utils.IS_JEDI_INSTALLED:
                 utils.clear_parso_cache()
+            self.__set_report_files_unmodifiable()
 
+        translog.info('MsFmkTransplt run success, welcome to the next use.')
         return 0
+
+    def __set_report_files_unmodifiable(self):
+        for filename in ('msFmkTranspltlog.txt', 'unsupported_op.csv', 'change_list.csv'):
+            output_dir = os.path.dirname(self.output) if os.path.isfile(self.output) else self.output
+            file_path = os.path.join(output_dir, filename)
+            if not os.path.isfile(file_path):
+                continue
+            os.chmod(file_path, 0o440)
 
     def __para_check_valid(self, args):
         if os.path.islink(args.input):
@@ -266,8 +277,4 @@ class MsFmkTransplt(object):
 
 
 if __name__ == '__main__':
-    result = MsFmkTransplt().main()
-    if result != 0:
-        translog.error('MsFmkTransplt run fail!')
-        sys.exit(result)
-    translog.info('MsFmkTransplt run success, welcome to the next use.')
+    sys.exit(MsFmkTransplt().main())
