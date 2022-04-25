@@ -27,7 +27,7 @@ def init_logging_file(filename):
         os.makedirs(file_path)
 
     formatter = logger.Formatter(LOG_FORMAT, DATE_FORMAT)
-    file_handler = RotatingFileHandlerWithPermission(filename=filename, encoding="utf-8", maxBytes=100,
+    file_handler = RotatingFileHandlerWithPermission(filename=filename, encoding="utf-8", maxBytes=MAX_BYTES,
                                                      backupCount=BACKUP_COUNT)
     file_handler.setFormatter(formatter)
     logger.getLogger().addHandler(file_handler)
