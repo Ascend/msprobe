@@ -115,14 +115,27 @@ class MsFmkTransplt(object):
                 self.__copy_function_pack('ascend_function')
             if args.modelarts:
                 self.__copy_function_pack('ascend_modelarts_function')
+            translog.info('MsFmkTransplt run success, welcome to the next use.')
         except BaseException as exp:
             translog.error(exp)
+            translog.error('MsFmkTransplt run fail!')
             return 1
         finally:
             if utils.IS_JEDI_INSTALLED:
                 utils.clear_parso_cache()
+            self.__set_report_files_permission(0o440)
 
         return 0
+
+    def __set_report_files_permission(self, permission):
+        output_dir = os.path.dirname(self.output) if os.path.isfile(self.output) else self.output
+        report_files = ['msFmkTranspltlog.txt', 'unsupported_op.csv', 'change_list.csv']
+        report_files.extend(f'msFmkTranspltlog.txt.{idx}' for idx in range(1, translog.BACKUP_COUNT + 1))
+        for filename in report_files:
+            file_path = os.path.join(output_dir, filename)
+            if not os.path.isfile(file_path):
+                continue
+            os.chmod(file_path, permission)
 
     def __para_check_valid(self, args):
         if os.path.islink(args.input):
@@ -251,6 +264,7 @@ class MsFmkTransplt(object):
             self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
         if os.path.exists(self.output):
             utils.user_interactive_confirm('The output directory already exists. Do you want to overwrite?')
+            self.__set_report_files_permission(0o640)
             utils.remove_path(self.output)
 
     def __check_input_valid(self, args):
@@ -266,8 +280,4 @@ class MsFmkTransplt(object):
 
 
 if __name__ == '__main__':
-    result = MsFmkTransplt().main()
-    if result != 0:
-        translog.error('MsFmkTransplt run fail!')
-        sys.exit(result)
-    translog.info('MsFmkTransplt run success, welcome to the next use.')
+    sys.exit(MsFmkTransplt().main())
