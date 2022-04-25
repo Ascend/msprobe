@@ -123,17 +123,19 @@ class MsFmkTransplt(object):
         finally:
             if utils.IS_JEDI_INSTALLED:
                 utils.clear_parso_cache()
-            self.__set_report_files_unmodifiable()
+            self.__set_report_files_permission(0o440)
 
         return 0
 
-    def __set_report_files_unmodifiable(self):
-        for filename in ('msFmkTranspltlog.txt', 'unsupported_op.csv', 'change_list.csv'):
-            output_dir = os.path.dirname(self.output) if os.path.isfile(self.output) else self.output
+    def __set_report_files_permission(self, permission):
+        output_dir = os.path.dirname(self.output) if os.path.isfile(self.output) else self.output
+        report_files = ['msFmkTranspltlog.txt', 'unsupported_op.csv', 'change_list.csv']
+        report_files.extend(f'msFmkTranspltlog.txt.{idx}' for idx in range(1, translog.BACKUP_COUNT + 1))
+        for filename in report_files:
             file_path = os.path.join(output_dir, filename)
             if not os.path.isfile(file_path):
                 continue
-            os.chmod(file_path, 0o440)
+            os.chmod(file_path, permission)
 
     def __para_check_valid(self, args):
         if os.path.islink(args.input):
@@ -262,6 +264,7 @@ class MsFmkTransplt(object):
             self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
         if os.path.exists(self.output):
             utils.user_interactive_confirm('The output directory already exists. Do you want to overwrite?')
+            self.__set_report_files_permission(0o640)
             utils.remove_path(self.output)
 
     def __check_input_valid(self, args):

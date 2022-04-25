@@ -8,6 +8,8 @@ import os
 
 LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+BACKUP_COUNT = 10
+MAX_BYTES = 1024 ** 2
 progress_info = ''
 
 logger.basicConfig(level=logger.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
@@ -15,7 +17,6 @@ logger.basicConfig(level=logger.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 class RotatingFileHandlerWithPermission(RotatingFileHandler):
     def doRollover(self):
-        os.chmod(self.baseFilename, 0o440)
         super().doRollover()
         os.chmod(self.baseFilename, 0o640)
 
@@ -27,7 +28,7 @@ def init_logging_file(filename):
 
     formatter = logger.Formatter(LOG_FORMAT, DATE_FORMAT)
     file_handler = RotatingFileHandlerWithPermission(filename=filename, encoding="utf-8", maxBytes=100,
-                                                     backupCount=10)
+                                                     backupCount=BACKUP_COUNT)
     file_handler.setFormatter(formatter)
     logger.getLogger().addHandler(file_handler)
 
