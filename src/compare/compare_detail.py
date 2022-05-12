@@ -1,0 +1,139 @@
+#!/usr/bin/env python
+# coding=utf-8
+"""
+Function:
+DetailComparison class. This class mainly involves the compare function.
+Copyright Information:
+Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
+"""
+
+import os
+import fusion_rule_parser
+import utils
+import log
+
+from detail_writer import DetailWriter
+
+from detail import DetailInfo
+
+from compare_fusion_op import FusionOpComparison
+
+from const_manager import ConstManager
+
+from tensor_conversion import TensorConversion
+from compare_error import CompareError
+
+
+class DetailComparison:
+    """
+    The class for fusion op compare
+    """
+
+    def __init__(self: any, detail_info: DetailInfo, fusion_op_comparison: FusionOpComparison,
+                 output_path: str) -> None:
+        self.detail_info = detail_info
+        self.fusion_op_comparison = fusion_op_comparison
+        self.detail_writer = DetailWriter(output_path, detail_info)
+        self.fusion_op = None
+
+    def check_index_valid(self: any, my_output_data: any) -> None:
+        """
+        Check index valid
+        :param my_output_data: my output data
+        """
+        if self.detail_info.tensor_id.is_input():
+            count = len(my_output_data.input)
+        else:
+            count = len(my_output_data.output)
+        if self.detail_info.tensor_id.index >= count:
+            log.print_out_of_range_error(self.fusion_op.op_name, self.detail_info.tensor_id.tensor_type,
+                                         self.detail_info.tensor_id.index, '[0, %d)' % count)
+            raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
+
+    def compare(self: any) -> int:
+        """
+        Compare detail by op name
+        :return error_code
+        """
+        tensor_id = self.detail_info.tensor_id.get_tensor_id()
+        log.print_info_log('[%s] Start to compare detail for %s.'
+                           % (self.detail_info.tensor_id.op_name, tensor_id))
+        # get fusion op list by op name
+        tensor_list, dump_file_name = self._get_my_output_tensor_list()
+
+        # delete old result
+        try:
+            self.detail_writer.delete_old_detail_result_files()
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
+                MemoryError, KeyError, IOError) as error:
+            log.print_error_log('Failed to delete the old detail result file. %s' % error)
+            raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
+
+        # get right dump data by original op name and index
+        try:
+            ground_truth_tensor = \
+                self.fusion_op_comparison.get_right_dump_data(
+                    self.fusion_op, self.detail_info.tensor_id.index, self.detail_info.tensor_id.is_input())
+        except CompareError as compare_error:
+            if compare_error.code == CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR:
+                log.print_no_right_dump_file_error(self.fusion_op.op_name, tensor_id, is_error=True)
+            raise compare_error
+
+        # get format by right output info
+        self.detail_info.set_detail_format(utils.convert_shape_to_string(
+            tensor_list[self.detail_info.tensor_id.index].shape.dim),
+            tensor_list[self.detail_info.tensor_id.index].format,
+            ground_truth_tensor.format
+        )
+        # deserialize output data to array
+        tensor_conversion = TensorConversion(self.fusion_op, self.fusion_op_comparison.format_manager,
+                                             is_detail=True)
+        my_output_array, ground_truth_array, my_output_shape = \
+            tensor_conversion.get_my_output_and_ground_truth_data(
+                self.fusion_op_comparison.compare_data, tensor_list[self.detail_info.tensor_id.index],
+                ground_truth_tensor)
+        self.detail_writer.write(my_output_shape, my_output_array, ground_truth_array, dump_file_name)
+        return CompareError.MSACCUCMP_NONE_ERROR
+
+    def _print_l1_fusion_warning(self: any) -> None:
+        timestamp_list = self.fusion_op_comparison.sort_l1_fusion_dump_file()
+        max_timestamp_op_name = timestamp_list[-1][ConstManager.FUSION_OP_INDEX].op_name
+        if self.fusion_op.op_name != max_timestamp_op_name:
+            log.print_warn_log(
+                'The dump data of %s is incomplete, the comparison may be far away. '
+                'The dump data of %s may be complete, It is best to use %s for comparison.'
+                % (self.fusion_op.op_name, max_timestamp_op_name, max_timestamp_op_name))
+
+    def _get_my_output_tensor_by_op(self: any, relation: int) -> any:
+        my_output_data_path, my_output_data = \
+            self.fusion_op_comparison.compare_data.get_left_dump_data(self.fusion_op.op_name)
+        dump_file = os.path.basename(my_output_data_path)
+        self.check_index_valid(my_output_data)
+        if self.detail_info.tensor_id.is_input():
+            tensor_list = my_output_data.input
+        else:
+            if relation == utils.FusionRelation.L1Fusion:
+                self._print_l1_fusion_warning()
+            tensor_list = my_output_data.output
+        return tensor_list, dump_file
+
+    def _get_my_output_tensor_list(self: any) -> list:
+        self.fusion_op, fusion_op_list = self.detail_info.get_detail_op(
+            self.fusion_op_comparison.compare_rule.fusion_info)
+        if self.fusion_op.is_inner_node():
+            log.print_skip_inner_op_msg(self.fusion_op.op_name, is_error=True)
+            raise CompareError(CompareError.MSACCUCMP_UNSUPPORTED_COMPARE_ERROR)
+        if self.fusion_op.attr.quant_filter:
+            log.print_error_log("[{}] The -op param should not specify an operator in quant/dequant pair."
+                                .format(self.fusion_op.op_name))
+            raise CompareError(CompareError.MSACCUCMP_UNSUPPORTED_COMPARE_ERROR)
+        relation = fusion_rule_parser.get_relation_for_fusion(fusion_op_list)
+        try:
+            tensor_list, dumpfile = self._get_my_output_tensor_by_op(relation)
+        except CompareError as compare_error:
+            if compare_error.code == CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR:
+                log.print_no_left_dump_file_error(self.fusion_op.op_name, self.fusion_op.op_type, True)
+            raise compare_error
+        finally:
+            pass
+        return tensor_list, dumpfile

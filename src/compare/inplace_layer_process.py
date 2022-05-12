@@ -1,0 +1,140 @@
+#!/usr/bin/env python
+# coding=utf-8
+"""
+Function:
+RemoveInplaceLayerProcess class.
+This class mainly involves the remove_inplace_layer function.
+Copyright Information:
+Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
+"""
+
+import sys
+import stat
+import argparse
+import os
+import google.protobuf.text_format
+import caffe.proto.caffe_pb2 as caffe_pb2
+
+
+class RemoveInplaceLayerProcess:
+    """
+    The class for remove inplace layer for caffe prototxt
+    """
+
+    WRITE_FLAGS = os.O_WRONLY | os.O_CREAT
+    WRITE_MODES = stat.S_IWUSR | stat.S_IRUSR
+
+    def __init__(self: any) -> None:
+        parse = argparse.ArgumentParser()
+        parse.add_argument("-i", dest="input_file_path",
+                           help="<Required> the prototxt file path",
+                           required=True)
+        parse.add_argument("-o", dest="output_file_path",
+                           help="<Optional> the output file path")
+        args, _ = parse.parse_known_args(sys.argv[1:])
+        self.input_file_path = os.path.realpath(args.input_file_path)
+        if args.output_file_path:
+            self.output_file_path = os.path.realpath(args.output_file_path)
+        else:
+            self.output_file_path = os.path.join(
+                os.path.dirname(self.input_file_path),
+                "new_" + os.path.basename(self.input_file_path))
+        self.net_param = None
+        self.cur_layer_idx = -1
+
+    @staticmethod
+    def _check_file_valid(path: str, exist: bool) -> None:
+        exist_path = path
+        if not exist:
+            exist_path = os.path.dirname(exist_path)
+        if not os.path.exists(exist_path):
+            print('Error: The path "' + path + '" does not exist.')
+            raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        if exist and not os.path.isfile(path):
+            print('Error: The path "' + path + '" is not a file.')
+            raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+
+    def _handle_top(self: any, layer_item: any, layer_idx: int) -> (bool, str, str):
+        for (top_index, top_item) in enumerate(layer_item.top):
+            if layer_item.type == 'Dropout':
+                if len(layer_item.bottom) != 1:
+                    return True, '', ''
+                bottom_item = layer_item.bottom[0]
+                if top_item != bottom_item:
+                    layer_item.top[top_index] = bottom_item
+                    old_name = top_item
+                    new_name = bottom_item
+                    self.cur_layer_idx = layer_idx
+                    return True, old_name, new_name
+            elif top_item != layer_item.name:
+                if len(layer_item.top) == 1 and len(layer_item.bottom) == 1 \
+                        and layer_item.top[0] == layer_item.bottom[0]:
+                    layer_item.top[top_index] = layer_item.name
+                    old_name = top_item
+                    new_name = layer_item.name
+                    self.cur_layer_idx = layer_idx
+                    return True, old_name, new_name
+        return False, '', ''
+
+    def _find_name(self: any) -> (str, str):
+        for (layer_idx, layer_item) in enumerate(self.net_param.layer):
+            if layer_idx <= self.cur_layer_idx:
+                continue
+            ok, old_name, new_name = self._handle_top(layer_item, layer_idx)
+            if ok:
+                return old_name, new_name
+        return '', ''
+
+    def _parse_name(self: any, old_name: str, new_name: str) -> None:
+        for (layer_idx, layer_item) in enumerate(self.net_param.layer):
+            if layer_idx <= self.cur_layer_idx:
+                continue
+            for (bottom_index, bottom_item) in enumerate(layer_item.bottom):
+                if bottom_item == old_name:
+                    layer_item.bottom[bottom_index] = new_name
+            for (top_index, top_item) in enumerate(layer_item.top):
+                if top_item == old_name:
+                    layer_item.top[top_index] = new_name
+
+    def check_arguments_valid(self: any) -> None:
+        """
+        Check file valid.
+        """
+        self._check_file_valid(self.input_file_path, True)
+        self._check_file_valid(self.output_file_path, False)
+
+    def remove_inplace_layer(self: any) -> None:
+        """
+        remove inplace layer and save new layer to file
+        """
+        # check path valid
+        self.check_arguments_valid()
+
+        # read prototxt file
+        self.net_param = caffe_pb2.NetParameter()
+        with open(self.input_file_path, 'rb') as model_file:
+            google.protobuf.text_format.Parse(model_file.read(), self.net_param)
+
+        # parse net
+        while True:
+            old_name, new_name = self._find_name()
+            if not old_name and not new_name:
+                break
+            self._parse_name(old_name, new_name)
+
+        # remove Dropout type
+        for (_, layer_item) in enumerate(self.net_param.layer):
+            if layer_item.type == 'Dropout':
+                self.net_param.layer.remove(layer_item)
+
+        # write file to new path
+        with os.fdopen(os.open(self.output_file_path, self.WRITE_FLAGS, self.WRITE_MODES),
+                       'w') as open_file:
+            file_content = str(self.net_param)
+            open_file.write(file_content)
+        print('The "%s" has removed inplace layer.' % self.input_file_path)
+        print('The new prototxt file has been saved to "%s".' % self.output_file_path)
+
+
+if __name__ == "__main__":
+    RemoveInplaceLayerProcess().remove_inplace_layer()
