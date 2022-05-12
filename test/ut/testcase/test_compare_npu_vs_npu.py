@@ -1,0 +1,140 @@
+import unittest
+
+import struct
+import numpy as np
+import utils
+import dump
+import fusion_op
+import dump_data_pb2 as DD
+from unittest import mock
+from compare_error import CompareError
+from compare_npu_vs_npu import NpuVsNpuComparison
+from algorithm_manager import AlgorithmManager
+
+
+class TestUtilsMethods(unittest.TestCase):
+
+    def test_compare_npu_vs_npu1(self):
+        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        attr = fusion_op.OpAttr([], '', False, 6)
+        fusion_op_list = [fusion_op.FusionOp(4, 'aaa', [], 'Left', ['/home/left/aaa.aaa.21.333333'], attr)]
+        ret, match, result = NpuVsNpuComparison(compare_data, fusion_op_list,
+                                                AlgorithmManager('', 'all', '')).compare()
+        self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        self.assertEqual(match, False)
+        self.assertEqual(len(result), 1)
+        actual = ['4', 'aaa', '*', 'NaN', '[aaa] There is no right dump file for the op "aaa".']
+        self.assertEqual(result[0][0], actual[0])
+
+    def test_compare_npu_vs_npu2(self):
+        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        attr = fusion_op.OpAttr([], '', False, 6)
+        fusion_op_list = [fusion_op.FusionOp(6, 'xxx', [], 'Right', ['/home/right/aaa.aaa.21.333333'], attr)]
+        ret, match, result = NpuVsNpuComparison(compare_data, fusion_op_list,
+                                                AlgorithmManager('', 'all', '')).compare()
+        self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        self.assertEqual(match, False)
+        self.assertEqual(len(result), 1)
+        actual = ['6', '*', 'xxx', 'NaN', '[xxx] There is no left dump file for the op "xxx".']
+        self.assertEqual(result[0][0], actual[0])
+
+    def test_compare_npu_vs_npu3(self):
+        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        attr = fusion_op.OpAttr([], '', False, 6)
+        fusion_op_list = [
+            fusion_op.FusionOp(6, 'xxx', [], 'Left',
+                               ['/home/left/aaa.aaa.21.333333', '/home/left/aaa.aaa.21.433333'], attr),
+            fusion_op.FusionOp(6, 'xxx', [], 'Right', ['/home/right/aaa.aaa.21.333333'], attr)]
+        left_dump_data = DD.DumpData()
+        left_dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        right_dump_data = DD.DumpData()
+        right_dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        with mock.patch('utils.parse_dump_file',
+                        side_effect=[left_dump_data, right_dump_data]):
+            ret, match, result = NpuVsNpuComparison(compare_data,
+                                                    fusion_op_list, AlgorithmManager('', 'all', '')).compare()
+        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+        self.assertEqual(match, True)
+        self.assertEqual(len(result), 1)
+        actual = ['6', 'xxx', 'xxx', 'NaN',
+                  '[xxx] The number of output does not match (0 vs 1).,[xxx] The number of input does not match (1 vs 0).']
+        self.assertEqual(result[0][0], actual[0])
+
+    def test_compare_npu_vs_npu4(self):
+        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        attr = fusion_op.OpAttr([], '', False, 6)
+        fusion_op_list = [
+            fusion_op.FusionOp(6, 'aaa', [], 'Left', ['/home/left/aaa.aaa.21.999999'], attr),
+            fusion_op.FusionOp(6, 'aaa', [], 'Right', ['/home/right/aaa.aaa.21.999999'], attr)]
+        left_dump_data = DD.DumpData()
+        left_dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        args = ['aaa.py', 'compare', '-m', '/home/left.bin', '-g',
+                '/home/right.bin']
+        with mock.patch('utils.parse_dump_file',
+                        side_effect=[left_dump_data, left_dump_data]):
+            with mock.patch('sys.argv', args):
+                manager = AlgorithmManager('', 'all', '')
+                ret, match, result = NpuVsNpuComparison(compare_data, fusion_op_list, manager).compare()
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+        self.assertEqual(match, True)
+        self.assertEqual(len(result), 1)
+        actual = ['6', 'aaa', 'float32', 'aaa', 'float32', 'aaa:input:0', '[1,3,4,4]', '1.000000', '0.000000', '0.000000', '0.000000',
+                  '0.000000', '(23.500;13.853),(23.500;13.853)', '0.000000', '0.000000', 'NaN', 'NaN',
+                  'Cannot compare by MaxRelativeError, The data contains 0 or nan in /home/left/aaa.aaa.21.999999 or /home/right/aaa.aaa.21.999999.,'
+                  'Cannot compare by MeanRelativeError, The data contains 0 or nan in /home/left/aaa.aaa.21.999999 or /home/right/aaa.aaa.21.999999.']
+        self.assertEqual(result[0], actual)
+
+    def test_compare_npu_vs_npu5(self):
+        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        attr = fusion_op.OpAttr([], '', False, 6)
+        fusion_op_list = [
+            fusion_op.FusionOp(6, 'aaa', [], 'Left', ['/home/left/aaa.aaa.21.333333'], attr),
+            fusion_op.FusionOp(6, 'aaa', [], 'Right', ['/home/right/aaa.aaa.21.333333'], attr)]
+        left_dump_data = DD.DumpData()
+        left_dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        right_dump_data = DD.DumpData()
+        right_dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 2, 4, 4]))
+        with mock.patch('utils.parse_dump_file',
+                        side_effect=[right_dump_data, left_dump_data]):
+            ret, match, result = NpuVsNpuComparison(compare_data,
+                                                    fusion_op_list, AlgorithmManager('', 'all', '')).compare()
+        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+        self.assertEqual(match, True)
+
+    @staticmethod
+    def _make_op_output(dd_format, shape):
+        op_output = DD.OpOutput()
+        op_output.data_type = DD.DT_FLOAT
+        op_output.format = dd_format
+        length = 1
+        if shape is None:
+            length = 20
+        else:
+            for dim in shape:
+                op_output.shape.dim.append(dim)
+                length *= dim
+        data_list = np.arange(length)
+        origin_numpy = np.array(data_list, np.float16)
+        op_output.data = struct.pack('f' * length, *origin_numpy)
+        return op_output
+
+    @staticmethod
+    def _make_op_input(dd_format, shape):
+        op_input = DD.OpInput()
+        op_input.data_type = DD.DT_FLOAT
+        op_input.format = dd_format
+        length = 1
+        if shape is None:
+            length = 20
+        else:
+            for dim in shape:
+                op_input.shape.dim.append(dim)
+                length *= dim
+        data_list = np.arange(length)
+        origin_numpy = np.array(data_list, np.float16)
+        op_input.data = struct.pack('f' * length, *origin_numpy)
+        return op_input
+
+
+if __name__ == '__main__':
+    unittest.main()

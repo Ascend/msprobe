@@ -1,0 +1,375 @@
+import unittest
+
+import struct
+import pytest
+import numpy as np
+import utils
+from format_manager import FormatManager
+from format_manager import ShapeConversion
+from format_manager import SrcToDest
+import dump_data_pb2 as DD
+from compare_error import CompareError
+from unittest import mock
+
+
+class TestUtilsMethods(unittest.TestCase):
+
+    def test_check_arguments_valid1(self):
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        self.assertEqual(len(manager.custom_support_format), 0)
+        self.assertEqual(len(manager.built_in_support_format), 17)
+
+    def test_check_arguments_valid2(self):
+        with pytest.raises(CompareError) as error:
+            with mock.patch('utils.check_path_valid', return_value=2):
+                manager = FormatManager("/home/gzj")
+                manager.check_arguments_valid()
+        self.assertEqual(error.value.args[0], 2)
+
+    def test_check_arguments_valid3(self):
+        with pytest.raises(CompareError) as error:
+            with mock.patch('utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch('os.path.exists', return_value=False):
+                    manager = FormatManager("/home/gzj")
+                    manager.check_arguments_valid()
+        self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR)
+
+    def test_check_arguments_valid4(self):
+        with pytest.raises(CompareError) as error:
+            with mock.patch('utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch('os.listdir',
+                                return_value=['xxx', 'ccc', 'ddd', 'eee']), \
+                     mock.patch('os.path.exists', return_value=True), \
+                     mock.patch('os.path.isdir', return_value=True):
+                    manager = FormatManager("/home/gzj")
+                    manager.check_arguments_valid()
+        self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR)
+
+    def test_check_arguments_valid5(self):
+        with pytest.raises(CompareError) as error:
+            with mock.patch('utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch('os.listdir',
+                                return_value=['xxx', 'ccc', 'ddd', 'eee']), \
+                     mock.patch('os.path.exists', return_value=True), \
+                     mock.patch('os.path.isdir', return_value=False):
+                    manager = FormatManager("/home/gzj")
+                    manager.check_arguments_valid()
+        self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR)
+
+    def test_check_arguments_valid6(self):
+        with pytest.raises(CompareError) as error:
+            with mock.patch('utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch('os.listdir',
+                                return_value=['convert_xxx_to_yyx.py',
+                                              'convert_xxx_to1_yyx.py']), \
+                     mock.patch('os.path.exists', return_value=True), \
+                     mock.patch('os.path.isdir', return_value=False):
+                    manager = FormatManager("/home/gzj")
+                    manager.check_arguments_valid()
+        self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR)
+
+    def test_execute_format_convert1(self):
+        format_from = DD.FORMAT_NC1HWC0
+        format_to = DD.FORMAT_MD
+        shape_from = self._make_shape([1, 2, 2, 2, 2])
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        with pytest.raises(utils.CompareError) as error:
+            manager = FormatManager("")
+            manager.check_arguments_valid()
+            manager.execute_format_convert(SrcToDest(format_from, format_to, shape_from, shape_to), array,
+                                           {'group': 1})
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
+
+    def test_convert_shape1(self):
+        format_from = DD.FORMAT_ND
+        format_to = DD.FORMAT_NCHW
+        shape_from = self._make_shape([1, 2, 2, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = np.arange(5)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        with pytest.raises(utils.CompareError) as error:
+            ShapeConversion(manager).convert_shape(
+                SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+
+    def test_convert_shape2(self):
+        format_from = DD.FORMAT_NC1HWC0
+        format_to = DD.FORMAT_MD
+        shape_from = self._make_shape([1, 2, 2, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        with pytest.raises(utils.CompareError) as error:
+            ShapeConversion(manager).convert_shape(
+                SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
+
+    def test_convert_shape3(self):
+        format_from = DD.FORMAT_FRACTAL_NZ
+        format_to = DD.FORMAT_NCHW
+        shape_from = self._make_shape([1, 2, 2, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+
+        with pytest.raises(utils.CompareError) as error:
+            ShapeConversion(manager).convert_shape(
+                SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR)
+
+    def test_convert_shape4(self):
+        format_from = DD.FORMAT_NC1HWC0
+        format_to = DD.FORMAT_NHWC
+        shape_from = self._make_shape([1, 2, 2, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 16)
+
+    def test_convert_shape5(self):
+        format_from = DD.FORMAT_NC1HWC0
+        format_to = DD.FORMAT_HWCN
+        shape_from = self._make_shape([1, 2, 2, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 16)
+
+    def test_convert_shape6(self):
+        format_from = DD.FORMAT_NC1HWC0
+        format_to = DD.FORMAT_NCHW
+        shape_from = self._make_shape([1, 2, 2, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 16)
+
+    def test_convert_shape7(self):
+        format_from = DD.FORMAT_HWCN
+        format_to = DD.FORMAT_NCHW
+        shape_from = self._make_shape([1, 4, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 16)
+
+    def test_convert_shape8(self):
+        format_from = DD.FORMAT_HWCN
+        format_to = DD.FORMAT_NHWC
+        shape_from = self._make_shape([1, 4, 2, 2])
+        shape_to = self._make_shape([1, 3, 2, 2])
+        group = 1
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 16)
+
+    def test_convert_shape9(self):
+        format_from = DD.FORMAT_HWCN
+        format_to = DD.FORMAT_FRACTAL_Z
+        shape_from = self._make_shape([1, 4, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 1024)
+
+    def test_convert_shape10(self):
+        format_from = DD.FORMAT_NHWC
+        format_to = DD.FORMAT_NCHW
+        shape_from = self._make_shape([1, 4, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 16)
+
+    def test_convert_shape11(self):
+        format_from = DD.FORMAT_NHWC
+        format_to = DD.FORMAT_HWCN
+        shape_from = self._make_shape([1, 4, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 16)
+
+    def test_convert_shape12(self):
+        format_from = DD.FORMAT_NHWC
+        format_to = DD.FORMAT_FRACTAL_Z
+        shape_from = self._make_shape([1, 4, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 3, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 2048)
+
+    def test_convert_shape13(self):
+        format_from = DD.FORMAT_FRACTAL_NZ
+        format_to = DD.FORMAT_NCHW
+        shape_from = self._make_shape([2, 16, 16, 16])
+        group = 1
+        shape_to = self._make_shape([256, 32])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 2)
+        self.assertEqual(data.size, 256 * 32)
+
+    def test_convert_shape14(self):
+        format_from = DD.FORMAT_FRACTAL_NZ
+        format_to = DD.FORMAT_ND
+        shape_from = self._make_shape([2, 16, 16, 16])
+        group = 1
+        shape_to = self._make_shape([256, 32])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 2)
+        self.assertEqual(data.size, 256 * 32)
+
+    def test_convert_shape15(self):
+        format_from = DD.FORMAT_NCHW
+        format_to = DD.FORMAT_FRACTAL_Z
+        shape_from = self._make_shape([1, 3, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 2, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 1024)
+
+    def test_convert_shape16(self):
+        format_from = DD.FORMAT_NCHW
+        format_to = DD.FORMAT_NHWC
+        shape_from = self._make_shape([1, 3, 2, 2])
+        group = 1
+        shape_to = self._make_shape([1, 2, 2, 2])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 4)
+        self.assertEqual(data.size, 12)
+
+    def test_convert_shape17(self):
+        format_from = DD.FORMAT_FRACTAL_NZ
+        format_to = DD.FORMAT_NHWC
+        shape_from = self._make_shape([1, 4, 2, 16, 16, 16])
+        group = 1
+        shape_to = self._make_shape([4, 256, 32])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(len(data.shape), 3)
+        self.assertEqual(data.size, 256 * 32 * 4)
+
+    def test_convert_shape_fractal_nz_to_nd_array_not_eaual_shape(self):
+        format_from = DD.FORMAT_FRACTAL_NZ
+        format_to = DD.FORMAT_ND
+        shape_from = self._make_shape([20, 2, 16, 16])
+        group = 1
+        shape_to = self._make_shape([1, 32, 12, 26])
+        array = self._make_numpy_array(shape_from.dim)
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        data = ShapeConversion(manager).convert_shape(
+            SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
+        self.assertEqual(data.size, 20 * 2 * 16 * 16)
+
+    @staticmethod
+    def _make_numpy_array(shape_from):
+        count = 1
+        for dim in shape_from:
+            count *= dim
+        return np.arange(count).flatten()
+
+    @staticmethod
+    def _make_shape(dim_list):
+        shape = DD.Shape()
+        for dim in dim_list:
+            shape.dim.append(dim)
+        return shape
+
+    @staticmethod
+    def _make_op_output(dd_format, shape):
+        op_output = DD.OpOutput()
+        op_output.data_type = DD.DT_FLOAT16
+        op_output.format = dd_format
+        length = 1
+        for dim in shape:
+            op_output.shape.dim.append(dim)
+            length *= dim
+        data_list = np.arange(length)
+        origin_numpy = np.array(data_list, np.float16)
+        op_output.data = struct.pack('e' * length, *origin_numpy)
+        return op_output
+
+
+if __name__ == '__main__':
+    unittest.main()
