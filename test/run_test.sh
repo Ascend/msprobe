@@ -7,13 +7,13 @@ SRC_DIR=${TOP_DIR}/"src"
 
 clean() {
   cd ${TEST_DIR}
-  if [ -e st_report ]; then
-    rm -r st_report
+  if [ -e st_report.xml ]; then
+    rm st_report.xml
     echo "remove last st_report success"
   fi
 
-  if [ -e ut_report ]; then
-    rm -r ut_report
+  if [ -e ut_report.xml ]; then
+    rm -r ut_report.xml
     echo "remove last ut_report success"
   fi
 
