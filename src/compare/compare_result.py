@@ -137,6 +137,7 @@ class FusionOpComResult:
             for item in tensor_result:
                 result = [str(fusion_op.op_id), my_output_op, str(item.get_my_output_dtype()), ground_truth_op,
                           str(item.get_ground_truth_dtype())] + item.get_result()
+                RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
         else:

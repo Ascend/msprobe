@@ -500,7 +500,7 @@ class DetailWriter:
             log.print_warn_log('Boolean data does not support calculate Relative Error or Absolute Error!')
             content = content.replace('nan', '-')
         old_file_name = "%s_summary.txt" % (self.detail_info.tensor_id.get_file_prefix())
-        new_file_name = self._handle_too_long_file_name(old_file_name, ConstManager.TXT_SUFFIX)
+        new_file_name = self._handle_too_long_file_name(old_file_name, ConstManager.SUMMARY_TXT_SUFFIX)
         summary_file_path = os.path.join(self.output_path, new_file_name)
         try:
             with os.fdopen(os.open(summary_file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),

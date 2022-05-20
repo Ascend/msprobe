@@ -71,6 +71,7 @@ class ConstManager:
     CSV_SUFFIX = ".csv"
     TXT_SUFFIX = ".txt"
     NPY_SUFFIX = '.npy'
+    SUMMARY_TXT_SUFFIX = "_summary.txt"
     SIMPLE_OP_MAPPING_FILE_NAME = "simple_op_mapping.csv"
 
     FUSION_OP_INDEX = 1
