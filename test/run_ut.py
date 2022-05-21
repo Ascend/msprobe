@@ -3,14 +3,13 @@ import subprocess
 
 
 def run_ut():
-    ut_path = os.path.abspath("ut/testcase/")
-    src_path = os.path.abspath("compare/")
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    ut_path = os.path.join(cur_dir, "ut/testcase/")
     src_name = "compare"
-    cur_dir = os.path.abspath('.')
 
-    cmd = ['python3.7', '-m', 'pytest', ut_path,
-           '--cov=' + src_name, '--cov-report=xml:' + cur_dir + '/ut_report.xml']
-    print(cmd)
+    cmd = ['python3.9', '-m', 'pytest', ut_path,
+           '--cov=' + src_name, '--cov-report=xml:'
+           + os.path.join(cur_dir, 'ut_report.xml')]
 
     result_ut = subprocess.Popen(cmd, shell=False,
                                  stdout=subprocess.PIPE,

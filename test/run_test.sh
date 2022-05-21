@@ -46,17 +46,18 @@ main() {
 
   if [[ $1 == "ut" ]] || [[ $1 == "st" ]]; then
     if [ $1 == "ut" ]; then
-      echo "start run ut"
+      echo "--------------------start run ut--------------------"
       run_ut
     elif [ $1 == "st" ]; then
-      echo "start run st"
+      echo "--------------------start run st--------------------"
       run_st
     fi
   else
-    echo "start run ut and st"
+    echo "--------------------start test--------------------"
     run_ut
     run_st
   fi
+  echo "--------------------end test--------------------"
 }
 
 main $@

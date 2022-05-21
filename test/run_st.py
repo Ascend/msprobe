@@ -3,14 +3,13 @@ import subprocess
 
 
 def run_st():
-    st_path = os.path.abspath("st/testcase/")
-    src_path = os.path.abspath("compare/")
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    st_path = os.path.join(cur_dir, "st/testcase/")
     src_name = "compare"
-    cur_dir = os.path.abspath('.')
 
-    cmd = ['python3.7', '-m', 'pytest', st_path,
-           '--cov=' + src_name, '--cov-report=xml:' + cur_dir + '/st_report.xml']
-    print(cmd)
+    cmd = ['python3.9', '-m', 'pytest', st_path,
+           '--cov=' + src_name, '--cov-report=xml:'
+           + os.path.join(cur_dir, 'st_report.xml')]
 
     result_st = subprocess.Popen(cmd, shell=False,
                                  stdout=subprocess.PIPE,

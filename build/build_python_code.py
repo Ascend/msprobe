@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 import logging
+import subprocess
 
 LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -23,6 +24,31 @@ def clear_output(output_path):
         logging.info('Clean %s', output_path)
 
 
+def generate_dump_data_api():
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    top_dir = os.path.abspath(os.path.dirname(cur_dir))
+    dump_proto_dir = os.path.join(top_dir, 'resource/')
+    dump_proto_path = os.path.join(dump_proto_dir, 'dump_data.proto')
+    src_compare_path = os.path.join(top_dir, 'src/compare')
+
+    cmd = ['protoc', '-I=' + dump_proto_dir,
+           '--python_out=' + src_compare_path, dump_proto_path]
+
+    gen_api = subprocess.Popen(cmd, shell=False,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
+
+    while gen_api.poll():
+        line = gen_api.stdout.readline()
+        if line:
+            logging.info("Failed to generate dump_data_pb2.py")
+            break
+
+    api_path = os.path.join(src_compare_path, 'dump_data_pb2.py')
+    if os.path.exists(api_path):
+        logging.info('dump_data_pb2.py is correctly generated to %s', src_compare_path)
+
+
 def main():
     build_dir = os.path.dirname(os.path.realpath(__file__))
     output_dir = os.path.join(build_dir, 'output')
@@ -30,6 +56,8 @@ def main():
 
     clear_output(output_dir)
     os.mkdir(output_dir)
+
+    generate_dump_data_api()
 
     for mod, mod_out in ALL_MODULES.items():
         mod_dir = os.path.join(code_src_dir, mod)
