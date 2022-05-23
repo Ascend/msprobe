@@ -20,3 +20,7 @@ make_protobuf() {
   fi
   cmake . -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_SKIP_RPATH=TRUE && make -j16
 }
+
+main() {
+  make_protobuf
+}
