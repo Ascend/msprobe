@@ -24,6 +24,10 @@ def clear_output(output_path):
         logging.info('Clean %s', output_path)
 
 
+def prepare_third_party_tool():
+    os.system("bash prepare_thirdparty_tool.sh")
+
+
 def generate_dump_data_api():
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     top_dir = os.path.abspath(os.path.dirname(cur_dir))
@@ -58,6 +62,7 @@ def main():
     clear_output(output_dir)
     os.mkdir(output_dir)
 
+    prepare_third_party_tool()
     generate_dump_data_api()
 
     for mod, mod_out in ALL_MODULES.items():
