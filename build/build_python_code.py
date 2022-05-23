@@ -30,8 +30,9 @@ def generate_dump_data_api():
     dump_proto_dir = os.path.join(top_dir, 'resource/')
     dump_proto_path = os.path.join(dump_proto_dir, 'dump_data.proto')
     src_compare_path = os.path.join(top_dir, 'src/compare')
+    protoc = os.path.join(top_dir, "opensource/cmake/protoc")
 
-    cmd = ['protoc', '-I=' + dump_proto_dir,
+    cmd = [protoc, '-I=' + dump_proto_dir,
            '--python_out=' + src_compare_path, dump_proto_path]
 
     gen_api = subprocess.Popen(cmd, shell=False,
