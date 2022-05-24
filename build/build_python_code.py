@@ -25,7 +25,29 @@ def clear_output(output_path):
 
 
 def prepare_third_party_tool():
-    os.system("bash prepare_thirdparty_tool.sh")
+    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    prepare_shell = os.path.join(cur_dir, "prepare_thirdparty_tool.sh")
+
+    cmd = ["bash", prepare_shell]
+    logging.info("--------------------start compile protobuf"
+                 + "--------------------")
+    prepare_protoc = subprocess.Popen(cmd, shell=False,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT)
+
+    while prepare_protoc.poll() is None:
+        line = prepare_protoc.stdout.readline()
+        line = line.strip()
+        if line:
+            logging.info(line)
+
+    top_dir = os.path.join(os.path.dirname(cur_dir))
+    protoc_dir = os.path.join(top_dir, "opensource/protobuf/cmake/protoc")
+    if os.path.exists(protoc_dir):
+        result = "Compile protobuf success."
+    else:
+        result = "Compile protobuf failed."
+    logging.info("--------------------" + result + "--------------------")
 
 
 def generate_dump_data_api():
@@ -34,24 +56,29 @@ def generate_dump_data_api():
     dump_proto_dir = os.path.join(top_dir, 'resource/')
     dump_proto_path = os.path.join(dump_proto_dir, 'dump_data.proto')
     src_compare_path = os.path.join(top_dir, 'src/compare')
-    protoc = os.path.join(top_dir, "opensource/cmake/protoc")
+    protoc_dir = os.path.join(top_dir, "opensource/protobuf/cmake/protoc")
 
-    cmd = [protoc, '-I=' + dump_proto_dir,
+    if not os.path.exists(protoc_dir):
+        logging.info(protoc_dir, "is not exist.")
+
+    cmd = [protoc_dir, '-I=' + dump_proto_dir,
            '--python_out=' + src_compare_path, dump_proto_path]
 
     gen_api = subprocess.Popen(cmd, shell=False,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
 
-    while gen_api.poll():
+    while gen_api.poll() is None:
         line = gen_api.stdout.readline()
+        line = line.strip()
         if line:
             logging.info("Failed to generate dump_data_pb2.py")
             break
 
     api_path = os.path.join(src_compare_path, 'dump_data_pb2.py')
     if os.path.exists(api_path):
-        logging.info('dump_data_pb2.py is correctly generated to %s', src_compare_path)
+        logging.info('dump_data_pb2.py is correctly generated to %s',
+                     src_compare_path)
 
 
 def main():

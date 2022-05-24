@@ -1,7 +1,8 @@
 #!/bin/bash
 # This script is used to run ut and st testcase.
 # Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
-TOP_DIR=$(dirname $(pwd))
+CUR_DIR=$(dirname $(readlink -f $0))
+TOP_DIR=${CUR_DIR}/..
 TEST_DIR=${TOP_DIR}/"test"
 SRC_DIR=${TOP_DIR}/"src"
 
@@ -23,7 +24,26 @@ clean() {
   fi
 }
 
+gen_dump_api() {
+  cd ${CUR_DIR}
+  local top_dir=$(dirname $(pwd))
+
+  local protoc_path=${top_dir}/opensource/protobuf/cmake/protoc
+  local make_proto_sh=${top_dir}/build/prepare_thirdparty_tool.sh
+  if [ ! -e protoc_path ]; then
+    bash $make_proto_sh
+  fi
+
+  local proto_path=${top_dir}/resource
+  local output_path=${top_dir}/src/compare
+  ${protoc_path} -I=${proto_path} --python_out=${output_path} ${proto_path}/dump_data.proto
+}
+
 copy_src() {
+  local dump_api=${SRC_DIR}/compare/dump_data_pb2.py
+  if [ ! -e ${dump_api} ]; then
+    gen_dump_api
+  fi
   local src_pkg="compare.tar.gz"
   cd ${SRC_DIR}
   tar -zcf src_pkg compare
@@ -45,19 +65,11 @@ main() {
   copy_src
 
   if [[ $1 == "ut" ]] || [[ $1 == "st" ]]; then
-    if [ $1 == "ut" ]; then
-      echo "--------------------start run ut--------------------"
-      run_ut
-    elif [ $1 == "st" ]; then
-      echo "--------------------start run st--------------------"
-      run_st
-    fi
+    [ $1 == "ut" ] && run_ut
+    [ $1 == "st" ] && run_st
   else
-    echo "--------------------start test--------------------"
-    run_ut
-    run_st
+    run_ut && run_st
   fi
-  echo "--------------------end test--------------------"
 }
 
 main $@
