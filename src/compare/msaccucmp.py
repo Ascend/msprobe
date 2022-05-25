@@ -46,6 +46,11 @@ def _get_algorithm_help_info() -> str:
 
 
 def _get_algorithm_help_info_for_int(default_value_list: list) -> str:
+    """
+    get algorithm help info for int
+    :param default_value_list:
+    :return:
+    """
     algorithm_help_info = ['<Optional> the algorithm selection, ']
     for index, item in enumerate(ConstManager.BUILT_IN_ALGORITHM):
         algorithm_help_info.append("".join([str(index), ":", item, ", "]))
