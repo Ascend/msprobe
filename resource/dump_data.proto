@@ -96,7 +96,6 @@ message OpOutput{
     uint64 size = 6;
     Shape original_shape = 7;
     int32 sub_format = 8;
-    uint64 address = 9;
 }
 
 message OpInput{
@@ -107,7 +106,6 @@ message OpInput{
     uint64 size = 5;
     Shape original_shape = 6;
     int32 sub_format = 7;
-    uint64 address = 8;
 }
 
 enum BufferType{
