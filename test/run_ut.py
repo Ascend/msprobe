@@ -14,7 +14,7 @@ def run_ut():
 
     os.makedirs(report_dir)
 
-    cmd = ['python3.7', '-m', 'pytest', ut_path, '--junitxml=' + report_dir + '/final.xml',
+    cmd = ['python3', '-m', 'pytest', ut_path, '--junitxml=' + report_dir + '/final.xml',
            '--cov=' + src_name, '--cov-branch', '--cov-report=xml:' + report_dir + '/coverage.xml']
 
     result_ut = subprocess.Popen(cmd, shell=False,

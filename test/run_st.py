@@ -7,7 +7,7 @@ def run_st():
     st_path = os.path.join(cur_dir, "st/testcase/")
     src_name = "compare"
 
-    cmd = ['python3.9', '-m', 'pytest', st_path,
+    cmd = ['python3', '-m', 'pytest', st_path,
            '--cov=' + src_name, '--cov-report=xml:'
            + os.path.join(cur_dir, 'st_report.xml')]
 
