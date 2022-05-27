@@ -466,6 +466,7 @@ import torch
 
 def save_checkpoint(state, is_best, filename='checkpoint.ckpt'):
     torch.save(state, filename)
+    data = [(str.title if meta["species"] == "cat" else str.lower)(part) for part in meta["cls"].split()]
     if is_best:
         shutil.copyfile(filename, dst='model_best.ckpt')
 
@@ -475,6 +476,7 @@ import torch
 
 def save_checkpoint(state, is_best, filename='checkpoint.ckpt'):
     torch.save(state, ModelArtsPathManager().get_path(filename))
+    data = [(str.title if meta["species"] == "cat" else str.lower)(part) for part in meta["cls"].split()]
     if is_best:
         shutil.copyfile(ModelArtsPathManager().get_path(filename), dst=ModelArtsPathManager().get_path('model_best.ckpt'))
 
