@@ -59,6 +59,8 @@ class ModelArtsPathWrapperRule(RuleVisitor):
             self, original_node: "libcst.Call", updated_node: "libcst.Call"
     ) -> "libcst.BaseExpression":
         full_name = self.get_full_name_for_node(original_node)
+        if full_name is None:
+            return updated_node
         api_name, api_info = self._get_mapped_info(full_name)
         if api_info is None:
             return updated_node
