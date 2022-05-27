@@ -1,0 +1,195 @@
+#!/usr/bin/env python
+# coding=utf-8
+"""
+Function:
+This FusionOpComResult class. This file mainly involves the get_result function.
+Copyright Information:
+Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
+"""
+
+import fusion_rule_parser
+import log
+
+from const_manager import ConstManager
+from range_manager import RangeManager
+from algorithm_manager import AlgorithmManager
+
+from fusion_op import FusionOp
+
+
+class TensorResult:
+    """
+    The class for tensor result result
+    """
+
+    def __init__(self: any, tensor_id: any, shape: list, result: list, error_msg: list,
+                 my_output_dtype: str = "NaN", ground_truth_dtype: str = "NaN") -> None:
+        self.tensor_id = tensor_id
+        self.shape = shape
+        self.algorithm_result = result[0]
+        self.error_msg = error_msg
+        self.overflow_result = result[1]
+        self.my_output_dtype = my_output_dtype
+        self.ground_truth_dtype = ground_truth_dtype
+
+    def get_result(self: any) -> list:
+        """
+        Get tensor result list
+        :return [tensor_id, shape, algorithm_result, error_msg]
+        """
+        shape_str = '[%s]' % ",".join(map(str, self.shape))
+        if self.overflow_result:
+            result = [shape_str] + [self.overflow_result] + self.algorithm_result + [",".join(self.error_msg)]
+        else:
+            result = [shape_str] + self.algorithm_result + [",".join(self.error_msg)]
+
+        if self.tensor_id:
+            return [self.tensor_id] + result
+        return result
+
+    def get_algorithm_result(self: any) -> list:
+        """
+        Get algorithm result
+        """
+        return self.algorithm_result
+
+    def get_my_output_dtype(self):
+        return self.my_output_dtype
+
+    def get_ground_truth_dtype(self):
+        return self.ground_truth_dtype
+
+
+class PytorchOpInfo:
+    """
+    The class for pytorch op info
+    """
+
+    def __init__(self: any, index: int, op_name: str, my_dump_path: str, ground_truth_dump_path: str) -> None:
+        self.index = index
+        self.op_name = op_name
+        self.my_dump_path = my_dump_path
+        self.ground_truth_dump_path = ground_truth_dump_path
+
+    def get_result(self: any) -> list:
+        """
+        Get op info result
+        :return [index, op_name, my_dump_path, ground_truth_dump_path]
+        """
+        return [str(self.index), self.op_name, self.my_dump_path, self.ground_truth_dump_path]
+
+    def get_op_name(self: any) -> str:
+        """
+        Get op name
+        """
+        return self.op_name
+
+
+class FusionOpComResult:
+    """
+    The class for fusion op compare result
+    """
+
+    def __init__(self: any, algorithm_manager: AlgorithmManager, ground_truth_to_my_output_map: any = None,
+                 overflow_detection: bool = False) -> None:
+        self.algorithm_manager = algorithm_manager
+        self.ground_truth_to_my_output_map = ground_truth_to_my_output_map
+        self.overflow_detection = overflow_detection
+
+    @staticmethod
+    def _make_ops_without_map(fusion_op: FusionOp, no_dump_file: bool) -> (str, str):
+        my_output_op = fusion_op.op_name
+        ground_truth_op = fusion_op.op_name
+        # if only left or right has dump file
+        if fusion_op.op_type in [ConstManager.LEFT_TYPE, ConstManager.RIGHT_TYPE]:
+            if no_dump_file:
+                if fusion_op.op_type == ConstManager.LEFT_TYPE:
+                    ground_truth_op = '*'
+                elif fusion_op.op_type == ConstManager.RIGHT_TYPE:
+                    my_output_op = '*'
+        else:
+            ground_truth_op = ','.join(fusion_op.attr.original_op_names)
+            if ground_truth_op == '':
+                ground_truth_op = '*'
+        return my_output_op, ground_truth_op
+
+    def _make_my_output_op_and_ground_truth_op(self: any, fusion_op: FusionOp, no_dump_file: bool) -> (str, str):
+        if self.ground_truth_to_my_output_map:
+            my_output_op, ground_truth_op = fusion_rule_parser. \
+                make_left_and_right_string(self.ground_truth_to_my_output_map)
+        else:
+            my_output_op, ground_truth_op = self._make_ops_without_map(fusion_op, no_dump_file)
+        return my_output_op, ground_truth_op
+
+    def get_result(self: any, fusion_op: FusionOp, tensor_result: any, error_msg: list,
+                   no_dump_file: bool = False) -> list:
+        """
+        Get fusion op compare result list
+        :param fusion_op: the fusion op
+        :param tensor_result: the tensor result list
+        :param error_msg: error message
+        :param no_dump_file: the result no dump file
+        :return [op_id, my_output_op, ground_truth_op, tensor_id, shape, algorithm_result, error_msg]
+        """
+        result_list = []
+        my_output_op, ground_truth_op = self._make_my_output_op_and_ground_truth_op(fusion_op, no_dump_file)
+        if tensor_result:
+            for item in tensor_result:
+                result = [str(fusion_op.op_id), my_output_op, str(item.get_my_output_dtype()), ground_truth_op,
+                          str(item.get_ground_truth_dtype())] + item.get_result()
+                RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
+                log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
+                result_list.append(result)
+        else:
+            if self.overflow_detection:
+                # using 'NaN' as a overflow detection for 'no tensor_result'
+                # and insert it after the column 'Shape'.
+                result = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ground_truth_op, ConstManager.NAN,
+                          ConstManager.NAN,
+                          ConstManager.NAN] + ['NaN'] + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+            else:
+                result = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ground_truth_op, ConstManager.NAN,
+                          ConstManager.NAN,
+                          ConstManager.NAN] + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+            RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
+            log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
+            result_list.append(result)
+        return result_list
+
+    def get_pytorch_result(self: any, op_info: PytorchOpInfo, tensor_result: any, error_msg: list) -> list:
+        """
+        Get fusion op compare result list
+        :param op_info: the pytorch op info
+        :param tensor_result: the tensor result list
+        :param error_msg: error message
+        :return [op_id, my_output_op, ground_truth_op, tensor_id, shape, algorithm_result, error_msg]
+        """
+        result_list = []
+        if tensor_result:
+            for item in tensor_result:
+                result = op_info.get_result() + [item.get_my_output_dtype()] + item.get_result()
+                log.print_info_log('[%s:%d] Result: %s' % (op_info.op_name, op_info.index, " ".join(result)))
+                result_list.append(result)
+        else:
+            result = op_info.get_result() + [ConstManager.NAN] + [ConstManager.NAN] + \
+                     self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+            log.print_info_log('[%s:%d] Result: %s' % (op_info.op_name, op_info.index, " ".join(result)))
+            result_list.append(result)
+        return result_list
+
+
+def get_result_title(algorithm_manager: AlgorithmManager, op_header: list, overflow_detection: bool = False) -> list:
+    """
+    Get result title
+    :param algorithm_manager: the algorithm manager
+    :param op_header: the op header
+    :param overflow_info: whether to display overflow info
+    :return  [Index, op_header, shape, algorithm_result, error_msg]
+    """
+
+    header = ['Index'] + op_header + ['Shape'] + algorithm_manager.get_result_title() + ["CompareFailReason"]
+    # add 'OverFlow' after 'Shape'.
+    if overflow_detection:
+        header.insert(header.index('Shape') + 1, 'OverFlow')
+    RangeManager.adjust_header(header)
+    return header
