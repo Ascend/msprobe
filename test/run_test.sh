@@ -13,8 +13,8 @@ clean() {
     echo "remove last st_report success"
   fi
 
-  if [ -e ut_report.xml ]; then
-    rm -r ut_report.xml
+  if [ -e ${TEST_DIR}/report ]; then
+    rm -r ${TEST_DIR}/report
     echo "remove last ut_report success"
   fi
 

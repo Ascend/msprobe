@@ -72,13 +72,15 @@ def generate_dump_data_api():
         line = gen_api.stdout.readline()
         line = line.strip()
         if line:
-            logging.info("Failed to generate dump_data_pb2.py")
             break
 
     api_path = os.path.join(src_compare_path, 'dump_data_pb2.py')
     if os.path.exists(api_path):
         logging.info('dump_data_pb2.py is correctly generated to %s',
                      src_compare_path)
+    else:
+        logging.error("Failed to generate 'dump_data_pb2.py'.")
+        sys.exit(1)
 
 
 def main():
