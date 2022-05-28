@@ -247,7 +247,7 @@ class TensorConversion:
         origin_format = my_output_tensor.format
         if ground_truth_tensor.format != "":
             origin_format = self._get_ground_truth_format(ground_truth_tensor)
-        has_shape = (utils.get_shape_type(my_output_tensor.shape.dim) == utils.ShapeType.Tensor)
+        is_tensor = (utils.get_shape_type(my_output_tensor.shape.dim) == utils.ShapeType.Tensor)
         my_output_shape = utils.convert_shape_to_string(my_output_tensor.shape.dim)
 
         # when compare quant and origin
@@ -269,7 +269,8 @@ class TensorConversion:
         my_output_np, ground_truth_np = self._convert_shape(my_output_tensor, ground_truth_tensor, origin_format)
 
         # slice data
-        if my_output_tensor.format != DD.FORMAT_ND or has_shape:
+        if (my_output_tensor.format != DD.FORMAT_ND or
+           (is_tensor and (my_output_np.size != ground_truth_np.size))):
             my_output_np = self.slice_data(my_output_np, ground_truth_np.shape)
 
         my_output_array = my_output_np.flatten()
