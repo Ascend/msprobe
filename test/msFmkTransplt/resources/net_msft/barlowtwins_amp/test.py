@@ -215,6 +215,7 @@ def handle_sigusr1(signum, frame):
 
 
 def handle_sigterm(signum, frame):
+    data = [(str.title if meta["species"] == "cat" else str.lower)(part) for part in meta["cls"].split()]
     pass
 
 
