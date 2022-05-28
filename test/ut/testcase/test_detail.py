@@ -73,7 +73,7 @@ class TestUtilsMethods(unittest.TestCase):
         detail_info.set_detail_format('(1,3,224,224)', DD.FORMAT_HWCN, 'NCHW')
         self.assertEqual(detail_info.detail_format, 'N C H W')
         self.assertEqual(detail_info.make_detail_header(),
-                         'Index,N C H W,NpuDump,GroundTruth,AbsoluteError,RelativeError\n')
+                         'Index,N C H W,NPUDump,GroundTruth,AbsoluteError,RelativeError\n')
 
     def test_set_detail_format2(self):
         tensor_id = detail.TensorId('prob', 'output', '3')
@@ -81,7 +81,7 @@ class TestUtilsMethods(unittest.TestCase):
         detail_info.set_detail_format('()', DD.FORMAT_NCHW, 'ND')
         self.assertEqual(detail_info.detail_format, 'ID')
         self.assertEqual(detail_info.make_detail_header(),
-                         'Index,ID,NpuDump,GroundTruth,AbsoluteError,RelativeError\n')
+                         'Index,ID,NPUDump,GroundTruth,AbsoluteError,RelativeError\n')
 
     def test_set_detail_format3(self):
         tensor_id = detail.TensorId('prob', 'output', '3')
@@ -89,7 +89,7 @@ class TestUtilsMethods(unittest.TestCase):
         detail_info.set_detail_format('(1,3,4,5,4,4,4)', DD.FORMAT_NDHWC, 'NDHWC')
         self.assertEqual(detail_info.detail_format, 'N C D H W')
         self.assertEqual(detail_info.make_detail_header(),
-                         'Index,N C D H W,NpuDump,GroundTruth,AbsoluteError,RelativeError\n')
+                         'Index,N C D H W,NPUDump,GroundTruth,AbsoluteError,RelativeError\n')
 
     def test_set_detail_format4(self):
         tensor_id = detail.TensorId('prob', 'output', '3')
@@ -97,7 +97,7 @@ class TestUtilsMethods(unittest.TestCase):
         detail_info.set_detail_format('(1,3,4,5,4)', DD.FORMAT_FRACTAL_Z, 'HWCN')
         self.assertEqual(detail_info.detail_format, 'H W C N')
         self.assertEqual(detail_info.make_detail_header(),
-                         'Index,H W C N,NpuDump,GroundTruth,AbsoluteError,RelativeError\n')
+                         'Index,H W C N,NPUDump,GroundTruth,AbsoluteError,RelativeError\n')
 
     def test_get_detail_op1(self):
         tensor_id = detail.TensorId('dynamic_const_471', 'output', '0')
@@ -107,7 +107,7 @@ class TestUtilsMethods(unittest.TestCase):
             detail_info.set_detail_format('()', DD.FORMAT_ND, 'ND')
         self.assertEqual(detail_info.my_output_ops, 'dynamic_const_471')
         self.assertEqual(detail_info.ground_truth_ops, '*')
-        self.assertEqual('NpuDump:dynamic_const_471\nGroundTruth:*\nFormat:ID\n',
+        self.assertEqual('NPUDump:dynamic_const_471\nGroundTruth:*\nFormat:ID\n',
                          detail_info.get_detail_info())
 
     def test_get_detail_op2(self):
@@ -119,7 +119,7 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(detail_info.my_output_ops, 'conv1conv1_relu')
         self.assertEqual(detail_info.ground_truth_ops,
                          'scale_conv1 conv1 bn_conv1 conv1_relu')
-        self.assertEqual('NpuDump:conv1conv1_relu\nGroundTruth:scale_conv1 conv1 bn_conv1 conv1_relu\nFormat:N C D H W\n',
+        self.assertEqual('NPUDump:conv1conv1_relu\nGroundTruth:scale_conv1 conv1 bn_conv1 conv1_relu\nFormat:N C D H W\n',
                          detail_info.get_detail_info())
 
     @staticmethod

@@ -140,12 +140,12 @@ class DetailInfo:
         """
         Make detail header
         """
-        return "Index,%s,NpuDump,GroundTruth,AbsoluteError,RelativeError\n" \
+        return "Index,%s,NPUDump,GroundTruth,AbsoluteError,RelativeError\n" \
                % self.detail_format
 
     def get_detail_info(self: any) -> str:
         """
         Get detail_info
         """
-        return "NpuDump:%s\nGroundTruth:%s\nFormat:%s\n" % (self.my_output_ops, self.ground_truth_ops,
+        return "NPUDump:%s\nGroundTruth:%s\nFormat:%s\n" % (self.my_output_ops, self.ground_truth_ops,
                                                             self.detail_format)
