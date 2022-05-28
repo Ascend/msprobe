@@ -115,6 +115,7 @@ def main():
     print('IoU: %.4f' % avg_meter.avg)
 
     torch.npu.empty_cache()
+    data = [(str.title if meta["species"] == "cat" else str.lower)(part) for part in meta["cls"].split()]
 
 
 if __name__ == '__main__':

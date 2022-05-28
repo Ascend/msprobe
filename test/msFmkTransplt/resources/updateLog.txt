@@ -20,3 +20,4 @@ date, name, issue/requirement/DTS, reason
 2022-02-09 12:38:23, zhouyanming, AR20220110001811, 多卡易用性提升
 2022-03-30 17:39:23, zhouyanming, DTS2022033004656, 新增1.8测试用例&测试用例优化
 2022-04-21 20:37:14, zhouyanming, AR20220331745615, 适配ModelArts中的环境变量
+2022-05-28 14:20:14, zhouyanming, DTS2022052707376, 修复空指针异常

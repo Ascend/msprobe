@@ -38,6 +38,8 @@ class ScaleScopeVisitor(RuleVisitor):
         if len(node.args) == 0 or not hasattr(node.args[0].value, 'value'):
             return True
         qualified_name = self.get_full_name_for_node(node)
+        if qualified_name is None:
+            return True
         if len(qualified_name.split('.')) != 2:
             return True
         value = node.args[0].value.value
