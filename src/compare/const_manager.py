@@ -123,6 +123,7 @@ class ConstManager:
     INT_TYPE_OBJECT = "i"
     BOOL_TYPE_OBJECT = 'b'
     LIST_TYPE_OBJECT = "list"
+    DATA_OBJECT = "Data"
 
     # network compare range
     START_INDEX = 1

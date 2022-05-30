@@ -258,6 +258,7 @@ class FusionRuleParser:
         self.fusion_op_name_to_op_map = {}
         self.op_name_to_fusion_op_name_map = {}
         self.op_list = []
+        self.input_nodes = []
 
     def analysis_fusion_rule(self: any) -> None:
         """
@@ -288,6 +289,11 @@ class FusionRuleParser:
             self._adjust_rename_node()
 
         self.op_list.sort(key=lambda x: x.attr.get_op_sequence())
+
+    def _parse_input_nodes(self, op_object):
+        if ConstManager.DATA_OBJECT == op_object.get(ConstManager.TYPE_OBJECT):
+            if op_object.get(ConstManager.NAME_OBJECT):
+                self.input_nodes.append(op_object.get(ConstManager.NAME_OBJECT))
 
     def _parse_input(self: any, op_object: any) -> list:
         input_list = []
@@ -378,6 +384,7 @@ class FusionRuleParser:
         name = op_object[ConstManager.NAME_OBJECT]
         # check type element is valid
         self.check_string_object_valid(op_object, ConstManager.TYPE_OBJECT)
+        self._parse_input_nodes(op_object)
 
         input_list = self._parse_input(op_object)
 
