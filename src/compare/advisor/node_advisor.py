@@ -23,6 +23,9 @@ class NodeAdvisor:
         self.result = result
 
     def start_analyze(self):
+        """
+        Analyze result by node detection
+        """
         log.print_info_log('Start analysis network nodes precision problem.')
         data_columns = self.analyze_data.columns.values
         if AdvisorConst.COSINE_SIMILARITY not in data_columns:

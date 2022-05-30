@@ -24,6 +24,9 @@ class InputAdvisor:
         self.input_nodes = input_nodes
 
     def start_analyze(self):
+        """
+        Analyze result by input detection
+        """
         log.print_info_log('Start analysis input nodes precision problem.')
         data_columns = self.analyze_data.columns.values
         if AdvisorConst.COSINE_SIMILARITY not in data_columns:

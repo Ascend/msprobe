@@ -27,6 +27,11 @@ class AdvisorResult:
 
     @staticmethod
     def gen_summary_file(out_path, message_list):
+        """
+        Generate advisor summary file
+        :param out_path: advisor summary file out path
+        :param  message_list: summary message
+        """
         result_file = os.path.join(out_path, "advisor_summary.txt")
         try:
             with os.fdopen(os.open(result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
@@ -39,6 +44,9 @@ class AdvisorResult:
             log.print_info_log('The advisor summary (.txt) is saved in: "%s" .' % result_file)
 
     def print_advisor_log(self):
+        """
+        Log and print advisor summary
+        """
         log.print_info_log("A summary of the expert advice is as follows: ")
         message_list = [AdvisorConst.DETECTION_TYPE + AdvisorConst.COLON +
                         self.advisor_type,

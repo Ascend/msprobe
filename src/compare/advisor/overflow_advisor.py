@@ -23,6 +23,9 @@ class OverflowAdvisor:
         self.result = result
 
     def start_analyze(self):
+        """
+        Analyze result by overflow detection
+        """
         log.print_info_log('Start analysis operator overflow problem.')
         data_columns = self.analyze_data.columns.values
         if AdvisorConst.OVERFLOW not in data_columns:

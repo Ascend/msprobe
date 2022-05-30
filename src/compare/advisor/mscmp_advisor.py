@@ -33,7 +33,7 @@ class CompareAdvisor:
         self.out_path = out_path
 
     @staticmethod
-    def overflow_check(advisor_result, analyze_data):
+    def _overflow_check(advisor_result, analyze_data):
         if not advisor_result.match_advisor:
             overflow_advisor = OverflowAdvisor(analyze_data, advisor_result)
             advisor_result = overflow_advisor.start_analyze()
@@ -41,7 +41,7 @@ class CompareAdvisor:
         return advisor_result
 
     @staticmethod
-    def net_nodes_check(advisor_result, analyze_data):
+    def _net_nodes_check(advisor_result, analyze_data):
         if not advisor_result.match_advisor:
             node_advisor = NodeAdvisor(analyze_data, advisor_result)
             advisor_result = node_advisor.start_analyze()
@@ -49,23 +49,23 @@ class CompareAdvisor:
         return advisor_result
 
     def advisor(self):
-        analyze_data = self.parse_input_file()
+        analyze_data = self._parse_input_file()
         log.print_info_log('Start analyzing the comparison results: "%s" .' % self.input_file)
         advisor_result = AdvisorResult()
-        advisor_result = self.overflow_check(advisor_result, analyze_data)
-        advisor_result = self.input_check(advisor_result, analyze_data)
-        advisor_result = self.net_nodes_check(advisor_result, analyze_data)
+        advisor_result = self._overflow_check(advisor_result, analyze_data)
+        advisor_result = self._input_check(advisor_result, analyze_data)
+        advisor_result = self._net_nodes_check(advisor_result, analyze_data)
         log.print_info_log("Comparison result analysis is over.")
         return advisor_result
 
-    def input_check(self, advisor_result, analyze_data):
+    def _input_check(self, advisor_result, analyze_data):
         if not advisor_result.match_advisor and self.input_nodes:
             input_advisor = InputAdvisor(analyze_data, advisor_result, self.input_nodes)
             advisor_result = input_advisor.start_analyze()
             log.print_info_log("End analysis of input nodes precision problem.")
         return advisor_result
 
-    def parse_input_file(self):
+    def _parse_input_file(self):
         if self.input_file.endswith(".csv"):
             try:
                 df = pd.read_csv(self.input_file)
@@ -85,6 +85,10 @@ class CompareAdvisor:
 
 
 def parse_input_nodes(input_nodes):
+    """
+    Convert input_nodes string to nodes list
+    :param input_nodes: string of input nodes
+    """
     nodes_list = []
     if input_nodes:
         nodes = input_nodes.strip().split(";")
@@ -106,7 +110,7 @@ def _compare_advisor_parser(parser):
                         required=False)
 
 
-def do_advisor():
+def _do_advisor():
     parser = argparse.ArgumentParser()
     _compare_advisor_parser(parser)
     args = parser.parse_args(sys.argv[1:])
@@ -124,7 +128,7 @@ def do_advisor():
 
 if __name__ == '__main__':
     try:
-        do_advisor()
+        _do_advisor()
     except CompareError as err:
         sys.exit(err.code)
     finally:
