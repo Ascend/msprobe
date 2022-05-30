@@ -27,10 +27,26 @@ class CompareAdvisor:
     Class for generate advisor
     """
 
-    def __init__(self, input_file, input_nodes=[], out_path=""):
+    def __init__(self, input_file, input_nodes=None, out_path=""):
         self.input_file = input_file
         self.input_nodes = input_nodes
         self.out_path = out_path
+
+    @staticmethod
+    def overflow_check(advisor_result, analyze_data):
+        if not advisor_result.match_advisor:
+            overflow_advisor = OverflowAdvisor(analyze_data, advisor_result)
+            advisor_result = overflow_advisor.start_analyze()
+            log.print_info_log("End analysis of operator overflow problem.")
+        return advisor_result
+
+    @staticmethod
+    def net_nodes_check(advisor_result, analyze_data):
+        if not advisor_result.match_advisor:
+            node_advisor = NodeAdvisor(analyze_data, advisor_result)
+            advisor_result = node_advisor.start_analyze()
+            log.print_info_log("End analysis of net nodes precision problem.")
+        return advisor_result
 
     def advisor(self):
         analyze_data = self.parse_input_file()
@@ -42,14 +58,6 @@ class CompareAdvisor:
         log.print_info_log("Comparison result analysis is over.")
         return advisor_result
 
-    @staticmethod
-    def overflow_check(advisor_result, analyze_data):
-        if not advisor_result.match_advisor:
-            overflow_advisor = OverflowAdvisor(analyze_data, advisor_result)
-            advisor_result = overflow_advisor.start_analyze()
-            log.print_info_log("End analysis of operator overflow problem.")
-        return advisor_result
-
     def input_check(self, advisor_result, analyze_data):
         if not advisor_result.match_advisor and self.input_nodes:
             input_advisor = InputAdvisor(analyze_data, advisor_result, self.input_nodes)
@@ -57,28 +65,20 @@ class CompareAdvisor:
             log.print_info_log("End analysis of input nodes precision problem.")
         return advisor_result
 
-    @staticmethod
-    def net_nodes_check(advisor_result, analyze_data):
-        if not advisor_result.match_advisor:
-            node_advisor = NodeAdvisor(analyze_data, advisor_result)
-            advisor_result = node_advisor.start_analyze()
-            log.print_info_log("End analysis of net nodes precision problem.")
-        return advisor_result
-
     def parse_input_file(self):
         if self.input_file.endswith(".csv"):
             try:
                 df = pd.read_csv(self.input_file)
-                data_columns = df.columns.values
-                if not {AdvisorConst.INDEX, AdvisorConst.NPUDump}.issubset(data_columns):
-                    log.print_error_log('Input csv file does not contain %s, %s columns.'
-                                        % (AdvisorConst.INDEX, AdvisorConst.NPUDump))
-                    raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
-                return df
             except OSError as os_err:
                 log.print_error_log('Failed to parse the input file %s. %s'
                                     % (self.input_file, str(os_err)))
-                raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR)
+                raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from os_err
+            data_columns = df.columns.values
+            if not {AdvisorConst.INDEX, AdvisorConst.NPU_DUMP}.issubset(data_columns):
+                log.print_error_log('Input csv file does not contain %s, %s columns.'
+                                    % (AdvisorConst.INDEX, AdvisorConst.NPU_DUMP))
+                raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
+            return df
         else:
             log.print_error_log("Advisor only support csv file from msaccucmp result.")
             raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)

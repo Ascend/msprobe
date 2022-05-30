@@ -13,10 +13,10 @@ class AdvisorConst:
     The class for advisor const
     """
     # column const
-    OVERFLOW = "OverFlow"
-    INDEX = "Index"
-    NPUDump = "NPUDump"
     COSINE_SIMILARITY = "CosineSimilarity"
+    INDEX = "Index"
+    NPU_DUMP = "NPUDump"
+    OVERFLOW = "OverFlow"
 
     # advisor summary key
     DETECTION_TYPE = "Detection Type"

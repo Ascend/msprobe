@@ -37,7 +37,8 @@ class OverflowAdvisor:
                 return self.result
             overflow_df.reset_index(drop=True, inplace=True)
             index = overflow_df.at[0, AdvisorConst.INDEX]
-            self.result = AdvisorResult(True, AdvisorConst.OVERFLOW_DETECTION, str(index), AdvisorConst.OVERFLOW_SUGGEST)
+            self.result = AdvisorResult(True, AdvisorConst.OVERFLOW_DETECTION, str(index),
+                                        AdvisorConst.OVERFLOW_SUGGEST)
             return self.result
 
 
