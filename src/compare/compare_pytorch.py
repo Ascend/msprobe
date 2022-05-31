@@ -23,7 +23,6 @@ from algorithm_manager import AlgorithmManager
 from const_manager import ConstManager
 import compare_result
 from compare_error import CompareError
-from advisor.mscmp_advisor import CompareAdvisor
 
 
 class PytorchComparison:
@@ -325,11 +324,17 @@ class PytorchComparison:
         return CompareError.MSACCUCMP_UNKNOWN_ERROR
 
     def _do_advisor(self):
-        out_path = os.path.dirname(self.output_path)
-        compare_advisor = CompareAdvisor(self.output_path, [], out_path)
-        advisor_result = compare_advisor.advisor()
-        message_list = advisor_result.print_advisor_log()
-        advisor_result.gen_summary_file(out_path, message_list)
+        try:
+            from advisor.mscmp_advisor import CompareAdvisor
+        except (ImportError, ModuleNotFoundError) as import_error:
+            log.print_warn_log("Unable to import module: %s." % str(import_error))
+            log.print_warn_log("Skip compare results Analysis.")
+        else:
+            out_path = os.path.dirname(self.output_path)
+            compare_advisor = CompareAdvisor(self.output_path, [], out_path)
+            advisor_result = compare_advisor.advisor()
+            message_list = advisor_result.print_advisor_log()
+            advisor_result.gen_summary_file(out_path, message_list)
 
     def compare(self: any) -> int:
         """
