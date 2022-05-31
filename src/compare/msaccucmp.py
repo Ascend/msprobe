@@ -335,6 +335,8 @@ def _check_advisor_effect(args):
             'The argument "-advisor" takes no effect when the "-op" exists.')
         args.advisor = False
     if args.advisor:
+        log.print_warn_log(
+            'The argument "-advisor" will automatically configure "-overflow_detection".')
         args.overflow_detection = True
     return args
 

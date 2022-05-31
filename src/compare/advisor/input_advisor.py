@@ -41,15 +41,14 @@ class InputAdvisor:
                                    'May all values be NAN, please check.'
                                    % AdvisorConst.COSINE_SIMILARITY)
                 return self.result
-            err_cos_df = have_cos_df[have_cos_df['CosineSimilarity'] < 0.99]
+            err_cos_df = have_cos_df[have_cos_df['CosineSimilarity'] < AdvisorConst.ACCURACY_THRESHOLD]
             for input_node in self.input_nodes:
                 err_input_df = err_cos_df[err_cos_df[AdvisorConst.NPU_DUMP] == input_node]
                 err_input_df.reset_index(drop=True, inplace=True)
                 if err_input_df.shape[0] > 0:
                     index = err_input_df.at[0, AdvisorConst.INDEX]
-                    self.result = AdvisorResult(True, AdvisorConst.INPUT_DETECTION, str(index),
-                                                AdvisorConst.INPUT_SUGGEST)
-                    return self.result
+                    return AdvisorResult(True, AdvisorConst.INPUT_DETECTION, str(index),
+                                         AdvisorConst.INPUT_SUGGEST)
             return self.result
 
 

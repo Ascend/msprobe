@@ -31,7 +31,6 @@ class OverflowAdvisor:
         if AdvisorConst.OVERFLOW not in data_columns:
             log.print_warn_log('Input csv file does not contain %s columns, Skip overflow detection analysis.'
                                % AdvisorConst.OVERFLOW)
-            return self.result
         else:
             overflow_df = self.analyze_data[self.analyze_data[AdvisorConst.OVERFLOW] == "YES"]
             # check overflow dataframe lines
@@ -42,6 +41,6 @@ class OverflowAdvisor:
             index = overflow_df.at[0, AdvisorConst.INDEX]
             self.result = AdvisorResult(True, AdvisorConst.OVERFLOW_DETECTION, str(index),
                                         AdvisorConst.OVERFLOW_SUGGEST)
-            return self.result
+        return self.result
 
 

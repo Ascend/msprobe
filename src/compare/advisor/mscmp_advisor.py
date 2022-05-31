@@ -116,9 +116,7 @@ def _do_advisor():
     args = parser.parse_args(sys.argv[1:])
     input_file = os.path.realpath(args.input_file)
     input_nodes = parse_input_nodes(args.input_nodes)
-    out_path = ""
-    if args.out_path:
-        out_path = os.path.realpath(args.out_path)
+    out_path = os.path.realpath(args.out_path) if args.out_path else ""
     compare_advisor = CompareAdvisor(input_file, input_nodes, out_path)
     advisor_result = compare_advisor.advisor()
     message_list = advisor_result.print_advisor_log()
