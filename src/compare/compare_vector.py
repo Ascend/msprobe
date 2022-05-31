@@ -93,6 +93,8 @@ class VectorComparison:
                                                               arguments.algorithm_options)
             self.args["mapping"] = arguments.mapping
             self.args["overflow_detection"] = arguments.overflow_detection
+            self.args["advisor"] = arguments.advisor
+            self.args["input_nodes"] = []
             if arguments.range:
                 self.args["range"] = arguments.range
                 self.args[ConstManager.RANGE_MANAGER_KEY] = RangeMode(arguments.range)
@@ -315,7 +317,21 @@ class VectorComparison:
         else:
             if os.path.exists(self.output_path):
                 log.print_write_result_info('comparison result', self.output_path)
+                self._do_advisor()
         return ret
+
+    def _do_advisor(self):
+        try:
+            from advisor.mscmp_advisor import CompareAdvisor
+        except ImportError as import_error:
+            log.print_warn_log("Unable to import module: %s." % str(import_error))
+            log.print_warn_log("Skip compare results Analysis.")
+        else:
+            out_path = os.path.dirname(self.output_path)
+            compare_advisor = CompareAdvisor(self.output_path, self.args.get("input_nodes"), out_path)
+            advisor_result = compare_advisor.advisor()
+            message_list = advisor_result.print_advisor_log()
+            advisor_result.gen_summary_file(out_path, message_list)
 
     def _compare_detail(self: any) -> int:
         """
@@ -351,6 +367,7 @@ class VectorComparison:
         if ConstManager.RANGE_MANAGER_KEY in self.args:
             self.args.get(ConstManager.RANGE_MANAGER_KEY).check_input_valid(
                 self.compare_rule.fusion_info.op_list[-1].attr.get_op_sequence())
+        self.args["input_nodes"] = self.compare_rule.fusion_info.input_nodes
         # 3. do compare detail
         if self.detail_info:
             return self._compare_detail()

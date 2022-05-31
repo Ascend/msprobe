@@ -143,8 +143,14 @@ def _compare_parser(compare_parser: argparse.ArgumentParser) -> None:
         help='<Optional> whether to extract the compare result, only pytorch is supported.'
              '0 indicates the comparison result is not extracted, '
              '1 indicates the comparison result is extracted.')
+    _add_advisor_argument(compare_parser)
     _add_version_argument(compare_parser)
     _add_argument_for_single_op(compare_parser)
+
+
+def _add_advisor_argument(compare_parser: argparse.ArgumentParser) -> None:
+    compare_parser.add_argument('-advisor', dest="advisor", action="store_true",
+                                help="<optional> Enable advisor after compare.", required=False)
 
 
 def _add_argument_for_single_op(compare_parser: argparse.ArgumentParser) -> None:
@@ -280,6 +286,7 @@ def start_compare(args: argparse.Namespace) -> int:
     elif args.fusion_rule_file != "" and BatchCompare().check_fusion_rule_json_dir(args.fusion_rule_file):
         ret = BatchCompare().compare(args)
     else:
+        args = _check_advisor_effect(args)
         compare = VectorComparison(args)
         ret = compare.compare()
     return ret
@@ -312,6 +319,26 @@ def _do_cmd() -> int:
         ret = _do_overflow(args)
 
     return ret
+
+
+def _check_advisor_effect(args):
+    if args.advisor and args.range is not None:
+        log.print_warn_log(
+            'The argument "-advisor" takes no effect when the "-r" or "--range" exists.')
+        args.advisor = False
+    if args.advisor and args.select is not None:
+        log.print_warn_log(
+            'The argument "-advisor" takes no effect when the "-s" or "--select" exists.')
+        args.advisor = False
+    if args.advisor and args.op_name is not None:
+        log.print_warn_log(
+            'The argument "-advisor" takes no effect when the "-op" exists.')
+        args.advisor = False
+    if args.advisor:
+        log.print_warn_log(
+            'The argument "-advisor" will automatically configure "-overflow_detection".')
+        args.overflow_detection = True
+    return args
 
 
 def _check_range_effect(args: argparse.Namespace) -> None:

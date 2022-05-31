@@ -73,6 +73,8 @@ class TestUtilsMethods(unittest.TestCase):
         compare_parser.add_argument(
             '-p', '--post_process', dest='post_process', choices=[0, 1], type=int, default=0,
             help='<Optional> whether to extract the compare result, only pytorch is supported.')
+        compare_parser.add_argument('-advisor', dest="advisor", action="store_true",
+                                    help="<optional> Enable advisor after compare.", required=False)
         return parser
 
     def test_check_arguments_valid1(self):

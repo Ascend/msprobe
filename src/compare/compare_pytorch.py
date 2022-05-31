@@ -43,6 +43,7 @@ class PytorchComparison:
         self.algorithm_manager = AlgorithmManager(args.custom_script_path,
                                                   args.algorithm,
                                                   args.algorithm_options)
+        self.is_open_advisor = args.advisor
         self.filter_flag = args.post_process
 
     def check_arguments_valid(self: any, args: argparse.Namespace) -> None:
@@ -317,8 +318,23 @@ class PytorchComparison:
             log.print_write_result_info('comparison result', self.output_path)
             if self.filter_flag:
                 self._filter_compare_result()
+            if self.is_open_advisor:
+                self._do_advisor()
             return CompareError.MSACCUCMP_NONE_ERROR
         return CompareError.MSACCUCMP_UNKNOWN_ERROR
+
+    def _do_advisor(self):
+        try:
+            from advisor.mscmp_advisor import CompareAdvisor
+        except ImportError as import_error:
+            log.print_warn_log("Unable to import module: %s." % str(import_error))
+            log.print_warn_log("Skip compare results Analysis.")
+        else:
+            out_path = os.path.dirname(self.output_path)
+            compare_advisor = CompareAdvisor(self.output_path, [], out_path)
+            advisor_result = compare_advisor.advisor()
+            message_list = advisor_result.print_advisor_log()
+            advisor_result.gen_summary_file(out_path, message_list)
 
     def compare(self: any) -> int:
         """
