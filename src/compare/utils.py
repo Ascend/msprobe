@@ -375,6 +375,23 @@ def get_data_type(dump_data_type: str) -> str:
     return ConstManager.DATA_TYPE_TO_STR_DTYPE_MAP.get(dump_data_type)
 
 
+def dump_path_contains_npy(dump_path: str):
+    if dump_path and os.path.isfile(dump_path):
+        return dump_path.endswith(ConstManager.NUMPY_SUFFIX)
+    elif dump_path and os.path.isdir(dump_path):
+        return has_npy_at_dir(dump_path)
+    else:
+        return False
+
+
+def has_npy_at_dir(dump_path: str):
+    file_list = os.listdir(dump_path)
+    for file_path in file_list:
+        if str(file_path).endswith(ConstManager.NUMPY_SUFFIX):
+            return True
+    return False
+
+
 def _write_sorted_result(result_file: str, sorted_result_line: list, header_list: list, table_header_info: str,
                          csv_file: bool) -> None:
     with os.fdopen(os.open(result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w',

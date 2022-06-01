@@ -45,7 +45,7 @@ class VectorComparison:
     The class for vector compare
     """
 
-    OP_HEADER = ["NPUDump", "DataType", "GroundTruth", "DataType", "TensorIndex"]
+    OP_HEADER = ["NPUDump", "DataType", "Address", "GroundTruth", "DataType", "Address", "TensorIndex"]
     MULTI_THREAD_RESULT_COUNT = 3
     MULTI_THREAD_RETURN_CODE_INDEX = 0
     MULTI_THREAD_DUMP_MATCH_INDEX = 1
@@ -73,6 +73,7 @@ class VectorComparison:
 
     def __init__(self: any, arguments: any = None) -> None:
         self.args = {}
+        self.cur_op_header = self.OP_HEADER
         if arguments:
             self.compare_rule = CompareRule(arguments.fusion_rule_file,
                                             arguments.quant_fusion_rule_file,
@@ -101,6 +102,7 @@ class VectorComparison:
             elif arguments.select:
                 self.args["select"] = arguments.select
                 self.args[ConstManager.RANGE_MANAGER_KEY] = SelectMode(arguments.select)
+            self.args["golden_dump_path"] = arguments.golden_dump_path
         else:
             parse = argparse.ArgumentParser()
             self._parser_cmd(parse)
@@ -120,6 +122,7 @@ class VectorComparison:
             self.format_manager = FormatManager(args.custom_path)
             self.args["algorithm_manager"] = AlgorithmManager('', 'all', '')
             self.args["mapping"] = False
+            self.args["golden_dump_path"] = args.right_dump_path
 
     def _process_output_path_parameter(self: any, arguments: any) -> None:
         if arguments.mapping:
@@ -378,10 +381,14 @@ class VectorComparison:
         return self._compare_vector()
 
     def _write_header_to_file(self: any) -> bool:
+        golden_dump_path = self.args.get("golden_dump_path")
+        if utils.dump_path_contains_npy(golden_dump_path):
+            address_index = [i for i, x in enumerate(self.cur_op_header) if x == 'Address']
+            self.cur_op_header.pop(address_index[-1])
         try:
             with os.fdopen(os.open(self.output_path, ConstManager.WRITE_FLAGS,
                                    ConstManager.WRITE_MODES), 'a+', newline='') as output_file:
-                header = compare_result.get_result_title(self.args.get('algorithm_manager'), self.OP_HEADER,
+                header = compare_result.get_result_title(self.args.get('algorithm_manager'), self.cur_op_header,
                                                          self.args.get('overflow_detection'))
                 if self.args.get("csv"):
                     writer = csv.writer(output_file)
