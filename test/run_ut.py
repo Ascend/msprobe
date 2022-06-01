@@ -6,7 +6,7 @@ import shutil
 def run_ut():
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     ut_path = os.path.join(cur_dir, "ut/testcase/")
-    src_name = "compare"
+    src_name = "../src/compare"
     report_dir = os.path.join(cur_dir, 'report')
 
     if os.path.exists(report_dir):

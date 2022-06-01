@@ -100,7 +100,6 @@ class VectorComparison:
             elif arguments.select:
                 self.args["select"] = arguments.select
                 self.args[ConstManager.RANGE_MANAGER_KEY] = SelectMode(arguments.select)
-            self.args["my_dump_path"] = arguments.my_dump_path
             self.args["golden_dump_path"] = arguments.golden_dump_path
         else:
             parse = argparse.ArgumentParser()
@@ -121,8 +120,7 @@ class VectorComparison:
             self.format_manager = FormatManager(args.custom_path)
             self.args["algorithm_manager"] = AlgorithmManager('', 'all', '')
             self.args["mapping"] = False
-            self.args["my_dump_path"] = arguments.my_dump_path
-            self.args["golden_dump_path"] = arguments.golden_dump_path
+            self.args["golden_dump_path"] = args.right_dump_path
 
     def _process_output_path_parameter(self: any, arguments: any) -> None:
         if arguments.mapping:

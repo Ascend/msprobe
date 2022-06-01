@@ -376,10 +376,10 @@ def get_data_type(dump_data_type: str) -> str:
 
 
 def dump_path_contains_npy(dump_path: str):
-    if os.path.isfile(dump_path) and dump_path.endswith(ConstManager.NUMPY_SUFFIX):
-        return True
-    elif os.path.isdir(dump_path) and has_npy_at_dir(dump_path):
-        return True
+    if dump_path and os.path.isfile(dump_path):
+        return dump_path.endswith(ConstManager.NUMPY_SUFFIX)
+    elif dump_path and os.path.isdir(dump_path):
+        return has_npy_at_dir(dump_path)
     else:
         return False
 
