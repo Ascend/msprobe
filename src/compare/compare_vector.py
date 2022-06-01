@@ -364,11 +364,11 @@ class VectorComparison:
         return self._compare_vector()
 
     def _write_header_to_file(self: any) -> bool:
+        golden_dump_path = self.args.get("golden_dump_path")
+        if utils.dump_path_contains_npy(golden_dump_path):
+            address_index = [i for i, x in enumerate(self.cur_op_header) if x == 'Address']
+            self.cur_op_header.pop(address_index[-1])
         try:
-            golden_dump_path = self.args.get("golden_dump_path")
-            if utils.dump_path_contains_npy(golden_dump_path):
-                address_index = [i for i, x in enumerate(self.cur_op_header) if x == 'Address']
-                self.cur_op_header.pop(address_index[-1])
             with os.fdopen(os.open(self.output_path, ConstManager.WRITE_FLAGS,
                                    ConstManager.WRITE_MODES), 'a+', newline='') as output_file:
                 header = compare_result.get_result_title(self.args.get('algorithm_manager'), self.cur_op_header,

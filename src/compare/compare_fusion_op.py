@@ -46,7 +46,7 @@ class FusionOpComparison:
         self.left_dump_file_path = ''
         self.left_dump_data = None
         self.overflow_detection = arguments.get('overflow_detection', False)
-        self.is_ground_truth_GPU_or_CPU = True \
+        self.is_ground_truth_gpu_or_cpu = True \
             if utils.dump_path_contains_npy(arguments.get("golden_dump_path")) else False
 
     def _compare_for_any_to_one(self: any) -> (bool, list, int):
@@ -58,7 +58,7 @@ class FusionOpComparison:
         result_list = []
         fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager,
                                                             overflow_detection=self.overflow_detection,
-                                                            is_ground_truth_GPU_or_CPU=self.is_ground_truth_GPU_or_CPU)
+                                                            is_ground_truth_gpu_or_cpu=self.is_ground_truth_gpu_or_cpu)
         ret = CompareError.MSACCUCMP_NONE_ERROR
         for fusion_op in self.fusion_op_list:
             # skip not support compare op
@@ -90,7 +90,7 @@ class FusionOpComparison:
         ret = CompareError.MSACCUCMP_NONE_ERROR
         fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager, right_to_left_map,
                                                             self.overflow_detection,
-                                                            is_ground_truth_GPU_or_CPU=self.is_ground_truth_GPU_or_CPU)
+                                                            is_ground_truth_gpu_or_cpu=self.is_ground_truth_gpu_or_cpu)
         # compare each fusion op
         for fusion_op in self.fusion_op_list:
             if fusion_op.attr.quant_filter:
@@ -151,7 +151,7 @@ class FusionOpComparison:
         error_msg = []
         fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager, right_to_left_map,
                                                             self.overflow_detection,
-                                                            is_ground_truth_GPU_or_CPU=self.is_ground_truth_GPU_or_CPU)
+                                                            is_ground_truth_gpu_or_cpu=self.is_ground_truth_gpu_or_cpu)
         if not timestamp_list:
             error_msg.append("The fusion operator list is empty")
             return False, fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg), \
