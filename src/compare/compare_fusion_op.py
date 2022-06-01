@@ -316,7 +316,8 @@ class FusionOpComparison:
             ['tensor_id', 'shape', 'algorithm_result', 'error_msg', 'match', 'my_output_dtype', 'ground_truth_dtype',
              'my_output_address', 'ground_truth_address'])
         result = CompareResult(tensor_id, shape, algorithm_result, error_msg, match, my_output_dtype,
-                               ground_truth_dtype, my_output_address=tensor.address if tensor.address else "NaN*",
+                               ground_truth_dtype,
+                               my_output_address=tensor.address if hasattr(tensor, 'address') else "NaN*",
                                ground_truth_address="NaN")
         return result
 

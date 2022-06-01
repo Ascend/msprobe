@@ -176,8 +176,10 @@ class NpuVsNpuComparison:
                                                                                      index, is_input, my_output_tensor)
             my_output_tensor_dtype = utils.get_data_type(my_output_tensor.data_type)
             ground_truth_tensor_dtype = utils.get_data_type(ground_truth_tensor.data_type)
-            my_output_tensor_address = my_output_tensor.address if my_output_tensor.address else "NaN*"
-            ground_truth_tensor_address = ground_truth_tensor.address if ground_truth_tensor.address else "NaN*"
+            my_output_tensor_address = my_output_tensor.address \
+                if hasattr(my_output_tensor, 'address') else "NaN*"
+            ground_truth_tensor_address = ground_truth_tensor.address \
+                if hasattr(ground_truth_tensor, 'address') else "NaN*"
 
             # 3. merge result
             tensor_result_list.append(
