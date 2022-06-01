@@ -46,8 +46,8 @@ class FusionOpComparison:
         self.left_dump_file_path = ''
         self.left_dump_data = None
         self.overflow_detection = arguments.get('overflow_detection', False)
-        self.is_ground_truth_gpu_or_cpu = True \
-            if utils.dump_path_contains_npy(arguments.get("golden_dump_path")) else False
+        self.is_ground_truth_gpu_or_cpu = \
+            True if utils.dump_path_contains_npy(arguments.get("golden_dump_path")) else False
 
     def _compare_for_any_to_one(self: any) -> (bool, list, int):
         """
