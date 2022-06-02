@@ -315,7 +315,7 @@ class VectorComparison:
                 log.print_error_log('The model does not match the dump data, '
                                     'please check the model and the dump data again.')
         else:
-            if os.path.exists(self.output_path):
+            if os.path.exists(self.output_path) and self.args.get("advisor"):
                 log.print_write_result_info('comparison result', self.output_path)
                 self._do_advisor()
         return ret

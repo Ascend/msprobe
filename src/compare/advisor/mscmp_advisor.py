@@ -68,7 +68,7 @@ class CompareAdvisor:
     def _parse_input_file(self):
         if self.input_file.endswith(".csv"):
             try:
-                df = pd.read_csv(self.input_file)
+                df = pd.read_csv(self.input_file, error_bad_lines=False)
             except OSError as os_err:
                 log.print_error_log('Failed to parse the input file %s. %s'
                                     % (self.input_file, str(os_err)))
@@ -104,7 +104,7 @@ def _compare_advisor_parser(parser):
                         required=True)
     parser.add_argument('-input_nodes', dest="input_nodes", default="",
                         help="<optional> Input nodes designated by user. Separate multiple nodes with semicolons(;)."
-                             " E.g: node_name1;node_name2;node_name3", required=False)
+                             " E.g: \"node_name1;node_name2;node_name3\"", required=False)
     parser.add_argument("-o", "--out_path", dest="out_path", default="",
                         help="<optional> The compare advice out path.",
                         required=False)
