@@ -78,7 +78,7 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
         self.assertEqual(match, True)
         self.assertEqual(len(result), 1)
-        actual = ['6', 'aaa', 'float32', 'NaN*', 'aaa', 'float32', 'NaN*', 'aaa:input:0', '[1,3,4,4]', '1.000000', '0.000000', '0.000000', '0.000000',
+        actual = ['6', 'aaa', 'float32', '0', 'aaa', 'float32', 'NaN*', 'aaa:input:0', '[1,3,4,4]', '1.000000', '0.000000', '0.000000', '0.000000',
                   '0.000000', '(23.500;13.853),(23.500;13.853)', '0.000000', '0.000000', 'NaN', 'NaN',
                   'Cannot compare by MaxRelativeError, The data contains 0 or nan in /home/left/aaa.aaa.21.999999 or /home/right/aaa.aaa.21.999999.,'
                   'Cannot compare by MeanRelativeError, The data contains 0 or nan in /home/left/aaa.aaa.21.999999 or /home/right/aaa.aaa.21.999999.']
