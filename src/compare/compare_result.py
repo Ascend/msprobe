@@ -155,16 +155,17 @@ class FusionOpComResult:
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
         else:
+            current_tensor_info = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ConstManager.NAN,
+                                   ground_truth_op, ConstManager.NAN, ConstManager.NAN, ConstManager.NAN,
+                                   ConstManager.NAN]
+            if self.is_ground_truth_gpu_or_cpu:
+                current_tensor_info.pop(6)
             if self.overflow_detection:
                 # using 'NaN' as a overflow detection for 'no tensor_result'
                 # and insert it after the column 'Shape'.
-                result = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ConstManager.NAN, ground_truth_op,
-                          ConstManager.NAN, ConstManager.NAN, ConstManager.NAN,
-                          ConstManager.NAN] + ['NaN'] + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+                result = current_tensor_info + ['NaN'] + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
             else:
-                result = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ConstManager.NAN, ground_truth_op,
-                          ConstManager.NAN, ConstManager.NAN, ConstManager.NAN,
-                          ConstManager.NAN] + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+                result = current_tensor_info + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
             RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
             log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
             result_list.append(result)
