@@ -163,7 +163,8 @@ class FusionOpComResult:
             if self.overflow_detection:
                 # using 'NaN' as a overflow detection for 'no tensor_result'
                 # and insert it after the column 'Shape'.
-                result = current_tensor_info + ['NaN'] + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+                result = current_tensor_info + ['NaN'] + self.algorithm_manager.make_nan_result() \
+                         + [",".join(error_msg)]
             else:
                 result = current_tensor_info + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
             RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
