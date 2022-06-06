@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 
 def run_st():
@@ -22,14 +23,11 @@ def run_st():
         if line:
             print(line)
 
-    st_flag = False
     if result_st.returncode == 0:
-        st_flag = True
         print("run st success")
     else:
         print("run st failed")
-
-    return st_flag
+        sys.exit(-1)
 
 
 if __name__ == "__main__":

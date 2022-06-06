@@ -1,6 +1,7 @@
 import os
 import subprocess
 import shutil
+import sys
 
 
 def run_ut():
@@ -28,14 +29,11 @@ def run_ut():
         if line:
             print(line)
 
-    ut_flag = False
     if result_ut.returncode == 0:
-        ut_flag = True
         print("run ut success")
     else:
         print("run ut failed")
-
-    return ut_flag
+        sys.exit(-1)
 
 
 if __name__ == "__main__":
