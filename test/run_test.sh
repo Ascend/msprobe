@@ -19,6 +19,13 @@ clean() {
   fi
 }
 
+clean_dump_api() {
+  local api_file=${SRC_DIR}/compare/dump_data_pb2.py
+  if [ -e ${api_file} ]; then
+    rm ${api_file}
+  fi
+}
+
 gen_dump_api() {
   cd ${CUR_DIR}
   local top_dir=$(dirname $(pwd))
@@ -35,16 +42,17 @@ gen_dump_api() {
 }
 
 run_st() {
-  export PYTHONPATH=${SRC_DIR}/compare:PYTHONPATH && python3 run_st.py
+  export PYTHONPATH=${SRC_DIR}/compare:${PYTHONPATH} && python3 run_st.py
 }
 
 run_ut() {
-  export PYTHONPATH=${SRC_DIR}/compare:PYTHONPATH && python3 run_ut.py
+  export PYTHONPATH=${SRC_DIR}/compare:${PYTHONPATH} && python3 run_ut.py
 }
 
 main() {
   clean
 
+  clean_dump_api
   gen_dump_api
 
   local ret=1
@@ -52,8 +60,11 @@ main() {
     [ $1 == "ut" ] && run_ut && ret=$?
     [ $1 == "st" ] && run_st && ret=$?
   else
-    run_ut && run_st && ret=$?
+    run_ut && ret=$?
+    run_st && ret=$(($ret+$?))
   fi
+
+  clean_dump_api
 
   if [ "x"$ret == "x"0 ]; then
     exit 0

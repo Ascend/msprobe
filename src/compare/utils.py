@@ -396,12 +396,17 @@ def dump_path_contains_npy(dump_path: str):
     if dump_path and os.path.isfile(dump_path):
         return dump_path.endswith(ConstManager.NUMPY_SUFFIX)
     elif dump_path and os.path.isdir(dump_path):
-        return _has_npy_at_dir(dump_path)
+        return has_npy_at_dir(dump_path)
     else:
         return False
 
 
-def _has_npy_at_dir(dump_path: str):
+def has_npy_at_dir(dump_path: str):
+    """
+    check there is npy file at dump_path
+    args:dump_path
+    return:bool
+    """
     file_list = os.listdir(dump_path)
     for file_path in file_list:
         if str(file_path).endswith(ConstManager.NUMPY_SUFFIX):
