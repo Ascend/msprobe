@@ -29,12 +29,18 @@ def run_ut():
         if line:
             print(line)
 
+    ut_flag = False
     if result_ut.returncode == 0:
+        ut_flag = True
         print("run ut success")
     else:
         print("run ut failed")
-        sys.exit(-1)
+
+    return ut_flag
 
 
 if __name__ == "__main__":
-    run_ut()
+    if run_ut():
+        sys.exit(0)
+    else:
+        sys.exit(-1)

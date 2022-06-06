@@ -23,12 +23,16 @@ def run_st():
         if line:
             print(line)
 
+    st_flag = False
     if result_st.returncode == 0:
+        st_flag = True
         print("run st success")
     else:
         print("run st failed")
-        sys.exit(-1)
 
 
 if __name__ == "__main__":
-    run_st()
+    if run_st():
+        sys.exit(0)
+    else:
+        sys.exit(-1)
