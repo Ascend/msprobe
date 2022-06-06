@@ -45,6 +45,8 @@ run_ut() {
 main() {
   clean
 
+  gen_dump_api
+
   if [[ $1 == "ut" ]] || [[ $1 == "st" ]]; then
     [ $1 == "ut" ] && run_ut
     [ $1 == "st" ] && run_st
