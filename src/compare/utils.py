@@ -371,7 +371,7 @@ def get_data_type(dump_data_type: str) -> str:
     :return: data type
     """
     if dump_data_type not in ConstManager.DATA_TYPE_TO_STR_DTYPE_MAP:
-        return "NaN"
+        return ConstManager.NAN
     return ConstManager.DATA_TYPE_TO_STR_DTYPE_MAP.get(dump_data_type)
 
 
@@ -384,7 +384,7 @@ def get_address_from_tensor(tensor: any):
     if hasattr(tensor, "address") and tensor.address != 0:
         return tensor.address
     else:
-        return "NaN"
+        return ConstManager.NAN
 
 
 def dump_path_contains_npy(dump_path: str):

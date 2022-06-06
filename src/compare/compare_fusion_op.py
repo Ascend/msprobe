@@ -285,10 +285,13 @@ class FusionOpComparison:
                                                                                      tensor)
             match = match or result.match
             # 4. merge result
-            tensor_result = compare_result.TensorResult(result.tensor_id, result.shape,
-                                                        [result.algorithm_result, overflow_result], result.error_msg,
-                                                        result.my_output_dtype, result.ground_truth_dtype,
-                                                        result.my_output_address, result.ground_truth_address)
+            tensor_info = {"tensor_id": result.tensor_id, "shape": result.shape,
+                           "my_output_dtype": result.my_output_dtype,
+                           "ground_truth_dtype": result.ground_truth_dtype,
+                           "my_output_address": result.my_output_address,
+                           "ground_truth_address": result.ground_truth_address}
+            tensor_result = compare_result.TensorResult(tensor_info, [result.algorithm_result, overflow_result],
+                                                        result.error_msg)
             tensor_result_list.append(tensor_result)
         return match, tensor_result_list
 
@@ -318,7 +321,7 @@ class FusionOpComparison:
         result = CompareResult(tensor_id, shape, algorithm_result, error_msg, match, my_output_dtype,
                                ground_truth_dtype,
                                my_output_address=utils.get_address_from_tensor(tensor),
-                               ground_truth_address="NaN")
+                               ground_truth_address=ConstManager.NAN)
         return result
 
     @staticmethod
