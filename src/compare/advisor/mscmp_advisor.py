@@ -68,7 +68,7 @@ class CompareAdvisor:
     def _parse_input_file(self):
         if self.input_file.endswith(".csv"):
             try:
-                df = pd.read_csv(self.input_file, error_bad_lines=False)
+                df = pd.read_csv(self.input_file, on_bad_lines='skip')
             except OSError as os_err:
                 log.print_error_log('Failed to parse the input file %s. %s'
                                     % (self.input_file, str(os_err)))
