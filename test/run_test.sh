@@ -8,7 +8,7 @@ SRC_DIR=${TOP_DIR}/"src"
 
 clean() {
   cd ${TEST_DIR}
-  if [ -e st_report.xml ]; then
+  if [ -e ${TEST_DIR}/st_report.xml ]; then
     rm st_report.xml
     echo "remove last st_report success"
   fi
@@ -16,11 +16,6 @@ clean() {
   if [ -e ${TEST_DIR}/report ]; then
     rm -r ${TEST_DIR}/report
     echo "remove last ut_report success"
-  fi
-
-  if [ -e compare ]; then
-    rm -r compare
-    echo "remove compare success"
   fi
 }
 
@@ -39,30 +34,16 @@ gen_dump_api() {
   ${protoc_path} -I=${proto_path} --python_out=${output_path} ${proto_path}/dump_data.proto
 }
 
-copy_src() {
-  local dump_api=${SRC_DIR}/compare/dump_data_pb2.py
-  if [ ! -e ${dump_api} ]; then
-    gen_dump_api
-  fi
-  local src_pkg="compare.tar.gz"
-  cd ${SRC_DIR}
-  tar -zcf src_pkg compare
-  mv ${SRC_DIR}/src_pkg ${TEST_DIR}
-  cd ${TEST_DIR}
-  tar -zxf src_pkg && rm src_pkg
-}
-
 run_st() {
-  export PYTHONPATH=PYTHONPATH:${TEST_DIR}/compare && python3 run_st.py
+  export PYTHONPATH=${SRC_DIR}/compare:PYTHONPATH && python3 run_st.py
 }
 
 run_ut() {
-  export PYTHONPATH=PYTHONPATH:${TEST_DIR}/compare && python3 run_ut.py
+  export PYTHONPATH=${SRC_DIR}/compare:PYTHONPATH && python3 run_ut.py
 }
 
 main() {
   clean
-  copy_src
 
   if [[ $1 == "ut" ]] || [[ $1 == "st" ]]; then
     [ $1 == "ut" ] && run_ut

@@ -5,8 +5,9 @@ import shutil
 
 def run_ut():
     cur_dir = os.path.abspath(os.path.dirname(__file__))
+    top_dir = os.path.abspath(os.path.dirname(cur_dir))
     ut_path = os.path.join(cur_dir, "ut/testcase/")
-    src_name = "compare"
+    src_dir = os.path.join(top_dir, "src/compare")
     report_dir = os.path.join(cur_dir, 'report')
 
     if os.path.exists(report_dir):
@@ -15,7 +16,7 @@ def run_ut():
     os.makedirs(report_dir)
 
     cmd = ['python3', '-m', 'pytest', ut_path, '--junitxml=' + report_dir + '/final.xml',
-           '--cov=' + src_name, '--cov-branch', '--cov-report=xml:' + report_dir + '/coverage.xml']
+           '--cov=' + src_dir, '--cov-branch', '--cov-report=xml:' + report_dir + '/coverage.xml']
 
     result_ut = subprocess.Popen(cmd, shell=False,
                                  stdout=subprocess.PIPE,
