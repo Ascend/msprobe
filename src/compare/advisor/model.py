@@ -110,7 +110,7 @@ def evaluate(data_path, input_nodes=[]):
 
 
 if __name__ == "__main__":
-    my_data_path = "/home/wangchao/compare_tools/advisor/problem.csv"
+    my_data_path = "./"
     my_input_nodes = []
     ret = evaluate(my_data_path, my_input_nodes)
     print("sample in:{} out:{}".format(my_data_path, ret))
