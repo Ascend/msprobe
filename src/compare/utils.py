@@ -375,16 +375,33 @@ def get_data_type(dump_data_type: str) -> str:
     return ConstManager.DATA_TYPE_TO_STR_DTYPE_MAP.get(dump_data_type)
 
 
+def get_address_from_tensor(tensor: any):
+    """
+    get address from tensor
+    args:tensor
+    return:address
+    """
+    if hasattr(tensor, "address") and tensor.address !=0 :
+        return tensor.address
+    else:
+        return "NaN"
+
+
 def dump_path_contains_npy(dump_path: str):
+    """
+    check dump_file is npy file in dump path
+    args: dump_path
+    returns: bool
+    """
     if dump_path and os.path.isfile(dump_path):
         return dump_path.endswith(ConstManager.NUMPY_SUFFIX)
     elif dump_path and os.path.isdir(dump_path):
-        return has_npy_at_dir(dump_path)
+        return _has_npy_at_dir(dump_path)
     else:
         return False
 
 
-def has_npy_at_dir(dump_path: str):
+def _has_npy_at_dir(dump_path: str):
     file_list = os.listdir(dump_path)
     for file_path in file_list:
         if str(file_path).endswith(ConstManager.NUMPY_SUFFIX):
