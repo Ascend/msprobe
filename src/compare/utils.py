@@ -381,7 +381,7 @@ def get_address_from_tensor(tensor: any):
     args:tensor
     return:address
     """
-    if hasattr(tensor, "address") and tensor.address !=0 :
+    if hasattr(tensor, "address") and tensor.address != 0:
         return tensor.address
     else:
         return "NaN"
