@@ -30,9 +30,11 @@ def run_st():
     else:
         print("run st failed")
 
+    return st_flag
+
 
 if __name__ == "__main__":
     if run_st():
         sys.exit(0)
     else:
-        sys.exit(-1)
+        sys.exit(1)

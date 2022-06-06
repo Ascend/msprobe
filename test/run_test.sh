@@ -47,11 +47,18 @@ main() {
 
   gen_dump_api
 
+  local ret=1
   if [[ $1 == "ut" ]] || [[ $1 == "st" ]]; then
-    [ $1 == "ut" ] && run_ut
-    [ $1 == "st" ] && run_st
+    [ $1 == "ut" ] && run_ut && ret=$?
+    [ $1 == "st" ] && run_st && ret=$?
   else
-    run_ut && run_st
+    run_ut && run_st && ret=$?
+  fi
+
+  if [ "x"$ret == "x"0 ]; then
+    exit 0
+  else
+    exit 1;
   fi
 }
 
