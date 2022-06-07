@@ -37,7 +37,9 @@ class CompareAdvisor:
         if not advisor_result.match_advisor:
             overflow_advisor = OverflowAdvisor(analyze_data, advisor_result)
             advisor_result = overflow_advisor.start_analyze()
-            log.print_info_log("End analysis of operator overflow problem.")
+            if advisor_result.match_advisor:
+                log.print_info_log("The FP16 Overflow detection matches successfully.")
+            log.print_info_log("End FP16 Overflow detection.")
         return advisor_result
 
     @staticmethod
@@ -45,7 +47,9 @@ class CompareAdvisor:
         if not advisor_result.match_advisor:
             node_advisor = NodeAdvisor(analyze_data, advisor_result)
             advisor_result = node_advisor.start_analyze()
-            log.print_info_log("End analysis of net nodes precision problem.")
+            if advisor_result.match_advisor:
+                log.print_info_log("The Global Consistency detection matches successfully.")
+            log.print_info_log("End Global Consistency detection.")
         return advisor_result
 
     def advisor(self):
@@ -62,7 +66,9 @@ class CompareAdvisor:
         if not advisor_result.match_advisor and self.input_nodes:
             input_advisor = InputAdvisor(analyze_data, advisor_result, self.input_nodes)
             advisor_result = input_advisor.start_analyze()
-            log.print_info_log("End analysis of input nodes precision problem.")
+            if advisor_result.match_advisor:
+                log.print_info_log("The Input Inconsistent detection matches successfully.")
+            log.print_info_log("End Input Inconsistent detection.")
         return advisor_result
 
     def _parse_input_file(self):

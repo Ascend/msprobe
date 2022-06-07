@@ -26,10 +26,10 @@ class NodeAdvisor:
         """
         Analyze result by node detection
         """
-        log.print_info_log('Start analysis network nodes precision problem.')
+        log.print_info_log('Start Global Consistency detection.')
         data_columns = self.analyze_data.columns.values
         if AdvisorConst.COSINE_SIMILARITY not in data_columns:
-            log.print_warn_log('Input csv file does not contain %s columns, Skip network nodes detection analysis.'
+            log.print_warn_log('Input csv file does not contain %s columns, Skip Global Consistency detection.'
                                % AdvisorConst.COSINE_SIMILARITY)
             return self.result
         else:
@@ -41,7 +41,7 @@ class NodeAdvisor:
                                    % AdvisorConst.COSINE_SIMILARITY)
                 return self.result
             cos_df = have_cos_df.reset_index(drop=True, inplace=False)
-            err_cos_df = have_cos_df[have_cos_df['CosineSimilarity'] < AdvisorConst.ACCURACY_THRESHOLD]
+            err_cos_df = have_cos_df[have_cos_df[AdvisorConst.COSINE_SIMILARITY] < AdvisorConst.ACCURACY_THRESHOLD]
             if err_cos_df.shape[0] == 0:
                 return AdvisorResult(True, AdvisorConst.CONSISTENCY_DETECTION,
                                      AdvisorConst.NO_ERROR_OP, AdvisorConst.CONSISTENCY_SUGGEST)
@@ -50,7 +50,7 @@ class NodeAdvisor:
             cos_df_len = cos_df.shape[0]
             last_line_cos = cos_df.at[cos_df_len - 1, AdvisorConst.COSINE_SIMILARITY]
             if last_line_cos < AdvisorConst.ACCURACY_THRESHOLD:
-                return AdvisorResult(True, AdvisorConst.PROBLEM_DETECTION,
+                return AdvisorResult(True, AdvisorConst.CONSISTENCY_DETECTION,
                                      str(index), AdvisorConst.PROBLEM_SUGGEST)
-            return AdvisorResult(True, AdvisorConst.DEVIATION_DETECTION,
+            return AdvisorResult(True, AdvisorConst.CONSISTENCY_DETECTION,
                                  str(index), AdvisorConst.DEVIATION_SUGGEST)

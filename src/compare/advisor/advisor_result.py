@@ -36,6 +36,7 @@ class AdvisorResult:
         try:
             with os.fdopen(os.open(result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
                            'w+') as output_file:
+                output_file.truncate(0)
                 message_list = [message + AdvisorConst.NEW_LINE for message in message_list]
                 output_file.writelines(message_list)
         except IOError as io_error:
@@ -47,7 +48,7 @@ class AdvisorResult:
         """
         Log and print advisor summary
         """
-        log.print_info_log("A summary of the expert advice is as follows: ")
+        log.print_info_log("The summary of the expert advice is as follows: ")
         message_list = [AdvisorConst.DETECTION_TYPE + AdvisorConst.COLON +
                         self.advisor_type,
                         AdvisorConst.OPERATOR_INDEX + AdvisorConst.COLON +

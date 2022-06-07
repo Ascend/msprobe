@@ -27,10 +27,10 @@ class InputAdvisor:
         """
         Analyze result by input detection
         """
-        log.print_info_log('Start analysis input nodes precision problem.')
+        log.print_info_log('Start Input Inconsistent detection.')
         data_columns = self.analyze_data.columns.values
         if AdvisorConst.COSINE_SIMILARITY not in data_columns:
-            log.print_warn_log('Input csv file does not contain %s columns, Skip input detection analysis.'
+            log.print_warn_log('Input csv file does not contain %s columns, Skip Input Inconsistent detection.'
                                % AdvisorConst.COSINE_SIMILARITY)
             return self.result
         else:
