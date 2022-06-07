@@ -26,16 +26,16 @@ class OverflowAdvisor:
         """
         Analyze result by overflow detection
         """
-        log.print_info_log('Start analysis operator overflow problem.')
+        log.print_info_log('Start FP16 Overflow detection.')
         data_columns = self.analyze_data.columns.values
         if AdvisorConst.OVERFLOW not in data_columns:
-            log.print_warn_log('Input csv file does not contain %s columns, Skip overflow detection analysis.'
+            log.print_warn_log('Input csv file does not contain %s columns, Skip FP16 Overflow detection.'
                                % AdvisorConst.OVERFLOW)
         else:
             overflow_df = self.analyze_data[self.analyze_data[AdvisorConst.OVERFLOW] == "YES"]
             # check overflow dataframe lines
             if overflow_df.shape[0] == 0:
-                log.print_info_log('After analysis, input csv file does not have operator overflow problem.')
+                log.print_info_log('After analysis, input csv file does not have FP16 Overflow problem.')
                 return self.result
             overflow_df.reset_index(drop=True, inplace=True)
             index = overflow_df.at[0, AdvisorConst.INDEX]

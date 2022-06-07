@@ -21,24 +21,28 @@ class AdvisorConst:
     # advisor summary key
     DETECTION_TYPE = "Detection Type"
     OPERATOR_INDEX = "Operator Index"
-    ADVISOR_SUGGEST = "Advisor Suggest"
+    ADVISOR_SUGGEST = "Expert Advice"
 
     # detection type
-    OVERFLOW_DETECTION = "Overflow Detection"
-    INPUT_DETECTION = "Input Detection"
-    CONSISTENCY_DETECTION = "Consistency Detection"
-    PROBLEM_DETECTION = "Problem Node Detection"
-    DEVIATION_DETECTION = "Deviation Detection"
+    OVERFLOW_DETECTION = "FP16 Overflow"
+    INPUT_DETECTION = "Input Inconsistent"
+    CONSISTENCY_DETECTION = "Global Consistency"
 
     # operator index
     NO_ERROR_OP = "NA"
 
     # advisor suggest
-    OVERFLOW_SUGGEST = "Have overflow, please check!"
-    INPUT_SUGGEST = "Have input error, please check!"
-    CONSISTENCY_SUGGEST = "Consistency check good!"
-    PROBLEM_SUGGEST = "Have problem node, please check!"
-    DEVIATION_SUGGEST = "Have deviation node, please ignore!"
+    OVERFLOW_SUGGEST = "Float16 data overflow occurs. Rectify the fault and perform comparison again."
+    INPUT_SUGGEST = "The input data of NPUDump is inconsistent with that of GroundTruth. Use the same data " \
+                    "or check the data preprocessing process."
+    CONSISTENCY_SUGGEST = "All data in the comparison result meets the accuracy requirements. " \
+                          "If data accuracy of the model is still not up to standard in practical application, " \
+                          "please check the post-processing process of model outputs."
+    PROBLEM_SUGGEST = "The accuracy of some tensors is low, resulting in an unqualified final accuracy. " \
+                      "This may be caused by quantization. Calibrate the data or contact Huawei for further diagnosis. "
+    DEVIATION_SUGGEST = "The accuracy of some tensors is low, while the final accuracy is qualified. " \
+                        "This may be caused by Ascend internal optimization. " \
+                        "Ignore or contact Huawei for further diagnosis. "
 
     # text symbol
     NEW_LINE = "\n"
