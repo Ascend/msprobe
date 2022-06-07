@@ -13,6 +13,7 @@ ERROR_CODE = {'success': '0', 'optimized': '1'}
 EXTEND_TYPE = {'list': '0', 'table': '1', 'sourcedata': '2'}
 EXTEND_DATA_TYPE = {'str': '0', 'int': '1', 'double': '2'}
 
+
 class ExtendResult:
     def __init__(self):
         self.type = '0'
@@ -24,8 +25,8 @@ class ExtendResult:
 
 class Result:
     def __init__(self):
-        self.CLASS_TYPE = '0'
-        self.ERROR_CODE = '0'
+        self.class_type = '0'
+        self.error_code = '0'
         self.summary = ""
         self.extend_result = []
 
@@ -35,13 +36,13 @@ class Result:
             data = {"type": item.type, "extendTitle": item.extend_title,
                     "dataType": item.data_type, "key": item.key, "value": item.value}
             extend_data.append(data)
-        res = {"classType": self.CLASS_TYPE, "errorCode": self.ERROR_CODE,
+        res = {"classType": self.class_type, "errorCode": self.error_code,
                "summary": self.summary, "extendResult": extend_data}
         outputstr = json.dumps(res)
         return outputstr
 
 
-def Evaluate(data_path, input_nodes=[]):
+def evaluate(data_path, input_nodes=None):
     """
     interface function called by msadvisor
     Args:
@@ -54,6 +55,7 @@ def Evaluate(data_path, input_nodes=[]):
     # do evaluate work by file data
     # my code begin
     input_file = os.path.realpath(data_path)
+    input_nodes = [] if input_nodes is None else input_nodes
 
     compare_advisor = CompareAdvisor(input_file, input_nodes)
     advisor_result = compare_advisor.advisor()
@@ -64,8 +66,8 @@ def Evaluate(data_path, input_nodes=[]):
 
     # fill result
     result = Result()
-    result.CLASS_TYPE = CLASS_TYPE.get('model')
-    result.ERROR_CODE = ERROR_CODE.get('success')
+    result.class_type = CLASS_TYPE.get('model')
+    result.error_code = ERROR_CODE.get('success')
     result.summary = "Suggestions for accuracy comparison of the entire network"
     extend_result = ExtendResult()
     # the value of extend_result.type cat be 'list' 'table' 'sourcedata'
@@ -108,5 +110,5 @@ def Evaluate(data_path, input_nodes=[]):
 if __name__ == "__main__":
     DATA_PATH = "./"
     my_input_nodes = []
-    ret = Evaluate(DATA_PATH, my_input_nodes)
+    ret = evaluate(DATA_PATH, my_input_nodes)
     # using debug: print("sample in:{} out:{}".format(DATA_PATH, ret))
