@@ -22,15 +22,16 @@ class TensorResult:
     The class for tensor result result
     """
 
-    def __init__(self: any, tensor_id: any, shape: list, result: list, error_msg: list,
-                 my_output_dtype: str = "NaN", ground_truth_dtype: str = "NaN") -> None:
-        self.tensor_id = tensor_id
-        self.shape = shape
+    def __init__(self: any, tensor_info: dict, result: list, error_msg: list) -> None:
+        self.tensor_id = tensor_info.get("tensor_id", ConstManager.NAN)
+        self.shape = tensor_info.get("shape", ConstManager.NAN)
         self.algorithm_result = result[0]
         self.error_msg = error_msg
         self.overflow_result = result[1]
-        self.my_output_dtype = my_output_dtype
-        self.ground_truth_dtype = ground_truth_dtype
+        self.my_output_dtype = tensor_info.get("my_output_dtype", ConstManager.NAN)
+        self.ground_truth_dtype = tensor_info.get("ground_truth_dtype", ConstManager.NAN)
+        self.my_output_address = tensor_info.get("my_output_address", ConstManager.NAN)
+        self.ground_truth_address = tensor_info.get("ground_truth_address", ConstManager.NAN)
 
     def get_result(self: any) -> list:
         """
@@ -58,6 +59,12 @@ class TensorResult:
 
     def get_ground_truth_dtype(self):
         return self.ground_truth_dtype
+
+    def get_my_output_address(self):
+        return self.my_output_address
+
+    def get_ground_truth_address(self):
+        return self.ground_truth_address
 
 
 class PytorchOpInfo:
@@ -91,10 +98,11 @@ class FusionOpComResult:
     """
 
     def __init__(self: any, algorithm_manager: AlgorithmManager, ground_truth_to_my_output_map: any = None,
-                 overflow_detection: bool = False) -> None:
+                 overflow_detection: bool = False, is_ground_truth_gpu_or_cpu: bool = False) -> None:
         self.algorithm_manager = algorithm_manager
         self.ground_truth_to_my_output_map = ground_truth_to_my_output_map
         self.overflow_detection = overflow_detection
+        self.is_ground_truth_gpu_or_cpu = is_ground_truth_gpu_or_cpu
 
     @staticmethod
     def _make_ops_without_map(fusion_op: FusionOp, no_dump_file: bool) -> (str, str):
@@ -135,22 +143,28 @@ class FusionOpComResult:
         my_output_op, ground_truth_op = self._make_my_output_op_and_ground_truth_op(fusion_op, no_dump_file)
         if tensor_result:
             for item in tensor_result:
-                result = [str(fusion_op.op_id), my_output_op, str(item.get_my_output_dtype()), ground_truth_op,
-                          str(item.get_ground_truth_dtype())] + item.get_result()
+                current_tensor_info = [str(fusion_op.op_id), my_output_op, str(item.get_my_output_dtype()),
+                                       str(item.get_my_output_address()), ground_truth_op,
+                                       str(item.get_ground_truth_dtype()), str(item.get_ground_truth_address())]
+                if self.is_ground_truth_gpu_or_cpu:
+                    current_tensor_info.pop(-1)
+                result = current_tensor_info + item.get_result()
                 RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
         else:
+            current_tensor_info = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ConstManager.NAN,
+                                   ground_truth_op, ConstManager.NAN, ConstManager.NAN, ConstManager.NAN,
+                                   ConstManager.NAN]
+            if self.is_ground_truth_gpu_or_cpu:
+                current_tensor_info.pop(6)
             if self.overflow_detection:
                 # using 'NaN' as a overflow detection for 'no tensor_result'
                 # and insert it after the column 'Shape'.
-                result = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ground_truth_op, ConstManager.NAN,
-                          ConstManager.NAN,
-                          ConstManager.NAN] + ['NaN'] + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+                result = current_tensor_info + ['NaN'] + self.algorithm_manager.make_nan_result() \
+                         + [",".join(error_msg)]
             else:
-                result = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ground_truth_op, ConstManager.NAN,
-                          ConstManager.NAN,
-                          ConstManager.NAN] + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+                result = current_tensor_info + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
             RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
             log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
             result_list.append(result)
