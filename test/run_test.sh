@@ -5,6 +5,7 @@ CUR_DIR=$(dirname $(readlink -f $0))
 TOP_DIR=${CUR_DIR}/..
 TEST_DIR=${TOP_DIR}/"test"
 SRC_DIR=${TOP_DIR}/"src"
+COMPILE_FLAG=0
 
 clean() {
   cd ${TEST_DIR}
@@ -21,12 +22,17 @@ clean() {
 
 clean_dump_api() {
   local api_file=${SRC_DIR}/compare/dump_data_pb2.py
-  if [ -e ${api_file} ]; then
+  if [ -e ${api_file} ] && [ "x"${COMPILE_FLAG} == "x"1 ]; then
     rm ${api_file}
   fi
 }
 
 gen_dump_api() {
+  local api_file=${SRC_DIR}/compare/dump_data_pb2.py
+  if [ -e ${api_file} ]; then
+    return
+  fi
+
   cd ${CUR_DIR}
   local top_dir=$(dirname $(pwd))
 
@@ -39,6 +45,7 @@ gen_dump_api() {
   local proto_path=${top_dir}/resource
   local output_path=${top_dir}/src/compare
   ${protoc_path} -I=${proto_path} --python_out=${output_path} ${proto_path}/dump_data.proto
+  COMPILE_FLAG=1
 }
 
 run_st() {
