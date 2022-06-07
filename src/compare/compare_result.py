@@ -22,18 +22,16 @@ class TensorResult:
     The class for tensor result result
     """
 
-    def __init__(self: any, tensor_id: any, shape: list, result: list, error_msg: list,
-                 my_output_dtype: str = "NaN", ground_truth_dtype: str = "NaN",
-                 my_out_put_address: str = "NaN", ground_truth_address: str = "NaN") -> None:
-        self.tensor_id = tensor_id
-        self.shape = shape
+    def __init__(self: any, tensor_info: dict, result: list, error_msg: list) -> None:
+        self.tensor_id = tensor_info.get("tensor_id", ConstManager.NAN)
+        self.shape = tensor_info.get("shape", ConstManager.NAN)
         self.algorithm_result = result[0]
         self.error_msg = error_msg
         self.overflow_result = result[1]
-        self.my_output_dtype = my_output_dtype
-        self.ground_truth_dtype = ground_truth_dtype
-        self.my_output_address = my_out_put_address
-        self.ground_truth_address = ground_truth_address
+        self.my_output_dtype = tensor_info.get("my_output_dtype", ConstManager.NAN)
+        self.ground_truth_dtype = tensor_info.get("ground_truth_dtype", ConstManager.NAN)
+        self.my_output_address = tensor_info.get("my_output_address", ConstManager.NAN)
+        self.ground_truth_address = tensor_info.get("ground_truth_address", ConstManager.NAN)
 
     def get_result(self: any) -> list:
         """

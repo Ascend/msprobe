@@ -176,16 +176,17 @@ class NpuVsNpuComparison:
                                                                                      index, is_input, my_output_tensor)
             my_output_tensor_dtype = utils.get_data_type(my_output_tensor.data_type)
             ground_truth_tensor_dtype = utils.get_data_type(ground_truth_tensor.data_type)
-            my_output_tensor_address = \
-                my_output_tensor.address if hasattr(my_output_tensor, 'address') else "NaN*"
-            ground_truth_tensor_address = \
-                ground_truth_tensor.address if hasattr(ground_truth_tensor, 'address') else "NaN*"
+            my_output_tensor_address = utils.get_address_from_tensor(my_output_tensor)
+            ground_truth_tensor_address = utils.get_address_from_tensor(ground_truth_tensor)
 
             # 3. merge result
+            tensor_info = {"tensor_id": tensor_id, "shape": my_output_tensor.shape.dim,
+                           "my_output_dtype": my_output_tensor_dtype,
+                           "ground_truth_dtype": ground_truth_tensor_dtype,
+                           "my_output_address": my_output_tensor_address,
+                           "ground_truth_address": ground_truth_tensor_address}
             tensor_result_list.append(
-                compare_result.TensorResult(tensor_id, my_output_tensor.shape.dim, [algorithm_result, overflow_result],
-                                            error_msg, my_output_tensor_dtype, ground_truth_tensor_dtype,
-                                            my_output_tensor_address, ground_truth_tensor_address))
+                compare_result.TensorResult(tensor_info, [algorithm_result, overflow_result], error_msg))
         return tensor_result_list
 
     def compare(self: any) -> (int, bool, list):

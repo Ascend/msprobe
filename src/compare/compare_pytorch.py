@@ -152,9 +152,11 @@ class PytorchComparison:
                                                                                      golden_dataset)
             my_dump_data_type = type_shape_list[0]
             shape = type_shape_list[1]
+            tensor_info = {"tensor_id": None, "shape": shape,
+                           "my_output_dtype": my_dump_data_type}
             return match, fusion_op_result.get_pytorch_result(
                 op_info,
-                [compare_result.TensorResult(None, shape, [algorithm_result, ''], fail_reason, my_dump_data_type)],
+                [compare_result.TensorResult(tensor_info, [algorithm_result, ''], fail_reason)],
                 fail_reason)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError,
                 CompareError) as err:
