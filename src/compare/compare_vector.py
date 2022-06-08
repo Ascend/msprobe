@@ -6,7 +6,7 @@ VectorComparison class. This class mainly involves the compare function.
 Copyright Information:
 Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
 """
-
+import copy
 import os
 import sys
 import argparse
@@ -73,7 +73,6 @@ class VectorComparison:
 
     def __init__(self: any, arguments: any = None) -> None:
         self.args = {}
-        self.cur_op_header = self.OP_HEADER
         if arguments:
             self.compare_rule = CompareRule(arguments.fusion_rule_file,
                                             arguments.quant_fusion_rule_file,
@@ -102,6 +101,7 @@ class VectorComparison:
             elif arguments.select:
                 self.args["select"] = arguments.select
                 self.args[ConstManager.RANGE_MANAGER_KEY] = SelectMode(arguments.select)
+            self.args["my_dump_path"] = arguments.my_dump_path
             self.args["golden_dump_path"] = arguments.golden_dump_path
         else:
             parse = argparse.ArgumentParser()
@@ -122,6 +122,7 @@ class VectorComparison:
             self.format_manager = FormatManager(args.custom_path)
             self.args["algorithm_manager"] = AlgorithmManager('', 'all', '')
             self.args["mapping"] = False
+            self.args["my_dump_path"] = args.left_dump_path
             self.args["golden_dump_path"] = args.right_dump_path
 
     def _process_output_path_parameter(self: any, arguments: any) -> None:
@@ -382,14 +383,11 @@ class VectorComparison:
         return self._compare_vector()
 
     def _write_header_to_file(self: any) -> bool:
-        golden_dump_path = self.args.get("golden_dump_path")
-        if utils.dump_path_contains_npy(golden_dump_path):
-            address_index = [i for i, x in enumerate(self.cur_op_header) if x == 'Address']
-            self.cur_op_header.pop(address_index[-1])
+        cur_op_header = self._pre_handle_header()
         try:
             with os.fdopen(os.open(self.output_path, ConstManager.WRITE_FLAGS,
                                    ConstManager.WRITE_MODES), 'a+', newline='') as output_file:
-                header = compare_result.get_result_title(self.args.get('algorithm_manager'), self.cur_op_header,
+                header = compare_result.get_result_title(self.args.get('algorithm_manager'), cur_op_header,
                                                          self.args.get('overflow_detection'))
                 if self.args.get("csv"):
                     writer = csv.writer(output_file)
@@ -437,6 +435,17 @@ class VectorComparison:
         if os.path.exists(self.output_path):
             log.print_write_result_info('mapping table result', self.output_path)
         return CompareError.MSACCUCMP_NONE_ERROR
+
+    def _pre_handle_header(self: any) -> list:
+        op_header = copy.deepcopy(self.OP_HEADER)
+        golden_dump_path = self.args.get("golden_dump_path")
+        my_dump_path = self.args.get("my_dump_path")
+        address_index = [i for i, x in enumerate(op_header) if x == 'Address']
+        if utils.dump_path_contains_npy(golden_dump_path) and len(address_index) > 0:
+            op_header.pop(address_index[-1])
+        if utils.dump_path_contains_npy(my_dump_path) and len(address_index) > 0:
+            op_header.pop(address_index[0])
+        return op_header
 
 
 def _handle_stop(sig: any, frame: any) -> None:

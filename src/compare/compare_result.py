@@ -98,11 +98,12 @@ class FusionOpComResult:
     """
 
     def __init__(self: any, algorithm_manager: AlgorithmManager, ground_truth_to_my_output_map: any = None,
-                 overflow_detection: bool = False, is_ground_truth_gpu_or_cpu: bool = False) -> None:
+                 overflow_detection: bool = False, dump_is_cpu_or_gpu_data: list = None) -> None:
         self.algorithm_manager = algorithm_manager
         self.ground_truth_to_my_output_map = ground_truth_to_my_output_map
         self.overflow_detection = overflow_detection
-        self.is_ground_truth_gpu_or_cpu = is_ground_truth_gpu_or_cpu
+        self.is_ground_truth_gpu_or_cpu = dump_is_cpu_or_gpu_data[0] if dump_is_cpu_or_gpu_data else False
+        self.is_my_dump_gpu_or_cpu = dump_is_cpu_or_gpu_data[1] if dump_is_cpu_or_gpu_data else False
 
     @staticmethod
     def _make_ops_without_map(fusion_op: FusionOp, no_dump_file: bool) -> (str, str):
@@ -129,6 +130,17 @@ class FusionOpComResult:
             my_output_op, ground_truth_op = self._make_ops_without_map(fusion_op, no_dump_file)
         return my_output_op, ground_truth_op
 
+    def _pre_handle_result(self: any, current_tensor_info: list) -> None:
+        """
+        if dump data is not NPU data, the result will be popped.
+        my dump data index is 3, ground truth data index is 6.
+        args: result list
+        """
+        if self.is_ground_truth_gpu_or_cpu:
+            current_tensor_info.pop(6)
+        if self.is_my_dump_gpu_or_cpu:
+            current_tensor_info.pop(3)
+
     def get_result(self: any, fusion_op: FusionOp, tensor_result: any, error_msg: list,
                    no_dump_file: bool = False) -> list:
         """
@@ -146,8 +158,7 @@ class FusionOpComResult:
                 current_tensor_info = [str(fusion_op.op_id), my_output_op, str(item.get_my_output_dtype()),
                                        str(item.get_my_output_address()), ground_truth_op,
                                        str(item.get_ground_truth_dtype()), str(item.get_ground_truth_address())]
-                if self.is_ground_truth_gpu_or_cpu:
-                    current_tensor_info.pop(-1)
+                self._pre_handle_result(current_tensor_info)
                 result = current_tensor_info + item.get_result()
                 RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
@@ -156,8 +167,7 @@ class FusionOpComResult:
             current_tensor_info = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ConstManager.NAN,
                                    ground_truth_op, ConstManager.NAN, ConstManager.NAN, ConstManager.NAN,
                                    ConstManager.NAN]
-            if self.is_ground_truth_gpu_or_cpu:
-                current_tensor_info.pop(6)
+            self._pre_handle_result(current_tensor_info)
             if self.overflow_detection:
                 # using 'NaN' as a overflow detection for 'no tensor_result'
                 # and insert it after the column 'Shape'.

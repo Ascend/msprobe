@@ -59,7 +59,6 @@ run_ut() {
 main() {
   clean
 
-  clean_dump_api
   gen_dump_api
 
   local ret=1
