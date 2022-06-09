@@ -49,8 +49,7 @@ class Progress:
                 log.print_error_log('Can not divide zero.')
         current_time = time.time()
         greater_than_count = math.floor(
-            progress / (ConstManager.MAX_PROGRESS / self.PROGRESS_GREATER_THAN_COUNT)) \
-            if ConstManager.MAX_PROGRESS != 0 and self.PROGRESS_GREATER_THAN_COUNT != 0 else 0
+            progress / (ConstManager.MAX_PROGRESS / self.PROGRESS_GREATER_THAN_COUNT))
         progress_info = '%s%s' % (self.PROGRESS_GREATER_THAN * greater_than_count,
                                   ' ' * (self.PROGRESS_GREATER_THAN_COUNT - greater_than_count))
         if current_time - self.last_progress_time >= self.INTERVAL_TIME_SECOND \
