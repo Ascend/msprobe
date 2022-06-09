@@ -51,26 +51,6 @@ class VectorComparison:
     MULTI_THREAD_DUMP_MATCH_INDEX = 1
     MULTI_THREAD_COMPARE_RESULT_INDEX = 2
 
-    @staticmethod
-    def _parser_cmd(parse: any) -> None:
-        parse.add_argument("-l", dest="left_dump_path", default="",
-                           help="<Required> the left dump path, the data compared with golden data", required=True)
-        parse.add_argument("-r", dest="right_dump_path", default="",
-                           help="<Required> the right dump path, the golden data", required=True)
-        parse.add_argument("-f", dest="fusion_json_file_path", default="", help="<Optional> fusion json file path")
-        parse.add_argument("-q", dest="quant_fusion_rule_file_path",
-                           default="", help="<Optional> quant fusion rule file path")
-        parse.add_argument("-o", dest="output_path", default="", help="<Required> output file path", required=True)
-        parse.add_argument("-d", dest="op_name", default="", help="<Optional> detail operator name", required=False)
-        parse.add_argument("-t", dest="detail_type", default="output", required=False,
-                           help="<Optional> detail type for operator, input or output, the default is output")
-        parse.add_argument("-i", dest="detail_index", default="0",
-                           help="<Optional> detail index for input or output, the default is 0", required=False)
-        parse.add_argument("-csv", dest="csv", action="store_true",
-                           default=False, help="<Optional> save file as csv format", required=False)
-        parse.add_argument("-custom", dest="custom_path", default="",
-                           help="<Optional> user-defined path, including format conversion", required=False)
-
     def __init__(self: any, arguments: any = None) -> None:
         self.args = {}
         if arguments:
@@ -125,36 +105,25 @@ class VectorComparison:
             self.args["my_dump_path"] = args.left_dump_path
             self.args["golden_dump_path"] = args.right_dump_path
 
-    def _process_output_path_parameter(self: any, arguments: any) -> None:
-        if arguments.mapping:
-            file_name = 'mapping_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-        else:
-            file_name = 'result_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-        self.output_path = os.path.join(os.path.realpath(arguments.output_path), file_name)
-
-    def set_output_path(self: any, output_path: str) -> None:
-        """
-        Set output path
-        :param output_path: the output path
-        """
-        self.output_path = os.path.realpath(output_path)
-
-    def _process_single_op_parameters(self: any, arguments: any) -> None:
-        tensor_type = ConstManager.OUTPUT
-        tensor_index = '0'
-        max_line = ConstManager.MAX_DETAIL_INFO_LINE_COUNT
-        if arguments.max_line is not None:
-            self._process_single_op_max_line_parameters(arguments.max_line)
-            max_line = arguments.max_line
-        if arguments.input:
-            tensor_type = ConstManager.INPUT
-            tensor_index = arguments.input
-        if arguments.output:
-            tensor_type = ConstManager.OUTPUT
-            tensor_index = arguments.output
-        self.output_path = os.path.realpath(arguments.output_path)
-        tensor_id = detail.TensorId(arguments.op_name, tensor_type, tensor_index)
-        self.detail_info = detail.DetailInfo(tensor_id, arguments.topn, arguments.ignore_single_op_result, max_line)
+    @staticmethod
+    def _parser_cmd(parse: any) -> None:
+        parse.add_argument("-l", dest="left_dump_path", default="",
+                           help="<Required> the left dump path, the data compared with golden data", required=True)
+        parse.add_argument("-r", dest="right_dump_path", default="",
+                           help="<Required> the right dump path, the golden data", required=True)
+        parse.add_argument("-f", dest="fusion_json_file_path", default="", help="<Optional> fusion json file path")
+        parse.add_argument("-q", dest="quant_fusion_rule_file_path",
+                           default="", help="<Optional> quant fusion rule file path")
+        parse.add_argument("-o", dest="output_path", default="", help="<Required> output file path", required=True)
+        parse.add_argument("-d", dest="op_name", default="", help="<Optional> detail operator name", required=False)
+        parse.add_argument("-t", dest="detail_type", default="output", required=False,
+                           help="<Optional> detail type for operator, input or output, the default is output")
+        parse.add_argument("-i", dest="detail_index", default="0",
+                           help="<Optional> detail index for input or output, the default is 0", required=False)
+        parse.add_argument("-csv", dest="csv", action="store_true",
+                           default=False, help="<Optional> save file as csv format", required=False)
+        parse.add_argument("-custom", dest="custom_path", default="",
+                           help="<Optional> user-defined path, including format conversion", required=False)
 
     @staticmethod
     def _process_single_op_max_line_parameters(max_line: int) -> None:
@@ -163,6 +132,13 @@ class VectorComparison:
                                          .format(ConstManager.DETAIL_LINE_COUNT_RANGE_MIN,
                                                  ConstManager.DETAIL_LINE_COUNT_RANGE_MAX))
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+
+    def set_output_path(self: any, output_path: str) -> None:
+        """
+        Set output path
+        :param output_path: the output path
+        """
+        self.output_path = os.path.realpath(output_path)
 
     def check_arguments_valid(self: any) -> None:
         """
@@ -188,6 +164,51 @@ class VectorComparison:
                                                 self.compare_rule.close_fusion_rule_file_path)
         self._filter_left_dump_is_npy_overflow()
         self.format_manager.check_arguments_valid()
+
+    def compare(self: any) -> int:
+        """
+        Compare for vector or detail
+        """
+        # 1. check arguments valid
+        self.check_arguments_valid()
+        # 2. parse json file
+        self.compare_rule.parse_fusion_rule(self.compare_data)
+        if ConstManager.RANGE_MANAGER_KEY in self.args:
+            self.args.get(ConstManager.RANGE_MANAGER_KEY).check_input_valid(
+                self.compare_rule.fusion_info.op_list[-1].attr.get_op_sequence())
+        self.args["input_nodes"] = self.compare_rule.fusion_info.input_nodes
+        # 3. do compare detail
+        if self.detail_info:
+            return self._compare_detail()
+        # 4. do mapping
+        if self.args.get("mapping"):
+            return self._make_table()
+        # 5. do compare vector
+        return self._compare_vector()
+
+    def _process_output_path_parameter(self: any, arguments: any) -> None:
+        if arguments.mapping:
+            file_name = 'mapping_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+        else:
+            file_name = 'result_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+        self.output_path = os.path.join(os.path.realpath(arguments.output_path), file_name)
+
+    def _process_single_op_parameters(self: any, arguments: any) -> None:
+        tensor_type = ConstManager.OUTPUT
+        tensor_index = '0'
+        max_line = ConstManager.MAX_DETAIL_INFO_LINE_COUNT
+        if arguments.max_line is not None:
+            self._process_single_op_max_line_parameters(arguments.max_line)
+            max_line = arguments.max_line
+        if arguments.input:
+            tensor_type = ConstManager.INPUT
+            tensor_index = arguments.input
+        if arguments.output:
+            tensor_type = ConstManager.OUTPUT
+            tensor_index = arguments.output
+        self.output_path = os.path.realpath(arguments.output_path)
+        tensor_id = detail.TensorId(arguments.op_name, tensor_type, tensor_index)
+        self.detail_info = detail.DetailInfo(tensor_id, arguments.topn, arguments.ignore_single_op_result, max_line)
 
     def _filter_left_dump_is_npy_overflow(self: any) -> None:
         """
@@ -360,27 +381,6 @@ class VectorComparison:
                                                   self.format_manager, self.args)
         comparison = DetailComparison(self.detail_info, fusion_op_comparison, self.output_path)
         return comparison.compare()
-
-    def compare(self: any) -> int:
-        """
-        Compare for vector or detail
-        """
-        # 1. check arguments valid
-        self.check_arguments_valid()
-        # 2. parse json file
-        self.compare_rule.parse_fusion_rule(self.compare_data)
-        if ConstManager.RANGE_MANAGER_KEY in self.args:
-            self.args.get(ConstManager.RANGE_MANAGER_KEY).check_input_valid(
-                self.compare_rule.fusion_info.op_list[-1].attr.get_op_sequence())
-        self.args["input_nodes"] = self.compare_rule.fusion_info.input_nodes
-        # 3. do compare detail
-        if self.detail_info:
-            return self._compare_detail()
-        # 4. do mapping
-        if self.args.get("mapping"):
-            return self._make_table()
-        # 5. do compare vector
-        return self._compare_vector()
 
     def _write_header_to_file(self: any) -> bool:
         cur_op_header = self._pre_handle_header()

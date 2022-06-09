@@ -65,6 +65,12 @@ class Hdf5Parser:
         self.need_compare_input = False
         self._mapping_list = mapping_list
 
+    @staticmethod
+    def _is_multimap(op_name: str, mapping_set: list) -> bool:
+        if op_name in mapping_set:
+            return True
+        return False
+
     def open_file(self: any, model: str) -> int:
         """
         Open file and check exception
@@ -113,12 +119,6 @@ class Hdf5Parser:
             return True, attrs.get(attr_type)
         return False, ''
 
-    def _dataset_path_valid(self: any, dataset_path: str) -> bool:
-        match_result = re.search(self.DATASET_PATH_PATTERN, dataset_path)
-        if match_result is not None:
-            return True
-        return False
-
     def get_dump_data(self: any, dataset_path: str) -> any:
         """
         Get the dump data by dataset_path
@@ -138,6 +138,148 @@ class Hdf5Parser:
             raise CompareError(CompareError.MSACCUCMP_PARSE_DUMP_FILE_ERROR) from err
         finally:
             pass
+
+    def get_all_orders(self: any) -> list:
+        """
+        Get all orders string used to compare dump data.
+        """
+        return list(self.order_ext_opname_map.keys())
+
+    def get_order_by_ext_opname(self: any, ext_opname: str) -> int:
+        """
+        Get the order corresponding to the ext_opname.
+        """
+        for order, ext_opname_group in self.order_ext_opname_map.items():
+            if ext_opname in ext_opname_group:
+                return order
+        # Unmatched items. To display them at the end of the result file after sorting,
+        # order must be the maximum value plus 1.
+        if self.get_all_orders():
+            return max(self.get_all_orders()) + 1
+        return 0
+
+    def get_ext_opname_group_by_order(self: any, order: int) -> list:
+        """
+        Get the list of op names corresponding to the order.
+        """
+        return self.order_ext_opname_map.get(order, [])
+
+    def parse_dump_file(self: any) -> int:
+        """
+        Entry for parsing dump files.
+        """
+        ret = self.open_file('r')
+        if ret == CompareError.MSACCUCMP_NONE_ERROR:
+            self._generate_order_ext_opname_map()
+            self._parse_all_dataset()
+        return ret
+
+    def have_dataset(self: any, ext_opname: str, dataset_path: str) -> bool:
+        """
+        Check whether the dataset path is included.
+        :ext_opname: extended op name
+        :dataset_path: dataset path in dump file
+        """
+        if dataset_path in self.ext_opname_dataset_map.get(ext_opname, []):
+            return True
+        op_name, _ = ext_opname.split(ConstManager.DELIMITER, 1)
+        # get 4 from '/AddmmBackward/4/input/mat1'
+
+        _, _, order, _ = dataset_path.split('/', 3)
+        all_ext_opname = self.get_ext_opname_group_by_order(int(order))
+        for item in all_ext_opname:
+            if item.startswith("{}:".format(op_name)) and \
+                    dataset_path in self.ext_opname_dataset_map.get(item, []):
+                return True
+        return False
+
+    def file_is_empty(self: any) -> bool:
+        """
+        Check whether the file is empty.
+        """
+        return self.file_handle is None \
+               or self.file_handle.keys()
+
+    def is_load_mode(self: any) -> bool:
+        """
+        Check whether the load comparison mode.
+        """
+        return not self.need_compare_input
+
+    def _check_value(self: any, op_order_list: list) -> None:
+        if len(op_order_list) > self.MAX_OP_NUM:
+            log.print_error_log("The number of ops in {} exceeds the range!"
+                                .format(self.file_path))
+            raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
+
+    def _get_mapping_set(self: any, op_name: str) -> list:
+        for mapping_set in self._mapping_list:
+            if op_name in mapping_set and len(mapping_set) > 1:
+                return mapping_set
+        return []
+
+    def _is_parsed(self: any, op_name: str) -> bool:
+        for ext_op_name_list in self.order_ext_opname_map.values():
+            for ext_op_name in ext_op_name_list:
+                if ext_op_name.startswith(op_name):
+                    return True
+        return False
+
+    def _gen_ext_opname_map_special(self: any, op_name: str, multimap_set: list) -> dict:
+        order_ext_opname_map = collections.defaultdict(list)
+        if self._is_parsed(op_name):
+            return order_ext_opname_map
+        op_order_list = []
+        for op in multimap_set:
+            if op in self.file_handle.keys():
+                op_order_list.extend(list(map(int, self.file_handle[op].keys())))
+        op_order_list.sort()
+        for index, op_order in enumerate(op_order_list):
+            for op in multimap_set:
+                if op in self.file_handle.keys() and str(op_order) in self.file_handle[op].keys():
+                    order_ext_opname_map[op_order] = ["{}:{}".format(op, index)]
+        return order_ext_opname_map
+
+    def _gen_single_order_ext_opname_map(self: any, op_name: str) -> dict:
+        """
+        Get the map of order to extended op name.
+        """
+        order_ext_opname_map = collections.defaultdict(list)
+        mapping_set = self._get_mapping_set(op_name)
+        if self.file_handle is None:
+            return order_ext_opname_map
+        try:
+            if self._is_multimap(op_name, mapping_set):
+                return self._gen_ext_opname_map_special(op_name, mapping_set)
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
+                MemoryError, KeyError, IOError):
+            log.print_error_log("construct order_ext_map by {} failed:!"
+                                .format(op_name))
+            return order_ext_opname_map
+
+        # sort by the order of the op executed multi times
+        op_order_list = list(map(int, self.file_handle[op_name].keys()))
+        op_order_list.sort()
+        self._check_value(op_order_list)
+        for index, op_order in enumerate(op_order_list):
+            order_ext_opname_map[op_order] = ["{}:{}".format(op_name, index)]
+        return order_ext_opname_map
+
+    def _generate_order_ext_opname_map(self: any) -> None:
+        """
+        Generate the mapping between order and extended operator names in dump data.
+        """
+        if self.file_handle is None:
+            return
+        for op_name in self.file_handle.keys():
+            order_op_map = self._gen_single_order_ext_opname_map(op_name)
+            utils.merge_dict(self.order_ext_opname_map, order_op_map)
+
+    def _dataset_path_valid(self: any, dataset_path: str) -> bool:
+        match_result = re.search(self.DATASET_PATH_PATTERN, dataset_path)
+        if match_result is not None:
+            return True
+        return False
 
     def _data_path_is_input(self: any, curr_group_path: str) -> bool:
         """
@@ -214,145 +356,3 @@ class Hdf5Parser:
                 op_name, _ = ext_opname.split(ConstManager.DELIMITER, 1)
                 group_path = "/{}/{}".format(op_name, order)
                 self._parse_dataset_recursively(ext_opname, group_path)
-
-    def get_all_orders(self: any) -> list:
-        """
-        Get all orders string used to compare dump data.
-        """
-        return list(self.order_ext_opname_map.keys())
-
-    def get_order_by_ext_opname(self: any, ext_opname: str) -> int:
-        """
-        Get the order corresponding to the ext_opname.
-        """
-        for order, ext_opname_group in self.order_ext_opname_map.items():
-            if ext_opname in ext_opname_group:
-                return order
-        # Unmatched items. To display them at the end of the result file after sorting,
-        # order must be the maximum value plus 1.
-        if self.get_all_orders():
-            return max(self.get_all_orders()) + 1
-        return 0
-
-    def get_ext_opname_group_by_order(self: any, order: int) -> list:
-        """
-        Get the list of op names corresponding to the order.
-        """
-        return self.order_ext_opname_map.get(order, [])
-
-    def _check_value(self: any, op_order_list: list) -> None:
-        if len(op_order_list) > self.MAX_OP_NUM:
-            log.print_error_log("The number of ops in {} exceeds the range!"
-                                .format(self.file_path))
-            raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
-
-    @staticmethod
-    def _is_multimap(op_name: str, mapping_set: list) -> bool:
-        if op_name in mapping_set:
-            return True
-        return False
-
-    def _get_mapping_set(self: any, op_name: str) -> list:
-        for mapping_set in self._mapping_list:
-            if op_name in mapping_set and len(mapping_set) > 1:
-                return mapping_set
-        return []
-
-    def _is_parsed(self: any, op_name: str) -> bool:
-        for ext_op_name_list in self.order_ext_opname_map.values():
-            for ext_op_name in ext_op_name_list:
-                if ext_op_name.startswith(op_name):
-                    return True
-        return False
-
-    def _gen_ext_opname_map_special(self: any, op_name: str, multimap_set: list) -> dict:
-        order_ext_opname_map = collections.defaultdict(list)
-        if self._is_parsed(op_name):
-            return order_ext_opname_map
-        op_order_list = []
-        for op in multimap_set:
-            if op in self.file_handle.keys():
-                op_order_list.extend(list(map(int, self.file_handle[op].keys())))
-        op_order_list.sort()
-        for index, op_order in enumerate(op_order_list):
-            for op in multimap_set:
-                if op in self.file_handle.keys() and str(op_order) in self.file_handle[op].keys():
-                    order_ext_opname_map[op_order] = ["{}:{}".format(op, index)]
-        return order_ext_opname_map
-
-    def _gen_single_order_ext_opname_map(self: any, op_name: str) -> dict:
-        """
-        Get the map of order to extended op name.
-        """
-        order_ext_opname_map = collections.defaultdict(list)
-        mapping_set = self._get_mapping_set(op_name)
-        if self.file_handle is None:
-            return order_ext_opname_map
-        try:
-            if self._is_multimap(op_name, mapping_set):
-                return self._gen_ext_opname_map_special(op_name, mapping_set)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError):
-            log.print_error_log("construct order_ext_map by {} failed:!"
-                                .format(op_name))
-            return order_ext_opname_map
-
-        # sort by the order of the op executed multi times
-        op_order_list = list(map(int, self.file_handle[op_name].keys()))
-        op_order_list.sort()
-        self._check_value(op_order_list)
-        for index, op_order in enumerate(op_order_list):
-            order_ext_opname_map[op_order] = ["{}:{}".format(op_name, index)]
-        return order_ext_opname_map
-
-    def _generate_order_ext_opname_map(self: any) -> None:
-        """
-        Generate the mapping between order and extended operator names in dump data.
-        """
-        if self.file_handle is None:
-            return
-        for op_name in self.file_handle.keys():
-            order_op_map = self._gen_single_order_ext_opname_map(op_name)
-            utils.merge_dict(self.order_ext_opname_map, order_op_map)
-
-    def parse_dump_file(self: any) -> int:
-        """
-        Entry for parsing dump files.
-        """
-        ret = self.open_file('r')
-        if ret == CompareError.MSACCUCMP_NONE_ERROR:
-            self._generate_order_ext_opname_map()
-            self._parse_all_dataset()
-        return ret
-
-    def have_dataset(self: any, ext_opname: str, dataset_path: str) -> bool:
-        """
-        Check whether the dataset path is included.
-        :ext_opname: extended op name
-        :dataset_path: dataset path in dump file
-        """
-        if dataset_path in self.ext_opname_dataset_map.get(ext_opname, []):
-            return True
-        op_name, _ = ext_opname.split(ConstManager.DELIMITER, 1)
-        # get 4 from '/AddmmBackward/4/input/mat1'
-
-        _, _, order, _ = dataset_path.split('/', 3)
-        all_ext_opname = self.get_ext_opname_group_by_order(int(order))
-        for item in all_ext_opname:
-            if item.startswith("{}:".format(op_name)) and \
-                    dataset_path in self.ext_opname_dataset_map.get(item, []):
-                return True
-        return False
-
-    def file_is_empty(self: any) -> bool:
-        """
-        Check whether the file is empty.
-        """
-        return self.file_handle is None \
-               or self.file_handle.keys()
-
-    def is_load_mode(self: any) -> bool:
-        """
-        Check whether the load comparison mode.
-        """
-        return not self.need_compare_input

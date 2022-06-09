@@ -260,6 +260,22 @@ class FusionRuleParser:
         self.op_list = []
         self.input_nodes = []
 
+    @staticmethod
+    def _check_key_exist(json_object: any, key: str) -> None:
+        if key not in json_object:
+            log.print_error_log('There is no "%s" element in fusion rule file.' % key)
+            raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
+
+    @staticmethod
+    def _make_output_desc(output_desc_list: list, name: str) -> None:
+        if len(output_desc_list) == 0:
+            output_desc = OutputDesc(name, None, "", [])
+            output_desc_list.append(output_desc)
+        else:
+            for (index, _) in enumerate(output_desc_list):
+                if output_desc_list[index].origin_name == "":
+                    output_desc_list[index].origin_name = name
+
     def analysis_fusion_rule(self: any) -> None:
         """
         Analysis fusion json file
@@ -269,6 +285,97 @@ class FusionRuleParser:
         # analysis and filter the parsed op list
         filtering = QuantFilter(self.op_list)
         filtering.process_filtering()
+
+        def make_fusion_op_name(self: any, name: str, l1_fusion_no: str, original_op_names: list) -> None:
+            """
+            Make fusion op name by group op name and original op names
+            :return the fusion op name
+            """
+            # the fusion op name priority:
+            # l1_fusion_no -> original_op_names -> name
+            if l1_fusion_no != "":
+                # the l1_fusion_no is not empty,
+                # the fusion op name is the l1_fusion_no
+                self.op_name_to_fusion_op_name_map[name] = l1_fusion_no
+                return
+
+            if original_op_names:
+                if len(original_op_names) == 1:
+                    # There is one original op name
+                    if original_op_names[0] == '':
+                        # the original name is empty, the fusion op name is op name
+                        self.op_name_to_fusion_op_name_map[name] = name
+                    else:
+                        # the original name is not empty,
+                        # the fusion op name is original op name
+                        self.op_name_to_fusion_op_name_map[name] = original_op_names[0]
+                else:
+                    # The original op name more then one,
+                    # the fusion op name is uuid names
+                    self.op_name_to_fusion_op_name_map[name] = \
+                        uuid.uuid3(uuid.NAMESPACE_DNS, ''.join(original_op_names))
+            else:
+                self.op_name_to_fusion_op_name_map[name] = name
+
+    def get_origin_name_to_op_name_map(self: any) -> dict:
+        """
+        Get origin name to op name map
+        :return: the map
+        """
+        origin_name_to_op_name_map = {}
+        for fusion_op in self.op_list:
+            for origin_name in fusion_op.attr.original_op_names:
+                origin_name_to_op_name_map[origin_name] = fusion_op.op_name
+        return origin_name_to_op_name_map
+
+    def check_array_object_valid(self: any, json_object: any, key: str) -> None:
+        """
+        Check array object valid
+        :param json_object:the json object
+        :param key : key in json
+        """
+        self._check_key_exist(json_object, key)
+        if not isinstance(json_object[key], list):
+            log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not an array.'
+                                % (self.json_path, key))
+            raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
+
+    def check_string_object_valid(self: any, json_object: any, key: str) -> None:
+        """
+        Check string object valid
+        :param json_object:the json object
+        :param key : key in json
+        """
+        self._check_key_exist(json_object, key)
+        if not isinstance(json_object[key], str):
+            log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not a string.'
+                                % (self.json_path, key))
+            raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
+
+    def get_fusion_op_list(self: any, op_name: str) -> (list, FusionOp):
+        """
+        Get the fusion op list by op name
+        :param op_name: the op name
+        :return :the fusion op list, the fusion op by name
+        """
+        if op_name not in self.op_name_to_fusion_op_name_map:
+            message = 'There is no "%s" in the fusion rule file.' % op_name
+            log.print_error_log(message)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
+        fusion_op_name = self.op_name_to_fusion_op_name_map.get(op_name)
+        fusion_op_list = self.fusion_op_name_to_op_map[fusion_op_name]
+
+        # get fusion op in list by op name
+        fusion_op_info = None
+        for operator in fusion_op_list:
+            if operator.op_name == op_name:
+                fusion_op_info = operator
+                break
+        if fusion_op_info is None:
+            message = 'There is no "%s" in the fusion rule file.' % op_name
+            log.print_error_log(message)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
+        return fusion_op_list, fusion_op_info
 
     def _adjust_rename_node(self: any) -> None:
         for _, fusion_op_list in self.fusion_op_name_to_op_map.items():
@@ -346,16 +453,6 @@ class FusionRuleParser:
         return len(fusion_op.attr.original_op_names) == 1 and \
                self.op_name_to_fusion_op_name_map.get(fusion_op.op_name) == fusion_op.attr.original_op_names[0]
 
-    @staticmethod
-    def _make_output_desc(output_desc_list: list, name: str) -> None:
-        if len(output_desc_list) == 0:
-            output_desc = OutputDesc(name, None, "", [])
-            output_desc_list.append(output_desc)
-        else:
-            for (index, _) in enumerate(output_desc_list):
-                if output_desc_list[index].origin_name == "":
-                    output_desc_list[index].origin_name = name
-
     def _parse_attr(self: any, op_object: any, op_name: str) -> (OpAttr, bool):
         # check attr element is valid
         if ConstManager.ATTR_OBJECT not in op_object:
@@ -403,37 +500,6 @@ class FusionRuleParser:
             fusion_op.op_id = len(self.fusion_op_name_to_op_map)
             self.fusion_op_name_to_op_map[fusion_op_name] = [fusion_op]
         self.op_list.append(fusion_op)
-
-    def make_fusion_op_name(self: any, name: str, l1_fusion_no: str, original_op_names: list) -> None:
-        """
-        Make fusion op name by group op name and original op names
-        :return the fusion op name
-        """
-        # the fusion op name priority:
-        # l1_fusion_no -> original_op_names -> name
-        if l1_fusion_no != "":
-            # the l1_fusion_no is not empty,
-            # the fusion op name is the l1_fusion_no
-            self.op_name_to_fusion_op_name_map[name] = l1_fusion_no
-            return
-
-        if original_op_names:
-            if len(original_op_names) == 1:
-                # There is one original op name
-                if original_op_names[0] == '':
-                    # the original name is empty, the fusion op name is op name
-                    self.op_name_to_fusion_op_name_map[name] = name
-                else:
-                    # the original name is not empty,
-                    # the fusion op name is original op name
-                    self.op_name_to_fusion_op_name_map[name] = original_op_names[0]
-            else:
-                # The original op name more then one,
-                # the fusion op name is uuid names
-                self.op_name_to_fusion_op_name_map[name] = \
-                    uuid.uuid3(uuid.NAMESPACE_DNS, ''.join(original_op_names))
-        else:
-            self.op_name_to_fusion_op_name_map[name] = name
 
     def _get_string_value_in_attr(self: any, attr_array: list, key: str) -> str:
         value = ""
@@ -512,47 +578,6 @@ class FusionRuleParser:
             array.append(op_name)
         return array, match
 
-    def get_origin_name_to_op_name_map(self: any) -> dict:
-        """
-        Get origin name to op name map
-        :return: the map
-        """
-        origin_name_to_op_name_map = {}
-        for fusion_op in self.op_list:
-            for origin_name in fusion_op.attr.original_op_names:
-                origin_name_to_op_name_map[origin_name] = fusion_op.op_name
-        return origin_name_to_op_name_map
-
-    @staticmethod
-    def _check_key_exist(json_object: any, key: str) -> None:
-        if key not in json_object:
-            log.print_error_log('There is no "%s" element in fusion rule file.' % key)
-            raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
-
-    def check_array_object_valid(self: any, json_object: any, key: str) -> None:
-        """
-        Check array object valid
-        :param json_object:the json object
-        :param key : key in json
-        """
-        self._check_key_exist(json_object, key)
-        if not isinstance(json_object[key], list):
-            log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not an array.'
-                                % (self.json_path, key))
-            raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
-
-    def check_string_object_valid(self: any, json_object: any, key: str) -> None:
-        """
-        Check string object valid
-        :param json_object:the json object
-        :param key : key in json
-        """
-        self._check_key_exist(json_object, key)
-        if not isinstance(json_object[key], str):
-            log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not a string.'
-                                % (self.json_path, key))
-            raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
-
     def _check_int_object_valid(self: any, json_object: any, key: str) -> None:
         self._check_key_exist(json_object, key)
         if not isinstance(json_object[key], int):
@@ -566,28 +591,3 @@ class FusionRuleParser:
             log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not a bool.'
                                 % (self.json_path, key))
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
-
-    def get_fusion_op_list(self: any, op_name: str) -> (list, FusionOp):
-        """
-        Get the fusion op list by op name
-        :param op_name: the op name
-        :return :the fusion op list, the fusion op by name
-        """
-        if op_name not in self.op_name_to_fusion_op_name_map:
-            message = 'There is no "%s" in the fusion rule file.' % op_name
-            log.print_error_log(message)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
-        fusion_op_name = self.op_name_to_fusion_op_name_map.get(op_name)
-        fusion_op_list = self.fusion_op_name_to_op_map[fusion_op_name]
-
-        # get fusion op in list by op name
-        fusion_op_info = None
-        for operator in fusion_op_list:
-            if operator.op_name == op_name:
-                fusion_op_info = operator
-                break
-        if fusion_op_info is None:
-            message = 'There is no "%s" in the fusion rule file.' % op_name
-            log.print_error_log(message)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
-        return fusion_op_list, fusion_op_info
