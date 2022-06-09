@@ -44,10 +44,13 @@ class Progress:
         :param progress: the progress
         """
         if progress is None:
-            progress = round(self.current_count * 100.0 / self.total_count, 2)
+            progress = round(self.current_count * 100.0 / self.total_count, 2) if self.total_count != 0 else 0
+            if self.total_count == 0:
+                log.print_error_log('Can not divide zero.')
         current_time = time.time()
         greater_than_count = math.floor(
-            progress / (ConstManager.MAX_PROGRESS / self.PROGRESS_GREATER_THAN_COUNT))
+            progress / (ConstManager.MAX_PROGRESS / self.PROGRESS_GREATER_THAN_COUNT)) \
+            if ConstManager.MAX_PROGRESS != 0 and self.PROGRESS_GREATER_THAN_COUNT != 0 else 0
         progress_info = '%s%s' % (self.PROGRESS_GREATER_THAN * greater_than_count,
                                   ' ' * (self.PROGRESS_GREATER_THAN_COUNT - greater_than_count))
         if current_time - self.last_progress_time >= self.INTERVAL_TIME_SECOND \

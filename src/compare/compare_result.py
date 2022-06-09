@@ -133,7 +133,7 @@ class FusionOpComResult:
     def _pre_handle_result(self: any, current_tensor_info: list) -> None:
         """
         if dump data is not NPU data, the result will be popped.
-        my dump data index is 3, ground truth data index is 6.
+        the index of my dump data address is 3, the index of ground truth data address is 6.
         args: result list
         """
         if self.is_ground_truth_gpu_or_cpu:

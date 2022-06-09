@@ -121,4 +121,4 @@ class MultiConvertProcess:
         mem = psutil.virtual_memory()
         available = mem.available
         cpu_count = int((multiprocessing.cpu_count() + 1) / 2)
-        return available / cpu_count / self.MAX_MULTI
+        return available / cpu_count / self.MAX_MULTI if cpu_count != 0 and self.MAX_MULTI != 0 else 0
