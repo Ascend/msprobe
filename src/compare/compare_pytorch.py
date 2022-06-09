@@ -150,10 +150,8 @@ class PytorchComparison:
         try:
             type_shape_list, algorithm_result, fail_reason = self._do_compare_tensor(op_name, my_dump_dataset,
                                                                                      golden_dataset)
-            my_dump_data_type = type_shape_list[0]
-            shape = type_shape_list[1]
-            tensor_info = {"tensor_id": None, "shape": shape,
-                           "my_output_dtype": my_dump_data_type}
+            tensor_info = {"tensor_id": None, "shape": type_shape_list[1],
+                           "my_output_dtype": type_shape_list[0]}
             return match, fusion_op_result.get_pytorch_result(
                 op_info,
                 [compare_result.TensorResult(tensor_info, [algorithm_result, ''], fail_reason)],
