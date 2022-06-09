@@ -88,6 +88,18 @@ class TopN:
         """
         self._relative_error_top_n_list = self._make_top_n_list(index_list, *data_lists)
 
+    def get_absolute_error_top_n_list(self: any) -> list:
+        """
+        get top n absolute error list
+        """
+        return self._absolute_error_top_n_list
+
+    def get_relative_error_top_n_list(self: any) -> list:
+        """
+        get top n relative error list
+        """
+        return self._relative_error_top_n_list
+
     def _make_top_n_list(self: any, index_list: list, *data_lists: any) -> list:
         if len(data_lists) < 5:
             raise RuntimeError('The number of arguments is not correct.')
@@ -109,18 +121,6 @@ class TopN:
             # 0 is Index column subscript.
             return self._get_top_n_result(top_n_original_list, 4, 0)
         return self._get_top_n_result(top_n_original_list, 5, 0)
-
-    def get_absolute_error_top_n_list(self: any) -> list:
-        """
-        get top n absolute error list
-        """
-        return self._absolute_error_top_n_list
-
-    def get_relative_error_top_n_list(self: any) -> list:
-        """
-        get top n relative error list
-        """
-        return self._relative_error_top_n_list
 
     def _get_top_n_result(self: any, original_list: list, first_key: int, second_key: int) -> list:
         top_n_list = []
@@ -163,6 +163,111 @@ class DetailWriter:
             for _ in range(left_count):
                 dims.append(1)
         return dims
+
+    @staticmethod
+    def _write_one_detail(index: int, file_stream: any, *data_values: any, is_bool: bool = False) -> None:
+        cur_dim = data_values[0]
+        my_output_value = data_values[1]
+        ground_truth_value = data_values[2]
+        absolute_error = data_values[3]
+        relative_error = data_values[4]
+        # add index, n,c,h,w or id, my output value, ground truth value, absolute error, relative error to line
+        if not is_bool:
+            if np.isnan(relative_error) or np.isinf(relative_error):
+                line = '%d,%s,%.6f\t,%.6f\t,%.6f\t,-\n' \
+                       % (index, " ".join((str(x) for x in cur_dim)), my_output_value,
+                          ground_truth_value, absolute_error)
+            else:
+                line = '%d,%s,%.6f\t,%.6f\t,%.6f\t,%.6f\t\n' \
+                       % (index, " ".join((str(x) for x in cur_dim)), my_output_value,
+                          ground_truth_value, absolute_error, relative_error)
+        else:
+            line = '%d,%s,%s\t,%s\t,-\t,-\n' \
+                   % (index, " ".join((str(x) for x in cur_dim)), my_output_value,
+                      ground_truth_value)
+        # write line to file
+        file_stream.write(line)
+
+    @staticmethod
+    def _replace_inf_and_nan(nd_array: any) -> any:
+        if np.isinf(nd_array).any():
+            inf_index = np.isinf(nd_array)
+            nd_array[inf_index] = np.nan
+            return np.nan_to_num(nd_array)
+        return np.nan_to_num(nd_array)
+
+    @staticmethod
+    def _calculate_str_length(headers: list, data: list) -> list:
+        max_header_list = (len(header.strip()) for header in headers)
+        max_column_list = list(max_header_list)
+        for _data in data:
+            max_data_list = (len(str(_element.strip())) for _element in _data)
+            new_max_column_list = []
+            for _element in zip(max_data_list, max_column_list):
+                new_max_column_list.append(max(_element))
+            max_column_list = new_max_column_list
+        return max_column_list
+
+    @staticmethod
+    def _show_top_n_data(data: list, max_column_list: list) -> None:
+        for _data in data:
+            for index, _element in enumerate(_data):
+                end = '\n' if index == len(_data) - 1 else '\t'
+                print(str(_element.strip()).ljust(max_column_list[index], ' '), end=end)
+
+    @staticmethod
+    def _show_top_n_header(headers: list, max_column_list: list) -> None:
+        for index, header in enumerate(headers):
+            end = '\n' if index == len(headers) - 1 else '\t'
+            print(str(header.strip()).ljust(max_column_list[index], ' '), end=end)
+
+    def delete_old_detail_result_files(self: any) -> None:
+        """
+        Delete old detail result files
+        """
+        if not os.path.exists(self.output_path):
+            return
+        # delete old result
+        for item in os.listdir(self.output_path):
+            if item == ConstManager.SIMPLE_OP_MAPPING_FILE_NAME:
+                continue
+            if self._match_detail_file_name(item):
+                path = os.path.join(self.output_path, item)
+                if os.path.exists(path):
+                    os.remove(path)
+        self._delete_too_long_file()
+
+    def write(self: any, dim: tuple, my_output_data: any, ground_truth_data: any, dump_file_name: str = "") -> None:
+        """
+        Write detail info file
+        :param dim: the shape
+        :param my_output_data: my output data
+        :param ground_truth_data: ground truth data
+        :param dump_file_name: dump file name
+        """
+        self.progress = Progress(len(my_output_data))
+        self.dump_file_name = dump_file_name
+        old_file_name = '%s.npy' % (self.detail_info.tensor_id.get_file_prefix())
+        new_file_name = self._handle_too_long_file_name(old_file_name, ConstManager.NPY_SUFFIX)
+        new_file_path = os.path.join(self.output_path, new_file_name)
+        FileUtils.save_array_to_file(new_file_path, my_output_data.reshape(dim), np_save=True)
+        log.print_write_result_info("%s after shape conversion" % self.detail_info.tensor_id.get_tensor_id(),
+                                    new_file_name)
+        # check whether the types of my_output_data and ground_truth_data are Boolean.
+        self._check_dtype_is_bool(my_output_data, ground_truth_data)
+        # transform dim shape to list
+        dim_list = self._transform_dim_list(dim)
+        # use numpy to calculate the summaries
+        res_generator = self._array_calculate(my_output_data, ground_truth_data, dim_list, self.top_n.is_bool)
+        # write summary file
+        self._write_detail_summary_file(self.top_n.is_bool)
+        # write each value to file
+        self._write_detail_result_multi_proc(res_generator)
+        # finish and print progress
+        self.progress.print_progress(ConstManager.MAX_PROGRESS)
+        # write and print top_n
+        self._handle_top_n()
+        log.print_write_result_info('details result', self.output_path)
 
     def _write_detail_result_multi_proc(self: any, res_generator: any) -> None:
         if self.detail_info.ignore_result:
@@ -272,22 +377,6 @@ class DetailWriter:
         return file_name == ("%s_summary.txt" % name) or (file_name.startswith("%s_" % name) and (
                 file_name.endswith(ConstManager.CSV_SUFFIX) or file_name.endswith(ConstManager.NPY_SUFFIX)))
 
-    def delete_old_detail_result_files(self: any) -> None:
-        """
-        Delete old detail result files
-        """
-        if not os.path.exists(self.output_path):
-            return
-        # delete old result
-        for item in os.listdir(self.output_path):
-            if item == ConstManager.SIMPLE_OP_MAPPING_FILE_NAME:
-                continue
-            if self._match_detail_file_name(item):
-                path = os.path.join(self.output_path, item)
-                if os.path.exists(path):
-                    os.remove(path)
-        self._delete_too_long_file()
-
     def _make_detail_output_file(self: any, file_index: int = 0) -> str:
         # make file name based on the index，then return the path
         old_file_name = "%s_%d.csv" % (self.detail_info.tensor_id.get_file_prefix(), file_index)
@@ -295,30 +384,6 @@ class DetailWriter:
         file_path = os.path.join(self.output_path, new_file_name)
 
         return file_path
-
-    @staticmethod
-    def _write_one_detail(index: int, file_stream: any, *data_values: any, is_bool: bool = False) -> None:
-        cur_dim = data_values[0]
-        my_output_value = data_values[1]
-        ground_truth_value = data_values[2]
-        absolute_error = data_values[3]
-        relative_error = data_values[4]
-        # add index, n,c,h,w or id, my output value, ground truth value, absolute error, relative error to line
-        if not is_bool:
-            if np.isnan(relative_error) or np.isinf(relative_error):
-                line = '%d,%s,%.6f\t,%.6f\t,%.6f\t,-\n' \
-                       % (index, " ".join((str(x) for x in cur_dim)), my_output_value,
-                          ground_truth_value, absolute_error)
-            else:
-                line = '%d,%s,%.6f\t,%.6f\t,%.6f\t,%.6f\t\n' \
-                       % (index, " ".join((str(x) for x in cur_dim)), my_output_value,
-                          ground_truth_value, absolute_error, relative_error)
-        else:
-            line = '%d,%s,%s\t,%s\t,-\t,-\n' \
-                   % (index, " ".join((str(x) for x in cur_dim)), my_output_value,
-                      ground_truth_value)
-        # write line to file
-        file_stream.write(line)
 
     def _array_calculate(self: any, my_output_data: any, ground_truth_data: any, dim_list: list,
                          is_bool: bool = False) -> any:
@@ -374,14 +439,6 @@ class DetailWriter:
             self.min_max_value.set_max_relative_error(np.nan)
         return absolute_top_n_index, relative_top_n_index
 
-    @staticmethod
-    def _replace_inf_and_nan(nd_array: any) -> any:
-        if np.isinf(nd_array).any():
-            inf_index = np.isinf(nd_array)
-            nd_array[inf_index] = np.nan
-            return np.nan_to_num(nd_array)
-        return np.nan_to_num(nd_array)
-
     def _set_top_n_list(self: any, error_type: str, index_list: list, dim_list: list, top_n_data_group: tuple) -> None:
         top_n_dims = []
         for i in index_list:
@@ -392,38 +449,6 @@ class DetailWriter:
         else:
             self.top_n.set_relative_top_n_list(index_list, top_n_dims, top_n_data_group[0], top_n_data_group[1],
                                                top_n_data_group[2], top_n_data_group[3], error_type)
-
-    def write(self: any, dim: tuple, my_output_data: any, ground_truth_data: any, dump_file_name: str = "") -> None:
-        """
-        Write detail info file
-        :param dim: the shape
-        :param my_output_data: my output data
-        :param ground_truth_data: ground truth data
-        :param dump_file_name: dump file name
-        """
-        self.progress = Progress(len(my_output_data))
-        self.dump_file_name = dump_file_name
-        old_file_name = '%s.npy' % (self.detail_info.tensor_id.get_file_prefix())
-        new_file_name = self._handle_too_long_file_name(old_file_name, ConstManager.NPY_SUFFIX)
-        new_file_path = os.path.join(self.output_path, new_file_name)
-        FileUtils.save_array_to_file(new_file_path, my_output_data.reshape(dim), np_save=True)
-        log.print_write_result_info("%s after shape conversion" % self.detail_info.tensor_id.get_tensor_id(),
-                                    new_file_name)
-        # check whether the types of my_output_data and ground_truth_data are Boolean.
-        self._check_dtype_is_bool(my_output_data, ground_truth_data)
-        # transform dim shape to list
-        dim_list = self._transform_dim_list(dim)
-        # use numpy to calculate the summaries
-        res_generator = self._array_calculate(my_output_data, ground_truth_data, dim_list, self.top_n.is_bool)
-        # write summary file
-        self._write_detail_summary_file(self.top_n.is_bool)
-        # write each value to file
-        self._write_detail_result_multi_proc(res_generator)
-        # finish and print progress
-        self.progress.print_progress(ConstManager.MAX_PROGRESS)
-        # write and print top_n
-        self._handle_top_n()
-        log.print_write_result_info('details result', self.output_path)
 
     def _check_dtype_is_bool(self: any, my_output_data: any, ground_truth_data: any) -> None:
         is_bool = my_output_data.dtype == np.bool_ and ground_truth_data.dtype == np.bool_
@@ -450,31 +475,6 @@ class DetailWriter:
         for item in top_n_list:
             data.append(item.split(','))
         return header, data
-
-    @staticmethod
-    def _calculate_str_length(headers: list, data: list) -> list:
-        max_header_list = (len(header.strip()) for header in headers)
-        max_column_list = list(max_header_list)
-        for _data in data:
-            max_data_list = (len(str(_element.strip())) for _element in _data)
-            new_max_column_list = []
-            for _element in zip(max_data_list, max_column_list):
-                new_max_column_list.append(max(_element))
-            max_column_list = new_max_column_list
-        return max_column_list
-
-    @staticmethod
-    def _show_top_n_data(data: list, max_column_list: list) -> None:
-        for _data in data:
-            for index, _element in enumerate(_data):
-                end = '\n' if index == len(_data) - 1 else '\t'
-                print(str(_element.strip()).ljust(max_column_list[index], ' '), end=end)
-
-    @staticmethod
-    def _show_top_n_header(headers: list, max_column_list: list) -> None:
-        for index, header in enumerate(headers):
-            end = '\n' if index == len(headers) - 1 else '\t'
-            print(str(header.strip()).ljust(max_column_list[index], ' '), end=end)
 
     def _show_top_n(self: any, top_n_type: str, top_n_list: list) -> None:
         headers, data = self._make_show_data(top_n_list)

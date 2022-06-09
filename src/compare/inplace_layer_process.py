@@ -14,6 +14,7 @@ import argparse
 import os
 import google.protobuf.text_format
 import caffe.proto.caffe_pb2 as caffe_pb2
+import log
 
 
 class RemoveInplaceLayerProcess:
@@ -48,10 +49,10 @@ class RemoveInplaceLayerProcess:
         if not exist:
             exist_path = os.path.dirname(exist_path)
         if not os.path.exists(exist_path):
-            print('Error: The path "' + path + '" does not exist.')
+            log.print_error_log('The path "%s" does not exist.' % path)
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         if exist and not os.path.isfile(path):
-            print('Error: The path "' + path + '" is not a file.')
+            log.print_error_log('The path "%s" is not a file.' % path)
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
 
     def _handle_top(self: any, layer_item: any, layer_idx: int) -> (bool, str, str):
@@ -132,8 +133,8 @@ class RemoveInplaceLayerProcess:
                        'w') as open_file:
             file_content = str(self.net_param)
             open_file.write(file_content)
-        print('The "%s" has removed inplace layer.' % self.input_file_path)
-        print('The new prototxt file has been saved to "%s".' % self.output_file_path)
+        log.print_info_log('The "%s" has removed inplace layer.' % self.input_file_path)
+        log.print_info_log('The new prototxt file has been saved to "%s".' % self.output_file_path)
 
 
 if __name__ == "__main__":

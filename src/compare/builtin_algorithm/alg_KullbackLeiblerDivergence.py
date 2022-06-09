@@ -20,8 +20,9 @@ def _normalized(dump_data: any) -> any:
     dump_data = dump_data.astype(np.float64)
     max_value = dump_data.max()
     min_value = dump_data.min()
-    if max_value != min_value:
-        dump_data_to_1 = (dump_data - min_value) / (max_value - min_value)
+    range_value = max_value - min_value
+    if range_value != 0:
+        dump_data_to_1 = (dump_data - min_value) / range_value
     else:
         dump_data_to_1 = dump_data
     # normalized, the sum of dump data is not equal with zero

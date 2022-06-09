@@ -35,29 +35,31 @@ class BigDumpDataParser:
         self.header_length = 0
         self.dump_data = None
 
-    def _check_size_match(self: any) -> None:
-        input_data_size = 0
-        for item in self.dump_data.input:
-            input_data_size += item.size
-        output_data_size = 0
-        for item in self.dump_data.output:
-            output_data_size += item.size
-        buffer_data_size = 0
-        for item in self.dump_data.buffer:
-            buffer_data_size += item.size
-        # check 8 + content size + sum(input.data) + sum(output.data)
-        # + sum(buffer.data) equal to file size
-        if self.header_length + ConstManager.UINT64_SIZE + input_data_size \
-                + output_data_size + buffer_data_size != self.file_size:
-            log.print_warn_log(
-                'The file size (%d) of %s is not equal to %d (header length)'
-                ' + %d(the size of header content) '
-                '+ %d(the sum of input data) + %d(the sum of output data) '
-                '+ %d(the sum of buffer data). Please check the dump file.'
-                % (self.file_size, self.dump_file_path, ConstManager.UINT64_SIZE, self.header_length,
-                   input_data_size, output_data_size, buffer_data_size))
-            raise CompareError(
-                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+    def parse(self: any) -> DD.DumpData:
+        """
+        Parse the dump file path by big dump data format
+        :return: DumpData
+        :exception when read or parse file error
+        """
+        self.check_argument_valid()
+        try:
+            with open(self.dump_file_path, 'rb') as dump_file:
+                # read header length
+                self._read_header_length(dump_file)
+                # read dump data proto
+                self._read_dump_data(dump_file)
+                self._check_size_match()
+                # read tensor data
+                self._read_input_data(dump_file)
+                self._read_output_data(dump_file)
+                self._read_buffer_data(dump_file)
+                return self.dump_data
+        except (OSError, IOError) as io_error:
+            log.print_error_log('Failed to read the dump file %s. %s'
+                                % (self.dump_file_path, str(io_error)))
+            raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from io_error
+        finally:
+            pass
 
     def check_argument_valid(self: any) -> None:
         """
@@ -87,6 +89,30 @@ class BigDumpDataParser:
             log.print_warn_log(
                 'The size (%d) of %s exceeds 1GB, it may task more time to run, please wait.'
                 % (self.file_size, self.dump_file_path))
+
+    def _check_size_match(self: any) -> None:
+        input_data_size = 0
+        for item in self.dump_data.input:
+            input_data_size += item.size
+        output_data_size = 0
+        for item in self.dump_data.output:
+            output_data_size += item.size
+        buffer_data_size = 0
+        for item in self.dump_data.buffer:
+            buffer_data_size += item.size
+        # check 8 + content size + sum(input.data) + sum(output.data)
+        # + sum(buffer.data) equal to file size
+        if self.header_length + ConstManager.UINT64_SIZE + input_data_size \
+                + output_data_size + buffer_data_size != self.file_size:
+            log.print_warn_log(
+                'The file size (%d) of %s is not equal to %d (header length)'
+                ' + %d(the size of header content) '
+                '+ %d(the sum of input data) + %d(the sum of output data) '
+                '+ %d(the sum of buffer data). Please check the dump file.'
+                % (self.file_size, self.dump_file_path, ConstManager.UINT64_SIZE, self.header_length,
+                   input_data_size, output_data_size, buffer_data_size))
+            raise CompareError(
+                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def _read_header_length(self: any, dump_file: BinaryIO) -> None:
         # read header length
@@ -129,32 +155,6 @@ class BigDumpDataParser:
         if len(self.dump_data.buffer) > 0:
             for (index, _) in enumerate(self.dump_data.buffer):
                 self.dump_data.buffer[index].data = dump_file.read(self.dump_data.buffer[index].size)
-
-    def parse(self: any) -> DD.DumpData:
-        """
-        Parse the dump file path by big dump data format
-        :return: DumpData
-        :exception when read or parse file error
-        """
-        self.check_argument_valid()
-        try:
-            with open(self.dump_file_path, 'rb') as dump_file:
-                # read header length
-                self._read_header_length(dump_file)
-                # read dump data proto
-                self._read_dump_data(dump_file)
-                self._check_size_match()
-                # read tensor data
-                self._read_input_data(dump_file)
-                self._read_output_data(dump_file)
-                self._read_buffer_data(dump_file)
-                return self.dump_data
-        except (OSError, IOError) as io_error:
-            log.print_error_log('Failed to read the dump file %s. %s'
-                                % (self.dump_file_path, str(io_error)))
-            raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from io_error
-        finally:
-            pass
 
 
 class DumpDataHandler:
