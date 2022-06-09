@@ -286,36 +286,36 @@ class FusionRuleParser:
         filtering = QuantFilter(self.op_list)
         filtering.process_filtering()
 
-        def make_fusion_op_name(self: any, name: str, l1_fusion_no: str, original_op_names: list) -> None:
-            """
-            Make fusion op name by group op name and original op names
-            :return the fusion op name
-            """
-            # the fusion op name priority:
-            # l1_fusion_no -> original_op_names -> name
-            if l1_fusion_no != "":
-                # the l1_fusion_no is not empty,
-                # the fusion op name is the l1_fusion_no
-                self.op_name_to_fusion_op_name_map[name] = l1_fusion_no
-                return
+    def make_fusion_op_name(self: any, name: str, l1_fusion_no: str, original_op_names: list) -> None:
+        """
+        Make fusion op name by group op name and original op names
+        :return the fusion op name
+        """
+        # the fusion op name priority:
+        # l1_fusion_no -> original_op_names -> name
+        if l1_fusion_no != "":
+            # the l1_fusion_no is not empty,
+            # the fusion op name is the l1_fusion_no
+            self.op_name_to_fusion_op_name_map[name] = l1_fusion_no
+            return
 
-            if original_op_names:
-                if len(original_op_names) == 1:
-                    # There is one original op name
-                    if original_op_names[0] == '':
-                        # the original name is empty, the fusion op name is op name
-                        self.op_name_to_fusion_op_name_map[name] = name
-                    else:
-                        # the original name is not empty,
-                        # the fusion op name is original op name
-                        self.op_name_to_fusion_op_name_map[name] = original_op_names[0]
+        if original_op_names:
+            if len(original_op_names) == 1:
+                # There is one original op name
+                if original_op_names[0] == '':
+                    # the original name is empty, the fusion op name is op name
+                    self.op_name_to_fusion_op_name_map[name] = name
                 else:
-                    # The original op name more then one,
-                    # the fusion op name is uuid names
-                    self.op_name_to_fusion_op_name_map[name] = \
-                        uuid.uuid3(uuid.NAMESPACE_DNS, ''.join(original_op_names))
+                    # the original name is not empty,
+                    # the fusion op name is original op name
+                    self.op_name_to_fusion_op_name_map[name] = original_op_names[0]
             else:
-                self.op_name_to_fusion_op_name_map[name] = name
+                # The original op name more then one,
+                # the fusion op name is uuid names
+                self.op_name_to_fusion_op_name_map[name] = \
+                    uuid.uuid3(uuid.NAMESPACE_DNS, ''.join(original_op_names))
+        else:
+            self.op_name_to_fusion_op_name_map[name] = name
 
     def get_origin_name_to_op_name_map(self: any) -> dict:
         """
