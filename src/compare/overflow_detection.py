@@ -27,6 +27,41 @@ class OverflowDetection:
         self.overflow_tensor_list = []
         self.op_name = op_name
 
+    @staticmethod
+    def _judge_overflow_data_by_array(tensor_data: any) -> str:
+        if tensor_data is not None:
+            absolute_value_data = np.absolute(tensor_data)
+            up_overflow_flag = (absolute_value_data.max() >= ConstManager.OVERFLOW_MAX_VALUE)
+            if up_overflow_flag:
+                return 'YES'
+            return 'NO'
+        return ConstManager.NAN
+
+    @staticmethod
+    def process_model_overflow_detection(op_name: str, index: int, is_input: bool, tensor: any) -> str:
+        """
+        process model overflow detection
+        """
+        if tensor and tensor.data_type == DD.DT_FLOAT16:
+            tensor_data_array = utils.deserialize_dump_data_to_array(tensor)
+            overflow_result = OverflowDetection._judge_overflow_data_by_array(tensor_data_array)
+            if overflow_result == 'YES':
+                log.print_warn_log(
+                    "{} operator {}:{} is overflow.".format(op_name, 'input' if is_input else 'output', index))
+            return overflow_result
+        return ConstManager.NAN
+
+    def process_op_overflow_detection(self: any) -> None:
+        """
+        process op overflow detection
+        """
+        log.print_info_log("Checking {} operator overflow".format(self.op_name))
+        input_tensor_data_info, output_tensor_data_info = self.parse_dump_file()
+        if len(input_tensor_data_info) == 0 and len(output_tensor_data_info) == 0:
+            return
+        self._check_overflow_tensor(input_tensor_data_info, output_tensor_data_info)
+        self._print_overflow_info_to_console(self.overflow_tensor_list)
+
     def parse_dump_file(self: any) -> (list, list):
         """
         process op overflow detection
@@ -69,16 +104,6 @@ class OverflowDetection:
             if up_overflow_flag:
                 self.overflow_tensor_list.append(item)
 
-    @staticmethod
-    def _judge_overflow_data_by_array(tensor_data: any) -> str:
-        if tensor_data is not None:
-            absolute_value_data = np.absolute(tensor_data)
-            up_overflow_flag = (absolute_value_data.max() >= ConstManager.OVERFLOW_MAX_VALUE)
-            if up_overflow_flag:
-                return 'YES'
-            return 'NO'
-        return ConstManager.NAN
-
     def _print_overflow_info_to_console(self: any, overflow_tensor_list: list) -> None:
         if len(overflow_tensor_list) == 0:
             log.print_info_log("The input and output of the op: {} is not overflow.".format(self.op_name))
@@ -97,28 +122,3 @@ class OverflowDetection:
             for item in tensor_index_info:
                 print(format_line.format(item, "yes"))
             log.print_info_log("%s operator has overflowed." % self.op_name)
-
-    def process_op_overflow_detection(self: any) -> None:
-        """
-        process op overflow detection
-        """
-        log.print_info_log("Checking {} operator overflow".format(self.op_name))
-        input_tensor_data_info, output_tensor_data_info = self.parse_dump_file()
-        if len(input_tensor_data_info) == 0 and len(output_tensor_data_info) == 0:
-            return
-        self._check_overflow_tensor(input_tensor_data_info, output_tensor_data_info)
-        self._print_overflow_info_to_console(self.overflow_tensor_list)
-
-    @staticmethod
-    def process_model_overflow_detection(op_name: str, index: int, is_input: bool, tensor: any) -> str:
-        """
-        process model overflow detection
-        """
-        if tensor and tensor.data_type == DD.DT_FLOAT16:
-            tensor_data_array = utils.deserialize_dump_data_to_array(tensor)
-            overflow_result = OverflowDetection._judge_overflow_data_by_array(tensor_data_array)
-            if overflow_result == 'YES':
-                log.print_warn_log(
-                    "{} operator {}:{} is overflow.".format(op_name, 'input' if is_input else 'output', index))
-            return overflow_result
-        return ConstManager.NAN

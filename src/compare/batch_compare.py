@@ -34,6 +34,54 @@ class BatchCompare:
         self.model_name_to_json_map = {}
         self.json_path_to_dump_path_map = {}
 
+    @staticmethod
+    def _check_path_valid(path: str) -> None:
+        ret = utils.check_path_valid(path, True, False, utils.PathType.Directory)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
+
+    def check_fusion_rule_json_dir(self: any, fusion_rule_json_dir: str) -> bool:
+        """
+        Check fusion rule is dir or not
+        :param fusion_rule_json_dir: the path for fusion rule json
+        :return:bool
+        """
+        fusion_rule_path = os.path.realpath(fusion_rule_json_dir)
+        if os.path.exists(fusion_rule_path) and os.path.isfile(fusion_rule_path):
+            return False
+        self._check_path_valid(fusion_rule_json_dir)
+        return True
+
+    def check_argument_valid(self: any, arguments: any) -> None:
+        """
+        Check argument valid
+        """
+        if arguments.op_name:
+            log.print_error_log(
+                "the {} single operator comparison is not supported for batch network comparison.".format(
+                    arguments.op_name))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+
+        npu_dump_path = os.path.realpath(arguments.my_dump_path)
+        self._check_path_valid(npu_dump_path)
+        # check whether the path ends with a timestamp.
+        path = os.path.split(npu_dump_path)
+        # path[1]:last level directory
+        if not path[1].isdigit():
+            log.print_error_log("The {} path must end with a timestamp.".format(npu_dump_path))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+
+    def compare(self: any, arguments: any) -> int:
+        """
+        Compare the entire network in batches
+        :param arguments: the command parameters
+        :return: the compare finish status code
+        """
+        self.check_argument_valid(arguments)
+        self._make_model_name_to_json_map(os.path.realpath(arguments.fusion_rule_file))
+        self._make_json_path_to_dump_path_map(os.path.realpath(arguments.my_dump_path))
+        return self._execute_batch_compare(arguments)
+
     def _make_model_name_to_json_map(self: any, json_dir_path: str) -> None:
         for json_file_name in os.listdir(json_dir_path):
             json_file_path = os.path.join(json_dir_path, json_file_name)
@@ -106,48 +154,6 @@ class BatchCompare:
                 ret = compare.compare()
         return ret
 
-    def check_fusion_rule_json_dir(self: any, fusion_rule_json_dir: str) -> bool:
-        """
-        Check fusion rule is dir or not
-        :param fusion_rule_json_dir: the path for fusion rule json
-        :return:bool
-        """
-        fusion_rule_path = os.path.realpath(fusion_rule_json_dir)
-        if os.path.exists(fusion_rule_path) and os.path.isfile(fusion_rule_path):
-            return False
-        self._check_path_valid(fusion_rule_json_dir)
-        return True
-
-    def check_argument_valid(self: any, arguments: any) -> None:
-        """
-        Check argument valid
-        """
-        if arguments.op_name:
-            log.print_error_log(
-                "the {} single operator comparison is not supported for batch network comparison.".format(
-                    arguments.op_name))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
-
-        npu_dump_path = os.path.realpath(arguments.my_dump_path)
-        self._check_path_valid(npu_dump_path)
-        # check whether the path ends with a timestamp.
-        path = os.path.split(npu_dump_path)
-        # path[1]:last level directory
-        if not path[1].isdigit():
-            log.print_error_log("The {} path must end with a timestamp.".format(npu_dump_path))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-
-    def compare(self: any, arguments: any) -> int:
-        """
-        Compare the entire network in batches
-        :param arguments: the command parameters
-        :return: the compare finish status code
-        """
-        self.check_argument_valid(arguments)
-        self._make_model_name_to_json_map(os.path.realpath(arguments.fusion_rule_file))
-        self._make_json_path_to_dump_path_map(os.path.realpath(arguments.my_dump_path))
-        return self._execute_batch_compare(arguments)
-
     def _get_npu_dump_file_map_by_model_id(self: any, model_name_dir: str, dump_file_path_map: dict) -> None:
         for model_id in os.listdir(model_name_dir):
             model_id_dir = os.path.join(model_name_dir, model_id)
@@ -175,9 +181,3 @@ class BatchCompare:
             log.print_npu_path_valid_message(npu_dump_dir, self.DUMP_FILE_PATH_FORMAT)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         return dump_file_path_map
-
-    @staticmethod
-    def _check_path_valid(path: str) -> None:
-        ret = utils.check_path_valid(path, True, False, utils.PathType.Directory)
-        if ret != CompareError.MSACCUCMP_NONE_ERROR:
-            raise CompareError(ret)

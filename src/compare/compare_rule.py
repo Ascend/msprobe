@@ -38,23 +38,6 @@ class CompareRule:
             self.close_fusion_rule_file_path = os.path.realpath(close_fusion_rule_file_path)
         self.fusion_info = None
 
-    def check_arguments_valid(self: any) -> None:
-        """
-        Check arguments valid, if invalid, throw exception
-        """
-        if self.fusion_json_file_path != "":
-            ret = utils.check_path_valid(self.fusion_json_file_path, True, False, utils.PathType.File)
-            if ret != CompareError.MSACCUCMP_NONE_ERROR:
-                raise CompareError(ret)
-        if self.quant_fusion_rule_file_path != "":
-            ret = utils.check_path_valid(self.quant_fusion_rule_file_path, True, False, utils.PathType.File)
-            if ret != CompareError.MSACCUCMP_NONE_ERROR:
-                raise CompareError(ret)
-        if self.close_fusion_rule_file_path != "":
-            ret = utils.check_path_valid(self.close_fusion_rule_file_path, True, False, utils.PathType.File)
-            if ret != CompareError.MSACCUCMP_NONE_ERROR:
-                raise CompareError(ret)
-
     @staticmethod
     def _sort_file_by_timestamp(op_name_to_file_map: dict) -> list:
         origin_list = []
@@ -102,22 +85,6 @@ class CompareRule:
                     fusion_op = FusionOp(op_id, op_name, [], ConstManager.RIGHT_TYPE, [item[2]], attr)
                     op_name_to_op_map[op_name].append(fusion_op)
 
-    def _make_npu_vs_npu_fusion_rule(self: any, compare_data: CompareData) -> None:
-        """
-        make fusion rule by npu vs npu
-        """
-        op_name_to_op_map = {}
-        # sort my output dump file by timestamp
-        my_output_sort_list = self._sort_file_by_timestamp(compare_data.left_dump_info.op_name_to_file_map)
-        self._make_my_output_map(my_output_sort_list, op_name_to_op_map)
-
-        # sort ground truth dump file by timestamp
-        ground_truth_sort_list = self._sort_file_by_timestamp(compare_data.right_dump_info.op_name_to_file_map)
-        self._make_ground_truth_map(ground_truth_sort_list, op_name_to_op_map)
-
-        self.fusion_info = FusionRuleParser('')
-        self.fusion_info.fusion_op_name_to_op_map = op_name_to_op_map
-
     def parse_fusion_rule(self: any, compare_data: CompareData) -> None:
         """
         Parse fusion rule
@@ -144,3 +111,36 @@ class CompareRule:
             self.fusion_info.analysis_fusion_rule()
         else:
             self._make_npu_vs_npu_fusion_rule(compare_data)
+
+    def check_arguments_valid(self: any) -> None:
+        """
+        Check arguments valid, if invalid, throw exception
+        """
+        if self.fusion_json_file_path != "":
+            ret = utils.check_path_valid(self.fusion_json_file_path, True, False, utils.PathType.File)
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                raise CompareError(ret)
+        if self.quant_fusion_rule_file_path != "":
+            ret = utils.check_path_valid(self.quant_fusion_rule_file_path, True, False, utils.PathType.File)
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                raise CompareError(ret)
+        if self.close_fusion_rule_file_path != "":
+            ret = utils.check_path_valid(self.close_fusion_rule_file_path, True, False, utils.PathType.File)
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                raise CompareError(ret)
+
+    def _make_npu_vs_npu_fusion_rule(self: any, compare_data: CompareData) -> None:
+        """
+        make fusion rule by npu vs npu
+        """
+        op_name_to_op_map = {}
+        # sort my output dump file by timestamp
+        my_output_sort_list = self._sort_file_by_timestamp(compare_data.left_dump_info.op_name_to_file_map)
+        self._make_my_output_map(my_output_sort_list, op_name_to_op_map)
+
+        # sort ground truth dump file by timestamp
+        ground_truth_sort_list = self._sort_file_by_timestamp(compare_data.right_dump_info.op_name_to_file_map)
+        self._make_ground_truth_map(ground_truth_sort_list, op_name_to_op_map)
+
+        self.fusion_info = FusionRuleParser('')
+        self.fusion_info.fusion_op_name_to_op_map = op_name_to_op_map

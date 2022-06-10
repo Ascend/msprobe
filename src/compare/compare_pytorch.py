@@ -46,6 +46,61 @@ class PytorchComparison:
         self.is_open_advisor = args.advisor
         self.filter_flag = args.post_process
 
+    @staticmethod
+    def _save_numpy_data(file_path: str, data: any) -> None:
+        if not os.path.exists(os.path.dirname(file_path)):
+            os.makedirs(os.path.dirname(file_path))
+        np.save(file_path, data)
+
+    @staticmethod
+    def _get_item_location(row: list) -> list:
+        cos_index = 0
+        my_dump_index = 0
+        golden_index = 0
+        for (index, item) in enumerate(row):
+            if item == "CosineSimilarity":
+                cos_index = index
+            elif item == "MyDumpDataPath":
+                my_dump_index = index
+            elif item == "GoldenDumpDataPath":
+                golden_index = index
+        return [cos_index, my_dump_index, golden_index]
+
+    def record_not_matched(self: any) -> None:
+        """
+        Find all datasets that do not match my dump in the golden dump and record
+        them in the result file.
+        """
+        not_matched_result = []
+        fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
+        for order, op_name, golden_dataset, message in \
+                self.compare_data.get_not_matched_golden_datasets():
+            not_matched_result += fusion_op_result.get_pytorch_result(
+                compare_result.PytorchOpInfo(order, op_name, ConstManager.NAN, golden_dataset), None, [message])
+        self._save_cmp_result(not_matched_result)
+
+    def compare(self: any) -> int:
+        """
+        Compare for pytorch dump data.
+        """
+        log.print_info_log("start parse dump file!")
+        # Write the result header
+        if not self._write_header_to_file():
+            return CompareError.MSACCUCMP_OPEN_FILE_ERROR
+
+        # parse and compare
+        try:
+            ret = self.compare_data.parse_dump_file()
+        except CompareError as error:
+            return error.code
+        finally:
+            self.compare_data.close_file()
+
+        # compare dump file
+        if ret == CompareError.MSACCUCMP_NONE_ERROR:
+            return self._compare_net()
+        return ret
+
     def check_arguments_valid(self: any, args: argparse.Namespace) -> None:
         """
         Check arguments valid, if invalid, throw exception
@@ -221,39 +276,6 @@ class PytorchComparison:
         pool.close()
         pool.join()
 
-    def record_not_matched(self: any) -> None:
-        """
-        Find all datasets that do not match my dump in the golden dump and record
-        them in the result file.
-        """
-        not_matched_result = []
-        fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
-        for order, op_name, golden_dataset, message in \
-                self.compare_data.get_not_matched_golden_datasets():
-            not_matched_result += fusion_op_result.get_pytorch_result(
-                compare_result.PytorchOpInfo(order, op_name, ConstManager.NAN, golden_dataset), None, [message])
-        self._save_cmp_result(not_matched_result)
-
-    @staticmethod
-    def _save_numpy_data(file_path: str, data: any) -> None:
-        if not os.path.exists(os.path.dirname(file_path)):
-            os.makedirs(os.path.dirname(file_path))
-        np.save(file_path, data)
-
-    @staticmethod
-    def _get_item_location(row: list) -> list:
-        cos_index = 0
-        my_dump_index = 0
-        golden_index = 0
-        for (index, item) in enumerate(row):
-            if item == "CosineSimilarity":
-                cos_index = index
-            elif item == "MyDumpDataPath":
-                my_dump_index = index
-            elif item == "GoldenDumpDataPath":
-                golden_index = index
-        return [cos_index, my_dump_index, golden_index]
-
     def _filter_one_line(self: any, result_path: str, row: list, csv_writer: any, position: list) -> None:
         cos_index = position[0]
         my_dump_index = position[1]
@@ -335,25 +357,3 @@ class PytorchComparison:
             advisor_result = compare_advisor.advisor()
             message_list = advisor_result.print_advisor_log()
             advisor_result.gen_summary_file(out_path, message_list)
-
-    def compare(self: any) -> int:
-        """
-        Compare for pytorch dump data.
-        """
-        log.print_info_log("start parse dump file!")
-        # Write the result header
-        if not self._write_header_to_file():
-            return CompareError.MSACCUCMP_OPEN_FILE_ERROR
-
-        # parse and compare
-        try:
-            ret = self.compare_data.parse_dump_file()
-        except CompareError as error:
-            return error.code
-        finally:
-            self.compare_data.close_file()
-
-        # compare dump file
-        if ret == CompareError.MSACCUCMP_NONE_ERROR:
-            return self._compare_net()
-        return ret

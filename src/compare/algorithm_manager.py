@@ -38,6 +38,122 @@ class AlgorithmManager:
         self.algorithm_param = self._parse_algorithm_argument(algorithm_options)
         self.support_algorithm_map = self._make_select_algorithm_map()
 
+    @staticmethod
+    def _check_value_invalid(value: object, parameter: str) -> None:
+        if (isinstance(value, str) and not value) or (isinstance(value, list) and len(value) != 2):
+            log.print_error_log('The algorithm argument (%s) is invalid, just supports '
+                                '"algorithm_name:name1=value1,name2=value2;".' % parameter)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+
+    @staticmethod
+    def _update_algorithm_param(algorithm_name: str, algorithm_param: dict, param_map: dict) -> None:
+        if RegManager.match_pattern(RegManager.BUILTIN_ALGORITHM_INDEX_PATTERN, algorithm_name):
+            algorithm_name = ConstManager.BUILT_IN_ALGORITHM[int(algorithm_name)]
+        if algorithm_name in algorithm_param:
+            algorithm_param[algorithm_name] = dict(algorithm_param.get(algorithm_name), **param_map)
+        else:
+            algorithm_param[algorithm_name] = param_map
+
+    @staticmethod
+    def _get_function(algorithm_module: any, module_type: str) -> (bool, any):
+        algorithm_func = getattr(algorithm_module, ConstManager.COMPARE_FUNC_NAME)
+        # check compare is function
+        if not callable(algorithm_func):
+            log.print_warn_log("[%s] The '%s' in %s is not function. Please check the file." %
+                               (module_type, ConstManager.COMPARE_FUNC_NAME, str(algorithm_module.__file__)))
+            return False, ''
+
+        # check argument count of compare
+        if algorithm_func.__code__.co_argcount != ConstManager.COMPARE_ARGUMENT_COUNT:
+            log.print_warn_log("[%s] The argument count (%d) of '%s' in %s is not %d. Please check the file." %
+                               (module_type, algorithm_func.__code__.co_argcount, ConstManager.COMPARE_FUNC_NAME,
+                                str(algorithm_module.__file__), ConstManager.COMPARE_ARGUMENT_COUNT))
+            return False, ''
+        return True, algorithm_func
+
+    @staticmethod
+    def _add_algorithm_file_to_list(file_path: str, support_algorithm_list: list) -> bool:
+        if os.path.isfile(file_path):
+            file_name_pattern = re.compile(ConstManager.ALGORITHM_FILE_NAME_PATTERN)
+            match = file_name_pattern.match(os.path.basename(file_path))
+            if match is not None:
+                support_algorithm_list.append(match.group(1))
+                return True
+            log.print_warn_log("The file '%s' does not match 'alg_{algorithm_name}.py'"
+                               " in '%s', please check the file." % (os.path.basename(file_path),
+                                                                     os.path.dirname(file_path)))
+        return False
+
+    @staticmethod
+    def _check_data_size_valid(my_output_dump_data: any, ground_truth_dump_data: any, args: dict) -> None:
+        my_output_dump_data_size = len(my_output_dump_data)
+        if my_output_dump_data_size == 0 and args.get('my_output_dump_file') is not None:
+            msg = 'The dump data size is 0 in %s.' % args.get('my_output_dump_file')
+            log.print_warn_log(msg)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
+        ground_truth_dump_data_size = len(ground_truth_dump_data)
+        if ground_truth_dump_data_size == 0 and args.get('ground_truth_dump_file') is not None:
+            msg = 'The dump data size is 0 in %s.' % args.get('ground_truth_dump_file')
+            log.print_warn_log(msg)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
+
+        if my_output_dump_data_size != ground_truth_dump_data_size \
+                and args.get('my_output_dump_file') is not None \
+                and args.get('ground_truth_dump_file') is not None:
+            msg = "The my output dump data size (%d) in '%s' does not match the ground truth dump data size (%d) " \
+                  "in '%s'." % (my_output_dump_data_size, args.get('my_output_dump_file'),
+                                ground_truth_dump_data_size, args.get('ground_truth_dump_file'))
+            log.print_warn_log(msg)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
+
+    @staticmethod
+    def _check_return_value_valid(value: object, select_algorithm: str) -> None:
+        # check the return value is string
+        if not isinstance(value, str):
+            err_msg = "The return value (%s) of '%s' in '%s' is not string. Please check the return value." \
+                      % (value, ConstManager.COMPARE_FUNC_NAME, select_algorithm)
+            raise CompareError(ConstManager.COMPARE_FUNC_NAME, err_msg)
+
+    def compare(self: any, my_output_dump_data: any, ground_truth_dump_data: any, args: dict) -> (list, list):
+        """
+        Compare the my output dump data and the ground truth dump data by select algorithm
+        :param my_output_dump_data: the my output dump data to compare
+        :param ground_truth_dump_data: the ground truth dump data to compare
+        :param args: the algorithm parameter
+        :return the result list and compare_fail_message
+        """
+        self._check_data_size_valid(my_output_dump_data, ground_truth_dump_data, args)
+        result = []
+        error_msg = []
+        for select_algorithm, compare_func in self.support_algorithm_map.items():
+            if my_output_dump_data.dtype == np.bool_ and ground_truth_dump_data.dtype == np.bool_ and \
+                    select_algorithm not in ConstManager.BOOL_ALGORITHM:
+                result.append(ConstManager.NAN)
+                error_msg += ["Algorithm %s does not support Boolean types." % select_algorithm]
+            else:
+                alg_args = self._make_algorithm_param(select_algorithm, args)
+                # call compare function
+                alg_result, alg_error_msg = self._call_compare_function(
+                    compare_func, my_output_dump_data, ground_truth_dump_data, alg_args, select_algorithm)
+                result.append(alg_result)
+                if alg_error_msg:
+                    error_msg += [alg_error_msg]
+        return result, error_msg
+
+    def get_result_title(self: any) -> list:
+        """
+        Get algorithm name list
+        :return: the list
+        """
+        return list(self.support_algorithm_map.keys())
+
+    def make_nan_result(self: any) -> list:
+        """
+        Make nan result for compare algorithm
+        :return: the list, result is nan
+        """
+        return [ConstManager.NAN] * len(self.support_algorithm_map)
+
     def _add_algorithm_name_to_list(self: any, algorithm_name: str, select_algorithm_list: list) -> None:
         if not algorithm_name:
             return
@@ -81,22 +197,6 @@ class AlgorithmManager:
                                             self.built_in_support_algorithm + self.custom_support_algorithm))
             raise CompareError(CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)
         return select_algorithm_list
-
-    @staticmethod
-    def _check_value_invalid(value: object, parameter: str) -> None:
-        if (isinstance(value, str) and not value) or (isinstance(value, list) and len(value) != 2):
-            log.print_error_log('The algorithm argument (%s) is invalid, just supports '
-                                '"algorithm_name:name1=value1,name2=value2;".' % parameter)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
-
-    @staticmethod
-    def _update_algorithm_param(algorithm_name: str, algorithm_param: dict, param_map: dict) -> None:
-        if RegManager.match_pattern(RegManager.BUILTIN_ALGORITHM_INDEX_PATTERN, algorithm_name):
-            algorithm_name = ConstManager.BUILT_IN_ALGORITHM[int(algorithm_name)]
-        if algorithm_name in algorithm_param:
-            algorithm_param[algorithm_name] = dict(algorithm_param.get(algorithm_name), **param_map)
-        else:
-            algorithm_param[algorithm_name] = param_map
 
     def _change_str_to_map(self: any, algorithm_param_info: list, algorithm_args: str) -> dict:
         param_map = {}
@@ -157,23 +257,6 @@ class AlgorithmManager:
             return False, algorithm_module, module_type
         return True, algorithm_module, module_type
 
-    @staticmethod
-    def _get_function(algorithm_module: any, module_type: str) -> (bool, any):
-        algorithm_func = getattr(algorithm_module, ConstManager.COMPARE_FUNC_NAME)
-        # check compare is function
-        if not callable(algorithm_func):
-            log.print_warn_log("[%s] The '%s' in %s is not function. Please check the file." %
-                               (module_type, ConstManager.COMPARE_FUNC_NAME, str(algorithm_module.__file__)))
-            return False, ''
-
-        # check argument count of compare
-        if algorithm_func.__code__.co_argcount != ConstManager.COMPARE_ARGUMENT_COUNT:
-            log.print_warn_log("[%s] The argument count (%d) of '%s' in %s is not %d. Please check the file." %
-                               (module_type, algorithm_func.__code__.co_argcount, ConstManager.COMPARE_FUNC_NAME,
-                                str(algorithm_module.__file__), ConstManager.COMPARE_ARGUMENT_COUNT))
-            return False, ''
-        return True, algorithm_func
-
     def _make_select_algorithm_map(self: any) -> dict:
         """
         Make support algorithm map by select algorithm list
@@ -195,19 +278,6 @@ class AlgorithmManager:
             raise CompareError(CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)
         return support_algorithm_map
 
-    @staticmethod
-    def _add_algorithm_file_to_list(file_path: str, support_algorithm_list: list) -> bool:
-        if os.path.isfile(file_path):
-            file_name_pattern = re.compile(ConstManager.ALGORITHM_FILE_NAME_PATTERN)
-            match = file_name_pattern.match(os.path.basename(file_path))
-            if match is not None:
-                support_algorithm_list.append(match.group(1))
-                return True
-            log.print_warn_log("The file '%s' does not match 'alg_{algorithm_name}.py'"
-                               " in '%s', please check the file." % (os.path.basename(file_path),
-                                                                     os.path.dirname(file_path)))
-        return False
-
     def _make_support_algorithm_by_path(self: any, dir_path: str, support_algorithm_list: list) -> None:
         if not os.path.exists(dir_path):
             log.print_warn_log("There is no '%s' in '%s', please check the custom path."
@@ -220,36 +290,6 @@ class AlgorithmManager:
         if not one_match:
             log.print_warn_log("There is no legal 'alg_{algorithm_name}.py' file in '%s', "
                                "please check the path." % dir_path)
-
-    @staticmethod
-    def _check_data_size_valid(my_output_dump_data: any, ground_truth_dump_data: any, args: dict) -> None:
-        my_output_dump_data_size = len(my_output_dump_data)
-        if my_output_dump_data_size == 0 and args.get('my_output_dump_file') is not None:
-            msg = 'The dump data size is 0 in %s.' % args.get('my_output_dump_file')
-            log.print_warn_log(msg)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
-        ground_truth_dump_data_size = len(ground_truth_dump_data)
-        if ground_truth_dump_data_size == 0 and args.get('ground_truth_dump_file') is not None:
-            msg = 'The dump data size is 0 in %s.' % args.get('ground_truth_dump_file')
-            log.print_warn_log(msg)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
-
-        if my_output_dump_data_size != ground_truth_dump_data_size \
-                and args.get('my_output_dump_file') is not None \
-                and args.get('ground_truth_dump_file') is not None:
-            msg = "The my output dump data size (%d) in '%s' does not match the ground truth dump data size (%d) " \
-                  "in '%s'." % (my_output_dump_data_size, args.get('my_output_dump_file'),
-                                ground_truth_dump_data_size, args.get('ground_truth_dump_file'))
-            log.print_warn_log(msg)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
-
-    @staticmethod
-    def _check_return_value_valid(value: object, select_algorithm: str) -> None:
-        # check the return value is string
-        if not isinstance(value, str):
-            err_msg = "The return value (%s) of '%s' in '%s' is not string. Please check the return value." \
-                      % (value, ConstManager.COMPARE_FUNC_NAME, select_algorithm)
-            raise CompareError(ConstManager.COMPARE_FUNC_NAME, err_msg)
 
     def _make_algorithm_param(self: any, algorithm_name: str, args: dict) -> AlgorithmParameter:
         alg_arg_map = args
@@ -276,46 +316,6 @@ class AlgorithmManager:
         finally:
             pass
         return alg_result, alg_error_msg
-
-    def compare(self: any, my_output_dump_data: any, ground_truth_dump_data: any, args: dict) -> (list, list):
-        """
-        Compare the my output dump data and the ground truth dump data by select algorithm
-        :param my_output_dump_data: the my output dump data to compare
-        :param ground_truth_dump_data: the ground truth dump data to compare
-        :param args: the algorithm parameter
-        :return the result list and compare_fail_message
-        """
-        self._check_data_size_valid(my_output_dump_data, ground_truth_dump_data, args)
-        result = []
-        error_msg = []
-        for select_algorithm, compare_func in self.support_algorithm_map.items():
-            if my_output_dump_data.dtype == np.bool_ and ground_truth_dump_data.dtype == np.bool_ and \
-                    select_algorithm not in ConstManager.BOOL_ALGORITHM:
-                result.append(ConstManager.NAN)
-                error_msg += ["Algorithm %s does not support Boolean types." % select_algorithm]
-            else:
-                alg_args = self._make_algorithm_param(select_algorithm, args)
-                # call compare function
-                alg_result, alg_error_msg = self._call_compare_function(
-                    compare_func, my_output_dump_data, ground_truth_dump_data, alg_args, select_algorithm)
-                result.append(alg_result)
-                if alg_error_msg:
-                    error_msg += [alg_error_msg]
-        return result, error_msg
-
-    def get_result_title(self: any) -> list:
-        """
-        Get algorithm name list
-        :return: the list
-        """
-        return list(self.support_algorithm_map.keys())
-
-    def make_nan_result(self: any) -> list:
-        """
-        Make nan result for compare algorithm
-        :return: the list, result is nan
-        """
-        return [ConstManager.NAN] * len(self.support_algorithm_map)
 
 
 class AlgorithmManagerMain:

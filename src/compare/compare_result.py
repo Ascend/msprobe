@@ -122,25 +122,6 @@ class FusionOpComResult:
                 ground_truth_op = '*'
         return my_output_op, ground_truth_op
 
-    def _make_my_output_op_and_ground_truth_op(self: any, fusion_op: FusionOp, no_dump_file: bool) -> (str, str):
-        if self.ground_truth_to_my_output_map:
-            my_output_op, ground_truth_op = fusion_rule_parser. \
-                make_left_and_right_string(self.ground_truth_to_my_output_map)
-        else:
-            my_output_op, ground_truth_op = self._make_ops_without_map(fusion_op, no_dump_file)
-        return my_output_op, ground_truth_op
-
-    def _pre_handle_result(self: any, current_tensor_info: list) -> None:
-        """
-        if dump data is not NPU data, the result will be popped.
-        the index of my dump data address is 3, the index of ground truth data address is 6.
-        args: result list
-        """
-        if self.is_ground_truth_gpu_or_cpu:
-            current_tensor_info.pop(6)
-        if self.is_my_dump_gpu_or_cpu:
-            current_tensor_info.pop(3)
-
     def get_result(self: any, fusion_op: FusionOp, tensor_result: any, error_msg: list,
                    no_dump_file: bool = False) -> list:
         """
@@ -200,6 +181,25 @@ class FusionOpComResult:
             log.print_info_log('[%s:%d] Result: %s' % (op_info.op_name, op_info.index, " ".join(result)))
             result_list.append(result)
         return result_list
+
+    def _make_my_output_op_and_ground_truth_op(self: any, fusion_op: FusionOp, no_dump_file: bool) -> (str, str):
+        if self.ground_truth_to_my_output_map:
+            my_output_op, ground_truth_op = fusion_rule_parser. \
+                make_left_and_right_string(self.ground_truth_to_my_output_map)
+        else:
+            my_output_op, ground_truth_op = self._make_ops_without_map(fusion_op, no_dump_file)
+        return my_output_op, ground_truth_op
+
+    def _pre_handle_result(self: any, current_tensor_info: list) -> None:
+        """
+        if dump data is not NPU data, the result will be popped.
+        the index of my dump data address is 3, the index of ground truth data address is 6.
+        args: result list
+        """
+        if self.is_ground_truth_gpu_or_cpu:
+            current_tensor_info.pop(6)
+        if self.is_my_dump_gpu_or_cpu:
+            current_tensor_info.pop(3)
 
 
 def get_result_title(algorithm_manager: AlgorithmManager, op_header: list, overflow_detection: bool = False) -> list:

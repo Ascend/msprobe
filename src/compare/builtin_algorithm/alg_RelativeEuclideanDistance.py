@@ -36,6 +36,6 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
         sum_denominator += temp_y * temp_y
 
     result = '0.0'
-    if abs(sum_denominator ** 0.5) > ConstManager.FLOAT_EPSILON:
+    if abs(sum_denominator ** 0.5) > ConstManager.FLOAT_EPSILON and (sum_denominator ** 0.5) != 0:
         result = utils.format_value((sum_numerator ** 0.5) / (sum_denominator ** 0.5))
     return result, ""

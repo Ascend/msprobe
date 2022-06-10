@@ -29,42 +29,6 @@ class QuantFilter:
         self._op_list = op_list
         self._op_output_type_map = {}       # structure like {op_name: [out1_type, out2_type]}
 
-    def process_filtering(self: any) -> None:
-        """
-        check through the op list, mark in attr.is_quant_filter the ops should be filtered.
-        """
-        self._op_output_type_map = {}
-
-        # fetch ops in order
-        for op in self._op_list:
-
-            _op_name = op.op_name
-
-            # check name type using regex
-            _name_type = self._check_name_type(op.op_name)
-
-            # check inputs to determine if in middle of pairs
-            _in_pairs = self._check_in_pairs(op)
-
-            # store the output type of each output desc
-            self._op_output_type_map[_op_name] = []
-
-            for output in op.output_desc:
-                # combine the conditions above to determine filtering or not
-                _out_type = QuantFilter._check_out_type(_op_name, _name_type, _in_pairs, output)
-                self._op_output_type_map[_op_name].append(_out_type)
-
-            # store filter result in result set
-            self._add_filter_list(op, _in_pairs)
-
-    def get_out_type_map(self: any) -> dict:
-        """
-        get output type map
-
-        :return: output map
-        """
-        return self._op_output_type_map
-
     @staticmethod
     def _check_name_type(op_name: str) -> int:
         """
@@ -89,27 +53,6 @@ class QuantFilter:
             _op_type += QuantFilter.DEQUANT_OP
 
         return _op_type
-
-    def _check_in_pairs(self: any, op: any) -> bool:
-        _inputs = op.input_list
-
-        _is_in_pair = False
-        for _input in _inputs:
-            if ':' not in _input:
-                continue
-            _input_name = _input.split(':')[0]
-            _input_out_index = int(_input.split(':')[1])
-            _out_list = self._op_output_type_map.get(_input_name)
-            if _out_list is None or len(_out_list) <= _input_out_index:
-                log.print_warn_log("[{}] the input operator of op {} does not exist in previous graph."
-                                   .format(op.op_name, _input_name))
-                continue
-            _input_out_type = _out_list[_input_out_index]
-            if _input_out_type in (QuantFilter.QUANT_OP, QuantFilter.MIDDLE_OP):
-                _is_in_pair = True
-                break
-
-        return _is_in_pair
 
     @staticmethod
     def _check_out_type(op_name: str, name_type: int, in_pairs: bool, output_node: any) -> int:
@@ -148,6 +91,63 @@ class QuantFilter:
                 _matched_type = QuantFilter.DEQUANT_OP
 
         return _matched_type
+
+    def process_filtering(self: any) -> None:
+        """
+        check through the op list, mark in attr.is_quant_filter the ops should be filtered.
+        """
+        self._op_output_type_map = {}
+
+        # fetch ops in order
+        for op in self._op_list:
+
+            _op_name = op.op_name
+
+            # check name type using regex
+            _name_type = self._check_name_type(op.op_name)
+
+            # check inputs to determine if in middle of pairs
+            _in_pairs = self._check_in_pairs(op)
+
+            # store the output type of each output desc
+            self._op_output_type_map[_op_name] = []
+
+            for output in op.output_desc:
+                # combine the conditions above to determine filtering or not
+                _out_type = QuantFilter._check_out_type(_op_name, _name_type, _in_pairs, output)
+                self._op_output_type_map[_op_name].append(_out_type)
+
+            # store filter result in result set
+            self._add_filter_list(op, _in_pairs)
+
+    def get_out_type_map(self: any) -> dict:
+        """
+        get output type map
+
+        :return: output map
+        """
+        return self._op_output_type_map
+
+    def _check_in_pairs(self: any, op: any) -> bool:
+        _inputs = op.input_list
+
+        _is_in_pair = False
+        for _input in _inputs:
+            if ':' not in _input:
+                continue
+            _input_name = _input.split(':')[0]
+            _input_out_index = int(_input.split(':')[1])
+            _out_list = self._op_output_type_map.get(_input_name)
+            if _out_list is None or len(_out_list) <= _input_out_index:
+                log.print_warn_log("[{}] the input operator of op {} does not exist in previous graph."
+                                   .format(op.op_name, _input_name))
+                continue
+            _input_out_type = _out_list[_input_out_index]
+            if _input_out_type in (QuantFilter.QUANT_OP, QuantFilter.MIDDLE_OP):
+                _is_in_pair = True
+                break
+
+        return _is_in_pair
 
     def _add_filter_list(self: any, op: any, in_pairs: bool) -> None:
         _outputs = self._op_output_type_map.get(op.op_name)

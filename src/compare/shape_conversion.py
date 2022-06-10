@@ -128,6 +128,33 @@ class ShapeConversionMain:
         self.format_to = ConstManager.STRING_TO_FORMAT_MAP.get(format_str)
         self.shape = _check_shape_valid(shape_str)
 
+    def process(self: any) -> int:
+        """
+        Check arguments valid, then convert shape and slice data
+        :return: error code
+        """
+        ret = self.check_arguments_valid()
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            return ret
+        try:
+            dump_data = utils.parse_dump_file(self.dump_file_path, ConstManager.OLD_DUMP_TYPE)
+        except CompareError as error:
+            return error.code
+
+        if self.tensor == ConstManager.INPUT:
+            tensor_list = dump_data.input
+        else:
+            tensor_list = dump_data.output
+        if self.index >= len(tensor_list):
+            log.print_out_of_range_error('', self.tensor, self.index, '[0, %d)' % len(tensor_list))
+            return CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR
+
+        try:
+            self._convert_format(tensor_list[self.index], self.index)
+        except CompareError as error:
+            return error.code
+        return ret
+
     def check_arguments_valid(self: any) -> int:
         """
         Check arguments valid
@@ -196,33 +223,6 @@ class ShapeConversionMain:
         log.print_info_log('The dump data for %s:%d has been saved to "%s".'
                            % (self.tensor, index, output_file_path))
 
-    def process(self: any) -> int:
-        """
-        Check arguments valid, then convert shape and slice data
-        :return: error code
-        """
-        ret = self.check_arguments_valid()
-        if ret != CompareError.MSACCUCMP_NONE_ERROR:
-            return ret
-        try:
-            dump_data = utils.parse_dump_file(self.dump_file_path, ConstManager.OLD_DUMP_TYPE)
-        except CompareError as error:
-            return error.code
-
-        if self.tensor == ConstManager.INPUT:
-            tensor_list = dump_data.input
-        else:
-            tensor_list = dump_data.output
-        if self.index >= len(tensor_list):
-            log.print_out_of_range_error('', self.tensor, self.index, '[0, %d)' % len(tensor_list))
-            return CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR
-
-        try:
-            self._convert_format(tensor_list[self.index], self.index)
-        except CompareError as error:
-            return error.code
-        return ret
-
 
 class FormatConversionMain:
     """
@@ -261,6 +261,21 @@ class FormatConversionMain:
         self.format_to = ConstManager.STRING_TO_FORMAT_MAP.get(format_str)
         self.multi_process = None
         self.input_path = []
+
+    def convert_format(self: any) -> int:
+        """
+        Convert dump data to numpy or bin file
+        :return error_code
+        """
+        # 1. check arguments valid
+        self.check_arguments_valid()
+        # 2. convert format for dump data
+        if len(self.input_path) == 1 and os.path.isfile(self.input_path[0]):
+            ret, _ = self._convert_format_for_one_file(self.input_path[0])
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                log.print_error_log('Failed to convert format for %s".' % self.input_path[0])
+            return ret
+        return self.multi_process.process()
 
     def check_arguments_valid(self: any) -> int:
         """
@@ -470,21 +485,6 @@ class FormatConversionMain:
         except CompareError as error:
             ret = error.code
         return ret, msg
-
-    def convert_format(self: any) -> int:
-        """
-        Convert dump data to numpy or bin file
-        :return error_code
-        """
-        # 1. check arguments valid
-        self.check_arguments_valid()
-        # 2. convert format for dump data
-        if len(self.input_path) == 1 and os.path.isfile(self.input_path[0]):
-            ret, _ = self._convert_format_for_one_file(self.input_path[0])
-            if ret != CompareError.MSACCUCMP_NONE_ERROR:
-                log.print_error_log('Failed to convert format for %s".' % self.input_path[0])
-            return ret
-        return self.multi_process.process()
 
 
 if __name__ == "__main__":

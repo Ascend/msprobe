@@ -62,21 +62,6 @@ class CompareMap:
         self.param_map = {}
         self._init_map_table()
 
-    def _init_map_table(self: any) -> None:
-        self.op_map = {'CudnnBatchNormBackward': ['NativeBatchNormBackward'],
-                       'NativeBatchNormBackward': ['CudnnBatchNormBackward'],
-                       'CudnnConvolutionBackward': ['NpuConvolutionBackward'],
-                       'ThnnConvDepthwise2DBackward': ['NpuConvolutionBackward'],
-                       'NpuConvolutionBackward': ['CudnnConvolutionBackward', 'ThnnConvDepthwise2DBackward']
-                       }
-
-        self.param_map = {'CudnnBatchNormBackward': {'epsilon': 'eps'},
-                      'NativeBatchNormBackward': {'eps': 'epsilon'},
-                      'CudnnConvolutionBackward': {'self': 'input'},
-                      'ThnnConvDepthwise2DBackward': {'self': 'input'},
-                      'NpuConvolutionBackward': {'input': 'self'}
-                      }
-
     def get_mapping_opname(self: any, opname: str) -> list:
         """
         Get mapping op name in map table.
@@ -104,6 +89,21 @@ class CompareMap:
         """
         return list(self.op_map.values())
 
+    def _init_map_table(self: any) -> None:
+        self.op_map = {'CudnnBatchNormBackward': ['NativeBatchNormBackward'],
+                       'NativeBatchNormBackward': ['CudnnBatchNormBackward'],
+                       'CudnnConvolutionBackward': ['NpuConvolutionBackward'],
+                       'ThnnConvDepthwise2DBackward': ['NpuConvolutionBackward'],
+                       'NpuConvolutionBackward': ['CudnnConvolutionBackward', 'ThnnConvDepthwise2DBackward']
+                       }
+
+        self.param_map = {'CudnnBatchNormBackward': {'epsilon': 'eps'},
+                      'NativeBatchNormBackward': {'eps': 'epsilon'},
+                      'CudnnConvolutionBackward': {'self': 'input'},
+                      'ThnnConvDepthwise2DBackward': {'self': 'input'},
+                      'NpuConvolutionBackward': {'input': 'self'}
+                      }
+
 
 class CompareData:
     """
@@ -129,6 +129,160 @@ class CompareData:
         """
         op_name, _ = ext_opname.split(ConstManager.DELIMITER, 1)
         return op_name
+
+    @staticmethod
+    def _is_equivalent_type(my_dump_data_type: int, golden_dump_data_type: int, type_info: str) -> bool:
+        equivalent_type = set()
+        for item in DataType.equivalent_type:
+            equivalent_type.clear()
+            for type_name in item:
+                equivalent_type.add(DataType.get_value(type_name))
+            if my_dump_data_type in equivalent_type \
+                    and golden_dump_data_type in equivalent_type:
+                message = 'The DataType on both sides are Compatible, {}'.format(type_info)
+                log.print_info_log(message)
+                return True
+        return False
+
+    @staticmethod
+    def _check_stride(dataset_path: str, shape: list, stride: list) -> bool:
+        message = "shape={},stride={},stride is invalid". \
+            format(tuple(shape), tuple(stride))
+
+        if len(shape) != len(stride):
+            log.print_warn_log("[{}]:{}".format(dataset_path, message))
+            return False
+
+        expect_data_num = 0
+        real_data_num = 1
+        for (index, _) in enumerate(shape):
+            expect_data_num += ((shape[index] - 1) * stride[index])
+            real_data_num *= shape[index]
+        expect_data_num += 1
+        if expect_data_num > real_data_num:
+            log.print_warn_log("[{}]:{}".format(dataset_path, message))
+            return False
+        return True
+
+    def get_golden_dataset(self: any, ext_opname: str, my_dump_dataset_path: str) -> (bool, str, str):
+        """
+        Get the golden_dataset_path that matches the my_dump_dataset_path.
+        :ext_opname: the extend op name. such as cov2d:2
+        :my_dump_dataset_path: the my dump dataset path that get from dump data
+        """
+        message = 'No data match with {} in golden dump data.' \
+            .format(my_dump_dataset_path)
+        if ext_opname in self.golden_dump.ext_opname_dataset_map.keys():
+            golden_ext_opname = ext_opname
+        else:
+            golden_ext_opname = self._opname_map(ext_opname, self.golden_dump.device_type)
+            if golden_ext_opname not in self.golden_dump.ext_opname_dataset_map.keys():
+                return False, '', message
+
+        golden_dataset_path = self._construct_dataset_path(
+            ext_opname, my_dump_dataset_path, self.golden_dump, golden_ext_opname)
+        if golden_dataset_path and self.golden_dump.have_dataset(golden_ext_opname, golden_dataset_path):
+            return True, golden_dataset_path, ''
+        log.print_warn_log(message)
+        return False, '', message
+
+    def get_dump_data(self: any, my_dataset_path: str, golden_dataset_path: str) -> (any, any, str):
+        """
+        Get my dump data and golden dump data.
+        :my_dataset_path: my dataset path in my dump data
+        :golden_dataset_path: golden dataset path in golden dump data
+        """
+        success, message = self._check_data_type(my_dataset_path, golden_dataset_path)
+        if not success:
+            log.print_warn_log(message)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message)
+
+        my_dump_data = self.my_dump.get_dump_data(my_dataset_path)
+        golden_dump_data = self.golden_dump.get_dump_data(golden_dataset_path)
+        converted_golden_dump_data = self._converted_stride(
+            golden_dump_data, golden_dataset_path)
+        return my_dump_data, converted_golden_dump_data, ''
+
+    def get_not_matched_golden_datasets(self: any) -> list:
+        """
+        Find all the dataset that does not match with my dump in the golden file.
+        """
+        not_matched_info = []
+        # Unmatched items. To display them at the end of the result file after sorting,
+        # order must be the maximum value plus 1.
+        for golden_ext_opname, _ in self.golden_dump.ext_opname_dataset_map.items():
+            all_not_matched = True
+            failed_info = []
+            golden_dataset = ''
+            for golden_dataset in self.golden_dump.ext_opname_dataset_map[golden_ext_opname]:
+                if golden_ext_opname in self.my_dump.ext_opname_dataset_map.keys():
+                    my_dump_ext_opname = golden_ext_opname
+                else:
+                    my_dump_ext_opname = self._opname_map(golden_ext_opname)
+                if not self._reverse_match_non_load_mode(my_dump_ext_opname, golden_dataset, failed_info):
+                    continue
+                if not self._reverse_match_process(my_dump_ext_opname, golden_ext_opname,
+                                                   golden_dataset, failed_info):
+                    continue
+                all_not_matched = False
+
+            if all_not_matched:
+                failed_info.clear()
+                _, op_name, order, _ = golden_dataset.split('/', 3)
+                message = 'No data match with /{}/{} in my dump data.'.format(op_name, order)
+                failed_info.append([max(self.my_dump.get_all_orders()) + 1, 'NaN',
+                                    '/{}/{}'.format(op_name, order), message])
+            not_matched_info.extend(failed_info)
+
+        return not_matched_info
+
+    def set_compare_input_flag(self: any) -> None:
+        """
+        Sets whether to compare inputs.
+        """
+        if self.my_dump.need_compare_input:
+            self.golden_dump.need_compare_input = True
+
+    def check_my_dump_file_valid(self: any) -> None:
+        """
+        Check whether the device type is NPU.
+        """
+        if not self.my_dump.ext_opname_dataset_map:
+            log.print_warn_log('my dump file is empty!')
+            raise CompareError(
+                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+
+        if self.my_dump.device_type != utils.DeviceType.NPU.value:
+            log.print_error_log('My dump file is not the dump data of the model'
+                                ' executed on the AI processor, please check -m param!')
+            raise CompareError(
+                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+
+    def parse_dump_file(self: any) -> int:
+        """
+        Parsing the data to be compared.
+        """
+        ret = self.my_dump.parse_dump_file()
+        if ret == CompareError.MSACCUCMP_NONE_ERROR:
+            self.check_my_dump_file_valid()
+            self.set_compare_input_flag()
+            self.orders_num = len(self.my_dump.get_all_orders())
+            return self.golden_dump.parse_dump_file()
+        return ret
+
+    def open_file(self: any, model: str) -> None:
+        """
+        Open the my dump and golden dump files.
+        """
+        self.my_dump.open_file(model)
+        self.golden_dump.open_file(model)
+
+    def close_file(self: any) -> None:
+        """
+        Close the my dump and golden dump files.
+        """
+        self.my_dump.close_file()
+        self.golden_dump.close_file()
 
     def get_all_orders(self: any) -> list:
         """
@@ -224,42 +378,6 @@ class CompareData:
             return ext_opname.replace(self.GPU_PREFIX, self.NPU_PREFIX, 1)
         return ext_opname
 
-    def get_golden_dataset(self: any, ext_opname: str, my_dump_dataset_path: str) -> (bool, str, str):
-        """
-        Get the golden_dataset_path that matches the my_dump_dataset_path.
-        :ext_opname: the extend op name. such as cov2d:2
-        :my_dump_dataset_path: the my dump dataset path that get from dump data
-        """
-        message = 'No data match with {} in golden dump data.' \
-            .format(my_dump_dataset_path)
-        if ext_opname in self.golden_dump.ext_opname_dataset_map.keys():
-            golden_ext_opname = ext_opname
-        else:
-            golden_ext_opname = self._opname_map(ext_opname, self.golden_dump.device_type)
-            if golden_ext_opname not in self.golden_dump.ext_opname_dataset_map.keys():
-                return False, '', message
-
-        golden_dataset_path = self._construct_dataset_path(
-            ext_opname, my_dump_dataset_path, self.golden_dump, golden_ext_opname)
-        if golden_dataset_path and self.golden_dump.have_dataset(golden_ext_opname, golden_dataset_path):
-            return True, golden_dataset_path, ''
-        log.print_warn_log(message)
-        return False, '', message
-
-    @staticmethod
-    def _is_equivalent_type(my_dump_data_type: int, golden_dump_data_type: int, type_info: str) -> bool:
-        equivalent_type = set()
-        for item in DataType.equivalent_type:
-            equivalent_type.clear()
-            for type_name in item:
-                equivalent_type.add(DataType.get_value(type_name))
-            if my_dump_data_type in equivalent_type \
-                    and golden_dump_data_type in equivalent_type:
-                message = 'The DataType on both sides are Compatible, {}'.format(type_info)
-                log.print_info_log(message)
-                return True
-        return False
-
     def _check_data_type(self: any, my_dataset_path: str, golden_dataset_path: str) -> (bool, str):
         """
         Check the DataType of my dump data and golden dump data.
@@ -290,26 +408,6 @@ class CompareData:
         message = 'The DataType on both sides are different, {}'.format(type_info)
         return False, message
 
-    @staticmethod
-    def _check_stride(dataset_path: str, shape: list, stride: list) -> bool:
-        message = "shape={},stride={},stride is invalid". \
-            format(tuple(shape), tuple(stride))
-
-        if len(shape) != len(stride):
-            log.print_warn_log("[{}]:{}".format(dataset_path, message))
-            return False
-
-        expect_data_num = 0
-        real_data_num = 1
-        for (index, _) in enumerate(shape):
-            expect_data_num += ((shape[index] - 1) * stride[index])
-            real_data_num *= shape[index]
-        expect_data_num += 1
-        if expect_data_num > real_data_num:
-            log.print_warn_log("[{}]:{}".format(dataset_path, message))
-            return False
-        return True
-
     def _converted_stride(self: any, dump_data: any, dataset_path: str) -> any:
         # convert GPU/CPU stride
         attr_ok, device_type = self.golden_dump.get_dump_data_attr(dataset_path,
@@ -323,23 +421,6 @@ class CompareData:
                 return np.lib.stride_tricks.as_strided(
                     dump_data_flatten, shape=dump_data.shape, strides=real_stride)
         return dump_data
-
-    def get_dump_data(self: any, my_dataset_path: str, golden_dataset_path: str) -> (any, any, str):
-        """
-        Get my dump data and golden dump data.
-        :my_dataset_path: my dataset path in my dump data
-        :golden_dataset_path: golden dataset path in golden dump data
-        """
-        success, message = self._check_data_type(my_dataset_path, golden_dataset_path)
-        if not success:
-            log.print_warn_log(message)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message)
-
-        my_dump_data = self.my_dump.get_dump_data(my_dataset_path)
-        golden_dump_data = self.golden_dump.get_dump_data(golden_dataset_path)
-        converted_golden_dump_data = self._converted_stride(
-            golden_dump_data, golden_dataset_path)
-        return my_dump_data, converted_golden_dump_data, ''
 
     def _reverse_match_non_load_mode(self: any, my_dump_ext_opname: str, golden_dataset: str,
                                      failed_info: list) -> bool:
@@ -361,84 +442,3 @@ class CompareData:
             failed_info.append([order, op_name, golden_dataset, message])
             return False
         return True
-
-    def get_not_matched_golden_datasets(self: any) -> list:
-        """
-        Find all the dataset that does not match with my dump in the golden file.
-        """
-        not_matched_info = []
-        # Unmatched items. To display them at the end of the result file after sorting,
-        # order must be the maximum value plus 1.
-        for golden_ext_opname, _ in self.golden_dump.ext_opname_dataset_map.items():
-            all_not_matched = True
-            failed_info = []
-            golden_dataset = ''
-            for golden_dataset in self.golden_dump.ext_opname_dataset_map[golden_ext_opname]:
-                if golden_ext_opname in self.my_dump.ext_opname_dataset_map.keys():
-                    my_dump_ext_opname = golden_ext_opname
-                else:
-                    my_dump_ext_opname = self._opname_map(golden_ext_opname)
-                if not self._reverse_match_non_load_mode(my_dump_ext_opname, golden_dataset, failed_info):
-                    continue
-                if not self._reverse_match_process(my_dump_ext_opname, golden_ext_opname,
-                                                   golden_dataset, failed_info):
-                    continue
-                all_not_matched = False
-
-            if all_not_matched:
-                failed_info.clear()
-                _, op_name, order, _ = golden_dataset.split('/', 3)
-                message = 'No data match with /{}/{} in my dump data.'.format(op_name, order)
-                failed_info.append([max(self.my_dump.get_all_orders()) + 1, 'NaN',
-                                    '/{}/{}'.format(op_name, order), message])
-            not_matched_info.extend(failed_info)
-
-        return not_matched_info
-
-    def set_compare_input_flag(self: any) -> None:
-        """
-        Sets whether to compare inputs.
-        """
-        if self.my_dump.need_compare_input:
-            self.golden_dump.need_compare_input = True
-
-    def check_my_dump_file_valid(self: any) -> None:
-        """
-        Check whether the device type is NPU.
-        """
-        if not self.my_dump.ext_opname_dataset_map:
-            log.print_warn_log('my dump file is empty!')
-            raise CompareError(
-                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
-
-        if self.my_dump.device_type != utils.DeviceType.NPU.value:
-            log.print_error_log('My dump file is not the dump data of the model'
-                                ' executed on the AI processor, please check -m param!')
-            raise CompareError(
-                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
-
-    def parse_dump_file(self: any) -> int:
-        """
-        Parsing the data to be compared.
-        """
-        ret = self.my_dump.parse_dump_file()
-        if ret == CompareError.MSACCUCMP_NONE_ERROR:
-            self.check_my_dump_file_valid()
-            self.set_compare_input_flag()
-            self.orders_num = len(self.my_dump.get_all_orders())
-            return self.golden_dump.parse_dump_file()
-        return ret
-
-    def open_file(self: any, model: str) -> None:
-        """
-        Open the my dump and golden dump files.
-        """
-        self.my_dump.open_file(model)
-        self.golden_dump.open_file(model)
-
-    def close_file(self: any) -> None:
-        """
-        Close the my dump and golden dump files.
-        """
-        self.my_dump.close_file()
-        self.golden_dump.close_file()

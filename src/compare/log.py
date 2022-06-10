@@ -8,16 +8,18 @@ Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
 """
 
 import os
+import logging
 import sys
 import time
 
 
-def _print_log(level: str, msg: str) -> None:
+def _print_log(msg: str) -> str:
+    logging.basicConfig(format='[%(levelname)s]: %(message)s',
+                        level=logging.INFO)
     current_time = time.strftime("%Y-%m-%d %H:%M:%S",
                                  time.localtime(int(time.time())))
     pid = os.getpid()
-    print("%s (%d) - [%s] %s" % (current_time, pid, level, msg))
-    sys.stdout.flush()
+    return "%s (%d) - %s" % (current_time, pid, msg)
 
 
 def print_error_log(error_msg: str) -> None:
@@ -25,7 +27,8 @@ def print_error_log(error_msg: str) -> None:
     print error log
     :param error_msg: the error message
     """
-    _print_log("ERROR", error_msg)
+    message = _print_log(error_msg)
+    logging.error(message)
 
 
 def print_warn_log(warn_msg: str) -> None:
@@ -33,7 +36,8 @@ def print_warn_log(warn_msg: str) -> None:
     print warn log
     :param warn_msg: the warn message
     """
-    _print_log("WARNING", warn_msg)
+    message = _print_log(warn_msg)
+    logging.warning(message)
 
 
 def print_info_log(info_msg: str) -> None:
@@ -41,7 +45,8 @@ def print_info_log(info_msg: str) -> None:
     print info log
     :param info_msg: the info message
     """
-    _print_log("INFO", info_msg)
+    message = _print_log(info_msg)
+    logging.info(message)
 
 
 def print_no_left_dump_file_error(op_name: str, op_type: str, is_error: bool = False) -> str:

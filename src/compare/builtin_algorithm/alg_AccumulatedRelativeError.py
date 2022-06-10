@@ -31,7 +31,7 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     for my_output_data, ground_truth_data in zip(my_output_dump_data, ground_truth_dump_data):
         temp_x = float(my_output_data)
         temp_y = float(ground_truth_data)
-        if abs(temp_y) > ConstManager.FLOAT_EPSILON and temp_y != 0:
+        if abs(temp_y) > ConstManager.FLOAT_EPSILON and abs(temp_y) != 0:
             result += abs(temp_x - temp_y) / abs(temp_y)
 
     return utils.format_value(result), ""

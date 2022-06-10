@@ -66,13 +66,6 @@ class FormatManager:
         self.custom_support_format = []
         self.support_format_map = {}
 
-    def check_arguments_valid(self: any) -> None:
-        """
-        Check argument valid
-        """
-        self._make_support_format()
-        self._make_support_format_map()
-
     @staticmethod
     def _add_format_file_to_list(file_path: str, support_format_list: list) -> bool:
         if os.path.isfile(file_path):
@@ -85,6 +78,48 @@ class FormatManager:
                                "please check the file." % (os.path.basename(file_path),
                                                            os.path.dirname(file_path)))
         return False
+
+    def execute_format_convert(self: any, src_to_dest: SrcToDest, data: any, args: dict) -> np.ndarray:
+        """
+        Format convert
+        :param src_to_dest: the format and shape for src and dest
+        :param data: the data to convert
+        :param args: the argument contain group conv
+        :return: the array after conversion
+        """
+        src_format_str = common.get_format_string(src_to_dest.src_format)
+        dest_format_str = common.get_format_string(src_to_dest.dest_format)
+        module_name = 'convert_%s_to_%s' % (src_format_str, dest_format_str)
+        if module_name not in self.support_format_map:
+            log.print_warn_log("Not supported from %s to %s." % (src_format_str, dest_format_str))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
+
+        # call convert function
+        try:
+            if args.get("group") < 2:
+                new_array = self.support_format_map.get(module_name)(
+                    src_to_dest.src_shape.dim, src_to_dest.dest_shape.dim, data)
+            else:
+                new_array = self.support_format_map.get(module_name)(
+                    src_to_dest.src_shape.dim, src_to_dest.dest_shape.dim, data, args.get("group"))
+        except Exception as err:
+            log.print_error_log("Failed to execute '%s' in '%s'. %s"
+                                % (self.CONVERT_FUNC_NAME, module_name, str(err)))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR) from err
+        finally:
+            pass
+
+        # check the return value is ndarray
+        self._check_return_value_valid(new_array, module_name)
+
+        return new_array
+
+    def check_arguments_valid(self: any) -> None:
+        """
+        Check argument valid
+        """
+        self._make_support_format()
+        self._make_support_format_map()
 
     def _make_support_format_by_path(self: any, dir_path: str, support_format_list: list) -> None:
         if not os.path.exists(dir_path):
@@ -174,41 +209,6 @@ class FormatManager:
                 "The return value of '%s' in '%s' is not numpy.ndarray. Please check the return value."
                 % (self.CONVERT_FUNC_NAME, format_name))
             raise CompareError(CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR)
-
-    def execute_format_convert(self: any, src_to_dest: SrcToDest, data: any, args: dict) -> np.ndarray:
-        """
-        Format convert
-        :param src_to_dest: the format and shape for src and dest
-        :param data: the data to convert
-        :param args: the argument contain group conv
-        :return: the array after conversion
-        """
-        src_format_str = common.get_format_string(src_to_dest.src_format)
-        dest_format_str = common.get_format_string(src_to_dest.dest_format)
-        module_name = 'convert_%s_to_%s' % (src_format_str, dest_format_str)
-        if module_name not in self.support_format_map:
-            log.print_warn_log("Not supported from %s to %s." % (src_format_str, dest_format_str))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
-
-        # call convert function
-        try:
-            if args.get("group") < 2:
-                new_array = self.support_format_map.get(module_name)(
-                    src_to_dest.src_shape.dim, src_to_dest.dest_shape.dim, data)
-            else:
-                new_array = self.support_format_map.get(module_name)(
-                    src_to_dest.src_shape.dim, src_to_dest.dest_shape.dim, data, args.get("group"))
-        except Exception as err:
-            log.print_error_log("Failed to execute '%s' in '%s'. %s"
-                                % (self.CONVERT_FUNC_NAME, module_name, str(err)))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR) from err
-        finally:
-            pass
-
-        # check the return value is ndarray
-        self._check_return_value_valid(new_array, module_name)
-
-        return new_array
 
 
 class ShapeConversion:

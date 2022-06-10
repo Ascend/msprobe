@@ -32,6 +32,46 @@ class MultiConvertProcess:
         self._input_path = input_path
         self._progress = None
 
+    def process(self: any) -> int:
+        """
+        Process by multi process
+        """
+        return_code = CompareError.MSACCUCMP_NONE_ERROR
+
+        # split big file and common file
+        multi_process_file_list, big_file_list = self._split_big_file()
+
+        if len(multi_process_file_list) > 0:
+            ret = self._do_multi_process(multi_process_file_list)
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                return_code = ret
+        # big file do not multi process
+        for big_file in big_file_list:
+            ret, _ = self._process_func(big_file)
+            self._handle_result_callback([ret, big_file])
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                return_code = ret
+        if return_code != CompareError.MSACCUCMP_NONE_ERROR:
+            error_file_path = os.path.join(self._output_path, ConstManager.CONVERT_FAILED_FILE_LIST_NAME)
+            if os.path.exists(error_file_path):
+                log.print_info_log('The list of files that failed to be converted has been written to "%s".'
+                                   % error_file_path)
+
+        return return_code
+
+    def get_max_file_size(self: any) -> int:
+        """
+        Get max file size
+        :return int
+        """
+        mem = psutil.virtual_memory()
+        available = mem.available
+        cpu_count = int((multiprocessing.cpu_count() + 1) / 2)
+        if cpu_count != 0 and self.MAX_MULTI != 0:
+            return available / cpu_count / self.MAX_MULTI
+        else:
+            return 0
+
     def _handle_result_callback(self: any, result: list) -> None:
         self._progress.update_progress()
         self._progress.print_progress()
@@ -85,40 +125,3 @@ class MultiConvertProcess:
                 else:
                     multi_process_file_list.append(cur_path)
         return multi_process_file_list, big_file_list
-
-    def process(self: any) -> int:
-        """
-        Process by multi process
-        """
-        return_code = CompareError.MSACCUCMP_NONE_ERROR
-
-        # split big file and common file
-        multi_process_file_list, big_file_list = self._split_big_file()
-
-        if len(multi_process_file_list) > 0:
-            ret = self._do_multi_process(multi_process_file_list)
-            if ret != CompareError.MSACCUCMP_NONE_ERROR:
-                return_code = ret
-        # big file do not multi process
-        for big_file in big_file_list:
-            ret, _ = self._process_func(big_file)
-            self._handle_result_callback([ret, big_file])
-            if ret != CompareError.MSACCUCMP_NONE_ERROR:
-                return_code = ret
-        if return_code != CompareError.MSACCUCMP_NONE_ERROR:
-            error_file_path = os.path.join(self._output_path, ConstManager.CONVERT_FAILED_FILE_LIST_NAME)
-            if os.path.exists(error_file_path):
-                log.print_info_log('The list of files that failed to be converted has been written to "%s".'
-                                   % error_file_path)
-
-        return return_code
-
-    def get_max_file_size(self: any) -> int:
-        """
-        Get max file size
-        :return int
-        """
-        mem = psutil.virtual_memory()
-        available = mem.available
-        cpu_count = int((multiprocessing.cpu_count() + 1) / 2)
-        return available / cpu_count / self.MAX_MULTI if cpu_count != 0 and self.MAX_MULTI != 0 else 0

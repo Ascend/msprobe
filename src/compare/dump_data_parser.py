@@ -34,6 +34,24 @@ class DumpDataParser:
         self.dump_version = arguments.dump_version
         self.output_file_type = arguments.output_file_type
 
+    @staticmethod
+    def _unpack_uint64_value(data: any, index: int) -> int:
+        return struct.unpack(ConstManager.UINT64_FMT, data[index:index + ConstManager.UINT64_SIZE])[0]
+
+    def parse_dump_data(self: any) -> int:
+        """
+        Convert dump data to numpy and bin file
+        """
+        # 1. check arguments valid
+        self.check_arguments_valid()
+        # 2. parse dump data
+        if len(self.input_path) == 1 and os.path.isfile(self.input_path[0]):
+            ret, _ = self._parse_one_dump_file(self.input_path[0])
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                log.print_error_log('Failed to parse dump file "%s".' % self.input_path[0])
+            return ret
+        return self.multi_process.process()
+
     def check_arguments_valid(self: any) -> None:
         """
         Check arguments valid
@@ -92,10 +110,6 @@ class DumpDataParser:
             FileUtils.save_data_to_file(output_dump_path, tensor.data, 'wb', delete=True)
             log.print_info_log('The data of %sbuffer:%d has been parsed into "%s".'
                                % (buffer_type, index, output_dump_path))
-
-    @staticmethod
-    def _unpack_uint64_value(data: any, index: int) -> int:
-        return struct.unpack(ConstManager.UINT64_FMT, data[index:index + ConstManager.UINT64_SIZE])[0]
 
     def _parser_overflow_info(self: any, data: any, start: int) -> dict:
         index = start
@@ -178,17 +192,3 @@ class DumpDataParser:
         except CompareError as error:
             return error.code, dump_path
         return CompareError.MSACCUCMP_NONE_ERROR, dump_path
-
-    def parse_dump_data(self: any) -> int:
-        """
-        Convert dump data to numpy and bin file
-        """
-        # 1. check arguments valid
-        self.check_arguments_valid()
-        # 2. parse dump data
-        if len(self.input_path) == 1 and os.path.isfile(self.input_path[0]):
-            ret, _ = self._parse_one_dump_file(self.input_path[0])
-            if ret != CompareError.MSACCUCMP_NONE_ERROR:
-                log.print_error_log('Failed to parse dump file "%s".' % self.input_path[0])
-            return ret
-        return self.multi_process.process()
