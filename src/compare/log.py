@@ -13,13 +13,12 @@ import sys
 import time
 
 
-def _print_log(msg: str) -> str:
-    logging.basicConfig(format='[%(levelname)s]: %(message)s',
-                        level=logging.INFO)
-    current_time = time.strftime("%Y-%m-%d %H:%M:%S",
-                                 time.localtime(int(time.time())))
+def _setting_config(msg: str) -> str:
     pid = os.getpid()
-    return "%s (%d) - %s" % (current_time, pid, msg)
+    cur_format = '%(asctime)s (' + str(pid) + ') - [%(levelname)s] %(message)s'
+    logging.basicConfig(format=cur_format, datefmt="%Y-%m-%d %H:%M:%S",
+                        level=logging.INFO)
+    return msg
 
 
 def print_error_log(error_msg: str) -> None:
@@ -27,7 +26,7 @@ def print_error_log(error_msg: str) -> None:
     print error log
     :param error_msg: the error message
     """
-    message = _print_log(error_msg)
+    message = _setting_config(error_msg)
     logging.error(message)
 
 
@@ -36,7 +35,7 @@ def print_warn_log(warn_msg: str) -> None:
     print warn log
     :param warn_msg: the warn message
     """
-    message = _print_log(warn_msg)
+    message = _setting_config(warn_msg)
     logging.warning(message)
 
 
@@ -45,7 +44,7 @@ def print_info_log(info_msg: str) -> None:
     print info log
     :param info_msg: the info message
     """
-    message = _print_log(info_msg)
+    message = _setting_config(info_msg)
     logging.info(message)
 
 
