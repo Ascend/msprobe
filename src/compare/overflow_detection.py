@@ -28,16 +28,6 @@ class OverflowDetection:
         self.op_name = op_name
 
     @staticmethod
-    def _judge_overflow_data_by_array(tensor_data: any) -> str:
-        if tensor_data is not None:
-            absolute_value_data = np.absolute(tensor_data)
-            up_overflow_flag = (absolute_value_data.max() >= ConstManager.OVERFLOW_MAX_VALUE)
-            if up_overflow_flag:
-                return 'YES'
-            return 'NO'
-        return ConstManager.NAN
-
-    @staticmethod
     def process_model_overflow_detection(op_name: str, index: int, is_input: bool, tensor: any) -> str:
         """
         process model overflow detection
@@ -49,6 +39,16 @@ class OverflowDetection:
                 log.print_warn_log(
                     "{} operator {}:{} is overflow.".format(op_name, 'input' if is_input else 'output', index))
             return overflow_result
+        return ConstManager.NAN
+
+    @staticmethod
+    def _judge_overflow_data_by_array(tensor_data: any) -> str:
+        if tensor_data is not None:
+            absolute_value_data = np.absolute(tensor_data)
+            up_overflow_flag = (absolute_value_data.max() >= ConstManager.OVERFLOW_MAX_VALUE)
+            if up_overflow_flag:
+                return 'YES'
+            return 'NO'
         return ConstManager.NAN
 
     def process_op_overflow_detection(self: any) -> None:

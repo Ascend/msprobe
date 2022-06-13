@@ -26,7 +26,8 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     :return: the result of max Relative error value and error message (the default is "")
     """
     np.seterr(divide='ignore', invalid='ignore')
-    max_relative_error = np.max(np.abs((my_output_dump_data - ground_truth_dump_data) / ground_truth_dump_data))
+    relative_error = np.divide((my_output_dump_data - ground_truth_dump_data), ground_truth_dump_data)
+    max_relative_error = np.max(np.abs(relative_error))
     if np.isnan(max_relative_error):
         message = 'Cannot compare by MaxRelativeError, The data contains 0 or nan in %s ' \
                   'or %s.' % (args.my_output_dump_file, args.ground_truth_dump_file)

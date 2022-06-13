@@ -203,20 +203,26 @@ class PytorchComparison:
                 compare_result.PytorchOpInfo(order, op_name, my_dump_dataset, ConstManager.NAN), None, [fail_reason])
         op_info = compare_result.PytorchOpInfo(order, op_name, my_dump_dataset, golden_dataset)
         try:
-            type_shape_list, algorithm_result, fail_reason = self._do_compare_tensor(op_name, my_dump_dataset,
-                                                                                     golden_dataset)
-            tensor_info = {"tensor_id": None, "shape": type_shape_list[1],
-                           "my_output_dtype": type_shape_list[0]}
-            return match, fusion_op_result.get_pytorch_result(
-                op_info,
-                [compare_result.TensorResult(tensor_info, [algorithm_result, ''], fail_reason)],
-                fail_reason)
+            return match, self._do_compare_and_get_result(op_name, my_dump_dataset, golden_dataset,
+                                                          fusion_op_result, op_info)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError,
                 CompareError) as err:
             error_msg = [err.message] if isinstance(err, CompareError) else [str(err)]
             return match, fusion_op_result.get_pytorch_result(op_info, None, error_msg)
         finally:
             pass
+
+    def _do_compare_and_get_result(self: any, op_name: str, my_dump_dataset: any, golden_dataset: any,
+                                   fusion_op_result: compare_result.FusionOpComResult,
+                                   op_info: compare_result.PytorchOpInfo) -> list:
+        type_shape_list, algorithm_result, fail_reason = self._do_compare_tensor(op_name, my_dump_dataset,
+                                                                                 golden_dataset)
+        tensor_info = {"tensor_id": None, "shape": type_shape_list[1],
+                       "my_output_dtype": type_shape_list[0]}
+        return fusion_op_result.get_pytorch_result(
+                op_info,
+                [compare_result.TensorResult(tensor_info, [algorithm_result, ''], fail_reason)],
+                fail_reason)
 
     def _compare_one_op(self: any, order: int, ext_opname: str, lock: any) -> None:
         """
