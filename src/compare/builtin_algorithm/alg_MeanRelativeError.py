@@ -27,7 +27,8 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     """
     np.seterr(divide='ignore', invalid='ignore')
 
-    mean_relative_error = np.average(np.abs((my_output_dump_data - ground_truth_dump_data) / ground_truth_dump_data))
+    relative_error = np.divide((my_output_dump_data - ground_truth_dump_data), ground_truth_dump_data)
+    mean_relative_error = np.average(np.abs(relative_error))
     if np.isnan(mean_relative_error):
         message = 'Cannot compare by MeanRelativeError, The data contains 0 or nan in %s '\
                   'or %s.' % (args.my_output_dump_file, args.ground_truth_dump_file)

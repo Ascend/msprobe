@@ -50,19 +50,6 @@ class ConstManager:
     SPECIAL_OPS_TYPE = ("Cast", "TransData")
 
     # single op const
-    @property
-    def max_top_n(self: any) -> int:
-        """
-        max top n
-        """
-        return 10000
-
-    @property
-    def min_top_n(self: any) -> int:
-        """
-        mix top n
-        """
-        return 1
 
     DEFAULT_TOP_N = 20
     MAX_DETAIL_INFO_LINE_COUNT = 1000000
@@ -261,3 +248,17 @@ class ConstManager:
     BUFFER_TYPE_MAP = {DD.L1: 'l1'}
     CONVERT_FAILED_FILE_LIST_NAME = "convert_failed_file_list.txt"
     MAPPING_FILE_NAME = "mapping.csv"
+
+    @property
+    def max_top_n(self: any) -> int:
+        """
+        max top n
+        """
+        return 10000
+
+    @property
+    def min_top_n(self: any) -> int:
+        """
+        mix top n
+        """
+        return 1

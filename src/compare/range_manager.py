@@ -46,22 +46,6 @@ class RangeManager(ABC):
         if RangeManager._has_cmd():
             data.insert(ConstManager.OP_SEQUENCE_INDEX, str(op_sequence))
 
-    @abstractmethod
-    def get_all_ops(self: any, compare_rule: CompareRule):
-        """
-        Get all operators:
-        :param compare_rule: the compare rule
-        """
-        pass
-
-    @abstractmethod
-    def check_input_valid(self: any, op_count: int):
-        """
-        Check range valid:
-        :param op_count: the op count
-        """
-        pass
-
     @staticmethod
     def _get_op_list(op_list: list, compare_rule: CompareRule) -> list:
         range_op_name = []
@@ -85,6 +69,22 @@ class RangeManager(ABC):
                 match = True
                 break
         return match and 'compare_vector.py' not in sys.argv[0]
+
+    @abstractmethod
+    def get_all_ops(self: any, compare_rule: CompareRule):
+        """
+        Get all operators:
+        :param compare_rule: the compare rule
+        """
+        pass
+
+    @abstractmethod
+    def check_input_valid(self: any, op_count: int):
+        """
+        Check range valid:
+        :param op_count: the op count
+        """
+        pass
 
     @abstractmethod
     def _parse_input_str(self: any, input_str: str):

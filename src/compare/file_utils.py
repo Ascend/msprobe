@@ -211,36 +211,6 @@ class OverflowFileUtils(FileUtils):
                     matched_files[file] = gen_info_func(file, dir_path, match)
         return matched_files
 
-    def parse_mapping_csv(self: any, path: str, pattern: str, extern_pattern: any = '') -> dict:
-        """
-        parse files in mapping.csv
-        :path: the path of the dir
-        :pattern: the pattern
-        """
-        hash_index = 0
-        file_name_index = 1
-        matched_files = {}
-        re_pattern = re.compile(pattern)
-        if ConstManager.MAPPING_FILE_NAME not in os.listdir(path):
-            return matched_files
-        mapping = self.read_csv(os.path.join(path, ConstManager.MAPPING_FILE_NAME))
-        for item in mapping:
-            src_file = os.path.abspath(os.path.join(path, item[hash_index]))
-            if not os.path.isfile(src_file):
-                log.print_warn_log("the file %s in mapping.csv is not exist, dir: %s."
-                                   % (item[hash_index], path))
-                continue
-            match = re_pattern.match(item[file_name_index])
-            if match is None:
-                continue
-            if extern_pattern != '' and not re.match(extern_pattern,
-                                                     item[file_name_index]):
-                continue
-
-            matched_files[item[hash_index]] = self._gen_dump_file_info(
-                item[hash_index], path, match)
-        return matched_files
-
     @staticmethod
     def _gen_dump_file_info(name: str, dir_path: str, match: any) -> any:
         """
@@ -261,19 +231,6 @@ class OverflowFileUtils(FileUtils):
         }
 
         return DumpFileDesc(file_desc, dump_attr)
-
-    def list_dump_files(self: any, dump_path: str, pattern: str, extern_pattern: any = '') -> any:
-        """
-        parse all the dump files
-        :dump_path: the dump file path
-        :pattern: the special matching mode of dump files
-        :extern_pattern: the extern_pattern
-        """
-        npu_dump_files = self._list_file_with_pattern(
-            dump_path, pattern, extern_pattern, self._gen_dump_file_info)
-        npu_dump_files.update(
-            self.parse_mapping_csv(dump_path, pattern, extern_pattern))
-        return list(npu_dump_files.values())
 
     @staticmethod
     def _gen_one_tensor_desc(output_path: str, dump_file_desc: any,
@@ -313,23 +270,6 @@ class OverflowFileUtils(FileUtils):
                 = ParsedDumpFileDesc(file_desc, dump_attr, anchor)
         return parsed_dump_files
 
-    def list_parsed_dump_files(self: any, output_path: str, dump_file_desc: any) -> dict:
-        """
-        search all the parsed npu dump files
-        :output_path: the output path
-        :dump_file_desc: the DumpFileDesc for the debug file
-        """
-        # only support the default dump version ‘2’
-        dump_data = utils.parse_dump_file(dump_file_desc.file_path, ConstManager.BINARY_DUMP_TYPE)
-        dump_file_desc.set_op_name(dump_data.op_name)
-        parsed_dump_files = self._gen_one_tensor_desc(output_path, dump_file_desc,
-                                                      dump_data.input, 'input')
-        parsed_dump_files.update(self._gen_one_tensor_desc(output_path, dump_file_desc,
-                                                           dump_data.output, 'output'))
-        parsed_dump_files.update(self._gen_one_tensor_desc(output_path, dump_file_desc,
-                                                           dump_data.buffer))
-        return parsed_dump_files
-
     @staticmethod
     def _gen_parsed_debug_file_info(name: str, dir_path: str, match: any) -> object:
         """
@@ -354,6 +294,66 @@ class OverflowFileUtils(FileUtils):
             "anchor_idx": int(match.groups()[-1])
         }
         return ParsedDumpFileDesc(file_desc, dump_attr, anchor)
+
+    def parse_mapping_csv(self: any, path: str, pattern: str, extern_pattern: any = '') -> dict:
+        """
+        parse files in mapping.csv
+        :path: the path of the dir
+        :pattern: the pattern
+        """
+        hash_index = 0
+        file_name_index = 1
+        matched_files = {}
+        re_pattern = re.compile(pattern)
+        if ConstManager.MAPPING_FILE_NAME not in os.listdir(path):
+            return matched_files
+        mapping = self.read_csv(os.path.join(path, ConstManager.MAPPING_FILE_NAME))
+        for item in mapping:
+            src_file = os.path.abspath(os.path.join(path, item[hash_index]))
+            if not os.path.isfile(src_file):
+                log.print_warn_log("the file %s in mapping.csv is not exist, dir: %s."
+                                   % (item[hash_index], path))
+                continue
+            match = re_pattern.match(item[file_name_index])
+            if match is None:
+                continue
+            if extern_pattern != '' and not re.match(extern_pattern,
+                                                     item[file_name_index]):
+                continue
+
+            matched_files[item[hash_index]] = self._gen_dump_file_info(
+                item[hash_index], path, match)
+        return matched_files
+
+    def list_dump_files(self: any, dump_path: str, pattern: str, extern_pattern: any = '') -> any:
+        """
+        parse all the dump files
+        :dump_path: the dump file path
+        :pattern: the special matching mode of dump files
+        :extern_pattern: the extern_pattern
+        """
+        npu_dump_files = self._list_file_with_pattern(
+            dump_path, pattern, extern_pattern, self._gen_dump_file_info)
+        npu_dump_files.update(
+            self.parse_mapping_csv(dump_path, pattern, extern_pattern))
+        return list(npu_dump_files.values())
+
+    def list_parsed_dump_files(self: any, output_path: str, dump_file_desc: any) -> dict:
+        """
+        search all the parsed npu dump files
+        :output_path: the output path
+        :dump_file_desc: the DumpFileDesc for the debug file
+        """
+        # only support the default dump version ‘2’
+        dump_data = utils.parse_dump_file(dump_file_desc.file_path, ConstManager.BINARY_DUMP_TYPE)
+        dump_file_desc.set_op_name(dump_data.op_name)
+        parsed_dump_files = self._gen_one_tensor_desc(output_path, dump_file_desc,
+                                                      dump_data.input, 'input')
+        parsed_dump_files.update(self._gen_one_tensor_desc(output_path, dump_file_desc,
+                                                           dump_data.output, 'output'))
+        parsed_dump_files.update(self._gen_one_tensor_desc(output_path, dump_file_desc,
+                                                           dump_data.buffer))
+        return parsed_dump_files
 
     def list_parsed_debug_files(self: any, dir_path: str, extern_pattern: str = '') -> dict:
         """

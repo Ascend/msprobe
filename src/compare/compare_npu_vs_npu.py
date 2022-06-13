@@ -33,6 +33,68 @@ class NpuVsNpuComparison:
         self.op_name = fusion_op_list[0].op_name
         self.overflow_detection = overflow_detection
 
+    def check_tensor_valid(self: any, my_output_tensor_list: any, ground_truth_tensor_list: any,
+                           tensor_type: str) -> (int, str):
+        """
+        check tensor valid
+        """
+        # check the length is same
+        if len(my_output_tensor_list) != len(ground_truth_tensor_list):
+            message = log.print_not_match_error(
+                self.op_name, 'number of %s' % tensor_type, str(len(my_output_tensor_list)),
+                str(len(ground_truth_tensor_list)))
+            return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
+        if len(my_output_tensor_list) != 0:
+            # check each tensor format and shape valid
+            return self._check_op_data_valid(my_output_tensor_list, ground_truth_tensor_list, tensor_type)
+        message = '[%s] There is no %s. Skip the %s:%s.' % (self.op_name, tensor_type, self.op_name, tensor_type)
+        log.print_info_log(message)
+        return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
+
+    def compare(self: any) -> (int, bool, list):
+        """
+        Compare for npu vs npu by op_name
+        :return ret: return code
+        :return dump_match: True, at least one operator match;False, no operator match
+        :return result: the compare result by the fusion op list
+        """
+        if len(self.fusion_op_list) == 1:
+            return self._make_one_dump_file_result()
+        # get my output and ground truth tensor
+        my_output_dump_data = self._get_dump_data(
+            self.fusion_op_list[0], self.compare_data.left_dump_info.path, ConstManager.LEFT_TYPE)
+        ground_truth_dump_data = self._get_dump_data(
+            self.fusion_op_list[1], self.compare_data.right_dump_info.path, ConstManager.RIGHT_TYPE)
+        compare_vector_result = []
+        # check npu input data valid
+        input_ret, input_error_msg = self.check_tensor_valid(
+            my_output_dump_data.data.input, ground_truth_dump_data.data.input, ConstManager.INPUT)
+        if input_ret == CompareError.MSACCUCMP_NONE_ERROR:
+            # compare input
+            compare_vector_result += self._compare_by_tensor(my_output_dump_data, ground_truth_dump_data,
+                                                             ConstManager.INPUT)
+
+        # check npu output data valid
+        output_ret, output_error_msg = self.check_tensor_valid(
+            my_output_dump_data.data.output, ground_truth_dump_data.data.output, ConstManager.OUTPUT)
+
+        if output_ret == CompareError.MSACCUCMP_NONE_ERROR:
+            # compare output
+            compare_vector_result += self._compare_by_tensor(my_output_dump_data, ground_truth_dump_data,
+                                                             ConstManager.OUTPUT)
+        error_msg = []
+        # if no input and output, result is NaN
+        if input_ret != CompareError.MSACCUCMP_NONE_ERROR and \
+                output_ret != CompareError.MSACCUCMP_NONE_ERROR:
+            error_msg.append(input_error_msg)
+            error_msg.append(output_error_msg)
+            compare_vector_result = None
+        else:
+            output_ret = CompareError.MSACCUCMP_NONE_ERROR
+        fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
+        result = fusion_op_result.get_result(self.fusion_op_list[0], compare_vector_result, error_msg)
+        return output_ret, True, result
+
     def _make_one_dump_file_result(self: any) -> (int, bool, list):
         error_msg = []
         # if only left or right has dump file, the result is NaN
@@ -102,24 +164,6 @@ class NpuVsNpuComparison:
                     return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
         return CompareError.MSACCUCMP_NONE_ERROR, message
 
-    def check_tensor_valid(self: any, my_output_tensor_list: any, ground_truth_tensor_list: any,
-                           tensor_type: str) -> (int, str):
-        """
-        check tensor valid
-        """
-        # check the length is same
-        if len(my_output_tensor_list) != len(ground_truth_tensor_list):
-            message = log.print_not_match_error(
-                self.op_name, 'number of %s' % tensor_type, str(len(my_output_tensor_list)),
-                str(len(ground_truth_tensor_list)))
-            return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
-        if len(my_output_tensor_list) != 0:
-            # check each tensor format and shape valid
-            return self._check_op_data_valid(my_output_tensor_list, ground_truth_tensor_list, tensor_type)
-        message = '[%s] There is no %s. Skip the %s:%s.' % (self.op_name, tensor_type, self.op_name, tensor_type)
-        log.print_info_log(message)
-        return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
-
     def _compare_by_one_tensor(self: any, my_output_dump_data: Tensor, ground_truth_dump_data: Tensor,
                                my_output_tensor: any, ground_truth_tensor: any) -> (list, list):
         error_msg = []
@@ -188,47 +232,3 @@ class NpuVsNpuComparison:
             tensor_result_list.append(
                 compare_result.TensorResult(tensor_info, [algorithm_result, overflow_result], error_msg))
         return tensor_result_list
-
-    def compare(self: any) -> (int, bool, list):
-        """
-        Compare for npu vs npu by op_name
-        :return ret: return code
-        :return dump_match: True, at least one operator match;False, no operator match
-        :return result: the compare result by the fusion op list
-        """
-        if len(self.fusion_op_list) == 1:
-            return self._make_one_dump_file_result()
-        # get my output and ground truth tensor
-        my_output_dump_data = self._get_dump_data(
-            self.fusion_op_list[0], self.compare_data.left_dump_info.path, ConstManager.LEFT_TYPE)
-        ground_truth_dump_data = self._get_dump_data(
-            self.fusion_op_list[1], self.compare_data.right_dump_info.path, ConstManager.RIGHT_TYPE)
-        compare_vector_result = []
-        # check npu input data valid
-        input_ret, input_error_msg = self.check_tensor_valid(
-            my_output_dump_data.data.input, ground_truth_dump_data.data.input, ConstManager.INPUT)
-        if input_ret == CompareError.MSACCUCMP_NONE_ERROR:
-            # compare input
-            compare_vector_result += self._compare_by_tensor(my_output_dump_data, ground_truth_dump_data,
-                                                             ConstManager.INPUT)
-
-        # check npu output data valid
-        output_ret, output_error_msg = self.check_tensor_valid(
-            my_output_dump_data.data.output, ground_truth_dump_data.data.output, ConstManager.OUTPUT)
-
-        if output_ret == CompareError.MSACCUCMP_NONE_ERROR:
-            # compare output
-            compare_vector_result += self._compare_by_tensor(my_output_dump_data, ground_truth_dump_data,
-                                                             ConstManager.OUTPUT)
-        error_msg = []
-        # if no input and output, result is NaN
-        if input_ret != CompareError.MSACCUCMP_NONE_ERROR and \
-                output_ret != CompareError.MSACCUCMP_NONE_ERROR:
-            error_msg.append(input_error_msg)
-            error_msg.append(output_error_msg)
-            compare_vector_result = None
-        else:
-            output_ret = CompareError.MSACCUCMP_NONE_ERROR
-        fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
-        result = fusion_op_result.get_result(self.fusion_op_list[0], compare_vector_result, error_msg)
-        return output_ret, True, result

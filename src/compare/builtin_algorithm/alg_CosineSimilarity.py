@@ -52,6 +52,8 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
         log.print_warn_log(message)
         return ConstManager.NAN, message
     else:
-        result = utils.format_value(
-            numerator / ((source_denominator ** 0.5) * (compare_denominator ** 0.5)))
+        denominator = ((source_denominator ** 0.5) * (compare_denominator ** 0.5))
+        result = 0
+        if denominator != 0:
+            result = utils.format_value(numerator / denominator)
     return result, ""

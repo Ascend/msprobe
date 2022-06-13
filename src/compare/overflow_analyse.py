@@ -55,47 +55,6 @@ class OverflowAnalyse:
                                     ' is invalid!' % arguments.output_path)
         return ret
 
-    def _find_all_debug_files(self: any) -> bool:
-        """
-        find debug_files and sort it
-        """
-        debug_files = self.overflow_file_utils.list_dump_files(self.dump_path,
-                                                               self.overflow_file_utils.DEBUG_FILE_PATTERN)
-        # sort by timestamp
-        self.debug_files = sorted(debug_files, key=lambda x: x.timestamp)
-        if len(self.debug_files) == 0:
-            log.print_warn_log("[Overflow] Find [0] overflow node!")
-            return False
-        return True
-
-    def analyse(self: any) -> int:
-        """
-        analyse overflow info
-        """
-        if self._find_all_debug_files():
-            max_num = len(self.debug_files)
-            if self.top_n < len(self.debug_files):
-                max_num = self.top_n
-            log.print_info_log('[Overflow] Find [{}] overflow ops. Will show the top {}.'
-                               .format(len(self.debug_files), max_num))
-
-            overflow_result = ''
-            for i, debug_file in enumerate(self.debug_files):
-                if i >= max_num:
-                    break
-                parsed_debug_file = self._get_parsed_debug_file(debug_file)
-                overflow_json = self.overflow_file_utils.load_json_file(parsed_debug_file.file_path)
-                overflow_result = '{}{}\n'.format(overflow_result,
-                                                  self._json_summary(i + 1, overflow_json, debug_file))
-
-            log.print_info_log("[Overflow] The overflow analyse result:\n %s" % overflow_result)
-            result_file_name = 'overflow_summary_%s.txt' \
-                               % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-            self.overflow_file_utils.save_file(os.path.join(self.output_path, result_file_name),
-                                               overflow_result)
-
-        return CompareError.MSACCUCMP_NONE_ERROR
-
     @staticmethod
     def _get_overflow_info(over_type: str, json_txt: any) -> any:
         """
@@ -141,6 +100,60 @@ class OverflowAnalyse:
         return '[Shape: %s] [Dtype: %s] [Max: %s] [Min: %s] [Mean: %s]' \
                % (data.shape, data.dtype, np.max(data), np.min(data), data.mean())
 
+    @staticmethod
+    def _parse_overflow_file(file_path: str, output_path: str) -> any:
+        """
+        parse debug file or dump/debug file
+        :file_path: the path of dump/debug file
+        :output_path： store the result file
+        """
+        args = argparse.Namespace(dump_path=file_path,
+                                  output_path=output_path,
+                                  dump_version=2,
+                                  output_file_type='npy')
+        return DumpDataParser(args).parse_dump_data()
+
+    def analyse(self: any) -> int:
+        """
+        analyse overflow info
+        """
+        if self._find_all_debug_files():
+            max_num = len(self.debug_files)
+            if self.top_n < len(self.debug_files):
+                max_num = self.top_n
+            log.print_info_log('[Overflow] Find [{}] overflow ops. Will show the top {}.'
+                               .format(len(self.debug_files), max_num))
+
+            overflow_result = ''
+            for i, debug_file in enumerate(self.debug_files):
+                if i >= max_num:
+                    break
+                parsed_debug_file = self._get_parsed_debug_file(debug_file)
+                overflow_json = self.overflow_file_utils.load_json_file(parsed_debug_file.file_path)
+                overflow_result = '{}{}\n'.format(overflow_result,
+                                                  self._json_summary(i + 1, overflow_json, debug_file))
+
+            log.print_info_log("[Overflow] The overflow analyse result:\n %s" % overflow_result)
+            result_file_name = 'overflow_summary_%s.txt' \
+                               % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+            self.overflow_file_utils.save_file(os.path.join(self.output_path, result_file_name),
+                                               overflow_result)
+
+        return CompareError.MSACCUCMP_NONE_ERROR
+
+    def _find_all_debug_files(self: any) -> bool:
+        """
+        find debug_files and sort it
+        """
+        debug_files = self.overflow_file_utils.list_dump_files(self.dump_path,
+                                                               self.overflow_file_utils.DEBUG_FILE_PATTERN)
+        # sort by timestamp
+        self.debug_files = sorted(debug_files, key=lambda x: x.timestamp)
+        if len(self.debug_files) == 0:
+            log.print_warn_log("[Overflow] Find [0] overflow node!")
+            return False
+        return True
+
     def _json_summary(self: any, overflow_index: int, json_txt: any, debug_file: any) -> any:
         """
         get the summary info about overflow op
@@ -183,19 +196,6 @@ class OverflowAnalyse:
         res.insert(0, '[%s] %s' % (dump_file_desc.op_type, dump_file_desc.op_name))
         res = self._insert_delimiter(res, overflow_index)
         return "\n".join(res)
-
-    @staticmethod
-    def _parse_overflow_file(file_path: str, output_path: str) -> any:
-        """
-        parse debug file or dump/debug file
-        :file_path: the path of dump/debug file
-        :output_path： store the result file
-        """
-        args = argparse.Namespace(dump_path=file_path,
-                                  output_path=output_path,
-                                  dump_version=2,
-                                  output_file_type='npy')
-        return DumpDataParser(args).parse_dump_data()
 
     def _get_parsed_debug_file(self: any, debug_file_desc: any) -> any:
         """

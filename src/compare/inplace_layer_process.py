@@ -55,6 +55,45 @@ class RemoveInplaceLayerProcess:
             log.print_error_log('The path "%s" is not a file.' % path)
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
 
+    def check_arguments_valid(self: any) -> None:
+        """
+        Check file valid.
+        """
+        self._check_file_valid(self.input_file_path, True)
+        self._check_file_valid(self.output_file_path, False)
+
+    def remove_inplace_layer(self: any) -> None:
+        """
+        remove inplace layer and save new layer to file
+        """
+        # check path valid
+        self.check_arguments_valid()
+
+        # read prototxt file
+        self.net_param = caffe_pb2.NetParameter()
+        with open(self.input_file_path, 'rb') as model_file:
+            google.protobuf.text_format.Parse(model_file.read(), self.net_param)
+
+        # parse net
+        while True:
+            old_name, new_name = self._find_name()
+            if not old_name and not new_name:
+                break
+            self._parse_name(old_name, new_name)
+
+        # remove Dropout type
+        for (_, layer_item) in enumerate(self.net_param.layer):
+            if layer_item.type == 'Dropout':
+                self.net_param.layer.remove(layer_item)
+
+        # write file to new path
+        with os.fdopen(os.open(self.output_file_path, self.WRITE_FLAGS, self.WRITE_MODES),
+                       'w') as open_file:
+            file_content = str(self.net_param)
+            open_file.write(file_content)
+        log.print_info_log('The "%s" has removed inplace layer.' % self.input_file_path)
+        log.print_info_log('The new prototxt file has been saved to "%s".' % self.output_file_path)
+
     def _handle_top(self: any, layer_item: any, layer_idx: int) -> (bool, str, str):
         for (top_index, top_item) in enumerate(layer_item.top):
             if layer_item.type == 'Dropout':
@@ -96,45 +135,6 @@ class RemoveInplaceLayerProcess:
             for (top_index, top_item) in enumerate(layer_item.top):
                 if top_item == old_name:
                     layer_item.top[top_index] = new_name
-
-    def check_arguments_valid(self: any) -> None:
-        """
-        Check file valid.
-        """
-        self._check_file_valid(self.input_file_path, True)
-        self._check_file_valid(self.output_file_path, False)
-
-    def remove_inplace_layer(self: any) -> None:
-        """
-        remove inplace layer and save new layer to file
-        """
-        # check path valid
-        self.check_arguments_valid()
-
-        # read prototxt file
-        self.net_param = caffe_pb2.NetParameter()
-        with open(self.input_file_path, 'rb') as model_file:
-            google.protobuf.text_format.Parse(model_file.read(), self.net_param)
-
-        # parse net
-        while True:
-            old_name, new_name = self._find_name()
-            if not old_name and not new_name:
-                break
-            self._parse_name(old_name, new_name)
-
-        # remove Dropout type
-        for (_, layer_item) in enumerate(self.net_param.layer):
-            if layer_item.type == 'Dropout':
-                self.net_param.layer.remove(layer_item)
-
-        # write file to new path
-        with os.fdopen(os.open(self.output_file_path, self.WRITE_FLAGS, self.WRITE_MODES),
-                       'w') as open_file:
-            file_content = str(self.net_param)
-            open_file.write(file_content)
-        log.print_info_log('The "%s" has removed inplace layer.' % self.input_file_path)
-        log.print_info_log('The new prototxt file has been saved to "%s".' % self.output_file_path)
 
 
 if __name__ == "__main__":
