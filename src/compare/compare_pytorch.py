@@ -203,7 +203,7 @@ class PytorchComparison:
                 compare_result.PytorchOpInfo(order, op_name, my_dump_dataset, ConstManager.NAN), None, [fail_reason])
         op_info = compare_result.PytorchOpInfo(order, op_name, my_dump_dataset, golden_dataset)
         try:
-            return match, self._do_compare_and_get_result(op_name, my_dump_dataset, golden_dataset,
+            return match, self._do_compare_and_get_result([my_dump_dataset, golden_dataset],
                                                           fusion_op_result, op_info)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError,
                 CompareError) as err:
@@ -212,11 +212,11 @@ class PytorchComparison:
         finally:
             pass
 
-    def _do_compare_and_get_result(self: any, op_name: str, my_dump_dataset: any, golden_dataset: any,
+    def _do_compare_and_get_result(self: any, dataset_list: list,
                                    fusion_op_result: compare_result.FusionOpComResult,
                                    op_info: compare_result.PytorchOpInfo) -> list:
-        type_shape_list, algorithm_result, fail_reason = self._do_compare_tensor(op_name, my_dump_dataset,
-                                                                                 golden_dataset)
+        type_shape_list, algorithm_result, fail_reason = self._do_compare_tensor(op_info.op_name, dataset_list[0],
+                                                                                 dataset_list[1])
         tensor_info = {"tensor_id": None, "shape": type_shape_list[1],
                        "my_output_dtype": type_shape_list[0]}
         return fusion_op_result.get_pytorch_result(
