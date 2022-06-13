@@ -12,7 +12,7 @@ result = AdvisorResult()
 
 class TestUtilsMethods(unittest.TestCase):
 
-    def test_advisor_Consistency(self):
+    def test_advisor_consistency(self):
         args = ['aaa.py', '-i', '/home/result.csv', '-o',
                 '/home/wangchao']
         data = {"Index": ['0', '1', '2'],
@@ -23,12 +23,12 @@ class TestUtilsMethods(unittest.TestCase):
                     compare_advisor = CompareAdvisor("input_file.csv")
                     advisor_result = compare_advisor.advisor()
                     advisor_result.print_advisor_log()
-        self.assertEqual(advisor_result.match_advisor, True)
+        self.assertTrue(advisor_result.match_advisor)
         self.assertEqual(advisor_result.advisor_type, AdvisorConst.CONSISTENCY_DETECTION)
         self.assertEqual(advisor_result.operator_index, AdvisorConst.NO_ERROR_OP)
         self.assertEqual(advisor_result.advisor_message, AdvisorConst.CONSISTENCY_SUGGEST)
 
-    def test_advisor_Consistency_Problem(self):
+    def test_advisor_consistency_problem(self):
         args = ['aaa.py', '-i', '/home/result.csv', '-o',
                 '/home/wangchao']
         data = {"Index": ['0', '1', '2'],
@@ -39,12 +39,12 @@ class TestUtilsMethods(unittest.TestCase):
                     compare_advisor = CompareAdvisor("input_file.csv")
                     advisor_result = compare_advisor.advisor()
                     advisor_result.print_advisor_log()
-        self.assertEqual(advisor_result.match_advisor, True)
+        self.assertTrue(advisor_result.match_advisor)
         self.assertEqual(advisor_result.advisor_type, AdvisorConst.CONSISTENCY_DETECTION)
         self.assertEqual(advisor_result.operator_index, "0")
         self.assertEqual(advisor_result.advisor_message, AdvisorConst.PROBLEM_SUGGEST)
 
-    def test_advisor_Consistency_Ignore(self):
+    def test_advisor_consistency_ignore(self):
         args = ['aaa.py', '-i', '/home/result.csv', '-o',
                 '/home/wangchao']
         data = {"Index": ['0', '1', '2'],
@@ -55,12 +55,12 @@ class TestUtilsMethods(unittest.TestCase):
                     compare_advisor = CompareAdvisor("input_file.csv")
                     advisor_result = compare_advisor.advisor()
                     advisor_result.print_advisor_log()
-        self.assertEqual(advisor_result.match_advisor, True)
+        self.assertTrue(advisor_result.match_advisor)
         self.assertEqual(advisor_result.advisor_type, AdvisorConst.CONSISTENCY_DETECTION)
         self.assertEqual(advisor_result.operator_index, "0")
         self.assertEqual(advisor_result.advisor_message, AdvisorConst.DEVIATION_SUGGEST)
 
-    def test_advisor_Overflow(self):
+    def test_advisor_overflow(self):
         args = ['aaa.py', '-i', '/home/result.csv', '-o',
                 '/home/wangchao']
         data = {"Index": ['0', '1', '2'],
@@ -72,7 +72,7 @@ class TestUtilsMethods(unittest.TestCase):
                     compare_advisor = CompareAdvisor("input_file.csv")
                     advisor_result = compare_advisor.advisor()
                     advisor_result.print_advisor_log()
-        self.assertEqual(advisor_result.match_advisor, True)
+        self.assertTrue(advisor_result.match_advisor)
         self.assertEqual(advisor_result.advisor_type, AdvisorConst.OVERFLOW_DETECTION)
         self.assertEqual(advisor_result.operator_index, "1")
         self.assertEqual(advisor_result.advisor_message, AdvisorConst.OVERFLOW_SUGGEST)
@@ -90,7 +90,7 @@ class TestUtilsMethods(unittest.TestCase):
                     compare_advisor = CompareAdvisor("input_file.csv", ["error_node"])
                     advisor_result = compare_advisor.advisor()
                     advisor_result.print_advisor_log()
-        self.assertEqual(advisor_result.match_advisor, True)
+        self.assertTrue(advisor_result.match_advisor)
         self.assertEqual(advisor_result.advisor_type, AdvisorConst.INPUT_DETECTION)
         self.assertEqual(advisor_result.operator_index, "1")
         self.assertEqual(advisor_result.advisor_message, AdvisorConst.INPUT_SUGGEST)
