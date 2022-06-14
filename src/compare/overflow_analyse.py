@@ -56,6 +56,28 @@ class OverflowAnalyse:
         return ret
 
     @staticmethod
+    def npy_data_summary(source_data: any) -> str:
+        """
+        Get npy information
+        :source_data: np data
+        """
+        if isinstance(source_data, str):
+            if not str(source_data).endswith('.npy'):
+                raise CompareError(
+                    CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
+            data = np.load(source_data)
+        elif isinstance(source_data, np.ndarray):
+            data = source_data
+        else:
+            raise CompareError(
+                CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
+        if np.size(data) == 0:
+            raise CompareError(
+                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+        return '[Shape: %s] [Dtype: %s] [Max: %s] [Min: %s] [Mean: %s]' \
+               % (data.shape, data.dtype, np.max(data), np.min(data), data.mean())
+
+    @staticmethod
     def _get_overflow_info(over_type: str, json_txt: any) -> any:
         """
         get the overflow info with the overflow type
@@ -77,28 +99,6 @@ class OverflowAnalyse:
         res.insert(0, '=================================================[%d]'
                       '==================================================' % over_index)
         return res
-
-    @staticmethod
-    def npy_data_summary(source_data: any) -> str:
-        """
-        Get npy information
-        :source_data: np data
-        """
-        if isinstance(source_data, str):
-            if not str(source_data).endswith('.npy'):
-                raise CompareError(
-                    CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
-            data = np.load(source_data)
-        elif isinstance(source_data, np.ndarray):
-            data = source_data
-        else:
-            raise CompareError(
-                CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
-        if np.size(data) == 0:
-            raise CompareError(
-                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
-        return '[Shape: %s] [Dtype: %s] [Max: %s] [Min: %s] [Mean: %s]' \
-               % (data.shape, data.dtype, np.max(data), np.min(data), data.mean())
 
     @staticmethod
     def _parse_overflow_file(file_path: str, output_path: str) -> any:

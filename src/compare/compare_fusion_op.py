@@ -60,28 +60,6 @@ class FusionOpComparison:
                 return True
         return False
 
-    def _compare_by_operator(self: any, fusion_op: FusionOp) -> list:
-        """
-        Compare for one operator
-        """
-        log.print_start_to_compare_op(fusion_op.op_name)
-        try:
-            self.left_dump_file_path, self.left_dump_data = \
-                self.compare_data.get_left_dump_data(fusion_op.op_name)
-        except CompareError as error:
-            error.message = log.print_no_left_dump_file_error(fusion_op.op_name, fusion_op.op_type)
-            raise error
-        finally:
-            pass
-        compare_vector_result = []
-        if not self._check_dequant_op(fusion_op):
-            _, result = self._compare_by_tensor(fusion_op, True)
-            compare_vector_result += result
-        if fusion_op.op_type != 'AscendQuant':
-            _, result = self._compare_by_tensor(fusion_op, False)
-            compare_vector_result += result
-        return compare_vector_result
-
     def sort_l1_fusion_dump_file(self: any) -> list:
         """
         Sort l1 fusion dump file by timestamp
@@ -198,6 +176,28 @@ class FusionOpComparison:
             self._make_mapping_by_input(fusion_op, my_output_dump_data.input, my_output_dump_path, table_content)
             self._make_mapping_by_output(fusion_op, my_output_dump_data.output, my_output_dump_path, table_content)
         return table_content
+
+    def _compare_by_operator(self: any, fusion_op: FusionOp) -> list:
+        """
+        Compare for one operator
+        """
+        log.print_start_to_compare_op(fusion_op.op_name)
+        try:
+            self.left_dump_file_path, self.left_dump_data = \
+                self.compare_data.get_left_dump_data(fusion_op.op_name)
+        except CompareError as error:
+            error.message = log.print_no_left_dump_file_error(fusion_op.op_name, fusion_op.op_type)
+            raise error
+        finally:
+            pass
+        compare_vector_result = []
+        if not self._check_dequant_op(fusion_op):
+            _, result = self._compare_by_tensor(fusion_op, True)
+            compare_vector_result += result
+        if fusion_op.op_type != 'AscendQuant':
+            _, result = self._compare_by_tensor(fusion_op, False)
+            compare_vector_result += result
+        return compare_vector_result
 
     def _compare_for_any_to_one(self: any) -> (bool, list, int):
         """
