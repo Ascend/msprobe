@@ -120,7 +120,8 @@ if __name__ == '__main__':
                       ("AA.old_name.BB(old_name())", "AA.old_name.BB(new_name())"),
                       ("AA.old_name.old_name()", "AA.old_name.new_name()"),
                       ("(other_name if xxx else old_name)()", "(other_name if xxx else new_name)()"),
-                      ("(other_name if xxx else (other_name if xxx else old_name))()", "(other_name if xxx else (other_name if xxx else new_name))()"))
+                      ("(other_name if xxx else (other_name if xxx else old_name))()", "(other_name if xxx else (other_name if xxx else new_name))()"),
+                      ("(pids1 == pids2).long().old_name()", "(pids1 == pids2).long().new_name()"))
 
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
