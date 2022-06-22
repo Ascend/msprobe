@@ -7,6 +7,7 @@ from typing import List, Optional
 
 import libcst
 import libcst.helpers as helper
+import libcst.matchers as m
 from libcst.metadata import ParentNodeProvider
 
 from pytorch_gpu2npu.common_rules.code_visitor import OperatorType
@@ -105,7 +106,7 @@ class FuncNameModifyRule(RuleVisitor):
             self, original_node: "libcst.Call", updated_node: "libcst.Call"
     ) -> "libcst.Call":
         full_func_name = self.get_full_name_for_node(original_node)
-        if not self.__compare_func_name(full_func_name):
+        if not (self.__compare_func_name(full_func_name) or self.__compare_func_last_name(original_node)):
             return updated_node
         if not self.replace_module:
             func = updated_node.func
@@ -144,6 +145,14 @@ class FuncNameModifyRule(RuleVisitor):
 
         updated_node = updated_node.with_changes(orelse=self.__reverse_orelse(updated_node.orelse, original_node))
         return updated_node
+
+    def __compare_func_last_name(self, node):
+        if not (m.matches(node, m.Call()) and m.matches(node.func, m.Attribute())):
+            return False
+        attr_last_name = self.get_full_name_for_node(node.func.attr)
+        if "." not in self.old_name:
+            return self.old_name == attr_last_name
+        return False
 
     def __compare_func_name(self, full_func_name):
         if not full_func_name:
