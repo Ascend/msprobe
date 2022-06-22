@@ -282,5 +282,5 @@ class ShapeConversion:
                     "of array is not equal to the length of dest shape.")
                 return self.reshape(src_to_dest, array)
         if src_to_dest.src_format == DD.FORMAT_FRACTAL_NZ:
-            utils.check_shape_valid_in_nz(src_to_dest.src_shape.dim, src_to_dest.dest_shape.dim)
+            utils.check_shape_valid_in_nz(src_to_dest.dest_shape.dim, src_to_dest.src_shape.dim)
         return self.format_manager.execute_format_convert(src_to_dest, array, args)
