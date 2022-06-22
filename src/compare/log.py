@@ -81,6 +81,15 @@ def print_no_right_dump_file_error(op_name: str, tensor_id: str, is_error: bool 
     return msg
 
 
+def print_invalid_nz_dump_data(op_name: str, msg: str, is_error: bool = False) -> str:
+    msg = "[%s] %s" % (op_name, msg)
+    if is_error:
+        print_error_log(msg)
+    else:
+        print_warn_log(msg)
+    return msg
+
+
 def print_start_to_compare_op(op_name: str) -> None:
     """
     Print info log for start to compare op

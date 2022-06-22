@@ -230,6 +230,30 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
     return _check_path_file_or_directory(path, path_type)
 
 
+def check_shape_valid_in_nz(shape: list, tensor_shape: list) -> None:
+    if len(shape) == 0:
+        log.print_error_log('The format before transfer is FRACTAL_NZ. Please enter a valid shape.')
+        raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+    origin_shape = []
+    for index in range(len(tensor_shape) - 4):
+        origin_shape.append(tensor_shape[index])
+    origin_shape.append(tensor_shape[-2] * tensor_shape[-3])
+    origin_shape.append(tensor_shape[-1] * tensor_shape[-4])
+    if len(shape) != len(origin_shape) \
+            or shape[-1] > origin_shape[-1] \
+            or shape[-1] <= origin_shape[-1] - 16 \
+            or shape[-2] > origin_shape[-2] \
+            or shape[-2] <= origin_shape[-2] - 16:
+        error_msg = 'The shape %s is invalid. The recommended shape is %s.' \
+            % (convert_shape_to_string(shape), convert_shape_to_string(origin_shape))
+        raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, error_msg)
+    for index in range(len(origin_shape) - 2):
+        if shape[index] != origin_shape[index]:
+            error_msg = 'The shape %s is invalid, the recommended shape is %s.' \
+                % (convert_shape_to_string(shape), convert_shape_to_string(origin_shape))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, error_msg)
+
+
 def get_string_from_list(string_list: list, splitter: str = ',') -> str:
     """
     Get string from list splitter by splitter

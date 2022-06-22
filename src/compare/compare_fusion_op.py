@@ -60,6 +60,16 @@ class FusionOpComparison:
                 return True
         return False
 
+    @staticmethod
+    def _handle_error_msg(compare_error: CompareError, fusion_op: FusionOp, tensor_id: str) -> str:
+        if compare_error.code == CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR:
+            error_msg = [log.print_no_right_dump_file_error(fusion_op.op_name, tensor_id)]
+        elif compare_error.code == CompareError.MSACCUCMP_INVALID_PARAM_ERROR:
+            error_msg = [log.print_invalid_nz_dump_data(fusion_op.op_name, compare_error.message)]
+        else:
+            error_msg = [compare_error.message]
+        return error_msg
+
     def sort_l1_fusion_dump_file(self: any) -> list:
         """
         Sort l1 fusion dump file by timestamp
@@ -392,11 +402,7 @@ class FusionOpComparison:
             algorithm_result, error_msg, [shape, my_output_dtype, ground_truth_dtype] = self._compare_by_one_tensor(
                 fusion_op, index, is_input, tensor)
         except CompareError as compare_error:
-            if compare_error.code == \
-                    CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR:
-                error_msg = [log.print_no_right_dump_file_error(fusion_op.op_name, tensor_id)]
-            else:
-                error_msg = [compare_error.message]
+            error_msg = self._handle_error_msg(compare_error, fusion_op, tensor_id)
             algorithm_result = self.algorithm_manager.make_nan_result()
             shape = tensor.shape.dim
             match = False
