@@ -7,7 +7,7 @@ import re
 
 import torch
 import torch.nn.functional as F
-from torch.nn.modules.utils import _single, _pair, _triple
+from torch.nn.modules.utils import _triple
 
 
 class StubDeviceProperties(object):
