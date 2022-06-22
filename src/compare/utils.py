@@ -244,12 +244,12 @@ def check_shape_valid_in_nz(shape: list, tensor_shape: list) -> None:
             or shape[-1] <= origin_shape[-1] - 16 \
             or shape[-2] > origin_shape[-2] \
             or shape[-2] <= origin_shape[-2] - 16:
-        error_msg = 'The shape %s is invalid. The recommended shape is %s.' \
+        error_msg = 'The target shape %s is invalid. The recommended shape is %s.' \
             % (convert_shape_to_string(shape), convert_shape_to_string(origin_shape))
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, error_msg)
     for index in range(len(origin_shape) - 2):
         if shape[index] != origin_shape[index]:
-            error_msg = 'The shape %s is invalid, the recommended shape is %s.' \
+            error_msg = 'The target shape %s is invalid, the recommended shape is %s.' \
                 % (convert_shape_to_string(shape), convert_shape_to_string(origin_shape))
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, error_msg)
 
