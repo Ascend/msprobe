@@ -24,7 +24,6 @@ class GlobalReferenceVisitor:
         with open(self.file_path, 'r', encoding='utf-8') as file_handle:
             lines = file_handle.readlines()
         for index, line in enumerate(lines):
-            line = line.strip()
             if line.strip().startswith(f'def {func_name}('):
                 return index + 1
         return -1
