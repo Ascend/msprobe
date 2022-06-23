@@ -131,7 +131,7 @@ class TestUtilsMethods(unittest.TestCase):
             ShapeConversion(manager).convert_shape(
                 SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
         self.assertEqual(error.value.args[0],
-                         CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+                         CompareError.MSACCUCMP_INVALID_FRACTAL_NZ_DUMP_DATA_ERROR)
 
     def test_convert_shape4(self):
         format_from = DD.FORMAT_NC1HWC0
