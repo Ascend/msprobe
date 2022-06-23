@@ -446,7 +446,7 @@ def has_npy_at_dir(dump_path: str):
     return False
 
 
-def _raise_exception_by_convert_mode(error_msg: str, is_convert_mode: bool):
+def _raise_exception_by_convert_mode(is_convert_mode: bool, error_msg: str):
     if is_convert_mode:
         log.print_invalid_nz_dump_data(error_msg, is_error=True)
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, error_msg)
