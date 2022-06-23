@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 from network.model import EAST
 from network.loss import Loss
@@ -10,7 +11,6 @@ import argparse
 import os
 import cv2
 from torchvision import transforms
-import torch_npu
 import ascend_function
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 

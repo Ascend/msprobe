@@ -4,10 +4,10 @@ import cv2
 from PIL import Image
 import math
 import os
+import torch_npu
 import torch
 import torchvision.transforms as transforms
 from torch.utils import data
-import torch_npu
 import ascend_function
 
 

@@ -206,8 +206,6 @@ def show_tensors(cropped, classification, regression, thetas, training_mask, fil
 def fit(start_epoch, model, loss_func, opt, lr_scheduler, best_score, max_batches_per_iter_cnt, checkpoint_dir, train_dl, valid_dl):
     batch_per_iter_cnt = 0
     for epoch in range(start_epoch, 999):
-        if isinstance(train_dl, torch.utils.data.DataLoader):
-            train_dl.sampler.set_epoch(epoch)
         model.train()
         train_loss_stats = 0.0
         loss_count_stats = 0
