@@ -25,8 +25,9 @@ class GlobalReferenceVisitor:
             lines = file_handle.readlines()
         for index, line in enumerate(lines):
             line = line.strip()
-            if line.startswith(f'def {func_name}('):
+            if line.strip().startswith(f'def {func_name}('):
                 return index + 1
+        return -1
 
     def get_jedi_script(self, file_path):
         code = utils.get_file_content(file_path)

@@ -168,6 +168,8 @@ class DataLoaderRule(RuleVisitor):
 
         func_name = self.get_full_name_for_node(func_def_node.name, with_variable_replace=False)
         func_line = self.global_reference_visitor.get_func_def_line(func_name)
+        if func_line == -1:
+            return dataloader_variables
         # step1: get func usages
         usages = self.global_reference_visitor.find_usages(func_line, func_name)
         if not usages:
