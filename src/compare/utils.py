@@ -230,10 +230,18 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
     return _check_path_file_or_directory(path, path_type)
 
 
-def check_shape_valid_in_nz(shape: list, tensor_shape: list) -> None:
+def check_shape_valid_in_nz(shape: list, tensor_shape: list, is_convert_mode: bool = True) -> None:
+    """
+    check shape is fractal nz dump data valid
+    param:
+        shape: target shape
+        tensor_shape: current tensor shape
+        is_convert_shape: the method is used for two mode, one is compare mode, the other is convert mode
+    return: None
+    """
     if len(shape) == 0:
-        log.print_error_log('The format before transfer is FRACTAL_NZ. Please enter a valid shape.')
-        raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+        error_msg = 'The format before transfer is FRACTAL_NZ. Please enter a valid shape.'
+        _raise_exception_by_convert_mode(is_convert_mode, error_msg)
     origin_shape = []
     for index in range(len(tensor_shape) - 4):
         origin_shape.append(tensor_shape[index])
@@ -246,12 +254,12 @@ def check_shape_valid_in_nz(shape: list, tensor_shape: list) -> None:
             or shape[-2] <= origin_shape[-2] - 16:
         error_msg = 'The target shape %s is invalid. The recommended shape is %s.' \
             % (convert_shape_to_string(shape), convert_shape_to_string(origin_shape))
-        raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, error_msg)
+        _raise_exception_by_convert_mode(is_convert_mode, error_msg)
     for index in range(len(origin_shape) - 2):
         if shape[index] != origin_shape[index]:
             error_msg = 'The target shape %s is invalid, the recommended shape is %s.' \
                 % (convert_shape_to_string(shape), convert_shape_to_string(origin_shape))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, error_msg)
+            _raise_exception_by_convert_mode(is_convert_mode, error_msg)
 
 
 def get_string_from_list(string_list: list, splitter: str = ',') -> str:
@@ -436,6 +444,14 @@ def has_npy_at_dir(dump_path: str):
         if str(file_path).endswith(ConstManager.NUMPY_SUFFIX):
             return True
     return False
+
+
+def _raise_exception_by_convert_mode(error_msg: str, is_convert_mode: bool):
+    if is_convert_mode:
+        log.print_invalid_nz_dump_data(error_msg, is_error=True)
+        raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, error_msg)
+    else:
+        raise CompareError(CompareError.MSACCUCMP_INVALID_FRACTAL_NZ_DUMP_DATA_ERROR, error_msg)
 
 
 def _write_sorted_result(result_file: str, sorted_result_line: list, header_list: list, table_header_info: str,

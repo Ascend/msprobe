@@ -64,8 +64,8 @@ class FusionOpComparison:
     def _handle_error_msg(compare_error: CompareError, fusion_op: FusionOp, tensor_id: str) -> str:
         if compare_error.code == CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR:
             error_msg = [log.print_no_right_dump_file_error(fusion_op.op_name, tensor_id)]
-        elif compare_error.code == CompareError.MSACCUCMP_INVALID_PARAM_ERROR:
-            error_msg = [log.print_invalid_nz_dump_data(fusion_op.op_name, compare_error.message)]
+        elif compare_error.code == CompareError.MSACCUCMP_INVALID_FRACTAL_NZ_DUMP_DATA_ERROR:
+            error_msg = [log.print_invalid_nz_dump_data(compare_error.message, op_name=fusion_op.op_name)]
         else:
             error_msg = [compare_error.message]
         return error_msg
