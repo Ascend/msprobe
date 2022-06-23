@@ -110,6 +110,8 @@ class MsFmkTransplt(object):
             translog.info('MsFmkTransplt start working now, please wait for a moment.')
             transplant = Transplant(self.output, self.rule_list, args)
             transplant.set_py_file_counts(self.py_file_counts)
+            if hasattr(args, 'main'):
+                transplant.init_global_visitor(self.__get_global_visitor())
             transplant.run()
             if args.similar:
                 self.__copy_function_pack('ascend_function')
@@ -126,6 +128,16 @@ class MsFmkTransplt(object):
             self.__set_report_files_permission(0o440)
 
         return 0
+
+    def __get_global_visitor(self):
+        global_reference_visitor = None
+        if utils.IS_JEDI_INSTALLED:
+            from pytorch_gpu2npu.global_analysis import GlobalReferenceVisitor
+            global_reference_visitor = GlobalReferenceVisitor(self.input)
+        else:
+            translog.warning('Since jedi is not correctly installed, global analysis will not take effect. You '
+                             'can install it via pip.')
+        return global_reference_visitor
 
     def __set_report_files_permission(self, permission):
         output_dir = os.path.dirname(self.output) if os.path.isfile(self.output) else self.output
