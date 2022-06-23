@@ -32,10 +32,11 @@ class InsertAheadRule(RuleVisitor):
             return updated_node
         self.insert_flag = False
         self.already_insert = True
+        code_need_to_add = 'import torch_npu'
         position = self.get_metadata(libcst.metadata.PositionProvider, original_node)
         self.changes_info.append(
-            [position.start.line, position.start.line, OperatorType.INSERT.name, 'import torch_npu'])
-        return FlattenSentinel([libcst.parse_statement('import torch_npu'), updated_node])
+            [position.start.line, position.start.line, OperatorType.INSERT.name, code_need_to_add])
+        return FlattenSentinel([libcst.parse_statement(code_need_to_add), updated_node])
 
     def clean(self):
         super().clean()
