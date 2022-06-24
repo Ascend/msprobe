@@ -46,6 +46,7 @@ class CompareError(Exception):
     MSACCUCMP_INVALID_ALGORITHM_ERROR = 31
     MSACCUCMP_DELETE_FILE_ERROR = 32
     MSACCUCMP_INVALID_FILE_ERROR = 33
+    MSACCUCMP_INVALID_FRACTAL_NZ_DUMP_DATA_ERROR = 34
 
     def __init__(self: any, code: int, message: str = "") -> None:
         super().__init__(code)

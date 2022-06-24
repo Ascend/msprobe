@@ -131,7 +131,7 @@ class TestUtilsMethods(unittest.TestCase):
             ShapeConversion(manager).convert_shape(
                 SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
         self.assertEqual(error.value.args[0],
-                         CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR)
+                         CompareError.MSACCUCMP_INVALID_FRACTAL_NZ_DUMP_DATA_ERROR)
 
     def test_convert_shape4(self):
         format_from = DD.FORMAT_NC1HWC0
@@ -318,7 +318,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_convert_shape17(self):
         format_from = DD.FORMAT_FRACTAL_NZ
         format_to = DD.FORMAT_NHWC
-        shape_from = self._make_shape([1, 4, 2, 16, 16, 16])
+        shape_from = self._make_shape([4, 2, 16, 16, 16])
         group = 1
         shape_to = self._make_shape([4, 256, 32])
         array = self._make_numpy_array(shape_from.dim)

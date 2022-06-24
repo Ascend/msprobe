@@ -43,6 +43,7 @@ class CompareRule:
         origin_list = []
         for (op_name, file_list) in list(op_name_to_file_map.items()):
             for item in file_list:
+                item = item.split(ConstManager.BACKSLASH)[-1] if ConstManager.BACKSLASH in item else item
                 index = item.rfind(".")
                 if index == -1:
                     # when index is 0, item is dump file ,the name is hash value.

@@ -55,32 +55,6 @@ def _check_shape_valid(shape_str: str) -> list:
     return shape
 
 
-def _check_shape_valid_in_nz(shape: list, tensor_shape: list) -> None:
-    if len(shape) == 0:
-        log.print_error_log('The format before transfer is FRACTAL_NZ. Please enter a valid shape.')
-        raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
-    origin_shape = []
-    for index in range(len(tensor_shape) - 4):
-        origin_shape.append(tensor_shape[index])
-    origin_shape.append(tensor_shape[-2] * tensor_shape[-3])
-    origin_shape.append(tensor_shape[-1] * tensor_shape[-4])
-    if len(shape) != len(origin_shape) \
-            or shape[-1] > origin_shape[-1] \
-            or shape[-1] <= origin_shape[-1] - 16 \
-            or shape[-2] > origin_shape[-2] \
-            or shape[-2] <= origin_shape[-2] - 16:
-        log.print_error_log(
-            'The shape %s is invalid. The recommended shape is %s.'
-            % (utils.convert_shape_to_string(shape), utils.convert_shape_to_string(origin_shape)))
-        raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
-    for index in range(len(origin_shape) - 2):
-        if shape[index] != origin_shape[index]:
-            log.print_error_log(
-                'The shape %s is invalid, the recommended shape is %s.'
-                % (utils.convert_shape_to_string(shape), utils.convert_shape_to_string(origin_shape)))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
-
-
 class ShapeConversionMain:
     """
     The class for format conversion
@@ -204,7 +178,7 @@ class ShapeConversionMain:
                            % (common.get_format_string(real_format),
                               utils.convert_shape_to_string(tensor.shape.dim)))
         if real_format == DD.FORMAT_FRACTAL_NZ:
-            _check_shape_valid_in_nz(self.shape, tensor.shape.dim)
+            utils.check_shape_valid_in_nz(self.shape, tensor.shape.dim)
         shape_to = DD.Shape()
         for dim in self.shape:
             shape_to.dim.append(dim)
@@ -343,7 +317,7 @@ class FormatConversionMain:
         if len(shape) == 0:
             shape = tensor.original_shape.dim
         if real_format == DD.FORMAT_FRACTAL_NZ:
-            _check_shape_valid_in_nz(shape, tensor.shape.dim)
+            utils.check_shape_valid_in_nz(shape, tensor.shape.dim)
         shape_to = DD.Shape()
         for dim in shape:
             shape_to.dim.append(dim)

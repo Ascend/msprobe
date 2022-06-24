@@ -281,4 +281,6 @@ class ShapeConversion:
                     "Cannot convert FRACTAL_NZ to ND, the reason is the length "
                     "of array is not equal to the length of dest shape.")
                 return self.reshape(src_to_dest, array)
+        if src_to_dest.src_format == DD.FORMAT_FRACTAL_NZ:
+            utils.check_shape_valid_in_nz(src_to_dest.dest_shape.dim, src_to_dest.src_shape.dim, is_convert_mode=False)
         return self.format_manager.execute_format_convert(src_to_dest, array, args)
