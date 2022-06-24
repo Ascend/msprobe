@@ -161,13 +161,15 @@ class DataLoaderRule(RuleVisitor):
         return maybe_set_epoch_statements, len(maybe_set_epoch_statements) * 2
 
     def __get_dataloder_variable_from_global_scope(self, func_def_node):
-        func_line = self.get_metadata(libcst.metadata.PositionProvider, func_def_node).start.line
-        func_name = self.get_full_name_for_node(func_def_node.name, with_variable_replace=False)
         dataloader_variables = []
         # global_scope_visitor not set
         if not self.global_reference_visitor:
             return dataloader_variables
 
+        func_name = self.get_full_name_for_node(func_def_node.name, with_variable_replace=False)
+        func_line = self.global_reference_visitor.get_func_def_line(func_name)
+        if func_line == -1:
+            return dataloader_variables
         # step1: get func usages
         usages = self.global_reference_visitor.find_usages(func_line, func_name)
         if not usages:
