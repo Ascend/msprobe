@@ -48,6 +48,10 @@ class DeleteFileException(Exception):
     pass
 
 
+class JediCacheClearException(Exception):
+    pass
+
+
 def write_csv(content_list, script_file, script_dir, csv_type):
     header_dict = {
         "change_list": ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'),
@@ -325,17 +329,17 @@ def check_model_name_valid(name):
 
 def clear_parso_cache():
     from jedi.settings import cache_directory
-    from parso.cache import clear_cache
     if not os.path.exists(cache_directory):
         return
     try:
-        # shutil.rmtree can't handle file and soft link
-        clear_cache(cache_directory)
-    except OSError:
         remove_path(cache_directory)
+    except DeleteFileException as exp:
+        translog.warning(exp)
 
 
 def refresh_parso_cache():
     from jedi.settings import cache_directory
     clear_parso_cache()
+    if os.path.exists(cache_directory):
+        raise JediCacheClearException('Failed to delete jedi cache. Please delete it manually.')
     os.makedirs(cache_directory, mode=0o700)

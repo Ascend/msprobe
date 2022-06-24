@@ -97,7 +97,7 @@ class MsFmkTransplt(object):
 
     def main(self):
         args = self.__parse_command()
-
+        ret = 0
         try:
             self.__para_check_valid(args)
             self.__check_output_valid(args)
@@ -117,21 +117,24 @@ class MsFmkTransplt(object):
                 self.__copy_function_pack('ascend_function')
             if args.modelarts:
                 self.__copy_function_pack('ascend_modelarts_function')
-            translog.info('MsFmkTransplt run success, welcome to the next use.')
         except BaseException as exp:
             translog.error(exp)
-            translog.error('MsFmkTransplt run fail!')
-            return 1
+            ret = 1
         finally:
-            if utils.IS_JEDI_INSTALLED:
+            if hasattr(args, 'main') and utils.IS_JEDI_INSTALLED:
                 utils.clear_parso_cache()
-            self.__set_report_files_permission(0o440)
 
-        return 0
+        if ret != 0:
+            translog.error('MsFmkTransplt run fail!')
+        else:
+            translog.info('MsFmkTransplt run success, welcome to the next use.')
+        self.__set_report_files_permission(0o440)
+        return ret
 
     def __get_global_visitor(self):
         global_reference_visitor = None
         if utils.IS_JEDI_INSTALLED:
+            utils.refresh_parso_cache()
             from pytorch_gpu2npu.global_analysis import GlobalReferenceVisitor
             global_reference_visitor = GlobalReferenceVisitor(self.input)
         else:
