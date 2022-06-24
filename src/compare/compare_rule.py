@@ -43,16 +43,16 @@ class CompareRule:
         origin_list = []
         for (op_name, file_list) in list(op_name_to_file_map.items()):
             for item in file_list:
-                item = item.split(ConstManager.BACKSLASH)[-1] if ConstManager.BACKSLASH in item else item
-                index = item.rfind(".")
+                filename = os.path.basename(item)
+                index = filename.rfind(".")
                 if index == -1:
                     # when index is 0, item is dump file ,the name is hash value.
                     # Example: the file name is only numeric.
-                    timestamp = int(os.path.basename(item))
+                    timestamp = int(filename)
                 else:
                     # when index is not 0, item is dump file,the name meet the data format.
                     # Example: {op_type}.{op_name}.{task_id}.{timestamp}
-                    timestamp = int(item[index + 1:])
+                    timestamp = int(filename[index + 1:])
                 origin_list.append([timestamp, op_name, item])
         return sorted(origin_list, key=lambda s: s[0])
 

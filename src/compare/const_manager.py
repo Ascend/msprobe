@@ -30,7 +30,6 @@ class ConstManager:
     BINARY_DUMP_TYPE = 2
     N0_AXIS = 16
     C0_AXIS = 16
-    BACKSLASH = '\\'
 
     # overflow
     OVERFLOW_MIN_VALUE = 5.96e-8
