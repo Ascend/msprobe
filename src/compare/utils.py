@@ -232,7 +232,7 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
 
 def check_shape_valid_in_nz(shape: list, tensor_shape: list, is_convert_mode: bool = True) -> None:
     """
-    check shape is fractal nz dump data valid
+    check fractal nz dump data shape is valid
     param:
         shape: target shape
         tensor_shape: current tensor shape
