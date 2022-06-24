@@ -121,7 +121,7 @@ class MsFmkTransplt(object):
             translog.error(exp)
             ret = 1
         finally:
-            if utils.IS_JEDI_INSTALLED:
+            if hasattr(args, 'main') and utils.IS_JEDI_INSTALLED:
                 utils.clear_parso_cache()
 
         if ret != 0:
