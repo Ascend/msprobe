@@ -135,8 +135,14 @@ class QuantFilter:
         for _input in _inputs:
             if ':' not in _input:
                 continue
-            _input_name = _input.split(':')[0]
-            _input_out_index = int(_input.split(':')[1])
+            last_colon_index = _input.rfind(':')
+            _input_name = _input[:last_colon_index]
+            if _input[last_colon_index + 1:].isdigit():
+                _input_out_index = int(_input[last_colon_index + 1:])
+            else:
+                log.print_warn_log("[{}] the input operator of op with index {} is invalid."
+                                   .format(op.op_name, _input))
+                continue
             _out_list = self._op_output_type_map.get(_input_name)
             if _out_list is None or len(_out_list) <= _input_out_index:
                 log.print_warn_log("[{}] the input operator of op {} does not exist in previous graph."
