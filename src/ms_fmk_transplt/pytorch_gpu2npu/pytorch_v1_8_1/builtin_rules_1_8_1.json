@@ -1,13 +1,5 @@
 {
   "rules": {
-    "InsertGlobalRule": [
-      {
-        "import_key_word": "torch",
-        "insert_content": [
-          "import torch_npu"
-        ]
-      }
-    ],
     "FuncNameModifyRule": [
       {
         "old_name": "torch.cuda.current_device",

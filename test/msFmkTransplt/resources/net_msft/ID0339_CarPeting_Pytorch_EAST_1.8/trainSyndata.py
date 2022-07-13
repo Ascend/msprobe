@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 from torch.utils import data
 from torch import nn
@@ -15,7 +16,6 @@ from evaluate.script import getresult
 import argparse
 import os
 from lib.utils import setup_logger
-import torch_npu
 import ascend_function
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 

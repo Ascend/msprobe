@@ -17,11 +17,13 @@ class TestRules(unittest.TestCase):
         import src.ms_fmk_transplt.pytorch_gpu2npu.common_rules.common_rule as common_rule
         import src.ms_fmk_transplt.pytorch_gpu2npu.distributed_rules.distributed_rule as distributed_rule
         import src.ms_fmk_transplt.pytorch_gpu2npu.modelarts as modelarts_rule
+        from src.ms_fmk_transplt.pytorch_gpu2npu.pytorch_v1_8_1 import insert_ahead_rule as rule_1_8_1
         from src.ms_fmk_transplt.pytorch_gpu2npu.utils import trans_utils as utils
         cls.common_rule = common_rule
         cls.distributed_rule = distributed_rule
         cls.modelarts_rule = modelarts_rule
         cls.utils = utils
+        cls.rule_1_8_1 = rule_1_8_1
 
 
     def test_args_modify_rule(self):
@@ -73,6 +75,35 @@ class TestRules(unittest.TestCase):
             self._check_modify(rule, test_case[0], test_case[1])
             rule.clean()
 
+    def test_insert_ahead_rule(self):
+        rule = self.rule_1_8_1.InsertAheadRule()
+        test_cases = (
+            (
+                '''import torch.npu
+from torch.npu import amp
+                ''', '''import torch_npu
+import torch.npu
+from torch.npu import amp
+                '''
+            ), (
+                '''import os
+from torch.npu import amp
+                ''', '''import os
+import torch_npu
+from torch.npu import amp
+                '''
+            ), (
+                '''import os
+import sys
+                ''', '''import os
+import sys
+                '''
+            )
+        )
+        for test_case in test_cases:
+            self._check_modify(rule, test_case[0], test_case[1])
+            rule.clean()
+
     def test_insert_main_file_rule(self):
         init_process_group_content = ["import torch.npu",
                                       "if torch.npu.current_device() != DEVICE_ID:\n"
@@ -120,7 +151,8 @@ if __name__ == '__main__':
                       ("AA.old_name.BB(old_name())", "AA.old_name.BB(new_name())"),
                       ("AA.old_name.old_name()", "AA.old_name.new_name()"),
                       ("(other_name if xxx else old_name)()", "(other_name if xxx else new_name)()"),
-                      ("(other_name if xxx else (other_name if xxx else old_name))()", "(other_name if xxx else (other_name if xxx else new_name))()"))
+                      ("(other_name if xxx else (other_name if xxx else old_name))()", "(other_name if xxx else (other_name if xxx else new_name))()"),
+                      ("(pids1 == pids2).long().old_name()", "(pids1 == pids2).long().new_name()"))
 
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
+# Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
 
 import os
 from typing import Optional
@@ -27,18 +27,13 @@ class Transplant(object):
         self.py_file_counts = 0
 
         self.global_reference_visitor = None
-        if hasattr(args, 'main'):
-            if utils.IS_JEDI_INSTALLED:
-                utils.refresh_parso_cache()
-                from pytorch_gpu2npu.global_analysis import GlobalReferenceVisitor
-                self.global_reference_visitor = GlobalReferenceVisitor(self.script_dir)
-            else:
-                translog.warning('Since jedi is not correctly installed, global analysis will not take effect. You '
-                                 'can install it via pip.')
 
     @staticmethod
     def __need_analysis(file, commonprefix):
         return utils.check_file_need_analysis(file, commonprefix, record=True)
+
+    def init_global_visitor(self, global_reference_visitor):
+        self.global_reference_visitor = global_reference_visitor
 
     def run(self):
         translog.info('Analysis start...')
@@ -88,7 +83,7 @@ class Transplant(object):
 
     def __analysis_file(self, file, commonprefix):
         if self.global_reference_visitor:
-            self.global_reference_visitor.visit_file(file)
+            self.global_reference_visitor.visit_file(os.path.relpath(file, self.script_dir))
         file_relative_path = os.path.relpath(file, commonprefix)
         translog.info(f'Start analysis {file_relative_path}.')
         self.__analysis_code(file)

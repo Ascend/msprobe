@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
+# Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
 
 import json
 import os
@@ -14,6 +14,7 @@ import pytorch_gpu2npu.common_rules.common_rule as rule_module
 from pytorch_gpu2npu.distributed_rules import distributed_rule
 from pytorch_gpu2npu.modelarts import get_modelarts_rule
 from pytorch_gpu2npu.pytorch_v1_5_0 import InitApexRule, Amp2Apex
+from pytorch_gpu2npu.pytorch_v1_8_1 import InsertAheadRule
 from pytorch_gpu2npu.utils import transplant_logger as translog
 
 try:
@@ -44,6 +45,10 @@ class SoftlinkCheckException(Exception):
 
 
 class DeleteFileException(Exception):
+    pass
+
+
+class JediCacheClearException(Exception):
     pass
 
 
@@ -117,6 +122,7 @@ def get_builtin_rule(feature_switch, args):
     if args.modelarts:
         rule_list.extend(get_modelarts_rule())
     if args.version == '1.8.1':
+        rule_list.append(InsertAheadRule())
         rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/builtin_rules_1_8_1.json')
         get_rule_from_json_file(feature_switch, rule_list, rules_json_file_1_8_0)
     # common rules
@@ -323,17 +329,17 @@ def check_model_name_valid(name):
 
 def clear_parso_cache():
     from jedi.settings import cache_directory
-    from parso.cache import clear_cache
     if not os.path.exists(cache_directory):
         return
     try:
-        # shutil.rmtree can't handle file and soft link
-        clear_cache(cache_directory)
-    except OSError:
         remove_path(cache_directory)
+    except DeleteFileException as exp:
+        translog.warning(exp)
 
 
 def refresh_parso_cache():
     from jedi.settings import cache_directory
     clear_parso_cache()
+    if os.path.exists(cache_directory):
+        raise JediCacheClearException('Failed to delete jedi cache. Please delete it manually.')
     os.makedirs(cache_directory, mode=0o700)
