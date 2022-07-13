@@ -21,7 +21,8 @@ class InsertAheadRule(RuleVisitor):
         return True
 
     def visit_ImportFrom(self, node: "libcst.ImportFrom") -> Optional[bool]:
-        if not self.already_insert and not self.insert_flag and 'torch' in self.get_full_name_for_node(node.module):
+        if not self.already_insert and not self.insert_flag and node.module and 'torch' in self.get_full_name_for_node(
+                node.module):
             self.insert_flag = True
         return True
 
