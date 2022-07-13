@@ -1,5 +1,5 @@
 #!/bin/bash
-#Copyright (c) Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
+#Copyright (c) Huawei Technologies Co., Ltd. 2021-2021. All rights reserved.
 # ================================================================================
 src_path=${WORKSPACE}/msfmktransplt/src/
 out_path=${WORKSPACE}/bandit_check.html
