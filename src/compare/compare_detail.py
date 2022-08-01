@@ -141,7 +141,7 @@ class DetailComparison:
         return tensor_list, dumpfile
 
 
-class DumpDetailComparison(DetailComparison):
+class DumpDetailComparison:
     """
     The class for Npu dump op compare
     """
@@ -168,7 +168,7 @@ class DumpDetailComparison(DetailComparison):
         log.print_info_log("My Output data path: " + left_path)
         log.print_info_log("Ground Truth data path: " + right_path)
 
-        self.check_index_valid(left_data)
+        # to do add check index when bugfix
         dump_file = os.path.basename(left_path)
 
         tensor_type = self.detail_info.tensor_id.tensor_type
