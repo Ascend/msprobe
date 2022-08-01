@@ -187,7 +187,7 @@ class DumpDetailComparison:
         ground_truth_array = utils.deserialize_dump_data_to_array(right_tensor_data[tensor_index])
 
         self.detail_info.set_detail_ops(op_name, op_name)
-        self.detail_info.set_detail_format(utils.convert_shape_to_string(
+        self.detail_info.check_and_set_format(utils.convert_shape_to_string(
             left_tensor_data[tensor_index].shape.dim),
             left_tensor_data[tensor_index].format,
             right_tensor_data[tensor_index].format
