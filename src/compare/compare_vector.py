@@ -29,6 +29,7 @@ from format_manager import FormatManager
 from compare_fusion_op import FusionOpComparison
 
 from compare_detail import DetailComparison
+from compare_detail import DumpDetailComparison
 
 from const_manager import ConstManager
 
@@ -365,10 +366,11 @@ class VectorComparison:
         :return VectorComparisonErrorCode
         """
         if self.compare_rule.fusion_json_file_path == "" and self.compare_rule.quant_fusion_rule_file_path == "":
-            log.print_error_log('Both the offline fusion rule file path and '
-                                'the quant fusion rule file path cannot be empty. '
-                                'The following arguments are needed: -q or -f.')
-            return CompareError.MSACCUCMP_INVALID_PARAM_ERROR
+            log.print_warn_log('Both the offline fusion rule file path and '
+                               'the quant fusion rule file path cannot be empty. '
+                               'Please ensure that the data is reasonable.')
+            comparison = DumpDetailComparison(self.detail_info, self.compare_data, self.output_path)
+            return comparison.compare()
         if self.detail_info.tensor_id.op_name not in self.compare_rule.fusion_info.op_name_to_fusion_op_name_map:
             log.print_error_log('There is no "%s" in the fusion rule file.' % self.detail_info.tensor_id.op_name)
             return CompareError.MSACCUCMP_INVALID_PARAM_ERROR
