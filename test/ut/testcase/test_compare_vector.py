@@ -1137,27 +1137,6 @@ class TestUtilsMethods(unittest.TestCase):
                             ret = main.compare()
         self.assertEqual(err.value.args[0], CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
 
-    def test_compare_detail5(self):
-        args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-o',
-                '/home/result', '-d', 'data']
-        with mock.patch('sys.argv', args):
-            with mock.patch('os.path.exists', return_value=True), \
-                 mock.patch('os.access', return_value=True), \
-                 mock.patch('os.remove'), \
-                 mock.patch('os.listdir',
-                            side_effect=[['alg_CosineSimilarity.py'], ['ccc.data.0.1111111111111111'],
-                                         ['ccc.data.0.1111111111111111'],
-                                         ['convert_NC1HWC0_to_NCHW.py']]), \
-                 mock.patch('os.path.isdir', return_value=True), \
-                 mock.patch('os.path.isfile', return_value=True):
-                with mock.patch('builtins.open',
-                                mock.mock_open(
-                                    read_data=self._make_input_json().encode(
-                                        'utf-8'))):
-                    main = compare_vector.VectorComparison()
-                    ret = main.compare()
-        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
-
     def test_compare_detail6(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'data',
