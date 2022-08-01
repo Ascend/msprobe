@@ -77,7 +77,7 @@ class RangeMode(RM.RangeManager):
         if self.end == -1:
             self.end = op_count
         if self.end < self.start or self.end > op_count:
-            log.print_out_of_range_error('', 'end', self.end, '[%d, %d]' % (self.start + 1, op_count))
+            log.print_out_of_range_error('', 'end', self.end, '[1, %d]' % op_count)
             raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
         if self.step < 1 or self.step >= op_count:
             log.print_out_of_range_error('', 'step', self.step, '[1, %d)' % op_count)

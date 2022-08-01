@@ -136,6 +136,31 @@ class DetailInfo:
             else:
                 self.detail_format = "N C H W" if shape_str != "()" else "ID"
 
+    def check_and_set_format(self: any, shape_str: str, tensor_format: int, ground_truth_format: int) -> None:
+        """
+        Check and Set detail format by shape
+        :param shape_str: the shape string
+        :param tensor_format: tensor format
+        :param ground_truth_format: ground truth format
+        """
+        if tensor_format != ground_truth_format:
+            log.print_error_log("NPUDump tensor format not match Ground truth tensor format!"
+                                "Cannot be directly compared.")
+            raise CompareError(CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
+        if common.contain_depth_dimension(tensor_format):
+            self.detail_format = 'N C D H W'
+        else:
+            self.detail_format = "N C H W" if shape_str != "()" else "ID"
+
+    def set_detail_ops(self: any, my_out_ops: str, ground_truth_ops: str) -> None:
+        """
+        Check and Set detail format by shape
+        :param my_out_ops: the opname of my out tensor
+        :param ground_truth_ops: the opname of ground truth tensor
+        """
+        self.my_output_ops = my_out_ops.replace(',', ' ')
+        self.ground_truth_ops = ground_truth_ops.replace(',', ' ')
+
     def make_detail_header(self: any) -> str:
         """
         Make detail header

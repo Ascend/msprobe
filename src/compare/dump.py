@@ -254,7 +254,7 @@ class CompareData:
         """
         return self.left_dump_info.get_op_dump_data(op_name)
 
-    def get_right_dump_data(self: any, op_name: str, output_index: int) -> (str, DumpData):
+    def get_right_dump_data(self: any, op_name: str, output_index: int = 0) -> (str, DumpData):
         """
         Get the right dump file path and data by fusion op
         :param op_name: the op name

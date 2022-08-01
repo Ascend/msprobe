@@ -12,6 +12,8 @@ import fusion_rule_parser
 import utils
 import log
 
+import dump
+
 from detail_writer import DetailWriter
 
 from detail import DetailInfo
@@ -137,3 +139,68 @@ class DetailComparison:
         finally:
             pass
         return tensor_list, dumpfile
+
+
+class DumpDetailComparison:
+    """
+    The class for Npu dump op compare
+    """
+
+    def __init__(self: any, detail_info: DetailInfo, compare_data: dump.CompareData,
+                 output_path: str) -> None:
+        self.detail_info = detail_info
+        self.compare_data = compare_data
+        self.detail_writer = DetailWriter(output_path, detail_info)
+        self.fusion_op = None
+
+    def compare(self: any) -> int:
+        """
+        Compare detail by op name
+        :return error_code
+        """
+        tensor_id = self.detail_info.tensor_id.get_tensor_id()
+        op_name = self.detail_info.tensor_id.op_name
+        log.print_info_log('[%s] Start to compare detail for %s.'
+                           % (op_name, tensor_id))
+
+        left_path, left_data = self.compare_data.get_left_dump_data(op_name)
+        right_path, right_data = self.compare_data.get_right_dump_data(op_name)
+        log.print_info_log("My Output data path: " + left_path)
+        log.print_info_log("Ground Truth data path: " + right_path)
+
+        # to do add check index when bugfix
+        dump_file = os.path.basename(left_path)
+
+        tensor_type = self.detail_info.tensor_id.tensor_type
+        tensor_index = self.detail_info.tensor_id.index
+        if tensor_type == "input":
+            left_tensor_data = left_data.input
+            right_tensor_data = right_data.input
+        else:
+            left_tensor_data = left_data.output
+            right_tensor_data = right_data.output
+
+        my_output_shape = tuple(left_tensor_data[tensor_index].shape.dim)
+        # to do add check when bugfix
+
+        my_output_array = utils.deserialize_dump_data_to_array(left_tensor_data[tensor_index])
+        ground_truth_array = utils.deserialize_dump_data_to_array(right_tensor_data[tensor_index])
+
+        self.detail_info.set_detail_ops(op_name, op_name)
+        self.detail_info.check_and_set_format(utils.convert_shape_to_string(
+            left_tensor_data[tensor_index].shape.dim),
+            left_tensor_data[tensor_index].format,
+            right_tensor_data[tensor_index].format
+        )
+
+        # delete old result
+        try:
+            self.detail_writer.delete_old_detail_result_files()
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
+                MemoryError, KeyError, IOError) as error:
+            log.print_error_log('Failed to delete the old detail result file. %s' % error)
+            raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
+
+        self.detail_writer.write(my_output_shape, my_output_array, ground_truth_array, dump_file)
+        return CompareError.MSACCUCMP_NONE_ERROR
+
