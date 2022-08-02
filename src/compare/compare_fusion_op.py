@@ -382,7 +382,7 @@ class FusionOpComparison:
                                                                                      tensor)
             match = match or result.match
             # 4. merge result
-            tensor_info = {"tensor_id": result.tensor_id, "shape": result.shape,
+            tensor_info = {"tensor_id": result.tensor_id, "shape": result.shape, "op_type": fusion_op.op_type,
                            "my_output_dtype": result.my_output_dtype,
                            "ground_truth_dtype": result.ground_truth_dtype,
                            "my_output_address": result.my_output_address,
@@ -471,8 +471,12 @@ class FusionOpComparison:
         else:
             my_output_op_str, ground_truth_op_str = fusion_rule_parser.make_left_and_right_string(
                 ground_truth_to_my_output_map)
-        row_content = [str(fusion_op.op_id), my_output_op_str, ground_truth_op_str, tensor_id, my_output_dump_path,
-                       ground_truth_dump_path]
+        if fusion_op.op_type in [ConstManager.LEFT_TYPE, ConstManager.RIGHT_TYPE]:
+            op_type = utils.get_op_type_from_file_name(my_output_dump_path)
+        else:
+            op_type = fusion_op.op_type
+        row_content = [str(fusion_op.op_id), op_type, my_output_op_str, ground_truth_op_str, tensor_id,
+                       my_output_dump_path, ground_truth_dump_path]
         RangeManager.adjust_data(row_content, fusion_op.attr.get_op_sequence())
         return row_content
 

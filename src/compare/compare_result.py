@@ -23,30 +23,23 @@ class TensorResult:
     """
 
     def __init__(self: any, tensor_info: dict, result: list, error_msg: list) -> None:
-        self.tensor_id = tensor_info.get("tensor_id", ConstManager.NAN)
-        self.shape = tensor_info.get("shape", ConstManager.NAN)
+        self.tensor_info = tensor_info
         self.algorithm_result = result[0]
         self.error_msg = error_msg
         self.overflow_result = result[1]
-        self.my_output_dtype = tensor_info.get("my_output_dtype", ConstManager.NAN)
-        self.ground_truth_dtype = tensor_info.get("ground_truth_dtype", ConstManager.NAN)
-        self.my_output_address = tensor_info.get("my_output_address", ConstManager.NAN)
-        self.ground_truth_address = tensor_info.get("ground_truth_address", ConstManager.NAN)
 
     def get_result(self: any) -> list:
         """
         Get tensor result list
         :return [tensor_id, shape, algorithm_result, error_msg]
         """
-        shape_str = '[%s]' % ",".join(map(str, self.shape))
+        shape_str = '[%s]' % ",".join(map(str, self.tensor_info.get("shape", ConstManager.NAN)))
         if self.overflow_result:
             result = [shape_str] + [self.overflow_result] + self.algorithm_result + [",".join(self.error_msg)]
         else:
             result = [shape_str] + self.algorithm_result + [",".join(self.error_msg)]
 
-        if self.tensor_id:
-            return [self.tensor_id] + result
-        return result
+        return [self.tensor_info.get("tensor_id", ConstManager.NAN)] + result
 
     def get_algorithm_result(self: any) -> list:
         """
@@ -55,16 +48,19 @@ class TensorResult:
         return self.algorithm_result
 
     def get_my_output_dtype(self):
-        return self.my_output_dtype
+        return self.tensor_info.get("my_output_dtype", ConstManager.NAN)
 
     def get_ground_truth_dtype(self):
-        return self.ground_truth_dtype
+        return self.tensor_info.get("ground_truth_dtype", ConstManager.NAN)
 
     def get_my_output_address(self):
-        return self.my_output_address
+        return self.tensor_info.get("my_output_address", ConstManager.NAN)
 
     def get_ground_truth_address(self):
-        return self.ground_truth_address
+        return self.tensor_info.get("ground_truth_address", ConstManager.NAN)
+
+    def get_op_type(self):
+        return self.tensor_info.get("op_type", ConstManager.NAN)
 
 
 class PytorchOpInfo:
@@ -136,7 +132,8 @@ class FusionOpComResult:
         my_output_op, ground_truth_op = self._make_my_output_op_and_ground_truth_op(fusion_op, no_dump_file)
         if tensor_result:
             for item in tensor_result:
-                current_tensor_info = [str(fusion_op.op_id), my_output_op, str(item.get_my_output_dtype()),
+                current_tensor_info = [str(fusion_op.op_id), item.get_op_type(),
+                                       my_output_op, str(item.get_my_output_dtype()),
                                        str(item.get_my_output_address()), ground_truth_op,
                                        str(item.get_ground_truth_dtype()), str(item.get_ground_truth_address())]
                 self._pre_handle_result(current_tensor_info)
@@ -145,9 +142,9 @@ class FusionOpComResult:
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
         else:
-            current_tensor_info = [str(fusion_op.op_id), my_output_op, ConstManager.NAN, ConstManager.NAN,
-                                   ground_truth_op, ConstManager.NAN, ConstManager.NAN, ConstManager.NAN,
-                                   ConstManager.NAN]
+            current_tensor_info = [str(fusion_op.op_id), ConstManager.NAN, my_output_op, ConstManager.NAN,
+                                   ConstManager.NAN, ground_truth_op, ConstManager.NAN, ConstManager.NAN,
+                                   ConstManager.NAN, ConstManager.NAN]
             self._pre_handle_result(current_tensor_info)
             if self.overflow_detection:
                 # using 'NaN' as a overflow detection for 'no tensor_result'
@@ -197,9 +194,10 @@ class FusionOpComResult:
         args: result list
         """
         if self.is_ground_truth_gpu_or_cpu:
-            current_tensor_info.pop(6)
+            # op id is inserted as index in header, so address index should plus one.
+            current_tensor_info.pop(ConstManager.GROUND_TRUTH_ADDRESS_INDEX + 1)
         if self.is_my_dump_gpu_or_cpu:
-            current_tensor_info.pop(3)
+            current_tensor_info.pop(ConstManager.MY_OUTPUT_ADDRESS_INDEX + 1)
 
 
 def get_result_title(algorithm_manager: AlgorithmManager, op_header: list, overflow_detection: bool = False) -> list:

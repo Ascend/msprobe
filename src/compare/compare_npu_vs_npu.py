@@ -222,9 +222,10 @@ class NpuVsNpuComparison:
             ground_truth_tensor_dtype = utils.get_data_type(ground_truth_tensor.data_type)
             my_output_tensor_address = utils.get_address_from_tensor(my_output_tensor)
             ground_truth_tensor_address = utils.get_address_from_tensor(ground_truth_tensor)
+            op_type = utils.get_op_type_from_file_name(my_output_dump_data.path)
 
             # 3. merge result
-            tensor_info = {"tensor_id": tensor_id, "shape": my_output_tensor.shape.dim,
+            tensor_info = {"tensor_id": tensor_id, "shape": my_output_tensor.shape.dim, "op_type": op_type,
                            "my_output_dtype": my_output_tensor_dtype,
                            "ground_truth_dtype": ground_truth_tensor_dtype,
                            "my_output_address": my_output_tensor_address,

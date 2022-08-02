@@ -129,7 +129,12 @@ class ConstManager:
     LEFT_TYPE = 'Left'
     RIGHT_TYPE = 'Right'
 
-    MAPPING_FILE_HEADER = ["Index", "NPUDump", "GroundTruth", "TensorIndex",
+    VECTOR_COMPARE_HEADER = ["OpType", "NPUDump", "DataType", "Address",
+                             "GroundTruth", "DataType", "Address", "TensorIndex"]
+    MY_OUTPUT_ADDRESS_INDEX = 3
+    GROUND_TRUTH_ADDRESS_INDEX = 6
+
+    MAPPING_FILE_HEADER = ["Index", "OpType", "NPUDump", "GroundTruth", "TensorIndex",
                            "NPUDumpPath", "GroundTruthPath"]
 
     STRING_TO_FORMAT_MAP = {
