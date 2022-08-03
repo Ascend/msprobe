@@ -46,7 +46,6 @@ class VectorComparison:
     The class for vector compare
     """
 
-    OP_HEADER = ["NPUDump", "DataType", "Address", "GroundTruth", "DataType", "Address", "TensorIndex"]
     MULTI_THREAD_RESULT_COUNT = 3
     MULTI_THREAD_RETURN_CODE_INDEX = 0
     MULTI_THREAD_DUMP_MATCH_INDEX = 1
@@ -439,7 +438,7 @@ class VectorComparison:
         return CompareError.MSACCUCMP_NONE_ERROR
 
     def _pre_handle_header(self: any) -> list:
-        op_header = copy.deepcopy(self.OP_HEADER)
+        op_header = copy.deepcopy(ConstManager.VECTOR_COMPARE_HEADER)
         golden_dump_path = self.args.get("golden_dump_path")
         my_dump_path = self.args.get("my_dump_path")
         address_index = [i for i, x in enumerate(op_header) if x == 'Address']

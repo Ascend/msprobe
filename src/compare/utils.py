@@ -446,6 +446,18 @@ def has_npy_at_dir(dump_path: str):
     return False
 
 
+def get_op_type_from_file_name(dump_path: str):
+    """
+    get op_type from dump file name
+    """
+    dump_file_name = os.path.basename(dump_path)
+    is_match, match = RegManager.match_group(RegManager.OFFLINE_DUMP_PATTERN, dump_file_name)
+    if is_match:
+        op_type_end_index = dump_file_name.find('.')
+        return dump_file_name[:op_type_end_index]
+    return ConstManager.NAN
+
+
 def _raise_exception_by_convert_mode(is_convert_mode: bool, error_msg: str):
     if is_convert_mode:
         log.print_invalid_nz_dump_data(error_msg, is_error=True)
