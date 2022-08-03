@@ -455,7 +455,7 @@ def get_op_type_from_file_name(dump_path: str):
     if is_match:
         op_type_end_index = dump_file_name.find('.')
         return dump_file_name[:op_type_end_index]
-    return "NaN"
+    return ConstManager.NAN
 
 
 def _raise_exception_by_convert_mode(is_convert_mode: bool, error_msg: str):
