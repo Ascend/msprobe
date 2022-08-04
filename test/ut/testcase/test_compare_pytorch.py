@@ -354,5 +354,5 @@ class TestUtilsMethods(unittest.TestCase):
                 args = parser.parse_args(sys.argv)
                 pytorch_compare = TestPytorchComparison(args)
                 fusion_op_result = compare_result.FusionOpComResult(pytorch_compare.algorithm_manager)
-                result_list = pytorch_compare._do_compare_and_get_result(dataset_list, fusion_op_result, op_info)
+                result_list = pytorch_compare.do_compare_and_get_result(dataset_list, fusion_op_result, op_info)
                 self.assertEqual(result_list[0], actual)
