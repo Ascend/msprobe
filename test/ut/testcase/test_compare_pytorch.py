@@ -14,7 +14,16 @@ import argparse
 
 import compare_pytorch
 import compare_result
+from compare_result import PytorchComparison
 from compare_error import CompareError
+
+
+class TestPytorchComparison(PytorchComparison):
+
+    def do_compare_and_get_result(self: any, dataset_list: list,
+                                  fusion_op_result: compare_result.FusionOpComResult,
+                                  op_info: compare_result.PytorchOpInfo) -> list:
+        return self._do_compare_and_get_result(dataset_list, fusion_op_result, op_info)
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -343,7 +352,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('compare_pytorch.PytorchComparison._get_compare_dump_data',
                             return_value=[my_dump_data, golden_dump_data, shape]):
                 args = parser.parse_args(sys.argv)
-                pytorch_compare = compare_pytorch.PytorchComparison(args)
+                pytorch_compare = TestPytorchComparison(args)
                 fusion_op_result = compare_result.FusionOpComResult(pytorch_compare.algorithm_manager)
                 result_list = pytorch_compare._do_compare_and_get_result(dataset_list, fusion_op_result, op_info)
                 self.assertEqual(result_list[0], actual)
