@@ -14,7 +14,7 @@ import argparse
 
 import compare_pytorch
 import compare_result
-from compare_result import PytorchComparison
+from compare_pytorch import PytorchComparison
 from compare_error import CompareError
 
 
