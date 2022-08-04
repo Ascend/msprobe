@@ -328,7 +328,7 @@ class TestUtilsMethods(unittest.TestCase):
                         pytorch_compare = compare_pytorch.PytorchComparison(args)
                         pytorch_compare._filter_result_process("/home/test", open_file, "/home/filter")
 
-    def test_compare_result(self):
+    def test_do_compare_and_get_result(self):
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g', '/home/right.h5', '-out', '/home/out']
         my_dump_data = np.asarray([2.0213, -0.9118, -0.7277, -1.2509, -0.3222, -0.1876, 0.0432, 1.0614])
