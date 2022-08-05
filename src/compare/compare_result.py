@@ -39,7 +39,9 @@ class TensorResult:
         else:
             result = [shape_str] + self.algorithm_result + [",".join(self.error_msg)]
 
-        return [self.tensor_info.get("tensor_id", ConstManager.NAN)] + result
+        if self.tensor_info.get("tensor_id"):
+            result = [self.tensor_info.get("tensor_id")] + result
+        return result
 
     def get_algorithm_result(self: any) -> list:
         """

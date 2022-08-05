@@ -13,7 +13,17 @@ from unittest import mock
 import argparse
 
 import compare_pytorch
+import compare_result
+from compare_pytorch import PytorchComparison
 from compare_error import CompareError
+
+
+class TestPytorchComparison(PytorchComparison):
+
+    def do_compare_and_get_result(self: any, dataset_list: list,
+                                  fusion_op_result: compare_result.FusionOpComResult,
+                                  op_info: compare_result.PytorchOpInfo) -> list:
+        return self._do_compare_and_get_result(dataset_list, fusion_op_result, op_info)
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -309,7 +319,6 @@ class TestUtilsMethods(unittest.TestCase):
                         pytorch_compare = compare_pytorch.PytorchComparison(args)
                         pytorch_compare._filter_one_line(result_path, row, writer, position)
 
-
     def test_filter_result_process(self):
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
@@ -327,3 +336,23 @@ class TestUtilsMethods(unittest.TestCase):
                         args = parser.parse_args(sys.argv[1:])
                         pytorch_compare = compare_pytorch.PytorchComparison(args)
                         pytorch_compare._filter_result_process("/home/test", open_file, "/home/filter")
+
+    def test_do_compare_and_get_result(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g', '/home/right.h5', '-out', '/home/out']
+        my_dump_data = np.asarray([2.0213, -0.9118, -0.7277, -1.2509, -0.3222, -0.1876, 0.0432, 1.0614])
+        golden_dump_data = np.asarray([2.0213, -0.9118, -0.7277, -1.2509, -0.3222, -0.1876, 0.0432, 1.0614])
+        shape = my_dump_data.shape
+        dataset_list = ['/addmm/3/input/mat1', '/addmm/10/input/mat1']
+        op_info = compare_result.PytorchOpInfo(1, 'addmm', '/addmm/3/input/mat1', '/addmm/10/input/mat1')
+        actual = ['1', 'addmm', '/addmm/3/input/mat1', '/addmm/10/input/mat1', 'float64', '[8]',
+                  '1.000000', '0.000000', '0.000000', '0.000000', '0.000000', '(-0.034;1.017),(-0.034;1.017)',
+                  '0.000000', '0.000000', '0.000000', '0.000000', '']
+        with mock.patch('sys.argv', args[1:]):
+            with mock.patch('compare_pytorch.PytorchComparison._get_compare_dump_data',
+                            return_value=[my_dump_data, golden_dump_data, shape]):
+                args = parser.parse_args(sys.argv)
+                pytorch_compare = TestPytorchComparison(args)
+                fusion_op_result = compare_result.FusionOpComResult(pytorch_compare.algorithm_manager)
+                result_list = pytorch_compare.do_compare_and_get_result(dataset_list, fusion_op_result, op_info)
+                self.assertEqual(result_list[0], actual)
