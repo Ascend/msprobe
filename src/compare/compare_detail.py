@@ -154,9 +154,9 @@ class DumpDetailComparison:
         self.fusion_op = None
 
     @staticmethod
-    def check_index_valid(left_tensor_data, op_name, tensor_index, tensor_type):
-        if tensor_index >= len(left_tensor_data):
-            log.print_out_of_range_error(op_name, tensor_type, tensor_index, '[0, %d)' % len(left_tensor_data))
+    def check_index_valid(tensor_data, op_name, tensor_index, tensor_type):
+        if tensor_index >= len(tensor_data):
+            log.print_out_of_range_error(op_name, tensor_type, tensor_index, '[0, %d)' % len(tensor_data))
             raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
 
     def compare(self: any) -> int:
