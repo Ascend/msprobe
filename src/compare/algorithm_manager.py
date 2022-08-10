@@ -90,12 +90,10 @@ class AlgorithmManager:
         if my_output_dump_data_size == 0 and args.get('my_output_dump_file') is not None:
             msg = 'The dump data size is 0 in %s.' % args.get('my_output_dump_file')
             log.print_warn_log(msg)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
         ground_truth_dump_data_size = len(ground_truth_dump_data)
         if ground_truth_dump_data_size == 0 and args.get('ground_truth_dump_file') is not None:
             msg = 'The dump data size is 0 in %s.' % args.get('ground_truth_dump_file')
             log.print_warn_log(msg)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
 
         if my_output_dump_data_size != ground_truth_dump_data_size \
                 and args.get('my_output_dump_file') is not None \
