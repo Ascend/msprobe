@@ -153,6 +153,12 @@ class DumpDetailComparison:
         self.detail_writer = DetailWriter(output_path, detail_info)
         self.fusion_op = None
 
+    @staticmethod
+    def check_index_valid(left_tensor_data, op_name, tensor_index, tensor_type):
+        if tensor_index >= len(left_tensor_data):
+            log.print_out_of_range_error(op_name, tensor_type, tensor_index, '[0, %d)' % len(left_tensor_data))
+            raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
+
     def compare(self: any) -> int:
         """
         Compare detail by op name
@@ -160,28 +166,22 @@ class DumpDetailComparison:
         """
         tensor_id = self.detail_info.tensor_id.get_tensor_id()
         op_name = self.detail_info.tensor_id.op_name
+        tensor_type = self.detail_info.tensor_id.tensor_type
+        tensor_index = self.detail_info.tensor_id.index
         log.print_info_log('[%s] Start to compare detail for %s.'
                            % (op_name, tensor_id))
 
-        left_path, left_data = self.compare_data.get_left_dump_data(op_name)
-        right_path, right_data = self.compare_data.get_right_dump_data(op_name)
-        log.print_info_log("My Output data path: " + left_path)
-        log.print_info_log("Ground Truth data path: " + right_path)
+        left_path, left_tensor_data, right_tensor_data = self.get_tensor_data(op_name, tensor_type)
 
-        # to do add check index when bugfix
-        dump_file = os.path.basename(left_path)
-
-        tensor_type = self.detail_info.tensor_id.tensor_type
-        tensor_index = self.detail_info.tensor_id.index
-        if tensor_type == "input":
-            left_tensor_data = left_data.input
-            right_tensor_data = right_data.input
-        else:
-            left_tensor_data = left_data.output
-            right_tensor_data = right_data.output
+        self.check_index_valid(left_tensor_data, op_name, tensor_index, tensor_type)
+        self.check_index_valid(right_tensor_data, op_name, tensor_index, tensor_type)
 
         my_output_shape = tuple(left_tensor_data[tensor_index].shape.dim)
-        # to do add check when bugfix
+        ground_truth_shape = tuple(right_tensor_data[tensor_index].shape.dim)
+        if my_output_shape != ground_truth_shape:
+            log.print_error_log("My Output data shape %s not equal to Ground Truth data shape %s."
+                                "Can not compare." % (my_output_shape, ground_truth_shape))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
         my_output_array = utils.deserialize_dump_data_to_array(left_tensor_data[tensor_index])
         ground_truth_array = utils.deserialize_dump_data_to_array(right_tensor_data[tensor_index])
@@ -201,6 +201,25 @@ class DumpDetailComparison:
             log.print_error_log('Failed to delete the old detail result file. %s' % error)
             raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
 
+        dump_file = os.path.basename(left_path)
         self.detail_writer.write(my_output_shape, my_output_array, ground_truth_array, dump_file)
         return CompareError.MSACCUCMP_NONE_ERROR
 
+    def get_tensor_data(self, op_name, tensor_type):
+        """
+        Get tensor form dump data
+        :return left_path
+        :return left_tensor_data
+        :return right_tensor_data
+        """
+        left_path, left_data = self.compare_data.get_left_dump_data(op_name)
+        right_path, right_data = self.compare_data.get_right_dump_data(op_name)
+        log.print_info_log("My Output data path: " + left_path)
+        log.print_info_log("Ground Truth data path: " + right_path)
+        if tensor_type == "input":
+            left_tensor_data = left_data.input
+            right_tensor_data = right_data.input
+        else:
+            left_tensor_data = left_data.output
+            right_tensor_data = right_data.output
+        return left_path, left_tensor_data, right_tensor_data
