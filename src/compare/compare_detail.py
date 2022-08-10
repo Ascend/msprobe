@@ -154,7 +154,7 @@ class DumpDetailComparison:
         self.fusion_op = None
 
     @staticmethod
-    def check_index_valid(tensor_data, op_name, tensor_index, tensor_type):
+    def _check_index_valid(tensor_data, op_name, tensor_index, tensor_type):
         if tensor_index >= len(tensor_data):
             log.print_out_of_range_error(op_name, tensor_type, tensor_index, '[0, %d)' % len(tensor_data))
             raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
@@ -173,8 +173,8 @@ class DumpDetailComparison:
 
         left_path, left_tensor_data, right_tensor_data = self.get_tensor_data(op_name, tensor_type)
 
-        self.check_index_valid(left_tensor_data, op_name, tensor_index, tensor_type)
-        self.check_index_valid(right_tensor_data, op_name, tensor_index, tensor_type)
+        self._check_index_valid(left_tensor_data, op_name, tensor_index, tensor_type)
+        self._check_index_valid(right_tensor_data, op_name, tensor_index, tensor_type)
 
         my_output_shape = tuple(left_tensor_data[tensor_index].shape.dim)
         ground_truth_shape = tuple(right_tensor_data[tensor_index].shape.dim)
@@ -216,7 +216,7 @@ class DumpDetailComparison:
         right_path, right_data = self.compare_data.get_right_dump_data(op_name)
         log.print_info_log("My Output data path: " + left_path)
         log.print_info_log("Ground Truth data path: " + right_path)
-        if tensor_type == "input":
+        if tensor_type == ConstManager.INPUT:
             left_tensor_data = left_data.input
             right_tensor_data = right_data.input
         else:
