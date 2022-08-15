@@ -144,8 +144,9 @@ class FusionOpComResult:
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
         else:
-            current_tensor_info = [str(fusion_op.op_id), ConstManager.NAN, my_output_op, ConstManager.NAN,
-                                   ConstManager.NAN, ground_truth_op, ConstManager.NAN, ConstManager.NAN,
+            current_tensor_info = [str(fusion_op.op_id), fusion_op.get_real_op_type(),
+                                   my_output_op, ConstManager.NAN, ConstManager.NAN,
+                                   ground_truth_op, ConstManager.NAN, ConstManager.NAN,
                                    ConstManager.NAN, ConstManager.NAN]
             self._pre_handle_result(current_tensor_info)
             if self.overflow_detection:
