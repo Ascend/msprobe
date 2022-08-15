@@ -144,7 +144,9 @@ class FusionOpComResult:
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
         else:
-            current_tensor_info = [str(fusion_op.op_id), ConstManager.NAN, my_output_op, ConstManager.NAN,
+            op_type = fusion_op.op_type \
+                if fusion_op.op_type not in [ConstManager.LEFT_TYPE, ConstManager.RIGHT_TYPE] else ConstManager.NAN
+            current_tensor_info = [str(fusion_op.op_id), op_type, my_output_op, ConstManager.NAN,
                                    ConstManager.NAN, ground_truth_op, ConstManager.NAN, ConstManager.NAN,
                                    ConstManager.NAN, ConstManager.NAN]
             self._pre_handle_result(current_tensor_info)
