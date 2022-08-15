@@ -144,10 +144,9 @@ class FusionOpComResult:
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
         else:
-            op_type = fusion_op.op_type if fusion_op.op_type not in [ConstManager.LEFT_TYPE, ConstManager.RIGHT_TYPE] \
-                else ConstManager.NAN
-            current_tensor_info = [str(fusion_op.op_id), op_type, my_output_op, ConstManager.NAN,
-                                   ConstManager.NAN, ground_truth_op, ConstManager.NAN, ConstManager.NAN,
+            current_tensor_info = [str(fusion_op.op_id), self._filter_left_and_right_type(fusion_op),
+                                   my_output_op, ConstManager.NAN, ConstManager.NAN,
+                                   ground_truth_op, ConstManager.NAN, ConstManager.NAN,
                                    ConstManager.NAN, ConstManager.NAN]
             self._pre_handle_result(current_tensor_info)
             if self.overflow_detection:
@@ -202,6 +201,16 @@ class FusionOpComResult:
             current_tensor_info.pop(ConstManager.GROUND_TRUTH_ADDRESS_INDEX + 1)
         if self.is_my_dump_gpu_or_cpu:
             current_tensor_info.pop(ConstManager.MY_OUTPUT_ADDRESS_INDEX + 1)
+
+    def _filter_left_and_right_type(fusion_op: FusionOp) -> str:
+        """
+        if op_type is not Left or Right, there is real op type
+        """
+        if fusion_op.op_type not in [ConstManager.LEFT_TYPE, ConstManager.RIGHT_TYPE]:
+            op_type = fusion_op.op_type
+        else:
+            op_type = ConstManager.NAN
+        return op_type
 
 
 def get_result_title(algorithm_manager: AlgorithmManager, op_header: list, overflow_detection: bool = False) -> list:
