@@ -202,7 +202,7 @@ class FusionOpComResult:
         if self.is_my_dump_gpu_or_cpu:
             current_tensor_info.pop(ConstManager.MY_OUTPUT_ADDRESS_INDEX + 1)
 
-    def _filter_left_and_right_type(fusion_op: FusionOp) -> str:
+    def _filter_left_and_right_type(self: any, fusion_op: FusionOp) -> str:
         """
         if op_type is not Left or Right, there is real op type
         """
