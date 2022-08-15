@@ -182,3 +182,13 @@ class FusionOp:
                     inner_node = False
                     break
         return inner_node
+
+    def get_real_op_type(self: any) -> str:
+        """
+        if op_type is not Left or Right, there is real op type
+        """
+        if self.op_type not in [ConstManager.LEFT_TYPE, ConstManager.RIGHT_TYPE]:
+            op_type = self.op_type
+        else:
+            op_type = ConstManager.NAN
+        return op_type
