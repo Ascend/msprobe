@@ -214,9 +214,15 @@ class DumpDetailComparison:
         """
         try:
             left_path, left_data = self.compare_data.get_left_dump_data(op_name)
+        except CompareError as compare_error:
+            log.print_error_log('Failed to find %s dump data from -m dump data path.' % op_name)
+            raise compare_error
+        finally:
+            pass
+        try:
             right_path, right_data = self.compare_data.get_right_dump_data(op_name)
         except CompareError as compare_error:
-            log.print_error_log('Failed to find %s dump data from dump data path.' % op_name)
+            log.print_error_log('Failed to find %s dump data from -g dump data path.' % op_name)
             raise compare_error
         finally:
             pass
