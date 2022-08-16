@@ -212,8 +212,20 @@ class DumpDetailComparison:
         :return left_tensor_data
         :return right_tensor_data
         """
-        left_path, left_data = self.compare_data.get_left_dump_data(op_name)
-        right_path, right_data = self.compare_data.get_right_dump_data(op_name)
+        try:
+            left_path, left_data = self.compare_data.get_left_dump_data(op_name)
+        except CompareError as compare_error:
+            log.print_error_log('Failed to find %s dump data from -m dump data path.' % op_name)
+            raise compare_error
+        finally:
+            pass
+        try:
+            right_path, right_data = self.compare_data.get_right_dump_data(op_name)
+        except CompareError as compare_error:
+            log.print_error_log('Failed to find %s dump data from -g dump data path.' % op_name)
+            raise compare_error
+        finally:
+            pass
         log.print_info_log("My Output data path: " + left_path)
         log.print_info_log("Ground Truth data path: " + right_path)
         if tensor_type == ConstManager.INPUT:
