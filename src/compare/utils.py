@@ -83,6 +83,8 @@ def deserialize_dump_data_to_array(tensor: any) -> any:
     :param tensor: the dump data for input or output
     :return: the numpy array
     """
+    if 0 in tensor.shape.dim:
+        return np.array([]).reshape(tensor.shape.dim)
     return np.frombuffer(tensor.data, dtype=common.get_dtype_by_data_type(tensor.data_type))
 
 

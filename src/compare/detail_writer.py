@@ -425,10 +425,12 @@ class DetailWriter:
             relative_new_error = self._replace_inf_and_nan(relative_error)
             absolute_top_n_index = np.argpartition(absolute_new_error, -top_n)[-top_n:].tolist()
             relative_top_n_index = np.argpartition(relative_new_error, -top_n)[-top_n:].tolist()
-            self.min_max_value.set_min_absolute_error(np.nanmin(absolute_new_error))
-            self.min_max_value.set_max_absolute_error(np.nanmax(absolute_new_error))
-            self.min_max_value.set_min_relative_error(np.nanmin(relative_new_error))
-            self.min_max_value.set_max_relative_error(np.nanmax(relative_new_error))
+            if len(absolute_new_error) != 0:
+                self.min_max_value.set_min_absolute_error(np.nanmin(absolute_new_error))
+                self.min_max_value.set_max_absolute_error(np.nanmax(absolute_new_error))
+            if len(relative_new_error) != 0:
+                self.min_max_value.set_min_relative_error(np.nanmin(relative_new_error))
+                self.min_max_value.set_max_relative_error(np.nanmax(relative_new_error))
         else:
             absolute_top_n_index = list(range(top_n))
             relative_top_n_index = list(range(top_n))
