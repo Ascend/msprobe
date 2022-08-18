@@ -31,6 +31,7 @@ class TestUtilsMethods(unittest.TestCase):
         mock_common.return_value = np.uint8
         op_output = mock.Mock()
         op_output.data = b'\x01\x02'
+        op_output.shape.dim = [1]
         numpy_data = utils.deserialize_dump_data_to_array(op_output)
         self.assertEqual(len(numpy_data), 2)
 

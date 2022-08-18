@@ -232,6 +232,8 @@ class ShapeConversion:
         for dim in src_to_dest.src_shape.dim:
             shape.append(dim)
             size *= dim
+        if 0 in array.shape:
+            return array.reshape(shape)
         if size != len(array):
             log.print_error_log("The length(%d) is not match with the shape %s."
                                 % (len(array), utils.convert_shape_to_string(src_to_dest.src_shape.dim)))
