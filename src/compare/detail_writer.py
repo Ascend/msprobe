@@ -380,7 +380,7 @@ class DetailWriter:
     def _make_detail_output_file(self: any, file_index: int = 0) -> str:
         # make file name based on the index，then return the path
         old_file_name = "%s_%d.csv" % (self.detail_info.tensor_id.get_file_prefix(), file_index)
-        new_file_name = self._handle_too_long_file_name(old_file_name, ConstManager.CSV_SUFFIX)
+        new_file_name = self._handle_too_long_file_name(old_file_name, ConstManager.CSV_SUFFIX, file_index)
         file_path = os.path.join(self.output_path, new_file_name)
 
         return file_path
@@ -513,11 +513,14 @@ class DetailWriter:
             log.print_error_log('Failed to write detail summary file. %s' % error)
             raise CompareError(CompareError.MSACCUCMP_WRITE_FILE_ERROR) from error
 
-    def _handle_too_long_file_name(self: any, file_name: str, suffix: str) -> str:
+    def _handle_too_long_file_name(self: any, file_name: str, suffix: str, file_index: int = 0) -> str:
         if len(file_name) >= ConstManager.LINUX_FILE_NAME_MAX_LEN:
             tensor_type_index = self.detail_info.tensor_id.get_tensor_type_index()
             new_file_name = "%s%s%s" % (self.dump_file_name.replace('/', '_').replace('.', '_'),
                                         tensor_type_index, suffix)
+            if ConstManager.CSV_SUFFIX == suffix:
+                new_file_name = "%s%s_%s%s" % (self.dump_file_name.replace('/', '_').replace('.', '_'),
+                                               tensor_type_index, file_index, suffix)
             if len(new_file_name) >= ConstManager.LINUX_FILE_NAME_MAX_LEN:
                 value = ''.join(str(uuid.uuid3(uuid.NAMESPACE_DNS, file_name)).split('-'))
                 new_file_name = "%s%s" % (value, suffix)
