@@ -32,6 +32,7 @@ from compare_detail import DetailComparison
 from compare_detail import DumpDetailComparison
 
 from const_manager import ConstManager
+from dump import DumpType
 
 from range_manager import RangeManager
 from range_mode import RangeMode
@@ -185,6 +186,15 @@ class VectorComparison:
             return self._make_table()
         # 5. do compare vector
         return self._compare_vector()
+
+    def _check_both_dump_data(self: any) -> bool:
+        both_dump_data = False
+        if DumpType.Offline == self.compare_data.left_dump_info.type \
+                and DumpType.Offline == self.compare_data.right_dump_info.type:
+            both_dump_data = True
+            if self.args.get("overflow_detection"):
+                log.print_warn_log('Both compare data are NPU dump data, not support overflow detection.')
+        return both_dump_data
 
     def _process_output_path_parameter(self: any, arguments: any) -> None:
         if arguments.mapping:
@@ -368,12 +378,14 @@ class VectorComparison:
             log.print_warn_log('Both the offline fusion rule file path and '
                                'the quant fusion rule file path cannot be empty. '
                                'Please ensure that the data is reasonable.')
+            if self.args.get("overflow_detection"):
+                log.print_warn_log('Both compare data are NPU dump data, not support overflow detection.')
             comparison = DumpDetailComparison(self.detail_info, self.compare_data, self.output_path)
             return comparison.compare()
         if self.detail_info.tensor_id.op_name not in self.compare_rule.fusion_info.op_name_to_fusion_op_name_map:
             log.print_error_log('There is no "%s" in the fusion rule file.' % self.detail_info.tensor_id.op_name)
             return CompareError.MSACCUCMP_INVALID_PARAM_ERROR
-        if self.args.get("overflow_detection"):
+        if self.args.get("overflow_detection") and not self._check_both_dump_data():
             overflow_detection = OverflowDetection(self.compare_data, self.detail_info.tensor_id.op_name)
             overflow_detection.process_op_overflow_detection()
         fusion_op_name = self.compare_rule.fusion_info.op_name_to_fusion_op_name_map.get(
