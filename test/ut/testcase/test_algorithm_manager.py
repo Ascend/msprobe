@@ -121,12 +121,12 @@ class TestUtilsMethods(unittest.TestCase):
         args.custom_script_path = ''
         args.algorithm = 'all'
         args.algorithm_options = ''
+        args.output_path = None
         dump_data = np.arange(2)
-        with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid', side_effect=[0, 1]):
-                with mock.patch('utils.read_numpy_file', return_value=dump_data):
-                    AlgorithmManagerMain(args).process()
-        self.assertEqual(error.value.args[0], 1)
+        with mock.patch('utils.check_path_valid', side_effect=[0, 1]):
+            with mock.patch('utils.read_numpy_file', return_value=dump_data):
+                ret = AlgorithmManagerMain(args).process()
+        self.assertEqual(ret, 0)
 
     def test_process2(self):
         args = mock.Mock()
@@ -135,6 +135,7 @@ class TestUtilsMethods(unittest.TestCase):
         args.custom_script_path = ''
         args.algorithm = 'all'
         args.algorithm_options = ''
+        args.output_path = None
         dump_data1 = np.arange(2)
         dump_data2 = np.arange(6)
         with mock.patch('utils.check_path_valid', return_value=0):
@@ -149,6 +150,7 @@ class TestUtilsMethods(unittest.TestCase):
         args.custom_script_path = ''
         args.algorithm = 'all'
         args.algorithm_options = ''
+        args.output_path = None
         dump_data = np.arange(2)
         with mock.patch('utils.check_path_valid', return_value=0):
             with mock.patch('utils.read_numpy_file', return_value=dump_data):
@@ -161,6 +163,7 @@ class TestUtilsMethods(unittest.TestCase):
         args.custom_script_path = ''
         args.algorithm = '5,1,0'
         args.algorithm_options = ''
+        args.output_path = None
         dump_data = np.arange(2)
         with mock.patch('utils.check_path_valid', return_value=0):
             with mock.patch('utils.read_numpy_file', return_value=dump_data):
@@ -173,6 +176,7 @@ class TestUtilsMethods(unittest.TestCase):
         args.custom_script_path = ''
         args.algorithm = 'all'
         args.algorithm_options = ''
+        args.output_path = None
         dump_data = np.zeros(5)
         with mock.patch('utils.check_path_valid', return_value=0):
             with mock.patch('utils.read_numpy_file', return_value=dump_data):

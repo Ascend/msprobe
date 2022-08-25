@@ -10,10 +10,10 @@ Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
 import os
 import re
 import sys
+import time
 import importlib
 import log
 import utils
-import time
 import numpy as np
 
 from algorithm_parameter import AlgorithmParameter
@@ -387,8 +387,8 @@ class AlgorithmManagerMain:
             log.print_info_log(str(error_msg))
         if save_result:
             content = ""
-            for index in range(len(result)):
-                content += "%s: %s\n" % (header[index], result[index])
+            for index, data in enumerate(result):
+                content += "%s: %s\n" % (header[index], data)
             file_name = 'file_result_%s.txt' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
             summary_file_path = os.path.join(self.output_path, file_name)
             FileUtils.save_file(summary_file_path, content)
