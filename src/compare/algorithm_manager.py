@@ -13,6 +13,7 @@ import sys
 import importlib
 import log
 import utils
+import time
 import numpy as np
 
 from algorithm_parameter import AlgorithmParameter
@@ -22,6 +23,7 @@ from const_manager import ConstManager
 from reg_manager import RegManager
 
 from compare_error import CompareError
+from file_utils import FileUtils
 
 
 class AlgorithmManager:
@@ -325,6 +327,8 @@ class AlgorithmManagerMain:
         self.my_output_dump_file_path = os.path.realpath(args.my_dump_path)
         self.ground_truth_dump_file_path = os.path.realpath(args.golden_dump_path)
         self.manager = AlgorithmManager(args.custom_script_path, args.algorithm, args.algorithm_options)
+        if args.output_path:
+            self.output_path = os.path.realpath(args.output_path)
 
     def check_arguments_valid(self: any) -> None:
         """
@@ -339,23 +343,23 @@ class AlgorithmManagerMain:
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 
-    def process(self: any) -> int:
+    def process(self: any, save_result: bool = False) -> int:
         """
         Do compare for two numpy file
+        :param save_result: is save result
         :return: VectorComparisonErrorCode
         """
-        self.check_arguments_valid()
         log.print_info_log("The my output dump file is %s." % self.my_output_dump_file_path)
         log.print_info_log("The ground truth file is %s." % self.ground_truth_dump_file_path)
         try:
-            self._process_exec()
+            self._process_exec(save_result)
         except CompareError as error:
             return error.code
         finally:
             pass
         return CompareError.MSACCUCMP_NONE_ERROR
 
-    def _process_exec(self: any) -> None:
+    def _process_exec(self: any, save_result: bool) -> None:
         my_output_dump_data = utils.read_numpy_file(self.my_output_dump_file_path)
         ground_truth_dump_data = utils.read_numpy_file(self.ground_truth_dump_file_path)
         self._check_shape_valid(my_output_dump_data, ground_truth_dump_data)
@@ -364,9 +368,9 @@ class AlgorithmManagerMain:
             {'my_output_dump_file': self.my_output_dump_file_path,
              'ground_truth_dump_file': self.ground_truth_dump_file_path,
              'shape_type': utils.get_shape_type(my_output_dump_data.shape)})
-        self._print_result(result, error_msg)
+        self._print_result(result, error_msg, save_result)
 
-    def _print_result(self: any, result: list, error_msg: list) -> None:
+    def _print_result(self: any, result: list, error_msg: list, save_result: bool) -> None:
         header = self.manager.get_result_title()
         title = ''
         line = ''
@@ -381,6 +385,14 @@ class AlgorithmManagerMain:
         log.print_info_log(line)
         if error_msg:
             log.print_info_log(str(error_msg))
+        if save_result:
+            content = ""
+            for index in range(len(result)):
+                content += "%s: %s\n" % (header[index], result[index])
+            file_name = 'file_result_%s.txt' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+            summary_file_path = os.path.join(self.output_path, file_name)
+            FileUtils.save_file(summary_file_path, content)
+            log.print_info_log('The file compare result have been written to "%s".' % summary_file_path)
 
     def _check_shape_valid(self: any, my_output_dump_data: any, ground_truth_dump_data: any) -> None:
         my_output_shape = my_output_dump_data.shape
