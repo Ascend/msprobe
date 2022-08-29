@@ -349,6 +349,7 @@ class AlgorithmManagerMain:
         :param save_result: is save result
         :return: VectorComparisonErrorCode
         """
+        self.check_arguments_valid()
         log.print_info_log("The my output dump file is %s." % self.my_output_dump_file_path)
         log.print_info_log("The ground truth file is %s." % self.ground_truth_dump_file_path)
         try:
