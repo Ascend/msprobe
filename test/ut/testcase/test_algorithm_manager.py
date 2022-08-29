@@ -123,10 +123,11 @@ class TestUtilsMethods(unittest.TestCase):
         args.algorithm_options = ''
         args.output_path = None
         dump_data = np.arange(2)
-        with mock.patch('utils.check_path_valid', side_effect=[0, 1]):
-            with mock.patch('utils.read_numpy_file', return_value=dump_data):
-                ret = AlgorithmManagerMain(args).process()
-        self.assertEqual(ret, 0)
+        with pytest.raises(CompareError) as error:
+            with mock.patch('utils.check_path_valid', side_effect=[0, 1]):
+                with mock.patch('utils.read_numpy_file', return_value=dump_data):
+                    AlgorithmManagerMain(args).process()
+        self.assertEqual(error.value.args[0], 1)
 
     def test_process2(self):
         args = mock.Mock()
