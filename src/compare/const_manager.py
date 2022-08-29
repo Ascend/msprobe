@@ -73,6 +73,9 @@ class ConstManager:
                           "MeanRelativeError"]
     ALGORITHM_FILE_NAME_PATTERN = r"^alg_([A-Za-z0-9_]+)\.py[c]?$"
     BOOL_ALGORITHM = ('CosineSimilarity', 'RelativeEuclideanDistance')
+    FILE_CMP_SUPPORTED_ALGORITHM = ["CosineSimilarity", "MaxAbsoluteError", "AccumulatedRelativeError",
+                                    "RelativeEuclideanDistance", "MeanAbsoluteError", "RootMeanSquareError",
+                                    "MaxRelativeError", "MeanRelativeError"]
 
     COMPARE_ARGUMENT_COUNT = 3
     SPACE = ' '

@@ -236,6 +236,19 @@ def _overflow_parser(overflow_parser: argparse.ArgumentParser) -> None:
              'the default value is 1.')
 
 
+def _file_compare_parser(file_compare_parser: argparse.ArgumentParser) -> None:
+    file_compare_parser.add_argument(
+        '-m', '--my_dump_path', dest='my_dump_path', default='',
+        help='<Required> my dump path, the data compared with golden data',
+        required=True)
+    file_compare_parser.add_argument(
+        '-g', '--golden_dump_path', dest='golden_dump_path', default='',
+        help='<Required> the golden dump path', required=True)
+    file_compare_parser.add_argument(
+        '-out', '--output', dest='output_path', default='',
+        help='<Required> the output path', required=True)
+
+
 def _check_argument_effect(required_arg: any, options_arg: any, options_arg_str: str,
                            required_arg_str: str) -> None:
     if required_arg is None and options_arg is not None:
@@ -262,6 +275,23 @@ def _check_dump_path_exist(dump_path_array: list) -> None:
         ret = utils.check_path_valid(item_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
+
+
+def _check_file_compare_file(args: argparse.Namespace, file_type) -> None:
+    for file in [args.my_dump_path, args.golden_dump_path]:
+        if not file.endswith(file_type):
+            log.print_error_log("[file_compare] The file %s is invalid.Only support %s file." % (file, file_type))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
+        ret = utils.check_path_valid(file, True, False, path_type=utils.PathType.File)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
+
+
+def _check_file_compare_out(args: argparse.Namespace) -> None:
+    ret = utils.check_output_path_valid(args.output_path, exist=True)
+    if ret != CompareError.MSACCUCMP_NONE_ERROR:
+        log.print_error_log('[file_compare] The -out parameter: "%s"  is invalid!' % args.output_path)
+        raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
 
 def start_compare(args: argparse.Namespace) -> int:
@@ -301,10 +331,13 @@ def _do_cmd() -> int:
         'convert', help='Convert my dump data to numpy data or bin data.')
     overflow_parser = subparsers.add_parser(
         'overflow', help='Analyze the information of the overflow operators.')
+    file_compare_parser = subparsers.add_parser(
+        'file_compare', help='Compare two single .npy file.')
 
     _compare_parser(compare_parser)
     _convert_parser(covert_parser)
     _overflow_parser(overflow_parser)
+    _file_compare_parser(file_compare_parser)
 
     args = parser.parse_args(sys.argv[1:])
     if len(sys.argv) < 2:
@@ -315,6 +348,8 @@ def _do_cmd() -> int:
         ret = _do_compare(args)
     elif sys.argv[1] == 'convert':
         ret = _do_convert(args)
+    elif sys.argv[1] == 'file_compare':
+        ret = _do_file_compare(args)
     else:
         ret = _do_overflow(args)
 
@@ -409,6 +444,18 @@ def _do_convert(args: argparse.Namespace) -> int:
         ret = conversion.convert_format()
     else:
         ret = DumpDataParser(args).parse_dump_data()
+
+    return ret
+
+
+def _do_file_compare(args: argparse.Namespace) -> int:
+    _check_file_compare_file(args, ConstManager.NPY_SUFFIX)
+    _check_file_compare_out(args)
+    args.custom_script_path = ""
+    args.algorithm = ConstManager.FILE_CMP_SUPPORTED_ALGORITHM
+    args.algorithm_options = ""
+    compare = AlgorithmManagerMain(args)
+    ret = compare.process(save_result=True)
 
     return ret
 
