@@ -230,7 +230,8 @@ class TestUtilsMethods(unittest.TestCase):
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
                 with mock.patch("os.path.exists", return_value=False):
-                    msaccucmp.main()
+                    with mock.patch("utils.check_path_valid", return_value=0):
+                        msaccucmp.main()
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
 
