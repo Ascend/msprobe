@@ -214,6 +214,46 @@ class TestUtilsMethods(unittest.TestCase):
                         msaccucmp.main()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_NONE_ERROR)
 
+    def test_main_file_compare_case1(self):
+        args = ['aaa.py', 'file_compare', '-m', '/home/left.bin', '-g',
+                '/home/right.npy', '-out', '/home/output']
+        with pytest.raises(SystemExit) as error:
+            with mock.patch('sys.argv', args):
+                with mock.patch("os.path.exists", return_value=False):
+                    msaccucmp.main()
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
+
+    def test_main_file_compare_case2(self):
+        args = ['aaa.py', 'file_compare', '-m', '/home/left.npy', '-g',
+                '/home/right.bin', '-out', '/home/output']
+        with pytest.raises(SystemExit) as error:
+            with mock.patch('sys.argv', args):
+                with mock.patch("os.path.exists", return_value=False):
+                    msaccucmp.main()
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
+
+    def test_main_file_compare_case3(self):
+        args = ['aaa.py', 'file_compare', '-m', '/home/left.npy', '-g',
+                '/home/right.npy', '-out', '/home/output']
+        with pytest.raises(SystemExit) as error:
+            with mock.patch('sys.argv', args):
+                with mock.patch("utils.check_path_valid", return_value=0):
+                    with mock.patch("utils.check_output_path_valid", return_value=0):
+                        msaccucmp.main()
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_DUMP_FILE_ERROR)
+
+    def test_main_file_compare_case4(self):
+        args = ['aaa.py', 'file_compare', '-m', '/home/left.npy', '-g',
+                '/home/right.npy', '-out', '/home/output']
+        with pytest.raises(SystemExit) as error:
+            with mock.patch('sys.argv', args):
+                msaccucmp.main()
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+
     def test_check_range_effect1(self):
         args = ['aaa.py', 'compare', "-r", ',,', '-m', '/home/left.bin', '-g',
                 '/home/right.bin']
