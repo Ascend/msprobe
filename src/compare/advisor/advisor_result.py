@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2012-2022. All rights reserved.
 """
 Function:
 This class mainly involves the advisor result function.
-Copyright Information:
-Huawei Technologies Co., Ltd. All Rights Reserved © 2021-2022
 """
 import os
 

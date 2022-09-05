@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding=utf-8
-"""
-Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
-"""
+# Copyright (c) Huawei Technologies Co., Ltd. 2012-2022. All rights reserved.
 
 import json
 import os
