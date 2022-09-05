@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
 Function:
 This FusionOpComResult class. This file mainly involves the get_result function.
-Copyright Information:
-Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
 """
 
 import fusion_rule_parser

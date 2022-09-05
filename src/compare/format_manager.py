@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
 Function:
 FormatManager class.
 This class mainly involves the execute_format_convert function.
-Copyright Information:
-Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
 """
 import os
 import sys

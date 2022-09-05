@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
 Function:
 Pytorch CompareData class. This class mainly involves the function of parse dump_data.
-Copyright Information:
-Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
 """
 import numpy as np
 
