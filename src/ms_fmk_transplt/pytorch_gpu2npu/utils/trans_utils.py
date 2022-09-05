@@ -172,10 +172,7 @@ def get_special_rule(args):
 def _compare_authority(origin_auth, advise_auth):
     new_auth = ''
     for i in range(3):
-        if i == 0:
-            new_auth += str(advise_auth[i])
-        else:
-            new_auth += str(int(origin_auth[i]) & int(advise_auth[i]))
+        new_auth += str(int(origin_auth[i]) & int(advise_auth[i]))
     return int(new_auth, 8)
 
 
