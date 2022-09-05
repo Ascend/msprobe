@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
 Function:
 convert format from FRACTAL_NZ to ND.
-Copyright Information:
-Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
 """
 from functools import reduce
 import numpy as np

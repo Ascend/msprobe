@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
 Function:
 Quant Filter class, process the fusion json file
-Copyright Information:
-Huawei Technologies Co., Ltd. All Rights Reserved © 2019-2021
 """
 import re
 

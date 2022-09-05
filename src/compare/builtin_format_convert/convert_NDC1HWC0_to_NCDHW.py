@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2021-2021. All rights reserved.
 """
 Function:
 convert format from NDC1HWC0 to NCDHW.
-Copyright Information:
-Huawei Technologies Co., Ltd. All Rights Reserved © 2021-2021
 """
 import numpy as np
 
