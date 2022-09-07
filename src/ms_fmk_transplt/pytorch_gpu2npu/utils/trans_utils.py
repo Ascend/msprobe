@@ -95,7 +95,7 @@ def get_file_content(file):
         return file_handle.read()
 
 
-def write_file_content(file, code, permission=0o640):
+def write_file_content(file, code, permission=0o600):
     change_mode_flag = False
     if not os.access(file, os.W_OK):
         change_mode_flag = True
@@ -106,7 +106,7 @@ def write_file_content(file, code, permission=0o640):
         file_handle.truncate()
         file_handle.write(code)
     if change_mode_flag:
-        os.chmod(file, _compare_authority(origin_auth, oct(permission)[-3:]))
+        os.chmod(file, int(origin_auth, 8))
 
 
 def get_custom_rule(file, rule_list):
