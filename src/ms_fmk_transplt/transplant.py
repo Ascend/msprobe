@@ -86,7 +86,6 @@ class Transplant(object):
             self.global_reference_visitor.visit_file(os.path.relpath(file, self.script_dir))
         file_relative_path = os.path.relpath(file, commonprefix)
         translog.info(f'Start analysis {file_relative_path}.')
-        origin_auth = oct(os.stat(file).st_mode)[-3:]
         self.__analysis_code(file)
         translog.info(f'Analysis {file_relative_path} complete.')
 
