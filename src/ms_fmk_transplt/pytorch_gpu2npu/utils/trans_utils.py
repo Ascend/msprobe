@@ -72,7 +72,7 @@ def write_csv(content_list, script_file, script_dir, csv_type):
         rel_script_file_name = os.path.basename(script_file)
     new_data = pd.DataFrame(list(([rel_script_file_name] + content) for content in content_list))
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
-    change_mode(None, csv_file)
+    change_mode(csv_file)
 
 
 def get_op_list(version):
@@ -96,10 +96,17 @@ def get_file_content(file):
 
 
 def write_file_content(file, code, permission=0o640):
+    change_mode_flag = False
+    if not os.access(file, os.W_OK):
+        change_mode_flag = True
+        origin_auth = oct(os.stat(file).st_mode)[-3:]
+        os.chmod(file, 0o600)
     with os.fdopen(os.open(file, os.O_WRONLY | os.O_CREAT, permission),
                    'w', encoding='utf8', newline='') as file_handle:
         file_handle.truncate()
         file_handle.write(code)
+    if change_mode_flag:
+        os.chmod(file, _compare_authority(origin_auth, oct(permission)[-3:]))
 
 
 def get_custom_rule(file, rule_list):
@@ -176,13 +183,10 @@ def _compare_authority(origin_auth, advise_auth):
     return int(new_auth, 8)
 
 
-def change_mode(input_path, dir_path):
+def change_mode(dir_path):
     if os.path.islink(dir_path):
         return
-    if input_path is not None:
-        authority = oct(os.stat(input_path).st_mode)[-3:]
-    else:
-        authority = '777'
+    authority = oct(os.stat(dir_path).st_mode)[-3:]
     if os.path.isfile(dir_path):
         if dir_path.endswith('.sh'):
             new_auth = _compare_authority(authority, '550')
@@ -196,15 +200,13 @@ def change_mode(input_path, dir_path):
     for root, dirs, files in os.walk(dir_path):
         for dir_name in dirs:
             new_dir_path = os.path.join(root, dir_name)
-            origin_dir_path = new_dir_path.replace(dir_path, input_path)
-            authority = oct(os.stat(origin_dir_path).st_mode)[-3:]
+            authority = oct(os.stat(new_dir_path).st_mode)[-3:]
             if not os.path.islink(new_dir_path):
                 new_auth = _compare_authority(authority, '750')
                 os.chmod(new_dir_path, new_auth)
         for file_name in files:
             file_path = os.path.join(root, file_name)
-            origin_file_path = file_path.replace(dir_path, input_path)
-            authority = oct(os.stat(origin_file_path).st_mode)[-3:]
+            authority = oct(os.stat(file_path).st_mode)[-3:]
             if os.path.islink(file_path):
                 continue
             if file_name.endswith('.sh'):

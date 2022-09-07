@@ -224,7 +224,7 @@ class MsFmkTransplt(object):
             shutil.copyfile(self.input, self.output)
         if os.path.isdir(self.input):
             shutil.copytree(self.input, self.output, symlinks=True)
-        utils.change_mode(self.input, self.output)
+        utils.change_mode(self.output)
 
     def __init_custom_para(self, args):
         self.custom_rule_file = args.rule if args.rule else ""
@@ -247,7 +247,7 @@ class MsFmkTransplt(object):
             return
         shutil.rmtree(dst_path, ignore_errors=True)
         shutil.copytree(function_pack_dir, dst_path)
-        utils.change_mode(function_pack_dir, dst_path)
+        utils.change_mode(dst_path)
         translog.info(f"Package {pack_name} has been copy to the output dir, "
                       f"please add {os.path.dirname(dst_path)} to PYTHONPATH before run net.")
 
@@ -260,7 +260,7 @@ class MsFmkTransplt(object):
         if os.path.exists(log_file):
             utils.remove_path(log_file)
         translog.init_logging_file(log_file)
-        utils.change_mode(None, log_file)
+        utils.change_mode(log_file)
 
     def __init_rules(self, args):
         self.rule_list = utils.get_builtin_rule(self.feature_switch, args)
