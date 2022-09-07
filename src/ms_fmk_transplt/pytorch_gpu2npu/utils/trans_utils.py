@@ -95,11 +95,18 @@ def get_file_content(file):
         return file_handle.read()
 
 
-def write_file_content(file, code, permission=0o640):
+def write_file_content(file, code, permission=0o600):
+    change_mode_flag = False
+    if os.path.exists(file) and not os.access(file, os.W_OK):
+        change_mode_flag = True
+        origin_auth = oct(os.stat(file).st_mode)[-3:]
+        os.chmod(file, permission)
     with os.fdopen(os.open(file, os.O_WRONLY | os.O_CREAT, permission),
                    'w', encoding='utf8', newline='') as file_handle:
         file_handle.truncate()
         file_handle.write(code)
+    if change_mode_flag:
+        os.chmod(file, int(origin_auth, 8))
 
 
 def get_custom_rule(file, rule_list):
@@ -169,27 +176,42 @@ def get_special_rule(args):
     return special_rule_list
 
 
+def _compare_authority(origin_auth, advise_auth):
+    new_auth = ''
+    for i in range(3):
+        new_auth += str(int(origin_auth[i]) & int(advise_auth[i]))
+    return int(new_auth, 8)
+
+
+def _get_file_authority(path, authority):
+    if path.endswith('.sh'):
+        new_auth = _compare_authority(authority, '550')
+    else:
+        new_auth = _compare_authority(authority, '640')
+    return new_auth
+
+
 def change_mode(dir_path):
-    if os.path.isfile(dir_path):
-        if dir_path.endswith('.sh'):
-            os.chmod(dir_path, 0o750)
-        else:
-            os.chmod(dir_path, 0o640)
+    if os.path.islink(dir_path):
         return
-    os.chmod(dir_path, 0o750)
+    authority = oct(os.stat(dir_path).st_mode)[-3:]
+    if os.path.isfile(dir_path):
+        new_auth = _get_file_authority(dir_path, authority)
+        os.chmod(dir_path, new_auth)
     for root, dirs, files in os.walk(dir_path):
-        for dir_itr in dirs:
-            dir_iter_path = os.path.join(root, dir_itr)
-            if not os.path.islink(dir_iter_path):
-                os.chmod(dir_iter_path, 0o750)
-        for file in files:
-            file_path = os.path.join(root, file)
+        for dir_name in dirs:
+            new_dir_path = os.path.join(root, dir_name)
+            authority = oct(os.stat(new_dir_path).st_mode)[-3:]
+            if not os.path.islink(new_dir_path):
+                new_auth = _compare_authority(authority, '750')
+                os.chmod(new_dir_path, new_auth)
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
             if os.path.islink(file_path):
                 continue
-            if file.endswith('.sh'):
-                os.chmod(os.path.join(root, file), 0o750)
-                continue
-            os.chmod(file_path, 0o640)
+            authority = oct(os.stat(file_path).st_mode)[-3:]
+            new_auth = _get_file_authority(file_name, authority)
+            os.chmod(file_path, new_auth)
 
 
 def generate_distributed_shell_file(path):
