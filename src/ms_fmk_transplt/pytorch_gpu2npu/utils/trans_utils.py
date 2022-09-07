@@ -97,16 +97,17 @@ def get_file_content(file):
 
 def write_file_content(file, code, permission=0o600):
     change_mode_flag = False
-    if not os.access(file, os.W_OK):
+    if os.path.exists(file) and not os.access(file, os.W_OK):
         change_mode_flag = True
         origin_auth = oct(os.stat(file).st_mode)[-3:]
-        os.chmod(file, 0o600)
+        os.chmod(file, permission)
     with os.fdopen(os.open(file, os.O_WRONLY | os.O_CREAT, permission),
                    'w', encoding='utf8', newline='') as file_handle:
         file_handle.truncate()
         file_handle.write(code)
     if change_mode_flag:
         os.chmod(file, int(origin_auth, 8))
+
 
 
 def get_custom_rule(file, rule_list):
