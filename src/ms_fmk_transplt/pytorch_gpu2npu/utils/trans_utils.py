@@ -109,7 +109,6 @@ def write_file_content(file, code, permission=0o600):
         os.chmod(file, int(origin_auth, 8))
 
 
-
 def get_custom_rule(file, rule_list):
     key_set = ('ArgsModifyRule', 'FuncNameModifyRule', 'ModuleNameModifyRule')
     rules = get_file_content_bytes(file)
@@ -184,20 +183,21 @@ def _compare_authority(origin_auth, advise_auth):
     return int(new_auth, 8)
 
 
+def _get_file_authority(path, authority):
+    if path.endswith('.sh'):
+        new_auth = _compare_authority(authority, '550')
+    else:
+        new_auth = _compare_authority(authority, '640')
+    return new_auth
+
+
 def change_mode(dir_path):
     if os.path.islink(dir_path):
         return
     authority = oct(os.stat(dir_path).st_mode)[-3:]
     if os.path.isfile(dir_path):
-        if dir_path.endswith('.sh'):
-            new_auth = _compare_authority(authority, '550')
-            os.chmod(dir_path, new_auth)
-        else:
-            new_auth = _compare_authority(authority, '640')
-            os.chmod(dir_path, new_auth)
-        return
-    new_auth = _compare_authority(authority, '750')
-    os.chmod(dir_path, new_auth)
+        new_auth = _get_file_authority(dir_path, authority)
+        os.chmod(dir_path, new_auth)
     for root, dirs, files in os.walk(dir_path):
         for dir_name in dirs:
             new_dir_path = os.path.join(root, dir_name)
@@ -207,14 +207,10 @@ def change_mode(dir_path):
                 os.chmod(new_dir_path, new_auth)
         for file_name in files:
             file_path = os.path.join(root, file_name)
-            authority = oct(os.stat(file_path).st_mode)[-3:]
             if os.path.islink(file_path):
                 continue
-            if file_name.endswith('.sh'):
-                new_auth = _compare_authority(authority, '550')
-                os.chmod(file_path, new_auth)
-                continue
-            new_auth = _compare_authority(authority, '640')
+            authority = oct(os.stat(file_path).st_mode)[-3:]
+            new_auth = _get_file_authority(file_name, authority)
             os.chmod(file_path, new_auth)
 
 
