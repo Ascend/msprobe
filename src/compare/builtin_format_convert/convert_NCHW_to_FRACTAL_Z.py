@@ -5,20 +5,11 @@
 Function:
 convert format from NCHW to FRACTAL_Z.
 """
-import math
 import numpy as np
 
 from const_manager import ConstManager
-
-
-def lcm(left: int, right: int) -> int:
-    """
-    Least common multiple, in this file, n could not zero
-    :param left: One of the calculation parameters
-    :param right: One of the calculation parameters
-    :return: left, right Least common multiple
-    """
-    return (left * right) // math.gcd(left, right)
+from utils import least_common_multiple as lcm
+from utils import ceiling_divide as ceil
 
 
 def _get_axis(gnc_axis: list, value_map: dict, dst_c: int, w_axis: int, h_axis: int) -> int:
@@ -56,16 +47,6 @@ def _get_count_for_axis(shape_from: list, g_num: int, e_multi: int) -> int:
     return g_num * c1_axis * kh_axis * kw_axis
 
 
-def ceil(left: int, right: int) -> int:
-    """
-    Ceiling divide, in this file, n could not zero
-    :param left: One of the calculation parameters
-    :param right: One of the calculation parameters
-    :return: left, right Ceiling divide
-    """
-    return (left + right - 1) // right
-
-
 def convert(shape_from: list, shape_to: list, array: any, group: int = 1) -> any:
     """
     Convert the data format from NCHW to FRACTAL_Z
@@ -96,8 +77,16 @@ def convert(shape_from: list, shape_to: list, array: any, group: int = 1) -> any
     for g_axis in range(group):
         for n_axis in range(n_ori):
             for c_axis in range(c_ori):
-                _convert_for_h_and_w([g_axis, n_axis, c_axis],
-                                     {'c_ori': c_ori, 'n_ori': n_ori, 'e_multi': e_multi,
-                                      'kh_axis': kh_axis, 'kw_axis': kw_axis},
-                                     array_to, array_shape)
+                for h_axis in range(kh_axis):
+                    for w_axis in range(kw_axis):
+                        e_val = g_axis % e_multi
+                        dst_c = e_val * c_ori + c_axis
+                        dst_n = e_val * n_ori + n_axis
+                        src_n = g_axis * n_ori + n_axis
+                        array_to[_get_axis([g_axis, n_axis, c_axis],
+                                           {'e_multi': e_multi, 'kh_axis': kh_axis, 'kw_axis': kw_axis},
+                                           dst_c, w_axis, h_axis)][dst_n // ConstManager.N0_AXIS][
+                            dst_n % ConstManager.N0_AXIS][dst_c % ConstManager.C0_AXIS] = \
+                            array_shape[src_n][c_axis][h_axis][w_axis]
     return array_to
+
