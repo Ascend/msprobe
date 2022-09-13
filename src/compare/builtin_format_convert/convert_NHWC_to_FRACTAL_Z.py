@@ -22,23 +22,6 @@ def _get_axis(gnh_axis: list, value_map: dict, dst_c: int, w_axis: int) -> int:
     return tmp_value + (dst_c // ConstManager.C0_AXIS) * kh_axis * kw_axis + h_axis * kw_axis + w_axis
 
 
-def _convert_for_w_and_c(gnh_axis: list, value_map: dict, array_to: any, array_shape: any) -> None:
-    g_axis = gnh_axis[0]
-    n_axis = gnh_axis[1]
-    h_axis = gnh_axis[2]
-    c_ori = value_map.get('c_ori')
-    n_ori = value_map.get('n_ori')
-    for w_axis in range(value_map.get('kw_axis')):
-        for c_axis in range(c_ori):
-            e_val = g_axis % value_map.get('e_multi')
-            dst_c = e_val * c_ori + c_axis
-            dst_n = e_val * n_ori + n_axis
-            src_n = g_axis * n_ori + n_axis
-            array_to[_get_axis(gnh_axis, value_map, dst_c, w_axis)][dst_n // ConstManager.N0_AXIS][
-                dst_n % ConstManager.N0_AXIS][dst_c % ConstManager.C0_AXIS] = \
-                array_shape[src_n][h_axis][w_axis][c_axis]
-
-
 def _get_count_for_axis(shape_from: list, g_num: int, e_multi: int) -> int:
     c_ori = shape_from[3]
     kh_axis = shape_from[1]
