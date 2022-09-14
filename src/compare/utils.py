@@ -8,6 +8,7 @@ This file mainly involves the common function.
 
 import os
 import re
+import math
 from enum import Enum
 
 import csv
@@ -507,3 +508,23 @@ def _sort_result_file_exec(result_file: str, csv_file: bool = True) -> None:
         table_header_info, header_list, origin_result_line = _get_header_and_data(csv_file, fp_read)
         sorted_result_line = sorted(origin_result_line, key=lambda s: s[0])
     _write_sorted_result(result_file, sorted_result_line, header_list, table_header_info, csv_file)
+
+
+def least_common_multiple(left: int, right: int) -> int:
+    """
+    Least common multiple, in this file, n could not zero
+    :param left: One of the calculation parameters
+    :param right: One of the calculation parameters
+    :return: left, right Least common multiple
+    """
+    return (left * right) // math.gcd(left, right)
+
+
+def ceiling_divide(left: int, right: int) -> int:
+    """
+    Ceiling divide, in this file, n could not zero
+    :param left: One of the calculation parameters
+    :param right: One of the calculation parameters
+    :return: left, right Ceiling divide
+    """
+    return (left + right - 1) // right
