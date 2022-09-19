@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
+# Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
 
 import datetime
 import json
@@ -15,8 +15,6 @@ from multiprocessing import Manager, Process
 
 import xmlrunner
 from xmlrunner.extra.xunit_plugin import transform
-from test_rules import TestRules as TestBuildRules
-from test_modelarts import TestModelArtsPathManager
 
 import coverage
 
