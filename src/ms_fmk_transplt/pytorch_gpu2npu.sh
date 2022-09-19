@@ -1,4 +1,6 @@
 #!/bin/bash
+#Copyright (c) Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
+# ================================================================================
 
 # get script path
 script_path=$(readlink -f "$0")
