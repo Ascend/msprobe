@@ -221,7 +221,7 @@ class MsFmkTransplt(object):
     def __copy_project(self):
         translog.info("Start to copy files...")
         if os.path.isfile(self.input):
-            shutil.copyfile(self.input, self.output)
+            shutil.copy2(self.input, self.output)
         if os.path.isdir(self.input):
             shutil.copytree(self.input, self.output, symlinks=True)
         utils.change_mode(self.output)
