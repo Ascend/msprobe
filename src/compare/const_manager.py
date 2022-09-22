@@ -179,6 +179,12 @@ class ConstManager:
         "FRACTAL_ZN_LSTM": DD.FORMAT_FRACTAL_ZN_LSTM,
         "FRACTAL_Z_G": DD.FORMAT_FRACTAL_Z_G,
         "RESERVED": DD.FORMAT_RESERVED,
+        "ALL": DD.FORMAT_ALL,
+        "NULL": DD.FORMAT_NULL,
+        "ND_RNN_BIAS": DD.FORMAT_ND_RNN_BIAS,
+        "FRACTAL_ZN_RNN": DD.FORMAT_FRACTAL_ZN_RNN,
+        "YUV": DD.FORMAT_YUV,
+        "YUV_A": DD.FORMAT_YUV_A,
         "MAX": DD.FORMAT_MAX,
     }
 

@@ -72,6 +72,12 @@ enum OutputFormat{
     FORMAT_FRACTAL_ZN_LSTM = 38;
     FORMAT_FRACTAL_Z_G = 39;
     FORMAT_RESERVED = 40;
+    FORMAT_ALL = 41;
+    FORMAT_NULL = 42;
+    FORMAT_ND_RNN_BIAS = 43;
+    FORMAT_FRACTAL_ZN_RNN = 44;
+    FORMAT_YUV = 45;
+    FORMAT_YUV_A = 46;
     // Add new formats definition here
     FORMAT_MAX = 0xff;
 }
