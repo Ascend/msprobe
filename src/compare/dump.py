@@ -57,10 +57,7 @@ class DumpInfo:
         if len(file_split) == 1:
             return False
         else:
-            if file_split[1] in suffix_list:
-                return True
-            else:
-                return False
+            return file_split[1] in suffix_list
 
     def check_arguments_valid(self: any) -> None:
         """
