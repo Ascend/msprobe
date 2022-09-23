@@ -100,10 +100,10 @@ class DumpInfo:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         dump_file_list = self.op_name_to_file_map.get(original_op_name)
         match_count = len(dump_file_list)
-        self._sorted_op_name_file_map_by_timestamp(dump_file_list)
         dump_file_path = dump_file_list[-1]
         if match_count == 0:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        self._sorted_op_name_file_map_by_timestamp(dump_file_list)
         if match_count > 1:
             log.print_warn_log(
                 'There are %d dump files of the "%s" in the path "%s". Choose the file "%s" to compare.'
