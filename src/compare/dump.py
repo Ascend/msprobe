@@ -239,6 +239,7 @@ class DumpInfo:
 
         if not self._check_valid_timestamp(timestamp):
             log.print_warn_log('The file name \"{}\"\'s timestamp is invalid.'.format(filename))
+            return timestamp
 
         return int(timestamp)
 
