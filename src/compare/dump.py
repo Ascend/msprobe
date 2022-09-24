@@ -90,12 +90,13 @@ class DumpInfo:
         match_count = len(dump_file_list)
         if match_count == 0:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-        self._sorted_op_name_file_map_by_timestamp(dump_file_list)
-        dump_file_path = dump_file_list[-1]
         if match_count > 1:
+            self._sorted_op_name_file_map_by_timestamp(dump_file_list)
+            dump_file_path = dump_file_list[-1]
             log.print_warn_log(
                 'There are %d dump files of the "%s" in the path "%s". Choose the file "%s" to compare.'
                 % (match_count, original_op_name, self.path, dump_file_path))
+        dump_file_path = dump_file_list[-1]
         if print_log:
             log.print_info_log('[%s] [%s] %s' % (op_name, str(self.type.name), dump_file_path))
         return dump_file_path
@@ -210,7 +211,7 @@ class DumpInfo:
 
     def _get_dump_timestamp(self: any, filename) -> int:
         if filename.endswith((ConstManager.STANDARD_SUFFIX, ConstManager.NUMPY_SUFFIX,
-                            ConstManager.QUANT_SUFFIX)):
+                              ConstManager.QUANT_SUFFIX)):
             # Example: {op_name}.{output_index}.{timestamp}.npy
             # Example: {op_name}.{output_index}.{timestamp}.pb
             # Example: {op_name}.{output_index}.{timestamp}.quant
