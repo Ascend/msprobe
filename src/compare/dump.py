@@ -46,6 +46,10 @@ class DumpInfo:
         self.dump_version = dump_version
         self.hash_to_file_name_map = {}
 
+    @staticmethod
+    def _check_valid_timestamp(timestamp) -> bool:
+        return len(timestamp) == 16 and timestamp.isdigit()
+
     def check_arguments_valid(self: any) -> None:
         """
         Check arguments valid, if invalid, throw exception
@@ -86,11 +90,13 @@ class DumpInfo:
         match_count = len(dump_file_list)
         if match_count == 0:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-        dump_file_path = dump_file_list[match_count - 1]
         if match_count > 1:
+            self._sorted_op_name_file_map_by_timestamp(dump_file_list)
+            dump_file_path = dump_file_list[-1]
             log.print_warn_log(
                 'There are %d dump files of the "%s" in the path "%s". Choose the file "%s" to compare.'
                 % (match_count, original_op_name, self.path, dump_file_path))
+        dump_file_path = dump_file_list[-1]
         if print_log:
             log.print_info_log('[%s] [%s] %s' % (op_name, str(self.type.name), dump_file_path))
         return dump_file_path
@@ -199,6 +205,33 @@ class DumpInfo:
             if os.path.isfile(file_path):
                 self._handle_one_file(file_path)
         self._judge_dump_type()
+
+    def _sorted_op_name_file_map_by_timestamp(self: any, dump_file_list) -> None:
+        dump_file_list.sort(key=self._get_dump_timestamp)
+
+    def _get_dump_timestamp(self: any, filename) -> int:
+        if filename.endswith((ConstManager.STANDARD_SUFFIX, ConstManager.NUMPY_SUFFIX,
+                              ConstManager.QUANT_SUFFIX)):
+            # Example: {op_name}.{output_index}.{timestamp}.npy
+            # Example: {op_name}.{output_index}.{timestamp}.pb
+            # Example: {op_name}.{output_index}.{timestamp}.quant
+            timestamp = filename.rsplit('.', 2)[1]
+        else:
+            index = filename.rfind('.')
+            if index == -1:
+                # when in dex is 0, item is dump file, the name is hash value
+                # Example: the file name is only numeric
+                timestamp = filename
+            else:
+                # when index is not 0, item is dump file, the name meet the data format
+                # Example: {op_type}.{op_name}.{task_id}.{stream_id}.{timestamp}
+                timestamp = filename[index + 1:]
+
+        if not self._check_valid_timestamp(timestamp):
+            log.print_warn_log('The file name \"{}\"\'s timestamp is invalid.'.format(filename))
+            return timestamp
+
+        return int(timestamp)
 
     def _judge_dump_type(self: any) -> None:
         if self.type is None:
