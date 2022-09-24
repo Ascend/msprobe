@@ -50,15 +50,6 @@ class DumpInfo:
     def _check_valid_timestamp(timestamp) -> bool:
         return len(timestamp) == 16 and timestamp.isdigit()
 
-    @staticmethod
-    def _check_second_format_file(filename) -> bool:
-        suffix_list = ['npy', 'pb', 'quant']
-        file_split = filename.rsplit('.', 1)
-        if len(file_split) == 1:
-            return False
-        else:
-            return file_split[1] in suffix_list
-
     def check_arguments_valid(self: any) -> None:
         """
         Check arguments valid, if invalid, throw exception
@@ -218,7 +209,8 @@ class DumpInfo:
         dump_file_list.sort(key=self._get_dump_timestamp)
 
     def _get_dump_timestamp(self: any, filename) -> int:
-        if self._check_second_format_file(filename):
+        if filename.endswith((ConstManager.STANDARD_SUFFIX, ConstManager.NUMPY_SUFFIX,
+                            ConstManager.QUANT_SUFFIX)):
             # Example: {op_name}.{output_index}.{timestamp}.npy
             # Example: {op_name}.{output_index}.{timestamp}.pb
             # Example: {op_name}.{output_index}.{timestamp}.quant
