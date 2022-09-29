@@ -292,10 +292,10 @@ def check_path_length_valid(path):
 
 
 def check_path_pattern_valid(path):
-    if platform.system().lower() == 'windows':
+    if platform.system().lower() == 'windows' and len(path) <= WINDOWS_PATH_LENGTH_LIMIT:
         pattern = re.compile(r'(\.|\\|/|:|_|-|\s|[~0-9a-zA-Z])+')
         return pattern.fullmatch(path)
-    else:
+    elif len(path) <= LINUX_FILE_NAME_LENGTH_LIMIT:
         pattern = re.compile(r'(\.|/|:|_|-|\s|[~0-9a-zA-Z])+')
         return pattern.fullmatch(path)
 
