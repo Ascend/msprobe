@@ -291,6 +291,15 @@ def check_path_length_valid(path):
         return len(os.path.basename(path)) <= LINUX_FILE_NAME_LENGTH_LIMIT
 
 
+def check_path_pattern_valid(path):
+    if platform.system().lower() == 'windows':
+        pattern = re.compile(r'(\.|\\|/|:|_|-|\s|[~0-9a-zA-Z])+')
+        return pattern.fullmatch(path)
+    else:
+        pattern = re.compile(r'(\.|/|:|_|-|\s|[~0-9a-zA-Z])+')
+        return pattern.fullmatch(path)
+
+
 def check_file_need_analysis(file, commonprefix, record=False):
     if not os.path.exists(file):
         return False
