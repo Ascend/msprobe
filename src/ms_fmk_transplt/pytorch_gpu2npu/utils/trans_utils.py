@@ -294,10 +294,12 @@ def check_path_length_valid(path):
 def check_path_pattern_valid(path):
     if platform.system().lower() == 'windows':
         pattern = re.compile(r'(\.|\\|/|:|_|-|\s|[~0-9a-zA-Z])+')
-        return pattern.fullmatch(path)
+        if not pattern.fullmatch(path):
+            raise ValueError('Only the following characters are allowed in the path: A-Z a-z 0-9 - _ . / \\ :')
     else:
         pattern = re.compile(r'(\.|/|:|_|-|\s|[~0-9a-zA-Z])+')
-        return pattern.fullmatch(path)
+        if not pattern.fullmatch(path):
+            raise ValueError('Only the following characters are allowed in the path: A-Z a-z 0-9 - _ . / :')
 
 
 def check_file_need_analysis(file, commonprefix, record=False):

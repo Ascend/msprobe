@@ -160,6 +160,9 @@ class MsFmkTransplt(object):
         input_path = os.path.realpath(args.input)
         output = os.path.realpath(args.output)
 
+        utils.check_path_pattern_valid(input_path)
+        utils.check_path_pattern_valid(output)
+
         if not utils.check_path_length_valid(input_path):
             raise ValueError('The real path or file name of input is too long.')
 
@@ -173,23 +176,11 @@ class MsFmkTransplt(object):
             utils.user_interactive_confirm(
                 'The input path is insecure because it does not belong to you. Do you want to continue?')
 
-        if not utils.check_path_pattern_valid(input_path):
-            if platform.system().lower() == 'windows':
-                raise ValueError('Only the following characters are allowed in the path: A-Z a-z 0-9 - _ . / \\ :')
-            else:
-                raise ValueError('Only the following characters are allowed in the path: A-Z a-z 0-9 - _ . / :')
-
         if not utils.check_path_length_valid(output):
             raise ValueError('The real path or file name of output is too long.')
 
         if not os.path.isdir(output):
             raise ValueError('Output %s is not a valid directory!' % args.output)
-
-        if not utils.check_path_pattern_valid(output):
-            if platform.system().lower() == 'windows':
-                raise ValueError('Only the following characters are allowed in the path: A-Z a-z 0-9 - _ . / \\ :')
-            else:
-                raise ValueError('Only the following characters are allowed in the path: A-Z a-z 0-9 - _ . / :')
 
         if not os.access(output, os.W_OK):
             raise PermissionError('Output %s is not writeable!' % args.output)
