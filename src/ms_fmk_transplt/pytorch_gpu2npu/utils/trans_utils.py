@@ -29,6 +29,7 @@ MAX_SIZE_OF_INPUT_PATH = 50 * 1024 ** 3
 MAX_SIZE_OF_RULE_FILE = 10 * 1024 ** 2
 WINDOWS_PATH_LENGTH_LIMIT = 256
 LINUX_FILE_NAME_LENGTH_LIMIT = 255
+LINUX_PATH_LENGTH_LIMIT = 4096
 MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
 
 
@@ -294,11 +295,11 @@ def check_path_length_valid(path):
 def check_path_pattern_valid(path):
     if platform.system().lower() == 'windows':
         pattern = re.compile(r'(\.|\\|/|:|_|-|\s|[~0-9a-zA-Z])+')
-        if not pattern.fullmatch(path):
+        if len(path) <= WINDOWS_PATH_LENGTH_LIMIT and not pattern.fullmatch(path):
             raise ValueError('Only the following characters are allowed in the path: A-Z a-z 0-9 - _ . / \\ :')
     else:
         pattern = re.compile(r'(\.|/|:|_|-|\s|[~0-9a-zA-Z])+')
-        if not pattern.fullmatch(path):
+        if not len(path) <= LINUX_PATH_LENGTH_LIMIT and pattern.fullmatch(path):
             raise ValueError('Only the following characters are allowed in the path: A-Z a-z 0-9 - _ . / :')
 
 

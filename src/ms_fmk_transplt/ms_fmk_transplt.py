@@ -160,11 +160,10 @@ class MsFmkTransplt(object):
         input_path = os.path.realpath(args.input)
         output = os.path.realpath(args.output)
 
-        utils.check_path_pattern_valid(input_path)
-        utils.check_path_pattern_valid(output)
-
         if not utils.check_path_length_valid(input_path):
             raise ValueError('The real path or file name of input is too long.')
+
+        utils.check_path_pattern_valid(input_path)
 
         if not os.path.exists(input_path):
             raise ValueError('Input %s does not exist!' % args.input)
@@ -178,6 +177,8 @@ class MsFmkTransplt(object):
 
         if not utils.check_path_length_valid(output):
             raise ValueError('The real path or file name of output is too long.')
+
+        utils.check_path_pattern_valid(output)
 
         if not os.path.isdir(output):
             raise ValueError('Output %s is not a valid directory!' % args.output)
