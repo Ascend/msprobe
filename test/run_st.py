@@ -4,8 +4,8 @@ import sys
 
 
 def run_st():
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    top_dir = os.path.abspath(os.path.dirname(cur_dir))
+    cur_dir = os.path.realpath(os.path.dirname(__file__))
+    top_dir = os.path.realpath(os.path.dirname(cur_dir))
     st_path = os.path.join(cur_dir, "st/testcase/")
     src_dir = os.path.join(top_dir, "src/compare")
 

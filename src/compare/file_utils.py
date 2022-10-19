@@ -308,7 +308,7 @@ class OverflowFileUtils(FileUtils):
             return matched_files
         mapping = self.read_csv(os.path.join(path, ConstManager.MAPPING_FILE_NAME))
         for item in mapping:
-            src_file = os.path.abspath(os.path.join(path, item[hash_index]))
+            src_file = os.path.realpath(os.path.join(path, item[hash_index]))
             if not os.path.isfile(src_file):
                 log.print_warn_log("the file %s in mapping.csv is not exist, dir: %s."
                                    % (item[hash_index], path))

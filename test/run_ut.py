@@ -5,8 +5,8 @@ import sys
 
 
 def run_ut():
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    top_dir = os.path.abspath(os.path.dirname(cur_dir))
+    cur_dir = os.path.realpath(os.path.dirname(__file__))
+    top_dir = os.path.realpath(os.path.dirname(cur_dir))
     ut_path = os.path.join(cur_dir, "ut/testcase/")
     src_dir = os.path.join(top_dir, "src/compare")
     report_dir = os.path.join(cur_dir, 'report')
