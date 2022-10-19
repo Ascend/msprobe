@@ -5,6 +5,7 @@
 import os
 import shutil
 import sys
+import stat
 import logging
 import subprocess
 
@@ -25,10 +26,11 @@ def clear_output(output_path):
 
 
 def prepare_third_party_tool():
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
+    cur_dir = os.path.realpath(os.path.dirname(__file__))
     prepare_shell = os.path.join(cur_dir, "prepare_thirdparty_tool.sh")
 
-    cmd = ["bash", prepare_shell]
+    os.chmod(prepare_shell, stat.S_IRUSR | stat.S_IXGRP | stat.S_IXUSR | stat.S_IRGRP)
+    cmd = [prepare_shell]
     logging.info("--------------------start compile protobuf"
                  + "--------------------")
     prepare_protoc = subprocess.Popen(cmd, shell=False,
@@ -51,8 +53,8 @@ def prepare_third_party_tool():
 
 
 def generate_dump_data_api():
-    cur_dir = os.path.abspath(os.path.dirname(__file__))
-    top_dir = os.path.abspath(os.path.dirname(cur_dir))
+    cur_dir = os.path.realpath(os.path.dirname(__file__))
+    top_dir = os.path.realpath(os.path.dirname(cur_dir))
     dump_proto_dir = os.path.join(top_dir, 'resource/')
     dump_proto_path = os.path.join(dump_proto_dir, 'dump_data.proto')
     src_compare_path = os.path.join(top_dir, 'src/compare')
