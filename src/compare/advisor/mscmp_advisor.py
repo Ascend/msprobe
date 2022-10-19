@@ -16,6 +16,7 @@ import log
 from advisor.advisor_const import AdvisorConst
 from advisor.advisor_result import AdvisorResult
 from compare_error import CompareError
+from const_manager import ConstManager
 from advisor.input_advisor import InputAdvisor
 from advisor.node_advisor import NodeAdvisor
 from advisor.overflow_advisor import OverflowAdvisor
@@ -120,6 +121,7 @@ def _do_advisor():
     _compare_advisor_parser(parser)
     args = parser.parse_args(sys.argv[1:])
     input_file = os.path.realpath(args.input_file)
+    check_file_size(input_file)
     input_nodes = parse_input_nodes(args.input_nodes)
     out_path = os.path.realpath(args.out_path) if args.out_path else ""
     compare_advisor = CompareAdvisor(input_file, input_nodes, out_path)
@@ -127,6 +129,19 @@ def _do_advisor():
     message_list = advisor_result.print_advisor_log()
     if out_path:
         advisor_result.gen_summary_file(out_path, message_list)
+
+
+def check_file_size(input_file):
+    try:
+        file_size = os.path.getsize(input_file)
+    except OSError as os_error:
+        log.print_error_log('Failed to open "%s". %s' % (input_file, str(os_error)))
+        raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from os_error
+    if file_size > ConstManager.ONE_HUNDRED_MB:
+        log.print_error_log(
+            'The size (%d) of %s exceeds 100MB, tools not support.'
+            % (file_size, input_file))
+        raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
 
 
 if __name__ == '__main__':
