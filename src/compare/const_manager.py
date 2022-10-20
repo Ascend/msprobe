@@ -33,6 +33,7 @@ class ConstManager:
     # overflow
     OVERFLOW_MIN_VALUE = 5.96e-8
     OVERFLOW_MAX_VALUE = 65504
+    MAGIC_NUM = 0x5a5a5a5a
 
     # algorithm
     FLOAT_EPSILON = np.finfo(float).eps
@@ -246,6 +247,8 @@ class ConstManager:
 
     UINT64_FMT = 'Q'
     UINT64_SIZE = 8
+    UINT32_FMT = 'I'
+    UINT32_SIZE = 4
     ONE_GB = 1 * 1024 * 1024 * 1024
     ONE_HUNDRED_MB = 100 * 1024 * 1024
     DHA_ATOMIC_ADD_INFO_SIZE = 128
@@ -257,6 +260,12 @@ class ConstManager:
     OVERFLOW_CHECK_SIZE = \
         DHA_ATOMIC_ADD_INFO_SIZE + L2_ATOMIC_ADD_INFO_SIZE + AI_CORE_INFO_SIZE + DHA_ATOMIC_ADD_STATUS_SIZE \
         + L2_ATOMIC_ADD_STATUS_SIZE + AI_CORE_STATUS_SIZE
+    ACC_TYPE = {
+        0: "AIC",
+        1: "AIV",
+        2: "AICPU",
+        3: "SDMA"
+    }
 
     BUFFER_TYPE_MAP = {DD.L1: 'l1'}
     CONVERT_FAILED_FILE_LIST_NAME = "convert_failed_file_list.txt"

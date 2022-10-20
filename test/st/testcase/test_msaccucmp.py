@@ -473,6 +473,32 @@ class TestUtilsMethods(unittest.TestCase):
                                     open_file.write = None
                                     msaccucmp.main()
         self.assertEqual(error.value.code, CompareError.MSACCUCMP_NONE_ERROR)
+        
+    def test_main_dump_data_parser_opdebug_new_format(self):
+        dump_data = DD.DumpData()
+        dump_data.version = '1.0'
+        dump_data.dump_time = int(round(time.time() * 1000))
+        op_output = dump_data.output.add()
+        op_output.data_type = DD.DT_FLOAT16
+        op_output.format = DD.FORMAT_NCHW
+        overflow_data = self._make_overflow_data_new_version(88)
+        op_output.data = struct.pack('6i11Q', *overflow_data)
+        args = ['aaa.py', 'convert', '-d',
+                '/home/Opdebug.Node_OpDebug.1.1234567891234567']
+        with mock.patch('sys.argv', args):
+            with pytest.raises(SystemExit) as error:
+                with mock.patch('utils.check_path_valid',
+                                return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                    with mock.patch('utils.check_output_path_valid',
+                                    return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                        with mock.patch('utils.parse_dump_file',
+                                        return_value=dump_data):
+                            with mock.patch('os.open') as open_file, \
+                                    mock.patch('os.fdopen'):
+                                with mock.patch("os.path.isfile", return_value=True):
+                                    open_file.write = None
+                                    msaccucmp.main()
+        self.assertEqual(error.value.code, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_mapping_error_parameter1(self):
         args = ['aaa.py', 'compare', '-m', '/home/left.bin', '-g',
@@ -836,6 +862,14 @@ class TestUtilsMethods(unittest.TestCase):
     def _make_uint64_data(size):
         count = int(size / 8)
         data = []
+        for _ in range(count):
+            data.append(0)
+        return data
+
+    @staticmethod
+    def _make_overflow_data_new_version(size):
+        count = int(size / 8)
+        data = [0x5a5a5a5a, 0, 1, 1, 0, 88]
         for _ in range(count):
             data.append(0)
         return data

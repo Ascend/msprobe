@@ -12,7 +12,7 @@ import time
 import numpy as np
 import utils
 import log
-
+from const_manager import ConstManager
 from file_utils import OverflowFileUtils
 from dump_data_parser import DumpDataParser
 from compare_error import CompareError
@@ -77,17 +77,33 @@ class OverflowAnalyse:
                % (data.shape, data.dtype, np.max(data), np.min(data), data.mean())
 
     @staticmethod
-    def _get_overflow_info(over_type: str, json_txt: any) -> any:
-        """
-        get the overflow info with the overflow type
-        :over_type: the type of overflow
-        :json_txt: the parsed info from debug file
-        """
-        detail = json_txt[over_type]
-        overflow_info = ' [%s][TaskId:%s][StreamId:%s][Status:%s]' \
-                        % (over_type, detail['task_id'],
-                           detail['stream_id'], detail['status'])
-        return overflow_info, detail['task_id'], detail['stream_id']
+    def _get_overflow_info_new_version(res: list, json_txt: any) -> any:
+        acc_type = json_txt['acc_list']['acc_type']
+        for _, value in ConstManager.ACC_TYPE.items():
+            if acc_type == value:
+                overflow_type = acc_type
+                detail = json_txt['acc_list']['data']
+                return OverflowAnalyse._gen_overflow_info(res, overflow_type, detail)
+        log.print_error_log("[Overflow] Invalid overflow type, type is {}".format(acc_type))
+        raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
+
+    @staticmethod
+    def _get_overflow_info_old_version(res: list, json_txt: any) -> any:
+        for overflow_type, detail in json_txt.items():
+            return OverflowAnalyse._gen_overflow_info(res, overflow_type, detail)
+        log.print_error_log("[Overflow] Invalid json_txt!")
+        raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
+
+    @staticmethod
+    def _gen_overflow_info(res: list, overflow_type: str, detail: any) -> any:
+        if detail['status'] > 0:
+            overflow_info = ' [%s][TaskId:%s][StreamId:%s][Status:%s]' \
+                            % (overflow_type, detail['task_id'],
+                               detail['stream_id'], detail['status'])
+            res.append(overflow_info)
+            return detail['task_id'], detail['stream_id']
+        log.print_warn_log("[Overflow] The OpDebug file exists, but the value of status is 0!")
+        raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_STATUS_ERROR)
 
     @staticmethod
     def _insert_delimiter(res: list, over_index: int) -> list:
@@ -161,14 +177,10 @@ class OverflowAnalyse:
         :debug_file： the desc of debug file
         """
         res = []
-        task_id = None
-        stream_id = None
-        for overflow_type in self.OVER_FLOW_TYPE:
-            if overflow_type in json_txt and json_txt[overflow_type]['status'] > 0:
-                overflow_info, task_id, stream_id = self._get_overflow_info(
-                    overflow_type, json_txt)
-                res.append(overflow_info)
-
+        if 'magic' in json_txt:
+            task_id, stream_id = self._get_overflow_info_new_version(res, json_txt)
+        else:
+            task_id, stream_id = self._get_overflow_info_old_version(res, json_txt)
         res.append(' [timestamp:%s]' % debug_file.timestamp)
         try:
             dump_file_desc = self._find_dump_files_by_task_id(os.path.dirname(debug_file.file_path),
