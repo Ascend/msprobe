@@ -32,8 +32,8 @@ torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new
 torch_module_fn_white_list = ['to', 'to_empty']
 
 
-def wrapper_cuda(fn):
-    @wraps(fn)
+def wrapper_cuda(func):
+    @wraps(func)
     def decorated(*args, **kwargs):
         if args:
             args_new = list(args)
@@ -44,20 +44,20 @@ def wrapper_cuda(fn):
         if kwargs:
             if isinstance(kwargs.get('device', None), str) and 'cuda' in kwargs.get('device', ''):
                 kwargs['device'] = kwargs['device'].replace('cuda', 'npu')
-        return fn(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return decorated
 
 
 def device_wrapper(enter_fn, white_list):
     for fn_name in white_list:
-        fn = getattr(enter_fn, fn_name, None)
-        if fn:
-            setattr(enter_fn, fn_name, wrapper_cuda(fn))
+        func = getattr(enter_fn, fn_name, None)
+        if func:
+            setattr(enter_fn, fn_name, wrapper_cuda(func))
 
 
-def wrapper_hccl(fn):
-    @wraps(fn)
+def wrapper_hccl(func):
+    @wraps(func)
     def decorated(*args, **kwargs):
         if args:
             args_new = list(args)
@@ -68,7 +68,7 @@ def wrapper_hccl(fn):
         if kwargs:
             if isinstance(kwargs.get('backend', None), str):
                 kwargs['backend'] = 'hccl'
-        return fn(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return decorated
 
