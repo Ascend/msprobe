@@ -118,6 +118,9 @@ class MsFmkTransplt(object):
                 self.__copy_function_pack('ascend_function')
             if args.modelarts:
                 self.__copy_function_pack('ascend_modelarts_function')
+        except KeyboardInterrupt:
+            translog.error("User canceled.")
+            ret = 1
         except BaseException as exp:
             translog.error(exp)
             ret = 1
