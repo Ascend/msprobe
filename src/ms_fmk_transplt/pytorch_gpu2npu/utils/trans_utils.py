@@ -188,7 +188,7 @@ def _get_path_authority(path):
 
 
 def change_mode(path):
-    if not os.path.exists(path) or os.path.islink(path):
+    if not os.path.exists(path) or islink(path):
         return
     os.chmod(path, _get_path_authority(path))
     if os.path.isfile(path):
@@ -196,11 +196,11 @@ def change_mode(path):
     for root, dirs, files in os.walk(path):
         for dir_name in dirs:
             new_dir_path = os.path.join(root, dir_name)
-            if not os.path.islink(new_dir_path):
+            if not islink(new_dir_path):
                 os.chmod(new_dir_path, _get_path_authority(new_dir_path))
         for file_name in files:
             file_path = os.path.join(root, file_name)
-            if os.path.islink(file_path):
+            if islink(file_path):
                 continue
             os.chmod(file_path, _get_path_authority(file_path))
 
@@ -232,7 +232,7 @@ def walk_input_path(path, output_free_size):
     for root, _, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)
-            if os.path.islink(file_path) or (not os.path.exists(file_path)):
+            if islink(file_path) or (not os.path.exists(file_path)):
                 continue
             if check_file_need_analysis(file_path, path):
                 py_file_counts += 1
@@ -268,7 +268,7 @@ def remove_path(path):
     if not os.path.exists(path):
         return
     try:
-        if os.path.islink(path) or os.path.isfile(path):
+        if islink(path) or os.path.isfile(path):
             os.remove(path)
         elif os.path.isdir(path):
             shutil.rmtree(path)
@@ -308,7 +308,7 @@ def check_file_need_analysis(file, commonprefix, record=False):
     if not file.endswith('.py'):
         return False
     file_relative_path = os.path.relpath(file, commonprefix)
-    if os.path.islink(file):
+    if islink(file):
         if record:
             translog.warning(f'{file_relative_path} is a soft link, skip.')
         return False
@@ -367,3 +367,8 @@ def refresh_parso_cache():
     if os.path.exists(cache_directory):
         raise JediCacheClearException('Failed to delete jedi cache. Please delete it manually.')
     os.makedirs(cache_directory, mode=0o700)
+
+
+def islink(path):
+    path = path.rstrip(os.path.sep)
+    return os.path.islink(path)
