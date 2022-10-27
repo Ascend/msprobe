@@ -43,7 +43,7 @@ def set_progress_info(progress):
 
 def log_format(sep, msg):
     msg = pattern_nblank.sub('', str(msg))
-    msg = pattern_blank.sub('', str(msg))
+    msg = pattern_blank.sub(' ', str(msg))
     if progress_info:
         return ' ' * sep + f'{progress_info:20s}' + str(msg)
     else:
