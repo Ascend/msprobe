@@ -5,12 +5,15 @@
 import logging as logger
 from logging.handlers import RotatingFileHandler
 import os
+import re
 
 LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 BACKUP_COUNT = 10
 MAX_BYTES = 1024 ** 2
 progress_info = ''
+pattern_nblank = re.compile('[\r\n\f\v\t\b\u007F]')
+pattern_blank = re.compile(' {2,}')
 
 logger.basicConfig(level=logger.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
@@ -39,6 +42,8 @@ def set_progress_info(progress):
 
 
 def log_format(sep, msg):
+    msg = pattern_nblank.sub('', str(msg))
+    msg = pattern_blank.sub(' ', str(msg))
     if progress_info:
         return ' ' * sep + f'{progress_info:20s}' + str(msg)
     else:
