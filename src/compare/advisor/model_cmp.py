@@ -112,6 +112,6 @@ def evaluate(data_path, parameter):
 if __name__ == "__main__":
     DATA_PATH = sys.argv[1]
     my_input_nodes = []
-    parameters = json.dumps({"inputs_nodes": my_input_nodes})
-    ret = evaluate(DATA_PATH, parameters)
+    param = json.dumps({"inputs_nodes": my_input_nodes})
+    ret = evaluate(DATA_PATH, param)
     # using debug: print("sample in:{} out:{}".format(DATA_PATH, ret))
