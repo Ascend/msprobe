@@ -521,7 +521,7 @@ def check_file_size(file_path: str, size_limit: int) -> None:
     if file_size > size_limit:
         log.print_warn_log(
             'The size (%d) of %s exceeds %dMB, it may task more time to run, please wait.'
-            % (file_size, file_path, size_limit/1024/1024))
+            % (file_size, file_path, size_limit / 1024 / 1024))
 
 
 def least_common_multiple(left: int, right: int) -> int:
