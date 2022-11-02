@@ -117,7 +117,7 @@ class TestUtilsMethods(unittest.TestCase):
                 "status": 1
         }
         res = []
-        ret = overflow_analyse.OverflowAnalyse._gen_overflow_info(res, over_type, json_txt)
+        ret = Analyse(args).get_overflow_info()(res, over_type, json_txt)
         self.assertEqual(res, [' [AIV][TaskId:65][StreamId:396][Status:1]'])
         self.assertEqual(ret, (65, 396))
 
@@ -490,3 +490,8 @@ class TestUtilsMethods(unittest.TestCase):
                 ret = decode._find_dump_files_by_task_id('/test/', 12, 24)
         self.assertEqual(err.value.args[0],
                          CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+
+
+class Analyse(overflow_analyse.OverflowAnalyse):
+    def get_overflow_info(self):
+        return self._gen_overflow_info
