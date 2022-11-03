@@ -1,0 +1,40 @@
+import numpy as np
+import utils
+import dump_data_pb2 as DD
+
+
+class DumpTensor:
+    def __init__(self: any, index: int = None, data_type: int = None, tensor_format: int = None,
+                 shape: list = None, data: np.ndarray = None, size: int = None, original_shape: list = None):
+        self.index = index
+        self.data_type = data_type
+        self.tensor_format = tensor_format
+        self.shape = shape if shape else []
+        self.data = data
+        self.size = size
+        self.original_shape = original_shape
+
+
+class DumpDataObj:
+    def __init__(self: any, dump_data=DD.DumpData()):
+        self.version = dump_data.version
+        self.op_name = dump_data.op_name
+        self.dump_time = dump_data.dump_time
+        self.buffer = dump_data.buffer
+        self.attr = dump_data.attr
+        self.input_data = [_input_data for _input_data in dump_data.input]
+        self.output_data = [_output_data for _output_data in dump_data.output]
+
+    @staticmethod
+    def _build_dump_tensor(dump_data_object_data):
+        for index, tensor in enumerate(dump_data_object_data):
+            data_to_np = utils.deserialize_dump_data_to_array(tensor)
+            dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
+                                     data_to_np, tensor.size, list(tensor.original_shape.dim))
+            dump_data_object_data[index] = dump_tensor
+
+    def build_input_dump_tensor(self):
+        self._build_dump_tensor(self.input_data)
+
+    def build_output_dump_tensor(self):
+        self._build_dump_tensor(self.output_data)

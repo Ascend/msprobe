@@ -262,7 +262,7 @@ class OverflowFileUtils(FileUtils):
             anchor = {
                 "anchor_type": tensor_type,
                 "anchor_idx": index,
-                "format": common.get_format_string(tensor.format)
+                "format": common.get_format_string(tensor.tensor_format)
             }
 
             parsed_dump_files[parsed_dump_file_name] \
@@ -347,9 +347,9 @@ class OverflowFileUtils(FileUtils):
         dump_data = utils.parse_dump_file(dump_file_desc.file_path, ConstManager.BINARY_DUMP_TYPE)
         dump_file_desc.set_op_name(dump_data.op_name)
         parsed_dump_files = self._gen_one_tensor_desc(output_path, dump_file_desc,
-                                                      dump_data.input, 'input')
+                                                      dump_data.input_data, 'input')
         parsed_dump_files.update(self._gen_one_tensor_desc(output_path, dump_file_desc,
-                                                           dump_data.output, 'output'))
+                                                           dump_data.output_data, 'output'))
         parsed_dump_files.update(self._gen_one_tensor_desc(output_path, dump_file_desc,
                                                            dump_data.buffer))
         return parsed_dump_files

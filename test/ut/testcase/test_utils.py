@@ -224,8 +224,9 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('builtins.open',
                                 mock.mock_open(read_data=dump_data_ser)):
                     dump_data = utils.parse_dump_file('/home/a.dump', 1)
-        self.assertEqual(dump_data.output[0].data_type, DD.DT_FLOAT16)
-        self.assertEqual(len(dump_data.output[0].data), 48)
+        self.assertEqual(dump_data.output_data[0].data_type, DD.DT_FLOAT16)
+        data_byte = dump_data.output_data[0].data.tobytes()
+        self.assertEqual(len( data_byte), 48)
 
     def test_parse_dump_file5(self):
         dump_data = DD.DumpData()
@@ -236,7 +237,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
                 with mock.patch('builtins.open', mock.mock_open(read_data=dump_data_ser)):
                     dump_data = utils.parse_dump_file('/home/a.dump', 1)
-        self.assertEqual(dump_data.output[0].size, 48)
+        self.assertEqual(dump_data.output_data[0].size, 48)
 
     def test_parse_dump_file6(self):
         dump_data = DD.DumpData()
@@ -276,7 +277,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('os.path.getsize', return_value=1210):
                 with mock.patch('numpy.load', return_value=np.ones([1, 3, 2, 2])):
                     dump_data = utils.parse_dump_file('/home/a.npy', 0)
-        self.assertEqual(dump_data.output[0].shape.dim[1], 3)
+        self.assertEqual(dump_data.output_data[0].shape[1], 3)
 
     def test_print_progress1(self):
         with mock.patch('time.time', return_value=3):

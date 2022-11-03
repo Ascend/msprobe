@@ -11,6 +11,7 @@ from format_manager import FormatManager
 from fusion_op import Tensor
 from compare_error import CompareError
 from tensor_conversion import TensorConversion
+from dump_data_object import DumpTensor
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -18,8 +19,8 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_my_output_and_ground_truth_data1(self):
         attr = fusion_op.OpAttr(['conv1', 'conv1_relu'], '', False, 12)
         fusion_op_info = fusion_op.FusionOp(12, 'conv1conv1_relu', ['a:0,b:0'], 'Relu', None, attr)
-        op_output = DD.OpOutput()
-        op_output.format = DD.FORMAT_NC1HWC0
+        op_output = DumpTensor()
+        op_output.tensor_format = DD.FORMAT_NC1HWC0
         manager = FormatManager("")
         manager.check_arguments_valid()
         tensor_conversion = TensorConversion(fusion_op_info, manager, False)
@@ -32,15 +33,13 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
 
     def test_get_my_output_and_ground_truth_data2(self):
-        op_output = DD.OpOutput()
+        op_output = DumpTensor(shape=[])
         op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_RESERVED
-        op_output.shape.dim.append(1)
-        op_output.shape.dim.append(4)
+        op_output.tensor_format = DD.FORMAT_RESERVED
+        op_output.shape.append(1)
+        op_output.shape.append(4)
         data_list = [1.0, 4.5, 2.0, 3.5]
-        length = len(data_list)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('e' * length, *origin_numpy)
+        op_output.data = np.array(data_list, np.float16)
         manager = FormatManager("")
         manager.check_arguments_valid()
         tensor_conversion = TensorConversion(self._make_fusion_op(), manager, False)
@@ -57,13 +56,11 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(shape[1], 4)
 
     def test_get_my_output_and_ground_truth_data3(self):
-        op_output = DD.OpOutput()
+        op_output = DumpTensor(shape=[])
         op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_ND
+        op_output.tensor_format= DD.FORMAT_ND
         data_list = [1.0, 4.5, 2.0, 3.5]
-        length = len(data_list)
-        origin_numpy = np.asarray(data_list, np.float16)
-        op_output.data = struct.pack('e' * length, *origin_numpy)
+        op_output.data = np.asarray(data_list, np.float16)
         manager = FormatManager("")
         manager.check_arguments_valid()
         tensor_conversion = TensorConversion(self._make_fusion_op(), manager, False)
@@ -215,29 +212,13 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_op_output(dd_format, shape):
-        op_output = DD.OpOutput()
+        op_output = DumpTensor()
         op_output.data_type = DD.DT_FLOAT16
-        op_output.format = dd_format
-        length = 1
-        for dim in shape:
-            op_output.shape.dim.append(dim)
-            length *= dim
+        op_output.tensor_format = dd_format
+        op_output.shape = shape
+        length = np.prod(shape)
         data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('e' * length, *origin_numpy)
-        return op_output
-
-    @staticmethod
-    def _set_op_output(op_output, dd_format, shape):
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = dd_format
-        length = 1
-        for dim in shape:
-            op_output.shape.dim.append(dim)
-            length *= dim
-        data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('e' * length, *origin_numpy)
+        op_output.data = np.array(data_list, np.float16)
         return op_output
 
 

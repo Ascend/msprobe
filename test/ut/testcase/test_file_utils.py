@@ -195,7 +195,7 @@ class TestUtilsMethods(unittest.TestCase):
             length *= dim
         data_list = np.arange(length)
         origin_numpy = np.array(data_list, np.float16)
-
+        dump_data = utils.convert_dump_data(dump_data)
         file_desc = {
             "file_path": "/home/Opdebug.Node_OpDebug.1.25.161233160",
             "timestamp": int("161233160")

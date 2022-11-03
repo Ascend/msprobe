@@ -30,6 +30,7 @@ def get_format_string(dump_format: any) -> str:
     :param dump_format: the dump format
     :return: the string
     """
+
     for (key, value) in list(ConstManager.STRING_TO_FORMAT_MAP.items()):
         if dump_format == value:
             return key

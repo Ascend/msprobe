@@ -115,9 +115,9 @@ class ShapeConversionMain:
             return error.code
 
         if self.tensor == ConstManager.INPUT:
-            tensor_list = dump_data.input
+            tensor_list = dump_data.input_data
         else:
-            tensor_list = dump_data.output
+            tensor_list = dump_data.output_data
         if self.index >= len(tensor_list):
             log.print_out_of_range_error('', self.tensor, self.index, '[0, %d)' % len(tensor_list))
             return CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR
@@ -157,33 +157,30 @@ class ShapeConversionMain:
         return CompareError.MSACCUCMP_NONE_ERROR
 
     def _convert_format(self: any, tensor: any, index: int) -> None:
-        if tensor.format == self.format_to:
+        if tensor.tensor_format == self.format_to:
             log.print_info_log("There is no need to transfer format because the format (%s) is the same."
-                               % common.get_format_string(tensor.format))
+                               % common.get_format_string(tensor.tensor_format))
             return
         # deserialize dump data
-        dump_data_array = utils.deserialize_dump_data_to_array(tensor)
+        dump_data_array = tensor.data
 
-        real_format = tensor.format
+        real_format = tensor.tensor_format
         # check the 4-dimension valid
-        if tensor.format == DD.FORMAT_HWCN or tensor.format == DD.FORMAT_NCHW \
-                or tensor.format == DD.FORMAT_NHWC:
-            if len(tensor.shape.dim) != ConstManager.FOUR_DIMS_LENGTH:
+        if tensor.tensor_format == DD.FORMAT_HWCN or tensor.tensor_format == DD.FORMAT_NCHW \
+                or tensor.tensor_format == DD.FORMAT_NHWC:
+            if len(tensor.shape) != ConstManager.FOUR_DIMS_LENGTH:
                 log.print_warn_log(
                     'The format(%s) of the dump data is 4 dimensions, but the shape%s is not 4 dimensions but ND.'
-                    % (common.get_format_string(tensor.format), utils.convert_shape_to_string(tensor.shape.dim)))
+                    % (common.get_format_string(tensor.tensor_format), utils.convert_shape_to_string(tensor.shape)))
                 real_format = DD.FORMAT_ND
         log.print_info_log("Before transferring the format, the dump data is %s%s."
                            % (common.get_format_string(real_format),
-                              utils.convert_shape_to_string(tensor.shape.dim)))
+                              utils.convert_shape_to_string(tensor.shape)))
         if real_format == DD.FORMAT_FRACTAL_NZ:
-            utils.check_shape_valid_in_nz(self.shape, tensor.shape.dim)
-        shape_to = DD.Shape()
-        for dim in self.shape:
-            shape_to.dim.append(dim)
-        # convert shape
+            utils.check_shape_valid_in_nz(self.shape, tensor.shape)
+
         dump_data_np = self.manager.execute_format_convert(
-            SrcToDest(real_format, self.format_to, tensor.shape, shape_to),
+            SrcToDest(real_format, self.format_to, tensor.shape, self.shape),
             dump_data_array, {'group': common.get_sub_format(tensor)})
         log.print_info_log("After transferring the format, the dump data is %s%s."
                            % (common.get_format_string(self.format_to),
@@ -299,14 +296,14 @@ class FormatConversionMain:
     def _get_format_and_shape(self: any, tensor: any, index: int, tensor_type: str,
                               dump_file_path: str) -> (int, DD.Shape):
         # check the 4-dimension valid
-        real_format = tensor.format
-        if tensor.format == DD.FORMAT_HWCN or tensor.format == DD.FORMAT_NCHW \
-                or tensor.format == DD.FORMAT_NHWC:
-            if len(tensor.shape.dim) != ConstManager.FOUR_DIMS_LENGTH:
+        real_format = tensor.tensor_format
+        if tensor.tensor_format == DD.FORMAT_HWCN or tensor.tensor_format == DD.FORMAT_NCHW \
+                or tensor.tensor_format == DD.FORMAT_NHWC:
+            if len(tensor.shape) != ConstManager.FOUR_DIMS_LENGTH:
                 log.print_warn_log(
                     'The format(%s) of the dump data is 4 dimensions, but the shape %s is not 4 dimensions,'
                     ' the real format is ND for %s:%d of "%s".'
-                    % (common.get_format_string(tensor.format), utils.convert_shape_to_string(tensor.shape.dim),
+                    % (common.get_format_string(tensor.tensor_format), utils.convert_shape_to_string(tensor.shape),
                        tensor_type, index, dump_file_path))
                 real_format = DD.FORMAT_ND
 
@@ -314,31 +311,29 @@ class FormatConversionMain:
         if self.one_file_info:
             shape = self.one_file_info.get('shape')
         if len(shape) == 0:
-            shape = tensor.original_shape.dim
+            shape = tensor.original_shape
         if real_format == DD.FORMAT_FRACTAL_NZ:
-            utils.check_shape_valid_in_nz(shape, tensor.shape.dim)
-        shape_to = DD.Shape()
-        for dim in shape:
-            shape_to.dim.append(dim)
-        return real_format, shape_to
+            utils.check_shape_valid_in_nz(shape, tensor.shape)
+
+        return real_format, shape
 
     def _convert_format_for_one_tensor(self: any, *args: any) -> None:
         tensor, index, tensor_type, dump_file_path, op_name = args
         # deserialize dump data
-        dump_data_array = utils.deserialize_dump_data_to_array(tensor)
+        dump_data_array = tensor.data
 
         real_format, shape_to = self._get_format_and_shape(tensor, index, tensor_type, dump_file_path)
 
         log.print_info_log(
             "Before transferring the format, the data of %s:%d is %s%s."
             % (tensor_type, index, common.get_format_string(real_format),
-               utils.convert_shape_to_string(tensor.shape.dim)))
+               utils.convert_shape_to_string(tensor.shape)))
         src_to_dest = SrcToDest(real_format, self.format_to, tensor.shape, shape_to)
         if real_format == self.format_to:
             log.print_info_log(
                 'There is no need to transfer format because the format (%s) '
                 'is the same for %s:%d of "%s".'
-                % (common.get_format_string(tensor.format), tensor_type,
+                % (common.get_format_string(tensor.tensor_format), tensor_type,
                    index, dump_file_path))
             dump_data_np = ShapeConversion(self.manager).reshape(src_to_dest, dump_data_array)
         else:
@@ -352,20 +347,20 @@ class FormatConversionMain:
         output_format = self.format_to
         # slice data
         try:
-            if len(shape_to.dim) > 0 and real_format != self.format_to:
+            if len(shape_to) > 0 and real_format != self.format_to:
                 old_shape_str = utils.convert_shape_to_string(dump_data_np.shape)
                 tensor_conversion = TensorConversion(None, self.manager, is_detail=False)
-                dump_data_np = tensor_conversion.slice_data(dump_data_np, shape_to.dim)
+                dump_data_np = tensor_conversion.slice_data(dump_data_np, shape_to)
                 log.print_info_log('The data of %s:%d has been sliced from %s to %s.' %
                                    (tensor_type, index, old_shape_str,
-                                    utils.convert_shape_to_string(shape_to.dim)))
+                                    utils.convert_shape_to_string(shape_to)))
         except (OSError, SystemError, ValueError, TypeError, RuntimeError,
                 MemoryError, CompareError):
             log.print_error_log('Failed to slice data for %s from %s to %s.'
                                 % (dump_file_path,
                                    utils.convert_shape_to_string(dump_data_np.shape),
-                                   utils.convert_shape_to_string(shape_to.dim)))
-            output_format = tensor.format
+                                   utils.convert_shape_to_string(shape_to)))
+            output_format = tensor.tensor_format
         finally:
             pass
         # save numpy data to file
@@ -374,13 +369,13 @@ class FormatConversionMain:
     def _save_file_for_convert_failed_tensor(self: any, *args: any) -> None:
         tensor, dump_path, tensor_type, index, op_name = args
         if self.attr.get('output_file_type') == 'msnpy':
-            file_name = utils.make_msnpy_file_name(dump_path, op_name, tensor_type, index, tensor.format)
+            file_name = utils.make_msnpy_file_name(dump_path, op_name, tensor_type, index, tensor.tensor_format)
             file_name = FileUtils.handle_too_long_file_name(
                 file_name, '.npy', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             output_file_path = os.path.join(self.output_path, file_name)
-            FileUtils.save_array_to_file(output_file_path, utils.deserialize_dump_data_to_array(tensor),
+            FileUtils.save_array_to_file(output_file_path, tensor.data,
                                          self.attr.get('output_file_type') != 'bin',
-                                         tensor.shape.dim)
+                                         tensor.shape)
             log.print_info_log('The data of %s:%d has been parsed into "%s".'
                                % (tensor_type, index, output_file_path))
 
@@ -410,9 +405,9 @@ class FormatConversionMain:
 
     def _convert_format_for_input_or_output(self: any, dump_data: DD.DumpData, dump_file_path: str) -> None:
         if self.one_file_info.get('tensor') == ConstManager.INPUT:
-            tensor_list = dump_data.input
+            tensor_list = dump_data.input_data
         else:
-            tensor_list = dump_data.output
+            tensor_list = dump_data.output_data
         if self.one_file_info.get('index') >= len(tensor_list):
             log.print_error_log(
                 'The %s index (%d) is out of range [0, %d). Please check the index.'
@@ -426,12 +421,12 @@ class FormatConversionMain:
     def _convert_format_for_tensor_list(self: any, dump_data: DD.DumpData, dump_file_path: str) -> (int, str):
         ret = CompareError.MSACCUCMP_NONE_ERROR
         msg = dump_file_path
-        ret_input, msg_input = self._convert_format_for_tensor(dump_data.input, dump_file_path, ConstManager.INPUT,
+        ret_input, msg_input = self._convert_format_for_tensor(dump_data.input_data, dump_file_path, ConstManager.INPUT,
                                                                dump_data.op_name)
         if ret_input != CompareError.MSACCUCMP_NONE_ERROR:
             ret = ret_input
         msg += msg_input
-        ret_output, msg_output = self._convert_format_for_tensor(dump_data.output, dump_file_path, ConstManager.OUTPUT,
+        ret_output, msg_output = self._convert_format_for_tensor(dump_data.output_data, dump_file_path, ConstManager.OUTPUT,
                                                                  dump_data.op_name)
         if ret_output != CompareError.MSACCUCMP_NONE_ERROR:
             ret = ret_output
@@ -444,6 +439,7 @@ class FormatConversionMain:
         log.print_info_log('Start to transfer format for the dump file "%s".' % dump_file_path)
         try:
             dump_data = utils.parse_dump_file(dump_file_path, self.attr.get('dump_version'))
+
         except CompareError as error:
             return error.code, msg
 

@@ -393,7 +393,7 @@ class TestUtilsMethods(unittest.TestCase):
         origin_tensor = fusion_op_info.get_origin_tensor(2)
         self.assertEqual(origin_tensor.name, 'conv1_relu')
         self.assertEqual(origin_tensor.index, 2)
-        self.assertEqual(origin_tensor.format, 'NCHW')
+        self.assertEqual(origin_tensor.tensor_format, 'NCHW')
         self.assertEqual(origin_tensor.shape, [1, 3, 33, 33])
 
     def test_get_input_tensor1(self):

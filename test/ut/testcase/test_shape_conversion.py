@@ -8,6 +8,7 @@ import shape_conversion
 import dump_data_pb2 as DD
 from unittest import mock
 from compare_error import CompareError
+from dump_data_object import DumpDataObj
 import common
 
 
@@ -17,6 +18,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home']
         data_str, dump_data = self._make_dump_data_ser(DD.FORMAT_HWCN, [32, 64, 3, 1],
                                                        DD.DT_FLOAT16)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
@@ -83,6 +85,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
@@ -99,6 +102,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
@@ -112,9 +116,6 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process8(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home', '-index', 'xx']
-        dump_data = DD.DumpData()
-        dump_data.output.append(
-            self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
         with pytest.raises(CompareError) as error:
             with mock.patch('sys.argv', args):
                 shape_conversion.ShapeConversionMain()
@@ -135,6 +136,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
@@ -148,9 +150,6 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process11(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home']
-        dump_data = DD.DumpData()
-        dump_data.output.append(
-            self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
@@ -166,6 +165,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(CompareError) as error:
             with mock.patch('sys.argv', args):
                 with mock.patch('utils.check_path_valid',
@@ -185,6 +185,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_NZ,
                                  [1, 2, 4, 4 * 16, 2 * 16]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
@@ -203,7 +204,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_NZ,
                                  [1, 2, 4, 4 * 16, 2 * 16]))
-
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
@@ -222,6 +223,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_NZ,
                                  [1, 1, 1, 4 * 16, 2 * 16]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
@@ -240,6 +242,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_NZ,
                                  [1, 1, 1, 4 * 16, 2 * 16]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
@@ -258,6 +261,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW,
                                  [1, 1, 4 * 16, 2 * 16]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
@@ -282,6 +286,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NDC1HWC0, [1, 4, 16, 2, 2, 16], [1, 256, 4, 2, 2]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.parse_dump_file', return_value=dump_data), \
@@ -305,6 +310,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_Z, [36, 4, 16, 16], [64, 64, 3, 3]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.parse_dump_file', return_value=dump_data), \
@@ -328,6 +334,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_Z, [49, 4, 16, 16], [7, 7, 3, 64]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.parse_dump_file', return_value=dump_data), \
@@ -399,9 +406,9 @@ class TestUtilsMethods(unittest.TestCase):
         format_main._save_to_file = mock.Mock()
         tensor = mock.Mock()
         tensor.data_type = "int32"
-        tensor.format = 0
-        tensor.shape = self._make_shape([1, 2, 2, 2, 2])
-        tensor.original_shape = self._make_shape([1, 2, 3, 4, 5])
+        tensor.tensor_format = 0
+        tensor.shape = [1, 2, 2, 2, 2]
+        tensor.original_shape = [1, 2, 3, 4, 5]
         index = 0
         tensor_type = "input"
         dump_file_path = "/home/a.npy"
@@ -460,8 +467,8 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.format = "NCHW"
         arguments.custom_script_path = "/home"
         dump_data = mock.Mock
-        dump_data.input = [None]
-        dump_data.output = [None]
+        dump_data.input_data = [None]
+        dump_data.output_data = [None]
         format_main = shape_conversion.FormatConversionMain(arguments)
         format_main.one_file_info = {'tensor': "input", 'index': 2, 'shape': "1,3,224,224"}
         dump_file_path = "/home"
@@ -481,8 +488,9 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.format = "NCHW"
         arguments.custom_script_path = "/home"
         dump_data = mock.Mock
-        dump_data.input = [None]
-        dump_data.output = [None]
+        self.build_dump_data_object(dump_data)
+        dump_data.input_data = [None]
+        dump_data.output_data = [None]
         format_main = shape_conversion.FormatConversionMain(arguments)
         format_main._convert_format_for_one_tensor = mock.Mock(side_effect=OSError)
         format_main.one_file_info = {'tensor': "input", 'index': 0, 'shape': "1,3,224,224"}
@@ -503,8 +511,9 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.format = "NCHW"
         arguments.custom_script_path = "/home"
         dump_data = mock.Mock
-        dump_data.input = [None]
-        dump_data.output = [None]
+        self.build_dump_data_object(dump_data)
+        dump_data.input_data = [None]
+        dump_data.output_data = [None]
         format_main = shape_conversion.FormatConversionMain(arguments)
         format_main._convert_format_for_tensor = mock.Mock(return_value=[1, "/demo"])
         format_main.one_file_info = {'tensor': None, 'index': 0, 'shape': "1,3,224,224"}
@@ -597,6 +606,16 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.input.append(op_input)
         data_str = dump_data.SerializeToString()
         return data_str, dump_data
+
+    @staticmethod
+    def build_dump_data_object(dump_data):
+        dump_data.version = None
+        dump_data.op_name = None
+        dump_data.dump_time = None
+        dump_data.buffer = None
+        dump_data.attr = None
+        dump_data.input = []
+        dump_data.output = []
 
 
 if __name__ == '__main__':

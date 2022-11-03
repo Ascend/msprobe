@@ -67,7 +67,7 @@ class NpuVsNpuComparison:
         compare_vector_result = []
         # check npu input data valid
         input_ret, input_error_msg = self.check_tensor_valid(
-            my_output_dump_data.data.input, ground_truth_dump_data.data.input, ConstManager.INPUT)
+            my_output_dump_data.data.input_data, ground_truth_dump_data.data.input_data, ConstManager.INPUT)
         if input_ret == CompareError.MSACCUCMP_NONE_ERROR:
             # compare input
             compare_vector_result += self._compare_by_tensor(my_output_dump_data, ground_truth_dump_data,
@@ -75,7 +75,7 @@ class NpuVsNpuComparison:
 
         # check npu output data valid
         output_ret, output_error_msg = self.check_tensor_valid(
-            my_output_dump_data.data.output, ground_truth_dump_data.data.output, ConstManager.OUTPUT)
+            my_output_dump_data.data.output_data, ground_truth_dump_data.data.output_data, ConstManager.OUTPUT)
 
         if output_ret == CompareError.MSACCUCMP_NONE_ERROR:
             # compare output
@@ -139,27 +139,27 @@ class NpuVsNpuComparison:
         for index, (my_output_tensor, ground_truth_tensor) in enumerate(zip(my_output_list, ground_truth_list)):
             tensor_id = '%s:%d' % (tensor_id_prefix, index)
             # check format valid
-            if my_output_tensor.format != ground_truth_tensor.format:
+            if my_output_tensor.tensor_format != ground_truth_tensor.tensor_format:
                 message = log.print_not_match_error(
                     self.op_name, 'format',
-                    common.get_format_string(my_output_tensor.format),
-                    common.get_format_string(ground_truth_tensor.format), tensor_id)
+                    common.get_format_string(my_output_tensor.tensor_format),
+                    common.get_format_string(ground_truth_tensor.tensor_format), tensor_id)
                 return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
 
             # check the length of shape is the same
-            if len(my_output_tensor.shape.dim) != len(ground_truth_tensor.shape.dim):
+            if len(my_output_tensor.shape) != len(ground_truth_tensor.shape):
                 message = log.print_not_match_error(
                     self.op_name, 'shape',
-                    utils.convert_shape_to_string(my_output_tensor.shape.dim),
-                    utils.convert_shape_to_string(ground_truth_tensor.shape.dim), tensor_id)
+                    utils.convert_shape_to_string(my_output_tensor.shape),
+                    utils.convert_shape_to_string(ground_truth_tensor.shape), tensor_id)
                 return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
             # check each dim in shape is the same
-            for my_output_dim, ground_truth_dim in zip(my_output_tensor.shape.dim, ground_truth_tensor.shape.dim):
+            for my_output_dim, ground_truth_dim in zip(my_output_tensor.shape, ground_truth_tensor.shape):
                 if my_output_dim != ground_truth_dim:
                     message = log.print_not_match_error(
                         self.op_name, 'shape',
-                        utils.convert_shape_to_string(my_output_tensor.shape.dim),
-                        utils.convert_shape_to_string(ground_truth_tensor.shape.dim), tensor_id)
+                        utils.convert_shape_to_string(my_output_tensor.shape),
+                        utils.convert_shape_to_string(ground_truth_tensor.shape), tensor_id)
                     return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
         return CompareError.MSACCUCMP_NONE_ERROR, message
 
@@ -169,8 +169,8 @@ class NpuVsNpuComparison:
         try:
             # 1. deserialize output data to array
             if my_output_tensor and ground_truth_tensor:
-                my_output_data_array = utils.deserialize_dump_data_to_array(my_output_tensor)
-                ground_truth_data_array = utils.deserialize_dump_data_to_array(ground_truth_tensor)
+                my_output_data_array = my_output_tensor.data
+                ground_truth_data_array = ground_truth_tensor.data
         except (OSError, SystemError, ValueError, TypeError, RuntimeError):
             error_msg.append("deserialize_dump_data_to_array failed in _compare_by_one_tensor")
             algorithm_result = self.algorithm_manager.make_nan_result()
@@ -182,7 +182,7 @@ class NpuVsNpuComparison:
                 my_output_data_array, ground_truth_data_array,
                 {'my_output_dump_file': my_output_dump_data.path,
                  'ground_truth_dump_file': ground_truth_dump_data.path,
-                 'shape_type': utils.get_shape_type(my_output_tensor.shape.dim)})
+                 'shape_type': utils.get_shape_type(my_output_tensor.shape)})
         except CompareError as compare_error:
             if isinstance(compare_error, CompareError):
                 error_msg.append(compare_error.message)
@@ -194,12 +194,12 @@ class NpuVsNpuComparison:
                            tensor_type: str) -> list:
         tensor_result_list = []
         if tensor_type == ConstManager.INPUT:
-            my_output_tensor_list = my_output_dump_data.data.input
-            ground_truth_tensor_list = ground_truth_dump_data.data.input
+            my_output_tensor_list = my_output_dump_data.data.input_data
+            ground_truth_tensor_list = ground_truth_dump_data.data.input_data
             is_input = True
         else:
-            my_output_tensor_list = my_output_dump_data.data.output
-            ground_truth_tensor_list = ground_truth_dump_data.data.output
+            my_output_tensor_list = my_output_dump_data.data.output_data
+            ground_truth_tensor_list = ground_truth_dump_data.data.output_data
             is_input = False
         # compare each tensor
         for index, (my_output_tensor, ground_truth_tensor) in enumerate(
@@ -207,8 +207,8 @@ class NpuVsNpuComparison:
             tensor_id = '%s:%s:%d' % (my_output_dump_data.name, tensor_type, index)
             log.print_info_log('[%s] compare %s %s for %s.'
                                % (self.fusion_op_list[0].op_name,
-                                  common.get_format_string(my_output_tensor.format),
-                                  utils.convert_shape_to_string(my_output_tensor.shape.dim),
+                                  common.get_format_string(my_output_tensor.tensor_format),
+                                  utils.convert_shape_to_string(my_output_tensor.shape),
                                   tensor_id))
             algorithm_result, error_msg = self._compare_by_one_tensor(my_output_dump_data, ground_truth_dump_data,
                                                                       my_output_tensor, ground_truth_tensor)
@@ -224,7 +224,7 @@ class NpuVsNpuComparison:
             op_type = utils.get_op_type_from_file_name(my_output_dump_data.path)
 
             # 3. merge result
-            tensor_info = {"tensor_id": tensor_id, "shape": my_output_tensor.shape.dim, "op_type": op_type,
+            tensor_info = {"tensor_id": tensor_id, "shape": my_output_tensor.shape, "op_type": op_type,
                            "my_output_dtype": my_output_tensor_dtype,
                            "ground_truth_dtype": ground_truth_tensor_dtype,
                            "my_output_address": my_output_tensor_address,

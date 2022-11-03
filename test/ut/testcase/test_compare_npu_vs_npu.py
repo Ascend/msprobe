@@ -47,8 +47,10 @@ class TestUtilsMethods(unittest.TestCase):
             fusion_op.FusionOp(6, 'xxx', [], 'Right', ['/home/right/aaa.aaa.21.333333'], attr)]
         left_dump_data = DD.DumpData()
         left_dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        left_dump_data = utils.convert_dump_data(left_dump_data)
         right_dump_data = DD.DumpData()
         right_dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        right_dump_data = utils.convert_dump_data(right_dump_data)
         with mock.patch('utils.parse_dump_file',
                         side_effect=[left_dump_data, right_dump_data]):
             ret, match, result = NpuVsNpuComparison(compare_data,
@@ -68,6 +70,7 @@ class TestUtilsMethods(unittest.TestCase):
             fusion_op.FusionOp(6, 'aaa', [], 'Right', ['/home/right/aaa.aaa.21.999999'], attr)]
         left_dump_data = DD.DumpData()
         left_dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        left_dump_data = utils.convert_dump_data(left_dump_data)
         args = ['aaa.py', 'compare', '-m', '/home/left.bin', '-g',
                 '/home/right.bin']
         with mock.patch('utils.parse_dump_file',
@@ -92,8 +95,10 @@ class TestUtilsMethods(unittest.TestCase):
             fusion_op.FusionOp(6, 'aaa', [], 'Right', ['/home/right/aaa.aaa.21.333333'], attr)]
         left_dump_data = DD.DumpData()
         left_dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        left_dump_data = utils.convert_dump_data(left_dump_data)
         right_dump_data = DD.DumpData()
         right_dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 2, 4, 4]))
+        right_dump_data = utils.convert_dump_data(right_dump_data)
         with mock.patch('utils.parse_dump_file',
                         side_effect=[right_dump_data, left_dump_data]):
             ret, match, result = NpuVsNpuComparison(compare_data,

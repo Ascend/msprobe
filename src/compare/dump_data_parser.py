@@ -69,7 +69,7 @@ class DumpDataParser:
         for (index, tensor) in enumerate(tensor_list):
             log.print_info_log('Start to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_path))
             try:
-                array = utils.deserialize_dump_data_to_array(tensor)
+                array = tensor.data
             except CompareError:
                 log.print_warn_log('Failed to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_path))
                 continue
@@ -78,18 +78,18 @@ class DumpDataParser:
                 file_name = FileUtils.handle_too_long_file_name(
                     file_name, '.npy', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             elif self.output_file_type == 'msnpy':
-                file_name = utils.make_msnpy_file_name(dump_path, op_name, tensor_type, index, tensor.format)
+                file_name = utils.make_msnpy_file_name(dump_path, op_name, tensor_type, index, tensor.tensor_format)
                 file_name = FileUtils.handle_too_long_file_name(
                     file_name, '.npy', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             else:
                 file_name = '%s.%s.%d.%s.%s.%s.bin' \
                             % (name, tensor_type, index, utils.get_string_from_list(array.shape, '_'),
                                np.dtype(common.get_dtype_by_data_type(tensor.data_type)).name,
-                               common.get_format_string(tensor.format))
+                               common.get_format_string(tensor.tensor_format))
                 file_name = FileUtils.handle_too_long_file_name(
                     file_name, '.bin', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             output_file_path = os.path.join(self.output_path, file_name)
-            FileUtils.save_array_to_file(output_file_path, array, self.output_file_type != 'bin', tensor.shape.dim)
+            FileUtils.save_array_to_file(output_file_path, array, self.output_file_type != 'bin', tensor.shape)
             log.print_info_log('The data of %s:%d has been parsed into "%s".'
                                % (tensor_type, index, output_file_path))
 
@@ -140,31 +140,32 @@ class DumpDataParser:
 
     def _save_op_debug_to_file(self: any, dump_path: str, output: any) -> None:
         for idx, item in enumerate(output):
-            if len(item.data) != ConstManager.OVERFLOW_CHECK_SIZE:
+            bytes_data = utils.convert_ndarray_to_bytes(item.data)
+            if len(bytes_data) != ConstManager.OVERFLOW_CHECK_SIZE:
                 log.print_error_log('The data size (%d) of output:%d is not equal to %d in %s. '
                                     'Please check the dump file.'
-                                    % (len(item.data), idx, ConstManager.OVERFLOW_CHECK_SIZE, dump_path))
+                                    % (len(bytes_data), idx, ConstManager.OVERFLOW_CHECK_SIZE, dump_path))
                 raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
             # parser DHA Atomic Add info
             index = 0
-            dha_atomic_add_info = self._parser_overflow_info(item.data, index)
+            dha_atomic_add_info = self._parser_overflow_info(bytes_data, index)
             # parser L2 Atomic Add info
             index += ConstManager.DHA_ATOMIC_ADD_INFO_SIZE
-            l2_atomic_add_info = self._parser_overflow_info(item.data, index)
+            l2_atomic_add_info = self._parser_overflow_info(bytes_data, index)
             # parser AI Core info
             index += ConstManager.L2_ATOMIC_ADD_INFO_SIZE
-            ai_core_info = self._parser_overflow_info(item.data, index)
+            ai_core_info = self._parser_overflow_info(bytes_data, index)
             # parser DHA Atomic Add status
             index += ConstManager.AI_CORE_INFO_SIZE
-            dha_atomic_add_status = self._unpack_uint64_value(item.data, index)
+            dha_atomic_add_status = self._unpack_uint64_value(bytes_data, index)
             dha_atomic_add_info['status'] = dha_atomic_add_status
             # parser L2 Atomic Add status
             index += ConstManager.DHA_ATOMIC_ADD_STATUS_SIZE
-            l2_atomic_add_status = self._unpack_uint64_value(item.data, index)
+            l2_atomic_add_status = self._unpack_uint64_value(bytes_data, index)
             l2_atomic_add_info['status'] = l2_atomic_add_status
             # parser AI Core status
             index += ConstManager.L2_ATOMIC_ADD_STATUS_SIZE
-            self._parser_ai_core_status(ai_core_info, item.data, index)
+            self._parser_ai_core_status(ai_core_info, bytes_data, index)
 
             data = {'DHA Atomic Add': dha_atomic_add_info,
                     'L2 Atomic Add': l2_atomic_add_info,
@@ -179,10 +180,10 @@ class DumpDataParser:
             raise CompareError(ret)
         dump_data = utils.parse_dump_file(dump_path, self.dump_version)
         if os.path.basename(dump_path).startswith('Opdebug.Node_OpDebug.'):
-            self._save_op_debug_to_file(dump_path, dump_data.output)
+            self._save_op_debug_to_file(dump_path, dump_data.output_data)
         else:
-            self._save_tensor_to_file(dump_path, dump_data.input, 'input', dump_data.op_name)
-            self._save_tensor_to_file(dump_path, dump_data.output, 'output', dump_data.op_name)
+            self._save_tensor_to_file(dump_path, dump_data.input_data, 'input', dump_data.op_name)
+            self._save_tensor_to_file(dump_path, dump_data.output_data, 'output', dump_data.op_name)
             self._save_buffer_to_file(dump_path, dump_data.buffer)
 
     def _parse_one_dump_file(self: any, dump_path: str) -> (int, str):

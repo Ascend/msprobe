@@ -126,8 +126,8 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',
                 '/home', '-type', 'tf']
         dump_data = mock.Mock
-        dump_data.input = "input_test"
-        dump_data.output = 'output_test'
+        dump_data.input_data = "input_test"
+        dump_data.output_data = 'output_test'
         dump_data.buffer = "buffer_test"
         with mock.patch('sys.argv', args):
             with mock.patch("utils.parse_dump_file", return_value=dump_data):
@@ -142,8 +142,8 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',
                 '/home', '-type', 'tf']
         dump_data = mock.Mock
-        dump_data.input = "input_test"
-        dump_data.output = 'output_test'
+        dump_data.input_data = "input_test"
+        dump_data.output_data = 'output_test'
         dump_data.buffer = "buffer_test"
         with mock.patch('sys.argv', args):
             with mock.patch("utils.parse_dump_file", return_value=dump_data):
@@ -159,8 +159,8 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',
                 '/home', '-type', 'tf']
         dump_data = mock.Mock
-        dump_data.input = "input_test"
-        dump_data.output = 'output_test'
+        dump_data.input_data = "input_test"
+        dump_data.output_data = 'output_test'
         dump_data.buffer = "buffer_test"
         with mock.patch('sys.argv', args):
             with mock.patch("utils.parse_dump_file", return_value=dump_data):
@@ -246,7 +246,8 @@ class TestUtilsMethods(unittest.TestCase):
             name = "demo"
             tensor_type = "input"
             with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.array([1, 2, 3, 4])):
-                main._save_tensor_to_file(tensor_list, name, input_path, tensor_type)
+                with mock.patch("numpy.save"):
+                    main._save_tensor_to_file(tensor_list, name, input_path, tensor_type)
 
     def test_get_offline_layer_name1(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',

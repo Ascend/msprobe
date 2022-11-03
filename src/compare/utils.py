@@ -9,12 +9,12 @@ This file mainly involves the common function.
 import os
 import re
 import math
+from functools import wraps
 from enum import Enum
 
 import csv
 import numpy as np
 
-import dump_data_pb2 as DD
 import common
 import log
 
@@ -25,6 +25,8 @@ from reg_manager import RegManager
 from big_dump_data import DumpDataHandler
 
 from compare_error import CompareError
+
+from dump_data_object import DumpDataObj
 
 
 class ShapeType(Enum):
@@ -289,7 +291,29 @@ def read_numpy_file(path: str) -> any:
     return DumpDataHandler(path).read_numpy_file()
 
 
-def parse_dump_file(input_path: str, dump_version: int) -> DD.DumpData:
+def _convert_dump_data_object(fn):
+    @wraps(fn)
+    def inner(input_path, dump_version):
+        dump_data = fn(input_path, dump_version)
+        dump_data_object = convert_dump_data(dump_data)
+        return dump_data_object
+    return inner
+
+
+def convert_dump_data(dump_data):
+    """
+    Convert dump_data to DumpDataObj
+    :param dump_data: DD.dump_data object
+    :return dump_data_object: DumpDataObj object
+    """
+    dump_data_object = DumpDataObj(dump_data)
+    dump_data_object.build_input_dump_tensor()
+    dump_data_object.build_output_dump_tensor()
+    return dump_data_object
+
+
+@_convert_dump_data_object
+def parse_dump_file(input_path: str, dump_version: int) -> DumpDataObj:
     """
     Parse dump fil
     :param input_path: the input file path
@@ -298,6 +322,9 @@ def parse_dump_file(input_path: str, dump_version: int) -> DD.DumpData:
     """
     return DumpDataHandler(input_path).parse_dump_data(dump_version)
 
+
+def convert_ndarray_to_bytes(array):
+    return array.tobytes()
 
 def convert_shape_to_string(shape: list) -> str:
     """
