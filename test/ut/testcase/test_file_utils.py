@@ -51,7 +51,8 @@ class TestUtilsMethods(unittest.TestCase):
         file_util = file_utils.FileUtils()
         output_content = ['word1 end!',
                           'word2 end!']
-        with mock.patch('builtins.open', side_effect=None):
+        with mock.patch('builtins.open', side_effect=None), \
+             mock.patch('os.path.getsize', return_value=1024):
             with mock.patch('csv.reader', return_value=output_content):
                 ret = file_util.read_csv("/home/test.csv")
         self.assertEqual(ret, ['word1 end!', 'word2 end!'])

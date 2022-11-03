@@ -267,11 +267,12 @@ class TestUtilsMethods(unittest.TestCase):
                         with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
                             with mock.patch('compare_pytorch.PytorchComparison._get_compare_dump_data',
                                             side_effect=utils.CompareError):
-                                open_file.write = None
-                                ret = pytorch_compare.compare()
-                                all_orders = pytorch_compare.compare_data.get_all_orders()
-                                pytorch_compare.compare_data.my_dump.need_compare_input = True
-                                pytorch_compare._compare_in_one_process(all_orders, None)
+                                with mock.patch('os.path.getsize', return_value=None):
+                                    open_file.write = None
+                                    ret = pytorch_compare.compare()
+                                    all_orders = pytorch_compare.compare_data.get_all_orders()
+                                    pytorch_compare.compare_data.my_dump.need_compare_input = True
+                                    pytorch_compare._compare_in_one_process(all_orders, None)
 
     def test_compare_one_op_exception1(self):
         parser = self._construct_args()
