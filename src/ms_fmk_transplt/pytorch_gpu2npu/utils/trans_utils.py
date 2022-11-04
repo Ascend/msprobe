@@ -30,6 +30,7 @@ MAX_SIZE_OF_RULE_FILE = 10 * 1024 ** 2
 WINDOWS_PATH_LENGTH_LIMIT = 200
 LINUX_FILE_NAME_LENGTH_LIMIT = 200
 MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
+MAX_JSON_FILE_SIZE = 10 * 1024 ** 2
 
 
 class TransplantException(Exception):
@@ -80,6 +81,8 @@ def get_op_list(version):
         op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/op_list_1_8_1.json')
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_5_0/op_list_1_5_0.json')
+    if os.path.getsize(op_list_path) >= MAX_JSON_FILE_SIZE:
+        raise ValueError('Op list file is too large.')
     ops = get_file_content_bytes(op_list_path)
     op_list = json.loads(ops).get('op_list')
     return op_list
@@ -124,9 +127,13 @@ def get_builtin_rule(feature_switch, args):
     if args.version == '1.8.1':
         rule_list.append(InsertAheadRule())
         rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/builtin_rules_1_8_1.json')
+        if os.path.getsize(rules_json_file_1_8_0) >= MAX_JSON_FILE_SIZE:
+            raise ValueError('Rules json file for version 1.8.1 file is too large.')
         get_rule_from_json_file(feature_switch, rule_list, rules_json_file_1_8_0)
     # common rules
     common_rules_json_file = os.path.join(os.path.dirname(__file__), '../common_rules/builtin_rules.json')
+    if os.path.getsize(common_rules_json_file) >= MAX_JSON_FILE_SIZE:
+        raise ValueError('Common rules json file is too large.')
     get_rule_from_json_file(feature_switch, rule_list, common_rules_json_file)
 
     return rule_list
