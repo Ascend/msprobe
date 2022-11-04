@@ -10,8 +10,8 @@ import libcst.helpers as helper
 import libcst.matchers as m
 from libcst.metadata import ParentNodeProvider
 
-from pytorch_gpu2npu.common_rules.code_visitor import OperatorType
-from pytorch_gpu2npu.common_rules.code_visitor import RuleVisitor
+from utils.code_visitor import OperatorType
+from utils.code_visitor import RuleVisitor
 
 
 class BaseInsertGlobalRule(RuleVisitor):

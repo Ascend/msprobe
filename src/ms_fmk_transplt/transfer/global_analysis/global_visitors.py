@@ -6,7 +6,7 @@ import sys
 
 import jedi
 
-from pytorch_gpu2npu.utils import trans_utils as utils
+import utils.trans_utils as utils
 
 
 class GlobalReferenceVisitor:

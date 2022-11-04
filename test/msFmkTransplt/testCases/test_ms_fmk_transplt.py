@@ -40,11 +40,11 @@ class Args(object):
 
 
 def run(mock_args, net_name, output_path, result_dict):
-    from src.ms_fmk_transplt.ms_fmk_transplt import MsFmkTransplt
+    from src.ms_fmk_transplt.pytorch_transfer import PytorchTransfer
     from src.ms_fmk_transplt.transplant import utils
     try:
         utils.refresh_parso_cache = mock.Mock(side_effect=mock_refresh_parso_cache())
-        ms_fmk_transplt = MsFmkTransplt()
+        ms_fmk_transplt = PytorchTransfer()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
         ret = ms_fmk_transplt.main()
         if output_path is not None:
@@ -253,7 +253,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        src_list = ["src.ms_fmk_transplt", "pytorch_gpu2npu"]
+        src_list = ["src.ms_fmk_transplt", "transfer"]
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
                                      omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
         if len(sys.argv) > 1 and sys.argv[1] == 'mr':

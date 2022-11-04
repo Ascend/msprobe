@@ -10,12 +10,12 @@ import libcst
 from libcst._flatten_sentinel import FlattenSentinel
 from libcst._removal_sentinel import RemovalSentinel
 
-import pytorch_gpu2npu.utils.trans_utils as utils
-import pytorch_gpu2npu.utils.transplant_logger as translog
-from pytorch_gpu2npu.common_rules import InsertMainFileRule
-from pytorch_gpu2npu.common_rules.code_visitor import ApiVisitor
-from pytorch_gpu2npu.distributed_rules import DataLoaderRule
-from pytorch_gpu2npu.utils.trans_utils import TransplantException
+import utils.trans_utils as utils
+import utils.transplant_logger as translog
+from transfer.common_rules import InsertMainFileRule
+from utils.code_visitor import ApiVisitor
+from transfer.distributed_rules import DataLoaderRule
+from utils.trans_utils import TransplantException
 
 
 class Transplant(object):

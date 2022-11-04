@@ -5,9 +5,9 @@
 import libcst
 import libcst.matchers as m
 
-from pytorch_gpu2npu.common_rules.code_visitor import RuleVisitor
-from pytorch_gpu2npu.common_rules.common_rule import BaseInsertGlobalRule
-import pytorch_gpu2npu.utils.transplant_logger as logger
+from utils.code_visitor import RuleVisitor
+from transfer.common_rules.common_rule import BaseInsertGlobalRule
+import utils.transplant_logger as logger
 
 
 class ModelArtsPathWrapperRule(RuleVisitor):

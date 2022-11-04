@@ -10,12 +10,12 @@ import shutil
 
 import pandas as pd
 
-import pytorch_gpu2npu.common_rules.common_rule as rule_module
-from pytorch_gpu2npu.distributed_rules import distributed_rule
-from pytorch_gpu2npu.modelarts import get_modelarts_rule
-from pytorch_gpu2npu.pytorch_v1_5_0 import InitApexRule, Amp2Apex
-from pytorch_gpu2npu.pytorch_v1_8_1 import InsertAheadRule
-from pytorch_gpu2npu.utils import transplant_logger as translog
+import transfer.common_rules.common_rule as rule_module
+from transfer.distributed_rules import distributed_rule
+from transfer.modelarts import get_modelarts_rule
+from transfer.pytorch_v1_5_0 import InitApexRule, Amp2Apex
+from transfer.pytorch_v1_8_1 import InsertAheadRule
+import utils.transplant_logger as translog
 
 try:
     import jedi
@@ -343,7 +343,7 @@ def name_to_jedi_position(file, line, name):
     column = content.find(name)
     if column == -1:
         return {}
-    return {'line':line, 'column': column}
+    return {'line': line, 'column': column}
 
 
 def check_model_name_valid(name):
@@ -367,3 +367,12 @@ def refresh_parso_cache():
     if os.path.exists(cache_directory):
         raise JediCacheClearException('Failed to delete jedi cache. Please delete it manually.')
     os.makedirs(cache_directory, mode=0o700)
+
+
+def check_is_subdirectory(path_may_be_parent, path_may_be_child):
+    path_may_be_parent = os.path.realpath(path_may_be_parent)
+    path_may_be_child = os.path.realpath(path_may_be_child)
+    if path_may_be_parent[0] != path_may_be_child[0]:
+        return False
+    commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
+    return commonpath == path_may_be_parent

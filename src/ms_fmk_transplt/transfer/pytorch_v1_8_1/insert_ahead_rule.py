@@ -5,8 +5,8 @@
 from typing import Optional, Union
 import libcst
 from libcst import FlattenSentinel, RemovalSentinel
-from pytorch_gpu2npu.common_rules import RuleVisitor
-from pytorch_gpu2npu.common_rules.code_visitor import OperatorType
+from utils.code_visitor import RuleVisitor
+from utils.code_visitor import OperatorType
 
 
 class InsertAheadRule(RuleVisitor):

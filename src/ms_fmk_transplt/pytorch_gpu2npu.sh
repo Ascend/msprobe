@@ -6,5 +6,5 @@
 script_path=$(readlink -f "$0")
 route=$(dirname "$script_path")
 
-# run pytorch_gpu2npu
+# run transfer
 PYTHONPATH="$route":$PYTHONPATH python3 "$route"/ms_fmk_transplt.py "$@"

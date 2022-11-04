@@ -7,9 +7,9 @@ from typing import Optional, Union
 import libcst
 from libcst import matchers as m, FlattenSentinel, RemovalSentinel
 
-from pytorch_gpu2npu.common_rules import BaseInsertGlobalRule
-from pytorch_gpu2npu.common_rules.code_visitor import RuleVisitor, OperatorType
-from pytorch_gpu2npu.utils.scope_visitors import ScaleScopeVisitor
+from transfer.common_rules import BaseInsertGlobalRule
+from utils.code_visitor import RuleVisitor, OperatorType
+from utils.scope_visitors import ScaleScopeVisitor
 
 
 class InitApexRule(BaseInsertGlobalRule):

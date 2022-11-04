@@ -8,9 +8,9 @@ import shutil
 import sys
 import platform
 
-import pytorch_gpu2npu.utils.trans_utils as utils
-import pytorch_gpu2npu.utils.transplant_logger as translog
-from transplant import Transplant
+import utils.trans_utils as utils
+import utils.transplant_logger as translog
+from transfer.transplant import Transplant
 
 
 class MsFmkTransplt(object):
@@ -64,7 +64,7 @@ class MsFmkTransplt(object):
             raise ValueError('Main file %s should be a python file!' % args.main)
         if not os.path.exists(main_file):
             raise ValueError('Main file %s does not exist!' % args.main)
-        if not MsFmkTransplt.__check_is_subdirectory(args.input, args.main):
+        if not utils.check_is_subdirectory(args.input, args.main):
             if os.path.isdir(args.input):
                 raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
             if os.path.isfile(args.input):
@@ -86,15 +86,6 @@ class MsFmkTransplt(object):
         distributed_parser.add_argument('-t', '--target_model', metavar='model', default='model',
                                         help='The variable name of the target model, for example, '
                                              '"model=LeNet() model", "self.model=LeNet() self.model"')
-
-    @staticmethod
-    def __check_is_subdirectory(path_may_be_parent, path_may_be_child):
-        path_may_be_parent = os.path.realpath(path_may_be_parent)
-        path_may_be_child = os.path.realpath(path_may_be_child)
-        if path_may_be_parent[0] != path_may_be_child[0]:
-            return False
-        commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
-        return commonpath == path_may_be_parent
 
     def main(self):
         args = self.__parse_command()
@@ -136,7 +127,7 @@ class MsFmkTransplt(object):
         global_reference_visitor = None
         if utils.IS_JEDI_INSTALLED:
             utils.refresh_parso_cache()
-            from pytorch_gpu2npu.global_analysis import GlobalReferenceVisitor
+            from transfer.global_analysis import GlobalReferenceVisitor
             global_reference_visitor = GlobalReferenceVisitor(self.input)
         else:
             translog.warning('Since jedi is not correctly installed, global analysis will not take effect. You '
@@ -190,7 +181,7 @@ class MsFmkTransplt(object):
             utils.user_interactive_confirm(
                 'The output path is insecure because it does not belong to you. Do you want to continue?')
 
-        if self.__check_is_subdirectory(args.input, args.output):
+        if utils.check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
         if args.amp_model:
