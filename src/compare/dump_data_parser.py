@@ -205,8 +205,8 @@ class OpDebugInfoParser:
                      'thread_id', 'pc_start', 'para_base', 'core_id', 'block_id', 'status')
     SDMA_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
                   'thread_id', 'src_addr', 'dst_addr', 'channel_id', 'status')
-    AICPU_DEBUG = ('stream_id', 'task_id', 'task_type', 'thread_index',
-                   'para_base', 'core_id', 'block_id', 'status')
+    AICPU_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
+                   'cpu_id', 'thread_id', 'status')
     HEX_FORMAT_ITEM = ("pc_start", "para_base", "src_addr", "dst_addr")
 
     def __init__(self: any, data: any) -> None:
@@ -247,13 +247,34 @@ class OpDebugInfoParser:
             else:
                 value = self.unpack_uint_value(self.data, index, 'UINT32')
                 acc_debug_info[key] = value
-        
+
+        self._check_acc_debug_info(acc_debug_info)
+        acc_debug_info['data'] = self._parse_debug_info(data_index, acc_type)
+        return acc_debug_info
+
+    def _check_acc_debug_info(self: any, acc_debug_info: dict) -> None:
         if acc_debug_info.get('valid') != 1:
             log.print_error_log('The value of valid in the OpDebug file is {}, it is not 1'
                                 .format(acc_debug_info.get('valid')))
 
-        acc_debug_info['data'] = self._parse_debug_info(data_index, acc_type)
-        return acc_debug_info
+        acc_type = acc_debug_info.get('acc_type')
+        if not acc_type:
+            log.print_error_log("The value of 'acc_type' is {}, it's invalid".format(acc_type))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+
+        expect_data_len = 0
+        if acc_type in ["AIC", "AIV"]:
+            expect_data_len = len(self.AIC_AIV_DEBUG)
+        if acc_type == "AICPU":
+            expect_data_len = len(self.AICPU_DEBUG)
+        if acc_type == "SDMA":
+            expect_data_len = len(self.SDMA_DEBUG)
+        expect_data_len *= ConstManager.UINT64_SIZE
+
+        real_data_len = acc_debug_info.get('data_len')
+        if real_data_len != expect_data_len:
+            log.print_error_log('The value of data_len in the OpDebug file is {}, it is not equal'
+                                ' the expect value {}'.format(real_data_len, expect_data_len))
 
     def _parse_debug_info(self: any, start: int, acc_type: int) -> map:
         data_names = []
