@@ -260,7 +260,7 @@ class OpDebugInfoParser:
         acc_type = acc_debug_info.get('acc_type')
         if not acc_type:
             log.print_error_log("The value of 'acc_type' is {}, it's invalid".format(acc_type))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
 
         expect_data_len = 0
         if acc_type in ["AIC", "AIV"]:
