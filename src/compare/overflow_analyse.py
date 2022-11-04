@@ -176,7 +176,7 @@ class OverflowAnalyse:
         :debug_file： the desc of debug file
         """
         res = []
-        if 'magic' in json_txt:
+        if ConstManager.MAGIC_KEY_WORD in json_txt.keys():
             task_id, stream_id = self._get_overflow_info_new_version(res, json_txt)
         else:
             task_id, stream_id = self._get_overflow_info_old_version(res, json_txt)

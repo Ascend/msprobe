@@ -33,6 +33,7 @@ class ConstManager:
     # overflow
     OVERFLOW_MIN_VALUE = 5.96e-8
     OVERFLOW_MAX_VALUE = 65504
+    MAGIC_KEY_WORD = 'magic'
     MAGIC_NUM = 0x5a5a5a5a
 
     # algorithm

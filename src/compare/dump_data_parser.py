@@ -228,7 +228,8 @@ class OpDebugInfoParser:
                 value = self.unpack_uint_value(self.data, index, 'UINT32')
             op_debug[key] = value
 
-        op_debug["magic"] = hex(op_debug.get("magic"))
+        magic_key = ConstManager.MAGIC_KEY_WORD
+        op_debug[magic_key] = hex(op_debug.get(magic_key))
         return op_debug
 
     def _parse_acc_debug_info(self: any, start: int) -> dict:
