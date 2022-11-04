@@ -95,13 +95,13 @@ class OverflowAnalyse:
 
     @staticmethod
     def _gen_overflow_info(res: list, overflow_type: str, detail: any) -> any:
-        if detail['status'] > 0:
+        if detail.get('status') > 0:
             overflow_info = ' [%s][TaskId:%s][StreamId:%s][Status:%s]' \
                             % (overflow_type, detail['task_id'],
                                detail['stream_id'], detail['status'])
             res.append(overflow_info)
             return detail['task_id'], detail['stream_id']
-        log.print_warn_log("[Overflow] The OpDebug file exists, but the value of status is 0!")
+        log.print_error_log("[Overflow] The OpDebug file exists, but the value of status is 0!")
         raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_STATUS_ERROR)
 
     @staticmethod
