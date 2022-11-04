@@ -143,7 +143,7 @@ class DumpDataParser:
             FileUtils.save_data_to_file(json_path, json.dumps(debug_info, sort_keys=False, indent=4), 'w+', delete=True)
             log.print_info_log('The data of output:%d has been parsed into "%s".' % (idx, json_path))
 
-    def _parse_op_debug_old_version(self: any, dump_path: str, idx: int, item_data: any) -> map:
+    def _parse_op_debug_old_version(self: any, dump_path: str, idx: int, item_data: any) -> dict:
         if len(item_data) != ConstManager.OVERFLOW_CHECK_SIZE:
             log.print_error_log('The data size (%d) of output:%d is not equal to %d in %s. '
                                 'Please check the dump file.'
@@ -218,7 +218,7 @@ class OpDebugInfoParser:
         type_para = ConstManager.UNPACK_FORMAT.get(uint_type)
         return struct.unpack(type_para.get('FMT'), data[index:index + type_para.get('SIZE')])[0]
 
-    def parse_op_debug_new_version(self: any) -> map:
+    def parse_op_debug_new_version(self: any) -> dict:
         op_debug = {}
         for idx, key in enumerate(self.OVERFLOW_DEBUG):
             index = idx * ConstManager.UINT32_SIZE
@@ -231,7 +231,7 @@ class OpDebugInfoParser:
         op_debug["magic"] = hex(op_debug.get("magic"))
         return op_debug
 
-    def _parse_acc_debug_info(self: any, start: int) -> map:
+    def _parse_acc_debug_info(self: any, start: int) -> dict:
         acc_debug_info = {}
         acc_type = 0
         data_index = 0
@@ -276,7 +276,7 @@ class OpDebugInfoParser:
             log.print_error_log('The value of data_len in the OpDebug file is {}, it is not equal'
                                 ' the expect value {}'.format(real_data_len, expect_data_len))
 
-    def _parse_debug_info(self: any, start: int, acc_type: int) -> map:
+    def _parse_debug_info(self: any, start: int, acc_type: int) -> dict:
         data_names = []
         if acc_type in ["AIC", "AIV"]:
             data_names = self.AIC_AIV_DEBUG
@@ -293,7 +293,7 @@ class OpDebugInfoParser:
         self._change_debug_info_fomat(debug_info)
         return debug_info
 
-    def _change_debug_info_fomat(self: any, debug_info: map) -> None:
+    def _change_debug_info_fomat(self: any, debug_info: dict) -> None:
         for item in self.HEX_FORMAT_ITEM:
             if item in debug_info.keys():
                 debug_info[item] = hex(debug_info[item])
