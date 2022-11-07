@@ -487,17 +487,13 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/Opdebug.Node_OpDebug.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
-                                return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
-                                    return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
-                                        return_value=dump_data):
-                            with mock.patch('os.open') as open_file, \
-                                    mock.patch('os.fdopen'):
-                                with mock.patch("os.path.isfile", return_value=True):
-                                    open_file.write = None
-                                    msaccucmp.main()
+                with mock.patch('utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+                     mock.patch('utils.check_output_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+                     mock.patch('utils.parse_dump_file', return_value=dump_data), \
+                     mock.patch('os.open') as open_file, mock.patch('os.fdopen'), \
+                     mock.patch("os.path.isfile", return_value=True):
+                    open_file.write = None
+                    msaccucmp.main()
         self.assertEqual(error.value.code, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_mapping_error_parameter1(self):
