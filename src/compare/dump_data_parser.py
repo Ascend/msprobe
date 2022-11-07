@@ -5,19 +5,19 @@
 Function:
 DumpDataParser class. This class mainly involves the parser_dump_data function.
 """
-import os
 import json
+import os
 import struct
+
 import numpy as np
-import utils
-import log
+
 import common
-from const_manager import ConstManager
-
-from file_utils import FileUtils
-
-from multi_convert_process import MultiConvertProcess
+import log
+import utils
 from compare_error import CompareError
+from const_manager import ConstManager
+from file_utils import FileUtils
+from multi_convert_process import MultiConvertProcess
 
 
 class DumpDataParser:
@@ -199,15 +199,6 @@ class OpDebugInfoParser:
     """
     Data parsing class for OpDebug dump files of the new version
     """
-    OVERFLOW_DEBUG = ('magic', 'version', 'acc_list')
-    ACC_DEBUG = ('valid', 'acc_type', 'rsv', 'data_len', 'data')
-    AIC_AIV_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
-                     'thread_id', 'pc_start', 'para_base', 'core_id', 'block_id', 'status')
-    SDMA_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
-                  'thread_id', 'src_addr', 'dst_addr', 'channel_id', 'status')
-    AICPU_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
-                   'cpu_id', 'thread_id', 'status')
-    HEX_FORMAT_ITEM = ("pc_start", "para_base", "src_addr", "dst_addr")
 
     def __init__(self: any, data: any) -> None:
         self.data = data
@@ -218,9 +209,36 @@ class OpDebugInfoParser:
         type_para = ConstManager.UNPACK_FORMAT.get(uint_type)
         return struct.unpack(type_para.get('FMT'), data[index:index + type_para.get('SIZE')])[0]
 
+    @staticmethod
+    def _change_debug_info_fomat(debug_info: dict) -> None:
+        for item in ConstManager.HEX_FORMAT_ITEM:
+            if item in debug_info.keys():
+                debug_info[item] = hex(debug_info[item])
+
+    @staticmethod
+    def _check_acc_debug_info(acc_debug_info: dict) -> None:
+        if acc_debug_info.get('valid') != 1:
+            log.print_error_log('The value of valid in the OpDebug file is {}, it is not 1'
+                                .format(acc_debug_info.get('valid')))
+
+        acc_type = acc_debug_info.get('acc_type')
+        if not acc_type:
+            log.print_error_log("The value of 'acc_type' is {}, it's invalid".format(acc_type))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
+
+        expect_data_len = 0
+        if acc_type in ConstManager.DEBUG_INFO_MAP.keys():
+            expect_data_len = len(ConstManager.DEBUG_INFO_MAP.get(acc_type))
+        expect_data_len *= ConstManager.UINT64_SIZE
+
+        real_data_len = acc_debug_info.get('data_len')
+        if real_data_len != expect_data_len:
+            log.print_error_log('The value of data_len in the OpDebug file is {}, it is not equal'
+                                ' the expect value {}'.format(real_data_len, expect_data_len))
+
     def parse_op_debug_new_version(self: any) -> dict:
         op_debug = {}
-        for idx, key in enumerate(self.OVERFLOW_DEBUG):
+        for idx, key in enumerate(ConstManager.OVERFLOW_DEBUG):
             index = idx * ConstManager.UINT32_SIZE
             if key == 'acc_list':
                 value = self._parse_acc_debug_info(index)
@@ -236,7 +254,7 @@ class OpDebugInfoParser:
         acc_debug_info = {}
         acc_type = 0
         data_index = 0
-        for idx, key in enumerate(self.ACC_DEBUG):
+        for idx, key in enumerate(ConstManager.ACC_DEBUG):
             index = start + idx * ConstManager.UINT32_SIZE
             if key == 'acc_type':
                 type_value = self.unpack_uint_value(self.data, index, 'UINT32')
@@ -253,38 +271,10 @@ class OpDebugInfoParser:
         acc_debug_info['data'] = self._parse_debug_info(data_index, acc_type)
         return acc_debug_info
 
-    def _check_acc_debug_info(self: any, acc_debug_info: dict) -> None:
-        if acc_debug_info.get('valid') != 1:
-            log.print_error_log('The value of valid in the OpDebug file is {}, it is not 1'
-                                .format(acc_debug_info.get('valid')))
-
-        acc_type = acc_debug_info.get('acc_type')
-        if not acc_type:
-            log.print_error_log("The value of 'acc_type' is {}, it's invalid".format(acc_type))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
-
-        expect_data_len = 0
-        if acc_type in ["AIC", "AIV"]:
-            expect_data_len = len(self.AIC_AIV_DEBUG)
-        if acc_type == "AICPU":
-            expect_data_len = len(self.AICPU_DEBUG)
-        if acc_type == "SDMA":
-            expect_data_len = len(self.SDMA_DEBUG)
-        expect_data_len *= ConstManager.UINT64_SIZE
-
-        real_data_len = acc_debug_info.get('data_len')
-        if real_data_len != expect_data_len:
-            log.print_error_log('The value of data_len in the OpDebug file is {}, it is not equal'
-                                ' the expect value {}'.format(real_data_len, expect_data_len))
-
     def _parse_debug_info(self: any, start: int, acc_type: int) -> dict:
         data_names = []
-        if acc_type in ["AIC", "AIV"]:
-            data_names = self.AIC_AIV_DEBUG
-        if acc_type == "AICPU":
-            data_names = self.AICPU_DEBUG
-        if acc_type == "SDMA":
-            data_names = self.SDMA_DEBUG
+        if acc_type in ConstManager.DEBUG_INFO_MAP.keys():
+            data_names = ConstManager.DEBUG_INFO_MAP.get(acc_type)
 
         debug_info = {}
         for idx, key in enumerate(data_names):
@@ -293,8 +283,3 @@ class OpDebugInfoParser:
             debug_info[key] = value
         self._change_debug_info_fomat(debug_info)
         return debug_info
-
-    def _change_debug_info_fomat(self: any, debug_info: dict) -> None:
-        for item in self.HEX_FORMAT_ITEM:
-            if item in debug_info.keys():
-                debug_info[item] = hex(debug_info[item])

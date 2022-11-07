@@ -10,12 +10,13 @@ import os
 import time
 
 import numpy as np
-import utils
+
 import log
-from const_manager import ConstManager
-from file_utils import OverflowFileUtils
-from dump_data_parser import DumpDataParser
+import utils
 from compare_error import CompareError
+from const_manager import ConstManager
+from dump_data_parser import DumpDataParser
+from file_utils import OverflowFileUtils
 
 
 class OverflowAnalyse:
@@ -95,13 +96,14 @@ class OverflowAnalyse:
 
     @staticmethod
     def _gen_overflow_info(res: list, overflow_type: str, detail: any) -> any:
-        if detail.get('status') > 0:
+        status = detail.get('status')
+        if status and status != 0:
             overflow_info = ' [%s][TaskId:%s][StreamId:%s][Status:%s]' \
-                            % (overflow_type, detail['task_id'],
-                               detail['stream_id'], detail['status'])
+                            % (overflow_type, detail.get('task_id'),
+                               detail.get('stream_id'), status)
             res.append(overflow_info)
-            return detail['task_id'], detail['stream_id']
-        log.print_error_log("[Overflow] The OpDebug file exists, but the value of status is 0!")
+            return detail.get('task_id'), detail.get('stream_id')
+        log.print_error_log("[Overflow] The OpDebug file exists, but the value of status is {}!".format(status))
         raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_STATUS_ERROR)
 
     @staticmethod
