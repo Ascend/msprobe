@@ -7,8 +7,9 @@ This file mainly involves the const value.
 """
 import os
 import stat
-import numpy as np
+
 import dump_data_pb2 as DD
+import numpy as np
 
 
 class ConstManager:
@@ -33,6 +34,8 @@ class ConstManager:
     # overflow
     OVERFLOW_MIN_VALUE = 5.96e-8
     OVERFLOW_MAX_VALUE = 65504
+    MAGIC_KEY_WORD = 'magic'
+    MAGIC_NUM = 0x5a5a5a5a
 
     # algorithm
     FLOAT_EPSILON = np.finfo(float).eps
@@ -244,8 +247,14 @@ class ConstManager:
 
     DEQUANT_OP_NANE_SUFFIX_LIST = ["_dequant_layer", "AscendDequant", "_dequant"]
 
+    UINT32_FMT = 'I'
     UINT64_FMT = 'Q'
+    UINT32_SIZE = 4
     UINT64_SIZE = 8
+    UNPACK_FORMAT = {
+        'UINT32': {'FMT': UINT32_FMT, 'SIZE': UINT32_SIZE},
+        'UINT64': {'FMT': UINT64_FMT, 'SIZE': UINT64_SIZE}
+    }
     ONE_GB = 1 * 1024 * 1024 * 1024
     ONE_HUNDRED_MB = 100 * 1024 * 1024
     DHA_ATOMIC_ADD_INFO_SIZE = 128
@@ -257,6 +266,27 @@ class ConstManager:
     OVERFLOW_CHECK_SIZE = \
         DHA_ATOMIC_ADD_INFO_SIZE + L2_ATOMIC_ADD_INFO_SIZE + AI_CORE_INFO_SIZE + DHA_ATOMIC_ADD_STATUS_SIZE \
         + L2_ATOMIC_ADD_STATUS_SIZE + AI_CORE_STATUS_SIZE
+    ACC_TYPE = {
+        0: "AIC",
+        1: "AIV",
+        2: "AICPU",
+        3: "SDMA"
+    }
+    OVERFLOW_DEBUG = ('magic', 'version', 'acc_list')
+    ACC_DEBUG = ('valid', 'acc_type', 'rsv', 'data_len', 'data')
+    AIC_AIV_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
+                     'thread_id', 'pc_start', 'para_base', 'core_id', 'block_id', 'status')
+    SDMA_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
+                  'thread_id', 'src_addr', 'dst_addr', 'channel_id', 'status')
+    AICPU_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
+                   'cpu_id', 'thread_id', 'status')
+    DEBUG_INFO_MAP = {
+        "AIC": AIC_AIV_DEBUG,
+        "AIV": AIC_AIV_DEBUG,
+        "SDMA": SDMA_DEBUG,
+        "AICPU": AICPU_DEBUG,
+    }
+    HEX_FORMAT_ITEM = ("pc_start", "para_base", "src_addr", "dst_addr")
 
     BUFFER_TYPE_MAP = {DD.L1: 'l1'}
     CONVERT_FAILED_FILE_LIST_NAME = "convert_failed_file_list.txt"
