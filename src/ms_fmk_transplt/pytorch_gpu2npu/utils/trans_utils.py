@@ -370,5 +370,5 @@ def refresh_parso_cache():
 
 
 def islink(path):
-    path = path.rstrip(os.path.sep)
+    path = os.path.abspath(path)
     return os.path.islink(path)
