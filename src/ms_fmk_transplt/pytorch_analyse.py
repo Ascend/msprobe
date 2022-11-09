@@ -5,7 +5,9 @@
 import argparse
 import os.path
 import shutil
+import sys
 
+from analyse.analysis import PytorchAnalyze
 import utils.trans_utils as utils
 import utils.transplant_logger as translog
 
@@ -33,7 +35,21 @@ class PytorchAnalysis:
             self.__check_output_valid(args)
             self.__init_logger()
             translog.info('Pytorch analysis start working now, please wait for a moment.')
-            pytorch_analysis =
+            pytorch_analysis = PytorchAnalyze(self.input_path, self.output_path, args.version)
+            pytorch_analysis.set_py_file_counts(self.py_file_counts)
+            pytorch_analysis.run()
+        except KeyboardInterrupt:
+            translog.error('User canceled.')
+            ret = 1
+        except BaseException as exp:
+            translog.error(exp)
+            ret = 1
+        if ret != 0:
+            translog.error('MsFmkTransplt run fail!')
+        else:
+            translog.info('MsFmkTransplt run success, welcome to the next use.')
+        self.__set_report_files_permission(0o440)
+        return ret
 
     def __check_param_valid(self, args):
         if os.path.islink(args.input):
@@ -116,3 +132,5 @@ class PytorchAnalysis:
             os.chmod(file_path, permission)
 
 
+if __name__ == '__main__':
+    sys.exit(PytorchAnalysis().main())

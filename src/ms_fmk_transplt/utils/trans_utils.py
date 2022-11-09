@@ -52,24 +52,24 @@ class JediCacheClearException(Exception):
     pass
 
 
-def write_csv(content_list, script_file, script_dir, csv_type):
+def write_csv(content_list, rel_script_file_name, output_dir, csv_type):
     header_dict = {
         "change_list": ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'),
         "unsupported_op": ('File', 'Start Line', 'End Line', 'OP', 'Tips')
     }
-    if os.path.isfile(script_dir):
-        csv_file = os.path.join(os.path.dirname(script_dir), '%s.csv' % csv_type)
+    if os.path.isfile(output_dir):
+        csv_file = os.path.join(os.path.dirname(output_dir), '%s.csv' % csv_type)
     else:
-        csv_file = os.path.join(script_dir, '%s.csv' % csv_type)
+        csv_file = os.path.join(output_dir, '%s.csv' % csv_type)
     header = header_dict.get(csv_type)
     if not os.path.exists(csv_file):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
 
-    if os.path.isdir(script_dir):
-        rel_script_file_name = os.path.relpath(script_file, script_dir)
-    else:
-        rel_script_file_name = os.path.basename(script_file)
+    # if os.path.isdir(script_dir):
+    #     rel_script_file_name = os.path.relpath(script_file, script_dir)
+    # else:
+    #     rel_script_file_name = os.path.basename(script_file)
     new_data = pd.DataFrame(list(([rel_script_file_name] + content) for content in content_list))
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
     change_mode(csv_file)
@@ -77,9 +77,9 @@ def write_csv(content_list, script_file, script_dir, csv_type):
 
 def get_op_list(version):
     if version == '1.8.1':
-        op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/op_list_1_8_1.json')
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_8_1.json')
     else:
-        op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_5_0/op_list_1_5_0.json')
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_5_0.json')
     ops = get_file_content_bytes(op_list_path)
     op_list = json.loads(ops).get('op_list')
     return op_list
