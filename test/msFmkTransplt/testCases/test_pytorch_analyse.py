@@ -29,8 +29,8 @@ def run(mock_args):
         analyse = PytorchAnalyse()
         analyse._PytorchAnalyse__parse_command = mock_args
         return analyse.main()
-    except Exception as e:
-        print(repr(e))
+    except Exception as exp:
+        print(repr(exp))
         return ANALYSE_ERROR
 
 
