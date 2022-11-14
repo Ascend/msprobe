@@ -209,7 +209,7 @@ class MsFmkTransplt(object):
                                  'Note that this may result in accuracy loss and performance degradation')
         parser.add_argument('-a', '--amp_model', metavar='model', default='',
                             help='This option is required only if you want to convert torch.cuda.amp to apex.amp')
-        parser.add_argument('-v', '--version', default='1.5.0',
+        parser.add_argument('-v', '--version', default='1.8.1',
                             help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
         parser.add_argument('-m', '--modelarts', action='store_true',
                             help='Convert to a ModelArts-compatible project.')

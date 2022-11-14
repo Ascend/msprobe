@@ -22,7 +22,7 @@ class PytorchAnalysis:
         parser = argparse.ArgumentParser()
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
-        parser.add_argument('-v', '--version', default='1.5.0',
+        parser.add_argument('-v', '--version', default='1.8.1',
                             help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
         return parser.parse_args()
 
