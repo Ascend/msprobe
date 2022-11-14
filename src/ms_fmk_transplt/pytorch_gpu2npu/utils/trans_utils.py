@@ -303,7 +303,6 @@ def check_path_pattern_valid(path):
         pattern = re.compile(r'(\.|/|:|_|-|\s|[~0-9a-zA-Z])+')
         if not pattern.fullmatch(path):
             raise ValueError('Only the following characters are allowed in the path: A-Z a-z 0-9 - _ . / :')
-    return True
 
 
 def check_file_need_analysis(file, commonprefix, record=False):
@@ -386,7 +385,6 @@ def check_input_file_valid(input_path, max_file_size=MAX_JSON_FILE_SIZE):
     abs_path = os.path.realpath(input_path)
     if not check_path_length_valid(abs_path):
         raise ValueError('The path is too long.')
-    if not check_path_pattern_valid(abs_path):
-        raise ValueError(f'The path contains invalid characters.')
+    check_path_pattern_valid(abs_path)
     if os.path.getsize(abs_path) > max_file_size:
         raise ValueError(f'The file is too large, exceeds {max_file_size // 1024 ** 2}MB')
