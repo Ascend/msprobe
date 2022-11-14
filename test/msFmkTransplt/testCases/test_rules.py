@@ -18,7 +18,7 @@ class TestRules(unittest.TestCase):
         import src.ms_fmk_transplt.transfer.distributed_rules.distributed_rule as distributed_rule
         import src.ms_fmk_transplt.transfer.modelarts as modelarts_rule
         from src.ms_fmk_transplt.transfer.pytorch_v1_8_1 import insert_ahead_rule as rule_1_8_1
-        from src.ms_fmk_transplt.transfer.utils import trans_utils as utils
+        from src.ms_fmk_transplt.utils import trans_utils as utils
         cls.common_rule = common_rule
         cls.distributed_rule = distributed_rule
         cls.modelarts_rule = modelarts_rule
