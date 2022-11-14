@@ -66,10 +66,6 @@ def write_csv(content_list, rel_script_file_name, output_dir, csv_type):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
 
-    # if os.path.isdir(script_dir):
-    #     rel_script_file_name = os.path.relpath(script_file, script_dir)
-    # else:
-    #     rel_script_file_name = os.path.basename(script_file)
     new_data = pd.DataFrame(list(([rel_script_file_name] + content) for content in content_list))
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
     change_mode(csv_file)
@@ -377,6 +373,7 @@ def check_is_subdirectory(path_may_be_parent, path_may_be_child):
         return False
     commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
     return commonpath == path_may_be_parent
+
 
 def islink(path):
     path = os.path.abspath(path)

@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 
-import libcst
 import os
-
+import libcst
 from utils.code_visitor import ApiVisitor
 import utils.transplant_logger as translog
 import utils.trans_utils as utils
