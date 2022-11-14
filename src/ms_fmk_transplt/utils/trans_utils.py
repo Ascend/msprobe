@@ -185,7 +185,7 @@ def _get_path_authority(path):
 
 
 def change_mode(path):
-    if not os.path.exists(path) or os.path.islink(path):
+    if not os.path.exists(path) or islink(path):
         return
     os.chmod(path, _get_path_authority(path))
     if os.path.isfile(path):
@@ -193,11 +193,11 @@ def change_mode(path):
     for root, dirs, files in os.walk(path):
         for dir_name in dirs:
             new_dir_path = os.path.join(root, dir_name)
-            if not os.path.islink(new_dir_path):
+            if not islink(new_dir_path):
                 os.chmod(new_dir_path, _get_path_authority(new_dir_path))
         for file_name in files:
             file_path = os.path.join(root, file_name)
-            if os.path.islink(file_path):
+            if islink(file_path):
                 continue
             os.chmod(file_path, _get_path_authority(file_path))
 

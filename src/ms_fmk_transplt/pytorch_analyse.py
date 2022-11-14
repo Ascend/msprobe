@@ -52,7 +52,7 @@ class PytorchAnalysis:
         return ret
 
     def __check_param_valid(self, args):
-        if os.path.islink(args.input):
+        if utils.islink(args.input):
             raise utils.SoftlinkCheckException("Input path doesn't support soft link.")
 
         self.input_path = os.path.realpath(args.input)
