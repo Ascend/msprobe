@@ -123,10 +123,11 @@ def get_builtin_rule(feature_switch, args):
         rule_list.extend(get_modelarts_rule())
     if args.version == '1.8.1':
         rule_list.append(InsertAheadRule())
-        rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/builtin_rules_1_8_1.json')
+        rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__),
+                                             '../transfer/pytorch_v1_8_1/builtin_rules_1_8_1.json')
         get_rule_from_json_file(feature_switch, rule_list, rules_json_file_1_8_0)
     # common rules
-    common_rules_json_file = os.path.join(os.path.dirname(__file__), '../common_rules/builtin_rules.json')
+    common_rules_json_file = os.path.join(os.path.dirname(__file__), '../transfer/common_rules/builtin_rules.json')
     get_rule_from_json_file(feature_switch, rule_list, common_rules_json_file)
 
     return rule_list
