@@ -12,7 +12,7 @@ import utils.trans_utils as utils
 import utils.transplant_logger as translog
 
 
-class PytorchAnalysis:
+class PytorchAnalyse:
     def __init__(self):
         self.input_path = ''
         self.output_path = ''
@@ -133,4 +133,4 @@ class PytorchAnalysis:
 
 
 if __name__ == '__main__':
-    sys.exit(PytorchAnalysis().main())
+    sys.exit(PytorchAnalyse().main())

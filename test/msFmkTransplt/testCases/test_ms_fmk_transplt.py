@@ -18,6 +18,10 @@ from xmlrunner.extra.xunit_plugin import transform
 
 import coverage
 
+from test_modelarts import TestModelArtsPathManager
+from test_pytorch_analyse import TestPytorchAnalyse
+from test_rules import TestRules as TestBuildRules
+
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 
@@ -253,7 +257,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        src_list = ["src.ms_fmk_transplt", "transfer"]
+        src_list = ["src.ms_fmk_transplt", "transfer", "analyse"]
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
                                      omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
         if len(sys.argv) > 1 and sys.argv[1] == 'mr':
