@@ -336,6 +336,7 @@ def get_main_file(main_file_path, input_path):
 def name_to_jedi_position(file, line, name):
     if not os.path.isfile(file):
         return {}
+    check_input_file_valid(file)
     with open(file, 'r', encoding='utf-8') as file_handler:
         file_lines = file_handler.readlines()
         if line > len(file_lines):
