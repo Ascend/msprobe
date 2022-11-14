@@ -386,6 +386,5 @@ def check_input_file_valid(input_path, max_file_size=MAX_JSON_FILE_SIZE):
     real_path = os.path.realpath(input_path)
     if not check_path_length_valid(real_path):
         raise ValueError('The path is too long.')
-    check_path_pattern_valid(real_path)
     if os.path.getsize(real_path) > max_file_size:
         raise ValueError(f'The file is too large, exceeds {max_file_size // 1024 ** 2}MB')
