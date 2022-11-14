@@ -232,7 +232,7 @@ def walk_input_path(path, output_free_size):
     for root, _, files in os.walk(path):
         for file in files:
             file_path = os.path.join(root, file)
-            if os.path.islink(file_path) or (not os.path.exists(file_path)):
+            if islink(file_path) or (not os.path.exists(file_path)):
                 continue
             if check_file_need_analysis(file_path, path):
                 py_file_counts += 1
@@ -268,7 +268,7 @@ def remove_path(path):
     if not os.path.exists(path):
         return
     try:
-        if os.path.islink(path) or os.path.isfile(path):
+        if islink(path) or os.path.isfile(path):
             os.remove(path)
         elif os.path.isdir(path):
             shutil.rmtree(path)
@@ -308,7 +308,7 @@ def check_file_need_analysis(file, commonprefix, record=False):
     if not file.endswith('.py'):
         return False
     file_relative_path = os.path.relpath(file, commonprefix)
-    if os.path.islink(file):
+    if islink(file):
         if record:
             translog.warning(f'{file_relative_path} is a soft link, skip.')
         return False
@@ -376,3 +376,7 @@ def check_is_subdirectory(path_may_be_parent, path_may_be_child):
         return False
     commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
     return commonpath == path_may_be_parent
+
+def islink(path):
+    path = os.path.abspath(path)
+    return os.path.islink(path)

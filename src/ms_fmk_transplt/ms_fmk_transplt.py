@@ -28,7 +28,7 @@ class MsFmkTransplt(object):
     def __check_custom_rule_param_valid(args):
         if not args.rule:
             return
-        if os.path.islink(args.rule):
+        if utils.islink(args.rule):
             raise utils.SoftlinkCheckException("Custom rule file doesn't support soft link.")
         rule = os.path.realpath(args.rule)
 
@@ -55,7 +55,7 @@ class MsFmkTransplt(object):
     def __check_distributed_rule_param_valid(args):
         if not hasattr(args, 'main'):
             return
-        if os.path.islink(args.main):
+        if utils.islink(args.main):
             raise utils.SoftlinkCheckException("Main file path doesn't support soft link.")
         main_file = os.path.realpath(args.main)
         if not utils.check_path_length_valid(main_file):
@@ -109,6 +109,9 @@ class MsFmkTransplt(object):
                 self.__copy_function_pack('ascend_function')
             if args.modelarts:
                 self.__copy_function_pack('ascend_modelarts_function')
+        except KeyboardInterrupt:
+            translog.error("User canceled.")
+            ret = 1
         except BaseException as exp:
             translog.error(exp)
             ret = 1
@@ -145,7 +148,7 @@ class MsFmkTransplt(object):
             os.chmod(file_path, permission)
 
     def __para_check_valid(self, args):
-        if os.path.islink(args.input):
+        if utils.islink(args.input):
             raise utils.SoftlinkCheckException("Input path doesn't support soft link.")
 
         input_path = os.path.realpath(args.input)
