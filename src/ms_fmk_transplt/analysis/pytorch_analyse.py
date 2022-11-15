@@ -45,9 +45,9 @@ class PyTorchAnalyse:
             translog.error(exp)
             ret = 1
         if ret != 0:
-            translog.error('MsFmkTransplt run fail!')
+            translog.error('Analyse run fail!')
         else:
-            translog.info('MsFmkTransplt run success, welcome to the next use.')
+            translog.info('Analyse run success, welcome to the next use.')
         self.__set_report_files_permission(0o440)
         return ret
 
