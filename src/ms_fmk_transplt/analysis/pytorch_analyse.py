@@ -16,6 +16,7 @@ class PyTorchAnalyse:
     def __init__(self):
         self.input_path = ''
         self.output_path = ''
+        self.py_file_counts = 0
 
     @staticmethod
     def __parse_command():
