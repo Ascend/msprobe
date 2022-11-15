@@ -7,4 +7,4 @@ script_path=$(readlink -f "$0")
 route=$(dirname "$script_path")
 
 # run analyse
-PYTHONPATH="$route":$PYTHONPATH python3 "$route"/pytorch_analyse.py "$@"
+PYTHONPATH="$route":$PYTHONPATH python3 "$route"/analysis/pytorch_analyse.py "$@"
