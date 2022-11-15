@@ -191,7 +191,7 @@ class MsFmkTransplt(object):
             utils.check_model_name_valid(args.amp_model)
 
         if args.version not in ['1.5.0', '1.8.1']:
-            raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
+            raise ValueError('PyTorch version only support 1.5.0 and 1.8.1 currently.')
 
         self.__check_custom_rule_param_valid(args)
         self.__check_distributed_rule_param_valid(args)

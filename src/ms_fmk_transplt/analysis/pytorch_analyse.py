@@ -7,12 +7,12 @@ import os.path
 import shutil
 import sys
 
-from analyse.analysis import PytorchAnalyze
+from analysis.analyse import PyTorchAnalyze
 import utils.trans_utils as utils
 import utils.transplant_logger as translog
 
 
-class PytorchAnalyse:
+class PyTorchAnalyse:
     def __init__(self):
         self.input_path = ''
         self.output_path = ''
@@ -34,8 +34,8 @@ class PytorchAnalyse:
             self.__check_input_valid(args)
             self.__check_output_valid(args)
             self.__init_logger()
-            translog.info('Pytorch analysis start working now, please wait for a moment.')
-            pytorch_analysis = PytorchAnalyze(self.input_path, self.output_path, args.version)
+            translog.info('PyTorch analysis start working now, please wait for a moment.')
+            pytorch_analysis = PyTorchAnalyze(self.input_path, self.output_path, args.version)
             pytorch_analysis.set_py_file_counts(self.py_file_counts)
             pytorch_analysis.run()
         except KeyboardInterrupt:
@@ -91,7 +91,7 @@ class PytorchAnalyse:
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
         if args.version not in ['1.5.0', '1.8.1']:
-            raise ValueError('Pytorch version only support 1.5.0 and 1.8.1 currently.')
+            raise ValueError('PyTorch version only support 1.5.0 and 1.8.1 currently.')
 
     def __check_input_valid(self, args):
         translog.info("Start to check input path...")
@@ -117,14 +117,14 @@ class PytorchAnalyse:
             utils.remove_path(self.output_path)
 
     def __init_logger(self):
-        log_file = os.path.join(self.output_path, 'pytorch_analysis.log')
+        log_file = os.path.join(self.output_path, 'pytorch_analysis.txt')
         if os.path.exists(log_file):
             utils.remove_path(log_file)
         translog.init_logging_file(log_file)
 
     def __set_report_files_permission(self, permission):
-        report_files = ['pytorch_analysis.log', 'unsupported_op.csv']
-        report_files.extend(f'pytorch_analysis.log.{idx}' for idx in range(1, translog.BACKUP_COUNT + 1))
+        report_files = ['pytorch_analysis.txt', 'unsupported_op.csv']
+        report_files.extend(f'pytorch_analysis.txt.{idx}' for idx in range(1, translog.BACKUP_COUNT + 1))
         for filename in report_files:
             file_path = os.path.join(self.output_path, filename)
             if not os.path.isfile(file_path):
@@ -133,4 +133,4 @@ class PytorchAnalyse:
 
 
 if __name__ == '__main__':
-    sys.exit(PytorchAnalyse().main())
+    sys.exit(PyTorchAnalyse().main())

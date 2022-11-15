@@ -22,12 +22,12 @@ class Args:
 
 
 def run(mock_args):
-    from src.ms_fmk_transplt.pytorch_analyse import PytorchAnalyse
+    from analysis.pytorch_analyse import PyTorchAnalyse
     from src.ms_fmk_transplt.utils import trans_utils as utils
     try:
         utils.refresh_parso_cache = mock.Mock(side_effect=mock_refresh_parso_cache())
-        analyse = PytorchAnalyse()
-        analyse._PytorchAnalyse__parse_command = mock_args
+        analyse = PyTorchAnalyse()
+        analyse._PyTorchAnalyse__parse_command = mock_args
         return analyse.main()
     except Exception as exp:
         print(repr(exp))
@@ -38,7 +38,7 @@ def mock_refresh_parso_cache():
     pass
 
 
-class TestPytorchAnalyse(unittest.TestCase):
+class TestPyTorchAnalyse(unittest.TestCase):
     def setUp(self):
         self.abs_input_path = os.path.abspath('../resources/net')
         shutil.rmtree("../test_result/", ignore_errors=True)

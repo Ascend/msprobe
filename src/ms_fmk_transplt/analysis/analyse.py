@@ -9,7 +9,7 @@ import utils.transplant_logger as translog
 import utils.trans_utils as utils
 
 
-class PytorchAnalyze:
+class PyTorchAnalyze:
     def __init__(self, script_dir, output_path, pytorch_version):
         self.script_dir = script_dir
         self.output_path = output_path
@@ -53,6 +53,6 @@ class PytorchAnalyze:
         code = utils.get_file_content_bytes(file)
         wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
         api_visitor = ApiVisitor(utils.get_op_list(self.pytorch_version))
-        module = wrapper.visit(api_visitor)
+        wrapper.visit(api_visitor)
         op_list = api_visitor.print_unsupported_ops()
         utils.write_csv(op_list, self.current_file_rel_path, self.output_path, "unsupported_op")
