@@ -30,6 +30,7 @@ MAX_SIZE_OF_RULE_FILE = 10 * 1024 ** 2
 WINDOWS_PATH_LENGTH_LIMIT = 200
 LINUX_FILE_NAME_LENGTH_LIMIT = 200
 MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
+MAX_JSON_FILE_SIZE = 10 * 1024 ** 2
 
 
 class TransplantException(Exception):
@@ -86,11 +87,13 @@ def get_op_list(version):
 
 
 def get_file_content_bytes(file):
+    check_input_file_valid(file)
     with open(file, 'rb') as file_handle:
         return file_handle.read()
 
 
 def get_file_content(file):
+    check_input_file_valid(file)
     with open(file, 'r', encoding='utf8') as file_handle:
         return file_handle.read()
 
@@ -333,6 +336,7 @@ def get_main_file(main_file_path, input_path):
 def name_to_jedi_position(file, line, name):
     if not os.path.isfile(file):
         return {}
+    check_input_file_valid(file)
     with open(file, 'r', encoding='utf-8') as file_handler:
         file_lines = file_handler.readlines()
         if line > len(file_lines):
@@ -372,3 +376,15 @@ def refresh_parso_cache():
 def islink(path):
     path = os.path.abspath(path)
     return os.path.islink(path)
+
+
+def check_input_file_valid(input_path, max_file_size=MAX_JSON_FILE_SIZE):
+    if not input_path:
+        raise ValueError('Empty path.')
+    if islink(input_path):
+        raise ValueError('The path is soft link.')
+    real_path = os.path.realpath(input_path)
+    if not check_path_length_valid(real_path):
+        raise ValueError('The path is too long.')
+    if os.path.getsize(real_path) > max_file_size:
+        raise ValueError(f'The file is too large, exceeds {max_file_size // 1024 ** 2}MB')
