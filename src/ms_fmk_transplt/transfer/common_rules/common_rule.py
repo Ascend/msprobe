@@ -288,7 +288,8 @@ class PythonVersionConvertRule(RuleVisitor):
         call_name = self.get_full_name_for_node(original_node)
         if call_name and call_name.split(".")[-1] == "hasattr":
             args = list(updated_node.args)
-            if args and args[0].value and hasattr(args[0].value, "attr") and hasattr(args[0].value, "value"):
+            has_value = args and args[0].value
+            if has_value and hasattr(args[0].value, "attr") and hasattr(args[0].value, "value"):
                 if isinstance(args[0].value, libcst.Attribute) and args[0].value.attr.value == "module":
                     args[0] = libcst.Arg(libcst.parse_expression(args[0].value.value.value + ".modules"))
                     self._record_position(original_node, OperatorType.MODIFY, "")
@@ -308,8 +309,9 @@ class ReplaceStringRule(RuleVisitor):
             self, original_node: "libcst.SimpleString", updated_node: "libcst.SimpleString"
     ) -> "libcst.BaseExpression":
         old_value = original_node.value.replace('\"', '').replace('\'', '')
-        if (self.strict and self.str_old == old_value) or \
-                (not self.strict and self.str_old in original_node.value):
+        strict_judgment = self.strict and self.str_old == old_value
+        not_strict_judgment = not self.strict and self.str_old in original_node.value
+        if strict_judgment or not_strict_judgment:
             new_value = original_node.value.replace(self.str_old, self.str_new)
             self._record_position(original_node, OperatorType.MODIFY, "replace string \"%s\" with \"%s\"" %
                                   (self.str_old, self.str_new))
