@@ -43,7 +43,7 @@ class TestPyTorchAnalyse(unittest.TestCase):
         self.abs_input_path = os.path.abspath('../resources/net')
         shutil.rmtree("../test_result/", ignore_errors=True)
         os.makedirs("../test_result/analyse_result", exist_ok=True)
-        self.abs_output_path = os.path.join(os.path.abspath("../test_result"), "/analyse_result")
+        self.abs_output_path = os.path.join(os.path.abspath("../test_result"), "analyse_result")
         self.has_error = False
 
     def test_main(self):
