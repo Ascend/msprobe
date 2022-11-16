@@ -5,8 +5,8 @@
 from typing import Optional, Union
 import libcst
 from libcst import FlattenSentinel, RemovalSentinel
-from pytorch_gpu2npu.common_rules import RuleVisitor
-from pytorch_gpu2npu.common_rules.code_visitor import OperatorType
+from utils.code_visitor import RuleVisitor
+from utils.code_visitor import OperatorType
 
 
 class InsertAheadRule(RuleVisitor):
@@ -21,7 +21,8 @@ class InsertAheadRule(RuleVisitor):
         return True
 
     def visit_ImportFrom(self, node: "libcst.ImportFrom") -> Optional[bool]:
-        if not self.already_insert and not self.insert_flag and node.module and 'torch' in self.get_full_name_for_node(
+        not_insert = not self.already_insert and not self.insert_flag
+        if not_insert and node.module and 'torch' in self.get_full_name_for_node(
                 node.module):
             self.insert_flag = True
         return True

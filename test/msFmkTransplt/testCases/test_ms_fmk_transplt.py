@@ -18,10 +18,16 @@ from xmlrunner.extra.xunit_plugin import transform
 
 import coverage
 
+# unittest import
+from test_modelarts import TestModelArtsPathManager
+from test_pytorch_analyse import TestPyTorchAnalyse
+from test_rules import TestRules as TestBuildRules
+
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 
-TRANS_ERROR=1
+TRANS_ERROR = 1
+
 
 class Args(object):
     def __init__(self, input_path, output_path, main=None, target_model='model', test_amp=False, version='1.5.0'):
@@ -41,7 +47,7 @@ class Args(object):
 
 def run(mock_args, net_name, output_path, result_dict):
     from src.ms_fmk_transplt.ms_fmk_transplt import MsFmkTransplt
-    from src.ms_fmk_transplt.transplant import utils
+    from src.ms_fmk_transplt.utils import trans_utils as utils
     try:
         utils.refresh_parso_cache = mock.Mock(side_effect=mock_refresh_parso_cache())
         ms_fmk_transplt = MsFmkTransplt()
@@ -57,8 +63,10 @@ def run(mock_args, net_name, output_path, result_dict):
         print(repr(e))
         result_dict[net_name] = TRANS_ERROR
 
+
 def mock_refresh_parso_cache():
     pass
+
 
 class TestMsFmkTransplt(unittest.TestCase):
 
@@ -74,7 +82,6 @@ class TestMsFmkTransplt(unittest.TestCase):
         self.standard_py_file_list = []
         self.list_python_file(self.abs_input_path)
         self.has_error = False
-
 
     def list_python_file(self, path):
         files = os.listdir(path)
@@ -253,9 +260,9 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        src_list = ["src.ms_fmk_transplt", "pytorch_gpu2npu"]
+        src_list = ["src.ms_fmk_transplt", "transfer", "analysis"]
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
-                                     omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
+                                omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
         if len(sys.argv) > 1 and sys.argv[1] == 'mr':
             del sys.argv[1]
             out = io.BytesIO()

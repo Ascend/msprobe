@@ -10,12 +10,12 @@ import shutil
 
 import pandas as pd
 
-import pytorch_gpu2npu.common_rules.common_rule as rule_module
-from pytorch_gpu2npu.distributed_rules import distributed_rule
-from pytorch_gpu2npu.modelarts import get_modelarts_rule
-from pytorch_gpu2npu.pytorch_v1_5_0 import InitApexRule, Amp2Apex
-from pytorch_gpu2npu.pytorch_v1_8_1 import InsertAheadRule
-from pytorch_gpu2npu.utils import transplant_logger as translog
+import transfer.common_rules.common_rule as rule_module
+from transfer.distributed_rules import distributed_rule
+from transfer.modelarts import get_modelarts_rule
+from transfer.pytorch_v1_5_0 import InitApexRule, Amp2Apex
+from transfer.pytorch_v1_8_1 import InsertAheadRule
+import utils.transplant_logger as translog
 
 try:
     import jedi
@@ -53,24 +53,20 @@ class JediCacheClearException(Exception):
     pass
 
 
-def write_csv(content_list, script_file, script_dir, csv_type):
+def write_csv(content_list, rel_script_file_name, output_dir, csv_type):
     header_dict = {
         "change_list": ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'),
         "unsupported_op": ('File', 'Start Line', 'End Line', 'OP', 'Tips')
     }
-    if os.path.isfile(script_dir):
-        csv_file = os.path.join(os.path.dirname(script_dir), '%s.csv' % csv_type)
+    if os.path.isfile(output_dir):
+        csv_file = os.path.join(os.path.dirname(output_dir), '%s.csv' % csv_type)
     else:
-        csv_file = os.path.join(script_dir, '%s.csv' % csv_type)
+        csv_file = os.path.join(output_dir, '%s.csv' % csv_type)
     header = header_dict.get(csv_type)
     if not os.path.exists(csv_file):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
 
-    if os.path.isdir(script_dir):
-        rel_script_file_name = os.path.relpath(script_file, script_dir)
-    else:
-        rel_script_file_name = os.path.basename(script_file)
     new_data = pd.DataFrame(list(([rel_script_file_name] + content) for content in content_list))
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
     change_mode(csv_file)
@@ -78,9 +74,9 @@ def write_csv(content_list, script_file, script_dir, csv_type):
 
 def get_op_list(version):
     if version == '1.8.1':
-        op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/op_list_1_8_1.json')
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_8_1.json')
     else:
-        op_list_path = os.path.join(os.path.dirname(__file__), '../pytorch_v1_5_0/op_list_1_5_0.json')
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_5_0.json')
     ops = get_file_content_bytes(op_list_path)
     op_list = json.loads(ops).get('op_list')
     return op_list
@@ -126,10 +122,11 @@ def get_builtin_rule(feature_switch, args):
         rule_list.extend(get_modelarts_rule())
     if args.version == '1.8.1':
         rule_list.append(InsertAheadRule())
-        rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__), '../pytorch_v1_8_1/builtin_rules_1_8_1.json')
+        rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__),
+                                             '../transfer/pytorch_v1_8_1/builtin_rules_1_8_1.json')
         get_rule_from_json_file(feature_switch, rule_list, rules_json_file_1_8_0)
     # common rules
-    common_rules_json_file = os.path.join(os.path.dirname(__file__), '../common_rules/builtin_rules.json')
+    common_rules_json_file = os.path.join(os.path.dirname(__file__), '../transfer/common_rules/builtin_rules.json')
     get_rule_from_json_file(feature_switch, rule_list, common_rules_json_file)
 
     return rule_list
@@ -347,7 +344,7 @@ def name_to_jedi_position(file, line, name):
     column = content.find(name)
     if column == -1:
         return {}
-    return {'line':line, 'column': column}
+    return {'line': line, 'column': column}
 
 
 def check_model_name_valid(name):
@@ -371,6 +368,15 @@ def refresh_parso_cache():
     if os.path.exists(cache_directory):
         raise JediCacheClearException('Failed to delete jedi cache. Please delete it manually.')
     os.makedirs(cache_directory, mode=0o700)
+
+
+def check_is_subdirectory(path_may_be_parent, path_may_be_child):
+    path_may_be_parent = os.path.realpath(path_may_be_parent)
+    path_may_be_child = os.path.realpath(path_may_be_child)
+    if path_may_be_parent[0] != path_may_be_child[0]:
+        return False
+    commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
+    return commonpath == path_may_be_parent
 
 
 def islink(path):

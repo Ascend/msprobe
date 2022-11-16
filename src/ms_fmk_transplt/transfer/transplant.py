@@ -10,12 +10,12 @@ import libcst
 from libcst._flatten_sentinel import FlattenSentinel
 from libcst._removal_sentinel import RemovalSentinel
 
-import pytorch_gpu2npu.utils.trans_utils as utils
-import pytorch_gpu2npu.utils.transplant_logger as translog
-from pytorch_gpu2npu.common_rules import InsertMainFileRule
-from pytorch_gpu2npu.common_rules.code_visitor import ApiVisitor
-from pytorch_gpu2npu.distributed_rules import DataLoaderRule
-from pytorch_gpu2npu.utils.trans_utils import TransplantException
+import utils.trans_utils as utils
+import utils.transplant_logger as translog
+from transfer.common_rules import InsertMainFileRule
+from utils.code_visitor import ApiVisitor
+from transfer.distributed_rules import DataLoaderRule
+from utils.trans_utils import TransplantException
 
 
 class Transplant(object):
@@ -25,6 +25,7 @@ class Transplant(object):
         self.main_file = utils.get_main_file(args.main, args.input) if hasattr(args, 'main') else ''
         self.args = args
         self.py_file_counts = 0
+        self.current_file_rel_path = ''
 
         self.global_reference_visitor = None
 
@@ -64,7 +65,7 @@ class Transplant(object):
         api_visitor = ApiVisitor(utils.get_op_list(self.args.version))
         module = wrapper.visit(api_visitor)
         op_list = api_visitor.print_unsupported_ops()
-        utils.write_csv(op_list, file, self.script_dir, "unsupported_op")
+        utils.write_csv(op_list, self.current_file_rel_path, self.script_dir, "unsupported_op")
 
         new_module = self.__visit_rule(file, module)
         utils.write_file_content(file, new_module.code)
@@ -82,25 +83,21 @@ class Transplant(object):
                 translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
 
     def __analysis_file(self, file, commonprefix):
+        self.current_file_rel_path = os.path.relpath(file, commonprefix)
         if self.global_reference_visitor:
-            self.global_reference_visitor.visit_file(os.path.relpath(file, self.script_dir))
-        file_relative_path = os.path.relpath(file, commonprefix)
-        translog.info(f'Start analysis {file_relative_path}.')
+            self.global_reference_visitor.visit_file(self.current_file_rel_path)
+        translog.info(f'Start analysis {self.current_file_rel_path}.')
         self.__analysis_code(file)
-        translog.info(f'Analysis {file_relative_path} complete.')
+        translog.info(f'Analysis {self.current_file_rel_path} complete.')
 
     def __visit_rule(self, file, module):
-        if os.path.isfile(self.script_dir):
-            current_file_name = os.path.basename(file)
-        else:
-            current_file_name = os.path.relpath(file, self.script_dir)
         code_transformer = CodeTransformer(self.rule_list,
-                                           current_file_name == self.main_file if self.main_file else False,
+                                           self.current_file_rel_path == self.main_file if self.main_file else False,
                                            global_reference_visitor=self.global_reference_visitor)
         wrapper = libcst.metadata.MetadataWrapper(module)
         new_module = wrapper.visit(code_transformer)
         change_info_list = code_transformer.print_change_info()
-        utils.write_csv(change_info_list, file, self.script_dir, "change_list")
+        utils.write_csv(change_info_list, self.current_file_rel_path, self.script_dir, "change_list")
         for rule in self.rule_list:
             rule.clean()
         return new_module

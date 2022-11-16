@@ -6,5 +6,5 @@
 script_path=$(readlink -f "$0")
 route=$(dirname "$script_path")
 
-# run transfer
-PYTHONPATH="$route":$PYTHONPATH python3 "$route"/ms_fmk_transplt.py "$@"
+# run analyse
+PYTHONPATH="$route":$PYTHONPATH python3 "$route"/analysis/pytorch_analyse.py "$@"

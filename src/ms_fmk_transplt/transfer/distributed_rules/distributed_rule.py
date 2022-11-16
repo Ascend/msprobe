@@ -7,10 +7,10 @@ from typing import Optional, Union
 import libcst
 from libcst import FlattenSentinel, RemovalSentinel, matchers as m
 
-from pytorch_gpu2npu.common_rules import RuleVisitor, OperatorType
-from pytorch_gpu2npu.utils import transplant_logger as translog
-from pytorch_gpu2npu.utils.scope_visitors import ScaleScopeVisitor
-from pytorch_gpu2npu.utils import trans_utils as utils
+from utils.code_visitor import RuleVisitor, OperatorType
+import utils.transplant_logger as translog
+from utils.scope_visitors import ScaleScopeVisitor
+import utils.trans_utils as utils
 
 
 class DataLoaderRule(RuleVisitor):
