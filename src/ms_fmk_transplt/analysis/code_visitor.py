@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
+
+from enum import Enum
+from enum import auto
+from typing import Optional, Union, TypeVar
+
+import libcst
+import libcst.helpers as helper
+import libcst.matchers as m
+
+from libcst.metadata import PositionProvider, QualifiedNameProvider
+from analysis.function_node import ApiInstance
+
+try:
+    import jedi
+except ImportError:
+    jedi = None
+
+_T = TypeVar("_T")
+_UNDEFINED_DEFAULT = object()
+
+
+class OperatorType(Enum):
+    INSERT = auto()
+    MODIFY = auto()
+    DELETE = auto()
+    UNSUPPORTED = auto()
+
+
+class ApiVisitor(libcst.CSTVisitor):
+    METADATA_DEPENDENCIES = (PositionProvider, QualifiedNameProvider)
+
+    def __init__(self, op_list, global_reference_visitor, function_graph):
+        super(ApiVisitor, self).__init__()
+        self.op_list = op_list
+        self.global_reference_visitor = global_reference_visitor
+        self.unsupported_op_list = []
+        self.unsupported_list = []
+        self.function_graph = function_graph
+
+    def visit_FunctionDef(self, node: "FunctionDef") -> Optional[bool]:
+        function_line, function_column = self._get_func_def_position(node)
+        full_name, file_path = self.global_reference_visitor.get_full_name_for_function(function_line, function_column)
+        self.function_graph.addnode(full_name)
+        function_body_list = self._visit_function_body(node)
+        defined_call_list, has_unsupported_api, unsupported_list = self._visit_call_body(function_body_list, file_path)
+        self.function_graph.getnode(full_name).has_unsupported_api = has_unsupported_api
+        self.function_graph.getnode(full_name).unsupported_list = unsupported_list
+        self.function_graph.getnode(full_name).position = function_line
+        self.function_graph.getnode(full_name).file_path = file_path
+        for call_function in defined_call_list:
+            # Avoid recursion
+            if call_function != full_name:
+                self.function_graph.addedge(call_function, full_name)
+                self.function_graph.getnode(full_name).in_degree += 1
+
+    def _visit_function_body(self, node):
+        function_body_list = []
+        body = node.body.body
+        for idx, element in enumerate(body):
+            call_function = m.findall(element, m.Call())
+            function_body_list.extend(call_function)
+        return function_body_list
+
+    def _visit_call_body(self, node_list, file_path):
+        defined_call_list = set()
+        unsupported_list = []
+        has_unsupported_api = False
+        for call_node in node_list:
+            position = self._get_call_position(call_node)
+            is_defined, full_name = self.global_reference_visitor.is_belong_with_self_project(
+                position.start.line, position.start.column)
+            libcst_full_name = self.get_full_name_for_node(call_node)
+            if is_defined:
+                defined_call_list.add(full_name)
+            elif libcst_full_name and libcst_full_name.startswith('torch') and libcst_full_name not in self.op_list:
+                has_unsupported_api = True
+                unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
+        return defined_call_list, has_unsupported_api, unsupported_list
+
+    def _get_func_def_position(self, node):
+        node_start_line = self.get_metadata(PositionProvider, node).start.line
+        if node.asynchronous is not None:
+            node_start_column = self.get_metadata(PositionProvider, node).start.column + 10
+        else:
+            node_start_column = self.get_metadata(PositionProvider, node).start.column + 4
+        return node_start_line, node_start_column
+
+    def _get_call_position(self, node):
+        if m.matches(node.func, m.Attribute()):
+            node = node.func.attr
+        position = self.get_metadata(PositionProvider, node)
+        return position
+
+    def get_full_name_for_node(self, node: Union[str, libcst.CSTNode]) -> Optional[str]:
+        name_list = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, node))
+        if name_list:
+            qualified_name = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, node))[0].name
+        else:
+            qualified_name = helper.get_full_name_for_node(node)
+        return qualified_name
+
+    def get_function_graph_node(self):
+        return self.function_graph.get_all_nodes()

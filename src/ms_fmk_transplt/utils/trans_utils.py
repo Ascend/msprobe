@@ -72,6 +72,24 @@ def write_csv(content_list, rel_script_file_name, output_dir, csv_type):
     change_mode(csv_file)
 
 
+def write_csv_third_party(content_list, script_dir):
+    header = ('File', 'Api', 'Message')
+    csv_file = os.path.join(script_dir, 'unsupported_api.csv')
+    if os.path.exists(csv_file):
+        os.remove(csv_file)
+        data_frame = pd.DataFrame(columns=header)
+        data_frame.to_csv(csv_file, index=False)
+        change_mode(csv_file)
+    else:
+        data_frame = pd.DataFrame(columns=header)
+        data_frame.to_csv(csv_file, index=False)
+        change_mode(csv_file)
+
+    new_data = pd.DataFrame(list((content) for content in content_list))
+    new_data.to_csv(csv_file, mode='a+', header=False, index=False)
+    change_mode(csv_file)
+
+
 def get_op_list(version):
     if version == '1.8.1':
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_8_1.json')
@@ -79,6 +97,13 @@ def get_op_list(version):
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_5_0.json')
     ops = get_file_content_bytes(op_list_path)
     op_list = json.loads(ops).get('op_list')
+    return op_list
+
+
+def get_supported_op_list():
+    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_8_1.json')
+    ops = get_file_content_bytes(op_list_path)
+    op_list = json.loads(ops).get("op_list")
     return op_list
 
 
