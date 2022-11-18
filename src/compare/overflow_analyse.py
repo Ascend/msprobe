@@ -92,8 +92,7 @@ class OverflowAnalyse:
         overflow = False
         id_info = ()
         for overflow_type, detail in json_txt.items():
-            status = detail.get('status')
-            if status and status != 0:
+            if detail.get('status'):
                 overflow = True
                 id_info = OverflowAnalyse._gen_overflow_info(res, overflow_type, detail)
 
