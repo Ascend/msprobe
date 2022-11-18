@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
 
-from enum import Enum
-from enum import auto
-from typing import Optional, Union, TypeVar
+from typing import Optional, Union
 
 import libcst
 import libcst.helpers as helper
@@ -17,16 +15,6 @@ try:
     import jedi
 except ImportError:
     jedi = None
-
-_T = TypeVar("_T")
-_UNDEFINED_DEFAULT = object()
-
-
-class OperatorType(Enum):
-    INSERT = auto()
-    MODIFY = auto()
-    DELETE = auto()
-    UNSUPPORTED = auto()
 
 
 class ApiVisitor(libcst.CSTVisitor):
