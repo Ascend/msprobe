@@ -89,10 +89,17 @@ class OverflowAnalyse:
 
     @staticmethod
     def _get_overflow_info_old_version(res: list, json_txt: any) -> any:
+        overflow = False
+        id_info = ()
         for overflow_type, detail in json_txt.items():
-            return OverflowAnalyse._gen_overflow_info(res, overflow_type, detail)
-        log.print_error_log("[Overflow] Invalid json_txt!")
-        raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
+            if detail.get('status'):
+                overflow = True
+                id_info = OverflowAnalyse._gen_overflow_info(res, overflow_type, detail)
+
+        if not overflow:
+            log.print_error_log("[Overflow] Invalid json_txt, overflow type invalid or status is zero!")
+            raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
+        return id_info
 
     @staticmethod
     def _gen_overflow_info(res: list, overflow_type: str, detail: any) -> any:
