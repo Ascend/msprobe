@@ -8,12 +8,13 @@ import libcst
 import utils.trans_utils as utils
 import utils.transplant_logger as translog
 from analysis.code_visitor import ApiVisitor
-from utils.trans_utils import TransplantException
+from analysis.analyse import PyTorchAnalyze
 from analysis.function_graph import Graph
 
 
-class ThirdPartyAnalyse(object):
+class ThirdPartyAnalyse(PyTorchAnalyze):
     def __init__(self, script_dir, output_dir, pytorch_version):
+        super().__init__(script_dir, output_dir, pytorch_version)
         self.script_dir = script_dir
         self.output_dir = output_dir
         self.py_file_counts = 0
@@ -30,12 +31,7 @@ class ThirdPartyAnalyse(object):
 
     def run(self):
         translog.info('Analysis start...')
-
-        if not os.access(self.script_dir, os.R_OK):
-            raise TransplantException('%s is not readable.' % self.script_dir)
-
         if os.path.isfile(self.script_dir) and self.__need_analysis(self.script_dir, os.path.dirname(self.script_dir)):
-            self.__delete_csv_file_for_file_transplant()
             self.__analysis_file(self.script_dir, os.path.dirname(self.script_dir))
 
         if os.path.isdir(self.script_dir):
@@ -46,19 +42,6 @@ class ThirdPartyAnalyse(object):
 
     def set_py_file_counts(self, py_file_counts):
         self.py_file_counts = py_file_counts
-
-    def __delete_csv_file_for_file_transplant(self):
-        for csv_type in ['change_list', 'unsupported_op']:
-            csv_file = os.path.join(os.path.dirname(self.script_dir), '%s.csv' % csv_type)
-            if os.path.exists(csv_file):
-                utils.remove_path(csv_file)
-
-    def __analysis_code(self, file):
-        code = utils.get_file_content_bytes(file)
-        wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-
-        api_visitor = ApiVisitor(utils.get_supported_op_list(), self.global_reference_visitor, self.function_graph)
-        module = wrapper.visit(api_visitor)
 
     def __analysis_dir(self):
         count = 0
@@ -71,6 +54,14 @@ class ThirdPartyAnalyse(object):
                 self.__analysis_file(file, self.script_dir)
                 count += 1
                 translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
+
+    def __analysis_code(self, file):
+        code = utils.get_file_content_bytes(file)
+        wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
+
+        api_visitor = ApiVisitor(utils.get_supported_op_list(), utils.get_op_list(self.pytorch_version),
+                                 self.global_reference_visitor, self.function_graph)
+        wrapper.visit(api_visitor)
 
     def __analysis_file(self, file, commonprefix):
         if self.global_reference_visitor:
@@ -99,35 +90,27 @@ class ThirdPartyAnalyse(object):
                     adj_node.vis = True
 
     def write_info(self):
-        unsupported_api_list = self.function_graph.get_unsupported_apis()
-        content_list = []
+        unsupported_api_list, unknow_api_list = self.function_graph.get_unsupported_apis()
+        unsupported_info_list = []
+        unknow_info_list = []
         for api in unsupported_api_list:
             api_info_list = []
             for unsupported_torch_api in api.unsupported_list:
                 api_info = f"file_path:{unsupported_torch_api.file_path}, start_line:" \
                            f"{unsupported_torch_api.start_line}, api_name:{unsupported_torch_api.name} \n"
                 api_info_list.append(api_info)
-            content_list.append(''.join(api_info_list))
-        info_list = []
-        for inx in range(len(unsupported_api_list)):
-            api = unsupported_api_list[inx]
-            content = content_list[inx]
-            info_list.append((api.file_path, api.key, content))
-        utils.write_csv_third_party(info_list, self.output_dir)
+            unsupported_info_list.append([api.file_path, api.key, ''.join(api_info_list)])
 
-    def print_graph_node_num(self):
-        file_dict = {}
-        for key, node in self.function_graph.nodelist.items():
-            if not node.file_path:
-                print(key)
-            if node.file_path not in file_dict:
-                file_dict[node.file_path] = 1
-            else:
-                file_dict[node.file_path] += 1
-        with open("../scripts/file.txt", 'a+') as f:
-            for file_path, num in file_dict.items():
-                f.write(file_path + ' ' + str(num) + '\n')
-        print(file_dict)
+        for api in unknow_api_list:
+            api_info_list = []
+            for unknow_torch_api in api.unknow_api_list:
+                api_info = f"file_path:{unknow_torch_api.file_path}, start_line:" \
+                           f"{unknow_torch_api.start_line}, api_name:{unknow_torch_api.name} \n"
+                api_info_list.append(api_info)
+            unknow_info_list.append([api.file_path, api.key, ''.join(api_info_list)])
+
+        utils.write_csv(unsupported_info_list, '', self.output_dir, 'unsupported_api')
+        utils.write_csv(unknow_info_list, '', self.output_dir, 'unknow_api')
 
 
 

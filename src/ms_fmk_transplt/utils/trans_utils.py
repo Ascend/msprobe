@@ -56,7 +56,9 @@ class JediCacheClearException(Exception):
 def write_csv(content_list, rel_script_file_name, output_dir, csv_type):
     header_dict = {
         "change_list": ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'),
-        "unsupported_op": ('File', 'Start Line', 'End Line', 'OP', 'Tips')
+        "unsupported_op": ('File', 'Start Line', 'End Line', 'OP', 'Tips'),
+        "unsupported_api": ('File', 'Api', 'Message'),
+        "unknow_api": ('File', 'Api', 'Message')
     }
     if os.path.isfile(output_dir):
         csv_file = os.path.join(os.path.dirname(output_dir), '%s.csv' % csv_type)
@@ -67,25 +69,10 @@ def write_csv(content_list, rel_script_file_name, output_dir, csv_type):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
 
-    new_data = pd.DataFrame(list(([rel_script_file_name] + content) for content in content_list))
-    new_data.to_csv(csv_file, mode='a+', header=False, index=False)
-    change_mode(csv_file)
-
-
-def write_csv_third_party(content_list, script_dir):
-    header = ('File', 'Api', 'Message')
-    csv_file = os.path.join(script_dir, 'unsupported_api.csv')
-    if os.path.exists(csv_file):
-        os.remove(csv_file)
-        data_frame = pd.DataFrame(columns=header)
-        data_frame.to_csv(csv_file, index=False)
-        change_mode(csv_file)
+    if not rel_script_file_name:
+        new_data = pd.DataFrame(list(content for content in content_list))
     else:
-        data_frame = pd.DataFrame(columns=header)
-        data_frame.to_csv(csv_file, index=False)
-        change_mode(csv_file)
-
-    new_data = pd.DataFrame(list((content) for content in content_list))
+        new_data = pd.DataFrame(list(([rel_script_file_name] + content) for content in content_list))
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
     change_mode(csv_file)
 

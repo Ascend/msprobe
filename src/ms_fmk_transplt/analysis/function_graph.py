@@ -41,7 +41,10 @@ class Graph:
 
     def get_unsupported_apis(self):
         unsupported_apis = []
+        unknow_apis = []
         for name, node in self.nodelist.items():
             if node.has_unsupported_api:
                 unsupported_apis.append(node)
-        return unsupported_apis
+            elif node.has_unknow_api:
+                unknow_apis.append(node)
+        return unsupported_apis, unknow_apis
