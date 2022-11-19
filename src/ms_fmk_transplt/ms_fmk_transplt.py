@@ -174,6 +174,9 @@ class MsFmkTransplt(object):
 
         utils.check_path_pattern_valid(output)
 
+        if utils.islink(args.output):
+            raise utils.SoftlinkCheckException("Output path doesn't support soft link.")
+
         if not os.path.isdir(output):
             raise ValueError('Output %s is not a valid directory!' % args.output)
 
