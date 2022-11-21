@@ -54,7 +54,8 @@ class ApiVisitor(libcst.CSTVisitor):
         node.unknown_api_list = nodeinfo.unknown_api_list
         node.file_path = nodeinfo.file_path
 
-    def _visit_function_body(self, node):
+    @staticmethod
+    def _visit_function_body(node):
         function_body_list = []
         body = node.body.body
         for idx, element in enumerate(body):
@@ -73,7 +74,6 @@ class ApiVisitor(libcst.CSTVisitor):
             is_defined, full_name = self.global_reference_visitor.is_belong_with_self_project(
                 position.start.line, position.start.column)
             libcst_full_name = self.get_full_name_for_node(call_node)
-            # a.x().b()
             if m.matches(call_node.func, m.Attribute(attr=m.Name(), value=m.Call())) and \
                     libcst_full_name.startswith('torch'):
                 libcst_full_name = '.'.join([libcst_full_name.split('.')[0], 'Tensor', libcst_full_name.split('.')[-1]])

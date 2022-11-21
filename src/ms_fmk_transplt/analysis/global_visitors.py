@@ -53,7 +53,8 @@ class GlobalReferenceVisitor:
             is_defined = str(func_list[0].module_path).startswith(str(self.project.path))
             full_name = func_list[0].full_name
             if full_name is None:
-                full_name = '_'.join((str(func_list[0].line), str(func_list[0].column), func_list[0].description.split()[-1]))
+                full_name = '_'.join((str(func_list[0].line), str(func_list[0].column),
+                                      func_list[0].description.split()[-1]))
             if func_list[0].description.startswith('class') and is_defined:
                 full_name = full_name + '.__init__'
             elif func_list[0].description.startswith('instance') and is_defined:
