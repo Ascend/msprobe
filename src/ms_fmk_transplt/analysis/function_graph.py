@@ -39,12 +39,12 @@ class Graph:
                 leaf_apis.append(node)
         return leaf_apis
 
-    def get_unsupported_apis(self):
+    def get_apis(self):
         unsupported_apis = []
-        unknow_apis = []
+        unknown_apis = []
         for name, node in self.nodelist.items():
             if node.has_unsupported_api:
                 unsupported_apis.append(node)
-            elif node.has_unknow_api:
-                unknow_apis.append(node)
-        return unsupported_apis, unknow_apis
+            elif node.has_unknown_api:
+                unknown_apis.append(node)
+        return unsupported_apis, unknown_apis

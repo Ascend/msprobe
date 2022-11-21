@@ -3,13 +3,17 @@
 # Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
 
 from typing import Optional, Union
+from collections import namedtuple
 
 import libcst
 import libcst.helpers as helper
 import libcst.matchers as m
 
 from libcst.metadata import PositionProvider, QualifiedNameProvider
-from analysis.function_node import ApiInstance
+from analysis.function_node import ApiInstance, Node
+
+NodeInfo = namedtuple('NodeInfo', ['has_unsupported_api', 'unsupported_list', 'has_unknown_api', 'unknown_api_list',
+                                   'file_path'])
 
 try:
     import jedi
@@ -32,19 +36,23 @@ class ApiVisitor(libcst.CSTVisitor):
         full_name, file_path = self.global_reference_visitor.get_full_name_for_function(function_line, function_column)
         self.function_graph.addnode(full_name)
         function_body_list = self._visit_function_body(node)
-        defined_call_list, has_unsupported_api, unsupported_list, has_unknow_api, unknow_api_list = \
+        defined_call_list, has_unsupported_api, unsupported_list, has_unknown_api, unknown_api_list = \
             self._visit_call_body(function_body_list, file_path)
-        self.function_graph.getnode(full_name).has_unsupported_api = has_unsupported_api
-        self.function_graph.getnode(full_name).unsupported_list = unsupported_list
-        self.function_graph.getnode(full_name).has_unknow_api = has_unknow_api
-        self.function_graph.getnode(full_name).unknow_api_list = unknow_api_list
-        self.function_graph.getnode(full_name).position = function_line
-        self.function_graph.getnode(full_name).file_path = file_path
+        self._update_node(self.function_graph.getnode(full_name),
+                          NodeInfo(has_unsupported_api, unsupported_list, has_unknown_api, unknown_api_list, file_path))
         for call_function in defined_call_list:
             # Avoid recursion
             if call_function != full_name:
                 self.function_graph.addedge(call_function, full_name)
                 self.function_graph.getnode(full_name).in_degree += 1
+
+    @staticmethod
+    def _update_node(node, nodeinfo):
+        node.has_unsupported_api = nodeinfo.has_unsupported_api
+        node.unsupported_list = nodeinfo.unsupported_list
+        node.has_unknown_api = nodeinfo.has_unknown_api
+        node.unknown_api_list = nodeinfo.unknown_api_list
+        node.file_path = nodeinfo.file_path
 
     def _visit_function_body(self, node):
         function_body_list = []
@@ -57,9 +65,9 @@ class ApiVisitor(libcst.CSTVisitor):
     def _visit_call_body(self, node_list, file_path):
         defined_call_list = set()
         unsupported_list = []
-        unknow_api_list = []
+        unknown_api_list = []
         has_unsupported_api = False
-        has_unknow_api = False
+        has_unknown_api = False
         for call_node in node_list:
             position = self._get_call_position(call_node)
             is_defined, full_name = self.global_reference_visitor.is_belong_with_self_project(
@@ -71,13 +79,14 @@ class ApiVisitor(libcst.CSTVisitor):
                 libcst_full_name = '.'.join([libcst_full_name.split('.')[0], 'Tensor', libcst_full_name.split('.')[-1]])
             if is_defined:
                 defined_call_list.add(full_name)
-            elif libcst_full_name and libcst_full_name.startswith('torch') and libcst_full_name in self.unsupported_op_list:
+            elif libcst_full_name and libcst_full_name.startswith('torch') and \
+                    libcst_full_name in self.unsupported_op_list:
                 has_unsupported_api = True
                 unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
             elif libcst_full_name and libcst_full_name.startswith('torch') and libcst_full_name not in self.op_list:
-                has_unknow_api = True
-                unknow_api_list.append(ApiInstance(libcst_full_name, position, file_path))
-        return defined_call_list, has_unsupported_api, unsupported_list, has_unknow_api, unknow_api_list
+                has_unknown_api = True
+                unknown_api_list.append(ApiInstance(libcst_full_name, position, file_path))
+        return defined_call_list, has_unsupported_api, unsupported_list, has_unknown_api, unknown_api_list
 
     def _get_func_def_position(self, node):
         node_start_line = self.get_metadata(PositionProvider, node).start.line

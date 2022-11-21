@@ -90,9 +90,9 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
                     adj_node.vis = True
 
     def write_info(self):
-        unsupported_api_list, unknow_api_list = self.function_graph.get_unsupported_apis()
+        unsupported_api_list, unknown_api_list = self.function_graph.get_apis()
         unsupported_info_list = []
-        unknow_info_list = []
+        unknown_info_list = []
         for api in unsupported_api_list:
             api_info_list = []
             for unsupported_torch_api in api.unsupported_list:
@@ -101,16 +101,16 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
                 api_info_list.append(api_info)
             unsupported_info_list.append([api.file_path, api.key, ''.join(api_info_list)])
 
-        for api in unknow_api_list:
+        for api in unknown_api_list:
             api_info_list = []
-            for unknow_torch_api in api.unknow_api_list:
-                api_info = f"file_path:{unknow_torch_api.file_path}, start_line:" \
-                           f"{unknow_torch_api.start_line}, api_name:{unknow_torch_api.name} \n"
+            for unknown_torch_api in api.unknown_api_list:
+                api_info = f"file_path:{unknown_torch_api.file_path}, start_line:" \
+                           f"{unknown_torch_api.start_line}, api_name:{unknown_torch_api.name} \n"
                 api_info_list.append(api_info)
-            unknow_info_list.append([api.file_path, api.key, ''.join(api_info_list)])
+            unknown_info_list.append([api.file_path, api.key, ''.join(api_info_list)])
 
         utils.write_csv(unsupported_info_list, '', self.output_dir, 'unsupported_api')
-        utils.write_csv(unknow_info_list, '', self.output_dir, 'unknow_api')
+        utils.write_csv(unknown_info_list, '', self.output_dir, 'unknown_api')
 
 
 

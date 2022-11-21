@@ -40,8 +40,9 @@ class GlobalReferenceVisitor:
         try:
             full_name = func_list[0].full_name
             if full_name is None:
-                ## solve the function within the function problem
-                full_name = '_'.join((str(line), str(column), func_list[0].description.split()[-1]))
+                # solve the function within the function problem
+                full_name = '_'.join((os.path.basename(self.file_path), str(line), str(column),
+                                      func_list[0].description.split()[-1]))
             return full_name, os.path.basename(self.file_path)
         except IndexError:
             print("func_list is None")

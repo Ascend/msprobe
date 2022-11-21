@@ -8,12 +8,11 @@ class Node:
         self.key = key
         self.connected_function = set()
         self.has_unsupported_api = False
-        self.has_unknow_api = False
+        self.has_unknown_api = False
         self.vis = False
         self.in_degree = 0
         self.unsupported_list = []
-        self.unknow_api_list = []
-        self.position = None
+        self.unknown_api_list = []
         self.file_path = ''
 
     def addchildren(self, children):
