@@ -10,7 +10,7 @@ import libcst.helpers as helper
 import libcst.matchers as m
 
 from libcst.metadata import PositionProvider, QualifiedNameProvider
-from analysis.function_node import ApiInstance, Node
+from analysis.third_party.function_node import ApiInstance
 
 NodeInfo = namedtuple('NodeInfo', ['has_unsupported_api', 'unsupported_list', 'has_unknown_api', 'unknown_api_list',
                                    'file_path'])
@@ -75,15 +75,15 @@ class ApiVisitor(libcst.CSTVisitor):
                 position.start.line, position.start.column)
             libcst_full_name = self.get_full_name_for_node(call_node)
             if m.matches(call_node.func, m.Attribute(attr=m.Name(), value=m.Call())) and \
-                    libcst_full_name.startswith('torch'):
+                    libcst_full_name.startswith('torch.'):
                 libcst_full_name = '.'.join([libcst_full_name.split('.')[0], 'Tensor', libcst_full_name.split('.')[-1]])
             if is_defined:
                 defined_call_list.add(full_name)
-            elif libcst_full_name and libcst_full_name.startswith('torch') and \
+            elif libcst_full_name and libcst_full_name.startswith('torch.') and \
                     libcst_full_name in self.unsupported_op_list:
                 has_unsupported_api = True
                 unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
-            elif libcst_full_name and libcst_full_name.startswith('torch') and libcst_full_name not in self.op_list:
+            elif libcst_full_name and libcst_full_name.startswith('torch.') and libcst_full_name not in self.op_list:
                 has_unknown_api = True
                 unknown_api_list.append(ApiInstance(libcst_full_name, position, file_path))
         return defined_call_list, has_unsupported_api, unsupported_list, has_unknown_api, unknown_api_list

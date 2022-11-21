@@ -8,8 +8,8 @@ import shutil
 import sys
 
 from analysis.analyse import PyTorchAnalyze
-from analysis.third_party_analyse import ThirdPartyAnalyse
-from analysis.global_visitors import GlobalReferenceVisitor
+from analysis.third_party.third_party_analyse import ThirdPartyAnalyse
+from transfer.global_analysis import GlobalReferenceVisitor
 import utils.trans_utils as utils
 import utils.transplant_logger as translog
 
@@ -31,7 +31,7 @@ class PyTorchAnalyse:
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
         parser.add_argument('-v', '--version', default='1.8.1',
                             help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
-        parser.add_argument('-m', '--mode', default='torch',
+        parser.add_argument('-m', '--mode', default='torch', choices=['third_party', 'torch'],
                             help='The way the script is analyzed. Only support torch and third_party currently')
         return parser.parse_args()
 
@@ -53,8 +53,8 @@ class PyTorchAnalyse:
             translog.error('User canceled.')
             ret = 1
         except BaseException as exp:
-            import traceback
-            traceback.print_exc(exp)
+            # import traceback
+            # traceback.print_exc(exp)
             translog.error(exp)
             ret = 1
         if ret != 0:
@@ -145,13 +145,8 @@ class PyTorchAnalyse:
             os.chmod(file_path, permission)
 
     def __get_global_visitor(self):
-        global_reference_visitor = None
-        if utils.IS_JEDI_INSTALLED:
-            utils.refresh_parso_cache()
-            global_reference_visitor = GlobalReferenceVisitor(self.input_path)
-        else:
-            translog.warning('Since jedi is not correctly installed, global analysis will not take effect. You '
-                             'can install it via pip.')
+        utils.refresh_parso_cache()
+        global_reference_visitor = GlobalReferenceVisitor(self.input_path)
         return global_reference_visitor
 
 

@@ -43,3 +43,31 @@ class GlobalReferenceVisitor:
             return list(usage for usage in usages if not usage.is_definition())
         else:
             return []
+
+    def get_full_name_for_function(self, line, column):
+        func_list = self.get_jedi_script(self.file_path).infer(line, column)
+        if func_list:
+            full_name = func_list[0].full_name
+            if full_name is None:
+                # solve the function within the function problem
+                full_name = '_'.join((os.path.basename(self.file_path), str(line), str(column),
+                                      func_list[0].description.split()[-1]))
+            return full_name, os.path.basename(self.file_path)
+
+    def is_belong_with_self_project(self, line, column):
+        func_list = self.get_jedi_script(self.file_path).infer(line, column)
+        if func_list:
+            is_defined = str(func_list[0].module_path).startswith(str(self.project.path))
+            full_name = func_list[0].full_name
+            if full_name is None:
+                full_name = '_'.join((str(func_list[0].line), str(func_list[0].column),
+                                      func_list[0].description.split()[-1]))
+            if func_list[0].description.startswith('class') and is_defined:
+                full_name = full_name + '.__init__'
+            elif func_list[0].description.startswith('instance') and is_defined:
+                full_name = full_name + '.forward'
+            elif func_list[0].description.startswith('module'):
+                full_name = ''
+                is_defined = False
+            return is_defined, full_name
+        return False, ''

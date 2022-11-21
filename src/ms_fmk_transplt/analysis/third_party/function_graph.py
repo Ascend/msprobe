@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 
-from analysis.function_node import Node
+from analysis.third_party.function_node import Node
 
 
 class Graph:

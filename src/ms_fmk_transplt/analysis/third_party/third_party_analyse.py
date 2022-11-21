@@ -7,9 +7,9 @@ import libcst
 
 import utils.trans_utils as utils
 import utils.transplant_logger as translog
-from analysis.code_visitor import ApiVisitor
+from utils.third_party_code_visitor import ApiVisitor
 from analysis.analyse import PyTorchAnalyze
-from analysis.function_graph import Graph
+from analysis.third_party.function_graph import Graph
 
 
 class ThirdPartyAnalyse(PyTorchAnalyze):
@@ -30,12 +30,7 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
         self.global_reference_visitor = global_reference_visitor
 
     def run(self):
-        translog.info('Analysis start...')
-        if os.path.isfile(self.script_dir) and self.__need_analysis(self.script_dir, os.path.dirname(self.script_dir)):
-            self.__analysis_file(self.script_dir, os.path.dirname(self.script_dir))
-
-        if os.path.isdir(self.script_dir):
-            self.__analysis_dir()
+        super().run()
 
         self.traverse_function_graph()
         self.write_info()
@@ -43,19 +38,7 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
     def set_py_file_counts(self, py_file_counts):
         self.py_file_counts = py_file_counts
 
-    def __analysis_dir(self):
-        count = 0
-        translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
-        for root, _, files in os.walk(self.script_dir):
-            for current_file in files:
-                file = os.path.join(root, current_file)
-                if not self.__need_analysis(file, self.script_dir):
-                    continue
-                self.__analysis_file(file, self.script_dir)
-                count += 1
-                translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
-
-    def __analysis_code(self, file):
+    def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
         wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
 
@@ -63,12 +46,12 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
                                  self.global_reference_visitor, self.function_graph)
         wrapper.visit(api_visitor)
 
-    def __analysis_file(self, file, commonprefix):
+    def _analysis_file(self, file, commonprefix):
         if self.global_reference_visitor:
             self.global_reference_visitor.visit_file(os.path.relpath(file, self.script_dir))
         file_relative_path = os.path.relpath(file, commonprefix)
         translog.info(f'Start analysis {file_relative_path}.')
-        self.__analysis_code(file)
+        self._analysis_code(file)
         translog.info(f'Analysis {file_relative_path} complete.')
 
     def traverse_function_graph(self):
@@ -79,12 +62,14 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
     def bfs(self, node):
         queue = [node]
         node.vis = True
-        while len(queue):
+        while queue:
             top = queue.pop(0)
             for adj_node in top.connected_function:
                 adj_node.in_degree -= 1
                 adj_node.has_unsupported_api = adj_node.has_unsupported_api or top.has_unsupported_api
+                adj_node.has_unknown_api = adj_node.has_unknown_api or top.has_unknown_api
                 adj_node.unsupported_list.extend(top.unsupported_list)
+                adj_node.unknown_api_list.extend(top.unknown_api_list)
                 if not adj_node.vis and adj_node.in_degree == 0:
                     queue.append(adj_node)
                     adj_node.vis = True
