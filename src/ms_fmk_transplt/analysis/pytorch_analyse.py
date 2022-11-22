@@ -53,8 +53,6 @@ class PyTorchAnalyse:
             translog.error('User canceled.')
             ret = 1
         except BaseException as exp:
-            import traceback
-            traceback.print_exc(exp)
             translog.error(exp)
             ret = 1
         if ret != 0:

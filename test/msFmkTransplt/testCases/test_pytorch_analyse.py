@@ -53,7 +53,7 @@ class TestPyTorchAnalyse(unittest.TestCase):
 
         self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
 
-        mock_args = mock.Mock(return_value=Args(os.path.join(self.abs_input_path, "third_party"),
+        mock_args = mock.Mock(return_value=Args(os.path.join(self.abs_input_path, "ID0329_CarPeting_Pytorch_FD-GAN"),
                                                 self.abs_output_path, mode='third_party'))
 
         self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
