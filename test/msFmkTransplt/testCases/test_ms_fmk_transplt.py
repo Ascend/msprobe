@@ -50,6 +50,7 @@ def run(mock_args, net_name, output_path, result_dict):
     from src.ms_fmk_transplt.utils import trans_utils as utils
     try:
         utils.refresh_parso_cache = mock.Mock(side_effect=mock_refresh_parso_cache())
+        utils.IS_JEDI_INSTALLED = False
         ms_fmk_transplt = MsFmkTransplt()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
         ret = ms_fmk_transplt.main()

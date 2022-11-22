@@ -15,10 +15,11 @@ ANALYSE_ERROR = 1
 
 
 class Args:
-    def __init__(self, input_path, output_path, version='1.8.1'):
+    def __init__(self, input_path, output_path, version='1.8.1', mode='torch_apis'):
         self.input = input_path
         self.output = output_path
         self.version = version
+        self.mode = mode
 
 
 def run(mock_args):
@@ -51,3 +52,9 @@ class TestPyTorchAnalyse(unittest.TestCase):
                                                 self.abs_output_path))
 
         self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
+
+        mock_args = mock.Mock(return_value=Args(os.path.join(self.abs_input_path, "ID0329_CarPeting_Pytorch_FD-GAN"),
+                                                self.abs_output_path, mode='third_party'))
+
+        self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
+

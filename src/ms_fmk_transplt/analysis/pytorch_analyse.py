@@ -8,6 +8,8 @@ import shutil
 import sys
 
 from analysis.analyse import PyTorchAnalyze
+from analysis.third_party.third_party_analyse import ThirdPartyAnalyse
+from transfer.global_analysis import GlobalReferenceVisitor
 import utils.trans_utils as utils
 import utils.transplant_logger as translog
 
@@ -17,6 +19,10 @@ class PyTorchAnalyse:
         self.input_path = ''
         self.output_path = ''
         self.py_file_counts = 0
+        self.analyse_dict = {
+            'third_party': ThirdPartyAnalyse,
+            'torch_apis': PyTorchAnalyze
+        }
 
     @staticmethod
     def __parse_command():
@@ -25,6 +31,8 @@ class PyTorchAnalyse:
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
         parser.add_argument('-v', '--version', default='1.8.1',
                             help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
+        parser.add_argument('-m', '--mode', default='torch_apis', choices=['third_party', 'torch_apis'],
+                            help='The way the script is analyzed. Only support torch_apis and third_party currently')
         return parser.parse_args()
 
     def main(self):
@@ -36,7 +44,9 @@ class PyTorchAnalyse:
             self.__check_output_valid(args)
             self.__init_logger()
             translog.info('PyTorch analysis start working now, please wait for a moment.')
-            pytorch_analysis = PyTorchAnalyze(self.input_path, self.output_path, args.version)
+            pytorch_analysis = self.analyse_dict.get(args.mode)(self.input_path, self.output_path, args.version)
+            if args.mode == 'third_party':
+                pytorch_analysis.init_global_visitor(self.__get_global_visitor())
             pytorch_analysis.set_py_file_counts(self.py_file_counts)
             pytorch_analysis.run()
         except KeyboardInterrupt:
@@ -45,6 +55,9 @@ class PyTorchAnalyse:
         except BaseException as exp:
             translog.error(exp)
             ret = 1
+        finally:
+            if args.mode == 'third_party' and utils.IS_JEDI_INSTALLED:
+                utils.clear_parso_cache()
         if ret != 0:
             translog.error('Analyse run fail!')
         else:
@@ -131,6 +144,14 @@ class PyTorchAnalyse:
             if not os.path.isfile(file_path):
                 continue
             os.chmod(file_path, permission)
+
+    def __get_global_visitor(self):
+        if not utils.IS_JEDI_INSTALLED:
+            raise ModuleNotFoundError("third party analysis must have jedi installed")
+
+        utils.refresh_parso_cache()
+        global_reference_visitor = GlobalReferenceVisitor(self.input_path)
+        return global_reference_visitor
 
 
 if __name__ == '__main__':
