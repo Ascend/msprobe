@@ -21,7 +21,7 @@ class PyTorchAnalyse:
         self.py_file_counts = 0
         self.analyse_dict = {
             'third_party': ThirdPartyAnalyse,
-            'torch': PyTorchAnalyze
+            'torch_apis': PyTorchAnalyze
         }
 
     @staticmethod
@@ -31,7 +31,7 @@ class PyTorchAnalyse:
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
         parser.add_argument('-v', '--version', default='1.8.1',
                             help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
-        parser.add_argument('-m', '--mode', default='torch', choices=['third_party', 'torch'],
+        parser.add_argument('-m', '--mode', default='torch', choices=['third_party', 'torch_apis'],
                             help='The way the script is analyzed. Only support torch and third_party currently')
         return parser.parse_args()
 
@@ -53,8 +53,6 @@ class PyTorchAnalyse:
             translog.error('User canceled.')
             ret = 1
         except BaseException as exp:
-            # import traceback
-            # traceback.print_exc(exp)
             translog.error(exp)
             ret = 1
         if ret != 0:
@@ -145,6 +143,7 @@ class PyTorchAnalyse:
             os.chmod(file_path, permission)
 
     def __get_global_visitor(self):
+        import jedi
         utils.refresh_parso_cache()
         global_reference_visitor = GlobalReferenceVisitor(self.input_path)
         return global_reference_visitor

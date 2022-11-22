@@ -53,6 +53,7 @@ class GlobalReferenceVisitor:
                 full_name = '_'.join((os.path.basename(self.file_path), str(line), str(column),
                                       func_list[0].description.split()[-1]))
             return full_name, os.path.basename(self.file_path)
+        return '', ''
 
     def is_belong_with_self_project(self, line, column):
         func_list = self.get_jedi_script(self.file_path).infer(line, column)

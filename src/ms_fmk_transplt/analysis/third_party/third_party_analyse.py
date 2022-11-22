@@ -22,10 +22,6 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
         self.global_reference_visitor = None
         self.function_graph = Graph()
 
-    @staticmethod
-    def __need_analysis(file, commonprefix):
-        return utils.check_file_need_analysis(file, commonprefix, record=True)
-
     def init_global_visitor(self, global_reference_visitor):
         self.global_reference_visitor = global_reference_visitor
 
