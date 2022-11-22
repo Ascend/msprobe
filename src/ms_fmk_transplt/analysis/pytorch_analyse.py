@@ -32,7 +32,7 @@ class PyTorchAnalyse:
         parser.add_argument('-v', '--version', default='1.8.1',
                             help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
         parser.add_argument('-m', '--mode', default='torch_apis', choices=['third_party', 'torch_apis'],
-                            help='The way the script is analyzed. Only support torch and third_party currently')
+                            help='The way the script is analyzed. Only support torch_apis and third_party currently')
         return parser.parse_args()
 
     def main(self):
