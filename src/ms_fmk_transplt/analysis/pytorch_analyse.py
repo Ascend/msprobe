@@ -55,6 +55,9 @@ class PyTorchAnalyse:
         except BaseException as exp:
             translog.error(exp)
             ret = 1
+        finally:
+            if args.mode == 'third_party' and utils.IS_JEDI_INSTALLED:
+                utils.clear_parso_cache()
         if ret != 0:
             translog.error('Analyse run fail!')
         else:
