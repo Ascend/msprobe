@@ -113,8 +113,6 @@ class MsFmkTransplt(object):
             translog.error("User canceled.")
             ret = 1
         except BaseException as exp:
-            import traceback
-            traceback.print_exc(exp)
             translog.error(exp)
             ret = 1
         finally:
