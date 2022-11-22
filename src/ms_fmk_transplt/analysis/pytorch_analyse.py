@@ -143,7 +143,9 @@ class PyTorchAnalyse:
             os.chmod(file_path, permission)
 
     def __get_global_visitor(self):
-        import jedi
+        if not utils.IS_JEDI_INSTALLED:
+            raise ModuleNotFoundError("third party analysis must have jedi installed")
+
         utils.refresh_parso_cache()
         global_reference_visitor = GlobalReferenceVisitor(self.input_path)
         return global_reference_visitor
