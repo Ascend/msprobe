@@ -17,10 +17,7 @@ class Graph:
             self.nodelist[key] = new_function_node
 
     def getnode(self, key):
-        if key in self.nodelist:
-            return self.nodelist[key]
-        else:
-            return None
+        return self.nodelist.get(key)
 
     def addedge(self, parent, children):
         if parent not in self.nodelist:
