@@ -53,7 +53,7 @@ class TestPyTorchAnalyse(unittest.TestCase):
 
         self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
 
-        mock_args = mock.Mock(return_value=Args(os.path.join(self.abs_input_path, "barlowtwins_amp"),
+        mock_args = mock.Mock(return_value=Args(os.path.join(self.abs_input_path, "third_party"),
                                                 self.abs_output_path, mode='third_party'))
 
         self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
