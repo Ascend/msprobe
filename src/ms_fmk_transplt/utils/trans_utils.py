@@ -14,7 +14,7 @@ import transfer.common_rules.common_rule as rule_module
 from transfer.distributed_rules import distributed_rule
 from transfer.modelarts import get_modelarts_rule
 from transfer.pytorch_v1_5_0 import InitApexRule, Amp2Apex
-from transfer.pytorch_v1_8_1 import InsertAheadRule
+from transfer.pytorch_npu_patch import InsertAheadRule
 import utils.transplant_logger as translog
 
 try:
@@ -78,10 +78,12 @@ def write_csv(content_list, rel_script_file_name, output_dir, csv_type):
 
 
 def get_op_list(version):
-    if version == '1.8.1':
+    if version == '1.5.0':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_5_0.json')
+    elif version == '1.8.1':
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_8_1.json')
     else:
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_5_0.json')
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
     op_list = json.loads(ops).get('op_list')
     return op_list
@@ -132,11 +134,12 @@ def get_builtin_rule(feature_switch, args):
     # rules for different version
     if args.modelarts:
         rule_list.extend(get_modelarts_rule())
-    if args.version == '1.8.1':
+    # use torch_npu.npu to replace torch.npu since 1.8.1
+    if args.version != '1.5.0':
         rule_list.append(InsertAheadRule())
-        rules_json_file_1_8_0 = os.path.join(os.path.dirname(__file__),
-                                             '../transfer/pytorch_v1_8_1/builtin_rules_1_8_1.json')
-        get_rule_from_json_file(feature_switch, rule_list, rules_json_file_1_8_0)
+        rules_json_file_pytorch_npu = os.path.join(os.path.dirname(__file__),
+                                                   '../transfer/pytorch_npu_patch/builtin_rules_pytorch_npu.json')
+        get_rule_from_json_file(feature_switch, rule_list, rules_json_file_pytorch_npu)
     # common rules
     common_rules_json_file = os.path.join(os.path.dirname(__file__), '../transfer/common_rules/builtin_rules.json')
     get_rule_from_json_file(feature_switch, rule_list, common_rules_json_file)

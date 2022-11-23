@@ -6,7 +6,6 @@ import argparse
 import os
 import shutil
 import sys
-import platform
 
 import utils.trans_utils as utils
 import utils.transplant_logger as translog
@@ -193,9 +192,6 @@ class MsFmkTransplt(object):
         if args.amp_model:
             utils.check_model_name_valid(args.amp_model)
 
-        if args.version not in ['1.5.0', '1.8.1']:
-            raise ValueError('PyTorch version only support 1.5.0 and 1.8.1 currently.')
-
         self.__check_custom_rule_param_valid(args)
         self.__check_distributed_rule_param_valid(args)
 
@@ -212,8 +208,8 @@ class MsFmkTransplt(object):
                                  'Note that this may result in accuracy loss and performance degradation')
         parser.add_argument('-a', '--amp_model', metavar='model', default='',
                             help='This option is required only if you want to convert torch.cuda.amp to apex.amp')
-        parser.add_argument('-v', '--version', default='1.8.1',
-                            help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
+        parser.add_argument('-v', '--version', default='1.8.1', choices=['1.5.0', '1.8.1', '1.11.0'],
+                            help='Target pytorch version of output.')
         parser.add_argument('-m', '--modelarts', action='store_true',
                             help='Convert to a ModelArts-compatible project.')
         subparsers = parser.add_subparsers(help='commands')
