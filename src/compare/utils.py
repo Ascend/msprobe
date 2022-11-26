@@ -292,7 +292,7 @@ def read_numpy_file(path: str) -> any:
     return DumpDataHandler(path).read_numpy_file()
 
 
-def _convert_dump_data_object(fn):
+def convert_dump_data_object(fn):
     @wraps(fn)
     def inner(*args, **kwargs):
         dump_data = fn(*args, **kwargs)
@@ -313,7 +313,7 @@ def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
     return dump_data_object
 
 
-@_convert_dump_data_object
+@convert_dump_data_object
 def parse_dump_file(input_path: str, dump_version: int) -> DumpDataObj:
     """
     Parse dump fil

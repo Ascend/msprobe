@@ -426,8 +426,8 @@ class FormatConversionMain:
         if ret_input != CompareError.MSACCUCMP_NONE_ERROR:
             ret = ret_input
         msg += msg_input
-        ret_output, msg_output = self._convert_format_for_tensor(dump_data.output_data, dump_file_path, ConstManager.OUTPUT,
-                                                                 dump_data.op_name)
+        ret_output, msg_output = self._convert_format_for_tensor(dump_data.output_data, dump_file_path,
+                                                                 ConstManager.OUTPUT, dump_data.op_name)
         if ret_output != CompareError.MSACCUCMP_NONE_ERROR:
             ret = ret_output
         msg += msg_output
