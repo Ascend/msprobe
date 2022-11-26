@@ -133,43 +133,43 @@ class DumpDataParser:
 
     def _save_op_debug_to_file(self: any, dump_path: str, output: any) -> None:
         for idx, item in enumerate(output):
-            magic = OpDebugInfoParser.unpack_uint_value(item.data, 0, 'UINT32')
+            bytes_data = utils.convert_ndarray_to_bytes(item.data)
+            magic = OpDebugInfoParser.unpack_uint_value(bytes_data, 0, 'UINT32')
             if magic == ConstManager.MAGIC_NUM:
-                debug_info_parser = OpDebugInfoParser(item.data)
+                debug_info_parser = OpDebugInfoParser(bytes_data)
                 debug_info = debug_info_parser.parse_op_debug_new_version()
             else:
-                debug_info = self._parse_op_debug_old_version(dump_path, idx, item.data)
+                debug_info = self._parse_op_debug_old_version(dump_path, idx, bytes_data)
             json_path = os.path.join(self.output_path, "%s.output.%d.json" % (os.path.basename(dump_path), idx))
             FileUtils.save_data_to_file(json_path, json.dumps(debug_info, sort_keys=False, indent=4), 'w+', delete=True)
             log.print_info_log('The data of output:%d has been parsed into "%s".' % (idx, json_path))
 
     def _parse_op_debug_old_version(self: any, dump_path: str, idx: int, item_data: any) -> dict:
-        bytes_data = utils.convert_ndarray_to_bytes(item_data)
-        if len(bytes_data) != ConstManager.OVERFLOW_CHECK_SIZE:
+        if len(item_data) != ConstManager.OVERFLOW_CHECK_SIZE:
             log.print_error_log('The data size (%d) of output:%d is not equal to %d in %s. '
                                 'Please check the dump file.'
-                                % (len(bytes_data), idx, ConstManager.OVERFLOW_CHECK_SIZE, dump_path))
+                                % (len(item_data), idx, ConstManager.OVERFLOW_CHECK_SIZE, dump_path))
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
         # parser DHA Atomic Add info
         index = 0
-        dha_atomic_add_info = self._parser_overflow_info(bytes_data, index)
+        dha_atomic_add_info = self._parser_overflow_info(item_data, index)
         # parser L2 Atomic Add info
         index += ConstManager.DHA_ATOMIC_ADD_INFO_SIZE
-        l2_atomic_add_info = self._parser_overflow_info(bytes_data, index)
+        l2_atomic_add_info = self._parser_overflow_info(item_data, index)
         # parser AI Core info
         index += ConstManager.L2_ATOMIC_ADD_INFO_SIZE
-        ai_core_info = self._parser_overflow_info(bytes_data, index)
+        ai_core_info = self._parser_overflow_info(item_data, index)
         # parser DHA Atomic Add status
         index += ConstManager.AI_CORE_INFO_SIZE
-        dha_atomic_add_status = OpDebugInfoParser.unpack_uint_value(bytes_data, index, 'UINT64')
+        dha_atomic_add_status = OpDebugInfoParser.unpack_uint_value(item_data, index, 'UINT64')
         dha_atomic_add_info['status'] = dha_atomic_add_status
         # parser L2 Atomic Add status
         index += ConstManager.DHA_ATOMIC_ADD_STATUS_SIZE
-        l2_atomic_add_status = OpDebugInfoParser.unpack_uint_value(bytes_data, index, 'UINT64')
+        l2_atomic_add_status = OpDebugInfoParser.unpack_uint_value(item_data, index, 'UINT64')
         l2_atomic_add_info['status'] = l2_atomic_add_status
         # parser AI Core status
         index += ConstManager.L2_ATOMIC_ADD_STATUS_SIZE
-        self._parser_ai_core_status(ai_core_info, bytes_data, index)
+        self._parser_ai_core_status(ai_core_info, item_data, index)
 
         data = {'DHA Atomic Add': dha_atomic_add_info,
                 'L2 Atomic Add': l2_atomic_add_info,

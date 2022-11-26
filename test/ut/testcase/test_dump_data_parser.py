@@ -308,6 +308,7 @@ class TestUtilsMethods(unittest.TestCase):
         op_output.format = DD.FORMAT_NCHW
         overflow_data = self._make_overflow_data_new_version(88)
         op_output.data = struct.pack('6i11Q', *overflow_data)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
