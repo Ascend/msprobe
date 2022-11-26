@@ -95,24 +95,31 @@ class TestUtilsMethods(unittest.TestCase):
                                 ret = decode.analyse()
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
-    def test_get_overflow_info(self):
+    def test_gen_overflow_info(self):
         args = argparse.Namespace()
         args.dump_path = "/home"
         args.output_path = "/home"
         args.top_num = 2
         decode = overflow_analyse.OverflowAnalyse(args)
 
-        over_type = 'AI_CORE'
+        over_type = 'AIV'
         json_txt = {
-            'AI_CORE':
-                {
-                    'task_id': 1,
-                    'stream_id': 25,
-                    'status': 253
-                }
+                "model_id": 365,
+                "stream_id": 396,
+                "task_id": 65,
+                "task_type": 66,
+                "context_id": 65535,
+                "thread_id": 65535,
+                "pc_start": "0x124040184000",
+                "para_base": "0x1240401ff5f0",
+                "core_id": 0,
+                "block_id": 15,
+                "status": 1
         }
-        ret = decode._get_overflow_info(over_type, json_txt)
-        self.assertEqual(ret, (' [AI_CORE][TaskId:1][StreamId:25][Status:253]', 1, 25))
+        res = []
+        ret = Analyse(args).get_overflow_info()(res, over_type, json_txt)
+        self.assertEqual(res, [' [AIV][TaskId:65][StreamId:396][Status:1]'])
+        self.assertEqual(ret, (65, 396))
 
     def test_insert_delimiter(self):
         args = argparse.Namespace()
@@ -218,6 +225,59 @@ class TestUtilsMethods(unittest.TestCase):
         expect_result = '=================================================[1]' \
                         '==================================================\n' \
                         ' [AI Core][TaskId:1][StreamId:25][Status:253]\n [timestamp:161233160]'
+        self.assertEqual(ret, expect_result)
+
+    def test_json_summary_new_format(self):
+        args = argparse.Namespace()
+        args.dump_path = "/home"
+        args.output_path = "/home"
+        args.top_num = 2
+        decode = overflow_analyse.OverflowAnalyse(args)
+
+        json_txt = {
+            "magic": "0x5a5a5a5a",
+            "version": 0,
+            "acc_list": {
+                "valid": 1,
+                "acc_type": "AIV",
+                "rsv": 0,
+                "data_len": 88,
+                "data": {
+                    "model_id": 365,
+                    "stream_id": 396,
+                    "task_id": 65,
+                    "task_type": 66,
+                    "context_id": 65535,
+                    "thread_id": 65535,
+                    "pc_start": "0x124040184000",
+                    "para_base": "0x1240401ff5f0",
+                    "core_id": 0,
+                    "block_id": 15,
+                    "status": 1
+                }
+            }
+        }
+        overflow_index = 1
+
+        file_desc = {
+            "file_path": "/test1/Opdebug",
+            "timestamp": int("161233160")
+        }
+        dump_attr = {
+            "op_name": 'Node_OpDebug',
+            "op_type": 'Opdebug',
+            "task_id": int('12'),
+            "stream_id": '12'
+        }
+
+        debug_file_desc = file_utils.DumpFileDesc(file_desc, dump_attr)
+        with mock.patch('overflow_analyse.OverflowAnalyse._find_dump_files_by_task_id',
+                        side_effect=utils.CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)):
+            ret = decode._json_summary(overflow_index, json_txt, debug_file_desc)
+        print(ret)
+        expect_result = '=================================================[1]' \
+                        '==================================================\n' \
+                        ' [AIV][TaskId:65][StreamId:396][Status:1]\n [timestamp:161233160]'
         self.assertEqual(ret, expect_result)
 
     def test_json_summary_case2(self):
@@ -430,3 +490,8 @@ class TestUtilsMethods(unittest.TestCase):
                 ret = decode._find_dump_files_by_task_id('/test/', 12, 24)
         self.assertEqual(err.value.args[0],
                          CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+
+
+class Analyse(overflow_analyse.OverflowAnalyse):
+    def get_overflow_info(self):
+        return self._gen_overflow_info
