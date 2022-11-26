@@ -292,10 +292,10 @@ def read_numpy_file(path: str) -> any:
     return DumpDataHandler(path).read_numpy_file()
 
 
-def convert_dump_data_object(fn):
-    @wraps(fn)
+def convert_dump_data_object(wrap_function):
+    @wraps(wrap_function)
     def inner(*args, **kwargs):
-        dump_data = fn(*args, **kwargs)
+        dump_data = wrap_function(*args, **kwargs)
         dump_data_object = convert_dump_data(dump_data)
         return dump_data_object
     return inner
