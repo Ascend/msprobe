@@ -33,7 +33,7 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
 
     def test_get_my_output_and_ground_truth_data2(self):
-        op_output = DumpTensor(shape=[])
+        op_output = DumpTensor()
         op_output.data_type = DD.DT_FLOAT16
         op_output.tensor_format = DD.FORMAT_RESERVED
         op_output.shape.append(1)
@@ -56,7 +56,7 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(shape[1], 4)
 
     def test_get_my_output_and_ground_truth_data3(self):
-        op_output = DumpTensor(shape=[])
+        op_output = DumpTensor()
         op_output.data_type = DD.DT_FLOAT16
         op_output.tensor_format= DD.FORMAT_ND
         data_list = [1.0, 4.5, 2.0, 3.5]

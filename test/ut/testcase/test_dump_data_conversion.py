@@ -225,14 +225,14 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('sys.argv', args):
             main = dump_data_conversion.DumpDataConversion()
             tensor = mock.Mock()
-            tensor.shape = self._make_shape([1, 2, 3, 4])
+            tensor.shape = [1, 2, 3, 4]
             input_path = "/home/demo"
             tensor_list = [tensor]
             name = "demo"
             tensor_type = "input"
-            with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.zeros((2, 3, 4))):
-                with mock.patch("numpy.save"):
-                    main._save_tensor_to_file(tensor_list, name, input_path, tensor_type)
+            tensor.data = np.zeros((2, 3, 4))
+            with mock.patch("numpy.save"):
+                main._save_tensor_to_file(tensor_list, name, input_path, tensor_type)
 
     def test_save_tensor_to_file3(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',
@@ -240,14 +240,13 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('sys.argv', args):
             main = dump_data_conversion.DumpDataConversion()
             tensor = mock.Mock()
-            tensor.shape = self._make_shape([1, 2, 3, 4])
+            tensor.shape = [1, 2, 3, 4]
             input_path = "/home/demo"
             tensor_list = [tensor]
             name = "demo"
             tensor_type = "input"
-            with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.array([1, 2, 3, 4])):
-                with mock.patch("numpy.save"):
-                    main._save_tensor_to_file(tensor_list, name, input_path, tensor_type)
+            tensor.data = np.array([1, 2, 3, 4])
+            main._save_tensor_to_file(tensor_list, name, input_path, tensor_type)
 
     def test_get_offline_layer_name1(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',
@@ -323,12 +322,6 @@ class TestUtilsMethods(unittest.TestCase):
         op_output.data = struct.pack('e' * length, *origin_numpy)
         return op_output
 
-    @staticmethod
-    def _make_shape(dim_list):
-        shape = DD.Shape()
-        for dim in dim_list:
-            shape.dim.append(dim)
-        return shape
 
 
 if __name__ == '__main__':

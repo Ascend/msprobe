@@ -225,8 +225,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 mock.mock_open(read_data=dump_data_ser)):
                     dump_data = utils.parse_dump_file('/home/a.dump', 1)
         self.assertEqual(dump_data.output_data[0].data_type, DD.DT_FLOAT16)
-        data_byte = dump_data.output_data[0].data.tobytes()
-        self.assertEqual(len( data_byte), 48)
+        data_byte = utils.convert_ndarray_to_bytes(dump_data.output_data[0].data)
+        self.assertEqual(len(data_byte), 48)
 
     def test_parse_dump_file5(self):
         dump_data = DD.DumpData()

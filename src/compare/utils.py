@@ -17,6 +17,7 @@ import numpy as np
 
 import common
 import log
+from dump_data_pb2 import DumpData
 
 from const_manager import ConstManager
 
@@ -293,18 +294,18 @@ def read_numpy_file(path: str) -> any:
 
 def _convert_dump_data_object(fn):
     @wraps(fn)
-    def inner(input_path, dump_version):
-        dump_data = fn(input_path, dump_version)
+    def inner(*args, **kwargs):
+        dump_data = fn(*args, **kwargs)
         dump_data_object = convert_dump_data(dump_data)
         return dump_data_object
     return inner
 
 
-def convert_dump_data(dump_data):
+def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
     """
     Convert dump_data to DumpDataObj
-    :param dump_data: DD.dump_data object
-    :return dump_data_object: DumpDataObj object
+    @param dump_data:  DD.DumpData object
+    @return: DumpDataObj object
     """
     dump_data_object = DumpDataObj(dump_data)
     dump_data_object.build_input_dump_tensor()
@@ -323,8 +324,14 @@ def parse_dump_file(input_path: str, dump_version: int) -> DumpDataObj:
     return DumpDataHandler(input_path).parse_dump_data(dump_version)
 
 
-def convert_ndarray_to_bytes(array):
+def convert_ndarray_to_bytes(array: np.ndarray) -> bytes:
+    """
+    convert ndarray to bytes
+    @param array: ndarray
+    @return:bytes
+    """
     return array.tobytes()
+
 
 def convert_shape_to_string(shape: list) -> str:
     """
