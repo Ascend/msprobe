@@ -293,6 +293,11 @@ def read_numpy_file(path: str) -> any:
 
 
 def convert_dump_data_object(wrap_function):
+    """
+    This is a wrapper
+    @param wrap_function: function need to be wrapped
+    @return: inner function
+    """
     @wraps(wrap_function)
     def inner(*args, **kwargs):
         dump_data = wrap_function(*args, **kwargs)

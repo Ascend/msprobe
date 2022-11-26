@@ -58,7 +58,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_my_output_and_ground_truth_data3(self):
         op_output = DumpTensor()
         op_output.data_type = DD.DT_FLOAT16
-        op_output.tensor_format= DD.FORMAT_ND
+        op_output.tensor_format = DD.FORMAT_ND
         data_list = [1.0, 4.5, 2.0, 3.5]
         op_output.data = np.asarray(data_list, np.float16)
         manager = FormatManager("")
