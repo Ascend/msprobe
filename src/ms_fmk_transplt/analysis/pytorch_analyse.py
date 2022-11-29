@@ -29,8 +29,8 @@ class PyTorchAnalyse:
         parser = argparse.ArgumentParser()
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
-        parser.add_argument('-v', '--version', default='1.8.1',
-                            help='Target pytorch version of output. Only support 1.5.0 and 1.8.1 currently')
+        parser.add_argument('-v', '--version', default='1.8.1', choices=['1.5.0', '1.8.1', '1.11.0'],
+                            help='Target pytorch version of output')
         parser.add_argument('-m', '--mode', default='torch_apis', choices=['third_party', 'torch_apis'],
                             help='The way the script is analyzed. Only support torch_apis and third_party currently')
         return parser.parse_args()
@@ -103,9 +103,6 @@ class PyTorchAnalyse:
 
         if utils.check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
-
-        if args.version not in ['1.5.0', '1.8.1']:
-            raise ValueError('PyTorch version only support 1.5.0 and 1.8.1 currently.')
 
     def __check_input_valid(self, args):
         translog.info("Start to check input path...")
