@@ -150,7 +150,7 @@ class PyTorchAnalyse:
             raise ModuleNotFoundError("third party analysis must have jedi installed")
 
         utils.refresh_parso_cache()
-        global_reference_visitor = GlobalReferenceVisitor(self.input_path)
+        global_reference_visitor = GlobalReferenceVisitor(self.input_path, sys_path=[])
         return global_reference_visitor
 
 

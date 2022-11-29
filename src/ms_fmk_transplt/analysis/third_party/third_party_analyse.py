@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
+# Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 
 import os
 import libcst
