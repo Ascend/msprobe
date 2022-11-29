@@ -117,17 +117,18 @@ class ApiVisitor(libcst.CSTVisitor):
                 defined_call_set.update(infer_func_list)
                 continue
             libcst_full_name = self._get_full_name_for_node(call_node)
-            if libcst_full_name:  # handle torch class api
-                if libcst_full_name.startswith('torch.') and not m.findall(call_node.func, m.Call()):
-                    if libcst_full_name in self.unsupported_op_list:
-                        unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
-                    elif libcst_full_name not in self.op_list:
-                        unknown_api_list.append(ApiInstance(libcst_full_name, position, file_path))
-                else:  # handle instance api
-                    _unsupported_list, _unknown_list = \
-                        self._handle_torch_instance_func(libcst_full_name, call_node, file_path)
-                    unsupported_list.extend(_unsupported_list)
-                    unknown_api_list.extend(_unknown_list)
+            if not libcst_full_name:
+                continue
+            if libcst_full_name.startswith('torch.') and not m.findall(call_node.func, m.Call()):
+                if libcst_full_name in self.unsupported_op_list:
+                    unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
+                elif libcst_full_name not in self.op_list:
+                    unknown_api_list.append(ApiInstance(libcst_full_name, position, file_path))
+            else:  # handle instance api
+                _unsupported_list, _unknown_list = \
+                    self._handle_torch_instance_func(libcst_full_name, call_node, file_path)
+                unsupported_list.extend(_unsupported_list)
+                unknown_api_list.extend(_unknown_list)
         return defined_call_set, unsupported_list, unknown_api_list
 
     def _get_func_def_position(self, node):
@@ -171,7 +172,7 @@ class ApiVisitor(libcst.CSTVisitor):
             return [], []
         if not type_set:
             define_nodes = \
-                self.global_reference_visitor.goto(call_obj_position.end.line, call_obj_position.end.column-1)
+                self.global_reference_visitor.goto(call_obj_position.end.line, call_obj_position.end.column - 1)
             type_set = self._get_define_type(define_nodes)
         return self._get_instance_func_list(call_position, file_path, full_name, type_set)
 
@@ -192,17 +193,20 @@ class ApiVisitor(libcst.CSTVisitor):
     def _get_unsupported_instance_func_list(self, func_name, type_set):
         unsupported_set = set()
         for type_name in type_set:
-            has_adapt_func = False
-            while not has_adapt_func:
-                for instance_func_name in self.unsupported_instance_op_dict.get(func_name):
-                    if instance_func_name.startswith(type_name) and instance_func_name.endswith(func_name):
-                        has_adapt_func = True
-                        unsupported_set.add(instance_func_name)
-                last_seg_index = type_name.rfind(".")
-                if last_seg_index == -1:
-                    break
-                type_name = type_name[:last_seg_index]
+            self._add_adapt_func_to_set(func_name, type_name, unsupported_set)
         return unsupported_set
+
+    def _add_adapt_func_to_set(self, func_name, type_name, unsupported_set):
+        has_adapt_func = False
+        while not has_adapt_func:
+            for instance_func_name in self.unsupported_instance_op_dict.get(func_name):
+                if instance_func_name.startswith(type_name) and instance_func_name.endswith(func_name):
+                    has_adapt_func = True
+                    unsupported_set.add(instance_func_name)
+            last_seg_index = type_name.rfind(".")
+            if last_seg_index == -1:
+                break
+            type_name = type_name[:last_seg_index]
 
     def _get_define_type(self, define_nodes):
         queue = []
@@ -294,12 +298,13 @@ class ApiVisitor(libcst.CSTVisitor):
             except ValueError:
                 continue
             for node in next_define_nodes:
-                if node.type == 'module':
-                    full_name = (node.full_name if node.full_name else node.name) + \
-                                (name[name.index("."):] if "." in name else "")
-                    type_name = self._get_type_name(full_name)
-                    if type_name:
-                        type_set.add(type_name)
+                if node.type != 'module':
+                    continue
+                full_name = (node.full_name if node.full_name else node.name) + \
+                            (name[name.index("."):] if "." in name else "")
+                type_name = self._get_type_name(full_name)
+                if type_name:
+                    type_set.add(type_name)
 
     def _get_full_name_for_node(self, node: Union[str, libcst.CSTNode]) -> Optional[str]:
         name_list = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, node))
