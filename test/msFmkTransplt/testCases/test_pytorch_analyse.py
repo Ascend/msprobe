@@ -52,7 +52,7 @@ class TestPyTorchAnalyse(unittest.TestCase):
         self.abs_output_path = os.path.join(os.path.abspath("../test_result"), "analyse_result")
         self.has_error = False
 
-    def test_main(self):
+    def test_analysis(self):
         mock_args = mock.Mock(return_value=Args(os.path.join(self.abs_input_path, "barlowtwins_amp"),
                                                 self.abs_output_path))
 
