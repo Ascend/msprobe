@@ -40,6 +40,11 @@ def mock_refresh_parso_cache():
 
 
 class TestPyTorchAnalyse(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        from src.ms_fmk_transplt.utils import trans_utils as utils
+        utils.IS_JEDI_INSTALLED = True
+
     def setUp(self):
         self.abs_input_path = os.path.abspath('../resources/net')
         shutil.rmtree("../test_result/", ignore_errors=True)

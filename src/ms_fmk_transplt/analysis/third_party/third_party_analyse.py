@@ -7,7 +7,7 @@ import libcst
 
 import utils.trans_utils as utils
 import utils.transplant_logger as translog
-from utils.third_party_code_visitor import ApiVisitor
+from utils.third_party_code_visitor import ThirdPartyApiVisitor
 from analysis.analyse import PyTorchAnalyze
 from analysis.third_party.function_graph import Graph
 
@@ -38,8 +38,8 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
         code = utils.get_file_content_bytes(file)
         wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
 
-        api_visitor = ApiVisitor(utils.get_supported_op_list(), utils.get_op_list(self.pytorch_version),
-                                 self.global_reference_visitor, self.function_graph)
+        api_visitor = ThirdPartyApiVisitor(utils.get_supported_op_list(), utils.get_op_list(self.pytorch_version),
+                                           self.global_reference_visitor, self.function_graph)
         wrapper.visit(api_visitor)
 
     def _analysis_file(self, file, commonprefix):

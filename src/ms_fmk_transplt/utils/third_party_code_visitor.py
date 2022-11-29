@@ -18,11 +18,11 @@ NodeInfo = namedtuple('NodeInfo', ['has_unsupported_api', 'unsupported_list', 'h
                                    'file_path'])
 
 
-class ApiVisitor(libcst.CSTVisitor):
+class ThirdPartyApiVisitor(libcst.CSTVisitor):
     METADATA_DEPENDENCIES = (PositionProvider, QualifiedNameProvider)
 
     def __init__(self, op_list, unsupported_op_list, global_reference_visitor: GlobalReferenceVisitor, function_graph):
-        super(ApiVisitor, self).__init__()
+        super(ThirdPartyApiVisitor, self).__init__()
         self.op_list = op_list
         self.unsupported_op_list = unsupported_op_list
         self.unsupported_instance_op_dict = {}
