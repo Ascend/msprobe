@@ -56,7 +56,7 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
         return function_body_list
 
     @staticmethod
-    def _get_type_name(full_name):
+    def _get_call_obj_name(full_name):
         if full_name.startswith(("torch.nn.functional", "torch.nn.init")):
             return "torch.Tensor"
         elif full_name.startswith("torch.") and full_name.lower() == full_name:
@@ -111,7 +111,7 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
         unknown_api_list = []
         for call_node in node_list:
             position = self._get_call_position(call_node)
-            infer_func_list = self.global_reference_visitor.get_infer_func_list(
+            infer_func_list = self.global_reference_visitor.get_infer_func_list_in_project(
                 position.start.line, position.start.column)
             if infer_func_list:  # if find infer function in project, use infer function
                 defined_call_set.update(infer_func_list)
@@ -152,37 +152,36 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
         func_name = full_name.split(".")[-1]
         if func_name not in self.unsupported_instance_op_dict:
             return [], []
-        type_set = None
+        call_obj_name_set = None
         position = self.get_metadata(PositionProvider, call_node)
         module_defined_list = self.global_reference_visitor.goto(position.start.line, position.start.column)
         for defined_node in module_defined_list:
             if defined_node.type == 'module':
-                full_name_with_module = (defined_node.full_name if defined_node.full_name else defined_node.name) + \
-                            (full_name[full_name.index("."):] if "." in full_name else "")
-                type_set = {self._get_type_name(full_name_with_module)}
+                full_call_obj_name = (defined_node.full_name if defined_node.full_name else defined_node.name) + \
+                                     full_name[full_name.index("."):full_name.rfind(".")]
+                call_obj_name_set = {self._get_call_obj_name(full_call_obj_name)}
                 break
-        call_obj_position = self.get_metadata(PositionProvider, call_node.func.value)
         call_position = self._get_call_position(call_node)
-        call_obj_define_list = self.global_reference_visitor.get_infer_func_list(call_position.start.line,
-                                                                                 call_position.start.column)
+        if call_obj_name_set:
+            return self._get_instance_func_list(call_position, file_path, full_name, call_obj_name_set)
+        call_obj_position = self.get_metadata(PositionProvider, call_node.func.value)
+        call_obj_define_list = self.global_reference_visitor.goto(call_obj_position.end.line,
+                                                                  call_obj_position.end.column - 1)
         if call_obj_define_list and \
-                all(call_obj_define.full_name in ('builtins.dict', 'builtins.set', 'builtins.list', 'builtins.tuple',
-                                                  'builtins.str')
+                all(call_obj_define.full_name and call_obj_define.full_name.startswith("builtins.")
                     for call_obj_define in call_obj_define_list):
             return [], []
-        if not type_set:
-            define_nodes = \
-                self.global_reference_visitor.goto(call_obj_position.end.line, call_obj_position.end.column - 1)
-            type_set = self._get_define_type(define_nodes)
-        return self._get_instance_func_list(call_position, file_path, full_name, type_set)
+        call_obj_name_set = self._get_call_obj_name_set_by_define_nodes(call_obj_define_list)
+        return self._get_instance_func_list(call_position, file_path, full_name, call_obj_name_set)
 
-    def _get_instance_func_list(self, call_position, file_path, full_name, type_set):
+    def _get_instance_func_list(self, call_position, file_path, full_name, call_obj_name_set):
         unsupported_list = []
         unknown_list = []
         func_name = full_name.split(".")[-1]
-        if type_set:
+        if call_obj_name_set:
             unsupported_list.extend(ApiInstance(instance_func_name, call_position, file_path) for
-                                    instance_func_name in self._get_unsupported_instance_func_list(func_name, type_set))
+                                    instance_func_name in self._get_unsupported_instance_func_list(func_name,
+                                                                                                   call_obj_name_set))
         else:
             possible_func_names = ', '.join(instance_func_name
                                             for instance_func_name in self.unsupported_instance_op_dict.get(func_name))
@@ -190,43 +189,43 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
             unknown_list.append(ApiInstance(print_func_name, call_position, file_path))
         return unsupported_list, unknown_list
 
-    def _get_unsupported_instance_func_list(self, func_name, type_set):
+    def _get_unsupported_instance_func_list(self, func_name, call_obj_name_set):
         unsupported_set = set()
-        for type_name in type_set:
-            self._add_adapt_func_to_set(func_name, type_name, unsupported_set)
+        for call_obj_name in call_obj_name_set:
+            self._add_adapt_func_to_set(func_name, call_obj_name, unsupported_set)
         return unsupported_set
 
-    def _add_adapt_func_to_set(self, func_name, type_name, unsupported_set):
+    def _add_adapt_func_to_set(self, func_name, call_obj_name, unsupported_set):
         has_adapt_func = False
         while not has_adapt_func:
             for instance_func_name in self.unsupported_instance_op_dict.get(func_name):
-                if instance_func_name.startswith(type_name) and instance_func_name.endswith(func_name):
+                if instance_func_name.startswith(call_obj_name) and instance_func_name.endswith(func_name):
                     has_adapt_func = True
                     unsupported_set.add(instance_func_name)
-            last_seg_index = type_name.rfind(".")
+            last_seg_index = call_obj_name.rfind(".")
             if last_seg_index == -1:
                 break
-            type_name = type_name[:last_seg_index]
+            call_obj_name = call_obj_name[:last_seg_index]
 
-    def _get_define_type(self, define_nodes):
+    def _get_call_obj_name_set_by_define_nodes(self, define_nodes):
         queue = []
         queue.extend(define_nodes)
-        type_set = set()
+        call_obj_name_set = set()
         while queue:
             define_node = queue.pop(0)
             if "\\" in define_node.description or len(define_node.description) > 1000:
                 continue
             if define_node.type == 'statement':
-                self._handle_define_type_statement(define_node, queue, type_set)
+                self._handle_define_type_statement(define_node, queue, call_obj_name_set)
             elif define_node.type == 'param':
-                self._handle_define_type_param(define_node, type_set)
+                self._handle_define_type_param(define_node, call_obj_name_set)
             elif define_node.type == 'class':
-                self._handle_define_type_class(define_node, type_set)
+                self._handle_define_type_class(define_node, call_obj_name_set)
             elif define_node.type == 'property':
-                self._handle_define_type_property(define_node, type_set)
-        return type_set
+                self._handle_define_type_property(define_node, call_obj_name_set)
+        return call_obj_name_set
 
-    def _handle_define_type_param(self, define_node, type_set):
+    def _handle_define_type_param(self, define_node, call_obj_name_set):
         if ":" not in define_node.description:
             func_context = self.global_reference_visitor.get_context(define_node.line)
             if not func_context or not func_context.full_name:
@@ -242,12 +241,12 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
             for class_node in class_nodes:
                 if "torch.nn.Module" in self.global_reference_visitor.get_super_class(
                         class_node.name, str(class_node.module_path)):
-                    type_set.add("torch.Tensor")
+                    call_obj_name_set.add("torch.Tensor")
             return
         start_index = define_node.description.index(":")
-        self._analyse_type_declaration(define_node, type_set, start_index)
+        self._analyse_type_declaration(define_node, call_obj_name_set, start_index)
 
-    def _handle_define_type_statement(self, define_node, queue, type_set):
+    def _handle_define_type_statement(self, define_node, queue, call_obj_name_set):
         if define_node.description.startswith(("for ", "with ")) or "=" not in define_node.description:
             return
         module_column, name = self._get_module_column_and_name(define_node, define_node.description.index("="))
@@ -261,24 +260,24 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
             if node.type == 'module':
                 full_name = (node.full_name if node.full_name else node.name) + \
                             (name[name.index("."):] if "." in name else "")
-                type_name = self._get_type_name(full_name)
-                if type_name:
-                    type_set.add(type_name)
+                call_obj_name = self._get_call_obj_name(full_name)
+                if call_obj_name:
+                    call_obj_name_set.add(call_obj_name)
             else:
                 queue.append(node)
 
-    def _handle_define_type_class(self, define_node, type_set):
+    def _handle_define_type_class(self, define_node, call_obj_name_set):
         super_class_list = self.global_reference_visitor.get_super_class(define_node.name, str(define_node.module_path))
         for super_class in super_class_list:
             if super_class.startswith("torch"):
-                type_set.add(super_class)
+                call_obj_name_set.add(super_class)
 
-    def _handle_define_type_property(self, define_node, type_set):
+    def _handle_define_type_property(self, define_node, call_obj_name_set):
         if "->" not in define_node.description[:define_node.description.index(":")]:
             return
         start_index = define_node.description.index("->")
         end_index = start_index + define_node.description[start_index:].index(":")
-        self._analyse_type_declaration(define_node, type_set, start_index, end_index)
+        self._analyse_type_declaration(define_node, call_obj_name_set, start_index, end_index)
 
     def _get_multi_module_column_and_name(self, define_node, start_index, end_index=-1):
         module_column = 0
@@ -290,7 +289,7 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
                 start_index += define_node.description[start_index:].index(name) + len(name)
         return define_type_column_dict
 
-    def _analyse_type_declaration(self, define_node, type_set, start_index, end_index=-1):
+    def _analyse_type_declaration(self, define_node, call_obj_name_set, start_index, end_index=-1):
         define_type_column_dict = self._get_multi_module_column_and_name(define_node, start_index, end_index)
         for name, column in define_type_column_dict.items():
             try:
@@ -302,9 +301,9 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
                     continue
                 full_name = (node.full_name if node.full_name else node.name) + \
                             (name[name.index("."):] if "." in name else "")
-                type_name = self._get_type_name(full_name)
-                if type_name:
-                    type_set.add(type_name)
+                call_obj_name = self._get_call_obj_name(full_name)
+                if call_obj_name:
+                    call_obj_name_set.add(call_obj_name)
 
     def _get_full_name_for_node(self, node: Union[str, libcst.CSTNode]) -> Optional[str]:
         name_list = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, node))

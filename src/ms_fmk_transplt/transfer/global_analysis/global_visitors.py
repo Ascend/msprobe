@@ -76,21 +76,22 @@ class GlobalReferenceVisitor:
             return full_name, os.path.basename(self.file_path)
         return '', ''
 
-    def get_infer_func_list(self, line, column):
+    def get_infer_func_list_in_project(self, line, column):
         func_list = self.get_jedi_script(self.file_path).infer(line, column)
         infer_func_list = []
         for func in func_list:
-            is_defined = str(func.module_path).startswith(str(self.project.path))
+            if not str(func.module_path).startswith(str(self.project.path)):
+                continue
             full_name = func.full_name
             if full_name is None:
                 full_name = '_'.join((os.path.basename(self.file_path), str(func.line),
                                       str(func.column), func.description.split()[-1]))
-            if func_list[0].type == 'class' and is_defined:
+            if func.type == 'class':
                 full_name = full_name + '.__init__'
-            elif func_list[0].type == 'instance' and is_defined:
+            elif func.type == 'instance':
                 full_name = full_name + '.forward'
-            elif func_list[0].type == 'module':
-                full_name = ''
+            elif func.type == 'module':
+                continue
             infer_func_list.append(full_name)
         return infer_func_list
 
