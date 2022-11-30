@@ -179,9 +179,9 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
         unknown_list = []
         func_name = full_name.split(".")[-1]
         if call_obj_name_set:
-            unsupported_list.extend(ApiInstance(instance_func_name, call_position, file_path) for
-                                    instance_func_name in self._get_unsupported_instance_func_list(func_name,
-                                                                                                   call_obj_name_set))
+            unsupported_instance_func_list = self._get_unsupported_instance_func_list(func_name, call_obj_name_set)
+            unsupported_list.extend(ApiInstance(instance_func_name, call_position, file_path)
+                                    for instance_func_name in unsupported_instance_func_list)
         else:
             possible_func_names = ', '.join(instance_func_name
                                             for instance_func_name in self.unsupported_instance_op_dict.get(func_name))
