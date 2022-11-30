@@ -68,7 +68,7 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
         return ""
 
     @staticmethod
-    def _get_module_column_and_name(define_node, start_index, end_index=-1):
+    def _get_module_column_and_name(define_node, start_index, end_index=None):
         assign_value_stmt = define_node.description[start_index:end_index]
         assign_by_self_obj_column_range = re.search(f"[^\\w]{define_node.name}[^\\w]", assign_value_stmt)
         if assign_by_self_obj_column_range:
@@ -279,7 +279,7 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
         end_index = start_index + define_node.description[start_index:].index(":")
         self._analyse_type_declaration(define_node, call_obj_name_set, start_index, end_index)
 
-    def _get_multi_module_column_and_name(self, define_node, start_index, end_index=-1):
+    def _get_multi_module_column_and_name(self, define_node, start_index, end_index=None):
         module_column = 0
         define_type_column_dict = dict()
         while module_column != -1:
@@ -289,7 +289,7 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
                 start_index += define_node.description[start_index:].index(name) + len(name)
         return define_type_column_dict
 
-    def _analyse_type_declaration(self, define_node, call_obj_name_set, start_index, end_index=-1):
+    def _analyse_type_declaration(self, define_node, call_obj_name_set, start_index, end_index=None):
         define_type_column_dict = self._get_multi_module_column_and_name(define_node, start_index, end_index)
         for name, column in define_type_column_dict.items():
             try:
