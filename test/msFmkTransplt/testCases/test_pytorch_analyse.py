@@ -40,6 +40,11 @@ def mock_refresh_parso_cache():
 
 
 class TestPyTorchAnalyse(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        from src.ms_fmk_transplt.utils import trans_utils as utils
+        utils.IS_JEDI_INSTALLED = True
+
     def setUp(self):
         self.abs_input_path = os.path.abspath('../resources/net')
         shutil.rmtree("../test_result/", ignore_errors=True)
@@ -47,7 +52,7 @@ class TestPyTorchAnalyse(unittest.TestCase):
         self.abs_output_path = os.path.join(os.path.abspath("../test_result"), "analyse_result")
         self.has_error = False
 
-    def test_main(self):
+    def test_analysis(self):
         mock_args = mock.Mock(return_value=Args(os.path.join(self.abs_input_path, "barlowtwins_amp"),
                                                 self.abs_output_path))
 
