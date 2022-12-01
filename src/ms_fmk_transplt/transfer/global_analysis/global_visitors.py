@@ -20,6 +20,13 @@ class GlobalReferenceVisitor:
         self.project = jedi.Project(path=self.project_path, sys_path=sys_path)
         self.file_path = ''
 
+    @staticmethod
+    @lru_cache()
+    def _readlines(file_path):
+        utils.check_input_file_valid(file_path)
+        with open(file_path, 'r', encoding='utf-8') as file_handler:
+            return file_handler.readlines()
+
     @classmethod
     def complete_undefined_name(cls, jedi_script, name, line, column):
         complete_full_name = ''
@@ -103,11 +110,6 @@ class GlobalReferenceVisitor:
 
     def search_in_project(self, string):
         return self.project.search(string)
-
-    @lru_cache()
-    def _readlines(self, file_path):
-        with open(file_path, 'r', encoding='utf-8') as file_handler:
-            return file_handler.readlines()
 
     def get_super_class(self, class_name, file_path=''):
         super_class_list = []
