@@ -157,9 +157,9 @@ class DumpDataConversion:
         for (index, tensor) in enumerate(tensor_list):
             log.print_info_log('Start to convert %s:%d of "%s" to numpy file.'
                                  % (tensor_type, index, input_path))
-            array = utils.deserialize_dump_data_to_array(tensor)
+            array = tensor.data
             try:
-                array = array.reshape(tensor.shape.dim)
+                array = array.reshape(tensor.shape)
             except ValueError as error:
                 log.print_error_log(
                     'Failed to convert %s:%d of "%s" to numpy file. %s' % (tensor_type, index, input_path, error))
@@ -214,8 +214,8 @@ class DumpDataConversion:
                 'The file "%s" has been converted to file "%s".' % (input_path, output_dump_path))
         elif self.target == "numpy":
             dump_data = utils.parse_dump_file(input_path, ConstManager.OLD_DUMP_TYPE)
-            self._save_tensor_to_file(dump_data.input, name, input_path, 'input')
-            self._save_tensor_to_file(dump_data.output, name, input_path, 'output')
+            self._save_tensor_to_file(dump_data.input_data, name, input_path, 'input')
+            self._save_tensor_to_file(dump_data.output_data, name, input_path, 'output')
             self._save_buffer_to_file(dump_data.buffer, name, input_path)
         
     def _convert_file(self: any, input_path: str) -> (int, str):

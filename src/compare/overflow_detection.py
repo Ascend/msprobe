@@ -32,7 +32,7 @@ class OverflowDetection:
         process model overflow detection
         """
         if tensor and tensor.data_type == DD.DT_FLOAT16:
-            tensor_data_array = utils.deserialize_dump_data_to_array(tensor)
+            tensor_data_array = tensor.data
             overflow_result = OverflowDetection._judge_overflow_data_by_array(tensor_data_array)
             if overflow_result == 'YES':
                 log.print_warn_log(
@@ -69,8 +69,8 @@ class OverflowDetection:
         if not dump_file_path:
             return [], []
         dump_data = utils.parse_dump_file(dump_file_path, self.dump_version)
-        input_tensor_data_info = self._get_tensor_data_info("input", dump_data.input, dump_file_path)
-        output_tensor_data_info = self._get_tensor_data_info("output", dump_data.output, dump_file_path)
+        input_tensor_data_info = self._get_tensor_data_info("input", dump_data.input_data, dump_file_path)
+        output_tensor_data_info = self._get_tensor_data_info("output", dump_data.output_data, dump_file_path)
         return input_tensor_data_info, output_tensor_data_info
 
     def _get_tensor_data_info(self: any, tensor_type: str, tensor_list: list, dump_file_path: str) -> list:
@@ -78,7 +78,7 @@ class OverflowDetection:
         for (index, tensor) in enumerate(tensor_list):
             if tensor.data_type == DD.DT_FLOAT16:
                 log.print_info_log('Start to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_file_path))
-                array = utils.deserialize_dump_data_to_array(tensor)
+                array = tensor.data
                 tensor_data_info.append(
                     {"tensor_type": tensor_type, "index": str(index), "tensor_data": array, "tensor_info": tensor,
                      "dump_file_path": dump_file_path})

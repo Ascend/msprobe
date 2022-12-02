@@ -422,6 +422,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
@@ -481,6 +482,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -540,6 +542,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -599,6 +602,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -655,6 +659,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -711,6 +716,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -765,6 +771,7 @@ class TestUtilsMethods(unittest.TestCase):
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         dump_data = DD.DumpData()
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -824,6 +831,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 1, 1, 1]))
         result = [[0, True, "data&message"]]
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -881,6 +889,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [0, 1, 1]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -961,6 +970,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [0, 1, 1]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1019,6 +1029,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1160,6 +1171,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(utils.CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1188,6 +1200,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1218,6 +1231,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(utils.CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1252,6 +1266,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1284,6 +1299,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(CompareError) as error:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1316,6 +1332,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(utils.CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1354,6 +1371,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1391,6 +1409,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(utils.CompareError) as err:        
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1427,6 +1446,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1462,6 +1482,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1511,6 +1532,7 @@ class TestUtilsMethods(unittest.TestCase):
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         dump_data = DD.DumpData()
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \

@@ -9,14 +9,15 @@ This file mainly involves the common function.
 import os
 import re
 import math
+from functools import wraps
 from enum import Enum
 
 import csv
 import numpy as np
 
-import dump_data_pb2 as DD
 import common
 import log
+from dump_data_pb2 import DumpData
 
 from const_manager import ConstManager
 
@@ -25,6 +26,8 @@ from reg_manager import RegManager
 from big_dump_data import DumpDataHandler
 
 from compare_error import CompareError
+
+from dump_data_object import DumpDataObj
 
 
 class ShapeType(Enum):
@@ -289,7 +292,34 @@ def read_numpy_file(path: str) -> any:
     return DumpDataHandler(path).read_numpy_file()
 
 
-def parse_dump_file(input_path: str, dump_version: int) -> DD.DumpData:
+def convert_dump_data_object(wrap_function):
+    """
+    This is a wrapper
+    @param wrap_function: function need to be wrapped
+    @return: inner function
+    """
+    @wraps(wrap_function)
+    def inner(*args, **kwargs):
+        dump_data = wrap_function(*args, **kwargs)
+        dump_data_object = convert_dump_data(dump_data)
+        return dump_data_object
+    return inner
+
+
+def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
+    """
+    Convert dump_data to DumpDataObj
+    @param dump_data:  DD.DumpData object
+    @return: DumpDataObj object
+    """
+    dump_data_object = DumpDataObj(dump_data)
+    dump_data_object.build_input_dump_tensor()
+    dump_data_object.build_output_dump_tensor()
+    return dump_data_object
+
+
+@convert_dump_data_object
+def parse_dump_file(input_path: str, dump_version: int) -> DumpDataObj:
     """
     Parse dump fil
     :param input_path: the input file path
@@ -297,6 +327,15 @@ def parse_dump_file(input_path: str, dump_version: int) -> DD.DumpData:
     :return: DumpData
     """
     return DumpDataHandler(input_path).parse_dump_data(dump_version)
+
+
+def convert_ndarray_to_bytes(array: np.ndarray) -> bytes:
+    """
+    convert ndarray to bytes
+    @param array: ndarray
+    @return:bytes
+    """
+    return array.tobytes()
 
 
 def convert_shape_to_string(shape: list) -> str:

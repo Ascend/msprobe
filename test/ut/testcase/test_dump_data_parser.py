@@ -47,6 +47,7 @@ class TestUtilsMethods(unittest.TestCase):
         buffer.buffer_type = DD.L1
         buffer.size = 8
         buffer.data = struct.pack('Q', 35)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
@@ -74,6 +75,7 @@ class TestUtilsMethods(unittest.TestCase):
         buffer.buffer_type = DD.L1
         buffer.size = 8
         buffer.data = struct.pack('Q', 35)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
@@ -106,6 +108,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_list = np.arange(length)
         origin_numpy = np.array(data_list, np.float16)
         op_output.data = struct.pack('%de' % length, *origin_numpy)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
@@ -135,6 +138,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_list = np.arange(length)
         origin_numpy = np.array(data_list, np.float16)
         op_output.data = struct.pack('%de' % length, *origin_numpy)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
@@ -166,6 +170,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_list = np.arange(length)
         origin_numpy = np.array(data_list, np.float16)
         op_output.data = struct.pack('%de' % length, *origin_numpy)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
@@ -196,6 +201,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_list = np.arange(length)
         origin_numpy = np.array(data_list, np.float16)
         op_output.data = struct.pack('%de' % length, *origin_numpy)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
@@ -220,6 +226,7 @@ class TestUtilsMethods(unittest.TestCase):
         op_output.data_type = DD.DT_FLOAT16
         op_output.format = DD.FORMAT_NCHW
         op_output.data = struct.pack('Q', 10)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
@@ -244,6 +251,7 @@ class TestUtilsMethods(unittest.TestCase):
         op_output.format = DD.FORMAT_NCHW
         zero_bytes = self._make_uint64_data(2048)
         op_output.data = struct.pack('%dQ' % len(zero_bytes), *zero_bytes)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
@@ -272,6 +280,7 @@ class TestUtilsMethods(unittest.TestCase):
         op_output.format = DD.FORMAT_NCHW
         zero_bytes = self._make_uint64_data(2048)
         op_output.data = struct.pack('%dQ' % len(zero_bytes), *zero_bytes)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',
@@ -299,6 +308,7 @@ class TestUtilsMethods(unittest.TestCase):
         op_output.format = DD.FORMAT_NCHW
         overflow_data = self._make_overflow_data_new_version(88)
         op_output.data = struct.pack('6i11Q', *overflow_data)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('utils.check_output_path_valid',

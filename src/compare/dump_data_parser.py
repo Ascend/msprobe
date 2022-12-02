@@ -5,19 +5,19 @@
 Function:
 DumpDataParser class. This class mainly involves the parser_dump_data function.
 """
-import json
 import os
+import json
 import struct
-
 import numpy as np
-
-import common
-import log
 import utils
-from compare_error import CompareError
+import log
+import common
 from const_manager import ConstManager
+
 from file_utils import FileUtils
+
 from multi_convert_process import MultiConvertProcess
+from compare_error import CompareError
 
 
 class DumpDataParser:
@@ -90,7 +90,7 @@ class DumpDataParser:
         for (index, tensor) in enumerate(tensor_list):
             log.print_info_log('Start to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_path))
             try:
-                array = utils.deserialize_dump_data_to_array(tensor)
+                array = tensor.data
             except CompareError:
                 log.print_warn_log('Failed to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_path))
                 continue
@@ -99,18 +99,18 @@ class DumpDataParser:
                 file_name = FileUtils.handle_too_long_file_name(
                     file_name, '.npy', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             elif self.output_file_type == 'msnpy':
-                file_name = utils.make_msnpy_file_name(dump_path, op_name, tensor_type, index, tensor.format)
+                file_name = utils.make_msnpy_file_name(dump_path, op_name, tensor_type, index, tensor.tensor_format)
                 file_name = FileUtils.handle_too_long_file_name(
                     file_name, '.npy', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             else:
                 file_name = '%s.%s.%d.%s.%s.%s.bin' \
                             % (name, tensor_type, index, utils.get_string_from_list(array.shape, '_'),
                                np.dtype(common.get_dtype_by_data_type(tensor.data_type)).name,
-                               common.get_format_string(tensor.format))
+                               common.get_format_string(tensor.tensor_format))
                 file_name = FileUtils.handle_too_long_file_name(
                     file_name, '.bin', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             output_file_path = os.path.join(self.output_path, file_name)
-            FileUtils.save_array_to_file(output_file_path, array, self.output_file_type != 'bin', tensor.shape.dim)
+            FileUtils.save_array_to_file(output_file_path, array, self.output_file_type != 'bin', tensor.shape)
             log.print_info_log('The data of %s:%d has been parsed into "%s".'
                                % (tensor_type, index, output_file_path))
 
@@ -133,12 +133,13 @@ class DumpDataParser:
 
     def _save_op_debug_to_file(self: any, dump_path: str, output: any) -> None:
         for idx, item in enumerate(output):
-            magic = OpDebugInfoParser.unpack_uint_value(item.data, 0, 'UINT32')
+            bytes_data = utils.convert_ndarray_to_bytes(item.data)
+            magic = OpDebugInfoParser.unpack_uint_value(bytes_data, 0, 'UINT32')
             if magic == ConstManager.MAGIC_NUM:
-                debug_info_parser = OpDebugInfoParser(item.data)
+                debug_info_parser = OpDebugInfoParser(bytes_data)
                 debug_info = debug_info_parser.parse_op_debug_new_version()
             else:
-                debug_info = self._parse_op_debug_old_version(dump_path, idx, item.data)
+                debug_info = self._parse_op_debug_old_version(dump_path, idx, bytes_data)
             json_path = os.path.join(self.output_path, "%s.output.%d.json" % (os.path.basename(dump_path), idx))
             FileUtils.save_data_to_file(json_path, json.dumps(debug_info, sort_keys=False, indent=4), 'w+', delete=True)
             log.print_info_log('The data of output:%d has been parsed into "%s".' % (idx, json_path))
@@ -181,10 +182,10 @@ class DumpDataParser:
             raise CompareError(ret)
         dump_data = utils.parse_dump_file(dump_path, self.dump_version)
         if os.path.basename(dump_path).startswith('Opdebug.Node_OpDebug.'):
-            self._save_op_debug_to_file(dump_path, dump_data.output)
+            self._save_op_debug_to_file(dump_path, dump_data.output_data)
         else:
-            self._save_tensor_to_file(dump_path, dump_data.input, 'input', dump_data.op_name)
-            self._save_tensor_to_file(dump_path, dump_data.output, 'output', dump_data.op_name)
+            self._save_tensor_to_file(dump_path, dump_data.input_data, 'input', dump_data.op_name)
+            self._save_tensor_to_file(dump_path, dump_data.output_data, 'output', dump_data.op_name)
             self._save_buffer_to_file(dump_path, dump_data.buffer)
 
     def _parse_one_dump_file(self: any, dump_path: str) -> (int, str):

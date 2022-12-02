@@ -97,10 +97,10 @@ class FormatManager:
         try:
             if args.get("group") < 2:
                 new_array = self.support_format_map.get(module_name)(
-                    src_to_dest.src_shape.dim, src_to_dest.dest_shape.dim, data)
+                    src_to_dest.src_shape, src_to_dest.dest_shape, data)
             else:
                 new_array = self.support_format_map.get(module_name)(
-                    src_to_dest.src_shape.dim, src_to_dest.dest_shape.dim, data, args.get("group"))
+                    src_to_dest.src_shape, src_to_dest.dest_shape, data, args.get("group"))
         except Exception as err:
             log.print_error_log("Failed to execute '%s' in '%s'. %s"
                                 % (self.CONVERT_FUNC_NAME, module_name, str(err)))
@@ -228,14 +228,14 @@ class ShapeConversion:
         """
         shape = []
         size = 1
-        for dim in src_to_dest.src_shape.dim:
+        for dim in src_to_dest.src_shape:
             shape.append(dim)
             size *= dim
         if 0 in array.shape:
             return array.reshape(shape)
         if size != len(array):
             log.print_error_log("The length(%d) is not match with the shape %s."
-                                % (len(array), utils.convert_shape_to_string(src_to_dest.src_shape.dim)))
+                                % (len(array), utils.convert_shape_to_string(src_to_dest.src_shape)))
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
         return array.reshape(shape)
 
@@ -246,11 +246,11 @@ class ShapeConversion:
         :param src_to_dest: the format and shape for src and dest
         :return: the length of dest shape.
         """
-        axis_h = reduce(lambda x, y: x * y, src_to_dest.dest_shape.dim[:-2])
-        axis_c1 = src_to_dest.src_shape.dim[-4]
-        axis_no = src_to_dest.src_shape.dim[-3]
-        axis_ni = src_to_dest.src_shape.dim[-2]
-        axis_c0 = src_to_dest.src_shape.dim[-1]
+        axis_h = reduce(lambda x, y: x * y, src_to_dest.dest_shape[:-2])
+        axis_c1 = src_to_dest.src_shape[-4]
+        axis_no = src_to_dest.src_shape[-3]
+        axis_ni = src_to_dest.src_shape[-2]
+        axis_c0 = src_to_dest.src_shape[-1]
         return axis_h * axis_c1 * axis_no * axis_ni * axis_c0
 
     def convert_shape(self: any, src_to_dest: SrcToDest, array: any, args: dict) -> any:
@@ -268,7 +268,7 @@ class ShapeConversion:
         if src_to_dest.src_format == DD.FORMAT_NCHW \
                 or src_to_dest.src_format == DD.FORMAT_HWCN \
                 or src_to_dest.src_format == DD.FORMAT_NHWC:
-            if len(src_to_dest.src_shape.dim) != ConstManager.FOUR_DIMS_LENGTH:
+            if len(src_to_dest.src_shape) != ConstManager.FOUR_DIMS_LENGTH:
                 return self.reshape(src_to_dest, array)
         # src and dest format are the same, no need to convert
         if src_to_dest.src_format == src_to_dest.dest_format:
@@ -276,12 +276,12 @@ class ShapeConversion:
         # if convert FRACTAL_NZ to ND and the array is not equal to dest shape, no need to convert.
         if src_to_dest.src_format == DD.FORMAT_FRACTAL_NZ \
                 and src_to_dest.dest_format == DD.FORMAT_ND \
-                and len(src_to_dest.dest_shape.dim) > 2:
+                and len(src_to_dest.dest_shape) > 2:
             if len(array) != self.get_convert_fractal_nz_to_nd_dest_shape_length(src_to_dest):
                 log.print_warn_log(
                     "Cannot convert FRACTAL_NZ to ND, the reason is the length "
                     "of array is not equal to the length of dest shape.")
                 return self.reshape(src_to_dest, array)
         if src_to_dest.src_format == DD.FORMAT_FRACTAL_NZ:
-            utils.check_shape_valid_in_nz(src_to_dest.dest_shape.dim, src_to_dest.src_shape.dim, is_convert_mode=False)
+            utils.check_shape_valid_in_nz(src_to_dest.dest_shape, src_to_dest.src_shape, is_convert_mode=False)
         return self.format_manager.execute_format_convert(src_to_dest, array, args)
