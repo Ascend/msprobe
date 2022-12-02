@@ -371,6 +371,8 @@ class FusionOpComparison:
         tensor_list = self.left_dump_data.input if is_input else self.left_dump_data.output
         match = False
         tensor_result_list = []
+        if is_input and len(fusion_op.input_list) != len(tensor_list):
+            log.print_error_log("The count of input dump data does not equal to the count in fusion rule file.")
         # compare each tensor
         for (index, tensor) in enumerate(tensor_list):
             result = self._compare(fusion_op, index, is_input, tensor)
