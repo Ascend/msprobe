@@ -6,7 +6,7 @@ from dump_data_pb2 import DumpData
 class DumpTensor:
     """
     The class of DumpTensor, replace the class of DD.DumpData.input or output.
-    Include the data detail: index, data_tyoe, tensor_foramt, shape, data, size, orginal_shape
+    Include the data detail: index, data_type, tensor_format, shape, data, size, original_shape
     """
 
     def __init__(self: any, index: int = None, data_type: int = None,
