@@ -22,7 +22,8 @@ NodeInfo = namedtuple('NodeInfo', ['has_unsupported_api', 'unsupported_list', 'h
 class ThirdPartyApiVisitor(libcst.CSTVisitor):
     METADATA_DEPENDENCIES = (PositionProvider, QualifiedNameProvider)
 
-    def __init__(self, op_list, unsupported_op_list, cuda_ops, global_reference_visitor: GlobalReferenceVisitor, function_graph):
+    def __init__(self, op_list, unsupported_op_list, cuda_ops,
+                 global_reference_visitor: GlobalReferenceVisitor, function_graph):
         super(ThirdPartyApiVisitor, self).__init__()
         self.op_list = op_list
         self.unsupported_op_list = unsupported_op_list
@@ -136,14 +137,14 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
         return defined_call_set, unsupported_list, unknown_api_list
 
     def _match_cuda_op(self, call_node, full_name):
-        for op in self.cuda_ops:
-            if '.' in op.func_name:
-                if not (full_name == op.func_name or full_name.endswith('.' + op.func_name)):
+        for cuda_op in self.cuda_ops:
+            if '.' in cuda_op.func_name:
+                if not (full_name == cuda_op.func_name or full_name.endswith('.' + cuda_op.func_name)):
                     continue
             else:
-                if not full_name.endswith('.' + op.func_name):
+                if not full_name.endswith('.' + cuda_op.func_name):
                     continue
-            if op.min_args_num <= len(call_node.args) <= op.max_args_name:
+            if cuda_op.min_args_num <= len(call_node.args) <= cuda_op.max_args_name:
                 return True
         return False
 
