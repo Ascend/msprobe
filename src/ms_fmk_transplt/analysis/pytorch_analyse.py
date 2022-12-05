@@ -9,7 +9,6 @@ import sys
 
 from analysis.analyse import PyTorchAnalyze
 from analysis.third_party.third_party_analyse import ThirdPartyAnalyse
-from transfer.global_analysis import GlobalReferenceVisitor
 import utils.trans_utils as utils
 import utils.transplant_logger as translog
 
@@ -145,9 +144,10 @@ class PyTorchAnalyse:
     def __get_global_visitor(self):
         if not utils.IS_JEDI_INSTALLED:
             raise ModuleNotFoundError("third party analysis must have jedi installed")
+        from transfer.global_analysis import GlobalReferenceVisitor
 
         utils.refresh_parso_cache()
-        global_reference_visitor = GlobalReferenceVisitor(self.input_path)
+        global_reference_visitor = GlobalReferenceVisitor(self.input_path, sys_path=[])
         return global_reference_visitor
 
 

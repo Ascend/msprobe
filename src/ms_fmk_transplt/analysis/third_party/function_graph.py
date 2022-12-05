@@ -31,7 +31,7 @@ class Graph:
 
     def get_leaf_api(self):
         leaf_apis = []
-        for name, node in self.nodelist.items():
+        for _, node in self.nodelist.items():
             if node.in_degree == 0 and not node.vis:
                 leaf_apis.append(node)
         return leaf_apis
@@ -39,7 +39,7 @@ class Graph:
     def get_apis(self):
         unsupported_apis = []
         unknown_apis = []
-        for name, node in self.nodelist.items():
+        for _, node in self.nodelist.items():
             if node.has_unsupported_api:
                 unsupported_apis.append(node)
             elif node.has_unknown_api:

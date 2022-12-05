@@ -33,7 +33,7 @@ def wrapper_cuda(func):
             args = args_new
         if kwargs:
             if isinstance(kwargs.get('device', None), str) and 'cuda' in kwargs.get('device', ''):
-                kwargs['device'] = kwargs['device'].replace('cuda', 'npu')
+                kwargs['device'] = kwargs.get('device').replace('cuda', 'npu')
         return func(*args, **kwargs)
 
     return decorated

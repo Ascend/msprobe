@@ -199,6 +199,8 @@
     "torch.cuda.nvtx.range_push": "",
     "torch.cuda.nvtx.range_pop": "",
     "torch.cuda.amp.custom_fwd": "",
-    "torch.cuda.amp.custom_bwd": ""
+    "torch.cuda.amp.custom_bwd": "",
+    "torch.load": "Please confirm that the parameter 'map_location' of 'torch.load' is set to NPU device.",
+    "torch.nn.DataParallel": "'torch.nn.DataParallel' is not recommend to use now! Please replace it with 'torch.nn.parallel.DistributedDataParallel'."
   }
 }
