@@ -8,7 +8,6 @@ import platform
 import re
 import shutil
 
-import libcst
 import pandas as pd
 
 import transfer.common_rules.common_rule as rule_module
@@ -410,7 +409,3 @@ def check_input_file_valid(input_path, max_file_size=MAX_JSON_FILE_SIZE):
         raise ValueError('The path is too long.')
     if os.path.getsize(real_path) > max_file_size:
         raise ValueError(f'The file is too large, exceeds {max_file_size // 1024 ** 2}MB')
-
-
-def get_code_for_node(node: libcst.CSTNode) -> str:
-    return libcst.Module('').code_for_node(node)
