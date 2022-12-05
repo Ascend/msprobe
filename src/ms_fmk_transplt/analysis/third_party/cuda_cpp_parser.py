@@ -26,7 +26,7 @@ class _DeclareLineParser:
                 continue
             line = line.split('//')[0].strip()
             # def with c10::Dict<std::string, c10::Dict<std::string, double>> GPUDecoder::
-            #     get_metadata() const {xxx}
+            # ----get_metadata() const {xxx}
             if line.endswith('::'):
                 line += self._file_lines[row + 1].strip()
             if f' {cpp_func_name}(' in line:
@@ -45,8 +45,8 @@ class _DeclareLineParser:
 
     def parse_class_declare(self, func_line):
         # deal with m.class_<GPUDecoder>("GPUDecoder")
-        #       .def(torch::init<std::string, torch::Device>())
-        #       .def("next", &GPUDecoder::decode);
+        # ----.def(torch::init<std::string, torch::Device>())
+        # ----.def("next", &GPUDecoder::decode);
         names = re.findall('"(.*?)"', func_line)
         if not names:
             return
@@ -103,8 +103,8 @@ class TorchLibraryParser(_DeclareLineParser):
     def parse_m_def(self, func_line):
         if 'TORCH_SELECTIVE_SCHEMA(' in func_line:
             # deal with m.def(TORCH_SELECTIVE_SCHEMA(
-            #       "torchvision::roi_pool(Tensor input, Tensor rois, float spatial_scale, int pooled_height
-            #       int pooled_width) -> (Tensor, Tensor)"));
+            #  ----"torchvision::roi_pool(Tensor input, Tensor rois, float spatial_scale, int pooled_height
+            #  ----int pooled_width) -> (Tensor, Tensor)"));
             func_name = re.findall('TORCH_SELECTIVE_SCHEMA\("(.*?)\(', func_line)
             if not func_name:
                 return
@@ -112,7 +112,7 @@ class TorchLibraryParser(_DeclareLineParser):
             min_args_num = max_args_name = func_line.count(',') + 1
         elif '[](' in func_line:
             # def with m.def("torchaudio::ffmpeg_set_log_level", [](int64_t level) {
-            #     av_log_set_level(static_cast<int>(level));
+            # ----av_log_set_level(static_cast<int>(level));
             #   });
             func_name = func_line.split('"')[1].replace('::', '.')
             arg_declare = re.findall('\[\]\((.*?)\)', func_line)
@@ -125,7 +125,7 @@ class TorchLibraryParser(_DeclareLineParser):
                 min_args_num = max_args_name = arg_declare.count(',') + 1
         else:
             # deal with m.def("_cuda_version", &cuda_version);
-            # m.def("read_video_from_file", read_video_from_file);
+            # deal with m.def("read_video_from_file", read_video_from_file);
             func_name = func_line.split('"')[1].replace('::', '.')
             cpp_func_name = func_line.split(',')[1].split(')')[0].strip()
             min_args_num, max_args_name = self._parse_cpp_func_args_num(cpp_func_name)
@@ -134,8 +134,8 @@ class TorchLibraryParser(_DeclareLineParser):
     def parse_m_impl(self, func_line):
         if 'TORCH_SELECTIVE_NAME' in func_line and 'TORCH_FN' in func_line:
             # deal with m.impl(
-            #       TORCH_SELECTIVE_NAME("torchvision::roi_align"),
-            #       TORCH_FN(qroi_align_forward_kernel));
+            #   ----TORCH_SELECTIVE_NAME("torchvision::roi_align"),
+            #   ----TORCH_FN(qroi_align_forward_kernel));
             func_name = func_line.split('"')[1].replace('::', '.')
             cpp_func_name = re.findall('TORCH_FN\((.*?)\)', func_line)
             if not cpp_func_name:
