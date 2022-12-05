@@ -44,7 +44,7 @@ class CudaOpVisitor:
         declare_lines = []
         for line in self._file_lines:
             # escape annotation
-            if line.startswith('/'):
+            if line.strip().startswith(('/*', '//', '*/')):
                 continue
             line = line.split('//')[0].strip()
             if line.startswith('PYBIND11_MODULE('):
@@ -60,7 +60,7 @@ class CudaOpVisitor:
                 declare_line += line
                 if line.endswith('}'):
                     declare_lines.append(declare_line)
-                    break
+                    in_pybind_body = False
 
         pybind_module_parser = PybindModuleParser(self._cuda_ops, self._file_lines)
         for declare_line in declare_lines:
@@ -76,7 +76,7 @@ class CudaOpVisitor:
         declare_lines = []
         for line in self._file_lines:
             # escape annotation
-            if line.strip().startswith('/'):
+            if line.strip().startswith(('/*', '//', '*/')):
                 continue
             line = line.split('//')[0].strip()
             if line.startswith(('TORCH_LIBRARY(', 'TORCH_LIBRARY_FRAGMENT(', 'TORCH_LIBRARY_IMPL(')):
@@ -92,7 +92,7 @@ class CudaOpVisitor:
                 declare_line += line
                 if line.endswith('}'):
                     declare_lines.append(declare_line)
-                    break
+                    in_torch_library_body = False
 
         torch_library_parser = TorchLibraryParser(self._cuda_ops, self._file_lines)
         for declare_line in declare_lines:
