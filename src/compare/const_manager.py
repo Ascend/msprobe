@@ -31,6 +31,12 @@ class ConstManager:
     N0_AXIS = 16
     C0_AXIS = 16
 
+    TIMESTAMP_LENGTH = 16
+    INVALID_TIMESTAMP = 0
+    INVALID_FILE_TYPE = 0
+    TRAD_MODE = 0
+
+
     # overflow
     OVERFLOW_MIN_VALUE = 5.96e-8
     OVERFLOW_MAX_VALUE = 65504

@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import utils
 from dump_data_pb2 import DumpData
@@ -6,7 +8,7 @@ from dump_data_pb2 import DumpData
 class DumpTensor:
     """
     The class of DumpTensor, replace the class of DD.DumpData.input or output.
-    Include the data detail: index, data_tyoe, tensor_foramt, shape, data, size, orginal_shape
+    Include the data detail: index, data_type, tensor_format, shape, data, size, original_shape
     """
     def __init__(self: any, index: int = None, data_type: int = None,
                  tensor_format: int = None, shape: list = None, data: np.ndarray = None,
@@ -60,3 +62,31 @@ class DumpDataObj:
         @return: None
         """
         self._build_dump_tensor(self.output_data)
+
+    @property
+    def get_output_data(self):
+        """
+        Get output data
+        @return: list of output data
+        """
+        return [output.data for output in self.output_data]
+
+    def parser_ffts_attr(self):
+        if self.attr:
+            data_attr = json.loads(self.attr[0].value)
+            self.attr = data_attr
+
+    @property
+    def get_thread_num(self):
+        return self.attr["slice_instance_num"]
+
+#
+#
+# class ParserFfts:
+#     def __init__(self: any, dump_file_list, dump_data_list):
+#         self.dump_file_list = dump_file_list
+#         self.dump_data_list = dump_data_list
+#
+#     def get_base_info(self):
+#         base_dump_file_path = self.dump_file_list[0]
+#         base_dump_data = self.dump_data_list[0]

@@ -5,6 +5,7 @@
 Function:
 This file mainly involves the dump function.
 """
+import json
 import os
 import time
 import struct
@@ -52,6 +53,9 @@ class BigDumpDataParser:
                 self._read_input_data(dump_file)
                 self._read_output_data(dump_file)
                 self._read_buffer_data(dump_file)
+                data = utils.convert_dump_data(self.dump_data)
+
+                data_attr = json.loads(self.dump_data.attr[0].value)
                 return self.dump_data
         except (OSError, IOError) as io_error:
             log.print_error_log('Failed to read the dump file %s. %s'

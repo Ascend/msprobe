@@ -80,6 +80,33 @@ class DeviceType(Enum):
     CPU = 0
 
 
+class SortMode:
+    def __init__(self, parameter):
+        self.parameter = parameter
+
+    def __call__(self, wrap_function):
+        def inner(*args, **kwargs):
+            file_split = wrap_function(*args, **kwargs).split('.')
+            if self.parameter == 'trad' or self.parameter == "timestamp":
+                if self.parameter == 'timestamp':
+                    timestamp = file_split[3]
+                elif args[0].endswith('npy'):
+                    timestamp = file_split[2]
+                else:
+                    timestamp = file_split[-1]
+                if not check_valid_timestamp(timestamp):
+                    log.print_warn_log('The file name \"{}\"\'s timestamp is invalid.'.format(args[0]))
+                    return ConstManager.INVALID_TIMESTAMP
+                return int(timestamp)
+            elif self.parameter == 'ffts_auto':
+                thread_id = file_split[-1]
+                return int(thread_id)
+            elif self.parameter == 'ffts_manual':
+                slice_x = file_split[1][-1]
+                return int(slice_x)
+        return inner
+
+
 def deserialize_dump_data_to_array(tensor: any) -> any:
     """
     Deserialize dump data to array
@@ -315,6 +342,7 @@ def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
     dump_data_object = DumpDataObj(dump_data)
     dump_data_object.build_input_dump_tensor()
     dump_data_object.build_output_dump_tensor()
+    dump_data_object.parser_ffts_attr()
     return dump_data_object
 
 
@@ -336,6 +364,45 @@ def convert_ndarray_to_bytes(array: np.ndarray) -> bytes:
     @return:bytes
     """
     return array.tobytes()
+
+
+def check_valid_timestamp(timestamp) -> bool:
+    """
+    Check if timestamp format is valid
+    @param timestamp: timestamp from dump_file_path
+    @return: True or False
+    """
+    return len(timestamp) == ConstManager.TIMESTAMP_LENGTH and timestamp.isdigit()
+
+
+def extract_info(parameter):
+    def wrapper(wrapper_func):
+        @wraps(wrapper_func)
+        def inner(*args, **kwargs):
+            file_split = wrapper_func(*args, **kwargs)
+            if parameter == 'trad' or parameter == "timestamp":
+                if parameter == 'timestamp':
+                    timestamp = file_split[3]
+                elif args[0].endswith((ConstManager.STANDARD_SUFFIX,
+                                       ConstManager.NUMPY_SUFFIX, ConstManager.QUANT_SUFFIX)):
+                    timestamp = file_split[2]
+                else:
+                    timestamp = file_split[-1]
+                if not check_valid_timestamp(timestamp):
+                    log.print_warn_log('The file name \"{}\"\'s timestamp is invalid.'.format(args[0]))
+                    return ConstManager.INVALID_TIMESTAMP
+                return int(timestamp)
+            elif parameter == 'ffts_auto':
+                thread_id = file_split[-1]
+                return int(thread_id)
+            elif parameter == 'ffts_manual':
+                slice_x = file_split[1][-1]
+                return int(slice_x)
+            else:
+                log.print_warn_log('The file name \"{}\"\'s type is invalid.'.format(args[0]))
+                return ConstManager.INVALID_FILE_TYPE
+        return inner
+    return wrapper
 
 
 def convert_shape_to_string(shape: list) -> str:

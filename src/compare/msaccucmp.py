@@ -143,6 +143,7 @@ def _compare_parser(compare_parser: argparse.ArgumentParser) -> None:
              '0 indicates the comparison result is not extracted, '
              '1 indicates the comparison result is extracted.')
     _add_advisor_argument(compare_parser)
+    _add_save_argument(compare_parser)
     _add_version_argument(compare_parser)
     _add_argument_for_single_op(compare_parser)
 
@@ -150,6 +151,11 @@ def _compare_parser(compare_parser: argparse.ArgumentParser) -> None:
 def _add_advisor_argument(compare_parser: argparse.ArgumentParser) -> None:
     compare_parser.add_argument('-advisor', dest="advisor", action="store_true",
                                 help="<optional> Enable advisor after compare.", required=False)
+
+
+def _add_save_argument(compare_parser: argparse.ArgumentParser) -> None:
+    compare_parser.add_argument('-save', dest='save', action='store_true',
+                                help='<optional> Enable to save npy file', required=False)
 
 
 def _add_argument_for_single_op(compare_parser: argparse.ArgumentParser) -> None:

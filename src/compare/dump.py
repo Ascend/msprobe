@@ -12,6 +12,8 @@ import sys
 from enum import Enum
 from enum import unique
 
+import numpy as np
+
 import utils
 import log
 
@@ -45,10 +47,23 @@ class DumpInfo:
         self.data_info = ''
         self.dump_version = dump_version
         self.hash_to_file_name_map = {}
+        self.op_name_to_file_type = {}
 
-    @staticmethod
-    def _check_valid_timestamp(timestamp) -> bool:
-        return len(timestamp) == 16 and timestamp.isdigit()
+    @utils.SortMode('ffts_auto')
+    def get_ffts_auto(self, file_name):
+        return file_name
+
+    @utils.SortMode('ffts_manual')
+    def get_ffts_manual(self, file_name):
+        return file_name
+
+    @utils.SortMode('trad')
+    def get_trad_timestamp(self, file_name):
+        return file_name
+
+    @utils.SortMode('timestamp')
+    def get_timestamp(self, file_name):
+        return file_name
 
     def check_arguments_valid(self: any) -> None:
         """
@@ -73,7 +88,7 @@ class DumpInfo:
         """
         return self.type == DumpType.Standard or (self.type == DumpType.Numpy and not self.quant)
 
-    def get_op_dump_file(self: any, op_name: str, output_index: int = None, print_log: bool = True) -> str:
+    def get_op_dump_file(self: any, op_name: str, output_index: int = None, print_log: bool = True) -> tuple:
         """
         Get the dump file a by op name
         :param op_name: the op name
@@ -87,19 +102,14 @@ class DumpInfo:
         if original_op_name not in self.op_name_to_file_map:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         dump_file_list = self.op_name_to_file_map.get(original_op_name)
-        match_count = len(dump_file_list)
-        if match_count == 0:
+        dump_file_type = self.op_name_to_file_type.get(original_op_name)
+        if not dump_file_list:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-        if match_count > 1:
-            self._sorted_op_name_file_map_by_timestamp(dump_file_list)
-            dump_file_path = dump_file_list[-1]
-            log.print_warn_log(
-                'There are %d dump files of the "%s" in the path "%s". Choose the file "%s" to compare.'
-                % (match_count, original_op_name, self.path, dump_file_path))
-        dump_file_path = dump_file_list[-1]
+        if len(dump_file_list) > 1:
+            self.sort_dump_file_list(dump_file_type, dump_file_list)
         if print_log:
-            log.print_info_log('[%s] [%s] %s' % (op_name, str(self.type.name), dump_file_path))
-        return dump_file_path
+            log.print_info_log('[%s] [%s] %s' % (op_name, str(self.type.name), dump_file_list))
+        return dump_file_list, dump_file_type
 
     def get_op_dump_data(self: any, op_name: str, output_index: int = None) -> (str, DumpData):
         """
@@ -110,9 +120,99 @@ class DumpInfo:
         """
         if self.type == DumpType.Quant and output_index is None:
             output_index = 0
-        dump_file_path = self.get_op_dump_file(op_name, output_index)
-        dump_data = utils.parse_dump_file(dump_file_path, self.dump_version)
-        return dump_file_path, dump_data
+        dump_file_list, data_file_type = self.get_op_dump_file(op_name, output_index)
+        dump_data_list = [utils.parse_dump_file(dump_file_path, self.dump_version) for dump_file_path in dump_file_list]
+        if data_file_type == 'trad':
+            dump_file_path = dump_file_list[-1]
+            dump_data = dump_data_list[-1]
+        elif data_file_type == 'ffts_auto':
+            pass
+
+
+    def parser_ffts_auto(self, dump_file_list, dump_data_list):
+        dump_base = dump_data_list[0]
+        thread_num = dump_base.attr["slice_instance_num"]
+        self._check_file_missing(thread_num)
+        pass
+
+    def parser_ffts_manual(self, dump_file_list, dump_data_list):
+        dump_base = dump_data_list[0]
+        thread_num = dump_base.attr["slice_instance_num"]
+        output_cut_list = dump_base.attr["outputCutList"]
+        cut_axis = []
+        for output in output_cut_list:
+            _ = []
+            for index, value in enumerate(output):
+                if value != 1:
+                    _.append(index)
+            cut_axis.append(_)
+
+        self._check_file_missing(thread_num)
+        output_num = len(dump_data_list[0].output_data)
+        output_data_list = [dump_data.get_output_data for dump_data in dump_data_list]
+        dump_data_output_list = []
+        for i in range(output_num):
+            _ = []
+            for output in output_data_list:
+                _.append(output)
+            dump_data_output_list.append(_)
+
+        merge_output = []
+        for i in range(len(cut_axis)):
+            if not cut_axis[i]:
+                continue
+            axis = cut_axis[i][0]
+            merge_output.append(np.concatenate(dump_data_output_list[i], axis))
+        return merge_output
+
+
+
+
+    def sort_dump_file_list(self, dump_file_type, dump_file_list):
+        if dump_file_type == 'trad':
+            dump_file_list.sort(key=self.get_trad_timestamp)
+        else:
+            dump_file_list.sort(key=self.get_timestamp)
+            if dump_file_type == 'ffts_auto':
+                dump_file_list.sort(key=self.get_ffts_auto)
+            else:
+                dump_file_list.sort(key=self.get_ffts_manual)
+        return dump_file_list
+    #
+    # @staticmethod
+    # def _merge_data_by_axis(array_list, axis):
+    #     return np.concatenate(array_list, axis=axis)
+    #
+    @staticmethod
+    def _check_file_missing(dump_data_list, thread_num):
+        if len(dump_data_list) != thread_num:
+            raise CompareError
+
+    #
+    # def _parse_ffts_mode_data(self, dump_file_list):
+    #     dump_data_list = [utils.parse_dump_file(dump_file_path, self.dump_version) for dump_file_path in dump_file_list]
+    #     output_num = len(dump_data_list[0].output_data)
+    #     output_data_list = [dump_data.get_output_data for dump_data in dump_data_list]
+    #     dump_data_output_list = []
+    #
+    #     for i in range(output_num):
+    #         _ = []
+    #         for output in output_data_list:
+    #             _.append(output)
+    #         dump_data_output_list.append(_)
+    #     return dump_data_output_list
+    #
+    #
+    #
+    #
+    #
+    #
+    #
+    #     pass
+    #
+    # def
+
+
 
     def get_data_info(self: any) -> str:
         """
@@ -206,32 +306,6 @@ class DumpInfo:
                 self._handle_one_file(file_path)
         self._judge_dump_type()
 
-    def _sorted_op_name_file_map_by_timestamp(self: any, dump_file_list) -> None:
-        dump_file_list.sort(key=self._get_dump_timestamp)
-
-    def _get_dump_timestamp(self: any, filename) -> int:
-        if filename.endswith((ConstManager.STANDARD_SUFFIX, ConstManager.NUMPY_SUFFIX,
-                              ConstManager.QUANT_SUFFIX)):
-            # Example: {op_name}.{output_index}.{timestamp}.npy
-            # Example: {op_name}.{output_index}.{timestamp}.pb
-            # Example: {op_name}.{output_index}.{timestamp}.quant
-            timestamp = filename.rsplit('.', 2)[1]
-        else:
-            index = filename.rfind('.')
-            if index == -1:
-                # when in dex is 0, item is dump file, the name is hash value
-                # Example: the file name is only numeric
-                timestamp = filename
-            else:
-                # when index is not 0, item is dump file, the name meet the data format
-                # Example: {op_type}.{op_name}.{task_id}.{stream_id}.{timestamp}
-                timestamp = filename[index + 1:]
-
-        if not self._check_valid_timestamp(timestamp):
-            log.print_warn_log('The file name \"{}\"\'s timestamp is invalid.'.format(filename))
-            return timestamp
-
-        return int(timestamp)
 
     def _judge_dump_type(self: any) -> None:
         if self.type is None:
