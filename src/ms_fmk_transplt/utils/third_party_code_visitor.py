@@ -13,7 +13,6 @@ import libcst.matchers as m
 from libcst.metadata import PositionProvider, QualifiedNameProvider
 from analysis.third_party.function_node import ApiInstance
 from transfer.global_analysis import GlobalReferenceVisitor
-import utils.trans_utils as utils
 
 NodeInfo = namedtuple('NodeInfo', ['has_unsupported_api', 'unsupported_list', 'has_unknown_api', 'unknown_api_list',
                                    'file_path'])
