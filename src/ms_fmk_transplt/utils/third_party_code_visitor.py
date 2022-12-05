@@ -11,6 +11,7 @@ import libcst.matchers as m
 
 from libcst.metadata import PositionProvider, QualifiedNameProvider
 from analysis.third_party.function_node import ApiInstance
+import utils.trans_utils as utils
 
 NodeInfo = namedtuple('NodeInfo', ['has_unsupported_api', 'unsupported_list', 'has_unknown_api', 'unknown_api_list',
                                    'file_path'])
@@ -24,12 +25,22 @@ except ImportError:
 class ApiVisitor(libcst.CSTVisitor):
     METADATA_DEPENDENCIES = (PositionProvider, QualifiedNameProvider)
 
-    def __init__(self, op_list, unsupported_op_list, global_reference_visitor, function_graph):
+    def __init__(self, op_list, unsupported_op_list, cuda_ops, global_reference_visitor, function_graph):
         super(ApiVisitor, self).__init__()
         self.op_list = op_list
         self.unsupported_op_list = unsupported_op_list
+        self.cuda_ops = cuda_ops
         self.global_reference_visitor = global_reference_visitor
         self.function_graph = function_graph
+
+    # def visit_Call(self, node: "Call") -> Optional[bool]:
+    #     if not self.get_full_name_for_node(node) == 'torch.utils.cpp_extension.load':
+    #         return True
+    # @m.visit(m.Assign(value=m.Call()))
+    # def visit_Assign(self, node: "Assign") -> Optional[bool]:
+    #     if self.get_full_name_for_node(node.value) != 'torch.utils.cpp_extension.load':
+    #         return True
+    #     self.cuda_jit_modules.append(get_code_for_node(node.targets[0].target))
 
     def visit_FunctionDef(self, node: "FunctionDef") -> Optional[bool]:
         function_line, function_column = self._get_func_def_position(node)
@@ -86,7 +97,22 @@ class ApiVisitor(libcst.CSTVisitor):
             elif libcst_full_name and libcst_full_name.startswith('torch.') and libcst_full_name not in self.op_list:
                 has_unknown_api = True
                 unknown_api_list.append(ApiInstance(libcst_full_name, position, file_path))
+            elif self._match_cuda_op(call_node, libcst_full_name):
+                has_unsupported_api = True
+                unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
         return defined_call_list, has_unsupported_api, unsupported_list, has_unknown_api, unknown_api_list
+
+    def _match_cuda_op(self, call_node, full_name):
+        for op in self.cuda_ops:
+            if '.' in op.func_name:
+                if not (full_name == op.func_name or full_name.endswith('.' + op.func_name)):
+                    continue
+            else:
+                if not full_name.endswith('.' + op.func_name):
+                    continue
+            if op.min_args_num <= len(call_node.args) <= op.max_args_name:
+                return True
+        return False
 
     def _get_func_def_position(self, node):
         node_start_line = self.get_metadata(PositionProvider, node).start.line

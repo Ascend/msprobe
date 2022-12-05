@@ -10,6 +10,7 @@ import utils.transplant_logger as translog
 from utils.third_party_code_visitor import ApiVisitor
 from analysis.analyse import PyTorchAnalyze
 from analysis.third_party.function_graph import Graph
+from analysis.third_party.cuda_cpp_visitor import CudaOpVisitor
 
 
 class ThirdPartyAnalyse(PyTorchAnalyze):
@@ -21,6 +22,7 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
         self.pytorch_version = pytorch_version
         self.global_reference_visitor = None
         self.function_graph = Graph()
+        self.cuda_ops = self._get_cuda_ops()
 
     def init_global_visitor(self, global_reference_visitor):
         self.global_reference_visitor = global_reference_visitor
@@ -38,7 +40,7 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
         code = utils.get_file_content_bytes(file)
         wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
 
-        api_visitor = ApiVisitor(utils.get_supported_op_list(), utils.get_op_list(self.pytorch_version),
+        api_visitor = ApiVisitor(utils.get_supported_op_list(), utils.get_op_list(self.pytorch_version), self.cuda_ops,
                                  self.global_reference_visitor, self.function_graph)
         wrapper.visit(api_visitor)
 
@@ -49,6 +51,11 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
         translog.info(f'Start analysis {file_relative_path}.')
         self._analysis_code(file)
         translog.info(f'Analysis {file_relative_path} complete.')
+
+    def _get_cuda_ops(self):
+        cuda_op_visitor = CudaOpVisitor(self.script_dir)
+        cuda_op_visitor.visit_cuda_files()
+        return cuda_op_visitor.cuda_ops
 
     def traverse_function_graph(self):
         function_queue = self.function_graph.get_leaf_api()
