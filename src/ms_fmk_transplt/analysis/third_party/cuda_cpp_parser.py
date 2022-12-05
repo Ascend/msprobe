@@ -122,7 +122,7 @@ class TorchLibraryParser(_DeclareLineParser):
             if not arg_declare:
                 min_args_num = max_args_name = MIN_ARGS_NUM
             else:
-                min_args_num, max_args_name = arg_declare.count(',') + 1
+                min_args_num = max_args_name = arg_declare.count(',') + 1
         else:
             # deal with m.def("_cuda_version", &cuda_version);
             # m.def("read_video_from_file", read_video_from_file);
