@@ -10,9 +10,11 @@ class DumpTensor:
     The class of DumpTensor, replace the class of DD.DumpData.input or output.
     Include the data detail: index, data_type, tensor_format, shape, data, size, original_shape
     """
+
     def __init__(self: any, index: int = None, data_type: int = None,
                  tensor_format: int = None, shape: list = None, data: np.ndarray = None,
-                 size: int = None, original_shape: list = None) -> None:
+                 size: int = None, original_shape: list = None, address: int = None, sub_format: int = 0) -> None:
+
         self.index = index
         self.data_type = data_type
         self.tensor_format = tensor_format
@@ -20,6 +22,8 @@ class DumpTensor:
         self.data = data
         self.size = size
         self.original_shape = original_shape
+        self.address = address
+        self.sub_format = sub_format
 
 
 class DumpDataObj:
@@ -46,7 +50,8 @@ class DumpDataObj:
         for index, tensor in enumerate(dump_data_object_data):
             data_to_np = utils.deserialize_dump_data_to_array(tensor)
             dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
-                                     data_to_np, tensor.size, list(tensor.original_shape.dim))
+                                     data_to_np, tensor.size, list(tensor.original_shape.dim),
+                                     tensor.address, tensor.sub_format)
             dump_data_object_data[index] = dump_tensor
 
     def build_input_dump_tensor(self: any) -> None:
