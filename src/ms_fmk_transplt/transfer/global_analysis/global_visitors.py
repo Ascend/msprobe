@@ -73,7 +73,10 @@ class GlobalReferenceVisitor:
             return []
 
     def get_full_name_for_function(self, line, column):
-        func_list = self.get_jedi_script(self.file_path).infer(line, column)
+        try:
+            func_list = self.get_jedi_script(self.file_path).infer(line, column)
+        except BaseException:
+            func_list = []
         if func_list:
             full_name = func_list[0].full_name
             if full_name is None:
@@ -84,7 +87,10 @@ class GlobalReferenceVisitor:
         return '', ''
 
     def get_infer_func_list_in_project(self, line, column):
-        func_list = self.get_jedi_script(self.file_path).infer(line, column)
+        try:
+            func_list = self.get_jedi_script(self.file_path).infer(line, column)
+        except BaseException:
+            func_list = []
         infer_func_list = []
         for func in func_list:
             if not str(func.module_path).startswith(str(self.project.path)):

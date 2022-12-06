@@ -41,7 +41,10 @@ class DataLoaderRule(RuleVisitor):
 
     @staticmethod
     def __is_dataloader_param(jedi_script, param):
-        completions = jedi_script.complete(param.end_pos[0], param.end_pos[1])
+        try:
+            completions = jedi_script.complete(param.end_pos[0], param.end_pos[1])
+        except BaseException:
+            completions = []
         for completion in completions:
             if completion.name != param.value:
                 continue
