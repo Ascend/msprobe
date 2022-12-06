@@ -121,13 +121,13 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
             libcst_full_name = self._get_full_name_for_node(call_node)
             if not libcst_full_name:
                 continue
-            if libcst_full_name.startswith('torch.') and not m.findall(call_node.func, m.Call()):
+            if self._match_cuda_op(call_node, libcst_full_name):
+                unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
+            elif libcst_full_name.startswith('torch.') and not m.findall(call_node.func, m.Call()):
                 if libcst_full_name in self.unsupported_op_list:
                     unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
                 elif libcst_full_name not in self.op_list:
                     unknown_api_list.append(ApiInstance(libcst_full_name, position, file_path))
-            elif self._match_cuda_op(call_node, libcst_full_name):
-                unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
             else:  # handle instance api
                 _unsupported_list, _unknown_list = \
                     self._handle_torch_instance_func(libcst_full_name, call_node, file_path)
