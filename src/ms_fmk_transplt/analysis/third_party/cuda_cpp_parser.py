@@ -6,7 +6,7 @@ from collections import namedtuple
 import re
 
 MIN_ARGS_NUM = 0
-CudaOp = namedtuple('CudaOp', ['file_path', 'func_name', 'min_args_num', 'max_args_name'])
+CudaOp = namedtuple('CudaOp', ['file_path', 'func_name', 'min_args_num', 'max_args_num'])
 CPP_FUNC_SUB_RE_PATTERN = re.compile('&|\(|\)')
 TYPE_DECLARE_RE_PATTERN = re.compile('<.*?>')
 FUNC_NAMES_RE_PATTERN = re.compile('"(.*?)"')

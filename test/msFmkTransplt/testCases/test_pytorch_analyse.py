@@ -133,8 +133,8 @@ TORCH_LIBRARY_FRAGMENT(torchaudio, m) {
         cuda_op_visitor.visit_cuda_files()
         cuda_op_list = cuda_op_visitor.cuda_ops
         self.assertEqual(len(cuda_op_list), 22)
-        self.assertEqual(cuda_op_list[2].max_args_name, 2)
-        self.assertEqual(cuda_op_list[12].max_args_name, 3)
+        self.assertEqual(cuda_op_list[2].max_args_num, 2)
+        self.assertEqual(cuda_op_list[12].max_args_num, 3)
 
     @classmethod
     def tearDownClass(cls) -> None:
