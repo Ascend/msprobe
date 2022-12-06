@@ -27,8 +27,7 @@ from big_dump_data import DumpDataHandler
 
 from compare_error import CompareError
 
-from dump_data_object import DumpDataObj
-
+from dump_data_object import DumpDataObj, DumpTensor
 
 class ShapeType(Enum):
     """
@@ -333,6 +332,20 @@ def convert_dump_data_object(wrap_function):
     return inner
 
 
+def build_dump_tensor(dump_data_object_data: list) -> None:
+    """
+    replace the input or output object of DD.DumpData to DumpyTensor
+    @param dump_data_object_data: input or output object of DD.DumpData
+    @return: None
+    """
+    for index, tensor in enumerate(dump_data_object_data):
+        data_to_np = deserialize_dump_data_to_array(tensor)
+        dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
+                                 data_to_np, tensor.size, list(tensor.original_shape.dim),
+                                 tensor.address, tensor.sub_format)
+        dump_data_object_data[index] = dump_tensor
+
+
 def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
     """
     Convert dump_data to DumpDataObj
@@ -340,7 +353,8 @@ def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
     @return: DumpDataObj object
     """
     dump_data_object = DumpDataObj(dump_data)
-    dump_data_object.build_input_dump_tensor()
+    build_dump_tensor(dump_data_object.output_data)
+    build_dump_tensor(dump_data_object.input_data)
     dump_data_object.build_output_dump_tensor()
     dump_data_object.parser_ffts_attr()
     return dump_data_object

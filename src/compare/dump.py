@@ -129,41 +129,36 @@ class DumpInfo:
             pass
 
 
-    def parser_ffts_auto(self, dump_file_list, dump_data_list):
-        dump_base = dump_data_list[0]
-        thread_num = dump_base.attr["slice_instance_num"]
-        self._check_file_missing(thread_num)
-        pass
 
     def parser_ffts_manual(self, dump_file_list, dump_data_list):
         dump_base = dump_data_list[0]
-        thread_num = dump_base.attr["slice_instance_num"]
-        output_cut_list = dump_base.attr["outputCutList"]
-        cut_axis = []
-        for output in output_cut_list:
-            _ = []
-            for index, value in enumerate(output):
-                if value != 1:
-                    _.append(index)
-            cut_axis.append(_)
-
+        thread_num = dump_base.get_thread_num
         self._check_file_missing(thread_num)
-        output_num = len(dump_data_list[0].output_data)
-        output_data_list = [dump_data.get_output_data for dump_data in dump_data_list]
-        dump_data_output_list = []
-        for i in range(output_num):
-            _ = []
-            for output in output_data_list:
-                _.append(output)
-            dump_data_output_list.append(_)
+        if dump_base.get_ffts_mode:
+            # cut_axis =
+            pass
+        else:
+            cut_axis = dump_base.get_cut_axis_manual
+            output_num = len(dump_base.output_data)
+            output_data_list = [dump_data.get_output_data for dump_data in dump_data_list]
+            dump_data_output_list = []
+            for i in range(output_num):
+                _ = []
+                for output in output_data_list:
+                    _.append(output)
+                dump_data_output_list.append(_)
 
-        merge_output = []
-        for i in range(len(cut_axis)):
-            if not cut_axis[i]:
-                continue
-            axis = cut_axis[i][0]
-            merge_output.append(np.concatenate(dump_data_output_list[i], axis))
-        return merge_output
+            merge_output = []
+            for i in range(len(cut_axis)):
+                if not cut_axis[i]:
+                    continue
+                axis = cut_axis[i][0]
+                merge_output.append(np.concatenate(dump_data_output_list[i], axis))
+
+            merge_dump_data = DumpDataObj()
+            merge_dump_data.build_output_dump_tensor()
+            merge_dump_data.output_data.data = merge_output
+
 
 
 

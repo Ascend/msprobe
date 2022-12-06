@@ -39,6 +39,7 @@ class DumpDataObj:
         self.attr = dump_data.attr
         self.input_data = [_input_data for _input_data in dump_data.input]
         self.output_data = [_output_data for _output_data in dump_data.output]
+        self.ffts_info = {}
 
     @staticmethod
     def _build_dump_tensor(dump_data_object_data: list) -> None:
@@ -85,6 +86,30 @@ class DumpDataObj:
     def get_thread_num(self):
         return self.attr["slice_instance_num"]
 
+    @property
+    def get_cut_axis_manual(self):
+        cut_axis = []
+        for output in self.attr["outputCutList"]:
+            _ = []
+            for index, value in enumerate(output):
+                if value != 1:
+                    _.append(index)
+            cut_axis.append(_)
+        return cut_axis
+
+    def get_cut_axis_auto(self):
+        pass
+
+    def calculate_auto_mode_shape(self):
+        output_shape = []
+        for output in self.attr["output_tensor_slice"]:
+            _ = []
+
+
+
+    @property
+    def get_ffts_mode(self):
+        return self.attr["threadMode"]
 #
 #
 # class ParserFfts:
