@@ -13,6 +13,7 @@ class CudaOpVisitor:
         self.project_path = project_path
         self._cuda_ops = []
         self._file_lines = []
+        self.rel_file_path = ''
 
     @property
     def cuda_ops(self):
@@ -27,6 +28,7 @@ class CudaOpVisitor:
                 if utils.islink(file_path):
                     continue
                 utils.check_input_file_valid(file_path)
+                self.rel_file_path = os.path.relpath(file_path, self.project_path)
                 self.visit_file(file_path)
 
     def visit_file(self, file_path):
@@ -62,7 +64,7 @@ class CudaOpVisitor:
                     declare_lines.append(declare_line)
                     in_pybind_body = False
 
-        pybind_module_parser = PybindModuleParser(self._cuda_ops, self._file_lines)
+        pybind_module_parser = PybindModuleParser(self._cuda_ops, self._file_lines, self.rel_file_path)
         for declare_line in declare_lines:
             if declare_line.startswith('m.def('):
                 pybind_module_parser.parse_m_def(declare_line)
@@ -94,7 +96,7 @@ class CudaOpVisitor:
                     declare_lines.append(declare_line)
                     in_torch_library_body = False
 
-        torch_library_parser = TorchLibraryParser(self._cuda_ops, self._file_lines)
+        torch_library_parser = TorchLibraryParser(self._cuda_ops, self._file_lines, self.rel_file_path)
         for declare_line in declare_lines:
             if declare_line.startswith('m.def('):
                 # m.def(xxx);
