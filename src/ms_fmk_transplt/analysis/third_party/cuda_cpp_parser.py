@@ -11,7 +11,6 @@ CPP_FUNC_SUB_RE_PATTERN = re.compile('&|\(|\)')
 TYPE_DECLARE_RE_PATTERN = re.compile('<.*?>')
 FUNC_NAMES_RE_PATTERN = re.compile('"(.*?)"')
 INIT_FUNC_RE_PATTERN = re.compile('::init<.*?>')
-TORCH_SELECTIVE_SCHEMA_RE_PATTERN = re.compile('TORCH_SELECTIVE_SCHEMA\("(.*?)\(')
 LAMBDA_ARG_RE_PATTERN = re.compile('\[\]\((.*?)\)')
 TORCH_FN_RE_PATTERN = re.compile('TORCH_FN\((.*?)\)')
 
