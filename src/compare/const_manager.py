@@ -305,11 +305,11 @@ class ConstManager:
     FFTSPLUS = "FFTSPLUS"
 
     TASK_TYPE_MAP = {
-        AICORE: 0,
-        AICPU: 1,
-        DEBUG: 2,
-        HCCL: 3,
-        FFTSPLUS: 4
+        AICORE: '0',
+        AICPU: '1',
+        DEBUG: '2',
+        HCCL: '3',
+        FFTSPLUS: '4'
     }
     # task mode
     NORMAL_MODE = 0
