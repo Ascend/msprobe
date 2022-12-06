@@ -94,18 +94,21 @@ class PybindModuleParser(_DeclareLineParser):
             # deal with m.def("upfirdn2d", &upfirdn2d, "upfirdn2d (CUDA)", py::arg("input");
             elements = m_def_line.split(',')
             min_args_num = 0
-            max_args_name = 0
+            max_args_num = 0
             for element in elements:
                 if not element.strip().startswith('py::arg'):
                     continue
-                max_args_name += 1
+                max_args_num += 1
                 if '=' not in element:
                     min_args_num += 1
         else:
             # deal with m.def("forward", &chamfer_forward, "chamfer forward (CUDA)");
-            cpp_func_name = m_def_line.split(',')[1].split(')')[0].strip()
-            min_args_num, max_args_name = self._parse_cpp_func_args_num(cpp_func_name)
-        self.cuda_ops.append(CudaOp(self.rel_file_path, func_name, min_args_num, max_args_name))
+            if len(m_def_line.split(',')) < 1:
+                min_args_num, max_args_num = MIN_ARGS_NUM, -1
+            else:
+                cpp_func_name = m_def_line.split(',')[1].split(')')[0].strip()
+                min_args_num, max_args_num = self._parse_cpp_func_args_num(cpp_func_name)
+        self.cuda_ops.append(CudaOp(self.rel_file_path, func_name, min_args_num, max_args_num))
 
 
 class TorchLibraryParser(_DeclareLineParser):
@@ -113,50 +116,71 @@ class TorchLibraryParser(_DeclareLineParser):
         super().__init__(cuda_ops_list, file_lines, rel_file_path)
 
     def parse_m_def(self, func_line):
-        if 'TORCH_SELECTIVE_SCHEMA(' in func_line:
+        if len(func_line.split('"')) < 1:
+            return
+        func_name = func_line.split('"')[1].replace('::', '.')
+        if '(' in func_name:
             # deal with m.def(TORCH_SELECTIVE_SCHEMA(
             #  "----"torchvision::roi_pool(Tensor input, Tensor rois, float spatial_scale, int pooled_height
             #  "----int pooled_width) -> (Tensor, Tensor)"));
-            func_name = re.findall(TORCH_SELECTIVE_SCHEMA_RE_PATTERN, func_line)
-            if not func_name:
-                return
-            func_name = func_name[0].replace('::', '.')
-            min_args_num = max_args_name = func_line.count(',') + 1
+            new_func_name = func_name.split('(')[0]
+            if '()' in func_name:
+                min_args_num = max_args_num = MIN_ARGS_NUM
+            else:
+                min_args_num = max_args_num = func_name.count(',') + 1
+            func_name = new_func_name
         elif '[](' in func_line:
             # def with m.def("torchaudio::ffmpeg_set_log_level", [](int64_t level) {
             # "----av_log_set_level(static_cast<int>(level));
             #   });
+            if len(func_line.split('"')) < 1:
+                return
             func_name = func_line.split('"')[1].replace('::', '.')
             arg_declare = re.findall(LAMBDA_ARG_RE_PATTERN, func_line)
             if not arg_declare:
                 return
             arg_declare = arg_declare[0]
             if not arg_declare:
-                min_args_num = max_args_name = MIN_ARGS_NUM
+                min_args_num = max_args_num = MIN_ARGS_NUM
             else:
-                min_args_num = max_args_name = arg_declare.count(',') + 1
+                min_args_num = max_args_num = arg_declare.count(',') + 1
         else:
             # deal with m.def("_cuda_version", &cuda_version);
             # deal with m.def("read_video_from_file", read_video_from_file);
+            if len(func_line.split('"')) < 1:
+                return
             func_name = func_line.split('"')[1].replace('::', '.')
-            cpp_func_name = func_line.split(',')[1].split(')')[0].strip()
-            min_args_num, max_args_name = self._parse_cpp_func_args_num(cpp_func_name)
-        self.cuda_ops.append(CudaOp(self.rel_file_path, func_name, min_args_num, max_args_name))
+            if len(func_line.split(',')) < 1:
+                min_args_num, max_args_num = MIN_ARGS_NUM, -1
+            else:
+                cpp_func_name = func_line.split(',')[1].split(')')[0].strip()
+                min_args_num, max_args_num = self._parse_cpp_func_args_num(cpp_func_name)
+        self.cuda_ops.append(CudaOp(self.rel_file_path, func_name, min_args_num, max_args_num))
 
     def parse_m_impl(self, func_line):
         if 'TORCH_SELECTIVE_NAME' in func_line and 'TORCH_FN' in func_line:
             # deal with m.impl(
             #   "----TORCH_SELECTIVE_NAME("torchvision::roi_align"),
             #   "----TORCH_FN(qroi_align_forward_kernel));
+            if len(func_line.split('"')) < 1:
+                return
             func_name = func_line.split('"')[1].replace('::', '.')
             cpp_func_name = re.findall(TORCH_FN_RE_PATTERN, func_line)
             if not cpp_func_name:
-                return
-            cpp_func_name = cpp_func_name[0]
+                min_args_num, max_args_num = MIN_ARGS_NUM, -1
+            else:
+                cpp_func_name = cpp_func_name[0]
+                min_args_num, max_args_num = self._parse_cpp_func_args_num(cpp_func_name)
         else:
             # deal with m.impl("rnnt_loss", &compute);
             names = re.findall(FUNC_NAMES_RE_PATTERN, func_line)
             func_name = names[0].replace('::', '.')
-            cpp_func_name = func_line.split(',')[1].split(')')[0].strip()
-        min_args_num, max_args_name = self._parse_cpp_func_args_num(cpp_func_name)
-        self.cuda_ops.append(CudaOp(self.rel_file_path, func_name, min_args_num, max_args_name))
+            if len(func_line.split(',')) < 1:
+                min_args_num, max_args_num = MIN_ARGS_NUM, -1
+            else:
+                cpp_func_name = func_line.split(',')[1].split(')')[0].strip()
+                min_args_num, max_args_num = self._parse_cpp_func_args_num(cpp_func_name)
+        self.cuda_ops.append(CudaOp(self.rel_file_path, func_name, min_args_num, max_args_num))
+
+    def _parse_m_def_expression(self, func_name):
+        new_func_name = func_name.split('(')[0]

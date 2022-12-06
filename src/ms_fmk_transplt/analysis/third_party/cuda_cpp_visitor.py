@@ -62,7 +62,9 @@ class CudaOpVisitor:
                 declare_line += line
                 if line.endswith('}'):
                     declare_lines.append(declare_line)
+                    declare_line = ''
                     in_pybind_body = False
+                    in_func_or_class_declare = False
 
         pybind_module_parser = PybindModuleParser(self._cuda_ops, self._file_lines, self.rel_file_path)
         for declare_line in declare_lines:
@@ -94,7 +96,9 @@ class CudaOpVisitor:
                 declare_line += line
                 if line.endswith('}'):
                     declare_lines.append(declare_line)
+                    declare_line = ''
                     in_torch_library_body = False
+                    in_func_or_class_declare = False
 
         torch_library_parser = TorchLibraryParser(self._cuda_ops, self._file_lines, self.rel_file_path)
         for declare_line in declare_lines:
