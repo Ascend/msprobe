@@ -298,6 +298,29 @@ class ConstManager:
     CONVERT_FAILED_FILE_LIST_NAME = "convert_failed_file_list.txt"
     MAPPING_FILE_NAME = "mapping.csv"
 
+    AICORE = "AICORE"
+    AICPU = "AICPU"
+    DEBUG = "DEBUG"
+    HCCL = "HCCL"
+    FFTSPLUS = "FFTSPLUS"
+
+    TASK_TYPE_MAP = {
+        AICORE: 0,
+        AICPU: 1,
+        DEBUG: 2,
+        HCCL: 3,
+        FFTSPLUS: 4
+    }
+    # task mode
+    NORMAL_MODE = 0
+    AUTOMATIC_MODE = 1
+    MANUAL_MODE = 2
+
+    OLD_FILE_FIELD_NUM = 4
+    NEW_FILE_FIELD_NUM = 9
+    # FFTS/FFTS+ MODE Field
+    FFTS_MANUAL_MODE_FIELD = "_lxslice"
+
     @property
     def max_top_n(self: any) -> int:
         """

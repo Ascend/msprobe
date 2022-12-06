@@ -43,6 +43,7 @@ class DumpInfo:
         self.path = dump_path
         self.type = None
         self.op_name_to_file_map = {}
+        self.op_name_to_task_mode_map = {}
         self.quant = False
         self.data_info = ''
         self.dump_version = dump_version
@@ -236,7 +237,7 @@ class DumpInfo:
                     .format(item, self.path, info)
             log.print_warn_log(msg)
             raise CompareError(CompareError.MSACCUCMP_DUMP_FILE_ERROR)
-        return match.group(1), expect
+        return match, expect
 
     def _check_dump_file_is_quant(self: any, dump_type: DumpType, op_name: str) -> None:
         if dump_type in [DumpType.Offline, DumpType.Numpy]:
@@ -272,11 +273,15 @@ class DumpInfo:
                 return
             item = self.hash_to_file_name_map.get(item)
         try:
-            op_name, current_dump_type = self._check_file_match_pattern(item)
+            match, current_dump_type = self._check_file_match_pattern(item)
         except CompareError:
             return
         finally:
             pass
+        op_name = match.group(1)
+        if ConstManager.FFTS_MANUAL_MODE_FIELD in op_name:
+            op_name = op_name[:op_name.find(ConstManager.FFTS_MANUAL_MODE_FIELD)]
+        self._check_task_type(op_name, item)
         self._check_dump_file_is_quant(current_dump_type, op_name)
         if self.type is None:
             self.type = current_dump_type
@@ -301,6 +306,22 @@ class DumpInfo:
                 self._handle_one_file(file_path)
         self._judge_dump_type()
 
+    def _check_task_type(self: any, op_name: str, file_name: str) -> None:
+        # old file_name:
+        # {op_type}.{op_name}.({streamid}.){taskid}.{timestamp}
+        flied_list = file_name.split(".")
+        if len(flied_list) <= ConstManager.OLD_FILE_FIELD_NUM + 1:
+            self.op_name_to_task_mode_map[op_name] = ConstManager.NORMAL_MODE
+            return
+        # new file_name:
+        # {op_type}.{op_name}.({streamid}.){taskid}.{timestamp}.{tasktype}.{contextid}.{threadid}.{deviceid}
+        if flied_list[-4] not in ConstManager.TASK_TYPE_MAP.values():
+            raise CompareError(CompareError.MSACCUCMP_INVALID_TASK_TYPE)
+        if flied_list[-4] == ConstManager.TASK_TYPE_MAP.get(ConstManager.FFTSPLUS):
+            self.op_name_to_task_mode_map[op_name] = ConstManager.MANUAL_MODE \
+                if ConstManager.FFTS_MANUAL_MODE_FIELD in file_name else ConstManager.AUTOMATIC_MODE
+            return
+        self.op_name_to_task_mode_map[op_name] = ConstManager.NORMAL_MODE
 
     def _judge_dump_type(self: any) -> None:
         if self.type is None:
