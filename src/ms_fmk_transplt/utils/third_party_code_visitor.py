@@ -21,10 +21,12 @@ NodeInfo = namedtuple('NodeInfo', ['has_unsupported_api', 'unsupported_list', 'h
 class ThirdPartyApiVisitor(libcst.CSTVisitor):
     METADATA_DEPENDENCIES = (PositionProvider, QualifiedNameProvider)
 
-    def __init__(self, op_list, unsupported_op_list, global_reference_visitor: GlobalReferenceVisitor, function_graph):
+    def __init__(self, op_list, unsupported_op_list, cuda_op_list,
+                 global_reference_visitor: GlobalReferenceVisitor, function_graph):
         super(ThirdPartyApiVisitor, self).__init__()
         self.op_list = op_list
         self.unsupported_op_list = unsupported_op_list
+        self.cuda_op_list = cuda_op_list
         self.unsupported_instance_op_dict = {}
         for unsupported_op in unsupported_op_list:
             class_name = unsupported_op.split(".")[-2]
@@ -119,7 +121,9 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
             libcst_full_name = self._get_full_name_for_node(call_node)
             if not libcst_full_name:
                 continue
-            if libcst_full_name.startswith('torch.') and not m.findall(call_node.func, m.Call()):
+            if self._match_cuda_op(call_node, libcst_full_name):
+                unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
+            elif libcst_full_name.startswith('torch.') and not m.findall(call_node.func, m.Call()):
                 if libcst_full_name in self.unsupported_op_list:
                     unsupported_list.append(ApiInstance(libcst_full_name, position, file_path))
                 elif libcst_full_name not in self.op_list:
@@ -130,6 +134,20 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
                 unsupported_list.extend(_unsupported_list)
                 unknown_api_list.extend(_unknown_list)
         return defined_call_set, unsupported_list, unknown_api_list
+
+    def _match_cuda_op(self, call_node, full_name):
+        for cuda_op in self.cuda_op_list:
+            if '.' in cuda_op.func_name:
+                if not (full_name == cuda_op.func_name or full_name.endswith('.' + cuda_op.func_name)):
+                    continue
+            else:
+                if not full_name.endswith('.' + cuda_op.func_name):
+                    continue
+            if cuda_op.max_args_name == -1:
+                return True
+            if cuda_op.min_args_num <= len(call_node.args) <= cuda_op.max_args_name:
+                return True
+        return False
 
     def _get_func_def_position(self, node):
         node_start_line = self.get_metadata(PositionProvider, node).start.line

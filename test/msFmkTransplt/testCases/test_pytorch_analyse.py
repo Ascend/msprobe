@@ -63,3 +63,77 @@ class TestPyTorchAnalyse(unittest.TestCase):
 
         self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
 
+    def test_cuda_op_parser(self):
+        from analysis.third_party.cuda_cpp_visitor import CudaOpVisitor
+        from src.ms_fmk_transplt.utils import trans_utils as utils
+        code = '''
+int chamfer_forward(at::Tensor xyz1, at::Tensor xyz2, at::Tensor dist1, at::Tensor dist2, at::Tensor idx1, at::Tensor idx2) {
+    return chamfer_cuda_forward(xyz1, xyz2, dist1, dist2, idx1, idx2);
+}
+int64_t cuda_version() {
+#ifdef WITH_CUDA
+  return CUDA_VERSION;
+#else
+  return -1;
+#endif
+}
+// pybind11_module
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  // m.def
+  m.def("upfirdn2d", &upfirdn2d, "upfirdn2d (CUDA)", py::arg("input"),
+        py::arg("kernel"), py::arg("up_x"), py::arg("up_y"), py::arg("down_x"),
+        py::arg("down_y"), py::arg("pad_x0")=1, py::arg("pad_x1"),
+        py::arg("pad_y0"), py::arg("pad_y1"));
+  m.def("forward", &chamfer_forward, "chamfer forward (CUDA)");
+
+  // py_class
+  py::class_<StreamWriterFileObj, c10::intrusive_ptr<StreamWriterFileObj>>(
+      m, "StreamWriterFileObj")
+      .def(py::init<py::object, const c10::optional<std::string>&, int64_t>())
+      .def("set_metadata", &StreamWriterFileObj::set_metadata)
+      .def("add_audio_stream", &StreamWriterFileObj::add_audio_stream)
+      .def("add_video_stream", &StreamWriterFileObj::add_video_stream)
+      .def("dump_format", &StreamWriterFileObj::dump_format)
+      .def("open", &StreamWriterFileObj::open)
+      .def("write_audio_chunk", &StreamWriterFileObj::write_audio_chunk)
+      .def("write_video_chunk", &StreamWriterFileObj::write_video_chunk)
+      .def("flush", &StreamWriterFileObj::flush)
+      .def("close", &StreamWriterFileObj::close);
+}
+
+// torch library
+TORCH_LIBRARY_FRAGMENT(torchaudio, m) {
+    // m.def
+    m.def(TORCH_SELECTIVE_SCHEMA(
+          "torchvision::ps_roi_pool(Tensor input, Tensor rois, float spatial_scale, int pooled_height, int pooled_width) -> (Tensor, Tensor)"));
+    m.def("torchaudio::ffmpeg_set_log_level", [](int64_t level) {
+        av_log_set_level(static_cast<int>(level));
+      });
+    m.def("_cuda_version", &cuda_version);
+
+    // m.impl
+    m.impl(TORCH_SELECTIVE_NAME("torchvision::nms"), TORCH_FN(nms_kernel));
+    m.impl("rnnt_loss", rnnt_loss_autograd);
+
+    // m.class
+    m.class_<GPUDecoder>("GPUDecoder")
+      .def(torch::init<std::string, torch::Device>())
+      .def("seek", &GPUDecoder::seek)
+      .def("get_metadata", &GPUDecoder::get_metadata)
+      .def("next", &GPUDecoder::decode);
+ }
+        '''
+        project_path = './cuda_op_test'
+        shutil.rmtree(project_path, ignore_errors=True)
+        os.makedirs(project_path, exist_ok=True)
+        utils.write_file_content(os.path.join(project_path, 'cuda.cpp'), code)
+        cuda_op_visitor = CudaOpVisitor(project_path)
+        cuda_op_visitor.visit_cuda_files()
+        cuda_op_list = cuda_op_visitor.cuda_ops
+        self.assertEqual(len(cuda_op_list), 21)
+        self.assertEqual(cuda_op_list[2].max_args_name, 2)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cuda_op_project_path = './cuda_op_test'
+        shutil.rmtree(cuda_op_project_path, ignore_errors=True)
