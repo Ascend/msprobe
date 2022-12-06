@@ -56,9 +56,8 @@ class _DeclareLineParser:
         return sep_count + 1, sep_count + 1
 
     def parse_class_declare(self, func_line):
-        # deal with m.class_<GPUDecoder>("GPUDecoder")
-        # "----.def(torch::init<std::string, torch::Device>())
-        # "----.def("next", &GPUDecoder::decode);
+        # deal with m.class_<GPUDecoder>("GPUDecoder").def(torch::init<std::string, torch::Device>())
+        #  "----.def("next", &GPUDecoder::decode);
         names = re.findall(FUNC_NAMES_RE_PATTERN, func_line)
         if not names:
             return

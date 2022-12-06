@@ -65,6 +65,7 @@ class TestPyTorchAnalyse(unittest.TestCase):
 
     def test_cuda_op_parser(self):
         from analysis.third_party.cuda_cpp_visitor import CudaOpVisitor
+        from src.ms_fmk_transplt.utils import trans_utils as utils
         code = '''
 int chamfer_forward(at::Tensor xyz1, at::Tensor xyz2, at::Tensor dist1, at::Tensor dist2, at::Tensor idx1, at::Tensor idx2) {
     return chamfer_cuda_forward(xyz1, xyz2, dist1, dist2, idx1, idx2);
@@ -125,10 +126,14 @@ TORCH_LIBRARY_FRAGMENT(torchaudio, m) {
         project_path = './cuda_op_test'
         shutil.rmtree(project_path, ignore_errors=True)
         os.makedirs(project_path, exist_ok=True)
-        with open(os.path.join(project_path, 'cuda.cpp'), 'w', encoding='utf-8') as file_writer:
-            file_writer.write(code)
+        utils.write_file_content(os.path.join(project_path, 'cuda.cpp'), code)
         cuda_op_visitor = CudaOpVisitor(project_path)
         cuda_op_visitor.visit_cuda_files()
         cuda_op_list = cuda_op_visitor.cuda_ops
         self.assertEqual(len(cuda_op_list), 21)
         self.assertEqual(cuda_op_list[2].max_args_name, 2)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cuda_op_project_path = './cuda_op_test'
+        shutil.rmtree(cuda_op_project_path, ignore_errors=True)
