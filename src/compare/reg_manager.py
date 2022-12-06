@@ -27,9 +27,12 @@ class RegManager:
     QUANT_DUMP_PATTERN = r"^([A-Za-z0-9_-]+\.[0-9]+)\.[0-9]{1,255}\.quant$"
 
     # Offline
-    OFFLINE_DUMP_PATTERN = r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+(\.[0-9]+)?\.[0-9]{1,255}"
+    OFFLINE_DUMP_PATTERN = r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+" \
+                           r".(\.[0-9]+)?\.[0-9]{1,255}(\.[0-9]+\.[0-9]+\.[0-9]+)?(\.[0-9]+)?"
     OFFLINE_NUMPY_PATTERN = r"^([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[0-9]+" \
                             r"\.[0-9]{1,255})\.[0-9]+\.\b(npy|data|bin|txt)\b$"
+    OFFLINE_FFTS_DUMP_PATTERN = r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+" \
+                                r"(\.[0-9]+)?\.[0-9]{1,255}\.[0-9]+\.[0-9]+\.[0-9]+"
 
     # Standard
     NUMPY_DUMP_PATTERN = r"^([A-Za-z0-9_-]+\.[0-9]+)\.[0-9]{1,255}\.npy$"
