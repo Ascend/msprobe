@@ -132,8 +132,6 @@ class TorchLibraryParser(_DeclareLineParser):
             # def with m.def("torchaudio::ffmpeg_set_log_level", [](int64_t level) {
             # "----av_log_set_level(static_cast<int>(level));
             #   });
-            if len(func_line.split('"')) < 1:
-                return
             func_name = func_line.split('"')[1].replace('::', '.')
             arg_declare = re.findall(LAMBDA_ARG_RE_PATTERN, func_line)
             if not arg_declare:
@@ -146,8 +144,6 @@ class TorchLibraryParser(_DeclareLineParser):
         else:
             # deal with m.def("_cuda_version", &cuda_version);
             # deal with m.def("read_video_from_file", read_video_from_file);
-            if len(func_line.split('"')) < 1:
-                return
             func_name = func_line.split('"')[1].replace('::', '.')
             if len(func_line.split(',')) < 1:
                 min_args_num, max_args_num = MIN_ARGS_NUM, -1
