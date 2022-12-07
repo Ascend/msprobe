@@ -126,7 +126,7 @@ class TorchLibraryParser(_DeclareLineParser):
             if '()' in func_name:
                 min_args_num = max_args_num = MIN_ARGS_NUM
             else:
-                min_args_num = max_args_num = func_name.count(',') + 1
+                min_args_num = max_args_num = func_name.split(')')[0].count(',') + 1
             func_name = new_func_name
         elif '[](' in func_line:
             # def with m.def("torchaudio::ffmpeg_set_log_level", [](int64_t level) {
