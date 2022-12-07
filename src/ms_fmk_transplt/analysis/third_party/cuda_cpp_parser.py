@@ -102,7 +102,7 @@ class PybindModuleParser(_DeclareLineParser):
                     min_args_num += 1
         else:
             # deal with m.def("forward", &chamfer_forward, "chamfer forward (CUDA)");
-            if len(m_def_line.split(',')) < 1:
+            if len(m_def_line.split(',')) <= 1:
                 min_args_num, max_args_num = MIN_ARGS_NUM, -1
             else:
                 cpp_func_name = m_def_line.split(',')[1].split(')')[0].strip()
@@ -115,7 +115,7 @@ class TorchLibraryParser(_DeclareLineParser):
         super().__init__(cuda_ops_list, file_lines, rel_file_path)
 
     def parse_m_def(self, func_line):
-        if len(func_line.split('"')) < 1:
+        if len(func_line.split('"')) <= 1:
             return
         func_name = func_line.split('"')[1].replace('::', '.')
         if '(' in func_name:
@@ -145,7 +145,7 @@ class TorchLibraryParser(_DeclareLineParser):
             # deal with m.def("_cuda_version", &cuda_version);
             # deal with m.def("read_video_from_file", read_video_from_file);
             func_name = func_line.split('"')[1].replace('::', '.')
-            if len(func_line.split(',')) < 1:
+            if len(func_line.split(',')) <= 1:
                 min_args_num, max_args_num = MIN_ARGS_NUM, -1
             else:
                 cpp_func_name = func_line.split(',')[1].split(')')[0].strip()
@@ -157,7 +157,7 @@ class TorchLibraryParser(_DeclareLineParser):
             # deal with m.impl(
             #   "----TORCH_SELECTIVE_NAME("torchvision::roi_align"),
             #   "----TORCH_FN(qroi_align_forward_kernel));
-            if len(func_line.split('"')) < 1:
+            if len(func_line.split('"')) <= 1:
                 return
             func_name = func_line.split('"')[1].replace('::', '.')
             cpp_func_name = re.findall(TORCH_FN_RE_PATTERN, func_line)
@@ -170,7 +170,7 @@ class TorchLibraryParser(_DeclareLineParser):
             # deal with m.impl("rnnt_loss", &compute);
             names = re.findall(FUNC_NAMES_RE_PATTERN, func_line)
             func_name = names[0].replace('::', '.')
-            if len(func_line.split(',')) < 1:
+            if len(func_line.split(',')) <= 1:
                 min_args_num, max_args_num = MIN_ARGS_NUM, -1
             else:
                 cpp_func_name = func_line.split(',')[1].split(')')[0].strip()
