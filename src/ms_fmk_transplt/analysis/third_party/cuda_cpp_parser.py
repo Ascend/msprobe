@@ -176,6 +176,3 @@ class TorchLibraryParser(_DeclareLineParser):
                 cpp_func_name = func_line.split(',')[1].split(')')[0].strip()
                 min_args_num, max_args_num = self._parse_cpp_func_args_num(cpp_func_name)
         self.cuda_ops.append(CudaOp(self.rel_file_path, func_name, min_args_num, max_args_num))
-
-    def _parse_m_def_expression(self, func_name):
-        new_func_name = func_name.split('(')[0]
