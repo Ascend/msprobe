@@ -143,9 +143,9 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
             else:
                 if not full_name.endswith('.' + cuda_op.func_name):
                     continue
-            if cuda_op.max_args_name == -1:
+            if cuda_op.max_args_num == -1:
                 return True
-            if cuda_op.min_args_num <= len(call_node.args) <= cuda_op.max_args_name:
+            if cuda_op.min_args_num <= len(call_node.args) <= cuda_op.max_args_num:
                 return True
         return False
 

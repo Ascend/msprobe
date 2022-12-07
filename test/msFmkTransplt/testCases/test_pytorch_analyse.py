@@ -104,6 +104,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 // torch library
 TORCH_LIBRARY_FRAGMENT(torchaudio, m) {
     // m.def
+    m.def(
+      "torchaudio::_lfilter(Tensor waveform, Tensor a_coeffs, Tensor b_coeffs) -> Tensor");
     m.def(TORCH_SELECTIVE_SCHEMA(
           "torchvision::ps_roi_pool(Tensor input, Tensor rois, float spatial_scale, int pooled_height, int pooled_width) -> (Tensor, Tensor)"));
     m.def("torchaudio::ffmpeg_set_log_level", [](int64_t level) {
@@ -130,8 +132,9 @@ TORCH_LIBRARY_FRAGMENT(torchaudio, m) {
         cuda_op_visitor = CudaOpVisitor(project_path)
         cuda_op_visitor.visit_cuda_files()
         cuda_op_list = cuda_op_visitor.cuda_ops
-        self.assertEqual(len(cuda_op_list), 21)
-        self.assertEqual(cuda_op_list[2].max_args_name, 2)
+        self.assertEqual(len(cuda_op_list), 22)
+        self.assertEqual(cuda_op_list[2].max_args_num, 2)
+        self.assertEqual(cuda_op_list[12].max_args_num, 3)
 
     @classmethod
     def tearDownClass(cls) -> None:

@@ -55,7 +55,10 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
     def _get_cuda_ops(self):
         cuda_op_visitor = CudaOpVisitor(self.script_dir)
         cuda_op_visitor.visit_cuda_files()
-        return cuda_op_visitor.cuda_ops
+        cuda_op_list = cuda_op_visitor.cuda_ops
+        cuda_op_info_list = [[cuda_op.file_path, cuda_op.func_name] for cuda_op in cuda_op_list]
+        utils.write_csv(cuda_op_info_list, '', self.output_dir, 'cuda_op_list')
+        return cuda_op_list
 
     def traverse_function_graph(self):
         function_queue = self.function_graph.get_leaf_api()
