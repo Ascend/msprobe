@@ -118,7 +118,10 @@ class GlobalReferenceVisitor:
         return self.project.search(string)
 
     def complete(self, line=None, column=None, *, fuzzy=False):
-        return self.get_jedi_script(self.file_path).complete(line=line, column=column, fuzzy=fuzzy)
+        try:
+            return self.get_jedi_script(self.file_path).complete(line=line, column=column, fuzzy=fuzzy)
+        except BaseException:
+            return []
 
     def get_super_class(self, class_name, file_path=''):
         super_class_list = []
