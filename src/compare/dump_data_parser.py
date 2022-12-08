@@ -72,6 +72,47 @@ class DumpDataParser:
             return ret
         return self.multi_process.process()
 
+    def parse_log_data(self: any) -> int:
+        """
+        Convert dump data to numpy and bin file
+        """
+        # 1. check arguments valid
+        ret = utils.check_output_path_valid(self.output_path, True)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
+        ret = utils.check_path_valid(self.path_str, True, False, path_type=utils.PathType.File)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
+        try:
+            dump_data = utils.parse_dump_file(self.path_str, self.dump_version)
+            self._save_log_data(dump_data)
+        except CompareError as error:
+            return error.code
+        return CompareError.MSACCUCMP_NONE_ERROR
+
+    def _save_log_data(self, dump_data):
+        log_space = dump_data.space
+        dump_file_name = os.path.basename(self.path_str)
+        if len(log_space) == 0:
+            log.print_error_log("There is no log data in {}".format(self.path_str))
+            raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
+        for (index, tensor) in enumerate(log_space):
+            log_file_name = '%s.%d.log' % (dump_file_name, index)
+            log_file_path = os.path.join(self.output_path, log_file_name)
+            log.print_info_log('Start to parse the data of log:%d in "%s".' % (index, self.path_str))
+            try:
+                log_str = log_space[index].data.decode()
+                log_str = log_str.replace('\0', "")
+                with open(log_file_path, "w") as text_file:
+                    text_file.write(log_str)
+            except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
+                log.print_error_log('Failed to save log data. %s'
+                                    % str(error))
+                raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR) from error
+
+            log.print_info_log('The data of log:%d has been parsed into "%s".'
+                               % (index, log_file_path))
+
     def check_arguments_valid(self: any) -> None:
         """
         Check arguments valid

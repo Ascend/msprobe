@@ -34,6 +34,7 @@ class DumpDataObj:
         self.op_name = dump_data.op_name
         self.dump_time = dump_data.dump_time
         self.buffer = dump_data.buffer
+        self.space = [_space_data for _space_data in dump_data.space]
         self.attr = dump_data.attr
         self.input_data = [_input_data for _input_data in dump_data.input]
         self.output_data = [_output_data for _output_data in dump_data.output]
