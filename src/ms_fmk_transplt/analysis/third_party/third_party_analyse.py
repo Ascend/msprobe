@@ -62,8 +62,9 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
             for env_path in self.package_env_path_set:
                 if file.startswith(env_path):
                     self._analysis_init_file(os.path.dirname(file)[len(env_path) + 1:].replace(os.path.sep, "."))
-        api_visitor = ThirdPartyApiVisitor(utils.get_supported_op_list(), utils.get_op_list(self.pytorch_version),
-                                           self.cuda_ops, self.global_reference_visitor, self.function_graph)
+        api_visitor = ThirdPartyApiVisitor(utils.get_supported_op_list(self.pytorch_version),
+                                           utils.get_op_list(self.pytorch_version), self.cuda_ops,
+                                           self.global_reference_visitor, self.function_graph)
         wrapper.visit(api_visitor)
 
     def _analysis_file(self, file, commonprefix):

@@ -90,8 +90,13 @@ def get_op_list(version):
     return op_list
 
 
-def get_supported_op_list():
-    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_8_1.json')
+def get_supported_op_list(version):
+    if version == '1.5.0':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_5_0.json')
+    elif version == '1.8.1':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_8_1.json')
+    else:
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
     op_list = json.loads(ops).get("op_list")
     return op_list
