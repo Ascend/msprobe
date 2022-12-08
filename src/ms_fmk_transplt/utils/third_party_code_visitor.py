@@ -175,9 +175,10 @@ class ThirdPartyApiVisitor(libcst.CSTVisitor):
         module_defined_list = self.global_reference_visitor.goto(position.start.line, position.start.column)
         for defined_node in module_defined_list:
             if defined_node.type == 'module':
-                full_call_obj_name = (defined_node.full_name if defined_node.full_name else defined_node.name) + \
+                full_call_obj_name = (defined_node.full_name if defined_node.fulcl_name else defined_node.name) + \
                                      full_name[full_name.index("."):full_name.rfind(".")]
-                call_obj_name_set = {self._get_call_obj_name(full_call_obj_name)}
+                call_obj_name = self._get_call_obj_name(full_call_obj_name)
+                call_obj_name_set = {call_obj_name} if call_obj_name else {}
                 break
         call_position = self._get_call_position(call_node)
         if call_obj_name_set:
