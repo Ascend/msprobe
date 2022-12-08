@@ -58,6 +58,14 @@ class DumpDataParser:
         status = OpDebugInfoParser.unpack_uint_value(data, index, 'UINT64')
         ai_core_info['status'] = status
 
+    @staticmethod
+    def _write_log(log_file_path, log_space):
+        log_str = log_space.data.decode()
+        log_str = log_str.replace(ConstManager.END_FLAG, "")
+        with os.fdopen(os.open(log_file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w+') as text_file:
+            text_file.truncate()
+            text_file.write(log_str)
+
     def parse_dump_data(self: any) -> int:
         """
         Convert dump data to numpy and bin file
@@ -84,27 +92,24 @@ class DumpDataParser:
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         try:
-            dump_data = utils.parse_dump_file(self.path_str, self.dump_version)
-            self._save_log_data(dump_data)
+            self._save_log_data()
         except CompareError as error:
             return error.code
         return CompareError.MSACCUCMP_NONE_ERROR
 
-    def _save_log_data(self, dump_data):
+    def _save_log_data(self):
+        dump_data = utils.parse_dump_file(self.path_str, self.dump_version)
         log_space = dump_data.space
         dump_file_name = os.path.basename(self.path_str)
         if len(log_space) == 0:
             log.print_error_log("There is no log data in {}".format(self.path_str))
             raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
-        for (index, tensor) in enumerate(log_space):
+        for (index, log_data) in enumerate(log_space):
             log_file_name = '%s.%d.log' % (dump_file_name, index)
             log_file_path = os.path.join(self.output_path, log_file_name)
             log.print_info_log('Start to parse the data of log:%d in "%s".' % (index, self.path_str))
             try:
-                log_str = log_space[index].data.decode()
-                log_str = log_str.replace('\0', "")
-                with open(log_file_path, "w") as text_file:
-                    text_file.write(log_str)
+                self._write_log(log_file_path, log_data)
             except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
                 log.print_error_log('Failed to save log data. %s'
                                     % str(error))
