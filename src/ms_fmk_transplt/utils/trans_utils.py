@@ -58,7 +58,7 @@ def write_csv(content_list, rel_script_file_name, output_dir, csv_type):
         "change_list": ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'),
         "unsupported_op": ('File', 'Start Line', 'End Line', 'OP', 'Tips'),
         "unsupported_api": ('File', 'Api', 'Message'),
-        "unknow_api": ('File', 'Api', 'Message'),
+        "unknown_api": ('File', 'Api', 'Message'),
         "cuda_op_list": ('File', 'Api')
     }
     if os.path.isfile(output_dir):
