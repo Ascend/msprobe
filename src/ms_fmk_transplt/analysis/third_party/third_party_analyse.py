@@ -152,7 +152,7 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
                 continue
             name_set.update(f"{simple_name}{full_name[len(infer_func_name):]}" for simple_name in simple_name_list)
         name_set.add(full_name)
-        return sorted(list(name_set), key=lambda name: len(name))
+        return sorted(list(name_set), key=len)
 
 
 
