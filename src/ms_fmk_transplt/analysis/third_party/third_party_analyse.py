@@ -15,13 +15,14 @@ from analysis.third_party.cuda_cpp_visitor import CudaOpVisitor
 
 
 class ThirdPartyAnalyse(PyTorchAnalyze):
-    def __init__(self, script_dir, output_dir, pytorch_version):
-        super().__init__(script_dir, output_dir, pytorch_version)
+    def __init__(self, script_dir, output_dir, pytorch_version, unsupported_third_party_file):
+        super().__init__(script_dir, output_dir, pytorch_version, unsupported_third_party_file)
         self.script_dir = script_dir
         self.output_dir = output_dir
         self.py_file_counts = 0
         self.pytorch_version = pytorch_version
         self.global_reference_visitor = None
+        self.unsupported_third_party_file = unsupported_third_party_file
         self.function_graph = Graph()
         self.cuda_ops = self._get_cuda_ops()
         self.package_env_path_set = self._search_package_env_path()
@@ -62,8 +63,12 @@ class ThirdPartyAnalyse(PyTorchAnalyze):
             for env_path in self.package_env_path_set:
                 if file.startswith(env_path):
                     self._analysis_init_file(os.path.dirname(file)[len(env_path) + 1:].replace(os.path.sep, "."))
+        unsupported_op_dict = utils.get_op_list(self.pytorch_version)
+        if self.unsupported_third_party_file:
+            unsupported_op_dict.update(utils.read_csv(self.unsupported_third_party_file))
+
         api_visitor = ThirdPartyApiVisitor(utils.get_supported_op_list(self.pytorch_version),
-                                           utils.get_op_list(self.pytorch_version), self.cuda_ops,
+                                           unsupported_op_dict, self.cuda_ops,
                                            self.global_reference_visitor, self.function_graph)
         wrapper.visit(api_visitor)
 
