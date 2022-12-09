@@ -417,7 +417,7 @@ def check_input_file_valid(input_path, max_file_size=MAX_JSON_FILE_SIZE):
         raise ValueError(f'The file is too large, exceeds {max_file_size // 1024 ** 2}MB')
 
 
-def read_csv(input_path):
+def read_unsupported_op_csv(input_path):
     check_input_file_valid(input_path)
     apis_list = pd.read_csv(input_path)['Api'].values.tolist()
     apis_dict = {}
