@@ -21,7 +21,7 @@ class Args:
         self.version = version
         self.mode = mode
         self.file = file
-        self.env_path = env_path if env_path else []
+        self.env_path = env_path
 
 
 def run(mock_args):
