@@ -15,13 +15,13 @@ ANALYSE_ERROR = 1
 
 
 class Args:
-    def __init__(self, input_path, output_path, version='1.8.1', mode='torch_apis', file='', env_path=[]):
+    def __init__(self, input_path, output_path, version='1.8.1', mode='torch_apis', file='', env_path=None):
         self.input = input_path
         self.output = output_path
         self.version = version
         self.mode = mode
         self.file = file
-        self.env_path = env_path
+        self.env_path = env_path if env_path else []
 
 
 def run(mock_args):
