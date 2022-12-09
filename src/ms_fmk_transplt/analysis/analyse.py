@@ -55,7 +55,7 @@ class PyTorchAnalyze:
         wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
         unsupported_op_list = utils.get_op_list(self.pytorch_version)
         if self.unsupported_third_party_file:
-            unsupported_op_list.extend(utils.read_csv(self.unsupported_third_party_file))
+            unsupported_op_list.update(utils.read_unsupported_op_csv(self.unsupported_third_party_file))
         api_visitor = ApiVisitor(unsupported_op_list)
         wrapper.visit(api_visitor)
         op_list = api_visitor.print_unsupported_ops()

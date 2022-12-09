@@ -139,7 +139,7 @@ class PyTorchAnalyse:
     def __check_file_valid(args):
         file_path = os.path.realpath(args.file)
         if not utils.check_path_length_valid(file_path):
-            raise ValueError('The real path or file name of main file is too long.')
+            raise ValueError('The real path or file name of unsupported api file is too long.')
         if not file_path.endswith('.csv'):
             raise ValueError('unsupported api file %s should be a csv file!' % args.file)
         if not os.path.exists(file_path):
