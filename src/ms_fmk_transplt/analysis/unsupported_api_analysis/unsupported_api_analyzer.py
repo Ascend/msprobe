@@ -4,7 +4,7 @@
 import os
 
 from .api_visitor import get_op_visit_result
-from ...utils import trans_utils as utils, transplant_logger as translog
+from utils import trans_utils as utils, transplant_logger as translog
 from ..base_analyzer import BaseAnalyzer
 
 

@@ -9,8 +9,8 @@ from libcst import FlattenSentinel, RemovalSentinel, matchers as m
 
 from ..common_rules.base_rule import BaseRule, OperatorType
 from ..pytorch_v1_5_0_rules.amp_to_apex_rule import ScaleScopeRule
-from ....utils import transplant_logger as translog
-from ....utils import trans_utils as utils
+from utils import transplant_logger as translog
+from utils import trans_utils as utils
 
 
 class DataLoaderRule(BaseRule):

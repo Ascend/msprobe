@@ -10,9 +10,9 @@ import libcst
 from libcst._flatten_sentinel import FlattenSentinel
 from libcst._removal_sentinel import RemovalSentinel
 
-from ..utils import trans_utils as utils
-from ..utils import transplant_logger as translog
-from ..analysis import get_op_visit_result
+from utils import trans_utils as utils
+from utils import transplant_logger as translog
+from analysis import get_op_visit_result
 from .rules.distributed_rules import DataLoaderRule
 from .rules.common_rules import InsertMainFileRule
 

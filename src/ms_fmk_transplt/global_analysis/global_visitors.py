@@ -9,7 +9,7 @@ try:
 except ImportError:
     jedi = None
 
-from ..utils import trans_utils as utils
+from utils import trans_utils as utils
 
 
 class GlobalReferenceVisitor:
@@ -170,7 +170,7 @@ class GlobalReferenceVisitor:
         for character in class_name:
             if character != '.':
                 break
-            prefix_dir = os.path.join(prefix_dir, '../transfer/')
+            prefix_dir = os.path.join(prefix_dir, '../')
         relative_path, _, class_name = class_name.lstrip('.').rpartition('.')
         class_file_path = os.path.join(prefix_dir, relative_path)
         class_file_path = os.path.realpath(class_file_path + ".py")

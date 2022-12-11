@@ -7,7 +7,8 @@ from typing import Optional, Union
 import libcst
 import libcst.helpers as helper
 
-from ...utils import transplant_logger as translog
+from utils import transplant_logger as translog
+from utils import trans_utils as utils
 
 
 class ApiVisitor(libcst.CSTVisitor):
@@ -48,7 +49,7 @@ class ApiVisitor(libcst.CSTVisitor):
 
 def get_op_visit_result(code, pytorch_version):
     wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-    api_visitor = ApiVisitor(pytorch_version)
+    api_visitor = ApiVisitor(utils.get_op_list(pytorch_version))
     module = wrapper.visit(api_visitor)
     op_list = api_visitor.print_unsupported_ops()
     return op_list, module, wrapper

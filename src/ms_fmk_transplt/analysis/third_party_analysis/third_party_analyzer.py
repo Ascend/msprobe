@@ -6,8 +6,8 @@ import os
 from pathlib import Path
 import libcst
 
-from ...utils import trans_utils as utils
-from ...utils import transplant_logger as translog
+from utils import trans_utils as utils
+from utils import transplant_logger as translog
 from .third_party_code_visitor import ThirdPartyApiVisitor
 from ..base_analyzer import BaseAnalyzer
 from .function_graph import Graph

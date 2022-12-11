@@ -7,10 +7,10 @@ import os
 import shutil
 import sys
 
-from .utils import trans_utils as utils
-from .utils import transplant_logger as translog
-from .transfer.transplant import Transplant
-from .transfer.rules.rule_getter import rule_getter
+from utils import trans_utils as utils
+from utils import transplant_logger as translog
+from transfer.transplant import Transplant
+from transfer.rules.rule_getter import rule_getter
 
 
 class MsFmkTransplt(object):
@@ -237,7 +237,7 @@ class MsFmkTransplt(object):
             self.feature_switch.append('distributed')
 
     def __copy_function_pack(self, pack_name):
-        function_pack_dir = os.path.join(os.path.dirname(__file__), pack_name)
+        function_pack_dir = os.path.join(os.path.dirname(__file__), "transfer", "adapter", pack_name)
         if os.path.isdir(self.output):
             dst_path = os.path.join(self.output, pack_name)
         elif os.path.isfile(self.output):

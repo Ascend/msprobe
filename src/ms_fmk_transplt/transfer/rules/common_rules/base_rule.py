@@ -7,7 +7,7 @@ from typing import Optional, Union, Type, TypeVar
 import libcst
 from libcst import matchers as m, helpers as helper
 
-from ....utils import transplant_logger as translog
+from utils import transplant_logger as translog
 
 
 _T = TypeVar("_T")

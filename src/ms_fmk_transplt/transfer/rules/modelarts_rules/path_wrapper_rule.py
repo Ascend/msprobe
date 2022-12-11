@@ -7,7 +7,7 @@ import libcst.matchers as m
 
 from ..common_rules.base_rule import BaseRule
 from ..common_rules.common_rule import BaseInsertGlobalRule
-from ....utils import transplant_logger as logger
+from utils import transplant_logger as logger
 
 
 class ModelArtsPathWrapperRule(BaseRule):

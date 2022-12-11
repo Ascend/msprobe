@@ -3,7 +3,7 @@
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 import os
 
-from ..utils import trans_utils as utils, transplant_logger as translog
+from utils import trans_utils as utils, transplant_logger as translog
 
 
 class BaseAnalyzer:
