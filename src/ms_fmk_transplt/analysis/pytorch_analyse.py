@@ -7,10 +7,10 @@ import os.path
 import shutil
 import sys
 
-from analysis.analyse import PyTorchAnalyze
-from analysis.third_party.third_party_analyse import ThirdPartyAnalyse
-import utils.trans_utils as utils
-import utils.transplant_logger as translog
+from .unsupported_api_analysis import UnsupportedApiAnalyzer
+from .third_party_analysis import ThirdPartyAnalyzer
+from ..utils import trans_utils as utils
+from ..utils import transplant_logger as translog
 
 
 class PyTorchAnalyse:
@@ -19,8 +19,8 @@ class PyTorchAnalyse:
         self.output_path = ''
         self.py_file_counts = 0
         self.analyse_dict = {
-            'third_party': ThirdPartyAnalyse,
-            'torch_apis': PyTorchAnalyze
+            'third_party': ThirdPartyAnalyzer,
+            'torch_apis': UnsupportedApiAnalyzer
         }
 
     @staticmethod
@@ -144,7 +144,7 @@ class PyTorchAnalyse:
     def __get_global_visitor(self):
         if not utils.IS_JEDI_INSTALLED:
             raise ModuleNotFoundError("third party analysis must have jedi installed")
-        from transfer.global_analysis import GlobalReferenceVisitor
+        from ..global_analysis import GlobalReferenceVisitor
 
         utils.refresh_parso_cache()
         global_reference_visitor = GlobalReferenceVisitor(self.input_path, sys_path=[])
