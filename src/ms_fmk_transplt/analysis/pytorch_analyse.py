@@ -9,8 +9,8 @@ import sys
 
 from utils import trans_utils as utils
 from utils import transplant_logger as translog
-from .unsupported_api_analysis import UnsupportedApiAnalyzer
-from .third_party_analysis import ThirdPartyAnalyzer
+from unsupported_api_analysis import UnsupportedApiAnalyzer
+from third_party_analysis import ThirdPartyAnalyzer
 
 
 class PyTorchAnalyse:
