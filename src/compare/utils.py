@@ -648,3 +648,21 @@ def ceiling_divide(left: int, right: int) -> int:
     :return: left, right Ceiling divide
     """
     return (left + right - 1) // right
+
+
+def handle_op_name(file_op_name: str) -> (str, int):
+    # filter field '_lxsliceX'
+    if ConstManager.FFTS_MANUAL_MODE_FIELD not in file_op_name:
+        return file_op_name
+    # if field '_lxsliceX' at the end of name
+    first_match = RegManager.get_matchs(RegManager.FFTS_MANUAL_FIELD_PATTERN, file_op_name)[0]
+    file_op_name = file_op_name[:first_match.start()] if first_match.end() == first_match.endpos else file_op_name
+
+    # filter field '_sgt_field'
+    if ConstManager.SGT_FIELD not in file_op_name:
+        return file_op_name
+    # if field '_sgt_graph' in the name
+    end_match = RegManager.get_matchs(RegManager.SGT_FLIED_PATTERN, file_op_name)[-1]
+    file_op_name = file_op_name[end_match.end()+1:] if end_match.end() != end_match.endpos else file_op_name
+    return file_op_name
+
