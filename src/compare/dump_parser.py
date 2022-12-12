@@ -53,7 +53,6 @@ def _do_cmd() -> int:
 
 
 def _do_save_log(args: argparse.Namespace) -> int:
-    # _check_file_compare_out(args)
     ret = DumpDataParser(args).parse_log_data()
     return ret
 
