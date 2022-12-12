@@ -52,6 +52,7 @@ class BigDumpDataParser:
                 self._read_input_data(dump_file)
                 self._read_output_data(dump_file)
                 self._read_buffer_data(dump_file)
+                self._read_space_data(dump_file)
                 return self.dump_data
         except (OSError, IOError) as io_error:
             log.print_error_log('Failed to read the dump file %s. %s'
@@ -99,17 +100,20 @@ class BigDumpDataParser:
         buffer_data_size = 0
         for item in self.dump_data.buffer:
             buffer_data_size += item.size
+        space_data_size = 0
+        for item in self.dump_data.space:
+            space_data_size += item.size
         # check 8 + content size + sum(input.data) + sum(output.data)
         # + sum(buffer.data) equal to file size
         if self.header_length + ConstManager.UINT64_SIZE + input_data_size \
-                + output_data_size + buffer_data_size != self.file_size:
+                + output_data_size + buffer_data_size + space_data_size != self.file_size:
             log.print_warn_log(
                 'The file size (%d) of %s is not equal to %d (header length)'
                 ' + %d(the size of header content) '
                 '+ %d(the sum of input data) + %d(the sum of output data) '
-                '+ %d(the sum of buffer data). Please check the dump file.'
+                '+ %d(the sum of buffer data) + %d(the sum of space data). Please check the dump file.'
                 % (self.file_size, self.dump_file_path, ConstManager.UINT64_SIZE, self.header_length,
-                   input_data_size, output_data_size, buffer_data_size))
+                   input_data_size, output_data_size, buffer_data_size, space_data_size))
             raise CompareError(
                 CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
@@ -154,6 +158,11 @@ class BigDumpDataParser:
         if len(self.dump_data.buffer) > 0:
             for (index, _) in enumerate(self.dump_data.buffer):
                 self.dump_data.buffer[index].data = dump_file.read(self.dump_data.buffer[index].size)
+
+    def _read_space_data(self: any, dump_file: BinaryIO) -> None:
+        if len(self.dump_data.space) > 0:
+            for (index, _) in enumerate(self.dump_data.space):
+                self.dump_data.space[index].data = dump_file.read(self.dump_data.space[index].size)
 
 
 class DumpDataHandler:

@@ -65,7 +65,8 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data = mock.Mock()
         dump_data = DD.DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
+        dump_data = utils.convert_dump_data(dump_data)
+        fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin/", dump_data))
         detail_comparison = compare_detail.DetailComparison(detail_info, fusion_op_comparison, "/home/demo")
         with pytest.raises(utils.CompareError) as err:
             with mock.patch('fusion_rule_parser.get_relation_for_fusion', return_value=utils.FusionRelation.L1Fusion):
@@ -86,6 +87,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data = mock.Mock()
         dump_data = DD.DumpData()
         dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
         detail_comparison = compare_detail.DetailComparison(detail_info, fusion_op_comparison, "/home/demo")
         with pytest.raises(utils.CompareError) as err:
@@ -107,6 +109,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data = mock.Mock()
         dump_data = DD.DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
         fusion_op_comparison.get_right_dump_data = mock.Mock(
             side_effect=utils.CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR))
@@ -137,9 +140,10 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=True)
         dump_data = DD.DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         tensor = fusion_op.Tensor('prob', 0, "NCHW", [1, 3, 4, 4])
         tensor.set_path('/home/bin')
-        tensor.set_data(dump_data.output[0])
+        tensor.set_data(dump_data.output_data[0])
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
         fusion_op_comparison.get_right_dump_data = mock.Mock(return_value=tensor)
         detail_comparison = compare_detail.DetailComparison(detail_info, fusion_op_comparison, "/home/demo")
@@ -171,10 +175,11 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=False)
         dump_data = DD.DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
         tensor = fusion_op.Tensor('prob', 0, "NCHW", [1, 3, 4, 4])
         tensor.set_path('/home/bin')
-        tensor.set_data(dump_data.output[0])
+        tensor.set_data(dump_data.output_data[0])
         fusion_op_comparison.get_right_dump_data = mock.Mock(return_value=tensor)
         detail_comparison = compare_detail.DetailComparison(detail_info, fusion_op_comparison, "/home/demo")
         with mock.patch('fusion_rule_parser.get_relation_for_fusion', return_value=utils.FusionRelation.OneToOne):

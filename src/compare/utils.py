@@ -9,14 +9,15 @@ This file mainly involves the common function.
 import os
 import re
 import math
+from functools import wraps
 from enum import Enum
 
 import csv
 import numpy as np
 
-import dump_data_pb2 as DD
 import common
 import log
+from dump_data_pb2 import DumpData
 
 from const_manager import ConstManager
 
@@ -25,6 +26,8 @@ from reg_manager import RegManager
 from big_dump_data import DumpDataHandler
 
 from compare_error import CompareError
+
+from dump_data_object import DumpDataObj
 
 
 class ShapeType(Enum):
@@ -289,7 +292,34 @@ def read_numpy_file(path: str) -> any:
     return DumpDataHandler(path).read_numpy_file()
 
 
-def parse_dump_file(input_path: str, dump_version: int) -> DD.DumpData:
+def convert_dump_data_object(wrap_function):
+    """
+    This is a wrapper
+    @param wrap_function: function need to be wrapped
+    @return: inner function
+    """
+    @wraps(wrap_function)
+    def inner(*args, **kwargs):
+        dump_data = wrap_function(*args, **kwargs)
+        dump_data_object = convert_dump_data(dump_data)
+        return dump_data_object
+    return inner
+
+
+def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
+    """
+    Convert dump_data to DumpDataObj
+    @param dump_data:  DD.DumpData object
+    @return: DumpDataObj object
+    """
+    dump_data_object = DumpDataObj(dump_data)
+    dump_data_object.build_input_dump_tensor()
+    dump_data_object.build_output_dump_tensor()
+    return dump_data_object
+
+
+@convert_dump_data_object
+def parse_dump_file(input_path: str, dump_version: int) -> DumpDataObj:
     """
     Parse dump fil
     :param input_path: the input file path
@@ -297,6 +327,15 @@ def parse_dump_file(input_path: str, dump_version: int) -> DD.DumpData:
     :return: DumpData
     """
     return DumpDataHandler(input_path).parse_dump_data(dump_version)
+
+
+def convert_ndarray_to_bytes(array: np.ndarray) -> bytes:
+    """
+    convert ndarray to bytes
+    @param array: ndarray
+    @return:bytes
+    """
+    return array.tobytes()
 
 
 def convert_shape_to_string(shape: list) -> str:
@@ -348,6 +387,7 @@ def read_mapping_file(mapping_file_path: str) -> dict:
     hash_to_file_name_map = {}
     if not os.path.isfile(mapping_file_path):
         return hash_to_file_name_map
+    check_file_size(mapping_file_path, ConstManager.ONE_HUNDRED_MB)
     try:
         with open(mapping_file_path, "r") as mapping_file:
             csv_object = csv.reader(mapping_file)
@@ -504,10 +544,23 @@ def _get_header_and_data(csv_file: bool, fp_read: any) -> (str, list, list):
 
 
 def _sort_result_file_exec(result_file: str, csv_file: bool = True) -> None:
+    check_file_size(result_file, ConstManager.ONE_HUNDRED_MB)
     with open(result_file, 'r') as fp_read:
         table_header_info, header_list, origin_result_line = _get_header_and_data(csv_file, fp_read)
         sorted_result_line = sorted(origin_result_line, key=lambda s: s[0])
     _write_sorted_result(result_file, sorted_result_line, header_list, table_header_info, csv_file)
+
+
+def check_file_size(file_path: str, size_limit: int) -> None:
+    try:
+        file_size = os.path.getsize(file_path)
+    except OSError as os_error:
+        log.print_open_file_error(file_path, os_error)
+        raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from os_error
+    if file_size > size_limit:
+        log.print_warn_log(
+            'The size (%d) of %s exceeds %dMB, it may task more time to run, please wait.'
+            % (file_size, file_path, size_limit / 1024 / 1024))
 
 
 def least_common_multiple(left: int, right: int) -> int:

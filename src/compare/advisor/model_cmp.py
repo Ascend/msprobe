@@ -4,6 +4,7 @@
 
 import json
 import os
+import sys
 from advisor.mscmp_advisor import CompareAdvisor
 
 CLASS_TYPE = {'op': '0', 'model': '1'}
@@ -23,8 +24,8 @@ class ExtendResult:
 
 class Result:
     def __init__(self):
-        self.class_type = '0'
-        self.error_code = '0'
+        self.class_type = CLASS_TYPE.get('op')
+        self.error_code = ERROR_CODE.get('success')
         self.summary = ""
         self.extend_result = []
 
@@ -40,7 +41,7 @@ class Result:
         return outputstr
 
 
-def evaluate(data_path, input_nodes=None):
+def evaluate(data_path, parameter):
     """
     interface function called by msadvisor
     Args:
@@ -53,6 +54,9 @@ def evaluate(data_path, input_nodes=None):
     # do evaluate work by file data
     # my code begin
     input_file = os.path.realpath(data_path)
+
+    parameters = json.loads(parameter)
+    input_nodes = parameters.get("input_nodes")
     input_nodes = [] if input_nodes is None else input_nodes
 
     compare_advisor = CompareAdvisor(input_file, input_nodes)
@@ -72,7 +76,7 @@ def evaluate(data_path, input_nodes=None):
     extend_result.type = EXTEND_TYPE.get('table')
 
     # list type result
-    if extend_result.type == '0':
+    if extend_result.type == EXTEND_TYPE.get('list'):
         extend_result.extend_title = "Recommendations of Ops_Not_Support_Heavy_Format"
         extend_result.data_type.append(EXTEND_DATA_TYPE.get('str'))
         extend_result.value.append("Modify the operation to support light format")
@@ -80,7 +84,7 @@ def evaluate(data_path, input_nodes=None):
         result.extend_result.append(extend_result)
 
     # table type result
-    elif extend_result.type == '1':
+    elif extend_result.type == EXTEND_TYPE.get('table'):
         extend_result.extend_title = "suggestions"
         extend_result.key.append("Detection Type")
         extend_result.key.append("Operator Index")
@@ -97,7 +101,7 @@ def evaluate(data_path, input_nodes=None):
         extend_result.value.append(value)
 
         result.extend_result.append(extend_result)
-    elif extend_result.type == '2':
+    elif extend_result.type == EXTEND_TYPE.get('sourcedata'):
         extend_result.extend_title = "sourcedatapath"
         extend_result.data_type.append(EXTEND_DATA_TYPE.get('str'))
         extend_result.value.append("/home/datapath/")
@@ -106,7 +110,8 @@ def evaluate(data_path, input_nodes=None):
 
 
 if __name__ == "__main__":
-    DATA_PATH = "./"
+    DATA_PATH = sys.argv[1]
     my_input_nodes = []
-    ret = evaluate(DATA_PATH, my_input_nodes)
+    param = json.dumps({"inputs_nodes": my_input_nodes})
+    ret = evaluate(DATA_PATH, param)
     # using debug: print("sample in:{} out:{}".format(DATA_PATH, ret))

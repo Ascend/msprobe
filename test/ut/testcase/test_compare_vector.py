@@ -116,9 +116,10 @@ class TestUtilsMethods(unittest.TestCase):
                      mock.patch('os.remove'), \
                      mock.patch('os.listdir', side_effect=[['alg_CosineSimilarity.py'], []]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
-                    main = compare_vector.VectorComparison()
-                    main.compare()
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
+                        main = compare_vector.VectorComparison()
+                        main.compare()
         self.assertEqual(error.value.code,
                          CompareError.MSACCUCMP_DUMP_FILE_ERROR)
 
@@ -132,7 +133,8 @@ class TestUtilsMethods(unittest.TestCase):
                      mock.patch('os.remove'), \
                      mock.patch('os.listdir', side_effect=[['alg_CosineSimilarity.py'], ['xx.g.gg.xx']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -150,7 +152,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.aaa.0.1111111111111111',
                                                                            'aaa.0.1111111111111111.quant']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -167,7 +170,8 @@ class TestUtilsMethods(unittest.TestCase):
                      mock.patch('os.listdir',
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.0.1111111111111111.pb']]), \
                      mock.patch('os.path.isdir', side_effect=[True, False]), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -185,7 +189,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.0.1111111111111111.pb'],
                                              ['aaa.0.1111111111111111.pb']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -205,7 +210,8 @@ class TestUtilsMethods(unittest.TestCase):
                                              ['ccc.aaa.0.1111111111111111',
                                               'convert_failed_file_list.txt']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -223,7 +229,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.0.1111111111111111.dump'],
                                              ['aaa.0.1111111111111111.dump']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -241,7 +248,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.0.1111111111111111.quant'],
                                              ['aaa.0.1111111111111111.dump']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -259,7 +267,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.0.1111111111111111.dump'],
                                              ['aaa.0.1111111111111111.quant']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -277,7 +286,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.0.1111111111111111.quant'],
                                              ['aaa.0.1111111111111111.dump']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -295,7 +305,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.0.1111111111111111.dump'],
                                              ['aaa.0.1111111111111111.pb']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -313,7 +324,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.0.1111111111111111.quant'],
                                              ['aaa.0.1111111111111111.dump']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -370,7 +382,8 @@ class TestUtilsMethods(unittest.TestCase):
                                 side_effect=[['alg_CosineSimilarity.py'], ['aaa.0.1111111111111111.dump'],
                                              ['aaa.0.1111111111111111.dump']]), \
                      mock.patch('os.path.isdir', return_value=True), \
-                     mock.patch('os.path.isfile', return_value=True):
+                     mock.patch('os.path.isfile', return_value=True), \
+                     mock.patch('os.path.getsize', return_value=1024):
                     main = compare_vector.VectorComparison()
                     main.compare()
         self.assertEqual(error.value.code,
@@ -409,6 +422,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
@@ -468,6 +482,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -527,6 +542,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -547,7 +563,8 @@ class TestUtilsMethods(unittest.TestCase):
                                     mock.mock_open(
                                         read_data=self._make_csv_content())):
                         with mock.patch('os.open') as open_file, \
-                                mock.patch('os.fdopen'):
+                                mock.patch('os.fdopen'), \
+                                mock.patch('os.path.getsize', return_value=1024):
                             with mock.patch("multiprocessing.pool.ApplyResult.get", return_value=result):
                                 open_file.write = None
                                 main = compare_vector.VectorComparison(arguments)
@@ -585,6 +602,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -605,7 +623,8 @@ class TestUtilsMethods(unittest.TestCase):
                                     mock.mock_open(
                                         read_data=self._make_csv_content())):
                         with mock.patch('os.open') as open_file, \
-                                mock.patch('os.fdopen'):
+                                mock.patch('os.fdopen'), \
+                                mock.patch('os.path.getsize', return_value=1024):
                             with mock.patch("multiprocessing.pool.ApplyResult.get", return_value=result):
                                 open_file.write = None
                                 main = compare_vector.VectorComparison(arguments)
@@ -640,6 +659,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -660,7 +680,8 @@ class TestUtilsMethods(unittest.TestCase):
                                     mock.mock_open(
                                         read_data=self._make_csv_content())):
                         with mock.patch('os.open') as open_file, \
-                                mock.patch('os.fdopen'):
+                                mock.patch('os.fdopen'), \
+                                mock.patch('os.path.getsize', return_value=1024):
                             with mock.patch("multiprocessing.pool.ApplyResult.get", return_value=result):
                                 open_file.write = None
                                 main = compare_vector.VectorComparison(arguments)
@@ -695,6 +716,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -749,6 +771,7 @@ class TestUtilsMethods(unittest.TestCase):
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         dump_data = DD.DumpData()
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -808,6 +831,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 1, 1, 1]))
         result = [[0, True, "data&message"]]
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -865,6 +889,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [0, 1, 1]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -945,6 +970,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [0, 1, 1]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1003,6 +1029,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1144,6 +1171,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(utils.CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1172,6 +1200,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1202,6 +1231,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(utils.CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1236,6 +1266,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1268,6 +1299,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(CompareError) as error:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1287,7 +1319,8 @@ class TestUtilsMethods(unittest.TestCase):
                                         read_data=self._make_input_json().encode(
                                             'utf-8'))):
                         with mock.patch('os.open') as open_file, \
-                                mock.patch('os.fdopen'):
+                                mock.patch('os.fdopen'), \
+                                mock.patch('os.path.getsize', return_value=1024):
                             open_file.write = None
                             main = compare_vector.VectorComparison()
                             ret = main.compare()
@@ -1299,6 +1332,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(utils.CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1337,6 +1371,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1374,6 +1409,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with pytest.raises(utils.CompareError) as err:        
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
@@ -1410,6 +1446,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1445,6 +1482,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1494,6 +1532,7 @@ class TestUtilsMethods(unittest.TestCase):
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         dump_data = DD.DumpData()
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \

@@ -224,8 +224,9 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('builtins.open',
                                 mock.mock_open(read_data=dump_data_ser)):
                     dump_data = utils.parse_dump_file('/home/a.dump', 1)
-        self.assertEqual(dump_data.output[0].data_type, DD.DT_FLOAT16)
-        self.assertEqual(len(dump_data.output[0].data), 48)
+        self.assertEqual(dump_data.output_data[0].data_type, DD.DT_FLOAT16)
+        data_byte = utils.convert_ndarray_to_bytes(dump_data.output_data[0].data)
+        self.assertEqual(len(data_byte), 48)
 
     def test_parse_dump_file5(self):
         dump_data = DD.DumpData()
@@ -236,7 +237,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
                 with mock.patch('builtins.open', mock.mock_open(read_data=dump_data_ser)):
                     dump_data = utils.parse_dump_file('/home/a.dump', 1)
-        self.assertEqual(dump_data.output[0].size, 48)
+        self.assertEqual(dump_data.output_data[0].size, 48)
 
     def test_parse_dump_file6(self):
         dump_data = DD.DumpData()
@@ -276,7 +277,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('os.path.getsize', return_value=1210):
                 with mock.patch('numpy.load', return_value=np.ones([1, 3, 2, 2])):
                     dump_data = utils.parse_dump_file('/home/a.npy', 0)
-        self.assertEqual(dump_data.output[0].shape.dim[1], 3)
+        self.assertEqual(dump_data.output_data[0].shape[1], 3)
 
     def test_print_progress1(self):
         with mock.patch('time.time', return_value=3):
@@ -298,8 +299,9 @@ class TestUtilsMethods(unittest.TestCase):
         csv_object = [[13243254435, "/home/demo/Add.0.1223242.npy"]]
         with mock.patch("os.path.isfile", return_value=True):
             with mock.patch('builtins.open', mock.mock_open(read_data="demo")):
-                with mock.patch("csv.reader", return_value=csv_object):
-                    hash_map = utils.read_mapping_file(mapping_file_path)
+                with mock.patch('os.path.getsize', return_value=1024):
+                    with mock.patch("csv.reader", return_value=csv_object):
+                        hash_map = utils.read_mapping_file(mapping_file_path)
         self.assertEqual(hash_map, {13243254435: "/home/demo/Add.0.1223242.npy"})
 
     def test_read_mapping_file2(self):
@@ -307,16 +309,18 @@ class TestUtilsMethods(unittest.TestCase):
         csv_object = [[13243254435]]
         with mock.patch("os.path.isfile", return_value=True):
             with mock.patch('builtins.open', mock.mock_open(read_data="demo")):
-                with mock.patch("csv.reader", return_value=csv_object):
-                    hash_map = utils.read_mapping_file(mapping_file_path)
+                with mock.patch('os.path.getsize', return_value=1024):
+                    with mock.patch("csv.reader", return_value=csv_object):
+                        hash_map = utils.read_mapping_file(mapping_file_path)
         self.assertEqual(hash_map, {})
 
     def test_read_mapping_file3(self):
         mapping_file_path = "/home/demo/1.csv"
         with mock.patch("os.path.isfile", return_value=True):
             with mock.patch('builtins.open', mock.mock_open(read_data="demo")):
-                with mock.patch("csv.reader", side_effect=IOError):
-                    hash_map = utils.read_mapping_file(mapping_file_path)
+                with mock.patch('os.path.getsize', return_value=1024):
+                    with mock.patch("csv.reader", side_effect=IOError):
+                        hash_map = utils.read_mapping_file(mapping_file_path)
         self.assertEqual(hash_map, {})
 
     def test_sort_result_file_by_index1(self):
@@ -325,9 +329,10 @@ class TestUtilsMethods(unittest.TestCase):
         result_file = "/home/demo/1.csv"
         result_file_content = 'Index,LeftOp,RightOp,TensorIndex,MaxAbsoluteError,MaxAbsoluteError,CompareFailReason'
         with mock.patch('builtins.open', mock.mock_open(read_data=result_file_content)):
-            with mock.patch('os.open'), mock.patch("os.fdopen"):
-                csv.reader = mock.Mock(return_value=result_reader)
-                utils.sort_result_file_by_index(result_file)
+            with mock.patch('os.path.getsize', return_value=1024):
+                with mock.patch('os.open'), mock.patch("os.fdopen"):
+                    csv.reader = mock.Mock(return_value=result_reader)
+                    utils.sort_result_file_by_index(result_file)
 
     def test_sort_result_file_by_index2(self):
         result_file = "/home/demo/2.csv"
@@ -335,13 +340,15 @@ class TestUtilsMethods(unittest.TestCase):
         result = '0 input_ids input_ids input_ids:output:0 1.000000 0.000000 0.000000 0.000000 0.000000' \
                  ' \'(1171.945;2293.594) (1171.945;2293.594)\''
         with mock.patch('builtins.open', mock.mock_open(read_data=result_file_content + result)):
-            with mock.patch('os.open'), mock.patch("os.fdopen"):
-                utils.sort_result_file_by_index(result_file, False)
+            with mock.patch('os.path.getsize', return_value=1024):
+                with mock.patch('os.open'), mock.patch("os.fdopen"):
+                    utils.sort_result_file_by_index(result_file, False)
 
     def test_sort_result_file_by_index3(self):
         result_file = "/home/demo/3.csv"
         with mock.patch('builtins.open', side_effect=IOError):
-            utils.sort_result_file_by_index(result_file)
+            with mock.patch('os.path.getsize', return_value=1024):
+                utils.sort_result_file_by_index(result_file)
 
     def test_get_shape_type1(self):
         shape_dim_array = [0]

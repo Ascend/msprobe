@@ -32,7 +32,7 @@ class FileUtils:
         load json file
         :json_file: the json file
         """
-        cls._check_json_file_size(json_file)
+        utils.check_file_size(json_file, ConstManager.ONE_HUNDRED_MB)
         try:
             with open(json_file, 'r') as input_file:
                 return json.load(input_file)
@@ -42,18 +42,6 @@ class FileUtils:
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR) from error
         finally:
             pass
-
-    @classmethod
-    def _check_json_file_size(cls: any, json_file: str) -> any:
-        try:
-            file_size = os.path.getsize(json_file)
-        except OSError as os_error:
-            log.print_open_file_error(json_file, os_error)
-            raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from os_error
-        if file_size > ConstManager.ONE_HUNDRED_MB:
-            log.print_warn_log(
-                'The size (%d) of %s exceeds 100MB, it may task more time to run, please wait.'
-                % (file_size, json_file))
 
     @staticmethod
     def read_csv(path: str) -> list:
@@ -66,6 +54,7 @@ class FileUtils:
             log.print_warn_log('read csv failed, file path'
                                ' [{}] is invalid'.format(path))
             return content
+        utils.check_file_size(path, ConstManager.ONE_HUNDRED_MB)
         try:
             with open(path, 'r') as f:
                 csv_handle = csv.reader(f)
@@ -262,7 +251,7 @@ class OverflowFileUtils(FileUtils):
             anchor = {
                 "anchor_type": tensor_type,
                 "anchor_idx": index,
-                "format": common.get_format_string(tensor.format)
+                "format": common.get_format_string(tensor.tensor_format)
             }
 
             parsed_dump_files[parsed_dump_file_name] \
@@ -347,9 +336,9 @@ class OverflowFileUtils(FileUtils):
         dump_data = utils.parse_dump_file(dump_file_desc.file_path, ConstManager.BINARY_DUMP_TYPE)
         dump_file_desc.set_op_name(dump_data.op_name)
         parsed_dump_files = self._gen_one_tensor_desc(output_path, dump_file_desc,
-                                                      dump_data.input, 'input')
+                                                      dump_data.input_data, 'input')
         parsed_dump_files.update(self._gen_one_tensor_desc(output_path, dump_file_desc,
-                                                           dump_data.output, 'output'))
+                                                           dump_data.output_data, 'output'))
         parsed_dump_files.update(self._gen_one_tensor_desc(output_path, dump_file_desc,
                                                            dump_data.buffer))
         return parsed_dump_files

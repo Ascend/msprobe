@@ -51,7 +51,8 @@ class TestUtilsMethods(unittest.TestCase):
         file_util = file_utils.FileUtils()
         output_content = ['word1 end!',
                           'word2 end!']
-        with mock.patch('builtins.open', side_effect=None):
+        with mock.patch('builtins.open', side_effect=None), \
+             mock.patch('os.path.getsize', return_value=1024):
             with mock.patch('csv.reader', return_value=output_content):
                 ret = file_util.read_csv("/home/test.csv")
         self.assertEqual(ret, ['word1 end!', 'word2 end!'])
@@ -195,7 +196,7 @@ class TestUtilsMethods(unittest.TestCase):
             length *= dim
         data_list = np.arange(length)
         origin_numpy = np.array(data_list, np.float16)
-
+        dump_data = utils.convert_dump_data(dump_data)
         file_desc = {
             "file_path": "/home/Opdebug.Node_OpDebug.1.25.161233160",
             "timestamp": int("161233160")

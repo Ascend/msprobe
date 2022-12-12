@@ -22,8 +22,7 @@ from const_manager import ConstManager
 
 from tensor_conversion import TensorConversion
 from compare_error import CompareError
-import dump_data_pb2 as DD
-
+from dump_data_object import DumpDataObj
 import common
 
 
@@ -124,16 +123,18 @@ class FusionOpComparison:
             origin_tensor.name, origin_tensor.index)
         origin_tensor.set_path(dump_file_path)
         if self.compare_data.right_dump_info.type == DumpType.Offline:
-            if origin_tensor.index >= len(dump_data.output):
+            if origin_tensor.index >= len(dump_data.output_data):
                 log.print_out_of_range_error(fusion_op.op_name, "output", origin_tensor.index,
-                                             '[0, %d)' % len(dump_data.output))
+                                             '[0, %d)' % len(dump_data.output_data))
                 raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
-            origin_tensor.set_data(dump_data.output[origin_tensor.index])
+
+            origin_tensor.set_data(dump_data.output_data[origin_tensor.index])
             origin_tensor.tensor_format = \
                 common.get_format_string(dump_data.output_data[origin_tensor.index].tensor_format)
-            origin_tensor.shape = list(dump_data.output[origin_tensor.index].shape.dim)
+            origin_tensor.shape = dump_data.output_data[origin_tensor.index].shape
+
         else:
-            origin_tensor.set_data(dump_data.output[0])
+            origin_tensor.set_data(dump_data.output_data[0])
         return origin_tensor
 
     def compare(self: any) -> (int, bool, list):
@@ -183,8 +184,8 @@ class FusionOpComparison:
             ok, my_output_dump_data = self._parse_dump_file(fusion_op, my_output_dump_path, table_content)
             if not ok:
                 continue
-            self._make_mapping_by_input(fusion_op, my_output_dump_data.input, my_output_dump_path, table_content)
-            self._make_mapping_by_output(fusion_op, my_output_dump_data.output, my_output_dump_path, table_content)
+            self._make_mapping_by_input(fusion_op, my_output_dump_data.input_data, my_output_dump_path, table_content)
+            self._make_mapping_by_output(fusion_op, my_output_dump_data.output_data, my_output_dump_path, table_content)
         return table_content
 
     def _compare_by_operator(self: any, fusion_op: FusionOp) -> list:
@@ -351,8 +352,8 @@ class FusionOpComparison:
                                is_input: bool, tensor: any) -> (list, list, list):
         # 1. get ground truth dump data by original op name and index
         ground_truth_tensor = self.get_right_dump_data(fusion_op, index, is_input)
-        if len(tensor.original_shape.dim) != 0:
-            ground_truth_tensor.shape = tensor.original_shape.dim
+        if ground_truth_tensor.shape:
+            ground_truth_tensor.shape = tensor.original_shape
         # 2. deserialize output data to array
         tensor_conversion = TensorConversion(fusion_op, self.format_manager, is_detail=False)
         my_output_array, ground_truth_array, my_output_shape = \
@@ -369,9 +370,11 @@ class FusionOpComparison:
         return result, compare_fail_message, [my_output_shape, my_output_dtype, ground_truth_dtype]
 
     def _compare_by_tensor(self: any, fusion_op: FusionOp, is_input: bool) -> (bool, list):
-        tensor_list = self.left_dump_data.input if is_input else self.left_dump_data.output
+        tensor_list = self.left_dump_data.input_data if is_input else self.left_dump_data.output_data
         match = False
         tensor_result_list = []
+        if is_input and len(fusion_op.input_list) != len(tensor_list):
+            log.print_warn_log("The count of input dump data does not equal to the count in fusion rule file.")
         # compare each tensor
         for (index, tensor) in enumerate(tensor_list):
             result = self._compare(fusion_op, index, is_input, tensor)
@@ -404,7 +407,7 @@ class FusionOpComparison:
         except CompareError as compare_error:
             error_msg = self._handle_error_msg(compare_error, fusion_op, tensor_id)
             algorithm_result = self.algorithm_manager.make_nan_result()
-            shape = tensor.shape.dim
+            shape = tensor.shape
             match = False
 
         CompareResult = collections.namedtuple(
@@ -447,7 +450,7 @@ class FusionOpComparison:
             return ConstManager.NAN
 
     def _parse_dump_file(self: any, fusion_op: FusionOp, my_output_dump_path: str,
-                         table_content: list) -> (bool, DD.DumpData):
+                         table_content: list) -> (bool, DumpDataObj):
         try:
             return True, utils.parse_dump_file(my_output_dump_path, self.compare_data.dump_version)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
@@ -457,7 +460,7 @@ class FusionOpComparison:
                 ConstManager.NAN, my_output_dump_path, ConstManager.NAN, fusion_op))
         finally:
             pass
-        return False, DD.DumpData()
+        return False, DumpDataObj()
 
     def _make_mapping_table_content(self: any, tensor_id: str, my_output_dump_path: str, ground_truth_dump_path: str,
                                     fusion_op: FusionOp) -> list:

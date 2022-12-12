@@ -43,9 +43,9 @@ class DetailComparison:
         :param my_output_data: my output data
         """
         if self.detail_info.tensor_id.is_input():
-            count = len(my_output_data.input)
+            count = len(my_output_data.input_data)
         else:
-            count = len(my_output_data.output)
+            count = len(my_output_data.output_data)
         if self.detail_info.tensor_id.index >= count:
             log.print_out_of_range_error(self.fusion_op.op_name, self.detail_info.tensor_id.tensor_type,
                                          self.detail_info.tensor_id.index, '[0, %d)' % count)
@@ -82,9 +82,9 @@ class DetailComparison:
 
         # get format by right output info
         self.detail_info.set_detail_format(utils.convert_shape_to_string(
-            tensor_list[self.detail_info.tensor_id.index].shape.dim),
-            tensor_list[self.detail_info.tensor_id.index].format,
-            ground_truth_tensor.format
+            tensor_list[self.detail_info.tensor_id.index].shape),
+            tensor_list[self.detail_info.tensor_id.index].tensor_format,
+            ground_truth_tensor.tensor_format
         )
         # deserialize output data to array
         tensor_conversion = TensorConversion(self.fusion_op, self.fusion_op_comparison.format_manager,
@@ -111,11 +111,11 @@ class DetailComparison:
         dump_file = os.path.basename(my_output_data_path)
         self.check_index_valid(my_output_data)
         if self.detail_info.tensor_id.is_input():
-            tensor_list = my_output_data.input
+            tensor_list = my_output_data.input_data
         else:
             if relation == utils.FusionRelation.L1Fusion:
                 self._print_l1_fusion_warning()
-            tensor_list = my_output_data.output
+            tensor_list = my_output_data.output_data
         return tensor_list, dump_file
 
     def _get_my_output_tensor_list(self: any) -> list:
@@ -175,21 +175,21 @@ class DumpDetailComparison:
         self._check_index_valid(left_tensor_data, op_name, tensor_index, tensor_type)
         self._check_index_valid(right_tensor_data, op_name, tensor_index, tensor_type)
 
-        my_output_shape = tuple(left_tensor_data[tensor_index].shape.dim)
-        ground_truth_shape = tuple(right_tensor_data[tensor_index].shape.dim)
+        my_output_shape = tuple(left_tensor_data[tensor_index].shape)
+        ground_truth_shape = tuple(right_tensor_data[tensor_index].shape)
         if my_output_shape != ground_truth_shape:
             log.print_error_log("My Output data shape %s not equal to Ground Truth data shape %s."
                                 "Can not compare." % (my_output_shape, ground_truth_shape))
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
-        my_output_array = utils.deserialize_dump_data_to_array(left_tensor_data[tensor_index])
-        ground_truth_array = utils.deserialize_dump_data_to_array(right_tensor_data[tensor_index])
+        my_output_array = left_tensor_data[tensor_index].data
+        ground_truth_array = right_tensor_data[tensor_index].data
 
         self.detail_info.set_detail_ops(op_name, op_name)
         self.detail_info.check_and_set_format(utils.convert_shape_to_string(
-            left_tensor_data[tensor_index].shape.dim),
-            left_tensor_data[tensor_index].format,
-            right_tensor_data[tensor_index].format
+            left_tensor_data[tensor_index].shape),
+            left_tensor_data[tensor_index].tensor_format,
+            right_tensor_data[tensor_index].tensor_format
         )
 
         # delete old result
@@ -228,9 +228,9 @@ class DumpDetailComparison:
         log.print_info_log("My Output data path: " + left_path)
         log.print_info_log("Ground Truth data path: " + right_path)
         if tensor_type == ConstManager.INPUT:
-            left_tensor_data = left_data.input
-            right_tensor_data = right_data.input
+            left_tensor_data = left_data.input_data
+            right_tensor_data = right_data.input_data
         else:
-            left_tensor_data = left_data.output
-            right_tensor_data = right_data.output
+            left_tensor_data = left_data.output_data
+            right_tensor_data = right_data.output_data
         return left_path, left_tensor_data, right_tensor_data

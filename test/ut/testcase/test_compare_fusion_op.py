@@ -82,6 +82,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch("utils.parse_dump_file", return_value=dump_data):
             FusionOpComparison(fusion_op_name, compare_rule, compare_data,
                                format_manager,
@@ -117,6 +118,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch("utils.parse_dump_file", return_value=dump_data):
             FusionOpComparison(fusion_op_name, compare_rule, compare_data,
                                format_manager,

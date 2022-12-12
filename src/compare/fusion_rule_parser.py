@@ -413,7 +413,7 @@ class FusionRuleParser:
                 if item == "" and len(op_object[ConstManager.INPUT_OBJECT]) == 1:
                     break
                 # skip control edge
-                if not item.endswith(':-1'):
+                if not item.endswith(':-1') and item != "":
                     input_list.append(item)
         return input_list
 
