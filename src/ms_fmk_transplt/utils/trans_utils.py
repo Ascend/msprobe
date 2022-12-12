@@ -314,7 +314,7 @@ def refresh_parso_cache():
     clear_parso_cache()
     if os.path.exists(cache_directory):
         raise JediCacheClearException('Failed to delete jedi cache. Please delete it manually.')
-    os.makedirs(cache_directory, mode=0o700)
+    os.makedirs(cache_directory, mode=0o700, exist_ok=True)
 
 
 def check_is_subdirectory(path_may_be_parent, path_may_be_child):
