@@ -9,8 +9,8 @@ import sys
 
 from utils import trans_utils as utils
 from utils import transplant_logger as translog
-from unsupported_api_analysis import UnsupportedApiAnalyzer
-from third_party_analysis import ThirdPartyAnalyzer
+import unsupported_api_analysis
+import third_party_analysis
 
 
 class PyTorchAnalyse:
@@ -19,8 +19,8 @@ class PyTorchAnalyse:
         self.output_path = ''
         self.py_file_counts = 0
         self.analyse_dict = {
-            'third_party': ThirdPartyAnalyzer,
-            'torch_apis': UnsupportedApiAnalyzer
+            'third_party': third_party_analysis.ThirdPartyAnalyzer,
+            'torch_apis': unsupported_api_analysis.UnsupportedApiAnalyzer
         }
 
     @staticmethod
