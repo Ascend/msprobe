@@ -33,8 +33,8 @@ class PyTorchAnalyse:
         parser.add_argument('-m', '--mode', default='torch_apis', choices=['third_party', 'torch_apis'],
                             help='The way the script is analyzed. Only support torch_apis and third_party currently')
         parser.add_argument('-f', '--file', default='', metavar='FILE',
-                            help='The entry file of the unsupported op list')
-        parser.add_argument('-p', '--env-path', nargs='*', type=str, help='env path of the input project')
+                            help='The unsupported op list file path output by the third-party analyse')
+        parser.add_argument('-env', '--env-path', nargs='*', type=str, help='env path of the input project')
         return parser.parse_args()
 
     def main(self):
