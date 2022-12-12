@@ -17,5 +17,8 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
 
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
-        op_list, _, _ = get_op_visit_result(code, self.pytorch_version)
+        unsupported_op_list = utils.get_op_list(self.pytorch_version)
+        if self.unsupported_third_party_file:
+            unsupported_op_list.update(utils.read_unsupported_op_csv(self.unsupported_third_party_file))
+        op_list, _, _ = get_op_visit_result(code, unsupported_op_list)
         utils.write_csv(op_list, self.current_file_rel_path, self.output_path, "unsupported_op")

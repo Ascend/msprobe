@@ -47,9 +47,9 @@ class ApiVisitor(libcst.CSTVisitor):
         return qualified_name
 
 
-def get_op_visit_result(code, pytorch_version):
+def get_op_visit_result(code, unsupported_op_list):
     wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-    api_visitor = ApiVisitor(utils.get_op_list(pytorch_version))
+    api_visitor = ApiVisitor(unsupported_op_list)
     module = wrapper.visit(api_visitor)
     op_list = api_visitor.print_unsupported_ops()
     return op_list, module, wrapper

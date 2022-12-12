@@ -7,12 +7,13 @@ from utils import trans_utils as utils, transplant_logger as translog
 
 
 class BaseAnalyzer:
-    def __init__(self, script_dir, output_path, pytorch_version):
+    def __init__(self, script_dir, output_path, pytorch_version, unsupported_third_party_file):
         self.script_dir = script_dir
         self.output_path = output_path
         self.pytorch_version = pytorch_version
         self.py_file_counts = 0
         self.current_file_rel_path = ''
+        self.unsupported_third_party_file = unsupported_third_party_file
 
     @staticmethod
     def __need_analysis(file, commonprefix):

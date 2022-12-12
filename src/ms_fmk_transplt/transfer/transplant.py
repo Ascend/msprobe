@@ -59,7 +59,7 @@ class Transplant(object):
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
-        op_list, module, wrapper = get_op_visit_result(code, self.args.version)
+        op_list, module, wrapper = get_op_visit_result(code, utils.get_op_list(self.args.version))
         utils.write_csv(op_list, self.current_file_rel_path, self.script_dir, "unsupported_op")
 
         new_module = self.__visit_rule(file, module)
