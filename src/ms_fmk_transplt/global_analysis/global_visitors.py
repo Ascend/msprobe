@@ -83,7 +83,7 @@ class GlobalReferenceVisitor:
                 # solve the function within the function problem
                 full_name = '_'.join((os.path.basename(self.file_path), str(line), str(column),
                                       func_list[0].description.split()[-1]))
-            return full_name, os.path.basename(self.file_path)
+            return full_name, os.path.relpath(self.file_path, self.project_path)
         return '', ''
 
     def get_infer_func_list_in_project(self, line, column):

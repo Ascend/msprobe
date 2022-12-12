@@ -32,6 +32,9 @@ class PyTorchAnalyse:
                             help='Target pytorch version of output')
         parser.add_argument('-m', '--mode', default='torch_apis', choices=['third_party', 'torch_apis'],
                             help='The way the script is analyzed. Only support torch_apis and third_party currently')
+        parser.add_argument('-f', '--file', default='', metavar='FILE',
+                            help='The unsupported op list file path output by the third-party analyse')
+        parser.add_argument('-env', '--env-path', nargs='*', type=str, help='env path of the input project')
         return parser.parse_args()
 
     def main(self):
@@ -41,11 +44,19 @@ class PyTorchAnalyse:
             self.__check_param_valid(args)
             self.__check_input_valid(args)
             self.__check_output_valid(args)
+            if args.file:
+                self.__check_file_valid(args)
+            if args.env_path:
+                self.__check_env_path_valid(args)
             self.__init_logger()
             translog.info('PyTorch analysis start working now, please wait for a moment.')
-            pytorch_analysis = self.analyse_dict.get(args.mode)(self.input_path, self.output_path, args.version)
+            pytorch_analysis = self.analyse_dict.get(args.mode)(self.input_path, self.output_path, args.version,
+                                                                args.file)
             if args.mode == 'third_party':
-                pytorch_analysis.init_global_visitor(self.__get_global_visitor())
+                env_path = pytorch_analysis.package_env_path_set
+                if args.env_path:
+                    env_path = args.env_path
+                pytorch_analysis.init_global_visitor(self.__get_global_visitor(env_path))
             pytorch_analysis.set_py_file_counts(self.py_file_counts)
             pytorch_analysis.run()
         except KeyboardInterrupt:
@@ -126,6 +137,23 @@ class PyTorchAnalyse:
             self.__set_report_files_permission(0o640)
             utils.remove_path(self.output_path)
 
+    @staticmethod
+    def __check_file_valid(args):
+        file_path = os.path.realpath(args.file)
+        if not utils.check_path_length_valid(file_path):
+            raise ValueError('The real path or file name of unsupported api file is too long.')
+        if not file_path.endswith('.csv'):
+            raise ValueError('unsupported api file %s should be a csv file!' % args.file)
+        if not os.path.exists(file_path):
+            raise ValueError('unsupported api file %s does not exist!' % args.file)
+
+    @staticmethod
+    def __check_env_path_valid(args):
+        env_path = args.env_path
+        for path in env_path:
+            if not utils.check_is_subdirectory(args.input, path):
+                raise ValueError('env path %s should be a subdirectory of Input %s' % (path, args.input))
+
     def __init_logger(self):
         log_file = os.path.join(self.output_path, 'pytorch_analysis.txt')
         if os.path.exists(log_file):
@@ -141,13 +169,13 @@ class PyTorchAnalyse:
                 continue
             os.chmod(file_path, permission)
 
-    def __get_global_visitor(self):
+    def __get_global_visitor(self, env_path):
         if not utils.IS_JEDI_INSTALLED:
             raise ModuleNotFoundError("third party analysis must have jedi installed")
         from global_analysis import GlobalReferenceVisitor
 
         utils.refresh_parso_cache()
-        global_reference_visitor = GlobalReferenceVisitor(self.input_path, sys_path=[])
+        global_reference_visitor = GlobalReferenceVisitor(self.input_path, sys_path=env_path)
         return global_reference_visitor
 
 
