@@ -129,7 +129,8 @@ class FusionOpComparison:
                                              '[0, %d)' % len(dump_data.output))
                 raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
             origin_tensor.set_data(dump_data.output[origin_tensor.index])
-            origin_tensor.format = common.get_format_string(dump_data.output[origin_tensor.index].format)
+            origin_tensor.tensor_format = \
+                common.get_format_string(dump_data.output_data[origin_tensor.index].tensor_format)
             origin_tensor.shape = list(dump_data.output[origin_tensor.index].shape.dim)
         else:
             origin_tensor.set_data(dump_data.output[0])
