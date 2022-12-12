@@ -47,10 +47,7 @@ class Args(object):
 
 def run(mock_args, net_name, output_path, result_dict):
     from src.ms_fmk_transplt.ms_fmk_transplt import MsFmkTransplt
-    from src.ms_fmk_transplt.utils import trans_utils as utils
     try:
-        utils.refresh_parso_cache = mock.Mock(side_effect=mock_refresh_parso_cache())
-        utils.IS_JEDI_INSTALLED = False
         ms_fmk_transplt = MsFmkTransplt()
         ms_fmk_transplt._MsFmkTransplt__parse_command = mock_args
         ret = ms_fmk_transplt.main()
@@ -63,10 +60,6 @@ def run(mock_args, net_name, output_path, result_dict):
     except Exception as e:
         print(repr(e))
         result_dict[net_name] = TRANS_ERROR
-
-
-def mock_refresh_parso_cache():
-    pass
 
 
 class TestMsFmkTransplt(unittest.TestCase):
@@ -261,7 +254,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'update':
         update_standard()
     else:
-        src_list = ["src.ms_fmk_transplt", "transfer", "analysis", "utils"]
+        src_list = ["src.ms_fmk_transplt", "transfer", "analysis", "utils", "global_analysis"]
         cov = coverage.Coverage(concurrency="multiprocessing", source=src_list, cover_pylib=False,
                                 omit=["*/libcst/*", "test*", "*xmlrunner*", "*site-packages*"], branch=True)
         if len(sys.argv) > 1 and sys.argv[1] == 'mr':

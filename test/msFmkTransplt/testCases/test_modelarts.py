@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 class TestModelArtsPathManager(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        from src.ms_fmk_transplt.ascend_modelarts_function import ModelArtsPathManager
+        from src.ms_fmk_transplt.transfer.adapter.ascend_modelarts_function import ModelArtsPathManager
         cls.ModelArtsPathManager = ModelArtsPathManager
 
     def test_get_path_not_on_modelarts(self):

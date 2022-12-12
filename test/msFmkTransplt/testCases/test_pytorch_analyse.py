@@ -26,9 +26,7 @@ class Args:
 
 def run(mock_args):
     from analysis.pytorch_analyse import PyTorchAnalyse
-    from src.ms_fmk_transplt.utils import trans_utils as utils
     try:
-        utils.refresh_parso_cache = mock.Mock(side_effect=mock_refresh_parso_cache())
         analyse = PyTorchAnalyse()
         analyse._PyTorchAnalyse__parse_command = mock_args
         return analyse.main()
@@ -37,16 +35,7 @@ def run(mock_args):
         return ANALYSE_ERROR
 
 
-def mock_refresh_parso_cache():
-    pass
-
-
 class TestPyTorchAnalyse(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        from src.ms_fmk_transplt.utils import trans_utils as utils
-        utils.IS_JEDI_INSTALLED = True
-
     def setUp(self):
         self.abs_input_path = os.path.abspath('../resources/net')
         shutil.rmtree("../test_result/", ignore_errors=True)
@@ -66,7 +55,7 @@ class TestPyTorchAnalyse(unittest.TestCase):
         self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
 
     def test_cuda_op_parser(self):
-        from analysis.third_party.cuda_cpp_visitor import CudaOpVisitor
+        from analysis.third_party_analysis.cuda_cpp_visitor import CudaOpVisitor
         from src.ms_fmk_transplt.utils import trans_utils as utils
         code = '''
 int chamfer_forward(at::Tensor xyz1, at::Tensor xyz2, at::Tensor dist1, at::Tensor dist2, at::Tensor idx1, at::Tensor idx2) {

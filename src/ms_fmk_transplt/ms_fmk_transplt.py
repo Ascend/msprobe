@@ -7,9 +7,10 @@ import os
 import shutil
 import sys
 
-import utils.trans_utils as utils
-import utils.transplant_logger as translog
+from utils import trans_utils as utils
+from utils import transplant_logger as translog
 from transfer.transplant import Transplant
+from transfer.rules.rule_getter import rule_getter
 
 
 class MsFmkTransplt(object):
@@ -129,7 +130,7 @@ class MsFmkTransplt(object):
         global_reference_visitor = None
         if utils.IS_JEDI_INSTALLED:
             utils.refresh_parso_cache()
-            from transfer.global_analysis import GlobalReferenceVisitor
+            from global_analysis import GlobalReferenceVisitor
             global_reference_visitor = GlobalReferenceVisitor(self.input)
         else:
             translog.warning('Since jedi is not correctly installed, global analysis will not take effect. You '
@@ -236,7 +237,7 @@ class MsFmkTransplt(object):
             self.feature_switch.append('distributed')
 
     def __copy_function_pack(self, pack_name):
-        function_pack_dir = os.path.join(os.path.dirname(__file__), pack_name)
+        function_pack_dir = os.path.join(os.path.dirname(__file__), "transfer", "adapter", pack_name)
         if os.path.isdir(self.output):
             dst_path = os.path.join(self.output, pack_name)
         elif os.path.isfile(self.output):
@@ -261,9 +262,9 @@ class MsFmkTransplt(object):
         utils.change_mode(log_file)
 
     def __init_rules(self, args):
-        self.rule_list = utils.get_builtin_rule(self.feature_switch, args)
+        self.rule_list = rule_getter.get_builtin_rule(self.feature_switch, args)
         if self.custom_rule_file:
-            self.rule_list = utils.get_custom_rule(self.custom_rule_file, self.rule_list)
+            self.rule_list = rule_getter.get_custom_rule(self.custom_rule_file, self.rule_list)
 
     def __check_output_valid(self, args):
         self.input = os.path.realpath(args.input)

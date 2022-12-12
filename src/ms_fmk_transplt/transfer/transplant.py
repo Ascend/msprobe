@@ -10,12 +10,11 @@ import libcst
 from libcst._flatten_sentinel import FlattenSentinel
 from libcst._removal_sentinel import RemovalSentinel
 
-import utils.trans_utils as utils
-import utils.transplant_logger as translog
-from transfer.common_rules import InsertMainFileRule
-from utils.code_visitor import ApiVisitor
-from transfer.distributed_rules import DataLoaderRule
-from utils.trans_utils import TransplantException
+from utils import trans_utils as utils
+from utils import transplant_logger as translog
+from analysis import get_op_visit_result
+from .rules.distributed_rules import DataLoaderRule
+from .rules.common_rules import InsertMainFileRule
 
 
 class Transplant(object):
@@ -40,7 +39,7 @@ class Transplant(object):
         translog.info('Analysis start...')
 
         if not os.access(self.script_dir, os.R_OK):
-            raise TransplantException('%s is not readable.' % self.script_dir)
+            raise utils.TransplantException('%s is not readable.' % self.script_dir)
 
         if os.path.isfile(self.script_dir) and self.__need_analysis(self.script_dir, os.path.dirname(self.script_dir)):
             self.__delete_csv_file_for_file_transplant()
@@ -60,11 +59,7 @@ class Transplant(object):
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
-        wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-
-        api_visitor = ApiVisitor(utils.get_op_list(self.args.version))
-        module = wrapper.visit(api_visitor)
-        op_list = api_visitor.print_unsupported_ops()
+        op_list, module, wrapper = get_op_visit_result(code, utils.get_op_list(self.args.version))
         utils.write_csv(op_list, self.current_file_rel_path, self.script_dir, "unsupported_op")
 
         new_module = self.__visit_rule(file, module)
