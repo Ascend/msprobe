@@ -127,9 +127,12 @@ class FusionOpComparison:
                 log.print_out_of_range_error(fusion_op.op_name, "output", origin_tensor.index,
                                              '[0, %d)' % len(dump_data.output_data))
                 raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
+
             origin_tensor.set_data(dump_data.output_data[origin_tensor.index])
-            origin_tensor.format = common.get_format_string(dump_data.output_data[origin_tensor.index].tensor_format)
+            origin_tensor.tensor_format = \
+                common.get_format_string(dump_data.output_data[origin_tensor.index].tensor_format)
             origin_tensor.shape = dump_data.output_data[origin_tensor.index].shape
+
         else:
             origin_tensor.set_data(dump_data.output_data[0])
         return origin_tensor
