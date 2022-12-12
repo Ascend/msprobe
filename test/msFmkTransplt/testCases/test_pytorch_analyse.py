@@ -23,7 +23,7 @@ class Args:
 
 
 def run(mock_args):
-    from analysis.pytorch_analyse import PyTorchAnalyse
+    from analysis.analyse import PyTorchAnalyse
     from src.ms_fmk_transplt.utils import trans_utils as utils
     try:
         utils.refresh_parso_cache = mock.Mock(side_effect=mock_refresh_parso_cache())

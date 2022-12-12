@@ -4,12 +4,12 @@
 import json
 import os
 
+from utils.trans_utils import get_file_content_bytes, TransplantException, get_file_content
 from .. import common_rules as rule_module
 from ..distributed_rules import distributed_rule
 from ..pytorch_v1_5_0_rules import Amp2Apex, InitApexRule
 from ..modelarts_rules import get_modelarts_rule
 from ..pytorch_npu_patch_rules import InsertAheadRule
-from utils.trans_utils import get_file_content_bytes, TransplantException, get_file_content
 
 
 def get_custom_rule(file, rule_list):

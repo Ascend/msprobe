@@ -3,8 +3,8 @@
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 import os
 
-from .api_visitor import get_op_visit_result
 from utils import trans_utils as utils, transplant_logger as translog
+from .api_visitor import get_op_visit_result
 from ..base_analyzer import BaseAnalyzer
 
 

@@ -4,8 +4,8 @@
 
 import os
 
-from .cuda_cpp_parser import PybindModuleParser, TorchLibraryParser
 from utils import trans_utils as utils
+from .cuda_cpp_parser import PybindModuleParser, TorchLibraryParser
 
 
 class CudaOpVisitor:
