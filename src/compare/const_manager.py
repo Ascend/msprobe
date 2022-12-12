@@ -320,6 +320,7 @@ class ConstManager:
     NEW_FILE_FIELD_NUM = 9
     # FFTS/FFTS+ MODE Field
     FFTS_MANUAL_MODE_FIELD = "_lxslice"
+    SGT_FIELD = "_sgt_graph"
 
     @property
     def max_top_n(self: any) -> int:

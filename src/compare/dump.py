@@ -278,9 +278,10 @@ class DumpInfo:
             return
         finally:
             pass
-        op_name = match.group(1)
+        op_name = utils.handle_op_name(match.group(1))
+        # if real op name contain '_lxslice' field, the op will not be added to map
         if ConstManager.FFTS_MANUAL_MODE_FIELD in op_name:
-            op_name = op_name[:op_name.find(ConstManager.FFTS_MANUAL_MODE_FIELD)]
+            return
         self._check_task_type(op_name, item)
         self._check_dump_file_is_quant(current_dump_type, op_name)
         if self.type is None:

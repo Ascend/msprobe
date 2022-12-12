@@ -44,6 +44,10 @@ class RegManager:
 
     SUPPORT_PATH_PATTERN = r"^[A-Za-z0-9_\./:()=\\-]+$"
 
+    FFTS_MANUAL_FIELD_PATTERN = r"lxslice_[0-9]+"
+
+    SGT_FLIED_PATTERN = r"sgt_graph_[0-9]+"
+
     @staticmethod
     def match_pattern(pattern: str, value: any) -> bool:
         """
@@ -69,3 +73,8 @@ class RegManager:
         if match is not None:
             return True, match
         return False, match
+
+    @staticmethod
+    def get_matchs(pattern: str, value: any) -> any:
+        re_pattern = re.compile(pattern)
+        return [match for match in re.finditer(re_pattern, value)]
