@@ -10,12 +10,13 @@ import utils.trans_utils as utils
 
 
 class PyTorchAnalyze:
-    def __init__(self, script_dir, output_path, pytorch_version):
+    def __init__(self, script_dir, output_path, pytorch_version, unsupported_third_party_file):
         self.script_dir = script_dir
         self.output_path = output_path
         self.pytorch_version = pytorch_version
         self.py_file_counts = 0
         self.current_file_rel_path = ''
+        self.unsupported_third_party_file = unsupported_third_party_file
 
     @staticmethod
     def __need_analysis(file, commonprefix):
@@ -52,7 +53,10 @@ class PyTorchAnalyze:
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
         wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-        api_visitor = ApiVisitor(utils.get_op_list(self.pytorch_version))
+        unsupported_op_list = utils.get_op_list(self.pytorch_version)
+        if self.unsupported_third_party_file:
+            unsupported_op_list.update(utils.read_unsupported_op_csv(self.unsupported_third_party_file))
+        api_visitor = ApiVisitor(unsupported_op_list)
         wrapper.visit(api_visitor)
         op_list = api_visitor.print_unsupported_ops()
         utils.write_csv(op_list, self.current_file_rel_path, self.output_path, "unsupported_op")
