@@ -53,8 +53,10 @@ class PyTorchAnalyse:
             pytorch_analysis = self.analyse_dict.get(args.mode)(self.input_path, self.output_path, args.version,
                                                                 args.file)
             if args.mode == 'third_party':
-                pytorch_analysis.init_global_visitor(self.__get_global_visitor(
-                    args, pytorch_analysis.package_env_path_set))
+                env_path = pytorch_analysis.package_env_path_set
+                if args.env_path:
+                    env_path = args.env_path
+                pytorch_analysis.init_global_visitor(self.__get_global_visitor(env_path))
             pytorch_analysis.set_py_file_counts(self.py_file_counts)
             pytorch_analysis.run()
         except KeyboardInterrupt:
@@ -167,14 +169,12 @@ class PyTorchAnalyse:
                 continue
             os.chmod(file_path, permission)
 
-    def __get_global_visitor(self, args, env_path):
+    def __get_global_visitor(self, env_path):
         if not utils.IS_JEDI_INSTALLED:
             raise ModuleNotFoundError("third party analysis must have jedi installed")
         from transfer.global_analysis import GlobalReferenceVisitor
 
         utils.refresh_parso_cache()
-        if args.env_path:
-            env_path = args.env_path
         global_reference_visitor = GlobalReferenceVisitor(self.input_path, sys_path=env_path)
         return global_reference_visitor
 
