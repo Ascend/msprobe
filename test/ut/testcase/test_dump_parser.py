@@ -1,7 +1,7 @@
 import unittest
+from unittest import mock
 import pytest
 
-from unittest import mock
 from compare_error import CompareError
 import dump_parser
 
