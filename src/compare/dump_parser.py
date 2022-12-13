@@ -25,13 +25,6 @@ def _save_log_parser(save_log_parser: argparse.ArgumentParser) -> None:
                                  default='', help='<Optional> the output path')
 
 
-def _check_file_compare_out(args: argparse.Namespace) -> None:
-    ret = utils.check_output_path_valid(args.output_path, exist=True)
-    if ret != CompareError.MSACCUCMP_NONE_ERROR:
-        log.print_error_log('[file_compare] The -out parameter: "%s"  is invalid!' % args.output_path)
-        raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-
-
 def _do_cmd() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help='commands')
