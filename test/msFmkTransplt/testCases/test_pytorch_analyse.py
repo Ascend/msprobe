@@ -15,12 +15,12 @@ ANALYSE_ERROR = 1
 
 
 class Args:
-    def __init__(self, input_path, output_path, version='1.8.1', mode='torch_apis', file='', env_path=None):
+    def __init__(self, input_path, output_path, version='1.8.1', mode='torch_apis', api_files='', env_path=None):
         self.input = input_path
         self.output = output_path
         self.version = version
         self.mode = mode
-        self.file = file
+        self.api_files = api_files
         self.env_path = env_path
 
 
