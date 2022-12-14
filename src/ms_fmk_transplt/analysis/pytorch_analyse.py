@@ -58,7 +58,8 @@ class PyTorchAnalyse:
             env_path = pytorch_analysis.package_env_path_set
             if args.env_path:
                 env_path = args.env_path
-            pytorch_analysis.init_global_visitor(self.__get_global_visitor(env_path))
+            global_visitor = self.__get_global_visitor(env_path) if utils.IS_JEDI_INSTALLED else None
+            pytorch_analysis.init_global_visitor(global_visitor)
             pytorch_analysis.set_py_file_counts(self.py_file_counts)
             pytorch_analysis.run()
         except KeyboardInterrupt:
@@ -173,8 +174,6 @@ class PyTorchAnalyse:
             os.chmod(file_path, permission)
 
     def __get_global_visitor(self, env_path):
-        if not utils.IS_JEDI_INSTALLED:
-            return None
         from global_analysis import GlobalReferenceVisitor
 
         utils.refresh_parso_cache()
