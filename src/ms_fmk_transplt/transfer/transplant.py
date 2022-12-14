@@ -12,7 +12,7 @@ from libcst._removal_sentinel import RemovalSentinel
 
 from utils import trans_utils as utils
 from utils import transplant_logger as translog
-from analysis import get_op_visit_result
+from analysis import analyse_unsupported_api, analyse_cuda_ops, OpInfo
 from .rules.distributed_rules import DataLoaderRule
 from .rules.common_rules import InsertMainFileRule
 
@@ -27,6 +27,8 @@ class Transplant(object):
         self.current_file_rel_path = ''
 
         self.global_reference_visitor = None
+        self.op_info = OpInfo(utils.get_supported_op_dict(args.version), utils.get_unsupported_op_dict(args.version),
+                              analyse_cuda_ops(script_dir, script_dir))
 
     @staticmethod
     def __need_analysis(file, commonprefix):
@@ -59,8 +61,14 @@ class Transplant(object):
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
-        op_list, module, wrapper = get_op_visit_result(code, utils.get_op_list(self.args.version))
-        utils.write_csv(op_list, self.current_file_rel_path, self.script_dir, "unsupported_op")
+        unsupported_list, unknown_list, module, wrapper = \
+            analyse_unsupported_api(code, self.op_info, self.global_reference_visitor)
+        utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info)
+                             for api in unsupported_list), self.script_dir, "unsupported_api",
+                        ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
+        utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name)
+                             for api in unknown_list), self.script_dir, "unknown_api",
+                        ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
 
         new_module = self.__visit_rule(file, module)
         utils.write_file_content(file, new_module.code)
@@ -92,7 +100,8 @@ class Transplant(object):
         wrapper = libcst.metadata.MetadataWrapper(module)
         new_module = wrapper.visit(code_transformer)
         change_info_list = code_transformer.print_change_info()
-        utils.write_csv(change_info_list, self.current_file_rel_path, self.script_dir, "change_list")
+        utils.write_csv(list([self.current_file_rel_path] + change_info for change_info in change_info_list),
+                        self.script_dir, "change_list", ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'))
         for rule in self.rule_list:
             rule.clean()
         return new_module

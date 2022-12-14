@@ -1,42 +1,88 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
-
+import re
+from collections import namedtuple
 from typing import Optional, Union
 
 import libcst
 import libcst.helpers as helper
+from libcst import matchers as m
 
 from utils import transplant_logger as translog
-from utils import trans_utils as utils
+
+
+OpInfo = namedtuple("OpInfo", ["supported_op_dict", "unsupported_op_dict", "cuda_op_list"])
 
 
 class ApiVisitor(libcst.CSTVisitor):
     METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider, libcst.metadata.QualifiedNameProvider)
 
-    def __init__(self, op_list):
+    def __init__(self, op_info, global_reference_visitor=None):
         super(ApiVisitor, self).__init__()
-        self.op_list = op_list
-        self.unsupported_op_list = []
+        self.supported_op_dict = op_info.supported_op_dict
+        self.unsupported_op_dict = op_info.unsupported_op_dict
+        self.cuda_op_list = op_info.cuda_op_list
+        self.unsupported_instance_op_dict = {}
+        unsupported_op_module_set = set()
+        for unsupported_op in op_info.unsupported_op_dict:
+            if "." not in unsupported_op:
+                continue
+            class_name = unsupported_op.split(".")[-2]
+            if class_name.lower() == class_name:
+                continue
+            unsupported_op_name_list = unsupported_op.split(".")
+            module_name = unsupported_op_name_list[0]
+            unsupported_op_module_set.add(f"{module_name}.")
+            op_name = unsupported_op_name_list[-1]
+            if op_name not in self.unsupported_instance_op_dict:
+                self.unsupported_instance_op_dict[op_name] = []
+            self.unsupported_instance_op_dict[op_name].append(unsupported_op)
+        self.unsupported_op_module_tuple = tuple(unsupported_op_module_set)
+        self.global_reference_visitor = global_reference_visitor
+        self.unsupported_op_result = []
+        self.unknown_api_result = []
+
+    @staticmethod
+    def _get_module_column_and_name(define_node, start_index, end_index=None):
+        assign_value_stmt = define_node.description[start_index:end_index]
+        assign_by_self_obj_column_range = re.search(f"[^\\w]{define_node.name}[^\\w]", assign_value_stmt)
+        if assign_by_self_obj_column_range:
+            column_range = assign_by_self_obj_column_range.span()
+            column_range = (column_range[0] + 1, column_range[1] - 1)
+        else:
+            column_range = re.search("[\\w\\.]+", assign_value_stmt)
+            if column_range is None:
+                return -1, ""
+            column_range = column_range.span()
+        name_index_range = re.search(f"^{define_node.name}[^\\w]", define_node.description)
+        if not name_index_range:
+            name_index_range = re.search(f"[^\\w]{define_node.name}[^\\w]", define_node.description)
+            name_index_start = name_index_range.span()[0] + 1
+        else:
+            name_index_start = name_index_range.span()[0]
+        module_column = start_index + column_range[0]
+        object_column = start_index + column_range[1]
+        assign_module_column = define_node.column - name_index_start + module_column
+        return assign_module_column, define_node.description[module_column:object_column]
 
     def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
         full_name = self.get_full_name_for_node(node)
-        if full_name in self.op_list:
-            position = self.get_metadata(libcst.metadata.PositionProvider, node)
-            self.unsupported_op_list.append([position.start.line, position.end.line, full_name,
-                                             self.op_list.get(full_name)])
+        position = self.get_metadata(libcst.metadata.PositionProvider, node)
+        unsupported_apis, unknown_apis = self.get_api_instances(node, full_name, position, None)
+        self.unsupported_op_result.extend(unsupported_apis)
+        self.unknown_api_result.extend(unknown_apis)
         return True
 
     def print_unsupported_ops(self):
-        for unsupported_op in self.unsupported_op_list:
-            if unsupported_op[3]:
-                unsupported_op_info = "Message: %s" % unsupported_op[3]
+        for unsupported_op in self.unsupported_op_result:
+            if unsupported_op.info:
+                unsupported_op_info = "Message: %s" % unsupported_op.info
             else:
-                unsupported_op_info = "Message: %s is not supported now!" % unsupported_op[2]
-            msg = "%-21s %-35s %s" % ("line: %s ~ %s" % (unsupported_op[0], unsupported_op[1]),
+                unsupported_op_info = "Message: %s is not supported now!" % unsupported_op.name
+            msg = "%-21s %-35s %s" % ("line: %s ~ %s" % (unsupported_op.start_line, unsupported_op.end_line),
                                       "Operation Type: UNSUPPORTED", unsupported_op_info)
             translog.warning(msg)
-        return self.unsupported_op_list
 
     def get_full_name_for_node(self, node: Union[str, libcst.CSTNode]) -> Optional[str]:
         name_list = list(self.get_metadata(libcst.metadata.QualifiedNameProvider, node))
@@ -46,10 +92,226 @@ class ApiVisitor(libcst.CSTVisitor):
             qualified_name = helper.get_full_name_for_node(node)
         return qualified_name
 
+    def _match_cuda_op(self, call_node, full_name):
+        for cuda_op in self.cuda_op_list:
+            if '.' in cuda_op.func_name:
+                if not (full_name == cuda_op.func_name or full_name.endswith('.' + cuda_op.func_name)):
+                    continue
+            else:
+                if not full_name.endswith('.' + cuda_op.func_name):
+                    continue
+            if cuda_op.max_args_num == -1:
+                return True
+            if cuda_op.min_args_num <= len(call_node.args) <= cuda_op.max_args_num:
+                return True
+        return False
 
-def get_op_visit_result(code, unsupported_op_list):
+    def get_api_instances(self, call_node, full_name, position, file_path):
+        if self._match_cuda_op(call_node, full_name):
+            return [ApiInstance(full_name, position, file_path)], []
+        elif not m.findall(call_node.func, m.Call()):
+            if full_name in self.unsupported_op_dict:
+                return [ApiInstance(full_name, position, file_path, self.unsupported_op_dict.get(full_name))], []
+            elif full_name.startswith('torch.') and full_name not in self.supported_op_dict:
+                return [], [ApiInstance(full_name, position, file_path)]
+            else:
+                return [], []
+        else:  # handle instance api
+            if not self.global_reference_visitor:
+                return [], []
+            return self._handle_instance_func(full_name, call_node, file_path)
+
+    def _handle_instance_func(self, full_name, call_node, file_path):
+        if "." not in full_name or full_name.startswith("builtins.") or \
+                not isinstance(call_node.func, libcst.Attribute):
+            return [], []
+        func_name = full_name.split(".")[-1]
+        if func_name not in self.unsupported_instance_op_dict:
+            return [], []
+        call_obj_name_set = None
+        position = self.get_metadata(libcst.metadata.PositionProvider, call_node)
+        module_defined_list = self.global_reference_visitor.goto(position.start.line, position.start.column)
+        for defined_node in module_defined_list:
+            if defined_node.type == 'module':
+                full_call_obj_name = (defined_node.full_name if defined_node.full_name else defined_node.name) + \
+                                     full_name[full_name.index("."):full_name.rfind(".")]
+                call_obj_name = self._get_call_obj_name(full_call_obj_name)
+                call_obj_name_set = {call_obj_name} if call_obj_name else {}
+                break
+        call_position = self._get_call_position(call_node)
+        if call_obj_name_set:
+            return self._get_instance_func_list(call_position, file_path, full_name, call_obj_name_set)
+        call_obj_position = self.get_metadata(libcst.metadata.PositionProvider, call_node.func.value)
+        call_obj_define_list = self.global_reference_visitor.goto(call_obj_position.end.line,
+                                                                  call_obj_position.end.column - 1)
+        if call_obj_define_list and \
+                all(call_obj_define.full_name and call_obj_define.full_name.startswith("builtins.")
+                    for call_obj_define in call_obj_define_list):
+            return [], []
+        call_obj_name_set = self._get_call_obj_name_set_by_define_nodes(call_obj_define_list)
+        return self._get_instance_func_list(call_position, file_path, full_name, call_obj_name_set)
+
+    def _get_instance_func_list(self, call_position, file_path, full_name, call_obj_name_set):
+        unsupported_list = []
+        unknown_list = []
+        func_name = full_name.split(".")[-1]
+        if call_obj_name_set:
+            unsupported_instance_func_list = self._get_unsupported_instance_func_list(func_name, call_obj_name_set)
+            unsupported_list.extend(ApiInstance(instance_func_name, call_position, file_path)
+                                    for instance_func_name in unsupported_instance_func_list)
+        elif func_name not in ("get", "set", "add"):
+            possible_func_names = ', '.join(instance_func_name
+                                            for instance_func_name in self.unsupported_instance_op_dict.get(func_name))
+            print_func_name = f"{full_name} ({possible_func_names})"
+            unknown_list.append(ApiInstance(print_func_name, call_position, file_path))
+        return unsupported_list, unknown_list
+
+    def _get_unsupported_instance_func_list(self, func_name, call_obj_name_set):
+        unsupported_set = set()
+        for call_obj_name in call_obj_name_set:
+            self._add_adapt_func_to_set(func_name, call_obj_name, unsupported_set)
+        return unsupported_set
+
+    def _add_adapt_func_to_set(self, func_name, call_obj_name, unsupported_set):
+        has_adapt_func = False
+        while not has_adapt_func:
+            for instance_func_name in self.unsupported_instance_op_dict.get(func_name):
+                if instance_func_name.startswith(call_obj_name) and instance_func_name.endswith(func_name):
+                    has_adapt_func = True
+                    unsupported_set.add(instance_func_name)
+            last_seg_index = call_obj_name.rfind(".")
+            if last_seg_index == -1:
+                break
+            call_obj_name = call_obj_name[:last_seg_index]
+
+    def _get_call_obj_name_set_by_define_nodes(self, define_nodes):
+        queue = []
+        queue.extend(define_nodes)
+        call_obj_name_set = set()
+        while queue:
+            define_node = queue.pop(0)
+            if "\\" in define_node.description or len(define_node.description) > 1000:
+                continue
+            if define_node.type == 'statement':
+                self._handle_define_type_statement(define_node, queue, call_obj_name_set)
+            elif define_node.type == 'param':
+                self._handle_define_type_param(define_node, call_obj_name_set)
+            elif define_node.type == 'class':
+                self._handle_define_type_class(define_node, call_obj_name_set)
+            elif define_node.type == 'property':
+                self._handle_define_type_property(define_node, call_obj_name_set)
+        return call_obj_name_set
+
+    def _handle_define_type_param(self, define_node, call_obj_name_set):
+        if ":" not in define_node.description:
+            func_context = self.global_reference_visitor.get_context(define_node.line)
+            if not func_context or not func_context.full_name:
+                return
+            function_full_name = func_context.full_name
+            if function_full_name.split(".")[-1] != "forward":
+                return
+            class_name_end_index = function_full_name.rfind(".")
+            if class_name_end_index == -1:
+                return
+            class_full_name = function_full_name[:class_name_end_index]
+            class_nodes = self.global_reference_visitor.search_in_project(class_full_name)
+            for class_node in class_nodes:
+                if "torch.nn.Module" in self.global_reference_visitor.get_super_class(
+                        class_node.name, str(class_node.module_path)):
+                    call_obj_name_set.add("torch.Tensor")
+            return
+        start_index = define_node.description.index(":")
+        self._analyse_type_declaration(define_node, call_obj_name_set, start_index)
+
+    def _handle_define_type_statement(self, define_node, queue, call_obj_name_set):
+        if define_node.description.startswith(("for ", "with ")) or "=" not in define_node.description:
+            return
+        module_column, name = self._get_module_column_and_name(define_node, define_node.description.index("="))
+        if module_column == -1:
+            return
+        try:
+            next_define_nodes = self.global_reference_visitor.goto(define_node.line, module_column)
+        except ValueError:
+            return
+        for node in next_define_nodes:
+            if node.type == 'module':
+                full_name = (node.full_name if node.full_name else node.name) + \
+                            (name[name.index("."):] if "." in name else "")
+                call_obj_name = self._get_call_obj_name(full_name)
+                if call_obj_name:
+                    call_obj_name_set.add(call_obj_name)
+            else:
+                queue.append(node)
+
+    def _handle_define_type_class(self, define_node, call_obj_name_set):
+        super_class_list = self.global_reference_visitor.get_super_class(define_node.name, str(define_node.module_path))
+        for super_class in super_class_list:
+            if super_class.startswith(self.unsupported_op_module_tuple):
+                call_obj_name_set.add(super_class)
+
+    def _handle_define_type_property(self, define_node, call_obj_name_set):
+        if "->" not in define_node.description[:define_node.description.index(":")]:
+            return
+        start_index = define_node.description.index("->")
+        end_index = start_index + define_node.description[start_index:].index(":")
+        self._analyse_type_declaration(define_node, call_obj_name_set, start_index, end_index)
+
+    def _get_multi_module_column_and_name(self, define_node, start_index, end_index=None):
+        module_column = 0
+        define_type_column_dict = dict()
+        while module_column != -1:
+            module_column, name = self._get_module_column_and_name(define_node, start_index, end_index)
+            if module_column != -1:
+                define_type_column_dict[name] = module_column
+                start_index += define_node.description[start_index:].index(name) + len(name)
+        return define_type_column_dict
+
+    def _analyse_type_declaration(self, define_node, call_obj_name_set, start_index, end_index=None):
+        define_type_column_dict = self._get_multi_module_column_and_name(define_node, start_index, end_index)
+        for name, column in define_type_column_dict.items():
+            try:
+                next_define_nodes = self.global_reference_visitor.goto(define_node.line, column)
+            except ValueError:
+                continue
+            for node in next_define_nodes:
+                if node.type != 'module':
+                    continue
+                full_name = (node.full_name if node.full_name else node.name) + \
+                            (name[name.index("."):] if "." in name else "")
+                call_obj_name = self._get_call_obj_name(full_name)
+                if call_obj_name:
+                    call_obj_name_set.add(call_obj_name)
+
+    def _get_call_position(self, node):
+        if m.matches(node.func, m.Attribute()):
+            node = node.func.attr
+        position = self.get_metadata(libcst.metadata.PositionProvider, node)
+        return position
+
+    def _get_call_obj_name(self, full_name):
+        if full_name.startswith(("torch.nn.functional", "torch.nn.init")):
+            return "torch.Tensor"
+        elif full_name.startswith("torch.") and full_name.lower() == full_name:
+            return "torch.Tensor"
+        elif full_name.startswith(self.unsupported_op_module_tuple):
+            return full_name
+        elif full_name.startswith("numpy"):
+            return "numpy"
+        return ""
+
+
+def analyse_unsupported_api(code, op_info, global_reference_visitor=None):
     wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-    api_visitor = ApiVisitor(unsupported_op_list)
+    api_visitor = ApiVisitor(op_info, global_reference_visitor)
     module = wrapper.visit(api_visitor)
-    op_list = api_visitor.print_unsupported_ops()
-    return op_list, module, wrapper
+    api_visitor.print_unsupported_ops()
+    return api_visitor.unsupported_op_result, api_visitor.unknown_api_result, module, wrapper
+
+
+class ApiInstance:
+    def __init__(self, name, position, file_path, info=""):
+        self.name = name
+        self.start_line = position.start.line
+        self.end_line = position.end.line
+        self.file_path = file_path
+        self.info = info

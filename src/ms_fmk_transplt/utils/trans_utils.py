@@ -48,32 +48,21 @@ class JediCacheClearException(Exception):
     pass
 
 
-def write_csv(content_list, rel_script_file_name, output_dir, csv_type):
-    header_dict = {
-        "change_list": ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'),
-        "unsupported_op": ('File', 'Start Line', 'End Line', 'OP', 'Tips'),
-        "unsupported_api": ('File', 'Api', 'Message'),
-        "unknown_api": ('File', 'Api', 'Message'),
-        "cuda_op_list": ('File', 'Api')
-    }
+def write_csv(content_list, output_dir, csv_name, header):
     if os.path.isfile(output_dir):
-        csv_file = os.path.join(os.path.dirname(output_dir), '%s.csv' % csv_type)
+        csv_file = os.path.join(os.path.dirname(output_dir), '%s.csv' % csv_name)
     else:
-        csv_file = os.path.join(output_dir, '%s.csv' % csv_type)
-    header = header_dict.get(csv_type)
+        csv_file = os.path.join(output_dir, '%s.csv' % csv_name)
     if not os.path.exists(csv_file):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
 
-    if not rel_script_file_name:
-        new_data = pd.DataFrame(list(content for content in content_list))
-    else:
-        new_data = pd.DataFrame(list(([rel_script_file_name] + content) for content in content_list))
+    new_data = pd.DataFrame(list(content for content in content_list))
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
     change_mode(csv_file)
 
 
-def get_op_list(version):
+def get_unsupported_op_dict(version):
     if version == '1.5.0':
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_5_0.json')
     elif version == '1.8.1':
@@ -81,11 +70,10 @@ def get_op_list(version):
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
-    op_list = json.loads(ops).get('op_list')
-    return op_list
+    return json.loads(ops).get('op_list')
 
 
-def get_supported_op_list(version):
+def get_supported_op_dict(version):
     if version == '1.5.0':
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_5_0.json')
     elif version == '1.8.1':
@@ -93,8 +81,7 @@ def get_supported_op_list(version):
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
-    op_list = json.loads(ops).get("op_list")
-    return op_list
+    return json.loads(ops).get("op_list")
 
 
 def get_file_content_bytes(file):
