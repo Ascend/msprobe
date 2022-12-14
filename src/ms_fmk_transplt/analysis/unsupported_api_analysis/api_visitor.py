@@ -69,9 +69,10 @@ class ApiVisitor(libcst.CSTVisitor):
     def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
         full_name = self.get_full_name_for_node(node)
         position = self.get_metadata(libcst.metadata.PositionProvider, node)
-        unsupported_apis, unknown_apis = self.get_api_instances(node, full_name, position, None)
-        self.unsupported_op_result.extend(unsupported_apis)
-        self.unknown_api_result.extend(unknown_apis)
+        if full_name:
+            unsupported_apis, unknown_apis = self.get_api_instances(node, full_name, position, None)
+            self.unsupported_op_result.extend(unsupported_apis)
+            self.unknown_api_result.extend(unknown_apis)
         return True
 
     def print_unsupported_ops(self):
