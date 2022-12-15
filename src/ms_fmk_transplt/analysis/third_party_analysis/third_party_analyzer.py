@@ -30,7 +30,11 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
 
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
-        wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
+        try:
+            wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
+        except BaseException:
+            translog.warning(f'{file} has unsupported python syntax, skip.')
+            return
         if os.path.basename(file) == "__init__.py":
             for env_path in self.package_env_path_set:
                 if file.startswith(env_path):
