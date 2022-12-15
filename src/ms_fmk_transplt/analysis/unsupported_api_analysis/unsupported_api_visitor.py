@@ -3,7 +3,6 @@
 # Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
 import re
 from collections import namedtuple
-from enum import Enum, auto
 from typing import Optional, Union
 
 import libcst
