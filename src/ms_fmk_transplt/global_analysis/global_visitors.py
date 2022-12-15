@@ -81,8 +81,9 @@ class GlobalReferenceVisitor:
             full_name = func_list[0].full_name
             if full_name is None:
                 # solve the function within the function problem
-                if self.goto(line, column) and self.goto(line, column)[0].full_name is not None:
-                    full_name = self.goto(line, column)[0].full_name
+                goto_result_list = self.goto(line, column)
+                if goto_result_list and goto_result_list[0].full_name is not None:
+                    full_name = goto_result_list[0].full_name
                 else:
                     full_name = '_'.join((os.path.basename(self.file_path), str(line), str(column),
                                           func_list[0].description.split()[-1]))
@@ -100,8 +101,9 @@ class GlobalReferenceVisitor:
                 continue
             full_name = func.full_name
             if full_name is None:
-                if self.goto(line, column) and self.goto(line, column)[0].full_name is not None:
-                    full_name = self.goto(line, column)[0].full_name
+                goto_result_list = self.goto(line, column)
+                if goto_result_list and goto_result_list[0].full_name is not None:
+                    full_name = goto_result_list[0].full_name
                 else:
                     full_name = '_'.join((os.path.basename(self.file_path), str(func.line),
                                           str(func.column), func.description.split()[-1]))
@@ -115,7 +117,10 @@ class GlobalReferenceVisitor:
         return infer_func_list
 
     def goto(self, line, column):
-        return self.get_jedi_script(self.file_path).goto(line, column)
+        try:
+            return self.get_jedi_script(self.file_path).goto(line, column)
+        except BaseException:
+            return []
 
     def get_context(self, line=None, column=None):
         return self.get_jedi_script(self.file_path).get_context(line, column)
