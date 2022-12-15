@@ -123,6 +123,12 @@ class GlobalReferenceVisitor:
         except BaseException:
             return []
 
+    def infer(self, line=None, column=None):
+        try:
+            return self.get_jedi_script(self.file_path).infer(line=line, column=column)
+        except BaseException:
+            return []
+
     def get_super_class(self, class_name, file_path=''):
         super_class_list = []
         if class_name.startswith('.'):
