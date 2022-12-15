@@ -100,7 +100,7 @@ class GlobalReferenceVisitor:
             full_name = func.full_name
             if full_name is None:
                 full_name = self.goto(line, column)[0].full_name
-                if not full_name:
+                if full_name is None:
                     full_name = '_'.join((os.path.basename(self.file_path), str(func.line),
                                           str(func.column), func.description.split()[-1]))
             if func.type == 'class':
