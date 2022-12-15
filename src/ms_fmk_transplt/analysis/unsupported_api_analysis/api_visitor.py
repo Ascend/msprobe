@@ -109,7 +109,7 @@ class ApiVisitor(libcst.CSTVisitor):
 
     def get_api_instances(self, call_node, full_name, position, file_path):
         if self._match_cuda_op(call_node, full_name):
-            return [ApiInstance(full_name, position, file_path)], []
+            return [ApiInstance(full_name, position, file_path, "User-defined CUDA Operator.")], []
         elif not m.findall(call_node.func, m.Call()):
             if full_name in self.unsupported_op_dict:
                 return [ApiInstance(full_name, position, file_path, self.unsupported_op_dict.get(full_name))], []
