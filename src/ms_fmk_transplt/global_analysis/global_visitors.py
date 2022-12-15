@@ -81,12 +81,7 @@ class GlobalReferenceVisitor:
             full_name = func_list[0].full_name
             if full_name is None:
                 # solve the function within the function problem
-                goto_result_list = self.goto(line, column)
-                if goto_result_list and goto_result_list[0].full_name is not None:
-                    full_name = goto_result_list[0].full_name
-                else:
-                    full_name = '_'.join((os.path.basename(self.file_path), str(line), str(column),
-                                          func_list[0].description.split()[-1]))
+                full_name = self._get_full_name_for_func_in_func(column, line, func_list[0])
             return full_name, os.path.relpath(self.file_path, self.project_path)
         return '', ''
 
@@ -101,12 +96,7 @@ class GlobalReferenceVisitor:
                 continue
             full_name = func.full_name
             if full_name is None:
-                goto_result_list = self.goto(line, column)
-                if goto_result_list and goto_result_list[0].full_name is not None:
-                    full_name = goto_result_list[0].full_name
-                else:
-                    full_name = '_'.join((os.path.basename(self.file_path), str(func.line),
-                                          str(func.column), func.description.split()[-1]))
+                full_name = self._get_full_name_for_func_in_func(column, line, func)
             if func.type == 'class':
                 full_name = full_name + '.__init__'
             elif func.type == 'instance':
@@ -115,6 +105,15 @@ class GlobalReferenceVisitor:
                 continue
             infer_func_list.append(full_name)
         return infer_func_list
+
+    def _get_full_name_for_func_in_func(self, column, line, func):
+        goto_result_list = self.goto(line, column)
+        if goto_result_list and goto_result_list[0].full_name is not None:
+            full_name = goto_result_list[0].full_name
+        else:
+            full_name = '_'.join((os.path.basename(self.file_path), str(func.line), str(func.column),
+                                  func.description.split()[-1]))
+        return full_name
 
     def goto(self, line, column):
         try:
