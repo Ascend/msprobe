@@ -25,10 +25,3 @@ class Node:
         return self.key
 
 
-class ApiInstance:
-    def __init__(self, name, position, file_path):
-        self.name = name
-        self.start_line = position.start.line
-        self.end_line = position.end.line
-        self.file_path = file_path
-

@@ -15,12 +15,12 @@ ANALYSE_ERROR = 1
 
 
 class Args:
-    def __init__(self, input_path, output_path, version='1.8.1', mode='torch_apis', file='', env_path=None):
+    def __init__(self, input_path, output_path, version='1.8.1', mode='torch_apis', api_files='', env_path=None):
         self.input = input_path
         self.output = output_path
         self.version = version
         self.mode = mode
-        self.file = file
+        self.api_files = api_files
         self.env_path = env_path
 
 
@@ -55,7 +55,7 @@ class TestPyTorchAnalyse(unittest.TestCase):
         self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
 
     def test_cuda_op_parser(self):
-        from analysis.third_party_analysis.cuda_cpp_visitor import CudaOpVisitor
+        from analysis.unsupported_api_analysis.cuda_cpp_visitor import CudaOpVisitor
         from src.ms_fmk_transplt.utils import trans_utils as utils
         code = '''
 int chamfer_forward(at::Tensor xyz1, at::Tensor xyz2, at::Tensor dist1, at::Tensor dist2, at::Tensor idx1, at::Tensor idx2) {

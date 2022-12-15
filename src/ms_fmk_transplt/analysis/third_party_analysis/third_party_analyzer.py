@@ -11,36 +11,16 @@ from utils import transplant_logger as translog
 from analysis.base_analyzer import BaseAnalyzer
 from .third_party_code_visitor import ThirdPartyApiVisitor
 from .function_graph import Graph
-from .cuda_cpp_visitor import CudaOpVisitor
+from ..unsupported_api_analysis.unsupported_api_visitor import OpInfo
+from ..unsupported_api_analysis.cuda_cpp_visitor import analyse_cuda_ops
 
 
 class ThirdPartyAnalyzer(BaseAnalyzer):
-    def __init__(self, script_dir, output_dir, pytorch_version, unsupported_third_party_file):
-        super().__init__(script_dir, output_dir, pytorch_version, unsupported_third_party_file)
-        self.global_reference_visitor = None
+    def __init__(self, script_dir, output_dir, pytorch_version, unsupported_third_party_file_list=None):
+        super().__init__(script_dir, output_dir, pytorch_version, unsupported_third_party_file_list)
         self.function_graph = Graph()
-        self.cuda_ops = self._get_cuda_ops()
-        self.package_env_path_set = self._search_package_env_path()
+        self.cuda_ops = analyse_cuda_ops(script_dir, output_dir)
         self.simple_names_dict = dict()
-
-    def _search_package_env_path(self):
-        package_env_path_set = set()
-        search_file_list = [self.script_dir]
-        while search_file_list:
-            file_path = search_file_list.pop()
-            if not os.path.isdir(file_path):
-                continue
-            if os.path.exists(os.path.join(file_path, "__init__.py")):
-                package_env_path_set.add(str(Path(file_path).parent))
-                continue
-            for sub_file in os.listdir(file_path):
-                full_path = os.path.join(file_path, sub_file)
-                if os.path.isdir(full_path):
-                    search_file_list.append(full_path)
-        return package_env_path_set
-
-    def init_global_visitor(self, global_reference_visitor):
-        self.global_reference_visitor = global_reference_visitor
 
     def run(self):
         super().run()
@@ -55,11 +35,7 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
             for env_path in self.package_env_path_set:
                 if file.startswith(env_path):
                     self._analysis_init_file(os.path.dirname(file)[len(env_path) + 1:].replace(os.path.sep, "."))
-        unsupported_op_list = utils.get_op_list(self.pytorch_version)
-        if self.unsupported_third_party_file:
-            unsupported_op_list.update(utils.read_unsupported_op_csv(self.unsupported_third_party_file))
-        api_visitor = ThirdPartyApiVisitor(utils.get_supported_op_list(self.pytorch_version),
-                                           unsupported_op_list, self.cuda_ops,
+        api_visitor = ThirdPartyApiVisitor(OpInfo(self.supported_op_dict, self.unsupported_op_dict, self.cuda_ops),
                                            self.global_reference_visitor, self.function_graph)
         wrapper.visit(api_visitor)
 
@@ -88,14 +64,6 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
                 if func_name.full_name not in self.simple_names_dict:
                     self.simple_names_dict[func_name.full_name] = []
                 self.simple_names_dict.get(func_name.full_name).append(f"{package_path}.{define_name.name}")
-
-    def _get_cuda_ops(self):
-        cuda_op_visitor = CudaOpVisitor(self.script_dir)
-        cuda_op_visitor.visit_cuda_files()
-        cuda_op_list = cuda_op_visitor.cuda_ops
-        cuda_op_info_list = [[cuda_op.file_path, cuda_op.func_name] for cuda_op in cuda_op_list]
-        utils.write_csv(cuda_op_info_list, '', self.output_path, 'cuda_op_list')
-        return cuda_op_list
 
     def traverse_function_graph(self):
         function_queue = self.function_graph.get_leaf_api()
@@ -139,8 +107,8 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
             unknown_info_list.append([api.file_path, '\n'.join(self._get_simple_names(api.key)),
                                       ''.join(api_info_list)])
 
-        utils.write_csv(unsupported_info_list, '', self.output_path, 'unsupported_api')
-        utils.write_csv(unknown_info_list, '', self.output_path, 'unknown_api')
+        utils.write_csv(unsupported_info_list, self.output_path, 'unsupported_api', ('File', 'Api', 'Message'))
+        utils.write_csv(unknown_info_list, self.output_path, 'unknown_api', ('File', 'Api', 'Message'))
 
     def _get_simple_names(self, full_name):
         name_set = set()
@@ -150,13 +118,3 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
             name_set.update(f"{simple_name}{full_name[len(infer_func_name):]}" for simple_name in simple_name_list)
         name_set.add(full_name)
         return sorted(list(name_set), key=len)
-
-
-
-
-
-
-
-
-
-
