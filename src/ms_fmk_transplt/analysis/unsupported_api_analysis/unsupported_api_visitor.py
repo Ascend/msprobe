@@ -15,11 +15,11 @@ from utils import transplant_logger as translog
 OpInfo = namedtuple("OpInfo", ["supported_op_dict", "unsupported_op_dict", "cuda_op_list"])
 
 
-class ApiVisitor(libcst.CSTVisitor):
+class UnsupportedApiVisitor(libcst.CSTVisitor):
     METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider, libcst.metadata.QualifiedNameProvider)
 
     def __init__(self, op_info, global_reference_visitor=None):
-        super(ApiVisitor, self).__init__()
+        super(UnsupportedApiVisitor, self).__init__()
         self.supported_op_dict = op_info.supported_op_dict
         self.unsupported_op_dict = op_info.unsupported_op_dict
         self.cuda_op_list = op_info.cuda_op_list
@@ -303,7 +303,7 @@ class ApiVisitor(libcst.CSTVisitor):
 
 def analyse_unsupported_api(code, op_info, global_reference_visitor=None):
     wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-    api_visitor = ApiVisitor(op_info, global_reference_visitor)
+    api_visitor = UnsupportedApiVisitor(op_info, global_reference_visitor)
     module = wrapper.visit(api_visitor)
     api_visitor.print_unsupported_ops()
     return api_visitor.unsupported_op_result, api_visitor.unknown_api_result, module, wrapper

@@ -11,7 +11,7 @@ from utils import transplant_logger as translog
 from analysis.base_analyzer import BaseAnalyzer
 from .third_party_code_visitor import ThirdPartyApiVisitor
 from .function_graph import Graph
-from ..unsupported_api_analysis.api_visitor import OpInfo
+from ..unsupported_api_analysis.unsupported_api_visitor import OpInfo
 from ..unsupported_api_analysis.cuda_cpp_visitor import analyse_cuda_ops
 
 

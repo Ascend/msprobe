@@ -5,7 +5,7 @@ import os
 
 from analysis.base_analyzer import BaseAnalyzer
 from utils import trans_utils as utils, transplant_logger as translog
-from .api_visitor import analyse_unsupported_api, OpInfo
+from .unsupported_api_visitor import analyse_unsupported_api, OpInfo
 from .cuda_cpp_visitor import analyse_cuda_ops
 
 
