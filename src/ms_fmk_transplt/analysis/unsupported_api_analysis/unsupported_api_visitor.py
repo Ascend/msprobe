@@ -134,7 +134,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             position = self.get_metadata(libcst.metadata.PositionProvider, call_node)
             infer_list = self.global_reference_visitor.infer(position.start.line, position.start.column)
             if not infer_list:
-                return False
+                return full_name.startswith(self.all_module_names)
             return infer_list[0].type == 'module'
         return full_name.startswith(self.all_module_names)
 

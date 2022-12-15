@@ -242,8 +242,5 @@
     "torch.cuda.nvtx.mark": "Unsupported due to hardware limitations.",
     "torch.cuda.nvtx.range_push": "Unsupported due to hardware limitations.",
     "torch.cuda.nvtx.range_pop": "Unsupported due to hardware limitations.",
-    "torch.Tensor.double": " ",
-    "torch.nn.Module.double": " ",
-    "torch.Tensor.size": " "
   }
 }
