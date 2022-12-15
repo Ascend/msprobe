@@ -35,7 +35,7 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
             for env_path in self.package_env_path_set:
                 if file.startswith(env_path):
                     self._analysis_init_file(os.path.dirname(file)[len(env_path) + 1:].replace(os.path.sep, "."))
-        api_visitor = ThirdPartyApiVisitor(OpInfo(self.supported_op_list, self.unsupported_op_list, self.cuda_ops),
+        api_visitor = ThirdPartyApiVisitor(OpInfo(self.supported_op_dict, self.unsupported_op_dict, self.cuda_ops),
                                            self.global_reference_visitor, self.function_graph)
         wrapper.visit(api_visitor)
 

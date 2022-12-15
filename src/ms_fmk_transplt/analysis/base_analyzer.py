@@ -14,11 +14,11 @@ class BaseAnalyzer:
         self.pytorch_version = pytorch_version
         self.py_file_counts = 0
         self.current_file_rel_path = ''
-        self.unsupported_op_list = utils.get_unsupported_op_dict(self.pytorch_version)
+        self.unsupported_op_dict = utils.get_unsupported_op_dict(self.pytorch_version)
         if unsupported_third_party_file_list:
             for file_path in unsupported_third_party_file_list:
-                self.unsupported_op_list.update(utils.read_unsupported_op_csv(file_path))
-        self.supported_op_list = utils.get_supported_op_dict(self.pytorch_version)
+                self.unsupported_op_dict.update(utils.read_unsupported_op_csv(file_path))
+        self.supported_op_dict = utils.get_supported_op_dict(self.pytorch_version)
         self.global_reference_visitor = None
         self.package_env_path_set = self._search_package_env_path()
 
