@@ -3,6 +3,7 @@
 # Copyright Huawei Technologies Co., Ltd. 2021-2022. All rights reserved.
 import re
 from collections import namedtuple
+from enum import Enum, auto
 from typing import Optional, Union
 
 import libcst
@@ -39,6 +40,12 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
                 self.unsupported_instance_op_dict[op_name] = []
             self.unsupported_instance_op_dict[op_name].append(unsupported_op)
         self.unsupported_op_module_tuple = tuple(unsupported_op_module_set)
+        all_module_name_set = set()
+        for func_name in [*self.unsupported_op_dict.keys(), *self.supported_op_dict.keys(), *self.cuda_op_list]:
+            if "." not in func_name:
+                continue
+            all_module_name_set.add(f'{func_name.split(".")[0]}.')
+        self.all_module_names = tuple(all_module_name_set)
         self.global_reference_visitor = global_reference_visitor
         self.unsupported_op_result = []
         self.unknown_api_result = []
@@ -110,7 +117,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
     def get_api_instances(self, call_node, full_name, position, file_path):
         if self._match_cuda_op(call_node, full_name):
             return [ApiInstance(full_name, position, file_path, "User-defined CUDA Operator.")], []
-        elif not m.findall(call_node.func, m.Call()):
+        elif not m.findall(call_node.func, m.Call()) and self._is_class_api(call_node, full_name):
             if full_name in self.unsupported_op_dict:
                 return [ApiInstance(full_name, position, file_path, self.unsupported_op_dict.get(full_name))], []
             elif full_name.startswith('torch.') and full_name not in self.supported_op_dict:
@@ -121,6 +128,15 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             if not self.global_reference_visitor:
                 return [], []
             return self._handle_instance_func(full_name, call_node, file_path)
+
+    def _is_class_api(self, call_node, full_name):
+        if self.global_reference_visitor:
+            position = self.get_metadata(libcst.metadata.PositionProvider, call_node)
+            infer_list = self.global_reference_visitor.infer(position.start.line, position.start.column)
+            if not infer_list:
+                return False
+            return infer_list[0].type == 'module'
+        return full_name.startswith(self.all_module_names)
 
     def _handle_instance_func(self, full_name, call_node, file_path):
         if "." not in full_name or full_name.startswith("builtins.") or \
@@ -241,7 +257,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
                 call_obj_name = self._get_call_obj_name(full_name)
                 if call_obj_name:
                     call_obj_name_set.add(call_obj_name)
-            else:
+            elif node != define_node:
                 queue.append(node)
 
     def _handle_define_type_class(self, define_node, call_obj_name_set):
