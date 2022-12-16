@@ -420,7 +420,10 @@ def convert_dump_data_object(wrap_function):
     """
     @wraps(wrap_function)
     def inner(*args, **kwargs):
-        dump_data = wrap_function(*args, **kwargs)
+        try:
+            dump_data = wrap_function(*args, **kwargs)
+        except CompareError:
+            dump_data = DumpData()
         dump_data_object = convert_dump_data(dump_data)
         return dump_data_object
     return inner
