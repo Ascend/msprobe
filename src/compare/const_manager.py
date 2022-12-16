@@ -32,9 +32,6 @@ class ConstManager:
     C0_AXIS = 16
 
     TIMESTAMP_LENGTH = 16
-    INVALID_TIMESTAMP = 0
-    INVALID_FILE_TYPE = 0
-    TRAD_MODE = 0
 
 
     # overflow
@@ -214,6 +211,7 @@ class ConstManager:
         DD.DT_BOOL: {DTYPE_KEY: np.bool_, STRUCT_FORMAT_KEY: '?'},
         DD.DT_COMPLEX64: {DTYPE_KEY: np.complex64, STRUCT_FORMAT_KEY: '?'},
         DD.DT_COMPLEX128: {DTYPE_KEY: np.complex128, STRUCT_FORMAT_KEY: '?'},
+        DD.DT_UNDEFINED: {DTYPE_KEY: np.uint8, STRUCT_FORMAT_KEY: '?'}
     }
     DATA_TYPE_TO_STR_DTYPE_MAP = {
         DD.DT_FLOAT: "float32",
@@ -229,7 +227,8 @@ class ConstManager:
         DD.DT_UINT64: "uint64",
         DD.DT_BOOL: "bool",
         DD.DT_COMPLEX64: "complex64",
-        DD.DT_COMPLEX128: "complex128"
+        DD.DT_COMPLEX128: "complex128",
+        DD.DT_UNDEFINED: "uint8"
     }
 
     # Standard
@@ -315,6 +314,15 @@ class ConstManager:
     NORMAL_MODE = 0
     AUTOMATIC_MODE = 1
     MANUAL_MODE = 2
+    SPEC_MODE = 3
+
+    FFTS_TIMESTAMP = 'timestamp'
+
+    INVALID_TIMESTAMP = 0
+    INVALID_SORT_MODE = 1
+    INVALID_THREAD_ID = 2
+    INVALID_SLICE_X = 3
+
 
     OLD_FILE_FIELD_NUM = 4
     NEW_FILE_FIELD_NUM = 9

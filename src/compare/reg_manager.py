@@ -44,7 +44,7 @@ class RegManager:
 
     SUPPORT_PATH_PATTERN = r"^[A-Za-z0-9_\./:()=\\-]+$"
 
-    FFTS_MANUAL_FIELD_PATTERN = r"lxslice_[0-9]+"
+    FFTS_MANUAL_FIELD_PATTERN = r"lxslice[0-9]+"
 
     SGT_FLIED_PATTERN = r"sgt_graph_[0-9]+"
 

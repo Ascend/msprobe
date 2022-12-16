@@ -21,6 +21,7 @@ from const_manager import ConstManager
 from dump_data_pb2 import DumpData
 from reg_manager import RegManager
 from compare_error import CompareError
+from ffts_parser import FFTSParser
 
 
 @unique
@@ -48,23 +49,6 @@ class DumpInfo:
         self.data_info = ''
         self.dump_version = dump_version
         self.hash_to_file_name_map = {}
-        self.op_name_to_file_type = {}
-
-    @utils.SortMode('ffts_auto')
-    def get_ffts_auto(self, file_name):
-        return file_name
-
-    @utils.SortMode('ffts_manual')
-    def get_ffts_manual(self, file_name):
-        return file_name
-
-    @utils.SortMode('trad')
-    def get_trad_timestamp(self, file_name):
-        return file_name
-
-    @utils.SortMode('timestamp')
-    def get_timestamp(self, file_name):
-        return file_name
 
     def check_arguments_valid(self: any) -> None:
         """
@@ -103,14 +87,14 @@ class DumpInfo:
         if original_op_name not in self.op_name_to_file_map:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         dump_file_list = self.op_name_to_file_map.get(original_op_name)
-        dump_file_type = self.op_name_to_file_type.get(original_op_name)
+        dump_mode = self.op_name_to_task_mode_map.get(original_op_name)
         if not dump_file_list:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         if len(dump_file_list) > 1:
-            self.sort_dump_file_list(dump_file_type, dump_file_list)
+            dump_file_list = utils.sort_dump_file_list(dump_mode, dump_file_list)
         if print_log:
             log.print_info_log('[%s] [%s] %s' % (op_name, str(self.type.name), dump_file_list))
-        return dump_file_list, dump_file_type
+        return dump_file_list, dump_mode
 
     def get_op_dump_data(self: any, op_name: str, output_index: int = None) -> (str, DumpData):
         """
@@ -121,94 +105,15 @@ class DumpInfo:
         """
         if self.type == DumpType.Quant and output_index is None:
             output_index = 0
-        dump_file_list, data_file_type = self.get_op_dump_file(op_name, output_index)
+        dump_file_list, dump_mode = self.get_op_dump_file(op_name, output_index)
         dump_data_list = [utils.parse_dump_file(dump_file_path, self.dump_version) for dump_file_path in dump_file_list]
-        if data_file_type == 'trad':
+        if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:
+            ffts_parser = FFTSParser(dump_file_list, dump_data_list)
+            dump_file_path, dump_data = ffts_parser.parse_ffts
+        else:
             dump_file_path = dump_file_list[-1]
             dump_data = dump_data_list[-1]
-        elif data_file_type == 'ffts_auto':
-            pass
-
-
-
-    def parser_ffts_manual(self, dump_file_list, dump_data_list):
-        dump_base = dump_data_list[0]
-        thread_num = dump_base.get_thread_num
-        self._check_file_missing(thread_num)
-        if dump_base.get_ffts_mode:
-            # cut_axis =
-            pass
-        else:
-            cut_axis = dump_base.get_cut_axis_manual
-            output_num = len(dump_base.output_data)
-            output_data_list = [dump_data.get_output_data for dump_data in dump_data_list]
-            dump_data_output_list = []
-            for i in range(output_num):
-                _ = []
-                for output in output_data_list:
-                    _.append(output)
-                dump_data_output_list.append(_)
-
-            merge_output = []
-            for i in range(len(cut_axis)):
-                if not cut_axis[i]:
-                    continue
-                axis = cut_axis[i][0]
-                merge_output.append(np.concatenate(dump_data_output_list[i], axis))
-
-            merge_dump_data = DumpDataObj()
-            merge_dump_data.build_output_dump_tensor()
-            merge_dump_data.output_data.data = merge_output
-
-
-
-
-
-    def sort_dump_file_list(self, dump_file_type, dump_file_list):
-        if dump_file_type == 'trad':
-            dump_file_list.sort(key=self.get_trad_timestamp)
-        else:
-            dump_file_list.sort(key=self.get_timestamp)
-            if dump_file_type == 'ffts_auto':
-                dump_file_list.sort(key=self.get_ffts_auto)
-            else:
-                dump_file_list.sort(key=self.get_ffts_manual)
-        return dump_file_list
-    #
-    # @staticmethod
-    # def _merge_data_by_axis(array_list, axis):
-    #     return np.concatenate(array_list, axis=axis)
-    #
-    @staticmethod
-    def _check_file_missing(dump_data_list, thread_num):
-        if len(dump_data_list) != thread_num:
-            raise CompareError
-
-    #
-    # def _parse_ffts_mode_data(self, dump_file_list):
-    #     dump_data_list = [utils.parse_dump_file(dump_file_path, self.dump_version) for dump_file_path in dump_file_list]
-    #     output_num = len(dump_data_list[0].output_data)
-    #     output_data_list = [dump_data.get_output_data for dump_data in dump_data_list]
-    #     dump_data_output_list = []
-    #
-    #     for i in range(output_num):
-    #         _ = []
-    #         for output in output_data_list:
-    #             _.append(output)
-    #         dump_data_output_list.append(_)
-    #     return dump_data_output_list
-    #
-    #
-    #
-    #
-    #
-    #
-    #
-    #     pass
-    #
-    # def
-
-
+        return dump_file_path, dump_data
 
     def get_data_info(self: any) -> str:
         """

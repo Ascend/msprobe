@@ -1,7 +1,6 @@
 import json
 
 import numpy as np
-import utils
 from dump_data_pb2 import DumpData
 
 
@@ -11,9 +10,9 @@ class DumpTensor:
     Include the data detail: index, data_type, tensor_format, shape, data, size, original_shape
     """
 
-    def __init__(self: any, index: int = None, data_type: int = None,
-                 tensor_format: int = None, shape: list = None, data: np.ndarray = None,
-                 size: int = None, original_shape: list = None, address: int = None, sub_format: int = 0) -> None:
+    def __init__(self: any, index: int = None, data_type: int = None, tensor_format: int = None,
+                 shape: list = None, data: np.ndarray = None, size: int = None, original_shape: list = None,
+                 address: int = None, sub_format: int = 0) -> None:
 
         self.index = index
         self.data_type = data_type
@@ -24,6 +23,15 @@ class DumpTensor:
         self.original_shape = original_shape
         self.address = address
         self.sub_format = sub_format
+
+    @property
+    def get_common_attr(self: any) -> tuple:
+        """
+        get common attr
+        @return: tuple of common attr
+        """
+        return (
+            self.data_type, self.tensor_format, self.address, self.original_shape)
 
 
 class DumpDataObj:
@@ -36,87 +44,85 @@ class DumpDataObj:
         self.op_name = dump_data.op_name
         self.dump_time = dump_data.dump_time
         self.buffer = dump_data.buffer
-        self.attr = dump_data.attr
+        self.attr = json.loads(dump_data.attr[0].value) if dump_data.attr else None
         self.input_data = [_input_data for _input_data in dump_data.input]
         self.output_data = [_output_data for _output_data in dump_data.output]
-        self.ffts_info = {}
-
-    @staticmethod
-    def _build_dump_tensor(dump_data_object_data: list) -> None:
-        """
-        replace the input or output object of DD.DumpData to DumpyTensor
-        @param dump_data_object_data: input or output object of DD.DumpData
-        @return: None
-        """
-        for index, tensor in enumerate(dump_data_object_data):
-            data_to_np = utils.deserialize_dump_data_to_array(tensor)
-            dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
-                                     data_to_np, tensor.size, list(tensor.original_shape.dim),
-                                     tensor.address, tensor.sub_format)
-            dump_data_object_data[index] = dump_tensor
-
-    def build_input_dump_tensor(self: any) -> None:
-        """
-        Get input DumpTensor
-        @return: None
-        """
-        self._build_dump_tensor(self.input_data)
-
-    def build_output_dump_tensor(self: any) -> None:
-        """
-        Get output DumpTensor
-        @return: None
-        """
-        self._build_dump_tensor(self.output_data)
+        self.ffts_file_check = True
 
     @property
-    def get_output_data(self):
+    def get_output_data(self: any) -> list:
         """
         Get output data
         @return: list of output data
         """
-        return [output.data for output in self.output_data]
-
-    def parser_ffts_attr(self):
-        if self.attr:
-            data_attr = json.loads(self.attr[0].value)
-            self.attr = data_attr
+        return [output.data.reshape(output.shape) for output in self.output_data]
 
     @property
-    def get_thread_num(self):
+    def get_thread_num(self: any) -> int:
+        """
+        get slice_instance_num
+        @return: slice number
+        """
         return self.attr["slice_instance_num"]
 
     @property
-    def get_cut_axis_manual(self):
+    def get_cut_axis_manual(self: any) -> list:
+        """
+        calculate the cut axis of manual mode
+        @return: cut axis
+        """
         cut_axis = []
-        for output in self.attr["outputCutList"]:
-            _ = []
-            for index, value in enumerate(output):
-                if value != 1:
-                    _.append(index)
-            cut_axis.append(_)
+        if self.attr["outputCutList"]:
+            for output in self.attr["outputCutList"]:
+                output_index = []
+                for index, value in enumerate(output):
+                    if value != 1:
+                        output_index.append(index)
+                cut_axis.append(output_index)
         return cut_axis
 
-    def get_cut_axis_auto(self):
-        pass
-
-    def calculate_auto_mode_shape(self):
-        output_shape = []
-        for output in self.attr["output_tensor_slice"]:
-            _ = []
-
-
+    @property
+    def get_cut_axis_auto(self: any) -> list:
+        """
+        calculate the cut axis of auto mode
+        @return: cut axis
+        """
+        output_shape = self.calculate_auto_mode_shape
+        cut_axis = []
+        return cut_axis
 
     @property
-    def get_ffts_mode(self):
-        return self.attr["threadMode"]
-#
-#
-# class ParserFfts:
-#     def __init__(self: any, dump_file_list, dump_data_list):
-#         self.dump_file_list = dump_file_list
-#         self.dump_data_list = dump_data_list
-#
-#     def get_base_info(self):
-#         base_dump_file_path = self.dump_file_list[0]
-#         base_dump_data = self.dump_data_list[0]
+    def calculate_auto_mode_shape(self: any) -> list:
+        """
+        calculate the output data shape of auto mode
+        @return: output shape
+        """
+        output_shape = []
+        if self.attr["output_tensor_slice"]:
+            for output in self.attr["output_tensor_slice"][0]:
+                output_index = []
+                for addr in output:
+                    dim = addr.get("higher") - addr.get("lower")
+                    output_index.append(dim)
+                output_shape.append(output_index)
+        return output_shape
+
+    @property
+    def get_ffts_mode(self: any) -> any:
+        """
+        get ffts+ mode
+        @return: mode
+        """
+        return self.attr["threadMode"] if self.attr else None
+
+    def set_op_attr(self: any, op_name: str, ffts_file_check: bool) -> None:
+        """
+        set op_name and ffts_file_check
+        @param op_name: op name
+        @param ffts_file_check: if file num doesn't match thread num
+        @return: none
+        """
+        self.op_name = op_name
+        self.ffts_file_check = ffts_file_check
+
+

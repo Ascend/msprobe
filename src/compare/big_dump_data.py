@@ -55,7 +55,6 @@ class BigDumpDataParser:
                 self._read_buffer_data(dump_file)
                 data = utils.convert_dump_data(self.dump_data)
 
-                data_attr = json.loads(self.dump_data.attr[0].value)
                 return self.dump_data
         except (OSError, IOError) as io_error:
             log.print_error_log('Failed to read the dump file %s. %s'
@@ -107,7 +106,7 @@ class BigDumpDataParser:
         # + sum(buffer.data) equal to file size
         if self.header_length + ConstManager.UINT64_SIZE + input_data_size \
                 + output_data_size + buffer_data_size != self.file_size:
-            log.print_warn_log(
+            log.print_error_log(
                 'The file size (%d) of %s is not equal to %d (header length)'
                 ' + %d(the size of header content) '
                 '+ %d(the sum of input data) + %d(the sum of output data) '
