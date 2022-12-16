@@ -118,8 +118,8 @@ class FusionOpComparison:
                            % (fusion_op.op_name, fusion_op.op_name, left_data_type, index, origin_tensor.name,
                               ConstManager.OUTPUT, origin_tensor.index))
         if not parse:
-            dump_file_list, _ = self.compare_data.right_dump_info.get_op_dump_file(origin_tensor.name,
-                                                                                origin_tensor.index)
+            index = None if self.compare_data.right_dump_info.type == DumpType.Offline else origin_tensor.index
+            dump_file_list, _ = self.compare_data.right_dump_info.get_op_dump_file(origin_tensor.name, index)
             dump_file_path = dump_file_list[-1]
             origin_tensor.set_path(dump_file_path)
             return origin_tensor
@@ -131,10 +131,12 @@ class FusionOpComparison:
                 log.print_out_of_range_error(fusion_op.op_name, "output", origin_tensor.index,
                                              '[0, %d)' % len(dump_data.output_data))
                 raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
+
             origin_tensor.set_data(dump_data.output_data[origin_tensor.index])
             origin_tensor.tensor_format = \
                 common.get_format_string(dump_data.output_data[origin_tensor.index].tensor_format)
             origin_tensor.shape = dump_data.output_data[origin_tensor.index].shape
+
         else:
             origin_tensor.set_data(dump_data.output_data[0])
         return origin_tensor

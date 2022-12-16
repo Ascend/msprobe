@@ -303,6 +303,7 @@ class ConstManager:
     BUFFER_TYPE_MAP = {DD.L1: 'l1'}
     CONVERT_FAILED_FILE_LIST_NAME = "convert_failed_file_list.txt"
     MAPPING_FILE_NAME = "mapping.csv"
+    END_FLAG = "\0"
 
     AICORE = "AICORE"
     AICPU = "AICPU"

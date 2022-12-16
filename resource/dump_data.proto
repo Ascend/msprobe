@@ -132,6 +132,15 @@ message OpAttr {
     string value = 2;
 }
 
+message Workspace {
+    enum SpaceType {
+        LOG = 0;
+    }
+    SpaceType type = 1;
+    bytes data = 2;
+    uint64 size = 3;
+}
+
 message DumpData{
     string version = 1;
     uint64 dump_time = 2;
@@ -140,4 +149,5 @@ message DumpData{
     repeated OpBuffer buffer = 5;
     string op_name = 6;
     repeated OpAttr attr = 7;
+    repeated Workspace space = 8;
 }
