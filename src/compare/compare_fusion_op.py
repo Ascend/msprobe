@@ -115,8 +115,8 @@ class FusionOpComparison:
                            % (fusion_op.op_name, fusion_op.op_name, left_data_type, index, origin_tensor.name,
                               ConstManager.OUTPUT, origin_tensor.index))
         if not parse:
-            dump_file_path = self.compare_data.right_dump_info.get_op_dump_file(origin_tensor.name,
-                                                                                origin_tensor.index)
+            index = None if self.compare_data.right_dump_info.type == DumpType.Offline else origin_tensor.index
+            dump_file_path = self.compare_data.right_dump_info.get_op_dump_file(origin_tensor.name, index)
             origin_tensor.set_path(dump_file_path)
             return origin_tensor
         dump_file_path, dump_data = self.compare_data.get_right_dump_data(
