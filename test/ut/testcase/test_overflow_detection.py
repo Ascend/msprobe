@@ -11,6 +11,8 @@ import unittest
 import numpy as np
 from unittest import mock
 
+import utils
+from dump_data_object import DumpTensor
 from overflow_detection import OverflowDetection
 
 import dump
@@ -30,6 +32,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.parse_dump_file', return_value=dump_data):
             overflow_detection = OverflowDetection(compare_data, detail_info.tensor_id.op_name)
             input_tensor_data_info, output_tensor_data_info = overflow_detection.parse_dump_file()
@@ -39,18 +42,18 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_tensor_data_info(self):
         tensor_type = "output"
         tensor = mock.Mock
+        tensor.data = np.array([1, 2, 3])
         tensor.data_type = DD.DT_FLOAT16
         tensor_list = [tensor]
         dump_file_path = "/home/demo"
-        with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.array([1, 2, 3])):
-            detail_info = mock.Mock()
-            detail_info.tensor_id = detail.TensorId('MaxPool_3', 'output', '0')
-            compare_data = dump.CompareData("Pooling.MaxPool_3.5.1612779097467502", "Null", 2)
-            compare_data.left_dump_info.op_name_to_file_map = {"MaxPool_3": ["Pooling.MaxPool_3.5.1612779097467502"]}
-            compare_data.left_dump_info.type = dump.DumpType.Quant
-            overflow_detection = OverflowDetection(compare_data, detail_info.tensor_id.op_name)
-            tensor_data_info = overflow_detection._get_tensor_data_info(tensor_type, tensor_list, dump_file_path)
-            self.assertEqual(len(tensor_data_info) != 0, True)
+        detail_info = mock.Mock()
+        detail_info.tensor_id = detail.TensorId('MaxPool_3', 'output', '0')
+        compare_data = dump.CompareData("Pooling.MaxPool_3.5.1612779097467502", "Null", 2)
+        compare_data.left_dump_info.op_name_to_file_map = {"MaxPool_3": ["Pooling.MaxPool_3.5.1612779097467502"]}
+        compare_data.left_dump_info.type = dump.DumpType.Quant
+        overflow_detection = OverflowDetection(compare_data, detail_info.tensor_id.op_name)
+        tensor_data_info = overflow_detection._get_tensor_data_info(tensor_type, tensor_list, dump_file_path)
+        self.assertEqual(len(tensor_data_info) != 0, True)
 
     def test_check_overflow_tensor(self):
         detail_info = mock.Mock()
@@ -58,11 +61,6 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data = dump.CompareData("Pooling.MaxPool_3.5.1612779097467502", "Null", 2)
         compare_data.left_dump_info.op_name_to_file_map = {"MaxPool_3": ["Pooling.MaxPool_3.5.1612779097467502"]}
         compare_data.left_dump_info.type = dump.DumpType.Quant
-        dump_data = DD.DumpData()
-        dump_data.input.append(
-            self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data.output.append(
-            self._make_op_output(DD.FORMAT_NCHW))
         overflow_detection = OverflowDetection(compare_data, detail_info.tensor_id.op_name)
         tensor_type = "input"
         np_array = np.array([43529352, -1])
@@ -83,6 +81,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW))
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('utils.parse_dump_file', return_value=dump_data):
             with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.array([19345143, 2, 3])):
                 overflow_detection = OverflowDetection(compare_data, detail_info.tensor_id.op_name)
@@ -93,22 +92,20 @@ class TestUtilsMethods(unittest.TestCase):
         index = 0
         is_input = True
         tensor = mock.Mock()
-        tensor.data = self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]).data
+        tensor.data = np.array([19345143, 2, 3])
         tensor.data_type = 2
-        with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.array([19345143, 2, 3])):
-            res = OverflowDetection.process_model_overflow_detection(op_name, index, is_input, tensor)
-            self.assertEqual(res, 'YES')
+        res = OverflowDetection.process_model_overflow_detection(op_name, index, is_input, tensor)
+        self.assertEqual(res, 'YES')
 
     def test_process_model_overflow_detection2(self):
         op_name = 'temp'
         index = 0
         is_input = True
         tensor = mock.Mock()
-        tensor.data = self._make_op_input(DD.FORMAT_NCHW, [1, 3, 42, 4]).data
+        tensor.data = np.array([1, 2, 3])
         tensor.data_type = 2
-        with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.array([1, 2, 3])):
-            res = OverflowDetection.process_model_overflow_detection(op_name, index, is_input, tensor)
-            self.assertEqual(res, 'NO')
+        res = OverflowDetection.process_model_overflow_detection(op_name, index, is_input, tensor)
+        self.assertEqual(res, 'NO')
 
     def test_process_model_overflow_detection3(self):
         op_name = 'temp'
@@ -120,7 +117,7 @@ class TestUtilsMethods(unittest.TestCase):
         ]
         array = np.array(array)
         tensor = mock.Mock()
-        tensor.data = array.dumps()
+        tensor.data = array
         tensor.data_type = 3
         res = OverflowDetection.process_model_overflow_detection(op_name, index, is_input, tensor)
         self.assertEqual(res, 'NaN')

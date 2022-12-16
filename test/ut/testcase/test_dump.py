@@ -92,10 +92,11 @@ class TestUtilsMethods(unittest.TestCase):
         dump_info._check_file_match_pattern = mock.Mock(return_value=["Add", 0])
         dump_info._check_dump_file_is_quant = mock.Mock()
         dump_info._judge_dump_type = mock.Mock()
-        with mock.patch("os.listdir", return_value=["mapping.csv", '23423125315', "Add.0.1223242.npy"]):
-            with mock.patch("os.path.isfile", return_value=True):
-                with mock.patch("os.path.exists", return_value=False):
-                    dump_info._make_op_name_to_file_map()
+        with mock.patch("os.path.getsize", return_value=1024):
+            with mock.patch("os.listdir", return_value=["mapping.csv", '23423125315', "Add.0.1223242.npy"]), \
+                 mock.patch("os.path.isfile", return_value=True), \
+                 mock.patch("os.path.exists", return_value=False):
+                dump_info._make_op_name_to_file_map()
 
     def test_get_op_dump_file1(self):
         op_name = "Add_dmeo"

@@ -6,6 +6,9 @@ Function:
 FusionOp class. This class mainly involves the fusion op info.
 """
 import log
+import numpy as np
+import utils
+import dump_data_pb2 as DD
 
 from const_manager import ConstManager
 from reg_manager import RegManager
@@ -77,7 +80,7 @@ class Tensor:
     def __init__(self: any, name: str, index: int, tensor_format: str, shape: list) -> None:
         self.name = name
         self.index = index
-        self.format = tensor_format
+        self.tensor_format = tensor_format
         self.shape = shape
         self.path = ''
         self.data = None

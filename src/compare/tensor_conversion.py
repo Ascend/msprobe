@@ -63,7 +63,7 @@ class TensorConversion:
     def _change_format(ground_truth_tensor: Tensor, origin_shape: any) -> None:
         # if fusion rule is (1,224,224, 3),origin is (1,3, 224,224),
         # need change format to NCHW
-        if ground_truth_tensor.format == 'NHWC' and \
+        if ground_truth_tensor.tensor_format == 'NHWC' and \
                 ground_truth_tensor.shape[0] == origin_shape[0] and \
                 ground_truth_tensor.shape[1] == origin_shape[2] and \
                 ground_truth_tensor.shape[2] == origin_shape[3] and \
@@ -71,7 +71,7 @@ class TensorConversion:
             ground_truth_tensor.format = 'NCHW'
         # if fusion rule is (1,3,224,224),origin is (1,224,224,3),
         # need change format to NHWC
-        if ground_truth_tensor.format == 'NCHW' and \
+        if ground_truth_tensor.tensor_format == 'NCHW' and \
                 ground_truth_tensor.shape[0] == origin_shape[0] and \
                 ground_truth_tensor.shape[1] == origin_shape[3] and \
                 ground_truth_tensor.shape[2] == origin_shape[1] and \
@@ -81,11 +81,11 @@ class TensorConversion:
     @staticmethod
     def _make_detail_dest_format(my_output_tensor: any, ground_truth_format: int) -> (any, any):
         # convert my output and ground truth format to nchw
-        if common.contain_depth_dimension(my_output_tensor.format):
+        if common.contain_depth_dimension(my_output_tensor.tensor_format):
             my_output_dest_format = DD.FORMAT_NCDHW
             ground_truth_dest_format = DD.FORMAT_NCDHW
         else:
-            if my_output_tensor.format == DD.FORMAT_FRACTAL_Z:
+            if my_output_tensor.tensor_format == DD.FORMAT_FRACTAL_Z:
                 my_output_dest_format = ground_truth_format
                 ground_truth_dest_format = ground_truth_format
             else:
@@ -140,32 +140,32 @@ class TensorConversion:
         :return: my_output_array, ground_truth_array, shape
         """
         # get ground truth format
-        origin_format = my_output_tensor.format
-        if ground_truth_tensor.format != "":
+        origin_format = my_output_tensor.tensor_format
+        if ground_truth_tensor.tensor_format != "":
             origin_format = self._get_ground_truth_format(ground_truth_tensor)
-        is_tensor = (utils.get_shape_type(my_output_tensor.shape.dim) == utils.ShapeType.Tensor)
-        my_output_shape = utils.convert_shape_to_string(my_output_tensor.shape.dim)
+        is_tensor = (utils.get_shape_type(my_output_tensor.shape) == utils.ShapeType.Tensor)
+        my_output_shape = utils.convert_shape_to_string(my_output_tensor.shape)
 
         # when compare quant and origin
         if compare_data.is_standard_quant_vs_origin():
             # deserialize dump data to np array
-            my_output_array = utils.deserialize_dump_data_to_array(my_output_tensor)
-            ground_truth_array = utils.deserialize_dump_data_to_array(ground_truth_tensor.data)
+            my_output_array = my_output_tensor.data
+            ground_truth_array = ground_truth_tensor.data.data
             log.print_info_log('[%s] Left %s <======> Right %s'
                                % (self.fusion_op.op_name, my_output_shape,
-                                  utils.convert_shape_to_string(ground_truth_tensor.data.shape.dim)))
-            self._check_shape_valid(my_output_tensor.shape.dim, ground_truth_tensor.data.shape.dim)
-            return my_output_array, ground_truth_array, my_output_tensor.shape.dim
+                                  utils.convert_shape_to_string(ground_truth_tensor.data.shape)))
+            self._check_shape_valid(my_output_tensor.shape, ground_truth_tensor.data.shape)
+            return my_output_array, ground_truth_array, my_output_tensor.shape
 
         log.print_info_log('[%s] Before shape convert, Left %s%s <======> Right %s%s'
-                           % (self.fusion_op.op_name, common.get_format_string(my_output_tensor.format),
-                              my_output_shape, ground_truth_tensor.format,
-                              utils.convert_shape_to_string(ground_truth_tensor.data.shape.dim)))
+                           % (self.fusion_op.op_name, common.get_format_string(my_output_tensor.tensor_format),
+                              my_output_shape, ground_truth_tensor.tensor_format,
+                              utils.convert_shape_to_string(ground_truth_tensor.data.shape)))
         # convert shape
         my_output_np, ground_truth_np = self._convert_shape(my_output_tensor, ground_truth_tensor, origin_format)
 
         # slice data
-        if (my_output_tensor.format != DD.FORMAT_ND or
+        if (my_output_tensor.tensor_format != DD.FORMAT_ND or
            (is_tensor and (my_output_np.size != ground_truth_np.size))):
             my_output_np = self.slice_data(my_output_np, ground_truth_np.shape)
 
@@ -202,7 +202,7 @@ class TensorConversion:
         return is_slice
 
     def _change_format_by_origin_shape(self: any, ground_truth_tensor: Tensor) -> None:
-        origin_shape = ground_truth_tensor.data.shape.dim
+        origin_shape = ground_truth_tensor.data.shape
         if len(ground_truth_tensor.shape) == ConstManager.FOUR_DIMS_LENGTH and \
                 len(origin_shape) == ConstManager.FOUR_DIMS_LENGTH:
             match = True
@@ -214,13 +214,13 @@ class TensorConversion:
                 self._change_format(ground_truth_tensor, origin_shape)
 
     def _get_ground_truth_format(self: any, ground_truth_tensor: Tensor) -> int:
-        if ground_truth_tensor.format not in ConstManager.STRING_TO_FORMAT_MAP:
-            message = 'The format " %s " is not supported.' % ground_truth_tensor.format
+        if ground_truth_tensor.tensor_format not in ConstManager.STRING_TO_FORMAT_MAP:
+            message = 'The format " %s " is not supported.' % ground_truth_tensor.tensor_format
             log.print_warn_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_FORMAT_ERROR, message)
-        if ground_truth_tensor.format in ('NHWC', 'NCHW'):
+        if ground_truth_tensor.tensor_format in ('NHWC', 'NCHW'):
             self._change_format_by_origin_shape(ground_truth_tensor)
-        return ConstManager.STRING_TO_FORMAT_MAP.get(ground_truth_tensor.format)
+        return ConstManager.STRING_TO_FORMAT_MAP.get(ground_truth_tensor.tensor_format)
 
     def _check_shape_valid(self: any, my_output_shape: any, ground_truth_shape: any) -> None:
         if len(my_output_shape) != len(ground_truth_shape):
@@ -240,28 +240,28 @@ class TensorConversion:
 
     def _convert_shape(self: any, my_output_tensor: any, ground_truth_tensor: Tensor,
                        ground_truth_format: int) -> (any, any):
-        my_output_dest_format = my_output_tensor.format
+        my_output_dest_format = my_output_tensor.tensor_format
         ground_truth_dest_format = ground_truth_format
         if self.is_detail:
             # convert my output and ground truth format to nchw
             my_output_dest_format, ground_truth_dest_format = self._make_detail_dest_format(
                 my_output_tensor, ground_truth_format)
         else:
-            if my_output_tensor.format != ground_truth_tensor.format:
+            if my_output_tensor.tensor_format != ground_truth_tensor.tensor_format:
                 my_output_dest_format = ground_truth_format
 
         # deserialize dump data to np array
-        my_output_array = utils.deserialize_dump_data_to_array(my_output_tensor)
-        ground_truth_array = utils.deserialize_dump_data_to_array(ground_truth_tensor.data)
+        my_output_array = my_output_tensor.data
+        ground_truth_array = ground_truth_tensor.data.data
 
         # ND format no need to convert, except FORMAT_FRACTAL_NZ to ND
-        if (my_output_dest_format == DD.FORMAT_ND and my_output_tensor.format != DD.FORMAT_FRACTAL_NZ) \
-                or utils.get_shape_type(my_output_tensor.shape.dim) != utils.ShapeType.Tensor:
+        if (my_output_dest_format == DD.FORMAT_ND and my_output_tensor.tensor_format != DD.FORMAT_FRACTAL_NZ) \
+                or utils.get_shape_type(my_output_tensor.shape) != utils.ShapeType.Tensor:
             return my_output_array, ground_truth_array
 
         # shape convert for my output
         my_output_group = common.get_sub_format(my_output_tensor)
-        my_output_src_to_dest = SrcToDest(my_output_tensor.format, my_output_dest_format, my_output_tensor.shape,
+        my_output_src_to_dest = SrcToDest(my_output_tensor.tensor_format, my_output_dest_format, my_output_tensor.shape,
                                           ground_truth_tensor.data.shape)
         my_output_np = self.shape_conversion.convert_shape(my_output_src_to_dest, my_output_array,
                                                            {'group': my_output_group})

@@ -8,6 +8,7 @@ from format_manager import FormatManager
 from format_manager import ShapeConversion
 from format_manager import SrcToDest
 import dump_data_pb2 as DD
+from dump_data_object import DumpTensor
 from compare_error import CompareError
 from unittest import mock
 
@@ -78,7 +79,7 @@ class TestUtilsMethods(unittest.TestCase):
         format_to = DD.FORMAT_MD
         shape_from = self._make_shape([1, 2, 2, 2, 2])
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         with pytest.raises(utils.CompareError) as error:
             manager = FormatManager("")
             manager.check_arguments_valid()
@@ -108,7 +109,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 2, 2, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         with pytest.raises(utils.CompareError) as error:
@@ -123,7 +124,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 2, 2, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
 
@@ -139,7 +140,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 2, 2, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -153,7 +154,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 2, 2, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -167,7 +168,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 2, 2, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -181,7 +182,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 4, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -195,7 +196,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 4, 2, 2])
         shape_to = self._make_shape([1, 3, 2, 2])
         group = 1
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -209,7 +210,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 4, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -223,7 +224,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 4, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -237,7 +238,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 4, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -251,7 +252,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 4, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 3, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -265,7 +266,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([2, 16, 16, 16])
         group = 1
         shape_to = self._make_shape([256, 32])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -279,7 +280,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([2, 16, 16, 16])
         group = 1
         shape_to = self._make_shape([256, 32])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -293,7 +294,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 3, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 2, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -307,7 +308,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 3, 2, 2])
         group = 1
         shape_to = self._make_shape([1, 2, 2, 2])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -321,7 +322,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([4, 2, 16, 16, 16])
         group = 1
         shape_to = self._make_shape([4, 256, 32])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -329,13 +330,13 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(len(data.shape), 3)
         self.assertEqual(data.size, 256 * 32 * 4)
 
-    def test_convert_shape_fractal_nz_to_nd_array_not_eaual_shape(self):
+    def test_convert_shape_fractal_nz_to_nd_array_not_equal_shape(self):
         format_from = DD.FORMAT_FRACTAL_NZ
         format_to = DD.FORMAT_ND
         shape_from = self._make_shape([20, 2, 16, 16])
         group = 1
         shape_to = self._make_shape([1, 32, 12, 26])
-        array = self._make_numpy_array(shape_from.dim)
+        array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
         data = ShapeConversion(manager).convert_shape(
@@ -351,9 +352,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_shape(dim_list):
-        shape = DD.Shape()
-        for dim in dim_list:
-            shape.dim.append(dim)
+        shape = DumpTensor(shape=dim_list).shape
         return shape
 
     @staticmethod
