@@ -32,6 +32,9 @@ class ConstManager:
     C0_AXIS = 16
 
     TIMESTAMP_LENGTH = 16
+    INVALID_TIMESTAMP = 0
+    INVALID_FILE_TYPE = 0
+    TRAD_MODE = 0
 
 
     # overflow
@@ -211,7 +214,7 @@ class ConstManager:
         DD.DT_BOOL: {DTYPE_KEY: np.bool_, STRUCT_FORMAT_KEY: '?'},
         DD.DT_COMPLEX64: {DTYPE_KEY: np.complex64, STRUCT_FORMAT_KEY: '?'},
         DD.DT_COMPLEX128: {DTYPE_KEY: np.complex128, STRUCT_FORMAT_KEY: '?'},
-        DD.DT_UNDEFINED: {DTYPE_KEY: np.uint8, STRUCT_FORMAT_KEY: '?'}
+        DD.DT_UINT1: {DTYPE_KEY: np.uint8, STRUCT_FORMAT_KEY: '?'},
     }
     DATA_TYPE_TO_STR_DTYPE_MAP = {
         DD.DT_FLOAT: "float32",
@@ -228,8 +231,12 @@ class ConstManager:
         DD.DT_BOOL: "bool",
         DD.DT_COMPLEX64: "complex64",
         DD.DT_COMPLEX128: "complex128",
-        DD.DT_UNDEFINED: "uint8"
+        DD.DT_UINT1: "uint1"
     }
+
+    SPECIAL_DTYPE = [
+        DD.DT_UINT1,
+    ]
 
     # Standard
     STANDARD_SUFFIX = ".pb"
