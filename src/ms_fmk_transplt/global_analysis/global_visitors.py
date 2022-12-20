@@ -19,15 +19,13 @@ def catch_error(return_type=None):
             try:
                 return func(*args, **kwargs)
             except BaseException:
-                if return_type is None:
-                    return return_type
                 if return_type is list:
                     return []
-                if return_type is str:
+                elif return_type is str:
                     return ''
-
+                else:
+                    return return_type
         return wrapper
-
     return decorator
 
 
