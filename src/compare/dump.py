@@ -142,7 +142,7 @@ class DumpInfo:
                     .format(item, self.path, info)
             log.print_warn_log(msg)
             raise CompareError(CompareError.MSACCUCMP_DUMP_FILE_ERROR)
-        return match, expect
+        return match.group(1), expect
 
     def _check_dump_file_is_quant(self: any, dump_type: DumpType, op_name: str) -> None:
         if dump_type in [DumpType.Offline, DumpType.Numpy]:
@@ -183,7 +183,7 @@ class DumpInfo:
             return
         finally:
             pass
-        op_name = utils.handle_op_name(match.group(1))
+        op_name = utils.handle_op_name(match)
         # if real op name contain '_lxslice' field, the op will not be added to map
         if ConstManager.FFTS_MANUAL_MODE_FIELD in op_name:
             return

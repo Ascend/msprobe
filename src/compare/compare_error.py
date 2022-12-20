@@ -50,6 +50,7 @@ class CompareError(Exception):
     MSACCUCMP_INVALID_OVERFLOW_STATUS_ERROR = 36
     MSACCUCMP_INVALID_TASK_TYPE = 37
     MSACCUCMP_MISSING_FILE = 38
+    MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE = 39
 
     def __init__(self: any, code: int, message: str = "") -> None:
         super().__init__(code)

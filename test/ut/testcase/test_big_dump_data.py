@@ -27,7 +27,7 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('os.path.getsize', return_value=3):
                     BigDumpDataParser('a.bin').parse()
         self.assertEqual(error.value.args[0],
-                         CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+                         CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE)
 
     def test_parse3(self):
         data = struct.pack('Q', 10)

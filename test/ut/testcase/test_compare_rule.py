@@ -45,26 +45,28 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_sort_file_by_timestamp1(self):
         op_name_to_file_map = {"Add": ["CON.aDD.1.23431252326"]}
+        op_name_to_task_mode = {"Add": const_manager.ConstManager.NORMAL_MODE}
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
         with mock.patch("utils.check_path_valid", return_value=0):
-            compare_rule_object._sort_file_by_timestamp(op_name_to_file_map)
+            compare_rule_object._sort_file_by_mode(op_name_to_file_map, op_name_to_task_mode)
 
     def test_sort_file_by_timestamp2(self):
         op_name_to_file_map = {"Add": ["1223453545232"]}
+        op_name_to_task_mode = {"Add": '0'}
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
         with mock.patch("utils.check_path_valid", return_value=0):
-            compare_rule_object._sort_file_by_timestamp(op_name_to_file_map)
+            compare_rule_object._sort_file_by_mode(op_name_to_file_map, op_name_to_task_mode)
 
     def test_make_npu_vs_npu_fusion_rule1(self):
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
         left_sort_list = [[23431252326, "aDD", "CON.aDD.1.23431252326"]]
-        compare_rule_object._sort_file_by_timestamp = mock.Mock(return_value=left_sort_list)
+        compare_rule_object._sort_file_by_mode = mock.Mock(return_value=left_sort_list)
         compare_data = mock.Mock()
         compare_data.left_dump_info = mock.Mock()
         compare_data.left_dump_info.op_name_to_file_map = {"Add": ["1223453545232"]}
