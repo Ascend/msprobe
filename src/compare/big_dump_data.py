@@ -115,7 +115,7 @@ class BigDumpDataParser:
                 % (self.file_size, self.dump_file_path, ConstManager.UINT64_SIZE, self.header_length,
                    input_data_size, output_data_size, buffer_data_size, space_data_size))
             raise CompareError(
-                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+                CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE)
 
     def _read_header_length(self: any, dump_file: BinaryIO) -> None:
         # read header length

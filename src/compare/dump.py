@@ -213,14 +213,10 @@ class DumpInfo:
         self._judge_dump_type()
 
     def _check_task_type(self: any, op_name: str, file_name: str) -> None:
-        # old file_name:
-        # {op_type}.{op_name}.({streamid}.){taskid}.{timestamp}
         flied_list = file_name.split(".")
         if len(flied_list) <= ConstManager.OLD_FILE_FIELD_NUM + 1:
             self.op_name_to_task_mode_map[op_name] = ConstManager.NORMAL_MODE
             return
-        # new file_name:
-        # {op_type}.{op_name}.({streamid}.){taskid}.{timestamp}.{tasktype}.{contextid}.{threadid}.{deviceid}
         if flied_list[-4] not in ConstManager.TASK_TYPE_MAP.values():
             raise CompareError(CompareError.MSACCUCMP_INVALID_TASK_TYPE)
         if flied_list[-4] == ConstManager.TASK_TYPE_MAP.get(ConstManager.FFTSPLUS):

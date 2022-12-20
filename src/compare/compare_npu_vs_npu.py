@@ -119,7 +119,8 @@ class NpuVsNpuComparison:
         result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg, no_dump_file=True)
         return CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR, False, result
 
-    def _get_dump_data(self: any, fusion_op: FusionOp, dump_path: str, op_name_to_task_mode_map, dump_type: str) -> Tensor:
+    def _get_dump_data(self: any, fusion_op: FusionOp, dump_path: str,
+                       op_name_to_task_mode_map, dump_type: str) -> Tensor:
         """
         get dump data by fusion op output_desc
         """

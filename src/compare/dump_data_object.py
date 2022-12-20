@@ -72,13 +72,14 @@ class DumpDataObj:
         @return: cut axis
         """
         cut_axis = []
-        if self.attr["outputCutList"]:
-            for output in self.attr["outputCutList"]:
-                output_index = []
-                for index, value in enumerate(output):
-                    if value != 1:
-                        output_index.append(index)
-                cut_axis.append(output_index)
+        if not self.attr["outputCutList"]:
+            return cut_axis
+        for output in self.attr["outputCutList"]:
+            output_index = []
+            for index, value in enumerate(output):
+                if value != 1:
+                    output_index.append(index)
+            cut_axis.append(output_index)
         return cut_axis
 
     @property

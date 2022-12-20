@@ -45,7 +45,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_sort_file_by_timestamp1(self):
         op_name_to_file_map = {"Add": ["CON.aDD.1.23431252326"]}
-        op_name_to_task_mode = {"Add": const_manager.ConstManager.NORMAL_MODE}
+        op_name_to_task_mode = {"Add": '0'}
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)

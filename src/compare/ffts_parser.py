@@ -32,11 +32,11 @@ class FFTSParser:
     @staticmethod
     def merge_data(output_list, cut_axis):
         merge_output = []
-        for i in range(len(cut_axis)):
-            if not cut_axis[i]:
+        for index, dim in enumerate(cut_axis):
+            if not dim:
                 continue
-            axis = cut_axis[i][0]
-            merge_output.append(np.concatenate(output_list[i], axis))
+            axis = cut_axis[index][0]
+            merge_output.append(np.concatenate(output_list[index], axis))
         return merge_output
 
     @staticmethod
@@ -74,7 +74,7 @@ class FFTSParser:
             dump_base.ffts_file_check = False
             log.print_warn_log(
                 f"This is a FFTS+ mode dump data {dump_base.op_name},"
-                f" The number of files does not match the number of thread.")
+                f" The number of files does not match the number of thread (instance slice num).")
         if dump_base.get_ffts_mode:
             cut_axis = dump_base.get_cut_axis_auto
         else:
