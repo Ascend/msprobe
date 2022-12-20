@@ -12,6 +12,8 @@ import sys
 from enum import Enum
 from enum import unique
 
+import numpy as np
+
 import utils
 import log
 
@@ -19,6 +21,7 @@ from const_manager import ConstManager
 from dump_data_pb2 import DumpData
 from reg_manager import RegManager
 from compare_error import CompareError
+from ffts_parser import FFTSParser
 
 
 @unique
@@ -41,14 +44,11 @@ class DumpInfo:
         self.path = dump_path
         self.type = None
         self.op_name_to_file_map = {}
+        self.op_name_to_task_mode_map = {}
         self.quant = False
         self.data_info = ''
         self.dump_version = dump_version
         self.hash_to_file_name_map = {}
-
-    @staticmethod
-    def _check_valid_timestamp(timestamp) -> bool:
-        return len(timestamp) == 16 and timestamp.isdigit()
 
     def check_arguments_valid(self: any) -> None:
         """
@@ -73,7 +73,7 @@ class DumpInfo:
         """
         return self.type == DumpType.Standard or (self.type == DumpType.Numpy and not self.quant)
 
-    def get_op_dump_file(self: any, op_name: str, output_index: int = None, print_log: bool = True) -> str:
+    def get_op_dump_file(self: any, op_name: str, output_index: int = None, print_log: bool = True) -> tuple:
         """
         Get the dump file a by op name
         :param op_name: the op name
@@ -87,19 +87,14 @@ class DumpInfo:
         if original_op_name not in self.op_name_to_file_map:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         dump_file_list = self.op_name_to_file_map.get(original_op_name)
-        match_count = len(dump_file_list)
-        if match_count == 0:
+        dump_mode = self.op_name_to_task_mode_map.get(original_op_name)
+        if not dump_file_list:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-        if match_count > 1:
-            self._sorted_op_name_file_map_by_timestamp(dump_file_list)
-            dump_file_path = dump_file_list[-1]
-            log.print_warn_log(
-                'There are %d dump files of the "%s" in the path "%s". Choose the file "%s" to compare.'
-                % (match_count, original_op_name, self.path, dump_file_path))
-        dump_file_path = dump_file_list[-1]
+        if len(dump_file_list) > 1:
+            dump_file_list = utils.sort_dump_file_list(dump_mode, dump_file_list)
         if print_log:
-            log.print_info_log('[%s] [%s] %s' % (op_name, str(self.type.name), dump_file_path))
-        return dump_file_path
+            log.print_info_log('[%s] [%s] %s' % (op_name, str(self.type.name), dump_file_list))
+        return dump_file_list, dump_mode
 
     def get_op_dump_data(self: any, op_name: str, output_index: int = None) -> (str, DumpData):
         """
@@ -110,8 +105,14 @@ class DumpInfo:
         """
         if self.type == DumpType.Quant and output_index is None:
             output_index = 0
-        dump_file_path = self.get_op_dump_file(op_name, output_index)
-        dump_data = utils.parse_dump_file(dump_file_path, self.dump_version)
+        dump_file_list, dump_mode = self.get_op_dump_file(op_name, output_index)
+        dump_data_list = [utils.parse_dump_file(dump_file_path, self.dump_version) for dump_file_path in dump_file_list]
+        if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:
+            ffts_parser = FFTSParser(dump_file_list, dump_data_list)
+            dump_file_path, dump_data = ffts_parser.parse_ffts
+        else:
+            dump_file_path = dump_file_list[-1]
+            dump_data = dump_data_list[-1]
         return dump_file_path, dump_data
 
     def get_data_info(self: any) -> str:
@@ -141,7 +142,7 @@ class DumpInfo:
                     .format(item, self.path, info)
             log.print_warn_log(msg)
             raise CompareError(CompareError.MSACCUCMP_DUMP_FILE_ERROR)
-        return match.group(1), expect
+        return match, expect
 
     def _check_dump_file_is_quant(self: any, dump_type: DumpType, op_name: str) -> None:
         if dump_type in [DumpType.Offline, DumpType.Numpy]:
@@ -177,11 +178,16 @@ class DumpInfo:
                 return
             item = self.hash_to_file_name_map.get(item)
         try:
-            op_name, current_dump_type = self._check_file_match_pattern(item)
+            match, current_dump_type = self._check_file_match_pattern(item)
         except CompareError:
             return
         finally:
             pass
+        op_name = utils.handle_op_name(match.group(1))
+        # if real op name contain '_lxslice' field, the op will not be added to map
+        if ConstManager.FFTS_MANUAL_MODE_FIELD in op_name:
+            return
+        self._check_task_type(op_name, item)
         self._check_dump_file_is_quant(current_dump_type, op_name)
         if self.type is None:
             self.type = current_dump_type
@@ -206,32 +212,22 @@ class DumpInfo:
                 self._handle_one_file(file_path)
         self._judge_dump_type()
 
-    def _sorted_op_name_file_map_by_timestamp(self: any, dump_file_list) -> None:
-        dump_file_list.sort(key=self._get_dump_timestamp)
-
-    def _get_dump_timestamp(self: any, filename) -> int:
-        if filename.endswith((ConstManager.STANDARD_SUFFIX, ConstManager.NUMPY_SUFFIX,
-                              ConstManager.QUANT_SUFFIX)):
-            # Example: {op_name}.{output_index}.{timestamp}.npy
-            # Example: {op_name}.{output_index}.{timestamp}.pb
-            # Example: {op_name}.{output_index}.{timestamp}.quant
-            timestamp = filename.rsplit('.', 2)[1]
-        else:
-            index = filename.rfind('.')
-            if index == -1:
-                # when in dex is 0, item is dump file, the name is hash value
-                # Example: the file name is only numeric
-                timestamp = filename
-            else:
-                # when index is not 0, item is dump file, the name meet the data format
-                # Example: {op_type}.{op_name}.{task_id}.{stream_id}.{timestamp}
-                timestamp = filename[index + 1:]
-
-        if not self._check_valid_timestamp(timestamp):
-            log.print_warn_log('The file name \"{}\"\'s timestamp is invalid.'.format(filename))
-            return timestamp
-
-        return int(timestamp)
+    def _check_task_type(self: any, op_name: str, file_name: str) -> None:
+        # old file_name:
+        # {op_type}.{op_name}.({streamid}.){taskid}.{timestamp}
+        flied_list = file_name.split(".")
+        if len(flied_list) <= ConstManager.OLD_FILE_FIELD_NUM + 1:
+            self.op_name_to_task_mode_map[op_name] = ConstManager.NORMAL_MODE
+            return
+        # new file_name:
+        # {op_type}.{op_name}.({streamid}.){taskid}.{timestamp}.{tasktype}.{contextid}.{threadid}.{deviceid}
+        if flied_list[-4] not in ConstManager.TASK_TYPE_MAP.values():
+            raise CompareError(CompareError.MSACCUCMP_INVALID_TASK_TYPE)
+        if flied_list[-4] == ConstManager.TASK_TYPE_MAP.get(ConstManager.FFTSPLUS):
+            self.op_name_to_task_mode_map[op_name] = ConstManager.MANUAL_MODE \
+                if ConstManager.FFTS_MANUAL_MODE_FIELD in file_name else ConstManager.AUTOMATIC_MODE
+            return
+        self.op_name_to_task_mode_map[op_name] = ConstManager.NORMAL_MODE
 
     def _judge_dump_type(self: any) -> None:
         if self.type is None:

@@ -65,7 +65,8 @@ class OverflowDetection:
         """
         process op overflow detection
         """
-        dump_file_path = self.left_dump_info.get_op_dump_file(self.op_name)
+        dump_file_list, dump_mode = self.left_dump_info.get_op_dump_file(self.op_name)
+        dump_file_path = dump_file_list[-1]
         if not dump_file_path:
             return [], []
         dump_data = utils.parse_dump_file(dump_file_path, self.dump_version)
@@ -93,8 +94,10 @@ class OverflowDetection:
 
     def _judge_overflow_data(self: any, tensor_list: list, tensor_type: str) -> None:
         if len(tensor_list) == 0:
+            dump_file_list, dump_mode = self.left_dump_info.get_op_dump_file(self.op_name)
+            dump_file_path = dump_file_list[-1]
             log.print_warn_log('There is no %s in "%s".' % (
-                tensor_type, self.left_dump_info.get_op_dump_file(self.op_name)))
+                tensor_type, dump_file_path))
             return
         for item in tensor_list:
             tensor_data = item.get("tensor_data")

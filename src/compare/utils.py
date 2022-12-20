@@ -27,7 +27,7 @@ from big_dump_data import DumpDataHandler
 
 from compare_error import CompareError
 
-from dump_data_object import DumpDataObj
+from dump_data_object import DumpDataObj, DumpTensor
 
 
 class ShapeType(Enum):
@@ -80,6 +80,125 @@ class DeviceType(Enum):
     CPU = 0
 
 
+class SortMode:
+    """
+    The class of sort mode
+    """
+    def __init__(self, parameter):
+        self.parameter = parameter
+
+    @staticmethod
+    def check_valid_timestamp(timestamp) -> bool:
+        """
+        Check if timestamp format is valid
+        @param timestamp: timestamp from dump_file_path
+        @return: True or False
+        """
+        return len(timestamp) == ConstManager.TIMESTAMP_LENGTH and timestamp.isdigit()
+
+    def __call__(self, wrap_function):
+        """
+        the wrapper of get info to sort
+        @param wrap_function: file name
+        @return: Basis of sorted
+        """
+        @wraps(wrap_function)
+        def inner(*args, **kwargs):
+            file_split = wrap_function(*args, **kwargs).split('.')
+            if self.parameter == ConstManager.NORMAL_MODE or \
+                    self.parameter == ConstManager.FFTS_TIMESTAMP:
+                if self.parameter == ConstManager.FFTS_TIMESTAMP:
+                    timestamp = file_split[4]
+                elif args[0].endswith((ConstManager.STANDARD_SUFFIX,
+                                       ConstManager.NUMPY_SUFFIX, ConstManager.QUANT_SUFFIX)):
+                    timestamp = file_split[2]
+                else:
+                    timestamp = file_split[-1]
+                if not check_valid_timestamp(timestamp):
+                    log.print_warn_log(
+                        'The file name \"{}\"\'s timestamp is invalid.'.format(args[0]))
+                    return ConstManager.INVALID_TIMESTAMP
+                return int(timestamp)
+            elif self.parameter == ConstManager.AUTOMATIC_MODE:
+                thread_id = file_split[-1]
+                if not thread_id.isdigit():
+                    log.print_warn_log(
+                        'The file name \"{}\"\'s thread_id is invalid.'.format(args[0]))
+                    return ConstManager.INVALID_THREAD_ID
+                return int(thread_id)
+            elif self.parameter == ConstManager.MANUAL_MODE:
+                slice_x = file_split[1][-1]
+                if not slice_x.isdigit():
+                    log.print_warn_log(
+                        'The file name \"{}\"\'s slice_x is invalid.'.format(args[0]))
+                    return ConstManager.INVALID_SLICE_X
+                return int(slice_x)
+            else:
+                log.print_warn_log('The sort mode parameter is invalid, failed to sort')
+                return ConstManager.INVALID_SORT_MODE
+        return inner
+
+
+@SortMode(ConstManager.AUTOMATIC_MODE)
+def get_ffts_auto(file_name):
+    """
+    get thread id of ffts auto mode from file name
+    @param file_name: file name
+    @return: thread id
+    """
+    return file_name
+
+
+@SortMode(ConstManager.MANUAL_MODE)
+def get_ffts_manual(file_name):
+    """
+       get slice X of ffts manual mode from file name
+       @param file_name: file name
+       @return: slice X
+       """
+    return file_name
+
+
+@SortMode(ConstManager.NORMAL_MODE)
+def get_normal_timestamp(file_name):
+    """
+       get timestamp of normal mode
+       @param file_name: file name
+       @return: timestamp
+       """
+    return file_name
+
+
+@SortMode(ConstManager.FFTS_TIMESTAMP)
+def get_ffts_timestamp(file_name):
+    """
+       get timestamp of ffts mode
+       @param file_name: file name
+       @return: timestamp
+       """
+    return file_name
+
+
+def sort_dump_file_list(dump_file_type: int, dump_file_list: list) -> list:
+    """
+    sort dump file list by different dump mode
+    @param dump_file_type: dump data mode
+    @param dump_file_list: dump file list
+    @return: sorted dump file list
+    """
+    if dump_file_type == ConstManager.NORMAL_MODE:
+        dump_file_list.sort(key=get_normal_timestamp)
+    elif dump_file_type == ConstManager.SPEC_MODE:
+        dump_file_list.sort(key=get_ffts_timestamp)
+    elif dump_file_type == ConstManager.AUTOMATIC_MODE or ConstManager.MANUAL_MODE:
+        dump_file_list.sort(key=get_ffts_timestamp)
+        if dump_file_type == ConstManager.AUTOMATIC_MODE:
+            dump_file_list.sort(key=get_ffts_auto)
+        elif dump_file_type == ConstManager.MANUAL_MODE:
+            dump_file_list.sort(key=get_ffts_manual)
+    return dump_file_list
+
+
 def deserialize_dump_data_to_array(tensor: any) -> any:
     """
     Deserialize dump data to array
@@ -88,7 +207,8 @@ def deserialize_dump_data_to_array(tensor: any) -> any:
     """
     if 0 in tensor.shape.dim:
         return np.array([]).reshape(tensor.shape.dim)
-    return np.frombuffer(tensor.data, dtype=common.get_dtype_by_data_type(tensor.data_type))
+    result = np.frombuffer(tensor.data, dtype=common.get_dtype_by_data_type(tensor.data_type))
+    return result if tensor.data_type not in ConstManager.SPECIAL_DTYPE else np.unpackbits(result)
 
 
 def check_hdf5_file_valid(file_path: str) -> bool:
@@ -300,10 +420,27 @@ def convert_dump_data_object(wrap_function):
     """
     @wraps(wrap_function)
     def inner(*args, **kwargs):
-        dump_data = wrap_function(*args, **kwargs)
+        try:
+            dump_data = wrap_function(*args, **kwargs)
+        except CompareError:
+            dump_data = DumpData()
         dump_data_object = convert_dump_data(dump_data)
         return dump_data_object
     return inner
+
+
+def build_dump_tensor(dump_data_object_data: list) -> None:
+    """
+    replace the input or output object of DD.DumpData to DumpyTensor
+    @param dump_data_object_data: input or output object of DD.DumpData
+    @return: None
+    """
+    for index, tensor in enumerate(dump_data_object_data):
+        data_to_np = deserialize_dump_data_to_array(tensor)
+        dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
+                                 data_to_np, tensor.size, list(tensor.original_shape.dim),
+                                 tensor.address, tensor.sub_format)
+        dump_data_object_data[index] = dump_tensor
 
 
 def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
@@ -313,8 +450,9 @@ def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
     @return: DumpDataObj object
     """
     dump_data_object = DumpDataObj(dump_data)
-    dump_data_object.build_input_dump_tensor()
-    dump_data_object.build_output_dump_tensor()
+    build_dump_tensor(dump_data_object.output_data)
+    build_dump_tensor(dump_data_object.input_data)
+    dump_data_object.op_name = handle_op_name(dump_data_object.op_name)
     return dump_data_object
 
 
@@ -336,6 +474,15 @@ def convert_ndarray_to_bytes(array: np.ndarray) -> bytes:
     @return:bytes
     """
     return array.tobytes()
+
+
+def check_valid_timestamp(timestamp) -> bool:
+    """
+    Check if timestamp format is valid
+    @param timestamp: timestamp from dump_file_path
+    @return: True or False
+    """
+    return len(timestamp) == ConstManager.TIMESTAMP_LENGTH and timestamp.isdigit()
 
 
 def convert_shape_to_string(shape: list) -> str:
@@ -492,7 +639,7 @@ def get_op_type_from_file_name(dump_path: str):
     """
     get op_type from dump file name
     """
-    dump_file_name = os.path.basename(dump_path)
+    dump_file_name = os.path.basename(dump_path).replace("*", "0")
     is_match, match = RegManager.match_group(RegManager.OFFLINE_DUMP_PATTERN, dump_file_name)
     if is_match:
         op_type_end_index = dump_file_name.find('.')
@@ -581,3 +728,24 @@ def ceiling_divide(left: int, right: int) -> int:
     :return: left, right Ceiling divide
     """
     return (left + right - 1) // right
+
+
+def handle_op_name(file_op_name: str) -> (str, int):
+    # filter field '_lxsliceX' and '_sgt_field'
+    if ConstManager.FFTS_MANUAL_MODE_FIELD not in file_op_name \
+            and ConstManager.SGT_FIELD not in file_op_name:
+        return file_op_name
+    # field '_lxsliceX' at the end of name
+    if ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
+        first_match = RegManager.get_matchs(
+            RegManager.FFTS_MANUAL_FIELD_PATTERN, file_op_name)[0]
+        file_op_name = \
+            file_op_name[:first_match.start() - 1] if first_match.end() == first_match.endpos else file_op_name
+    # filter field '_sgt_field'
+    if ConstManager.SGT_FIELD in file_op_name:
+        # field '_sgt_graph' in the name
+        end_match = RegManager.get_matchs(
+            RegManager.SGT_FLIED_PATTERN, file_op_name)[-1]
+        file_op_name = file_op_name[end_match.end() + 1:] if end_match.end() != end_match.endpos else file_op_name
+    return file_op_name
+
