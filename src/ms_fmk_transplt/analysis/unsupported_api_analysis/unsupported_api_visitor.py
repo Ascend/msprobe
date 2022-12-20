@@ -50,6 +50,17 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         self.unknown_api_result = []
 
     @staticmethod
+    def _get_call_obj_name(full_name):
+        if full_name.startswith(("torch.nn.functional", "torch.nn.init")):
+            return "torch.Tensor"
+        elif full_name.startswith("torch.") and full_name.lower() == full_name:
+            return "torch.Tensor"
+        elif full_name.startswith("numpy"):
+            return "numpy"
+        else:
+            return full_name
+
+    @staticmethod
     def _get_module_column_and_name(define_node, start_index, end_index=None):
         assign_value_stmt = define_node.description[start_index:end_index]
         assign_by_self_obj_column_range = re.search(f"[^\\w]{define_node.name}[^\\w]", assign_value_stmt)
@@ -305,17 +316,6 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             node = node.func.attr
         position = self.get_metadata(libcst.metadata.PositionProvider, node)
         return position
-
-    def _get_call_obj_name(self, full_name):
-        if full_name.startswith(("torch.nn.functional", "torch.nn.init")):
-            return "torch.Tensor"
-        elif full_name.startswith("torch.") and full_name.lower() == full_name:
-            return "torch.Tensor"
-        elif full_name.startswith(self.unsupported_op_module_tuple):
-            return full_name
-        elif full_name.startswith("numpy"):
-            return "numpy"
-        return ""
 
 
 def analyse_unsupported_api(code, op_info, global_reference_visitor=None):

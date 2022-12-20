@@ -35,10 +35,17 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         except BaseException:
             translog.warning(f'{file} has unsupported python syntax, skip.')
             return
+        file_path = Path(file)
+        format_file_path = str(file_path)
+        format_parent_path = str(file_path.parent)
         if os.path.basename(file) == "__init__.py":
-            for env_path in self.package_env_path_set:
-                if file.startswith(env_path):
-                    self._analysis_init_file(os.path.dirname(file)[len(env_path) + 1:].replace(os.path.sep, "."))
+            last_sep_index = format_file_path.rfind("/")
+            while last_sep_index != -1:
+                if format_file_path in self.package_env_path_set:
+                    self._analysis_init_file(format_parent_path[len(format_file_path) + 1:].replace("/", "."))
+                    break
+                format_file_path = format_file_path[:last_sep_index]
+                last_sep_index = format_file_path.rfind("/")
         api_visitor = ThirdPartyApiVisitor(OpInfo(self.supported_op_dict, self.unsupported_op_dict, self.cuda_ops),
                                            self.global_reference_visitor, self.function_graph)
         wrapper.visit(api_visitor)

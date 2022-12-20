@@ -6,6 +6,7 @@ import argparse
 import os.path
 import shutil
 import sys
+from pathlib import Path
 
 from analysis.unsupported_api_analysis import UnsupportedApiAnalyzer
 from analysis.third_party_analysis import ThirdPartyAnalyzer
@@ -57,7 +58,8 @@ class PyTorchAnalyse:
                     raise ModuleNotFoundError("third party analysis must have jedi installed")
             env_path = pytorch_analysis.package_env_path_set
             if args.env_path:
-                env_path = args.env_path
+                env_path = list(str(Path(env_path_value)) for env_path_value in args.env_path)
+                pytorch_analysis.package_env_path_set = set(env_path)
             global_visitor = self.__get_global_visitor(env_path) if utils.IS_JEDI_INSTALLED else None
             pytorch_analysis.init_global_visitor(global_visitor)
             pytorch_analysis.set_py_file_counts(self.py_file_counts)
