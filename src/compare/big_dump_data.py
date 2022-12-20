@@ -84,7 +84,7 @@ class BigDumpDataParser:
                 'The size of %s must be greater than %d, but the file size'
                 ' is %d. Please check the dump file.'
                 % (self.dump_file_path, ConstManager.UINT64_SIZE, self.file_size))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+            raise CompareError(CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE)
         if self.file_size > ConstManager.ONE_GB:
             log.print_warn_log(
                 'The size (%d) of %s exceeds 1GB, it may task more time to run, please wait.'

@@ -127,14 +127,14 @@ class TestUtilsMethods(unittest.TestCase):
         dump_info.type = mock.Mock()
         dump_info.type.name = "input"
         dump_info.op_name_to_file_map = {op_name: ["/home/demo", "/home/test"]}
-        dump_path = dump_info.get_op_dump_file(op_name)
-        self.assertEqual(dump_path, "/home/test")
+        dump_path, _ = dump_info.get_op_dump_file(op_name)
+        self.assertEqual(dump_path[-1], "/home/test")
 
     def test_get_op_dump_data(self):
         op_name = "Add_dmeo"
         dump_info = dump.DumpInfo('/home', 1)
         dump_info.type = dump.DumpType.Quant
-        dump_info.get_op_dump_file = mock.Mock(return_value="/home/demo")
+        dump_info.get_op_dump_file = mock.Mock(return_value=(["/home/demo"], 0))
         with mock.patch("utils.parse_dump_file", return_value=1):
             dump_file_path, dump_data = dump_info.get_op_dump_data(op_name)
         self.assertEqual(dump_file_path, "/home/demo")

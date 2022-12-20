@@ -190,7 +190,7 @@ def sort_dump_file_list(dump_file_type: int, dump_file_list: list) -> list:
         dump_file_list.sort(key=get_normal_timestamp)
     elif dump_file_type == ConstManager.SPEC_MODE:
         dump_file_list.sort(key=get_ffts_timestamp)
-    elif dump_file_type == ConstManager.AUTOMATIC_MODE or ConstManager.MANUAL_MODE:
+    elif dump_file_type == ConstManager.AUTOMATIC_MODE or dump_file_type == ConstManager.MANUAL_MODE:
         dump_file_list.sort(key=get_ffts_timestamp)
         if dump_file_type == ConstManager.AUTOMATIC_MODE:
             dump_file_list.sort(key=get_ffts_auto)
@@ -422,8 +422,11 @@ def convert_dump_data_object(wrap_function):
     def inner(*args, **kwargs):
         try:
             dump_data = wrap_function(*args, **kwargs)
-        except CompareError:
-            dump_data = DumpData()
+        except CompareError as error:
+            if error.code == CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE:
+                dump_data = DumpData()
+            else:
+                raise error
         dump_data_object = convert_dump_data(dump_data)
         return dump_data_object
     return inner
