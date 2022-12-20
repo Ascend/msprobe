@@ -221,13 +221,15 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             if "\\" in define_node.description or len(define_node.description) > 1000:
                 continue
             if define_node.type == 'statement':
-                self._handle_define_type_statement(define_node, queue, call_obj_name_set)
+                self._handle_define_type_statement(define_node, call_obj_name_set, queue)
             elif define_node.type == 'param':
                 self._handle_define_type_param(define_node, call_obj_name_set)
             elif define_node.type == 'class':
                 self._handle_define_type_class(define_node, call_obj_name_set)
             elif define_node.type == 'property':
                 self._handle_define_type_property(define_node, call_obj_name_set)
+            elif define_node.type == 'instance':
+                self._handle_define_type_instance(define_node, call_obj_name_set, queue)
         return call_obj_name_set
 
     def _handle_define_type_param(self, define_node, call_obj_name_set):
@@ -251,7 +253,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         start_index = define_node.description.index(":")
         self._analyse_type_declaration(define_node, call_obj_name_set, start_index)
 
-    def _handle_define_type_statement(self, define_node, queue, call_obj_name_set):
+    def _handle_define_type_statement(self, define_node, call_obj_name_set, queue):
         if define_node.description.startswith(("for ", "with ")) or "=" not in define_node.description:
             return
         module_column, name = self._get_module_column_and_name(define_node, define_node.description.index("="))
@@ -276,6 +278,8 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         for super_class in super_class_list:
             if super_class.startswith(self.unsupported_op_module_tuple):
                 call_obj_name_set.add(super_class)
+        if define_node.full_name:
+            call_obj_name_set.add(define_node.full_name)
 
     def _handle_define_type_property(self, define_node, call_obj_name_set):
         if "->" not in define_node.description[:define_node.description.index(":")]:
@@ -283,6 +287,13 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         start_index = define_node.description.index("->")
         end_index = start_index + define_node.description[start_index:].index(":")
         self._analyse_type_declaration(define_node, call_obj_name_set, start_index, end_index)
+
+    def _handle_define_type_instance(self, define_node, call_obj_name_set, queue):
+        if not str(define_node.module_path).startswith(str(self.global_reference_visitor.project.path)):
+            call_obj_name_set.add(define_node.full_name)
+        else:
+            queue.extend(self.global_reference_visitor.get_jedi_script(define_node.module_path).infer(
+                define_node.line, define_node.column))
 
     def _get_multi_module_column_and_name(self, define_node, start_index, end_index=None):
         module_column = 0
