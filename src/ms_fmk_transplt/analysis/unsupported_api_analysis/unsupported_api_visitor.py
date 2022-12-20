@@ -136,7 +136,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             infer_list = self.global_reference_visitor.infer(position.start.line, position.start.column)
             if not infer_list:
                 return full_name.startswith(self.all_module_names)
-            return infer_list[0].type == 'module'
+            return self.global_reference_visitor.get_type(infer_list[0]) == 'module'
         return full_name.startswith(self.all_module_names)
 
     def _handle_instance_func(self, full_name, call_node, file_path):
@@ -150,7 +150,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         position = self.get_metadata(libcst.metadata.PositionProvider, call_node)
         module_defined_list = self.global_reference_visitor.goto(position.start.line, position.start.column)
         for defined_node in module_defined_list:
-            if defined_node.type == 'module':
+            if self.global_reference_visitor.get_type(defined_node) == 'module':
                 full_call_obj_name = (defined_node.full_name if defined_node.full_name else defined_node.name) + \
                                      full_name[full_name.index("."):full_name.rfind(".")]
                 call_obj_name = self._get_call_obj_name(full_call_obj_name)
@@ -210,13 +210,14 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             define_node = queue.pop(0)
             if "\\" in define_node.description or len(define_node.description) > 1000:
                 continue
-            if define_node.type == 'statement':
+            define_node_type = self.global_reference_visitor.get_type(define_node)
+            if define_node_type == 'statement':
                 self._handle_define_type_statement(define_node, queue, call_obj_name_set)
-            elif define_node.type == 'param':
+            elif define_node_type == 'param':
                 self._handle_define_type_param(define_node, call_obj_name_set)
-            elif define_node.type == 'class':
+            elif define_node_type == 'class':
                 self._handle_define_type_class(define_node, call_obj_name_set)
-            elif define_node.type == 'property':
+            elif define_node_type == 'property':
                 self._handle_define_type_property(define_node, call_obj_name_set)
         return call_obj_name_set
 
@@ -252,7 +253,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         except ValueError:
             return
         for node in next_define_nodes:
-            if node.type == 'module':
+            if self.global_reference_visitor.get_type(node) == 'module':
                 full_name = (node.full_name if node.full_name else node.name) + \
                             (name[name.index("."):] if "." in name else "")
                 call_obj_name = self._get_call_obj_name(full_name)
@@ -292,7 +293,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             except ValueError:
                 continue
             for node in next_define_nodes:
-                if node.type != 'module':
+                if self.global_reference_visitor.get_type(node) != 'module':
                     continue
                 full_name = (node.full_name if node.full_name else node.name) + \
                             (name[name.index("."):] if "." in name else "")

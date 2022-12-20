@@ -7,6 +7,7 @@ from typing import Optional, Union
 import libcst
 from libcst import FlattenSentinel, RemovalSentinel, matchers as m
 
+from global_analysis import GlobalReferenceVisitor
 from utils import transplant_logger as translog
 from utils import trans_utils as utils
 from ..common_rules.base_rule import BaseRule, OperatorType
@@ -34,7 +35,7 @@ class DataLoaderRule(BaseRule):
             (func_usage_position.get('line'), func_usage_position.get('column') + len(func_name) + 2))
         parent = first_param.parent
         # find failed or the function doesn't have params
-        if parent.type != 'arglist':
+        if GlobalReferenceVisitor.get_type(parent) != 'arglist':
             return []
         else:
             return parent.children
@@ -208,7 +209,8 @@ class DataLoaderRule(BaseRule):
             if isinstance(param, Operator):
                 continue
             # handle keyword param, like "tran_dl=dl"
-            if isinstance(param, PythonNode) and param.type == 'argument' and isinstance(param.get_last_leaf(), Name):
+            if isinstance(param, PythonNode) and self.global_reference_visitor.get_type(param) == 'argument' \
+                    and isinstance(param.get_last_leaf(), Name):
                 if self.__is_dataloader_param(jedi_script, param.get_last_leaf()):
                     dataloader_variables.append(param.get_first_leaf().value)
             # handle name param, like dl
