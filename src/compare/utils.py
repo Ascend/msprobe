@@ -152,30 +152,30 @@ def get_ffts_auto(file_name):
 @SortMode(ConstManager.MANUAL_MODE)
 def get_ffts_manual(file_name):
     """
-       get slice X of ffts manual mode from file name
-       @param file_name: file name
-       @return: slice X
-       """
+    get slice X of ffts manual mode from file name
+    @param file_name: file name
+    @return: slice X
+    """
     return file_name
 
 
 @SortMode(ConstManager.NORMAL_MODE)
 def get_normal_timestamp(file_name):
     """
-       get timestamp of normal mode
-       @param file_name: file name
-       @return: timestamp
-       """
+    get timestamp of normal mode
+    @param file_name: file name
+    @return: timestamp
+    """
     return file_name
 
 
 @SortMode(ConstManager.FFTS_TIMESTAMP)
 def get_ffts_timestamp(file_name):
     """
-       get timestamp of ffts mode
-       @param file_name: file name
-       @return: timestamp
-       """
+    get timestamp of ffts mode
+    @param file_name: file name
+    @return: timestamp
+    """
     return file_name
 
 
@@ -188,9 +188,8 @@ def sort_dump_file_list(dump_file_type: int, dump_file_list: list) -> list:
     """
     if dump_file_type == ConstManager.NORMAL_MODE:
         dump_file_list.sort(key=get_normal_timestamp)
-    elif dump_file_type == ConstManager.SPEC_MODE:
-        dump_file_list.sort(key=get_ffts_timestamp)
-    elif dump_file_type == ConstManager.AUTOMATIC_MODE or dump_file_type == ConstManager.MANUAL_MODE:
+    elif dump_file_type == ConstManager.AUTOMATIC_MODE or dump_file_type == ConstManager.MANUAL_MODE or \
+            dump_file_type == ConstManager.SPEC_MODE:
         dump_file_list.sort(key=get_ffts_timestamp)
         if dump_file_type == ConstManager.AUTOMATIC_MODE:
             dump_file_list.sort(key=get_ffts_auto)
