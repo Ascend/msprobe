@@ -188,7 +188,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             unsupported_instance_func_list = self._get_unsupported_instance_func_list(func_name, call_obj_name_set)
             unsupported_list.extend(ApiInstance(instance_func_name, call_position, file_path)
                                     for instance_func_name in unsupported_instance_func_list)
-        elif func_name not in ("get", "set", "add", "forward"):
+        elif func_name not in ("get", "set", "add", "forward", "wait"):
             possible_func_names = ', '.join(self.unsupported_instance_op_dict.get(func_name))
             print_func_name = f"{full_name} ({possible_func_names})"
             unknown_list.append(ApiInstance(print_func_name, call_position, file_path))
