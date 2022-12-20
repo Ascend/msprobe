@@ -427,11 +427,10 @@ class FusionOpComparison:
         left_dump_info = self.compare_data.left_dump_info
         if left_dump_info.type == DumpType.Quant:
             output_index = 0
+        dump_file_list, _ = \
+            self.compare_data.left_dump_info.get_op_dump_file(fusion_op.op_name, output_index)
         try:
-            dump_file_list, _ = \
-                self.compare_data.left_dump_info.get_op_dump_file(fusion_op.op_name, output_index)
-            dump_file_path = dump_file_list[-1]
-            return True, dump_file_path
+            return True, dump_file_list[-1]
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
                 AttributeError, CompareError):
             message = '[{0}] There is no left dump file for the op "{0}".'.format(fusion_op.op_name)
