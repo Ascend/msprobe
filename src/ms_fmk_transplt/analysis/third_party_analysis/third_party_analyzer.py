@@ -39,13 +39,13 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         format_file_path = str(file_path)
         format_parent_path = str(file_path.parent)
         if os.path.basename(file) == "__init__.py":
-            last_sep_index = format_file_path.rfind("/")
+            last_sep_index = format_file_path.rfind(os.path.sep)
             while last_sep_index != -1:
                 if format_file_path in self.package_env_path_set:
-                    self._analysis_init_file(format_parent_path[len(format_file_path) + 1:].replace("/", "."))
+                    self._analysis_init_file(format_parent_path[len(format_file_path) + 1:].replace(os.path.sep, "."))
                     break
                 format_file_path = format_file_path[:last_sep_index]
-                last_sep_index = format_file_path.rfind("/")
+                last_sep_index = format_file_path.rfind(os.path.sep)
         api_visitor = ThirdPartyApiVisitor(OpInfo(self.supported_op_dict, self.unsupported_op_dict, self.cuda_ops),
                                            self.global_reference_visitor, self.function_graph)
         wrapper.visit(api_visitor)
