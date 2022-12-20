@@ -172,7 +172,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             return self._get_instance_func_list(call_position, file_path, full_name, call_obj_name_set)
         call_obj_position = self.get_metadata(libcst.metadata.PositionProvider, call_node.func.value)
         call_obj_define_list = self.global_reference_visitor.goto(call_obj_position.end.line,
-                                                                  call_obj_position.end.column - 1)
+                                                                  call_obj_position.end.column)
         if call_obj_define_list and \
                 all(call_obj_define.full_name and call_obj_define.full_name.startswith("builtins.")
                     for call_obj_define in call_obj_define_list):
