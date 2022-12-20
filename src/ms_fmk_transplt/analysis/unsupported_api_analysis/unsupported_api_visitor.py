@@ -28,10 +28,10 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         for unsupported_op in op_info.unsupported_op_dict:
             if "." not in unsupported_op:
                 continue
-            class_name = unsupported_op.split(".")[-2]
+            unsupported_op_name_list = unsupported_op.split(".")
+            class_name = unsupported_op_name_list[-2]
             if class_name.lower() == class_name:
                 continue
-            unsupported_op_name_list = unsupported_op.split(".")
             module_name = unsupported_op_name_list[0]
             unsupported_op_module_set.add(f"{module_name}.")
             op_name = unsupported_op_name_list[-1]
@@ -189,8 +189,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             unsupported_list.extend(ApiInstance(instance_func_name, call_position, file_path)
                                     for instance_func_name in unsupported_instance_func_list)
         elif func_name not in ("get", "set", "add"):
-            possible_func_names = ', '.join(instance_func_name
-                                            for instance_func_name in self.unsupported_instance_op_dict.get(func_name))
+            possible_func_names = ', '.join(self.unsupported_instance_op_dict.get(func_name))
             print_func_name = f"{full_name} ({possible_func_names})"
             unknown_list.append(ApiInstance(print_func_name, call_position, file_path))
         return unsupported_list, unknown_list
