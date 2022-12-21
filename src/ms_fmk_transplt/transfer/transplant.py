@@ -42,22 +42,10 @@ class Transplant(object):
 
         if not os.access(self.script_dir, os.R_OK):
             raise utils.TransplantException('%s is not readable.' % self.script_dir)
-
-        if os.path.isfile(self.script_dir) and self.__need_analysis(self.script_dir, os.path.dirname(self.script_dir)):
-            self.__delete_csv_file_for_file_transplant()
-            self.__analysis_file(self.script_dir, os.path.dirname(self.script_dir))
-
-        if os.path.isdir(self.script_dir):
-            self.__analysis_dir()
+        self.__analysis_dir()
 
     def set_py_file_counts(self, py_file_counts):
         self.py_file_counts = py_file_counts
-
-    def __delete_csv_file_for_file_transplant(self):
-        for csv_type in ['change_list', 'unsupported_op']:
-            csv_file = os.path.join(os.path.dirname(self.script_dir), '%s.csv' % csv_type)
-            if os.path.exists(csv_file):
-                utils.remove_path(csv_file)
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)

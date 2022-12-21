@@ -65,10 +65,7 @@ class MsFmkTransplt(object):
         if not os.path.exists(main_file):
             raise ValueError('Main file %s does not exist!' % args.main)
         if not utils.check_is_subdirectory(args.input, args.main):
-            if os.path.isdir(args.input):
-                raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
-            if os.path.isfile(args.input):
-                raise ValueError('Main file %s should be the input file %s' % (args.main, args.input))
+            raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
         if not os.access(main_file, os.R_OK):
             raise PermissionError('Main file %s is not readable!' % args.main)
         if not args.target_model:
@@ -219,10 +216,7 @@ class MsFmkTransplt(object):
 
     def __copy_project(self):
         translog.info("Start to copy files...")
-        if os.path.isfile(self.input):
-            shutil.copy2(self.input, self.output)
-        if os.path.isdir(self.input):
-            shutil.copytree(self.input, self.output, symlinks=True)
+        shutil.copytree(self.input, self.output, symlinks=True)
         utils.change_mode(self.output)
 
     def __init_custom_para(self, args):
@@ -240,8 +234,6 @@ class MsFmkTransplt(object):
         function_pack_dir = os.path.join(os.path.dirname(__file__), "transfer", "adapter", pack_name)
         if os.path.isdir(self.output):
             dst_path = os.path.join(self.output, pack_name)
-        elif os.path.isfile(self.output):
-            dst_path = os.path.join(os.path.dirname(self.output), pack_name)
         else:
             return
         shutil.rmtree(dst_path, ignore_errors=True)
@@ -251,11 +243,7 @@ class MsFmkTransplt(object):
                       f"please add {os.path.dirname(dst_path)} to PYTHONPATH before run net.")
 
     def __init_logger(self):
-        log_file = 'msFmkTranspltlog.txt'
-        if os.path.isfile(self.input):
-            log_file = os.path.join(os.path.dirname(self.output), 'msFmkTranspltlog.txt')
-        if os.path.isdir(self.input):
-            log_file = os.path.join(self.output, 'msFmkTranspltlog.txt')
+        log_file = os.path.join(self.output, 'msFmkTranspltlog.txt')
         if os.path.exists(log_file):
             utils.remove_path(log_file)
         translog.init_logging_file(log_file)
@@ -268,14 +256,11 @@ class MsFmkTransplt(object):
 
     def __check_output_valid(self, args):
         self.input = os.path.realpath(args.input)
-        if os.path.isfile(self.input):
-            self.output = os.path.join(args.output, os.path.split(self.input)[1])
-        if os.path.isdir(self.input):
-            if hasattr(args, 'main'):
-                project_suffix = '_msft_multi'
-            else:
-                project_suffix = '_msft'
-            self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
+        if hasattr(args, 'main'):
+            project_suffix = '_msft_multi'
+        else:
+            project_suffix = '_msft'
+        self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
         if os.path.exists(self.output):
             utils.user_interactive_confirm('The output directory already exists. Do you want to overwrite?')
             self.__set_report_files_permission(0o640)
@@ -284,9 +269,7 @@ class MsFmkTransplt(object):
     def __check_input_valid(self, args):
         translog.info("Start to check input path...")
         if os.path.isfile(args.input):
-            if not args.input.endswith('.py'):
-                raise utils.InputCheckException('The input file is not a python file.')
-            return
+            raise utils.InputCheckException('The input path must be a directory.')
         output_free_size = shutil.disk_usage(os.path.realpath(args.output)).free
         self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), output_free_size)
         if not self.py_file_counts:

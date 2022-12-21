@@ -6,6 +6,7 @@ import argparse
 import os.path
 import shutil
 import sys
+from pathlib import Path
 
 from analysis.unsupported_api_analysis import UnsupportedApiAnalyzer
 from analysis.third_party_analysis import ThirdPartyAnalyzer
@@ -57,7 +58,8 @@ class PyTorchAnalyse:
                     raise ModuleNotFoundError("third party analysis must have jedi installed")
             env_path = pytorch_analysis.package_env_path_set
             if args.env_path:
-                env_path = args.env_path
+                env_path = list(str(Path(env_path_value)) for env_path_value in args.env_path)
+                pytorch_analysis.package_env_path_set = set(env_path)
             global_visitor = self.__get_global_visitor(env_path) if utils.IS_JEDI_INSTALLED else None
             pytorch_analysis.init_global_visitor(global_visitor)
             pytorch_analysis.set_py_file_counts(self.py_file_counts)
@@ -120,9 +122,7 @@ class PyTorchAnalyse:
     def __check_input_valid(self, args):
         translog.info("Start to check input path...")
         if os.path.isfile(self.input_path):
-            if not self.input_path.endswith('.py'):
-                raise utils.InputCheckException('The input file is not a python file.')
-            return
+            raise utils.InputCheckException('The input path must be a directory.')
         output_free_size = shutil.disk_usage(os.path.realpath(args.output)).free
         self.py_file_counts = utils.walk_input_path(self.input_path, output_free_size)
         if not self.py_file_counts:
@@ -130,9 +130,6 @@ class PyTorchAnalyse:
 
     def __check_output_valid(self, args):
         output_path = os.path.realpath(args.output)
-        if os.path.isfile(self.input_path):
-            self.output_path = os.path.join(output_path,
-                                            os.path.splitext(os.path.basename(self.input_path))[0] + '_analysis')
         if os.path.isdir(self.input_path):
             self.output_path = os.path.join(output_path, os.path.split(self.input_path)[1] + '_analysis')
         if os.path.exists(self.output_path):

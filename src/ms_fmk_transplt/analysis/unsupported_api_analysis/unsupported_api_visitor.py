@@ -28,10 +28,10 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         for unsupported_op in op_info.unsupported_op_dict:
             if "." not in unsupported_op:
                 continue
-            class_name = unsupported_op.split(".")[-2]
+            unsupported_op_name_list = unsupported_op.split(".")
+            class_name = unsupported_op_name_list[-2]
             if class_name.lower() == class_name:
                 continue
-            unsupported_op_name_list = unsupported_op.split(".")
             module_name = unsupported_op_name_list[0]
             unsupported_op_module_set.add(f"{module_name}.")
             op_name = unsupported_op_name_list[-1]
@@ -48,6 +48,17 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         self.global_reference_visitor = global_reference_visitor
         self.unsupported_op_result = []
         self.unknown_api_result = []
+
+    @staticmethod
+    def _get_call_obj_name(full_name):
+        if full_name.startswith(("torch.nn.functional", "torch.nn.init")):
+            return "torch.Tensor"
+        elif full_name.startswith("torch.") and full_name.lower() == full_name:
+            return "torch.Tensor"
+        elif full_name.startswith("numpy"):
+            return "numpy"
+        else:
+            return full_name
 
     @staticmethod
     def _get_module_column_and_name(define_node, start_index, end_index=None):
@@ -161,7 +172,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             return self._get_instance_func_list(call_position, file_path, full_name, call_obj_name_set)
         call_obj_position = self.get_metadata(libcst.metadata.PositionProvider, call_node.func.value)
         call_obj_define_list = self.global_reference_visitor.goto(call_obj_position.end.line,
-                                                                  call_obj_position.end.column - 1)
+                                                                  call_obj_position.end.column)
         if call_obj_define_list and \
                 all(call_obj_define.full_name and call_obj_define.full_name.startswith("builtins.")
                     for call_obj_define in call_obj_define_list):
@@ -177,9 +188,8 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             unsupported_instance_func_list = self._get_unsupported_instance_func_list(func_name, call_obj_name_set)
             unsupported_list.extend(ApiInstance(instance_func_name, call_position, file_path)
                                     for instance_func_name in unsupported_instance_func_list)
-        elif func_name not in ("get", "set", "add"):
-            possible_func_names = ', '.join(instance_func_name
-                                            for instance_func_name in self.unsupported_instance_op_dict.get(func_name))
+        elif func_name not in ("get", "set", "add", "forward", "wait"):
+            possible_func_names = ', '.join(self.unsupported_instance_op_dict.get(func_name))
             print_func_name = f"{full_name} ({possible_func_names})"
             unknown_list.append(ApiInstance(print_func_name, call_position, file_path))
         return unsupported_list, unknown_list
@@ -212,13 +222,15 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
                 continue
             define_node_type = self.global_reference_visitor.get_type(define_node)
             if define_node_type == 'statement':
-                self._handle_define_type_statement(define_node, queue, call_obj_name_set)
+                self._handle_define_type_statement(define_node, call_obj_name_set, queue)
             elif define_node_type == 'param':
                 self._handle_define_type_param(define_node, call_obj_name_set)
             elif define_node_type == 'class':
                 self._handle_define_type_class(define_node, call_obj_name_set)
             elif define_node_type == 'property':
                 self._handle_define_type_property(define_node, call_obj_name_set)
+            elif define_node_type == 'instance':
+                self._handle_define_type_instance(define_node, call_obj_name_set, queue)
         return call_obj_name_set
 
     def _handle_define_type_param(self, define_node, call_obj_name_set):
@@ -242,7 +254,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         start_index = define_node.description.index(":")
         self._analyse_type_declaration(define_node, call_obj_name_set, start_index)
 
-    def _handle_define_type_statement(self, define_node, queue, call_obj_name_set):
+    def _handle_define_type_statement(self, define_node, call_obj_name_set, queue):
         if define_node.description.startswith(("for ", "with ")) or "=" not in define_node.description:
             return
         module_column, name = self._get_module_column_and_name(define_node, define_node.description.index("="))
@@ -267,6 +279,8 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         for super_class in super_class_list:
             if super_class.startswith(self.unsupported_op_module_tuple):
                 call_obj_name_set.add(super_class)
+        if define_node.full_name:
+            call_obj_name_set.add(define_node.full_name)
 
     def _handle_define_type_property(self, define_node, call_obj_name_set):
         if "->" not in define_node.description[:define_node.description.index(":")]:
@@ -274,6 +288,13 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         start_index = define_node.description.index("->")
         end_index = start_index + define_node.description[start_index:].index(":")
         self._analyse_type_declaration(define_node, call_obj_name_set, start_index, end_index)
+
+    def _handle_define_type_instance(self, define_node, call_obj_name_set, queue):
+        if not str(define_node.module_path).startswith(str(self.global_reference_visitor.project.path)):
+            call_obj_name_set.add(define_node.full_name)
+        else:
+            queue.extend(self.global_reference_visitor.get_jedi_script(define_node.module_path).infer(
+                define_node.line, define_node.column))
 
     def _get_multi_module_column_and_name(self, define_node, start_index, end_index=None):
         module_column = 0
@@ -306,17 +327,6 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             node = node.func.attr
         position = self.get_metadata(libcst.metadata.PositionProvider, node)
         return position
-
-    def _get_call_obj_name(self, full_name):
-        if full_name.startswith(("torch.nn.functional", "torch.nn.init")):
-            return "torch.Tensor"
-        elif full_name.startswith("torch.") and full_name.lower() == full_name:
-            return "torch.Tensor"
-        elif full_name.startswith(self.unsupported_op_module_tuple):
-            return full_name
-        elif full_name.startswith("numpy"):
-            return "numpy"
-        return ""
 
 
 def analyse_unsupported_api(code, op_info, global_reference_visitor=None):
