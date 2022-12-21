@@ -34,10 +34,7 @@ class BaseAnalyzer:
 
     def run(self):
         translog.info('Analysis start...')
-        if os.path.isfile(self.script_dir) and self.__need_analysis(self.script_dir, os.path.dirname(self.script_dir)):
-            self._analysis_file(self.script_dir, os.path.dirname(self.script_dir))
-        if os.path.isdir(self.script_dir):
-            self._analysis_dir()
+        self._analysis_dir()
 
     def _analysis_dir(self):
         count = 0
