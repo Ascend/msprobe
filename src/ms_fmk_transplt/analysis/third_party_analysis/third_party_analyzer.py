@@ -38,7 +38,7 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         file_path = Path(file)
         format_file_path = str(file_path)
         format_parent_path = str(file_path.parent)
-        if os.path.basename(file) == "__init__.py":
+        if file_path.name == "__init__.py":
             last_sep_index = format_file_path.rfind("/")
             while last_sep_index != -1:
                 if format_file_path in self.package_env_path_set:
