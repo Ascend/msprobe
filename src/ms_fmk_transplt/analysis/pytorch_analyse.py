@@ -122,9 +122,7 @@ class PyTorchAnalyse:
     def __check_input_valid(self, args):
         translog.info("Start to check input path...")
         if os.path.isfile(self.input_path):
-            if not self.input_path.endswith('.py'):
-                raise utils.InputCheckException('The input file is not a python file.')
-            return
+            raise utils.InputCheckException('The input path must be a directory.')
         output_free_size = shutil.disk_usage(os.path.realpath(args.output)).free
         self.py_file_counts = utils.walk_input_path(self.input_path, output_free_size)
         if not self.py_file_counts:
@@ -132,9 +130,6 @@ class PyTorchAnalyse:
 
     def __check_output_valid(self, args):
         output_path = os.path.realpath(args.output)
-        if os.path.isfile(self.input_path):
-            self.output_path = os.path.join(output_path,
-                                            os.path.splitext(os.path.basename(self.input_path))[0] + '_analysis')
         if os.path.isdir(self.input_path):
             self.output_path = os.path.join(output_path, os.path.split(self.input_path)[1] + '_analysis')
         if os.path.exists(self.output_path):
