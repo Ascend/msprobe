@@ -155,9 +155,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
                 not isinstance(call_node.func, libcst.Attribute):
             return [], []
         func_name = full_name.split(".")[-1]
-        if func_name not in self.unsupported_instance_op_dict:
-            return [], []
-        if func_name in ("get", "set", "add"):
+        if func_name in ("get", "set", "add") or func_name not in self.unsupported_instance_op_dict:
             return [], []
         call_obj_name_set = None
         position = self.get_metadata(libcst.metadata.PositionProvider, call_node)
