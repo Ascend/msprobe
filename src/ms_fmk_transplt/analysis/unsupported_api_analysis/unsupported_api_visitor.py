@@ -145,7 +145,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         if self.global_reference_visitor:
             position = self.get_metadata(libcst.metadata.PositionProvider, call_node)
             infer_list = self.global_reference_visitor.infer(position.start.line, position.start.column)
-            if not infer_list:
+            if not infer_list or not self.global_reference_visitor.get_type(infer_list[0]):
                 return full_name.startswith(self.all_module_names)
             return self.global_reference_visitor.get_type(infer_list[0]) == 'module'
         return full_name.startswith(self.all_module_names)
@@ -161,7 +161,10 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         position = self.get_metadata(libcst.metadata.PositionProvider, call_node)
         module_defined_list = self.global_reference_visitor.goto(position.start.line, position.start.column)
         for defined_node in module_defined_list:
-            if self.global_reference_visitor.get_type(defined_node) == 'module':
+            defined_node_type = self.global_reference_visitor.get_type(defined_node)
+            if not defined_node_type:
+                return [], []
+            if defined_node_type == 'module':
                 full_call_obj_name = (defined_node.full_name if defined_node.full_name else defined_node.name) + \
                                      full_name[full_name.index("."):full_name.rfind(".")]
                 call_obj_name = self._get_call_obj_name(full_call_obj_name)

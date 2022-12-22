@@ -7,7 +7,6 @@ from typing import Optional, Union
 import libcst
 from libcst import FlattenSentinel, RemovalSentinel, matchers as m
 
-from global_analysis import GlobalReferenceVisitor
 from utils import transplant_logger as translog
 from utils import trans_utils as utils
 from ..common_rules.base_rule import BaseRule, OperatorType
@@ -28,17 +27,6 @@ class DataLoaderRule(BaseRule):
         self.dict_dataloader_target = ''
         self.data_set_target = ''
         self.global_reference_visitor = None
-
-    @staticmethod
-    def __get_func_usage_params(jedi_script, func_usage_position, func_name):
-        first_param = jedi_script._module_node.get_leaf_for_position(
-            (func_usage_position.get('line'), func_usage_position.get('column') + len(func_name) + 2))
-        parent = first_param.parent
-        # find failed or the function doesn't have params
-        if GlobalReferenceVisitor.get_type(parent) != 'arglist':
-            return []
-        else:
-            return parent.children
 
     @staticmethod
     def __is_dataloader_param(jedi_script, param):
@@ -106,6 +94,16 @@ class DataLoaderRule(BaseRule):
         self.dataloader_targets = []
         self.dict_dataloader_target = ''
         self.data_set_target = ''
+
+    def __get_func_usage_params(self, jedi_script, func_usage_position, func_name):
+        first_param = jedi_script._module_node.get_leaf_for_position(
+            (func_usage_position.get('line'), func_usage_position.get('column') + len(func_name) + 2))
+        parent = first_param.parent
+        # find failed or the function doesn't have params
+        if self.global_reference_visitor.get_type(parent) != 'arglist':
+            return []
+        else:
+            return parent.children
 
     def __adapt_dataloader_args(self, args):
         arg_change_dict = {'shuffle': 'False', 'pin_memory': 'True', 'drop_last': 'True'}
