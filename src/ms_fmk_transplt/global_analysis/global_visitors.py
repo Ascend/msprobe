@@ -91,8 +91,11 @@ class GlobalReferenceVisitor:
         except BaseException:
             func_list = []
         infer_func_list = []
+        infer_func_not_in_project_list = []
         for func in func_list:
             if not str(func.module_path).startswith(str(self.project.path)):
+                if func.full_name:
+                    infer_func_not_in_project_list.append(func.full_name)
                 continue
             full_name = func.full_name
             if full_name is None:
@@ -104,7 +107,7 @@ class GlobalReferenceVisitor:
             elif func.type == 'module':
                 continue
             infer_func_list.append(full_name)
-        return infer_func_list
+        return infer_func_list, infer_func_not_in_project_list
 
     def _get_full_name_for_func_in_func(self, column, line, func):
         goto_result_list = self.goto(line, column)
