@@ -157,6 +157,8 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         func_name = full_name.split(".")[-1]
         if func_name not in self.unsupported_instance_op_dict:
             return [], []
+        if func_name in ("get", "set", "add"):
+            return [], []
         call_obj_name_set = None
         position = self.get_metadata(libcst.metadata.PositionProvider, call_node)
         module_defined_list = self.global_reference_visitor.goto(position.start.line, position.start.column)
@@ -184,8 +186,6 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         unsupported_list = []
         unknown_list = []
         func_name = full_name.split(".")[-1]
-        if func_name in ("get", "set", "add"):
-            return unsupported_list, unknown_list
         if call_obj_name_set:
             unsupported_instance_func_list = self._get_unsupported_instance_func_list(func_name, call_obj_name_set)
             unsupported_list.extend(ApiInstance(instance_func_name, call_position, file_path)
