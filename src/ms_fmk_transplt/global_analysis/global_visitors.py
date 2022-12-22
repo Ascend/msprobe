@@ -124,7 +124,7 @@ class GlobalReferenceVisitor:
                 full_name = full_name + '.__init__'
             elif self.get_type(func) == 'instance':
                 full_name = full_name + '.forward'
-            elif self.get_type(func) == 'module':
+            elif not self.get_type(func) or self.get_type(func) == 'module':
                 continue
             infer_func_list.append(full_name)
         return infer_func_list
