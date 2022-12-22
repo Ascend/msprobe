@@ -29,17 +29,6 @@ class DataLoaderRule(BaseRule):
         self.global_reference_visitor = None
 
     @staticmethod
-    def __get_func_usage_params(jedi_script, func_usage_position, func_name):
-        first_param = jedi_script._module_node.get_leaf_for_position(
-            (func_usage_position.get('line'), func_usage_position.get('column') + len(func_name) + 2))
-        parent = first_param.parent
-        # find failed or the function doesn't have params
-        if parent.type != 'arglist':
-            return []
-        else:
-            return parent.children
-
-    @staticmethod
     def __is_dataloader_param(jedi_script, param):
         try:
             completions = jedi_script.complete(param.end_pos[0], param.end_pos[1])
@@ -105,6 +94,16 @@ class DataLoaderRule(BaseRule):
         self.dataloader_targets = []
         self.dict_dataloader_target = ''
         self.data_set_target = ''
+
+    def __get_func_usage_params(self, jedi_script, func_usage_position, func_name):
+        first_param = jedi_script._module_node.get_leaf_for_position(
+            (func_usage_position.get('line'), func_usage_position.get('column') + len(func_name) + 2))
+        parent = first_param.parent
+        # find failed or the function doesn't have params
+        if self.global_reference_visitor.get_type(parent) != 'arglist':
+            return []
+        else:
+            return parent.children
 
     def __adapt_dataloader_args(self, args):
         arg_change_dict = {'shuffle': 'False', 'pin_memory': 'True', 'drop_last': 'True'}
@@ -208,7 +207,8 @@ class DataLoaderRule(BaseRule):
             if isinstance(param, Operator):
                 continue
             # handle keyword param, like "tran_dl=dl"
-            if isinstance(param, PythonNode) and param.type == 'argument' and isinstance(param.get_last_leaf(), Name):
+            if isinstance(param, PythonNode) and self.global_reference_visitor.get_type(param) == 'argument' \
+                    and isinstance(param.get_last_leaf(), Name):
                 if self.__is_dataloader_param(jedi_script, param.get_last_leaf()):
                     dataloader_variables.append(param.get_first_leaf().value)
             # handle name param, like dl

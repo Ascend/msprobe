@@ -61,8 +61,11 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
     def _analysis_init_file(self, package_path):
         defined_names = self.global_reference_visitor.complete()
         for define_name in defined_names:
+            define_name_type = self.global_reference_visitor.get_type(define_name)
+            if not define_name_type:
+                continue
             if define_name.module_name == "builtins" or define_name.complete.startswith("__") \
-                    or define_name.type in ("module", "instance"):
+                    or define_name_type in ("module", "instance"):
                 continue
             try:
                 infer_func_list = self.global_reference_visitor.get_jedi_script(

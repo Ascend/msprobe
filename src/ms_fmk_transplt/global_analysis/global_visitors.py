@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 import os
-from functools import lru_cache
+from functools import lru_cache, wraps
 
 try:
     import jedi
@@ -10,6 +10,23 @@ except ImportError:
     jedi = None
 
 from utils import trans_utils as utils
+
+
+def catch_error(return_type=None):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except BaseException:
+                if return_type is list:
+                    return []
+                elif return_type is str:
+                    return ''
+                else:
+                    return return_type
+        return wrapper
+    return decorator
 
 
 class GlobalReferenceVisitor:
@@ -26,6 +43,12 @@ class GlobalReferenceVisitor:
         utils.check_input_file_valid(file_path)
         with open(file_path, 'r', encoding='utf-8') as file_handler:
             return file_handler.readlines()
+
+    @staticmethod
+    @lru_cache()
+    @catch_error(str)
+    def get_type(target):
+        return target.type
 
     @classmethod
     def complete_undefined_name(cls, jedi_script, name, line, column):
@@ -97,11 +120,12 @@ class GlobalReferenceVisitor:
             full_name = func.full_name
             if full_name is None:
                 full_name = self._get_full_name_for_func_in_func(column, line, func)
-            if func.type == 'class':
+            func_type = self.get_type(func)
+            if func_type == 'class':
                 full_name = full_name + '.__init__'
-            elif func.type == 'instance':
+            elif func_type == 'instance':
                 full_name = full_name + '.forward'
-            elif func.type == 'module':
+            elif not func_type or func_type == 'module':
                 continue
             infer_func_list.append(full_name)
         return infer_func_list
@@ -115,29 +139,24 @@ class GlobalReferenceVisitor:
                                   func.description.split()[-1]))
         return full_name
 
+    @catch_error(list)
     def goto(self, line, column):
-        try:
-            return self.get_jedi_script(self.file_path).goto(line, column)
-        except BaseException:
-            return []
+        return self.get_jedi_script(self.file_path).goto(line, column)
 
+    @catch_error()
     def get_context(self, line=None, column=None):
         return self.get_jedi_script(self.file_path).get_context(line, column)
 
     def search_in_project(self, string):
         return self.project.search(string)
 
+    @catch_error(list)
     def complete(self, line=None, column=None, *, fuzzy=False):
-        try:
-            return self.get_jedi_script(self.file_path).complete(line=line, column=column, fuzzy=fuzzy)
-        except BaseException:
-            return []
+        return self.get_jedi_script(self.file_path).complete(line=line, column=column, fuzzy=fuzzy)
 
+    @catch_error(list)
     def infer(self, line=None, column=None):
-        try:
-            return self.get_jedi_script(self.file_path).infer(line=line, column=column)
-        except BaseException:
-            return []
+        return self.get_jedi_script(self.file_path).infer(line=line, column=column)
 
     def get_super_class(self, class_name, file_path=''):
         super_class_list = []
@@ -198,4 +217,3 @@ class GlobalReferenceVisitor:
         if complete_full_name and not complete_full_name.startswith('builtins.'):
             split_names[0] = complete_full_name
         return '.'.join(split_names)
-
