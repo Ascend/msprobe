@@ -64,10 +64,12 @@ class ThirdPartyApiVisitor(UnsupportedApiVisitor):
         unknown_api_list = []
         for call_node in node_list:
             position = self._get_call_position(call_node)
-            infer_func_list = self.global_reference_visitor.get_infer_func_list_in_project(
-                position.start.line, position.start.column)
+            infer_func_list, infer_func_not_in_project_list = \
+                self.global_reference_visitor.get_infer_func_list_in_project(position.start.line, position.start.column)
             if infer_func_list:  # if find infer function in project, use infer function
                 defined_call_set.update(infer_func_list)
+                continue
+            if infer_func_not_in_project_list:
                 continue
             libcst_full_name = self.get_full_name_for_node(call_node)
             if not libcst_full_name:
