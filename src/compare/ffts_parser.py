@@ -30,17 +30,18 @@ class FFTSParser:
         return all(dim == [] for dim in cut_axis)
 
     @staticmethod
-    def merge_data(output_list, cut_axis):
+    def merge_data(output_list: list, cut_axis: list) -> list:
         merge_output = []
         for index, dim in enumerate(cut_axis):
             if not dim:
-                continue
-            axis = cut_axis[index][0]
-            merge_output.append(np.concatenate(output_list[index], axis))
+                merge_output.append(output_list[index][0])
+            else:
+                axis = cut_axis[index][0]
+                merge_output.append(np.concatenate(output_list[index], axis))
         return merge_output
 
     @staticmethod
-    def create_merge_dump_data(dump_base, merge_output):
+    def create_merge_dump_data(dump_base: DumpDataObj, merge_output: list) -> DumpDataObj:
         dump_data = DumpDataObj()
         dump_data.set_op_attr(dump_base.op_name, dump_base.ffts_file_check)
         for index, data in enumerate(merge_output):
@@ -52,18 +53,8 @@ class FFTSParser:
             dump_data.output_data.append(dump_tensor)
         return dump_data
 
-    def create_merge_file_path(self):
-        """
-        create the file path after concatenate
-        @return: file path
-        """
-        file_split = self.dump_file_list[0].rsplit('.', 8)
-        file_split[1] = utils.handle_op_name(file_split[1])
-        file_path = ".".join(file_split[:3] + ["*"])
-        return file_path
-
     @property
-    def parse_ffts(self):
+    def parse_ffts(self: any) -> tuple:
         """
         parse the ffts mode dump data and merge data
         @return: file path, dump data
@@ -81,6 +72,7 @@ class FFTSParser:
             cut_axis = dump_base.get_cut_axis_manual
         if not cut_axis or self.check_invalid_cut_axis(cut_axis):
             self.dump_file_list.sort(key=utils.get_ffts_timestamp)
+            self.dump_data_list.sort(key=lambda x: x.dump_time)
             file_path = self.dump_file_list[-1]
             dump_data = self.dump_data_list[-1]
         else:
@@ -96,7 +88,7 @@ class FFTSParser:
 
             merge_output = self.merge_data(dump_data_output_list, cut_axis)
             dump_data = self.create_merge_dump_data(dump_base, merge_output)
-            file_path = self.create_merge_file_path()
+            file_path = '.'.join(self.dump_file_list[0].split(".")[:3] + ['*'])
             log.print_info_log(f"This is a FFTS+ mode dump data {dump_base.op_name}, "
                                f"output data has been merged, new file path is {file_path}")
         return file_path, dump_data

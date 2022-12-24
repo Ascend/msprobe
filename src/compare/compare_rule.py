@@ -38,44 +38,47 @@ class CompareRule:
         self.fusion_info = None
 
     @staticmethod
-    def _sort_file_by_mode(op_name_to_file_map: dict, op_name_to_task_mode_map: dict) -> list:
-        origin_list = []
+    def _sort_file_by_timestamp(op_name_to_file_map: dict, op_name_to_task_mode_map: dict) -> dict:
+        origin_dic = {}
         for op_name, dump_file_list in op_name_to_file_map.items():
             dump_task_mode = op_name_to_task_mode_map.get(op_name)
             if len(dump_file_list) > 1:
                 dump_file_list = utils.sort_dump_file_list(dump_task_mode, dump_file_list)
-            for dump_file in dump_file_list:
-                origin_list.append([op_name, dump_file])
-        return origin_list
+            if dump_task_mode == ConstManager.NORMAL_MODE:
+                timestamp = utils.get_normal_timestamp(dump_file_list[-1])
+            else:
+                timestamp = utils.get_ffts_timestamp(dump_file_list[-1])
+            origin_dic[(op_name, timestamp)] = dump_file_list
+        return dict(sorted(origin_dic.items(), key=lambda s: s[0][1]))
 
     @staticmethod
-    def _make_my_output_map(my_output_sort_list: list, op_name_to_op_map: dict) -> None:
+    def _make_my_output_map(my_output_sort_map: dict, op_name_to_op_map: dict) -> None:
         attr = OpAttr([], '', False, 0)
         # make my output fusion op by my_output_sort_list
-        for item in my_output_sort_list:
-            op_name = item[0]
+        for key, values in my_output_sort_map.items():
+            op_name = key[0]
             if op_name not in op_name_to_op_map:
-                fusion_op = FusionOp(len(op_name_to_op_map), op_name, [], ConstManager.LEFT_TYPE, [item[1]], attr)
+                fusion_op = FusionOp(len(op_name_to_op_map), op_name, [], ConstManager.LEFT_TYPE, values, attr)
                 op_name_to_op_map[op_name] = [fusion_op]
             else:
-                op_name_to_op_map[op_name][0].output_desc.append(item[1])
+                op_name_to_op_map[op_name][0].output_desc.extend(values)
 
     @staticmethod
-    def _make_ground_truth_map(ground_truth_sort_list: list, op_name_to_op_map: dict) -> None:
+    def _make_ground_truth_map(ground_truth_sort_map: dict, op_name_to_op_map: dict) -> None:
         attr = OpAttr([], '', False, 0)
         # make ground truth fusion op by ground_truth_sort_list
-        for item in ground_truth_sort_list:
-            op_name = item[0]
+        for key, values in ground_truth_sort_map.items():
+            op_name = key[0]
             if op_name not in op_name_to_op_map:
-                fusion_op = FusionOp(len(op_name_to_op_map), op_name, [], ConstManager.RIGHT_TYPE, [item[1]], attr)
+                fusion_op = FusionOp(len(op_name_to_op_map), op_name, [], ConstManager.RIGHT_TYPE, values, attr)
                 op_name_to_op_map[op_name] = [fusion_op]
             else:
                 fusion_op_info = op_name_to_op_map[op_name][-1]
                 if fusion_op_info.op_type == ConstManager.RIGHT_TYPE:
-                    op_name_to_op_map[op_name][-1].output_desc.append(item[1])
+                    op_name_to_op_map[op_name][-1].output_desc.extend(values)
                 else:
                     op_id = op_name_to_op_map[op_name][0].op_id
-                    fusion_op = FusionOp(op_id, op_name, [], ConstManager.RIGHT_TYPE, [item[1]], attr)
+                    fusion_op = FusionOp(op_id, op_name, [], ConstManager.RIGHT_TYPE, values, attr)
                     op_name_to_op_map[op_name].append(fusion_op)
 
     def parse_fusion_rule(self: any, compare_data: CompareData) -> None:
@@ -128,14 +131,14 @@ class CompareRule:
         """
         op_name_to_op_map = {}
         # sort my output dump file by timestamp
-        my_output_sort_list = self._sort_file_by_mode(compare_data.left_dump_info.op_name_to_file_map,
+        my_output_sort_map = self._sort_file_by_timestamp(compare_data.left_dump_info.op_name_to_file_map,
                                                       compare_data.left_dump_info.op_name_to_task_mode_map)
-        self._make_my_output_map(my_output_sort_list, op_name_to_op_map)
+        self._make_my_output_map(my_output_sort_map, op_name_to_op_map)
 
         # sort ground truth dump file by timestamp
-        ground_truth_sort_list = self._sort_file_by_mode(compare_data.right_dump_info.op_name_to_file_map,
+        ground_truth_sort_map = self._sort_file_by_timestamp(compare_data.right_dump_info.op_name_to_file_map,
                                                          compare_data.right_dump_info.op_name_to_task_mode_map)
-        self._make_ground_truth_map(ground_truth_sort_list, op_name_to_op_map)
+        self._make_ground_truth_map(ground_truth_sort_map, op_name_to_op_map)
 
         self.fusion_info = FusionRuleParser('')
         self.fusion_info.fusion_op_name_to_op_map = op_name_to_op_map

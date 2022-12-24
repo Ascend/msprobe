@@ -133,8 +133,8 @@ class NpuVsNpuComparison:
         if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:
             ffts_parser = FFTSParser(dump_file_list, dump_data_list)
             dump_file_path, dump_data = ffts_parser.parse_ffts
-            log.print_warn_log(
-                'The "%s" in the path "%s" is FFTS+ dump data. After merge output data, the file is "%s".'
+            log.print_info_log(
+                'The "%s" in the path "%s" is FFTS+ dump data. After process the output data, the file path is "%s".'
                 % (fusion_op.op_name, dump_path, dump_file_path))
         else:
             dump_file_path = dump_file_list[-1]
