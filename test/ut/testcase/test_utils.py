@@ -13,6 +13,7 @@ from compare_error import CompareError
 from progress import Progress
 from unittest import mock
 from google.protobuf.message import DecodeError
+from const_manager import ConstManager
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -402,6 +403,28 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(
             'FusionOp_Conv2DBackpropInput_ReluGradV2.ReluGradV2-op2739.31.9.1630556346146690.input.0.NC1HWC0.npy',
             file_name)
+
+    def test_sort_dump_file_list1(self):
+        dump_file_list = ["Cast.trans_Cast_1238.105.9.2670295569938495",
+                          "Cast.trans_Cast_1238.105.9.1670295569938497",
+                          "Cast.trans_Cast_1238.105.9.1670295569938495"]
+        dump_file_type = ConstManager.NORMAL_MODE
+        sorted_list = ["Cast.trans_Cast_1238.105.9.1670295569938495",
+                       "Cast.trans_Cast_1238.105.9.1670295569938497",
+                       "Cast.trans_Cast_1238.105.9.2670295569938495"]
+        ret = utils.sort_dump_file_list(dump_file_type, dump_file_list)
+        self.assertEqual(ret, sorted_list)
+
+    def test_sort_dump_file_list2(self):
+        dump_file_list = ["Conv2D.Conv2D_lxslice0.2.9.1670205069987341.4.330.0.0",
+                          "Conv2D.Conv2D_lxslice2.2.9.1670205069987342.4.330.0.0",
+                          "Conv2D.Conv2D_lxslice1.2.9.1670205069987343.4.330.0.0"]
+        dump_file_type = ConstManager.MANUAL_MODE
+        sorted_list = ["Conv2D.Conv2D_lxslice0.2.9.1670205069987341.4.330.0.0",
+                       "Conv2D.Conv2D_lxslice1.2.9.1670205069987343.4.330.0.0",
+                       "Conv2D.Conv2D_lxslice2.2.9.1670205069987342.4.330.0.0"]
+        ret = utils.sort_dump_file_list(dump_file_type, dump_file_list)
+        self.assertEqual(ret, sorted_list)
 
     @staticmethod
     def _make_fusion_op():

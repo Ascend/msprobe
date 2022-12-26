@@ -76,14 +76,17 @@ class FusionOpComparison:
         timestamp_list = []
         for fusion_op in self.fusion_op_list:
             try:
-                file_path = self.compare_data.left_dump_info.get_op_dump_file(
+                file_path_list, data_mode = self.compare_data.left_dump_info.get_op_dump_file(
                     fusion_op.op_name, print_log=False)
             except CompareError:
                 continue
             finally:
                 pass
-            index = file_path.rfind(".") + 1
-            timestamp = int(file_path[index:])
+            file_path = file_path_list[-1]
+            if data_mode == ConstManager.NORMAL_MODE:
+                timestamp = utils.get_normal_timestamp(file_path)
+            else:
+                timestamp = utils.get_ffts_timestamp(file_path)
             original_names = utils.get_string_from_list(
                 fusion_op.attr.original_op_names)
             timestamp_list.append([timestamp, fusion_op, original_names])
@@ -116,7 +119,8 @@ class FusionOpComparison:
                               ConstManager.OUTPUT, origin_tensor.index))
         if not parse:
             index = None if self.compare_data.right_dump_info.type == DumpType.Offline else origin_tensor.index
-            dump_file_path = self.compare_data.right_dump_info.get_op_dump_file(origin_tensor.name, index)
+            dump_file_list, _ = self.compare_data.right_dump_info.get_op_dump_file(origin_tensor.name, index)
+            dump_file_path = dump_file_list[-1]
             origin_tensor.set_path(dump_file_path)
             return origin_tensor
         dump_file_path, dump_data = self.compare_data.get_right_dump_data(
@@ -373,8 +377,6 @@ class FusionOpComparison:
         tensor_list = self.left_dump_data.input_data if is_input else self.left_dump_data.output_data
         match = False
         tensor_result_list = []
-        if is_input and len(fusion_op.input_list) != len(tensor_list):
-            log.print_warn_log("The count of input dump data does not equal to the count in fusion rule file.")
         # compare each tensor
         for (index, tensor) in enumerate(tensor_list):
             result = self._compare(fusion_op, index, is_input, tensor)
@@ -426,7 +428,7 @@ class FusionOpComparison:
         if left_dump_info.type == DumpType.Quant:
             output_index = 0
         try:
-            return True, self.compare_data.left_dump_info.get_op_dump_file(fusion_op.op_name, output_index)
+            return True,  self.compare_data.left_dump_info.get_op_dump_file(fusion_op.op_name, output_index)[0][-1]
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
                 AttributeError, CompareError):
             message = '[{0}] There is no left dump file for the op "{0}".'.format(fusion_op.op_name)

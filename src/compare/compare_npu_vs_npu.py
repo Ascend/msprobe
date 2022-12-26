@@ -17,6 +17,7 @@ from fusion_op import Tensor
 import compare_result
 from compare_error import CompareError
 from overflow_detection import OverflowDetection
+from ffts_parser import FFTSParser
 
 
 class NpuVsNpuComparison:
@@ -61,9 +62,13 @@ class NpuVsNpuComparison:
             return self._make_one_dump_file_result()
         # get my output and ground truth tensor
         my_output_dump_data = self._get_dump_data(
-            self.fusion_op_list[0], self.compare_data.left_dump_info.path, ConstManager.LEFT_TYPE)
+            self.fusion_op_list[0], self.compare_data.left_dump_info.path,
+            self.compare_data.left_dump_info.op_name_to_task_mode_map, ConstManager.LEFT_TYPE)
+
         ground_truth_dump_data = self._get_dump_data(
-            self.fusion_op_list[1], self.compare_data.right_dump_info.path, ConstManager.RIGHT_TYPE)
+            self.fusion_op_list[1], self.compare_data.right_dump_info.path,
+            self.compare_data.right_dump_info.op_name_to_task_mode_map, ConstManager.RIGHT_TYPE)
+
         compare_vector_result = []
         # check npu input data valid
         input_ret, input_error_msg = self.check_tensor_valid(
@@ -82,6 +87,10 @@ class NpuVsNpuComparison:
             compare_vector_result += self._compare_by_tensor(my_output_dump_data, ground_truth_dump_data,
                                                              ConstManager.OUTPUT)
         error_msg = []
+
+        if not my_output_dump_data.data.ffts_file_check:
+            msg = "This is a FFTS+ mode dump data, The number of files does not match the number of thread"
+            error_msg.append(msg)
         # if no input and output, result is NaN
         if input_ret != CompareError.MSACCUCMP_NONE_ERROR and \
                 output_ret != CompareError.MSACCUCMP_NONE_ERROR:
@@ -110,19 +119,27 @@ class NpuVsNpuComparison:
         result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg, no_dump_file=True)
         return CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR, False, result
 
-    def _get_dump_data(self: any, fusion_op: FusionOp, dump_path: str, dump_type: str) -> Tensor:
+    def _get_dump_data(self: any, fusion_op: FusionOp, dump_path: str,
+                       op_name_to_task_mode_map, dump_type: str) -> Tensor:
         """
         get dump data by fusion op output_desc
         """
         dump_file_list = fusion_op.output_desc
-        match_count = len(fusion_op.output_desc)
-        dump_file_path = dump_file_list[-1]
-        if match_count > 1:
-            log.print_warn_log(
-                'There are %d dump files of the "%s" in the path "%s". Choose the file "%s" to compare.'
-                % (match_count, fusion_op.op_name, dump_path, dump_file_path))
+        if not dump_file_list:
+            raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        dump_data_list = [utils.parse_dump_file(dump_file_path, self.compare_data.dump_version)
+                          for dump_file_path in dump_file_list]
+        dump_mode = op_name_to_task_mode_map.get(self.op_name)
+        if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:
+            ffts_parser = FFTSParser(dump_file_list, dump_data_list)
+            dump_file_path, dump_data = ffts_parser.parse_ffts
+            log.print_info_log(
+                'The "%s" in the path "%s" is FFTS+ dump data. After process the output data, the file path is "%s".'
+                % (fusion_op.op_name, dump_path, dump_file_path))
+        else:
+            dump_file_path = dump_file_list[-1]
+            dump_data = dump_data_list[-1]
         log.print_info_log('[%s] [%s] %s' % (fusion_op.op_name, dump_type, dump_file_path))
-        dump_data = utils.parse_dump_file(dump_file_path, self.compare_data.dump_version)
         if dump_data.op_name:
             fusion_op.op_name = dump_data.op_name
         tensor = Tensor(fusion_op.op_name, 0, '', [])

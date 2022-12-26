@@ -27,9 +27,12 @@ class RegManager:
     QUANT_DUMP_PATTERN = r"^([A-Za-z0-9_-]+\.[0-9]+)\.[0-9]{1,255}\.quant$"
 
     # Offline
-    OFFLINE_DUMP_PATTERN = r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+(\.[0-9]+)?\.[0-9]{1,255}"
+    OFFLINE_DUMP_PATTERN = r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+" \
+                           r"(\.[0-9]+)?\.[0-9]{1,255}(\.[0-9]+\.[0-9]+\.[0-9]+)?(\.[0-9]+)?"
     OFFLINE_NUMPY_PATTERN = r"^([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[0-9]+" \
                             r"\.[0-9]{1,255})\.[0-9]+\.\b(npy|data|bin|txt)\b$"
+    OFFLINE_FFTS_DUMP_PATTERN = r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+" \
+                                r"(\.[0-9]+)?\.[0-9]{1,255}\.[0-9]+\.[0-9]+\.[0-9]+"
 
     # Standard
     NUMPY_DUMP_PATTERN = r"^([A-Za-z0-9_-]+\.[0-9]+)\.[0-9]{1,255}\.npy$"
@@ -40,6 +43,10 @@ class RegManager:
     FORMAT_CONVERT_FILE_NAME_PATTERN = r"^(convert_[A-Za-z0-9_]+_to_[A-Za-z0-9_]+)\.py[c]?$"
 
     SUPPORT_PATH_PATTERN = r"^[A-Za-z0-9_\./:()=\\-]+$"
+
+    FFTS_MANUAL_FIELD_PATTERN = r"lxslice[0-9]+"
+
+    SGT_FLIED_PATTERN = r"sgt_graph_[0-9]+"
 
     @staticmethod
     def match_pattern(pattern: str, value: any) -> bool:
@@ -66,3 +73,8 @@ class RegManager:
         if match is not None:
             return True, match
         return False, match
+
+    @staticmethod
+    def get_matchs(pattern: str, value: any) -> any:
+        re_pattern = re.compile(pattern)
+        return [match for match in re.finditer(re_pattern, value)]

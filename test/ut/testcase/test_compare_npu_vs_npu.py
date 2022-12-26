@@ -52,7 +52,7 @@ class TestUtilsMethods(unittest.TestCase):
         right_dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         right_dump_data = utils.convert_dump_data(right_dump_data)
         with mock.patch('utils.parse_dump_file',
-                        side_effect=[left_dump_data, right_dump_data]):
+                        side_effect=[left_dump_data, right_dump_data, left_dump_data, right_dump_data]):
             ret, match, result = NpuVsNpuComparison(compare_data,
                                                     fusion_op_list, AlgorithmManager('', 'all', '')).compare()
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)

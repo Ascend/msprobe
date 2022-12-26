@@ -126,7 +126,10 @@ class TestUtilsMethods(unittest.TestCase):
         dump_info.type = mock.Mock()
         dump_info.type.name = "input"
         dump_info.op_name_to_file_map = {op_name: ["/home/demo", "/home/test"]}
-        dump_path = dump_info.get_op_dump_file(op_name)
+
+        dump_path_list, _ = dump_info.get_op_dump_file(op_name)
+
+        dump_path = dump_path_list[-1]
         self.assertEqual(dump_path, "/home/test")
 
     def test_get_op_dump_data(self):

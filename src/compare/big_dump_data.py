@@ -80,11 +80,11 @@ class BigDumpDataParser:
             pass
 
         if self.file_size <= ConstManager.UINT64_SIZE:
-            log.print_warn_log(
+            log.print_error_log(
                 'The size of %s must be greater than %d, but the file size'
                 ' is %d. Please check the dump file.'
                 % (self.dump_file_path, ConstManager.UINT64_SIZE, self.file_size))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+            raise CompareError(CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE)
         if self.file_size > ConstManager.ONE_GB:
             log.print_warn_log(
                 'The size (%d) of %s exceeds 1GB, it may task more time to run, please wait.'
@@ -107,7 +107,7 @@ class BigDumpDataParser:
         # + sum(buffer.data) equal to file size
         if self.header_length + ConstManager.UINT64_SIZE + input_data_size \
                 + output_data_size + buffer_data_size + space_data_size != self.file_size:
-            log.print_warn_log(
+            log.print_error_log(
                 'The file size (%d) of %s is not equal to %d (header length)'
                 ' + %d(the size of header content) '
                 '+ %d(the sum of input data) + %d(the sum of output data) '
@@ -115,7 +115,7 @@ class BigDumpDataParser:
                 % (self.file_size, self.dump_file_path, ConstManager.UINT64_SIZE, self.header_length,
                    input_data_size, output_data_size, buffer_data_size, space_data_size))
             raise CompareError(
-                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+                CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE)
 
     def _read_header_length(self: any, dump_file: BinaryIO) -> None:
         # read header length

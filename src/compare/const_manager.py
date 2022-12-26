@@ -31,6 +31,12 @@ class ConstManager:
     N0_AXIS = 16
     C0_AXIS = 16
 
+    TIMESTAMP_LENGTH = 16
+    INVALID_TIMESTAMP = 0
+    INVALID_FILE_TYPE = 0
+    TRAD_MODE = 0
+
+
     # overflow
     OVERFLOW_MIN_VALUE = 5.96e-8
     OVERFLOW_MAX_VALUE = 65504
@@ -208,6 +214,7 @@ class ConstManager:
         DD.DT_BOOL: {DTYPE_KEY: np.bool_, STRUCT_FORMAT_KEY: '?'},
         DD.DT_COMPLEX64: {DTYPE_KEY: np.complex64, STRUCT_FORMAT_KEY: '?'},
         DD.DT_COMPLEX128: {DTYPE_KEY: np.complex128, STRUCT_FORMAT_KEY: '?'},
+        DD.DT_UINT1: {DTYPE_KEY: np.uint8, STRUCT_FORMAT_KEY: '?'}
     }
     DATA_TYPE_TO_STR_DTYPE_MAP = {
         DD.DT_FLOAT: "float32",
@@ -223,8 +230,13 @@ class ConstManager:
         DD.DT_UINT64: "uint64",
         DD.DT_BOOL: "bool",
         DD.DT_COMPLEX64: "complex64",
-        DD.DT_COMPLEX128: "complex128"
+        DD.DT_COMPLEX128: "complex128",
+        DD.DT_UINT1: "uint1"
     }
+
+    SPECIAL_DTYPE = [
+        DD.DT_UINT1,
+    ]
 
     # Standard
     STANDARD_SUFFIX = ".pb"
@@ -292,6 +304,39 @@ class ConstManager:
     CONVERT_FAILED_FILE_LIST_NAME = "convert_failed_file_list.txt"
     MAPPING_FILE_NAME = "mapping.csv"
     END_FLAG = "\0"
+
+    AICORE = "AICORE"
+    AICPU = "AICPU"
+    DEBUG = "DEBUG"
+    HCCL = "HCCL"
+    FFTSPLUS = "FFTSPLUS"
+
+    TASK_TYPE_MAP = {
+        AICORE: '0',
+        AICPU: '1',
+        DEBUG: '2',
+        HCCL: '3',
+        FFTSPLUS: '4'
+    }
+    # task mode
+    NORMAL_MODE = 0
+    AUTOMATIC_MODE = 1
+    MANUAL_MODE = 2
+    SPEC_MODE = 3
+
+    FFTS_TIMESTAMP = 'timestamp'
+
+    INVALID_TIMESTAMP = 0
+    INVALID_SORT_MODE = 1
+    INVALID_THREAD_ID = 2
+    INVALID_SLICE_X = 3
+
+
+    OLD_FILE_FIELD_NUM = 4
+    NEW_FILE_FIELD_NUM = 9
+    # FFTS/FFTS+ MODE Field
+    FFTS_MANUAL_MODE_FIELD = "_lxslice"
+    SGT_FIELD = "_sgt_graph"
 
     @property
     def max_top_n(self: any) -> int:
