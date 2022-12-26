@@ -96,7 +96,40 @@ class SortMode:
         """
         return len(timestamp) == ConstManager.TIMESTAMP_LENGTH and timestamp.isdigit()
 
-    def __call__(self, wrap_function):
+    @staticmethod
+    def _parameter_manual(file_split, file_name):
+        # Conv2D.partition0_rank2_new_sub_graph15_sgt_graph_0_fp32_vars_conv2d_39_Conv2D_lxslice0.2.9.1670205071724946.4.487.0.0
+        slice_x = file_split[1][-1]
+        if not slice_x.isdigit():
+            log.print_warn_log(
+                'The file name \"{}\"\'s slice_x is invalid.'.format(file_name))
+            return ConstManager.INVALID_SLICE_X
+        return int(slice_x)
+
+    @staticmethod
+    def _parameter_auto(file_split, file_name):
+        thread_id = file_split[-1]
+        if not thread_id.isdigit():
+            log.print_warn_log(
+                'The file name \"{}\"\'s thread_id is invalid.'.format(file_name))
+            return ConstManager.INVALID_THREAD_ID
+        return int(thread_id)
+
+    def _parameter_timestamp(self, file_split, file_name):
+        if self.parameter == ConstManager.FFTS_TIMESTAMP:
+            timestamp = file_split[4]
+        elif file_name.endswith(
+                (ConstManager.STANDARD_SUFFIX, ConstManager.NUMPY_SUFFIX, ConstManager.QUANT_SUFFIX)):
+            timestamp = file_split[2]
+        else:
+            timestamp = file_split[-1]
+        if not check_valid_timestamp(timestamp):
+            log.print_warn_log(
+                'The file name \"{}\"\'s timestamp is invalid.'.format(file_name))
+            return ConstManager.INVALID_TIMESTAMP
+        return int(timestamp)
+
+    def __call__(self: any, wrap_function):
         """
         the wrapper of get info to sort
         @param wrap_function: file name
@@ -107,32 +140,11 @@ class SortMode:
             file_split = wrap_function(*args, **kwargs).split('.')
             if self.parameter == ConstManager.NORMAL_MODE or \
                     self.parameter == ConstManager.FFTS_TIMESTAMP:
-                if self.parameter == ConstManager.FFTS_TIMESTAMP:
-                    timestamp = file_split[4]
-                elif args[0].endswith((ConstManager.STANDARD_SUFFIX,
-                                       ConstManager.NUMPY_SUFFIX, ConstManager.QUANT_SUFFIX)):
-                    timestamp = file_split[2]
-                else:
-                    timestamp = file_split[-1]
-                if not check_valid_timestamp(timestamp):
-                    log.print_warn_log(
-                        'The file name \"{}\"\'s timestamp is invalid.'.format(args[0]))
-                    return ConstManager.INVALID_TIMESTAMP
-                return int(timestamp)
+                return self._parameter_timestamp(file_split, args[0])
             elif self.parameter == ConstManager.AUTOMATIC_MODE:
-                thread_id = file_split[-1]
-                if not thread_id.isdigit():
-                    log.print_warn_log(
-                        'The file name \"{}\"\'s thread_id is invalid.'.format(args[0]))
-                    return ConstManager.INVALID_THREAD_ID
-                return int(thread_id)
+                return self._parameter_auto(file_split, args[0])
             elif self.parameter == ConstManager.MANUAL_MODE:
-                slice_x = file_split[1][-1]
-                if not slice_x.isdigit():
-                    log.print_warn_log(
-                        'The file name \"{}\"\'s slice_x is invalid.'.format(args[0]))
-                    return ConstManager.INVALID_SLICE_X
-                return int(slice_x)
+                return self._parameter_manual(file_split, args[0])
             else:
                 log.print_warn_log('The sort mode parameter is invalid, failed to sort')
                 return ConstManager.INVALID_SORT_MODE
@@ -188,8 +200,7 @@ def sort_dump_file_list(dump_file_type: int, dump_file_list: list) -> list:
     """
     if dump_file_type == ConstManager.NORMAL_MODE:
         dump_file_list.sort(key=get_normal_timestamp)
-    elif dump_file_type == ConstManager.AUTOMATIC_MODE or dump_file_type == ConstManager.MANUAL_MODE or \
-            dump_file_type == ConstManager.SPEC_MODE:
+    elif dump_file_type == ConstManager.AUTOMATIC_MODE or dump_file_type == ConstManager.MANUAL_MODE:
         dump_file_list.sort(key=get_ffts_timestamp)
         if dump_file_type == ConstManager.AUTOMATIC_MODE:
             dump_file_list.sort(key=get_ffts_auto)
@@ -411,7 +422,7 @@ def read_numpy_file(path: str) -> any:
     return DumpDataHandler(path).read_numpy_file()
 
 
-def convert_dump_data_object(wrap_function):
+def convert_dump_data_object(wrap_function: any) -> any:
     """
     This is a wrapper
     @param wrap_function: function need to be wrapped
@@ -750,4 +761,3 @@ def handle_op_name(file_op_name: str) -> (str, int):
             RegManager.SGT_FLIED_PATTERN, file_op_name)[-1]
         file_op_name = file_op_name[end_match.end() + 1:] if end_match.end() != end_match.endpos else file_op_name
     return file_op_name
-

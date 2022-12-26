@@ -51,6 +51,7 @@ class CompareError(Exception):
     MSACCUCMP_INVALID_TASK_TYPE = 37
     MSACCUCMP_MISSING_FILE = 38
     MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE = 39
+    MSACCUCMP_UNMATCH_DATA_SHAPE_ERROR = 40
 
     def __init__(self: any, code: int, message: str = "") -> None:
         super().__init__(code)

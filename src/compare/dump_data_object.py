@@ -1,6 +1,9 @@
+from functools import reduce
 import json
 import numpy as np
+import log
 from dump_data_pb2 import DumpData
+from compare_error import CompareError
 
 
 class DumpTensor:
@@ -49,13 +52,34 @@ class DumpDataObj:
         self.output_data = [_output_data for _output_data in dump_data.output]
         self.ffts_file_check = True
 
+    @staticmethod
+    def check_shape_match(output_data: np.ndarray, shape: list) -> bool:
+        if output_data.shape[-1] == reduce(lambda x, y: x * y, shape):
+            return True
+        else:
+            log.print_error_log(
+                f"The output_data shape {output_data.shape[-1]} doesn't match the shape in dump file {shape}")
+            raise CompareError(CompareError.MSACCUCMP_UNMATCH_DATA_SHAPE_ERROR)
+
     @property
     def get_output_data(self: any) -> list:
         """
         Get output data
         @return: list of output data
         """
-        return [output.data.reshape(output.shape) for output in self.output_data]
+        output_data_list = []
+        for output in self.output_data:
+            if self.check_shape_match(output.data, output.shape):
+                output_data_list.append(output.data.reshape(output.shape))
+        return output_data_list
+
+    @property
+    def get_dump_time(self: any) -> int:
+        """
+        get dump_time
+        @return: dump time
+        """
+        return self.dump_time
 
     @property
     def get_thread_num(self: any) -> int:
