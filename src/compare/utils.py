@@ -98,7 +98,8 @@ class SortMode:
 
     @staticmethod
     def _parameter_manual(file_split, file_name):
-        # Conv2D.partition0_rank2_new_sub_graph15_sgt_graph_0_fp32_vars_conv2d_39_Conv2D_lxslice0.2.9.1670205071724946.4.487.0.0
+        # Conv2D.partition0_rank2_new_sub_graph15_sgt_graph_0_fp32_vars_conv2d_39_Conv2D_lxslice0. \
+        # 2.9.1670205071724946.4.487.0.0
         slice_x = file_split[1][-1]
         if not slice_x.isdigit():
             log.print_warn_log(

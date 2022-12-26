@@ -15,6 +15,7 @@ from unittest import mock
 from google.protobuf.message import DecodeError
 from const_manager import ConstManager
 
+
 class TestUtilsMethods(unittest.TestCase):
 
     def test_print_info_log(self):
