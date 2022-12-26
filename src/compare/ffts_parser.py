@@ -88,7 +88,7 @@ class FFTSParser:
 
             merge_output = self.merge_data(dump_data_output_list, cut_axis)
             dump_data = self.create_merge_dump_data(dump_base, merge_output)
-            file_path = '.'.join(self.dump_file_list[0].split(".")[:3] + ['*'])
+            file_path = '.'.join(self.dump_file_list[0].split(".")[:4] + ['*'])
             log.print_info_log(f"This is a FFTS+ mode dump data {dump_base.op_name}, "
                                f"output data has been merged, new file path is {file_path}")
         return file_path, dump_data
