@@ -149,8 +149,8 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
 
     def _get_operator_adaptation_needed_list(self, unsupported_api_list):
         op_dict = {}
-        for op in self.cuda_ops:
-            op_dict[op.func_name] = []
+        for cuda_op in self.cuda_ops:
+            op_dict[cuda_op.func_name] = []
 
         for api in unsupported_api_list:
             for unsupported_op in api.unsupported_list:
