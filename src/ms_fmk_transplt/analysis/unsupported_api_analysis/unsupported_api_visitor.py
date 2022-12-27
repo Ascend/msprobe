@@ -198,7 +198,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             possible_func_names = ', '.join(self.unsupported_instance_op_dict.get(func_name))
             print_func_name = f"{full_name} ({possible_func_names})"
             unknown_list.append(ApiInstance(print_func_name, call_position, file_path))
-        return unsupported_list, unknown_list
+        return unsupported_list, []  # instance API results that fail to be inferred are not returned
 
     def _get_unsupported_instance_func_list(self, func_name, call_obj_name_set):
         unsupported_set = set()
