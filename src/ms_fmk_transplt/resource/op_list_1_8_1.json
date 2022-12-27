@@ -232,7 +232,7 @@
     "torch.ao.quantization.get_default_qconfig": "",
     "torch.vision.transforms.ToTensor": "",
     "torch.backends.cudnn.flags": "",
-    "torch.nn.parallel.DataParallel": "",
+    "torch.nn.parallel.DataParallel": "'torch.nn.parallel.DataParallel' is not recommend to use now! Please replace it with 'torch.nn.parallel.DistributedDataParallel'.",
     "torch.quantization.prepare_qat": "",
     "torch.ao.quantization.DeQuantStub": "",
     "torch.ops.image.encode_png": "",
