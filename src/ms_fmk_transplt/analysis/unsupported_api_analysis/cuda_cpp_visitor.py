@@ -113,8 +113,11 @@ class CudaOpVisitor:
                 torch_library_parser.parse_class_declare(declare_line)
 
 
-def analyse_cuda_ops(script_dir, output_path):
+def analyse_cuda_ops(script_dir, output_path, write_csv=True):
     cuda_op_visitor = CudaOpVisitor(script_dir)
     cuda_op_visitor.visit_cuda_files()
     cuda_op_list = cuda_op_visitor.cuda_ops
+    if write_csv:
+        cuda_op_info_list = [[cuda_op.file_path, cuda_op.func_name] for cuda_op in cuda_op_list]
+        utils.write_csv(cuda_op_info_list, output_path, "cuda_op_list", ('File', 'Api'))
     return cuda_op_list

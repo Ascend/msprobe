@@ -19,7 +19,7 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
     def __init__(self, script_dir, output_dir, pytorch_version, unsupported_third_party_file_list=None):
         super().__init__(script_dir, output_dir, pytorch_version, unsupported_third_party_file_list)
         self.function_graph = Graph()
-        self.cuda_ops = analyse_cuda_ops(script_dir, output_dir)
+        self.cuda_ops = analyse_cuda_ops(script_dir, output_dir, write_csv=False)
         self.simple_names_dict = dict()
 
     def run(self):
