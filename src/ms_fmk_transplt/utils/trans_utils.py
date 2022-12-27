@@ -332,9 +332,11 @@ def check_input_file_valid(input_path, max_file_size=MAX_JSON_FILE_SIZE):
 
 def read_unsupported_op_csv(input_path):
     check_input_file_valid(input_path)
-    apis_list = pd.read_csv(input_path)['Api'].values.tolist()
+    apis_list = pd.read_csv(input_path)['3rd-party API'].values.tolist()
     apis_dict = {}
     for api in apis_list:
         for api_name in api.split():
-            apis_dict[api_name] = " "
+            apis_dict[api_name] = ""
+            if api_name.endswith('.forward'):
+                apis_dict[api_name[:-1 * len('.forward')]] = ""
     return apis_dict

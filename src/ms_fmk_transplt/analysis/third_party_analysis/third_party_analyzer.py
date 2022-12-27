@@ -61,11 +61,8 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
     def _analysis_init_file(self, package_path):
         defined_names = self.global_reference_visitor.complete()
         for define_name in defined_names:
-            define_name_type = self.global_reference_visitor.get_type(define_name)
-            if not define_name_type:
-                continue
             if define_name.module_name == "builtins" or define_name.complete.startswith("__") \
-                    or define_name_type in ("module", "instance"):
+                    or define_name.type in ("module", "instance"):
                 continue
             try:
                 infer_func_list = self.global_reference_visitor.get_jedi_script(
@@ -101,28 +98,108 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
 
     def write_info(self):
         unsupported_api_list, unknown_api_list = self.function_graph.get_apis()
-        unsupported_info_list = []
-        unknown_info_list = []
+
+        utils.write_csv(self._get_full_unsupported_results(unsupported_api_list), self.output_path,
+                        'full_unsupported_results', ('File', '3rd-party API', 'Message'))
+        utils.write_csv(self._get_manual_confirmation_needed_list(unknown_api_list), self.output_path,
+                        'unknown_op', ('Torch API', 'Affected 3rd-party API'))
+        utils.write_csv(self._get_framework_adaptation_needed_list(unsupported_api_list),
+                        self.output_path, 'framework_unsupported_op', ('Torch API', 'Affected 3rd-party API'))
+        utils.write_csv(self._get_operator_adaptation_needed_list(unsupported_api_list),
+                        self.output_path, 'cuda_op', ('OP Name', 'Affected 3rd-party API'))
+        utils.write_csv(self._get_migration_needed_list(unsupported_api_list), self.output_path,
+                        'migration_needed_op', ('Torch API', 'Affected 3rd-party API'))
+
+    def _get_full_unsupported_results(self, unsupported_api_list):
+        full_unsupported_results = []
         for api in unsupported_api_list:
             api_info_list = []
             for unsupported_torch_api in api.unsupported_list:
                 api_info = f"file_path:{unsupported_torch_api.file_path}, start_line:" \
                            f"{unsupported_torch_api.start_line}, api_name:{unsupported_torch_api.name} \n"
                 api_info_list.append(api_info)
-            unsupported_info_list.append([api.file_path, '\n'.join(self._get_simple_names(api.key)),
-                                          ''.join(api_info_list)])
+            full_unsupported_results.append(
+                [api.file_path, '\n'.join(self._get_simple_names(api.key)), ''.join(api_info_list)])
 
+        return full_unsupported_results
+
+    def _get_framework_adaptation_needed_list(self, unsupported_api_list):
+        api_dict = {}
+        for api in unsupported_api_list:
+            for unsupported_api in api.unsupported_list:
+                api_name = unsupported_api.name
+                if api_name.startswith('torch.cuda') or api_name.split('.')[-1] == 'cuda' \
+                        or not api_name.startswith('torch.'):
+                    continue
+                if any([device in api_name for device in ['mlu', 'mps']]):
+                    continue
+                if api_name in api_dict.keys():
+                    api_dict.get(api_name).extend(self._get_simple_names(api.key))
+                else:
+                    api_dict[api_name] = self._get_simple_names(api.key)
+
+        framework_adaptation_needed_list = []
+        for api_name in api_dict.keys():
+            framework_adaptation_needed_list.append([api_name, '\n'.join(api_dict.get(api_name))])
+
+        return framework_adaptation_needed_list
+
+    def _get_operator_adaptation_needed_list(self, unsupported_api_list):
+        op_dict = {}
+        for op in self.cuda_ops:
+            op_dict[op.func_name] = []
+
+        for api in unsupported_api_list:
+            for unsupported_op in api.unsupported_list:
+                op_name = unsupported_op.name.split('.')[-1]
+                if op_name in op_dict.keys():
+                    op_dict.get(op_name).extend(self._get_simple_names(api.key))
+
+        operator_adaptation_needed_list = []
+        for op_name in op_dict.keys():
+            affected_list = op_dict.get(op_name)
+            if affected_list:
+                operator_adaptation_needed_list.append([op_name, '\n'.join(affected_list)])
+
+        return operator_adaptation_needed_list
+
+    def _get_migration_needed_list(self, unsupported_api_list):
+        api_dict = {}
+        for api in unsupported_api_list:
+            for unsupported_api in api.unsupported_list:
+                api_name = unsupported_api.name
+                is_belongs_to_third_party_device = api_name.startswith('torch.') and \
+                                                   any([device in api_name for device in ['mlu', 'mps']])
+                if api_name.startswith('torch.cuda') or api_name.split('.')[-1] == 'cuda' or \
+                        is_belongs_to_third_party_device:
+                    if api_name in api_dict.keys():
+                        api_dict.get(api_name).extend(self._get_simple_names(api.key))
+                    else:
+                        api_dict[api_name] = self._get_simple_names(api.key)
+
+        migration_needed_list = []
+        for api_name in api_dict.keys():
+            migration_needed_list.append([api_name, '\n'.join(api_dict.get(api_name))])
+
+        return migration_needed_list
+
+    def _get_manual_confirmation_needed_list(self, unknown_api_list):
+        api_dict = {}
         for api in unknown_api_list:
-            api_info_list = []
             for unknown_torch_api in api.unknown_api_list:
-                api_info = f"file_path:{unknown_torch_api.file_path}, start_line:" \
-                           f"{unknown_torch_api.start_line}, api_name:{unknown_torch_api.name} \n"
-                api_info_list.append(api_info)
-            unknown_info_list.append([api.file_path, '\n'.join(self._get_simple_names(api.key)),
-                                      ''.join(api_info_list)])
+                api_name = unknown_torch_api.name
+                if api_name.startswith("torch.npu") or api_name.startswith("torch_npu"):
+                    continue
+                if api_name in api_dict.keys():
+                    api_dict.get(api_name).extend(self._get_simple_names(api.key))
+                else:
+                    api_dict[api_name] = self._get_simple_names(api.key)
 
-        utils.write_csv(unsupported_info_list, self.output_path, 'unsupported_api', ('File', 'Api', 'Message'))
-        utils.write_csv(unknown_info_list, self.output_path, 'unknown_api', ('File', 'Api', 'Message'))
+        manual_confirmation_needed_list = []
+        for api_name in api_dict.keys():
+            manual_confirmation_needed_list.append([api_name, '\n'.join(api_dict.get(api_name))])
+
+        return manual_confirmation_needed_list
 
     def _get_simple_names(self, full_name):
         name_set = set()
