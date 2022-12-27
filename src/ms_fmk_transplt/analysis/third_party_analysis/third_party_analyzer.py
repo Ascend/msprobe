@@ -175,10 +175,7 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
                                                    any([device in api_name for device in ['mlu', 'mps']])
                 if api_name.startswith('torch.cuda') or api_name.split('.')[-1] == 'cuda' or \
                         is_belongs_to_third_party_device:
-                    if api_name in api_dict.keys():
-                        api_dict.get(api_name).extend(self._get_simple_names(api.key))
-                    else:
-                        api_dict[api_name] = self._get_simple_names(api.key)
+                    api_dict.setdefault(api_name, []).extend(self._get_simple_names(api.key))
 
         migration_needed_list = []
         for api_name in api_dict.keys():
@@ -191,7 +188,7 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         for api in unknown_api_list:
             for unknown_torch_api in api.unknown_api_list:
                 api_name = unknown_torch_api.name
-                if api_name.startswith("torch.npu") or api_name.startswith("torch_npu"):
+                if api_name.startswith(("torch.npu", "torch_npu")):
                     continue
                 if api_name in api_dict.keys():
                     api_dict.get(api_name).extend(self._get_simple_names(api.key))
