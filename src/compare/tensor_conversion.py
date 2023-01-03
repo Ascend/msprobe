@@ -68,7 +68,7 @@ class TensorConversion:
                 ground_truth_tensor.shape[1] == origin_shape[2] and \
                 ground_truth_tensor.shape[2] == origin_shape[3] and \
                 ground_truth_tensor.shape[3] == origin_shape[1]:
-            ground_truth_tensor.format = 'NCHW'
+            ground_truth_tensor.tensor_format = 'NCHW'
         # if fusion rule is (1,3,224,224),origin is (1,224,224,3),
         # need change format to NHWC
         if ground_truth_tensor.tensor_format == 'NCHW' and \
@@ -76,7 +76,7 @@ class TensorConversion:
                 ground_truth_tensor.shape[1] == origin_shape[3] and \
                 ground_truth_tensor.shape[2] == origin_shape[1] and \
                 ground_truth_tensor.shape[3] == origin_shape[2]:
-            ground_truth_tensor.format = 'NHWC'
+            ground_truth_tensor.tensor_format = 'NHWC'
 
     @staticmethod
     def _make_detail_dest_format(my_output_tensor: any, ground_truth_format: int) -> (any, any):

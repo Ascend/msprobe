@@ -356,7 +356,7 @@ class FusionOpComparison:
                                is_input: bool, tensor: any) -> (list, list, list):
         # 1. get ground truth dump data by original op name and index
         ground_truth_tensor = self.get_right_dump_data(fusion_op, index, is_input)
-        if ground_truth_tensor.shape:
+        if tensor.original_shape:
             ground_truth_tensor.shape = tensor.original_shape
         # 2. deserialize output data to array
         tensor_conversion = TensorConversion(fusion_op, self.format_manager, is_detail=False)
