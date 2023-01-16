@@ -164,13 +164,16 @@ class OverflowFileUtils(FileUtils):
     """
     # file name patterns
     DUMP_FILE_PATTERN = r"^([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)" \
-                        r"\.([0-9]+)\.?([0-9]+)?\.([0-9]{1,255})"
+                        r"\.([0-9]+)\.?([0-9]+)?\.([0-9]{1,255})" \
+                        r"\.?([0-9]+)?\.?([0-9]+)?\.?([0-9]+)?\.?([0-9]+)?"
     PARSED_DUMP_FILE_PATTERN = \
         r"^([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)\.([0-9]+)\.?([0-9]+)?" \
         r"\.([0-9]{1,255})\.([a-z]+)\.([0-9]{1,255})\.npy$"
-    DEBUG_FILE_PATTERN = r"(Opdebug)\.(Node_OpDebug)\.([0-9]+)\.?([0-9]+)?\.([0-9]{1,255})"
+    DEBUG_FILE_PATTERN = r"(Opdebug)\.(Node_OpDebug)\.([0-9]+)\.?([0-9]+)?\.([0-9]{1,255})" \
+                         r"\.?([0-9]+)?\.?([0-9]+)?\.?([0-9]+)?\.?([0-9]+)?"
     PARSED_DEBUG_FILE_PATTERN = r"Opdebug\.Node_OpDebug\.([0-9]+)\.?([0-9]+)?" \
-                                r"\.([0-9]{1,255})\.([a-z]+)\.([0-9]{1,255})\.json"
+                                r"\.([0-9]{1,255})(\.[0-9])?\.?([0-9]+)?\.?([0-9]+)?" \
+                                r"\.?([0-9]+)?\.([a-z]+)\.([0-9]{1,255})\.json"
 
     @staticmethod
     def _list_file_with_pattern(path: str, pattern: str,
@@ -209,7 +212,7 @@ class OverflowFileUtils(FileUtils):
         """
         file_desc = {
             "file_path": os.path.join(dir_path, name),
-            "timestamp": int(match.groups()[-1])
+            "timestamp": int(match.groups()[4])
         }
         dump_attr = {
             "op_name": match.group(2),
@@ -217,6 +220,9 @@ class OverflowFileUtils(FileUtils):
             "task_id": int(match.group(3)),
             "stream_id": match.group(4)
         }
+        if len(match.groups()) > 7 and match.groups()[6] and match.groups()[7]:
+            dump_attr["context_id"] = int(match.groups()[6])
+            dump_attr["thread_id"] = int(match.groups()[7])
 
         return DumpFileDesc(file_desc, dump_attr)
 
@@ -269,7 +275,7 @@ class OverflowFileUtils(FileUtils):
         """
         file_desc = {
             "file_path": os.path.join(dir_path, name),
-            "timestamp": int(match.groups()[-3])
+            "timestamp": int(match.groups()[2])
         }
         dump_attr = {
             "op_name": 'Node_OpDebug',
@@ -277,6 +283,9 @@ class OverflowFileUtils(FileUtils):
             "task_id": int(match.group(1)),
             "stream_id": match.group(2)
         }
+        if len(match.groups()) > 5 and match.groups()[4] and match.groups()[5]:
+            dump_attr["context_id"] = int(match.groups()[4])
+            dump_attr["thread_id"] = int(match.groups()[5])
         anchor = {
             "anchor_type": match.groups()[-2],
             "anchor_idx": int(match.groups()[-1])
@@ -388,11 +397,9 @@ class DumpFileDesc(FileDesc):
         self.op_name = dump_attr.get("op_name")
         self.op_type = dump_attr.get("op_type")
         self.task_id = dump_attr.get("task_id")
-        stream_id = dump_attr.get("stream_id")
-        if stream_id is None:
-            self.stream_id = 0
-        else:
-            self.stream_id = int(stream_id)
+        self.stream_id = int(dump_attr.setdefault("stream_id", '0'))
+        self.context_id = dump_attr.setdefault("context_id", None)
+        self.thread_id = dump_attr.setdefault("thread_id", None)
 
     def set_op_name(self: any, op_name: str) -> None:
         """
