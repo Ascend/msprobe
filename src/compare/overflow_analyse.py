@@ -109,8 +109,9 @@ class OverflowAnalyse:
                             % (overflow_type, detail.get('task_id'),
                                detail.get('stream_id'), status)
             res.append(overflow_info)
-            task_info = (detail.get('task_id'), detail.get('stream_id'), detail.setdefault('context_id', 65535),
-                         detail.setdefault('thread_id', 65535))
+            task_info = (detail.get('task_id'), detail.get('stream_id'),
+                         detail.setdefault('context_id', ConstManager.INVALID_ID),
+                         detail.setdefault('thread_id', ConstManager.INVALID_ID))
             return task_info
         log.print_error_log("[Overflow] The OpDebug file exists, but the value of status is {}!".format(status))
         raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_STATUS_ERROR)
@@ -270,8 +271,8 @@ class OverflowAnalyse:
     def _is_dump_file_match(dump_file_desc: DumpFileDesc, task_info: any):
         task_id = task_info[0]
         stream_id = task_info[1]
-        context_id = task_info[2] if task_info[2] != 65535 else None
-        thread_id = task_info[3] if task_info[3] != 65535 else None
+        context_id = task_info[2] if task_info[2] != ConstManager.INVALID_ID else None
+        thread_id = task_info[3] if task_info[3] != ConstManager.INVALID_ID else None
         if dump_file_desc.task_id != task_id or dump_file_desc.stream_id != stream_id:
             return False
         if context_id and dump_file_desc.context_id != context_id:

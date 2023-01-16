@@ -163,6 +163,10 @@ class OverflowFileUtils(FileUtils):
     The class for the overflow files
     """
     # file name patterns
+    # example:
+    # dump_file: Add.partition0_rank1_new_sub_graph1_sgt_graph_0_Add.0.3.1673383728093446.4.1.0.0
+    # opdeug_file: Opdebug.Node_OpDebug.0.3.1673383728094391.4.1.0.0
+    # parsed_debug_file: Opdebug.Node_OpDebug.0.3.1673383728094391.4.1.0.0.output.0.json
     DUMP_FILE_PATTERN = r"^([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)" \
                         r"\.([0-9]+)\.?([0-9]+)?\.([0-9]{1,255})" \
                         r"\.?([0-9]+)?\.?([0-9]+)?\.?([0-9]+)?\.?([0-9]+)?"
