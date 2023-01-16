@@ -36,7 +36,7 @@ class ConstManager:
     OVERFLOW_MAX_VALUE = 65504
     MAGIC_KEY_WORD = 'magic'
     MAGIC_NUM = 0x5a5a5a5a
-    INVALID_ID = 66535
+    INVALID_ID = 65535
 
     # algorithm
     FLOAT_EPSILON = np.finfo(float).eps
