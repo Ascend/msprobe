@@ -16,7 +16,7 @@ import utils
 from compare_error import CompareError
 from const_manager import ConstManager
 from dump_data_parser import DumpDataParser
-from file_utils import OverflowFileUtils
+from file_utils import OverflowFileUtils, DumpFileDesc
 
 
 class OverflowAnalyse:
@@ -109,7 +109,10 @@ class OverflowAnalyse:
                             % (overflow_type, detail.get('task_id'),
                                detail.get('stream_id'), status)
             res.append(overflow_info)
-            return detail.get('task_id'), detail.get('stream_id')
+            task_info = (detail.get('task_id'), detail.get('stream_id'),
+                         detail.setdefault('context_id', ConstManager.INVALID_ID),
+                         detail.setdefault('thread_id', ConstManager.INVALID_ID))
+            return task_info
         log.print_error_log("[Overflow] The OpDebug file exists, but the value of status is {}!".format(status))
         raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_STATUS_ERROR)
 
@@ -186,14 +189,13 @@ class OverflowAnalyse:
         """
         res = []
         if ConstManager.MAGIC_KEY_WORD in json_txt.keys():
-            task_id, stream_id = self._get_overflow_info_new_version(res, json_txt)
+            task_info = self._get_overflow_info_new_version(res, json_txt)
         else:
-            task_id, stream_id = self._get_overflow_info_old_version(res, json_txt)
+            task_info = self._get_overflow_info_old_version(res, json_txt)
         res.append(' [timestamp:%s]' % debug_file.timestamp)
         try:
             dump_file_desc = self._find_dump_files_by_task_id(os.path.dirname(debug_file.file_path),
-                                                              task_id,
-                                                              stream_id)
+                                                              task_info)
         except CompareError:
             log.print_warn_log("[Overflow] Can't find the dump file corresponding to the"
                                " debug file: %s" % os.path.basename(debug_file.file_path))
@@ -247,7 +249,7 @@ class OverflowAnalyse:
             raise CompareError(CompareError.MSACCUCMP_UNKNOWN_ERROR)
         return sorted(parsed_dump_files.values(), key=lambda x: x.idx)
 
-    def _find_dump_files_by_task_id(self: any, dump_path: str, task_id: any, stream_id: any) -> any:
+    def _find_dump_files_by_task_id(self: any, dump_path: str, task_info: any) -> any:
         """
         find dump file by the task id and stream id
         :dump_path：the dump file path
@@ -258,10 +260,23 @@ class OverflowAnalyse:
         dump_file_list = []
         for item in dump_files:
             if item.op_type != 'Opdebug' \
-                    and item.task_id == int(task_id) \
-                    and item.stream_id == int(stream_id):
+                    and self._is_dump_file_match(item, task_info):
                 dump_file_list.append(item)
         if dump_file_list:
             dump_file_list.sort(key=lambda x: x.timestamp)
             return dump_file_list[0]
         raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+
+    @staticmethod
+    def _is_dump_file_match(dump_file_desc: DumpFileDesc, task_info: any):
+        task_id = task_info[0]
+        stream_id = task_info[1]
+        context_id = task_info[2] if task_info[2] != ConstManager.INVALID_ID else None
+        thread_id = task_info[3] if task_info[3] != ConstManager.INVALID_ID else None
+        if dump_file_desc.task_id != task_id or dump_file_desc.stream_id != stream_id:
+            return False
+        if context_id and dump_file_desc.context_id != context_id:
+            return False
+        if thread_id and dump_file_desc.thread_id != thread_id:
+            return False
+        return True

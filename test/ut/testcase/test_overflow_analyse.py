@@ -119,7 +119,7 @@ class TestUtilsMethods(unittest.TestCase):
         res = []
         ret = Analyse(args).get_overflow_info()(res, over_type, json_txt)
         self.assertEqual(res, [' [AIV][TaskId:65][StreamId:396][Status:1]'])
-        self.assertEqual(ret, (65, 396))
+        self.assertEqual(ret, (65, 396, 65535, 65535))
 
     def test_insert_delimiter(self):
         args = argparse.Namespace()
@@ -481,13 +481,13 @@ class TestUtilsMethods(unittest.TestCase):
         dump_file_desc = file_utils.DumpFileDesc(file_desc, dump_attr)
         with mock.patch('file_utils.OverflowFileUtils.list_dump_files',
                         return_value=[dump_file_desc]):
-            ret = decode._find_dump_files_by_task_id('/test/', 12, 25)
+            ret = decode._find_dump_files_by_task_id('/test/', (12, 25, None, None))
         self.assertEqual(ret, dump_file_desc)
 
         with pytest.raises(utils.CompareError) as err:
             with mock.patch('file_utils.OverflowFileUtils.list_dump_files',
                             return_value=[dump_file_desc]):
-                ret = decode._find_dump_files_by_task_id('/test/', 12, 24)
+                ret = decode._find_dump_files_by_task_id('/test/', (12, 24, None, None))
         self.assertEqual(err.value.args[0],
                          CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
 
