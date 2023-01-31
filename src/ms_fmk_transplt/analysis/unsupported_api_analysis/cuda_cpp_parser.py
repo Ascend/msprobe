@@ -21,6 +21,30 @@ class _DeclareLineParser:
         self._file_lines = file_lines
         self.rel_file_path = rel_file_path
 
+    def parse_class_declare(self, func_line):
+        # deal with m.class_<GPUDecoder>("GPUDecoder").def(torch::init<std::string, torch::Device>())
+        #  "----.def("next", &GPUDecoder::decode);
+        names = re.findall(FUNC_NAMES_RE_PATTERN, func_line)
+        if not names:
+            return
+        class_name = names[0]
+        class_init_func = re.search(INIT_FUNC_RE_PATTERN, func_line)
+        if not class_init_func:
+            self.cuda_ops.append(CudaOp(self.rel_file_path, class_name, MIN_ARGS_NUM, -1))
+        else:
+            class_init_func = class_init_func.group()
+            if '<>' in class_init_func:
+                args_name = 0
+            else:
+                args_name = class_init_func.count(',') + 1
+            self.cuda_ops.append(CudaOp(self.rel_file_path, class_name, args_name, args_name))
+        if len(names) <= 1:
+            return
+        for name in names[1:]:
+            # instance api ignore args num
+            func_name = f'{names[0]}.{name}'.replace('::', '.')
+            self.cuda_ops.append(CudaOp(self.rel_file_path, func_name, MIN_ARGS_NUM, -1))
+
     def _parse_cpp_func_args_num(self, cpp_func_name):
         # deal with m.def("get_indice_pairs_2d", &spconv::getIndicePair<2>, "get_indice_pairs_2d");
         cpp_func_name = re.sub(CPP_FUNC_SUB_RE_PATTERN, '', cpp_func_name).split('<')[0]
@@ -54,30 +78,6 @@ class _DeclareLineParser:
         type_sep_count = sum(type_sep.count(',') for type_sep in re.findall(TYPE_DECLARE_RE_PATTERN, func_def_line))
         sep_count = func_def_line.count(',') - type_sep_count
         return sep_count + 1, sep_count + 1
-
-    def parse_class_declare(self, func_line):
-        # deal with m.class_<GPUDecoder>("GPUDecoder").def(torch::init<std::string, torch::Device>())
-        #  "----.def("next", &GPUDecoder::decode);
-        names = re.findall(FUNC_NAMES_RE_PATTERN, func_line)
-        if not names:
-            return
-        class_name = names[0]
-        class_init_func = re.search(INIT_FUNC_RE_PATTERN, func_line)
-        if not class_init_func:
-            self.cuda_ops.append(CudaOp(self.rel_file_path, class_name, MIN_ARGS_NUM, -1))
-        else:
-            class_init_func = class_init_func.group()
-            if '<>' in class_init_func:
-                args_name = 0
-            else:
-                args_name = class_init_func.count(',') + 1
-            self.cuda_ops.append(CudaOp(self.rel_file_path, class_name, args_name, args_name))
-        if len(names) <= 1:
-            return
-        for name in names[1:]:
-            # instance api ignore args num
-            func_name = f'{names[0]}.{name}'.replace('::', '.')
-            self.cuda_ops.append(CudaOp(self.rel_file_path, func_name, MIN_ARGS_NUM, -1))
 
 
 class PybindModuleParser(_DeclareLineParser):

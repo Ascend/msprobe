@@ -49,7 +49,7 @@ class Transplant(object):
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
-        unsupported_list, unknown_list, module, wrapper = \
+        (unsupported_list, unknown_list), module, wrapper = \
             analyse_unsupported_api(code, self.op_info, self.global_reference_visitor)
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info)
                              for api in unsupported_list), self.script_dir, "unsupported_api",

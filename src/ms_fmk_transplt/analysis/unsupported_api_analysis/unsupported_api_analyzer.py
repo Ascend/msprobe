@@ -25,7 +25,7 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
 
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
-        unsupported_op_list, unknown_op_list, _, _ = analyse_unsupported_api(
+        (unsupported_op_list, unknown_op_list), _, _ = analyse_unsupported_api(
             code, OpInfo(self.supported_op_dict, self.unsupported_op_dict, self.cuda_op_list),
             self.global_reference_visitor)
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info)
