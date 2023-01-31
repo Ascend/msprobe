@@ -28,6 +28,40 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         self.traverse_function_graph()
         self.write_info()
 
+    def traverse_function_graph(self):
+        function_queue = self.function_graph.get_leaf_api()
+        for function in function_queue:
+            self.bfs(function)
+
+    def bfs(self, node):
+        queue = [node]
+        node.vis = True
+        while queue:
+            top = queue.pop(0)
+            for adj_node in top.connected_function:
+                adj_node.in_degree -= 1
+                adj_node.has_unsupported_api = adj_node.has_unsupported_api or top.has_unsupported_api
+                adj_node.has_unknown_api = adj_node.has_unknown_api or top.has_unknown_api
+                adj_node.unsupported_list.extend(top.unsupported_list)
+                adj_node.unknown_api_list.extend(top.unknown_api_list)
+                if not adj_node.vis and adj_node.in_degree == 0:
+                    queue.append(adj_node)
+                    adj_node.vis = True
+
+    def write_info(self):
+        unsupported_api_list, unknown_api_list = self.function_graph.get_apis()
+
+        utils.write_csv(self._get_full_unsupported_results(unsupported_api_list), self.output_path,
+                        'full_unsupported_results', ('File', '3rd-party API', 'Message'))
+        utils.write_csv(self._get_manual_confirmation_needed_list(unknown_api_list), self.output_path,
+                        'unknown_op', ('Torch API', 'Affected 3rd-party API'))
+        utils.write_csv(self._get_framework_adaptation_needed_list(unsupported_api_list),
+                        self.output_path, 'framework_unsupported_op', ('Torch API', 'Affected 3rd-party API'))
+        utils.write_csv(self._get_operator_adaptation_needed_list(unsupported_api_list),
+                        self.output_path, 'cuda_op', ('OP Name', 'Affected 3rd-party API'))
+        utils.write_csv(self._get_migration_needed_list(unsupported_api_list), self.output_path,
+                        'migration_needed_op', ('Torch API', 'Affected 3rd-party API'))
+
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
         try:
@@ -78,40 +112,6 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
                 if func_name.full_name not in self.simple_names_dict:
                     self.simple_names_dict[func_name.full_name] = []
                 self.simple_names_dict.get(func_name.full_name).append(f"{package_path}.{define_name.name}")
-
-    def traverse_function_graph(self):
-        function_queue = self.function_graph.get_leaf_api()
-        for function in function_queue:
-            self.bfs(function)
-
-    def bfs(self, node):
-        queue = [node]
-        node.vis = True
-        while queue:
-            top = queue.pop(0)
-            for adj_node in top.connected_function:
-                adj_node.in_degree -= 1
-                adj_node.has_unsupported_api = adj_node.has_unsupported_api or top.has_unsupported_api
-                adj_node.has_unknown_api = adj_node.has_unknown_api or top.has_unknown_api
-                adj_node.unsupported_list.extend(top.unsupported_list)
-                adj_node.unknown_api_list.extend(top.unknown_api_list)
-                if not adj_node.vis and adj_node.in_degree == 0:
-                    queue.append(adj_node)
-                    adj_node.vis = True
-
-    def write_info(self):
-        unsupported_api_list, unknown_api_list = self.function_graph.get_apis()
-
-        utils.write_csv(self._get_full_unsupported_results(unsupported_api_list), self.output_path,
-                        'full_unsupported_results', ('File', '3rd-party API', 'Message'))
-        utils.write_csv(self._get_manual_confirmation_needed_list(unknown_api_list), self.output_path,
-                        'unknown_op', ('Torch API', 'Affected 3rd-party API'))
-        utils.write_csv(self._get_framework_adaptation_needed_list(unsupported_api_list),
-                        self.output_path, 'framework_unsupported_op', ('Torch API', 'Affected 3rd-party API'))
-        utils.write_csv(self._get_operator_adaptation_needed_list(unsupported_api_list),
-                        self.output_path, 'cuda_op', ('OP Name', 'Affected 3rd-party API'))
-        utils.write_csv(self._get_migration_needed_list(unsupported_api_list), self.output_path,
-                        'migration_needed_op', ('Torch API', 'Affected 3rd-party API'))
 
     def _get_full_unsupported_results(self, unsupported_api_list):
         full_unsupported_results = []

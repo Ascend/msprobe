@@ -38,6 +38,24 @@ class PyTorchAnalyse:
         parser.add_argument('-env', '--env-path', nargs='*', type=str, help='env path of the input project')
         return parser.parse_args()
 
+    @staticmethod
+    def __check_file_valid(args):
+        for file_path in args.api_files:
+            real_path = os.path.realpath(file_path)
+            if not utils.check_path_length_valid(real_path):
+                raise ValueError('The real path or file name of unsupported api file is too long.')
+            if not real_path.endswith('.csv'):
+                raise ValueError('unsupported api file %s should be a csv file!' % file_path)
+            if not os.path.exists(real_path):
+                raise ValueError('unsupported api file %s does not exist!' % file_path)
+
+    @staticmethod
+    def __check_env_path_valid(args):
+        env_path = args.env_path
+        for path in env_path:
+            if not utils.check_is_subdirectory(args.input, path):
+                raise ValueError('env path %s should be a subdirectory of Input %s' % (path, args.input))
+
     def main(self):
         args = self.__parse_command()
         ret = 0
@@ -136,24 +154,6 @@ class PyTorchAnalyse:
             utils.user_interactive_confirm('The output directory already exists. Do you want to overwrite?')
             self.__set_report_files_permission(0o640)
             utils.remove_path(self.output_path)
-
-    @staticmethod
-    def __check_file_valid(args):
-        for file_path in args.api_files:
-            real_path = os.path.realpath(file_path)
-            if not utils.check_path_length_valid(real_path):
-                raise ValueError('The real path or file name of unsupported api file is too long.')
-            if not real_path.endswith('.csv'):
-                raise ValueError('unsupported api file %s should be a csv file!' % file_path)
-            if not os.path.exists(real_path):
-                raise ValueError('unsupported api file %s does not exist!' % file_path)
-
-    @staticmethod
-    def __check_env_path_valid(args):
-        env_path = args.env_path
-        for path in env_path:
-            if not utils.check_is_subdirectory(args.input, path):
-                raise ValueError('env path %s should be a subdirectory of Input %s' % (path, args.input))
 
     def __init_logger(self):
         log_file = os.path.join(self.output_path, 'pytorch_analysis.txt')

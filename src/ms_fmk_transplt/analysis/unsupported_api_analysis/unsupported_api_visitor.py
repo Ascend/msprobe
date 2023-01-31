@@ -11,7 +11,6 @@ from libcst import matchers as m
 
 from utils import transplant_logger as translog
 
-
 OpInfo = namedtuple("OpInfo", ["supported_op_dict", "unsupported_op_dict", "cuda_op_list"])
 
 
@@ -110,20 +109,6 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             qualified_name = helper.get_full_name_for_node(node)
         return qualified_name
 
-    def _match_cuda_op(self, call_node, full_name):
-        for cuda_op in self.cuda_op_list:
-            if '.' in cuda_op.func_name:
-                if not (full_name == cuda_op.func_name or full_name.endswith('.' + cuda_op.func_name)):
-                    continue
-            else:
-                if not full_name.endswith('.' + cuda_op.func_name):
-                    continue
-            if cuda_op.max_args_num == -1:
-                return True
-            if cuda_op.min_args_num <= len(call_node.args) <= cuda_op.max_args_num:
-                return True
-        return False
-
     def get_api_instances(self, call_node, full_name, position, file_path):
         if full_name.endswith(".__init__"):
             full_name = full_name[:-1 * len(".__init__")]
@@ -140,6 +125,20 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             if not self.global_reference_visitor:
                 return [], []
             return self._handle_instance_func(full_name, call_node, file_path)
+
+    def _match_cuda_op(self, call_node, full_name):
+        for cuda_op in self.cuda_op_list:
+            if '.' in cuda_op.func_name:
+                if not (full_name == cuda_op.func_name or full_name.endswith('.' + cuda_op.func_name)):
+                    continue
+            else:
+                if not full_name.endswith('.' + cuda_op.func_name):
+                    continue
+            if cuda_op.max_args_num == -1:
+                return True
+            if cuda_op.min_args_num <= len(call_node.args) <= cuda_op.max_args_num:
+                return True
+        return False
 
     def _is_class_api(self, call_node, full_name):
         if self.global_reference_visitor:
@@ -340,7 +339,7 @@ def analyse_unsupported_api(code, op_info, global_reference_visitor=None):
     api_visitor = UnsupportedApiVisitor(op_info, global_reference_visitor)
     module = wrapper.visit(api_visitor)
     api_visitor.print_unsupported_ops()
-    return api_visitor.unsupported_op_result, api_visitor.unknown_api_result, module, wrapper
+    return (api_visitor.unsupported_op_result, api_visitor.unknown_api_result), module, wrapper
 
 
 class ApiInstance:

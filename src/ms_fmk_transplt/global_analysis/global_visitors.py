@@ -25,7 +25,9 @@ def catch_error(return_type=None):
                     return ''
                 else:
                     return return_type
+
         return wrapper
+
     return decorator
 
 
@@ -39,16 +41,16 @@ class GlobalReferenceVisitor:
 
     @staticmethod
     @lru_cache()
+    @catch_error(str)
+    def get_type(target):
+        return target.type
+
+    @staticmethod
+    @lru_cache()
     def _readlines(file_path):
         utils.check_input_file_valid(file_path)
         with open(file_path, 'r', encoding='utf-8') as file_handler:
             return file_handler.readlines()
-
-    @staticmethod
-    @lru_cache()
-    @catch_error(str)
-    def get_type(target):
-        return target.type
 
     @classmethod
     def complete_undefined_name(cls, jedi_script, name, line, column):
@@ -133,15 +135,6 @@ class GlobalReferenceVisitor:
             infer_func_list.append(full_name)
         return infer_func_list, infer_func_not_in_project_list
 
-    def _get_full_name_for_func_in_func(self, column, line, func):
-        goto_result_list = self.goto(line, column)
-        if goto_result_list and goto_result_list[0].full_name is not None:
-            full_name = goto_result_list[0].full_name
-        else:
-            full_name = '_'.join((os.path.basename(self.file_path), str(func.line), str(func.column),
-                                  func.description.split()[-1]))
-        return full_name
-
     @catch_error(list)
     def goto(self, line, column):
         return self.get_jedi_script(self.file_path).goto(line, column)
@@ -213,6 +206,15 @@ class GlobalReferenceVisitor:
         class_file_path = os.path.join(prefix_dir, relative_path)
         class_file_path = os.path.realpath(class_file_path + ".py")
         return class_name, class_file_path
+
+    def _get_full_name_for_func_in_func(self, column, line, func):
+        goto_result_list = self.goto(line, column)
+        if goto_result_list and goto_result_list[0].full_name is not None:
+            full_name = goto_result_list[0].full_name
+        else:
+            full_name = '_'.join((os.path.basename(self.file_path), str(func.line), str(func.column),
+                                  func.description.split()[-1]))
+        return full_name
 
     def _complete_super_class_name(self, index, col, script, super_class_name):
         split_names = super_class_name.split('.')
