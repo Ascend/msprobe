@@ -57,12 +57,14 @@ def main() -> None:
     """
     start = time.time()
     try:
-        _do_cmd()
-    except CompareError:
-        log.print_error_log("Failed to parse log dump file.")
+        ret = _do_cmd()
+    except CompareError as err:
+        ret = err.code
     finally:
         pass
     end = time.time()
+    if ret != 0:
+        log.print_error_log("Failed to parse dump log.")
     log.print_info_log(
         'The command was completed and took %d seconds.' % (end - start))
 
