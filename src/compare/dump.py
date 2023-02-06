@@ -221,7 +221,8 @@ class DumpInfo:
             raise CompareError(CompareError.MSACCUCMP_INVALID_TASK_TYPE)
         if flied_list[-4] == ConstManager.TASK_TYPE_MAP.get(ConstManager.FFTSPLUS):
             self.op_name_to_task_mode_map[op_name] = ConstManager.MANUAL_MODE \
-                if ConstManager.FFTS_MANUAL_MODE_FIELD in file_name else ConstManager.AUTOMATIC_MODE
+                if ConstManager.FFTS_MANUAL_MODE_FIELD in file_name \
+                else ConstManager.AUTOMATIC_MODE
             return
         self.op_name_to_task_mode_map[op_name] = ConstManager.NORMAL_MODE
 

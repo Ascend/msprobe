@@ -1,9 +1,16 @@
+#!/usr/bin/env python
+# coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2019-2023. All rights reserved.
+
+import collections
 from functools import reduce
 import json
 import numpy as np
 import log
 from dump_data_pb2 import DumpData
 from compare_error import CompareError
+
+CommonAttr = collections.namedtuple('CommonAttr', ['data_type', 'tensor_format', 'address', 'original_shape'])
 
 
 class DumpTensor:
@@ -32,8 +39,8 @@ class DumpTensor:
         get common attr
         @return: tuple of common attr
         """
-        return (
-            self.data_type, self.tensor_format, self.address, self.original_shape)
+        common_attr = CommonAttr(self.data_type, self.tensor_format, self.address, self.original_shape)
+        return common_attr
 
 
 class DumpDataObj:
@@ -51,15 +58,6 @@ class DumpDataObj:
         self.input_data = [_input_data for _input_data in dump_data.input]
         self.output_data = [_output_data for _output_data in dump_data.output]
         self.ffts_file_check = True
-
-    @staticmethod
-    def check_shape_match(output_data: np.ndarray, shape: list) -> bool:
-        if output_data.shape[-1] == reduce(lambda x, y: x * y, shape):
-            return True
-        else:
-            log.print_error_log(
-                f"The output_data shape {output_data.shape[-1]} doesn't match the shape in dump file {shape}")
-            raise CompareError(CompareError.MSACCUCMP_UNMATCH_DATA_SHAPE_ERROR)
 
     @property
     def get_output_data(self: any) -> list:
@@ -139,6 +137,15 @@ class DumpDataObj:
         @return: mode
         """
         return self.attr["threadMode"] if self.attr else None
+
+    @staticmethod
+    def check_shape_match(output_data: np.ndarray, shape: list) -> bool:
+        if output_data.shape[-1] == reduce(lambda x, y: x * y, shape):
+            return True
+        else:
+            log.print_error_log(
+                f"The output_data shape {output_data.shape[-1]} doesn't match the shape in dump file {shape}")
+            raise CompareError(CompareError.MSACCUCMP_UNMATCH_DATA_SHAPE_ERROR)
 
     def set_op_attr(self: any, op_name: str, ffts_file_check: bool) -> None:
         """
