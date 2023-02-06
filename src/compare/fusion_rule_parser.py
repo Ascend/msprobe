@@ -362,7 +362,7 @@ class FusionRuleParser:
             log.print_error_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
         fusion_op_name = self.op_name_to_fusion_op_name_map.get(op_name)
-        fusion_op_list = self.fusion_op_name_to_op_map[fusion_op_name]
+        fusion_op_list = self.fusion_op_name_to_op_map.get(fusion_op_name, [])
 
         # get fusion op in list by op name
         fusion_op_info = None

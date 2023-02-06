@@ -97,6 +97,16 @@ class DumpDataParser:
             return error.code
         return CompareError.MSACCUCMP_NONE_ERROR
 
+    def check_arguments_valid(self: any) -> None:
+        """
+        Check arguments valid
+        """
+        self.input_path = utils.get_path_list_for_str(self.path_str)
+        self.multi_process = MultiConvertProcess(self._parse_one_dump_file, self.input_path, self.output_path)
+        ret = utils.check_output_path_valid(self.output_path, True)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
+
     def _save_log_data(self):
         dump_data = utils.parse_dump_file(self.path_str, self.dump_version)
         log_space = dump_data.space
@@ -117,16 +127,6 @@ class DumpDataParser:
 
             log.print_info_log('The data of log:%d has been parsed into "%s".'
                                % (index, log_file_path))
-
-    def check_arguments_valid(self: any) -> None:
-        """
-        Check arguments valid
-        """
-        self.input_path = utils.get_path_list_for_str(self.path_str)
-        self.multi_process = MultiConvertProcess(self._parse_one_dump_file, self.input_path, self.output_path)
-        ret = utils.check_output_path_valid(self.output_path, True)
-        if ret != CompareError.MSACCUCMP_NONE_ERROR:
-            raise CompareError(ret)
 
     def _save_tensor_to_file(self: any, dump_path: str, tensor_list: list, tensor_type: str, op_name: str) -> None:
         if len(tensor_list) == 0:

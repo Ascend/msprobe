@@ -87,6 +87,27 @@ class SortMode:
     def __init__(self, parameter):
         self.parameter = parameter
 
+    def __call__(self: any, wrap_function):
+        """
+        the wrapper of get info to sort
+        @param wrap_function: file name
+        @return: Basis of sorted
+        """
+        @wraps(wrap_function)
+        def inner(*args, **kwargs):
+            file_split = wrap_function(*args, **kwargs).split('.')
+            if self.parameter == ConstManager.NORMAL_MODE or \
+                    self.parameter == ConstManager.FFTS_TIMESTAMP:
+                return self._parameter_timestamp(file_split, args[0])
+            elif self.parameter == ConstManager.AUTOMATIC_MODE:
+                return self._parameter_auto(file_split, args[0])
+            elif self.parameter == ConstManager.MANUAL_MODE:
+                return self._parameter_manual(file_split, args[0])
+            else:
+                log.print_warn_log('The sort mode parameter is invalid, failed to sort')
+                return ConstManager.INVALID_SORT_MODE
+        return inner
+
     @staticmethod
     def check_valid_timestamp(timestamp) -> bool:
         """
@@ -129,27 +150,6 @@ class SortMode:
                 'The file name \"{}\"\'s timestamp is invalid.'.format(file_name))
             return ConstManager.INVALID_TIMESTAMP
         return int(timestamp)
-
-    def __call__(self: any, wrap_function):
-        """
-        the wrapper of get info to sort
-        @param wrap_function: file name
-        @return: Basis of sorted
-        """
-        @wraps(wrap_function)
-        def inner(*args, **kwargs):
-            file_split = wrap_function(*args, **kwargs).split('.')
-            if self.parameter == ConstManager.NORMAL_MODE or \
-                    self.parameter == ConstManager.FFTS_TIMESTAMP:
-                return self._parameter_timestamp(file_split, args[0])
-            elif self.parameter == ConstManager.AUTOMATIC_MODE:
-                return self._parameter_auto(file_split, args[0])
-            elif self.parameter == ConstManager.MANUAL_MODE:
-                return self._parameter_manual(file_split, args[0])
-            else:
-                log.print_warn_log('The sort mode parameter is invalid, failed to sort')
-                return ConstManager.INVALID_SORT_MODE
-        return inner
 
 
 @SortMode(ConstManager.AUTOMATIC_MODE)

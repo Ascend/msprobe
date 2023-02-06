@@ -139,6 +139,20 @@ class OverflowAnalyse:
                                   output_file_type='npy')
         return DumpDataParser(args).parse_dump_data()
 
+    @staticmethod
+    def _is_dump_file_match(dump_file_desc: DumpFileDesc, task_info: any):
+        task_id = task_info[0]
+        stream_id = task_info[1]
+        context_id = task_info[2] if task_info[2] != ConstManager.INVALID_ID else None
+        thread_id = task_info[3] if task_info[3] != ConstManager.INVALID_ID else None
+        if dump_file_desc.task_id != task_id or dump_file_desc.stream_id != stream_id:
+            return False
+        if context_id and dump_file_desc.context_id != context_id:
+            return False
+        if thread_id and dump_file_desc.thread_id != thread_id:
+            return False
+        return True
+
     def analyse(self: any) -> int:
         """
         analyse overflow info
@@ -266,17 +280,3 @@ class OverflowAnalyse:
             dump_file_list.sort(key=lambda x: x.timestamp)
             return dump_file_list[0]
         raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-
-    @staticmethod
-    def _is_dump_file_match(dump_file_desc: DumpFileDesc, task_info: any):
-        task_id = task_info[0]
-        stream_id = task_info[1]
-        context_id = task_info[2] if task_info[2] != ConstManager.INVALID_ID else None
-        thread_id = task_info[3] if task_info[3] != ConstManager.INVALID_ID else None
-        if dump_file_desc.task_id != task_id or dump_file_desc.stream_id != stream_id:
-            return False
-        if context_id and dump_file_desc.context_id != context_id:
-            return False
-        if thread_id and dump_file_desc.thread_id != thread_id:
-            return False
-        return True
