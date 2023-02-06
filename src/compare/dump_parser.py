@@ -57,9 +57,9 @@ def main() -> None:
     """
     start = time.time()
     try:
-        ret = _do_cmd()
-    except CompareError as err:
-        ret = err.code
+        _do_cmd()
+    except CompareError:
+        log.print_error_log("Failed to parse log dump file.")
     finally:
         pass
     end = time.time()
