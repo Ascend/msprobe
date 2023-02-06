@@ -65,7 +65,6 @@ def main() -> None:
     end = time.time()
     log.print_info_log(
         'The command was completed and took %d seconds.' % (end - start))
-    sys.exit(ret)
 
 
 if __name__ == '__main__':
