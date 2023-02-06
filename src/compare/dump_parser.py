@@ -63,9 +63,10 @@ def main() -> None:
     finally:
         pass
     end = time.time()
+    if ret != 0:
+        log.print_error_log("Failed to parse dump log.")
     log.print_info_log(
         'The command was completed and took %d seconds.' % (end - start))
-    sys.exit(ret)
 
 
 if __name__ == '__main__':
