@@ -39,8 +39,8 @@ class DumpTensor:
         get common attr
         @return: tuple of common attr
         """
-        return CommonAttr(
-            self.data_type, self.tensor_format, self.address, self.original_shape)
+        common_attr = CommonAttr(self.data_type, self.tensor_format, self.address, self.original_shape)
+        return common_attr
 
 
 class DumpDataObj:
