@@ -10,8 +10,8 @@ import log
 from dump_data_pb2 import DumpData
 from compare_error import CompareError
 
-
 CommonAttr = collections.namedtuple('CommonAttr', ['data_type', 'tensor_format', 'address', 'original_shape'])
+
 
 class DumpTensor:
     """
