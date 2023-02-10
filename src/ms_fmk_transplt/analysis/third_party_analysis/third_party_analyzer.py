@@ -22,6 +22,25 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         self.cuda_ops = analyse_cuda_ops(script_dir, output_dir, write_csv=False)
         self.simple_names_dict = dict()
 
+    @staticmethod
+    def _get_write_csv_list(api_name, affected_set):
+        affected_list = list(affected_set)
+        split_affected_list = [affected_list[i:i + 100] for i in range(0, len(affected_list), 100)]
+        return [[api_name, '\n'.join(split_lst)] for split_lst in split_affected_list]
+
+    @staticmethod
+    def _check_cuda_op_valid(unknown_torch_api):
+        api_name = unknown_torch_api.name
+        if api_name.startswith('torch.cuda') or api_name.split('.')[-1] == 'cuda' \
+               or not api_name.startswith('torch.'):
+            return True
+        if any([device in api_name for device in ['mlu', 'mps']]):
+            return True
+        if unknown_torch_api.info == 'User-defined CUDA Operator.':
+            return True
+        else:
+            return False
+
     def run(self):
         super().run()
 
@@ -123,7 +142,6 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
                 api_info_list.append(api_info)
             full_unsupported_results.append(
                 [api.file_path, '\n'.join(self._get_simple_names(api.key)), ''.join(api_info_list)])
-
         return full_unsupported_results
 
     def _get_framework_adaptation_needed_list(self, unsupported_api_list):
@@ -131,10 +149,7 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         for api in unsupported_api_list:
             for unsupported_api in api.unsupported_list:
                 api_name = unsupported_api.name
-                if api_name.startswith('torch.cuda') or api_name.split('.')[-1] == 'cuda' \
-                        or not api_name.startswith('torch.'):
-                    continue
-                if any([device in api_name for device in ['mlu', 'mps']]):
+                if self._check_cuda_op_valid(unsupported_api):
                     continue
                 if api_name in api_dict.keys():
                     api_dict.get(api_name).extend(self._get_simple_names(api.key))
@@ -143,8 +158,11 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
 
         framework_adaptation_needed_list = []
         for api_name in api_dict.keys():
-            framework_adaptation_needed_list.append([api_name, '\n'.join(api_dict.get(api_name))])
-
+            affected_set = set(api_dict.get(api_name))
+            if len(affected_set) <= 100:
+                framework_adaptation_needed_list.append([api_name, '\n'.join(affected_set)])
+                continue
+            framework_adaptation_needed_list.extend(self._get_write_csv_list(api_name, affected_set))
         return framework_adaptation_needed_list
 
     def _get_operator_adaptation_needed_list(self, unsupported_api_list):
@@ -162,8 +180,7 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         for op_name in op_dict.keys():
             affected_list = op_dict.get(op_name)
             if affected_list:
-                operator_adaptation_needed_list.append([op_name, '\n'.join(affected_list)])
-
+                operator_adaptation_needed_list.append([op_name, '\n'.join(set(affected_list))])
         return operator_adaptation_needed_list
 
     def _get_migration_needed_list(self, unsupported_api_list):
@@ -179,8 +196,11 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
 
         migration_needed_list = []
         for api_name in api_dict.keys():
-            migration_needed_list.append([api_name, '\n'.join(api_dict.get(api_name))])
-
+            affected_set = set(api_dict.get(api_name))
+            if len(affected_set) <= 100:
+                migration_needed_list.append([api_name, '\n'.join(affected_set)])
+                continue
+            migration_needed_list.extend(self._get_write_csv_list(api_name, affected_set))
         return migration_needed_list
 
     def _get_manual_confirmation_needed_list(self, unknown_api_list):
@@ -197,8 +217,11 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
 
         manual_confirmation_needed_list = []
         for api_name in api_dict.keys():
-            manual_confirmation_needed_list.append([api_name, '\n'.join(api_dict.get(api_name))])
-
+            affected_set = set(api_dict.get(api_name))
+            if len(affected_set) <= 100:
+                manual_confirmation_needed_list.append([api_name, '\n'.join(affected_set)])
+                continue
+            manual_confirmation_needed_list.extend(self._get_write_csv_list(api_name, affected_set))
         return manual_confirmation_needed_list
 
     def _get_simple_names(self, full_name):

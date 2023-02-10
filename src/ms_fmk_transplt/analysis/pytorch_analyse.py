@@ -41,13 +41,32 @@ class PyTorchAnalyse:
     @staticmethod
     def __check_file_valid(args):
         for file_path in args.api_files:
+            if utils.islink(file_path):
+                raise utils.SoftlinkCheckException("unsupported api file doesn't support soft link.")
+
             real_path = os.path.realpath(file_path)
+            if not os.path.exists(real_path):
+                raise ValueError('The unsupported api file %s does not exist!' % file_path)
+
+            if not os.access(real_path, os.R_OK):
+                raise PermissionError('The unsupported api file %s is not readable!' % real_path)
+
             if not utils.check_path_length_valid(real_path):
                 raise ValueError('The real path or file name of unsupported api file is too long.')
+
             if not real_path.endswith('.csv'):
-                raise ValueError('unsupported api file %s should be a csv file!' % file_path)
-            if not os.path.exists(real_path):
-                raise ValueError('unsupported api file %s does not exist!' % file_path)
+                raise ValueError('The unsupported api file %s should be a csv file!' % file_path)
+
+            utils.check_api_file_valid(real_path)
+            utils.check_path_pattern_valid(real_path)
+
+            if not utils.check_path_owner_consistent(real_path):
+                utils.user_interactive_confirm(
+                    'The unsupported api file is insecure because it does not belong to you. Do you want to continue?')
+
+            if os.path.getsize(real_path) > utils.MAX_CSV_FILE_SIZE:
+                raise ValueError(f'The unsupported api file is too large, '
+                                 f'exceeds {utils.MAX_CSV_FILE_SIZE // 1024 ** 2}MB')
 
     @staticmethod
     def __check_env_path_valid(args):
@@ -102,18 +121,18 @@ class PyTorchAnalyse:
         if utils.islink(args.input):
             raise utils.SoftlinkCheckException("Input path doesn't support soft link.")
 
-        self.input_path = os.path.realpath(args.input)
-
         # check input path
-        if not utils.check_path_length_valid(self.input_path):
-            raise ValueError('The real path or file name of input is too long.')
-        utils.check_path_pattern_valid(self.input_path)
-
+        self.input_path = os.path.realpath(args.input)
         if not os.path.exists(self.input_path):
             raise ValueError('Input %s does not exist!' % args.input)
 
         if not os.access(self.input_path, os.R_OK):
             raise PermissionError('Input %s is not readable!' % args.input)
+
+        if not utils.check_path_length_valid(self.input_path):
+            raise ValueError('The real path or file name of input is too long.')
+
+        utils.check_path_pattern_valid(self.input_path)
 
         if not utils.check_path_owner_consistent(self.input_path):
             utils.user_interactive_confirm(
@@ -121,14 +140,17 @@ class PyTorchAnalyse:
 
         # check output path
         output_path = os.path.realpath(args.output)
-        if not utils.check_path_length_valid(output_path):
-            raise ValueError('The real path or file name of output is too long.')
+        if utils.islink(args.output):
+            raise utils.SoftlinkCheckException("Output path doesn't support soft link.")
 
         if not os.path.isdir(output_path):
             raise ValueError('Output %s is not a valid directory!' % args.output)
 
         if not os.access(output_path, os.W_OK):
             raise PermissionError('Output %s is not writeable!' % args.output)
+
+        if not utils.check_path_length_valid(output_path):
+            raise ValueError('The real path or file name of output is too long.')
 
         if not utils.check_path_owner_consistent(output_path):
             utils.user_interactive_confirm(
@@ -154,6 +176,7 @@ class PyTorchAnalyse:
             utils.user_interactive_confirm('The output directory already exists. Do you want to overwrite?')
             self.__set_report_files_permission(0o640)
             utils.remove_path(self.output_path)
+
 
     def __init_logger(self):
         log_file = os.path.join(self.output_path, 'pytorch_analysis.txt')
