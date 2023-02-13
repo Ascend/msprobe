@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 
-import libcst as cst
 import unittest
+import libcst as cst
 
 
 class TestDynamicShapeAnalysisConvert(unittest.TestCase):
