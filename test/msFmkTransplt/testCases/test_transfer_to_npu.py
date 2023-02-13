@@ -11,10 +11,12 @@ import torch
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 
-from src.ms_fmk_transplt.torch_npu_bridge import transfer_to_npu
-
 
 class TestTransferToNpu(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        from src.ms_fmk_transplt.torch_npu_bridge import transfer_to_npu
+
     def test_wrap_isinstance(self):
         # check builtins isinstance grammar
         self.assertTrue(isinstance(1, int))
