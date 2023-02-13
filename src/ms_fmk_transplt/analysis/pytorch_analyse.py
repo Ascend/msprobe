@@ -77,11 +77,12 @@ class PyTorchAnalyse:
                     raise ModuleNotFoundError("third party analysis must have jedi installed")
             if args.mode == 'dynamic-shape':
                 self.__copy_project()
+                self.__init_logger()
                 pytorch_analysis = self.analyse_dict.get(args.mode)(self.output_path, self.output_path, args.version)
             else:
+                self.__init_logger()
                 pytorch_analysis = self.analyse_dict.get(args.mode)(self.input_path, self.output_path, args.version,
                                                                     args.api_files)
-            self.__init_logger()
             translog.info('PyTorch analysis start working now, please wait for a moment.')
             env_path = pytorch_analysis.package_env_path_set
             if args.env_path:
@@ -167,7 +168,6 @@ class PyTorchAnalyse:
             utils.remove_path(self.output_path)
 
     def __copy_project(self):
-        translog.info("Start to copy files...")
         shutil.copytree(self.input_path, self.output_path + '/', symlinks=True)
         utils.change_mode(self.output_path)
 
