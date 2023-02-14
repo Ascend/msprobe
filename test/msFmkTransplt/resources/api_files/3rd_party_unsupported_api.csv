@@ -1,0 +1,12 @@
+File,3rd-party API,Message
+examples/app_server/app.py,app_server.app.PyTorchServer.setup,"file_path:examples/app_server/app.py, start_line:18, api_name:torch.cuda.is_available 
+"
+examples/app_server_with_auto_scaler/app.py,app_server_with_auto_scaler.app.PyTorchServer.setup,"file_path:examples/app_server_with_auto_scaler/app.py, start_line:29, api_name:torch.cuda.is_available 
+"
+examples/app_multi_node/train_pytorch.py,app_multi_node.train_pytorch.distributed_train,"file_path:examples/app_multi_node/train_pytorch.py, start_line:17, api_name:torch.cuda.is_available 
+file_path:examples/app_multi_node/train_pytorch.py, start_line:25, api_name:torch.cuda.is_available 
+file_path:examples/app_multi_node/train_pytorch.py, start_line:26, api_name:torch.cuda.is_available 
+"
+examples/app_multi_node/train_pytorch.py,app_multi_node.train_pytorch.PyTorchDistributed.run,"file_path:examples/app_multi_node/train_pytorch.py, start_line:52, api_name:torch.cuda.device_count 
+file_path:examples/app_multi_node/train_pytorch.py, start_line:52, api_name:torch.cuda.is_available 
+"
