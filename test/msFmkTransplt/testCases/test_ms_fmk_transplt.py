@@ -53,9 +53,9 @@ def run(mock_args, net_name, output_path, result_dict):
         ret = ms_fmk_transplt.main()
         if output_path is not None:
             if hasattr(mock_args.return_value, 'main'):
-                shutil.rmtree(output_path + "/" + net_name + '_msft_multi/ascend_function')
+                shutil.rmtree(output_path + "/" + net_name + '_msft_multi/ascend_function', ignore_errors=True)
             else:
-                shutil.rmtree(output_path + "/" + net_name + '_msft/ascend_function')
+                shutil.rmtree(output_path + "/" + net_name + '_msft/ascend_function', ignore_errors=True)
         result_dict[net_name] = 0 if ret == 0 else TRANS_ERROR
     except Exception as e:
         print(repr(e))

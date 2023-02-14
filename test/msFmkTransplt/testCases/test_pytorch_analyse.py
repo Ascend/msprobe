@@ -20,7 +20,7 @@ class Args:
         self.output = output_path
         self.version = version
         self.mode = mode
-        self.api_files = api_files
+        self.api_files = api_files.split()
         self.env_path = env_path
 
 
@@ -38,6 +38,7 @@ def run(mock_args):
 class TestPyTorchAnalyse(unittest.TestCase):
     def setUp(self):
         self.abs_input_path = os.path.abspath('../resources/net')
+        self.abs_api_files_path = os.path.abspath('../resources/api_files')
         shutil.rmtree("../test_result/", ignore_errors=True)
         os.makedirs("../test_result/analyse_result", exist_ok=True)
         self.abs_output_path = os.path.join(os.path.abspath("../test_result"), "analyse_result")
@@ -45,7 +46,8 @@ class TestPyTorchAnalyse(unittest.TestCase):
 
     def test_analysis(self):
         mock_args = mock.Mock(return_value=Args(os.path.join(self.abs_input_path, "barlowtwins_amp"),
-                                                self.abs_output_path))
+                                                self.abs_output_path, api_files=
+                                                os.path.join(self.abs_api_files_path, "3rd_party_unsupported_api.csv")))
 
         self.assertNotEqual(run(mock_args), ANALYSE_ERROR)
 

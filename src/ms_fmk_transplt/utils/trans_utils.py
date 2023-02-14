@@ -26,6 +26,7 @@ WINDOWS_PATH_LENGTH_LIMIT = 200
 LINUX_FILE_NAME_LENGTH_LIMIT = 200
 MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
 MAX_JSON_FILE_SIZE = 10 * 1024 ** 2
+MAX_CSV_FILE_SIZE = 10 * 1024 ** 2
 
 
 class TransplantException(Exception):
@@ -225,6 +226,12 @@ def check_path_length_valid(path):
         return len(os.path.basename(path)) <= LINUX_FILE_NAME_LENGTH_LIMIT
 
 
+def check_api_file_valid(path):
+    filed_names = pd.read_csv(path).columns
+    if '3rd-party API' not in filed_names:
+        raise ValueError('The unsupported api file %s should contain 3rd-party API field!' % path)
+
+
 def check_path_pattern_valid(path):
     if platform.system().lower() == 'windows':
         pattern = re.compile(r'(\.|\\|/|:|_|-|\s|[~0-9a-zA-Z])+')
@@ -319,14 +326,20 @@ def islink(path):
 
 
 def check_input_file_valid(input_path, max_file_size=MAX_JSON_FILE_SIZE):
-    if not input_path:
-        raise ValueError('Empty path.')
     if islink(input_path):
-        raise ValueError('The path is soft link.')
-    real_path = os.path.realpath(input_path)
-    if not check_path_length_valid(real_path):
-        raise ValueError('The path is too long.')
-    if os.path.getsize(real_path) > max_file_size:
+        raise SoftlinkCheckException("Input path doesn't support soft link.")
+
+    input_path = os.path.realpath(input_path)
+    if not os.path.exists(input_path):
+        raise ValueError('Input file %s does not exist!' % input_path)
+
+    if not os.access(input_path, os.R_OK):
+        raise PermissionError('Input file %s is not readable!' % input_path)
+
+    if not check_path_length_valid(input_path):
+        raise ValueError('The real path or file name of input is too long.')
+
+    if os.path.getsize(input_path) > max_file_size:
         raise ValueError(f'The file is too large, exceeds {max_file_size // 1024 ** 2}MB')
 
 
