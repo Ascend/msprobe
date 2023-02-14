@@ -44,3 +44,8 @@ class TestTransferToNpu(unittest.TestCase):
         from src.ms_fmk_transplt.torch_npu_bridge import transfer_to_npu
         import torch_npu
         self.assertFalse(isinstance(1, torch.device))
+
+    def test_amp_function(self):
+        self.assertEqual(torch.cuda.amp.autocast_mode, torch_npu.npu.amp.autocast_mode)
+        self.assertEqual(torch.cuda.amp.common, torch_npu.npu.amp.common)
+        self.assertEqual(torch.cuda.amp.grad_scaler, torch_npu.npu.amp.grad_scaler)
