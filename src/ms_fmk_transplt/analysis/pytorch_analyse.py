@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
+# Copyright Huawei Technologies Co., Ltd. 2022-2023. All rights reserved.
 
 import argparse
 import os.path
@@ -10,6 +10,7 @@ from pathlib import Path
 
 from analysis.unsupported_api_analysis import UnsupportedApiAnalyzer
 from analysis.third_party_analysis import ThirdPartyAnalyzer
+from analysis.dynamic_shape_analysis import DynamicShapeAnalyzer
 from utils import trans_utils as utils
 from utils import transplant_logger as translog
 
@@ -21,8 +22,10 @@ class PyTorchAnalyse:
         self.py_file_counts = 0
         self.analyse_dict = {
             'third_party': ThirdPartyAnalyzer,
-            'torch_apis': UnsupportedApiAnalyzer
+            'torch_apis': UnsupportedApiAnalyzer,
+            'dynamic-shape': DynamicShapeAnalyzer
         }
+        self.dynamic_shape_analysis_package = 'dynamic_shape_analysis/msft_dynamic_analysis'
 
     @staticmethod
     def __parse_command():
@@ -31,8 +34,10 @@ class PyTorchAnalyse:
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
         parser.add_argument('-v', '--version', required=True, choices=['1.5.0', '1.8.1', '1.11.0'],
                             help='Target pytorch version of output')
-        parser.add_argument('-m', '--mode', default='torch_apis', choices=['third_party', 'torch_apis'],
-                            help='The way the script is analyzed. Only support torch_apis and third_party currently')
+        parser.add_argument('-m', '--mode', default='torch_apis',
+                            choices=['third_party', 'torch_apis', 'dynamic-shape'],
+                            help='The way the script is analyzed. Only support torch_apis,'
+                                 'third_party and dynamic-shape currently')
         parser.add_argument('-api', '--api-files', nargs='*', metavar='FILE',
                             help='The unsupported op list file path output by the third-party analyse')
         parser.add_argument('-env', '--env-path', nargs='*', type=str, help='env path of the input project')
@@ -86,13 +91,18 @@ class PyTorchAnalyse:
                 self.__check_file_valid(args)
             if args.env_path:
                 self.__check_env_path_valid(args)
-            self.__init_logger()
-            translog.info('PyTorch analysis start working now, please wait for a moment.')
-            pytorch_analysis = self.analyse_dict.get(args.mode)(self.input_path, self.output_path, args.version,
-                                                                args.api_files)
             if args.mode == 'third_party':
                 if not utils.IS_JEDI_INSTALLED:
                     raise ModuleNotFoundError("third party analysis must have jedi installed")
+            if args.mode == 'dynamic-shape':
+                self.__copy_project()
+                self.__init_logger()
+                pytorch_analysis = self.analyse_dict.get(args.mode)(self.output_path, self.output_path, args.version)
+            else:
+                self.__init_logger()
+                pytorch_analysis = self.analyse_dict.get(args.mode)(self.input_path, self.output_path, args.version,
+                                                                    args.api_files)
+            translog.info('PyTorch analysis start working now, please wait for a moment.')
             env_path = pytorch_analysis.package_env_path_set
             if args.env_path:
                 env_path = list(str(Path(env_path_value)) for env_path_value in args.env_path)
@@ -101,6 +111,8 @@ class PyTorchAnalyse:
             pytorch_analysis.init_global_visitor(global_visitor)
             pytorch_analysis.set_py_file_counts(self.py_file_counts)
             pytorch_analysis.run()
+            if args.mode == 'dynamic-shape':
+                self.__copy_analysis_pack()
         except KeyboardInterrupt:
             translog.error('User canceled.')
             ret = 1
@@ -177,6 +189,22 @@ class PyTorchAnalyse:
             self.__set_report_files_permission(0o640)
             utils.remove_path(self.output_path)
 
+    def __copy_project(self):
+        shutil.copytree(self.input_path, self.output_path + '/', symlinks=True)
+        utils.change_mode(self.output_path)
+
+    def __copy_analysis_pack(self):
+        function_pack_dir = os.path.join(os.path.dirname(__file__), self.dynamic_shape_analysis_package)
+        base_pack_dir = os.path.basename(self.dynamic_shape_analysis_package)
+        if os.path.isdir(self.output_path):
+            dst_path = os.path.join(self.output_path, base_pack_dir)
+        else:
+            return
+        shutil.rmtree(dst_path, ignore_errors=True)
+        shutil.copytree(function_pack_dir, dst_path)
+        utils.change_mode(dst_path)
+        translog.info(f"Package {base_pack_dir} has been copy to the output dir, "
+                      f"please add {os.path.dirname(dst_path)} to PYTHONPATH before run net.")
 
     def __init_logger(self):
         log_file = os.path.join(self.output_path, 'pytorch_analysis.txt')
