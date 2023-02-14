@@ -3,6 +3,7 @@
 # Copyright Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 
 import os
+import pytest
 import sys
 import unittest
 
@@ -11,7 +12,14 @@ import torch
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 
+try:
+    import torch_npu
+    TORCH_NPU_AVAILABLE = True
+except ImportError:
+    TORCH_NPU_AVAILABLE = False
 
+
+@pytest.mark.skipif(not TORCH_NPU_AVAILABLE, reason='torch_npu is not available')
 class TestTransferToNpu(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
