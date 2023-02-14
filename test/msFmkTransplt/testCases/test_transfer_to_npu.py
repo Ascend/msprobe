@@ -6,7 +6,6 @@ import os
 import sys
 import unittest
 
-import pytest
 import torch
 
 sys.path.append(os.path.abspath("../../../"))
@@ -19,7 +18,7 @@ except ImportError:
     TORCH_NPU_AVAILABLE = False
 
 
-@pytest.mark.skipif(not TORCH_NPU_AVAILABLE, reason='torch_npu is not available')
+@unittest.skipIf(not TORCH_NPU_AVAILABLE, reason='torch_npu is not available')
 class TestTransferToNpu(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
