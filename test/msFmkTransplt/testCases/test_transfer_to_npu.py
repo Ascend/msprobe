@@ -3,10 +3,10 @@
 # Copyright Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 
 import os
-import pytest
 import sys
 import unittest
 
+import pytest
 import torch
 
 sys.path.append(os.path.abspath("../../../"))
