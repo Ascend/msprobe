@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 
+import builtins
 import os
 import warnings
 from functools import wraps
@@ -64,7 +65,12 @@ def wrapper_hccl(func):
 
 
 def patch_cuda():
-    patchs = [['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp]]
+    patchs = [
+        ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
+        ['cuda.amp.autocast_mode', torch_npu.npu.amp.autocast_mode],
+        ['cuda.amp.common', torch_npu.npu.amp.common],
+        ['cuda.amp.grad_scaler', torch_npu.npu.amp.grad_scaler]
+    ]
     torch_npu._apply_patches(patchs)
 
 
@@ -82,6 +88,22 @@ def warning_fn(msg, rank0=True):
             warnings.warn(msg, ImportWarning)
     else:
         warnings.warn(msg, ImportWarning)
+
+
+def wrapped_isinstance(obj, class_or_tuple):
+    try:
+        return torch_npu._isinstance(obj, class_or_tuple)
+    except TypeError as exp:
+        class_tuple = (class_or_tuple,) if type(class_or_tuple) != tuple else class_or_tuple
+        if torch.device not in class_tuple:
+            raise exp
+        class_list = []
+        for type_item in class_tuple:
+            if type_item is torch.device:
+                class_list.append(torch_npu._C.device)
+            else:
+                class_list.append(type_item)
+        return torch_npu._isinstance(obj, tuple(class_list))
 
 
 def init():
@@ -104,6 +126,9 @@ def init():
 
     # torch.*
     device_wrapper(torch, torch_fn_white_list)
+
+    # wrap isinstance for torch.device
+    builtins.isinstance = wrapped_isinstance
 
     # torch.Tensor.*
     device_wrapper(torch.Tensor, torch_tensor_fn_white_list)

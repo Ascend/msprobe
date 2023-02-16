@@ -22,6 +22,7 @@ import coverage
 from test_modelarts import TestModelArtsPathManager
 from test_pytorch_analyse import TestPyTorchAnalyse
 from test_rules import TestRules as TestBuildRules
+from test_transfer_to_npu import TestTransferToNpu
 
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
