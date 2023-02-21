@@ -48,7 +48,8 @@ class BaseAnalyzer:
                 count += 1
                 translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
 
-    def _analysis_file(self, file, commonprefix):
+    @staticmethod
+    def _analysis_file(file, commonprefix):
         raise NotImplementedError()
 
     def _search_package_env_path(self):

@@ -89,8 +89,10 @@ class DynamicShapeDetect:
         self.count_dict = {}
         self.unique_trace_dict = {}
         self.dynamic_api_set = set()
-        self.except_func = ('cpu', 'cuda', 'long', 'float', 'int', 'detach', 'to', 'contiguous',
-                            'type', 'requires_grad_', 'clone', 'numpy')
+        self.except_func = (
+            'cpu', 'cuda', 'long', 'float', 'int', 'detach', 'to', 'contiguous',
+            'type', 'requires_grad_', 'clone', 'numpy'
+        )
         self.except_module = ('torch.nn.init.',)
         self.enable_hook = False
         self.start_hook = False

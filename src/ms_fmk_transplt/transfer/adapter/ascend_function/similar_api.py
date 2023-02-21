@@ -152,9 +152,11 @@ class Conv3d(torch.nn.Conv3d):
         stride_triple = _triple(stride)
         padding_triple = _triple(padding)
         dilation_triple = _triple(dilation)
-        kernel_size = (kernel_size[0] + (dilation_triple[0] - 1) * (kernel_size[0] - 1),
-                       kernel_size[1] + (dilation_triple[1] - 1) * (kernel_size[1] - 1),
-                       kernel_size[2] + (dilation_triple[2] - 1) * (kernel_size[2] - 1))
+        kernel_size = (
+            kernel_size[0] + (dilation_triple[0] - 1) * (kernel_size[0] - 1),
+            kernel_size[1] + (dilation_triple[1] - 1) * (kernel_size[1] - 1),
+            kernel_size[2] + (dilation_triple[2] - 1) * (kernel_size[2] - 1)
+        )
         dilation = (1, 1, 1)
         super(Conv3d, self).__init__(
             in_channels, out_channels, kernel_size, stride_triple,
