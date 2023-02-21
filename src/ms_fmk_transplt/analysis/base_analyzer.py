@@ -26,6 +26,10 @@ class BaseAnalyzer:
     def __need_analysis(file, commonprefix):
         return utils.check_file_need_analysis(file, commonprefix, record=True)
 
+    @staticmethod
+    def _analysis_file(file, commonprefix):
+        raise NotImplementedError()
+
     def init_global_visitor(self, global_reference_visitor):
         self.global_reference_visitor = global_reference_visitor
 
@@ -47,10 +51,6 @@ class BaseAnalyzer:
                 self._analysis_file(file, self.script_dir)
                 count += 1
                 translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
-
-    @staticmethod
-    def _analysis_file(file, commonprefix):
-        raise NotImplementedError()
 
     def _search_package_env_path(self):
         package_env_path_set = set()
