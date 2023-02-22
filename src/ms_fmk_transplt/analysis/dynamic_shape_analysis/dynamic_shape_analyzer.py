@@ -14,7 +14,6 @@ from .dynamic_shape_converter import DynamicShapeTransformer
 class DynamicShapeAnalyzer(BaseAnalyzer):
     def __init__(self, script_dir, output_path, pytorch_version, unsupported_third_party_file_list=None):
         super().__init__(script_dir, output_path, pytorch_version, unsupported_third_party_file_list)
-        self.current_file_rel_path = None
 
     def _analysis_file(self, file, commonprefix):
         if self.global_reference_visitor:

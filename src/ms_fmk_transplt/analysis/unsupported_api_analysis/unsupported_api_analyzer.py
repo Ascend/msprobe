@@ -14,7 +14,6 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
         super(UnsupportedApiAnalyzer, self).__init__(script_dir, output_path, pytorch_version,
                                                      unsupported_third_party_file_list)
         self.cuda_op_list = analyse_cuda_ops(script_dir, output_path)
-        self.current_file_rel_path = None
 
     def _analysis_file(self, file, commonprefix):
         if self.global_reference_visitor:

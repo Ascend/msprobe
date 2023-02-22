@@ -94,8 +94,7 @@ def warning_fn(msg, rank0=True):
 
 def wrapped_isinstance(obj, class_or_tuple):
     try:
-        torch_npu_func = getattr(torch_npu, '_isinstance')
-        return torch_npu_func(obj, class_or_tuple)
+        return torch_npu._isinstance(obj, class_or_tuple)
     except TypeError as exp:
         class_tuple = (class_or_tuple,) if type(class_or_tuple) != tuple else class_or_tuple
         if torch.device not in class_tuple:
@@ -103,13 +102,10 @@ def wrapped_isinstance(obj, class_or_tuple):
         class_list = []
         for type_item in class_tuple:
             if type_item is torch.device:
-                torch_npu_c = getattr(torch_npu, '_C')
-                torch_npu_device = getattr(torch_npu_c, 'device')
-                class_list.append(torch_npu_device)
+                class_list.append(torch_npu._C.device)
             else:
                 class_list.append(type_item)
-        torch_npu_func = getattr(torch_npu, '_isinstance')
-        return torch_npu_func(obj, tuple(class_list))
+        return torch_npu._isinstance(obj, tuple(class_list))
 
 
 def init():
