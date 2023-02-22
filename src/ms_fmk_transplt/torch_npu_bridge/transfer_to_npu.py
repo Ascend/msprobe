@@ -11,14 +11,16 @@ import torch_npu
 
 warnings.filterwarnings(action='once')
 
-torch_fn_white_list = ['logspace', 'randint', 'hann_window', 'rand', 'full_like', 'ones_like', 'rand_like', 'randperm',
-                       'arange', 'frombuffer', 'normal', '_empty_per_channel_affine_quantized', 'empty_strided',
-                       'empty_like', 'scalar_tensor', 'tril_indices', 'bartlett_window', 'ones', 'sparse_coo_tensor',
-                       'randn', 'kaiser_window', 'tensor', 'triu_indices', 'as_tensor', 'zeros', 'randint_like', 'full',
-                       'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
-                       'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
-                       '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-                       'empty_quantized', '_pin_memory', 'device']
+torch_fn_white_list = [
+    'logspace', 'randint', 'hann_window', 'rand', 'full_like', 'ones_like', 'rand_like', 'randperm',
+    'arange', 'frombuffer', 'normal', '_empty_per_channel_affine_quantized', 'empty_strided',
+    'empty_like', 'scalar_tensor', 'tril_indices', 'bartlett_window', 'ones', 'sparse_coo_tensor',
+    'randn', 'kaiser_window', 'tensor', 'triu_indices', 'as_tensor', 'zeros', 'randint_like', 'full',
+    'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
+    'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
+    '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
+    'empty_quantized', '_pin_memory', 'device'
+]
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
 

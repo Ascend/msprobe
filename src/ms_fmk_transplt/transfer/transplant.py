@@ -96,8 +96,10 @@ class Transplant(object):
 
 
 class CodeTransformer(libcst.CSTTransformer):
-    METADATA_DEPENDENCIES = (libcst.metadata.PositionProvider, libcst.metadata.ScopeProvider,
-                             libcst.metadata.QualifiedNameProvider, libcst.metadata.ParentNodeProvider)
+    METADATA_DEPENDENCIES = (
+        libcst.metadata.PositionProvider, libcst.metadata.ScopeProvider,
+        libcst.metadata.QualifiedNameProvider, libcst.metadata.ParentNodeProvider
+    )
 
     def __init__(self, rule_list, is_main_file, global_reference_visitor=None):
         super().__init__()

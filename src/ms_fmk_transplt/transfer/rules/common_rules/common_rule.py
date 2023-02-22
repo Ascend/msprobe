@@ -19,6 +19,16 @@ class BaseInsertGlobalRule(BaseRule):
         self.insert_content = insert_content
         self.insert_flag = False
 
+    @staticmethod
+    def __verify_insert_position(body_item):
+        if not isinstance(body_item, libcst.SimpleStatementLine):
+            return True
+        if isinstance(body_item.body[0], (libcst.Import, libcst.ImportFrom, libcst.ImportStar)):
+            return False
+        if isinstance(body_item.body[0], libcst.Expr) and isinstance(body_item.body[0].value, libcst.SimpleString):
+            return False
+        return True
+
     def leave_Module(self, original_node: "libcst.Module", updated_node: "libcst.Module") -> "libcst.Module":
         new_body = []
         insert_len = 0
@@ -41,16 +51,6 @@ class BaseInsertGlobalRule(BaseRule):
             body=tuple(new_body),
         )
         return updated_node
-
-    @staticmethod
-    def __verify_insert_position(body_item):
-        if not isinstance(body_item, libcst.SimpleStatementLine):
-            return True
-        if isinstance(body_item.body[0], (libcst.Import, libcst.ImportFrom, libcst.ImportStar)):
-            return False
-        if isinstance(body_item.body[0], libcst.Expr) and isinstance(body_item.body[0].value, libcst.SimpleString):
-            return False
-        return True
 
     def clean(self):
         super().clean()

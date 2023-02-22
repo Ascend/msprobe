@@ -36,7 +36,7 @@ class ShapeRange:
         for i in range(1, self.max_shape_len + 1):
             if i not in self.max_shape_dict or i not in self.min_shape_dict:
                 continue
-            shape_range_string_list.append(f"{self.min_shape_dict[i]}-{self.max_shape_dict[i]}")
+            shape_range_string_list.append(f"{self.min_shape_dict.get(i)}-{self.max_shape_dict.get(i)}")
         return "[" + " | ".join(shape_range_string_list) + "]" if shape_range_string_list else "[()]"
 
     def update(self, shape):
@@ -89,8 +89,10 @@ class DynamicShapeDetect:
         self.count_dict = {}
         self.unique_trace_dict = {}
         self.dynamic_api_set = set()
-        self.except_func = ('cpu', 'cuda', 'long', 'float', 'int', 'detach', 'to', 'contiguous',
-                            'type', 'requires_grad_', 'clone', 'numpy')
+        self.except_func = (
+            'cpu', 'cuda', 'long', 'float', 'int', 'detach', 'to', 'contiguous',
+            'type', 'requires_grad_', 'clone', 'numpy'
+        )
         self.except_module = ('torch.nn.init.',)
         self.enable_hook = False
         self.start_hook = False
