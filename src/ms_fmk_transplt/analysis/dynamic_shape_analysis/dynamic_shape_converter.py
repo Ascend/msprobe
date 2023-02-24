@@ -75,6 +75,14 @@ class DynamicShapeTransformer(cst.CSTTransformer):
         getattr(self, f'visit_{type(node).__name__}')(node)
         return True
 
+    def get_full_name_for_node(self, node: Union[str, cst.CSTNode]) -> Optional[str]:
+        name_list = list(self.get_metadata(QualifiedNameProvider, node))
+        if name_list:
+            qualified_name = list(self.get_metadata(QualifiedNameProvider, node))[0].name
+        else:
+            qualified_name = cst.helpers.get_full_name_for_node(node)
+        return qualified_name
+
     def _check_if_need_hook(self, original_node):
         if isinstance(original_node.func, cst.Name) and original_node.func.value in dir(builtins):
             return False
@@ -92,14 +100,6 @@ class DynamicShapeTransformer(cst.CSTTransformer):
             return self.get_full_name_for_node(parent_node.decorators[0].decorator) not in \
                    ('torch.jit.script', 'torch.jit.script_method')
         return True
-
-    def get_full_name_for_node(self, node: Union[str, cst.CSTNode]) -> Optional[str]:
-        name_list = list(self.get_metadata(QualifiedNameProvider, node))
-        if name_list:
-            qualified_name = list(self.get_metadata(QualifiedNameProvider, node))[0].name
-        else:
-            qualified_name = cst.helpers.get_full_name_for_node(node)
-        return qualified_name
 
     def _get_parent_node(self, node, condition):
         parent_node = node
