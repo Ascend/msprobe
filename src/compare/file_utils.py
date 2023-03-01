@@ -26,23 +26,6 @@ class FileUtils:
     """
     CSV_SUFFIX = '.csv'
 
-    @classmethod
-    def load_json_file(cls: any, json_file: str) -> any:
-        """
-        load json file
-        :json_file: the json file
-        """
-        utils.check_file_size(json_file, ConstManager.ONE_HUNDRED_MB)
-        try:
-            with open(json_file, 'r') as input_file:
-                return json.load(input_file)
-        except Exception as error:
-            log.print_error_log(
-                'Failed to load json object. The content of the json file "%s" is invalid.' % json_file)
-            raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR) from error
-        finally:
-            pass
-
     @staticmethod
     def read_csv(path: str) -> list:
         """
@@ -156,6 +139,23 @@ class FileUtils:
         else:
             array.tofile(path)
         os.chmod(path, ConstManager.WRITE_MODES)
+
+    @classmethod
+    def load_json_file(cls: any, json_file: str) -> any:
+        """
+        load json file
+        :json_file: the json file
+        """
+        utils.check_file_size(json_file, ConstManager.ONE_HUNDRED_MB)
+        try:
+            with open(json_file, 'r') as input_file:
+                return json.load(input_file)
+        except Exception as error:
+            log.print_error_log(
+                'Failed to load json object. The content of the json file "%s" is invalid.' % json_file)
+            raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR) from error
+        finally:
+            pass
 
 
 class OverflowFileUtils(FileUtils):

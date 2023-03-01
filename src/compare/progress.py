@@ -53,7 +53,7 @@ class Progress:
         denominator = 1
         greater_than_count = 0
         if self.PROGRESS_GREATER_THAN_COUNT != 0:
-            denominator = ConstManager.MAX_PROGRESS / self.PROGRESS_GREATER_THAN_COUNT
+            denominator = ConstManager.MAX_PROGRESS // self.PROGRESS_GREATER_THAN_COUNT
         if denominator != 0:
             greater_than_count = math.floor(progress / denominator)
         progress_info = '%s%s' % (self.PROGRESS_GREATER_THAN * greater_than_count,

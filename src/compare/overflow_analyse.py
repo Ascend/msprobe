@@ -109,9 +109,12 @@ class OverflowAnalyse:
                             % (overflow_type, detail.get('task_id'),
                                detail.get('stream_id'), status)
             res.append(overflow_info)
-            task_info = (detail.get('task_id'), detail.get('stream_id'),
-                         detail.setdefault('context_id', ConstManager.INVALID_ID),
-                         detail.setdefault('thread_id', ConstManager.INVALID_ID))
+            task_info = (
+                detail.get('task_id'),
+                detail.get('stream_id'),
+                detail.setdefault('context_id', ConstManager.INVALID_ID),
+                detail.setdefault('thread_id', ConstManager.INVALID_ID)
+            )
             return task_info
         log.print_error_log("[Overflow] The OpDebug file exists, but the value of status is {}!".format(status))
         raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_STATUS_ERROR)
