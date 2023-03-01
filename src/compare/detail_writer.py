@@ -111,8 +111,10 @@ class TopN:
         top_n_original_list = []
         for i, index in enumerate(index_list):
             # variable row value,for example,[17866338,"22 16 32 98",-0.866699,-0.000017,0.866682,51349.906250]
-            row = [index, " ".join((str(x) for x in dim_list[i])), left_list[i], right_list[i],
-                   absolute_error_list[i], relative_error_list[i]]
+            row = [
+                index, " ".join((str(x) for x in dim_list[i])), left_list[i], right_list[i],
+                absolute_error_list[i], relative_error_list[i]
+            ]
             top_n_original_list.append(row)
         if error_type == "absolute":
             # 4 is AbsoluteError column subscript.

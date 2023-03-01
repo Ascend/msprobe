@@ -52,7 +52,7 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
         return ConstManager.NAN, message
     else:
         denominator = ((source_denominator ** 0.5) * (compare_denominator ** 0.5))
-        result = 0.0
+        result = "0.0"
         if denominator != 0:
             result = utils.format_value(numerator / denominator)
     return result, ""

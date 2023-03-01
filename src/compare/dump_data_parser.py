@@ -217,9 +217,11 @@ class DumpDataParser:
         index += ConstManager.L2_ATOMIC_ADD_STATUS_SIZE
         self._parser_ai_core_status(ai_core_info, item_data, index)
 
-        data = {'DHA Atomic Add': dha_atomic_add_info,
-                'L2 Atomic Add': l2_atomic_add_info,
-                'AI Core': ai_core_info}
+        data = {
+            'DHA Atomic Add': dha_atomic_add_info,
+            'L2 Atomic Add': l2_atomic_add_info,
+            'AI Core': ai_core_info
+        }
         return data
 
     def _parse_one_file_exec(self: any, dump_path: str) -> None:

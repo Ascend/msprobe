@@ -76,15 +76,30 @@ class ConstManager:
     BUILT_IN_ALGORITHM_DIR_NAME = "builtin_algorithm"
     CUSTOM_ALGORITHM_DIR_NAME = "algorithm"
     COMPARE_FUNC_NAME = 'compare'
-    BUILT_IN_ALGORITHM = ["CosineSimilarity", "MaxAbsoluteError", "AccumulatedRelativeError",
-                          "RelativeEuclideanDistance", "KullbackLeiblerDivergence", "StandardDeviation",
-                          "MeanAbsoluteError", "RootMeanSquareError", "MaxRelativeError",
-                          "MeanRelativeError"]
+    BUILT_IN_ALGORITHM = [
+        "CosineSimilarity",
+        "MaxAbsoluteError",
+        "AccumulatedRelativeError",
+        "RelativeEuclideanDistance",
+        "KullbackLeiblerDivergence",
+        "StandardDeviation",
+        "MeanAbsoluteError",
+        "RootMeanSquareError",
+        "MaxRelativeError",
+        "MeanRelativeError"
+    ]
     ALGORITHM_FILE_NAME_PATTERN = r"^alg_([A-Za-z0-9_]+)\.py[c]?$"
     BOOL_ALGORITHM = ('CosineSimilarity', 'RelativeEuclideanDistance')
-    FILE_CMP_SUPPORTED_ALGORITHM = ["CosineSimilarity", "MaxAbsoluteError", "AccumulatedRelativeError",
-                                    "RelativeEuclideanDistance", "MeanAbsoluteError", "RootMeanSquareError",
-                                    "MaxRelativeError", "MeanRelativeError"]
+    FILE_CMP_SUPPORTED_ALGORITHM = [
+        "CosineSimilarity",
+        "MaxAbsoluteError",
+        "AccumulatedRelativeError",
+        "RelativeEuclideanDistance",
+        "MeanAbsoluteError",
+        "RootMeanSquareError",
+        "MaxRelativeError",
+        "MeanRelativeError"
+    ]
 
     COMPARE_ARGUMENT_COUNT = 3
     SPACE = ' '
@@ -141,13 +156,16 @@ class ConstManager:
     LEFT_TYPE = 'Left'
     RIGHT_TYPE = 'Right'
 
-    VECTOR_COMPARE_HEADER = ["OpType", "NPUDump", "DataType", "Address",
-                             "GroundTruth", "DataType", "Address", "TensorIndex"]
+    VECTOR_COMPARE_HEADER = [
+        "OpType", "NPUDump", "DataType", "Address",
+        "GroundTruth", "DataType", "Address", "TensorIndex"
+    ]
     MY_OUTPUT_ADDRESS_INDEX = 3
     GROUND_TRUTH_ADDRESS_INDEX = 6
 
-    MAPPING_FILE_HEADER = ["Index", "OpType", "NPUDump", "GroundTruth", "TensorIndex",
-                           "NPUDumpPath", "GroundTruthPath"]
+    MAPPING_FILE_HEADER = [
+        "Index", "OpType", "NPUDump", "GroundTruth", "TensorIndex", "NPUDumpPath", "GroundTruthPath"
+    ]
 
     STRING_TO_FORMAT_MAP = {
         "NCHW": DD.FORMAT_NCHW,
@@ -255,8 +273,10 @@ class ConstManager:
     NUMPY_SUFFIX = ".npy"
     NUMPY_FILE_NAME = 'op_name.output_index.timestamp.npy'
 
-    QUANT_OP_NANE_SUFFIX_LIST = ["_quant_layer", "_anti_quant_layer", "AscendQuant", "AscendWeightQuant",
-                                 "AntiQuant", "_quant", "_weight_quant", "_anti_quant"]
+    QUANT_OP_NANE_SUFFIX_LIST = [
+        "_quant_layer", "_anti_quant_layer", "AscendQuant", "AscendWeightQuant",
+        "AntiQuant", "_quant", "_weight_quant", "_anti_quant"
+    ]
 
     DEQUANT_OP_NANE_SUFFIX_LIST = ["_dequant_layer", "AscendDequant", "_dequant"]
 
@@ -287,12 +307,17 @@ class ConstManager:
     }
     OVERFLOW_DEBUG = ('magic', 'version', 'acc_list')
     ACC_DEBUG = ('valid', 'acc_type', 'rsv', 'data_len', 'data')
-    AIC_AIV_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
-                     'thread_id', 'pc_start', 'para_base', 'core_id', 'block_id', 'status')
-    SDMA_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
-                  'thread_id', 'src_addr', 'dst_addr', 'channel_id', 'status')
-    AICPU_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
-                   'cpu_id', 'thread_id', 'status')
+    AIC_AIV_DEBUG = (
+        'model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
+        'thread_id', 'pc_start', 'para_base', 'core_id', 'block_id', 'status'
+    )
+    SDMA_DEBUG = (
+        'model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
+        'thread_id', 'src_addr', 'dst_addr', 'channel_id', 'status'
+    )
+    AICPU_DEBUG = (
+        'model_id', 'stream_id', 'task_id', 'task_type', 'context_id','cpu_id', 'thread_id', 'status'
+    )
     DEBUG_INFO_MAP = {
         "AIC": AIC_AIV_DEBUG,
         "AIV": AIC_AIV_DEBUG,
