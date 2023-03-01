@@ -62,20 +62,20 @@ class TensorConversion:
     @staticmethod
     def _change_format(ground_truth_tensor: Tensor, origin_shape: any) -> None:
         # if fusion rule is (1,224,224, 3),origin is (1,3, 224,224),
+        is_original_shape_nhwc = ground_truth_tensor.shape[0] == origin_shape[0] and \
+                                 ground_truth_tensor.shape[1] == origin_shape[2] and \
+                                 ground_truth_tensor.shape[2] == origin_shape[3] and \
+                                 ground_truth_tensor.shape[3] == origin_shape[1]
         # need change format to NCHW
-        if ground_truth_tensor.tensor_format == 'NHWC' and \
-                ground_truth_tensor.shape[0] == origin_shape[0] and \
-                ground_truth_tensor.shape[1] == origin_shape[2] and \
-                ground_truth_tensor.shape[2] == origin_shape[3] and \
-                ground_truth_tensor.shape[3] == origin_shape[1]:
+        if ground_truth_tensor.tensor_format == 'NHWC' and is_original_shape_nhwc:
             ground_truth_tensor.tensor_format = 'NCHW'
         # if fusion rule is (1,3,224,224),origin is (1,224,224,3),
+        is_original_shape_nchw = ground_truth_tensor.shape[0] == origin_shape[0] and \
+                                 ground_truth_tensor.shape[1] == origin_shape[3] and \
+                                 ground_truth_tensor.shape[2] == origin_shape[1] and \
+                                 ground_truth_tensor.shape[3] == origin_shape[2]
         # need change format to NHWC
-        if ground_truth_tensor.tensor_format == 'NCHW' and \
-                ground_truth_tensor.shape[0] == origin_shape[0] and \
-                ground_truth_tensor.shape[1] == origin_shape[3] and \
-                ground_truth_tensor.shape[2] == origin_shape[1] and \
-                ground_truth_tensor.shape[3] == origin_shape[2]:
+        if ground_truth_tensor.tensor_format == 'NCHW' and is_original_shape_nchw:
             ground_truth_tensor.tensor_format = 'NHWC'
 
     @staticmethod

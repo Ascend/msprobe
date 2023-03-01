@@ -241,11 +241,15 @@ class NpuVsNpuComparison:
             op_type = utils.get_op_type_from_file_name(my_output_dump_data.path)
 
             # 3. merge result
-            tensor_info = {"tensor_id": tensor_id, "shape": my_output_tensor.shape, "op_type": op_type,
-                           "my_output_dtype": my_output_tensor_dtype,
-                           "ground_truth_dtype": ground_truth_tensor_dtype,
-                           "my_output_address": my_output_tensor_address,
-                           "ground_truth_address": ground_truth_tensor_address}
+            tensor_info = {
+                "tensor_id": tensor_id,
+                "shape": my_output_tensor.shape,
+                "op_type": op_type,
+                "my_output_dtype": my_output_tensor_dtype,
+                "ground_truth_dtype": ground_truth_tensor_dtype,
+                "my_output_address": my_output_tensor_address,
+                "ground_truth_address": ground_truth_tensor_address
+            }
             tensor_result_list.append(
                 compare_result.TensorResult(tensor_info, [algorithm_result, overflow_result], error_msg))
         return tensor_result_list
