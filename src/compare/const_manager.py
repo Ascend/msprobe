@@ -316,7 +316,7 @@ class ConstManager:
         'thread_id', 'src_addr', 'dst_addr', 'channel_id', 'status'
     )
     AICPU_DEBUG = (
-        'model_id', 'stream_id', 'task_id', 'task_type', 'context_id','cpu_id', 'thread_id', 'status'
+        'model_id', 'stream_id', 'task_id', 'task_type', 'context_id', 'cpu_id', 'thread_id', 'status'
     )
     DEBUG_INFO_MAP = {
         "AIC": AIC_AIV_DEBUG,
