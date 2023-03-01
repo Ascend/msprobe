@@ -133,20 +133,24 @@ class FusionOpComResult:
         my_output_op, ground_truth_op = self._make_my_output_op_and_ground_truth_op(fusion_op, no_dump_file)
         if tensor_result:
             for item in tensor_result:
-                current_tensor_info = [str(fusion_op.op_id), item.get_op_type(),
-                                       my_output_op, str(item.get_my_output_dtype()),
-                                       str(item.get_my_output_address()), ground_truth_op,
-                                       str(item.get_ground_truth_dtype()), str(item.get_ground_truth_address())]
+                current_tensor_info = [
+                    str(fusion_op.op_id), item.get_op_type(),
+                    my_output_op, str(item.get_my_output_dtype()),
+                    str(item.get_my_output_address()), ground_truth_op,
+                    str(item.get_ground_truth_dtype()), str(item.get_ground_truth_address())
+                ]
                 self._pre_handle_result(current_tensor_info)
                 result = current_tensor_info + item.get_result()
                 RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
         else:
-            current_tensor_info = [str(fusion_op.op_id), fusion_op.get_real_op_type(),
-                                   my_output_op, ConstManager.NAN, ConstManager.NAN,
-                                   ground_truth_op, ConstManager.NAN, ConstManager.NAN,
-                                   ConstManager.NAN, ConstManager.NAN]
+            current_tensor_info = [
+                str(fusion_op.op_id), fusion_op.get_real_op_type(),
+                my_output_op, ConstManager.NAN, ConstManager.NAN,
+                ground_truth_op, ConstManager.NAN, ConstManager.NAN,
+                ConstManager.NAN, ConstManager.NAN
+            ]
             self._pre_handle_result(current_tensor_info)
             if self.overflow_detection:
                 # using 'NaN' as a overflow detection for 'no tensor_result'

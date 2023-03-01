@@ -89,19 +89,21 @@ class CompareMap:
         return list(self.op_map.values())
 
     def _init_map_table(self: any) -> None:
-        self.op_map = {'CudnnBatchNormBackward': ['NativeBatchNormBackward'],
-                       'NativeBatchNormBackward': ['CudnnBatchNormBackward'],
-                       'CudnnConvolutionBackward': ['NpuConvolutionBackward'],
-                       'ThnnConvDepthwise2DBackward': ['NpuConvolutionBackward'],
-                       'NpuConvolutionBackward': ['CudnnConvolutionBackward', 'ThnnConvDepthwise2DBackward']
-                       }
+        self.op_map = {
+            'CudnnBatchNormBackward': ['NativeBatchNormBackward'],
+            'NativeBatchNormBackward': ['CudnnBatchNormBackward'],
+            'CudnnConvolutionBackward': ['NpuConvolutionBackward'],
+            'ThnnConvDepthwise2DBackward': ['NpuConvolutionBackward'],
+            'NpuConvolutionBackward': ['CudnnConvolutionBackward', 'ThnnConvDepthwise2DBackward']
+        }
 
-        self.param_map = {'CudnnBatchNormBackward': {'epsilon': 'eps'},
-                      'NativeBatchNormBackward': {'eps': 'epsilon'},
-                      'CudnnConvolutionBackward': {'self': 'input'},
-                      'ThnnConvDepthwise2DBackward': {'self': 'input'},
-                      'NpuConvolutionBackward': {'input': 'self'}
-                      }
+        self.param_map = {
+            'CudnnBatchNormBackward': {'epsilon': 'eps'},
+            'NativeBatchNormBackward': {'eps': 'epsilon'},
+            'CudnnConvolutionBackward': {'self': 'input'},
+            'ThnnConvDepthwise2DBackward': {'self': 'input'},
+            'NpuConvolutionBackward': {'input': 'self'}
+        }
 
 
 class CompareData:

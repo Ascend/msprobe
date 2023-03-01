@@ -32,11 +32,20 @@ class Result:
     def generate(self):
         extend_data = []
         for item in self.extend_result:
-            data = {"type": item.type, "extendTitle": item.extend_title,
-                    "dataType": item.data_type, "key": item.key, "value": item.value}
+            data = {
+                "type": item.type,
+                "extendTitle": item.extend_title,
+                "dataType": item.data_type,
+                "key": item.key,
+                "value": item.value
+            }
             extend_data.append(data)
-        res = {"classType": self.class_type, "errorCode": self.error_code,
-               "summary": self.summary, "extendResult": extend_data}
+        res = {
+            "classType": self.class_type,
+            "errorCode": self.error_code,
+            "summary": self.summary,
+            "extendResult": extend_data
+        }
         outputstr = json.dumps(res)
         return outputstr
 
@@ -62,9 +71,11 @@ def evaluate(data_path, parameter):
     compare_advisor = CompareAdvisor(input_file, input_nodes)
     advisor_result = compare_advisor.advisor()
     advisor_result.print_advisor_log()
-    result_dict = {'Detection Type': advisor_result.advisor_type,
-                   "Operator Index": advisor_result.operator_index,
-                   "Expert Advice": advisor_result.advisor_message}
+    result_dict = {
+        "Detection Type": advisor_result.advisor_type,
+        "Operator Index": advisor_result.operator_index,
+        "Expert Advice": advisor_result.advisor_message
+    }
 
     # fill result
     result = Result()
@@ -114,4 +125,3 @@ if __name__ == "__main__":
     my_input_nodes = []
     param = json.dumps({"inputs_nodes": my_input_nodes})
     ret = evaluate(DATA_PATH, param)
-    # using debug: print("sample in:{} out:{}".format(DATA_PATH, ret))

@@ -48,12 +48,11 @@ class AdvisorResult:
         Log and print advisor summary
         """
         log.print_info_log("The summary of the expert advice is as follows: ")
-        message_list = [AdvisorConst.DETECTION_TYPE + AdvisorConst.COLON +
-                        self.advisor_type,
-                        AdvisorConst.OPERATOR_INDEX + AdvisorConst.COLON +
-                        self.operator_index,
-                        AdvisorConst.ADVISOR_SUGGEST + AdvisorConst.COLON +
-                        self.advisor_message]
+        message_list = [
+            AdvisorConst.DETECTION_TYPE + AdvisorConst.COLON + self.advisor_type,
+            AdvisorConst.OPERATOR_INDEX + AdvisorConst.COLON + self.operator_index,
+            AdvisorConst.ADVISOR_SUGGEST + AdvisorConst.COLON + self.advisor_message
+        ]
         for message in message_list:
             log.print_info_log(message)
         return message_list

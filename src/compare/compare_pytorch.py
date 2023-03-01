@@ -216,8 +216,11 @@ class PytorchComparison:
                                    op_info: compare_result.PytorchOpInfo) -> list:
         type_shape_list, algorithm_result, fail_reason = self._do_compare_tensor(op_info.op_name, dataset_list[0],
                                                                                  dataset_list[1])
-        tensor_info = {"tensor_id": None, "shape": type_shape_list[1],
-                       "my_output_dtype": type_shape_list[0]}
+        tensor_info = {
+            "tensor_id": None,
+            "shape": type_shape_list[1],
+            "my_output_dtype": type_shape_list[0]
+        }
         return fusion_op_result.get_pytorch_result(
                 op_info,
                 [compare_result.TensorResult(tensor_info, [algorithm_result, ''], fail_reason)],

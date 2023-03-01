@@ -202,8 +202,10 @@ class FormatConversionMain:
     def __init__(self: any, arguments: any = None) -> None:
         self.path_str = arguments.dump_path
         self.output_path = os.path.realpath(arguments.output_path)
-        self.attr = {'dump_version': arguments.dump_version,
-                     'output_file_type': arguments.output_file_type}
+        self.attr = {
+            'dump_version': arguments.dump_version,
+            'output_file_type': arguments.output_file_type
+        }
         custom_script_path = arguments.custom_script_path if arguments.custom_script_path else ''
         self.manager = FormatManager(custom_script_path)
         self.one_file_info = None

@@ -41,7 +41,8 @@ class AlgorithmManager:
 
     @staticmethod
     def _check_value_invalid(value: object, parameter: str) -> None:
-        if (isinstance(value, str) and not value) or (isinstance(value, list) and len(value) != 2):
+        is_list_value_valid = isinstance(value, list) and len(value) == 2
+        if not value or not is_list_value_valid:
             log.print_error_log('The algorithm argument (%s) is invalid, just supports '
                                 '"algorithm_name:name1=value1,name2=value2;".' % parameter)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)

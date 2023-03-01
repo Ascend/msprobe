@@ -387,11 +387,15 @@ class FusionOpComparison:
                                                                                      tensor)
             match = match or result.match
             # 4. merge result
-            tensor_info = {"tensor_id": result.tensor_id, "shape": result.shape, "op_type": fusion_op.op_type,
-                           "my_output_dtype": result.my_output_dtype,
-                           "ground_truth_dtype": result.ground_truth_dtype,
-                           "my_output_address": result.my_output_address,
-                           "ground_truth_address": result.ground_truth_address}
+            tensor_info = {
+                "tensor_id": result.tensor_id,
+                "shape": result.shape,
+                "op_type": fusion_op.op_type,
+                "my_output_dtype": result.my_output_dtype,
+                "ground_truth_dtype": result.ground_truth_dtype,
+                "my_output_address": result.my_output_address,
+                "ground_truth_address": result.ground_truth_address
+            }
             tensor_result = compare_result.TensorResult(tensor_info, [result.algorithm_result, overflow_result],
                                                         result.error_msg)
             tensor_result_list.append(tensor_result)
@@ -480,8 +484,10 @@ class FusionOpComparison:
             op_type = utils.get_op_type_from_file_name(my_output_dump_path)
         else:
             op_type = fusion_op.op_type
-        row_content = [str(fusion_op.op_id), op_type, my_output_op_str, ground_truth_op_str, tensor_id,
-                       my_output_dump_path, ground_truth_dump_path]
+        row_content = [
+            str(fusion_op.op_id), op_type, my_output_op_str, ground_truth_op_str,
+            tensor_id, my_output_dump_path, ground_truth_dump_path
+        ]
         RangeManager.adjust_data(row_content, fusion_op.attr.get_op_sequence())
         return row_content
 
