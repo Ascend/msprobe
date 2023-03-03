@@ -64,25 +64,23 @@ def write_csv(content_list, output_dir, csv_name, header):
 
 
 def get_unsupported_op_dict(version):
-    version_map_path = {
-        '1.5.0': '../resource/op_list_1_5_0.json',
-        '1.8.1': '../resource/op_list_1_8_1.json',
-        '1.11.0': '../resource/op_list_1_11_0.json',
-        '1.12.0': '../resource/op_list_1_12_0.json',
-    }
-    op_list_path = os.path.join(os.path.dirname(__file__), version_map_path.get(version))
+    if version == '1.5.0':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_5_0.json')
+    elif version == '1.8.1':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_8_1.json')
+    else:
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
     return json.loads(ops).get('op_list')
 
 
 def get_supported_op_dict(version):
-    version_map_path = {
-        '1.5.0': '../resource/supported_op_1_5_0.json',
-        '1.8.1': '../resource/supported_op_1_8_1.json',
-        '1.11.0': '../resource/supported_op_1_11_0.json',
-        '1.12.0': '../resource/supported_op_1_12_0.json',
-    }
-    op_list_path = os.path.join(os.path.dirname(__file__), version_map_path.get(version))
+    if version == '1.5.0':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_5_0.json')
+    elif version == '1.8.1':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_8_1.json')
+    else:
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
     return json.loads(ops).get("op_list")
 
