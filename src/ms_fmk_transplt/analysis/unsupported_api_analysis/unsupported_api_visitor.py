@@ -91,6 +91,15 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             self.unknown_api_result.extend(unknown_apis)
         return True
 
+    def visit_ClassDef(self, node) -> Optional[bool]:
+        for base in node.bases:
+            full_name = self.get_full_name_for_node(base.value)
+            position = self.get_metadata(libcst.metadata.PositionProvider, node)
+            if full_name:
+                unsupported_apis, unknown_apis = self.get_super_class_instance(full_name, position, None)
+                self.unsupported_op_result.extend(unsupported_apis)
+                self.unknown_api_result.extend(unknown_apis)
+
     def print_unsupported_ops(self):
         for unsupported_op in self.unsupported_op_result:
             if unsupported_op.info:
@@ -115,16 +124,22 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         if self._match_cuda_op(call_node, full_name):
             return [ApiInstance(full_name, position, file_path, "User-defined CUDA Operator.")], []
         elif not m.findall(call_node.func, m.Call()) and self._is_class_api(call_node, full_name):
-            if full_name in self.unsupported_op_dict:
-                return [ApiInstance(full_name, position, file_path, self.unsupported_op_dict.get(full_name))], []
-            elif full_name.startswith('torch.') and full_name not in self.supported_op_dict:
-                return [], [ApiInstance(full_name, position, file_path)]
-            else:
-                return [], []
+            return self.get_class_api_instances(full_name, position, file_path)
         else:  # handle instance api
             if not self.global_reference_visitor:
                 return [], []
             return self._handle_instance_func(full_name, call_node, file_path)
+
+    def get_class_api_instances(self, full_name, position, file_path):
+        if full_name in self.unsupported_op_dict:
+            return [ApiInstance(full_name, position, file_path, self.unsupported_op_dict.get(full_name))], []
+        elif full_name.startswith('torch.') and full_name not in self.supported_op_dict:
+            return [], [ApiInstance(full_name, position, file_path)]
+        else:
+            return [], []
+
+    def get_super_class_instance(self, full_name, position, file_path):
+        return self.get_class_api_instances(full_name, position, file_path)
 
     def _match_cuda_op(self, call_node, full_name):
         for cuda_op in self.cuda_op_list:
