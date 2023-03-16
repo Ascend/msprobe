@@ -96,7 +96,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             full_name = self.get_full_name_for_node(base.value)
             position = self.get_metadata(libcst.metadata.PositionProvider, node)
             if full_name:
-                unsupported_apis, unknown_apis = self.get_super_class_instance(full_name, position, None)
+                unsupported_apis, unknown_apis = self.get_class_api_instances(full_name, position, None)
                 self.unsupported_op_result.extend(unsupported_apis)
                 self.unknown_api_result.extend(unknown_apis)
 
@@ -137,9 +137,6 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             return [], [ApiInstance(full_name, position, file_path)]
         else:
             return [], []
-
-    def get_super_class_instance(self, full_name, position, file_path):
-        return self.get_class_api_instances(full_name, position, file_path)
 
     def _match_cuda_op(self, call_node, full_name):
         for cuda_op in self.cuda_op_list:
