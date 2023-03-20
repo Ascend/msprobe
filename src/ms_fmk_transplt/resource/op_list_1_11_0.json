@@ -127,6 +127,7 @@
     "torch.nn.MultiMarginLoss": "",
     "torch.nn.ChannelShuffle": "",
     "torch.nn.DataParallel": "",
+    "torch.nn.parallel.DataParallel": "",
     "torch.nn.parallel.DistributedDataParallel.join": "",
     "torch.nn.parallel.DistributedDataParallel.join_hook": "",
     "torch.nn.parallel.DistributedDataParallel.no_sync": "",
