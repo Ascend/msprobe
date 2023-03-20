@@ -139,8 +139,6 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             return [], []
 
     def _match_cuda_op(self, call_node, full_name):
-        if "<locals>" in full_name:
-            return False
         for cuda_op in self.cuda_op_list:
             if '.' in cuda_op.func_name:
                 if not (full_name == cuda_op.func_name or full_name.endswith('.' + cuda_op.func_name)):
