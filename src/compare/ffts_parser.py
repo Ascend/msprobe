@@ -2,9 +2,9 @@
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2023. All rights reserved.
 
+import os
 import log
 import numpy as np
-import utils
 from dump_data_object import DumpTensor, DumpDataObj
 
 
@@ -34,10 +34,12 @@ class FFTSParser:
         else:
             cut_axis = dump_base.get_cut_axis_manual
         if not cut_axis or self.check_invalid_cut_axis(cut_axis):
-            self.dump_file_list.sort(key=utils.get_ffts_timestamp)
-            self.dump_data_list.sort(key=lambda x: x.dump_time)
-            file_path = self.dump_file_list[-1]
-            dump_data = self.dump_data_list[-1]
+            dump_data_to_file = list(zip(self.dump_data_list, self.dump_file_list))
+            dump_data_to_file.sort(key=lambda x: os.path.basename(x[1]).split(".")[1])
+            file_path = dump_data_to_file[-1][1]
+            dump_data = dump_data_to_file[-1][0]
+            log.print_warn_log("The cut axis of Dump data is invalid. The current compare dump file is {}. "
+                               "All dump files are {}".format(dump_data_to_file[-1][1], ",".join(self.dump_file_list)))
         else:
             output_num = len(dump_base.output_data)
             output_data_list = [dump_data.get_output_data for dump_data in self.dump_data_list]
