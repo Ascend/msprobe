@@ -85,7 +85,7 @@ class DumpDataObj:
         get slice_instance_num
         @return: slice number
         """
-        return self.attr["slice_instance_num"]
+        return self.attr["slice_instance_num"] if self.attr else None
 
     @property
     def get_cut_axis_manual(self: any) -> list:
@@ -94,7 +94,7 @@ class DumpDataObj:
         @return: cut axis
         """
         cut_axis = []
-        if not self.attr["outputCutList"]:
+        if not self.attr or not self.attr["outputCutList"]:
             return cut_axis
         for output in self.attr["outputCutList"]:
             output_index = []
