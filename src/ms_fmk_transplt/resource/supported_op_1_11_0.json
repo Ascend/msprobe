@@ -427,6 +427,7 @@
     "torch.nn.Hardswish": " ",
     "torch.nn.LeakyReLU": " ",
     "torch.nn.LogSigmoid": " ",
+    "torch.nn.MultiheadAttention": " ",
     "torch.nn.MultiheadAttention.forward": " ",
     "torch.nn.PReLU": " ",
     "torch.nn.ReLU": " ",
