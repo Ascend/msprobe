@@ -217,13 +217,10 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
     def _get_unsupported_instance_func_list(self, func_name, call_obj_name_set):
         unsupported_set = set()
         for call_obj_name in call_obj_name_set:
-            self._add_adapt_func_to_set(func_name, call_obj_name, unsupported_set)
+            for instance_func_name in self.unsupported_instance_op_dict.get(func_name):
+                if instance_func_name.startswith(call_obj_name) and instance_func_name.endswith(func_name):
+                    unsupported_set.add(instance_func_name)
         return unsupported_set
-
-    def _add_adapt_func_to_set(self, func_name, call_obj_name, unsupported_set):
-        for instance_func_name in self.unsupported_instance_op_dict.get(func_name):
-            if instance_func_name.startswith(call_obj_name) and instance_func_name.endswith(func_name):
-                unsupported_set.add(instance_func_name)
 
     def _get_call_obj_name_set_by_define_nodes(self, define_nodes):
         queue = []
