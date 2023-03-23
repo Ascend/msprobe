@@ -181,8 +181,9 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             if not defined_node_type:
                 return [], []
             if defined_node_type == 'module':
-                full_call_obj_name = (defined_node.full_name if defined_node.full_name else defined_node.name) + \
-                                     full_name[full_name.index("."):full_name.rfind(".")]
+                defined_node_full_name = defined_node.full_name if defined_node.full_name else defined_node.name
+                full_call_obj_name = defined_node_full_name + full_name[
+                                                              len(defined_node_full_name):full_name.rfind(".")]
                 call_obj_name = self._get_call_obj_name(full_call_obj_name)
                 call_obj_name_set = {call_obj_name} if call_obj_name else {}
                 break
@@ -220,16 +221,9 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         return unsupported_set
 
     def _add_adapt_func_to_set(self, func_name, call_obj_name, unsupported_set):
-        has_adapt_func = False
-        while not has_adapt_func:
-            for instance_func_name in self.unsupported_instance_op_dict.get(func_name):
-                if instance_func_name.startswith(call_obj_name) and instance_func_name.endswith(func_name):
-                    has_adapt_func = True
-                    unsupported_set.add(instance_func_name)
-            last_seg_index = call_obj_name.rfind(".")
-            if last_seg_index == -1:
-                break
-            call_obj_name = call_obj_name[:last_seg_index]
+        for instance_func_name in self.unsupported_instance_op_dict.get(func_name):
+            if instance_func_name.startswith(call_obj_name) and instance_func_name.endswith(func_name):
+                unsupported_set.add(instance_func_name)
 
     def _get_call_obj_name_set_by_define_nodes(self, define_nodes):
         queue = []
