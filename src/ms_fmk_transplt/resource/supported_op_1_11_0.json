@@ -692,6 +692,7 @@
     "torch.nn.functional.grid_sample": " ",
     "torch.nn.functional.affine_grid": " ",
     "torch.Tensor": " ",
+    "torch.Tensor.cuda": " ",
     "torch.Tensor.new_tensor": " ",
     "torch.Tensor.new_full": " ",
     "torch.Tensor.new_empty": " ",

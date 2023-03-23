@@ -170,7 +170,6 @@
     "torch.Tensor.resolve_conj": "",
     "torch.Tensor.resolve_neg": "",
     "torch.Tensor.count_nonzero": "",
-    "torch.Tensor.cuda": "",
     "torch.Tensor.logcumsumexp": "",
     "torch.Tensor.dequantize": "",
     "torch.Tensor.det": "",
