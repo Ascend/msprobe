@@ -61,9 +61,16 @@ class NpuVsNpuComparison:
         if len(self.fusion_op_list) == 1:
             return self._make_one_dump_file_result()
         # get my output and ground truth tensor
-        my_output_dump_data = self._get_dump_data(
-            self.fusion_op_list[0], self.compare_data.left_dump_info.path,
-            self.compare_data.left_dump_info.op_name_to_task_mode_map, ConstManager.LEFT_TYPE)
+        error_msg = []
+        try:
+            my_output_dump_data = self._get_dump_data(
+                self.fusion_op_list[0], self.compare_data.left_dump_info.path,
+                self.compare_data.left_dump_info.op_name_to_task_mode_map, ConstManager.LEFT_TYPE)
+        except CompareError as error:
+            error_msg.append(error.message)
+            fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
+            result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
+            return error.code, True, result
 
         ground_truth_dump_data = self._get_dump_data(
             self.fusion_op_list[1], self.compare_data.right_dump_info.path,
@@ -86,7 +93,6 @@ class NpuVsNpuComparison:
             # compare output
             compare_vector_result += self._compare_by_tensor(my_output_dump_data, ground_truth_dump_data,
                                                              ConstManager.OUTPUT)
-        error_msg = []
 
         if not my_output_dump_data.data.ffts_file_check:
             msg = "This is a FFTS+ mode dump data, The number of files does not match the number of thread"
