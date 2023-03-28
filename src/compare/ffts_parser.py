@@ -6,6 +6,7 @@ import os
 import log
 import numpy as np
 from dump_data_object import DumpTensor, DumpDataObj
+from compare_error import CompareError
 
 
 class FFTSParser:
@@ -34,12 +35,10 @@ class FFTSParser:
         else:
             cut_axis = dump_base.get_cut_axis_manual
         if not cut_axis or self.check_invalid_cut_axis(cut_axis):
-            dump_data_to_file = list(zip(self.dump_data_list, self.dump_file_list))
-            dump_data_to_file.sort(key=lambda x: os.path.basename(x[1]).split(".")[1])
-            file_path = dump_data_to_file[-1][1]
-            dump_data = dump_data_to_file[-1][0]
-            log.print_warn_log("The cut axis of Dump data is invalid. The current compare dump file is {}. "
-                               "All dump files are {}".format(dump_data_to_file[-1][1], ",".join(self.dump_file_list)))
+            msg = "The cut axis of Dump data is invalid. The files can not be merged. " \
+                  "Please check the files {}".format(",".join(self.dump_file_list))
+            log.print_warn_log(msg)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_SLICE_DATA, msg)
         else:
             output_num = len(dump_base.output_data)
             output_data_list = [dump_data.get_output_data for dump_data in self.dump_data_list]

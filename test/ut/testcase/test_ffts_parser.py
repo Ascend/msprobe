@@ -92,11 +92,12 @@ class TestUtilsMethods(unittest.TestCase):
             dump_data.output_data.append(output_tensor1)
             dump_data.output_data.append(output_tensor2)
         ffts_parser = FFTSParser(dump_file_list, dump_data_list)
-        dump_file_path, dump_data = ffts_parser.parse_ffts
-        std_file_path = "Conv2D.Conv2D_lxslice1.2.9.1670205069980123.4.330.0.0"
-        std_dump_data = dump_data2
-        self.assertEqual(std_file_path, dump_file_path)
-        self.assertEqual(std_dump_data.output_data, dump_data.output_data)
+        cur_error = None
+        try:
+            _, _ = ffts_parser.parse_ffts
+        except CompareError as error:
+            cur_error = error
+        self.assertEqual(CompareError.MSACCUCMP_INVALID_SLICE_DATA, cur_error.code)
 
     def test_check_file_missing(self):
         dump_file_list = ["Conv2D.Conv2D_lxslice0.2.9.1670205069987341.4.330.0.0"]
