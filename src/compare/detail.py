@@ -8,18 +8,18 @@ This file mainly involves the common function.
 
 import sys
 
-import common
+from cmp_utils import common
 import fusion_rule_parser
-import log
+from cmp_utils import log
 import utils
 
 from fusion_op import FusionOp
 from fusion_rule_parser import FusionRuleParser
 import dump_data_pb2 as DD
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 from reg_manager import RegManager
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TensorId:

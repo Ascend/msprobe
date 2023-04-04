@@ -7,11 +7,11 @@ This FusionOpComResult class. This file mainly involves the get_result function.
 """
 
 import fusion_rule_parser
-import log
+from cmp_utils import log
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 from range_manager import RangeManager
-from algorithm_manager import AlgorithmManager
+from src.compare.algorithm.algorithm_manager import AlgorithmManager
 
 from fusion_op import FusionOp
 

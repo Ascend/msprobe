@@ -3,13 +3,13 @@ import unittest
 import struct
 import numpy as np
 import utils
-import dump
+from src.compare.dump_parse import dump
 import fusion_op
 import dump_data_pb2 as DD
 from unittest import mock
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from compare_npu_vs_npu import NpuVsNpuComparison
-from algorithm_manager import AlgorithmManager
+from src.compare.algorithm.algorithm_manager import AlgorithmManager
 
 
 class TestUtilsMethods(unittest.TestCase):

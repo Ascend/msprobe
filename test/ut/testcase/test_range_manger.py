@@ -7,7 +7,7 @@ from range_mode import RangeMode
 from select_mode import SelectMode
 from unittest import mock
 import fusion_op
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from utils import CompareError
 
 

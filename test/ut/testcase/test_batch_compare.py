@@ -9,10 +9,10 @@ Huawei Technologies Co., Ltd. All Rights Reserved © 2021
 import unittest
 import pytest
 
-from batch_compare import BatchCompare
+from src.compare.vector_cmp.batch_compare import BatchCompare
 import utils
 from unittest import mock
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):

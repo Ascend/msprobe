@@ -2,11 +2,11 @@ import unittest
 
 import pytest
 import numpy as np
-import common
+from cmp_utils import common
 import utils
 import dump_data_pb2 as DD
 import detail
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):

@@ -3,11 +3,11 @@ import unittest
 
 import struct
 import numpy as np
-import dump_data_conversion
+from src.compare.dump_parse import dump_data_conversion
 import utils
 import pytest
 import dump_data_pb2 as DD
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 

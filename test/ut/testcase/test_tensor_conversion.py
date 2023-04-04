@@ -9,9 +9,9 @@ import fusion_op
 import dump_data_pb2 as DD
 from format_manager import FormatManager
 from fusion_op import Tensor
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from tensor_conversion import TensorConversion
-from dump_data_object import DumpTensor
+from src.compare.dump_parse.dump_data_object import DumpTensor
 
 
 class TestUtilsMethods(unittest.TestCase):

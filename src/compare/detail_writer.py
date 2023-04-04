@@ -12,13 +12,13 @@ import uuid
 
 import numpy as np
 
-import log
+from cmp_utils import log
 import utils
-from compare_error import CompareError
-from const_manager import ConstManager
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
 from detail import DetailInfo
-from file_utils import FileUtils
-from progress import Progress
+from cmp_utils.file_utils import FileUtils
+from src.compare.cmp_utils.multi_process.progress import Progress
 
 
 class MinMaxValue:

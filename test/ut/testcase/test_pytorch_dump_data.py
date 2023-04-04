@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 import numpy as np
 import utils
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 import pytorch_dump_data
 
 
@@ -153,7 +153,7 @@ class TestUtilsMethods(unittest.TestCase):
             'Admm1:0': ['/Admm1/5/input/input0'],
             'Admm1:1': ['/Admm1/6/input/input1'],
         }
-        with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                         side_effect=[1
                                      ]):
             _, golden_dataset, _ = compare_data.get_golden_dataset("Admm1:1", '/Admm1/4/input/input1')
@@ -180,9 +180,9 @@ class TestUtilsMethods(unittest.TestCase):
             'Admm1:0': ['/Admm1/5/input0'],
             'Admm1:1': ['/Admm1/6/input1'],
         }
-        with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                         side_effect=[(True, 1), (True, 1), (True, 1), (True, (1, 3))]):
-            with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data',
+            with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data',
                             side_effect=[np.array(np.arange(9)).reshape(3, 3),
                                          np.array(np.arange(9)).reshape(3, 3).T]):
                 mydump_data, golden_dump_data, _ = compare_data.get_dump_data(
@@ -195,10 +195,10 @@ class TestUtilsMethods(unittest.TestCase):
 
         with mock.patch('pytorch_dump_data.CompareData._check_data_type',
                         return_value=[True, "success"]):
-            with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data',
+            with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data',
                             side_effect=[np.array(np.arange(9)).reshape(3, 3),
                                          np.array(np.arange(9)).reshape(3, 3).T]):
-                with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+                with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                                 side_effect=[(True, 1), (True, (3, 3))]):
                     mydump_data, golden_dump_data, _ = compare_data.get_dump_data(
                 '/Admm1/3/input0', '/Admm1/5/input0')
@@ -268,22 +268,22 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data.my_dump.file_handle = None
         compare_data.my_dump.device_type = 10
         compare_data.golden_dump.file_handle = None
-        with mock.patch('hdf5_parser.Hdf5Parser.parse_dump_file',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.parse_dump_file',
                         side_effect=[CompareError.MSACCUCMP_NONE_ERROR,
                                      CompareError.MSACCUCMP_NONE_ERROR
                                      ]):
-            with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+            with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                             side_effect=[10]):
                 parse_result = compare_data.parse_dump_file()
         self.assertEqual(parse_result, CompareError.MSACCUCMP_NONE_ERROR)
 
         compare_data.my_dump.device_type = 1
         with pytest.raises(utils.CompareError) as err:
-            with mock.patch('hdf5_parser.Hdf5Parser.parse_dump_file',
+            with mock.patch('pytorch.hdf5_parser.Hdf5Parser.parse_dump_file',
                             side_effect=[CompareError.MSACCUCMP_NONE_ERROR,
                                          CompareError.MSACCUCMP_NONE_ERROR
                                         ]):
-                with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+                with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                             side_effect=[1]):
                     parse_result = compare_data.parse_dump_file()
         self.assertEqual(err.value.code, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
@@ -312,7 +312,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data.my_dump.file_handle = None
         compare_data.golden_dump.file_handle = None
         with pytest.raises(utils.CompareError) as err:
-            with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+            with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                             side_effect=[1]):
                 compare_data.check_my_dump_file_valid()
         self.assertEqual(err.value.code, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
@@ -324,7 +324,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
         compare_data.my_dump.need_compare_input = True
         result = []
-        with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                         side_effect=[(False, ""), (False, "")]):
             result = compare_data._check_data_type('dataset1', 'dataset2')
         self.assertEqual(result[0], False)
@@ -333,7 +333,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
         compare_data.my_dump.need_compare_input = True
         result = []
-        with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                         side_effect=[(True, 2), (True, 2)]):
             result = compare_data._check_data_type('dataset1', 'dataset2')
         self.assertEqual(result[0], True)
@@ -342,7 +342,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
         compare_data.my_dump.need_compare_input = True
         result = []
-        with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                         side_effect=[(True, 6), (True, 7)]):
             result = compare_data._check_data_type('dataset1', 'dataset2')
         self.assertEqual(result[0], True)
@@ -351,7 +351,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
         compare_data.my_dump.need_compare_input = True
         result = []
-        with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                         side_effect=[(True, 3), (True, 7)]):
             result = compare_data._check_data_type('dataset1', 'dataset2')
         self.assertEqual(result[0], False)
@@ -372,7 +372,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data = pytorch_dump_data.CompareData("/home/my_dump2.h5", "/home/golden_dump2.h5")
         compare_data.my_dump.need_compare_input = True
 
-        with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                         side_effect=[(True, 1), (True, (1, 3))]):
             dump_data = np.array(np.arange(9)).reshape(3, 3)
             converted_dump_data = compare_data._converted_stride(
@@ -382,7 +382,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_converted_stride_case2(self):
         compare_data = pytorch_dump_data.CompareData("/home/my_dump3.h5", "/home/golden_dump3.h5")
 
-        with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                         side_effect=[(True, 1), (True, (3, 3))]):
             dump_data = np.array(np.arange(9)).reshape(3, 3)
             converted_dump_data = compare_data._converted_stride(

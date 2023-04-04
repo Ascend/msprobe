@@ -13,13 +13,13 @@ from functools import reduce
 import numpy as np
 import dump_data_pb2 as DD
 import utils
-import log
-import common
+from cmp_utils import log
+from cmp_utils import common
 
 from reg_manager import RegManager
 
-from const_manager import ConstManager
-from compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.compare_error import CompareError
 
 
 class SrcToDest:

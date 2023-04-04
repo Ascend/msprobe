@@ -15,19 +15,19 @@ from enum import Enum
 import csv
 import numpy as np
 
-import common
-import log
+from cmp_utils import common
+from cmp_utils import log
 from dump_data_pb2 import DumpData
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 from reg_manager import RegManager
 
-from big_dump_data import DumpDataHandler
+from dump_parse.big_dump_data import DumpDataHandler
 
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
-from dump_data_object import DumpDataObj, DumpTensor
+from src.compare.dump_parse.dump_data_object import DumpDataObj, DumpTensor
 
 
 class ShapeType(Enum):

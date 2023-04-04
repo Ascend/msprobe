@@ -7,17 +7,17 @@ NpuVsNpuComparison class. This class mainly involves the compare function.
 """
 
 import utils
-import common
-import log
-from const_manager import ConstManager
-from dump import CompareData
-from algorithm_manager import AlgorithmManager
+from cmp_utils import common
+from cmp_utils import log
+from cmp_utils.constant.const_manager import ConstManager
+from src.compare.dump_parse.dump import CompareData
+from src.compare.algorithm.algorithm_manager import AlgorithmManager
 from fusion_op import FusionOp
 from fusion_op import Tensor
 import compare_result
-from compare_error import CompareError
-from overflow_detection import OverflowDetection
-from ffts_parser import FFTSParser
+from cmp_utils.constant.compare_error import CompareError
+from overflow.overflow_detection import OverflowDetection
+from src.compare.dump_parse.ffts_parser import FFTSParser
 
 
 class NpuVsNpuComparison:

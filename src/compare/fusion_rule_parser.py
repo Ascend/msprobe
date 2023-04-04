@@ -10,18 +10,18 @@ This class mainly involves the analysis_fusion_rule function.
 import uuid
 
 import utils
-import log
+from cmp_utils import log
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
-from file_utils import FileUtils
+from cmp_utils.file_utils import FileUtils
 
 from fusion_op import OpAttr
 
 from fusion_op import FusionOp
 
 from fusion_op import OutputDesc
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from quant_filter import QuantFilter
 
 

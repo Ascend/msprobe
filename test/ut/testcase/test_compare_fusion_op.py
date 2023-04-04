@@ -14,11 +14,11 @@ import numpy as np
 import struct
 
 from compare_fusion_op import FusionOpComparison
-from algorithm_manager import AlgorithmManager
+from src.compare.algorithm.algorithm_manager import AlgorithmManager
 
 from fusion_op import FusionOp, OutputDesc, OpAttr
 
-from dump import DumpType
+from src.compare.dump_parse.dump  import DumpType
 
 
 class TestUtilsMethods(unittest.TestCase):

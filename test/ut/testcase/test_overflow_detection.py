@@ -12,10 +12,10 @@ import numpy as np
 from unittest import mock
 
 import utils
-from dump_data_object import DumpTensor
-from overflow_detection import OverflowDetection
+from src.compare.dump_parse.dump_data_object import DumpTensor
+from overflow.overflow_detection import OverflowDetection
 
-import dump
+from src.compare.dump_parse import dump
 import detail
 import dump_data_pb2 as DD
 

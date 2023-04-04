@@ -8,7 +8,7 @@ import queue
 from detail_writer import MinMaxValue
 from detail_writer import TopN
 from detail_writer import DetailWriter
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 import numpy as np
 import detail
 import utils

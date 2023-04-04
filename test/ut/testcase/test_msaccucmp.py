@@ -3,7 +3,7 @@ import unittest
 import pytest
 import msaccucmp
 import utils
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 
@@ -207,9 +207,9 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', 'overflow', '-d', '/home/left.bin', '-out', '/home/output', '-n', '1']
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch('overflow_analyse.OverflowAnalyse.check_argument',
+                with mock.patch('overflow.overflow_analyse.OverflowAnalyse.check_argument',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('overflow_analyse.OverflowAnalyse.analyse',
+                    with mock.patch('overflow.overflow_analyse.OverflowAnalyse.analyse',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         msaccucmp.main()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_NONE_ERROR)

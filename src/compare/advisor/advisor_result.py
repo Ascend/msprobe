@@ -7,10 +7,10 @@ This class mainly involves the advisor result function.
 """
 import os
 
-import log
+from cmp_utils import log
 
 from advisor.advisor_const import AdvisorConst
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 
 class AdvisorResult:

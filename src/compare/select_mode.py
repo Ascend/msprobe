@@ -7,13 +7,13 @@ SelectMode class.
 This class mainly involves functions for selecting operators.
 """
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 from reg_manager import RegManager
-import log
+from cmp_utils import log
 
 from compare_rule import CompareRule
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 import range_manager as RM
 
 

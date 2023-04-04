@@ -15,10 +15,10 @@ import signal
 
 import csv
 import utils
-import log
-import dump
+from cmp_utils import log
+from src.compare.dump_parse import dump
 import detail
-from algorithm_manager import AlgorithmManager
+from src.compare.algorithm.algorithm_manager import AlgorithmManager
 import compare_result
 
 from compare_rule import CompareRule
@@ -30,15 +30,15 @@ from compare_fusion_op import FusionOpComparison
 from compare_detail import DetailComparison
 from compare_detail import DumpDetailComparison
 
-from const_manager import ConstManager
-from dump import DumpType
+from cmp_utils.constant.const_manager import ConstManager
+from src.compare.dump_parse.dump import DumpType
 
 from range_manager import RangeManager
 from range_mode import RangeMode
 from select_mode import SelectMode
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
-from overflow_detection import OverflowDetection
+from overflow.overflow_detection import OverflowDetection
 
 
 class VectorComparison:

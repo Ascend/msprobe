@@ -12,10 +12,10 @@ import utils
 from unittest import mock
 import argparse
 
-import compare_pytorch
+from pytorch import compare_pytorch
 import compare_result
-from compare_pytorch import PytorchComparison
-from compare_error import CompareError
+from pytorch.compare_pytorch import PytorchComparison
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TestPytorchComparison(PytorchComparison):
@@ -98,7 +98,7 @@ class TestUtilsMethods(unittest.TestCase):
                     with mock.patch('utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         with mock.patch("os.path.isfile", return_value=True):
-                            with mock.patch("hdf5_parser.Hdf5Parser.open_file",
+                            with mock.patch("pytorch.hdf5_parser.Hdf5Parser.open_file",
                                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                                 with mock.patch('os.open',
                                                 side_effect=OSError) as open_file, \
@@ -118,7 +118,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch("os.path.isfile", return_value=True):
-                    with mock.patch("hdf5_parser.Hdf5Parser.open_file",
+                    with mock.patch("pytorch.hdf5_parser.Hdf5Parser.open_file",
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         with mock.patch('os.open',
                                         side_effect=OSError) as open_file, \
@@ -138,7 +138,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch("os.path.isfile", return_value=True):
-                    with mock.patch("hdf5_parser.Hdf5Parser.open_file",
+                    with mock.patch("pytorch.hdf5_parser.Hdf5Parser.open_file",
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         with mock.patch('os.open',
                                         side_effect=OSError) as open_file, \
@@ -242,7 +242,7 @@ class TestUtilsMethods(unittest.TestCase):
                             return_value=CompareError.MSACCUCMP_NONE_ERROR),\
                     mock.patch('os.path.exists', return_value=True):
                 with mock.patch("os.path.isfile", return_value=True):
-                    with mock.patch("hdf5_parser._open_h5py_file",
+                    with mock.patch("pytorch.hdf5_parser._open_h5py_file",
                                     side_effect=stub_open_file):
                         with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
                             with mock.patch('utils.sort_result_file_by_index', return_value=None):
@@ -262,10 +262,10 @@ class TestUtilsMethods(unittest.TestCase):
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                     mock.patch('os.path.exists', return_value=True):
                 with mock.patch("os.path.isfile", return_value=True):
-                    with mock.patch("hdf5_parser._open_h5py_file",
+                    with mock.patch("pytorch.hdf5_parser._open_h5py_file",
                                     side_effect=stub_open_file):
                         with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
-                            with mock.patch('compare_pytorch.PytorchComparison._get_compare_dump_data',
+                            with mock.patch('pytorch.compare_pytorch.PytorchComparison._get_compare_dump_data',
                                             side_effect=utils.CompareError):
                                 with mock.patch('os.path.getsize', return_value=None):
                                     open_file.write = None
@@ -312,10 +312,10 @@ class TestUtilsMethods(unittest.TestCase):
         position = [0, 1, 2]
         with mock.patch('sys.argv', args):
             with mock.patch("csv.writer", return_value=None) as writer:
-                with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data',
+                with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data',
                                 side_effect=[np.array(np.arange(9)).reshape(3, 3),
                                              np.array(np.arange(9)).reshape(3, 3).T]):
-                    with mock.patch('compare_pytorch.PytorchComparison._save_numpy_data', return_value=None):
+                    with mock.patch('pytorch.compare_pytorch.PytorchComparison._save_numpy_data', return_value=None):
                         args = parser.parse_args(sys.argv[1:])
                         pytorch_compare = compare_pytorch.PytorchComparison(args)
                         pytorch_compare._filter_one_line(result_path, row, writer, position)
@@ -333,7 +333,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
                 with mock.patch("csv.reader", return_value=[["CosineSimilarity", "MyDumpDataPath","GoldenDumpDataPath"],
                                                             [0.93, "/home/test/my1", "/home/test/gold1"]]):
-                    with mock.patch('compare_pytorch.PytorchComparison._filter_one_line', return_value=None):
+                    with mock.patch('pytorch.compare_pytorch.PytorchComparison._filter_one_line', return_value=None):
                         args = parser.parse_args(sys.argv[1:])
                         pytorch_compare = compare_pytorch.PytorchComparison(args)
                         pytorch_compare._filter_result_process("/home/test", open_file, "/home/filter")
@@ -350,7 +350,7 @@ class TestUtilsMethods(unittest.TestCase):
                   '1.000000', '0.000000', '0.000000', '0.000000', '0.000000', '(-0.034;1.017),(-0.034;1.017)',
                   '0.000000', '0.000000', '0.000000', '0.000000', '']
         with mock.patch('sys.argv', args[1:]):
-            with mock.patch('compare_pytorch.PytorchComparison._get_compare_dump_data',
+            with mock.patch('pytorch.compare_pytorch.PytorchComparison._get_compare_dump_data',
                             return_value=[my_dump_data, golden_dump_data, shape]):
                 args = parser.parse_args(sys.argv)
                 pytorch_compare = TestPytorchComparison(args)

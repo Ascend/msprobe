@@ -8,22 +8,22 @@ FusionOpComparison class. This class mainly involves the compare function.
 import collections
 import fusion_rule_parser
 import utils
-import log
+from cmp_utils import log
 
 from compare_npu_vs_npu import NpuVsNpuComparison
 import compare_result
-from dump import DumpType
-from overflow_detection import OverflowDetection
+from src.compare.dump_parse.dump import DumpType
+from overflow.overflow_detection import OverflowDetection
 from range_manager import RangeManager
 from fusion_op import FusionOp
 from fusion_op import Tensor
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 from tensor_conversion import TensorConversion
-from compare_error import CompareError
-from dump_data_object import DumpDataObj
-import common
+from cmp_utils.constant.compare_error import CompareError
+from src.compare.dump_parse.dump_data_object import DumpDataObj
+from cmp_utils import common
 
 
 class FusionOpComparison:

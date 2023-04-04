@@ -13,21 +13,21 @@ import argparse
 import time
 
 import utils
-import log
-from algorithm_manager import AlgorithmManagerMain
+from cmp_utils import log
+from src.compare.algorithm.algorithm_manager import AlgorithmManagerMain
 from compare_vector import VectorComparison
 from shape_conversion import FormatConversionMain
-from dump_data_parser import DumpDataParser
-from overflow_analyse import OverflowAnalyse
+from src.compare.dump_parse.dump_data_parser import DumpDataParser
+from overflow.overflow_analyse import OverflowAnalyse
 
-from compare_pytorch import PytorchComparison
+from pytorch.compare_pytorch import PytorchComparison
 
-from batch_compare import BatchCompare
+from src.compare.vector_cmp.batch_compare import BatchCompare
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 from reg_manager import RegManager
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
 
 def _get_algorithm_help_info() -> str:

@@ -2,8 +2,8 @@ import unittest
 from unittest import mock
 import pytest
 import utils
-from compare_error import CompareError
-import hdf5_parser
+from cmp_utils.constant.compare_error import CompareError
+from pytorch import hdf5_parser
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -85,8 +85,8 @@ class TestUtilsMethods(unittest.TestCase):
             3: ["Admm1:0", "Abxx1:0"],
             4: ["Admm1:1"],
             5: ["Abxx1:1"]}
-        with mock.patch('hdf5_parser.Hdf5Parser.open_file', return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data_attr',
+        with mock.patch('pytorch.hdf5_parser.Hdf5Parser.open_file', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                             side_effect=[(False, ''),
                                          (True, 0),
                                          (True, 1),

@@ -13,7 +13,7 @@ import argparse
 import os
 import google.protobuf.text_format
 import caffe.proto.caffe_pb2 as caffe_pb2
-import log
+from cmp_utils import log
 
 
 class RemoveInplaceLayerProcess:

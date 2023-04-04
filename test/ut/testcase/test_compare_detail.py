@@ -10,7 +10,7 @@ import dump_data_pb2 as DD
 import struct
 
 from format_manager import FormatManager
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):

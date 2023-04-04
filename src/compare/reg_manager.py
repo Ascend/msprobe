@@ -8,7 +8,7 @@ This file mainly involves the reg const.
 
 import re
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 
 class RegManager:

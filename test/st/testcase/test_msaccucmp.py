@@ -8,9 +8,9 @@ import time
 import numpy as np
 from unittest import mock
 import dump_data_pb2 as DD
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 import json
-import file_utils
+from cmp_utils import file_utils
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -767,9 +767,9 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', 'overflow', '-d', '/home/left.bin', '-out', '/home/output2', '-n', '1']
         with pytest.raises(SystemExit) as err:
             with mock.patch('sys.argv', args):
-                with mock.patch('overflow_analyse.OverflowAnalyse.check_argument',
+                with mock.patch('overflow.overflow_analyse.OverflowAnalyse.check_argument',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('overflow_analyse.OverflowAnalyse.analyse',
+                    with mock.patch('overflow.overflow_analyse.OverflowAnalyse.analyse',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         msaccucmp.main()
         self.assertEqual(err.value.args[0], CompareError.MSACCUCMP_NONE_ERROR)
@@ -827,18 +827,18 @@ class TestUtilsMethods(unittest.TestCase):
         np_summary_result = '[Shape: (3, 4)] [Dtype: int64] [Max: 6] [Min: 1] [Mean: 3.5]'
         with pytest.raises(SystemExit) as err:
             with mock.patch('sys.argv', args):
-                with mock.patch('overflow_analyse.OverflowAnalyse.check_argument',
+                with mock.patch('overflow.overflow_analyse.OverflowAnalyse.check_argument',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
                     with mock.patch('os.path.realpath', return_value='/home'):
                         with mock.patch('os.walk', return_value=debug_files):
                             with mock.patch('os.path.basename', return_value='Opdebug.Node_OpDebug.1.25.161233160'):
-                                with mock.patch('overflow_analyse.OverflowAnalyse._parse_overflow_file',
+                                with mock.patch('overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file',
                                                 return_value=''):
-                                    with mock.patch('file_utils.OverflowFileUtils.list_parsed_debug_files',
+                                    with mock.patch('cmp_utils.file_utils.OverflowFileUtils.list_parsed_debug_files',
                                                     side_effect=iter([{},
                                                                       {'Opdebug.Node_OpDebug.1.25.161233160.output'
                                                                        '.0.json': parsed_debug_file_desc}])):
-                                        with mock.patch('file_utils.OverflowFileUtils.load_json_file',
+                                        with mock.patch('cmp_utils.file_utils.OverflowFileUtils.load_json_file',
                                                         return_value=json_txt):
                                             with mock.patch(
                                                     'overflow_analyse.OverflowAnalyse._find_dump_files_by_task_id',
@@ -849,7 +849,7 @@ class TestUtilsMethods(unittest.TestCase):
                                                     with mock.patch(
                                                             'overflow_analyse.OverflowAnalyse.npy_data_summary',
                                                             return_value=np_summary_result):
-                                                        with mock.patch('file_utils.FileUtils.save_file',
+                                                        with mock.patch('cmp_utils.file_utils.FileUtils.save_file',
                                                                         return_value=True):
                                                             msaccucmp.main()
         self.assertEqual(err.value.args[0], CompareError.MSACCUCMP_NONE_ERROR)

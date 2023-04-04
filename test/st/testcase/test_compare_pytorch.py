@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 import sys
 import utils
-import compare_pytorch
-import hdf5_parser
+from pytorch import compare_pytorch
+from pytorch import hdf5_parser
 import h5py
 from pytorch_dump_data import DataType
 from unittest import mock
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 import argparse
 
 
@@ -286,7 +286,7 @@ class TestUtilsMethods(unittest.TestCase):
         position = [0, 1, 2]
         with mock.patch('sys.argv', args):
             with mock.patch("csv.writer", return_value=None) as writer:
-                with mock.patch('hdf5_parser.Hdf5Parser.get_dump_data',
+                with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data',
                                 side_effect=[np.array(np.arange(9)).reshape(3, 3),
                                              np.array(np.arange(9)).reshape(3, 3).T]):
                     with mock.patch('compare_pytorch.PytorchComparison._save_numpy_data', return_value=None):

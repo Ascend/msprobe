@@ -35,7 +35,7 @@ class TestUtilsMethods(unittest.TestCase):
         my_out_put_data = np.array([np.random.random() for _ in range(3 * 4 * 5)])
         ground_truth_data = np.array([np.random.random() for _ in range(3 * 4 * 5)])
 
-        with mock.patch('file_utils.FileUtils.save_array_to_file'), \
+        with mock.patch('cmp_utils.file_utils.FileUtils.save_array_to_file'), \
                 mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
             open_file.write = None
             open_file.close = None

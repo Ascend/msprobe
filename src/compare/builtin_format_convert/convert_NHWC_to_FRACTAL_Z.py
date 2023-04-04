@@ -7,7 +7,7 @@ convert format from NHWC to FRACTAL_Z.
 """
 import numpy as np
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 from utils import least_common_multiple as lcm
 from utils import ceiling_divide as ceil
 

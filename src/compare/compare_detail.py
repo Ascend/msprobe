@@ -9,9 +9,9 @@ DetailComparison class. This class mainly involves the compare function.
 import os
 import fusion_rule_parser
 import utils
-import log
+from cmp_utils import log
 
-import dump
+from src.compare.dump_parse import dump
 
 from detail_writer import DetailWriter
 
@@ -19,10 +19,10 @@ from detail import DetailInfo
 
 from compare_fusion_op import FusionOpComparison
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 from tensor_conversion import TensorConversion
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
 
 class DetailComparison:

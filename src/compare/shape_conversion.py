@@ -13,24 +13,24 @@ import time
 import numpy as np
 
 import utils
-import common
+from cmp_utils import common
 import dump_data_pb2 as DD
-import log
+from cmp_utils import log
 
 from format_manager import FormatManager
 from format_manager import SrcToDest
 from format_manager import ShapeConversion
 
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
-from multi_convert_process import MultiConvertProcess
+from src.compare.cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
 
 from reg_manager import RegManager
 
-from file_utils import FileUtils
+from cmp_utils.file_utils import FileUtils
 
 from tensor_conversion import TensorConversion
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
 
 def _check_shape_valid(shape_str: str) -> list:

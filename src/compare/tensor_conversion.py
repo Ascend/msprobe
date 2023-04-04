@@ -5,21 +5,21 @@
 Function:
 TensorConversion class. This class mainly involves the convert_shape function.
 """
-from dump import CompareData
+from src.compare.dump_parse.dump import CompareData
 from format_manager import FormatManager
 from format_manager import SrcToDest
 from format_manager import ShapeConversion
 from fusion_op import FusionOp
 from fusion_op import Tensor
 
-import log
+from cmp_utils import log
 import utils
 import dump_data_pb2 as DD
 
-import common
+from cmp_utils import common
 
-from const_manager import ConstManager
-from compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TensorConversion:

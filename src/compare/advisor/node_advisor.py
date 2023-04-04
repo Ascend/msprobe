@@ -6,7 +6,7 @@ Function:
 This file mainly involves the node advisor function.
 """
 
-import log
+from cmp_utils import log
 
 from advisor.advisor_const import AdvisorConst
 from advisor.advisor_result import AdvisorResult

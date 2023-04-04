@@ -9,13 +9,13 @@ This class mainly involves the get function.
 
 import sys
 from abc import ABC, abstractmethod
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 from reg_manager import RegManager
-import log
+from cmp_utils import log
 
 from compare_rule import CompareRule
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 
 
 class RangeManager(ABC):

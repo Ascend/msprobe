@@ -2,8 +2,8 @@ import unittest
 
 import pytest
 import utils
-import dump
-from compare_error import CompareError
+from src.compare.dump_parse import dump
+from cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 

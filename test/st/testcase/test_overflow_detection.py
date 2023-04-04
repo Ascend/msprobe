@@ -11,11 +11,11 @@ import unittest
 import numpy as np
 from unittest import mock
 
-from overflow_detection import OverflowDetection
+from overflow.overflow_detection import OverflowDetection
 from fusion_op import OutputDesc, FusionOp, OpAttr
 
 import detail
-import dump
+from src.compare.dump_parse import dump
 import dump_data_pb2 as DD
 
 

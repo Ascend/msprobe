@@ -10,7 +10,7 @@ import json
 import unittest
 import pytest
 import compare_rule
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 

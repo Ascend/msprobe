@@ -11,7 +11,7 @@ import utils
 import json
 import dump_data_pb2 as DD
 from unittest import mock
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from fusion_op import OutputDesc, FusionOp, OpAttr
 
 

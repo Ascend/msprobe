@@ -6,14 +6,14 @@ import csv
 import pytest
 import numpy as np
 import utils
-import log
+from cmp_utils import log
 import fusion_op
 import dump_data_pb2 as DD
-from compare_error import CompareError
-from progress import Progress
+from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.multi_process.progress import Progress
 from unittest import mock
 from google.protobuf.message import DecodeError
-from const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -27,7 +27,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_print_warn_log(self):
         log.print_warn_log('test warn log')
 
-    @mock.patch("common.get_dtype_by_data_type")
+    @mock.patch("cmp_utils.common.get_dtype_by_data_type")
     def test_deserialize_dump_data_to_array(self, mock_common):
         mock_common.return_value = np.uint8
         op_output = mock.Mock()

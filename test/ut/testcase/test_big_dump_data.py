@@ -7,9 +7,9 @@ import utils
 import time
 import dump_data_pb2 as DD
 from unittest import mock
-import big_dump_data
-from big_dump_data import BigDumpDataParser
-from compare_error import CompareError
+from dump_parse import big_dump_data
+from dump_parse.big_dump_data import BigDumpDataParser
+from cmp_utils.constant.compare_error import CompareError
 from google.protobuf.message import DecodeError
 
 

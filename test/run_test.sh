@@ -53,7 +53,7 @@ run_st() {
 }
 
 run_ut() {
-  export PYTHONPATH=${SRC_DIR}/compare:${PYTHONPATH} && python3 run_ut.py
+  export PYTHONPATH=${TOP_DIR}:${SRC_DIR}/compare:${PYTHONPATH} && python3 run_ut.py
 }
 
 main() {

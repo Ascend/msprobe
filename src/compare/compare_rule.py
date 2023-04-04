@@ -14,9 +14,9 @@ from fusion_rule_parser import merge_fusion_rule
 from fusion_rule_parser import merge_close_and_open_fusion_rule
 from fusion_op import FusionOp
 from fusion_op import OpAttr
-from const_manager import ConstManager
-from dump import CompareData
-from compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
+from src.compare.dump_parse.dump import CompareData
+from cmp_utils.constant.compare_error import CompareError
 
 
 class CompareRule:

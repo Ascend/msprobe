@@ -2,8 +2,8 @@ import unittest
 from unittest import mock
 import pytest
 
-from compare_error import CompareError
-import dump_parser
+from cmp_utils.constant.compare_error import CompareError
+from src.compare.dump_parse import dump_parser
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/wangchao']
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.isfile', return_value=True):
-                with mock.patch("dump_parser._do_save_log", return_value=0):
+                with mock.patch("src.compare.dump_parse.dump_parser._do_save_log", return_value=0):
                     ret = dump_parser._do_cmd()
         self.assertEqual(ret, 0)
 
@@ -22,7 +22,7 @@ class TestUtilsMethods(unittest.TestCase):
         ret = 0
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.isfile', return_value=True):
-                with mock.patch("dump_parser._do_save_log", return_value=0):
+                with mock.patch("src.compare.dump_parse.dump_parser._do_save_log", return_value=0):
                     try:
                         dump_parser._do_cmd()
                     except CompareError as error:

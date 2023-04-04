@@ -7,9 +7,9 @@ import utils
 import shape_conversion
 import dump_data_pb2 as DD
 from unittest import mock
-from compare_error import CompareError
-from dump_data_object import DumpDataObj
-import common
+from cmp_utils.constant.compare_error import CompareError
+from src.compare.dump_parse.dump_data_object import DumpDataObj
+from cmp_utils import common
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -413,8 +413,8 @@ class TestUtilsMethods(unittest.TestCase):
         tensor_type = "input"
         dump_file_path = "/home/a.npy"
         with mock.patch("utils.deserialize_dump_data_to_array", return_value=[1, 2]):
-            with mock.patch("common.get_format_string", return_value=tensor.format):
-                with mock.patch("common.get_sub_format", return_value=1):
+            with mock.patch("cmp_utils.common.get_format_string", return_value=tensor.format):
+                with mock.patch("cmp_utils.common.get_sub_format", return_value=1):
                     format_main._convert_format_for_one_tensor(tensor, index, tensor_type, dump_file_path, 'bbb')
 
     def test_convert_format_for_tensor1(self):

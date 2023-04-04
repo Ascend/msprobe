@@ -6,7 +6,7 @@ import json
 import fusion_op
 import utils
 import fusion_rule_parser
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 

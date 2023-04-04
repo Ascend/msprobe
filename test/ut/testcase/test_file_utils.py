@@ -4,11 +4,11 @@ import unittest
 from unittest import mock
 import struct
 import csv
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 import numpy as np
 import pytest
 import utils
-import file_utils
+from cmp_utils import file_utils
 import dump_data_pb2 as DD
 
 
@@ -132,7 +132,7 @@ class TestUtilsMethods(unittest.TestCase):
                                                   ['241314144178', 'Node_OpDebug.1.1234567afa891234567']])
 
         with mock.patch("os.listdir", return_value='mapping.csv'):
-            with mock.patch("file_utils.OverflowFileUtils.read_csv", return_value=mapping_file_content):
+            with mock.patch("cmp_utils.file_utils.OverflowFileUtils.read_csv", return_value=mapping_file_content):
                 with mock.patch("os.path.isfile", return_value=True):
                     ret = overflow_file_util.\
                         parse_mapping_csv("/home",
@@ -155,7 +155,7 @@ class TestUtilsMethods(unittest.TestCase):
                                    ["path_root1", "folder1", ["test3", "test4"]]])
 
         with mock.patch("os.walk", return_value=files):
-            with mock.patch("file_utils.OverflowFileUtils.read_csv", return_value=mapping_file_content):
+            with mock.patch("cmp_utils.file_utils.OverflowFileUtils.read_csv", return_value=mapping_file_content):
                 with mock.patch("os.path.isfile", return_value=False):
                     ret = overflow_file_util.\
                         parse_mapping_csv("/home", overflow_file_util.DUMP_FILE_PATTERN, '')
@@ -174,8 +174,8 @@ class TestUtilsMethods(unittest.TestCase):
         }
         overflow_file_util = file_utils.OverflowFileUtils()
         DumpFileDescObj = file_utils.DumpFileDesc(file_desc, dump_attr)
-        with mock.patch("file_utils.OverflowFileUtils._list_file_with_pattern", return_value = {}):
-            with mock.patch("file_utils.OverflowFileUtils.parse_mapping_csv",
+        with mock.patch("cmp_utils.file_utils.OverflowFileUtils._list_file_with_pattern", return_value = {}):
+            with mock.patch("cmp_utils.file_utils.OverflowFileUtils.parse_mapping_csv",
                             return_value={'241314178': DumpFileDescObj}):
                 ret = overflow_file_util. \
                     list_dump_files("/home", overflow_file_util.DUMP_FILE_PATTERN)
@@ -245,7 +245,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_list_parsed_debug_files(self):
         overflow_file_util = file_utils.OverflowFileUtils()
-        with mock.patch("file_utils.OverflowFileUtils.list_parsed_debug_files",
+        with mock.patch("cmp_utils.file_utils.OverflowFileUtils.list_parsed_debug_files",
                         return_value={}):
             ret = overflow_file_util. \
                 list_parsed_debug_files("/home", '')

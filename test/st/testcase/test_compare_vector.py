@@ -8,13 +8,13 @@ import pytest
 import numpy as np
 import compare_vector
 import json
-import dump
+from src.compare.dump_parse import dump
 import utils
 import fusion_rule_parser
 import dump_data_pb2 as DD
 import fusion_op
 from unittest import mock
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 from fusion_op import OutputDesc, FusionOp, OpAttr
 from range_manager import RangeManager
 from range_mode import RangeMode
