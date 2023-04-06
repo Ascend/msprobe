@@ -8,9 +8,9 @@ MultiConvertProcess class. This class mainly involves the process function.
 import os
 import multiprocessing
 import psutil
-from cmp_utils import log
+from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
-from cmp_utils.file_utils import FileUtils
+from src.compare.cmp_utils.file_utils import FileUtils
 
 from src.compare.cmp_utils.multi_process.progress import Progress
 from src.compare.cmp_utils.constant.compare_error import CompareError

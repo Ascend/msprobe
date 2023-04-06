@@ -7,11 +7,10 @@ Copyright Information:
 Huawei Technologies Co., Ltd. All Rights Reserved © 2021
 """
 import unittest
+from unittest import mock
 import pytest
 
 from src.compare.vector_cmp.batch_compare import BatchCompare
-from src.compare.cmp_utils import utils
-from unittest import mock
 from src.compare.cmp_utils.constant.compare_error import CompareError
 
 

@@ -1,11 +1,13 @@
+import queue
+
 import unittest
 from unittest import mock
-import queue
+import numpy as np
+
 from src.compare.vector_cmp.compare_detail.detail_writer import MinMaxValue
 from src.compare.vector_cmp.compare_detail.detail_writer import TopN
 from src.compare.vector_cmp.compare_detail.detail_writer import DetailWriter
 from src.compare.cmp_utils.constant.const_manager import ConstManager
-import numpy as np
 from src.compare.vector_cmp.compare_detail import detail
 from src.compare.vector_cmp.fusion_manager import fusion_op
 

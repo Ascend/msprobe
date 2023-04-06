@@ -7,18 +7,14 @@ This file mainly involves the dump function.
 """
 
 import os
-import sys
-
 from enum import Enum
 from enum import unique
 
-import numpy as np
+from dump_data_pb2 import DumpData
 
 from src.compare.cmp_utils import utils
-from cmp_utils import log
-
+from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
-from dump_data_pb2 import DumpData
 from src.compare.cmp_utils.reg_manager import RegManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.dump_parse.ffts_parser import FFTSParser

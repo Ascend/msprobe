@@ -8,9 +8,8 @@ Pytorch CompareData class. This class mainly involves the function of parse dump
 import numpy as np
 
 from src.compare.cmp_utils import utils
-from cmp_utils import log
-from pytorch import hdf5_parser
-
+from src.compare.cmp_utils import log
+from src.compare.pytorch import hdf5_parser
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
 

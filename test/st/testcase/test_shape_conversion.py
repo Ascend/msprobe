@@ -8,7 +8,7 @@ from src.compare.conversion import shape_conversion
 import dump_data_pb2 as DD
 from unittest import mock
 from src.compare.cmp_utils.constant.compare_error import CompareError
-from cmp_utils import common
+from src.compare.cmp_utils import common
 
 
 class TestUtilsMethods(unittest.TestCase):

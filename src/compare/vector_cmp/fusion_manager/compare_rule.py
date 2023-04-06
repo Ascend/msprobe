@@ -8,6 +8,7 @@ VectorComparison class. This class mainly involves the compare function.
 
 import os
 import sys
+
 from src.compare.cmp_utils import utils
 from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import merge_fusion_rule

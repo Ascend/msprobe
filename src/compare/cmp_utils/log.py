@@ -8,8 +8,7 @@ This file mainly involves the print function.
 
 import os
 import logging
-import sys
-import time
+
 
 
 def _setting_config(msg: str) -> str:

@@ -1,14 +1,14 @@
 import unittest
 from unittest import mock
 import pytest
-from src.compare.vector_cmp.compare_detail import compare_detail
 import numpy as np
-from src.compare.vector_cmp.compare_detail import detail
-from src.compare.cmp_utils import utils
-from src.compare.vector_cmp.fusion_manager import fusion_op
 import dump_data_pb2 as DD
 import struct
 
+from src.compare.vector_cmp.compare_detail import compare_detail
+from src.compare.vector_cmp.compare_detail import detail
+from src.compare.cmp_utils import utils
+from src.compare.vector_cmp.fusion_manager import fusion_op
 from src.compare.format_convert.format_manager import FormatManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
 

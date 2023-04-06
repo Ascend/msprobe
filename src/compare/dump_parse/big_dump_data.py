@@ -10,6 +10,7 @@ import time
 import struct
 import warnings
 from typing.io import BinaryIO
+
 import numpy as np
 from google.protobuf.message import DecodeError
 import dump_data_pb2 as DD

@@ -8,9 +8,9 @@ This file is used to parse the HDF5 file format.
 import re
 from enum import Enum
 import collections
-from src.compare.cmp_utils import utils
-from cmp_utils import log
 
+from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
 

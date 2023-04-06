@@ -19,6 +19,7 @@ from src.compare.vector_cmp.fusion_manager.fusion_op import FusionOp, OutputDesc
 from src.compare.dump_parse.dump  import DumpType
 from src.compare.cmp_utils.constant.compare_error import CompareError
 
+
 class TestUtilsMethods(unittest.TestCase):
     def test_make_gpu_and_npu_mapping_table1(self):
         op_name = "output_ids"

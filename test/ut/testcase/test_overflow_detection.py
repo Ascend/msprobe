@@ -7,17 +7,16 @@ Copyright Information:
 Huawei Technologies Co., Ltd. All Rights Reserved © 2021
 """
 import struct
+
 import unittest
 import numpy as np
 from unittest import mock
+import dump_data_pb2 as DD
 
 from src.compare.cmp_utils import utils
-from src.compare.dump_parse.dump_data_object import DumpTensor
-from overflow.overflow_detection import OverflowDetection
-
+from src.compare.overflow.overflow_detection import OverflowDetection
 from src.compare.dump_parse import dump
 from src.compare.vector_cmp.compare_detail import detail
-import dump_data_pb2 as DD
 
 
 class TestUtilsMethods(unittest.TestCase):

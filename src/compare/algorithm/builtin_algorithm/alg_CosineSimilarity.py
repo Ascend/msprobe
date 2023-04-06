@@ -10,7 +10,7 @@ import numpy as np
 
 from src.compare.algorithm.algorithm_parameter import AlgorithmParameter
 from src.compare.cmp_utils import utils
-from cmp_utils import log
+from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 
 

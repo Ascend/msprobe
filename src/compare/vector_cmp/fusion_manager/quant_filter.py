@@ -7,7 +7,7 @@ Quant Filter class, process the fusion json file
 """
 import re
 
-from cmp_utils import log
+from src.compare.cmp_utils import log
 
 
 class QuantFilter:

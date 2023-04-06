@@ -6,10 +6,9 @@ Function:
 This file mainly involves the overflow advisor function.
 """
 
-from cmp_utils import log
-
-from advisor.advisor_const import AdvisorConst
-from advisor.advisor_result import AdvisorResult
+from src.compare.cmp_utils import log
+from src.compare.advisor.advisor_const import AdvisorConst
+from src.compare.advisor.advisor_result import AdvisorResult
 
 
 class OverflowAdvisor:

@@ -8,8 +8,7 @@ This class mainly involves functions for selecting operators.
 """
 
 from src.compare.cmp_utils.reg_manager import RegManager
-from cmp_utils import log
-
+from src.compare.cmp_utils import log
 from src.compare.vector_cmp.fusion_manager.compare_rule import CompareRule
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.vector_cmp.range_manager import range_manager as RM

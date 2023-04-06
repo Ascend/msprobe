@@ -1,16 +1,16 @@
-import unittest
+import time
 
+import unittest
 import struct
 import pytest
 import numpy as np
-from src.compare.cmp_utils import utils
-import time
 import dump_data_pb2 as DD
 from unittest import mock
-from dump_parse import big_dump_data
-from dump_parse.big_dump_data import BigDumpDataParser
-from src.compare.cmp_utils.constant.compare_error import CompareError
 from google.protobuf.message import DecodeError
+
+from src.compare.dump_parse import big_dump_data
+from src.compare.dump_parse.big_dump_data import BigDumpDataParser
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):

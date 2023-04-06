@@ -1,16 +1,16 @@
-import unittest
-
 import struct
-
 import multiprocessing
 
 import pytest
 import numpy as np
 import compare_vector
-from src.compare.cmp_utils import utils
 import json
 import dump_data_pb2 as DD
+import unittest
 from unittest import mock
+
+from src.compare import compare_vector
+from src.compare.cmp_utils import utils
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
 

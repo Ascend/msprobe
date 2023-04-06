@@ -6,7 +6,7 @@ import csv
 import pytest
 import numpy as np
 from src.compare.cmp_utils import utils
-from cmp_utils import log
+from src.compare.cmp_utils import log
 from src.compare.vector_cmp.fusion_manager import fusion_op
 import dump_data_pb2 as DD
 from src.compare.cmp_utils.constant.compare_error import CompareError

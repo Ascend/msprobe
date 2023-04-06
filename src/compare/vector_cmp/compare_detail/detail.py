@@ -7,19 +7,17 @@ This file mainly involves the common function.
 """
 
 import sys
-
-from cmp_utils import common
-from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
-from cmp_utils import log
-from src.compare.cmp_utils import utils
-
-from src.compare.vector_cmp.fusion_manager.fusion_op import FusionOp
-from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 import dump_data_pb2 as DD
-from src.compare.cmp_utils.constant.const_manager import ConstManager
 
+from src.compare.cmp_utils import common
+from src.compare.cmp_utils import log
+from src.compare.cmp_utils import utils
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.reg_manager import RegManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
+from src.compare.vector_cmp.fusion_manager.fusion_op import FusionOp
+from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
+from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
 
 
 class TensorId:

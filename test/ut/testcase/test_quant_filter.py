@@ -1,8 +1,7 @@
-import json
+
 import unittest
 from unittest import mock
-import pytest
-from src.compare.cmp_utils import utils
+
 from src.compare.vector_cmp.fusion_manager import quant_filter
 from src.compare.vector_cmp.fusion_manager import fusion_op
 

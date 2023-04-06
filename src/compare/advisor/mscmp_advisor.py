@@ -11,15 +11,14 @@ import sys
 import argparse
 import pandas as pd
 
-from cmp_utils import log
-
-from advisor.advisor_const import AdvisorConst
-from advisor.advisor_result import AdvisorResult
+from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.cmp_utils.constant.const_manager import ConstManager
-from advisor.input_advisor import InputAdvisor
-from advisor.node_advisor import NodeAdvisor
-from advisor.overflow_advisor import OverflowAdvisor
+from src.compare.advisor.advisor_const import AdvisorConst
+from src.compare.advisor.advisor_result import AdvisorResult
+from src.compare.advisor.input_advisor import InputAdvisor
+from src.compare.advisor.node_advisor import NodeAdvisor
+from src.compare.advisor.overflow_advisor import OverflowAdvisor
 
 
 class CompareAdvisor:

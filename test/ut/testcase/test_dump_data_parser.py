@@ -1,13 +1,15 @@
 import time
+import struct
+
 import unittest
 import pytest
-from src.compare.dump_parse import dump_data_parser as DP
 from unittest import mock
 import dump_data_pb2 as DD
-import struct
 import numpy as np
+
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.cmp_utils import utils
+from src.compare.dump_parse import dump_data_parser as DP
 
 
 class TestUtilsMethods(unittest.TestCase):

@@ -7,12 +7,10 @@ This FusionOpComResult class. This file mainly involves the get_result function.
 """
 
 from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
-from cmp_utils import log
-
+from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.vector_cmp.range_manager.range_manager import RangeManager
 from src.compare.algorithm.algorithm_manager import AlgorithmManager
-
 from src.compare.vector_cmp.fusion_manager.fusion_op import FusionOp
 
 

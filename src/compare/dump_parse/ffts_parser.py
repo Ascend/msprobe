@@ -2,8 +2,9 @@
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2023. All rights reserved.
 
-from cmp_utils import log
+from src.compare.cmp_utils import log
 import numpy as np
+
 from src.compare.cmp_utils import utils
 from src.compare.dump_parse.dump_data_object import DumpTensor, DumpDataObj
 

@@ -1,13 +1,13 @@
 import unittest
+from unittest import mock
 import uuid
-
 import pytest
 import json
+
 from src.compare.vector_cmp.fusion_manager import fusion_op
 from src.compare.cmp_utils import utils
 from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
 from src.compare.cmp_utils.constant.compare_error import CompareError
-from unittest import mock
 
 
 class TestUtilsMethods(unittest.TestCase):

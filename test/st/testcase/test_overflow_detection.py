@@ -11,7 +11,7 @@ import unittest
 import numpy as np
 from unittest import mock
 
-from overflow.overflow_detection import OverflowDetection
+from src.compare.overflow.overflow_detection import OverflowDetection
 from src.compare.vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
 
 from src.compare.vector_cmp.compare_detail

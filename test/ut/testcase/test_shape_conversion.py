@@ -1,15 +1,15 @@
 import unittest
 import struct
-
 import pytest
+
 import numpy as np
-from src.compare.cmp_utils import utils
-from src.compare.conversion import shape_conversion
 import dump_data_pb2 as DD
 from unittest import mock
+
+from src.compare.cmp_utils import utils
 from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.dump_parse.dump_data_object import DumpDataObj
-from cmp_utils import common
+from src.compare.cmp_utils import common
+from src.compare.conversion import shape_conversion
 
 
 class TestUtilsMethods(unittest.TestCase):

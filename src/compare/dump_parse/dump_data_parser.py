@@ -8,7 +8,9 @@ DumpDataParser class. This class mainly involves the parser_dump_data function.
 import os
 import json
 import struct
+
 import numpy as np
+
 from src.compare.cmp_utils import utils
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils import common

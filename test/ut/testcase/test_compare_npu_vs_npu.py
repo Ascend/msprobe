@@ -1,12 +1,12 @@
 import unittest
-
 import struct
 import numpy as np
+import dump_data_pb2 as DD
+from unittest import mock
+
 from src.compare.cmp_utils import utils
 from src.compare.dump_parse import dump
 from src.compare.vector_cmp.fusion_manager import fusion_op
-import dump_data_pb2 as DD
-from unittest import mock
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.vector_cmp.fusion_manager.compare_npu_vs_npu import NpuVsNpuComparison
 from src.compare.algorithm.algorithm_manager import AlgorithmManager

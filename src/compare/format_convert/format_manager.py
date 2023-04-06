@@ -10,14 +10,14 @@ import os
 import sys
 import importlib
 from functools import reduce
+
 import numpy as np
 import dump_data_pb2 as DD
+
 from src.compare.cmp_utils import utils
-from cmp_utils import log
-from cmp_utils import common
-
+from src.compare.cmp_utils import log
+from src.compare.cmp_utils import common
 from src.compare.cmp_utils.reg_manager import RegManager
-
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
 

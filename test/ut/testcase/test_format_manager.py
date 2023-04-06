@@ -1,16 +1,16 @@
 import unittest
-
+from unittest import mock
 import struct
 import pytest
+
 import numpy as np
-from src.compare.cmp_utils import utils
+import dump_data_pb2 as DD
+
 from src.compare.format_convert.format_manager import FormatManager
 from src.compare.format_convert.format_manager import ShapeConversion
 from src.compare.format_convert.format_manager import SrcToDest
-import dump_data_pb2 as DD
 from src.compare.dump_parse.dump_data_object import DumpTensor
 from src.compare.cmp_utils.constant.compare_error import CompareError
-from unittest import mock
 
 
 class TestUtilsMethods(unittest.TestCase):

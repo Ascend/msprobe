@@ -8,15 +8,12 @@ This file mainly involves the compare_npu_vs_npu function.
 import argparse
 import multiprocessing
 import os
-import sys
 import csv
 import time
-
 import numpy as np
 
 from src.compare.cmp_utils import utils
-from cmp_utils import log
-
+from src.compare.cmp_utils import log
 from src.compare.pytorch import pytorch_dump_data as pytorch_dump
 from src.compare.algorithm.algorithm_manager import AlgorithmManager
 from src.compare.cmp_utils.constant.const_manager import ConstManager

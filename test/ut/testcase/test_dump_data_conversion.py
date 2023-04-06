@@ -1,14 +1,14 @@
 import time
-import unittest
-
 import struct
+
+import unittest
+from unittest import mock
 import numpy as np
-from src.compare.dump_parse import dump_data_conversion
-from src.compare.cmp_utils import utils
 import pytest
 import dump_data_pb2 as DD
+
 from src.compare.cmp_utils.constant.compare_error import CompareError
-from unittest import mock
+from src.compare.dump_parse import dump_data_conversion
 
 
 class TestUtilsMethods(unittest.TestCase):

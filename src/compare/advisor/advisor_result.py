@@ -7,10 +7,9 @@ This class mainly involves the advisor result function.
 """
 import os
 
-from cmp_utils import log
-
-from advisor.advisor_const import AdvisorConst
+from src.compare.advisor.advisor_const import AdvisorConst
 from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils import log
 
 
 class AdvisorResult:

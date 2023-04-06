@@ -2,7 +2,7 @@ import unittest
 
 import pytest
 import numpy as np
-from cmp_utils import common
+from src.compare.cmp_utils import common
 from src.compare.cmp_utils import utils
 import dump_data_pb2 as DD
 from src.compare.vector_cmp.compare_detail

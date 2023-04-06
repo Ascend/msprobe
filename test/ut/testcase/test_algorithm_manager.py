@@ -1,11 +1,10 @@
 import unittest
+from unittest import mock
 import pytest
 import numpy as np
-from src.compare.cmp_utils import utils
 
 from src.compare.algorithm.algorithm_manager import AlgorithmManager, AlgorithmManagerMain
 from src.compare.cmp_utils.constant.compare_error import CompareError
-from unittest import mock
 
 
 class TestUtilsMethods(unittest.TestCase):

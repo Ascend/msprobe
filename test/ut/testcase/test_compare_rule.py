@@ -9,9 +9,10 @@ Huawei Technologies Co., Ltd. All Rights Reserved © 2021
 import json
 import unittest
 import pytest
+from unittest import mock
+
 from src.compare.vector_cmp.fusion_manager import compare_rule
 from src.compare.cmp_utils.constant.compare_error import CompareError
-from unittest import mock
 
 
 class TestUtilsMethods(unittest.TestCase):
