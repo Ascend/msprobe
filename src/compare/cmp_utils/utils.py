@@ -11,22 +11,16 @@ import re
 import math
 from functools import wraps
 from enum import Enum
-
 import csv
 import numpy as np
-
-from cmp_utils import common
-from cmp_utils import log
 from dump_data_pb2 import DumpData
 
-from cmp_utils.constant.const_manager import ConstManager
-
-from reg_manager import RegManager
-
-from dump_parse.big_dump_data import DumpDataHandler
-
-from cmp_utils.constant.compare_error import CompareError
-
+from src.compare.cmp_utils import common
+from src.compare.cmp_utils import log
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.reg_manager import RegManager
+from src.compare.cmp_utils.constant.compare_error import CompareError
+from src.compare.dump_parse.big_dump_data import DumpDataHandler
 from src.compare.dump_parse.dump_data_object import DumpDataObj, DumpTensor
 
 

@@ -12,9 +12,9 @@ import numpy as np
 from unittest import mock
 
 from overflow.overflow_detection import OverflowDetection
-from fusion_op import OutputDesc, FusionOp, OpAttr
+from src.compare.vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
 
-import detail
+from src.compare.vector_cmp.compare_detail
 from src.compare.dump_parse import dump
 import dump_data_pb2 as DD
 
@@ -32,8 +32,8 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW))
-        with mock.patch('utils.parse_dump_file', return_value=dump_data):
-            with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.array([19345143, 2, 3])):
+        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
+            with mock.patch("src.compare.cmp_utils.utils.deserialize_dump_data_to_array", return_value=np.array([19345143, 2, 3])):
                 overflow_detection = OverflowDetection(compare_data, detail_info.tensor_id.op_name)
                 overflow_detection.process_op_overflow_detection()
 
@@ -49,7 +49,7 @@ class TestUtilsMethods(unittest.TestCase):
         left_dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW))
         for input_type in ['input', 'output']:
             tensor = left_dump_data.input if input_type == 'input' else left_dump_data.output
-            with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.array([19345143, 2, 3])):
+            with mock.patch("src.compare.cmp_utils.utils.deserialize_dump_data_to_array", return_value=np.array([19345143, 2, 3])):
                 OverflowDetection.process_model_overflow_detection(
                     fusion_op.op_name, 0, input_type, tensor[0])
 

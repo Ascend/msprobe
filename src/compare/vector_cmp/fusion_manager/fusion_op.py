@@ -7,12 +7,12 @@ FusionOp class. This class mainly involves the fusion op info.
 """
 from cmp_utils import log
 import numpy as np
-import utils
+from src.compare.cmp_utils import utils
 import dump_data_pb2 as DD
 
-from cmp_utils.constant.const_manager import ConstManager
-from reg_manager import RegManager
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.reg_manager import RegManager
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class OutputDesc:

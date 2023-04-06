@@ -3,17 +3,17 @@ import uuid
 
 import pytest
 import json
-import fusion_op
-import utils
-import fusion_rule_parser
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.vector_cmp.fusion_manager import fusion_op
+from src.compare.cmp_utils import utils
+from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 
 class TestUtilsMethods(unittest.TestCase):
 
     def test_analysis_fusion_rule1(self):
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             parser = fusion_rule_parser.FusionRuleParser(
                 '/home/resnet50.json')
             parser.analysis_fusion_rule()
@@ -22,7 +22,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_analysis_fusion_rule2(self):
         data = json.dumps({'name': 'resnet50'})
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.path.getsize", return_value=100):
                 with mock.patch('builtins.open', mock.mock_open(read_data=data)):
                     parser = fusion_rule_parser.FusionRuleParser(
@@ -32,7 +32,7 @@ class TestUtilsMethods(unittest.TestCase):
                          CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
 
     def test_analysis_fusion_rule3(self):
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.path.getsize", return_value=100):
                 with mock.patch('builtins.open', mock.mock_open(read_data=b'[{')):
                     parser = fusion_rule_parser.FusionRuleParser(
@@ -43,7 +43,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_analysis_fusion_rule4(self):
         data = json.dumps({'name': 'resnet50', 'graph': {'name': 'merge1'}})
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.path.getsize", return_value=100):
                 with mock.patch('builtins.open', mock.mock_open(read_data=data)):
                     parser = fusion_rule_parser.FusionRuleParser(
@@ -55,7 +55,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_analysis_fusion_rule5(self):
         data = json.dumps({'name': 'resnet50', 'graph': [
             {'name': 'merge1', 'op': [{'name': 76, 'type': 'Data'}]}]})
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.path.getsize", return_value=100):
                 with mock.patch('builtins.open', mock.mock_open(read_data=data)):
                     parser = fusion_rule_parser.FusionRuleParser(
@@ -107,7 +107,7 @@ class TestUtilsMethods(unittest.TestCase):
         data = json.dumps({'name': 'resnet50', 'graph': [
             {'name': 'merge1',
              'op': [{'name': 'data', 'type': 'Data', 'input': 'data:0'}]}]})
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.path.getsize", return_value=100):
                 with mock.patch('builtins.open', mock.mock_open(read_data=data)):
                     parser = fusion_rule_parser.FusionRuleParser(
@@ -123,7 +123,7 @@ class TestUtilsMethods(unittest.TestCase):
                      'output_desc': [
                          {'attr': [{'key': '_datadump_origin_output_index',
                                     'value': {'i': 'xxx'}}]}]}]}]})
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.path.getsize", return_value=100):
                 with mock.patch('builtins.open', mock.mock_open(read_data=data)):
                     parser = fusion_rule_parser.FusionRuleParser(
@@ -188,7 +188,7 @@ class TestUtilsMethods(unittest.TestCase):
                      {"key": "_datadump_is_multiop",
                       "value": {"b": 'xx'}}]}, ]}]})
 
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.path.getsize", return_value=100):
                 with mock.patch('builtins.open', mock.mock_open(read_data=data)):
                     parser = fusion_rule_parser.FusionRuleParser(
@@ -342,7 +342,7 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(op.output_desc[0].origin_format, 'NHWC')
 
     def test_get_fusion_op_list1(self):
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.path.getsize", return_value=100):
                 with mock.patch('builtins.open',
                                 mock.mock_open(read_data=self._make_json())):
@@ -368,7 +368,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_origin_tensor1(self):
         fusion_op_info = fusion_op.FusionOp(
             12, 'conv1colu', ['a:0'], 'Relu', [], fusion_op.OpAttr(['conv1', 'conelu'], '', False, 12))
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             fusion_op_info.get_origin_tensor(0)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
@@ -379,7 +379,7 @@ class TestUtilsMethods(unittest.TestCase):
         output_desc_list.append(output_desc)
         fusion_op_info = fusion_op.FusionOp(
             12, 'conv1colu', ['a:0'], 'Relu', output_desc_list, fusion_op.OpAttr(['conv1', 'conelu'], '', False, 12))
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             fusion_op_info.get_origin_tensor(1)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
@@ -402,7 +402,7 @@ class TestUtilsMethods(unittest.TestCase):
         output_desc_list.append(output_desc)
         fusion_op_info = fusion_op.FusionOp(
             12, 'conv1colu', ['a:0'], 'Relu', output_desc_list, fusion_op.OpAttr(['conv1', 'conelu'], '', False, 12))
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             fusion_op_info.get_input_tensor(1)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
@@ -416,7 +416,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_info = fusion_op.FusionOp(
             12, 'conv1colu', ['a:0'], 'Relu', output_desc_list, fusion_op.OpAttr(['conv1', 'conelu'], '', True, 12))
         with mock.patch(
-                'fusion_rule_parser.FusionRuleParser.get_fusion_op_list',
+                'src.compare.vector_cmp.fusion_manager.fusion_rule_parser.FusionRuleParser.get_fusion_op_list',
                 return_value=[[], input_fusion_op]):
             input_tensor = fusion_op_info.get_input_tensor(0)
         self.assertEqual(input_tensor.name, 'a')
@@ -428,7 +428,7 @@ class TestUtilsMethods(unittest.TestCase):
         output_desc_list.append(output_desc)
         fusion_op_info = fusion_op.FusionOp(
             12, 'conv1colu', ['0'], 'Relu', output_desc_list, fusion_op.OpAttr(['conv1', 'conelu'], '', False, 12))
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             fusion_op_info.get_input_tensor(0)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_JSON_FILE_ERROR)
@@ -440,7 +440,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_info = fusion_op.FusionOp(
             12, 'conv1colu', ['rrr:d0'], 'Relu', output_desc_list,
             fusion_op.OpAttr(['conv1', 'conelu'], '', False, 12))
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             fusion_op_info.get_input_tensor(0)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_JSON_FILE_ERROR)
@@ -451,7 +451,7 @@ class TestUtilsMethods(unittest.TestCase):
         output_desc_list.append(output_desc)
         fusion_op_info = fusion_op.FusionOp(
             12, 'conv1colu', [':d0'], 'Relu', output_desc_list, fusion_op.OpAttr(['conv1', 'conelu'], '', False, 12))
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             fusion_op_info.get_input_tensor(0)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_JSON_FILE_ERROR)

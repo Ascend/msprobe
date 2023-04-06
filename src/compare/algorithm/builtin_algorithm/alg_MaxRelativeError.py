@@ -9,8 +9,8 @@ MaxRelativeError algorithm. This file mainly involves the compare function.
 import numpy as np
 
 from src.compare.algorithm.algorithm_parameter import AlgorithmParameter
-from cmp_utils.constant.const_manager import ConstManager
-import utils
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils import utils
 from cmp_utils import log
 
 

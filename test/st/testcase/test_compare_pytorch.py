@@ -5,13 +5,13 @@ import unittest
 import numpy as np
 import pytest
 import sys
-import utils
+from src.compare.cmp_utils import utils
 from pytorch import compare_pytorch
 from pytorch import hdf5_parser
 import h5py
 from pytorch_dump_data import DataType
 from unittest import mock
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 import argparse
 
 
@@ -80,11 +80,11 @@ class TestUtilsMethods(unittest.TestCase):
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
                 '/home/right.h5', '-op', 'Addmtest', '-p', 0]
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         with mock.patch("os.path.isfile", return_value=True):
                             with mock.patch("hdf5_parser.Hdf5Parser.open_file",
@@ -103,11 +103,11 @@ class TestUtilsMethods(unittest.TestCase):
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
                 '/home/right.h5', '-f', '/home/fusion_rule', '-p', '1']
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         with mock.patch("os.path.isfile", return_value=True):
                             with mock.patch("hdf5_parser.Hdf5Parser.open_file",
@@ -217,16 +217,16 @@ class TestUtilsMethods(unittest.TestCase):
             args = parser.parse_args(sys.argv[1:])
             pytorch_compare = compare_pytorch.PytorchComparison(args)
 
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR),\
                     mock.patch('os.path.exists',return_value=True):
                 with mock.patch("os.path.isfile", return_value=True):
                     with mock.patch("hdf5_parser._open_h5py_file",
                                     side_effect=stub_open_file):
                         with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
-                            with mock.patch('utils.sort_result_file_by_index', return_value=None):
+                            with mock.patch('src.compare.cmp_utils.utils.sort_result_file_by_index', return_value=None):
                                 open_file.write = None
                                 ret = pytorch_compare.compare()
                                 all_orders = pytorch_compare.compare_data.get_all_orders()
@@ -243,7 +243,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_hdf5_parser_get_dump_data_attr(self):
         parser = hdf5_parser.Hdf5Parser("/home/test1.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, [])
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("hdf5_parser._open_h5py_file",
                             return_value=True):
                 parser.file_handle = True
@@ -253,7 +253,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_value(self):
         parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, [])
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             tmp = [None] * 1000001
             parser._check_value(tmp)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)

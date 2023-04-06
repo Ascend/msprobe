@@ -1,10 +1,8 @@
 import unittest
 from unittest import mock
-import pytest
 
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.dump_parse import dump_parser
-
 
 class TestUtilsMethods(unittest.TestCase):
 

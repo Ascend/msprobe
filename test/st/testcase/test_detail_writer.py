@@ -10,8 +10,8 @@ import unittest
 import pytest
 import numpy as np
 
-from detail_writer import DetailWriter
-from detail_writer import TopN
+from src.compare.vector_cmp.compare_detail.detail_writer import DetailWriter
+from src.compare.vector_cmp.compare_detail.detail_writer import TopN
 from unittest import mock
 
 

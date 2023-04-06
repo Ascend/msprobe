@@ -7,11 +7,11 @@ This file mainly involves xxxx function.
 """
 
 from cmp_utils import log
-import utils
+from src.compare.cmp_utils import utils
 import numpy as np
 
 import dump_data_pb2 as DD
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 
 
 class OverflowDetection:

@@ -15,8 +15,8 @@ from cmp_utils import log
 
 from advisor.advisor_const import AdvisorConst
 from advisor.advisor_result import AdvisorResult
-from cmp_utils.constant.compare_error import CompareError
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 from advisor.input_advisor import InputAdvisor
 from advisor.node_advisor import NodeAdvisor
 from advisor.overflow_advisor import OverflowAdvisor

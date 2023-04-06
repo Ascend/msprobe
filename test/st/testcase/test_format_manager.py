@@ -1,9 +1,9 @@
 import unittest
 
 import numpy as np
-from format_manager import FormatManager
-from format_manager import ShapeConversion
-from format_manager import SrcToDest
+from src.compare.format_convert.format_manager import FormatManager
+from src.compare.format_convert.format_manager import ShapeConversion
+from src.compare.format_convert.format_manager import SrcToDest
 import dump_data_pb2 as DD
 
 

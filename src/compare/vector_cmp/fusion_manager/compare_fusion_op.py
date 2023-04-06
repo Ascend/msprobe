@@ -6,22 +6,22 @@ Function:
 FusionOpComparison class. This class mainly involves the compare function.
 """
 import collections
-import fusion_rule_parser
-import utils
+from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
+from src.compare.cmp_utils import utils
 from cmp_utils import log
 
-from compare_npu_vs_npu import NpuVsNpuComparison
-import compare_result
+from src.compare.vector_cmp.fusion_manager.compare_npu_vs_npu import NpuVsNpuComparison
+from src.compare.vector_cmp.fusion_manager import compare_result
 from src.compare.dump_parse.dump import DumpType
 from overflow.overflow_detection import OverflowDetection
-from range_manager import RangeManager
-from fusion_op import FusionOp
-from fusion_op import Tensor
+from src.compare.vector_cmp.range_manager.range_manager import RangeManager
+from src.compare.vector_cmp.fusion_manager.fusion_op import FusionOp
+from src.compare.vector_cmp.fusion_manager.fusion_op import Tensor
 
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 
-from tensor_conversion import TensorConversion
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.conversion.tensor_conversion import TensorConversion
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.dump_parse.dump_data_object import DumpDataObj
 from cmp_utils import common
 

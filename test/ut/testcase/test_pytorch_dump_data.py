@@ -2,9 +2,9 @@ import unittest
 from unittest import mock
 import pytest
 import numpy as np
-import utils
-from cmp_utils.constant.compare_error import CompareError
-import pytorch_dump_data
+from src.compare.cmp_utils import utils
+from src.compare.cmp_utils.constant.compare_error import CompareError
+from src.compare.pytorch import pytorch_dump_data
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -193,7 +193,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data = pytorch_dump_data.CompareData("/home/my_dump_c1.h5", "/home/golden_dump_c1.h5")
         compare_data.my_dump.need_compare_input = True
 
-        with mock.patch('pytorch_dump_data.CompareData._check_data_type',
+        with mock.patch('src.compare.pytorch.pytorch_dump_data.CompareData._check_data_type',
                         return_value=[True, "success"]):
             with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data',
                             side_effect=[np.array(np.arange(9)).reshape(3, 3),
@@ -278,7 +278,7 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(parse_result, CompareError.MSACCUCMP_NONE_ERROR)
 
         compare_data.my_dump.device_type = 1
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('pytorch.hdf5_parser.Hdf5Parser.parse_dump_file',
                             side_effect=[CompareError.MSACCUCMP_NONE_ERROR,
                                          CompareError.MSACCUCMP_NONE_ERROR
@@ -311,7 +311,7 @@ class TestUtilsMethods(unittest.TestCase):
         }
         compare_data.my_dump.file_handle = None
         compare_data.golden_dump.file_handle = None
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('pytorch.hdf5_parser.Hdf5Parser.get_dump_data_attr',
                             side_effect=[1]):
                 compare_data.check_my_dump_file_valid()

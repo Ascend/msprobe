@@ -9,7 +9,7 @@ MaxAbsoluteError algorithm. This file mainly involves the compare function.
 import numpy as np
 
 from src.compare.algorithm.algorithm_parameter import AlgorithmParameter
-import utils
+from src.compare.cmp_utils import utils
 
 
 def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: AlgorithmParameter) -> (str, str):

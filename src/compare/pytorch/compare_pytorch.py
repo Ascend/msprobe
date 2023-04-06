@@ -14,14 +14,14 @@ import time
 
 import numpy as np
 
-import utils
+from src.compare.cmp_utils import utils
 from cmp_utils import log
 
-import pytorch_dump_data as pytorch_dump
+from src.compare.pytorch import pytorch_dump_data as pytorch_dump
 from src.compare.algorithm.algorithm_manager import AlgorithmManager
-from cmp_utils.constant.const_manager import ConstManager
-import compare_result
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.vector_cmp.fusion_manager import compare_result
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class PytorchComparison:

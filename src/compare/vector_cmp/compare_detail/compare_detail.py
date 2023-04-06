@@ -7,22 +7,22 @@ DetailComparison class. This class mainly involves the compare function.
 """
 
 import os
-import fusion_rule_parser
-import utils
+from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
+from src.compare.cmp_utils import utils
 from cmp_utils import log
 
 from src.compare.dump_parse import dump
 
-from detail_writer import DetailWriter
+from src.compare.vector_cmp.compare_detail.detail_writer import DetailWriter
 
-from detail import DetailInfo
+from src.compare.vector_cmp.compare_detail.detail import DetailInfo
 
-from compare_fusion_op import FusionOpComparison
+from src.compare.vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
 
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 
-from tensor_conversion import TensorConversion
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.conversion.tensor_conversion import TensorConversion
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class DetailComparison:

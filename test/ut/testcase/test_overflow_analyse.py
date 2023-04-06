@@ -4,10 +4,10 @@ from unittest import mock
 
 import numpy as np
 import pytest
-import utils
+from src.compare.cmp_utils import utils
 from cmp_utils import file_utils
 from overflow import overflow_analyse
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.dump_parse import dump_data_parser
 
 
@@ -20,21 +20,21 @@ class TestUtilsMethods(unittest.TestCase):
         args.top_num = 2
         decode = overflow_analyse.OverflowAnalyse(args)
 
-        with mock.patch("utils.check_path_valid",
+        with mock.patch("src.compare.cmp_utils.utils.check_path_valid",
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch("utils.check_output_path_valid",
+            with mock.patch("src.compare.cmp_utils.utils.check_output_path_valid",
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 ret = decode.check_argument(args)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
-        with mock.patch("utils.check_path_valid",
+        with mock.patch("src.compare.cmp_utils.utils.check_path_valid",
                         return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
             ret = decode.check_argument(args)
         self.assertEqual(ret, CompareError.MSACCUCMP_UNKNOWN_ERROR)
 
-        with mock.patch("utils.check_path_valid",
+        with mock.patch("src.compare.cmp_utils.utils.check_path_valid",
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch("utils.check_output_path_valid",
+            with mock.patch("src.compare.cmp_utils.utils.check_output_path_valid",
                             return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
                 ret = decode.check_argument(args)
         self.assertEqual(ret, CompareError.MSACCUCMP_UNKNOWN_ERROR)
@@ -165,7 +165,7 @@ class TestUtilsMethods(unittest.TestCase):
         args.output_path = "/home"
         args.top_num = 2
         decode = overflow_analyse.OverflowAnalyse(args)
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             decode.npy_data_summary(source_data)
         self.assertEqual(err.value.args[0],
                          CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
@@ -177,7 +177,7 @@ class TestUtilsMethods(unittest.TestCase):
         args.output_path = "/home"
         args.top_num = 2
         decode = overflow_analyse.OverflowAnalyse(args)
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             decode.npy_data_summary(source_data)
         self.assertEqual(err.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
@@ -219,7 +219,7 @@ class TestUtilsMethods(unittest.TestCase):
         }
         debug_file_desc = file_utils.DumpFileDesc(file_desc, dump_attr)
         with mock.patch('overflow.overflow_analyse.OverflowAnalyse._find_dump_files_by_task_id',
-                        side_effect=utils.CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)):
+                        side_effect=CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)):
             ret = decode._json_summary(overflow_index, json_txt, debug_file_desc)
         print(ret)
         expect_result = '=================================================[1]' \
@@ -272,7 +272,7 @@ class TestUtilsMethods(unittest.TestCase):
 
         debug_file_desc = file_utils.DumpFileDesc(file_desc, dump_attr)
         with mock.patch('overflow.overflow_analyse.OverflowAnalyse._find_dump_files_by_task_id',
-                        side_effect=utils.CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)):
+                        side_effect=CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)):
             ret = decode._json_summary(overflow_index, json_txt, debug_file_desc)
         print(ret)
         expect_result = '=================================================[1]' \
@@ -409,7 +409,7 @@ class TestUtilsMethods(unittest.TestCase):
         }
         debug_file_desc = file_utils.DumpFileDesc(file_desc, dump_attr)
 
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('os.path.basename', return_value='Opdebug.Node_OpDebug.1.25.161233160'):
                 with mock.patch('overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file', return_value=''):
                     with mock.patch('cmp_utils.file_utils.OverflowFileUtils.list_parsed_debug_files',
@@ -453,7 +453,7 @@ class TestUtilsMethods(unittest.TestCase):
                     ret = decode._get_parsed_dump_file(dump_file_desc)
         self.assertEqual(ret, [parsed_dump_file_desc])
 
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file', return_value=''):
                 with mock.patch('os.path.basename', return_value='convolution.cov2d.1.25.161233160'):
                     with mock.patch('cmp_utils.file_utils.OverflowFileUtils.list_parsed_dump_files',return_value={}):
@@ -484,7 +484,7 @@ class TestUtilsMethods(unittest.TestCase):
             ret = decode._find_dump_files_by_task_id('/test/', (12, 25, None, None))
         self.assertEqual(ret, dump_file_desc)
 
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('cmp_utils.file_utils.OverflowFileUtils.list_dump_files',
                             return_value=[dump_file_desc]):
                 ret = decode._find_dump_files_by_task_id('/test/', (12, 24, None, None))

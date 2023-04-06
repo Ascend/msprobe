@@ -10,7 +10,7 @@ import os
 from cmp_utils import log
 
 from advisor.advisor_const import AdvisorConst
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 
 
 class AdvisorResult:

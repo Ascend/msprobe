@@ -3,11 +3,11 @@ import unittest
 import struct
 import pytest
 import numpy as np
-import utils
-import shape_conversion
+from src.compare.cmp_utils import utils
+from src.compare.conversion import shape_conversion
 import dump_data_pb2 as DD
 from unittest import mock
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from cmp_utils import common
 
 
@@ -93,7 +93,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2],
                                             DD.DT_INT64)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -110,7 +110,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2],
                                             DD.DT_INT64)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -126,7 +126,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home']
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=100), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -143,7 +143,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NC1HWC0, [1, 3, 4, 4, 2],
                                             DD.DT_UINT8)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -160,7 +160,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 3],
                                             DD.DT_INT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -177,7 +177,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NCHW, [1, 2, 4, 4],
                                             DD.DT_UINT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -194,7 +194,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NHWC, [1, 4, 4, 2],
                                             DD.DT_INT64)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -211,7 +211,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NHWC, [1, 4, 4, 2],
                                             DD.DT_UINT32)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -228,7 +228,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_HWCN, [4, 4, 2, 1],
                                             DD.DT_UINT64)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -245,7 +245,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_HWCN, [4, 4, 2, 1],
                                             DD.DT_DOUBLE)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -262,7 +262,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NCHW, [1, 2, 4, 4],
                                             DD.DT_FLOAT)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -279,7 +279,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NHWC, [1, 32, 64, 4],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -296,7 +296,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_NCHW, [1, 20, 32, 64],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -313,7 +313,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_HWCN, [32, 64, 3, 1],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -331,7 +331,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             [48, 100, 16, 16],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -348,7 +348,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str = self._make_dump_data_ser(DD.FORMAT_FRACTAL_NZ, [1, 3, 4, 4],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -366,7 +366,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             [48, 100, 16, 16],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -384,7 +384,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             [1, 100, 16, 16],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -402,7 +402,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             [48, 100, 16, 16],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -420,7 +420,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             [48, 100, 16, 16],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -438,7 +438,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             [1, 48, 100, 16, 16],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -456,7 +456,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             [1, 48],
                                             DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=len(data_str)), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -473,7 +473,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str, file_size = self._make_big_dump_data_ser(
             DD.FORMAT_NCHW, [1, 48], DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=100), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -490,7 +490,7 @@ class TestUtilsMethods(unittest.TestCase):
         data_str, file_size = self._make_big_dump_data_ser(
             DD.FORMAT_NCHW, [1, 48], DD.DT_FLOAT16)
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.getsize', return_value=file_size), \
                  mock.patch('os.path.isdir', return_value=False):
@@ -514,9 +514,9 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NDC1HWC0, [1, 4, 16, 2, 2, 16], [1, 256, 4, 2, 2]))
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.parse_dump_file', return_value=dump_data), \
+            with mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data), \
                  mock.patch('os.path.isfile', return_value=True), \
                  mock.patch('os.chmod'):
                 with mock.patch('numpy.save'):

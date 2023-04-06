@@ -2,9 +2,9 @@ import json
 import unittest
 from unittest import mock
 import pytest
-import utils
-import quant_filter
-import fusion_op
+from src.compare.cmp_utils import utils
+from src.compare.vector_cmp.fusion_manager import quant_filter
+from src.compare.vector_cmp.fusion_manager import fusion_op
 
 
 class TestUtilsMethods(unittest.TestCase):

@@ -12,14 +12,14 @@ import importlib
 from functools import reduce
 import numpy as np
 import dump_data_pb2 as DD
-import utils
+from src.compare.cmp_utils import utils
 from cmp_utils import log
 from cmp_utils import common
 
-from reg_manager import RegManager
+from src.compare.cmp_utils.reg_manager import RegManager
 
-from cmp_utils.constant.const_manager import ConstManager
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class SrcToDest:
@@ -54,7 +54,7 @@ class FormatManager:
     """
 
     BUILT_IN_FORMAT_CONVERT_DIR_NAME = "builtin_format_convert"
-    CUSTOM_FORMAT_CONVERT_DIR_NAME = "format_convert"
+    CUSTOM_FORMAT_CONVERT_DIR_NAME = ""
     CONVERT_FUNC_NAME = 'convert'
     CONVERT_ARG_COUNT = 3
     TO_FRACTAL_Z_FUNC_ARG_COUNT = 4
@@ -149,7 +149,7 @@ class FormatManager:
             sys.path.append(self.custom_path)
 
     def _get_module(self: any, format_name: str, dir_name: str, module_type: str) -> (bool, any):
-        format_module = importlib.import_module('%s.%s' % (dir_name, format_name))
+        format_module = importlib.import_module('%s.%s.%s' % ("format_convert", dir_name, format_name))
         # check exist convert attr
         if not hasattr(format_module, self.CONVERT_FUNC_NAME):
             log.print_warn_log("[%s] The file '%s' has no attribute '%s'. Please check the file."

@@ -7,12 +7,12 @@ Pytorch CompareData class. This class mainly involves the function of parse dump
 """
 import numpy as np
 
-import utils
+from src.compare.cmp_utils import utils
 from cmp_utils import log
 from pytorch import hdf5_parser
 
-from cmp_utils.constant.const_manager import ConstManager
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class DataType:

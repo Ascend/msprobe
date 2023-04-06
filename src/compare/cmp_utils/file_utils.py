@@ -12,12 +12,12 @@ import re
 import uuid
 
 from cmp_utils import log
-import utils
+from src.compare.cmp_utils import utils
 from cmp_utils import common
 import numpy as np
 
-from cmp_utils.constant.const_manager import ConstManager
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class FileUtils:

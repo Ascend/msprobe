@@ -3,12 +3,12 @@ import unittest
 import pytest
 import msaccucmp
 import struct
-import utils
+from src.compare.cmp_utils import utils
 import time
 import numpy as np
 from unittest import mock
 import dump_data_pb2 as DD
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 import json
 from cmp_utils import file_utils
 
@@ -22,8 +22,8 @@ class TestUtilsMethods(unittest.TestCase):
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.isfile', return_value=True):
-                    with mock.patch('utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch("utils.read_numpy_file", return_value=dump_data):
+                    with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                        with mock.patch("src.compare.cmp_utils.utils.read_numpy_file", return_value=dump_data):
                             msaccucmp.main()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_NONE_ERROR)
 
@@ -32,7 +32,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/right.npy']
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch('utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
                     with mock.patch('os.path.isdir', return_value=True):
                         with mock.patch('os.listdir',
                                         side_effect=[['alg_MaxAbsoluteError.py'], ['alg_MaxAbsoluteError.py'],
@@ -53,7 +53,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', 'convert', '-d', '/home/left.bin', '-f', 'NCHW']
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch("utils.check_path_valid", return_value=0):
+                with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=0):
                     with mock.patch("os.path.isfile", return_value=True):
                         with mock.patch('os.path.getsize', return_value=100):
                             msaccucmp.main()
@@ -179,7 +179,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/CONV2.pron.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid', return_value=1):
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=1):
                     msaccucmp.main()
         self.assertEqual(error.value.code, 1)
 
@@ -188,9 +188,9 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/CONV2.pron.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=1):
                         msaccucmp.main()
         self.assertEqual(error.value.code, 1)
@@ -207,11 +207,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/CONV2.pron.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                         return_value=dump_data):
                             with mock.patch('os.open',
                                             side_effect=OSError) as open_file, \
@@ -234,11 +234,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/CONV2.pron.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                         return_value=dump_data):
                             with mock.patch('os.open') as open_file, \
                                     mock.patch('os.fdopen'):
@@ -266,11 +266,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/CONV2.pron.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                         return_value=dump_data):
                             with mock.patch('numpy.save'):
                                 with mock.patch("os.path.isfile", return_value=True):
@@ -296,11 +296,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/CONV2.pron.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                         return_value=dump_data):
                             with mock.patch('numpy.save',
                                             side_effect=ValueError):
@@ -327,11 +327,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/CONV2.pron.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                         return_value=dump_data):
                             with mock.patch('numpy.save'):
                                 with mock.patch("os.path.isfile", return_value=True):
@@ -357,11 +357,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/CONV2.pron.1.1234567891234567', '-t', 'msnpy']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                         return_value=dump_data):
                             with mock.patch('numpy.save'):
                                 with mock.patch("os.path.isfile", return_value=True):
@@ -386,11 +386,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/CONV2.pron1.1.1234567891234567,/home/CONV2.pron2.1.1234567891234567', '-t', 'msnpy']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file', return_value=dump_data):
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                             with mock.patch('numpy.save'):
                                 with mock.patch("os.path.isfile", return_value=True), \
                                      mock.patch('os.path.getsize', return_value=1000):
@@ -409,11 +409,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/Opdebug.Node_OpDebug.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                         return_value=dump_data):
                             with mock.patch("os.path.isfile", return_value=True):
                                 msaccucmp.main()
@@ -433,11 +433,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/Opdebug.Node_OpDebug.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                         return_value=dump_data):
                             with mock.patch('os.open',
                                             side_effect=OSError) as open_file, \
@@ -461,11 +461,11 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/Opdebug.Node_OpDebug.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                        with mock.patch('utils.parse_dump_file',
+                        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                         return_value=dump_data):
                             with mock.patch('os.open') as open_file, \
                                     mock.patch('os.fdopen'):
@@ -487,9 +487,9 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/Opdebug.Node_OpDebug.1.1234567891234567']
         with mock.patch('sys.argv', args):
             with pytest.raises(SystemExit) as error:
-                with mock.patch('utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                      mock.patch('utils.check_output_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
-                     mock.patch('utils.parse_dump_file', return_value=dump_data), \
+                     mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data), \
                      mock.patch('os.open') as open_file, mock.patch('os.fdopen'), \
                      mock.patch("os.path.isfile", return_value=True):
                     open_file.write = None
@@ -539,7 +539,7 @@ class TestUtilsMethods(unittest.TestCase):
                                              ['convert_NC1HWC0_to_NCHW.py']]), \
                      mock.patch('os.path.isdir', return_value=True), \
                      mock.patch('os.path.isfile', return_value=True), \
-                     mock.patch('utils.parse_dump_file', return_value=dump_data):
+                     mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch("os.path.getsize", return_value=100):
                         with mock.patch('builtins.open',
                                         mock.mock_open(read_data=self._make_input_json().encode('utf-8'))):
@@ -553,10 +553,10 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/right.bin', '-f', "/home/a.json", "-op", "data"]
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch("utils.check_hdf5_file_valid", return_value=False):
+                with mock.patch("src.compare.cmp_utils.utils.check_hdf5_file_valid", return_value=False):
                     with mock.patch("os.path.isfile", return_value=False):
                         with mock.patch("os.path.exists", return_value=False):
-                            with mock.patch("utils.check_path_valid", return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                            with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=CompareError.MSACCUCMP_NONE_ERROR):
                                 msaccucmp.main()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
@@ -618,7 +618,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/right.bin', '-f', '', '--max_line', '100']
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch("utils.check_path_valid", return_value=0):
+                with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=0):
                     msaccucmp.main()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
@@ -627,7 +627,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/right.bin', '-f', '', '--max_line', '10000000']
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch("utils.check_path_valid", return_value=0):
+                with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=0):
                     msaccucmp.main()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
@@ -740,9 +740,9 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/right.h5']
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         with mock.patch("os.path.isfile", return_value=True):
                             with mock.patch("hdf5_parser.Hdf5Parser.open_file",
@@ -1018,7 +1018,7 @@ class TestUtilsMethods(unittest.TestCase):
                      mock.patch('os.path.isdir', return_value=True), \
                      mock.patch('os.path.isfile', return_value=True), \
                      mock.patch('os.path.getsize', return_value=100), \
-                     mock.patch('utils.parse_dump_file', return_value=dump_data):
+                     mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch('builtins.open',
                                     mock.mock_open(read_data=self._make_input_json2().encode('utf-8'))):
                         print("***********start**************")

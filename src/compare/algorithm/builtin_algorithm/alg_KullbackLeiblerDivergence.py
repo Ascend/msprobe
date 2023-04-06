@@ -10,9 +10,9 @@ import numpy as np
 import scipy.stats
 
 from src.compare.algorithm.algorithm_parameter import AlgorithmParameter
-import utils
+from src.compare.cmp_utils import utils
 from cmp_utils import log
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 
 
 def _normalized(dump_data: any) -> any:

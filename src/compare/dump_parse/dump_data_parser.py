@@ -9,15 +9,13 @@ import os
 import json
 import struct
 import numpy as np
-import utils
-from cmp_utils import log
-from cmp_utils import common
-from cmp_utils.constant.const_manager import ConstManager
-
-from cmp_utils.file_utils import FileUtils
-
+from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import log
+from src.compare.cmp_utils import common
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.file_utils import FileUtils
 from src.compare.cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class DumpDataParser:

@@ -2,9 +2,9 @@ import unittest
 
 from unittest import mock
 import numpy as np
-import fusion_op
-from format_manager import FormatManager
-from tensor_conversion import TensorConversion
+from src.compare.vector_cmp.fusion_manager import fusion_op
+from src.compare.format_convert.format_manager import FormatManager
+from src.compare.conversion.tensor_conversion import TensorConversion
 
 
 class TestUtilsMethods(unittest.TestCase):

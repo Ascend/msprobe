@@ -7,16 +7,16 @@ import csv
 
 import numpy as np
 import pytest
-import utils
+from src.compare.cmp_utils import utils
 from cmp_utils import file_utils
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 import dump_data_pb2 as DD
 
 
 class TestUtilsMethods(unittest.TestCase):
     def test_load_json_file_case1(self):
         file_util = file_utils.FileUtils()
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('os.open',
                             side_effect=IOError) as open_file:
                 open_file.writer = None
@@ -26,7 +26,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_load_json_file_case2(self):
         file_util = file_utils.FileUtils()
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch("os.path.getsize", return_value=100):
                 with mock.patch('builtins.open', side_effect=None):
                     with mock.patch('json.load', side_effect=IOError):
@@ -42,7 +42,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_read_csv_case2(self):
         file_util = file_utils.FileUtils()
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('builtins.open', side_effect=IOError):
                 ret = file_util.read_csv("/home/test.csv")
         self.assertEqual(err.value.args[0],
@@ -59,7 +59,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_save_file_case1(self):
         file_util = file_utils.FileUtils()
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('os.open', side_effect=IOError) as open_file, \
                     mock.patch('os.fdopen'):
                 open_file.write = None
@@ -76,7 +76,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_list_file_with_pattern_case1(self):
         overflow_file_util = file_utils.OverflowFileUtils()
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch("os.path.exists", return_value=False):
                 overflow_file_util._list_file_with_pattern("/home", '', '', None)
         self.assertEqual(err.value.args[0],
@@ -209,7 +209,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_file_obj = file_utils.DumpFileDesc(file_desc, dump_attr)
 
         op_output.data = struct.pack('%de' % length, *origin_numpy)
-        with mock.patch('utils.parse_dump_file',
+        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                         return_value=dump_data):
             with mock.patch('os.path.basename', return_value='Opdebug.Node_OpDebug.1.25.161233160'):
                 parsed_dump_file_obj = overflow_file_util.list_parsed_dump_files('/home', dump_file_obj)

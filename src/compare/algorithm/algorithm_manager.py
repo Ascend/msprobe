@@ -12,15 +12,15 @@ import sys
 import time
 import importlib
 from cmp_utils import log
-import utils
+from src.compare.cmp_utils import utils
 import numpy as np
 
 from src.compare.algorithm.algorithm_parameter import AlgorithmParameter
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 
-from reg_manager import RegManager
+from src.compare.cmp_utils.reg_manager import RegManager
 
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from cmp_utils.file_utils import FileUtils
 
 
@@ -246,7 +246,7 @@ class AlgorithmManager:
             module_type = ConstManager.CUSTOM
         elif algorithm_name in self.built_in_support_algorithm:
             algorithm_module = importlib.import_module('%s.%s.alg_%s' %
-                                                       ("algorithm",ConstManager.BUILT_IN_ALGORITHM_DIR_NAME, algorithm_name))
+                                                       ("algorithm", ConstManager.BUILT_IN_ALGORITHM_DIR_NAME, algorithm_name))
             module_type = ConstManager.BUILTIN
         else:
             return False, '', ''

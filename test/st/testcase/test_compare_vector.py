@@ -9,16 +9,16 @@ import numpy as np
 import compare_vector
 import json
 from src.compare.dump_parse import dump
-import utils
-import fusion_rule_parser
+from src.compare.cmp_utils import utils
+from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
 import dump_data_pb2 as DD
-import fusion_op
+from src.compare.vector_cmp.fusion_manager import fusion_op
 from unittest import mock
-from cmp_utils.constant.compare_error import CompareError
-from fusion_op import OutputDesc, FusionOp, OpAttr
-from range_manager import RangeManager
-from range_mode import RangeMode
-from select_mode import SelectMode
+from src.compare.cmp_utils.constant.compare_error import CompareError
+from src.compare.vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
+from src.compare.vector_cmp.range_manager.range_manager import RangeManager
+from src.compare.vector_cmp.range_manager.range_mode import RangeMode
+from src.compare.vector_cmp.range_manager.select_mode import SelectMode
 
 class TestUtilsMethods(unittest.TestCase):
     def test_compare1(self):
@@ -335,7 +335,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare22(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-q',
                 '/home/a.json', '-o', '/home/result']
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.access', return_value=True), \
@@ -354,7 +354,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare23(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result']
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.access', return_value=True), \
@@ -440,7 +440,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json_object()):
                         with mock.patch('builtins.open', mock.mock_open(
@@ -497,7 +497,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json_object()):
                         with mock.patch('builtins.open',
@@ -556,7 +556,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -611,7 +611,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -666,7 +666,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -720,7 +720,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json()):
                         with mock.patch('builtins.open',
@@ -778,7 +778,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json()):
                         with mock.patch('builtins.open',
@@ -836,7 +836,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json()):
                         with mock.patch('builtins.open',
@@ -873,7 +873,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.range = None
         arguments.select = None
         with mock.patch("compare_vector.VectorComparison._compare_by_multi_process", return_value=(0, False)):
-            with mock.patch("utils.sort_result_file_by_index"):
+            with mock.patch("src.compare.cmp_utils.utils.sort_result_file_by_index"):
                 compare_vector_instance = compare_vector.VectorComparison(arguments)
                 compare_vector_instance._compare_vector()
                 compare_vector_instance.args["range"] = '[1,-1,2]'
@@ -917,7 +917,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -950,7 +950,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.range = None
         arguments.select = None
         with mock.patch("compare_vector.VectorComparison._compare_by_multi_process", return_value=(0, False)):
-            with mock.patch("utils.sort_result_file_by_index"):
+            with mock.patch("src.compare.cmp_utils.utils.sort_result_file_by_index"):
                 compare_vector_instance = compare_vector.VectorComparison(arguments)
                 compare_vector_instance._compare_vector()
                 compare_vector_instance.args["select"] = '1,2,4'
@@ -997,7 +997,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py']]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_L1_fusion_json_object()):
                         with mock.patch('builtins.open',
@@ -1150,7 +1150,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_detail2(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'data']
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.path.getsize', return_value=100), \
@@ -1174,7 +1174,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_detail3(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'dynamic_const_471']
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.access', return_value=True), \
@@ -1200,7 +1200,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'conv1conv1_relu',
                 '-i', '10']
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.access', return_value=True), \
@@ -1250,7 +1250,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.access', return_value=True), \
@@ -1262,7 +1262,7 @@ class TestUtilsMethods(unittest.TestCase):
                                                 ['convert_NC1HWC0_to_NCHW.py'], []]), \
                         mock.patch('os.path.isdir', return_value=True), \
                         mock.patch('os.path.isfile', return_value=True), \
-                        mock.patch('utils.parse_dump_file', return_value=dump_data):
+                        mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch("os.path.getsize", return_value=100):
                         with mock.patch('builtins.open',
                                         mock.mock_open(
@@ -1278,7 +1278,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.access', return_value=True), \
@@ -1290,7 +1290,7 @@ class TestUtilsMethods(unittest.TestCase):
                                                 ['convert_NC1HWC0_to_NCHW.py'], []]), \
                         mock.patch('os.path.isdir', return_value=True), \
                         mock.patch('os.path.isfile', return_value=True), \
-                        mock.patch('utils.parse_dump_file', return_value=dump_data):
+                        mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch("os.path.getsize", return_value=100):
                         with mock.patch('builtins.open',
                                         mock.mock_open(
@@ -1307,7 +1307,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.access', return_value=True), \
@@ -1319,7 +1319,7 @@ class TestUtilsMethods(unittest.TestCase):
                                                 ['convert_NC1HWC0_to_NCHW.py'], []]), \
                         mock.patch('os.path.isdir', return_value=True), \
                         mock.patch('os.path.isfile', return_value=True), \
-                        mock.patch('utils.parse_dump_file', return_value=dump_data):
+                        mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch("os.path.getsize", return_value=100):
                         with mock.patch('builtins.open',
                                         mock.mock_open(
@@ -1352,7 +1352,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py'], []]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -1386,7 +1386,7 @@ class TestUtilsMethods(unittest.TestCase):
                                                 [], ['convert_NC1HWC0_to_NCHW.py']]), \
                         mock.patch('os.path.isdir', return_value=True), \
                         mock.patch('os.path.isfile', return_value=True), \
-                        mock.patch('utils.parse_dump_file', return_value=dump_data):
+                        mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
                                         read_data=self._make_input_json().encode(
@@ -1404,7 +1404,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = DD.DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.access', return_value=True), \
@@ -1421,7 +1421,7 @@ class TestUtilsMethods(unittest.TestCase):
                                                 ['convert_NC1HWC0_to_NCHW.py'], []]), \
                         mock.patch('os.path.isdir', return_value=True), \
                         mock.patch('os.path.isfile', return_value=True), \
-                        mock.patch('utils.parse_dump_file', return_value=dump_data):
+                        mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch("os.path.getsize", return_value=100):
                         with mock.patch('builtins.open',
                                         mock.mock_open(
@@ -1458,7 +1458,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py'], []]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -1479,7 +1479,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                         mock.patch('os.access', return_value=True), \
@@ -1496,7 +1496,7 @@ class TestUtilsMethods(unittest.TestCase):
                                                 ['convert_NC1HWC0_to_NCHW.py'], []]), \
                         mock.patch('os.path.isdir', return_value=True), \
                         mock.patch('os.path.isfile', return_value=True), \
-                        mock.patch('utils.parse_dump_file', return_value=dump_data):
+                        mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch("os.path.getsize", return_value=100):
                         with mock.patch('builtins.open',
                                         mock.mock_open(
@@ -1531,7 +1531,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             ['convert_NC1HWC0_to_NCHW.py'], []]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -1567,7 +1567,7 @@ class TestUtilsMethods(unittest.TestCase):
                                             []]), \
                     mock.patch('os.path.isdir', return_value=True), \
                     mock.patch('os.path.isfile', return_value=True), \
-                    mock.patch('utils.parse_dump_file', return_value=dump_data):
+                    mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch('builtins.open',
                                     mock.mock_open(

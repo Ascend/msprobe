@@ -9,7 +9,7 @@ import time
 import math
 
 from cmp_utils import log
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 
 
 class Progress:

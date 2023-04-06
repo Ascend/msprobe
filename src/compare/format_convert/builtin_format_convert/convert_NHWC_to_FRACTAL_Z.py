@@ -3,17 +3,18 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
 Function:
-convert format from NCHW to FRACTAL_Z.
+convert format from NHWC to FRACTAL_Z.
 """
 import numpy as np
 
-from cmp_utils.constant.const_manager import ConstManager
-from utils import least_common_multiple as lcm
-from utils import ceiling_divide as ceil
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.utils import least_common_multiple as lcm
+from src.compare.cmp_utils.utils import ceiling_divide as ceil
 
 
-def _get_axis(gnc_axis: list, value_map: dict, dst_c: int, w_axis: int, h_axis: int) -> int:
-    g_axis = gnc_axis[0]
+def _get_axis(gnh_axis: list, value_map: dict, dst_c: int, w_axis: int) -> int:
+    g_axis = gnh_axis[0]
+    h_axis = gnh_axis[2]
     kh_axis = value_map.get('kh_axis')
     kw_axis = value_map.get('kw_axis')
     e_multi = value_map.get('e_multi')
@@ -22,9 +23,9 @@ def _get_axis(gnc_axis: list, value_map: dict, dst_c: int, w_axis: int, h_axis: 
 
 
 def _get_count_for_axis(shape_from: list, g_num: int, e_multi: int) -> int:
-    c_ori = shape_from[1]
-    kh_axis = shape_from[2]
-    kw_axis = shape_from[3]
+    c_ori = shape_from[3]
+    kh_axis = shape_from[1]
+    kw_axis = shape_from[2]
     c_opt = ceil(e_multi * c_ori, ConstManager.C0_AXIS) * ConstManager.C0_AXIS
     c1_axis = ceil(c_opt, ConstManager.C0_AXIS)
     return g_num * c1_axis * kh_axis * kw_axis
@@ -32,7 +33,7 @@ def _get_count_for_axis(shape_from: list, g_num: int, e_multi: int) -> int:
 
 def convert(shape_from: list, shape_to: list, array: any, group: int = 1) -> any:
     """
-    Convert the data format from NCHW to FRACTAL_Z
+    Convert the data format from NHWC to FRACTAL_Z
     :param shape_from: the shape before convert
     :param shape_to: the shape after convert
     :param array: the one-dimensional array
@@ -41,10 +42,10 @@ def convert(shape_from: list, shape_to: list, array: any, group: int = 1) -> any
     """
     _ = shape_to
     # get before convert shape
-    c_ori = shape_from[1]
-    kh_axis = shape_from[2]
-    kw_axis = shape_from[3]
-    array_shape = array.reshape(shape_from[0], c_ori, kh_axis, kw_axis)
+    kh_axis = shape_from[1]
+    kw_axis = shape_from[2]
+    c_ori = shape_from[3]
+    array_shape = array.reshape(shape_from[0], kh_axis, kw_axis, c_ori)
 
     # CUBE Unit K and N
     n_ori = shape_from[0] // group
@@ -54,22 +55,21 @@ def convert(shape_from: list, shape_to: list, array: any, group: int = 1) -> any
     array_to = np.zeros(
         (_get_count_for_axis(shape_from, ceil(group, e_multi), e_multi),
          ceil(ceil(e_multi * n_ori, ConstManager.N0_AXIS) * ConstManager.N0_AXIS, ConstManager.N0_AXIS),
-         ConstManager.N0_AXIS,
-         ConstManager.C0_AXIS), dtype=array_shape.dtype)
-    # convert nchw to gc1hwn1n0c0
+         ConstManager.N0_AXIS, ConstManager.C0_AXIS), dtype=array_shape.dtype)
+    # convert nhwc to gc1hwn1n0c0
     for g_axis in range(group):
         for n_axis in range(n_ori):
-            for c_axis in range(c_ori):
-                for h_axis in range(kh_axis):
-                    for w_axis in range(kw_axis):
+            for h_axis in range(kh_axis):
+                for w_axis in range(kw_axis):
+                    for c_axis in range(c_ori):
                         e_val = g_axis % e_multi
                         dst_c = e_val * c_ori + c_axis
                         dst_n = e_val * n_ori + n_axis
                         src_n = g_axis * n_ori + n_axis
-                        array_to[_get_axis([g_axis, n_axis, c_axis],
+                        array_to[_get_axis([g_axis, n_axis, h_axis],
                                            {'e_multi': e_multi, 'kh_axis': kh_axis, 'kw_axis': kw_axis},
-                                           dst_c, w_axis, h_axis)][dst_n // ConstManager.N0_AXIS][
+                                           dst_c, w_axis)][dst_n // ConstManager.N0_AXIS][
                             dst_n % ConstManager.N0_AXIS][dst_c % ConstManager.C0_AXIS] = \
-                            array_shape[src_n][c_axis][h_axis][w_axis]
+                            array_shape[src_n][h_axis][w_axis][c_axis]
     return array_to
 

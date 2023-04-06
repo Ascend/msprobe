@@ -10,8 +10,8 @@ import unittest
 import pytest
 
 from src.compare.vector_cmp.batch_compare import BatchCompare
-import utils
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils import utils
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 
@@ -37,7 +37,7 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("builtins.open", mock.mock_open(read_data=None)):
                         with mock.patch("json.load", return_value=self._make_json_object()):
-                            with mock.patch("utils.check_path_valid",
+                            with mock.patch("src.compare.cmp_utils.utils.check_path_valid",
                                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                                 with mock.patch("os.path.exists", return_value=False):
                                     batch_compare_test = BatchCompare()
@@ -59,12 +59,12 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.algorithm_options = ''
         arguments.range = None
         json_file_array = ['0.json']
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.listdir", return_value=json_file_array):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("builtins.open", mock.mock_open(read_data=None)):
                         with mock.patch("json.load", return_value=self._make_json_object()):
-                            with mock.patch("utils.check_path_valid",
+                            with mock.patch("src.compare.cmp_utils.utils.check_path_valid",
                                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                                 with mock.patch("os.path.exists", return_value=False):
                                     batch_compare_test = BatchCompare()

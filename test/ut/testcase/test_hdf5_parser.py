@@ -1,8 +1,8 @@
 import unittest
 from unittest import mock
 import pytest
-import utils
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils import utils
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from pytorch import hdf5_parser
 
 
@@ -27,7 +27,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_dump_data_attr1(self):
         parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
         parser.file_handle = None
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             parser.get_dump_data_attr("/Admm1/6/input1", "DataType")
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
@@ -35,7 +35,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_dump_data_attr2(self):
         parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
         parser.file_handle = "testhandle"
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             parser.get_dump_data_attr("/Admm1/6/input1", "DataType")
             self.assertEqual(error.value.args[0],
                              CompareError.MSACCUCMP_PARSE_DUMP_FILE_ERROR)
@@ -43,7 +43,7 @@ class TestUtilsMethods(unittest.TestCase):
     def get_dump_data1(self):
         parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
         parser.file_handle = None
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             parser.get_dump_data("/Admm1/6/input1")
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
@@ -51,7 +51,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_dump_data2(self):
         parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
         parser.file_handle = "testhandle"
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             parser.get_dump_data("/Admm1/6/input1")
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_PARSE_DUMP_FILE_ERROR)
@@ -195,7 +195,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_value(self):
         parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             tmp = [None] * 1000001
             parser._check_value(tmp)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)

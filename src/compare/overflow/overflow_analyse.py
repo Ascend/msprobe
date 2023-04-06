@@ -12,9 +12,9 @@ import time
 import numpy as np
 
 from cmp_utils import log
-import utils
-from cmp_utils.constant.compare_error import CompareError
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils import utils
+from src.compare.cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.dump_parse.dump_data_parser import DumpDataParser
 from cmp_utils.file_utils import OverflowFileUtils, DumpFileDesc
 

@@ -8,14 +8,14 @@ import multiprocessing
 import h5py
 import pytest
 import numpy as np
-import utils
+from src.compare.cmp_utils import utils
 from unittest import mock
 import argparse
 
 from pytorch import compare_pytorch
-import compare_result
+from src.compare.vector_cmp.fusion_manager import compare_result
 from pytorch.compare_pytorch import PytorchComparison
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class TestPytorchComparison(PytorchComparison):
@@ -91,11 +91,11 @@ class TestUtilsMethods(unittest.TestCase):
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
                 '/home/right.h5', '-p', '0', '-op', 'Addmtest']
-        with pytest.raises(utils.CompareError) as err:
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
-                with mock.patch('utils.check_path_valid',
+                with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch('utils.check_output_path_valid',
+                    with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                                     return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         with mock.patch("os.path.isfile", return_value=True):
                             with mock.patch("pytorch.hdf5_parser.Hdf5Parser.open_file",
@@ -115,7 +115,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
                 '/home/right.h5', '-p','1', '-out', './']
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch("os.path.isfile", return_value=True):
                     with mock.patch("pytorch.hdf5_parser.Hdf5Parser.open_file",
@@ -135,7 +135,7 @@ class TestUtilsMethods(unittest.TestCase):
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch("os.path.isfile", return_value=True):
                     with mock.patch("pytorch.hdf5_parser.Hdf5Parser.open_file",
@@ -236,16 +236,16 @@ class TestUtilsMethods(unittest.TestCase):
             args = parser.parse_args(sys.argv[1:])
             pytorch_compare = compare_pytorch.PytorchComparison(args)
 
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR),\
                     mock.patch('os.path.exists', return_value=True):
                 with mock.patch("os.path.isfile", return_value=True):
                     with mock.patch("pytorch.hdf5_parser._open_h5py_file",
                                     side_effect=stub_open_file):
                         with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
-                            with mock.patch('utils.sort_result_file_by_index', return_value=None):
+                            with mock.patch('src.compare.cmp_utils.utils.sort_result_file_by_index', return_value=None):
                                 open_file.write = None
                                 ret = pytorch_compare.compare()
                                 all_orders = pytorch_compare.compare_data.get_all_orders()
@@ -256,9 +256,9 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(order, 16)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                     mock.patch('os.path.exists', return_value=True):
                 with mock.patch("os.path.isfile", return_value=True):
@@ -266,7 +266,7 @@ class TestUtilsMethods(unittest.TestCase):
                                     side_effect=stub_open_file):
                         with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
                             with mock.patch('pytorch.compare_pytorch.PytorchComparison._get_compare_dump_data',
-                                            side_effect=utils.CompareError):
+                                            side_effect=CompareError):
                                 with mock.patch('os.path.getsize', return_value=None):
                                     open_file.write = None
                                     ret = pytorch_compare.compare()
@@ -283,7 +283,7 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('sys.argv', args):
             args = parser.parse_args(sys.argv[1:])
             pytorch_compare = compare_pytorch.PytorchComparison(args)
-            with mock.patch('pytorch_dump_data.CompareData.get_my_dump_datasets',
+            with mock.patch('src.compare.pytorch.pytorch_dump_data.CompareData.get_my_dump_datasets',
                             return_value=[]):
                 pytorch_compare._compare_one_op(1, "Admm:2", mock.Mock)
 

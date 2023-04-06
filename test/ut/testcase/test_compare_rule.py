@@ -9,8 +9,8 @@ Huawei Technologies Co., Ltd. All Rights Reserved © 2021
 import json
 import unittest
 import pytest
-import compare_rule
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.vector_cmp.fusion_manager import compare_rule
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 
@@ -21,7 +21,7 @@ class TestUtilsMethods(unittest.TestCase):
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
         with pytest.raises(CompareError) as error:
-            with mock.patch("utils.check_path_valid", return_value=1):
+            with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=1):
                 compare_rule_object.check_arguments_valid()
         self.assertEqual(error.value.args[0], 1)
 
@@ -29,7 +29,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
-        with mock.patch("utils.check_path_valid", return_value=0):
+        with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=0):
             compare_rule_object.check_arguments_valid()
 
     def test_check_arguments_valid3(self):
@@ -39,7 +39,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path,
                                                        close_fusion_rule_file_path)
         with pytest.raises(CompareError) as error:
-            with mock.patch("utils.check_path_valid", side_effect=[0, 0, 1]):
+            with mock.patch("src.compare.cmp_utils.utils.check_path_valid", side_effect=[0, 0, 1]):
                 compare_rule_object.check_arguments_valid()
         self.assertEqual(error.value.args[0], 1)
 
@@ -49,7 +49,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
-        with mock.patch("utils.check_path_valid", return_value=0):
+        with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=0):
             compare_rule_object._sort_file_by_timestamp(op_name_to_file_map, op_name_to_task_mode)
 
     def test_sort_file_by_timestamp2(self):
@@ -58,7 +58,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
-        with mock.patch("utils.check_path_valid", return_value=0):
+        with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=0):
             compare_rule_object._sort_file_by_timestamp(op_name_to_file_map, op_name_to_task_mode)
 
     def test_make_npu_vs_npu_fusion_rule1(self):

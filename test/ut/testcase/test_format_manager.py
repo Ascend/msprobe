@@ -3,13 +3,13 @@ import unittest
 import struct
 import pytest
 import numpy as np
-import utils
-from format_manager import FormatManager
-from format_manager import ShapeConversion
-from format_manager import SrcToDest
+from src.compare.cmp_utils import utils
+from src.compare.format_convert.format_manager import FormatManager
+from src.compare.format_convert.format_manager import ShapeConversion
+from src.compare.format_convert.format_manager import SrcToDest
 import dump_data_pb2 as DD
 from src.compare.dump_parse.dump_data_object import DumpTensor
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 
@@ -23,14 +23,14 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_arguments_valid2(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid', return_value=2):
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=2):
                 manager = FormatManager("/home/gzj")
                 manager.check_arguments_valid()
         self.assertEqual(error.value.args[0], 2)
 
     def test_check_arguments_valid3(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.exists', return_value=False):
                     manager = FormatManager("/home/gzj")
@@ -39,7 +39,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_arguments_valid4(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.listdir',
                                 return_value=['xxx', 'ccc', 'ddd', 'eee']), \
@@ -51,7 +51,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_arguments_valid5(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.listdir',
                                 return_value=['xxx', 'ccc', 'ddd', 'eee']), \
@@ -63,7 +63,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_arguments_valid6(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.listdir',
                                 return_value=['convert_xxx_to_yyx.py',
@@ -80,7 +80,7 @@ class TestUtilsMethods(unittest.TestCase):
         shape_from = self._make_shape([1, 2, 2, 2, 2])
         shape_to = self._make_shape([1, 3, 2, 2])
         array = self._make_numpy_array(shape_from)
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             manager = FormatManager("")
             manager.check_arguments_valid()
             manager.execute_format_convert(SrcToDest(format_from, format_to, shape_from, shape_to), array,
@@ -97,7 +97,7 @@ class TestUtilsMethods(unittest.TestCase):
         array = np.arange(5)
         manager = FormatManager("")
         manager.check_arguments_valid()
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             ShapeConversion(manager).convert_shape(
                 SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
         self.assertEqual(error.value.args[0],
@@ -112,7 +112,7 @@ class TestUtilsMethods(unittest.TestCase):
         array = self._make_numpy_array(shape_from)
         manager = FormatManager("")
         manager.check_arguments_valid()
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             ShapeConversion(manager).convert_shape(
                 SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
         self.assertEqual(error.value.args[0],
@@ -128,7 +128,7 @@ class TestUtilsMethods(unittest.TestCase):
         manager = FormatManager("")
         manager.check_arguments_valid()
 
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             ShapeConversion(manager).convert_shape(
                 SrcToDest(format_from, format_to, shape_from, shape_to), array, {'group': group})
         self.assertEqual(error.value.args[0],

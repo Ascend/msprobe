@@ -1,22 +1,22 @@
 import unittest
 
 import pytest
-import utils
+from src.compare.cmp_utils import utils
 from src.compare.dump_parse import dump
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 
 class TestUtilsMethods(unittest.TestCase):
     def test_check_arguments_valid1(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid', return_value=1):
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=1):
                 dump_info = dump.DumpInfo('/home', 1)
                 dump_info.check_arguments_valid()
         self.assertEqual(error.value.code, 1)
 
     def test_check_arguments_valid2(self):
-        with mock.patch('utils.check_path_valid', return_value=0):
+        with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=0):
             dump_info = dump.DumpInfo('/home', 1)
             dump_info._make_op_name_to_file_map = mock.Mock()
             dump_info.check_arguments_valid()
@@ -27,7 +27,7 @@ class TestUtilsMethods(unittest.TestCase):
         info = 'op_name.output_index.timestamp.npy'
         expect = 3
         dump_info = dump.DumpInfo('/home', 1)
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             dump_info._match_dump_pattern(pattern, item, info, expect)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DUMP_FILE_ERROR)
 
@@ -36,7 +36,7 @@ class TestUtilsMethods(unittest.TestCase):
         item = "demo.npy"
         info = 'op_name.output_index.timestamp.npy'
         expect = 3
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             dump_info = dump.DumpInfo('/home', 1)
             dump_info.hash_to_file_name_map = {"1": item}
             dump_info._match_dump_pattern(pattern, item, info, expect)
@@ -101,7 +101,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_op_dump_file1(self):
         op_name = "Add_dmeo"
         dump_info = dump.DumpInfo('/home', 1)
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             dump_info.get_op_dump_file(op_name)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
 
@@ -109,7 +109,7 @@ class TestUtilsMethods(unittest.TestCase):
         op_name = "Add_dmeo"
         dump_info = dump.DumpInfo('/home', 1)
         dump_info.op_name_to_file_map = {op_name: []}
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             dump_info.get_op_dump_file(op_name)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
 
@@ -135,7 +135,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_info = dump.DumpInfo('/home', 1)
         dump_info.type = dump.DumpType.Quant
         dump_info.get_op_dump_file = mock.Mock(return_value=(["/home/demo"], 0))
-        with mock.patch("utils.parse_dump_file", return_value=1):
+        with mock.patch("src.compare.cmp_utils.utils.parse_dump_file", return_value=1):
             dump_file_path, dump_data = dump_info.get_op_dump_data(op_name)
         self.assertEqual(dump_file_path, "/home/demo")
         self.assertEqual(dump_data, 1)

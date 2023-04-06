@@ -14,31 +14,23 @@ import multiprocessing
 import signal
 
 import csv
-import utils
-from cmp_utils import log
 from src.compare.dump_parse import dump
-import detail
+from src.compare.vector_cmp.compare_detail import detail
 from src.compare.algorithm.algorithm_manager import AlgorithmManager
-import compare_result
-
-from compare_rule import CompareRule
-
-from format_manager import FormatManager
-
-from compare_fusion_op import FusionOpComparison
-
-from compare_detail import DetailComparison
-from compare_detail import DumpDetailComparison
-
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.vector_cmp.fusion_manager import compare_result
+from src.compare.vector_cmp.fusion_manager.compare_rule import CompareRule
+from src.compare.format_convert.format_manager import FormatManager
+from src.compare.vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
+from src.compare.vector_cmp.compare_detail.compare_detail import DetailComparison
+from src.compare.vector_cmp.compare_detail.compare_detail import DumpDetailComparison
+from src.compare.cmp_utils import log, utils
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.dump_parse.dump import DumpType
-
-from range_manager import RangeManager
-from range_mode import RangeMode
-from select_mode import SelectMode
-from cmp_utils.constant.compare_error import CompareError
-
-from overflow.overflow_detection import OverflowDetection
+from src.compare.vector_cmp.range_manager.range_manager import RangeManager
+from src.compare.vector_cmp.range_manager.range_mode import RangeMode
+from src.compare.vector_cmp.range_manager.select_mode import SelectMode
+from src.compare.overflow.overflow_detection import OverflowDetection
 
 
 class VectorComparison:

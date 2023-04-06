@@ -9,18 +9,14 @@ import os
 import re
 import time
 
-import utils
+from src.compare.cmp_utils import utils
 
-from fusion_rule_parser import FusionRuleParser
-
+from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from compare_vector import VectorComparison
-
 from cmp_utils.file_utils import FileUtils
-
 from cmp_utils import log
-
-from cmp_utils.constant.const_manager import ConstManager
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class BatchCompare:

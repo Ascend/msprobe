@@ -11,12 +11,12 @@ import unittest
 import numpy as np
 from unittest import mock
 
-import utils
+from src.compare.cmp_utils import utils
 from src.compare.dump_parse.dump_data_object import DumpTensor
 from overflow.overflow_detection import OverflowDetection
 
 from src.compare.dump_parse import dump
-import detail
+from src.compare.vector_cmp.compare_detail import detail
 import dump_data_pb2 as DD
 
 
@@ -33,7 +33,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW))
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.parse_dump_file', return_value=dump_data):
+        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
             overflow_detection = OverflowDetection(compare_data, detail_info.tensor_id.op_name)
             input_tensor_data_info, output_tensor_data_info = overflow_detection.parse_dump_file()
             self.assertEqual(len(input_tensor_data_info) == 0, True)
@@ -82,8 +82,8 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW))
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.parse_dump_file', return_value=dump_data):
-            with mock.patch("utils.deserialize_dump_data_to_array", return_value=np.array([19345143, 2, 3])):
+        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
+            with mock.patch("src.compare.cmp_utils.utils.deserialize_dump_data_to_array", return_value=np.array([19345143, 2, 3])):
                 overflow_detection = OverflowDetection(compare_data, detail_info.tensor_id.op_name)
                 overflow_detection.process_op_overflow_detection()
 

@@ -3,15 +3,15 @@ import unittest
 import pytest
 import numpy as np
 from cmp_utils import common
-import utils
+from src.compare.cmp_utils import utils
 import dump_data_pb2 as DD
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):
 
     def test_get_format_string1(self):
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             common.get_format_string('XXXXX')
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
@@ -37,13 +37,13 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(ret, DD.DT_INT8)
 
     def test_get_data_type_by_dtype4(self):
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             common.get_data_type_by_dtype(np.complex)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DATA_TYPE_ERROR)
 
     def test_get_dtype_by_data_type1(self):
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             common.get_dtype_by_data_type(DD.DT_QINT8)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DATA_TYPE_ERROR)
@@ -85,7 +85,7 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(ret, np.float16)
 
     def test_get_struct_format_by_data_type1(self):
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             common.get_struct_format_by_data_type(DD.DT_QINT32)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DATA_TYPE_ERROR)

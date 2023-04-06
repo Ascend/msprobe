@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 from src.compare.dump_parse.dump_data_object import DumpDataObj, DumpTensor
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.dump_parse.ffts_parser import FFTSParser
 
 

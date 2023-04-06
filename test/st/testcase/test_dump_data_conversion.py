@@ -4,10 +4,10 @@ import struct
 import numpy as np
 import time
 from src.compare.dump_parse import dump_data_conversion
-import utils
+from src.compare.cmp_utils import utils
 from cmp_utils import common
 import dump_data_pb2 as DD
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.constant.compare_error import CompareError
 from unittest import mock
 
 

@@ -11,14 +11,14 @@ import sys
 import argparse
 import time
 import numpy as np
-import utils
+from src.compare.cmp_utils import utils
 from dump_parse import big_dump_data
 from cmp_utils import log
 
-from cmp_utils.constant.const_manager import ConstManager
+from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
-from reg_manager import RegManager
-from cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils.reg_manager import RegManager
+from src.compare.cmp_utils.constant.compare_error import CompareError
 
 
 class DumpDataConversion:
