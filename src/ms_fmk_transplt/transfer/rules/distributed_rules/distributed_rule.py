@@ -225,11 +225,10 @@ class DistributedDataParallelRule(BaseRule):
     wrapper model with DistributedDataParallel.
     '''
 
-    def __init__(self, model, amp_flag):
+    def __init__(self, model):
         super(DistributedDataParallelRule, self).__init__()
         self.insert_flag = False
         self.model_target = model
-        self.amp_flag = amp_flag
         self.optimizer_name = ''
         self.has_apex_initialize = False
         self.add_after_if = False
@@ -287,8 +286,6 @@ class DistributedDataParallelRule(BaseRule):
         if not self.insert_flag:
             return updated_node
         self.insert_flag = False
-        if self.amp_flag and self.optimizer_name:
-            return updated_node
         return self.__add_ddp_statement(original_node, updated_node)
 
     def leave_If(
