@@ -22,7 +22,7 @@ from src.compare.compare_vector import VectorComparison
 from src.compare.conversion.shape_conversion import FormatConversionMain
 from src.compare.dump_parse.dump_data_parser import DumpDataParser
 from src.compare.overflow.overflow_analyse import OverflowAnalyse
-from src.compare.pytorch.compare_pytorch import PytorchComparison
+from src.compare.pytorch_cmp.compare_pytorch import PytorchComparison
 from src.compare.vector_cmp.batch_compare import BatchCompare
 
 

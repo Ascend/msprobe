@@ -14,7 +14,7 @@ import numpy as np
 
 from src.compare.cmp_utils import utils
 from src.compare.cmp_utils import log
-from src.compare.pytorch import pytorch_dump_data as pytorch_dump
+from src.compare.pytorch_cmp import pytorch_dump_data as pytorch_dump
 from src.compare.algorithm.algorithm_manager import AlgorithmManager
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.vector_cmp.fusion_manager import compare_result
