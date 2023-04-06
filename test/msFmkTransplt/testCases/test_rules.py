@@ -318,7 +318,7 @@ val_loader = torch.utils.data.DataLoader(
             self._check_modify(rule, test_case[0], test_case[1])
 
     def test_distributed_data_parallel_rule(self):
-        rule = self.distributed_rule.DistributedDataParallelRule('model', '')
+        rule = self.distributed_rule.DistributedDataParallelRule('model')
 
         test_cases = (
             (

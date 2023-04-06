@@ -187,9 +187,6 @@ class MsFmkTransplt(object):
         if utils.check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
-        if args.amp_model:
-            utils.check_model_name_valid(args.amp_model)
-
         self.__check_custom_rule_param_valid(args)
         self.__check_distributed_rule_param_valid(args)
 
@@ -204,8 +201,6 @@ class MsFmkTransplt(object):
         parser.add_argument('-sim', '--similar', action='store_true',
                             help='Replaces certain unsupported APIs with functionally similar ones. '
                                  'Note that this may result in accuracy loss and performance degradation')
-        parser.add_argument('-a', '--amp_model', metavar='model', default='',
-                            help='This option is required only if you want to convert torch.cuda.amp to apex.amp')
         parser.add_argument('-v', '--version', required=True, choices=['1.8.1', '1.11.0'],
                             help='Target pytorch version of output.')
         parser.add_argument('-m', '--modelarts', action='store_true',
