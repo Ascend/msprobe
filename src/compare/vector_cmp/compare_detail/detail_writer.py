@@ -214,13 +214,12 @@ class DetailWriter:
         for _data in data:
             for index, _element in enumerate(_data):
                 end = '\n' if index == len(_data) - 1 else '\t'
-                print(str(_element.strip()).ljust(max_column_list[index], ' '), end=end)
-
+                log.print_info_log(str(_element.strip()).ljust(max_column_list[index], ' '), end=end)
     @staticmethod
     def _show_top_n_header(headers: list, max_column_list: list) -> None:
         for index, header in enumerate(headers):
             end = '\n' if index == len(headers) - 1 else '\t'
-            print(str(header.strip()).ljust(max_column_list[index], ' '), end=end)
+            log.print_info_log(str(header.strip()).ljust(max_column_list[index], ' '), end=end)
 
     def delete_old_detail_result_files(self: any) -> None:
         """
@@ -482,16 +481,14 @@ class DetailWriter:
     def _show_top_n(self: any, top_n_type: str, top_n_list: list) -> None:
         headers, data = self._make_show_data(top_n_list)
         max_column_list = self._calculate_str_length(headers, data)
-        print("%s TopN" % top_n_type)
+        log.print_info_log("%s TopN" % top_n_type)
         self._show_top_n_header(headers, max_column_list)
         self._show_top_n_data(data, max_column_list)
 
     def _handle_top_n(self: any) -> None:
-        print("\n")
         absolute_top_n = self.top_n.get_absolute_error_top_n_list()
         self._write_top_n_file('absolute', absolute_top_n)
         self._show_top_n("Absolute Error", absolute_top_n)
-        print("\n")
         relative_top_n = self.top_n.get_relative_error_top_n_list()
         self._write_top_n_file('relative', relative_top_n)
         self._show_top_n("Relative Error", relative_top_n)

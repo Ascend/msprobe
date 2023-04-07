@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2023. All rights reserved.
-
-from src.compare.cmp_utils import log
 import numpy as np
 
+from src.compare.cmp_utils import log
 from src.compare.dump_parse.dump_data_object import DumpTensor, DumpDataObj
 from src.compare.cmp_utils.constant.compare_error import CompareError
 

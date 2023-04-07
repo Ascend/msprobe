@@ -241,11 +241,15 @@ class AlgorithmManager:
         if algorithm_name in self.custom_support_algorithm:
             sys.path.append(self.custom_path)
             algorithm_module = importlib.import_module('%s.%s.alg_%s' %
-                                                       ("algorithm",ConstManager.CUSTOM_ALGORITHM_DIR_NAME, algorithm_name))
+                                                       ("algorithm",
+                                                        ConstManager.CUSTOM_ALGORITHM_DIR_NAME,
+                                                        algorithm_name))
             module_type = ConstManager.CUSTOM
         elif algorithm_name in self.built_in_support_algorithm:
             algorithm_module = importlib.import_module('%s.%s.alg_%s' %
-                                                       ("algorithm", ConstManager.BUILT_IN_ALGORITHM_DIR_NAME, algorithm_name))
+                                                       ("algorithm",
+                                                        ConstManager.BUILT_IN_ALGORITHM_DIR_NAME,
+                                                        algorithm_name))
             module_type = ConstManager.BUILTIN
         else:
             return False, '', ''
@@ -300,7 +304,7 @@ class AlgorithmManager:
 
     def _call_compare_function(self: any, *args: any) -> (str, str):
         compare_func, my_output_dump_data, ground_truth_dump_data, alg_args, algorithm_name = args
-        alg_result = []
+        alg_result = ''
         alg_error_msg = ''
         try:
             if compare_func:

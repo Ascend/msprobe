@@ -15,6 +15,7 @@ from src.compare.cmp_utils import log
 
 CommonAttr = collections.namedtuple('CommonAttr', ['data_type', 'tensor_format', 'address', 'original_shape'])
 
+
 class DumpTensor:
     """
     The class of DumpTensor, replace the class of DD.DumpData.input or output.

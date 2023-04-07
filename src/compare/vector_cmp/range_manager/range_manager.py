@@ -65,6 +65,10 @@ class RangeManager(ABC):
                 break
         return match and 'compare_vector.py' not in sys.argv[0]
 
+    @staticmethod
+    def _parse_input_str(input_str: str):
+        pass
+
     @abstractmethod
     def get_all_ops(self: any, compare_rule: CompareRule):
         """
@@ -79,8 +83,4 @@ class RangeManager(ABC):
         Check range valid:
         :param op_count: the op count
         """
-        pass
-
-    @abstractmethod
-    def _parse_input_str(self: any, input_str: str):
         pass
