@@ -143,8 +143,6 @@ class SortMode:
         return int(thread_id)
 
     def _parameter_timestamp(self, file_split, file_name):
-        if isinstance(file_name, tuple):
-            print("error")
         if self.parameter == ConstManager.FFTS_TIMESTAMP:
             timestamp = file_split[4]
         elif file_name.endswith(
