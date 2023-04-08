@@ -101,7 +101,6 @@ class SortMode:
             file_name = os.path.basename(file_path)
             file_name = self.FILE_MAPPING.get(file_name) if file_name.isdigit() else file_name
             file_split = file_name.split('.')
-            # file_split = wrap_function(*args, **kwargs).split('.')
             if self.parameter == ConstManager.NORMAL_MODE or \
                     self.parameter == ConstManager.FFTS_TIMESTAMP:
                 return self._parameter_timestamp(file_split, file_name)
