@@ -15,7 +15,7 @@ from fusion_rule_parser import merge_close_and_open_fusion_rule
 from fusion_op import FusionOp
 from fusion_op import OpAttr
 from const_manager import ConstManager
-from dump import CompareData
+from dump import CompareData, DumpInfo
 from compare_error import CompareError
 
 
@@ -38,7 +38,11 @@ class CompareRule:
         self.fusion_info = None
 
     @staticmethod
-    def _sort_file_by_timestamp(op_name_to_file_map: dict, op_name_to_task_mode_map: dict) -> dict:
+    def _sort_file_by_timestamp(dump_info: DumpInfo) -> dict:
+        op_name_to_file_map = dump_info.op_name_to_file_map
+        op_name_to_task_mode_map = dump_info.op_name_to_task_mode_map
+        mapping_path = os.path.join(dump_info.path, ConstManager.MAPPING_FILE_NAME)
+        utils.SortMode.FILE_MAPPING = utils.read_mapping_file(mapping_path)
         origin_dic = {}
         for op_name, dump_file_list in op_name_to_file_map.items():
             dump_task_mode = op_name_to_task_mode_map.get(op_name)
@@ -131,13 +135,11 @@ class CompareRule:
         """
         op_name_to_op_map = {}
         # sort my output dump file by timestamp
-        my_output_sort_map = self._sort_file_by_timestamp(compare_data.left_dump_info.op_name_to_file_map,
-                                                      compare_data.left_dump_info.op_name_to_task_mode_map)
+        my_output_sort_map = self._sort_file_by_timestamp(compare_data.left_dump_info)
         self._make_my_output_map(my_output_sort_map, op_name_to_op_map)
 
         # sort ground truth dump file by timestamp
-        ground_truth_sort_map = self._sort_file_by_timestamp(compare_data.right_dump_info.op_name_to_file_map,
-                                                         compare_data.right_dump_info.op_name_to_task_mode_map)
+        ground_truth_sort_map = self._sort_file_by_timestamp(compare_data.right_dump_info)
         self._make_ground_truth_map(ground_truth_sort_map, op_name_to_op_map)
 
         self.fusion_info = FusionRuleParser('')
