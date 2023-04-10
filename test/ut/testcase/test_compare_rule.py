@@ -62,10 +62,9 @@ class TestUtilsMethods(unittest.TestCase):
         dump_info.op_name_to_file_map = {"Add": ["/home/demo/1223453545232"]}
         dump_info.op_name_to_task_mode_map = {"Add": 0}
         dump_info.path = "/home/demo"
-        hash_to_file_name_map = {"1223453545232": "CON.aDD.1.23431252326"}
+        dump_info.hash_to_file_name_map = {"1223453545232": "CON.aDD.1.23431252326"}
         with mock.patch("utils.check_path_valid", return_value=0):
-            with mock.patch("utils.read_mapping_file", return_value=hash_to_file_name_map):
-                compare_rule_object._sort_file_by_timestamp(dump_info)
+            compare_rule_object._sort_file_by_timestamp(dump_info)
 
     def test_make_npu_vs_npu_fusion_rule1(self):
         fusion_json_file_path = "/home/demo/1.json"
