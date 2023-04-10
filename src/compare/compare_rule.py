@@ -41,7 +41,7 @@ class CompareRule:
     def _sort_file_by_timestamp(dump_info: DumpInfo) -> dict:
         op_name_to_file_map = dump_info.op_name_to_file_map
         op_name_to_task_mode_map = dump_info.op_name_to_task_mode_map
-        utils.SortMode.FILE_MAPPING = dump_info.hash_to_file_name_map
+        utils.SortMode.hash_to_file_name_map = dump_info.hash_to_file_name_map
         origin_dic = {}
         for op_name, dump_file_list in op_name_to_file_map.items():
             dump_task_mode = op_name_to_task_mode_map.get(op_name)
