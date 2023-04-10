@@ -99,8 +99,6 @@ class SortMode:
         def inner(*args, **kwargs):
             file_path = wrap_function(*args, **kwargs)
             file_name = os.path.basename(file_path)
-            if self.hash_to_file_name_map:
-                print("mapping.csv")
             file_name = self.hash_to_file_name_map.get(file_name) if file_name.isdigit() else file_name
             file_split = file_name.split('.')
             if self.parameter == ConstManager.NORMAL_MODE or \
