@@ -18,7 +18,7 @@ from .rules.common_rules import InsertMainFileRule
 
 
 class Transplant(object):
-    def __init__(self, script_dir, rule_list, args):
+    def __init__(self, script_dir, rule_list, args, analysis_result_dir):
         self.script_dir = script_dir
         self.rule_list = rule_list
         self.main_file = utils.get_main_file(args.main, args.input) if hasattr(args, 'main') else ''
@@ -28,7 +28,8 @@ class Transplant(object):
 
         self.global_reference_visitor = None
         self.op_info = OpInfo(utils.get_supported_op_dict(args.version), utils.get_unsupported_op_dict(args.version),
-                              analyse_cuda_ops(script_dir, script_dir))
+                              analyse_cuda_ops(script_dir, analysis_result_dir))
+        self.analysis_result_dir = analysis_result_dir
 
     @staticmethod
     def __need_analysis(file, commonprefix):
@@ -52,10 +53,10 @@ class Transplant(object):
         (unsupported_list, unknown_list), module, wrapper = \
             analyse_unsupported_api(code, self.op_info, self.global_reference_visitor)
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info)
-                             for api in unsupported_list), self.script_dir, "unsupported_api",
+                             for api in unsupported_list), self.analysis_result_dir, "unsupported_api",
                         ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name)
-                             for api in unknown_list), self.script_dir, "unknown_api",
+                             for api in unknown_list), self.analysis_result_dir, "unknown_api",
                         ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
 
         new_module = self.__visit_rule(file, module)
@@ -89,7 +90,8 @@ class Transplant(object):
         new_module = wrapper.visit(code_transformer)
         change_info_list = code_transformer.print_change_info()
         utils.write_csv(list([self.current_file_rel_path] + change_info for change_info in change_info_list),
-                        self.script_dir, "change_list", ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'))
+                        self.analysis_result_dir, "change_list",
+                        ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'))
         for rule in self.rule_list:
             rule.clean()
         return new_module

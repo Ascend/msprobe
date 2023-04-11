@@ -12,6 +12,8 @@ from utils import transplant_logger as translog
 from transfer.transplant import Transplant
 from transfer.rules.rule_getter import rule_getter
 
+TRANSPLANT_OUTPUT_DIR_NAME = 'transplant_result_file'
+
 
 class MsFmkTransplt(object):
     TRANSPLANT_OUTPUT_PATH_SUFFIX = '_msft'
@@ -23,6 +25,7 @@ class MsFmkTransplt(object):
         self.feature_switch = ['normal']
         self.rule_list = []
         self.py_file_counts = 0
+        self.transplant_file_output = ''
 
     @staticmethod
     def __check_custom_rule_param_valid(args):
@@ -92,12 +95,13 @@ class MsFmkTransplt(object):
             self.__check_output_valid(args)
             self.__check_input_valid(args)
             self.__copy_project()
+            self.__check_transplant_file_output_valid()
             self.__init_custom_para(args)
             self.__init_logger()
             translog.info('Initialing rules...')
             self.__init_rules(args)
             translog.info('MsFmkTransplt start working now, please wait for a moment.')
-            transplant = Transplant(self.output, self.rule_list, args)
+            transplant = Transplant(self.output, self.rule_list, args, self.transplant_file_output)
             transplant.set_py_file_counts(self.py_file_counts)
             if hasattr(args, 'main'):
                 transplant.init_global_visitor(self.__get_global_visitor())
@@ -135,8 +139,11 @@ class MsFmkTransplt(object):
         return global_reference_visitor
 
     def __set_report_files_permission(self, permission):
-        output_dir = os.path.dirname(self.output) if os.path.isfile(self.output) else self.output
-        report_files = ['msFmkTranspltlog.txt', 'unsupported_op.csv', 'change_list.csv']
+        output_dir = os.path.dirname(self.transplant_file_output) if os.path.isfile(self.transplant_file_output) \
+            else self.transplant_file_output
+        report_files = [
+            'msFmkTranspltlog.txt', 'unsupported_api.csv', 'change_list.csv', 'unknown_api.csv', 'cuda_op_list.csv'
+        ]
         report_files.extend(f'msFmkTranspltlog.txt.{idx}' for idx in range(1, translog.BACKUP_COUNT + 1))
         for filename in report_files:
             file_path = os.path.join(output_dir, filename)
@@ -238,7 +245,7 @@ class MsFmkTransplt(object):
                       f"please add {os.path.dirname(dst_path)} to PYTHONPATH before run net.")
 
     def __init_logger(self):
-        log_file = os.path.join(self.output, 'msFmkTranspltlog.txt')
+        log_file = os.path.join(self.transplant_file_output, 'msFmkTranspltlog.txt')
         if os.path.exists(log_file):
             utils.remove_path(log_file)
         translog.init_logging_file(log_file)
@@ -258,7 +265,6 @@ class MsFmkTransplt(object):
         self.output = os.path.join(args.output, os.path.split(self.input)[1] + project_suffix)
         if os.path.exists(self.output):
             utils.user_interactive_confirm('The output directory already exists. Do you want to overwrite?')
-            self.__set_report_files_permission(0o640)
             utils.remove_path(self.output)
 
     def __check_input_valid(self, args):
@@ -269,6 +275,14 @@ class MsFmkTransplt(object):
         self.py_file_counts = utils.walk_input_path(os.path.realpath(args.input), output_free_size)
         if not self.py_file_counts:
             raise utils.InputCheckException('There are no valid python files in the folder.')
+
+    def __check_transplant_file_output_valid(self):
+        self.transplant_file_output = os.path.join(self.output, TRANSPLANT_OUTPUT_DIR_NAME)
+        if os.path.exists(self.transplant_file_output):
+            utils.user_interactive_confirm("The transplant result file output directory "
+                                           "'transplant_result_file' already exists. Do you want to overwrite?")
+            self.__set_report_files_permission(0o640)
+            utils.remove_path(self.transplant_file_output)
 
 
 if __name__ == '__main__':
