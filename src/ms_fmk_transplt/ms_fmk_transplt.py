@@ -90,6 +90,7 @@ class MsFmkTransplt(object):
     def main(self):
         args = self.__parse_command()
         ret = 0
+        result_dict = {}
         try:
             self.__para_check_valid(args)
             self.__check_output_valid(args)
@@ -110,6 +111,7 @@ class MsFmkTransplt(object):
                 self.__copy_function_pack('ascend_function')
             if args.modelarts:
                 self.__copy_function_pack('ascend_modelarts_function')
+            result_dict = transplant.transplant_result_statistics
         except KeyboardInterrupt:
             translog.error("User canceled.")
             ret = 1
@@ -124,6 +126,8 @@ class MsFmkTransplt(object):
             translog.error('MsFmkTransplt run fail!')
         else:
             translog.info('MsFmkTransplt run success, welcome to the next use.')
+            analysis_rel_path = os.path.basename(self.output)
+            utils.get_analysis_result_statistics(result_dict, analysis_rel_path)
         self.__set_report_files_permission(0o440)
         return ret
 

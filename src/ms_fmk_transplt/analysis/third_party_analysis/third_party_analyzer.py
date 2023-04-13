@@ -70,16 +70,33 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
     def write_info(self):
         unsupported_api_list, unknown_api_list = self.function_graph.get_apis()
 
-        utils.write_csv(self._get_full_unsupported_results(unsupported_api_list), self.output_path,
-                        'full_unsupported_results', ('File', '3rd-party API', 'Message'))
-        utils.write_csv(self._get_manual_confirmation_needed_list(unknown_api_list), self.output_path,
-                        'unknown_op', ('Torch API', 'Affected 3rd-party API'))
-        utils.write_csv(self._get_framework_adaptation_needed_list(unsupported_api_list),
-                        self.output_path, 'framework_unsupported_op', ('Torch API', 'Affected 3rd-party API'))
-        utils.write_csv(self._get_operator_adaptation_needed_list(unsupported_api_list),
-                        self.output_path, 'cuda_op', ('OP Name', 'Affected 3rd-party API'))
-        utils.write_csv(self._get_migration_needed_list(unsupported_api_list), self.output_path,
-                        'migration_needed_op', ('Torch API', 'Affected 3rd-party API'))
+        cuda_op = self._get_operator_adaptation_needed_list(unsupported_api_list)
+        framework_unsupported_op = self._get_framework_adaptation_needed_list(unsupported_api_list)
+        full_unsupported_results = self._get_full_unsupported_results(unsupported_api_list)
+        migration_needed_op = self._get_migration_needed_list(unsupported_api_list)
+        unknown_op = self._get_manual_confirmation_needed_list(unknown_api_list)
+
+        self.result_dict.update({'cuda_op.csv': self.result_dict.get(
+            'cuda_op.csv', 0) + len(cuda_op)})
+        self.result_dict.update({'framework_unsupported_op.csv': self.result_dict.get(
+            'framework_unsupported_op.csv', 0) + len(framework_unsupported_op)})
+        self.result_dict.update({'full_unsupported_results.csv': self.result_dict.get(
+            'full_unsupported_results.csv', 0) + len(full_unsupported_results)})
+        self.result_dict.update({'migration_needed_op.csv': self.result_dict.get(
+            'migration_needed_op.csv', 0) + len(migration_needed_op)})
+        self.result_dict.update({'unknown_op.csv': self.result_dict.get(
+            'unknown_op.csv', 0) + len(unknown_op)})
+
+        utils.write_csv(full_unsupported_results, self.output_path, 'full_unsupported_results',
+                        ('File', '3rd-party API', 'Message'))
+        utils.write_csv(unknown_op, self.output_path, 'unknown_op',
+                        ('Torch API', 'Affected 3rd-party API'))
+        utils.write_csv(framework_unsupported_op, self.output_path, 'framework_unsupported_op',
+                        ('Torch API', 'Affected 3rd-party API'))
+        utils.write_csv(cuda_op, self.output_path, 'cuda_op',
+                        ('OP Name', 'Affected 3rd-party API'))
+        utils.write_csv(migration_needed_op, self.output_path, 'migration_needed_op',
+                        ('Torch API', 'Affected 3rd-party API'))
 
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)

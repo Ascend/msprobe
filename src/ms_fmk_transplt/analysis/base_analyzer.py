@@ -21,6 +21,7 @@ class BaseAnalyzer:
         self.supported_op_dict = utils.get_supported_op_dict(self.pytorch_version)
         self.global_reference_visitor = None
         self.package_env_path_set = self._search_package_env_path()
+        self.result_dict = {}
 
     @staticmethod
     def __need_analysis(file, commonprefix):

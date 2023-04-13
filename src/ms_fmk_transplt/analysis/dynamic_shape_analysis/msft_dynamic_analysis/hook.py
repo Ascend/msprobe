@@ -145,6 +145,10 @@ class DynamicShapeDetect:
         data_frame.to_csv(csv_file, index=False)
         new_data = pd.DataFrame(content)
         new_data.to_csv(csv_file, mode='a+', header=False, index=False)
+        if len(content) > 0:
+            translog.warning(
+                'It is detected that the model contains dynamic shapes, and it is recommended to enable binary when '
+                'running the model!')
 
     def _after_call(self, key, result):
         output_shape_list = []
