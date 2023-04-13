@@ -23,7 +23,7 @@ class PyTorchAnalyse:
         self.analyse_dict = {
             'third_party': ThirdPartyAnalyzer,
             'torch_apis': UnsupportedApiAnalyzer,
-            'dynamic-shape': DynamicShapeAnalyzer
+            'dynamic_shape': DynamicShapeAnalyzer
         }
         self.dynamic_shape_analysis_package = 'dynamic_shape_analysis/msft_dynamic_analysis'
 
@@ -35,9 +35,9 @@ class PyTorchAnalyse:
         parser.add_argument('-v', '--version', required=True, choices=['1.8.1', '1.11.0'],
                             help='Target pytorch version of output')
         parser.add_argument('-m', '--mode', default='torch_apis',
-                            choices=['third_party', 'torch_apis', 'dynamic-shape'],
+                            choices=['third_party', 'torch_apis', 'dynamic_shape'],
                             help='The way the script is analyzed. Only support torch_apis,'
-                                 'third_party and dynamic-shape currently')
+                                 'third_party and dynamic_shape currently')
         parser.add_argument('-api', '--api-files', nargs='*', metavar='FILE',
                             help='The unsupported op list file path output by the third-party analyse')
         parser.add_argument('-env', '--env-path', nargs='*', type=str, help='env path of the input project')
@@ -83,6 +83,7 @@ class PyTorchAnalyse:
     def main(self):
         args = self.__parse_command()
         ret = 0
+        result_dict = {}
         try:
             self.__check_param_valid(args)
             self.__check_input_valid(args)
@@ -94,7 +95,7 @@ class PyTorchAnalyse:
             if args.mode == 'third_party':
                 if not utils.IS_JEDI_INSTALLED:
                     raise ModuleNotFoundError("third party analysis must have jedi installed")
-            if args.mode == 'dynamic-shape':
+            if args.mode == 'dynamic_shape':
                 self.__copy_project()
                 self.__init_logger()
                 pytorch_analysis = self.analyse_dict.get(args.mode)(self.output_path, self.output_path, args.version)
@@ -111,8 +112,8 @@ class PyTorchAnalyse:
             pytorch_analysis.init_global_visitor(global_visitor)
             pytorch_analysis.set_py_file_counts(self.py_file_counts)
             pytorch_analysis.run()
-            if args.mode == 'dynamic-shape':
-                self.__copy_analysis_pack()
+            result_dict = pytorch_analysis.result_dict
+            self.__operation_in_different_args_mode(args, result_dict)
         except KeyboardInterrupt:
             translog.error('User canceled.')
             ret = 1
@@ -126,8 +127,18 @@ class PyTorchAnalyse:
             translog.error('Analyse run fail!')
         else:
             translog.info('Analyse run success, welcome to the next use.')
+            analysis_rel_path = os.path.basename(self.output_path)
+            utils.get_analysis_result_statistics(result_dict, analysis_rel_path)
         self.__set_report_files_permission(0o440)
         return ret
+
+    def __operation_in_different_args_mode(self, args, result_dict):
+        if args.mode == 'dynamic_shape':
+            self.__copy_analysis_pack()
+        if args.mode == 'third_party' and result_dict.get('full_unsupported_results.csv', 0) > 0:
+            translog.info(
+                "The path to the 'full_unsupported_results.csv' file can be used as the -api parameter \
+                to analyze the full unsupported api information in the script.")
 
     def __check_param_valid(self, args):
         if utils.islink(args.input):

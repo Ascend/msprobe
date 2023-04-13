@@ -29,6 +29,7 @@ class Transplant(object):
         self.global_reference_visitor = None
         self.op_info = OpInfo(utils.get_supported_op_dict(args.version), utils.get_unsupported_op_dict(args.version),
                               analyse_cuda_ops(script_dir, analysis_result_dir))
+        self.transplant_result_statistics = {}
         self.analysis_result_dir = analysis_result_dir
 
     @staticmethod
@@ -52,6 +53,13 @@ class Transplant(object):
         code = utils.get_file_content_bytes(file)
         (unsupported_list, unknown_list), module, wrapper = \
             analyse_unsupported_api(code, self.op_info, self.global_reference_visitor)
+        self.transplant_result_statistics.update({'cuda_op_list.csv': self.transplant_result_statistics.get(
+            'cuda_op_list.csv', 0) + len(self.op_info.cuda_op_list)})
+        self.transplant_result_statistics.update({'unsupported_api.csv': self.transplant_result_statistics.get(
+            'unsupported_api.csv', 0) + len(unsupported_list)})
+        self.transplant_result_statistics.update({'unknown_api.csv': self.transplant_result_statistics.get(
+            'unknown_api.csv', 0) + len(unknown_list)})
+
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info)
                              for api in unsupported_list), self.analysis_result_dir, "unsupported_api",
                         ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
@@ -89,6 +97,8 @@ class Transplant(object):
         wrapper = libcst.metadata.MetadataWrapper(module)
         new_module = wrapper.visit(code_transformer)
         change_info_list = code_transformer.print_change_info()
+        self.transplant_result_statistics.update({'change_list.csv': self.transplant_result_statistics.get(
+            'change_list.csv', 0) + len(change_info_list)})
         utils.write_csv(list([self.current_file_rel_path] + change_info for change_info in change_info_list),
                         self.analysis_result_dir, "change_list",
                         ('File', 'Start Line', 'End Line', 'Operation Type', 'Message'))

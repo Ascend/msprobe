@@ -9,6 +9,7 @@ import re
 import shutil
 
 import pandas as pd
+from prettytable import PrettyTable
 
 from . import transplant_logger as translog
 
@@ -353,3 +354,13 @@ def read_unsupported_op_csv(input_path):
             if api_name.endswith('.forward'):
                 apis_dict[api_name[:-1 * len('.forward')]] = ""
     return apis_dict
+
+
+def get_analysis_result_statistics(result_dict: dict, output_path):
+    if result_dict:
+        tb = PrettyTable()
+        tb.add_column('files', list(result_dict.keys()))
+        tb.add_column('statistics', list(result_dict.values()))
+        info = '   The detailed transplant result files are in the output path you defined, the relative path is ' \
+               + output_path + '.' + '\n' + str(tb)
+        translog.info_without_format(info)

@@ -28,6 +28,12 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
         (unsupported_op_list, unknown_op_list), _, _ = analyse_unsupported_api(
             code, OpInfo(self.supported_op_dict, self.unsupported_op_dict, self.cuda_op_list),
             self.global_reference_visitor)
+        self.result_dict.update({'cuda_op_list.csv': self.result_dict.get(
+            'cuda_op_list.csv', 0) + len(self.cuda_op_list)})
+        self.result_dict.update({'unsupported_api.csv': self.result_dict.get(
+            'unsupported_api.csv', 0) + len(unsupported_op_list)})
+        self.result_dict.update({'unknown_api.csv': self.result_dict.get(
+            'unknown_api.csv', 0) + len(unknown_op_list)})
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info)
                              for api in unsupported_op_list), self.output_path, "unsupported_api",
                         ('File', 'Start Line', 'End Line', 'OP', 'Tips'))

@@ -64,3 +64,7 @@ def warning(msg):
 
 def error(msg):
     logger.error(log_format(2, msg))
+
+
+def info_without_format(msg):
+    logger.info(str(msg))
