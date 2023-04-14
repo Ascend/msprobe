@@ -262,7 +262,8 @@ class TestUtilsMethods(unittest.TestCase):
                     with mock.patch("src.compare.pytorch_cmp.hdf5_parser._open_h5py_file",
                                     side_effect=stub_open_file):
                         with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
-                            with mock.patch('src.compare.pytorch_cmp.compare_pytorch.PytorchComparison._get_compare_dump_data',
+                            with mock.patch('src.compare.pytorch_cmp.compare_pytorch.PytorchComparison.'
+                                            '_get_compare_dump_data',
                                             side_effect=CompareError):
                                 with mock.patch('os.path.getsize', return_value=None):
                                     open_file.write = None
@@ -312,7 +313,8 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('src.compare.pytorch_cmp.hdf5_parser.Hdf5Parser.get_dump_data',
                                 side_effect=[np.array(np.arange(9)).reshape(3, 3),
                                              np.array(np.arange(9)).reshape(3, 3).T]):
-                    with mock.patch('src.compare.pytorch_cmp.compare_pytorch.PytorchComparison._save_numpy_data', return_value=None):
+                    with mock.patch('src.compare.pytorch_cmp.compare_pytorch.PytorchComparison._save_numpy_data',
+                                    return_value=None):
                         args = parser.parse_args(sys.argv[1:])
                         pytorch_compare = compare_pytorch.PytorchComparison(args)
                         pytorch_compare._filter_one_line(result_path, row, writer, position)
@@ -330,7 +332,8 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
                 with mock.patch("csv.reader", return_value=[["CosineSimilarity", "MyDumpDataPath","GoldenDumpDataPath"],
                                                             [0.93, "/home/test/my1", "/home/test/gold1"]]):
-                    with mock.patch('src.compare.pytorch_cmp.compare_pytorch.PytorchComparison._filter_one_line', return_value=None):
+                    with mock.patch('src.compare.pytorch_cmp.compare_pytorch.PytorchComparison._filter_one_line',
+                                    return_value=None):
                         args = parser.parse_args(sys.argv[1:])
                         pytorch_compare = compare_pytorch.PytorchComparison(args)
                         pytorch_compare._filter_result_process("/home/test", open_file, "/home/filter")

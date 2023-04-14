@@ -57,7 +57,8 @@ class TestUtilsMethods(unittest.TestCase):
         }
 
         dump_file_desc = file_utils.ParsedDumpFileDesc(file_desc, dump_attr, {})
-        with mock.patch('src.compare.cmp_utils.file_utils.OverflowFileUtils.list_dump_files', return_value=[dump_file_desc]):
+        with mock.patch('src.compare.cmp_utils.file_utils.OverflowFileUtils.list_dump_files',
+                        return_value=[dump_file_desc]):
             ret = decode._find_all_debug_files()
         self.assertEqual(ret, True)
 
@@ -85,12 +86,18 @@ class TestUtilsMethods(unittest.TestCase):
         decode.debug_files = ["/home/testfile1", "home/testfile2", "home/testfile3"]
 
         dump_file_desc = file_utils.ParsedDumpFileDesc(file_desc, dump_attr, {})
-        with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._find_all_debug_files', return_value=True):
-            with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._get_parsed_debug_file', return_value=dump_file_desc):
-                with mock.patch('src.compare.cmp_utils.file_utils.FileUtils.load_json_file', return_value=''):
-                    with mock.patch('src.compare.cmp_utils.file_utils.FileUtils.load_json_file', return_value=''):
-                        with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._json_summary', return_value='result_'):
-                            with mock.patch('src.compare.cmp_utils.file_utils.FileUtils.save_file', return_value=True):
+        with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._find_all_debug_files',
+                        return_value=True):
+            with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._get_parsed_debug_file',
+                            return_value=dump_file_desc):
+                with mock.patch('src.compare.cmp_utils.file_utils.FileUtils.load_json_file',
+                                return_value=''):
+                    with mock.patch('src.compare.cmp_utils.file_utils.FileUtils.load_json_file',
+                                    return_value=''):
+                        with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._json_summary',
+                                        return_value='result_'):
+                            with mock.patch('src.compare.cmp_utils.file_utils.FileUtils.save_file',
+                                            return_value=True):
                                 ret = decode.analyse()
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
@@ -382,7 +389,8 @@ class TestUtilsMethods(unittest.TestCase):
         parsed_debug_file_desc = file_utils.ParsedDumpFileDesc(file_desc, dump_attr, anchor)
 
         with mock.patch('os.path.basename', return_value='Opdebug.Node_OpDebug.1.25.161233160'):
-            with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file',return_value=''):
+            with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file',
+                            return_value=''):
                 with mock.patch('src.compare.cmp_utils.file_utils.OverflowFileUtils.list_parsed_debug_files',
                                 side_effect=iter([{},
                                                   {'Opdebug.Node_OpDebug.1.25.161233160.output'
@@ -410,7 +418,8 @@ class TestUtilsMethods(unittest.TestCase):
 
         with pytest.raises(CompareError) as err:
             with mock.patch('os.path.basename', return_value='Opdebug.Node_OpDebug.1.25.161233160'):
-                with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file', return_value=''):
+                with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file',
+                                return_value=''):
                     with mock.patch('src.compare.cmp_utils.file_utils.OverflowFileUtils.list_parsed_debug_files',
                                     side_effect=iter([{}, {}])):
                         ret = decode._get_parsed_debug_file(debug_file_desc)
@@ -444,7 +453,8 @@ class TestUtilsMethods(unittest.TestCase):
             "format": 'NCHW'
         }
         parsed_dump_file_desc = file_utils.ParsedDumpFileDesc(file_desc, dump_attr, anchor)
-        with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file', return_value=''):
+        with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file',
+                        return_value=''):
             with mock.patch('os.path.basename', return_value='convolution.cov2d.1.25.161233160'):
                 with mock.patch('src.compare.cmp_utils.file_utils.OverflowFileUtils.list_parsed_dump_files',
                                 return_value={'convolution.cov2d.1.25.161233160.output'
@@ -453,9 +463,11 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(ret, [parsed_dump_file_desc])
 
         with pytest.raises(CompareError) as err:
-            with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file', return_value=''):
+            with mock.patch('src.compare.overflow.overflow_analyse.OverflowAnalyse._parse_overflow_file',
+                            return_value=''):
                 with mock.patch('os.path.basename', return_value='convolution.cov2d.1.25.161233160'):
-                    with mock.patch('src.compare.cmp_utils.file_utils.OverflowFileUtils.list_parsed_dump_files',return_value={}):
+                    with mock.patch('src.compare.cmp_utils.file_utils.OverflowFileUtils.list_parsed_dump_files',
+                                    return_value={}):
                         ret = decode._get_parsed_dump_file(dump_file_desc)
         self.assertEqual(err.value.args[0],
                          CompareError.MSACCUCMP_UNKNOWN_ERROR)

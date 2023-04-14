@@ -233,7 +233,8 @@ class TestUtilsMethods(unittest.TestCase):
         output = dump_data.output.add()
         self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
         dump_data_ser = dump_data.SerializeToString()
-        with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+        with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
                 with mock.patch('builtins.open', mock.mock_open(read_data=dump_data_ser)):
                     dump_data = utils.parse_dump_file('/home/a.dump', 1)
@@ -245,7 +246,8 @@ class TestUtilsMethods(unittest.TestCase):
         self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
         dump_data_ser = dump_data.SerializeToString()
         with pytest.raises(CompareError) as error:
-            with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
                     with mock.patch('builtins.open', mock.mock_open(read_data=dump_data_ser)):
                         with mock.patch('dump_data_pb2.DumpData.ParseFromString', return_value=1000):
@@ -366,24 +368,28 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(result, utils.ShapeType.Tensor)
 
     def test_get_path_list_for_str1(self):
-        with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+        with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
             path_list = utils.get_path_list_for_str('/home/a.bin')
         self.assertEqual(1, len(path_list))
 
     def test_get_path_list_for_str2(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
                 utils.get_path_list_for_str('/home/a.bin')
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_UNKNOWN_ERROR)
 
     def test_get_path_list_for_str3(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
                 utils.get_path_list_for_str('/home/a.bin,/home/b.bin')
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_get_path_list_for_str4(self):
-        with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+        with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
             path_list = utils.get_path_list_for_str('/home/a.bin,/home/b.bin')
         self.assertEqual(2, len(path_list))
 

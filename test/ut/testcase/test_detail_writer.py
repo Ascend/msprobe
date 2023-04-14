@@ -185,9 +185,10 @@ class TestUtilsMethods(unittest.TestCase):
         detail_info = detail.DetailInfo(tensor_id, 10, True, ConstManager.MAX_DETAIL_INFO_LINE_COUNT)
         detail_writer = DetailWriter("/home/demo", detail_info)
         with mock.patch("os.path.exists", return_value=True):
-            with mock.patch('src.compare.cmp_utils.utils.read_mapping_file', return_value={'1234566.csv': 'conv1conv1_relu_output_0_0.csv',
-                                                                     '999999.csv': 'conv1conv1_relu_output_0_10000.csv',
-                                                                     '6376427478658.csv': 'conv2_relu_output_0_10000.csv'}):
+            with mock.patch('src.compare.cmp_utils.utils.read_mapping_file',
+                            return_value={'1234566.csv': 'conv1conv1_relu_output_0_0.csv',
+                                          '999999.csv': 'conv1conv1_relu_output_0_10000.csv',
+                                          '6376427478658.csv': 'conv2_relu_output_0_10000.csv'}):
                 with mock.patch("os.listdir", return_value=["conv1conv1_relu_output_0_summary.txt",
                                                             "'1234566.csv'", '999999.csv', "simple_op_mapping.csv"]):
                     with mock.patch("os.remove"):

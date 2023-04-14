@@ -4,6 +4,7 @@ from unittest import mock
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.dump_parse import dump_parser
 
+
 class TestUtilsMethods(unittest.TestCase):
 
     def test_save_log(self):

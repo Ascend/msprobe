@@ -190,7 +190,8 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch("src.compare.cmp_utils.utils.check_hdf5_file_valid", return_value=False):
                 with mock.patch("os.path.isfile", return_value=False):
                     with mock.patch("os.path.exists", return_value=False):
-                        with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                        with mock.patch("src.compare.cmp_utils.utils.check_path_valid",
+                                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
                             msaccucmp.start_compare(args)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 

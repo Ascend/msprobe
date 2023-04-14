@@ -16,7 +16,7 @@ import struct
 from src.compare.vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
 from src.compare.algorithm.algorithm_manager import AlgorithmManager
 from src.compare.vector_cmp.fusion_manager.fusion_op import FusionOp, OutputDesc, OpAttr
-from src.compare.dump_parse.dump  import DumpType
+from src.compare.dump_parse.dump import DumpType
 from src.compare.cmp_utils.constant.compare_error import CompareError
 
 

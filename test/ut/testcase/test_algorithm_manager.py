@@ -82,13 +82,15 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_make_select_algorithm_map15(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 AlgorithmManager("/xxxxx", "cc", "")
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)
 
     def test_make_select_algorithm_map16(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
                  mock.patch('os.listdir', return_value=['xxx.py']):
@@ -97,7 +99,8 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_make_select_algorithm_map17(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+            with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
                  mock.patch('os.listdir', return_value=['alg_xxx.py']):
@@ -105,7 +108,8 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)
 
     def test_make_select_algorithm_map18(self):
-        with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+        with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
+                        return_value=CompareError.MSACCUCMP_NONE_ERROR), \
              mock.patch('os.path.exists', return_value=True), \
              mock.patch('os.path.isfile', return_value=True):
             manager = AlgorithmManager("", "MaxAbsoluteError", "")
@@ -205,9 +209,11 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch(
                 'src.compare.algorithm.algorithm_manager.AlgorithmManager._check_data_size_valid'):
             with mock.patch(
-                    'src.compare.algorithm.algorithm_manager.AlgorithmManager._make_algorithm_param', return_value={}):
+                    'src.compare.algorithm.algorithm_manager.AlgorithmManager._make_algorithm_param',
+                    return_value={}):
                 with mock.patch(
-                        'src.compare.algorithm.algorithm_manager.AlgorithmManager._call_compare_function', return_value=(123, '')):
+                        'src.compare.algorithm.algorithm_manager.AlgorithmManager._call_compare_function',
+                        return_value=(123, '')):
                     a_m.compare(my_output_dump_data, ground_truth_dump_data, {})
 
     def _get_len(self, args):

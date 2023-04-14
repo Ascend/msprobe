@@ -38,7 +38,8 @@ class TestUtilsMethods(unittest.TestCase):
         npu_dump_dir = '/home/202134565663'
         with mock.patch("os.listdir", return_value=["0"]):
             with mock.patch("os.path.isdir", return_value=True):
-                with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch("src.compare.cmp_utils.utils.check_path_valid",
+                                return_value=CompareError.MSACCUCMP_NONE_ERROR):
                     batch_compare_test._make_json_path_to_dump_path_map(npu_dump_dir)
         self.assertEqual(batch_compare_test.json_path_to_dump_path_map,
                          {'/home/202134565663/0/0/0/0': ['/home/202134565663/0/0/0/0']})
@@ -49,7 +50,8 @@ class TestUtilsMethods(unittest.TestCase):
         npu_dump_dir = '/home/202134565663'
         with mock.patch("os.listdir", return_value=["0_0"]):
             with mock.patch("os.path.isdir", return_value=True):
-                with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch("src.compare.cmp_utils.utils.check_path_valid",
+                                return_value=CompareError.MSACCUCMP_NONE_ERROR):
                     batch_compare_test._make_json_path_to_dump_path_map(npu_dump_dir)
         self.assertEqual(batch_compare_test.json_path_to_dump_path_map,
                          {'/home/202134565663/0/0/0/0': ['/home/202134565663/0_0/0_0/0_0/0_0']})
@@ -61,7 +63,8 @@ class TestUtilsMethods(unittest.TestCase):
         with pytest.raises(CompareError) as error:
             with mock.patch("os.listdir", return_value=["0"]):
                 with mock.patch("os.path.isdir", return_value=True):
-                    with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                    with mock.patch("src.compare.cmp_utils.utils.check_path_valid",
+                                    return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         batch_compare_test._make_json_path_to_dump_path_map(npu_dump_dir)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 

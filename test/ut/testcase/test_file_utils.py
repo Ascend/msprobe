@@ -132,7 +132,8 @@ class TestUtilsMethods(unittest.TestCase):
                                                   ['241314144178', 'Node_OpDebug.1.1234567afa891234567']])
 
         with mock.patch("os.listdir", return_value='mapping.csv'):
-            with mock.patch("src.compare.cmp_utils.file_utils.OverflowFileUtils.read_csv", return_value=mapping_file_content):
+            with mock.patch("src.compare.cmp_utils.file_utils.OverflowFileUtils.read_csv",
+                            return_value=mapping_file_content):
                 with mock.patch("os.path.isfile", return_value=True):
                     ret = overflow_file_util.\
                         parse_mapping_csv("/home",
@@ -155,7 +156,8 @@ class TestUtilsMethods(unittest.TestCase):
                                    ["path_root1", "folder1", ["test3", "test4"]]])
 
         with mock.patch("os.walk", return_value=files):
-            with mock.patch("src.compare.cmp_utils.file_utils.OverflowFileUtils.read_csv", return_value=mapping_file_content):
+            with mock.patch("src.compare.cmp_utils.file_utils.OverflowFileUtils.read_csv",
+                            return_value=mapping_file_content):
                 with mock.patch("os.path.isfile", return_value=False):
                     ret = overflow_file_util.\
                         parse_mapping_csv("/home", overflow_file_util.DUMP_FILE_PATTERN, '')
@@ -174,7 +176,8 @@ class TestUtilsMethods(unittest.TestCase):
         }
         overflow_file_util = file_utils.OverflowFileUtils()
         DumpFileDescObj = file_utils.DumpFileDesc(file_desc, dump_attr)
-        with mock.patch("src.compare.cmp_utils.file_utils.OverflowFileUtils._list_file_with_pattern", return_value = {}):
+        with mock.patch("src.compare.cmp_utils.file_utils.OverflowFileUtils._list_file_with_pattern",
+                        return_value = {}):
             with mock.patch("src.compare.cmp_utils.file_utils.OverflowFileUtils.parse_mapping_csv",
                             return_value={'241314178': DumpFileDescObj}):
                 ret = overflow_file_util. \
