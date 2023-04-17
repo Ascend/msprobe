@@ -165,11 +165,11 @@ class FusionOpComparison:
         # 2. get the map for {original_op_names, op_list}
         right_to_left_map = fusion_rule_parser.make_right_to_left_multi_map(self.fusion_op_list)
         # 3. compare by relation
-        if relation in (utils.FusionRelation.OneToOne, utils.FusionRelation.MultiToOne):
+        if relation in (utils_type.FusionRelation.OneToOne, utils_type.FusionRelation.MultiToOne):
             dump_match, result, ret = self._compare_for_any_to_one()
-        elif relation in (utils.FusionRelation.OneToMulti, utils.FusionRelation.MultiToMulti):
+        elif relation in (utils_type.FusionRelation.OneToMulti, utils_type.FusionRelation.MultiToMulti):
             dump_match, result, ret = self._compare_for_any_to_multi(right_to_left_map)
-        elif relation == utils.FusionRelation.L1Fusion:
+        elif relation == utils_type.FusionRelation.L1Fusion:
             dump_match, result, ret = self._compare_for_l1_fusion(right_to_left_map)
         return ret, dump_match, result
 

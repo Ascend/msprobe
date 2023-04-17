@@ -5,6 +5,8 @@
 Function:
 This file mainly involves the common function definition.
 """
+from enum import Enum
+
 
 class FusionRelation(Enum):
     """
