@@ -34,17 +34,6 @@ class ShapeType(Enum):
     Tensor = 3
 
 
-class FusionRelation(Enum):
-    """
-    The enum for fusion relation
-    """
-    OneToOne = 0
-    MultiToOne = 1
-    OneToMulti = 2
-    MultiToMulti = 3
-    L1Fusion = 4
-
-
 class PathType(Enum):
     """
     The enum for path type

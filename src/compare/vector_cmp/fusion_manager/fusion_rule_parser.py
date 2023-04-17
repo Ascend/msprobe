@@ -9,7 +9,7 @@ This class mainly involves the analysis_fusion_rule function.
 
 import uuid
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.file_utils import FileUtils
@@ -33,7 +33,7 @@ def make_left_and_right_string(ground_truth_to_my_output_map: dict) -> (str, str
     return my_output_ops_str, ground_truth_ops_str
 
 
-def get_relation_for_fusion(fusion_op_list: list) -> utils.FusionRelation:
+def get_relation_for_fusion(fusion_op_list: list) -> utils_type.FusionRelation:
     """
     Get the relation for fusion op list
     :param fusion_op_list: the fusion op list
@@ -41,15 +41,15 @@ def get_relation_for_fusion(fusion_op_list: list) -> utils.FusionRelation:
     """
     if len(fusion_op_list) == 1:
         if len(fusion_op_list[0].attr.original_op_names) > 1:
-            return utils.FusionRelation.MultiToOne
-        return utils.FusionRelation.OneToOne
+            return utils_type.FusionRelation.MultiToOne
+        return utils_type.FusionRelation.OneToOne
     if len(fusion_op_list) > 1:
         if fusion_op_list[0].attr.l1_fusion_no != "":
-            return utils.FusionRelation.L1Fusion
+            return utils_type.FusionRelation.L1Fusion
         if len(fusion_op_list[0].attr.original_op_names) == 1:
-            return utils.FusionRelation.OneToMulti
-        return utils.FusionRelation.MultiToMulti
-    return utils.FusionRelation.OneToOne
+            return utils_type.FusionRelation.OneToMulti
+        return utils_type.FusionRelation.MultiToMulti
+    return utils_type.FusionRelation.OneToOne
 
 
 def make_right_to_left_multi_map(fusion_op_list: list) -> dict:

@@ -5,7 +5,7 @@ import pytest
 import json
 
 from src.compare.vector_cmp.fusion_manager import fusion_op
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
 from src.compare.cmp_utils.constant.compare_error import CompareError
 
@@ -483,33 +483,33 @@ class TestUtilsMethods(unittest.TestCase):
             fusion_op.FusionOp(0, 'C', ['a:0'], 'Relu', [], fusion_op.OpAttr(['A', 'B'], '', True, 0)),
             fusion_op.FusionOp(0, 'D', ['a:0'], 'Relu', [], fusion_op.OpAttr(['A', 'B'], '', True, 0))]
         relation = fusion_rule_parser.get_relation_for_fusion(fusion_op_list)
-        self.assertEqual(relation, utils.FusionRelation.MultiToMulti)
+        self.assertEqual(relation, utils_type.FusionRelation.MultiToMulti)
 
     def test_get_relation_for_fusion2(self):
         fusion_op_list = [
             fusion_op.FusionOp(0, 'C', ['a:0'], 'Relu', [], fusion_op.OpAttr(['A'], '', False, 0)),
             fusion_op.FusionOp(0, 'D', ['a:0'], 'Relu', [], fusion_op.OpAttr(['A'], '', False, 0))]
         relation = fusion_rule_parser.get_relation_for_fusion(fusion_op_list)
-        self.assertEqual(relation, utils.FusionRelation.OneToMulti)
+        self.assertEqual(relation, utils_type.FusionRelation.OneToMulti)
 
     def test_get_relation_for_fusion3(self):
         fusion_op_list = [
             fusion_op.FusionOp(0, 'A', ['a:0'], 'Relu', [], fusion_op.OpAttr(['A'], '', False, 0))]
         relation = fusion_rule_parser.get_relation_for_fusion(fusion_op_list)
-        self.assertEqual(relation, utils.FusionRelation.OneToOne)
+        self.assertEqual(relation, utils_type.FusionRelation.OneToOne)
 
     def test_get_relation_for_fusion4(self):
         fusion_op_list = [
             fusion_op.FusionOp(0, 'A', ['a:0'], 'Relu', [], fusion_op.OpAttr(['A', 'B'], '', False, 0))]
         relation = fusion_rule_parser.get_relation_for_fusion(fusion_op_list)
-        self.assertEqual(relation, utils.FusionRelation.MultiToOne)
+        self.assertEqual(relation, utils_type.FusionRelation.MultiToOne)
 
     def test_get_relation_for_fusion5(self):
         fusion_op_list = [
             fusion_op.FusionOp(0, 'A1', ['a:0'], 'Relu', [], fusion_op.OpAttr(['A'], '1', True, 0)),
             fusion_op.FusionOp(0, 'A2', ['a:0'], 'Relu', [], fusion_op.OpAttr(['A'], '1', True, 0))]
         relation = fusion_rule_parser.get_relation_for_fusion(fusion_op_list)
-        self.assertEqual(relation, utils.FusionRelation.L1Fusion)
+        self.assertEqual(relation, utils_type.FusionRelation.L1Fusion)
 
     def test_get_origin_name_to_op_name_map(self):
         with mock.patch("os.path.getsize", return_value=100):
