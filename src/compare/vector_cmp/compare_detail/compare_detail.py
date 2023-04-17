@@ -9,7 +9,7 @@ DetailComparison class. This class mainly involves the compare function.
 import os
 
 from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.dump_parse import dump
 from src.compare.vector_cmp.compare_detail.detail_writer import DetailWriter
@@ -108,7 +108,7 @@ class DetailComparison:
         if self.detail_info.tensor_id.is_input():
             tensor_list = my_output_data.input_data
         else:
-            if relation == utils.FusionRelation.L1Fusion:
+            if relation == utils_type.FusionRelation.L1Fusion:
                 self._print_l1_fusion_warning()
             tensor_list = my_output_data.output_data
         return tensor_list, dump_file

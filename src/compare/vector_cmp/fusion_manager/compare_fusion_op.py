@@ -8,7 +8,7 @@ FusionOpComparison class. This class mainly involves the compare function.
 import collections
 
 from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.vector_cmp.fusion_manager.compare_npu_vs_npu import NpuVsNpuComparison
 from src.compare.vector_cmp.fusion_manager import compare_result
@@ -470,7 +470,7 @@ class FusionOpComparison:
                                     fusion_op: FusionOp) -> list:
         relation = fusion_rule_parser.get_relation_for_fusion(self.fusion_op_list)
         ground_truth_to_my_output_map = fusion_rule_parser.make_right_to_left_multi_map(self.fusion_op_list)
-        if relation in (utils.FusionRelation.OneToOne, utils.FusionRelation.MultiToOne):
+        if relation in (utils_type.FusionRelation.OneToOne, utils_type.FusionRelation.MultiToOne):
             ground_truth_op_str = utils.get_string_from_list(fusion_op.attr.original_op_names)
             if ground_truth_op_str == "":
                 ground_truth_op_str = "*"
