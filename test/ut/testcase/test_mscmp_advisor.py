@@ -3,7 +3,7 @@ from unittest import mock
 import pandas as pd
 
 from src.compare.advisor.advisor_const import AdvisorConst
-from src.compare.advisor.mscmp_advisor import CompareAdvisor
+from src.compare.advisor.compare_advisor import CompareAdvisor
 from src.compare.advisor.advisor_result import AdvisorResult
 
 
@@ -18,7 +18,7 @@ class TestUtilsMethods(unittest.TestCase):
         data = {"Index": ['0', '1', '2'],
                 "CosineSimilarity": [0.99, 0.99, 0.99]}
         with mock.patch('sys.argv', args):
-            with mock.patch('src.compare.advisor.mscmp_advisor.CompareAdvisor._parse_input_file',
+            with mock.patch('src.compare.advisor.compare_advisor.CompareAdvisor._parse_input_file',
                             return_value=pd.DataFrame(data)):
                 with mock.patch("advisor.advisor_result.AdvisorResult.gen_summary_file", return_value=True):
                     compare_advisor = CompareAdvisor("input_file.csv")
@@ -35,7 +35,7 @@ class TestUtilsMethods(unittest.TestCase):
         data = {"Index": ['0', '1', '2'],
                 "CosineSimilarity": [0.98, 0.99, 0.98]}
         with mock.patch('sys.argv', args):
-            with mock.patch('src.compare.advisor.mscmp_advisor.CompareAdvisor._parse_input_file',
+            with mock.patch('src.compare.advisor.compare_advisor.CompareAdvisor._parse_input_file',
                             return_value=pd.DataFrame(data)):
                 with mock.patch("advisor.advisor_result.AdvisorResult.gen_summary_file", return_value=True):
                     compare_advisor = CompareAdvisor("input_file.csv")
@@ -52,7 +52,7 @@ class TestUtilsMethods(unittest.TestCase):
         data = {"Index": ['0', '1', '2'],
                 "CosineSimilarity": [0.98, 0.99, 0.99]}
         with mock.patch('sys.argv', args):
-            with mock.patch('src.compare.advisor.mscmp_advisor.CompareAdvisor._parse_input_file',
+            with mock.patch('src.compare.advisor.compare_advisor.CompareAdvisor._parse_input_file',
                             return_value=pd.DataFrame(data)):
                 with mock.patch("advisor.advisor_result.AdvisorResult.gen_summary_file", return_value=True):
                     compare_advisor = CompareAdvisor("input_file.csv")
@@ -70,7 +70,7 @@ class TestUtilsMethods(unittest.TestCase):
                 "CosineSimilarity": [0.98, 0.99, 0.99],
                 "OverFlow": ["NO", "YES", "NO"]}
         with mock.patch('sys.argv', args):
-            with mock.patch('src.compare.advisor.mscmp_advisor.CompareAdvisor._parse_input_file',
+            with mock.patch('src.compare.advisor.compare_advisor.CompareAdvisor._parse_input_file',
                             return_value=pd.DataFrame(data)):
                 with mock.patch("advisor.advisor_result.AdvisorResult.gen_summary_file", return_value=True):
                     compare_advisor = CompareAdvisor("input_file.csv")
@@ -88,7 +88,7 @@ class TestUtilsMethods(unittest.TestCase):
                 "CosineSimilarity": [0.98, 0.95, 0.99],
                 "NPUDump": ["good", "error_node", "good"]}
         with mock.patch('sys.argv', args):
-            with mock.patch('src.compare.advisor.mscmp_advisor.CompareAdvisor._parse_input_file',
+            with mock.patch('src.compare.advisor.compare_advisor.CompareAdvisor._parse_input_file',
                             return_value=pd.DataFrame(data)):
                 with mock.patch("advisor.advisor_result.AdvisorResult.gen_summary_file", return_value=True):
                     compare_advisor = CompareAdvisor("input_file.csv", ["error_node"])
