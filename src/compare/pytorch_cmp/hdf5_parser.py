@@ -9,7 +9,7 @@ import re
 from enum import Enum
 import collections
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
@@ -295,10 +295,10 @@ class Hdf5Parser:
         if data_type != DataSetType.TENSOR.value:
             return
         self.ext_opname_dataset_map[ext_opname].append(curr_group_path)
-        if self.device_type and self.device_type != utils.DeviceType.CPU.value:
+        if self.device_type and self.device_type != utils_type.DeviceType.CPU.value:
             return
         attr_ok, device_type = self.get_dump_data_attr(curr_group_path,
-                                                       utils.DatasetAttr.DeviceType.name)
+                                                       utils_type.DatasetAttr.DeviceType.name)
         if attr_ok:
             self.device_type = device_type
 
@@ -324,7 +324,7 @@ class Hdf5Parser:
         if not self._need_compare(curr_group_path):
             return
         # only dataset have the attribute 'Type'. The group dose not.
-        have_attr, data_type = self.get_dump_data_attr(curr_group_path, utils.DatasetAttr.Type.name)
+        have_attr, data_type = self.get_dump_data_attr(curr_group_path, utils_type.DatasetAttr.Type.name)
         if have_attr:
             self._parse_one_dataset(data_type, ext_opname, curr_group_path)
             return

@@ -7,7 +7,7 @@ Pytorch CompareData class. This class mainly involves the function of parse dump
 """
 import numpy as np
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils_type
 from src.compare.cmp_utils import log
 from src.compare.pytorch_cmp import hdf5_parser
 from src.compare.cmp_utils.constant.const_manager import ConstManager
@@ -252,7 +252,7 @@ class CompareData:
             raise CompareError(
                 CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
-        if self.my_dump.device_type != utils.DeviceType.NPU.value:
+        if self.my_dump.device_type != utils_type.DeviceType.NPU.value:
             log.print_error_log('My dump file is not the dump data of the model'
                                 ' executed on the AI processor, please check -m param!')
             raise CompareError(
@@ -348,7 +348,7 @@ class CompareData:
             return replaced_ext_opname
         for mapping_opname in mapping_opname_list:
             replaced_ext_opname = ext_opname.replace(opname, mapping_opname, 1)
-            if device_type == utils.DeviceType.NPU.value:
+            if device_type == utils_type.DeviceType.NPU.value:
                 if replaced_ext_opname in self.my_dump.ext_opname_dataset_map.keys():
                     return replaced_ext_opname
             else:
@@ -356,7 +356,7 @@ class CompareData:
                     return replaced_ext_opname
         return ''
 
-    def _opname_map(self: any, ext_opname: str, device_type: int = utils.DeviceType.NPU.value) -> str:
+    def _opname_map(self: any, ext_opname: str, device_type: int = utils_type.DeviceType.NPU.value) -> str:
         """
         Processes mappings between NPUs, GPNs, and CPU operators.
         :ext_opname: the extend op name. such as cov2d:2
@@ -367,9 +367,9 @@ class CompareData:
             return mapped_opname
 
         if ext_opname.startswith(self.NPU_PREFIX):
-            if device_type == utils.DeviceType.CPU.value:
+            if device_type == utils_type.DeviceType.CPU.value:
                 return ext_opname.replace(self.NPU_PREFIX, self.CPU_PREFIX, 1)
-            if device_type == utils.DeviceType.GPU.value:
+            if device_type == utils_type.DeviceType.GPU.value:
                 return ext_opname.replace(self.NPU_PREFIX, self.GPU_PREFIX, 1)
         # reverse lookup
         if ext_opname.startswith(self.CPU_PREFIX):
@@ -387,12 +387,12 @@ class CompareData:
         message = "my_dataset_path is {}, golden_dataset_path" \
                   " is {}.".format(my_dataset_path, golden_dataset_path)
         attr_ok, my_dump_data_type = self.my_dump.get_dump_data_attr(
-            my_dataset_path, utils.DatasetAttr.DataType.name)
+            my_dataset_path, utils_type.DatasetAttr.DataType.name)
         if not attr_ok:
             return False, "Get the attr 'DataType' of {} failed! {}".format("my_dump", message)
 
         attr_ok, golden_dump_data_type = self.golden_dump.get_dump_data_attr(
-            golden_dataset_path, utils.DatasetAttr.DataType.name)
+            golden_dataset_path, utils_type.DatasetAttr.DataType.name)
         if not attr_ok:
             return False, "Get the attr 'DataType' of {} failed! {}".format("golden_dump", message)
 
@@ -411,10 +411,10 @@ class CompareData:
     def _converted_stride(self: any, dump_data: any, dataset_path: str) -> any:
         # convert GPU/CPU stride
         attr_ok, device_type = self.golden_dump.get_dump_data_attr(dataset_path,
-                                                                   utils.DatasetAttr.DeviceType.name)
-        if attr_ok and device_type in (utils.DeviceType.GPU.value, utils.DeviceType.CPU.value):
+                                                                   utils_type.DatasetAttr.DeviceType.name)
+        if attr_ok and device_type in (utils_type.DeviceType.GPU.value, utils_type.DeviceType.CPU.value):
             have_stride_attr, stride_attr = self.golden_dump.get_dump_data_attr(dataset_path,
-                                                                                utils.DatasetAttr.Stride.name)
+                                                                                utils_type.DatasetAttr.Stride.name)
             if have_stride_attr and self._check_stride(dataset_path, list(dump_data.shape), list(stride_attr)):
                 dump_data_flatten = dump_data.flatten()
                 real_stride = (dump_data_flatten.strides[0] * i for i in list(stride_attr))

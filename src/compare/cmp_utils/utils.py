@@ -25,26 +25,6 @@ from src.compare.dump_parse.big_dump_data import DumpDataHandler
 from src.compare.dump_parse.dump_data_object import DumpDataObj, DumpTensor
 
 
-class DatasetAttr(Enum):
-    """
-    The enum for pytorch dump data attribute
-    """
-    DataType = 0
-    DeviceType = 1
-    FormatType = 2
-    Type = 3
-    Stride = 4
-
-
-class DeviceType(Enum):
-    """
-    The enum for device type
-    """
-    GPU = 1
-    NPU = 10
-    CPU = 0
-
-
 class SortMode:
     """
     The class of sort mode

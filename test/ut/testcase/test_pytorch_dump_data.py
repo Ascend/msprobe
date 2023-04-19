@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 import numpy as np
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils_type
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.pytorch_cmp import pytorch_dump_data
 
@@ -121,11 +121,11 @@ class TestUtilsMethods(unittest.TestCase):
     def test_opname_map(self):
         compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
         compare_data.my_dump.need_compare_input = True
-        map_opname = compare_data._opname_map("NpuAdmm:1", utils.DeviceType.CPU.value)
+        map_opname = compare_data._opname_map("NpuAdmm:1", utils_type.DeviceType.CPU.value)
         self.assertEqual(map_opname, "ThnnAdmm:1")
-        map_opname = compare_data._opname_map("NpuAdmm:1", utils.DeviceType.GPU.value)
+        map_opname = compare_data._opname_map("NpuAdmm:1", utils_type.DeviceType.GPU.value)
         self.assertEqual(map_opname, "CudnnAdmm:1")
-        map_opname = compare_data._opname_map("NpuAdmm:1", utils.DeviceType.NPU.value)
+        map_opname = compare_data._opname_map("NpuAdmm:1", utils_type.DeviceType.NPU.value)
         self.assertEqual(map_opname, "NpuAdmm:1")
         map_opname = compare_data._opname_map("CudnnAdmm:1")
         self.assertEqual(map_opname, "NpuAdmm:1")
