@@ -1,19 +1,16 @@
 #!/usr/bin/env python
 # coding=utf-8
-# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
+# Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
 """
 Function:
-DumpDataConversion class. This class mainly involves the convert_data function.
+ShapeConversion class. This class mainly involves the convert_shape function.
 """
 
 import os
 import sys
 import argparse
-import time
-
 import numpy as np
 from dump_parse import big_dump_data
-
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils import utils
 from src.compare.cmp_utils.constant.const_manager import ConstManager
@@ -157,7 +154,7 @@ class DumpDataConversion:
             return
         for (index, tensor) in enumerate(tensor_list):
             log.print_info_log('Start to convert %s:%d of "%s" to numpy file.'
-                                 % (tensor_type, index, input_path))
+                               % (tensor_type, index, input_path))
             array = tensor.data
             try:
                 array = array.reshape(tensor.shape)
@@ -174,7 +171,7 @@ class DumpDataConversion:
             output_dump_path = os.path.join(self.output_path, file_name)
             np.save(output_dump_path, array)
             log.print_info_log('The %s:%d of "%s" has been converted to file "%s".'
-                                 % (tensor_type, index, input_path, output_dump_path))
+                               % (tensor_type, index, input_path, output_dump_path))
 
     def _save_buffer_to_file(self: any, tensor_list: list, name: str, input_path: str) -> None:
         if len(tensor_list) == 0:
@@ -183,7 +180,7 @@ class DumpDataConversion:
         for (index, tensor) in enumerate(tensor_list):
             buffer_type = ConstManager.BUFFER_TYPE_MAP.get(tensor.buffer_type)
             log.print_info_log('Start to convert %sbuffer:%d of "%s" to bin file.'
-                                 % (buffer_type, index, input_path))
+                               % (buffer_type, index, input_path))
             file_name = "%s.%sbuffer.%s.bin" % (name, buffer_type, index)
             output_dump_path = os.path.join(self.output_path, file_name)
             try:
@@ -191,7 +188,7 @@ class DumpDataConversion:
                                        ConstManager.WRITE_MODES), 'wb') as output_file:
                     output_file.write(tensor.data)
                     log.print_info_log('The %sbuffer:%d of "%s" has been converted to file "%s".'
-                                         % (buffer_type, index, input_path, output_dump_path))
+                                       % (buffer_type, index, input_path, output_dump_path))
             except IOError as io_error:
                 log.print_error_log('Failed to open "%s". %s ' % (output_dump_path, str(io_error)))
             finally:
@@ -218,7 +215,7 @@ class DumpDataConversion:
             self._save_tensor_to_file(dump_data.input_data, name, input_path, 'input')
             self._save_tensor_to_file(dump_data.output_data, name, input_path, 'output')
             self._save_buffer_to_file(dump_data.buffer, name, input_path)
-        
+
     def _convert_file(self: any, input_path: str) -> (int, str):
         return_code = CompareError.MSACCUCMP_NONE_ERROR
         try:
@@ -231,16 +228,3 @@ class DumpDataConversion:
         finally:
             pass
         return return_code, input_path
-
-
-if __name__ == "__main__":
-    log.print_deprecated_warning(sys.argv[0])
-    START = time.time()
-    CONVERSION = DumpDataConversion()
-    try:
-        RET = CONVERSION.convert_data()
-    except CompareError as err:
-        RET = err.code
-    END = time.time()
-    log.print_info_log("The dump data conversion was completed and took %.2f seconds." % (END - START))
-    sys.exit(RET)
