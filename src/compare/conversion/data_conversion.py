@@ -3,7 +3,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
 """
 Function:
-ShapeConversion class. This class mainly involves the convert_shape function.
+DumpDataConversion class. This class mainly involves the convert_data function.
 """
 
 import os

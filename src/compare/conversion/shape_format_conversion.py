@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # coding=utf-8
-# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
+# Copyright (c) Huawei Technologies Co., Ltd. 2023. All rights reserved.
 """
 Function:
-ShapeConversion class. This class mainly involves the convert_shape function.
+Shape Format Conversion class. This class mainly involves the convert_shape function.
 """
+
 import argparse
 import os
 import sys
@@ -12,7 +13,7 @@ import re
 import time
 
 import numpy as np
-import dump_data_pb2 as DD
+import src.compare.dump_data_pb2 as DD
 
 from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import common
@@ -451,13 +452,3 @@ class FormatConversionMain:
         except CompareError as error:
             ret = error.code
         return ret, msg
-
-
-if __name__ == "__main__":
-    log.print_deprecated_warning(sys.argv[0])
-    START = time.time()
-    SHAPE_CONVERSION = ShapeConversionMain()
-    RET = SHAPE_CONVERSION.process()
-    END = time.time()
-    log.print_info_log("The format conversion was completed and took %.2f seconds." % (END - START))
-    sys.exit(RET)
