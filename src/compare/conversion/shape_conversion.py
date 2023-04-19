@@ -14,7 +14,7 @@ import time
 import numpy as np
 import dump_data_pb2 as DD
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import common
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
@@ -137,7 +137,7 @@ class ShapeConversionMain:
 
         # check dump file path is valid
         ret = utils.check_path_valid(
-            self.dump_file_path, True, False, utils.PathType.File)
+            self.dump_file_path, True, False, utils_type.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             return ret
 

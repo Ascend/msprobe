@@ -7,7 +7,7 @@ import numpy as np
 from google.protobuf.message import DecodeError
 import dump_data_pb2 as DD
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.vector_cmp.fusion_manager import fusion_op
 from src.compare.cmp_utils.constant.compare_error import CompareError
@@ -168,7 +168,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('os.access', return_value=True):
                 with mock.patch('os.path.isfile', return_value=False):
                     ret = utils.check_path_valid(
-                        '/home/result.txt', True, False, utils.PathType.File)
+                        '/home/result.txt', True, False, utils_type.PathType.File)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_check_path_valid7(self):
@@ -177,14 +177,14 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('os.path.isdir', return_value=False):
                     ret = utils.check_path_valid(
                         '/home/result.txt', True, False,
-                        utils.PathType.Directory)
+                        utils_type.PathType.Directory)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_check_path_valid8(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', side_effect=[True, False]):
                 ret = utils.check_path_valid(
-                    '/home/result', True, True, utils.PathType.Directory)
+                    '/home/result', True, True, utils_type.PathType.Directory)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_parse_dump_file1(self):
@@ -355,17 +355,17 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_shape_type1(self):
         shape_dim_array = [0]
         result = utils.get_shape_type(shape_dim_array)
-        self.assertEqual(result, utils.ShapeType.Tensor)
+        self.assertEqual(result, utils_type.ShapeType.Tensor)
 
     def test_get_shape_type2(self):
         shape_dim_array = [1, 1, 1]
         result = utils.get_shape_type(shape_dim_array)
-        self.assertEqual(result, utils.ShapeType.Scalar)
+        self.assertEqual(result, utils_type.ShapeType.Scalar)
 
     def test_get_shape_type3(self):
         shape_dim_array = [1, 3, 2]
         result = utils.get_shape_type(shape_dim_array)
-        self.assertEqual(result, utils.ShapeType.Tensor)
+        self.assertEqual(result, utils_type.ShapeType.Tensor)
 
     def test_get_path_list_for_str1(self):
         with mock.patch('src.compare.cmp_utils.utils.check_path_valid',

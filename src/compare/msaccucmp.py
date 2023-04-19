@@ -12,7 +12,7 @@ import sys
 import argparse
 import time
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.reg_manager import RegManager
@@ -277,7 +277,7 @@ def _check_file_compare_file(args: argparse.Namespace, file_type) -> None:
         if not file.endswith(file_type):
             log.print_error_log("[file_compare] The file %s is invalid.Only support %s file." % (file, file_type))
             raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
-        ret = utils.check_path_valid(file, True, False, path_type=utils.PathType.File)
+        ret = utils.check_path_valid(file, True, False, path_type=utils_type.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 

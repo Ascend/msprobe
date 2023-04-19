@@ -11,7 +11,7 @@ import struct
 
 import numpy as np
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils import common
 from src.compare.cmp_utils.constant.const_manager import ConstManager
@@ -88,7 +88,7 @@ class DumpDataParser:
         ret = utils.check_output_path_valid(self.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
-        ret = utils.check_path_valid(self.path_str, True, False, path_type=utils.PathType.File)
+        ret = utils.check_path_valid(self.path_str, True, False, path_type=utils_type.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         try:
@@ -225,7 +225,7 @@ class DumpDataParser:
         return data
 
     def _parse_one_file_exec(self: any, dump_path: str) -> None:
-        ret = utils.check_path_valid(dump_path, True, False, path_type=utils.PathType.File)
+        ret = utils.check_path_valid(dump_path, True, False, path_type=utils_type.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         dump_data = utils.parse_dump_file(dump_path, self.dump_version)

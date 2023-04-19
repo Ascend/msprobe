@@ -14,7 +14,7 @@ import importlib
 
 import numpy as np
 
-from src.compare.cmp_utils import log
+from src.compare.cmp_utils import log, utils_type
 from src.compare.cmp_utils import utils
 from src.compare.algorithm.algorithm_parameter import AlgorithmParameter
 from src.compare.cmp_utils.constant.const_manager import ConstManager
@@ -231,7 +231,7 @@ class AlgorithmManager:
         self._make_support_algorithm_by_path(dir_path, self.built_in_support_algorithm)
         if self.custom_path:
             ret = utils.check_path_valid(
-                self.custom_path, True, False, utils.PathType.Directory)
+                self.custom_path, True, False, utils_type.PathType.Directory)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
             dir_path = os.path.join(self.custom_path, ConstManager.CUSTOM_ALGORITHM_DIR_NAME)
@@ -338,11 +338,11 @@ class AlgorithmManagerMain:
         Check arguments valid, if invalid, throw exception
         """
         ret = utils.check_path_valid(self.my_output_dump_file_path, True, False,
-                                     utils.PathType.File)
+                                     utils_type.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         ret = utils.check_path_valid(self.ground_truth_dump_file_path, True, False,
-                                     utils.PathType.File)
+                                     utils_type.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 

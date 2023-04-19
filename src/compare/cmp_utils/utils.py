@@ -17,30 +17,12 @@ from dump_data_pb2 import DumpData
 
 from src.compare.cmp_utils import common
 from src.compare.cmp_utils import log
+from src.compare.cmp_utils.utils_type import ShapeType, PathType
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.reg_manager import RegManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.dump_parse.big_dump_data import DumpDataHandler
 from src.compare.dump_parse.dump_data_object import DumpDataObj, DumpTensor
-
-
-class ShapeType(Enum):
-    """
-    The enum for shape type
-    """
-    Scalar = 0
-    Vector = 1
-    Matrix = 2
-    Tensor = 3
-
-
-class PathType(Enum):
-    """
-    The enum for path type
-    """
-    All = 0
-    File = 1
-    Directory = 2
 
 
 class DatasetAttr(Enum):

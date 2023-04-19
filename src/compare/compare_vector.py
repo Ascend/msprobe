@@ -23,7 +23,7 @@ from src.compare.format_convert.format_manager import FormatManager
 from src.compare.vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
 from src.compare.vector_cmp.compare_detail.compare_detail import DetailComparison
 from src.compare.vector_cmp.compare_detail.compare_detail import DumpDetailComparison
-from src.compare.cmp_utils import log, utils
+from src.compare.cmp_utils import log, utils, utils_type
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.dump_parse.dump import DumpType
@@ -138,10 +138,10 @@ class VectorComparison:
         """
         self.compare_rule.check_arguments_valid()
         exist = False
-        path_type = utils.PathType.File
+        path_type = utils_type.PathType.File
         if self.detail_info:
             exist = True
-            path_type = utils.PathType.Directory
+            path_type = utils_type.PathType.Directory
             self.detail_info.check_arguments_valid()
 
         ret = utils.check_output_path_valid(self.output_path, exist, path_type)

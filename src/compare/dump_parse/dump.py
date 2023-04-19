@@ -12,7 +12,7 @@ from enum import unique
 
 from dump_data_pb2 import DumpData
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.reg_manager import RegManager
@@ -50,7 +50,7 @@ class DumpInfo:
         """
         Check arguments valid, if invalid, throw exception
         """
-        ret = utils.check_path_valid(self.path, True, False, utils.PathType.Directory)
+        ret = utils.check_path_valid(self.path, True, False, utils_type.PathType.Directory)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         self._make_op_name_to_file_map()

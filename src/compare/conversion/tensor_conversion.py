@@ -13,7 +13,7 @@ from src.compare.format_convert.format_manager import SrcToDest
 from src.compare.format_convert.format_manager import ShapeConversion
 from src.compare.vector_cmp.fusion_manager.fusion_op import FusionOp
 from src.compare.vector_cmp.fusion_manager.fusion_op import Tensor
-from src.compare.cmp_utils import log
+from src.compare.cmp_utils import log, utils_type
 from src.compare.cmp_utils import utils
 from src.compare.cmp_utils import common
 from src.compare.cmp_utils.constant.const_manager import ConstManager
@@ -141,7 +141,7 @@ class TensorConversion:
         origin_format = my_output_tensor.tensor_format
         if ground_truth_tensor.tensor_format != "":
             origin_format = self._get_ground_truth_format(ground_truth_tensor)
-        is_tensor = (utils.get_shape_type(my_output_tensor.shape) == utils.ShapeType.Tensor)
+        is_tensor = (utils.get_shape_type(my_output_tensor.shape) == utils_type.ShapeType.Tensor)
         my_output_shape = utils.convert_shape_to_string(my_output_tensor.shape)
 
         # when compare quant and origin
@@ -254,7 +254,7 @@ class TensorConversion:
 
         # ND format no need to convert, except FORMAT_FRACTAL_NZ to ND
         if (my_output_dest_format == DD.FORMAT_ND and my_output_tensor.tensor_format != DD.FORMAT_FRACTAL_NZ) \
-                or utils.get_shape_type(my_output_tensor.shape) != utils.ShapeType.Tensor:
+                or utils.get_shape_type(my_output_tensor.shape) != utils_type.ShapeType.Tensor:
             return my_output_array, ground_truth_array
 
         # shape convert for my output
