@@ -12,7 +12,7 @@ import csv
 import time
 import numpy as np
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.pytorch_cmp import pytorch_dump_data as pytorch_dump
 from src.compare.algorithm.algorithm_manager import AlgorithmManager
@@ -117,7 +117,7 @@ class PytorchComparison:
                                 ' in pytorch precision comparison scenarios.')
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
-        path_type = utils.PathType.File
+        path_type = utils_type.PathType.File
         ret = utils.check_output_path_valid(self.output_path, False, path_type)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)

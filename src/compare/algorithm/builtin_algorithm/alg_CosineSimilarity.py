@@ -9,7 +9,7 @@ CosineSimilarity algorithm. This file mainly involves the compare function.
 import numpy as np
 
 from src.compare.algorithm.algorithm_parameter import AlgorithmParameter
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 
@@ -26,7 +26,7 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     :return: the result of cosine similarity value and error message (the default is "")
     """
     np.seterr(divide='ignore', invalid='ignore')
-    if args.shape_type == utils.ShapeType.Scalar:
+    if args.shape_type == utils_type.ShapeType.Scalar:
         return utils.format_value(1), "This tensor is scalar."
     numerator = 0.0
     source_denominator = 0.0

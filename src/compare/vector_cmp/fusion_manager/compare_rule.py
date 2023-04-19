@@ -9,7 +9,7 @@ VectorComparison class. This class mainly involves the compare function.
 import os
 import sys
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import merge_fusion_rule
 from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import merge_close_and_open_fusion_rule
@@ -113,15 +113,15 @@ class CompareRule:
         Check arguments valid, if invalid, throw exception
         """
         if self.fusion_json_file_path != "":
-            ret = utils.check_path_valid(self.fusion_json_file_path, True, False, utils.PathType.File)
+            ret = utils.check_path_valid(self.fusion_json_file_path, True, False, utils_type.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
         if self.quant_fusion_rule_file_path != "":
-            ret = utils.check_path_valid(self.quant_fusion_rule_file_path, True, False, utils.PathType.File)
+            ret = utils.check_path_valid(self.quant_fusion_rule_file_path, True, False, utils_type.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
         if self.close_fusion_rule_file_path != "":
-            ret = utils.check_path_valid(self.close_fusion_rule_file_path, True, False, utils.PathType.File)
+            ret = utils.check_path_valid(self.close_fusion_rule_file_path, True, False, utils_type.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
 

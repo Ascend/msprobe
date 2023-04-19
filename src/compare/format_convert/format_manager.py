@@ -14,7 +14,7 @@ from functools import reduce
 import numpy as np
 import dump_data_pb2 as DD
 
-from src.compare.cmp_utils import utils
+from src.compare.cmp_utils import utils, utils_type
 from src.compare.cmp_utils import log
 from src.compare.cmp_utils import common
 from src.compare.cmp_utils.reg_manager import RegManager
@@ -141,7 +141,7 @@ class FormatManager:
         self._make_support_format_by_path(dir_path, self.built_in_support_format)
         if self.custom_path:
             ret = utils.check_path_valid(
-                self.custom_path, True, False, utils.PathType.Directory)
+                self.custom_path, True, False, utils_type.PathType.Directory)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
             dir_path = os.path.join(self.custom_path, self.CUSTOM_FORMAT_CONVERT_DIR_NAME)
