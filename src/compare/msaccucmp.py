@@ -19,7 +19,7 @@ from src.compare.cmp_utils.reg_manager import RegManager
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.algorithm.algorithm_manager import AlgorithmManagerMain
 from src.compare.compare_vector import VectorComparison
-from src.compare.conversion.shape_conversion import FormatConversionMain
+from src.compare.conversion.shape_format_conversion import FormatConversionMain
 from src.compare.dump_parse.dump_data_parser import DumpDataParser
 from src.compare.overflow.overflow_analyse import OverflowAnalyse
 from src.compare.pytorch_cmp.compare_pytorch import PytorchComparison

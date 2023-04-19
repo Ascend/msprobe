@@ -9,7 +9,7 @@ from unittest import mock
 from src.compare.cmp_utils import utils
 from src.compare.cmp_utils.constant.compare_error import CompareError
 from src.compare.cmp_utils import common
-from src.compare.conversion import shape_conversion
+from src.compare.conversion import shape_format_conversion
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestUtilsMethods(unittest.TestCase):
                     mock.patch('os.path.isdir', return_value=False):
                 with mock.patch('numpy.save'):
                     with mock.patch('src.compare.cmp_utils.utils.parse_dump_file', return_value=dump_data):
-                        main = shape_conversion.ShapeConversionMain()
+                        main = shape_format_conversion.ShapeConversionMain()
                         ret = main.process()
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
@@ -35,7 +35,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home']
         with pytest.raises(CompareError) as error:
             with mock.patch('sys.argv', args):
-                main = shape_conversion.ShapeConversionMain()
+                main = shape_format_conversion.ShapeConversionMain()
                 ret = main.process()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
@@ -44,7 +44,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home']
         with mock.patch('sys.argv', args):
             with mock.patch('src.compare.cmp_utils.utils.check_path_valid', side_effect=[0, 2]):
-                main = shape_conversion.ShapeConversionMain()
+                main = shape_format_conversion.ShapeConversionMain()
                 ret = main.process()
         self.assertEqual(ret, 2)
 
@@ -53,7 +53,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home']
         with mock.patch('sys.argv', args):
             with mock.patch('src.compare.cmp_utils.utils.check_path_valid', return_value=3):
-                main = shape_conversion.ShapeConversionMain()
+                main = shape_format_conversion.ShapeConversionMain()
                 ret = main.process()
         self.assertEqual(ret, 3)
 
@@ -64,7 +64,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.getsize', return_value=100):
-                    main = shape_conversion.ShapeConversionMain()
+                    main = shape_format_conversion.ShapeConversionMain()
                     ret = main.process()
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
@@ -75,7 +75,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('src.compare.cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.getsize', return_value=100):
-                    main = shape_conversion.ShapeConversionMain()
+                    main = shape_format_conversion.ShapeConversionMain()
                     ret = main.process()
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
@@ -92,7 +92,7 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('numpy.save'):
-                        main = shape_conversion.ShapeConversionMain()
+                        main = shape_format_conversion.ShapeConversionMain()
                         ret = main.process()
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
@@ -109,7 +109,7 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('numpy.save'):
-                        main = shape_conversion.ShapeConversionMain()
+                        main = shape_format_conversion.ShapeConversionMain()
                         ret = main.process()
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
@@ -118,7 +118,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home', '-index', 'xx']
         with pytest.raises(CompareError) as error:
             with mock.patch('sys.argv', args):
-                shape_conversion.ShapeConversionMain()
+                shape_format_conversion.ShapeConversionMain()
         self.assertEqual(error.value.code,
                          CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
@@ -126,7 +126,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home', '-tensor', 'xxxx']
         with mock.patch('sys.argv', args):
-            main = shape_conversion.ShapeConversionMain()
+            main = shape_format_conversion.ShapeConversionMain()
             ret = main.process()
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
@@ -142,7 +142,7 @@ class TestUtilsMethods(unittest.TestCase):
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
-                    main = shape_conversion.ShapeConversionMain()
+                    main = shape_format_conversion.ShapeConversionMain()
                     ret = main.process()
         self.assertEqual(ret,
                          CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
@@ -155,7 +155,7 @@ class TestUtilsMethods(unittest.TestCase):
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                 side_effect=CompareError(2)):
-                    main = shape_conversion.ShapeConversionMain()
+                    main = shape_format_conversion.ShapeConversionMain()
                     ret = main.process()
         self.assertEqual(ret, 2)
 
@@ -173,7 +173,7 @@ class TestUtilsMethods(unittest.TestCase):
                     with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                     return_value=dump_data):
                         with mock.patch('numpy.save'):
-                            main = shape_conversion.ShapeConversionMain()
+                            main = shape_format_conversion.ShapeConversionMain()
                             ret = main.process()
         self.assertEqual(error.value.code,
                          CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
@@ -192,7 +192,7 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('numpy.save'):
-                        main = shape_conversion.ShapeConversionMain()
+                        main = shape_format_conversion.ShapeConversionMain()
                         ret = main.process()
         self.assertEqual(ret,
                          CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
@@ -211,7 +211,7 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('numpy.save'):
-                        main = shape_conversion.ShapeConversionMain()
+                        main = shape_format_conversion.ShapeConversionMain()
                         ret = main.process()
         self.assertEqual(ret,
                          CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
@@ -230,7 +230,7 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('numpy.save'):
-                        main = shape_conversion.ShapeConversionMain()
+                        main = shape_format_conversion.ShapeConversionMain()
                         ret = main.process()
         self.assertEqual(ret,
                          CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
@@ -249,7 +249,7 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('numpy.save'):
-                        main = shape_conversion.ShapeConversionMain()
+                        main = shape_format_conversion.ShapeConversionMain()
                         ret = main.process()
         self.assertEqual(ret,
                          CompareError.MSACCUCMP_NONE_ERROR)
@@ -268,7 +268,7 @@ class TestUtilsMethods(unittest.TestCase):
                 with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('numpy.save'):
-                        main = shape_conversion.ShapeConversionMain()
+                        main = shape_format_conversion.ShapeConversionMain()
                         ret = main.process()
         self.assertEqual(ret,
                          CompareError.MSACCUCMP_NONE_ERROR)
@@ -293,7 +293,7 @@ class TestUtilsMethods(unittest.TestCase):
                     mock.patch('os.path.isfile', return_value=True), \
                     mock.patch('os.chmod'):
                 with mock.patch('numpy.save'):
-                    main = shape_conversion.FormatConversionMain(arguments)
+                    main = shape_format_conversion.FormatConversionMain(arguments)
                     ret = main.convert_format()
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
@@ -317,7 +317,7 @@ class TestUtilsMethods(unittest.TestCase):
                     mock.patch('os.path.isfile', return_value=True), \
                     mock.patch('os.chmod'):
                 with mock.patch('numpy.save'):
-                    main = shape_conversion.FormatConversionMain(arguments)
+                    main = shape_format_conversion.FormatConversionMain(arguments)
                     ret = main.convert_format()
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
@@ -341,7 +341,7 @@ class TestUtilsMethods(unittest.TestCase):
                     mock.patch('os.path.isfile', return_value=True), \
                     mock.patch('os.chmod'):
                 with mock.patch('numpy.save'):
-                    main = shape_conversion.FormatConversionMain(arguments)
+                    main = shape_format_conversion.FormatConversionMain(arguments)
                     ret = main.convert_format()
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
@@ -358,7 +358,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.custom_script_path = False
         with pytest.raises(CompareError) as error:
             with mock.patch("os.path.isfile", return_value=True):
-                shape_conversion.FormatConversionMain(arguments)
+                shape_format_conversion.FormatConversionMain(arguments)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     def test_formatConversionMain2(self):
@@ -372,7 +372,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.shape = "1,3,224,224"
         arguments.format = "NCHW"
         with mock.patch("os.path.isfile", return_value=True):
-            shape_conversion.FormatConversionMain(arguments)
+            shape_format_conversion.FormatConversionMain(arguments)
 
     def test_formatConversionMain3(self):
         arguments = mock.Mock()
@@ -386,7 +386,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.format = "ABC"
         with pytest.raises(CompareError) as error:
             with mock.patch("os.path.isfile", return_value=True):
-                shape_conversion.FormatConversionMain(arguments)
+                shape_format_conversion.FormatConversionMain(arguments)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     def test_convert_format_for_one_tensor(self):
@@ -400,7 +400,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.shape = "1,3,224,224"
         arguments.format = "NCHW"
         arguments.custom_script_path = "/home"
-        format_main = shape_conversion.FormatConversionMain(arguments)
+        format_main = shape_format_conversion.FormatConversionMain(arguments)
         format_main.manager = mock.Mock
         format_main.manager.execute_format_convert = mock.Mock(return_value=np.array([1, 2, 3, 4]))
         format_main._save_to_file = mock.Mock()
@@ -428,7 +428,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.shape = "1,3,224,224"
         arguments.format = "NCHW"
         arguments.custom_script_path = "/home"
-        format_main = shape_conversion.FormatConversionMain(arguments)
+        format_main = shape_format_conversion.FormatConversionMain(arguments)
         format_main._convert_format_for_one_tensor = mock.Mock(side_effect=OSError)
         tensor_list = [None]
         dump_file_path = "/home"
@@ -447,7 +447,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.shape = "1,3,224,224"
         arguments.format = "NCHW"
         arguments.custom_script_path = "/home"
-        format_main = shape_conversion.FormatConversionMain(arguments)
+        format_main = shape_format_conversion.FormatConversionMain(arguments)
         format_main._convert_format_for_one_tensor = mock.Mock(side_effect=CompareError(1))
         tensor_list = [None]
         dump_file_path = "/home"
@@ -469,7 +469,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = mock.Mock
         dump_data.input_data = [None]
         dump_data.output_data = [None]
-        format_main = shape_conversion.FormatConversionMain(arguments)
+        format_main = shape_format_conversion.FormatConversionMain(arguments)
         format_main.one_file_info = {'tensor': "input", 'index': 2, 'shape': "1,3,224,224"}
         dump_file_path = "/home"
         with mock.patch("src.compare.cmp_utils.utils.parse_dump_file", return_value=dump_data):
@@ -491,7 +491,7 @@ class TestUtilsMethods(unittest.TestCase):
         self.build_dump_data_object(dump_data)
         dump_data.input_data = [None]
         dump_data.output_data = [None]
-        format_main = shape_conversion.FormatConversionMain(arguments)
+        format_main = shape_format_conversion.FormatConversionMain(arguments)
         format_main._convert_format_for_one_tensor = mock.Mock(side_effect=OSError)
         format_main.one_file_info = {'tensor': "input", 'index': 0, 'shape': "1,3,224,224"}
         dump_file_path = "/home"
@@ -514,7 +514,7 @@ class TestUtilsMethods(unittest.TestCase):
         self.build_dump_data_object(dump_data)
         dump_data.input_data = [None]
         dump_data.output_data = [None]
-        format_main = shape_conversion.FormatConversionMain(arguments)
+        format_main = shape_format_conversion.FormatConversionMain(arguments)
         format_main._convert_format_for_tensor = mock.Mock(return_value=[1, "/demo"])
         format_main.one_file_info = {'tensor': None, 'index': 0, 'shape': "1,3,224,224"}
         dump_file_path = "/home"
@@ -533,7 +533,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.shape = "1,3,224,224"
         arguments.format = "NCHW"
         arguments.custom_script_path = "/home"
-        format_main = shape_conversion.FormatConversionMain(arguments)
+        format_main = shape_format_conversion.FormatConversionMain(arguments)
         format_main.check_arguments_valid = mock.Mock()
         format_main.input_path = ['xxx/aaa']
         format_main._convert_format_for_one_file = mock.Mock(return_value=[1, "ok"])
