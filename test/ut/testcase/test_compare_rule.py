@@ -45,22 +45,29 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.args[0], 1)
 
     def test_sort_file_by_timestamp1(self):
-        op_name_to_file_map = {"Add": ["CON.aDD.1.23431252326"]}
-        op_name_to_task_mode = {"Add": 0}
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
+        dump_info = mock.Mock()
+        dump_info.op_name_to_file_map = {"Add": ["/home/demo/CON.aDD.1.23431252326"]}
+        dump_info.op_name_to_task_mode_map = {"Add": 0}
+        dump_info.path = "/home/demo"
         with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=0):
-            compare_rule_object._sort_file_by_timestamp(op_name_to_file_map, op_name_to_task_mode)
+            compare_rule_object._sort_file_by_timestamp(dump_info)
+
 
     def test_sort_file_by_timestamp2(self):
-        op_name_to_file_map = {"Add": ["1223453545232"]}
-        op_name_to_task_mode = {"Add": 0}
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
+        dump_info = mock.Mock()
+        dump_info.op_name_to_file_map = {"Add": ["/home/demo/1223453545232"]}
+        dump_info.op_name_to_task_mode_map = {"Add": 0}
+        dump_info.path = "/home/demo"
+        dump_info.hash_to_file_name_map = {"1223453545232": "CON.aDD.1.23431252326"}
         with mock.patch("src.compare.cmp_utils.utils.check_path_valid", return_value=0):
-            compare_rule_object._sort_file_by_timestamp(op_name_to_file_map, op_name_to_task_mode)
+            compare_rule_object._sort_file_by_timestamp(dump_info)
+
 
     def test_make_npu_vs_npu_fusion_rule1(self):
         fusion_json_file_path = "/home/demo/1.json"

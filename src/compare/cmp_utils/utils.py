@@ -29,6 +29,8 @@ class SortMode:
     """
     The class of sort mode
     """
+    hash_to_file_name_map = {}
+
     def __init__(self, parameter):
         self.parameter = parameter
 
@@ -40,14 +42,17 @@ class SortMode:
         """
         @wraps(wrap_function)
         def inner(*args, **kwargs):
-            file_split = wrap_function(*args, **kwargs).split('.')
+            file_path = wrap_function(*args, **kwargs)
+            file_name = os.path.basename(file_path)
+            file_name = self.hash_to_file_name_map.get(file_name) if file_name.isdigit() else file_name
+            file_split = file_name.split('.')
             if self.parameter == ConstManager.NORMAL_MODE or \
                     self.parameter == ConstManager.FFTS_TIMESTAMP:
-                return self._parameter_timestamp(file_split, args[0])
+                return self._parameter_timestamp(file_split, file_name)
             elif self.parameter == ConstManager.AUTOMATIC_MODE:
-                return self._parameter_auto(file_split, args[0])
+                return self._parameter_auto(file_split, file_name)
             elif self.parameter == ConstManager.MANUAL_MODE:
-                return self._parameter_manual(file_split, args[0])
+                return self._parameter_manual(file_split, file_name)
             else:
                 log.print_warn_log('The sort mode parameter is invalid, failed to sort')
                 return ConstManager.INVALID_SORT_MODE
