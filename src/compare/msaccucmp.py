@@ -12,18 +12,18 @@ import sys
 import argparse
 import time
 
-from src.compare.cmp_utils import utils, utils_type
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.cmp_utils.reg_manager import RegManager
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.algorithm.algorithm_manager import AlgorithmManagerMain
-from src.compare.compare_vector import VectorComparison
-from src.compare.conversion.shape_format_conversion import FormatConversionMain
-from src.compare.dump_parse.dump_data_parser import DumpDataParser
-from src.compare.overflow.overflow_analyse import OverflowAnalyse
-from src.compare.pytorch_cmp.compare_pytorch import PytorchComparison
-from src.compare.vector_cmp.batch_compare import BatchCompare
+from cmp_utils import utils, utils_type
+from cmp_utils import log
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.reg_manager import RegManager
+from cmp_utils.constant.compare_error import CompareError
+from algorithm.algorithm_manager import AlgorithmManagerMain
+from compare_vector import VectorComparison
+from conversion.shape_format_conversion import FormatConversionMain
+from dump_parse.dump_data_parser import DumpDataParser
+from overflow.overflow_analyse import OverflowAnalyse
+from pytorch_cmp.compare_pytorch import PytorchComparison
+from vector_cmp.batch_compare import BatchCompare
 
 
 def _get_algorithm_help_info() -> str:

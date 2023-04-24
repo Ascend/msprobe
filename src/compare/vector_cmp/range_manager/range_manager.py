@@ -10,8 +10,8 @@ This class mainly involves the get function.
 import sys
 from abc import ABC, abstractmethod
 
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.vector_cmp.fusion_manager.compare_rule import CompareRule
+from cmp_utils.constant.const_manager import ConstManager
+from vector_cmp.fusion_manager.compare_rule import CompareRule
 
 
 class RangeManager(ABC):

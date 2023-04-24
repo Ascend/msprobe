@@ -2,8 +2,8 @@
 import unittest
 from unittest import mock
 
-from src.compare.vector_cmp.fusion_manager import quant_filter
-from src.compare.vector_cmp.fusion_manager import fusion_op
+from vector_cmp.fusion_manager import quant_filter
+from vector_cmp.fusion_manager import fusion_op
 
 
 class TestUtilsMethods(unittest.TestCase):

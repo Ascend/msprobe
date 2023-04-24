@@ -8,9 +8,9 @@ DumpDataConversion class. This class mainly involves the convert_data function.
 
 import sys
 import time
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.conversion.data_conversion import DumpDataConversion
+from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
+from conversion.data_conversion import DumpDataConversion
 
 if __name__ == "__main__":
     log.print_deprecated_warning(sys.argv[0])

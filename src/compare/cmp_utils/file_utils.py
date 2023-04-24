@@ -12,11 +12,11 @@ import re
 import uuid
 import numpy as np
 
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils import utils
-from src.compare.cmp_utils import common
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.cmp_utils.constant.compare_error import CompareError
+from cmp_utils import log
+from cmp_utils import utils
+from cmp_utils import common
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.compare_error import CompareError
 
 
 class FileUtils:

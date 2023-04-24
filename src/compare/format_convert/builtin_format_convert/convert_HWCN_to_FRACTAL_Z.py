@@ -8,9 +8,9 @@ convert format from HWCN to FRACTAL_Z.
 from itertools import product
 import numpy as np
 
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.cmp_utils.utils import least_common_multiple as lcm
-from src.compare.cmp_utils.utils import ceiling_divide as ceil
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.utils import least_common_multiple as lcm
+from cmp_utils.utils import ceiling_divide as ceil
 
 
 def _get_axis(ghw_axis: list, value_map: dict, dst_c: int, w_axis: int) -> int:

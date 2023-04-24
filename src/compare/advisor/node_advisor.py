@@ -6,9 +6,9 @@ Function:
 This file mainly involves the node advisor function.
 """
 
-from src.compare.cmp_utils import log
-from src.compare.advisor.advisor_const import AdvisorConst
-from src.compare.advisor.advisor_result import AdvisorResult
+from cmp_utils import log
+from advisor.advisor_const import AdvisorConst
+from advisor.advisor_result import AdvisorResult
 
 
 class NodeAdvisor:

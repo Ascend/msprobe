@@ -10,9 +10,9 @@ import argparse
 import sys
 import time
 
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.dump_parse.dump_data_parser import DumpDataParser
+from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
+from dump_parse.dump_data_parser import DumpDataParser
 
 
 def _save_log_parser(save_log_parser: argparse.ArgumentParser) -> None:

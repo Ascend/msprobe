@@ -9,9 +9,9 @@ VectorComparison class. This class mainly involves the compare function.
 import sys
 import time
 import signal
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.vector_cmp.vector_comparison import VectorComparison
+from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
+from vector_cmp.vector_comparison import VectorComparison
 
 
 def _handle_stop(sig: any, frame: any) -> None:

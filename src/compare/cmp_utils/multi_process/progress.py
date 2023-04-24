@@ -8,8 +8,8 @@ Progress class. This class mainly involves the print_progress function.
 import time
 import math
 
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.const_manager import ConstManager
+from cmp_utils import log
+from cmp_utils.constant.const_manager import ConstManager
 
 
 class Progress:

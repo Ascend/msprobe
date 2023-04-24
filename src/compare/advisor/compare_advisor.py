@@ -8,13 +8,13 @@ Make advisor, perform comparative analysis, This class mainly involves the main 
 
 import pandas as pd
 
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.advisor.advisor_const import AdvisorConst
-from src.compare.advisor.advisor_result import AdvisorResult
-from src.compare.advisor.input_advisor import InputAdvisor
-from src.compare.advisor.node_advisor import NodeAdvisor
-from src.compare.advisor.overflow_advisor import OverflowAdvisor
+from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
+from advisor.advisor_const import AdvisorConst
+from advisor.advisor_result import AdvisorResult
+from advisor.input_advisor import InputAdvisor
+from advisor.node_advisor import NodeAdvisor
+from advisor.overflow_advisor import OverflowAdvisor
 
 
 class CompareAdvisor:

@@ -13,20 +13,20 @@ import re
 import time
 
 import numpy as np
-import src.compare.dump_data_pb2 as DD
+import dump_data_pb2 as DD
 
-from src.compare.cmp_utils import utils, utils_type
-from src.compare.cmp_utils import common
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
-from src.compare.cmp_utils.reg_manager import RegManager
-from src.compare.cmp_utils.file_utils import FileUtils
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.format_convert.format_manager import FormatManager
-from src.compare.format_convert.format_manager import SrcToDest
-from src.compare.format_convert.format_manager import ShapeConversion
-from src.compare.conversion.tensor_conversion import TensorConversion
+from cmp_utils import utils, utils_type
+from cmp_utils import common
+from cmp_utils import log
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
+from cmp_utils.reg_manager import RegManager
+from cmp_utils.file_utils import FileUtils
+from cmp_utils.constant.compare_error import CompareError
+from format_convert.format_manager import FormatManager
+from format_convert.format_manager import SrcToDest
+from format_convert.format_manager import ShapeConversion
+from conversion.tensor_conversion import TensorConversion
 
 
 def _check_shape_valid(shape_str: str) -> list:

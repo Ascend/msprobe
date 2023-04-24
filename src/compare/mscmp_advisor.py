@@ -9,10 +9,10 @@ Make advisor, perform comparative analysis, This class mainly involves the main 
 import os
 import sys
 import argparse
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.advisor.compare_advisor import CompareAdvisor
+from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
+from advisor.compare_advisor import CompareAdvisor
 
 
 def parse_input_nodes(input_nodes):

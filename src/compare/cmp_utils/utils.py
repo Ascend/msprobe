@@ -15,14 +15,14 @@ import csv
 import numpy as np
 from dump_data_pb2 import DumpData
 
-from src.compare.cmp_utils import common
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.utils_type import ShapeType, PathType
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.cmp_utils.reg_manager import RegManager
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.dump_parse.big_dump_data import DumpDataHandler
-from src.compare.dump_parse.dump_data_object import DumpDataObj, DumpTensor
+from cmp_utils import common
+from cmp_utils import log
+from cmp_utils.utils_type import ShapeType, PathType
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.reg_manager import RegManager
+from cmp_utils.constant.compare_error import CompareError
+from dump_parse.big_dump_data import DumpDataHandler
+from dump_parse.dump_data_object import DumpDataObj, DumpTensor
 
 
 class SortMode:

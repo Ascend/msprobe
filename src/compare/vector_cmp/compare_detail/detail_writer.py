@@ -12,13 +12,13 @@ import uuid
 
 import numpy as np
 
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils import utils
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.vector_cmp.compare_detail.detail import DetailInfo
-from src.compare.cmp_utils.file_utils import FileUtils
-from src.compare.cmp_utils.multi_process.progress import Progress
+from cmp_utils import log
+from cmp_utils import utils
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
+from vector_cmp.compare_detail.detail import DetailInfo
+from cmp_utils.file_utils import FileUtils
+from cmp_utils.multi_process.progress import Progress
 
 
 class MinMaxValue:

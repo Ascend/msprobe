@@ -7,15 +7,15 @@ VectorComparison class. This class mainly involves the compare function.
 """
 
 import os
-from src.compare.cmp_utils import utils, utils_type
-from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
-from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import merge_fusion_rule
-from src.compare.vector_cmp.fusion_manager.fusion_rule_parser import merge_close_and_open_fusion_rule
-from src.compare.vector_cmp.fusion_manager.fusion_op import FusionOp
-from src.compare.vector_cmp.fusion_manager.fusion_op import OpAttr
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.dump_parse.dump import CompareData, DumpInfo
-from src.compare.cmp_utils.constant.compare_error import CompareError
+from cmp_utils import utils, utils_type
+from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
+from vector_cmp.fusion_manager.fusion_rule_parser import merge_fusion_rule
+from vector_cmp.fusion_manager.fusion_rule_parser import merge_close_and_open_fusion_rule
+from vector_cmp.fusion_manager.fusion_op import FusionOp
+from vector_cmp.fusion_manager.fusion_op import OpAttr
+from cmp_utils.constant.const_manager import ConstManager
+from dump_parse.dump import CompareData, DumpInfo
+from cmp_utils.constant.compare_error import CompareError
 
 
 class CompareRule:

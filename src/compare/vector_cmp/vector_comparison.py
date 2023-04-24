@@ -13,23 +13,23 @@ import argparse
 import csv
 import time
 
-from src.compare.dump_parse import dump
-from src.compare.vector_cmp.compare_detail import detail
-from src.compare.algorithm.algorithm_manager import AlgorithmManager
-from src.compare.vector_cmp.fusion_manager import compare_result
-from src.compare.vector_cmp.fusion_manager.compare_rule import CompareRule
-from src.compare.format_convert.format_manager import FormatManager
-from src.compare.vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
-from src.compare.vector_cmp.compare_detail.compare_detail import DetailComparison
-from src.compare.vector_cmp.compare_detail.compare_detail import DumpDetailComparison
-from src.compare.dump_parse.dump import DumpType
-from src.compare.cmp_utils import log, utils, utils_type
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.vector_cmp.range_manager.range_manager import RangeManager
-from src.compare.vector_cmp.range_manager.range_mode import RangeMode
-from src.compare.vector_cmp.range_manager.select_mode import SelectMode
-from src.compare.overflow.overflow_detection import OverflowDetection
-from src.compare.cmp_utils.constant.compare_error import CompareError
+from dump_parse import dump
+from vector_cmp.compare_detail import detail
+from algorithm.algorithm_manager import AlgorithmManager
+from vector_cmp.fusion_manager import compare_result
+from vector_cmp.fusion_manager.compare_rule import CompareRule
+from format_convert.format_manager import FormatManager
+from vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
+from vector_cmp.compare_detail.compare_detail import DetailComparison
+from vector_cmp.compare_detail.compare_detail import DumpDetailComparison
+from dump_parse.dump import DumpType
+from cmp_utils import log, utils, utils_type
+from cmp_utils.constant.const_manager import ConstManager
+from vector_cmp.range_manager.range_manager import RangeManager
+from vector_cmp.range_manager.range_mode import RangeMode
+from vector_cmp.range_manager.select_mode import SelectMode
+from overflow.overflow_detection import OverflowDetection
+from cmp_utils.constant.compare_error import CompareError
 
 
 class VectorComparison:

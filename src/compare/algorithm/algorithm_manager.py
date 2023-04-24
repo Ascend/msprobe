@@ -14,13 +14,13 @@ import importlib
 
 import numpy as np
 
-from src.compare.cmp_utils import log, utils_type
-from src.compare.cmp_utils import utils
-from src.compare.algorithm.algorithm_parameter import AlgorithmParameter
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.cmp_utils.reg_manager import RegManager
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.cmp_utils.file_utils import FileUtils
+from cmp_utils import log, utils_type
+from cmp_utils import utils
+from algorithm.algorithm_parameter import AlgorithmParameter
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.reg_manager import RegManager
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.file_utils import FileUtils
 
 
 class AlgorithmManager:

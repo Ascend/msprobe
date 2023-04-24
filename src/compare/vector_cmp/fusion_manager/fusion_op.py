@@ -5,10 +5,10 @@
 Function:
 FusionOp class. This class mainly involves the fusion op info.
 """
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.cmp_utils.reg_manager import RegManager
-from src.compare.cmp_utils.constant.compare_error import CompareError
+from cmp_utils import log
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.reg_manager import RegManager
+from cmp_utils.constant.compare_error import CompareError
 
 
 class OutputDesc:

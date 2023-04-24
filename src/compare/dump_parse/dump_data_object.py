@@ -9,8 +9,8 @@ import json
 import numpy as np
 from dump_data_pb2 import DumpData
 
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils import log
 
 
 CommonAttr = collections.namedtuple('CommonAttr', ['data_type', 'tensor_format', 'address', 'original_shape'])

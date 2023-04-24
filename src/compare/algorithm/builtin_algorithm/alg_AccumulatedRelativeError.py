@@ -8,9 +8,9 @@ AccumulatedRelativeError algorithm. This file mainly involves the compare functi
 
 import numpy as np
 
-from src.compare.algorithm.algorithm_parameter import AlgorithmParameter
-from src.compare.cmp_utils import utils
-from src.compare.cmp_utils.constant.const_manager import ConstManager
+from algorithm.algorithm_parameter import AlgorithmParameter
+from cmp_utils import utils
+from cmp_utils.constant.const_manager import ConstManager
 
 
 def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: AlgorithmParameter) -> (str, str):

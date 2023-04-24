@@ -9,13 +9,13 @@ This class mainly involves the analysis_fusion_rule function.
 
 import uuid
 
-from src.compare.cmp_utils import utils, utils_type
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.cmp_utils.file_utils import FileUtils
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.vector_cmp.fusion_manager.quant_filter import QuantFilter
-from src.compare.vector_cmp.fusion_manager.fusion_op import OpAttr, FusionOp, OutputDesc
+from cmp_utils import utils, utils_type
+from cmp_utils import log
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.file_utils import FileUtils
+from cmp_utils.constant.compare_error import CompareError
+from vector_cmp.fusion_manager.quant_filter import QuantFilter
+from vector_cmp.fusion_manager.fusion_op import OpAttr, FusionOp, OutputDesc
 
 
 def make_left_and_right_string(ground_truth_to_my_output_map: dict) -> (str, str):

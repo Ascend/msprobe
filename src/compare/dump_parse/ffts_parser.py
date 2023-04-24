@@ -3,9 +3,9 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2023. All rights reserved.
 import numpy as np
 
-from src.compare.cmp_utils import log
-from src.compare.dump_parse.dump_data_object import DumpTensor, DumpDataObj
-from src.compare.cmp_utils.constant.compare_error import CompareError
+from cmp_utils import log
+from dump_parse.dump_data_object import DumpTensor, DumpDataObj
+from cmp_utils.constant.compare_error import CompareError
 
 
 class FFTSParser:

@@ -4,10 +4,10 @@ import uuid
 import pytest
 import json
 
-from src.compare.vector_cmp.fusion_manager import fusion_op
-from src.compare.cmp_utils import utils, utils_type
-from src.compare.vector_cmp.fusion_manager import fusion_rule_parser
-from src.compare.cmp_utils.constant.compare_error import CompareError
+from vector_cmp.fusion_manager import fusion_op
+from cmp_utils import utils, utils_type
+from vector_cmp.fusion_manager import fusion_rule_parser
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -416,7 +416,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_info = fusion_op.FusionOp(
             12, 'conv1colu', ['a:0'], 'Relu', output_desc_list, fusion_op.OpAttr(['conv1', 'conelu'], '', True, 12))
         with mock.patch(
-                'src.compare.vector_cmp.fusion_manager.fusion_rule_parser.FusionRuleParser.get_fusion_op_list',
+                'vector_cmp.fusion_manager.fusion_rule_parser.FusionRuleParser.get_fusion_op_list',
                 return_value=[[], input_fusion_op]):
             input_tensor = fusion_op_info.get_input_tensor(0)
         self.assertEqual(input_tensor.name, 'a')

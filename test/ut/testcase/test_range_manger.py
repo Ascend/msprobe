@@ -2,11 +2,11 @@ import unittest
 import pytest
 from unittest import mock
 
-from src.compare.vector_cmp.fusion_manager import fusion_op
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.vector_cmp.range_manager.range_manager import RangeManager
-from src.compare.vector_cmp.range_manager.range_mode import RangeMode
-from src.compare.vector_cmp.range_manager.select_mode import SelectMode
+from vector_cmp.fusion_manager import fusion_op
+from cmp_utils.constant.compare_error import CompareError
+from vector_cmp.range_manager.range_manager import RangeManager
+from vector_cmp.range_manager.range_mode import RangeMode
+from vector_cmp.range_manager.select_mode import SelectMode
 
 
 class TestUtilsMethods(unittest.TestCase):

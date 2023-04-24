@@ -4,12 +4,12 @@ import numpy as np
 import dump_data_pb2 as DD
 from unittest import mock
 
-from src.compare.cmp_utils import utils
-from src.compare.dump_parse import dump
-from src.compare.vector_cmp.fusion_manager import fusion_op
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.vector_cmp.fusion_manager.compare_npu_vs_npu import NpuVsNpuComparison
-from src.compare.algorithm.algorithm_manager import AlgorithmManager
+from cmp_utils import utils
+from dump_parse import dump
+from vector_cmp.fusion_manager import fusion_op
+from cmp_utils.constant.compare_error import CompareError
+from vector_cmp.fusion_manager.compare_npu_vs_npu import NpuVsNpuComparison
+from algorithm.algorithm_manager import AlgorithmManager
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -51,7 +51,7 @@ class TestUtilsMethods(unittest.TestCase):
         right_dump_data = DD.DumpData()
         right_dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         right_dump_data = utils.convert_dump_data(right_dump_data)
-        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
+        with mock.patch('cmp_utils.utils.parse_dump_file',
                         side_effect=[left_dump_data, right_dump_data, left_dump_data, right_dump_data]):
             ret, match, result = NpuVsNpuComparison(compare_data,
                                                     fusion_op_list, AlgorithmManager('', 'all', '')).compare()
@@ -73,7 +73,7 @@ class TestUtilsMethods(unittest.TestCase):
         left_dump_data = utils.convert_dump_data(left_dump_data)
         args = ['aaa.py', 'compare', '-m', '/home/left.bin', '-g',
                 '/home/right.bin']
-        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
+        with mock.patch('cmp_utils.utils.parse_dump_file',
                         side_effect=[left_dump_data, left_dump_data]):
             with mock.patch('sys.argv', args):
                 manager = AlgorithmManager('', 'all', '')
@@ -99,7 +99,7 @@ class TestUtilsMethods(unittest.TestCase):
         right_dump_data = DD.DumpData()
         right_dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 2, 4, 4]))
         right_dump_data = utils.convert_dump_data(right_dump_data)
-        with mock.patch('src.compare.cmp_utils.utils.parse_dump_file',
+        with mock.patch('cmp_utils.utils.parse_dump_file',
                         side_effect=[right_dump_data, left_dump_data]):
             ret, match, result = NpuVsNpuComparison(compare_data,
                                                     fusion_op_list, AlgorithmManager('', 'all', '')).compare()

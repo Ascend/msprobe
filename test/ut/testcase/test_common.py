@@ -4,8 +4,8 @@ import pytest
 import numpy as np
 import dump_data_pb2 as DD
 
-from src.compare.cmp_utils import common
-from src.compare.cmp_utils.constant.compare_error import CompareError
+from cmp_utils import common
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):

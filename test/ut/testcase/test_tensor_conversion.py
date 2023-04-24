@@ -4,12 +4,12 @@ import pytest
 import numpy as np
 import dump_data_pb2 as DD
 
-from src.compare.vector_cmp.fusion_manager import fusion_op
-from src.compare.format_convert.format_manager import FormatManager
-from src.compare.vector_cmp.fusion_manager.fusion_op import Tensor
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.conversion.tensor_conversion import TensorConversion
-from src.compare.dump_parse.dump_data_object import DumpTensor
+from vector_cmp.fusion_manager import fusion_op
+from format_convert.format_manager import FormatManager
+from vector_cmp.fusion_manager.fusion_op import Tensor
+from cmp_utils.constant.compare_error import CompareError
+from conversion.tensor_conversion import TensorConversion
+from dump_parse.dump_data_object import DumpTensor
 
 
 class TestUtilsMethods(unittest.TestCase):

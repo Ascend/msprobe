@@ -12,12 +12,12 @@ from enum import unique
 
 from dump_data_pb2 import DumpData
 
-from src.compare.cmp_utils import utils, utils_type
-from src.compare.cmp_utils import log
-from src.compare.cmp_utils.constant.const_manager import ConstManager
-from src.compare.cmp_utils.reg_manager import RegManager
-from src.compare.cmp_utils.constant.compare_error import CompareError
-from src.compare.dump_parse.ffts_parser import FFTSParser
+from cmp_utils import utils, utils_type
+from cmp_utils import log
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.reg_manager import RegManager
+from cmp_utils.constant.compare_error import CompareError
+from dump_parse.ffts_parser import FFTSParser
 
 
 @unique
