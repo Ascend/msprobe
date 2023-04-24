@@ -7,7 +7,6 @@ Copyright Information:
 Huawei Technologies Co., Ltd. All Rights Reserved © 2021
 """
 import unittest
-from src.compare.cmp_utils import utils
 from unittest import mock
 import dump_data_pb2 as DD
 import numpy as np
@@ -18,6 +17,7 @@ from src.compare.algorithm.algorithm_manager import AlgorithmManager
 from src.compare.vector_cmp.fusion_manager.fusion_op import FusionOp, OutputDesc, OpAttr
 from src.compare.dump_parse.dump import DumpType
 from src.compare.cmp_utils.constant.compare_error import CompareError
+from src.compare.cmp_utils import utils
 
 
 class TestUtilsMethods(unittest.TestCase):

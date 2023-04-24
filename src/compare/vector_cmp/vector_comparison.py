@@ -59,9 +59,8 @@ class VectorComparison:
                 self._process_output_path_parameter(arguments)
             self.args["csv"] = True
             self.format_manager = FormatManager(arguments.custom_script_path)
-            self.args["algorithm_manager"] = AlgorithmManager(arguments.custom_script_path,
-                                                              arguments.algorithm,
-                                                              arguments.algorithm_options)
+            self.args["algorithm_manager"] = AlgorithmManager(arguments.custom_script_path, 
+                                                              arguments.algorithm, arguments.algorithm_options)
             self.args["mapping"] = arguments.mapping
             self.args["overflow_detection"] = arguments.overflow_detection
             self.args["advisor"] = arguments.advisor
