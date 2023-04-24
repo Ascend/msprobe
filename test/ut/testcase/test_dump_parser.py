@@ -1,8 +1,7 @@
 import unittest
 from unittest import mock
-import pytest
 
-from compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError
 import dump_parser
 
 

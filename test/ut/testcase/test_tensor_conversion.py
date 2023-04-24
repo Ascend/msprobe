@@ -1,17 +1,15 @@
 import unittest
-
-import struct
 from unittest import mock
 import pytest
 import numpy as np
-import utils
-import fusion_op
 import dump_data_pb2 as DD
-from format_manager import FormatManager
-from fusion_op import Tensor
-from compare_error import CompareError
-from tensor_conversion import TensorConversion
-from dump_data_object import DumpTensor
+
+from vector_cmp.fusion_manager import fusion_op
+from format_convert.format_manager import FormatManager
+from vector_cmp.fusion_manager.fusion_op import Tensor
+from cmp_utils.constant.compare_error import CompareError
+from conversion.tensor_conversion import TensorConversion
+from dump_parse.dump_data_object import DumpTensor
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -28,7 +26,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=False)
         ground_truth_tensor = Tensor('conv1_relu', 0, 'XFGG', [1, 3])
         ground_truth_tensor.set_data(op_output)
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             tensor_conversion.get_my_output_and_ground_truth_data(compare_data, op_output, ground_truth_tensor)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
 
@@ -153,7 +151,7 @@ class TestUtilsMethods(unittest.TestCase):
                                                [1, 2, 2, 2, 2])
         manager = FormatManager("")
         manager.check_arguments_valid()
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             tensor_conversion = TensorConversion(self._make_fusion_op(), manager, False)
             compare_data = mock.Mock()
             compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=False)
@@ -169,7 +167,7 @@ class TestUtilsMethods(unittest.TestCase):
         right_op_output = self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 2, 2, 2])
         manager = FormatManager("")
         manager.check_arguments_valid()
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             tensor_conversion = TensorConversion(self._make_fusion_op(), manager, False)
             compare_data = mock.Mock()
             compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=False)

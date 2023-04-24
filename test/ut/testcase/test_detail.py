@@ -1,14 +1,14 @@
-import unittest
+import json
 
+import unittest
 import pytest
-import utils
-import detail
 import dump_data_pb2 as DD
 from unittest import mock
-import fusion_rule_parser
-from compare_error import CompareError
-from const_manager import ConstManager
-import json
+
+from vector_cmp.compare_detail import detail
+from vector_cmp.fusion_manager import fusion_rule_parser
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
 
 
 class TestUtilsMethods(unittest.TestCase):

@@ -1,7 +1,7 @@
 import unittest
-
-from multi_convert_process import MultiConvertProcess
 from unittest import mock
+
+from cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
 
 
 class TestUtilsMethods(unittest.TestCase):

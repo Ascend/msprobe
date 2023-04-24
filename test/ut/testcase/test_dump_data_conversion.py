@@ -1,14 +1,14 @@
 import time
-import unittest
-
 import struct
+
+import unittest
+from unittest import mock
 import numpy as np
-import dump_data_conversion
-import utils
 import pytest
 import dump_data_pb2 as DD
-from compare_error import CompareError
-from unittest import mock
+
+from cmp_utils.constant.compare_error import CompareError
+import dump_data_conversion
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'xxx', '-o',
                 '/home', '-type', 'tf']
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_INVALID_PATH_ERROR):
                 main = dump_data_conversion.DumpDataConversion()
                 ret = main.check_arguments_valid()
@@ -27,7 +27,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'xxx', '-o',
                 '/home', '-type', 'tf']
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('cmp_utils.utils.check_path_valid',
                             side_effect=[CompareError.MSACCUCMP_NONE_ERROR,
                                          CompareError.MSACCUCMP_INVALID_SHAPE_ERROR]):
                 main = dump_data_conversion.DumpDataConversion()
@@ -38,7 +38,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'xxx', '-o',
                 '/home', '-type', 'tf']
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 main = dump_data_conversion.DumpDataConversion()
                 ret = main.check_arguments_valid()
@@ -48,7 +48,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',
                 '/home', '-type', 'tfe']
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 main = dump_data_conversion.DumpDataConversion()
                 ret = main.check_arguments_valid()
@@ -58,7 +58,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',
                 '/home', '-type', 'tf']
         with mock.patch('sys.argv', args):
-            with mock.patch('utils.check_path_valid',
+            with mock.patch('cmp_utils.utils.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.exists', return_value=True):
                     with mock.patch('os.remove'):
@@ -111,7 +111,7 @@ class TestUtilsMethods(unittest.TestCase):
         data = struct.pack(
             struct_format, len(dump_data_ser), dump_data_ser, 88)
         with mock.patch('sys.argv', args):
-            with mock.patch("utils.read_numpy_file", return_value=np.array([1, 2, 3, 4])):
+            with mock.patch("cmp_utils.utils.read_numpy_file", return_value=np.array([1, 2, 3, 4])):
                 with mock.patch('os.open') as open_file, \
                         mock.patch('os.fdopen'):
                     with mock.patch('builtins.open',
@@ -130,7 +130,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output_data = 'output_test'
         dump_data.buffer = "buffer_test"
         with mock.patch('sys.argv', args):
-            with mock.patch("utils.parse_dump_file", return_value=dump_data):
+            with mock.patch("cmp_utils.utils.parse_dump_file", return_value=dump_data):
                 main = dump_data_conversion.DumpDataConversion()
                 main._save_tensor_to_file = mock.Mock()
                 main._save_buffer_to_file = mock.Mock()
@@ -146,11 +146,11 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output_data = 'output_test'
         dump_data.buffer = "buffer_test"
         with mock.patch('sys.argv', args):
-            with mock.patch("utils.parse_dump_file", return_value=dump_data):
+            with mock.patch("cmp_utils.utils.parse_dump_file", return_value=dump_data):
                 main = dump_data_conversion.DumpDataConversion()
                 main._save_tensor_to_file = mock.Mock()
                 main._save_buffer_to_file = mock.Mock(
-                    side_effect=utils.CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR))
+                    side_effect=CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR))
                 main._get_op_name_from_path = mock.Mock(return_value="demo")
                 return_code, input_path = main._convert_file("/home/left.bin")
         self.assertEqual(return_code, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
@@ -163,7 +163,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output_data = 'output_test'
         dump_data.buffer = "buffer_test"
         with mock.patch('sys.argv', args):
-            with mock.patch("utils.parse_dump_file", return_value=dump_data):
+            with mock.patch("cmp_utils.utils.parse_dump_file", return_value=dump_data):
                 main = dump_data_conversion.DumpDataConversion()
                 main._save_tensor_to_file = mock.Mock()
                 main._save_buffer_to_file = mock.Mock(side_effect=MemoryError)
@@ -254,7 +254,7 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('sys.argv', args):
             main = dump_data_conversion.DumpDataConversion()
             layer_name = "convert_2d"
-            with pytest.raises(utils.CompareError) as error:
+            with pytest.raises(CompareError) as error:
                 main._get_offline_layer_name(layer_name)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DUMP_FILE_ERROR)
 
@@ -264,7 +264,7 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('sys.argv', args):
             main = dump_data_conversion.DumpDataConversion()
             layer_name = "convert_2d"
-            with pytest.raises(utils.CompareError) as error:
+            with pytest.raises(CompareError) as error:
                 main._get_offline_layer_name(layer_name)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DUMP_FILE_ERROR)
 
@@ -274,7 +274,7 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('sys.argv', args):
             main = dump_data_conversion.DumpDataConversion()
             layer_name = "convert_2d"
-            with pytest.raises(utils.CompareError) as error:
+            with pytest.raises(CompareError) as error:
                 main._get_quant_layer_name(layer_name)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DUMP_FILE_ERROR)
 
@@ -284,7 +284,7 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('sys.argv', args):
             main = dump_data_conversion.DumpDataConversion()
             layer_name = "convert_2d"
-            with pytest.raises(utils.CompareError) as error:
+            with pytest.raises(CompareError) as error:
                 main._get_quant_layer_name(layer_name)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DUMP_FILE_ERROR)
 
@@ -294,7 +294,7 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('sys.argv', args):
             main = dump_data_conversion.DumpDataConversion()
             layer_name = "convert_2d"
-            with pytest.raises(utils.CompareError) as error:
+            with pytest.raises(CompareError) as error:
                 main._get_standard_layer_name(layer_name)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DUMP_FILE_ERROR)
 
@@ -304,7 +304,7 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('sys.argv', args):
             main = dump_data_conversion.DumpDataConversion()
             layer_name = "convert_2d"
-            with pytest.raises(utils.CompareError) as error:
+            with pytest.raises(CompareError) as error:
                 main._get_standard_layer_name(layer_name)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DUMP_FILE_ERROR)
 

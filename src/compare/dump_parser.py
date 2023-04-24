@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
@@ -10,10 +10,9 @@ import argparse
 import sys
 import time
 
-import log
-import utils
-from compare_error import CompareError
-from dump_data_parser import DumpDataParser
+from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
+from dump_parse.dump_data_parser import DumpDataParser
 
 
 def _save_log_parser(save_log_parser: argparse.ArgumentParser) -> None:

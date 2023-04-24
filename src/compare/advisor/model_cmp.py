@@ -1,11 +1,13 @@
-#!/usr/bin/env python
+
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2012-2022. All rights reserved.
 
 import json
 import os
 import sys
-from advisor.mscmp_advisor import CompareAdvisor
+
+from advisor.compare_advisor import CompareAdvisor
+
 
 CLASS_TYPE = {'op': '0', 'model': '1'}
 ERROR_CODE = {'success': '0', 'optimized': '1'}

@@ -7,12 +7,11 @@ Copyright Information:
 Huawei Technologies Co., Ltd. All Rights Reserved © 2021
 """
 import unittest
+from unittest import mock
 import pytest
 
-from batch_compare import BatchCompare
-import utils
-from unittest import mock
-from compare_error import CompareError
+from vector_cmp.batch_compare import BatchCompare
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -39,7 +38,8 @@ class TestUtilsMethods(unittest.TestCase):
         npu_dump_dir = '/home/202134565663'
         with mock.patch("os.listdir", return_value=["0"]):
             with mock.patch("os.path.isdir", return_value=True):
-                with mock.patch("utils.check_path_valid", return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch("cmp_utils.utils.check_path_valid",
+                                return_value=CompareError.MSACCUCMP_NONE_ERROR):
                     batch_compare_test._make_json_path_to_dump_path_map(npu_dump_dir)
         self.assertEqual(batch_compare_test.json_path_to_dump_path_map,
                          {'/home/202134565663/0/0/0/0': ['/home/202134565663/0/0/0/0']})
@@ -50,7 +50,8 @@ class TestUtilsMethods(unittest.TestCase):
         npu_dump_dir = '/home/202134565663'
         with mock.patch("os.listdir", return_value=["0_0"]):
             with mock.patch("os.path.isdir", return_value=True):
-                with mock.patch("utils.check_path_valid", return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch("cmp_utils.utils.check_path_valid",
+                                return_value=CompareError.MSACCUCMP_NONE_ERROR):
                     batch_compare_test._make_json_path_to_dump_path_map(npu_dump_dir)
         self.assertEqual(batch_compare_test.json_path_to_dump_path_map,
                          {'/home/202134565663/0/0/0/0': ['/home/202134565663/0_0/0_0/0_0/0_0']})
@@ -59,10 +60,11 @@ class TestUtilsMethods(unittest.TestCase):
         batch_compare_test = BatchCompare()
         batch_compare_test.model_name_to_json_map = {'1_0': '/home/202134565663/0/0/0/0'}
         npu_dump_dir = '/home/202134565663'
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.listdir", return_value=["0"]):
                 with mock.patch("os.path.isdir", return_value=True):
-                    with mock.patch("utils.check_path_valid", return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                    with mock.patch("cmp_utils.utils.check_path_valid",
+                                    return_value=CompareError.MSACCUCMP_NONE_ERROR):
                         batch_compare_test._make_json_path_to_dump_path_map(npu_dump_dir)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
@@ -99,11 +101,11 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.algorithm = 'all'
         arguments.algorithm_options = ''
         json_file_array = ['0_71.json']
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             with mock.patch("os.listdir", side_effect=[['alg_MaxAbsoluteError.py'], json_file_array]):
                 with mock.patch("builtins.open", mock.mock_open(read_data=None)):
                     with mock.patch("json.load", return_value=self._make_json_object()):
-                        with mock.patch("utils.check_path_valid",
+                        with mock.patch("cmp_utils.utils.check_path_valid",
                                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
                             with mock.patch("os.path.exists", return_value=True):
                                 with mock.patch("os.access", return_value=False):
@@ -115,7 +117,7 @@ class TestUtilsMethods(unittest.TestCase):
         batch_compare_test = BatchCompare()
         arguments = mock.Mock()
         arguments.op_name = "xx"
-        with pytest.raises(utils.CompareError) as error:
+        with pytest.raises(CompareError) as error:
             batch_compare_test.check_argument_valid(arguments)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
@@ -124,8 +126,8 @@ class TestUtilsMethods(unittest.TestCase):
         arguments = mock.Mock()
         arguments.op_name = ""
         arguments.my_dump_path = '/home/gzj/xxx'
-        with pytest.raises(utils.CompareError) as error:
-            with mock.patch("utils.check_path_valid",
+        with pytest.raises(CompareError) as error:
+            with mock.patch("cmp_utils.utils.check_path_valid",
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 batch_compare_test.check_argument_valid(arguments)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PATH_ERROR)

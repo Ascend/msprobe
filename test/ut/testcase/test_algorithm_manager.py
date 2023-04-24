@@ -1,12 +1,10 @@
 import unittest
+from unittest import mock
 import pytest
 import numpy as np
-import utils
 
-from algorithm_manager import AlgorithmManager
-from algorithm_manager import AlgorithmManagerMain
-from compare_error import CompareError
-from unittest import mock
+from algorithm.algorithm_manager import AlgorithmManager, AlgorithmManagerMain
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -84,13 +82,15 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_make_select_algorithm_map15(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            with mock.patch('cmp_utils.utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 AlgorithmManager("/xxxxx", "cc", "")
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)
 
     def test_make_select_algorithm_map16(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+            with mock.patch('cmp_utils.utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
                  mock.patch('os.listdir', return_value=['xxx.py']):
@@ -99,7 +99,8 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_make_select_algorithm_map17(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+            with mock.patch('cmp_utils.utils.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
                  mock.patch('os.listdir', return_value=['alg_xxx.py']):
@@ -107,7 +108,8 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)
 
     def test_make_select_algorithm_map18(self):
-        with mock.patch('utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+        with mock.patch('cmp_utils.utils.check_path_valid',
+                        return_value=CompareError.MSACCUCMP_NONE_ERROR), \
              mock.patch('os.path.exists', return_value=True), \
              mock.patch('os.path.isfile', return_value=True):
             manager = AlgorithmManager("", "MaxAbsoluteError", "")
@@ -124,8 +126,8 @@ class TestUtilsMethods(unittest.TestCase):
         args.output_path = None
         dump_data = np.arange(2)
         with pytest.raises(CompareError) as error:
-            with mock.patch('utils.check_path_valid', side_effect=[0, 1]):
-                with mock.patch('utils.read_numpy_file', return_value=dump_data):
+            with mock.patch('cmp_utils.utils.check_path_valid', side_effect=[0, 1]):
+                with mock.patch('cmp_utils.utils.read_numpy_file', return_value=dump_data):
                     AlgorithmManagerMain(args).process()
         self.assertEqual(error.value.args[0], 1)
 
@@ -139,8 +141,8 @@ class TestUtilsMethods(unittest.TestCase):
         args.output_path = None
         dump_data1 = np.arange(2)
         dump_data2 = np.arange(6)
-        with mock.patch('utils.check_path_valid', return_value=0):
-            with mock.patch('utils.read_numpy_file', side_effect=[dump_data1, dump_data2]):
+        with mock.patch('cmp_utils.utils.check_path_valid', return_value=0):
+            with mock.patch('cmp_utils.utils.read_numpy_file', side_effect=[dump_data1, dump_data2]):
                 ret = AlgorithmManagerMain(args).process()
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_SHAPE_ERROR)
 
@@ -153,8 +155,8 @@ class TestUtilsMethods(unittest.TestCase):
         args.algorithm_options = ''
         args.output_path = None
         dump_data = np.arange(2)
-        with mock.patch('utils.check_path_valid', return_value=0):
-            with mock.patch('utils.read_numpy_file', return_value=dump_data):
+        with mock.patch('cmp_utils.utils.check_path_valid', return_value=0):
+            with mock.patch('cmp_utils.utils.read_numpy_file', return_value=dump_data):
                 AlgorithmManagerMain(args).process()
 
     def test_process4(self):
@@ -166,8 +168,8 @@ class TestUtilsMethods(unittest.TestCase):
         args.algorithm_options = ''
         args.output_path = None
         dump_data = np.arange(2)
-        with mock.patch('utils.check_path_valid', return_value=0):
-            with mock.patch('utils.read_numpy_file', return_value=dump_data):
+        with mock.patch('cmp_utils.utils.check_path_valid', return_value=0):
+            with mock.patch('cmp_utils.utils.read_numpy_file', return_value=dump_data):
                 AlgorithmManagerMain(args).process()
 
     def test_process5(self):
@@ -179,8 +181,8 @@ class TestUtilsMethods(unittest.TestCase):
         args.algorithm_options = ''
         args.output_path = None
         dump_data = np.zeros(5)
-        with mock.patch('utils.check_path_valid', return_value=0):
-            with mock.patch('utils.read_numpy_file', return_value=dump_data):
+        with mock.patch('cmp_utils.utils.check_path_valid', return_value=0):
+            with mock.patch('cmp_utils.utils.read_numpy_file', return_value=dump_data):
                 ret = AlgorithmManagerMain(args).process()
         self.assertEqual(ret, 0)
 
@@ -193,7 +195,7 @@ class TestUtilsMethods(unittest.TestCase):
         my_output_dump_data.dtype = np.bool_
         ground_truth_dump_data.dtype = np.bool_
         with mock.patch(
-                'algorithm_manager.AlgorithmManager._make_algorithm_param', return_value={}):
+                'algorithm.algorithm_manager.AlgorithmManager._make_algorithm_param', return_value={}):
             a_m.compare(my_output_dump_data, ground_truth_dump_data, {})
 
     def test_algorithmManager_compare2(self):
@@ -205,11 +207,13 @@ class TestUtilsMethods(unittest.TestCase):
         my_output_dump_data.dtype = None
         ground_truth_dump_data.dtype = None
         with mock.patch(
-                'algorithm_manager.AlgorithmManager._check_data_size_valid'):
+                'algorithm.algorithm_manager.AlgorithmManager._check_data_size_valid'):
             with mock.patch(
-                    'algorithm_manager.AlgorithmManager._make_algorithm_param', return_value={}):
+                    'algorithm.algorithm_manager.AlgorithmManager._make_algorithm_param',
+                    return_value={}):
                 with mock.patch(
-                        'algorithm_manager.AlgorithmManager._call_compare_function', return_value=(123, '')):
+                        'algorithm.algorithm_manager.AlgorithmManager._call_compare_function',
+                        return_value=(123, '')):
                     a_m.compare(my_output_dump_data, ground_truth_dump_data, {})
 
     def _get_len(self, args):

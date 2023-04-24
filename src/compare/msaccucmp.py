@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
@@ -12,22 +12,18 @@ import sys
 import argparse
 import time
 
-import utils
-import log
-from algorithm_manager import AlgorithmManagerMain
+from cmp_utils import utils, utils_type
+from cmp_utils import log
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.reg_manager import RegManager
+from cmp_utils.constant.compare_error import CompareError
+from algorithm.algorithm_manager import AlgorithmManagerMain
 from compare_vector import VectorComparison
-from shape_conversion import FormatConversionMain
-from dump_data_parser import DumpDataParser
-from overflow_analyse import OverflowAnalyse
-
-from compare_pytorch import PytorchComparison
-
-from batch_compare import BatchCompare
-
-from const_manager import ConstManager
-
-from reg_manager import RegManager
-from compare_error import CompareError
+from conversion.shape_format_conversion import FormatConversionMain
+from dump_parse.dump_data_parser import DumpDataParser
+from overflow.overflow_analyse import OverflowAnalyse
+from pytorch_cmp.compare_pytorch import PytorchComparison
+from vector_cmp.batch_compare import BatchCompare
 
 
 def _get_algorithm_help_info() -> str:
@@ -281,7 +277,7 @@ def _check_file_compare_file(args: argparse.Namespace, file_type) -> None:
         if not file.endswith(file_type):
             log.print_error_log("[file_compare] The file %s is invalid.Only support %s file." % (file, file_type))
             raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
-        ret = utils.check_path_valid(file, True, False, path_type=utils.PathType.File)
+        ret = utils.check_path_valid(file, True, False, path_type=utils_type.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 

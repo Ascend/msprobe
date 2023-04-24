@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2012-2022. All rights reserved.
 """
@@ -6,8 +6,7 @@ Function:
 This file mainly involves the overflow advisor function.
 """
 
-import log
-
+from cmp_utils import log
 from advisor.advisor_const import AdvisorConst
 from advisor.advisor_result import AdvisorResult
 

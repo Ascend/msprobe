@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
@@ -11,9 +11,11 @@ import sys
 import stat
 import argparse
 import os
+
 import google.protobuf.text_format
 import caffe.proto.caffe_pb2 as caffe_pb2
-import log
+
+from cmp_utils import log
 
 
 class RemoveInplaceLayerProcess:

@@ -2,9 +2,9 @@ import unittest
 import numpy as np
 import pytest
 
-from dump_data_object import DumpDataObj, DumpTensor
-from compare_error import CompareError
-from ffts_parser import FFTSParser
+from dump_parse.dump_data_object import DumpDataObj, DumpTensor
+from cmp_utils.constant.compare_error import CompareError
+from dump_parse.ffts_parser import FFTSParser
 
 
 class TestUtilsMethods(unittest.TestCase):

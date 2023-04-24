@@ -1,13 +1,15 @@
 import time
+import struct
+
 import unittest
 import pytest
-import dump_data_parser as DP
 from unittest import mock
 import dump_data_pb2 as DD
-import struct
 import numpy as np
-from compare_error import CompareError
-import utils
+
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils import utils
+from dump_parse import dump_data_parser as DP
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -17,8 +19,8 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.dump_version = 2
         arguments.output_file_type = "npy"
         arguments.output_path = ""
-        with pytest.raises(utils.CompareError) as error:
-            with mock.patch('utils.check_path_valid', return_value=1):
+        with pytest.raises(CompareError) as error:
+            with mock.patch('cmp_utils.utils.check_path_valid', return_value=1):
                 DP.DumpDataParser(arguments).check_arguments_valid()
         self.assertEqual(error.value.args[0], 1)
 
@@ -28,9 +30,9 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.dump_version = 2
         arguments.output_file_type = "npy"
         arguments.output_path = ""
-        with pytest.raises(utils.CompareError) as error:
-            with mock.patch('utils.check_path_valid', return_value=0):
-                with mock.patch("utils.check_output_path_valid", return_value=1):
+        with pytest.raises(CompareError) as error:
+            with mock.patch('cmp_utils.utils.check_path_valid', return_value=0):
+                with mock.patch("cmp_utils.utils.check_output_path_valid", return_value=1):
                     DP.DumpDataParser(arguments).check_arguments_valid()
         self.assertEqual(error.value.args[0], 1)
 
@@ -48,11 +50,11 @@ class TestUtilsMethods(unittest.TestCase):
         buffer.size = 8
         buffer.data = struct.pack('Q', 35)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file',
+                with mock.patch('cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('os.open',
                                     side_effect=OSError) as open_file, \
@@ -76,11 +78,11 @@ class TestUtilsMethods(unittest.TestCase):
         buffer.size = 8
         buffer.data = struct.pack('Q', 35)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file',
+                with mock.patch('cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('os.open') as open_file, \
                             mock.patch('os.fdopen'):
@@ -109,11 +111,11 @@ class TestUtilsMethods(unittest.TestCase):
         origin_numpy = np.array(data_list, np.float16)
         op_output.data = struct.pack('%de' % length, *origin_numpy)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file', return_value=dump_data):
+                with mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch('numpy.save'):
                         with mock.patch("os.path.isfile", return_value=True):
                             ret = DP.DumpDataParser(arguments).parse_dump_data()
@@ -139,11 +141,11 @@ class TestUtilsMethods(unittest.TestCase):
         origin_numpy = np.array(data_list, np.float16)
         op_output.data = struct.pack('%de' % length, *origin_numpy)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file',
+                with mock.patch('cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('numpy.save',
                                     side_effect=ValueError):
@@ -171,11 +173,11 @@ class TestUtilsMethods(unittest.TestCase):
         origin_numpy = np.array(data_list, np.float16)
         op_output.data = struct.pack('%de' % length, *origin_numpy)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file',
+                with mock.patch('cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('numpy.save'):
                         with mock.patch("os.path.isfile", return_value=True):
@@ -202,11 +204,11 @@ class TestUtilsMethods(unittest.TestCase):
         origin_numpy = np.array(data_list, np.float16)
         op_output.data = struct.pack('%de' % length, *origin_numpy)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file', return_value=dump_data):
+                with mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
                     with mock.patch('numpy.save'):
                         with mock.patch("os.path.isfile", return_value=True), \
                                 mock.patch('os.path.getsize', return_value=1000):
@@ -227,11 +229,11 @@ class TestUtilsMethods(unittest.TestCase):
         op_output.format = DD.FORMAT_NCHW
         op_output.data = struct.pack('Q', 10)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file',
+                with mock.patch('cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch("os.path.isfile", return_value=True):
                         ret = DP.DumpDataParser(arguments).parse_dump_data()
@@ -252,11 +254,11 @@ class TestUtilsMethods(unittest.TestCase):
         zero_bytes = self._make_uint64_data(2048)
         op_output.data = struct.pack('%dQ' % len(zero_bytes), *zero_bytes)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file',
+                with mock.patch('cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('os.open',
                                     side_effect=OSError) as open_file, \
@@ -281,11 +283,11 @@ class TestUtilsMethods(unittest.TestCase):
         zero_bytes = self._make_uint64_data(2048)
         op_output.data = struct.pack('%dQ' % len(zero_bytes), *zero_bytes)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file',
+                with mock.patch('cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('os.open') as open_file, \
                             mock.patch('os.fdopen'):
@@ -309,11 +311,11 @@ class TestUtilsMethods(unittest.TestCase):
         overflow_data = self._make_overflow_data_new_version(88)
         op_output.data = struct.pack('6i11Q', *overflow_data)
         dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch('utils.check_path_valid',
+        with mock.patch('cmp_utils.utils.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('utils.check_output_path_valid',
+            with mock.patch('cmp_utils.utils.check_output_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('utils.parse_dump_file',
+                with mock.patch('cmp_utils.utils.parse_dump_file',
                                 return_value=dump_data):
                     with mock.patch('os.open') as open_file, \
                             mock.patch('os.fdopen'):

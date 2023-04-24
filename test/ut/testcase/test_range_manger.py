@@ -1,14 +1,12 @@
 import unittest
-
 import pytest
-import utils
-from range_manager import RangeManager
-from range_mode import RangeMode
-from select_mode import SelectMode
 from unittest import mock
-import fusion_op
-from compare_error import CompareError
-from utils import CompareError
+
+from vector_cmp.fusion_manager import fusion_op
+from cmp_utils.constant.compare_error import CompareError
+from vector_cmp.range_manager.range_manager import RangeManager
+from vector_cmp.range_manager.range_mode import RangeMode
+from vector_cmp.range_manager.select_mode import SelectMode
 
 
 class TestUtilsMethods(unittest.TestCase):
