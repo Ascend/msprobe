@@ -6,6 +6,7 @@ Function:
 convert format from NHWC to FRACTAL_Z.
 """
 import numpy as np
+from itertools import product
 
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.utils import least_common_multiple as lcm
@@ -57,19 +58,15 @@ def convert(shape_from: list, shape_to: list, array: any, group: int = 1) -> any
          ceil(ceil(e_multi * n_ori, ConstManager.N0_AXIS) * ConstManager.N0_AXIS, ConstManager.N0_AXIS),
          ConstManager.N0_AXIS, ConstManager.C0_AXIS), dtype=array_shape.dtype)
     # convert nhwc to gc1hwn1n0c0
-    for g_axis in range(group):
-        for n_axis in range(n_ori):
-            for h_axis in range(kh_axis):
-                for w_axis in range(kw_axis):
-                    for c_axis in range(c_ori):
-                        e_val = g_axis % e_multi
-                        dst_c = e_val * c_ori + c_axis
-                        dst_n = e_val * n_ori + n_axis
-                        src_n = g_axis * n_ori + n_axis
-                        array_to[_get_axis([g_axis, n_axis, h_axis],
-                                           {'e_multi': e_multi, 'kh_axis': kh_axis, 'kw_axis': kw_axis},
-                                           dst_c, w_axis)][dst_n // ConstManager.N0_AXIS][
-                            dst_n % ConstManager.N0_AXIS][dst_c % ConstManager.C0_AXIS] = \
-                            array_shape[src_n][h_axis][w_axis][c_axis]
+    for g_axis, n_axis, h_axis, w_axis, c_axis in product(group, n_ori, kh_axis, kw_axis, c_ori):
+        e_val = g_axis % e_multi
+        dst_c = e_val * c_ori + c_axis
+        dst_n = e_val * n_ori + n_axis
+        src_n = g_axis * n_ori + n_axis
+        array_to[_get_axis([g_axis, n_axis, h_axis],
+                            {'e_multi': e_multi, 'kh_axis': kh_axis, 'kw_axis': kw_axis},
+                            dst_c, w_axis)][dst_n // ConstManager.N0_AXIS][
+            dst_n % ConstManager.N0_AXIS][dst_c % ConstManager.C0_AXIS] = \
+            array_shape[src_n][h_axis][w_axis][c_axis]
     return array_to
 
