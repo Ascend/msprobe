@@ -79,9 +79,8 @@ class VectorComparison:
             args, _ = parse.parse_known_args(sys.argv[1:])
             self.compare_rule = CompareRule(args.fusion_json_file_path,
                                             args.quant_fusion_rule_file_path)
-            self.compare_data = dump.CompareData(
-                os.path.realpath(args.left_dump_path),
-                os.path.realpath(args.right_dump_path), ConstManager.OLD_DUMP_TYPE)
+            self.compare_data = dump.CompareData(os.path.realpath(args.left_dump_path), os.path.realpath(args.right_dump_path), 
+                                                 ConstManager.OLD_DUMP_TYPE)
             self.output_path = os.path.realpath(args.output_path)
             self.detail_info = None
             if args.op_name:
