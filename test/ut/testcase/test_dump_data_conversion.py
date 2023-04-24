@@ -8,7 +8,7 @@ import pytest
 import dump_data_pb2 as DD
 
 from cmp_utils.constant.compare_error import CompareError
-from src.compare import dump_data_conversion
+import dump_data_conversion
 
 
 class TestUtilsMethods(unittest.TestCase):

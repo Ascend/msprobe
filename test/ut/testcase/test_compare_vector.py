@@ -9,7 +9,7 @@ import dump_data_pb2 as DD
 import unittest
 from unittest import mock
 
-from src.compare import compare_vector
+import compare_vector
 from cmp_utils import utils
 from cmp_utils.constant.compare_error import CompareError
 from vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
