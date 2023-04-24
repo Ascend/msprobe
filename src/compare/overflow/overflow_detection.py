@@ -122,5 +122,5 @@ class OverflowDetection:
             format_line = "".join(['{:<', str(spacing_distance), '}', '{:<', str(spacing_distance), '}'])
             log.print_info_log(format_line.format("TensorIndex", "Overflow"))
             for item in tensor_index_info:
-                log.print_info_log(ormat_line.format(item, "yes"))
+                log.print_info_log(format_line.format(item, "yes"))
             log.print_info_log("%s operator has overflowed." % self.op_name)
