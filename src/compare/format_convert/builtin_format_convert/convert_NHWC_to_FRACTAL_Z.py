@@ -58,7 +58,8 @@ def convert(shape_from: list, shape_to: list, array: any, group: int = 1) -> any
          ceil(ceil(e_multi * n_ori, ConstManager.N0_AXIS) * ConstManager.N0_AXIS, ConstManager.N0_AXIS),
          ConstManager.N0_AXIS, ConstManager.C0_AXIS), dtype=array_shape.dtype)
     # convert nhwc to gc1hwn1n0c0
-    for g_axis, n_axis, h_axis, w_axis, c_axis in product(range(group), range(n_ori), range(kh_axis), range(kw_axis), range(c_ori)):
+    for g_axis, n_axis, h_axis, w_axis, c_axis in \
+            product(range(group), range(n_ori), range(kh_axis), range(kw_axis), range(c_ori)):
         e_val = g_axis % e_multi
         dst_c = e_val * c_ori + c_axis
         dst_n = e_val * n_ori + n_axis
