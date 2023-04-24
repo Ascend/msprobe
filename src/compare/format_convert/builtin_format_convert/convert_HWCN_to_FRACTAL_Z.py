@@ -59,7 +59,8 @@ def convert(shape_from: list, shape_to: list, array: any, group: int = 1) -> any
          ConstManager.N0_AXIS,
          ConstManager.C0_AXIS), dtype=array_shape.dtype)
     # convert hwcn to gc1hwn1n0c0
-    for g_axis, h_axis, w_axis, c_axis, n_axis in product(group, kh_axis, kw_axis, c_ori, n_ori):
+    for g_axis, h_axis, w_axis, c_axis, n_axis in product(range(group), range(kh_axis), range(kw_axis), range(c_ori), range(n_ori)):
+        print(g_axis, h_axis, w_axis, c_axis, n_axis)
         e_val = g_axis % e_multi
         dst_c = e_val * c_ori + c_axis
         dst_n = e_val * n_ori + n_axis
