@@ -6,7 +6,7 @@ import json
 import os
 import sys
 
-from mscmp_advisor import CompareAdvisor
+from advisor.compare_advisor import CompareAdvisor
 
 
 CLASS_TYPE = {'op': '0', 'model': '1'}

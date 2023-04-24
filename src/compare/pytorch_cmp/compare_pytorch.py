@@ -352,7 +352,7 @@ class PytorchComparison:
 
     def _do_advisor(self):
         try:
-            from mscmp_advisor import CompareAdvisor
+            from advisor.compare_advisor import CompareAdvisor
         except ImportError as import_error:
             log.print_warn_log("Unable to import module: %s." % str(import_error))
             log.print_warn_log("Skip compare results Analysis.")
