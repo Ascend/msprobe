@@ -5,8 +5,8 @@
 Function:
 convert format from NCHW to FRACTAL_Z.
 """
-import numpy as np
 from itertools import product
+import numpy as np
 
 from src.compare.cmp_utils.constant.const_manager import ConstManager
 from src.compare.cmp_utils.utils import least_common_multiple as lcm
