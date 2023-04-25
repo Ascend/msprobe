@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import time
+import torch_npu
 import torch.optim.lr_scheduler as lr_scheduler
 import torch.utils.model_zoo as model_zoo
 from tensorboardX import SummaryWriter

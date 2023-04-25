@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import os.path as osp
 import random
 import numpy as np
+import torch_npu
 import torch
 from scipy import ndimage
 from PIL import Image

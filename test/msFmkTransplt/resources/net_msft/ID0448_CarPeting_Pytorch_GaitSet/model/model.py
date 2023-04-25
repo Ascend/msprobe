@@ -6,6 +6,7 @@ import sys
 from datetime import datetime
 
 import numpy as np
+import torch_npu
 import torch
 import torch.nn as nn
 import torch.autograd as autograd
@@ -99,7 +100,7 @@ class Model:
         if self.sample_type == 'random':
             seqs = [np.asarray([seqs[i][j] for i in range(batch_size)]) for j in range(feature_num)]
         else:
-            gpu_num = min(torch.npu.device_count(), batch_size)
+            gpu_num = min(torch_npu.npu.device_count(), batch_size)
             batch_per_gpu = math.ceil(batch_size / gpu_num)
             batch_frames = [[
                                 len(frame_sets[i])

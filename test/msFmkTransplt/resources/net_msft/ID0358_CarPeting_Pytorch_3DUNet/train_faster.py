@@ -1,4 +1,5 @@
 from dataset import dataset_lits_faster
+import torch_npu
 from torch.utils.data import DataLoader
 import torch,os
 import torch.optim as optim

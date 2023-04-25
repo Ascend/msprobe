@@ -9,6 +9,7 @@ import cv2
 import time
 import numpy as np
 from PIL import Image
+import torch_npu
 
 import torch
 import torch.nn as nn

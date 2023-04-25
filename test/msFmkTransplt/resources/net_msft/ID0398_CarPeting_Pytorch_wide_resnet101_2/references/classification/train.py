@@ -3,6 +3,7 @@ import datetime
 import os
 import time
 import sys
+import torch_npu
 
 import torch
 import torch.utils.data

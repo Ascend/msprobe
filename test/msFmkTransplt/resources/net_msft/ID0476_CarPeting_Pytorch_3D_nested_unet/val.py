@@ -3,6 +3,7 @@ import os
 from glob import glob
 
 import cv2
+import torch_npu
 import torch
 import torch.backends.cudnn as cudnn
 import yaml
@@ -107,7 +108,7 @@ def main():
 
     print('IoU: %.4f' % avg_meter.avg)
 
-    torch.npu.empty_cache()
+    torch_npu.npu.empty_cache()
 
 
 if __name__ == '__main__':

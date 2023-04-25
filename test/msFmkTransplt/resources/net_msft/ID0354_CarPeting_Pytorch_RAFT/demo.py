@@ -7,6 +7,7 @@ import os
 import cv2
 import glob
 import numpy as np
+import torch_npu
 import torch
 from PIL import Image
 

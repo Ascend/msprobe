@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 from torch import nn
 import os

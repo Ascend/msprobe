@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 from torch.utils import data
 from torch import nn
@@ -121,7 +122,7 @@ if __name__ == '__main__':
     if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
     data_parallel = False
-    if torch.npu.device_count() > 1:
+    if torch_npu.npu.device_count() > 1:
         data_parallel = True
     model.to(f'npu:{DEVICE_ID}')
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)

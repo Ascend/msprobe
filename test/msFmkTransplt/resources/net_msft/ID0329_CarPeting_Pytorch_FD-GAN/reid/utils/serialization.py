@@ -2,6 +2,7 @@ from __future__ import print_function, absolute_import
 import json
 import os.path as osp
 import shutil
+import torch_npu
 
 import torch
 from torch.nn import Parameter

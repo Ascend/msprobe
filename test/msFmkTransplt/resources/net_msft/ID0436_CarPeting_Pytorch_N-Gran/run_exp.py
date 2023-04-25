@@ -1,5 +1,6 @@
 import os
 import sys
+import torch_npu
 import torch
 import logging
 import traceback
@@ -19,7 +20,7 @@ def main():
   np.random.seed(config.seed)
   torch.manual_seed(config.seed)
   torch.npu.manual_seed_all(config.seed)
-  config.use_gpu = config.use_gpu and torch.npu.is_available()
+  config.use_gpu = config.use_gpu and torch_npu.npu.is_available()
 
   # log info
   log_file = os.path.join(config.save_dir, "log_exp_{}.txt".format(config.run_id))

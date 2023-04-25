@@ -1,6 +1,7 @@
 import pandas as pd
 from tensorboardX import SummaryWriter
 import matplotlib.pyplot as plt
+import torch_npu
 import torch,random
 import numpy as np
 from collections import OrderedDict

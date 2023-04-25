@@ -3,6 +3,7 @@
 """
 
 from dataset.dataset_lits import Lits_DataSet
+import torch_npu
 from torch.utils.data import DataLoader
 import torch
 from tqdm import tqdm

@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 import numpy as np
 import os

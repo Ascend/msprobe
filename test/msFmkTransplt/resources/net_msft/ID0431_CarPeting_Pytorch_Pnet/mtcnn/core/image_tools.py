@@ -1,3 +1,4 @@
+import torch_npu
 import torchvision.transforms as transforms
 import torch
 from torch.autograd.variable import Variable

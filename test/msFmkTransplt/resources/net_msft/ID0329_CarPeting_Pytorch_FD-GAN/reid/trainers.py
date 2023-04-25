@@ -1,5 +1,6 @@
 from __future__ import print_function, absolute_import
 import time
+import torch_npu
 
 import torch
 from torch.autograd import Variable

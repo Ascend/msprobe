@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 from torch.utils import data
 from torch import nn
@@ -18,14 +19,14 @@ def train(train_img_path, pths_path, batch_size, lr,decay, num_workers, epoch_it
                                    shuffle=True, num_workers=num_workers, drop_last=True)
 	
 	criterion = Loss()
-	device = torch.device("npu:0" if torch.npu.is_available() else "cpu")
+	device = torch.device("npu:0" if torch_npu.npu.is_available() else "cpu")
 	model = EAST()
 	# TODO 可能是bug
 	if os.path.exists(pretained):
 		model.load_state_dict(torch.load(pretained))
 
 	data_parallel = False
-	if torch.npu.device_count() > 1:
+	if torch_npu.npu.device_count() > 1:
 		model = nn.DataParallel(model)
 		data_parallel = True
 	model.to(device)

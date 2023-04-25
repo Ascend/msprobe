@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 import matplotlib.pyplot as plt
+import torch_npu
 import torch
 import torch.backends.cudnn as cudnn
 import torchvision
@@ -21,8 +22,8 @@ parser.add_argument('--resume', '-r',action='store_true')
 args = parser.parse_args()
 
 # device
-device = "npu:{}".format(args.gpu_id) if torch.npu.is_available() and not args.no_cuda else "cpu"
-if torch.npu.is_available() and not args.no_cuda:
+device = "npu:{}".format(args.gpu_id) if torch_npu.npu.is_available() and not args.no_cuda else "cpu"
+if torch_npu.npu.is_available() and not args.no_cuda:
     #cudnn.benchmark = True
     cudnn.benchmark = False
 

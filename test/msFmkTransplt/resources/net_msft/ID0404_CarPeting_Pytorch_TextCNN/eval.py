@@ -11,6 +11,7 @@
 import os
 import sys
 import argparse
+import torch_npu
 import torch
 import model
 import data

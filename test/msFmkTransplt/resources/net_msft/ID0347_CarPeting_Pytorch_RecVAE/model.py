@@ -1,5 +1,6 @@
 import numpy as np
 from copy import deepcopy
+import torch_npu
 
 import torch
 from torch import nn

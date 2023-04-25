@@ -8,6 +8,7 @@ import ascend_function
 __all__ = ['InceptionResNetV2', 'inceptionresnetv2']
 
 import os
+import torch_npu
 import torch.nn as nn
 import torch.nn.init as init
 from .common import conv1x1, Concurrent

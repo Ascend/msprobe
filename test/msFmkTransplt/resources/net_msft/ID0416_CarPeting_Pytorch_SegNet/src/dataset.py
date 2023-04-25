@@ -4,6 +4,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import torch_npu
 import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm

@@ -1,4 +1,5 @@
 import numpy as np
+import torch_npu
 
 import torch
 from torch import optim
@@ -31,7 +32,7 @@ np.random.seed(seed)
 torch.manual_seed(seed)
 
 device = torch.device("npu")
-torch.npu.set_device(2)
+torch_npu.npu.set_device(2)
 
 data = get_data(args.dataset)
 train_data, valid_in_data, valid_out_data, test_in_data, test_out_data = data

@@ -1,6 +1,7 @@
 from __future__ import print_function, absolute_import
 import time
 from collections import OrderedDict
+import torch_npu
 
 import torch
 import numpy as np

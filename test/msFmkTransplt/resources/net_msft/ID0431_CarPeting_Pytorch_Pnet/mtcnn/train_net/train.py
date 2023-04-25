@@ -2,6 +2,7 @@ from mtcnn.core.image_reader import TrainImageReader
 import datetime
 import os
 from mtcnn.core.models import PNet,RNet,ONet,LossFn
+import torch_npu
 import torch
 from torch.autograd import Variable
 import mtcnn.core.image_tools as image_tools

@@ -8,6 +8,7 @@ import logging
 import math
 
 from os.path import join as pjoin
+import torch_npu
 
 import torch
 import torch.nn as nn

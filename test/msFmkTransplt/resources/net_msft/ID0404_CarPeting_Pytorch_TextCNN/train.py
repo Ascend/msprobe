@@ -10,6 +10,7 @@
 
 import os
 import argparse
+import torch_npu
 
 import torch
 import model

@@ -4,6 +4,7 @@ from collections import OrderedDict
 from glob import glob
 
 import pandas as pd
+import torch_npu
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
@@ -364,7 +365,7 @@ def main():
             print("=> early stopping")
             break
 
-        torch.npu.empty_cache()
+        torch_npu.npu.empty_cache()
 
 
 if __name__ == '__main__':

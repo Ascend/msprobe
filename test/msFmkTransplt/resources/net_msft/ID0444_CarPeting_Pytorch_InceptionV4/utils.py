@@ -2,6 +2,7 @@ from __future__ import print_function
 from collections import defaultdict, deque
 import datetime
 import time
+import torch_npu
 import torch
 import torch.distributed as dist
 
@@ -116,7 +117,7 @@ class MetricLogger(object):
         iter_time = SmoothedValue(fmt='{avg:.4f}')
         data_time = SmoothedValue(fmt='{avg:.4f}')
         space_fmt = ':' + str(len(str(len(iterable)))) + 'd'
-        if torch.npu.is_available():
+        if torch_npu.npu.is_available():
             log_msg = self.delimiter.join([
                 header,
                 '[{0' + space_fmt + '}/{1}]',
@@ -143,12 +144,12 @@ class MetricLogger(object):
             if i % print_freq == 0:
                 eta_seconds = iter_time.global_avg * (len(iterable) - i)
                 eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
-                if torch.npu.is_available():
+                if torch_npu.npu.is_available():
                     print(log_msg.format(
                         i, len(iterable), eta=eta_string,
                         meters=str(self),
                         time=str(iter_time), data=str(data_time),
-                        memory=torch.npu.max_memory_allocated() / MB))
+                        memory=torch_npu.npu.max_memory_allocated() / MB))
                 else:
                     print(log_msg.format(
                         i, len(iterable), eta=eta_string,
@@ -237,7 +238,7 @@ def init_distributed_mode(args):
         args.gpu = int(os.environ['LOCAL_RANK'])
     elif 'SLURM_PROCID' in os.environ:
         args.rank = int(os.environ['SLURM_PROCID'])
-        args.gpu = args.rank % torch.npu.device_count()
+        args.gpu = args.rank % torch_npu.npu.device_count()
     elif hasattr(args, "rank"):
         pass
     else:
@@ -247,7 +248,7 @@ def init_distributed_mode(args):
 
     args.distributed = True
 
-    torch.npu.set_device(args.gpu)
+    torch_npu.npu.set_device(args.gpu)
     args.dist_backend = 'hccl'
     print('| distributed init (rank {}): {}'.format(
         args.rank, args.dist_url), flush=True)

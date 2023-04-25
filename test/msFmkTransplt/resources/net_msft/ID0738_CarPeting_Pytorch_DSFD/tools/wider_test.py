@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import os
+import torch_npu
 import torch
 import argparse
 import torch.nn as nn
@@ -39,7 +40,7 @@ parser.add_argument('--thresh', default=0.05, type=float,
 args = parser.parse_args()
 
 
-use_cuda = torch.npu.is_available()
+use_cuda = torch_npu.npu.is_available()
 
 if use_cuda:
     ascend_function.similar_api.set_default_tensor_type('torch.npu.FloatTensor')

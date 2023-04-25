@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 import time
 import os

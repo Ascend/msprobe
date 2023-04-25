@@ -1,5 +1,6 @@
 import math
 import copy
+import torch_npu
 from torch import nn
 import torch
 import torch.nn.functional as F

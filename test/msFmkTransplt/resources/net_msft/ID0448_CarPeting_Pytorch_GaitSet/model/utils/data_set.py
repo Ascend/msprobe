@@ -1,3 +1,4 @@
+import torch_npu
 import torch.utils.data as tordata
 import numpy as np
 import os.path as osp

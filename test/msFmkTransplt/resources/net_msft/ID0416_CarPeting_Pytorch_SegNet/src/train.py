@@ -18,6 +18,7 @@ from dataset import PascalVOCDataset, NUM_CLASSES
 from model import SegNet
 import os
 import time
+import torch_npu
 import torch
 from torch.utils.data import DataLoader
 import ascend_function
@@ -50,7 +51,7 @@ args = parser.parse_args()
 
 
 def train():
-    torch.npu.set_device(GPU_ID)
+    torch_npu.npu.set_device(GPU_ID)
     is_better = True
     prev_loss = float('inf')
 

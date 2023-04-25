@@ -1,4 +1,5 @@
 from __future__ import print_function, division
+import torch_npu
 import torch
 import torch.nn as nn
 import torch.optim as optim

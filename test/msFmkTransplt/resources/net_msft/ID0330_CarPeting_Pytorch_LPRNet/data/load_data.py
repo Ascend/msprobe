@@ -1,3 +1,4 @@
+import torch_npu
 from torch.utils.data import *
 from imutils import paths
 import numpy as np

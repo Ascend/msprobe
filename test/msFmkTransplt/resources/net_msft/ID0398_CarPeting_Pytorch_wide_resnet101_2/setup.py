@@ -9,6 +9,7 @@ import subprocess
 import distutils.command.clean
 import glob
 import shutil
+import torch_npu
 
 import torch
 from torch.utils.cpp_extension import CppExtension, CUDAExtension, CUDA_HOME
@@ -100,7 +101,7 @@ def get_extensions():
     define_macros = []
 
     extra_compile_args = {}
-    if (torch.npu.is_available() and CUDA_HOME is not None) or os.getenv('FORCE_CUDA', '0') == '1':
+    if (torch_npu.npu.is_available() and CUDA_HOME is not None) or os.getenv('FORCE_CUDA', '0') == '1':
         extension = CUDAExtension
         sources += source_cuda
         define_macros += [('WITH_CUDA', None)]

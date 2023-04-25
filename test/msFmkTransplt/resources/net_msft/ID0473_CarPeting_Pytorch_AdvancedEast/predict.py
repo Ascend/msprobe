@@ -1,4 +1,5 @@
 import argparse
+import torch_npu
 
 import torch
 from torchvision import transforms
@@ -99,7 +100,7 @@ if __name__ == '__main__':
     print(img_path, threshold)
     model_path='./saved_model/mb3_512_model_epoch_535.pth'
 
-    device = torch.device("npu:0" if torch.npu.is_available() else "cpu")
+    device = torch.device("npu:0" if torch_npu.npu.is_available() else "cpu")
     model = EAST().to(device)
     model.load_state_dict(torch.load(model_path))
     model.eval()

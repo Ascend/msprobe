@@ -1,3 +1,4 @@
+import torch_npu
 import torch.distributed as dist
 import ascend_function
 

@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import numpy.random as nprnd
 import os
+import torch_npu
 import torch
 import torch.utils.data
 import tqdm

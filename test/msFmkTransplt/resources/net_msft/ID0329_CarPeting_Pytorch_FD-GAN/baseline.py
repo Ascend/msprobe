@@ -5,6 +5,7 @@ import os.path as osp
 import numpy as np
 import os, sys
 from bisect import bisect_right
+import torch_npu
 import torch
 from torch import nn
 from torch.nn import functional as F

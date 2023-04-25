@@ -2,6 +2,7 @@
 This code is used to convert the pytorch model into an onnx format model.
 """
 import sys
+import torch_npu
 
 import torch.onnx
 from model import EAST

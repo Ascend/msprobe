@@ -2,6 +2,7 @@
 import numpy as np
 from PIL import Image
 import os
+import torch_npu
 import torch
 import torchvision.transforms as transforms
 from torch.utils import data

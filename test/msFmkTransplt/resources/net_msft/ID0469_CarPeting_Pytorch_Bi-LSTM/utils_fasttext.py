@@ -1,5 +1,6 @@
 # coding: UTF-8
 import os
+import torch_npu
 import torch
 import numpy as np
 import pickle as pkl

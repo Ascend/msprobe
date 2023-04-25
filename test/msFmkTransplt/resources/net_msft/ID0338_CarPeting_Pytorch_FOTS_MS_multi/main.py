@@ -1,6 +1,7 @@
 import argparse
 
 import datasets
+import torch_npu
 import torch
 from train import fit
 import torch.npu

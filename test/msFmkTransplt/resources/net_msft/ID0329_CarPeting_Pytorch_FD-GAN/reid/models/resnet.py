@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import torch_npu
 
 from torch import nn
 from torch.nn import functional as F

@@ -8,6 +8,7 @@ import pickle
 from collections import defaultdict
 from tqdm import tqdm
 import concurrent.futures
+import torch_npu
 
 import torch
 import torch.nn as nn
@@ -158,7 +159,7 @@ class GranRunner(object):
           os.path.join(base_path, '{}_test.p'.format(config.dataset.name)))
 
   def train(self):
-    torch.npu.set_device(self.device)
+    torch_npu.npu.set_device(self.device)
     ### create data loader
     train_dataset = eval(self.dataset_conf.loader_name)(self.config, self.graphs_train, tag='train')
     train_loader = torch.utils.data.DataLoader(

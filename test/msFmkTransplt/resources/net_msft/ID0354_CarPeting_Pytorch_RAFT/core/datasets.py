@@ -1,6 +1,7 @@
 # Data loading based on https://github.com/NVIDIA/flownet2-pytorch
 
 import numpy as np
+import torch_npu
 import torch
 import torch.utils.data as data
 import torch.nn.functional as F

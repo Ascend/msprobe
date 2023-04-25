@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import os, sys
 import functools
+import torch_npu
 
 import torch
 import torch.nn as nn
