@@ -7,6 +7,7 @@
 # ***
 # ************************************************************************************/
 
+import torch_npu
 import torch
 import ascend_function
 
@@ -34,7 +35,7 @@ class Config(object):
 
     def __init__(self):
         if self.cuda:
-            self.cuda = torch.npu.is_available()
+            self.cuda = torch_npu.npu.is_available()
         self.device = torch.device("npu:0" if self.cuda else "cpu")
 
     def dump(self):

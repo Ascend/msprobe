@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import math
+import torch_npu
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

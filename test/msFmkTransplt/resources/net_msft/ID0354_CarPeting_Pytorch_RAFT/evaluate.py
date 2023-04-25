@@ -7,6 +7,7 @@ import argparse
 import os
 import time
 import numpy as np
+import torch_npu
 import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt

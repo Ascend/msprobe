@@ -1,5 +1,6 @@
 import logging
 import math
+import torch_npu
 
 from torch.optim.lr_scheduler import LambdaLR
 import ascend_function

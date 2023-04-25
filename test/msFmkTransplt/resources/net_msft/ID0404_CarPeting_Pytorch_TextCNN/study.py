@@ -10,6 +10,7 @@
 
 
 import data
+import torch_npu
 import torchtext
 import ascend_function
 

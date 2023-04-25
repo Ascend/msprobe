@@ -3,6 +3,7 @@ Copyright (C) 2018 NVIDIA Corporation.  All rights reserved.
 Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 """
 from __future__ import print_function
+import torch_npu
 from utils import get_config, pytorch03_to_pytorch04
 from trainer import MUNIT_Trainer, UNIT_Trainer
 import argparse

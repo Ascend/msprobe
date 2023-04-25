@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import h5py
 import numpy as np
+import torch_npu
 from torch.utils.data import Dataset
 import ascend_function
 

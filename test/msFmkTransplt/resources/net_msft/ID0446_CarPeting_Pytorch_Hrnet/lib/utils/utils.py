@@ -13,6 +13,7 @@ import os
 import logging
 import time
 from pathlib import Path
+import torch_npu
 
 import torch
 import torch.optim as optim

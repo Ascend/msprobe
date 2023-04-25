@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import torch_npu
 
 import torch
 from PIL import Image, ImageDraw

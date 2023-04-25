@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from collections import OrderedDict
+import torch_npu
 import torch
 from torch.autograd import Variable
 

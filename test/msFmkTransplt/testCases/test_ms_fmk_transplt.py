@@ -80,6 +80,8 @@ class TestMsFmkTransplt(unittest.TestCase):
     def list_python_file(self, path):
         files = os.listdir(path)
         for file_name in files:
+            if file_name.endswith("_amp"):
+                continue
             sub_file = path + '/' + file_name
             if os.path.isdir(sub_file) and os.path.basename(sub_file) != ['ascend_function',
                                                                           'ascend_modelarts_function']:
@@ -101,6 +103,14 @@ class TestMsFmkTransplt(unittest.TestCase):
         result_dict = transplant(all_args, all_transplt_files, self.abs_output_path)
 
         self.assertFalse(TRANS_ERROR in result_dict.values())
+
+        print("-----------------Begin to compare result---------------------")
+
+        for i, x in enumerate(self.standard_py_file_list):
+            standard_file = x
+            output_file = self.output_py_file_list[i]
+            self.result_check(standard_file, output_file)
+        self.assertFalse(self.has_error)
 
     def result_check(self, standard_file, output_file):
         with open(standard_file, 'r', encoding='utf-8') as st_file:

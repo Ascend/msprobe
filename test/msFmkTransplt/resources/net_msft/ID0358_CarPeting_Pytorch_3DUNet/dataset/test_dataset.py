@@ -1,6 +1,7 @@
 from utils.common import *
 from scipy import ndimage
 import numpy as np
+import torch_npu
 from torchvision import transforms as T
 import torch, os
 from torch.utils.data import Dataset, DataLoader

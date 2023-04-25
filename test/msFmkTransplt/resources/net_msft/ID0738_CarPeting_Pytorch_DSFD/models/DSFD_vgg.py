@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import os
 import numpy as np
+import torch_npu
 
 import torch
 import torch.nn as nn

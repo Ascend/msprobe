@@ -3,6 +3,7 @@ import os
 
 import cv2
 import numpy as np
+import torch_npu
 import torch
 
 from model import FOTSModel

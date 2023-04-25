@@ -8,6 +8,7 @@ Author: aiboy.wei@outlook.com .
 
 from data.load_data import CHARS, CHARS_DICT, LPRDataLoader
 from model.LPRNet import build_lprnet
+import torch_npu
 # import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 import torch.nn.functional as F

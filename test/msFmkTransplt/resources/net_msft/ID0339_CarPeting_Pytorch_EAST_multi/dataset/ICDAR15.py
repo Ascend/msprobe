@@ -4,6 +4,7 @@ import cv2
 from PIL import Image
 import math
 import os
+import torch_npu
 import torch
 import torchvision.transforms as transforms
 from torch.utils import data
@@ -428,7 +429,7 @@ if __name__ == "__main__":
     if not isinstance(model, torch.nn.parallel.DistributedDataParallel):
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[DEVICE_ID], broadcast_buffers=False)
     data_parallel = False
-    if torch.npu.device_count() > 1:
+    if torch_npu.npu.device_count() > 1:
         data_parallel = True
     model.to(f'npu:{DEVICE_ID}')
 

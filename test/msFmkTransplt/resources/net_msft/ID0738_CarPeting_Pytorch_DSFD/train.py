@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import os
 import time
+import torch_npu
 import torch
 import argparse
 import torch.nn as nn
@@ -64,7 +65,7 @@ args = parser.parse_args()
 if not args.multigpu:
     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
-if torch.npu.is_available():
+if torch_npu.npu.is_available():
     if args.cuda:
         ascend_function.similar_api.set_default_tensor_type('torch.npu.FloatTensor')
     if not args.cuda:

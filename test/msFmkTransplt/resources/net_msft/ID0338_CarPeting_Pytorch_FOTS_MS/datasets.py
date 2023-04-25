@@ -6,6 +6,7 @@ import re
 import cv2
 import numpy as np
 import scipy.io
+import torch_npu
 import torch
 import torch.utils.data
 import torchvision

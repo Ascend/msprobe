@@ -1,5 +1,6 @@
 import os
 import yaml
+import torch_npu
 import torch
 from utils.arg_helper import edict2dict
 from easydict import EasyDict as edict

@@ -19,6 +19,7 @@ import math
 from os.path import join as pjoin
 
 from collections import OrderedDict  # pylint: disable=g-importing-member
+import torch_npu
 
 import torch
 import torch.nn as nn

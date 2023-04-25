@@ -20,6 +20,7 @@ from model import SegNet
 import numpy as np
 import os
 from PIL import Image
+import torch_npu
 import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms

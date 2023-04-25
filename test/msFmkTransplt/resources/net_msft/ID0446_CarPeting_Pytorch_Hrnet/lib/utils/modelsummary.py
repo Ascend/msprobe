@@ -12,6 +12,7 @@ from __future__ import print_function
 import os
 import logging
 from collections import namedtuple
+import torch_npu
 
 import torch
 import torch.nn as nn

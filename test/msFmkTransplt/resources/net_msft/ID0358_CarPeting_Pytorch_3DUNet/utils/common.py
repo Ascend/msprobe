@@ -1,6 +1,7 @@
 import SimpleITK as sitk
 import numpy as np
 from scipy import ndimage
+import torch_npu
 import torch
 import ascend_function
 

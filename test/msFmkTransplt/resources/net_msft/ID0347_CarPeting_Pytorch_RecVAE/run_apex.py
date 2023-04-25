@@ -1,4 +1,5 @@
 import numpy as np
+import torch_npu
 
 import torch
 from torch import optim

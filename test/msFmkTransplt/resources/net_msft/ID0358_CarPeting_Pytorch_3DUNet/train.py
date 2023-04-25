@@ -1,4 +1,5 @@
 from dataset.dataset_lits import Lits_DataSet
+import torch_npu
 from torch.utils.data import DataLoader
 import torch
 import torch.optim as optim
@@ -130,4 +131,4 @@ if __name__ == '__main__':
                 print("=> early stopping")
                 break
         if args.cuda:
-            torch.npu.empty_cache()
+            torch_npu.npu.empty_cache()

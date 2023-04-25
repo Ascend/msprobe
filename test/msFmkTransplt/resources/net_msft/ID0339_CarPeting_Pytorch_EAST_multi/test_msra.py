@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 from network.model import EAST
 from network.loss import Loss

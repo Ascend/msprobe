@@ -4,6 +4,7 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 """
 from utils import get_all_data_loaders, prepare_sub_folder, write_html, write_loss, get_config, write_2images, Timer
 import argparse
+import torch_npu
 from torch.autograd import Variable
 from trainer import MUNIT_Trainer, UNIT_Trainer
 import torch.backends.cudnn as cudnn
@@ -65,7 +66,7 @@ while True:
             # Main training code
             trainer.dis_update(images_a, images_b, config)
             trainer.gen_update(images_a, images_b, config)
-            torch.npu.synchronize()
+            torch_npu.npu.synchronize()
 
         # Dump training stats in log file
         if (iterations + 1) % config['log_iter'] == 0:

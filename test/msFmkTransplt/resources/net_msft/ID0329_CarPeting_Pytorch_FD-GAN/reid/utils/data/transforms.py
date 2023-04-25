@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import torch_npu
 
 from torchvision.transforms import *
 from PIL import Image

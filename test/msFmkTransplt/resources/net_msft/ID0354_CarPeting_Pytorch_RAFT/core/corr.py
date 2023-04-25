@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 import torch.nn.functional as F
 from utils.utils import bilinear_sampler, coords_grid

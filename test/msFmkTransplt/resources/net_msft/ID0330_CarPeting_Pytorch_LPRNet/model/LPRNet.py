@@ -1,3 +1,4 @@
+import torch_npu
 import torch.nn as nn
 import torch
 import ascend_function

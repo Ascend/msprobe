@@ -4,6 +4,7 @@ Pytorch implementation of SegNet (https://arxiv.org/pdf/1511.00561.pdf)
 
 from __future__ import print_function
 from collections import OrderedDict
+import torch_npu
 import torch
 import torch.nn as nn
 import torchvision.models as models

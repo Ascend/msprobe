@@ -5,6 +5,7 @@ from model import SegNet
 from dataset import NUM_CLASSES
 import matplotlib.pyplot as plt
 import numpy as np
+import torch_npu
 import torch
 import ascend_function
 

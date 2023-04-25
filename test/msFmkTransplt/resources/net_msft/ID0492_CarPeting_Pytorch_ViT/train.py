@@ -8,6 +8,7 @@ import random
 import numpy as np
 
 from datetime import timedelta
+import torch_npu
 
 import torch
 import torch.distributed as dist
@@ -298,10 +299,10 @@ def main():
 
     # Setup CUDA, GPU & distributed training
     if args.local_rank == -1:
-        device = torch.device("npu:1" if torch.npu.is_available() else "cpu")
-        args.n_gpu = torch.npu.device_count()
+        device = torch.device("npu:1" if torch_npu.npu.is_available() else "cpu")
+        args.n_gpu = torch_npu.npu.device_count()
     else:  # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
-        torch.npu.set_device(args.local_rank)
+        torch_npu.npu.set_device(args.local_rank)
         device = torch.device("npu", args.local_rank)
         torch.distributed.init_process_group(backend='hccl',
                                              timeout=timedelta(minutes=60))

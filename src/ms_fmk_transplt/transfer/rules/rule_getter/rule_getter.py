@@ -7,7 +7,6 @@ import os
 from utils.trans_utils import get_file_content_bytes, TransplantException, get_file_content
 from .. import common_rules as rule_module
 from ..distributed_rules import distributed_rule
-from ..pytorch_v1_5_0_rules import Amp2Apex, InitApexRule
 from ..modelarts_rules import get_modelarts_rule
 from ..pytorch_npu_patch_rules import InsertAheadRule
 
@@ -32,11 +31,10 @@ def get_builtin_rule(feature_switch, args):
     if args.modelarts:
         rule_list.extend(get_modelarts_rule())
     # use torch_npu.npu to replace torch.npu since 1.8.1
-    if args.version != '1.5.0':
-        rule_list.append(InsertAheadRule())
-        rules_json_file_pytorch_npu = os.path.join(
-            os.path.dirname(__file__), '../pytorch_npu_patch_rules/builtin_rules_pytorch_npu.json')
-        get_rule_from_json_file(feature_switch, rule_list, rules_json_file_pytorch_npu)
+    rule_list.append(InsertAheadRule())
+    rules_json_file_pytorch_npu = os.path.join(
+        os.path.dirname(__file__), '../pytorch_npu_patch_rules/builtin_rules_pytorch_npu.json')
+    get_rule_from_json_file(feature_switch, rule_list, rules_json_file_pytorch_npu)
     # common rules
     common_rules_json_file = os.path.join(os.path.dirname(__file__),
                                           '../common_rules/builtin_rules.json')

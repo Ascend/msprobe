@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from collections import defaultdict
 
 import numpy as np
+import torch_npu
 import torch
 from torch.utils.data.sampler import (
     Sampler, SequentialSampler, RandomSampler, SubsetRandomSampler,

@@ -14,6 +14,7 @@ import os
 import pprint
 import shutil
 import sys
+import torch_npu
 
 import torch
 import torch.nn.parallel

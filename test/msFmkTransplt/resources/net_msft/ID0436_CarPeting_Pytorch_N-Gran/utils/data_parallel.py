@@ -1,4 +1,5 @@
 import operator
+import torch_npu
 import torch
 import warnings
 from torch.nn.modules import Module
@@ -78,13 +79,13 @@ class DataParallel(Module):
                gather_output=True):
     super(DataParallel, self).__init__()
 
-    if not torch.npu.is_available():
+    if not torch_npu.npu.is_available():
       self.module = module
       self.device_ids = []
       return
 
     if device_ids is None:
-      device_ids = list(range(torch.npu.device_count()))
+      device_ids = list(range(torch_npu.npu.device_count()))
     if output_device is None:
       output_device = device_ids[0]
     self.dim = dim

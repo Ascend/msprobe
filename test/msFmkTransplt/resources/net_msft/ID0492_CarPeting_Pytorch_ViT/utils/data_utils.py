@@ -1,4 +1,5 @@
 import logging
+import torch_npu
 
 import torch
 

@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -22,7 +23,7 @@ class Config(object):
         self.embedding_pretrained = torch.tensor(
             np.load(dataset + '/data/' + embedding)["embeddings"].astype('float32'))\
             if embedding != 'random' else None                                       # 预训练词向量
-        self.device = torch.device('npu' if torch.npu.is_available() else 'cpu')   # 设备
+        self.device = torch.device('npu' if torch_npu.npu.is_available() else 'cpu')   # 设备
 
         self.dropout = 0.5                                              # 随机失活
         self.require_improvement = 2000                                 # 若超过1000batch效果还没提升，则提前结束训练

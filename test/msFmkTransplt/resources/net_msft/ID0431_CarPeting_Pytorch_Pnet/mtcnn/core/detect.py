@@ -1,6 +1,7 @@
 import cv2
 import time
 import numpy as np
+import torch_npu
 import torch
 from torch.autograd.variable import Variable
 from mtcnn.core.models import PNet,RNet,ONet

@@ -1,3 +1,4 @@
+import torch_npu
 import torch
 from torchvision import transforms
 from PIL import Image, ImageDraw
