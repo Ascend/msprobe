@@ -9,7 +9,7 @@ from vector_cmp.compare_detail import compare_detail
 from vector_cmp.compare_detail import detail
 from cmp_utils import utils, utils_type
 from vector_cmp.fusion_manager import fusion_op
-from format_convert.format_manager import FormatManager
+from format_manager.format_manager import FormatManager
 from cmp_utils.constant.compare_error import CompareError
 
 
