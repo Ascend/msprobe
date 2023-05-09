@@ -149,7 +149,7 @@ class FormatManager:
             sys.path.append(self.custom_path)
 
     def _get_module(self: any, format_name: str, dir_name: str, module_type: str) -> (bool, any):
-        format_module = importlib.import_module('%s.%s.%s' % ("format_convert", dir_name, format_name))
+        format_module = importlib.import_module('%s.%s' % (dir_name, format_name))
         # check exist convert attr
         if not hasattr(format_module, self.CONVERT_FUNC_NAME):
             log.print_warn_log("[%s] The file '%s' has no attribute '%s'. Please check the file."

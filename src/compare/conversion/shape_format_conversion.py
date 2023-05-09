@@ -23,9 +23,9 @@ from cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.file_utils import FileUtils
 from cmp_utils.constant.compare_error import CompareError
-from format_convert.format_manager import FormatManager
-from format_convert.format_manager import SrcToDest
-from format_convert.format_manager import ShapeConversion
+from format_manager.format_manager import FormatManager
+from format_manager.format_manager import SrcToDest
+from format_manager.format_manager import ShapeConversion
 from conversion.tensor_conversion import TensorConversion
 
 
