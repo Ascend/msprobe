@@ -10,7 +10,7 @@ from vector_cmp.fusion_manager import fusion_rule_parser
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from vector_cmp.range_manager.range_manager import RangeManager
-from algorithm.algorithm_manager import AlgorithmManager
+from algorith_manager.algorithm_manager import AlgorithmManager
 from vector_cmp.fusion_manager.fusion_op import FusionOp
 
 

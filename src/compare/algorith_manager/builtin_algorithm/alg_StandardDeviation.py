@@ -8,7 +8,7 @@ StandardDeviation algorithm. This file mainly involves the compare function.
 
 import numpy as np
 
-from algorithm.algorithm_parameter import AlgorithmParameter
+from algorith_manager.algorithm_parameter import AlgorithmParameter
 from cmp_utils.constant.const_manager import ConstManager
 
 

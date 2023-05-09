@@ -15,7 +15,7 @@ import numpy as np
 from cmp_utils import utils, utils_type
 from cmp_utils import log
 from pytorch_cmp import pytorch_dump_data as pytorch_dump
-from algorithm.algorithm_manager import AlgorithmManager
+from algorith_manager.algorithm_manager import AlgorithmManager
 from cmp_utils.constant.const_manager import ConstManager
 from vector_cmp.fusion_manager import compare_result
 from cmp_utils.constant.compare_error import CompareError

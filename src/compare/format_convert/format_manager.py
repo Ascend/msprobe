@@ -54,7 +54,7 @@ class FormatManager:
     """
 
     BUILT_IN_FORMAT_CONVERT_DIR_NAME = "builtin_format_convert"
-    CUSTOM_FORMAT_CONVERT_DIR_NAME = ""
+    CUSTOM_FORMAT_CONVERT_DIR_NAME = "format_convert"
     CONVERT_FUNC_NAME = 'convert'
     CONVERT_ARG_COUNT = 3
     TO_FRACTAL_Z_FUNC_ARG_COUNT = 4

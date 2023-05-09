@@ -11,7 +11,7 @@ from cmp_utils import common
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from dump_parse.dump import CompareData
-from algorithm.algorithm_manager import AlgorithmManager
+from algorith_manager.algorithm_manager import AlgorithmManager
 from vector_cmp.fusion_manager.fusion_op import FusionOp
 from vector_cmp.fusion_manager.fusion_op import Tensor
 from vector_cmp.fusion_manager import compare_result

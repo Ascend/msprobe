@@ -17,7 +17,7 @@ from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
-from algorithm.algorithm_manager import AlgorithmManagerMain
+from algorith_manager.algorithm_manager import AlgorithmManagerMain
 from compare_vector import VectorComparison
 from conversion.shape_format_conversion import FormatConversionMain
 from dump_parse.dump_data_parser import DumpDataParser

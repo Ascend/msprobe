@@ -16,7 +16,7 @@ import numpy as np
 
 from cmp_utils import log, utils_type
 from cmp_utils import utils
-from algorithm.algorithm_parameter import AlgorithmParameter
+from algorith_manager.algorithm_parameter import AlgorithmParameter
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
@@ -240,9 +240,8 @@ class AlgorithmManager:
     def _get_module(self: any, algorithm_name: str) -> (bool, any, str):
         if algorithm_name in self.custom_support_algorithm:
             sys.path.append(self.custom_path)
-            algorithm_module = importlib.import_module('%s.%s.alg_%s' %
-                                                       ("algorithm",
-                                                        ConstManager.CUSTOM_ALGORITHM_DIR_NAME,
+            algorithm_module = importlib.import_module('%s.alg_%s' %
+                                                       (ConstManager.CUSTOM_ALGORITHM_DIR_NAME,
                                                         algorithm_name))
             module_type = ConstManager.CUSTOM
         elif algorithm_name in self.built_in_support_algorithm:

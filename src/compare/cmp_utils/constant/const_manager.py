@@ -74,7 +74,7 @@ class ConstManager:
 
     # algorithm manager const
     BUILT_IN_ALGORITHM_DIR_NAME = "builtin_algorithm"
-    CUSTOM_ALGORITHM_DIR_NAME = "custom_algorithm"
+    CUSTOM_ALGORITHM_DIR_NAME = "algorithm"
     COMPARE_FUNC_NAME = 'compare'
     BUILT_IN_ALGORITHM = [
         "CosineSimilarity",
