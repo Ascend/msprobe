@@ -9,7 +9,7 @@ from dump_parse import dump
 from vector_cmp.fusion_manager import fusion_op
 from cmp_utils.constant.compare_error import CompareError
 from vector_cmp.fusion_manager.compare_npu_vs_npu import NpuVsNpuComparison
-from algorithm.algorithm_manager import AlgorithmManager
+from algorithm_manager.algorithm_manager import AlgorithmManager
 
 
 class TestUtilsMethods(unittest.TestCase):

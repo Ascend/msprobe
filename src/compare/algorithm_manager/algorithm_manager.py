@@ -246,7 +246,7 @@ class AlgorithmManager:
             module_type = ConstManager.CUSTOM
         elif algorithm_name in self.built_in_support_algorithm:
             algorithm_module = importlib.import_module('%s.%s.alg_%s' %
-                                                       ("algorithm",
+                                                       ("algorithm_manager",
                                                         ConstManager.BUILT_IN_ALGORITHM_DIR_NAME,
                                                         algorithm_name))
             module_type = ConstManager.BUILTIN
