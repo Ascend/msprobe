@@ -149,10 +149,10 @@ class FormatManager:
             sys.path.append(self.custom_path)
 
     def _get_module(self: any, format_name: str, dir_name: str, module_type: str) -> (bool, any):
-        if format_name in self.built_in_support_format:
+        if dir_name is self.BUILT_IN_FORMAT_CONVERT_DIR_NAME:
             format_module = importlib.import_module('%s.%s.%s' % ("format_manager",
                                                                   dir_name, format_name))
-        elif format_name in self.custom_support_format:
+        if dir_name is self.CUSTOM_FORMAT_CONVERT_DIR_NAME:
             format_module = importlib.import_module('%s.%s' % (dir_name, format_name))
 
         # check exist convert attr
