@@ -9,7 +9,7 @@ KullbackLeiblerDivergence algorithm. This file mainly involves the compare funct
 import numpy as np
 import scipy.stats
 
-from algorithm.algorithm_parameter import AlgorithmParameter
+from algorithm_manager.algorithm_parameter import AlgorithmParameter
 from cmp_utils import utils
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager

@@ -54,7 +54,7 @@ class FormatManager:
     """
 
     BUILT_IN_FORMAT_CONVERT_DIR_NAME = "builtin_format_convert"
-    CUSTOM_FORMAT_CONVERT_DIR_NAME = ""
+    CUSTOM_FORMAT_CONVERT_DIR_NAME = "format_convert"
     CONVERT_FUNC_NAME = 'convert'
     CONVERT_ARG_COUNT = 3
     TO_FRACTAL_Z_FUNC_ARG_COUNT = 4
@@ -149,7 +149,12 @@ class FormatManager:
             sys.path.append(self.custom_path)
 
     def _get_module(self: any, format_name: str, dir_name: str, module_type: str) -> (bool, any):
-        format_module = importlib.import_module('%s.%s.%s' % ("format_convert", dir_name, format_name))
+        if dir_name is self.BUILT_IN_FORMAT_CONVERT_DIR_NAME:
+            format_module = importlib.import_module('%s.%s.%s' % ("format_manager",
+                                                                  dir_name, format_name))
+        if dir_name is self.CUSTOM_FORMAT_CONVERT_DIR_NAME:
+            format_module = importlib.import_module('%s.%s' % (dir_name, format_name))
+
         # check exist convert attr
         if not hasattr(format_module, self.CONVERT_FUNC_NAME):
             log.print_warn_log("[%s] The file '%s' has no attribute '%s'. Please check the file."

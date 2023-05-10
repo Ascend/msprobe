@@ -15,10 +15,10 @@ import time
 
 from dump_parse import dump
 from vector_cmp.compare_detail import detail
-from algorithm.algorithm_manager import AlgorithmManager
+from algorithm_manager.algorithm_manager import AlgorithmManager
 from vector_cmp.fusion_manager import compare_result
 from vector_cmp.fusion_manager.compare_rule import CompareRule
-from format_convert.format_manager import FormatManager
+from format_manager.format_manager import FormatManager
 from vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
 from vector_cmp.compare_detail.compare_detail import DetailComparison
 from vector_cmp.compare_detail.compare_detail import DumpDetailComparison

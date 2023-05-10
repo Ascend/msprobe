@@ -8,9 +8,9 @@ TensorConversion class. This class mainly involves the convert_shape function.
 import dump_data_pb2 as DD
 
 from dump_parse.dump import CompareData
-from format_convert.format_manager import FormatManager
-from format_convert.format_manager import SrcToDest
-from format_convert.format_manager import ShapeConversion
+from format_manager.format_manager import FormatManager
+from format_manager.format_manager import SrcToDest
+from format_manager.format_manager import ShapeConversion
 from vector_cmp.fusion_manager.fusion_op import FusionOp
 from vector_cmp.fusion_manager.fusion_op import Tensor
 from cmp_utils import log, utils_type

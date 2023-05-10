@@ -5,7 +5,7 @@ import numpy as np
 import dump_data_pb2 as DD
 
 from vector_cmp.fusion_manager import fusion_op
-from format_convert.format_manager import FormatManager
+from format_manager.format_manager import FormatManager
 from vector_cmp.fusion_manager.fusion_op import Tensor
 from cmp_utils.constant.compare_error import CompareError
 from conversion.tensor_conversion import TensorConversion

@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 import numpy as np
 
-from algorithm.algorithm_manager import AlgorithmManager, AlgorithmManagerMain
+from algorithm_manager.algorithm_manager import AlgorithmManager, AlgorithmManagerMain
 from cmp_utils.constant.compare_error import CompareError
 
 
@@ -195,7 +195,7 @@ class TestUtilsMethods(unittest.TestCase):
         my_output_dump_data.dtype = np.bool_
         ground_truth_dump_data.dtype = np.bool_
         with mock.patch(
-                'algorithm.algorithm_manager.AlgorithmManager._make_algorithm_param', return_value={}):
+                'algorithm_manager.algorithm_manager.AlgorithmManager._make_algorithm_param', return_value={}):
             a_m.compare(my_output_dump_data, ground_truth_dump_data, {})
 
     def test_algorithmManager_compare2(self):
@@ -207,12 +207,12 @@ class TestUtilsMethods(unittest.TestCase):
         my_output_dump_data.dtype = None
         ground_truth_dump_data.dtype = None
         with mock.patch(
-                'algorithm.algorithm_manager.AlgorithmManager._check_data_size_valid'):
+                'algorithm_manager.algorithm_manager.AlgorithmManager._check_data_size_valid'):
             with mock.patch(
-                    'algorithm.algorithm_manager.AlgorithmManager._make_algorithm_param',
+                    'algorithm_manager.algorithm_manager.AlgorithmManager._make_algorithm_param',
                     return_value={}):
                 with mock.patch(
-                        'algorithm.algorithm_manager.AlgorithmManager._call_compare_function',
+                        'algorithm_manager.algorithm_manager.AlgorithmManager._call_compare_function',
                         return_value=(123, '')):
                     a_m.compare(my_output_dump_data, ground_truth_dump_data, {})
 

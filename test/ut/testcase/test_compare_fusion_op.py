@@ -13,7 +13,7 @@ import numpy as np
 import struct
 
 from vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
-from algorithm.algorithm_manager import AlgorithmManager
+from algorithm_manager.algorithm_manager import AlgorithmManager
 from vector_cmp.fusion_manager.fusion_op import FusionOp, OutputDesc, OpAttr
 from dump_parse.dump import DumpType
 from cmp_utils.constant.compare_error import CompareError

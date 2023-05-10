@@ -6,9 +6,9 @@ import pytest
 import numpy as np
 import dump_data_pb2 as DD
 
-from format_convert.format_manager import FormatManager
-from format_convert.format_manager import ShapeConversion
-from format_convert.format_manager import SrcToDest
+from format_manager.format_manager import FormatManager
+from format_manager.format_manager import ShapeConversion
+from format_manager.format_manager import SrcToDest
 from dump_parse.dump_data_object import DumpTensor
 from cmp_utils.constant.compare_error import CompareError
 
