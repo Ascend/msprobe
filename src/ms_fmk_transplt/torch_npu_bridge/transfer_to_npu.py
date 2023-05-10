@@ -19,7 +19,7 @@ torch_fn_white_list = [
     'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
     'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
     '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-    'empty_quantized', '_pin_memory', 'device'
+    'empty_quantized', '_pin_memory'
 ]
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
@@ -38,10 +38,18 @@ def wrapper_cuda(func):
             for idx, arg in enumerate(args_new):
                 if isinstance(arg, str) and 'cuda' in arg:
                     args_new[idx] = arg.replace('cuda', 'npu')
+                if isinstance(arg, torch_npu._C.device) and 'cuda' in arg.type:
+                    device_info = "npu:{}".format(arg.index) if arg.index else "npu"
+                    args_new[idx] = torch.device(device_info)
             args = args_new
         if kwargs:
             if isinstance(kwargs.get('device', None), str) and 'cuda' in kwargs.get('device', ''):
                 kwargs['device'] = kwargs.get('device').replace('cuda', 'npu')
+            if isinstance(kwargs.get('device', None), torch_npu._C.device) and \
+                    'cuda' in kwargs.get('device', None).type:
+                device = kwargs.get('device', None)
+                device_info = "npu:{}".format(device.index) if device.index else "npu"
+                kwargs['device'] = torch.device(device_info)
         return func(*args, **kwargs)
 
     return decorated
