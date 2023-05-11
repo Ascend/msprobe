@@ -193,6 +193,13 @@ class CodeTransformer(libcst.CSTTransformer):
             updated_node = rule.leave_Call(original_node, updated_node)
         return updated_node
 
+    def leave_Import(
+        self, original_node: "libcst.Import", updated_node: "libcst.Import"
+    ) -> "libcst.BaseExpression":
+        for rule in self.rule_list:
+            updated_node = rule.leave_Import(original_node, updated_node)
+        return updated_node
+
     def print_change_info(self):
         change_info_list = []
         for rule in self.rule_list:

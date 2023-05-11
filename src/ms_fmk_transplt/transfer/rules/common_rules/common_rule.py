@@ -343,3 +343,15 @@ class ReplaceAttributeRule(BaseRule):
                                   f'replace attribute "{self.attr_name}" with "{self.attr_name_new}"')
             return updated_node.with_changes(attr=libcst.Name(self.attr_name_new))
         return updated_node
+
+
+class RemoveImportRule(BaseRule):
+    def leave_Import(
+            self, original_node: libcst.Import, updated_node: libcst.Import
+    ):
+        names = updated_node.names
+        if names and names[0].name.value == 'amp_C':
+            self._record_position(original_node, OperatorType.DELETE,
+                                  'import amp_C has been removed')
+            return libcst.RemovalSentinel.REMOVE
+        return updated_node

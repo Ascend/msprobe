@@ -6,6 +6,7 @@ import os
 
 from utils.trans_utils import get_file_content_bytes, TransplantException, get_file_content
 from .. import common_rules as rule_module
+from ..common_rules.common_rule import RemoveImportRule
 from ..distributed_rules import distributed_rule
 from ..modelarts_rules import get_modelarts_rule
 from ..pytorch_npu_patch_rules import InsertAheadRule
@@ -32,6 +33,7 @@ def get_builtin_rule(feature_switch, args):
         rule_list.extend(get_modelarts_rule())
     # use torch_npu.npu to replace torch.npu since 1.8.1
     rule_list.append(InsertAheadRule())
+    rule_list.append(RemoveImportRule())
     rules_json_file_pytorch_npu = os.path.join(
         os.path.dirname(__file__), '../pytorch_npu_patch_rules/builtin_rules_pytorch_npu.json')
     get_rule_from_json_file(feature_switch, rule_list, rules_json_file_pytorch_npu)
