@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+
+import os
+
+from analysis.base_analyzer import BaseAnalyzer
+from utils import trans_utils as utils
+from utils import transplant_logger as translog
+from .affinity_api_visitor import analyse_affinity_api
+
+
+class AffinityApiAnalyzer(BaseAnalyzer):
+    def __init__(self, script_dir, output_path, pytorch_version, unsupported_third_party_file_list=None):
+        super().__init__(script_dir, output_path, pytorch_version, unsupported_third_party_file_list)
+        self.affinity_api_dict = {}
+        self.affinity_api_list = []
+        self.affinity_api_call_list = []
+        self.affinity_special_list = []
+        self.current_file_rel_path = ''
+
+    def run(self):
+        super().run()
+        self.write_csv()
+
+    def write_csv(self):
+        affinity_api_call_set = set()
+        for call in self.affinity_api_call_list:
+            if call.full_name.startswith('torch') or call.api_type == 'special':
+                affinity_api_call_set.add(call)
+                continue
+            call_full_name_list = call.full_name.split('.')
+            if len(call_full_name_list) < 2:
+                continue
+            call_full_name = call_full_name_list[-2] + '.' + call_full_name_list[-1]
+            if call_full_name in self.affinity_api_dict.keys():
+                call.info = self.affinity_api_dict.get(call_full_name)
+                affinity_api_call_set.add(call)
+
+        utils.write_csv(list((api.file_path, api.start_line, api.end_line, api.api_type, api.name, api.info)
+                             for api in affinity_api_call_set), self.output_path, "affinity_api_call",
+                        ('File', 'Start Line', 'End Line', 'Api Type', 'Api Call Name', 'Affinity Api Name'))
+        self.result_dict.update({'affinity_api_call.csv': len(affinity_api_call_set)})
+
+    def _analysis_file(self, file, commonprefix):
+        if self.global_reference_visitor:
+            self.global_reference_visitor.visit_file(os.path.relpath(file, self.output_path))
+        self.current_file_rel_path = os.path.relpath(file, commonprefix)
+        info_msg = f'Start analysis {self.current_file_rel_path}.'
+        translog.info(info_msg)
+        self._analysis_code(file)
+        info_msg = f'Analysis {self.current_file_rel_path} complete.'
+        translog.info(info_msg)
+
+    def _analysis_code(self, file):
+        code = utils.get_file_content_bytes(file)
+        affinity_api_list, \
+            affinity_api_call_list, \
+            affinity_special_list = analyse_affinity_api(code,
+                                                         self.pytorch_version,
+                                                         self.global_reference_visitor)
+        if affinity_api_list:
+            for api in affinity_api_list:
+                api.file_path = self.current_file_rel_path
+                self.affinity_api_list.append(api)
+                full_name_list = api.full_name.split('.')
+                if len(full_name_list) < 2:
+                    continue
+                full_name = full_name_list[-2] + '.' + full_name_list[-1]
+                self.affinity_api_dict[full_name] = api.info
+        if affinity_api_call_list:
+            for api in affinity_api_call_list:
+                api.file_path = self.current_file_rel_path
+                self.affinity_api_call_list.append(api)
+        if affinity_special_list:
+            for api in affinity_special_list:
+                api.file_path = self.current_file_rel_path
+                self.affinity_api_call_list.append(api)

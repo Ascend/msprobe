@@ -1,0 +1,92 @@
+{
+	"function": {
+		"single_level_responsible_flags": {
+			"parameter": ["self","featmap_size","gt_bboxes","stride","num_base_anchors","device"],
+			"affinity_function": "torch_npu.contrib.function.npu_single_level_responsible_flags"
+		},
+		"encode": {
+			"parameter": ["self","bboxes","gt_bboxes","stride"],
+			"affinity_function": "torch_npu.contrib.function.npu_bbox_coder_encode_xyxy2xywh"
+		},
+		"decode": {
+			"parameter": ["self","bboxes","pred_bboxes","stride"],
+			"affinity_function": "torch_npu.contrib.function.npu_bbox_coder_decode_xyxy2xywh"
+		},
+		"multiclass_nms": {
+			"parameter": ["multi_bboxes","multi_scores","score_thr","nms_cfg","max_num","score_factors","return_inds"],
+			"affinity_function": "torch_npu.contrib.function.npu_multiclass_nms"
+		},
+		"fast_nms": {
+			"parameter": ["multi_bboxes","multi_scores","multi_coeffs","score_thr","iou_thr","top_k","max_num"],
+			"affinity_function": "torch_npu.contrib.function.npu_batched_multiclass_nms"
+		},
+		"channel_shuffle": {
+			"parameter": ["x","groups"],
+			"affinity_function": "torch_npu.contrib.module.ChannelShuffle"
+		}
+	},
+	"class": {
+		"MultiheadAttention": {
+			"parent_class_name": "nn.Module",
+			"__init__": ["self","embed_dim","num_heads","kdim","vdim","dropout","bias","add_bias_kv","add_zero_attn","self_attention","encoder_decoder_attention","q_noise","qn_block_size","xformers_att_config","xformers_blocksparse_layout","xformers_blocksparse_blocksize"],
+			"forward": ["self","query","key","value","key_padding_mask","incremental_state","need_weights","static_kv","attn_mask","before_softmax","need_head_weights"],
+			"affinity_class": "torch_npu.contrib.module.MultiheadAttention"
+		},
+		"FairseqDropout": {
+			"parent_class_name": "nn.Module",
+			"__init__": ["self","p","module_name"],
+			"forward": ["self","x","inplace"],
+			"affinity_class": "torch_npu.contrib.module.NpuCachedDropout"
+		},
+		"Mish": {
+			"parent_class_name": "nn.Module",
+			"__init__": ["self"],
+			"forward": ["self","input"],
+			"affinity_class": "torch_npu.contrib.module.Mish"
+		},
+		"ModulatedDeformConv2dFunction": {
+			"parent_class_name": "torch.autograd.Function",
+			"__init__": [],
+			"forward": ["ctx","input","offset","mask","weight","bias","stride","padding","dilation","groups","deform_groups"],
+			"affinity_class": "ModulatedDeformConv"
+		},
+		"DropPath": {
+			"parent_class_name": "torch.nn.Module",
+			"__init__": ["self","drop_prob"],
+			"forward": ["self","x"],
+			"affinity_class": "torch_npu.contrib.module.NpuDropPath"
+		},
+		"Focus": {
+			"parent_class_name": "torch.nn.Module",
+			"__init__": ["self","c1","c2","k","s","p","g","act"],
+			"forward": ["self","x"],
+			"affinity_class": "torch_npu.contrib.module.Focus"
+		},
+		"PSROIPool": {
+			"parent_class_name": "torch.nn.Module",
+			"__init__": ["self","pooled_height","pooled_width","spatial_scale","group_size","output_dim"],
+			"forward": ["self","features","rois"],
+			"affinity_class": "torch_npu.contrib.module.PSROIPool"
+		},
+		"ROIAlign": {
+			"parent_class_name": "torch.nn.Module",
+			"__init__": ["self","output_size","spatial_scale","sampling_ratio","aligned"],
+			"forward": ["self","input","rois"],
+			"affinity_class": "torch_npu.contrib.module.ROIAlign"
+		}
+	},
+	"torch": {
+		"matmul": {
+			"full_name": "torch.matmul",
+			"affinity_api": "torch_npu.contrib.function.matmul_transpose"
+		},
+		"roll": {
+			"full_name": "torch.roll",
+			"affinity_api": "torch_npu.contrib.function.roll"
+		},
+		"SiLU": {
+			"full_name": "torch.nn.SiLU",
+			"affinity_api": "torch_npu.contrib.module.SiLU"
+		}
+	}
+}
