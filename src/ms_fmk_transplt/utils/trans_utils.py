@@ -82,6 +82,18 @@ def get_supported_op_dict(version):
     return json.loads(ops).get("op_list")
 
 
+def get_affinity_info_dict(version, need_type):
+    need_type_list = ['class', 'function', 'torch']
+    if need_type not in need_type_list:
+        return {}
+    if version == '1.8.1':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/affinity_list_1_8_1.json')
+    else:
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/affinity_list_1_11_0.json')
+    ops = get_file_content_bytes(op_list_path)
+    return json.loads(ops).get(need_type)
+
+
 def get_file_content_bytes(file):
     check_input_file_valid(file)
     with open(file, 'rb') as file_handle:

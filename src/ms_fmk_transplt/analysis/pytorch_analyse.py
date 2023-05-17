@@ -11,6 +11,7 @@ from pathlib import Path
 from analysis.unsupported_api_analysis import UnsupportedApiAnalyzer
 from analysis.third_party_analysis import ThirdPartyAnalyzer
 from analysis.dynamic_shape_analysis import DynamicShapeAnalyzer
+from analysis.affinity_api_analysis import AffinityApiAnalyzer
 from utils import trans_utils as utils
 from utils import transplant_logger as translog
 
@@ -23,7 +24,8 @@ class PyTorchAnalyse:
         self.analyse_dict = {
             'third_party': ThirdPartyAnalyzer,
             'torch_apis': UnsupportedApiAnalyzer,
-            'dynamic_shape': DynamicShapeAnalyzer
+            'dynamic_shape': DynamicShapeAnalyzer,
+            'affinity_apis': AffinityApiAnalyzer
         }
         self.dynamic_shape_analysis_package = 'dynamic_shape_analysis/msft_dynamic_analysis'
 
@@ -35,7 +37,7 @@ class PyTorchAnalyse:
         parser.add_argument('-v', '--version', required=True, choices=['1.8.1', '1.11.0'],
                             help='Target pytorch version of output')
         parser.add_argument('-m', '--mode', default='torch_apis',
-                            choices=['third_party', 'torch_apis', 'dynamic_shape'],
+                            choices=['third_party', 'torch_apis', 'dynamic_shape', 'affinity_apis'],
                             help='The way the script is analyzed. Only support torch_apis,'
                                  'third_party and dynamic_shape currently')
         parser.add_argument('-api', '--api-files', nargs='*', metavar='FILE',
