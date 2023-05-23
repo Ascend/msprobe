@@ -38,7 +38,7 @@ def wrapper_cuda(func):
             for idx, arg in enumerate(args_new):
                 if isinstance(arg, str) and 'cuda' in arg:
                     args_new[idx] = arg.replace('cuda', 'npu')
-                if isinstance(arg, torch_npu._C.device) and 'cuda' in arg.type:
+                if isinstance(arg, torch.device) and 'cuda' in arg.type:
                     device_info = 'npu:{}'.format(arg.index) if arg.index is not None else 'npu'
                     args_new[idx] = torch.device(device_info)
             args = args_new
@@ -46,7 +46,7 @@ def wrapper_cuda(func):
             if isinstance(kwargs.get('device', None), str) and 'cuda' in kwargs.get('device', ''):
                 kwargs['device'] = kwargs.get('device').replace('cuda', 'npu')
             device = kwargs.get('device', None)
-            if isinstance(device, torch_npu._C.device) and 'cuda' in device.type:
+            if isinstance(device, torch.device) and 'cuda' in device.type:
                 device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
                 kwargs['device'] = torch.device(device_info)
         return func(*args, **kwargs)
