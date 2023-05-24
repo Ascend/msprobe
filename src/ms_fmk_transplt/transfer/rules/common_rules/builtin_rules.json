@@ -29,13 +29,6 @@
           "if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):\n    DEVICE_ID= int(os.getenv('DEVICE_ID'))"
         ],
         "feature_switch": ["specify_device", "distributed"]
-      },
-      {
-        "import_key_word": "",
-        "insert_content": [
-          "import ascend_function"
-        ],
-        "feature_switch": ["similar"]
       }
     ],
     "ArgsModifyRule": [
@@ -83,72 +76,6 @@
       {
         "old_name": "cuda",
         "new_name": "npu"
-      },
-      {
-        "old_name": "Conv3d",
-        "new_name": "ascend_function.similar_api.Conv3d",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "get_device_properties",
-        "new_name": "ascend_function.similar_api.get_device_properties",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "set_default_tensor_type",
-        "new_name": "ascend_function.similar_api.set_default_tensor_type",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-            {
-        "old_name": "ReplicationPad2d",
-        "new_name": "torch.nn.ZeroPad2d",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "ReflectionPad2d",
-        "new_name": "torch.nn.ZeroPad2d",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "SyncBatchNorm",
-        "new_name": "ascend_function.similar_api.SyncBatchNorm",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "torch.nn.SyncBatchNorm.convert_sync_batchnorm",
-        "new_name": "ascend_function.similar_api.SyncBatchNorm.convert_sync_batchnorm",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "torch.nn.functional.pad",
-        "new_name": "ascend_function.pad",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "apex.parallel.DistributedDataParallel",
-        "new_name": "ascend_function.ApexDistributedDataParallel",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "torch.nn.parallel.DistributedDataParallel",
-        "new_name": "ascend_function.TorchDistributedDataParallel",
-        "replace_module": true,
-        "feature_switch": ["similar"]
-      },
-      {
-        "old_name": "torch.repeat_interleave",
-        "new_name": "ascend_function.repeat_interleave",
-        "replace_module": true,
-        "feature_switch": ["similar"]
       }
     ],
     "ModuleNameModifyRule": [

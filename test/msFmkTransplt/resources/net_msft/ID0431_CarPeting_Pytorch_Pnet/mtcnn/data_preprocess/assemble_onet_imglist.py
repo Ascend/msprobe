@@ -1,6 +1,5 @@
 import os
 import sys
-import ascend_function
 sys.path.append(os.getcwd())
 import mtcnn.data_preprocess.assemble as assemble
 

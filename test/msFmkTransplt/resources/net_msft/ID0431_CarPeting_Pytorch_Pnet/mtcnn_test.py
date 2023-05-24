@@ -1,7 +1,6 @@
 import cv2
 from mtcnn.core.detect import create_mtcnn_net, MtcnnDetector
 from mtcnn.core.vision import vis_face
-import ascend_function
 
 
 

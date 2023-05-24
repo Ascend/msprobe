@@ -9,7 +9,6 @@ import torch_npu
 import torch
 from torchvision.transforms import ColorJitter
 import torch.nn.functional as F
-import ascend_function
 
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)

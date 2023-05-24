@@ -4,7 +4,6 @@ import os.path as osp
 import numpy as np
 
 from .data_set import DataSet
-import ascend_function
 
 
 def load_data(dataset_path, resolution, dataset, pid_num, pid_shuffle, cache=True):

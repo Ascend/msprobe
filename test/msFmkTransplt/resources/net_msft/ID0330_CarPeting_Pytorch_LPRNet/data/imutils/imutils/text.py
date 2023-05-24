@@ -1,5 +1,4 @@
 import cv2
-import ascend_function
 
 
 def put_text(img, text, org, font_face, font_scale, color, thickness=1, line_type=8, bottom_left_origin=False):

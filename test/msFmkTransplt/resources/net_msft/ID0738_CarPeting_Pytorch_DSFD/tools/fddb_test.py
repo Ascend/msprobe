@@ -23,7 +23,6 @@ from data.config import cfg
 from models.factory import build_net
 from torch.autograd import Variable
 from utils.augmentations import to_chw_bgr
-import ascend_function
 
 parser = argparse.ArgumentParser(description='dsfd evaluatuon fddb')
 parser.add_argument('--network',
@@ -40,9 +39,9 @@ args = parser.parse_args()
 use_cuda = torch_npu.npu.is_available()
 
 if use_cuda:
-    ascend_function.similar_api.set_default_tensor_type('torch.npu.FloatTensor')
+    torch.set_default_tensor_type('torch.npu.FloatTensor')
 else:
-    ascend_function.similar_api.set_default_tensor_type('torch.FloatTensor')
+    torch.set_default_tensor_type('torch.FloatTensor')
 
 
 FDDB_IMG_DIR = os.path.join(cfg.FACE.FDDB_DIR, 'images')

@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import ascend_function
 
 class ImageDB(object):
     def __init__(self, image_annotation_file, prefix_path='', mode='train'):

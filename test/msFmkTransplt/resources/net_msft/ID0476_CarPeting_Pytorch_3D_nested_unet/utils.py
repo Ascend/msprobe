@@ -1,5 +1,4 @@
 import argparse
-import ascend_function
 
 
 def str2bool(v):

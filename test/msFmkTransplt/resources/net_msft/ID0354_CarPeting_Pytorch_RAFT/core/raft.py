@@ -8,7 +8,6 @@ from update import BasicUpdateBlock, SmallUpdateBlock
 from extractor import BasicEncoder, SmallEncoder
 from corr import CorrBlock, AlternateCorrBlock
 from utils.utils import bilinear_sampler, coords_grid, upflow8
-import ascend_function
 
 try:
     autocast = torch.npu.amp.autocast

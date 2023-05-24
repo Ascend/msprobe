@@ -6,7 +6,6 @@ import torch_npu
 import torch
 import torch.utils.data
 import os
-import ascend_function
 DEVICE_ID= 0
 if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
     DEVICE_ID= int(os.getenv('DEVICE_ID'))

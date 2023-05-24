@@ -6,7 +6,6 @@ import cv2
 import logging
 
 from .model import Net
-import ascend_function
 
 class Extractor(object):
     def __init__(self, model_path, use_cuda=True):

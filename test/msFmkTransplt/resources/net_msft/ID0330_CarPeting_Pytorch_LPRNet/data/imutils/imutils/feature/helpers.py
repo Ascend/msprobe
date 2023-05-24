@@ -1,6 +1,5 @@
 # import the necesasry packages
 import cv2
-import ascend_function
 
 def corners_to_keypoints(corners):
     """function to take the corners from cv2.GoodFeaturesToTrack and return cv2.KeyPoints"""

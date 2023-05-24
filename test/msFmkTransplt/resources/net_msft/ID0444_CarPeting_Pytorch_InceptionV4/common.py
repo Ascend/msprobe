@@ -1,7 +1,6 @@
 """
     Common routines for models in PyTorch.
 """
-import ascend_function
 
 __all__ = ['round_channels', 'Identity', 'BreakBlock', 'Swish', 'HSigmoid', 'HSwish', 'get_activation_layer',
            'SelectableDense', 'DenseBlock', 'ConvBlock1d', 'conv1x1', 'conv3x3', 'depthwise_conv3x3', 'ConvBlock',

@@ -5,7 +5,6 @@
 import numpy as np
 import cv2
 import sys
-import ascend_function
 
 # import any special Python 2.7 packages
 if sys.version_info.major == 2:

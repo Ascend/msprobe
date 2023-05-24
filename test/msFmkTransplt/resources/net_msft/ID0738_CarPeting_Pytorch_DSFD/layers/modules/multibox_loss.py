@@ -13,7 +13,6 @@ from torch.autograd import Variable
 
 
 from ..bbox_utils import match, log_sum_exp, match_ssd
-import ascend_function
 
 
 class MultiBoxLoss(nn.Module):

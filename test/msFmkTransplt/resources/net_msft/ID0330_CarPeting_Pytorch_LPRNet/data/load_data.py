@@ -5,7 +5,6 @@ import numpy as np
 import random
 import cv2
 import os
-import ascend_function
 
 CHARS = ['京', '沪', '津', '渝', '冀', '晋', '蒙', '辽', '吉', '黑',
          '苏', '浙', '皖', '闽', '赣', '鲁', '豫', '鄂', '湘', '粤',

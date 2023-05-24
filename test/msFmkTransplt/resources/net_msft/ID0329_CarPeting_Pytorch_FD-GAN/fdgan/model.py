@@ -19,7 +19,6 @@ from reid.models import create
 from reid.models.embedding import EltwiseSubEmbed
 from reid.models.multi_branch import SiameseNet
 import ssl
-import ascend_function
 
 ssl._create_default_https_context = ssl._create_unverified_context
 

@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import ascend_function
 EPS = np.finfo(np.float32).eps
 
 __all__ = ['GRANMixtureBernoulli']
@@ -222,7 +221,7 @@ class GRANMixtureBernoulli(nn.Module):
       node_feat = A_pad  # BCN_max X N_max
     ### GNN inference
     # pad zero as node feature for newly generated nodes (1st row)
-    node_feat = ascend_function.pad(
+    node_feat = F.pad(
         node_feat, (0, 0, 1, 0), 'constant', value=0.0)  # (BCN_max + 1) X N_max
 
     # create symmetry-breaking edge feature for the newly generated nodes
@@ -303,11 +302,11 @@ class GRANMixtureBernoulli(nn.Module):
             else:
               node_state[:, :ii, :] = A[:, ii - S:ii, :N]
 
-          node_state_in = ascend_function.pad(
+          node_state_in = F.pad(
               node_state[:, :ii, :], (0, 0, 0, K), 'constant', value=.0)
 
           ### GNN propagation
-          adj = ascend_function.pad(
+          adj = F.pad(
               A[:, :ii, :ii], (0, K, 0, K), 'constant', value=1.0)  # B X jj X jj
           adj = torch.tril(adj, diagonal=-1)
           adj = adj + adj.transpose(1, 2)
@@ -513,8 +512,8 @@ def mixture_bernoulli_loss(label, log_theta, log_alpha, adj_loss_func,
   bc_idx = torch.arange(B*C).to(label.device) # B*C
   bc_const = torch.zeros(B*C).to(label.device)
   bc_size = (subgraph_idx_base[1:] + -subgraph_idx_base[:-1]) // C # B
-  bc_size = ascend_function.repeat_interleave(bc_size, C) # B*C
-  bc_idx = ascend_function.repeat_interleave(bc_idx, bc_size) # S
+  bc_size = torch.repeat_interleave(bc_size, C) # B*C
+  bc_idx = torch.repeat_interleave(bc_idx, bc_size) # S
   bc_log_prob = bc_log_prob.scatter_add(0, bc_idx, log_prob)
   # loss must be normalized for numerical stability
   bc_const = bc_const.scatter_add(0, bc_idx, const)

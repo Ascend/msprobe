@@ -12,7 +12,6 @@ import cfg
 
 from preprocess import resize_image
 from nms import nms
-import ascend_function
 
 def sigmoid(x):
     """`y = 1 / (1 + exp(-x))`"""

@@ -21,7 +21,6 @@ import losses
 from dataset import Dataset
 from metrics import iou_score
 from utils import AverageMeter, str2bool
-import ascend_function
 
 ARCH_NAMES = archs.__all__
 LOSS_NAMES = losses.__all__

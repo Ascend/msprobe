@@ -1,7 +1,6 @@
 # import the necessary packages
 from threading import Thread
 import cv2
-import ascend_function
 
 class WebcamVideoStream:
 	def __init__(self, src=0, name="WebcamVideoStream"):

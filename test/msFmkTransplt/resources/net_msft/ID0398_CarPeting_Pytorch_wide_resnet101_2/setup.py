@@ -13,7 +13,6 @@ import torch_npu
 
 import torch
 from torch.utils.cpp_extension import CppExtension, CUDAExtension, CUDA_HOME
-import ascend_function
 
 
 def read(*names, **kwargs):

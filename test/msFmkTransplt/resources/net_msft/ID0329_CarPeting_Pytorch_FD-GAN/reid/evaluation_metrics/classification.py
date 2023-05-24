@@ -2,7 +2,6 @@ from __future__ import absolute_import
 import torch_npu
 
 from ..utils import to_torch
-import ascend_function
 
 
 def accuracy(output, target, topk=(1,)):

@@ -2,7 +2,6 @@
 import os
 import numpy.random as npr
 import numpy as np
-import ascend_function
 
 def assemble_data(output_file, anno_file_list=[]):
 

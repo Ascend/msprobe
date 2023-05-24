@@ -1,6 +1,5 @@
 import cv2
 from .helpers import corners_to_keypoints
-import ascend_function
 
 
 class GFTT:

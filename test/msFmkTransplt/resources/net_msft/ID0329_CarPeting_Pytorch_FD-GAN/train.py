@@ -18,7 +18,6 @@ from reid.evaluators import CascadeEvaluator
 from fdgan.options import Options
 from fdgan.utils.visualizer import Visualizer
 from fdgan.model import FDGANModel
-import ascend_function
 
 def get_data(name, data_dir, height, width, batch_size, workers, pose_aug):
     root = osp.join(data_dir, name)

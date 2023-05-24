@@ -9,7 +9,6 @@ import torch.backends.cudnn as cudnn
 
 from .DSFD_vgg import build_net_vgg
 from .DSFD_resnet import build_net_resnet
-import ascend_function
 
 
 def build_net(phase, num_classes=2, model='vgg'):

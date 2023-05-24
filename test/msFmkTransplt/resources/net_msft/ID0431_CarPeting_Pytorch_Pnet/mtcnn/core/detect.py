@@ -7,7 +7,6 @@ from torch.autograd.variable import Variable
 from mtcnn.core.models import PNet,RNet,ONet
 import mtcnn.core.utils as utils
 import mtcnn.core.image_tools as image_tools
-import ascend_function
 
 
 def create_mtcnn_net(p_model_path=None, r_model_path=None, o_model_path=None, use_cuda=True):

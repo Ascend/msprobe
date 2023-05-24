@@ -10,7 +10,6 @@ from __future__ import print_function
 import torch_npu
 
 import torch
-import ascend_function
 
 
 def accuracy(output, target, topk=(1,)):

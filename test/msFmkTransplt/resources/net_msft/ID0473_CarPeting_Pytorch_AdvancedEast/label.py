@@ -3,7 +3,6 @@ import os
 from PIL import Image, ImageDraw
 from tqdm import tqdm
 import cfg
-import ascend_function
 
 
 def point_inside_of_quad(px, py, quad_xy_list, p_min, p_max):

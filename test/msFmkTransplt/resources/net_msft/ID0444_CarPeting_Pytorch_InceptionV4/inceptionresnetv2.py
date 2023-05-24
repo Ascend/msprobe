@@ -3,7 +3,6 @@
     Original paper: 'Inception-v4, Inception-ResNet and the Impact of Residual Connections on Learning,'
     https://arxiv.org/abs/1602.07261.
 """
-import ascend_function
 
 __all__ = ['InceptionResNetV2', 'inceptionresnetv2']
 

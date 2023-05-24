@@ -20,7 +20,6 @@ import torch
 import torch.nn as nn
 import torch._utils
 import torch.nn.functional as F
-import ascend_function
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)

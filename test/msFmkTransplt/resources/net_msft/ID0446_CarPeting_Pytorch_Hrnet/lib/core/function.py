@@ -15,7 +15,6 @@ import torch_npu
 import torch
 
 from core.evaluate import accuracy
-import ascend_function
 
 
 logger = logging.getLogger(__name__)

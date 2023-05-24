@@ -14,7 +14,6 @@ import os.path as osp
 
 from utils import frame_utils
 from utils.augmentor import FlowAugmentor, SparseFlowAugmentor
-import ascend_function
 
 
 class FlowDataset(data.Dataset):

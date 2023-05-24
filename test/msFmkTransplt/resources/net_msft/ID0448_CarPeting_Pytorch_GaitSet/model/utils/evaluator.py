@@ -2,7 +2,6 @@ import torch_npu
 import torch
 import torch.nn.functional as F
 import numpy as np
-import ascend_function
 
 
 def cuda_dist(x, y):

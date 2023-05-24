@@ -5,7 +5,6 @@ import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
 import math
 import os
-import ascend_function
 DEVICE_ID= 0
 if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
     DEVICE_ID= int(os.getenv('DEVICE_ID'))

@@ -1,7 +1,6 @@
 from setuptools import setup
 import torch_npu
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
-import ascend_function
 
 
 setup(

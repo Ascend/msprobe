@@ -5,7 +5,6 @@ import argparse
 from model.initialization import initialization
 from model.utils import evaluation
 from config import conf
-import ascend_function
 
 
 def boolean_string(s):

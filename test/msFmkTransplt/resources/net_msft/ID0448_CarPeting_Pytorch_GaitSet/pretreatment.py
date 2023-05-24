@@ -12,7 +12,6 @@ import argparse
 
 from multiprocessing import Pool
 from multiprocessing import TimeoutError as MP_TimeoutError
-import ascend_function
 
 START = "START"
 FINISH = "FINISH"

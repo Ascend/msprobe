@@ -5,7 +5,6 @@ import torch_npu
 from torchvision import transforms as T
 import torch,os
 from torch.utils.data import Dataset, DataLoader
-import ascend_function
 
 
 class Lits_DataSet(Dataset):

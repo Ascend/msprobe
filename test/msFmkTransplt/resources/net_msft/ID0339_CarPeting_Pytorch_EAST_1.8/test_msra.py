@@ -12,7 +12,6 @@ import os
 import cv2
 import shutil
 from torchvision import transforms
-import ascend_function
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 parser = argparse.ArgumentParser(description='EAST reimplementation')

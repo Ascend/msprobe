@@ -7,7 +7,6 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils import data
 import cfg
-import ascend_function
 
 
 class custom_dataset(data.Dataset):

@@ -1,5 +1,4 @@
 import os
-import ascend_function
 
 def read_dir(root):
 	file_path_list = []

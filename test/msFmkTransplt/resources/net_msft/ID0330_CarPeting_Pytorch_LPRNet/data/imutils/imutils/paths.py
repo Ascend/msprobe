@@ -1,6 +1,5 @@
 # import the necessary packages
 import os
-import ascend_function
 
 image_types = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
 

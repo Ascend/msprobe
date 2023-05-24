@@ -12,7 +12,6 @@ import torchvision
 from torchvision import transforms
 
 import utils
-import ascend_function
 
 try:
     from apex import amp
@@ -172,7 +171,7 @@ def main(args):
     model = torchvision.models.__dict__[args.model](pretrained=args.pretrained)
     model.to(device)
     if args.distributed and args.sync_bn:
-        model = ascend_function.similar_api.SyncBatchNorm.convert_sync_batchnorm(model)
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     criterion = nn.CrossEntropyLoss()
 
@@ -188,7 +187,7 @@ def main(args):
 
     model_without_ddp = model
     if args.distributed:
-        model = ascend_function.TorchDistributedDataParallel(model, device_ids=[args.gpu])
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
 
     if args.resume:

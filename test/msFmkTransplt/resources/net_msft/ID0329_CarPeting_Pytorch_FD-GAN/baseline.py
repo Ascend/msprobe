@@ -25,7 +25,6 @@ from reid.models.embedding import EltwiseSubEmbed
 from reid.models.multi_branch import SiameseNet
 from reid.evaluators import CascadeEvaluator
 from reid.trainers import SiameseTrainer
-import ascend_function
 
 def get_data(name, split_id, data_dir, height, width, batch_size, workers,
              combine_trainval, np_ratio):

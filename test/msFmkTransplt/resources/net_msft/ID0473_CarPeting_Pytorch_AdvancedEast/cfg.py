@@ -1,5 +1,4 @@
 import os
-import ascend_function
 
 train_task_id = '3T256'
 initial_epoch = 0

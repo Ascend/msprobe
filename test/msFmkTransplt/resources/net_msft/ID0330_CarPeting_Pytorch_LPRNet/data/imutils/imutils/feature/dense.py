@@ -1,5 +1,4 @@
 import cv2
-import ascend_function
 
 class DENSE:
     def __init__(self, step=6, radius=.5):

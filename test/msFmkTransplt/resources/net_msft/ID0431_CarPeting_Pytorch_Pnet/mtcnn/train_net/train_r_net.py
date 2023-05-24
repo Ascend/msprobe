@@ -1,7 +1,6 @@
 import argparse
 import sys
 import os
-import ascend_function
 sys.path.append(os.getcwd())
 from mtcnn.core.imagedb import ImageDB
 import mtcnn.train_net.train as train

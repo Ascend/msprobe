@@ -1,7 +1,6 @@
 import torch_npu
 import torch
 from torch import nn
-import ascend_function
 
 __all__ = ['UNet', 'NestedUNet']
 

@@ -1,5 +1,4 @@
 import sys
-import ascend_function
 sys.path.append('core')
 
 import argparse

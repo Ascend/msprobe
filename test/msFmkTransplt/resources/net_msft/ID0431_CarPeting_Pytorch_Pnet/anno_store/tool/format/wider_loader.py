@@ -1,6 +1,5 @@
 import os
 from scipy.io import loadmat
-import ascend_function
 
 class DATA:
     def __init__(self, image_name, bboxes):

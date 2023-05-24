@@ -8,7 +8,6 @@ import torch_npu
 import torch
 import torchvision.transforms as transforms
 from torch.utils import data
-import ascend_function
 
 
 def cal_distance(x1, y1, x2, y2):

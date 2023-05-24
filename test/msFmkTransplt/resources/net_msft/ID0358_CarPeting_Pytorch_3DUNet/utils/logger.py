@@ -5,7 +5,6 @@ import torch_npu
 import torch,random
 import numpy as np
 from collections import OrderedDict
-import ascend_function
 
 class Logger():
     def __init__(self,save_name):

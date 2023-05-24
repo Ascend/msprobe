@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import numpy as np
 import cv2
 from ..convenience import is_cv2
-import ascend_function
 
 class RootSIFT:
 	def __init__(self):

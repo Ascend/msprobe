@@ -6,7 +6,6 @@ import numpy as np
 from ..utils.data import Dataset
 from ..utils.osutils import mkdir_if_missing
 from ..utils.serialization import write_json
-import ascend_function
 
 
 class CUHK03(Dataset):

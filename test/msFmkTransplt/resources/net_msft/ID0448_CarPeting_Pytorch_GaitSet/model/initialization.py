@@ -8,7 +8,6 @@ import numpy as np
 
 from .utils import load_data
 from .model import Model
-import ascend_function
 
 
 def initialize_data(config, train=False, test=False):

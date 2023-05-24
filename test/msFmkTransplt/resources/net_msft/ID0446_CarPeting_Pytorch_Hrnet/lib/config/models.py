@@ -10,7 +10,6 @@ from __future__ import division
 from __future__ import print_function
 
 from yacs.config import CfgNode as CN
-import ascend_function
 
 # high_resoluton_net related params for classification
 POSE_HIGH_RESOLUTION_NET = CN()

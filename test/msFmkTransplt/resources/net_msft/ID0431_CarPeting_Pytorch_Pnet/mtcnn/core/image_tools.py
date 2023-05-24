@@ -3,7 +3,6 @@ import torchvision.transforms as transforms
 import torch
 from torch.autograd.variable import Variable
 import numpy as np
-import ascend_function
 
 transform = transforms.ToTensor()
 

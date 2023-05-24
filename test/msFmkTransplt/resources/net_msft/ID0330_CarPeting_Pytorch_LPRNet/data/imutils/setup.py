@@ -1,5 +1,4 @@
 from distutils.core import setup
-import ascend_function
 
 setup(
     name='imutils',

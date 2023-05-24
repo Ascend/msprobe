@@ -8,7 +8,6 @@ import torch_npu
 import torch
 from itertools import product as product
 import math
-import ascend_function
 
 
 class PriorBox(object):

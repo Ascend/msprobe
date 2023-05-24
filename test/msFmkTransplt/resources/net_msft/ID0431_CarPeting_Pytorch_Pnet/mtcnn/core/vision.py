@@ -1,7 +1,6 @@
 from matplotlib.patches import Circle
 import os
 import sys 
-import ascend_function
 sys.path.append(os.getcwd())
 
 def vis_two(im_array, dets1, dets2, thresh=0.9):

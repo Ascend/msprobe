@@ -20,7 +20,6 @@ import yaml
 import numpy as np
 import torch.nn.init as init
 import time
-import ascend_function
 # Methods
 # get_all_data_loaders      : primary data loader interface (load trainA, testA, trainB, testB)
 # get_data_loader_list      : list-based data loader

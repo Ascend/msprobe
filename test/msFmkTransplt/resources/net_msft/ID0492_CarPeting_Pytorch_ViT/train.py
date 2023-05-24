@@ -22,7 +22,6 @@ from models.modeling import VisionTransformer, CONFIGS
 from utils.scheduler import WarmupLinearSchedule, WarmupCosineSchedule
 from utils.data_utils import get_loader
 from utils.dist_util import get_world_size
-import ascend_function
 
 
 logger = logging.getLogger(__name__)
@@ -170,7 +169,7 @@ def train(args, model):
 
     # Distributed training
     if args.local_rank != -1:
-        model = ascend_function.ApexDistributedDataParallel(model, message_size=250000000, gradient_predivide_factor=get_world_size())
+        model = DDP(model, message_size=250000000, gradient_predivide_factor=get_world_size())
 
     # Train!
     logger.info("***** Running training *****")

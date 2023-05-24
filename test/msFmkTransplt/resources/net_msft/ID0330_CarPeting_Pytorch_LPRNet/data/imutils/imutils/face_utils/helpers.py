@@ -2,7 +2,6 @@
 from collections import OrderedDict
 import numpy as np
 import cv2
-import ascend_function
 
 # define a dictionary that maps the indexes of the facial
 # landmarks to specific face regions

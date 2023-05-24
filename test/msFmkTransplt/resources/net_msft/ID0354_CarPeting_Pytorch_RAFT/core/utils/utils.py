@@ -3,7 +3,6 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from scipy import interpolate
-import ascend_function
 
 
 class InputPadder:
@@ -18,7 +17,7 @@ class InputPadder:
             self._pad = [pad_wd//2, pad_wd - pad_wd//2, 0, pad_ht]
 
     def pad(self, *inputs):
-        return [ascend_function.pad(x, self._pad, mode='constant') for x in inputs]
+        return [F.pad(x, self._pad, mode='constant') for x in inputs]
         #return [F.pad(x, self._pad, mode='replicate') for x in inputs]
 
     def unpad(self,x):

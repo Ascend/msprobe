@@ -7,7 +7,6 @@ import torch
 from torch.autograd import Variable
 import mtcnn.core.image_tools as image_tools
 import numpy as np
-import ascend_function
 
 
 def compute_accuracy(prob_cls, gt_cls):

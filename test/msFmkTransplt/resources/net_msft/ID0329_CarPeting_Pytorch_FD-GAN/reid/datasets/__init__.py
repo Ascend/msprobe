@@ -4,7 +4,6 @@ import warnings
 from .cuhk03 import CUHK03
 from .dukemtmc import DukeMTMC
 from .market1501 import Market1501
-import ascend_function
 
 
 __factory = {

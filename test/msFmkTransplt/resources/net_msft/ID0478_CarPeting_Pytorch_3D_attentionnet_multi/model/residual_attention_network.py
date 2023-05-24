@@ -9,7 +9,6 @@ from .basic_layers import ResidualBlock
 from .attention_module import AttentionModule_stage1, AttentionModule_stage2, AttentionModule_stage3, AttentionModule_stage0
 from .attention_module import AttentionModule_stage1_cifar, AttentionModule_stage2_cifar, AttentionModule_stage3_cifar
 import os
-import ascend_function
 DEVICE_ID= 0
 if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
     DEVICE_ID= int(os.getenv('DEVICE_ID'))

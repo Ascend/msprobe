@@ -22,7 +22,6 @@ import torch
 import time
 import cv2
 import os
-import ascend_function
 
 def get_parser():
     parser = argparse.ArgumentParser(description='parameters to train net')

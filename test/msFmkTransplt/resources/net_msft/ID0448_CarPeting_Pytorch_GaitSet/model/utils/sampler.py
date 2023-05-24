@@ -1,7 +1,6 @@
 import torch_npu
 import torch.utils.data as tordata
 import random
-import ascend_function
 
 
 class TripletSampler(tordata.sampler.Sampler):

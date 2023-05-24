@@ -5,7 +5,6 @@ import torch
 from torch.autograd import Variable
 
 from ..utils import to_torch
-import ascend_function
 
 
 def extract_cnn_feature(model, inputs, modules=None):

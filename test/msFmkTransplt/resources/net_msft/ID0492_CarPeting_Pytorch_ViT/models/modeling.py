@@ -21,7 +21,6 @@ from scipy import ndimage
 import models.configs as configs
 
 from .modeling_resnet import ResNetV2
-import ascend_function
 
 
 logger = logging.getLogger(__name__)

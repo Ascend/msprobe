@@ -12,7 +12,6 @@ import numpy as np
 import random
 from utils.augmentations import preprocess
 import torch.npu
-import ascend_function
 torch.npu.set_device('npu:5')
 
 

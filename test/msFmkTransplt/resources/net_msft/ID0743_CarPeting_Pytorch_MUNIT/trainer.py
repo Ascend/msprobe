@@ -9,7 +9,6 @@ from torch.autograd import Variable
 import torch
 import torch.nn as nn
 import os
-import ascend_function
 
 class MUNIT_Trainer(nn.Module):
     def __init__(self, hyperparameters):

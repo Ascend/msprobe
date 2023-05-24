@@ -4,7 +4,6 @@ import os.path as osp
 import numpy as np
 
 from ..serialization import read_json
-import ascend_function
 
 def _pluck(identities, indices, relabel=False):
     ret = []

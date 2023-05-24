@@ -4,7 +4,6 @@ import torch_npu
 import torch
 from utils.arg_helper import edict2dict
 from easydict import EasyDict as edict
-import ascend_function
 
 
 def data_to_gpu(*input_data):

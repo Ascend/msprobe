@@ -4,7 +4,6 @@ import torch_npu
 from torch import nn
 import torch
 import torch.nn.functional as F
-import ascend_function
 
 class EltwiseSubEmbed(nn.Module):
     def __init__(self, nonlinearity='square', use_batch_norm=False,

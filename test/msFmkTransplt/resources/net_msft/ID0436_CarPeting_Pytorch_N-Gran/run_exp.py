@@ -10,7 +10,6 @@ from pprint import pprint
 from runner import *
 from utils.logger import setup_logging
 from utils.arg_helper import parse_arguments, get_config
-import ascend_function
 torch.set_printoptions(profile='full')
 
 

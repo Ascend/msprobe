@@ -6,7 +6,6 @@ import torch_npu
 
 import torch.onnx
 from model import EAST
-import ascend_function
 
 origin_model_path="./saved_model/mb3_512_model_epoch_535.pth"
 

@@ -3,7 +3,6 @@ import Polygon as plg
 import numpy as np
 import math
 import cv2
-import ascend_function
 
 
 pred_root =  '/home/wwj/workspace/Sence_Text_detection/AAAI_EAST/Baseline/EAST_v1/worksapce/MSRA/submit'

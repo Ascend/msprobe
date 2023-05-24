@@ -1,6 +1,5 @@
 import torch_npu
 import torch.distributed as dist
-import ascend_function
 
 def get_rank():
     if not dist.is_available():

@@ -4,7 +4,6 @@ from .helpers import FACIAL_LANDMARKS_5_IDXS
 from .helpers import shape_to_np
 import numpy as np
 import cv2
-import ascend_function
 
 class FaceAligner:
 	def __init__(self, predictor, desiredLeftEye=(0.35, 0.35),

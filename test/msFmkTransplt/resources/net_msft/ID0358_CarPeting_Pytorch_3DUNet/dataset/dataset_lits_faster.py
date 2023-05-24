@@ -6,7 +6,6 @@ import torch_npu
 from torchvision import transforms as T
 import torch,os
 from torch.utils.data import Dataset, DataLoader
-import ascend_function
 
 class Lits_DataSet(Dataset):
     def __init__(self, crop_size, batch_size,resize_scale, dataset_path,mode=None):

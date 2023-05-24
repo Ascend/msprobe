@@ -24,7 +24,6 @@ import torch_npu
 import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
-import ascend_function
 
 plt.switch_backend('agg')
 plt.axis('off')

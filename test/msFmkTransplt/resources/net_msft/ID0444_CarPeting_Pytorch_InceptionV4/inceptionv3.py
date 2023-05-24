@@ -3,7 +3,6 @@
     Original paper: 'Rethinking the Inception Architecture for Computer Vision,'
     https://arxiv.org/abs/1512.00567.
 """
-import ascend_function
 
 __all__ = ['InceptionV3', 'inceptionv3']
 

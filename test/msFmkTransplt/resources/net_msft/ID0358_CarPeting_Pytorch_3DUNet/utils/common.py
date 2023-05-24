@@ -3,7 +3,6 @@ import numpy as np
 from scipy import ndimage
 import torch_npu
 import torch
-import ascend_function
 
 MIN_BOUND = -1000.0
 MAX_BOUND = 400.0

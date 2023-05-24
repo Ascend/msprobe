@@ -21,38 +21,10 @@ class MsFmkTransplt(object):
     def __init__(self):
         self.input = ''
         self.output = ''
-        self.custom_rule_file = ''
         self.feature_switch = ['normal']
         self.rule_list = []
         self.py_file_counts = 0
         self.transplant_file_output = ''
-
-    @staticmethod
-    def __check_custom_rule_param_valid(args):
-        if not args.rule:
-            return
-        if utils.islink(args.rule):
-            raise utils.SoftlinkCheckException("Custom rule file doesn't support soft link.")
-        rule = os.path.realpath(args.rule)
-
-        if not utils.check_path_length_valid(rule):
-            raise ValueError('The real path or file name of custom rule file is too long.')
-
-        if not os.path.exists(rule):
-            raise ValueError('Custom rule file %s does not exist!' % args.rule)
-
-        if not (os.path.isfile(rule) and rule.endswith('.json')):
-            raise ValueError('Custom rule file %s should be a json file!' % args.rule)
-
-        if not os.access(rule, os.R_OK):
-            raise PermissionError('Custom rule file %s is not readable!' % args.rule)
-
-        if not utils.check_path_owner_consistent(rule):
-            utils.user_interactive_confirm(
-                'Custom rule file is insecure because it does not belong to you. Do you want to continue?')
-
-        if os.path.getsize(rule) >= utils.MAX_SIZE_OF_RULE_FILE:
-            raise ValueError('Custom rule file is too large.')
 
     @staticmethod
     def __check_distributed_rule_param_valid(args):
@@ -107,8 +79,6 @@ class MsFmkTransplt(object):
             if hasattr(args, 'main'):
                 transplant.init_global_visitor(self.__get_global_visitor())
             transplant.run()
-            if args.similar:
-                self.__copy_function_pack('ascend_function')
             if args.modelarts:
                 self.__copy_function_pack('ascend_modelarts_function')
             result_dict = transplant.transplant_result_statistics
@@ -198,20 +168,15 @@ class MsFmkTransplt(object):
         if utils.check_is_subdirectory(args.input, args.output):
             raise ValueError('Output %s should not be a subdirectory of Input %s' % (args.output, args.input))
 
-        self.__check_custom_rule_param_valid(args)
         self.__check_distributed_rule_param_valid(args)
 
     def __parse_command(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
-        parser.add_argument('-r', '--rule', default='', metavar='FILE', help='Custom rules file path')
         parser.add_argument('-s', '--specify-device', dest='specify_device', action='store_true',
                             help='This option is required only if you want to use the DEVICE_ID'
                                  'environment variable to specify the running device.')
-        parser.add_argument('-sim', '--similar', action='store_true',
-                            help='Replaces certain unsupported APIs with functionally similar ones. '
-                                 'Note that this may result in accuracy loss and performance degradation')
         parser.add_argument('-v', '--version', required=True, choices=['1.8.1', '1.11.0'],
                             help='Target pytorch version of output.')
         parser.add_argument('-m', '--modelarts', action='store_true',
@@ -226,11 +191,8 @@ class MsFmkTransplt(object):
         utils.change_mode(self.output)
 
     def __init_custom_para(self, args):
-        self.custom_rule_file = args.rule if args.rule else ""
         if args.specify_device:
             self.feature_switch.append('specify_device')
-        if args.similar:
-            self.feature_switch.append('similar')
         if hasattr(args, 'main'):
             shell_file_path = self.output if os.path.isdir(self.output) else os.path.dirname(self.output)
             utils.generate_distributed_shell_file(shell_file_path)
@@ -257,8 +219,6 @@ class MsFmkTransplt(object):
 
     def __init_rules(self, args):
         self.rule_list = rule_getter.get_builtin_rule(self.feature_switch, args)
-        if self.custom_rule_file:
-            self.rule_list = rule_getter.get_custom_rule(self.custom_rule_file, self.rule_list)
 
     def __check_output_valid(self, args):
         self.input = os.path.realpath(args.input)

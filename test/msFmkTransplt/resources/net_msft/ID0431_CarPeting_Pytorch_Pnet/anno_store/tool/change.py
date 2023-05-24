@@ -3,7 +3,6 @@ import numpy as np
 """
 change (x1, y1, w, h) to (x1, y1, x2, y2)
 """
-import ascend_function
 
 # original annotations file
 with open('anno_train.txt') as f:

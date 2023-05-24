@@ -6,7 +6,6 @@ import os
 import pickle
 import cv2
 import xarray as xr
-import ascend_function
 
 
 class DataSet(tordata.Dataset):

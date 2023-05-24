@@ -1,6 +1,5 @@
 # import the necessary packages
 from .webcamvideostream import WebcamVideoStream
-import ascend_function
 
 class VideoStream:
 	def __init__(self, src=0, usePiCamera=False, resolution=(320, 240),

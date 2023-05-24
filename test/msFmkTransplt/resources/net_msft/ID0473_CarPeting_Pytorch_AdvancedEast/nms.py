@@ -2,7 +2,6 @@
 import numpy as np
 
 import cfg
-import ascend_function
 
 
 def should_merge(region, i, j):

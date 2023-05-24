@@ -6,7 +6,6 @@ import sys
 import numpy as np
 import cv2
 import os
-import ascend_function
 sys.path.append(os.getcwd())
 import numpy as np
 from mtcnn.data_preprocess.utils import IoU

@@ -9,7 +9,6 @@ from utils import logger, init_util, metrics,common
 from tqdm import tqdm
 from collections import OrderedDict
 import numpy as np
-import ascend_function
 
 def val(model, val_loader):
     model.eval()

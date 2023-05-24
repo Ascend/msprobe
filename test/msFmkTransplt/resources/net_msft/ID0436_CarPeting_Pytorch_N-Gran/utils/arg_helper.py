@@ -3,7 +3,6 @@ import yaml
 import time
 import argparse
 from easydict import EasyDict as edict
-import ascend_function
 
 
 def parse_arguments():

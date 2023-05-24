@@ -9,7 +9,6 @@ from torch.autograd import Variable
 from trainer import MUNIT_Trainer, UNIT_Trainer
 import torch.backends.cudnn as cudnn
 import torch
-import ascend_function
 try:
     from itertools import izip as zip
 except ImportError: # will be 3.x series

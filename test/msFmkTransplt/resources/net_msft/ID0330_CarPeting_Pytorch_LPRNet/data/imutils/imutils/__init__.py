@@ -2,7 +2,6 @@
 # website:	http://www.pyimagesearch.com
 
 # set the version number
-import ascend_function
 __version__ = "0.5.4"
 
 # import the necessary packages

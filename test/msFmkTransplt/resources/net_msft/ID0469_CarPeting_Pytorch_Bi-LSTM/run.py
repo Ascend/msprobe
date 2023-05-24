@@ -6,7 +6,6 @@ import numpy as np
 from train_eval import train, init_network
 from importlib import import_module
 import argparse
-import ascend_function
 
 parser = argparse.ArgumentParser(description='Chinese Text Classification')
 parser.add_argument('--model', type=str, required=True, help='choose a model: TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer')

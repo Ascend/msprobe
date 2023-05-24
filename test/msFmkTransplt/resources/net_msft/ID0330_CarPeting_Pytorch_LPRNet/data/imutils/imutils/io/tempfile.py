@@ -1,7 +1,6 @@
 # import the necessary packages
 import uuid
 import os
-import ascend_function
 
 class TempFile:
 	def __init__(self, basePath="./", ext=".jpg"):

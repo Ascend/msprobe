@@ -5,7 +5,6 @@ import numpy as np
 from sklearn.metrics import average_precision_score
 
 from ..utils import to_numpy
-import ascend_function
 
 
 def _unique_sample(ids_dict, num):

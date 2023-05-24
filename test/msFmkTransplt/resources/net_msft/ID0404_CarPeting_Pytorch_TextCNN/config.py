@@ -9,7 +9,6 @@
 
 import torch_npu
 import torch
-import ascend_function
 
 
 class Config(object):
