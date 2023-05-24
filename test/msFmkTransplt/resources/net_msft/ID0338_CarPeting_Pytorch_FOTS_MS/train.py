@@ -13,7 +13,6 @@ import tqdm
 import datasets
 from model import FOTSModel
 from modules.parse_polys import parse_polys
-import ascend_function
 
 
 def restore_checkpoint(folder, contunue):

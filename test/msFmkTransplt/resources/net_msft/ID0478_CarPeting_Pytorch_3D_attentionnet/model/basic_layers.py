@@ -5,7 +5,6 @@ from torch.nn import init
 import functools
 from torch.autograd import Variable
 import numpy as np
-import ascend_function
 
 class ResidualBlock(nn.Module):
     def __init__(self, input_channels, output_channels, stride=1):

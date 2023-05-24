@@ -36,7 +36,6 @@ from utils.modelsummary import get_model_summary
 from utils.utils import get_optimizer
 from utils.utils import save_checkpoint
 from utils.utils import create_logger
-import ascend_function
 
 
 def parse_args():

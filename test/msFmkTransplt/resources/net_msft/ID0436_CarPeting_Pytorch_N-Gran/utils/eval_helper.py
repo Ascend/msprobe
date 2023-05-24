@@ -13,7 +13,6 @@ from random import shuffle
 from datetime import datetime
 from scipy.linalg import eigvalsh
 from utils.dist_helper import compute_mmd, gaussian_emd, gaussian, emd, gaussian_tv
-import ascend_function
 
 PRINT_TIME = False
 __all__ = [

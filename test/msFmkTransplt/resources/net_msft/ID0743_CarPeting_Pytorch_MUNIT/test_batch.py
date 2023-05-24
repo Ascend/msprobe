@@ -14,7 +14,6 @@ from torch.autograd import Variable
 from data import ImageFolder
 import numpy as np
 import torchvision.utils as vutils
-import ascend_function
 try:
     from itertools import izip as zip
 except ImportError: # will be 3.x series

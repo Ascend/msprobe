@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import ml_collections
-import ascend_function
 
 
 def get_testing():

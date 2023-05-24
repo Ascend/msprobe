@@ -8,7 +8,6 @@ import torch
 from torch.nn import Parameter
 
 from .osutils import mkdir_if_missing
-import ascend_function
 
 
 def read_json(fpath):

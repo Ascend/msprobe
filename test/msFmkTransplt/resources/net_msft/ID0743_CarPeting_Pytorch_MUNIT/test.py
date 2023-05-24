@@ -14,7 +14,6 @@ import torch
 import os
 from torchvision import transforms
 from PIL import Image
-import ascend_function
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--config', type=str, help="net configuration")

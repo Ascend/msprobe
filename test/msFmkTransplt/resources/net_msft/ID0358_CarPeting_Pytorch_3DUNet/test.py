@@ -15,7 +15,6 @@ import os
 import numpy as np
 from models.Unet import UNet, RecombinationBlock
 from utils.common import load_file_name_list
-import ascend_function
 
 def test(model, dataset, save_path, filename):
     dataloader = DataLoader(dataset=dataset, batch_size=4, num_workers=0, shuffle=False)

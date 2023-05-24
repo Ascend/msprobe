@@ -12,20 +12,6 @@ from ..modelarts_rules import get_modelarts_rule
 from ..pytorch_npu_patch_rules import InsertAheadRule
 
 
-def get_custom_rule(file, rule_list):
-    key_set = ('ArgsModifyRule', 'FuncNameModifyRule', 'ModuleNameModifyRule')
-    rules = get_file_content_bytes(file)
-    rule_dict = json.loads(rules).get('rules', {})
-    custom_rule_list = []
-
-    for key in rule_dict:
-        if key not in key_set:
-            raise TransplantException('%s is not supported customization!' % key)
-        init_rule_to_list(key, rule_dict, custom_rule_list, ['normal'])
-    custom_rule_list.extend(rule_list)
-    return custom_rule_list
-
-
 def get_builtin_rule(feature_switch, args):
     rule_list = get_special_rule(args)
     # rules for different version

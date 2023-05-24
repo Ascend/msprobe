@@ -1,5 +1,4 @@
 import numpy as np
-import ascend_function
 def adjust_box_sort(box):
     start = -1
     _box = list(np.array(box).reshape(-1,2))

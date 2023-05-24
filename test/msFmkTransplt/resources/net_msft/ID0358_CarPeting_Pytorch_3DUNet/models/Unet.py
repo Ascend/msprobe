@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-import ascend_function
 
 
 # 未测试
@@ -24,8 +23,8 @@ class SEBlock(nn.Module):
             self.gap=None
             conv=None
 
-        self.conv1=ascend_function.similar_api.Conv3d(in_channels,out_channels,1)
-        self.conv2=ascend_function.similar_api.Conv3d(in_channels,out_channels,1)
+        self.conv1=nn.Conv3d(in_channels,out_channels,1)
+        self.conv2=nn.Conv3d(in_channels,out_channels,1)
 
         self.relu = nn.ReLU(inplace=True)
         self.sigmoid=nn.Sigmoid()
@@ -56,8 +55,8 @@ class DenseBlock(nn.Module):
         self.conv_list=[]
         self.bottle_conv_list=[]
         for i in conv_num:
-            self.bottle_conv_list.append(ascend_function.similar_api.Conv3d(channels*(i+1),channels*4,1))
-            self.conv_list.append(ascend_function.similar_api.Conv3d(channels*4,channels,3,padding=1))
+            self.bottle_conv_list.append(nn.Conv3d(channels*(i+1),channels*4,1))
+            self.conv_list.append(nn.Conv3d(channels*4,channels,3,padding=1))
 
 
     def forward(self,x):
@@ -92,14 +91,14 @@ class ResBlock(nn.Module):
             conv = None
             bn = None
 
-        self.conv1 = ascend_function.similar_api.Conv3d(in_channels, out_channels, 3, stride=stride, padding=1)
+        self.conv1 = nn.Conv3d(in_channels, out_channels, 3, stride=stride, padding=1)
         self.bn1 = bn(out_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = ascend_function.similar_api.Conv3d(out_channels, out_channels, 3, stride=stride, padding=1)
+        self.conv2 = nn.Conv3d(out_channels, out_channels, 3, stride=stride, padding=1)
         self.bn2 = bn(out_channels)
 
         if in_channels!=out_channels:
-            self.res_conv=ascend_function.similar_api.Conv3d(in_channels,out_channels,1,stride=stride)
+            self.res_conv=nn.Conv3d(in_channels,out_channels,1,stride=stride)
 
     def forward(self, x):
         if self.in_channels != self.out_channels:
@@ -185,8 +184,8 @@ class SegSEBlock(nn.Module):
 
         self.in_channels = in_channels
         self.rate = rate
-        self.dila_conv = ascend_function.similar_api.Conv3d(self.in_channels, self.in_channels // self.rate, 3, padding=2, dilation=self.rate)
-        self.conv1 = ascend_function.similar_api.Conv3d(self.in_channels // self.rate, self.in_channels, 1)
+        self.dila_conv = nn.Conv3d(self.in_channels, self.in_channels // self.rate, 3, padding=2, dilation=self.rate)
+        self.conv1 = nn.Conv3d(self.in_channels // self.rate, self.in_channels, 1)
 
     def forward(self, input):
         x = self.dila_conv(input)
@@ -217,12 +216,12 @@ class RecombinationBlock(nn.Module):
         self.rate = 2
         self.expan_channels = self.out_channels * self.rate
 
-        self.expansion_conv = ascend_function.similar_api.Conv3d(self.in_channels, self.expan_channels, 1)
-        self.skip_conv = ascend_function.similar_api.Conv3d(self.in_channels, self.out_channels, 1)
-        self.zoom_conv = ascend_function.similar_api.Conv3d(self.out_channels * self.rate, self.out_channels, 1)
+        self.expansion_conv = nn.Conv3d(self.in_channels, self.expan_channels, 1)
+        self.skip_conv = nn.Conv3d(self.in_channels, self.out_channels, 1)
+        self.zoom_conv = nn.Conv3d(self.out_channels * self.rate, self.out_channels, 1)
 
         self.bn = bn(self.expan_channels)
-        self.norm_conv = ascend_function.similar_api.Conv3d(self.expan_channels, self.expan_channels, self.kerenl_size, padding=1)
+        self.norm_conv = nn.Conv3d(self.expan_channels, self.expan_channels, self.kerenl_size, padding=1)
 
         self.segse_block = SegSEBlock(self.expan_channels, net_mode=net_mode)
 
@@ -260,7 +259,7 @@ class UNet(nn.Module):
         else:
             conv = None
 
-        self.inc = ascend_function.similar_api.Conv3d(in_channels, 16, 1)
+        self.inc = nn.Conv3d(in_channels, 16, 1)
 
         # down
         self.down1 = Down(16, filter_num_list[0], conv_block=conv_block, net_mode=net_mode)
@@ -280,7 +279,7 @@ class UNet(nn.Module):
         self.up4 = Up(filter_num_list[1], filter_num_list[0], filter_num_list[0], conv_block=conv_block,
                       net_mode=net_mode)
 
-        self.class_conv = ascend_function.similar_api.Conv3d(filter_num_list[0], class_num, 1)
+        self.class_conv = nn.Conv3d(filter_num_list[0], class_num, 1)
 
     #def forward(self, input):
         #x = input

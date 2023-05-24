@@ -15,7 +15,6 @@ import torch.utils.data as tordata
 
 from .network import TripletLoss, SetNet
 from .utils import TripletSampler
-import ascend_function
 
 
 class Model:

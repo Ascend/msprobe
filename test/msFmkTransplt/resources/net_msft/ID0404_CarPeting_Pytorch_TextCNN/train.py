@@ -16,7 +16,6 @@ import torch
 import model
 import data
 from config import Config
-import ascend_function
 
 parser = argparse.ArgumentParser(description='Train Text CNN classificer')
 parser.add_argument(

@@ -8,7 +8,6 @@ import torch.distributed as dist
 
 import errno
 import os
-import ascend_function
 
 
 class SmoothedValue(object):

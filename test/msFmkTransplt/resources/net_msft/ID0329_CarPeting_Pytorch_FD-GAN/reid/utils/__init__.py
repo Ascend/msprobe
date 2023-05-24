@@ -2,7 +2,6 @@ from __future__ import absolute_import
 import torch_npu
 
 import torch
-import ascend_function
 
 
 def to_numpy(tensor):

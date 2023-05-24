@@ -4,7 +4,6 @@ import torch.nn as nn
 import numpy as np
 
 from .basic_blocks import SetBlock, BasicConv2d
-import ascend_function
 
 
 class SetNet(nn.Module):

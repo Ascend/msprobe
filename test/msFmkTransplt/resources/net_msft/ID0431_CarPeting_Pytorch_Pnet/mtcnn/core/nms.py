@@ -1,5 +1,4 @@
 import numpy as np
-import ascend_function
 
 
 def torch_nms(dets, thresh, mode="Union"):

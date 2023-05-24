@@ -10,7 +10,6 @@ import torch.backends.cudnn as cudnn
 import torchvision
 
 from model import Net
-import ascend_function
 
 parser = argparse.ArgumentParser(description="Train on market1501")
 parser.add_argument("--data-dir",default='data',type=str)

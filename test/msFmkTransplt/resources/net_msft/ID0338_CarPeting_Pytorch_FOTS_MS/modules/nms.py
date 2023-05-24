@@ -1,6 +1,5 @@
 import numpy as np
 from shapely.geometry import Polygon
-import ascend_function
 
 
 def intersection(g, p):

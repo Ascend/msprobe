@@ -2,7 +2,6 @@ import numpy as np
 import torch_npu
 import torch
 import torch.nn.functional as F
-import ascend_function
 
 
 def iou_score(output, target):

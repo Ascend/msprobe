@@ -6,7 +6,6 @@ from tqdm import tqdm
 
 import cfg
 from label import shrink
-import ascend_function
 
 
 def batch_reorder_vertexes(xy_list_array):

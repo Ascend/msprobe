@@ -11,7 +11,6 @@ from torch.utils import data
 import scipy.io as sio
 import os
 from lib.utils import adjust_box_sort
-import ascend_function
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 def cal_distance(x1, y1, x2, y2):

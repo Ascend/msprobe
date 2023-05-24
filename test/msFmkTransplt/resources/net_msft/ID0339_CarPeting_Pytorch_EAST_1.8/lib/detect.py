@@ -9,7 +9,6 @@ import numpy as np
 import lanms
 from tqdm import tqdm
 from evaluate.script import getresult
-import ascend_function
 def resize_img(img,short_line=1024):
 	'''resize image to be divisible by 32
 	'''

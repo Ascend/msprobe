@@ -1,7 +1,6 @@
 # vim: expandtab:ts=4:sw=4
 import numpy as np
 import cv2
-import ascend_function
 
 
 def non_max_suppression(boxes, max_bbox_overlap, scores=None):

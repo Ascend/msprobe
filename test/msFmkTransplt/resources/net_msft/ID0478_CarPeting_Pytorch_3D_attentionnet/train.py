@@ -14,7 +14,6 @@ import time
 # from model.residual_attention_network_pre import ResidualAttentionModel
 # based https://github.com/liudaizong/Residual-Attention-Network
 from model.residual_attention_network import ResidualAttentionModel_92_32input_update as ResidualAttentionModel
-import ascend_function
 
 model_file = 'model_92_sgd.pkl'
 

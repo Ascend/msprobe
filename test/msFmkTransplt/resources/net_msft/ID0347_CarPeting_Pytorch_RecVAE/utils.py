@@ -5,7 +5,6 @@ from scipy import sparse
 import pandas as pd
 import os
 import bottleneck as bn
-import ascend_function
 
 
 

@@ -17,7 +17,6 @@ import torch_npu
 
 import torch
 import torch.optim as optim
-import ascend_function
 
 def create_logger(cfg, cfg_name, phase='train'):
     root_output_dir = Path(cfg.OUTPUT_DIR)

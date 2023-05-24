@@ -16,7 +16,6 @@
 # Date Created: 2018-08-03
 
 import numpy as np
-import ascend_function
 
 def make_colorwheel():
     """

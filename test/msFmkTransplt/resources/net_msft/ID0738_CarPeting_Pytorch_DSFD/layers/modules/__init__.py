@@ -7,7 +7,6 @@ from __future__ import print_function
 
 from .l2norm import L2Norm
 from .multibox_loss import MultiBoxLoss
-import ascend_function
 
 __all__ = ['L2Norm', 'MultiBoxLoss']
 

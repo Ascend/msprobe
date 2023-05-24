@@ -14,7 +14,6 @@ from .utils import to_numpy
 from torch.autograd import Variable
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-import ascend_function
 cudnn.enabled = True
 cudnn.benchmark = True
 

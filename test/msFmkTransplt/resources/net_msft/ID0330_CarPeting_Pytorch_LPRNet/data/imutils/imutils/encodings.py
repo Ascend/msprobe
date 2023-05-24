@@ -3,7 +3,6 @@ import numpy as np
 import base64
 import json
 import sys
-import ascend_function
 
 def base64_encode_image(a):
 	# return a JSON-encoded list of the base64 encoded image, image data

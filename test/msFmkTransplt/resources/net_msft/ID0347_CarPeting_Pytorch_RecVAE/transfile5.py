@@ -3,7 +3,6 @@ import time
 import os
 import argparse
 import sys
-import ascend_function
 
 
 def func(trans_dir):

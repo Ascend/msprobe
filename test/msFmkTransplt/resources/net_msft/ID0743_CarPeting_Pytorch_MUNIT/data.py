@@ -5,7 +5,6 @@ Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses
 import torch_npu
 import torch.utils.data as data
 import os.path
-import ascend_function
 
 def default_loader(path):
     return Image.open(path).convert('RGB')

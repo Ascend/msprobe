@@ -16,7 +16,6 @@ from evaluate.msra.eval import get_msra_result
 import argparse
 import os
 from lib.utils import setup_logger
-import ascend_function
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 

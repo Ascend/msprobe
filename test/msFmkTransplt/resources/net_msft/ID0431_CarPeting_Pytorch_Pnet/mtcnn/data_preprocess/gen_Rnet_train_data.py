@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 import sys
 import os
-import ascend_function
 sys.path.append(os.getcwd())
 from mtcnn.core.detect import MtcnnDetector,create_mtcnn_net
 from mtcnn.core.imagedb import ImageDB

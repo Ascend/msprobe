@@ -6,7 +6,6 @@ from PIL import Image
 import random
 import math
 import numpy as np
-import ascend_function
 
 class RectScale(object):
     def __init__(self, height, width, interpolation=Image.BILINEAR):

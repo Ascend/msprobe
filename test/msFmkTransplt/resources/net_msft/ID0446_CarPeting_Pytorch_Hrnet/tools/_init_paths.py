@@ -10,7 +10,6 @@ from __future__ import print_function
 
 import os.path as osp
 import sys
-import ascend_function
 
 
 def add_path(path):

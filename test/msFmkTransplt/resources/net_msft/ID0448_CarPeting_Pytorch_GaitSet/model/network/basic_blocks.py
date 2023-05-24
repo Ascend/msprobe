@@ -2,7 +2,6 @@ import torch_npu
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import ascend_function
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, **kwargs):

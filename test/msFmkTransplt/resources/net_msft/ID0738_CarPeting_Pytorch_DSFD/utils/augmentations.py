@@ -16,7 +16,6 @@ import math
 import six
 from data.config import cfg
 import random
-import ascend_function
 
 
 class sampler():

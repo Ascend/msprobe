@@ -8,7 +8,6 @@ from __future__ import print_function
 import os
 from data.config import cfg
 import cv2
-import ascend_function
 
 WIDER_ROOT = os.path.join(cfg.HOME, 'WIDER')
 train_list_file = os.path.join(WIDER_ROOT, 'wider_face_split',

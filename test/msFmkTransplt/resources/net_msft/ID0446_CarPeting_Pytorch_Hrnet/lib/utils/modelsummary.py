@@ -16,7 +16,6 @@ import torch_npu
 
 import torch
 import torch.nn as nn
-import ascend_function
 
 def get_model_summary(model, *input_tensors, item_length=26, verbose=False):
     """

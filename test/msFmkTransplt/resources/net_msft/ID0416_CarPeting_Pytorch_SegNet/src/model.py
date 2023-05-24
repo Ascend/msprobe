@@ -9,7 +9,6 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 import pprint
-import ascend_function
 
 F = nn.functional
 DEBUG = False

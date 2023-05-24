@@ -10,7 +10,6 @@ from torch.nn import functional as F
 from torch.nn import init
 from torch.optim import lr_scheduler
 import torchvision
-import ascend_function
 
 def weights_init_normal(m):
     classname = m.__class__.__name__

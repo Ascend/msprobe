@@ -3,7 +3,6 @@ import os
 import SimpleITK as sitk
 import random
 from scipy import ndimage
-import ascend_function
 
 class LITS_fix:
     def __init__(self, raw_dataset_path,fixed_dataset_path):

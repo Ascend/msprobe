@@ -13,7 +13,6 @@ from torch.autograd import Variable
 
 from layers import *
 from data.config import cfg
-import ascend_function
 
 
 def conv3x3(in_planes, out_planes, stride=1, bias=False):

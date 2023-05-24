@@ -7,7 +7,6 @@ import pickle as pkl
 from tqdm import tqdm
 import time
 from datetime import timedelta
-import ascend_function
 
 
 MAX_VOCAB_SIZE = 10000

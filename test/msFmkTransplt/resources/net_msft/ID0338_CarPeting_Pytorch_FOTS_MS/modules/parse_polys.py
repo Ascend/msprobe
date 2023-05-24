@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 
 from modules.nms import nms_locality, standard_nms
-import ascend_function
 
 
 def parse_polys(cls, distances, angle, confidence_threshold=0.5, intersection_threshold=0.3, img=None):

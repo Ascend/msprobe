@@ -7,7 +7,6 @@ import torch_npu
 
 
 import torch
-import ascend_function
 
 
 def point_form(boxes):

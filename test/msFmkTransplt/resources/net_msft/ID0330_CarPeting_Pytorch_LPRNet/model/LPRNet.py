@@ -1,7 +1,6 @@
 import torch_npu
 import torch.nn as nn
 import torch
-import ascend_function
 
 class small_basic_block(nn.Module):
     def __init__(self, ch_in, ch_out):

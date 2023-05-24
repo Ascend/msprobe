@@ -3,7 +3,6 @@ import os
 import cv2
 import random
 import sys
-import ascend_function
 sys.path.append(os.getcwd())
 import numpy as np
 import mtcnn.core.utils as utils

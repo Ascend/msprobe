@@ -2,7 +2,6 @@ import torch_npu
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-import ascend_function
 
 
 def cross_entropy_2D(input, target, weight=None, size_average=True):

@@ -4,7 +4,6 @@ import torch.nn as nn
 import cfg
 import torch.nn.functional as F
 import numpy as np
-import ascend_function
 # def get_dice_loss(gt_score, pred_score):
 # 	inter = torch.sum(gt_score * pred_score)
 # 	union = torch.sum(gt_score) + torch.sum(pred_score) + 1e-5

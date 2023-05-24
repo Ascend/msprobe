@@ -10,7 +10,6 @@ import torchvision.transforms as transforms
 from torch.utils import data
 import scipy.io as sio
 from lib.utils import adjust_box_sort
-import ascend_function
 # from prefetch_generator import BackgroundGenerator
 #
 # class DataLoaderX(data.DataLoader):

@@ -5,7 +5,6 @@ from torch import nn
 from torch.nn import functional as F
 from torch.nn import init
 import torchvision
-import ascend_function
 
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',

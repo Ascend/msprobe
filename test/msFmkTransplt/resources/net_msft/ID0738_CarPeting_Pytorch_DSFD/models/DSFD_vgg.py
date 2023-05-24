@@ -16,7 +16,6 @@ from torch.autograd import Variable
 
 from layers import *
 from data.config import cfg
-import ascend_function
 
 
 class FEM(nn.Module):

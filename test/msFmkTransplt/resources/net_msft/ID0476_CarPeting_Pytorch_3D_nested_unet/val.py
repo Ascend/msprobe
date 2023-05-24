@@ -16,7 +16,6 @@ import archs
 from dataset import Dataset
 from metrics import iou_score
 from utils import AverageMeter
-import ascend_function
 
 
 def parse_args():

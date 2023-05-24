@@ -5,7 +5,6 @@ import torch_npu
 import torch
 from torch import nn
 from torch.nn import functional as F
-import ascend_function
 
 
 def swish(x):

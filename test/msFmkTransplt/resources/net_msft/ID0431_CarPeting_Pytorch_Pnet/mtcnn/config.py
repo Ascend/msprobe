@@ -1,5 +1,4 @@
 import os
-import ascend_function
 
 
 MODEL_STORE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+"/model_store"

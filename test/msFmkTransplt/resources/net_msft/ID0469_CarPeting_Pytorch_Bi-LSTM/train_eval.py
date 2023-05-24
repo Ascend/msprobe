@@ -8,7 +8,6 @@ from sklearn import metrics
 import time
 from utils import get_time_dif
 from tensorboardX import SummaryWriter
-import ascend_function
 
 
 # 权重初始化，默认xavier

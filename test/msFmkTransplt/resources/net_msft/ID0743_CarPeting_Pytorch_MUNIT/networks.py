@@ -7,7 +7,6 @@ from torch import nn
 from torch.autograd import Variable
 import torch
 import torch.nn.functional as F
-import ascend_function
 try:
     from itertools import izip as zip
 except ImportError: # will be 3.x series
@@ -294,9 +293,9 @@ class Conv2dBlock(nn.Module):
         self.use_bias = True
         # initialize padding
         if pad_type == 'reflect':
-            self.pad = torch.nn.ZeroPad2d(padding)
+            self.pad = nn.ReflectionPad2d(padding)
         elif pad_type == 'replicate':
-            self.pad = torch.nn.ZeroPad2d(padding)
+            self.pad = nn.ReplicationPad2d(padding)
         elif pad_type == 'zero':
             self.pad = nn.ZeroPad2d(padding)
         else:

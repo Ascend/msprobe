@@ -1,7 +1,6 @@
 import argparse
 import os
 import sys
-import ascend_function
 sys.path.append(os.getcwd())
 import cv2
 import numpy as np

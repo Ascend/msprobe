@@ -1,6 +1,5 @@
 import os
 import sys
-import ascend_function
 sys.path.append(os.getcwd())
 from wider_loader import WIDER
 import cv2

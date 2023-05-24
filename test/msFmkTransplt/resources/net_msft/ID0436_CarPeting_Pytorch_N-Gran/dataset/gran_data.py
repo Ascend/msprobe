@@ -10,7 +10,6 @@ from tqdm import tqdm
 from collections import defaultdict
 import torch.nn.functional as F
 from utils.data_helper import *
-import ascend_function
 
 
 class GRANData(object):

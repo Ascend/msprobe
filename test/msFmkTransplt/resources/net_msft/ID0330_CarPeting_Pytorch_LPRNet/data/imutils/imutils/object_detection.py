@@ -1,6 +1,5 @@
 # import the necessary packages
 import numpy as np
-import ascend_function
 
 def non_max_suppression(boxes, probs=None, overlapThresh=0.3):
 	# if there are no boxes, return an empty list

@@ -10,7 +10,6 @@ from utils import logger, init_util, metrics,common
 import os
 import numpy as np
 from collections import OrderedDict
-import ascend_function
 
 def val(model, val_loader):
     model.eval()

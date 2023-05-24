@@ -1,5 +1,4 @@
 import numpy as np
-import ascend_function
 
 def IoU(box, boxes):
     """Compute IoU between detect box and gt boxes

@@ -3,7 +3,6 @@
 
 # import the necessary packages
 import cv2
-import ascend_function
 
 def sort_contours(cnts, method="left-to-right"):
     # initialize the reverse flag and sort index

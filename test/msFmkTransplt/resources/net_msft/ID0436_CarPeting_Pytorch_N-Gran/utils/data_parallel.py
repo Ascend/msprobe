@@ -6,7 +6,6 @@ from torch.nn.modules import Module
 from torch.nn.parallel.scatter_gather import scatter_kwargs, gather
 from torch.nn.parallel.replicate import replicate
 from torch.nn.parallel.parallel_apply import parallel_apply
-import ascend_function
 
 
 def _check_balance(device_ids):
@@ -16,7 +15,7 @@ def _check_balance(device_ids):
     the device_ids argument to DataParallel, or by setting the CUDA_VISIBLE_DEVICES
     environment variable."""
 
-  dev_props = [ascend_function.similar_api.get_device_properties(i) for i in device_ids]
+  dev_props = [torch.npu.get_device_properties(i) for i in device_ids]
   print("-----------------------------------------------")
   print(dev_props)
 

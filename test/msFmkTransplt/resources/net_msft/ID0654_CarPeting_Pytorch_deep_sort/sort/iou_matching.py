@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 import numpy as np
 from . import linear_assignment
-import ascend_function
 
 
 def iou(bbox, candidates):

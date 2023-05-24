@@ -9,7 +9,6 @@ from glob import glob
 import math
 import SimpleITK as sitk
 from utils.common import to_one_hot_3d
-import ascend_function
 
 class Mini_DataSet(Dataset):
     def __init__(self, data_path, label_path, cut, resize_scale=1):

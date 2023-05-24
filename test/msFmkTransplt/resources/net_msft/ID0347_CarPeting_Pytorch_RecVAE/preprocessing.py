@@ -8,7 +8,6 @@ from scipy import sparse
 import pandas as pd
 
 import argparse
-import ascend_function
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str)

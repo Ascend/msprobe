@@ -1,5 +1,4 @@
 import logging
-import ascend_function
 
 
 def setup_logging(log_level, log_file, logger_name="exp_logger"):

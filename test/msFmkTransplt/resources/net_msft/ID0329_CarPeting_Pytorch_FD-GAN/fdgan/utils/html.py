@@ -1,7 +1,6 @@
 import dominate
 from dominate.tags import *
 import os
-import ascend_function
 
 
 class HTML:

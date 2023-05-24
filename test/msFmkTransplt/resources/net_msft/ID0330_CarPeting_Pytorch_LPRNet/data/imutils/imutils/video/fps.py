@@ -1,6 +1,5 @@
 # import the necessary packages
 import datetime
-import ascend_function
 
 class FPS:
 	def __init__(self):

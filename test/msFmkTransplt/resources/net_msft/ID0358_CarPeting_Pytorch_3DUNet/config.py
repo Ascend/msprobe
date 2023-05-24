@@ -1,5 +1,4 @@
 import argparse
-import ascend_function
 
 
 parser = argparse.ArgumentParser(description='Hyper-parameters management')

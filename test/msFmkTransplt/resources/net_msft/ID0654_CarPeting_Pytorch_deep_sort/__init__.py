@@ -1,5 +1,4 @@
 from .deep_sort import DeepSort
-import ascend_function
 
 
 __all__ = ['DeepSort', 'build_tracker']

@@ -5,7 +5,6 @@ import numpy as np
 import torch_npu
 import torch
 import torch.utils.data
-import ascend_function
 
 
 class Dataset(torch.utils.data.Dataset):

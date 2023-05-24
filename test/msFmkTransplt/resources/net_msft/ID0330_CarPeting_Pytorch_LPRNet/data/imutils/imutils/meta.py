@@ -5,7 +5,6 @@
 from __future__ import print_function
 import cv2
 import re
-import ascend_function
 
 def find_function(name, pretty_print=True, module=None):
 	# if the module is None, initialize it to to the root `cv2`

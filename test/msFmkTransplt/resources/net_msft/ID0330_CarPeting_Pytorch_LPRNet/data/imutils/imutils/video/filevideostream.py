@@ -3,7 +3,6 @@ from threading import Thread
 import sys
 import cv2
 import time
-import ascend_function
 
 # import the Queue class from Python 3
 if sys.version_info >= (3, 0):

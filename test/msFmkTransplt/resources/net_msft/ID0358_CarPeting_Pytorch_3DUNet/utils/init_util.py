@@ -1,6 +1,5 @@
 import torch_npu
 from torch.nn import init
-import ascend_function
 
 
 def weights_init_normal(m):

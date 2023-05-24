@@ -4,7 +4,6 @@ from .dense import DENSE
 from .gftt import GFTT
 from .harris import HARRIS
 from .rootsift import RootSIFT
-import ascend_function
 
 if is_cv2():
     def FeatureDetector_create(method):

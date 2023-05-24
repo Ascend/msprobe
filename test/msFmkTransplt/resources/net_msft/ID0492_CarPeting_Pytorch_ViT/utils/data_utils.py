@@ -5,7 +5,6 @@ import torch
 
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, RandomSampler, DistributedSampler, SequentialSampler
-import ascend_function
 
 
 logger = logging.getLogger(__name__)

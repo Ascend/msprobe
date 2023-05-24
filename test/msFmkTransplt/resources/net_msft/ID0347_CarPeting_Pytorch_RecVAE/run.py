@@ -11,7 +11,6 @@ from utils import get_data, ndcg, recall
 from model import VAE
 
 import argparse
-import ascend_function
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', type=str)
 parser.add_argument('--hidden-dim', type=int, default=600)

@@ -7,7 +7,6 @@ import torch
 from torch.utils.data.sampler import (
     Sampler, SequentialSampler, RandomSampler, SubsetRandomSampler,
     WeightedRandomSampler)
-import ascend_function
 
 def _choose_from(start, end, excluded_range=None, size=1, replace=False):
     num = end - start + 1

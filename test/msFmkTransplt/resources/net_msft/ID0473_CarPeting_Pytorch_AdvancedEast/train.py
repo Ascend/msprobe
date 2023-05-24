@@ -10,7 +10,6 @@ import os
 import time
 import numpy as np
 import cfg
-import ascend_function
 
 def train(train_img_path, pths_path, batch_size, lr,decay, num_workers, epoch_iter, interval,pretained):
 	file_num = len(os.listdir(train_img_path))

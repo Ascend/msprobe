@@ -5,7 +5,6 @@ import time
 from . import util
 from . import html
 from scipy.misc import imresize
-import ascend_function
 
 
 class Visualizer():

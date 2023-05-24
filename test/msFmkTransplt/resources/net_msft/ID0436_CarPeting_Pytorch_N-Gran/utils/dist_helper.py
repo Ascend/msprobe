@@ -9,7 +9,6 @@ import networkx as nx
 import concurrent.futures
 from functools import partial
 from scipy.linalg import toeplitz
-import ascend_function
 
 
 def emd(x, y, distance_scaling=1.0):

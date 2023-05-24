@@ -12,7 +12,6 @@ import torch.utils.data
 import torchvision
 from shapely.geometry import Polygon, box
 import shapely
-import ascend_function
 
 
 def point_dist_to_line(p1, p2, p3):

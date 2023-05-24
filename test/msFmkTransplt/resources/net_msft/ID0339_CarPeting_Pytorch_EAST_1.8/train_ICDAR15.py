@@ -16,7 +16,6 @@ from evaluate.script import getresult
 import argparse
 import os
 from lib.utils import setup_logger
-import ascend_function
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 

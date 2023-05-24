@@ -1,7 +1,6 @@
 # import the necessary packages
 from ..convenience import is_cv3
 import cv2
-import ascend_function
 
 def count_frames(path, override=False):
 	# grab a pointer to the video file and initialize the total

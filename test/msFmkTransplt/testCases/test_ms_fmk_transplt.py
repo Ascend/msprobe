@@ -34,10 +34,8 @@ class Args(object):
     def __init__(self, input_path, output_path, main=None, target_model='model', version='1.8.1'):
         self.input = input_path
         self.output = output_path
-        self.rule = ''
         self.specify_device = False
         self.device_id = 0
-        self.similar = True
         self.modelarts = False
         if main:
             self.main = main

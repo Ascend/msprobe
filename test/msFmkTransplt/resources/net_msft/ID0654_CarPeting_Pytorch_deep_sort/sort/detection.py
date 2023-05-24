@@ -1,6 +1,5 @@
 # vim: expandtab:ts=4:sw=4
 import numpy as np
-import ascend_function
 
 
 class Detection(object):

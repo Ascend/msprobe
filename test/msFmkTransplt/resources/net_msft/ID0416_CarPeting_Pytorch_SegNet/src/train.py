@@ -21,7 +21,6 @@ import time
 import torch_npu
 import torch
 from torch.utils.data import DataLoader
-import ascend_function
 
 
 # Constants

@@ -21,7 +21,6 @@ from data.config import cfg
 from layers.modules import MultiBoxLoss
 from data.widerface import WIDERDetection, detection_collate
 from models.factory import build_net, basenet_factory
-import ascend_function
 
 parser = argparse.ArgumentParser(
     description='DSFD face Detector Training With Pytorch')
@@ -67,13 +66,13 @@ if not args.multigpu:
 
 if torch_npu.npu.is_available():
     if args.cuda:
-        ascend_function.similar_api.set_default_tensor_type('torch.npu.FloatTensor')
+        torch.set_default_tensor_type('torch.npu.FloatTensor')
     if not args.cuda:
         print("WARNING: It looks like you have a CUDA device, but aren't " +
               "using CUDA.\nRun with --cuda for optimal training speed.")
-        ascend_function.similar_api.set_default_tensor_type('torch.FloatTensor')
+        torch.set_default_tensor_type('torch.FloatTensor')
 else:
-    ascend_function.similar_api.set_default_tensor_type('torch.FloatTensor')
+    torch.set_default_tensor_type('torch.FloatTensor')
 
 
 save_folder = os.path.join(args.save_folder, args.model)

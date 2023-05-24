@@ -2,7 +2,6 @@
 
 import jinja2
 import os.path
-import ascend_function
 
 d = os.path.dirname(__file__)
 env = jinja2.Environment(

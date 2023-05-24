@@ -2,7 +2,6 @@
 # encoding: UTF-8
 import json
 import sys
-import ascend_function
 
 sys.path.append('./')
 import zipfile

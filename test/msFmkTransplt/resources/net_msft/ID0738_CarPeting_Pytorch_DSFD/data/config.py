@@ -7,7 +7,6 @@ from __future__ import print_function
 import os
 from easydict import EasyDict
 import numpy as np
-import ascend_function
 
 pwd = os.getcwd()
 _C = EasyDict()

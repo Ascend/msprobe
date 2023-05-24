@@ -1,6 +1,5 @@
 import torch_npu
 import torch
-import ascend_function
 
 features = torch.load("features.pth")
 qf = features["qf"]

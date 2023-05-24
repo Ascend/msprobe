@@ -2,7 +2,6 @@ import os
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-import ascend_function
 
 
 def draw_graph_list(G_list,

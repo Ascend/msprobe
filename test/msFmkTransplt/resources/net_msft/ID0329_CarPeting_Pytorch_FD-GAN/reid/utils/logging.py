@@ -3,7 +3,6 @@ import os
 import sys
 
 from .osutils import mkdir_if_missing
-import ascend_function
 
 
 class Logger(object):

@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch_npu
 import torch
-import ascend_function
 
 
 if __name__ == "__main__":

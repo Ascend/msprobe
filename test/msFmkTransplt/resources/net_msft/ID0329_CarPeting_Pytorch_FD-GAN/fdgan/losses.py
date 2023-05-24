@@ -9,7 +9,6 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
 from torch.nn import init
-import ascend_function
 
 class GANLoss(nn.Module):
     def __init__(self, smooth=False):

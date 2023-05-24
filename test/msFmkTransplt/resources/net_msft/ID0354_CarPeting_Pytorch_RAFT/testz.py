@@ -2,7 +2,6 @@ import torch_npu
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import ascend_function
 torch.npu.set_device(4)
 
 ic=2

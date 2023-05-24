@@ -24,7 +24,6 @@ import torch_npu
 import torch
 import torchvision
 import sphinx_rtd_theme
-import ascend_function
 
 
 # -- General configuration ------------------------------------------------

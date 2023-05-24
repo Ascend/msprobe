@@ -8,7 +8,6 @@ import re
 import numpy as np
 import os
 import collections
-import ascend_function
 
 
 # Converts a Tensor into a Numpy array

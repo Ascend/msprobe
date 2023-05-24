@@ -8,7 +8,6 @@ from scipy import ndimage
 from PIL import Image
 
 from reid.utils.data import transforms
-import ascend_function
 
 class Preprocessor(object):
     def __init__(self, dataset, root=None, with_pose=False, pose_root=None, pid_imgs=None, height=256, width=128, pose_aug='no', transform=None):

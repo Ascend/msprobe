@@ -4,7 +4,6 @@ import os, sys
 import fdgan.utils.util as util
 from reid import models
 from reid import datasets
-import ascend_function
 
 class Options():
     def __init__(self):

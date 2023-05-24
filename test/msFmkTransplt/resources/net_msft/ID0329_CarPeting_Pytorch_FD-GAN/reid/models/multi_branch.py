@@ -3,7 +3,6 @@ from torch import nn
 import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
-import ascend_function
 
 class SiameseNet(nn.Module):
     def __init__(self, base_model, embed_model):

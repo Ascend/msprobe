@@ -7,7 +7,6 @@ from torch.autograd import Variable
 
 from .evaluation_metrics import accuracy
 from .utils.meters import AverageMeter
-import ascend_function
 
 
 class BaseTrainer(object):

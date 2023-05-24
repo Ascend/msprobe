@@ -10,7 +10,6 @@ from model import FOTSModel
 from modules.parse_polys import parse_polys
 import re
 import tqdm
-import ascend_function
 
 
 def test(net, images_folder, output_folder, scaled_height):

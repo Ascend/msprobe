@@ -2,7 +2,6 @@ import torch_npu
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import ascend_function
 
 class BasicBlock(nn.Module):
     def __init__(self, c_in, c_out,is_downsample=False):

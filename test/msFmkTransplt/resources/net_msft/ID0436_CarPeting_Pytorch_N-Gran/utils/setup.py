@@ -1,5 +1,4 @@
 from distutils.core import setup, Extension
-import ascend_function
 
 orca_module = Extension('orca',
                         sources = ['orcamodule.cpp'],

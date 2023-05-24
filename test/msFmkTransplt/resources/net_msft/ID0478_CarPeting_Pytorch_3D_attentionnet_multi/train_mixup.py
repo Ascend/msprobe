@@ -15,7 +15,6 @@ import time
 # based https://github.com/liudaizong/Residual-Attention-Network
 from model.residual_attention_network import ResidualAttentionModel_92_32input_update as ResidualAttentionModel
 import os
-import ascend_function
 DEVICE_ID= 0
 if os.getenv('DEVICE_ID') and str.isdigit(os.getenv('DEVICE_ID')):
     DEVICE_ID= int(os.getenv('DEVICE_ID'))

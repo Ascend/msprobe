@@ -9,7 +9,6 @@ import torch
 
 from ..bbox_utils import decode, nms
 from torch.autograd import Function
-import ascend_function
 
 
 class Detect(Function):

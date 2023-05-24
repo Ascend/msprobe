@@ -20,7 +20,6 @@ import argparse
 import torch
 import time
 import os
-import ascend_function
 
 def sparse_tuple_for_ctc(T_length, lengths):
     input_lengths = []

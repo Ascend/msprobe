@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 from .helpers import corners_to_keypoints
-import ascend_function
 
 
 class HARRIS:

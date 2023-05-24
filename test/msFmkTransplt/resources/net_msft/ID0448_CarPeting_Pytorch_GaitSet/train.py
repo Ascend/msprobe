@@ -1,7 +1,6 @@
 from model.initialization import initialization
 from config import conf
 import argparse
-import ascend_function
 
 
 def boolean_string(s):

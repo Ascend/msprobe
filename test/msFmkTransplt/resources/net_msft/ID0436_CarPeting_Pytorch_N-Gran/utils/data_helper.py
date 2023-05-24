@@ -11,7 +11,6 @@ import numpy as np
 from scipy import sparse as sp
 import networkx as nx
 import torch.nn.functional as F
-import ascend_function
 
 __all__ = [
     'save_graph_list', 'load_graph_list', 'graph_load_batch',

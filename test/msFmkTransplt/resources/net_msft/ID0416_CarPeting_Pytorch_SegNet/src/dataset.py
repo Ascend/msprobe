@@ -9,7 +9,6 @@ import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 from PIL import Image
-import ascend_function
 
 
 VOC_CLASSES = ('background',  # always index 0

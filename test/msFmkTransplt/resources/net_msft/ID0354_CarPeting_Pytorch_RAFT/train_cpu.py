@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 import sys
-import ascend_function
 sys.path.append('core')
 
 import argparse

@@ -8,7 +8,6 @@ import numpy as np
 from .basic_layers import ResidualBlock
 from .attention_module import AttentionModule_stage1, AttentionModule_stage2, AttentionModule_stage3, AttentionModule_stage0
 from .attention_module import AttentionModule_stage1_cifar, AttentionModule_stage2_cifar, AttentionModule_stage3_cifar
-import ascend_function
 
 
 class ResidualAttentionModel_448input(nn.Module):
