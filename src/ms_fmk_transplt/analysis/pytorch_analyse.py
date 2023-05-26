@@ -94,9 +94,9 @@ class PyTorchAnalyse:
                 self.__check_file_valid(args)
             if args.env_path:
                 self.__check_env_path_valid(args)
-            if args.mode == 'third_party':
+            if args.mode in ['third_party', 'affinity_apis']:
                 if not utils.IS_JEDI_INSTALLED:
-                    raise ModuleNotFoundError("third party analysis must have jedi installed")
+                    raise ModuleNotFoundError("%s analysis must have jedi installed" % args.mode.replace('_', ' '))
             if args.mode == 'dynamic_shape':
                 self.__copy_project()
                 self.__init_logger()
