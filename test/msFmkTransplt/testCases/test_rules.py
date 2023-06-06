@@ -25,11 +25,12 @@ class TestRules(unittest.TestCase):
         cls.utils = utils
         cls.rule_1_8_1 = rule_1_8_1
 
-
     def test_args_modify_rule(self):
         load_rule = self.common_rule.ArgsModifyRule('torch.load', '"npu:0"', -1, 'map_location', ['cpu'])
         normal_rule = self.common_rule.ArgsModifyRule('func', '"npu:0"', 0)
         arg_delete_rule = self.common_rule.ArgsModifyRule('func', '', 1)
+        arg_keyword_delete_rule = self.common_rule.ArgsModifyRule('torch.profiler.profile', '', -1,
+                                                                  'experimental_config')
 
         load_cases = (
             # map_location not specified
@@ -61,6 +62,19 @@ class TestRules(unittest.TestCase):
                             ("funcA('npu', args)", "funcA('npu', args)"))
         for test_case in arg_delete_cases:
             self._check_modify(arg_delete_rule, test_case[0], test_case[1])
+
+        arg_keyword_delete_case = (
+            (
+                "torch.profiler.profile(with_flops=False, with_modules=False, experimental_config = config)",
+                "torch.profiler.profile(with_flops=False, with_modules=False, )"
+            ),
+            (
+                "torch.profiler.profile(with_flops=False)",
+                "torch.profiler.profile(with_flops=False)"
+            )
+        )
+        for test_case in arg_keyword_delete_case:
+            self._check_modify(arg_keyword_delete_rule, test_case[0], test_case[1])
 
     def test_insert_global_rule(self):
         rule = self.common_rule.InsertGlobalRule(["import key", "key.insert()"])
@@ -151,7 +165,8 @@ if __name__ == '__main__':
                       ("AA.old_name.BB(old_name())", "AA.old_name.BB(new_name())"),
                       ("AA.old_name.old_name()", "AA.old_name.new_name()"),
                       ("(other_name if xxx else old_name)()", "(other_name if xxx else new_name)()"),
-                      ("(other_name if xxx else (other_name if xxx else old_name))()", "(other_name if xxx else (other_name if xxx else new_name))()"),
+                      ("(other_name if xxx else (other_name if xxx else old_name))()",
+                       "(other_name if xxx else (other_name if xxx else new_name))()"),
                       ("(pids1 == pids2).long().old_name()", "(pids1 == pids2).long().new_name()"))
 
         for test_case in test_cases:
@@ -163,7 +178,8 @@ if __name__ == '__main__':
                       ("AA.old_name.BB(old_name())", "AA.old_name.BB(AA.BB.new_name())"),
                       ("DD.old_name.old_name()", "AA.BB.new_name()"),
                       ("(other_name if xxx else old_name)()", "(other_name if xxx else AA.BB.new_name)()"),
-                      ("(other_name if xxx else (other_name if xxx else old_name))()", "(other_name if xxx else (other_name if xxx else AA.BB.new_name))()"))
+                      ("(other_name if xxx else (other_name if xxx else old_name))()",
+                       "(other_name if xxx else (other_name if xxx else AA.BB.new_name))()"))
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
 
@@ -215,6 +231,13 @@ if __name__ == '__main__':
 
         for test_case in test_cases:
             self._check_modify(rule, test_case[0], test_case[1])
+
+        rule = self.common_rule.ReplaceAttributeRule("torch.profiler.ProfilerAction",
+                                                     "torch_npu.profiler.ProfilerAction")
+
+        test_case = ("torch.profiler.ProfilerAction", "torch_npu.profiler.ProfilerAction")
+
+        self._check_modify(rule, test_case[0], test_case[1])
 
     def test_python_version_convert_rule(self):
         rule = self.common_rule.PythonVersionConvertRule()
@@ -337,7 +360,7 @@ model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[args.epoch_iter // 2], gamma=0.1)
                 '''
-            ),(
+            ), (
                 '''model, dataset = EAST(pretrained=False), DateSet()
 
 model.to(device)
@@ -382,7 +405,7 @@ if config['deep_supervision']:
     output = model(input)[-1]
 else:
     output = model(input)
-                ''','''import torch
+                ''', '''import torch
 if config['deep_supervision']:
     output = model(input)[-1]
 else:

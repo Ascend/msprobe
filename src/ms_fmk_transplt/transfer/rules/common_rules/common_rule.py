@@ -126,6 +126,7 @@ class FuncNameModifyRule(BaseRule):
             self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
                                   (self.old_name, self.new_name))
             return updated_node.with_changes(func=new_func)
+
         return updated_node
 
     def leave_IfExp(
@@ -338,7 +339,17 @@ class ReplaceAttributeRule(BaseRule):
 
     def leave_Attribute(self, original_node: "libcst.Attribute", updated_node: "libcst.Attribute") \
             -> "libcst.Attribute":
-        if self.attr_name == original_node.attr.value:
+        full_name = self.get_full_name_for_node(original_node)
+        new_name_list = self.attr_name_new.split(".")
+        if full_name == self.attr_name and len(new_name_list) > 1:
+            new_attribute = libcst.Attribute(value=libcst.Name(new_name_list[0]), attr=libcst.Name(new_name_list[1]))
+            if len(new_name_list) > 2:
+                for i in range(2, len(new_name_list)):
+                    new_attribute = libcst.Attribute(value=new_attribute, attr=libcst.Name(new_name_list[i]))
+            updated_node = new_attribute
+            self._record_position(original_node, OperatorType.MODIFY,
+                                  f'replace attribute "{self.attr_name}" with "{self.attr_name_new}"')
+        elif self.attr_name == original_node.attr.value:
             self._record_position(original_node, OperatorType.MODIFY,
                                   f'replace attribute "{self.attr_name}" with "{self.attr_name_new}"')
             return updated_node.with_changes(attr=libcst.Name(self.attr_name_new))

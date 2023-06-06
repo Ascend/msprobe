@@ -1368,6 +1368,10 @@
     "torch.utils.data.dataloader_experimental.DataLoader2": "",
     "torch.utils.data.datapipes.iter.combinatorics.ShufflerIterDataPipe": "",
     "torch.sparse.LongTensor": "",
-    "torch.onnx.symbolic_opset9.squeeze": ""
+    "torch.onnx.symbolic_opset9.squeeze": "",
+    "torch.profiler.profile.step": "",
+    "torch.profiler.ProfilerAction": "",
+    "torch.profiler.ProfilerActivity": "",
+    "torch.profiler.profile.export_chrome_trace": ""
   }
 }
