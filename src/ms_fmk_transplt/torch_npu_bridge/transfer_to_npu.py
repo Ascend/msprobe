@@ -28,6 +28,7 @@ torch_cuda_fn_white_list = [
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached'
 ]
+torch_profiler_fn_white_list = ['profile']
 
 
 def wrapper_cuda(func):
@@ -49,6 +50,9 @@ def wrapper_cuda(func):
             if isinstance(device, torch.device) and 'cuda' in device.type:
                 device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
                 kwargs['device'] = torch.device(device_info)
+            # delete the experimental_config parameter of torch.profiler.profile
+            if 'experimental_config' in kwargs.keys():
+                del kwargs['experimental_config']
         return func(*args, **kwargs)
 
     return decorated
@@ -85,6 +89,18 @@ def patch_cuda():
         ['cuda.amp.autocast_mode', torch_npu.npu.amp.autocast_mode],
         ['cuda.amp.common', torch_npu.npu.amp.common],
         ['cuda.amp.grad_scaler', torch_npu.npu.amp.grad_scaler]
+    ]
+    torch_npu._apply_patches(patchs)
+
+
+def patch_profiler():
+    patchs = [
+        ['profiler.profile', torch_npu.profiler.profile],
+        ['profiler.schedule', torch_npu.profiler.schedule],
+        ['profiler.tensorboard_trace_handler', torch_npu.profiler.tensorboard_trace_handler],
+        ['profiler.ProfilerAction', torch_npu.profiler.ProfilerAction],
+        ['profiler.ProfilerActivity.CUDA', torch_npu.profiler.ProfilerActivity.NPU],
+        ['profiler.ProfilerActivity.CPU', torch_npu.profiler.ProfilerActivity.CPU]
     ]
     torch_npu._apply_patches(patchs)
 
@@ -139,6 +155,10 @@ def init():
     # torch.cuda.*
     patch_cuda()
     device_wrapper(torch.cuda, torch_cuda_fn_white_list)
+
+    # torch.profiler.*
+    patch_profiler()
+    device_wrapper(torch.profiler, torch_profiler_fn_white_list)
 
     # torch.*
     device_wrapper(torch, torch_fn_white_list)
