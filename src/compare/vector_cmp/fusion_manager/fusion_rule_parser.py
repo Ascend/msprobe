@@ -407,6 +407,10 @@ class FusionRuleParser:
                     break
                 # skip control edge
                 if not item.endswith(':-1') and item != "":
+                    if ConstManager.FFTS_MANUAL_MODE_FIELD in item:
+                        op_name = utils.process_op_name(item)
+                        index = item.rsplit(":", 1)[1]
+                        item = op_name + ":" + index
                     input_list.append(item)
         return input_list
 
@@ -471,6 +475,8 @@ class FusionRuleParser:
         # check name element is valid
         self.check_string_object_valid(op_object, ConstManager.NAME_OBJECT)
         name = op_object[ConstManager.NAME_OBJECT]
+        if ConstManager.FFTS_MANUAL_MODE_FIELD in name:
+            name = utils.process_op_name(name)
         # check type element is valid
         self.check_string_object_valid(op_object, ConstManager.TYPE_OBJECT)
         self._parse_input_nodes(op_object)
@@ -487,11 +493,15 @@ class FusionRuleParser:
         fusion_op = FusionOp(0, name, input_list, op_object[ConstManager.TYPE_OBJECT], output_desc_list, attr)
         if fusion_op_name in self.fusion_op_name_to_op_map:
             fusion_op.op_id = self.fusion_op_name_to_op_map.get(fusion_op_name)[0].op_id
-            self.fusion_op_name_to_op_map.get(fusion_op_name).append(fusion_op)
+            fusion_op_name_list = [
+                _fusion_op.op_name for _fusion_op in self.fusion_op_name_to_op_map.get(fusion_op_name)]
+            if name not in fusion_op_name_list:
+                self.fusion_op_name_to_op_map.get(fusion_op_name).append(fusion_op)
+                self.op_list.append(fusion_op)
         else:
             fusion_op.op_id = len(self.fusion_op_name_to_op_map)
             self.fusion_op_name_to_op_map[fusion_op_name] = [fusion_op]
-        self.op_list.append(fusion_op)
+            self.op_list.append(fusion_op)
 
     def _get_string_value_in_attr(self: any, attr_array: list, key: str) -> str:
         value = ""

@@ -36,7 +36,7 @@ class DumpInfo:
     The class for dump info
     """
 
-    def __init__(self: any, dump_path: str, dump_version: int) -> None:
+    def __init__(self: any, dump_path: str, dump_version: int, ffts: bool, fusion_json_file_path: str) -> None:
         self.path = dump_path
         self.type = None
         self.op_name_to_file_map = {}
@@ -45,6 +45,8 @@ class DumpInfo:
         self.data_info = ''
         self.dump_version = dump_version
         self.hash_to_file_name_map = {}
+        self.ffts = ffts
+        self.fusion_json_file_path = fusion_json_file_path
 
     def check_arguments_valid(self: any) -> None:
         """
@@ -179,10 +181,15 @@ class DumpInfo:
             return
         finally:
             pass
-        op_name = utils.handle_op_name(match)
+        if not self.ffts:
+            op_name = utils.handle_op_name(match, self.fusion_json_file_path)
         # if real op name contain '_lxslice' field, the op will not be added to map
-        if ConstManager.FFTS_MANUAL_MODE_FIELD in op_name:
-            return
+            if ConstManager.FFTS_MANUAL_MODE_FIELD in op_name:
+                return
+            self._check_task_type(op_name, item)
+        else:
+            op_name = match
+
         self._check_task_type(op_name, item)
         self._check_dump_file_is_quant(current_dump_type, op_name)
         if self.type is None:
@@ -239,9 +246,10 @@ class CompareData:
     The class for compare data, left dump data and right dump data
     """
 
-    def __init__(self: any, left_dump_path: str, right_dump_path: str, dump_version: int) -> None:
-        self.left_dump_info = DumpInfo(left_dump_path, dump_version)
-        self.right_dump_info = DumpInfo(right_dump_path, dump_version)
+    def __init__(self: any, left_dump_path: str, right_dump_path: str, dump_version: int,
+                 ffts: bool, fusion_json_file_path: str) -> None:
+        self.left_dump_info = DumpInfo(left_dump_path, dump_version, ffts, fusion_json_file_path)
+        self.right_dump_info = DumpInfo(right_dump_path, dump_version, ffts, fusion_json_file_path)
         self.dump_version = dump_version
 
     def check_arguments_valid(self: any, fusion_json_file_path: str,

@@ -24,7 +24,7 @@ class DumpTensor:
 
     def __init__(self: any, index: int = None, data_type: int = None, tensor_format: int = None,
                  shape: list = None, data: np.ndarray = None, size: int = None, original_shape: list = None,
-                 address: int = None, sub_format: int = 0) -> None:
+                 address: int = None, sub_format: int = 0, is_input: bool = False, is_ffts: bool = False) -> None:
 
         self.index = index
         self.data_type = data_type
@@ -35,6 +35,8 @@ class DumpTensor:
         self.original_shape = original_shape
         self.address = address
         self.sub_format = sub_format
+        self.is_input = is_input
+        self.is_ffts = is_ffts
 
     @property
     def get_common_attr(self: any) -> tuple:

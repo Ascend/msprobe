@@ -12,6 +12,7 @@ from cmp_utils.constant.const_manager import ConstManager
 from vector_cmp.range_manager.range_manager import RangeManager
 from algorithm_manager.algorithm_manager import AlgorithmManager
 from vector_cmp.fusion_manager.fusion_op import FusionOp
+from cmp_utils.constant.compare_error import CompareError
 
 
 class TensorResult:
@@ -19,11 +20,12 @@ class TensorResult:
     The class for tensor result result
     """
 
-    def __init__(self: any, tensor_info: dict, result: list, error_msg: list) -> None:
+    def __init__(self: any, tensor_info: dict, result: list, error_msg: list, is_ffts: bool) -> None:
         self.tensor_info = tensor_info
         self.algorithm_result = result[0]
         self.error_msg = error_msg
         self.overflow_result = result[1]
+        self.is_ffts = is_ffts
 
     def get_result(self: any) -> list:
         """
@@ -118,7 +120,7 @@ class FusionOpComResult:
         return my_output_op, ground_truth_op
 
     def get_result(self: any, fusion_op: FusionOp, tensor_result: any, error_msg: list,
-                   no_dump_file: bool = False) -> list:
+                   no_dump_file: bool = False) -> any:
         """
         Get fusion op compare result list
         :param fusion_op: the fusion op
@@ -128,6 +130,9 @@ class FusionOpComResult:
         :return [op_id, my_output_op, ground_truth_op, tensor_id, shape, algorithm_result, error_msg]
         """
         result_list = []
+        input_result_list = []
+        output_result_list = []
+        is_ffts = False
         my_output_op, ground_truth_op = self._make_my_output_op_and_ground_truth_op(fusion_op, no_dump_file)
         if tensor_result:
             for item in tensor_result:
@@ -139,6 +144,12 @@ class FusionOpComResult:
                 ]
                 self._pre_handle_result(current_tensor_info)
                 result = current_tensor_info + item.get_result()
+                if item.is_ffts:
+                    is_ffts = True
+                    if ConstManager.INPUT_PATTERN in result[ConstManager.TENSOR_INDEX]:
+                        input_result_list.append(result)
+                    elif ConstManager.OUTPUT_PATTERN in result[ConstManager.TENSOR_INDEX]:
+                        output_result_list.append(result)
                 RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
@@ -160,7 +171,7 @@ class FusionOpComResult:
             RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
             log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
             result_list.append(result)
-        return result_list
+        return result_list, input_result_list, output_result_list, is_ffts
 
     def get_pytorch_result(self: any, op_info: PytorchOpInfo, tensor_result: any, error_msg: list) -> list:
         """
@@ -219,3 +230,70 @@ def get_result_title(algorithm_manager: AlgorithmManager, op_header: list, overf
         header.insert(header.index('Shape') + 1, 'OverFlow')
     RangeManager.adjust_header(header)
     return header
+
+
+class SingleOpCmpResult:
+    def __init__(self: any):
+        self.op_name = ""
+        self.dump_match = False
+        self.result_list = None
+        self.ret = 0
+        self.input_list = None
+        self.input_result_list = None
+        self.output_result_list = None
+        self.is_ffts = False
+        self.op_name_origin_output_index_map = None
+        self.npu_vs_npu = False
+
+    def update_attr(self, op_name, dump_match, result_list, ret, input_list, input_result_list, output_result_list, is_ffts, op_name_origin_output_index_map, npu_vs_npu):
+        self.op_name = op_name
+        self.dump_match = dump_match
+        self.result_list = result_list
+        self.ret = ret
+        self.input_list = input_list
+        self.input_result_list = input_result_list
+        self.output_result_list = output_result_list
+        self.is_ffts = is_ffts
+        self.op_name_origin_output_index_map = op_name_origin_output_index_map
+        self.npu_vs_npu = npu_vs_npu
+
+    @property
+    def check_result_count(self: any) -> bool:
+        if self.ret is None or self.result_list is None or self.dump_match is None:
+            return True
+        else:
+            return False
+
+    def check_result_list_valid(self):
+        if len(self.result_list) < len(self.input_result_list):
+            message = "The length of input result list is greater than result list, '%s'" % self.op_name
+            log.print_error_log(message)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_INPUT_MAPPING)
+
+    def find_pre_op(self, result_mapping):
+        self.check_result_list_valid()
+        for index, input_result in enumerate(self.input_result_list):
+            tensor_id = input_result[ConstManager.TENSOR_INDEX]
+            pre_op = self.op_name_origin_output_index_map.get(tensor_id)
+            if not pre_op:
+                message = "The tensor index '%s' is invalid, no input mapping information" % tensor_id
+                log.print_error_log(message)
+                raise CompareError(CompareError.MSACCUCMP_INVALID_INPUT_MAPPING)
+            pre_op_name = pre_op[0]
+            pre_op_index = pre_op[1]
+            output_result = self.get_pre_op_output(pre_op_name, pre_op_index, result_mapping)
+            if not output_result:
+                continue
+            origin_result = self.result_list[index]
+            self.result_list[index] = origin_result[:ConstManager.TENSOR_INDEX + 1] + output_result[ConstManager.TENSOR_INDEX + 1:]
+
+    @staticmethod
+    def get_pre_op_output(op_name, index, result_mapping):
+        pre_op_result = result_mapping.get(op_name)
+        if pre_op_result:
+            output_result = pre_op_result.output_result_list[index]
+        else:
+            output_result = None
+            message = "The result of '%s' is not in result mapping" % op_name
+            log.print_warn_log(message)
+        return output_result

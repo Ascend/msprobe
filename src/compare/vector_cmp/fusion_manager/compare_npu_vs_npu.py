@@ -58,6 +58,7 @@ class NpuVsNpuComparison:
         :return dump_match: True, at least one operator match;False, no operator match
         :return result: the compare result by the fusion op list
         """
+        single_op_cmp_result = compare_result.SingleOpCmpResult()
         if len(self.fusion_op_list) == 1:
             return self._make_one_dump_file_result()
         # get my output and ground truth tensor
@@ -106,8 +107,12 @@ class NpuVsNpuComparison:
         else:
             output_ret = CompareError.MSACCUCMP_NONE_ERROR
         fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
-        result = fusion_op_result.get_result(self.fusion_op_list[0], compare_vector_result, error_msg)
-        return output_ret, True, result
+        result_list, input_result_list, output_result_list, is_ffts = fusion_op_result.get_result(self.fusion_op_list[0], compare_vector_result, error_msg)
+        single_op_cmp_result.update_attr(my_output_dump_data.name, True, result_list, output_ret, [],
+                                         input_result_list, output_result_list, is_ffts,
+                                         {}, npu_vs_npu=True)
+
+        return single_op_cmp_result
 
     def _make_one_dump_file_result(self: any) -> (int, bool, list):
         error_msg = []
@@ -257,5 +262,5 @@ class NpuVsNpuComparison:
                 "ground_truth_address": ground_truth_tensor_address
             }
             tensor_result_list.append(
-                compare_result.TensorResult(tensor_info, [algorithm_result, overflow_result], error_msg))
+                compare_result.TensorResult(tensor_info, [algorithm_result, overflow_result], error_msg, my_output_tensor.is_ffts, True))
         return tensor_result_list
