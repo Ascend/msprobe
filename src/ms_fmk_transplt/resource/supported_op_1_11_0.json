@@ -1913,6 +1913,12 @@
     "torch.rename_": " ",
     "torch.refine_names": " ",
     "torch.align_as": " ",
-    "torch.align_to": " "
+    "torch.align_to": " ",
+    "torch.profiler.profile.step": "",
+    "torch.profiler.ProfilerAction": "",
+    "torch.profiler.ProfilerActivity": "",
+    "torch.profiler.schedule": "",
+    "torch.profiler.tensorboard_trace_handler": "",
+    "torch.profiler.profile.export_chrome_trace": ""
   }
 }

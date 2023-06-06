@@ -185,6 +185,31 @@
         "old_name": "torch.cuda.amp.GradScaler",
         "new_name": "torch_npu.npu.amp.GradScaler",
         "replace_module": true
+      },
+      {
+        "old_name": "torch.profiler.profile",
+        "new_name": "torch_npu.profiler.profile",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.profiler.profile.export_chrome_trace",
+        "new_name": "torch_npu.profiler.profile.export_chrome_trace",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.profiler.profile.step",
+        "new_name": "torch_npu.profiler.profile.step",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.profiler.schedule",
+        "new_name": "torch_npu.profiler.schedule",
+        "replace_module": true
+      },
+      {
+        "old_name": "torch.profiler.tensorboard_trace_handler",
+        "new_name": "torch_npu.profiler.tensorboard_trace_handler",
+        "replace_module": true
       }
     ]
   }

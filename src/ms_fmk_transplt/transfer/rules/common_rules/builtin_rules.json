@@ -70,6 +70,12 @@
         "arg_new": "f'npu:{DEVICE_ID}'",
         "white_list": ["cpu"],
         "feature_switch": ["specify_device", "distributed"]
+      },
+      {
+        "func_name": "torch.profiler.profile",
+        "arg_keyword": "experimental_config",
+        "arg_new": "",
+        "feature_switch": ["normal"]
       }
     ],
     "FuncNameModifyRule": [
@@ -116,6 +122,18 @@
       {
         "old_name": "is_cuda",
         "new_name": "is_npu"
+      },
+      {
+        "old_name": "torch.profiler.ProfilerAction",
+        "new_name": "torch_npu.profiler.ProfilerAction"
+      },
+      {
+        "old_name": "torch.profiler.ProfilerActivity",
+        "new_name": "torch_npu.profiler.ProfilerActivity"
+      },
+      {
+        "old_name": "CUDA",
+        "new_name": "NPU"
       }
     ]
   }
