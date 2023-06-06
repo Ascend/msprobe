@@ -13,6 +13,7 @@ sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 
 try:
     import torch_npu
+
     TORCH_NPU_AVAILABLE = True
 except ImportError:
     TORCH_NPU_AVAILABLE = False
@@ -49,3 +50,19 @@ class TestTransferToNpu(unittest.TestCase):
         self.assertEqual(torch.cuda.amp.autocast_mode, torch_npu.npu.amp.autocast_mode)
         self.assertEqual(torch.cuda.amp.common, torch_npu.npu.amp.common)
         self.assertEqual(torch.cuda.amp.grad_scaler, torch_npu.npu.amp.grad_scaler)
+
+    def test_wrap_device(self):
+        device = torch.device(f"cuda:{0}")
+        torch.cuda.set_device(device)
+        a = torch.randint(1, 5, (2, 3), device=device)
+        self.assertEqual(a.device.type, 'npu')
+
+    def test_patch_profiler(self):
+        self.assertEqual(torch.profiler.profile.export_chrome_trace, torch_npu.profiler.profile.export_chrome_trace)
+        self.assertEqual(torch.profiler.profile.step, torch_npu.profiler.profile.step)
+        self.assertEqual(torch.profiler.ProfilerAction, torch_npu.profiler.ProfilerAction)
+        self.assertEqual(torch.profiler.schedule, torch_npu.profiler.schedule)
+        self.assertEqual(torch.profiler.tensorboard_trace_handler, torch_npu.profiler.tensorboard_trace_handler)
+        self.assertEqual(torch.profiler.ProfilerActivity.CUDA, torch_npu.profiler.ProfilerActivity.NPU)
+        self.assertEqual(torch.profiler.ProfilerActivity.CPU, torch_npu.profiler.ProfilerActivity.CPU)
+        self.assertIsInstance(torch.profiler.profile(experimental_config=1), torch_npu.profiler.profile)
