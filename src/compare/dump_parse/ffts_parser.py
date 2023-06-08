@@ -23,6 +23,11 @@ class FFTSParser:
         parse the ffts mode dump data and merge data
         @return: file path, dump data
         """
+        if len(self.dump_file_list) == 1:
+            dump_data = self.dump_data_list[-1]
+            file_path = self.dump_file_list[-1]
+            dump_data.set_op_attr(dump_data.op_name, True)
+            return file_path, dump_data
         dump_base = self.dump_data_list[0]
         thread_num = dump_base.get_thread_num
         if self.check_file_missing(thread_num):

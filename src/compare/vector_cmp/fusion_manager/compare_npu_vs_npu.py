@@ -70,8 +70,14 @@ class NpuVsNpuComparison:
         except CompareError as error:
             error_msg.append(error.message)
             fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
-            result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
-            return error.code, True, result
+            result_list, input_result_list, output_result_list, is_ffts = \
+                fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
+            result_info = utils.ResultInfo(
+                self.fusion_op_list[0].op_name, True, result_list, error.code,
+                [], input_result_list, output_result_list, is_ffts,
+                {}, True)
+            single_op_cmp_result.update_attr(result_info)
+            return error.code, True, [single_op_cmp_result]
 
         ground_truth_dump_data = self._get_dump_data(
             self.fusion_op_list[1], self.compare_data.right_dump_info.path,
@@ -167,7 +173,7 @@ class NpuVsNpuComparison:
             dump_file_path = dump_file_list[-1]
             dump_data = dump_data_list[-1]
         log.print_info_log('[%s] [%s] %s' % (fusion_op.op_name, dump_type, dump_file_path))
-        if dump_data.op_name:
+        if dump_data.op_name and dump_data.attr:
             fusion_op.op_name = dump_data.op_name
         tensor = Tensor(fusion_op.op_name, 0, '', [])
         tensor.set_path(dump_file_path)
