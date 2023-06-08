@@ -210,6 +210,11 @@
         "old_name": "torch.profiler.tensorboard_trace_handler",
         "new_name": "torch_npu.profiler.tensorboard_trace_handler",
         "replace_module": true
+      },
+      {
+        "old_name": "torch.random.fork_rng",
+        "new_name": "torch_npu.npu.random.fork_rng",
+        "replace_module": true
       }
     ]
   }

@@ -1372,6 +1372,7 @@
     "torch.profiler.profile.step": "",
     "torch.profiler.ProfilerAction": "",
     "torch.profiler.ProfilerActivity": "",
-    "torch.profiler.profile.export_chrome_trace": ""
+    "torch.profiler.profile.export_chrome_trace": "",
+    "torch.random.fork_rng": ""
   }
 }
