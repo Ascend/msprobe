@@ -82,7 +82,10 @@ class VectorComparison:
             self.compare_rule = CompareRule(args.fusion_json_file_path,
                                             args.quant_fusion_rule_file_path)
             self.compare_data = dump.CompareData(os.path.realpath(args.left_dump_path),
-                                                 os.path.realpath(args.right_dump_path), ConstManager.OLD_DUMP_TYPE)
+                                                 os.path.realpath(args.right_dump_path), ConstManager.OLD_DUMP_TYPE,
+                                                 args.ffts,
+                                                 args.fusion_json_file_path
+                                                 )
             self.output_path = os.path.realpath(args.output_path)
             self.detail_info = None
             if args.op_name:
@@ -115,6 +118,9 @@ class VectorComparison:
                            default=False, help="<Optional> save file as csv format", required=False)
         parse.add_argument("-custom", dest="custom_path", default="",
                            help="<Optional> user-defined path, including format conversion", required=False)
+        parse.add_argument("-ffts", dest="ffts", action="store_true",
+                           help="<optional> Enable the comparison between ffts+ and ffts+. "
+                                "Direct comparison is performed without data combination. ")
 
     @staticmethod
     def _process_single_op_max_line_parameters(max_line: int) -> None:
@@ -240,11 +246,19 @@ class VectorComparison:
             # save result when 1000 operators are compared
         return all_cmp_res
 
+    def _get_result_list(self, res):
+        result = []
+        for single_op_result in res[self.MULTI_THREAD_COMPARE_RESULT_INDEX]:
+            for item in single_op_result.result_list:
+                result.append(item)
+        return result
+
     def _write_result_to_writer(self: any, result: list, output_file: any) -> None:
         for res in result:
-            if res.check_result_count:
+            if len(res) != self.MULTI_THREAD_RESULT_COUNT:
                 continue
-            for item in res.result_list:
+            item_list = self._get_result_list(res)
+            for item in item_list:
                 if self.args.get("csv"):
                     writer = csv.writer(output_file)
                     writer.writerow(item)
@@ -314,18 +328,22 @@ class VectorComparison:
         for task in all_task:
             all_result.extend(task.get())
         for res in all_result:
-            if res.check_result_count:
+            if len(res) != self.MULTI_THREAD_RESULT_COUNT:
                 continue
             if not ret:
-                ret = res.ret
+                ret = res[self.MULTI_THREAD_RETURN_CODE_INDEX]
             if not dump_match:
-                dump_match = res.dump_match
-            if res.is_ffts and not res.npu_vs_npu:
-                result_mapping[res.op_name] = res
+                dump_match = res[self.MULTI_THREAD_DUMP_MATCH_INDEX]
+            for single_op_cmp_res in res[self.MULTI_THREAD_COMPARE_RESULT_INDEX]:
+                if single_op_cmp_res.is_ffts and not single_op_cmp_res.npu_vs_npu:
+                    result_mapping[single_op_cmp_res.op_name] = single_op_cmp_res
 
         for i, res in enumerate(all_result):
-            if res.is_ffts and res.op_name_origin_output_index_map:
-                res.find_pre_op(result_mapping)
+            if len(res) != self.MULTI_THREAD_RESULT_COUNT:
+                continue
+            for single_op_cmp_res in res[self.MULTI_THREAD_COMPARE_RESULT_INDEX]:
+                if single_op_cmp_res.is_ffts and single_op_cmp_res.op_name_origin_output_index_map:
+                    single_op_cmp_res.find_pre_op(result_mapping)
 
             cmp_res.append(res)
             if (i + 1) % 1000 == 0:

@@ -36,7 +36,8 @@ class DumpInfo:
     The class for dump info
     """
 
-    def __init__(self: any, dump_path: str, dump_version: int, ffts: bool, fusion_json_file_path: str) -> None:
+    def __init__(self: any, dump_path: str, dump_version: int, ffts: bool = False,
+                 fusion_json_file_path: str = "") -> None:
         self.path = dump_path
         self.type = None
         self.op_name_to_file_map = {}
@@ -247,7 +248,7 @@ class CompareData:
     """
 
     def __init__(self: any, left_dump_path: str, right_dump_path: str, dump_version: int,
-                 ffts: bool, fusion_json_file_path: str) -> None:
+                 ffts: bool = False, fusion_json_file_path: str = "") -> None:
         self.left_dump_info = DumpInfo(left_dump_path, dump_version, ffts, fusion_json_file_path)
         self.right_dump_info = DumpInfo(right_dump_path, dump_version, ffts, fusion_json_file_path)
         self.dump_version = dump_version

@@ -107,16 +107,22 @@ class NpuVsNpuComparison:
         else:
             output_ret = CompareError.MSACCUCMP_NONE_ERROR
         fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
-        result_list, input_result_list, output_result_list, is_ffts = fusion_op_result.get_result(self.fusion_op_list[0], compare_vector_result, error_msg)
-        single_op_cmp_result.update_attr(my_output_dump_data.name, True, result_list, output_ret, [],
-                                         input_result_list, output_result_list, is_ffts,
-                                         {}, npu_vs_npu=True)
+        result_list, input_result_list, output_result_list, is_ffts = \
+            fusion_op_result.get_result(self.fusion_op_list[0], compare_vector_result, error_msg)
 
-        return single_op_cmp_result
+        result_info = utils.ResultInfo(
+            my_output_dump_data.name, True, result_list, output_ret,
+            [], input_result_list, output_result_list, is_ffts,
+            {}, True)
+
+        single_op_cmp_result.update_attr(result_info)
+
+        return output_ret, True, [single_op_cmp_result]
 
     def _make_one_dump_file_result(self: any) -> (int, bool, list):
         error_msg = []
         # if only left or right has dump file, the result is NaN
+        single_op_cmp_result = compare_result.SingleOpCmpResult()
         if self.fusion_op_list[0].op_type == ConstManager.LEFT_TYPE:
             message = '[%s] There is no the ground truth dump file for the op "%s".' % (self.op_name, self.op_name)
             log.print_warn_log(message)
@@ -127,8 +133,18 @@ class NpuVsNpuComparison:
             error_msg.append(message)
         fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager,
                                                             overflow_detection=self.overflow_detection)
-        result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg, no_dump_file=True)
-        return CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR, False, result
+        result, input_result_list, output_result_list, is_ffts = \
+            fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg, no_dump_file=True)
+
+        result_info = utils.ResultInfo(
+            self.fusion_op_list[0].op_name, False, result,
+            CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR,
+            self.fusion_op_list[0].input_list, input_result_list,
+            output_result_list, is_ffts, {}, True)
+
+        single_op_cmp_result.update_attr(result_info)
+
+        return CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR, False, [single_op_cmp_result]
 
     def _get_dump_data(self: any, fusion_op: FusionOp, dump_path: str,
                        op_name_to_task_mode_map, dump_type: str) -> Tensor:
@@ -262,5 +278,5 @@ class NpuVsNpuComparison:
                 "ground_truth_address": ground_truth_tensor_address
             }
             tensor_result_list.append(
-                compare_result.TensorResult(tensor_info, [algorithm_result, overflow_result], error_msg, my_output_tensor.is_ffts, True))
+                compare_result.TensorResult(tensor_info, [algorithm_result, overflow_result], error_msg, my_output_tensor.is_ffts))
         return tensor_result_list

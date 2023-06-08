@@ -15,31 +15,33 @@ from algorithm_manager.algorithm_manager import AlgorithmManager
 class TestUtilsMethods(unittest.TestCase):
 
     def test_compare_npu_vs_npu1(self):
-        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        compare_data = dump.CompareData('/home/left', '/home/right', 1, False, "")
         attr = fusion_op.OpAttr([], '', False, 6)
         fusion_op_list = [fusion_op.FusionOp(4, 'aaa', [], 'Left', ['/home/left/aaa.aaa.21.333333'], attr)]
         ret, match, result = NpuVsNpuComparison(compare_data, fusion_op_list,
                                                 AlgorithmManager('', 'all', '')).compare()
+        result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         self.assertEqual(match, False)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result_list), 1)
         actual = ['4', 'aaa', '*', 'NaN', '[aaa] There is no right dump file for the op "aaa".']
-        self.assertEqual(result[0][0], actual[0])
+        self.assertEqual(result_list[0][0], actual[0])
 
     def test_compare_npu_vs_npu2(self):
-        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        compare_data = dump.CompareData('/home/left', '/home/right', 1, False, "")
         attr = fusion_op.OpAttr([], '', False, 6)
         fusion_op_list = [fusion_op.FusionOp(6, 'xxx', [], 'Right', ['/home/right/aaa.aaa.21.333333'], attr)]
         ret, match, result = NpuVsNpuComparison(compare_data, fusion_op_list,
                                                 AlgorithmManager('', 'all', '')).compare()
+        result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         self.assertEqual(match, False)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result_list), 1)
         actual = ['6', '*', 'xxx', 'NaN', '[xxx] There is no left dump file for the op "xxx".']
-        self.assertEqual(result[0][0], actual[0])
+        self.assertEqual(result_list[0][0], actual[0])
 
     def test_compare_npu_vs_npu3(self):
-        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        compare_data = dump.CompareData('/home/left', '/home/right', 1, False, "")
         attr = fusion_op.OpAttr([], '', False, 6)
         fusion_op_list = [
             fusion_op.FusionOp(6, 'xxx', [], 'Left',
@@ -55,15 +57,16 @@ class TestUtilsMethods(unittest.TestCase):
                         side_effect=[left_dump_data, right_dump_data, left_dump_data, right_dump_data]):
             ret, match, result = NpuVsNpuComparison(compare_data,
                                                     fusion_op_list, AlgorithmManager('', 'all', '')).compare()
+            result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
         self.assertEqual(match, True)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result_list), 1)
         actual = ['6', 'xxx', 'xxx', 'NaN',
                   '[xxx] The number of output does not match (0 vs 1).,[xxx] The number of input does not match (1 vs 0).']
-        self.assertEqual(result[0][0], actual[0])
+        self.assertEqual(result_list[0][0], actual[0])
 
     def test_compare_npu_vs_npu4(self):
-        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        compare_data = dump.CompareData('/home/left', '/home/right', 1, False, "")
         attr = fusion_op.OpAttr([], '', False, 6)
         fusion_op_list = [
             fusion_op.FusionOp(6, 'aaa', [], 'Left', ['/home/left/aaa.aaa.21.999999'], attr),
@@ -78,17 +81,18 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('sys.argv', args):
                 manager = AlgorithmManager('', 'all', '')
                 ret, match, result = NpuVsNpuComparison(compare_data, fusion_op_list, manager).compare()
+                result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
         self.assertEqual(match, True)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result_list), 1)
         actual = ['6', 'aaa', 'aaa', 'float32', 'NaN', 'aaa', 'float32', 'NaN', 'aaa:input:0', '[1,3,4,4]', '1.000000', '0.000000', '0.000000', '0.000000',
                   '0.000000', '(23.500;13.853),(23.500;13.853)', '0.000000', '0.000000', 'NaN', 'NaN',
                   'Cannot compare by MaxRelativeError, The data contains 0 or nan in /home/left/aaa.aaa.21.999999 or /home/right/aaa.aaa.21.999999.,'
                   'Cannot compare by MeanRelativeError, The data contains 0 or nan in /home/left/aaa.aaa.21.999999 or /home/right/aaa.aaa.21.999999.']
-        self.assertEqual(result[0], actual)
+        self.assertEqual(result_list[0], actual)
 
     def test_compare_npu_vs_npu5(self):
-        compare_data = dump.CompareData('/home/left', '/home/right', 1)
+        compare_data = dump.CompareData('/home/left', '/home/right', 1, False, "")
         attr = fusion_op.OpAttr([], '', False, 6)
         fusion_op_list = [
             fusion_op.FusionOp(6, 'aaa', [], 'Left', ['/home/left/aaa.aaa.21.333333'], attr),
@@ -140,6 +144,13 @@ class TestUtilsMethods(unittest.TestCase):
         op_input.data = struct.pack('f' * length, *origin_numpy)
         return op_input
 
+    @staticmethod
+    def get_result_list(result):
+        result_list = []
+        for single_res in result:
+            for item in single_res.result_list:
+                result_list.append(item)
+        return result_list
 
 if __name__ == '__main__':
     unittest.main()

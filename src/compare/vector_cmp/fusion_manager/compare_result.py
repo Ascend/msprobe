@@ -245,17 +245,17 @@ class SingleOpCmpResult:
         self.op_name_origin_output_index_map = None
         self.npu_vs_npu = False
 
-    def update_attr(self, op_name, dump_match, result_list, ret, input_list, input_result_list, output_result_list, is_ffts, op_name_origin_output_index_map, npu_vs_npu):
-        self.op_name = op_name
-        self.dump_match = dump_match
-        self.result_list = result_list
-        self.ret = ret
-        self.input_list = input_list
-        self.input_result_list = input_result_list
-        self.output_result_list = output_result_list
-        self.is_ffts = is_ffts
-        self.op_name_origin_output_index_map = op_name_origin_output_index_map
-        self.npu_vs_npu = npu_vs_npu
+    def update_attr(self, result_info):
+        self.op_name = result_info.op_name
+        self.dump_match = result_info.dump_match
+        self.result_list = result_info.result_list
+        self.ret = result_info.ret
+        self.input_list = result_info.input_list
+        self.input_result_list = result_info.input_result_list
+        self.output_result_list = result_info.output_result_list
+        self.is_ffts = result_info.is_ffts
+        self.op_name_origin_output_index_map = result_info.op_name_origin_output_index_map
+        self.npu_vs_npu = result_info.npu_vs_npu
 
     @property
     def check_result_count(self: any) -> bool:

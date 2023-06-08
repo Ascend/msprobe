@@ -9,6 +9,7 @@ This file mainly involves the common function.
 import os
 import re
 import math
+import collections
 from functools import wraps
 from enum import Enum
 import csv
@@ -696,8 +697,8 @@ def ceiling_divide(left: int, right: int) -> int:
     return (left + right - 1) // right
 
 
-def handle_op_name(file_op_name: str, file_json_file_path) -> (str, int):
-    if file_json_file_path:
+def handle_op_name(file_op_name: str, fusion_json_file_path) -> (str, int):
+    if fusion_json_file_path:
         if ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
             file_op_name = process_op_name(file_op_name)
             return file_op_name
@@ -724,3 +725,11 @@ def process_op_name(name):
     file_op_name = name.rsplit("_", 1)
     op_name = file_op_name[0] if ConstManager.LXSLICE_FILED in file_op_name[1] else name
     return op_name
+
+
+ResultInfo = collections.namedtuple(
+    "ResultInfo",
+    ["op_name", "dump_match", "result_list",
+     "ret", "input_list", "input_result_list",
+     "output_result_list", "is_ffts",
+     "op_name_origin_output_index_map", "npu_vs_npu"])

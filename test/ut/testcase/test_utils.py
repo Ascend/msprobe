@@ -432,29 +432,40 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(ret, sorted_list)
 
     def test_handle_op_name1(self):
+        fusion_json_file_path = ""
         file_op_name = "partition0_rank2_new_sub_graph15_sgt_graph_0_fp32_vars_conv2d_18_Conv2D_lxslice0"
         op_name = "fp32_vars_conv2d_18_Conv2D"
-        ret = utils.handle_op_name(file_op_name)
+        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
     def test_handle_op_name2(self):
+        fusion_json_file_path = ""
         file_op_name = "partition0_rank2_new_sub_graph15_sgt_graph_0_L2Loss_6"
         op_name = "L2Loss_6"
-        ret = utils.handle_op_name(file_op_name)
+        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
     def test_handle_op_name3(self):
+        fusion_json_file_path = ""
         file_op_name = "partition0_rank2_new_sub_graph15_sgt_graph_0_loss_scale_gradients_AddN_42partition0_rank2" \
                        "_new_sub_graph15_sgt_graph_0_loss_scale_gradients_fp32_vars_Relu_18_grad_ReluGrad"
         op_name = "loss_scale_gradients_fp32_vars_Relu_18_grad_ReluGrad"
-        ret = utils.handle_op_name(file_op_name)
+        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
     def test_handle_op_name4(self):
+        fusion_json_file_path = ""
         file_op_name = "partition0_rank2_new_sub_graph15_sgt_graph_0_fp32_vars_BatchNorm_44_FusedBatchNormV3_Update_" \
                        "lxslice0partition0_rank2_new_sub_graph15_sgt_graph_0_fp32_vars_Relu_40_lxslice0"
         op_name = "fp32_vars_Relu_40_lxslice0"
-        ret = utils.handle_op_name(file_op_name)
+        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
+        self.assertEqual(ret, op_name)
+
+    def test_handle_op_name5(self):
+        fusion_json_file_path = "/home/ffts.json"
+        file_op_name = "partition0_rank1_new_sub_graph15_sgt_graph_0_bert_encoder_layer_0_output_dense_MatMul_lxslice0"
+        op_name = "partition0_rank1_new_sub_graph15_sgt_graph_0_bert_encoder_layer_0_output_dense_MatMul"
+        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
     @staticmethod
