@@ -229,9 +229,9 @@ class FusionOpComparison:
                                                             dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu,
                                                                                      self.is_my_dump_gpu_or_cpu])
         ret = CompareError.MSACCUCMP_NONE_ERROR
-        single_op_cmp_result = compare_result.SingleOpCmpResult()
 
         for fusion_op in self.fusion_op_list:
+            single_op_cmp_result = compare_result.SingleOpCmpResult()
             # skip not support compare op
             if fusion_op.attr.quant_filter:
                 log.print_skip_quant_info(fusion_op.op_name)
@@ -272,9 +272,10 @@ class FusionOpComparison:
                                                             self.overflow_detection,
                                                             dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu,
                                                                                      self.is_my_dump_gpu_or_cpu])
-        single_op_cmp_result = compare_result.SingleOpCmpResult()
+
         # compare each fusion op
         for fusion_op in self.fusion_op_list:
+            single_op_cmp_result = compare_result.SingleOpCmpResult()
             if fusion_op.attr.quant_filter:
                 log.print_skip_quant_info(fusion_op.op_name)
                 continue
@@ -300,7 +301,7 @@ class FusionOpComparison:
             error_msg.clear()
             # 2. write compare result to file
             result_list, input_result_list, output_result_list, is_ffts = \
-                fusion_op_result.get_result(fusion_op, result,error_msg)
+                fusion_op_result.get_result(fusion_op, result, error_msg)
 
             result_info = utils.ResultInfo(
                 fusion_op.op_name, dump_match, result_list, ret,
@@ -311,6 +312,7 @@ class FusionOpComparison:
             cmp_result_list.append(single_op_cmp_result)
         # no result for any to multi, write empty result to file
         if not has_result_for_any_to_multi:
+            single_op_cmp_result = compare_result.SingleOpCmpResult()
             result_list, input_result_list, output_result_list, is_ffts = \
                 fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
 
@@ -331,7 +333,6 @@ class FusionOpComparison:
                                                             self.overflow_detection,
                                                             dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu,
                                                                                      self.is_my_dump_gpu_or_cpu])
-        single_op_cmp_result = compare_result.SingleOpCmpResult()
 
         if not timestamp_list:
             error_msg.append("The fusion operator list is empty")
@@ -363,6 +364,7 @@ class FusionOpComparison:
         # compare each fusion op
 
         for fusion_op in l1_fusion_list:
+            single_op_cmp_result = compare_result.SingleOpCmpResult()
             if fusion_op.attr.quant_filter:
                 log.print_skip_quant_info(fusion_op.op_name)
                 continue
@@ -394,6 +396,7 @@ class FusionOpComparison:
 
         # no result for any to multi, write empty result to file
         if not has_result_for_any_to_multi:
+            single_op_cmp_result = compare_result.SingleOpCmpResult()
             result_list, input_result_list, output_result_list, is_ffts = \
                 fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
 
