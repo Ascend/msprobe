@@ -5,6 +5,7 @@
 Function:
 This FusionOpComResult class. This file mainly involves the get_result function.
 """
+import collections
 
 from vector_cmp.fusion_manager import fusion_rule_parser
 from cmp_utils import log
@@ -233,7 +234,10 @@ def get_result_title(algorithm_manager: AlgorithmManager, op_header: list, overf
 
 
 class SingleOpCmpResult:
-    def __init__(self: any):
+    """
+    The class for single op result
+    """
+    def __init__(self: any) -> None:
         self.op_name = ""
         self.dump_match = False
         self.result_list = None
@@ -245,7 +249,7 @@ class SingleOpCmpResult:
         self.op_name_origin_output_index_map = None
         self.npu_vs_npu = False
 
-    def update_attr(self, result_info):
+    def update_attr(self: any, result_info: collections.namedtuple) -> None:
         self.op_name = result_info.op_name
         self.dump_match = result_info.dump_match
         self.result_list = result_info.result_list
@@ -257,20 +261,16 @@ class SingleOpCmpResult:
         self.op_name_origin_output_index_map = result_info.op_name_origin_output_index_map
         self.npu_vs_npu = result_info.npu_vs_npu
 
-    @property
-    def check_result_count(self: any) -> bool:
-        if self.ret is None or self.result_list is None or self.dump_match is None:
-            return True
-        else:
-            return False
-
-    def check_result_list_valid(self):
+    def check_result_list_valid(self: any) -> None:
         if len(self.result_list) < len(self.input_result_list):
             message = "The length of input result list is greater than result list, '%s'" % self.op_name
             log.print_error_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_INPUT_MAPPING)
 
-    def find_pre_op(self, result_mapping):
+    def find_pre_op(self: any, result_mapping: dict) -> None:
+        """
+        Replace the input of the current operator with the previous output result
+        """
         self.check_result_list_valid()
         for index, input_result in enumerate(self.input_result_list):
             tensor_id = input_result[ConstManager.TENSOR_INDEX]
@@ -288,7 +288,7 @@ class SingleOpCmpResult:
             self.result_list[index] = origin_result[:ConstManager.TENSOR_INDEX + 1] + output_result[ConstManager.TENSOR_INDEX + 1:]
 
     @staticmethod
-    def get_pre_op_output(op_name, index, result_mapping):
+    def get_pre_op_output(op_name: str, index: int, result_mapping: dict) -> list:
         pre_op_result = result_mapping.get(op_name)
         if pre_op_result:
             output_result = pre_op_result.output_result_list[index]
