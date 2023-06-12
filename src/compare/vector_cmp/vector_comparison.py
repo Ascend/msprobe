@@ -237,7 +237,7 @@ class VectorComparison:
                 if file_name.endswith('.npy'):
                     self.args['overflow_detection'] = False
 
-    def _compare_fusion_ops(self: any, fusion_op_names: list) -> list:
+    def _compare_fusion_ops(self: any, fusion_op_names: list, lock: any) -> list:
         all_cmp_res = []
 
         for op_name in fusion_op_names:
