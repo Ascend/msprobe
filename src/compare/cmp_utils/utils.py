@@ -9,6 +9,7 @@ This file mainly involves the common function.
 import os
 import re
 import math
+import collections
 from functools import wraps
 from enum import Enum
 import csv
@@ -393,17 +394,19 @@ def convert_dump_data_object(wrap_function: any) -> any:
     return inner
 
 
-def build_dump_tensor(dump_data_object_data: list) -> None:
+def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool) -> None:
     """
     replace the input or output object of DD.DumpData to DumpyTensor
     @param dump_data_object_data: input or output object of DD.DumpData
+    @param is_input: if the tensor is input data
+    @param is_ffts: if the tensor is ffts plus mode
     @return: None
     """
     for index, tensor in enumerate(dump_data_object_data):
         data_to_np = deserialize_dump_data_to_array(tensor)
         dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
                                  data_to_np, tensor.size, list(tensor.original_shape.dim),
-                                 tensor.address, tensor.sub_format)
+                                 tensor.address, tensor.sub_format, is_input, is_ffts)
         dump_data_object_data[index] = dump_tensor
 
 
@@ -414,9 +417,9 @@ def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
     @return: DumpDataObj object
     """
     dump_data_object = DumpDataObj(dump_data)
-    build_dump_tensor(dump_data_object.output_data)
-    build_dump_tensor(dump_data_object.input_data)
-    dump_data_object.op_name = handle_op_name(dump_data_object.op_name)
+    is_ffts = False if dump_data_object.get_ffts_mode is None else True
+    build_dump_tensor(dump_data_object.output_data, is_input=False, is_ffts=is_ffts)
+    build_dump_tensor(dump_data_object.input_data, is_input=True, is_ffts=is_ffts)
     return dump_data_object
 
 
@@ -694,7 +697,11 @@ def ceiling_divide(left: int, right: int) -> int:
     return (left + right - 1) // right
 
 
-def handle_op_name(file_op_name: str) -> (str, int):
+def handle_op_name(file_op_name: str, fusion_json_file_path: str) -> str:
+    if fusion_json_file_path:
+        if ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
+            file_op_name = process_op_name(file_op_name)
+            return file_op_name
     # filter field '_lxsliceX' and '_sgt_field'
     if ConstManager.FFTS_MANUAL_MODE_FIELD not in file_op_name \
             and ConstManager.SGT_FIELD not in file_op_name:
@@ -712,3 +719,17 @@ def handle_op_name(file_op_name: str) -> (str, int):
             RegManager.SGT_FLIED_PATTERN, file_op_name)[-1]
         file_op_name = file_op_name[end_match.end() + 1:] if end_match.end() != end_match.endpos else file_op_name
     return file_op_name
+
+
+def process_op_name(name):
+    file_op_name = name.rsplit("_", 1)
+    op_name = file_op_name[0] if ConstManager.LXSLICE_FILED in file_op_name[1] else name
+    return op_name
+
+
+ResultInfo = collections.namedtuple(
+    "ResultInfo",
+    ["op_name", "dump_match", "result_list",
+     "ret", "input_list", "input_result_list",
+     "output_result_list", "is_ffts",
+     "op_name_origin_output_index_map", "npu_vs_npu"])

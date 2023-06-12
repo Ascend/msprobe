@@ -13,6 +13,7 @@ import compare_vector
 from cmp_utils import utils
 from cmp_utils.constant.compare_error import CompareError
 from vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
+from vector_cmp.fusion_manager.compare_result import SingleOpCmpResult
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -514,9 +515,10 @@ class TestUtilsMethods(unittest.TestCase):
                                             'conv1conv1_relu']
                                     ret, dump_match, result = main._compare_by_fusion_op(
                                         key)
+                                    result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
         self.assertEqual(dump_match, True)
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result_list), 2)
 
     def test_compare_vector3(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-o',
@@ -571,12 +573,13 @@ class TestUtilsMethods(unittest.TestCase):
                                 main.compare()
                                 ret, dump_match, result = main._compare_by_fusion_op(
                                     'conv1conv1_relu')
+                                result_list = self.get_result_list(result)
         print("******************")
         print(ret)
         print("******************")
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
         self.assertEqual(dump_match, True)
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result_list), 2)
 
     def test_compare_vector4(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-o',
@@ -631,9 +634,10 @@ class TestUtilsMethods(unittest.TestCase):
                                 main.compare()
                                 ret, dump_match, result = main._compare_by_fusion_op(
                                     'ccccc')
+                                result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         self.assertEqual(dump_match, False)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result_list), 1)
 
     def test_compare_vector5(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-o',
@@ -688,9 +692,10 @@ class TestUtilsMethods(unittest.TestCase):
                                 main.compare()
                                 ret, dump_match, result = main._compare_by_fusion_op(
                                     'ddddd')
+                                result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         self.assertEqual(dump_match, False)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result_list), 1)
 
     def test_compare_vector6(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
@@ -747,9 +752,10 @@ class TestUtilsMethods(unittest.TestCase):
                                             'conv1conv1_relu']
                                     ret, dump_match, result = main._compare_by_fusion_op(
                                         key)
+                                    result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         self.assertEqual(dump_match, True)
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result_list), 2)
 
     def test_compare_multi_result_empty(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
@@ -802,9 +808,10 @@ class TestUtilsMethods(unittest.TestCase):
                                             'conv1conv1_relu']
                                     ret, dump_match, result = main._compare_by_fusion_op(
                                         key)
+                                    result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         self.assertEqual(dump_match, True)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result_list), 1)
 
     def test_compare_vector7(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
@@ -861,9 +868,10 @@ class TestUtilsMethods(unittest.TestCase):
                                             'conv1conv1_relu']
                                     ret, dump_match, result = main._compare_by_fusion_op(
                                         key)
+                                    result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         self.assertEqual(dump_match, True)
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result_list), 2)
 
     def test_compare_vector8(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
@@ -920,9 +928,10 @@ class TestUtilsMethods(unittest.TestCase):
                                             'conv1conv1_relu']
                                     ret, dump_match, result = main._compare_by_fusion_op(
                                         key)
+                                    result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         self.assertEqual(dump_match, True)
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result_list), 2)
 
     def test_compare_vector9(self):
         arguments = mock.Mock()
@@ -1001,9 +1010,10 @@ class TestUtilsMethods(unittest.TestCase):
                                             'conv1conv1_relu']
                                     ret, dump_match, result = main._compare_by_fusion_op(
                                         key)
+                                    result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         self.assertEqual(dump_match, True)
-        self.assertEqual(len(result), 2)
+        self.assertEqual(len(result_list), 2)
 
     def test_compare_vector_l1_fusion1(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
@@ -1064,9 +1074,10 @@ class TestUtilsMethods(unittest.TestCase):
                                             'A1']
                                     ret, dump_match, result = main._compare_by_fusion_op(
                                         key)
+                                    result_list = self.get_result_list(result)
         self.assertEqual(ret, 0)
         self.assertEqual(dump_match, True)
-        self.assertEqual(len(result), 4)
+        self.assertEqual(len(result_list), 4)
 
     def test_compare_detail1(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
@@ -1563,9 +1574,10 @@ class TestUtilsMethods(unittest.TestCase):
                                             'conv1conv1_relu']
                                     ret, dump_match, result = main._compare_by_fusion_op(
                                         key)
+                                    result_list = self.get_result_list(result)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
         self.assertEqual(dump_match, False)
-        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result_list), 1)
 
     def test_make_mapping_table_by_op_name(self):
         arguments = mock.Mock()
@@ -1669,9 +1681,12 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/a.json', '-o', '/home/result', '-d', 'C2']
         result = '0 input_ids input_ids input_ids:output:0 1.000000 0.000000 0.000000 0.000000 0.000000' \
                  ' \'(1171.945;2293.594) (1171.945;2293.594)\''
+        single_op_cmp_result = SingleOpCmpResult()
+        result_info = utils.ResultInfo("opname", False, [[result]], 1, [], [], [], False, {}, False)
+        single_op_cmp_result.update_attr(result_info)
         with mock.patch('sys.argv', args):
             main = compare_vector.VectorComparison()
-            result = [[1, "", [[result]]]]
+            result = [[1, "", [single_op_cmp_result]]]
             lock = mock.Mock()
             lock.acquire = mock.Mock()
             lock.release = mock.Mock()
@@ -2286,6 +2301,13 @@ class TestUtilsMethods(unittest.TestCase):
 
         ]}
 
+    @staticmethod
+    def get_result_list(result):
+        result_list = []
+        for single_res in result:
+            for item in single_res.result_list:
+                result_list.append(item)
+        return result_list
 
 if __name__ == '__main__':
     unittest.main()
