@@ -493,8 +493,8 @@ class FusionRuleParser:
         fusion_op = FusionOp(0, name, input_list, op_object[ConstManager.TYPE_OBJECT], output_desc_list, attr)
         if fusion_op_name in self.fusion_op_name_to_op_map:
             fusion_op.op_id = self.fusion_op_name_to_op_map.get(fusion_op_name)[0].op_id
-            fusion_op_name_list = [
-                _fusion_op.op_name for _fusion_op in self.fusion_op_name_to_op_map.get(fusion_op_name)]
+            fusion_op_name_list = \
+                [_fusion_op.op_name for _fusion_op in self.fusion_op_name_to_op_map.get(fusion_op_name)]
             if name not in fusion_op_name_list:
                 self.fusion_op_name_to_op_map.get(fusion_op_name).append(fusion_op)
                 self.op_list.append(fusion_op)

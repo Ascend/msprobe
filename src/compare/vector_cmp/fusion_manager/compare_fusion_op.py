@@ -247,13 +247,12 @@ class FusionOpComparison:
             if result:
                 dump_match = True
             # 2. make compare result to string
-            result_list, input_result_list, output_result_list, is_ffts = \
-                fusion_op_result.get_result(fusion_op, result, error_msg)
+            _result = fusion_op_result.get_result(fusion_op, result, error_msg)
 
             result_info = utils.ResultInfo(
-                fusion_op.op_name, dump_match, result_list, ret,
-                fusion_op.input_list, input_result_list, output_result_list,
-                is_ffts, self.op_name_origin_output_index_map, False)
+                fusion_op.op_name, dump_match, _result.result_list, ret,
+                fusion_op.input_list, _result.input_result_list, _result.output_result_list,
+                _result.is_ffts, self.op_name_origin_output_index_map, False)
 
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
@@ -300,26 +299,24 @@ class FusionOpComparison:
             dump_match = True
             error_msg.clear()
             # 2. write compare result to file
-            result_list, input_result_list, output_result_list, is_ffts = \
-                fusion_op_result.get_result(fusion_op, result, error_msg)
+            _result = fusion_op_result.get_result(fusion_op, result, error_msg)
 
             result_info = utils.ResultInfo(
-                fusion_op.op_name, dump_match, result_list, ret,
-                fusion_op.input_list, input_result_list, output_result_list,
-                is_ffts, self.op_name_origin_output_index_map, False)
+                fusion_op.op_name, dump_match, _result.result_list, ret,
+                fusion_op.input_list, _result.input_result_list, _result.output_result_list,
+                _result.is_ffts, self.op_name_origin_output_index_map, False)
 
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
         # no result for any to multi, write empty result to file
         if not has_result_for_any_to_multi:
             single_op_cmp_result = compare_result.SingleOpCmpResult()
-            result_list, input_result_list, output_result_list, is_ffts = \
-                fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
+            _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
 
             result_info = utils.ResultInfo(
-                self.fusion_op_list[0].op_name, dump_match, result_list, ret,
-                self.fusion_op_list[0].input_list, input_result_list, output_result_list,
-                is_ffts, self.op_name_origin_output_index_map, False)
+                self.fusion_op_list[0].op_name, dump_match, _result.result_list, ret,
+                self.fusion_op_list[0].input_list, _result.input_result_list, _result.output_result_list,
+                _result.is_ffts, self.op_name_origin_output_index_map, False)
 
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
@@ -335,12 +332,12 @@ class FusionOpComparison:
                                                                                      self.is_my_dump_gpu_or_cpu])
 
         if not timestamp_list:
+            single_op_cmp_result = compare_result.SingleOpCmpResult()
             error_msg.append("The fusion operator list is empty")
-            result_list, input_result_list, output_result_list, is_ffts = \
-                fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
-            result_info = utils.ResultInfo(self.fusion_op_list[0].op_name, False, result_list,
+            _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
+            result_info = utils.ResultInfo(self.fusion_op_list[0].op_name, False, _result.result_list,
                                            CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR, self.fusion_op_list[0].input_list,
-                                           input_result_list, output_result_list, is_ffts,
+                                           _result.input_result_list, _result.output_result_list, _result.is_ffts,
                                            self.op_name_origin_output_index_map, False)
             single_op_cmp_result.update_attr(result_info)
             return False, [single_op_cmp_result], CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR
@@ -383,13 +380,12 @@ class FusionOpComparison:
             has_result_for_any_to_multi = True
             dump_match = True
             # 2. write compare result to file
-            result_list, input_result_list, output_result_list, is_ffts = \
-                fusion_op_result.get_result(fusion_op, result, error_msg)
+            _result = fusion_op_result.get_result(fusion_op, result, error_msg)
 
             result_info = utils.ResultInfo(
-                fusion_op.op_name, dump_match, result_list, ret,
-                fusion_op.input_list, input_result_list, output_result_list,
-                is_ffts, self.op_name_origin_output_index_map, False)
+                fusion_op.op_name, dump_match, _result.result_list, ret,
+                fusion_op.input_list, _result.input_result_list, _result.output_result_list,
+                _result.is_ffts, self.op_name_origin_output_index_map, False)
 
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
@@ -397,13 +393,12 @@ class FusionOpComparison:
         # no result for any to multi, write empty result to file
         if not has_result_for_any_to_multi:
             single_op_cmp_result = compare_result.SingleOpCmpResult()
-            result_list, input_result_list, output_result_list, is_ffts = \
-                fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
+            _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
 
             result_info = utils.ResultInfo(
-                self.fusion_op_list[0].op_name, dump_match, result_list, ret,
-                self.fusion_op_list[0].input_list, input_result_list, output_result_list,
-                is_ffts, self.op_name_origin_output_index_map, False)
+                self.fusion_op_list[0].op_name, dump_match, _result.result_list, ret,
+                self.fusion_op_list[0].input_list, _result.input_result_list, _result.output_result_list,
+                _result.is_ffts, self.op_name_origin_output_index_map, False)
 
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)

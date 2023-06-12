@@ -172,7 +172,10 @@ class FusionOpComResult:
             RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
             log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
             result_list.append(result)
-        return result_list, input_result_list, output_result_list, is_ffts
+
+        Result = collections.namedtuple("Result", ["result_list", "input_result_list", "output_result_list", "is_ffts"])
+        result = Result(result_list, input_result_list, output_result_list, is_ffts)
+        return result
 
     def get_pytorch_result(self: any, op_info: PytorchOpInfo, tensor_result: any, error_msg: list) -> list:
         """
@@ -249,6 +252,17 @@ class SingleOpCmpResult:
         self.op_name_origin_output_index_map = None
         self.npu_vs_npu = False
 
+    @staticmethod
+    def get_pre_op_output(op_name: str, index: int, result_mapping: dict) -> list:
+        pre_op_result = result_mapping.get(op_name)
+        if pre_op_result:
+            output_result = pre_op_result.output_result_list[index]
+        else:
+            output_result = None
+            message = "The result of '%s' is not in result mapping" % op_name
+            log.print_warn_log(message)
+        return output_result
+
     def update_attr(self: any, result_info: collections.namedtuple) -> None:
         self.op_name = result_info.op_name
         self.dump_match = result_info.dump_match
@@ -285,15 +299,5 @@ class SingleOpCmpResult:
             if not output_result:
                 continue
             origin_result = self.result_list[index]
-            self.result_list[index] = origin_result[:ConstManager.TENSOR_INDEX + 1] + output_result[ConstManager.TENSOR_INDEX + 1:]
-
-    @staticmethod
-    def get_pre_op_output(op_name: str, index: int, result_mapping: dict) -> list:
-        pre_op_result = result_mapping.get(op_name)
-        if pre_op_result:
-            output_result = pre_op_result.output_result_list[index]
-        else:
-            output_result = None
-            message = "The result of '%s' is not in result mapping" % op_name
-            log.print_warn_log(message)
-        return output_result
+            self.result_list[index] = \
+                origin_result[:ConstManager.TENSOR_INDEX + 1] + output_result[ConstManager.TENSOR_INDEX + 1:]

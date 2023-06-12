@@ -237,10 +237,10 @@ class VectorComparison:
                 if file_name.endswith('.npy'):
                     self.args['overflow_detection'] = False
 
-    def _compare_fusion_ops(self: any, fusion_op_names: list, lock: any) -> list:
+    def _compare_fusion_ops(self: any, fusion_op_names: list) -> list:
         all_cmp_res = []
 
-        for i, op_name in enumerate(fusion_op_names):
+        for op_name in fusion_op_names:
             res = self._compare_by_fusion_op(op_name)
             all_cmp_res.append(res)
             # save result when 1000 operators are compared
@@ -349,7 +349,7 @@ class VectorComparison:
             if (i + 1) % 1000 == 0:
                 self._save_cmp_result(cmp_res, multiprocessing.Manager().RLock())
                 cmp_res.clear()
-        self._save_cmp_result(cmp_res,  multiprocessing.Manager().RLock())
+        self._save_cmp_result(cmp_res, multiprocessing.Manager().RLock())
         return ret, dump_match
 
     def _compare_vector(self: any) -> int:

@@ -70,11 +70,10 @@ class NpuVsNpuComparison:
         except CompareError as error:
             error_msg.append(error.message)
             fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
-            result_list, input_result_list, output_result_list, is_ffts = \
-                fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
+            _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
             result_info = utils.ResultInfo(
-                self.fusion_op_list[0].op_name, True, result_list, error.code,
-                [], input_result_list, output_result_list, is_ffts,
+                self.fusion_op_list[0].op_name, True, _result.result_list, error.code,
+                [], _result.input_result_list, _result.output_result_list, _result.is_ffts,
                 {}, True)
             single_op_cmp_result.update_attr(result_info)
             return error.code, True, [single_op_cmp_result]
@@ -113,12 +112,11 @@ class NpuVsNpuComparison:
         else:
             output_ret = CompareError.MSACCUCMP_NONE_ERROR
         fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
-        result_list, input_result_list, output_result_list, is_ffts = \
-            fusion_op_result.get_result(self.fusion_op_list[0], compare_vector_result, error_msg)
+        _result = fusion_op_result.get_result(self.fusion_op_list[0], compare_vector_result, error_msg)
 
         result_info = utils.ResultInfo(
-            my_output_dump_data.name, True, result_list, output_ret,
-            [], input_result_list, output_result_list, is_ffts,
+            my_output_dump_data.name, True, _result.result_list, output_ret,
+            [], _result.input_result_list, _result.output_result_list, _result.is_ffts,
             {}, True)
 
         single_op_cmp_result.update_attr(result_info)
@@ -139,14 +137,13 @@ class NpuVsNpuComparison:
             error_msg.append(message)
         fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager,
                                                             overflow_detection=self.overflow_detection)
-        result, input_result_list, output_result_list, is_ffts = \
-            fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg, no_dump_file=True)
+        _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg, no_dump_file=True)
 
         result_info = utils.ResultInfo(
-            self.fusion_op_list[0].op_name, False, result,
+            self.fusion_op_list[0].op_name, False, _result.result,
             CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR,
-            self.fusion_op_list[0].input_list, input_result_list,
-            output_result_list, is_ffts, {}, True)
+            self.fusion_op_list[0].input_list, _result.input_result_list,
+            _result.output_result_list, _result.is_ffts, {}, True)
 
         single_op_cmp_result.update_attr(result_info)
 
@@ -284,5 +281,6 @@ class NpuVsNpuComparison:
                 "ground_truth_address": ground_truth_tensor_address
             }
             tensor_result_list.append(
-                compare_result.TensorResult(tensor_info, [algorithm_result, overflow_result], error_msg, my_output_tensor.is_ffts))
+                compare_result.TensorResult(
+                    tensor_info, [algorithm_result, overflow_result], error_msg, my_output_tensor.is_ffts))
         return tensor_result_list
