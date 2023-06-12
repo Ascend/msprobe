@@ -140,7 +140,7 @@ class NpuVsNpuComparison:
         _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg, no_dump_file=True)
 
         result_info = utils.ResultInfo(
-            self.fusion_op_list[0].op_name, False, _result.result,
+            self.fusion_op_list[0].op_name, False, _result.result_list,
             CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR,
             self.fusion_op_list[0].input_list, _result.input_result_list,
             _result.output_result_list, _result.is_ffts, {}, True)

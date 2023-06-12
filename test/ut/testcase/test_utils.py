@@ -17,6 +17,34 @@ from cmp_utils.constant.const_manager import ConstManager
 
 class TestUtilsMethods(unittest.TestCase):
 
+    @staticmethod
+    def _make_op_output(dd_format, shape):
+        op_output = DD.OpOutput()
+        op_output.data_type = DD.DT_FLOAT16
+        op_output.format = dd_format
+        length = 1
+        for dim in shape:
+            op_output.shape.dim.append(dim)
+            length *= dim
+        data_list = np.arange(length)
+        origin_numpy = np.array(data_list, np.float16)
+        op_output.data = struct.pack('e' * length, *origin_numpy)
+        return op_output
+
+    @staticmethod
+    def _set_op_output(op_output, dd_format, shape):
+        op_output.data_type = DD.DT_FLOAT16
+        op_output.format = dd_format
+        length = 1
+        for dim in shape:
+            op_output.shape.dim.append(dim)
+            length *= dim
+        data_list = np.arange(length)
+        origin_numpy = np.array(data_list, np.float16)
+        op_output.data = struct.pack('e' * length, *origin_numpy)
+        op_output.size = len(op_output.data)
+        return op_output
+
     def test_print_info_log(self):
         log.print_info_log('test info log')
 
@@ -476,34 +504,6 @@ class TestUtilsMethods(unittest.TestCase):
                                            [1, 3, 224, 224])
         output_desc_list.append(output_desc)
         return fusion_op.FusionOp(12, 'conv1conv1_relu', ['a:0,b:0'], 'Relu', output_desc_list, attr)
-
-    @staticmethod
-    def _make_op_output(dd_format, shape):
-        op_output = DD.OpOutput()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = dd_format
-        length = 1
-        for dim in shape:
-            op_output.shape.dim.append(dim)
-            length *= dim
-        data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('e' * length, *origin_numpy)
-        return op_output
-
-    @staticmethod
-    def _set_op_output(op_output, dd_format, shape):
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = dd_format
-        length = 1
-        for dim in shape:
-            op_output.shape.dim.append(dim)
-            length *= dim
-        data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('e' * length, *origin_numpy)
-        op_output.size = len(op_output.data)
-        return op_output
 
 
 if __name__ == '__main__':
