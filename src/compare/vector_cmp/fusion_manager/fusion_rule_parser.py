@@ -268,6 +268,14 @@ class FusionRuleParser:
                 if output_desc_list[index].origin_name == "":
                     output_desc_list[index].origin_name = name
 
+    @staticmethod
+    def process_ffts_op_name(item):
+        if ConstManager.FFTS_MANUAL_MODE_FIELD in item:
+            op_name = utils.process_op_name(item)
+            index = item.rsplit(":", 1)[1]
+            item = op_name + ":" + index
+        return item
+
     def analysis_fusion_rule(self: any) -> None:
         """
         Analysis fusion json file
@@ -407,10 +415,7 @@ class FusionRuleParser:
                     break
                 # skip control edge
                 if not item.endswith(':-1') and item != "":
-                    if ConstManager.FFTS_MANUAL_MODE_FIELD in item:
-                        op_name = utils.process_op_name(item)
-                        index = item.rsplit(":", 1)[1]
-                        item = op_name + ":" + index
+                    item = self.process_ffts_op_name(item)
                     input_list.append(item)
         return input_list
 

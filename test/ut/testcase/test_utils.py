@@ -45,6 +45,15 @@ class TestUtilsMethods(unittest.TestCase):
         op_output.size = len(op_output.data)
         return op_output
 
+    @staticmethod
+    def _make_fusion_op():
+        attr = fusion_op.OpAttr(['conv1', 'conv1_relu'], '', False, 12)
+        output_desc_list = []
+        output_desc = fusion_op.OutputDesc('conv1_relu', 0, 'NCHW',
+                                           [1, 3, 224, 224])
+        output_desc_list.append(output_desc)
+        return fusion_op.FusionOp(12, 'conv1conv1_relu', ['a:0,b:0'], 'Relu', output_desc_list, attr)
+
     def test_print_info_log(self):
         log.print_info_log('test info log')
 
@@ -495,15 +504,6 @@ class TestUtilsMethods(unittest.TestCase):
         op_name = "partition0_rank1_new_sub_graph15_sgt_graph_0_bert_encoder_layer_0_output_dense_MatMul"
         ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
-
-    @staticmethod
-    def _make_fusion_op():
-        attr = fusion_op.OpAttr(['conv1', 'conv1_relu'], '', False, 12)
-        output_desc_list = []
-        output_desc = fusion_op.OutputDesc('conv1_relu', 0, 'NCHW',
-                                           [1, 3, 224, 224])
-        output_desc_list.append(output_desc)
-        return fusion_op.FusionOp(12, 'conv1conv1_relu', ['a:0,b:0'], 'Relu', output_desc_list, attr)
 
 
 if __name__ == '__main__':

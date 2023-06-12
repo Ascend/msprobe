@@ -120,6 +120,14 @@ class FusionOpComResult:
                 ground_truth_op = '*'
         return my_output_op, ground_truth_op
 
+    @staticmethod
+    def process_input_and_output(result, input_result_list, output_result_list):
+        if ConstManager.INPUT_PATTERN in result[ConstManager.TENSOR_INDEX]:
+            input_result_list.append(result)
+        elif ConstManager.OUTPUT_PATTERN in result[ConstManager.TENSOR_INDEX]:
+            output_result_list.append(result)
+        return input_result_list, output_result_list
+
     def get_result(self: any, fusion_op: FusionOp, tensor_result: any, error_msg: list,
                    no_dump_file: bool = False) -> any:
         """
@@ -147,10 +155,8 @@ class FusionOpComResult:
                 result = current_tensor_info + item.get_result()
                 if item.is_ffts:
                     is_ffts = True
-                    if ConstManager.INPUT_PATTERN in result[ConstManager.TENSOR_INDEX]:
-                        input_result_list.append(result)
-                    elif ConstManager.OUTPUT_PATTERN in result[ConstManager.TENSOR_INDEX]:
-                        output_result_list.append(result)
+                    input_result_list, output_result_list = \
+                        self.process_input_and_output(result, input_result_list, output_result_list)
                 RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
