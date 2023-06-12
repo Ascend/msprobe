@@ -697,7 +697,7 @@ def ceiling_divide(left: int, right: int) -> int:
     return (left + right - 1) // right
 
 
-def handle_op_name(file_op_name: str, fusion_json_file_path) -> (str, int):
+def handle_op_name(file_op_name: str, fusion_json_file_path: str) -> str:
     if fusion_json_file_path:
         if ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
             file_op_name = process_op_name(file_op_name)
