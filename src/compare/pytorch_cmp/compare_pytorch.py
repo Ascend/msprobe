@@ -220,7 +220,7 @@ class PytorchComparison:
         }
         return fusion_op_result.get_pytorch_result(
                 op_info,
-                [compare_result.TensorResult(tensor_info, [algorithm_result, ''], fail_reason)],
+                [compare_result.TensorResult(tensor_info, [algorithm_result, ''], fail_reason, False)],
                 fail_reason)
 
     def _compare_one_op(self: any, order: int, ext_opname: str, lock: any) -> None:

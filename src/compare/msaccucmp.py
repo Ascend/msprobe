@@ -141,11 +141,18 @@ def _compare_parser(compare_parser: argparse.ArgumentParser) -> None:
     _add_advisor_argument(compare_parser)
     _add_version_argument(compare_parser)
     _add_argument_for_single_op(compare_parser)
+    _add_ffts_argument(compare_parser)
 
 
 def _add_advisor_argument(compare_parser: argparse.ArgumentParser) -> None:
     compare_parser.add_argument('-advisor', dest="advisor", action="store_true",
                                 help="<optional> Enable advisor after compare.", required=False)
+
+
+def _add_ffts_argument(compare_parser: argparse.ArgumentParser) -> None:
+    compare_parser.add_argument('-ffts', dest="ffts", action="store_true",
+                                help="<optional> Enable the comparison between ffts+ and ffts+."
+                                     " Direct comparison is performed without data combination. ")
 
 
 def _add_argument_for_single_op(compare_parser: argparse.ArgumentParser) -> None:

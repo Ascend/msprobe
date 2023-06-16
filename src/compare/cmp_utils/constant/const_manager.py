@@ -113,6 +113,10 @@ class ConstManager:
     INPUT_INDEX_INDEX = 1
     INPUT_INFO_COUNT = 2
 
+    TENSOR_INDEX = 7
+    INPUT_PATTERN = ":input:"
+    OUTPUT_PATTERN = ":output:"
+
     # fusion rule const
     GRAPH_OBJECT = "graph"
     OP_OBJECT = "op"
@@ -363,6 +367,7 @@ class ConstManager:
     # FFTS/FFTS+ MODE Field
     FFTS_MANUAL_MODE_FIELD = "_lxslice"
     SGT_FIELD = "_sgt_graph"
+    LXSLICE_FILED = "lxslice"
 
     @property
     def max_top_n(self: any) -> int:
