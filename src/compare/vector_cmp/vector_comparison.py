@@ -13,7 +13,7 @@ import argparse
 import csv
 import time
 
-from dump_parse import dump
+from dump_parse import dump, mapping
 from vector_cmp.compare_detail import detail
 from algorithm_manager.algorithm_manager import AlgorithmManager
 from vector_cmp.fusion_manager import compare_result
@@ -23,7 +23,7 @@ from vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
 from vector_cmp.compare_detail.compare_detail import DetailComparison
 from vector_cmp.compare_detail.compare_detail import DumpDetailComparison
 from dump_parse.dump import DumpType
-from cmp_utils import log, utils, utils_type
+from cmp_utils import log, utils, utils_type, path
 from cmp_utils.constant.const_manager import ConstManager
 from vector_cmp.range_manager.range_manager import RangeManager
 from vector_cmp.range_manager.range_mode import RangeMode
@@ -143,13 +143,13 @@ class VectorComparison:
         """
         self.compare_rule.check_arguments_valid()
         exist = False
-        path_type = utils_type.PathType.File
+        path_type = path.PathType.File
         if self.detail_info:
             exist = True
-            path_type = utils_type.PathType.Directory
+            path_type = path.PathType.Directory
             self.detail_info.check_arguments_valid()
 
-        ret = utils.check_output_path_valid(self.output_path, exist, path_type)
+        ret = path.check_output_path_valid(self.output_path, exist, path_type)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 

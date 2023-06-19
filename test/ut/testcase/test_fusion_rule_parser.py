@@ -5,9 +5,10 @@ import pytest
 import json
 
 from vector_cmp.fusion_manager import fusion_op
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path
 from vector_cmp.fusion_manager import fusion_rule_parser
 from cmp_utils.constant.compare_error import CompareError
+from dump_parse import dump, dump_utils, mapping
 
 
 class TestUtilsMethods(unittest.TestCase):

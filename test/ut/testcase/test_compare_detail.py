@@ -7,11 +7,11 @@ import struct
 
 from vector_cmp.compare_detail import compare_detail
 from vector_cmp.compare_detail import detail
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path
 from vector_cmp.fusion_manager import fusion_op
 from format_manager.format_manager import FormatManager
 from cmp_utils.constant.compare_error import CompareError
-
+from dump_parse import dump, dump_utils, mapping
 
 class TestUtilsMethods(unittest.TestCase):
 
@@ -66,7 +66,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data = mock.Mock()
         dump_data = DD.DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin/", dump_data))
         detail_comparison = compare_detail.DetailComparison(detail_info, fusion_op_comparison, "/home/demo")
         with pytest.raises(CompareError) as err:
@@ -89,7 +89,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data = mock.Mock()
         dump_data = DD.DumpData()
         dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
         detail_comparison = compare_detail.DetailComparison(detail_info, fusion_op_comparison, "/home/demo")
         with pytest.raises(CompareError) as err:
@@ -112,7 +112,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data = mock.Mock()
         dump_data = DD.DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
         fusion_op_comparison.get_right_dump_data = mock.Mock(
             side_effect=CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR))
@@ -144,7 +144,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=True)
         dump_data = DD.DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         tensor = fusion_op.Tensor('prob', 0, "NCHW", [1, 3, 4, 4])
         tensor.set_path('/home/bin')
         tensor.set_data(dump_data.output_data[0])
@@ -180,7 +180,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=False)
         dump_data = DD.DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
         tensor = fusion_op.Tensor('prob', 0, "NCHW", [1, 3, 4, 4])
         tensor.set_path('/home/bin')

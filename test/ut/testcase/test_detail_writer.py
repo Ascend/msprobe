@@ -185,7 +185,7 @@ class TestUtilsMethods(unittest.TestCase):
         detail_info = detail.DetailInfo(tensor_id, 10, True, ConstManager.MAX_DETAIL_INFO_LINE_COUNT)
         detail_writer = DetailWriter("/home/demo", detail_info)
         with mock.patch("os.path.exists", return_value=True):
-            with mock.patch('cmp_utils.utils.read_mapping_file',
+            with mock.patch('dump_parse.mapping.read_mapping_file',
                             return_value={'1234566.csv': 'conv1conv1_relu_output_0_0.csv',
                                           '999999.csv': 'conv1conv1_relu_output_0_10000.csv',
                                           '6376427478658.csv': 'conv2_relu_output_0_10000.csv'}):

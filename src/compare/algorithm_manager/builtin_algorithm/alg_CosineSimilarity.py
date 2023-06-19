@@ -9,7 +9,7 @@ CosineSimilarity algorithm. This file mainly involves the compare function.
 import numpy as np
 
 from algorithm_manager.algorithm_parameter import AlgorithmParameter
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 

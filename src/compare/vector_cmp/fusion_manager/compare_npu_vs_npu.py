@@ -18,6 +18,7 @@ from vector_cmp.fusion_manager import compare_result
 from cmp_utils.constant.compare_error import CompareError
 from overflow.overflow_detection import OverflowDetection
 from dump_parse.ffts_parser import FFTSParser
+from dump_parse import dump_utils
 
 
 class NpuVsNpuComparison:
@@ -157,7 +158,7 @@ class NpuVsNpuComparison:
         dump_file_list = fusion_op.output_desc
         if not dump_file_list:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-        dump_data_list = [utils.parse_dump_file(dump_file_path, self.compare_data.dump_version)
+        dump_data_list = [dump_utils.parse_dump_file(dump_file_path, self.compare_data.dump_version)
                           for dump_file_path in dump_file_list]
         dump_mode = op_name_to_task_mode_map.get(self.op_name)
         if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:
@@ -268,7 +269,7 @@ class NpuVsNpuComparison:
             ground_truth_tensor_dtype = utils.get_data_type(ground_truth_tensor.data_type)
             my_output_tensor_address = utils.get_address_from_tensor(my_output_tensor)
             ground_truth_tensor_address = utils.get_address_from_tensor(ground_truth_tensor)
-            op_type = utils.get_op_type_from_file_name(my_output_dump_data.path)
+            op_type = dump_utils.get_op_type_from_file_name(my_output_dump_data.path)
 
             # 3. merge result
             tensor_info = {

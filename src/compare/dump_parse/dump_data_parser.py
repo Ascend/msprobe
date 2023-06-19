@@ -11,14 +11,14 @@ import struct
 
 import numpy as np
 
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path
 from cmp_utils import log
 from cmp_utils import common
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.file_utils import FileUtils
 from cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
 from cmp_utils.constant.compare_error import CompareError
-
+from dump_parse import dump_utils
 
 class DumpDataParser:
     """
@@ -85,10 +85,10 @@ class DumpDataParser:
         Convert dump data to numpy and bin file
         """
         # 1. check arguments valid
-        ret = utils.check_output_path_valid(self.output_path, True)
+        ret = path.check_output_path_valid(self.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
-        ret = utils.check_path_valid(self.path_str, True, False, path_type=utils_type.PathType.File)
+        ret = path.check_path_valid(self.path_str, True, False, path_type=path.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         try:
@@ -101,14 +101,14 @@ class DumpDataParser:
         """
         Check arguments valid
         """
-        self.input_path = utils.get_path_list_for_str(self.path_str)
+        self.input_path = path.get_path_list_for_str(self.path_str)
         self.multi_process = MultiConvertProcess(self._parse_one_dump_file, self.input_path, self.output_path)
-        ret = utils.check_output_path_valid(self.output_path, True)
+        ret = path.check_output_path_valid(self.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 
     def _save_log_data(self):
-        dump_data = utils.parse_dump_file(self.path_str, self.dump_version)
+        dump_data = dump_utils.parse_dump_file(self.path_str, self.dump_version)
         log_space = dump_data.space
         dump_file_name = os.path.basename(self.path_str)
         if len(log_space) == 0:
@@ -225,10 +225,10 @@ class DumpDataParser:
         return data
 
     def _parse_one_file_exec(self: any, dump_path: str) -> None:
-        ret = utils.check_path_valid(dump_path, True, False, path_type=utils_type.PathType.File)
+        ret = path.check_path_valid(dump_path, True, False, path_type=path.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
-        dump_data = utils.parse_dump_file(dump_path, self.dump_version)
+        dump_data = dump_utils.parse_dump_file(dump_path, self.dump_version)
         if os.path.basename(dump_path).startswith('Opdebug.Node_OpDebug.'):
             self._save_op_debug_to_file(dump_path, dump_data.output_data)
         else:

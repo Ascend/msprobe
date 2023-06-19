@@ -23,14 +23,14 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_arguments_valid2(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid', return_value=2):
+            with mock.patch('cmp_utils.path.check_path_valid', return_value=2):
                 manager = FormatManager("/home/gzj")
                 manager.check_arguments_valid()
         self.assertEqual(error.value.args[0], 2)
 
     def test_check_arguments_valid3(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.exists', return_value=False):
                     manager = FormatManager("/home/gzj")
@@ -39,7 +39,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_arguments_valid4(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.listdir',
                                 return_value=['xxx', 'ccc', 'ddd', 'eee']), \
@@ -51,7 +51,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_arguments_valid5(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.listdir',
                                 return_value=['xxx', 'ccc', 'ddd', 'eee']), \
@@ -63,7 +63,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_check_arguments_valid6(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.listdir',
                                 return_value=['convert_xxx_to_yyx.py',

@@ -15,7 +15,7 @@ import time
 import numpy as np
 import dump_data_pb2 as DD
 
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path
 from cmp_utils import common
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
@@ -27,6 +27,7 @@ from format_manager.format_manager import FormatManager
 from format_manager.format_manager import SrcToDest
 from format_manager.format_manager import ShapeConversion
 from conversion.tensor_conversion import TensorConversion
+from dump_parse import dump, dump_utils, mapping
 
 
 def _check_shape_valid(shape_str: str) -> list:
@@ -106,7 +107,7 @@ class ShapeConversionMain:
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             return ret
         try:
-            dump_data = utils.parse_dump_file(self.dump_file_path, ConstManager.OLD_DUMP_TYPE)
+            dump_data = dump_utils.parse_dump_file(self.dump_file_path, ConstManager.OLD_DUMP_TYPE)
         except CompareError as error:
             return error.code
 
@@ -137,13 +138,13 @@ class ShapeConversionMain:
             return CompareError.MSACCUCMP_INVALID_PARAM_ERROR
 
         # check dump file path is valid
-        ret = utils.check_path_valid(
-            self.dump_file_path, True, False, utils_type.PathType.File)
+        ret = path.check_path_valid(
+            self.dump_file_path, True, False, path.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             return ret
 
         # check output path is valid
-        ret = utils.check_output_path_valid(self.output_path, True)
+        ret = path.check_output_path_valid(self.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             return ret
 
@@ -253,12 +254,12 @@ class FormatConversionMain:
         self.manager.check_arguments_valid()
 
         # check dump file path is valid
-        self.input_path = utils.get_path_list_for_str(self.path_str)
+        self.input_path = path.get_path_list_for_str(self.path_str)
         self.multi_process = MultiConvertProcess(self._convert_format_for_one_file, self.input_path,
                                                  self.output_path)
 
         # check output path is valid
-        ret = utils.check_output_path_valid(self.output_path, True)
+        ret = path.check_output_path_valid(self.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             return ret
 
@@ -436,7 +437,7 @@ class FormatConversionMain:
         msg = dump_file_path
         log.print_info_log('Start to transfer format for the dump file "%s".' % dump_file_path)
         try:
-            dump_data = utils.parse_dump_file(dump_file_path, self.attr.get('dump_version'))
+            dump_data = dump_utils.parse_dump_file(dump_file_path, self.attr.get('dump_version'))
 
         except CompareError as error:
             return error.code, msg

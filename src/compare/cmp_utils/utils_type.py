@@ -17,16 +17,6 @@ class ShapeType(Enum):
     Matrix = 2
     Tensor = 3
 
-
-class PathType(Enum):
-    """
-    The enum for path type
-    """
-    All = 0
-    File = 1
-    Directory = 2
-
-
 class FusionRelation(Enum):
     """
     The enum for fusion relation

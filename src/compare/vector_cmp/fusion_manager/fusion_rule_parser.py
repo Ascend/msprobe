@@ -9,7 +9,7 @@ This class mainly involves the analysis_fusion_rule function.
 
 import uuid
 
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.file_utils import FileUtils

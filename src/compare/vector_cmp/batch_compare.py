@@ -9,7 +9,7 @@ import os
 import re
 import time
 
-from cmp_utils import utils, utils_type
+from cmp_utils import path as path_utils
 from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from compare_vector import VectorComparison
 from cmp_utils.file_utils import FileUtils
@@ -30,7 +30,7 @@ class BatchCompare:
 
     @staticmethod
     def _check_path_valid(path: str) -> None:
-        ret = utils.check_path_valid(path, True, False, utils_type.PathType.Directory)
+        ret = path_utils.check_path_valid(path, True, False, path_utils.PathType.Directory)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 

@@ -19,21 +19,21 @@ class TestUtilsMethods(unittest.TestCase):
         args.top_num = 2
         decode = overflow_analyse.OverflowAnalyse(args)
 
-        with mock.patch("cmp_utils.utils.check_path_valid",
+        with mock.patch("cmp_utils.path.check_path_valid",
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch("cmp_utils.utils.check_output_path_valid",
+            with mock.patch("cmp_utils.path.check_output_path_valid",
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 ret = decode.check_argument(args)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
-        with mock.patch("cmp_utils.utils.check_path_valid",
+        with mock.patch("cmp_utils.path.check_path_valid",
                         return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
             ret = decode.check_argument(args)
         self.assertEqual(ret, CompareError.MSACCUCMP_UNKNOWN_ERROR)
 
-        with mock.patch("cmp_utils.utils.check_path_valid",
+        with mock.patch("cmp_utils.path.check_path_valid",
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch("cmp_utils.utils.check_output_path_valid",
+            with mock.patch("cmp_utils.path.check_output_path_valid",
                             return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
                 ret = decode.check_argument(args)
         self.assertEqual(ret, CompareError.MSACCUCMP_UNKNOWN_ERROR)

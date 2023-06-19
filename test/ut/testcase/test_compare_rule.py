@@ -22,7 +22,7 @@ class TestUtilsMethods(unittest.TestCase):
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
         with pytest.raises(CompareError) as error:
-            with mock.patch("cmp_utils.utils.check_path_valid", return_value=1):
+            with mock.patch("cmp_utils.path.check_path_valid", return_value=1):
                 compare_rule_object.check_arguments_valid()
         self.assertEqual(error.value.args[0], 1)
 
@@ -30,7 +30,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path)
-        with mock.patch("cmp_utils.utils.check_path_valid", return_value=0):
+        with mock.patch("cmp_utils.path.check_path_valid", return_value=0):
             compare_rule_object.check_arguments_valid()
 
     def test_check_arguments_valid3(self):
@@ -40,7 +40,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_rule_object = compare_rule.CompareRule(fusion_json_file_path, quant_fusion_rule_file_path,
                                                        close_fusion_rule_file_path)
         with pytest.raises(CompareError) as error:
-            with mock.patch("cmp_utils.utils.check_path_valid", side_effect=[0, 0, 1]):
+            with mock.patch("cmp_utils.path.check_path_valid", side_effect=[0, 0, 1]):
                 compare_rule_object.check_arguments_valid()
         self.assertEqual(error.value.args[0], 1)
 
@@ -52,7 +52,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_info.op_name_to_file_map = {"Add": ["/home/demo/CON.aDD.1.23431252326"]}
         dump_info.op_name_to_task_mode_map = {"Add": 0}
         dump_info.path = "/home/demo"
-        with mock.patch("cmp_utils.utils.check_path_valid", return_value=0):
+        with mock.patch("cmp_utils.path.check_path_valid", return_value=0):
             compare_rule_object._sort_file_by_timestamp(dump_info)
 
 
@@ -65,7 +65,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_info.op_name_to_task_mode_map = {"Add": 0}
         dump_info.path = "/home/demo"
         dump_info.hash_to_file_name_map = {"1223453545232": "CON.aDD.1.23431252326"}
-        with mock.patch("cmp_utils.utils.check_path_valid", return_value=0):
+        with mock.patch("cmp_utils.path.check_path_valid", return_value=0):
             compare_rule_object._sort_file_by_timestamp(dump_info)
 
 
