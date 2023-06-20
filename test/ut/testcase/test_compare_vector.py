@@ -400,7 +400,6 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.code,
                          CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
 
-
     def test_compare_vector1(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result.txt']
@@ -1696,43 +1695,52 @@ class TestUtilsMethods(unittest.TestCase):
     def test_ffts_find_pre_op1(self):
         single_op_cmp_result1 = SingleOpCmpResult()
         single_op_cmp_result2 = SingleOpCmpResult()
-        result_list1 = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0', 'NaN', 'NaN',
-                        'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', ''],
-                       ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0', 1, 1,
-                        1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
-        input_result_list = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0', 'NaN',
-                              'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']]
-        output_result_list1 = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
-                               1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+        result_list1 = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', ''],
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+        input_result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0', 'NaN', 'NaN',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']]
+        output_result_list1 = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
         op_name_origin_output_index_map = {"test_op1:input:0": ("test_op2", 0)}
         result_info1 = utils.ResultInfo("test_op1", False, result_list1, 1, [], input_result_list, output_result_list1,
                                         True, op_name_origin_output_index_map, False)
-        result_list2 = [['1', 'Test', 'test_op2', 'NaN', 'NaN', 'test_op2', 'NaN', 'test_op2:output:0',
-                         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
-        output_result_list2 = [['1', 'Test', 'test_op2', 'NaN', 'NaN', 'test_op2', 'NaN', 'test_op2:output:0',
-                                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+        result_list2 = [
+            ['1', 'Test', 'test_op2', 'NaN', 'NaN', 'test_op2', 'NaN', 'test_op2:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+        output_result_list2 = [
+            ['1', 'Test', 'test_op2', 'NaN', 'NaN', 'test_op2', 'NaN', 'test_op2:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
         result_info2 = utils.ResultInfo("test_op2", False, result_list2, 1, [], [], output_result_list2,
                                         True, op_name_origin_output_index_map, False)
         single_op_cmp_result1.update_attr(result_info1)
         single_op_cmp_result2.update_attr(result_info2)
         result_mapping = {"test_op1": single_op_cmp_result1, "test_op2": single_op_cmp_result2}
         single_op_cmp_result1.find_pre_op(result_mapping)
-        result = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
-                   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ''],
-                  ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN',
-                   'test_op1:output:0', 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+        result = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ''],
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
         self.assertEqual(result, single_op_cmp_result1.result_list)
 
     def test_ffts_find_pre_op2(self):
         single_op_cmp_result = SingleOpCmpResult()
-        result_list = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0', 'NaN', 'NaN',
-                        'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']]
-        input_result_list = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0', 'NaN',
-                              'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']]
-        output_result_list1 = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
-                               1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
-        result_info = utils.ResultInfo("test_op", False, result_list, 1, [], input_result_list, output_result_list1,
-                                        True, {}, False)
+        result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']]
+        input_result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']]
+        output_result_list1 = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+        result_info = utils.ResultInfo(
+            "test_op", False, result_list, 1, [], input_result_list, output_result_list1, True, {}, False)
         single_op_cmp_result.update_attr(result_info)
         result_mapping = {}
         with pytest.raises(CompareError) as error:
@@ -1742,14 +1750,17 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_ffts_find_pre_op3(self):
         single_op_cmp_result = SingleOpCmpResult()
-        result_list = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0', 'NaN', 'NaN',
-                         'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', ''],
-                        ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0', 1, 1,
-                         1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
-        input_result_list = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0', 'NaN',
-                              'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']]
-        output_result_list1 = [['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
-                               1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+        result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', ''],
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+        input_result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']]
+        output_result_list1 = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
         result_info = utils.ResultInfo("test_op", False, result_list, 1, [], input_result_list, output_result_list1,
                                        True, {}, False)
         single_op_cmp_result.update_attr(result_info)
@@ -2374,6 +2385,7 @@ class TestUtilsMethods(unittest.TestCase):
             for item in single_res.result_list:
                 result_list.append(item)
         return result_list
+
 
 if __name__ == '__main__':
     unittest.main()
