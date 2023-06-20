@@ -1,3 +1,9 @@
+# coding=utf-8
+# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+"""
+Function:
+This file mainly involves the common function.
+"""
 import os
 import re
 from enum import Enum

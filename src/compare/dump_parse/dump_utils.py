@@ -20,6 +20,7 @@ from cmp_utils import log
 from dump_parse.big_dump_data import DumpDataHandler
 from dump_parse.dump_data_object import DumpDataObj, DumpTensor
 
+
 class SortMode:
     """
     The class of sort mode
@@ -226,6 +227,7 @@ def parse_dump_file(input_path: str, dump_version: int) -> DumpDataObj:
     """
     return DumpDataHandler(input_path).parse_dump_data(dump_version)
 
+
 def get_op_type_from_file_name(dump_path: str):
     """
     get op_type from dump file name
@@ -236,6 +238,7 @@ def get_op_type_from_file_name(dump_path: str):
         op_type_end_index = dump_file_name.find('.')
         return dump_file_name[:op_type_end_index]
     return ConstManager.NAN
+
 
 def check_valid_timestamp(timestamp) -> bool:
     """

@@ -20,6 +20,7 @@ from cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse import dump_utils
 
+
 class DumpDataParser:
     """
     The class for dump data parser

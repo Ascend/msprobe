@@ -106,7 +106,8 @@ class DumpInfo:
         if self.type == DumpType.Quant and output_index is None:
             output_index = 0
         dump_file_list, dump_mode = self.get_op_dump_file(op_name, output_index)
-        dump_data_list = [dump_utils.parse_dump_file(dump_file_path, self.dump_version) for dump_file_path in dump_file_list]
+        dump_data_list = [dump_utils.parse_dump_file(dump_file_path,
+                                                     self.dump_version) for dump_file_path in dump_file_list]
         if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:
             ffts_parser = FFTSParser(dump_file_list, dump_data_list)
             dump_file_path, dump_data = ffts_parser.parse_ffts

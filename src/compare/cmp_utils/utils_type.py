@@ -17,6 +17,7 @@ class ShapeType(Enum):
     Matrix = 2
     Tensor = 3
 
+
 class FusionRelation(Enum):
     """
     The enum for fusion relation
