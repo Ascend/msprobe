@@ -13,6 +13,7 @@ from format_manager.format_manager import FormatManager
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse import dump, dump_utils, mapping
 
+
 class TestUtilsMethods(unittest.TestCase):
 
     def test_get_my_output_tensor_list1(self):
