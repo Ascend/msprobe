@@ -17,7 +17,7 @@ from dump_parse import dump, mapping
 from vector_cmp.compare_detail.detail_writer import DetailWriter
 from vector_cmp.compare_detail.detail import DetailInfo
 from vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
-from vector_cmp.conversion.tensor_conversion import TensorConversion
+from conversion.tensor_conversion import TensorConversion
 
 
 class DetailComparison:
