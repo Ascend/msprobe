@@ -1022,7 +1022,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json_object()):
                         with mock.patch('builtins.open', mock.mock_open(
@@ -1127,7 +1127,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1142,7 +1142,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -1188,7 +1188,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1203,7 +1203,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -1246,7 +1246,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1261,7 +1261,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -1304,7 +1304,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1360,7 +1360,7 @@ class TestUtilsMethods(unittest.TestCase):
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         dump_data = DD.DumpData()
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1421,7 +1421,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 1, 1, 1]))
         result = [[0, True, "data&message"]]
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -1434,7 +1434,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json()):
                         with mock.patch('builtins.open',
@@ -1480,7 +1480,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [0, 1, 1]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1494,7 +1494,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json()):
                         with mock.patch('builtins.open',
@@ -1562,7 +1562,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [0, 1, 1]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1576,7 +1576,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json()):
                         with mock.patch('builtins.open',
@@ -1622,7 +1622,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \

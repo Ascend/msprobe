@@ -512,7 +512,7 @@ class TestUtilsMethods(unittest.TestCase):
                        "_lxslice0partition0_rank1_new_sub_graph15_sgt_graph_0_trans_Cast_1786_lxslice0"
         op_name = "partition0_rank1_new_sub_graph15_sgt_graph_0_bert_encoder_layer_7_attention_self_mul_1" \
                   "partition0_rank1_new_sub_graph15_sgt_graph_0_trans_Cast_1786"
-        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
+        ret = dump.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
 

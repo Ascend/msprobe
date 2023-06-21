@@ -5,7 +5,7 @@
 Function:
 This file mainly involves the dump function.
 """
-
+import re
 import os
 from enum import Enum
 from enum import unique
@@ -400,6 +400,7 @@ def handle_op_name(file_op_name: str, fusion_json_file_path: str) -> str:
 
 
 def _process_op_name(name):
-    file_op_name = name.rsplit("_", 1)
-    op_name = file_op_name[0] if ConstManager.LXSLICE_FILED in file_op_name[1] else name
+    re_pattern = re.compile(RegManager.LXSLICE_PATTERN)
+    op_name = re_pattern.sub("", name)
     return op_name
+
