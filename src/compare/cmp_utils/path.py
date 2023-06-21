@@ -2,7 +2,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
 Function:
-This file mainly involves the common function.
+This file mainly involves the path check function.
 """
 import os
 import re
