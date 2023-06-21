@@ -79,17 +79,21 @@ class BatchCompare:
     def _make_model_name_to_json_map(self: any, json_dir_path: str) -> None:
         for json_file_name in os.listdir(json_dir_path):
             json_file_path = os.path.join(json_dir_path, json_file_name)
-            if json_file_path.endswith(".json"):
-                fusion_rule_parse = FusionRuleParser(json_file_path)
-                json_object = FileUtils.load_json_file(json_file_path)
-                fusion_rule_parse.check_array_object_valid(json_object, ConstManager.GRAPH_OBJECT)
-                for graph in json_object[ConstManager.GRAPH_OBJECT]:
-                    fusion_rule_parse.check_string_object_valid(graph, ConstManager.NAME_OBJECT)
-                    model_name = graph[ConstManager.NAME_OBJECT]
-                    self.model_name_to_json_map[model_name] = json_file_path
+            if json_file_path.endswith('.json'):
+                self._parse_json_file(json_file_path)
+
         if not self.model_name_to_json_map:
             log.print_error_log('There is no fusion rule json file in "%s".' % json_dir_path)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+
+    def _parse_json_file(self: any, json_file_path: str) -> None:
+        fusion_rule_parse = FusionRuleParser(json_file_path)
+        json_object = FileUtils.load_json_file(json_file_path)
+        fusion_rule_parse.check_array_object_valid(json_object, ConstManager.GRAPH_OBJECT)
+        for graph in json_object[ConstManager.GRAPH_OBJECT]:
+            fusion_rule_parse.check_string_object_valid(graph, ConstManager.NAME_OBJECT)
+            model_name = graph[ConstManager.NAME_OBJECT]
+            self.model_name_to_json_map[model_name] = json_file_path
 
     def _make_map_for_inconsistent_timestamp(self: any, graph_name: str, dump_file_path_map: dict,
                                              npu_dump_dir: str) -> None:
