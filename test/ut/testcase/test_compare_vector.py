@@ -2331,10 +2331,12 @@ class TestUtilsMethods(unittest.TestCase):
                                         True, op_name_origin_output_index_map, False)
         result_list2 = [
             ['1', 'Test', 'test_op2', 'NaN', 'NaN', 'test_op2', 'NaN', 'test_op2:output:0',
-             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
         output_result_list2 = [
             ['1', 'Test', 'test_op2', 'NaN', 'NaN', 'test_op2', 'NaN', 'test_op2:output:0',
-             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']]
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
         result_info2 = utils.ResultInfo("test_op2", False, result_list2, 1, [], [], output_result_list2,
                                         True, op_name_origin_output_index_map, False)
         single_op_cmp_result1.update_attr(result_info1)
