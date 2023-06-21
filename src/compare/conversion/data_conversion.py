@@ -51,17 +51,17 @@ class DumpDataConversion:
         self.multi_process = MultiConvertProcess(self._convert_file, self.input_path, self.output_path)
 
         self.layer_name_switch = {
-            "caffe": self._get_standard_layer_name,
-            "tf": self._get_standard_layer_name,
-            "quant": self._get_quant_layer_name,
-            "offline": self._get_offline_layer_name
+            "caffe":self._get_standard_layer_name,
+            "tf":self._get_standard_layer_name,
+            "quant":self._get_quant_layer_name,
+            "offline":self._get_offline_layer_name
         }
 
         self.file_name_switch = {
-            "caffe": lambda name: name + ".pb",
-            "tf": lambda name: name + ".pb",
-            "quant": lambda name: name + ".quant",
-            "offline": lambda name: name
+            "caffe":lambda name: name + ".pb",
+            "tf":lambda name: name + ".pb",
+            "quant":lambda name: name + ".quant",
+            "offline":lambda name: name
         }
 
     def check_arguments_valid(self: any) -> int:
