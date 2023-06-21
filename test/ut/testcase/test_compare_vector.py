@@ -18,6 +18,589 @@ from dump_parse import dump_utils
 
 
 class TestUtilsMethods(unittest.TestCase):
+
+    @staticmethod
+    def _make_op_output(dd_format, shape):
+        op_output = DD.OpOutput()
+        op_output.data_type = DD.DT_FLOAT
+        op_output.format = dd_format
+        length = 1
+        if shape is None:
+            length = 20
+        else:
+            for dim in shape:
+                op_output.shape.dim.append(dim)
+                length *= dim
+        data_list = np.arange(length)
+        origin_numpy = np.array(data_list, np.float16)
+        op_output.data = struct.pack('f' * length, *origin_numpy)
+        return op_output
+
+    @staticmethod
+    def _make_op_input(dd_format, shape):
+        op_input = DD.OpInput()
+        op_input.data_type = DD.DT_FLOAT
+        op_input.format = dd_format
+        length = 1
+        if shape is None:
+            length = 20
+        else:
+            for dim in shape:
+                op_input.shape.dim.append(dim)
+                length *= dim
+        data_list = np.arange(length)
+        origin_numpy = np.array(data_list, np.float16)
+        op_input.data = struct.pack('f' * length, *origin_numpy)
+        return op_input
+
+    @staticmethod
+    def _make_json():
+        return {'name': 'resnet50', 'graph': [
+            {'name': 'merge1', 'op':
+                [{'name': 'conv1conv1_relu',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["scale_conv1", "conv1",
+                                                "bn_conv1", "conv1_relu"]}}}
+                  ],
+                  "input": [
+                      "data:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'id': 1,
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'conv1_relu'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'conv1conv1_relu2',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["scale_conv1", "conv1",
+                                                "bn_conv1", "conv1_relu"]}}},
+                  ],
+                  "input": [
+                      "data:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'id': 2,
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'conv1_relu'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 1}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'res2s_branch1',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["res2s_branch1",
+                                                "res2s_branch1_relu"]}}},
+                  ],
+                  "input": [
+                      "data:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'id': 3,
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'res2s_branch1_relu'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'dynamic_const_432', 'type': 'Const', 'id': 4, "attr": [
+                     {"key": "_datadump_original_op_names",
+                      "value": {"list": {"val_type": 1}}}]},
+                 {'name': 'prob', 'id': 5, 'type': 'PORR'},
+                 {'name': 'conv1_quant', 'id': 6, 'type': 'AscendQuant'},
+                 {'name': 'pool5', 'id': 7, 'type': 'pool'},
+                 ],
+             },
+            {
+                'name': 'merge2', 'op': []
+            }
+        ]}
+
+    @staticmethod
+    def _make_input_json():
+        return json.dumps({'name': 'resnet50', 'graph': [
+            {'name': 'merge1', 'op':
+                [{'name': 'data',
+                  'type': 'Input',
+                  "attr": [
+                      {"key": "xxx",
+                       "value": 'xxx'},
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': 'xxx',
+                           'value': 'xxx'},
+                          {'key': 'origin_format',
+                           'value': {'s': 'NCHW'}},
+                          {'key': 'origin_shape',
+                           'value': {"list": {"val_type": 1,
+                                              "i": [1, 3, 4, 4]}}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'dynamic_const_471', 'type': 'Const', "attr": [
+                     {"key": "_datadump_original_op_names",
+                      "value": {"list": {"val_type": 1}}}]},
+                 {'name': 'dynamic_const_387', 'type': 'Const', "attr": [
+                     {"key": "_datadump_original_op_names",
+                      "value": {"list": {"val_type": 1}}}]},
+                 {'name': 'conv1conv1_relu',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["scale_conv1", "conv1",
+                                                "bn_conv1", "conv1_relu"]}}}
+                  ],
+                  "input": [
+                      "data:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'conv1_relu'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                          {'key': 'origin_shape',
+                           'value': {"list": {"val_type": 1,
+                                              "i": [1, 3, 4, 4]}}},
+                      ]},
+                  ]
+                  },
+
+                 ],
+             },
+        ]})
+
+    @staticmethod
+    def _make_csv_content():
+        content = 'Index,LeftOp,RightOp,TensorIndex,MaxAbsoluteError,MaxAbsoluteError,CompareFailReason'
+        return content
+
+    @staticmethod
+    def _make_json_object():
+        json_object = {'name': 'resnet50', 'graph': [
+            {'name': 'merge1', 'op':
+                [{'name': 'data',
+                  'type': 'Input',
+                  "attr": [
+                      {"key": "xxx",
+                       "value": 'xxx'},
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': 'xxx',
+                           'value': 'xxx'},
+                          {'key': 'origin_format',
+                           'value': {'s': 'NCHW'}},
+                          {'key': 'origin_shape',
+                           'value': {"list": {"val_type": 1,
+                                              "i": [1, 3, 4, 4]}}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'dynamic_const_471', 'type': 'Const', "attr": [
+                     {"key": "_datadump_original_op_names",
+                      "value": {"list": {"val_type": 1}}}]},
+                 {'name': 'dynamic_const_387', 'type': 'Const', "attr": [
+                     {"key": "_datadump_original_op_names",
+                      "value": {"list": {"val_type": 1}}}]},
+                 {'name': 'conv1conv1_relu',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["scale_conv1", "conv1",
+                                                "bn_conv1", "conv1_relu"]}}}
+                  ],
+                  "input": [
+                      "data:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'conv1_relu'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                          {'key': 'origin_shape',
+                           'value': {"list": {"val_type": 1,
+                                              "i": [1, 3, 4, 4]}}},
+                      ]},
+                  ]
+                  },
+
+                 ],
+             },
+        ]}
+        return json_object
+
+    @staticmethod
+    def _make_L1_fusion_json():
+        return json.dumps({'name': 'resnet50', 'graph': [
+            {'name': 'merge1', 'op':
+                [{'name': 'data', 'type': 'input'},
+                 {'name': 'A1',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["A_conv1", "A_relu"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "data:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'A_relu'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'A2',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["A_conv1", "A_relu"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "data:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'A_relu'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+
+                 {'name': 'B1',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["B"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "A1:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'B'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'B2',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["B"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "A2:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'B'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'C1',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["C"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "B1:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'C'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'C2',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["C"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "B2:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'C'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 ],
+             },
+
+        ]})
+
+    @staticmethod
+    def _make_L1_fusion_json_object():
+        return {'name': 'resnet50', 'graph': [
+            {'name': 'merge1', 'op':
+                [{'name': 'data', 'type': 'input'},
+                 {'name': 'A1',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["A_conv1", "A_relu"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "data:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'A_relu'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'A2',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["A_conv1", "A_relu"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "data:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'A_relu'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+
+                 {'name': 'B1',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["B"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "A1:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'B'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'B2',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["B"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "A2:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'B'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'C1',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["C"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "B1:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'C'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 {'name': 'C2',
+                  'type': 'Relu',
+                  "attr": [
+                      {"key": "_datadump_original_op_names",
+                       "value": {"list": {"val_type": 1,
+                                          "s": ["C"]}}},
+                      {"key": "_L1_fusion_sub_graph_no",
+                       "value": {'s': '1'}},
+                  ],
+                  "input": [
+                      "B2:0",
+                      "dynamic_const_471:0",
+                      "dynamic_const_387:0"
+                  ],
+                  'output_desc': [
+                      {'attr': [
+                          {'key': '_datadump_origin_name',
+                           'value': {'s': 'C'}},
+                          {'key': '_datadump_origin_output_index',
+                           'value': {'i': 0}},
+                          {'key': '_datadump_origin_format',
+                           'value': {'s': 'NCHW'}},
+                      ]},
+                  ]
+                  },
+                 ],
+             },
+
+        ]}
+
+    @staticmethod
+    def get_result_list(result):
+        result_list = []
+        for single_res in result:
+            for item in single_res.result_list:
+                result_list.append(item)
+        return result_list
+
     def test_compare1(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-o',
                 '/home/result.txt', '-d', 'prob', '-t', 'xxx']
@@ -401,7 +984,6 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.code,
                          CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
 
-
     def test_compare_vector1(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result.txt']
@@ -440,7 +1022,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json_object()):
                         with mock.patch('builtins.open', mock.mock_open(
@@ -545,7 +1127,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = dump_utils.convert_dump_data(dump_data)
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -560,7 +1142,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -606,7 +1188,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = dump_utils.convert_dump_data(dump_data)
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -621,7 +1203,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -664,7 +1246,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = dump_utils.convert_dump_data(dump_data)
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -679,7 +1261,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("json.load", return_value=self._make_json_object()):
                     with mock.patch('builtins.open',
                                     mock.mock_open(
@@ -722,7 +1304,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = dump_utils.convert_dump_data(dump_data)
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -778,7 +1360,7 @@ class TestUtilsMethods(unittest.TestCase):
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         dump_data = DD.DumpData()
-        dump_data = dump_utils.convert_dump_data(dump_data)
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -839,7 +1421,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 1, 1, 1]))
         result = [[0, True, "data&message"]]
-        dump_data = dump_utils.convert_dump_data(dump_data)
+        dump_data = utils.convert_dump_data(dump_data)
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.access', return_value=True), \
@@ -852,7 +1434,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json()):
                         with mock.patch('builtins.open',
@@ -898,7 +1480,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [0, 1, 1]))
-        dump_data = dump_utils.convert_dump_data(dump_data)
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -912,7 +1494,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json()):
                         with mock.patch('builtins.open',
@@ -980,7 +1562,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [0, 1, 1]))
-        dump_data = dump_utils.convert_dump_data(dump_data)
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -994,7 +1576,7 @@ class TestUtilsMethods(unittest.TestCase):
                                          ['convert_NC1HWC0_to_NCHW.py']]), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
+                 mock.patch('cmp_utils.utils.parse_dump_file', return_value=dump_data):
                 with mock.patch("os.path.getsize", return_value=100):
                     with mock.patch("json.load", return_value=self._make_json()):
                         with mock.patch('builtins.open',
@@ -1040,7 +1622,7 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = dump_utils.convert_dump_data(dump_data)
+        dump_data = utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
@@ -1728,587 +2310,96 @@ class TestUtilsMethods(unittest.TestCase):
             main = compare_vector.VectorComparison()
             main.set_output_path("/home/demo")
 
-    @staticmethod
-    def _make_op_output(dd_format, shape):
-        op_output = DD.OpOutput()
-        op_output.data_type = DD.DT_FLOAT
-        op_output.format = dd_format
-        length = 1
-        if shape is None:
-            length = 20
-        else:
-            for dim in shape:
-                op_output.shape.dim.append(dim)
-                length *= dim
-        data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('f' * length, *origin_numpy)
-        return op_output
+    def test_ffts_find_pre_op1(self):
+        single_op_cmp_result1 = SingleOpCmpResult()
+        single_op_cmp_result2 = SingleOpCmpResult()
+        result_list1 = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', ''],
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
+        input_result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0', 'NaN', 'NaN',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']
+        ]
+        output_result_list1 = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
+        op_name_origin_output_index_map = {"test_op1:input:0": ("test_op2", 0)}
+        result_info1 = utils.ResultInfo("test_op1", False, result_list1, 1, [], input_result_list, output_result_list1,
+                                        True, op_name_origin_output_index_map, False)
+        result_list2 = [
+            ['1', 'Test', 'test_op2', 'NaN', 'NaN', 'test_op2', 'NaN', 'test_op2:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
+        output_result_list2 = [
+            ['1', 'Test', 'test_op2', 'NaN', 'NaN', 'test_op2', 'NaN', 'test_op2:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
+        result_info2 = utils.ResultInfo("test_op2", False, result_list2, 1, [], [], output_result_list2,
+                                        True, op_name_origin_output_index_map, False)
+        single_op_cmp_result1.update_attr(result_info1)
+        single_op_cmp_result2.update_attr(result_info2)
+        result_mapping = {"test_op1": single_op_cmp_result1, "test_op2": single_op_cmp_result2}
+        single_op_cmp_result1.find_pre_op(result_mapping)
+        result = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, ''],
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
+        self.assertEqual(result, single_op_cmp_result1.result_list)
 
-    @staticmethod
-    def _make_op_input(dd_format, shape):
-        op_input = DD.OpInput()
-        op_input.data_type = DD.DT_FLOAT
-        op_input.format = dd_format
-        length = 1
-        if shape is None:
-            length = 20
-        else:
-            for dim in shape:
-                op_input.shape.dim.append(dim)
-                length *= dim
-        data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_input.data = struct.pack('f' * length, *origin_numpy)
-        return op_input
+    def test_ffts_find_pre_op2(self):
+        single_op_cmp_result = SingleOpCmpResult()
+        result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']
+        ]
+        input_result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']
+        ]
+        output_result_list1 = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
+        result_info = utils.ResultInfo(
+            "test_op", False, result_list, 1, [], input_result_list, output_result_list1, True, {}, False)
+        single_op_cmp_result.update_attr(result_info)
+        result_mapping = {}
+        with pytest.raises(CompareError) as error:
+            single_op_cmp_result.find_pre_op(result_mapping)
+        self.assertEqual(error.value.code,
+                         CompareError.MSACCUCMP_INVALID_INPUT_MAPPING)
 
-    @staticmethod
-    def _make_json():
-        return {'name': 'resnet50', 'graph': [
-            {'name': 'merge1', 'op':
-                [{'name': 'conv1conv1_relu',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["scale_conv1", "conv1",
-                                                "bn_conv1", "conv1_relu"]}}}
-                  ],
-                  "input": [
-                      "data:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'id': 1,
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'conv1_relu'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'conv1conv1_relu2',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["scale_conv1", "conv1",
-                                                "bn_conv1", "conv1_relu"]}}},
-                  ],
-                  "input": [
-                      "data:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'id': 2,
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'conv1_relu'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 1}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'res2s_branch1',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["res2s_branch1",
-                                                "res2s_branch1_relu"]}}},
-                  ],
-                  "input": [
-                      "data:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'id': 3,
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'res2s_branch1_relu'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'dynamic_const_432', 'type': 'Const', 'id': 4, "attr": [
-                     {"key": "_datadump_original_op_names",
-                      "value": {"list": {"val_type": 1}}}]},
-                 {'name': 'prob', 'id': 5, 'type': 'PORR'},
-                 {'name': 'conv1_quant', 'id': 6, 'type': 'AscendQuant'},
-                 {'name': 'pool5', 'id': 7, 'type': 'pool'},
-                 ],
-             },
-            {
-                'name': 'merge2', 'op': []
-            }
-        ]}
+    def test_ffts_find_pre_op3(self):
+        single_op_cmp_result = SingleOpCmpResult()
+        result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', ''],
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
+        input_result_list = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:input:0',
+             'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', 'NaN', '']
+        ]
+        output_result_list1 = [
+            ['0', 'Test', 'test_op1', 'NaN', 'NaN', 'test_op1', 'NaN', 'test_op1:output:0',
+             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, '']
+        ]
+        result_info = utils.ResultInfo("test_op", False, result_list, 1, [], input_result_list, output_result_list1,
+                                       True, {}, False)
+        single_op_cmp_result.update_attr(result_info)
+        result_mapping = {}
+        with pytest.raises(CompareError) as error:
+            single_op_cmp_result.find_pre_op(result_mapping)
+        self.assertEqual(error.value.code,
+                         CompareError.MSACCUCMP_INVALID_INPUT_MAPPING)
 
-    @staticmethod
-    def _make_input_json():
-        return json.dumps({'name': 'resnet50', 'graph': [
-            {'name': 'merge1', 'op':
-                [{'name': 'data',
-                  'type': 'Input',
-                  "attr": [
-                      {"key": "xxx",
-                       "value": 'xxx'},
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': 'xxx',
-                           'value': 'xxx'},
-                          {'key': 'origin_format',
-                           'value': {'s': 'NCHW'}},
-                          {'key': 'origin_shape',
-                           'value': {"list": {"val_type": 1,
-                                              "i": [1, 3, 4, 4]}}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'dynamic_const_471', 'type': 'Const', "attr": [
-                     {"key": "_datadump_original_op_names",
-                      "value": {"list": {"val_type": 1}}}]},
-                 {'name': 'dynamic_const_387', 'type': 'Const', "attr": [
-                     {"key": "_datadump_original_op_names",
-                      "value": {"list": {"val_type": 1}}}]},
-                 {'name': 'conv1conv1_relu',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["scale_conv1", "conv1",
-                                                "bn_conv1", "conv1_relu"]}}}
-                  ],
-                  "input": [
-                      "data:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'conv1_relu'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                          {'key': 'origin_shape',
-                           'value': {"list": {"val_type": 1,
-                                              "i": [1, 3, 4, 4]}}},
-                      ]},
-                  ]
-                  },
-
-                 ],
-             },
-        ]})
-
-    @staticmethod
-    def _make_csv_content():
-        content = 'Index,LeftOp,RightOp,TensorIndex,MaxAbsoluteError,MaxAbsoluteError,CompareFailReason'
-        return content
-
-    @staticmethod
-    def _make_json_object():
-        json_object = {'name': 'resnet50', 'graph': [
-            {'name': 'merge1', 'op':
-                [{'name': 'data',
-                  'type': 'Input',
-                  "attr": [
-                      {"key": "xxx",
-                       "value": 'xxx'},
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': 'xxx',
-                           'value': 'xxx'},
-                          {'key': 'origin_format',
-                           'value': {'s': 'NCHW'}},
-                          {'key': 'origin_shape',
-                           'value': {"list": {"val_type": 1,
-                                              "i": [1, 3, 4, 4]}}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'dynamic_const_471', 'type': 'Const', "attr": [
-                     {"key": "_datadump_original_op_names",
-                      "value": {"list": {"val_type": 1}}}]},
-                 {'name': 'dynamic_const_387', 'type': 'Const', "attr": [
-                     {"key": "_datadump_original_op_names",
-                      "value": {"list": {"val_type": 1}}}]},
-                 {'name': 'conv1conv1_relu',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["scale_conv1", "conv1",
-                                                "bn_conv1", "conv1_relu"]}}}
-                  ],
-                  "input": [
-                      "data:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'conv1_relu'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                          {'key': 'origin_shape',
-                           'value': {"list": {"val_type": 1,
-                                              "i": [1, 3, 4, 4]}}},
-                      ]},
-                  ]
-                  },
-
-                 ],
-             },
-        ]}
-        return json_object
-
-    @staticmethod
-    def _make_L1_fusion_json():
-        return json.dumps({'name': 'resnet50', 'graph': [
-            {'name': 'merge1', 'op':
-                [{'name': 'data', 'type': 'input'},
-                 {'name': 'A1',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["A_conv1", "A_relu"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "data:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'A_relu'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'A2',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["A_conv1", "A_relu"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "data:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'A_relu'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-
-                 {'name': 'B1',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["B"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "A1:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'B'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'B2',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["B"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "A2:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'B'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'C1',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["C"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "B1:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'C'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'C2',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["C"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "B2:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'C'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 ],
-             },
-
-        ]})
-
-    @staticmethod
-    def _make_L1_fusion_json_object():
-        return {'name': 'resnet50', 'graph': [
-            {'name': 'merge1', 'op':
-                [{'name': 'data', 'type': 'input'},
-                 {'name': 'A1',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["A_conv1", "A_relu"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "data:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'A_relu'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'A2',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["A_conv1", "A_relu"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "data:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'A_relu'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-
-                 {'name': 'B1',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["B"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "A1:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'B'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'B2',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["B"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "A2:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'B'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'C1',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["C"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "B1:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'C'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 {'name': 'C2',
-                  'type': 'Relu',
-                  "attr": [
-                      {"key": "_datadump_original_op_names",
-                       "value": {"list": {"val_type": 1,
-                                          "s": ["C"]}}},
-                      {"key": "_L1_fusion_sub_graph_no",
-                       "value": {'s': '1'}},
-                  ],
-                  "input": [
-                      "B2:0",
-                      "dynamic_const_471:0",
-                      "dynamic_const_387:0"
-                  ],
-                  'output_desc': [
-                      {'attr': [
-                          {'key': '_datadump_origin_name',
-                           'value': {'s': 'C'}},
-                          {'key': '_datadump_origin_output_index',
-                           'value': {'i': 0}},
-                          {'key': '_datadump_origin_format',
-                           'value': {'s': 'NCHW'}},
-                      ]},
-                  ]
-                  },
-                 ],
-             },
-
-        ]}
-
-    @staticmethod
-    def get_result_list(result):
-        result_list = []
-        for single_res in result:
-            for item in single_res.result_list:
-                result_list.append(item)
-        return result_list
 
 if __name__ == '__main__':
     unittest.main()

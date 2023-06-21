@@ -55,7 +55,6 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch("cmp_utils.path_check.check_path_valid", return_value=0):
             compare_rule_object._sort_file_by_timestamp(dump_info)
 
-
     def test_sort_file_by_timestamp2(self):
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
@@ -67,7 +66,6 @@ class TestUtilsMethods(unittest.TestCase):
         dump_info.hash_to_file_name_map = {"1223453545232": "CON.aDD.1.23431252326"}
         with mock.patch("cmp_utils.path_check.check_path_valid", return_value=0):
             compare_rule_object._sort_file_by_timestamp(dump_info)
-
 
     def test_make_npu_vs_npu_fusion_rule1(self):
         fusion_json_file_path = "/home/demo/1.json"
