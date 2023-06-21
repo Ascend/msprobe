@@ -67,6 +67,7 @@ class FileUtils:
         finally:
             pass
 
+    @staticmethod
     def delete_file(path: str) -> None:
         '''Delete file if it exists and user has permission'''
         try:

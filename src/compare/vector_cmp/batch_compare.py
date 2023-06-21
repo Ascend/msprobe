@@ -79,7 +79,7 @@ class BatchCompare:
     def _make_model_name_to_json_map(self: any, json_dir_path: str) -> None:
         for json_file_name in os.listdir(json_dir_path):
             json_file_path = os.path.join(json_dir_path, json_file_name)
-            if json_file_path.endswith('.json'):
+            if json_file_path.endswith(".json"):
                 self._parse_json_file(json_file_path)
 
         if not self.model_name_to_json_map:
