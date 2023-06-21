@@ -8,7 +8,7 @@ FusionOpComparison class. This class mainly involves the compare function.
 import collections
 
 from vector_cmp.fusion_manager import fusion_rule_parser
-from cmp_utils import utils, utils_type, path
+from cmp_utils import utils, utils_type
 from cmp_utils import log
 from vector_cmp.fusion_manager.compare_npu_vs_npu import NpuVsNpuComparison
 from vector_cmp.fusion_manager import compare_result

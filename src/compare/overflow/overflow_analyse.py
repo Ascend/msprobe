@@ -11,7 +11,7 @@ import time
 
 import numpy as np
 
-from cmp_utils import log, utils_type, path
+from cmp_utils import log, utils_type, path_check
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
 from dump_parse.dump_data_parser import DumpDataParser
@@ -42,13 +42,13 @@ class OverflowAnalyse:
         check the arguments of overflow
         :arguments: input args
         """
-        ret = path.check_path_valid(arguments.dump_path, exist=True,
-                                     path_type=path.PathType.Directory)
+        ret = path_check.check_path_valid(arguments.dump_path, exist=True,
+                                     path_type=path_check.PathType.Directory)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             log.print_error_log('[Overflow] the -d parameter: "%s"'
                                 ' is invalid!' % arguments.dump_path)
         else:
-            ret = path.check_output_path_valid(arguments.output_path, exist=True)
+            ret = path_check.check_output_path_valid(arguments.output_path, exist=True)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 log.print_error_log('[Overflow] the -out parameter: "%s"'
                                     ' is invalid!' % arguments.output_path)

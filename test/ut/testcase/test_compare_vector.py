@@ -10,7 +10,7 @@ import unittest
 from unittest import mock
 
 import compare_vector
-from cmp_utils import utils, path
+from cmp_utils import utils, path_check
 from cmp_utils.constant.compare_error import CompareError
 from vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
 from vector_cmp.fusion_manager.compare_result import SingleOpCmpResult

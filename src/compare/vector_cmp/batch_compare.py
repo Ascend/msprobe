@@ -9,7 +9,7 @@ import os
 import re
 import time
 
-from cmp_utils import path as path_utils
+from cmp_utils import path_check as path_utils
 from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from compare_vector import VectorComparison
 from cmp_utils.file_utils import FileUtils

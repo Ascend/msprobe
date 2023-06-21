@@ -12,7 +12,7 @@ import argparse
 import time
 import numpy as np
 
-from cmp_utils import utils, path
+from cmp_utils import utils, path_check
 from dump_parse import big_dump_data, dump_utils
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
@@ -65,11 +65,11 @@ class DumpDataConversion:
         Check arguments valid
         :return: error code
         """
-        return_code = path.check_path_valid(self.input_path, True)
+        return_code = path_check.check_path_valid(self.input_path, True)
         if return_code != CompareError.MSACCUCMP_NONE_ERROR:
             return return_code
 
-        return_code = path.check_output_path_valid(self.output_path, True)
+        return_code = path_check.check_output_path_valid(self.output_path, True)
         if return_code != CompareError.MSACCUCMP_NONE_ERROR:
             return return_code
 

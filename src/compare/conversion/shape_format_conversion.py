@@ -15,7 +15,7 @@ import time
 import numpy as np
 import dump_data_pb2 as DD
 
-from cmp_utils import utils, utils_type, path
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import common
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
@@ -138,13 +138,13 @@ class ShapeConversionMain:
             return CompareError.MSACCUCMP_INVALID_PARAM_ERROR
 
         # check dump file path is valid
-        ret = path.check_path_valid(
-            self.dump_file_path, True, False, path.PathType.File)
+        ret = path_check.check_path_valid(
+            self.dump_file_path, True, False, path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             return ret
 
         # check output path is valid
-        ret = path.check_output_path_valid(self.output_path, True)
+        ret = path_check.check_output_path_valid(self.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             return ret
 
@@ -254,12 +254,12 @@ class FormatConversionMain:
         self.manager.check_arguments_valid()
 
         # check dump file path is valid
-        self.input_path = path.get_path_list_for_str(self.path_str)
+        self.input_path = path_check.get_path_list_for_str(self.path_str)
         self.multi_process = MultiConvertProcess(self._convert_format_for_one_file, self.input_path,
                                                  self.output_path)
 
         # check output path is valid
-        ret = path.check_output_path_valid(self.output_path, True)
+        ret = path_check.check_output_path_valid(self.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             return ret
 

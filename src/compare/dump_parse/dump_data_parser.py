@@ -11,7 +11,7 @@ import struct
 
 import numpy as np
 
-from cmp_utils import utils, utils_type, path
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from cmp_utils import common
 from cmp_utils.constant.const_manager import ConstManager
@@ -86,10 +86,10 @@ class DumpDataParser:
         Convert dump data to numpy and bin file
         """
         # 1. check arguments valid
-        ret = path.check_output_path_valid(self.output_path, True)
+        ret = path_check.check_output_path_valid(self.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
-        ret = path.check_path_valid(self.path_str, True, False, path_type=path.PathType.File)
+        ret = path_check.check_path_valid(self.path_str, True, False, path_type=path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         try:
@@ -102,9 +102,9 @@ class DumpDataParser:
         """
         Check arguments valid
         """
-        self.input_path = path.get_path_list_for_str(self.path_str)
+        self.input_path = path_check.get_path_list_for_str(self.path_str)
         self.multi_process = MultiConvertProcess(self._parse_one_dump_file, self.input_path, self.output_path)
-        ret = path.check_output_path_valid(self.output_path, True)
+        ret = path_check.check_output_path_valid(self.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 
@@ -226,7 +226,7 @@ class DumpDataParser:
         return data
 
     def _parse_one_file_exec(self: any, dump_path: str) -> None:
-        ret = path.check_path_valid(dump_path, True, False, path_type=path.PathType.File)
+        ret = path_check.check_path_valid(dump_path, True, False, path_type=path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         dump_data = dump_utils.parse_dump_file(dump_path, self.dump_version)

@@ -15,7 +15,7 @@ import importlib
 import numpy as np
 
 from cmp_utils import log, utils_type
-from cmp_utils import utils, path
+from cmp_utils import utils, path_check
 from algorithm_manager.algorithm_parameter import AlgorithmParameter
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
@@ -231,8 +231,8 @@ class AlgorithmManager:
         log.print_info_log("dir_path:%s" % dir_path)
         self._make_support_algorithm_by_path(dir_path, self.built_in_support_algorithm)
         if self.custom_path:
-            ret = path.check_path_valid(
-                self.custom_path, True, False, path.PathType.Directory)
+            ret = path_check.check_path_valid(
+                self.custom_path, True, False, path_check.PathType.Directory)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
             dir_path = os.path.join(self.custom_path, ConstManager.CUSTOM_ALGORITHM_DIR_NAME)
@@ -337,12 +337,12 @@ class AlgorithmManagerMain:
         """
         Check arguments valid, if invalid, throw exception
         """
-        ret = path.check_path_valid(self.my_output_dump_file_path, True, False,
-                                     path.PathType.File)
+        ret = path_check.check_path_valid(self.my_output_dump_file_path, True, False,
+                                     path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
-        ret = path.check_path_valid(self.ground_truth_dump_file_path, True, False,
-                                     path.PathType.File)
+        ret = path_check.check_path_valid(self.ground_truth_dump_file_path, True, False,
+                                     path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 

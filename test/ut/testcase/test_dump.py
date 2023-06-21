@@ -9,13 +9,13 @@ from cmp_utils.constant.compare_error import CompareError
 class TestUtilsMethods(unittest.TestCase):
     def test_check_arguments_valid1(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path.check_path_valid', return_value=1):
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=1):
                 dump_info = dump.DumpInfo('/home', 1)
                 dump_info.check_arguments_valid()
         self.assertEqual(error.value.code, 1)
 
     def test_check_arguments_valid2(self):
-        with mock.patch('cmp_utils.path.check_path_valid', return_value=0):
+        with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
             dump_info = dump.DumpInfo('/home', 1)
             dump_info._make_op_name_to_file_map = mock.Mock()
             dump_info.check_arguments_valid()

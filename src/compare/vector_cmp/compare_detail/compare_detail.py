@@ -9,7 +9,7 @@ DetailComparison class. This class mainly involves the compare function.
 import os
 
 from vector_cmp.fusion_manager import fusion_rule_parser
-from cmp_utils import utils, utils_type, path
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager

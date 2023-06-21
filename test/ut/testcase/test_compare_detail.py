@@ -7,7 +7,7 @@ import struct
 
 from vector_cmp.compare_detail import compare_detail
 from vector_cmp.compare_detail import detail
-from cmp_utils import utils, utils_type, path
+from cmp_utils import utils, utils_type, path_check
 from vector_cmp.fusion_manager import fusion_op
 from format_manager.format_manager import FormatManager
 from cmp_utils.constant.compare_error import CompareError

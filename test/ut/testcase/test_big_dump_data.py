@@ -17,13 +17,13 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_parse1(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path.check_path_valid', return_value=1):
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=1):
                 BigDumpDataParser('a.bin').parse()
         self.assertEqual(error.value.args[0], 1)
 
     def test_parse2(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path.check_path_valid', return_value=0):
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
                 with mock.patch('os.path.getsize', return_value=3):
                     BigDumpDataParser('a.bin').parse()
         self.assertEqual(error.value.args[0],
@@ -32,7 +32,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_parse3(self):
         data = struct.pack('Q', 10)
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path.check_path_valid', return_value=0):
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
                 with mock.patch('os.path.getsize', return_value=10):
                     with mock.patch('builtins.open', mock.mock_open(
                             read_data=data)):
@@ -43,7 +43,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_parse4(self):
         data = struct.pack('QQ', 4, 10)
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path.check_path_valid', return_value=0):
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
                 with mock.patch('os.path.getsize', return_value=20):
                     with mock.patch('builtins.open', mock.mock_open(
                             read_data=data)):
@@ -54,7 +54,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_parse5(self):
         data = struct.pack('QQ', 4, 10)
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path.check_path_valid', return_value=0):
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
                 with mock.patch('os.path.getsize', return_value=20):
                     with mock.patch('builtins.open', mock.mock_open(
                             read_data=data)):
@@ -79,7 +79,7 @@ class TestUtilsMethods(unittest.TestCase):
         struct_format = 'Q' + str(len(dump_data_ser)) + 'sQQ'
         data = struct.pack(
             struct_format, len(dump_data_ser), dump_data_ser, 13, 55)
-        with mock.patch('cmp_utils.path.check_path_valid', return_value=0):
+        with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
             with mock.patch('os.path.getsize', return_value=48):
                 with mock.patch('builtins.open', mock.mock_open(
                         read_data=data)):
@@ -91,7 +91,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_parse7(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path.check_path_valid', return_value=0):
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
                 BigDumpDataParser('a.bin').parse()
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_DUMP_FILE_ERROR)
@@ -107,7 +107,7 @@ class TestUtilsMethods(unittest.TestCase):
         struct_format = 'Q' + str(len(dump_data_ser)) + 'sQ'
         data = struct.pack(
             struct_format, len(dump_data_ser), dump_data_ser, 88)
-        with mock.patch('cmp_utils.path.check_path_valid', return_value=0):
+        with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
             with mock.patch('os.path.getsize', return_value=32):
                 with mock.patch('builtins.open', mock.mock_open(
                         read_data=data)):

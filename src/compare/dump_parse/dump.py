@@ -12,7 +12,7 @@ from enum import unique
 
 from dump_data_pb2 import DumpData
 
-from cmp_utils import utils, utils_type, path
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
@@ -54,7 +54,7 @@ class DumpInfo:
         """
         Check arguments valid, if invalid, throw exception
         """
-        ret = path.check_path_valid(self.path, True, False, path.PathType.Directory)
+        ret = path_check.check_path_valid(self.path, True, False, path_check.PathType.Directory)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         self._make_op_name_to_file_map()
@@ -374,20 +374,22 @@ class CompareData:
 
 
 def handle_op_name(file_op_name: str, fusion_json_file_path: str) -> str:
-    if fusion_json_file_path:
-        if ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
-            file_op_name = _process_op_name(file_op_name)
-            return file_op_name
+    if fusion_json_file_path and ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
+        file_op_name = _process_op_name(file_op_name)
+        return file_op_name
+
     # filter field '_lxsliceX' and '_sgt_field'
     if ConstManager.FFTS_MANUAL_MODE_FIELD not in file_op_name \
             and ConstManager.SGT_FIELD not in file_op_name:
         return file_op_name
+
     # field '_lxsliceX' at the end of name
     if ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
         first_match = RegManager.get_matchs(
             RegManager.FFTS_MANUAL_FIELD_PATTERN, file_op_name)[0]
         file_op_name = \
             file_op_name[:first_match.start() - 1] if first_match.end() == first_match.endpos else file_op_name
+
     # filter field '_sgt_field'
     if ConstManager.SGT_FIELD in file_op_name:
         # field '_sgt_graph' in the name

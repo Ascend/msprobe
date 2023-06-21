@@ -7,7 +7,7 @@ VectorComparison class. This class mainly involves the compare function.
 """
 
 import os
-from cmp_utils import utils, utils_type, path
+from cmp_utils import utils, utils_type, path_check
 from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from vector_cmp.fusion_manager.fusion_rule_parser import merge_fusion_rule
 from vector_cmp.fusion_manager.fusion_rule_parser import merge_close_and_open_fusion_rule
@@ -116,15 +116,15 @@ class CompareRule:
         Check arguments valid, if invalid, throw exception
         """
         if self.fusion_json_file_path != "":
-            ret = path.check_path_valid(self.fusion_json_file_path, True, False, path.PathType.File)
+            ret = path_check.check_path_valid(self.fusion_json_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
         if self.quant_fusion_rule_file_path != "":
-            ret = path.check_path_valid(self.quant_fusion_rule_file_path, True, False, path.PathType.File)
+            ret = path_check.check_path_valid(self.quant_fusion_rule_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
         if self.close_fusion_rule_file_path != "":
-            ret = path.check_path_valid(self.close_fusion_rule_file_path, True, False, path.PathType.File)
+            ret = path_check.check_path_valid(self.close_fusion_rule_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
 

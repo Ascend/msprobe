@@ -17,7 +17,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'xxx', '-o',
                 '/home', '-type', 'tf']
         with mock.patch('sys.argv', args):
-            with mock.patch('cmp_utils.path.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_INVALID_PATH_ERROR):
                 main = dump_data_conversion.DumpDataConversion()
                 ret = main.check_arguments_valid()
@@ -27,7 +27,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'xxx', '-o',
                 '/home', '-type', 'tf']
         with mock.patch('sys.argv', args):
-            with mock.patch('cmp_utils.path.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             side_effect=[CompareError.MSACCUCMP_NONE_ERROR,
                                          CompareError.MSACCUCMP_INVALID_SHAPE_ERROR]):
                 main = dump_data_conversion.DumpDataConversion()
@@ -38,7 +38,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'xxx', '-o',
                 '/home', '-type', 'tf']
         with mock.patch('sys.argv', args):
-            with mock.patch('cmp_utils.path.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 main = dump_data_conversion.DumpDataConversion()
                 ret = main.check_arguments_valid()
@@ -48,7 +48,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',
                 '/home', '-type', 'tfe']
         with mock.patch('sys.argv', args):
-            with mock.patch('cmp_utils.path.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 main = dump_data_conversion.DumpDataConversion()
                 ret = main.check_arguments_valid()
@@ -58,7 +58,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'numpy', '-o',
                 '/home', '-type', 'tf']
         with mock.patch('sys.argv', args):
-            with mock.patch('cmp_utils.path.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.exists', return_value=True):
                     with mock.patch('os.remove'):
