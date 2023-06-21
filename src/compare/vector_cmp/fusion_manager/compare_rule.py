@@ -7,7 +7,7 @@ VectorComparison class. This class mainly involves the compare function.
 """
 
 import os
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path_check
 from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from vector_cmp.fusion_manager.fusion_rule_parser import merge_fusion_rule
 from vector_cmp.fusion_manager.fusion_rule_parser import merge_close_and_open_fusion_rule
@@ -16,6 +16,7 @@ from vector_cmp.fusion_manager.fusion_op import OpAttr
 from cmp_utils.constant.const_manager import ConstManager
 from dump_parse.dump import CompareData, DumpInfo
 from cmp_utils.constant.compare_error import CompareError
+from dump_parse import dump_utils
 
 
 class CompareRule:
@@ -40,14 +41,14 @@ class CompareRule:
     def _sort_file_by_timestamp(dump_info: DumpInfo) -> dict:
         op_name_to_file_map = dump_info.op_name_to_file_map
         op_name_to_task_mode_map = dump_info.op_name_to_task_mode_map
-        utils.SortMode.hash_to_file_name_map = dump_info.hash_to_file_name_map
+        dump_utils.SortMode.hash_to_file_name_map = dump_info.hash_to_file_name_map
         origin_dic = {}
         for op_name, dump_file_list in op_name_to_file_map.items():
             dump_task_mode = op_name_to_task_mode_map.get(op_name)
             if len(dump_file_list) > 1:
-                dump_file_list = utils.sort_dump_file_list(dump_task_mode, dump_file_list)
+                dump_file_list = dump_utils.sort_dump_file_list(dump_task_mode, dump_file_list)
             if dump_task_mode == ConstManager.NORMAL_MODE:
-                timestamp = utils.get_normal_timestamp(dump_file_list[-1])
+                timestamp = dump_utils.get_normal_timestamp(dump_file_list[-1])
             else:
                 timestamp = utils.get_ffts_timestamp(dump_file_list[-1])
             origin_dic[(op_name, timestamp)] = dump_file_list
@@ -115,15 +116,15 @@ class CompareRule:
         Check arguments valid, if invalid, throw exception
         """
         if self.fusion_json_file_path != "":
-            ret = utils.check_path_valid(self.fusion_json_file_path, True, False, utils_type.PathType.File)
+            ret = path_check.check_path_valid(self.fusion_json_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
         if self.quant_fusion_rule_file_path != "":
-            ret = utils.check_path_valid(self.quant_fusion_rule_file_path, True, False, utils_type.PathType.File)
+            ret = path_check.check_path_valid(self.quant_fusion_rule_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
         if self.close_fusion_rule_file_path != "":
-            ret = utils.check_path_valid(self.close_fusion_rule_file_path, True, False, utils_type.PathType.File)
+            ret = path_check.check_path_valid(self.close_fusion_rule_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
 

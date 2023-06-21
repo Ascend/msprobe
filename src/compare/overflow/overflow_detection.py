@@ -11,7 +11,7 @@ import dump_data_pb2 as DD
 
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils import log
-from cmp_utils import utils
+from dump_parse import dump_utils
 
 
 class OverflowDetection:
@@ -69,7 +69,7 @@ class OverflowDetection:
         dump_file_path = dump_file_list[-1]
         if not dump_file_path:
             return [], []
-        dump_data = utils.parse_dump_file(dump_file_path, self.dump_version)
+        dump_data = dump_utils.parse_dump_file(dump_file_path, self.dump_version)
         input_tensor_data_info = self._get_tensor_data_info("input", dump_data.input_data, dump_file_path)
         output_tensor_data_info = self._get_tensor_data_info("output", dump_data.output_data, dump_file_path)
         return input_tensor_data_info, output_tensor_data_info

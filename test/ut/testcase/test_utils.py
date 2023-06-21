@@ -7,12 +7,13 @@ import numpy as np
 from google.protobuf.message import DecodeError
 import dump_data_pb2 as DD
 
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from vector_cmp.fusion_manager import fusion_op
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.multi_process.progress import Progress
 from cmp_utils.constant.const_manager import ConstManager
+from dump_parse import dump, dump_utils, mapping
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -69,7 +70,7 @@ class TestUtilsMethods(unittest.TestCase):
         op_output = mock.Mock()
         op_output.data = b'\x01\x02'
         op_output.shape.dim = [1]
-        numpy_data = utils.deserialize_dump_data_to_array(op_output)
+        numpy_data = dump_utils._deserialize_dump_data_to_array(op_output)
         self.assertEqual(len(numpy_data), 2)
 
     def test_space_to_comma(self):
@@ -78,72 +79,72 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(new_value, 'a b c,d e,1.0,0.1,(3.0 4.0);(5.3 6.5)')
 
     def test_check_name_valid1(self):
-        ret = utils.check_name_valid('')
+        ret = path_check.check_name_valid('')
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     def test_check_name_valid2(self):
-        ret = utils.check_name_valid('xxx$%^&**&^&')
+        ret = path_check.check_name_valid('xxx$%^&**&^&')
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     def test_check_name_valid3(self):
-        ret = utils.check_name_valid('prob')
+        ret = path_check.check_name_valid('prob')
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_read_numpy_file1(self):
         dump_data = np.arange(2)
         with mock.patch('numpy.loadtxt', return_value=dump_data):
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                     mock.patch('os.path.getsize', return_value=12):
-                ret = utils.read_numpy_file('/home/a.txt')
+                ret = dump_utils.read_numpy_file('/home/a.txt')
         self.assertEqual(len(dump_data), len(ret))
         self.assertEqual(dump_data[0], ret[0])
         self.assertEqual(dump_data[1], ret[1])
 
     def test_read_numpy_file2(self):
         with pytest.raises(CompareError) as error:
-            utils.read_numpy_file('')
+            dump_utils.read_numpy_file('')
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     def test_read_numpy_file3(self):
         dump_data = np.arange(2)
         with mock.patch('numpy.load', return_value=dump_data):
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                     mock.patch('os.path.getsize', return_value=12):
-                ret = utils.read_numpy_file('/home/a.bin')
+                ret = dump_utils.read_numpy_file('/home/a.bin')
         self.assertEqual(len(dump_data), len(ret))
         self.assertEqual(dump_data[0], ret[0])
         self.assertEqual(dump_data[1], ret[1])
 
     def test_read_numpy_file4(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                     mock.patch('os.path.getsize', return_value=12):
                 with mock.patch('numpy.load', side_effect=ValueError):
-                    utils.read_numpy_file('a.bin')
+                    dump_utils.read_numpy_file('a.bin')
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def test_read_numpy_file5(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                     mock.patch('os.path.getsize', return_value=12):
                 with mock.patch('numpy.load', side_effect=UnicodeDecodeError):
-                    utils.read_numpy_file('a.bin')
+                    dump_utils.read_numpy_file('a.bin')
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def test_read_numpy_file6(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                     mock.patch('os.path.getsize', return_value=12):
                 with mock.patch('numpy.loadtxt', side_effect=UnicodeDecodeError):
-                    utils.read_numpy_file('a.txt')
+                    dump_utils.read_numpy_file('a.txt')
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
@@ -151,10 +152,10 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data = np.arange(2)
         with pytest.raises(CompareError) as error:
             with mock.patch('numpy.loadtxt', return_value=dump_data):
-                with mock.patch('cmp_utils.utils.check_path_valid',
+                with mock.patch('cmp_utils.path_check.check_path_valid',
                                 return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                         mock.patch('os.path.getsize', return_value=0):
-                    ret = utils.read_numpy_file('/home/a.txt')
+                    ret = dump_utils.read_numpy_file('/home/a.txt')
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
@@ -176,77 +177,77 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(new_value, '2.365841')
 
     def test_check_path_valid1(self):
-        ret = utils.check_path_valid('', True)
+        ret = path_check.check_path_valid('', True)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     def test_check_path_valid2(self):
-        ret = utils.check_path_valid('/home/7%##3', True)
+        ret = path_check.check_path_valid('/home/7%##3', True)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     def test_check_path_valid3(self):
         with mock.patch('os.path.exists', return_value=False):
-            ret = utils.check_path_valid('/home/result.txt', False)
+            ret = path_check.check_path_valid('/home/result.txt', False)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_check_path_valid4(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=False):
-                ret = utils.check_path_valid('/home/result.txt', False)
+                ret = path_check.check_path_valid('/home/result.txt', False)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_check_path_valid5(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
-                ret = utils.check_path_valid('/home/result', True, True)
+                ret = path_check.check_path_valid('/home/result', True, True)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_check_path_valid6(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
                 with mock.patch('os.path.isfile', return_value=False):
-                    ret = utils.check_path_valid(
-                        '/home/result.txt', True, False, utils_type.PathType.File)
+                    ret = path_check.check_path_valid(
+                        '/home/result.txt', True, False, path_check.PathType.File)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_check_path_valid7(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
                 with mock.patch('os.path.isdir', return_value=False):
-                    ret = utils.check_path_valid(
+                    ret = path_check.check_path_valid(
                         '/home/result.txt', True, False,
-                        utils_type.PathType.Directory)
+                        path_check.PathType.Directory)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_check_path_valid8(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', side_effect=[True, False]):
-                ret = utils.check_path_valid(
-                    '/home/result', True, True, utils_type.PathType.Directory)
+                ret = path_check.check_path_valid(
+                    '/home/result', True, True, path_check.PathType.Directory)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_parse_dump_file1(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_INVALID_PATH_ERROR):
-                utils.parse_dump_file('/home', 2)
+                dump_utils.parse_dump_file('/home', 2)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_parse_dump_file2(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('builtins.open', side_effect=IOError):
-                    utils.parse_dump_file('/home', 2)
+                    dump_utils.parse_dump_file('/home', 2)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def test_parse_dump_file3(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.getsize', return_value=0):
-                    utils.parse_dump_file('/home/a.dump', 2)
+                    dump_utils.parse_dump_file('/home/a.dump', 2)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
@@ -255,12 +256,12 @@ class TestUtilsMethods(unittest.TestCase):
         output = dump_data.output.add()
         self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
         dump_data_ser = dump_data.SerializeToString()
-        with mock.patch('cmp_utils.utils.check_path_valid',
+        with mock.patch('cmp_utils.path_check.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
                 with mock.patch('builtins.open',
                                 mock.mock_open(read_data=dump_data_ser)):
-                    dump_data = utils.parse_dump_file('/home/a.dump', 1)
+                    dump_data = dump_utils.parse_dump_file('/home/a.dump', 1)
         self.assertEqual(dump_data.output_data[0].data_type, DD.DT_FLOAT16)
         data_byte = utils.convert_ndarray_to_bytes(dump_data.output_data[0].data)
         self.assertEqual(len(data_byte), 48)
@@ -270,11 +271,11 @@ class TestUtilsMethods(unittest.TestCase):
         output = dump_data.output.add()
         self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
         dump_data_ser = dump_data.SerializeToString()
-        with mock.patch('cmp_utils.utils.check_path_valid',
+        with mock.patch('cmp_utils.path_check.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
                 with mock.patch('builtins.open', mock.mock_open(read_data=dump_data_ser)):
-                    dump_data = utils.parse_dump_file('/home/a.dump', 1)
+                    dump_data = dump_utils.parse_dump_file('/home/a.dump', 1)
         self.assertEqual(dump_data.output_data[0].size, 48)
 
     def test_parse_dump_file6(self):
@@ -283,12 +284,12 @@ class TestUtilsMethods(unittest.TestCase):
         self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
         dump_data_ser = dump_data.SerializeToString()
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
                     with mock.patch('builtins.open', mock.mock_open(read_data=dump_data_ser)):
                         with mock.patch('dump_data_pb2.DumpData.ParseFromString', return_value=1000):
-                            utils.parse_dump_file('/home/a.dump', 0)
+                            dump_utils.parse_dump_file('/home/a.dump', 0)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
@@ -298,7 +299,7 @@ class TestUtilsMethods(unittest.TestCase):
         self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
         dump_data_ser = dump_data.SerializeToString()
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.getsize',
                                 return_value=len(dump_data_ser)):
@@ -307,15 +308,15 @@ class TestUtilsMethods(unittest.TestCase):
                         with mock.patch(
                                 'dump_data_pb2.DumpData.ParseFromString',
                                 side_effect=DecodeError):
-                            utils.parse_dump_file('/home/a.dump', 0)
+                            dump_utils.parse_dump_file('/home/a.dump', 0)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def test_parse_dump_file8(self):
-        with mock.patch('cmp_utils.utils.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+        with mock.patch('cmp_utils.path_check.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('os.path.getsize', return_value=1210):
                 with mock.patch('numpy.load', return_value=np.ones([1, 3, 2, 2])):
-                    dump_data = utils.parse_dump_file('/home/a.npy', 0)
+                    dump_data = dump_utils.parse_dump_file('/home/a.npy', 0)
         self.assertEqual(dump_data.output_data[0].shape[1], 3)
 
     def test_print_progress1(self):
@@ -340,7 +341,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('builtins.open', mock.mock_open(read_data="demo")):
                 with mock.patch('os.path.getsize', return_value=1024):
                     with mock.patch("csv.reader", return_value=csv_object):
-                        hash_map = utils.read_mapping_file(mapping_file_path)
+                        hash_map = mapping.read_mapping_file(mapping_file_path)
         self.assertEqual(hash_map, {13243254435: "/home/demo/Add.0.1223242.npy"})
 
     def test_read_mapping_file2(self):
@@ -350,7 +351,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('builtins.open', mock.mock_open(read_data="demo")):
                 with mock.patch('os.path.getsize', return_value=1024):
                     with mock.patch("csv.reader", return_value=csv_object):
-                        hash_map = utils.read_mapping_file(mapping_file_path)
+                        hash_map = mapping.read_mapping_file(mapping_file_path)
         self.assertEqual(hash_map, {})
 
     def test_read_mapping_file3(self):
@@ -359,7 +360,7 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('builtins.open', mock.mock_open(read_data="demo")):
                 with mock.patch('os.path.getsize', return_value=1024):
                     with mock.patch("csv.reader", side_effect=IOError):
-                        hash_map = utils.read_mapping_file(mapping_file_path)
+                        hash_map = mapping.read_mapping_file(mapping_file_path)
         self.assertEqual(hash_map, {})
 
     def test_sort_result_file_by_index1(self):
@@ -405,29 +406,29 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(result, utils_type.ShapeType.Tensor)
 
     def test_get_path_list_for_str1(self):
-        with mock.patch('cmp_utils.utils.check_path_valid',
+        with mock.patch('cmp_utils.path_check.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            path_list = utils.get_path_list_for_str('/home/a.bin')
+            path_list = path_check.get_path_list_for_str('/home/a.bin')
         self.assertEqual(1, len(path_list))
 
     def test_get_path_list_for_str2(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
-                utils.get_path_list_for_str('/home/a.bin')
+                path_check.get_path_list_for_str('/home/a.bin')
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_UNKNOWN_ERROR)
 
     def test_get_path_list_for_str3(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid',
+            with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_UNKNOWN_ERROR):
-                utils.get_path_list_for_str('/home/a.bin,/home/b.bin')
+                path_check.get_path_list_for_str('/home/a.bin,/home/b.bin')
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_get_path_list_for_str4(self):
-        with mock.patch('cmp_utils.utils.check_path_valid',
+        with mock.patch('cmp_utils.path_check.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            path_list = utils.get_path_list_for_str('/home/a.bin,/home/b.bin')
+            path_list = path_check.get_path_list_for_str('/home/a.bin,/home/b.bin')
         self.assertEqual(2, len(path_list))
 
     def test_make_msnpy_file_name1(self):
@@ -454,7 +455,7 @@ class TestUtilsMethods(unittest.TestCase):
         sorted_list = ["Cast.trans_Cast_1238.105.9.1670295569938495",
                        "Cast.trans_Cast_1238.105.9.1670295569938497",
                        "Cast.trans_Cast_1238.105.9.2670295569938495"]
-        ret = utils.sort_dump_file_list(dump_file_type, dump_file_list)
+        ret = dump_utils.sort_dump_file_list(dump_file_type, dump_file_list)
         self.assertEqual(ret, sorted_list)
 
     def test_sort_dump_file_list2(self):
@@ -465,21 +466,21 @@ class TestUtilsMethods(unittest.TestCase):
         sorted_list = ["Conv2D.Conv2D_lxslice0.2.9.1670205069987341.4.330.0.0",
                        "Conv2D.Conv2D_lxslice1.2.9.1670205069987343.4.330.0.0",
                        "Conv2D.Conv2D_lxslice2.2.9.1670205069987342.4.330.0.0"]
-        ret = utils.sort_dump_file_list(dump_file_type, dump_file_list)
+        ret = dump_utils.sort_dump_file_list(dump_file_type, dump_file_list)
         self.assertEqual(ret, sorted_list)
 
     def test_handle_op_name1(self):
         fusion_json_file_path = ""
         file_op_name = "partition0_rank2_new_sub_graph15_sgt_graph_0_fp32_vars_conv2d_18_Conv2D_lxslice0"
         op_name = "fp32_vars_conv2d_18_Conv2D"
-        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
+        ret = dump.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
     def test_handle_op_name2(self):
         fusion_json_file_path = ""
         file_op_name = "partition0_rank2_new_sub_graph15_sgt_graph_0_L2Loss_6"
         op_name = "L2Loss_6"
-        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
+        ret = dump.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
     def test_handle_op_name3(self):
@@ -487,7 +488,7 @@ class TestUtilsMethods(unittest.TestCase):
         file_op_name = "partition0_rank2_new_sub_graph15_sgt_graph_0_loss_scale_gradients_AddN_42partition0_rank2" \
                        "_new_sub_graph15_sgt_graph_0_loss_scale_gradients_fp32_vars_Relu_18_grad_ReluGrad"
         op_name = "loss_scale_gradients_fp32_vars_Relu_18_grad_ReluGrad"
-        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
+        ret = dump.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
     def test_handle_op_name4(self):
@@ -495,14 +496,14 @@ class TestUtilsMethods(unittest.TestCase):
         file_op_name = "partition0_rank2_new_sub_graph15_sgt_graph_0_fp32_vars_BatchNorm_44_FusedBatchNormV3_Update_" \
                        "lxslice0partition0_rank2_new_sub_graph15_sgt_graph_0_fp32_vars_Relu_40_lxslice0"
         op_name = "fp32_vars_Relu_40_lxslice0"
-        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
+        ret = dump.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
     def test_handle_op_name5(self):
         fusion_json_file_path = "/home/ffts.json"
         file_op_name = "partition0_rank1_new_sub_graph15_sgt_graph_0_bert_encoder_layer_0_output_dense_MatMul_lxslice0"
         op_name = "partition0_rank1_new_sub_graph15_sgt_graph_0_bert_encoder_layer_0_output_dense_MatMul"
-        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
+        ret = dump.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
     def test_handle_op_name6(self):
@@ -511,7 +512,7 @@ class TestUtilsMethods(unittest.TestCase):
                        "_lxslice0partition0_rank1_new_sub_graph15_sgt_graph_0_trans_Cast_1786_lxslice0"
         op_name = "partition0_rank1_new_sub_graph15_sgt_graph_0_bert_encoder_layer_7_attention_self_mul_1" \
                   "partition0_rank1_new_sub_graph15_sgt_graph_0_trans_Cast_1786"
-        ret = utils.handle_op_name(file_op_name, fusion_json_file_path)
+        ret = dump.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
 

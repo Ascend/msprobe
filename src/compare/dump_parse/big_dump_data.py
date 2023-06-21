@@ -15,7 +15,7 @@ import numpy as np
 from google.protobuf.message import DecodeError
 import dump_data_pb2 as DD
 
-from cmp_utils import utils
+from cmp_utils import path_check
 from cmp_utils import log
 from cmp_utils import common
 from cmp_utils.constant.const_manager import ConstManager
@@ -66,7 +66,7 @@ class BigDumpDataParser:
         check argument valid
         :exception when invalid
         """
-        ret = utils.check_path_valid(self.dump_file_path, True)
+        ret = path_check.check_path_valid(self.dump_file_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         # get file size
@@ -179,7 +179,7 @@ class DumpDataHandler:
         check argument valid
         :exception when invalid
         """
-        ret = utils.check_path_valid(self.dump_file_path, True)
+        ret = path_check.check_path_valid(self.dump_file_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         # get file size

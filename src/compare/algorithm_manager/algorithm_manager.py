@@ -15,12 +15,13 @@ import importlib
 import numpy as np
 
 from cmp_utils import log, utils_type
-from cmp_utils import utils
+from cmp_utils import utils, path_check
 from algorithm_manager.algorithm_parameter import AlgorithmParameter
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.file_utils import FileUtils
+from dump_parse import dump_utils
 
 
 class AlgorithmManager:
@@ -230,8 +231,8 @@ class AlgorithmManager:
         log.print_info_log("dir_path:%s" % dir_path)
         self._make_support_algorithm_by_path(dir_path, self.built_in_support_algorithm)
         if self.custom_path:
-            ret = utils.check_path_valid(
-                self.custom_path, True, False, utils_type.PathType.Directory)
+            ret = path_check.check_path_valid(
+                self.custom_path, True, False, path_check.PathType.Directory)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
             dir_path = os.path.join(self.custom_path, ConstManager.CUSTOM_ALGORITHM_DIR_NAME)
@@ -336,12 +337,12 @@ class AlgorithmManagerMain:
         """
         Check arguments valid, if invalid, throw exception
         """
-        ret = utils.check_path_valid(self.my_output_dump_file_path, True, False,
-                                     utils_type.PathType.File)
+        ret = path_check.check_path_valid(self.my_output_dump_file_path, True, False,
+                                     path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
-        ret = utils.check_path_valid(self.ground_truth_dump_file_path, True, False,
-                                     utils_type.PathType.File)
+        ret = path_check.check_path_valid(self.ground_truth_dump_file_path, True, False,
+                                     path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 
@@ -363,8 +364,8 @@ class AlgorithmManagerMain:
         return CompareError.MSACCUCMP_NONE_ERROR
 
     def _process_exec(self: any, save_result: bool) -> None:
-        my_output_dump_data = utils.read_numpy_file(self.my_output_dump_file_path)
-        ground_truth_dump_data = utils.read_numpy_file(self.ground_truth_dump_file_path)
+        my_output_dump_data = dump_utils.read_numpy_file(self.my_output_dump_file_path)
+        ground_truth_dump_data = dump_utils.read_numpy_file(self.ground_truth_dump_file_path)
         self._check_shape_valid(my_output_dump_data, ground_truth_dump_data)
         result, error_msg = self.manager.compare(
             my_output_dump_data.flatten(), ground_truth_dump_data.flatten(),

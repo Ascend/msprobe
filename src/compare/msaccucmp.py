@@ -12,7 +12,7 @@ import sys
 import argparse
 import time
 
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
@@ -274,7 +274,7 @@ def _check_single_op_argument(args: argparse.Namespace) -> None:
 
 def _check_dump_path_exist(dump_path_array: list) -> None:
     for item_path in dump_path_array:
-        ret = utils.check_path_valid(item_path, True)
+        ret = path_check.check_path_valid(item_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 
@@ -284,24 +284,33 @@ def _check_file_compare_file(args: argparse.Namespace, file_type) -> None:
         if not file.endswith(file_type):
             log.print_error_log("[file_compare] The file %s is invalid.Only support %s file." % (file, file_type))
             raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
-        ret = utils.check_path_valid(file, True, False, path_type=utils_type.PathType.File)
+        ret = path_check.check_path_valid(file, True, False, path_type=path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 
 
 def _check_file_compare_out(args: argparse.Namespace) -> None:
-    ret = utils.check_output_path_valid(args.output_path, exist=True)
+    ret = path_check.check_output_path_valid(args.output_path, exist=True)
     if ret != CompareError.MSACCUCMP_NONE_ERROR:
         log.print_error_log('[file_compare] The -out parameter: "%s"  is invalid!' % args.output_path)
         raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+
+
+def _check_hdf5_file_valid(file_path: str) -> bool:
+    """
+    Check file is hdf5
+    :param file_path: the file path
+    :return bool
+    """
+    return os.path.isfile(os.path.realpath(file_path)) and file_path.endswith(".h5")
 
 
 def start_compare(args: argparse.Namespace) -> int:
     """
     compare entry.
     """
-    if utils.check_hdf5_file_valid(args.my_dump_path) and \
-            utils.check_hdf5_file_valid(args.golden_dump_path):
+    if _check_hdf5_file_valid(args.my_dump_path) and \
+            _check_hdf5_file_valid(args.golden_dump_path):
         pytorch_compare = PytorchComparison(args)
         pytorch_compare.check_arguments_valid(args)
         ret = pytorch_compare.compare()

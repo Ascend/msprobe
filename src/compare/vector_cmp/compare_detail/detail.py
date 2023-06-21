@@ -5,13 +5,11 @@
 Function:
 This file mainly involves the common function.
 """
-
-import sys
+import re
 import dump_data_pb2 as DD
 
 from cmp_utils import common
 from cmp_utils import log
-from cmp_utils import utils
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
@@ -33,11 +31,29 @@ class TensorId:
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
         self.index = int(index)
 
+    @staticmethod
+    def _check_name_valid(name: str) -> int:
+        """
+        Check name valid
+        :param name: the name to check
+        :return: VectorComparisonErrorCode
+        """
+        if name == "":
+            log.print_error_log("The parameter is null.")
+            return CompareError.MSACCUCMP_INVALID_PARAM_ERROR
+        name_pattern = re.compile(RegManager.SUPPORT_PATH_PATTERN)
+        match = name_pattern.match(name)
+        if match is None:
+            log.print_only_support_error('name', name, '"A-Za-z0-9_\\./:()=-"')
+            return CompareError.MSACCUCMP_INVALID_PARAM_ERROR
+        return CompareError.MSACCUCMP_NONE_ERROR
+
+
     def check_arguments_valid(self: any) -> None:
         """
         check arguments valid, if invalid, throw exception
         """
-        ret = utils.check_name_valid(self.op_name)
+        ret = self._check_name_valid(self.op_name)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         if self.tensor_type not in ConstManager.SUPPORT_DETAIL_TYPE:

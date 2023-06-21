@@ -21,6 +21,7 @@ from cmp_utils.constant.const_manager import ConstManager
 from conversion.tensor_conversion import TensorConversion
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse.dump_data_object import DumpDataObj
+from dump_parse import dump_utils
 from cmp_utils import common
 
 
@@ -83,7 +84,7 @@ class FusionOpComparison:
                 pass
             file_path = file_path_list[-1]
             if data_mode == ConstManager.NORMAL_MODE:
-                timestamp = utils.get_normal_timestamp(file_path)
+                timestamp = dump_utils.get_normal_timestamp(file_path)
             else:
                 timestamp = utils.get_ffts_timestamp(file_path)
             original_names = utils.get_string_from_list(
@@ -518,7 +519,7 @@ class FusionOpComparison:
     def _parse_dump_file(self: any, fusion_op: FusionOp, my_output_dump_path: str,
                          table_content: list) -> (bool, DumpDataObj):
         try:
-            return True, utils.parse_dump_file(my_output_dump_path, self.compare_data.dump_version)
+            return True, dump_utils.parse_dump_file(my_output_dump_path, self.compare_data.dump_version)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
                 AttributeError, CompareError):
             log.print_error_log("{} file parse error".format(my_output_dump_path))
@@ -541,7 +542,7 @@ class FusionOpComparison:
             my_output_op_str, ground_truth_op_str = fusion_rule_parser.make_left_and_right_string(
                 ground_truth_to_my_output_map)
         if fusion_op.op_type in [ConstManager.LEFT_TYPE, ConstManager.RIGHT_TYPE]:
-            op_type = utils.get_op_type_from_file_name(my_output_dump_path)
+            op_type = dump_utils.get_op_type_from_file_name(my_output_dump_path)
         else:
             op_type = fusion_op.op_type
         row_content = [

@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 
 from cmp_utils.constant.compare_error import CompareError
-from cmp_utils import utils
 from cmp_utils import file_utils
+from dump_parse import dump_utils
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -199,7 +199,7 @@ class TestUtilsMethods(unittest.TestCase):
             length *= dim
         data_list = np.arange(length)
         origin_numpy = np.array(data_list, np.float16)
-        dump_data = utils.convert_dump_data(dump_data)
+        dump_data = dump_utils.convert_dump_data(dump_data)
         file_desc = {
             "file_path": "/home/Opdebug.Node_OpDebug.1.25.161233160",
             "timestamp": int("161233160")
@@ -213,7 +213,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_file_obj = file_utils.DumpFileDesc(file_desc, dump_attr)
 
         op_output.data = struct.pack('%de' % length, *origin_numpy)
-        with mock.patch('cmp_utils.utils.parse_dump_file',
+        with mock.patch('dump_parse.dump_utils.parse_dump_file',
                         return_value=dump_data):
             with mock.patch('os.path.basename', return_value='Opdebug.Node_OpDebug.1.25.161233160'):
                 parsed_dump_file_obj = overflow_file_util.list_parsed_dump_files('/home', dump_file_obj)

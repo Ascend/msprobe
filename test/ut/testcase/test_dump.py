@@ -2,20 +2,20 @@ import unittest
 from unittest import mock
 import pytest
 
-from dump_parse import dump
+from dump_parse import dump, mapping
 from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):
     def test_check_arguments_valid1(self):
         with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.utils.check_path_valid', return_value=1):
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=1):
                 dump_info = dump.DumpInfo('/home', 1)
                 dump_info.check_arguments_valid()
         self.assertEqual(error.value.code, 1)
 
     def test_check_arguments_valid2(self):
-        with mock.patch('cmp_utils.utils.check_path_valid', return_value=0):
+        with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
             dump_info = dump.DumpInfo('/home', 1)
             dump_info._make_op_name_to_file_map = mock.Mock()
             dump_info.check_arguments_valid()
@@ -134,7 +134,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_info = dump.DumpInfo('/home', 1)
         dump_info.type = dump.DumpType.Quant
         dump_info.get_op_dump_file = mock.Mock(return_value=(["/home/demo"], 0))
-        with mock.patch("cmp_utils.utils.parse_dump_file", return_value=1):
+        with mock.patch("dump_parse.dump_utils.parse_dump_file", return_value=1):
             dump_file_path, dump_data = dump_info.get_op_dump_data(op_name)
         self.assertEqual(dump_file_path, "/home/demo")
         self.assertEqual(dump_data, 1)
