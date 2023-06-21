@@ -68,41 +68,13 @@ class FileUtils:
             pass
 
     def delete_file(path: str) -> None:
-        '''Delete file.
-        :param path: the file path to delete
-        '''
+        '''Delete file if it exists and user has permission'''
         try:
-            if os.access(path, os.W_OK):
+            if os.path.exists(path):
                 os.remove(path)
-            else:
-                raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR)
         except OSError as error:
             raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
 
-    def save_data_to_file(path: str, data: any, flag: str, delete: bool) -> None:
-        '''
-        Save data to file.
-        :param path: the saved file path
-        :param data: the data to save
-        :param flag: the write flag
-        :param delete: delete the path or not
-        '''
-        try:
-            if delete and os.path.exists(path):
-                FileUtils.delete_file(path)
-        except CompareError as error:
-            raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
-
-        try:
-            with os.fdopen(os.open(path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), flag) as output_file:
-                output_file.write(data)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
-            log.print_error_log('Failed to write data to "%s". %s ' % (path, str(error)))
-            raise CompareError(CompareError.MSACCUCMP_WRITE_FILE_ERROR) from error
-        finally:
-            pass
-
-    @staticmethod
     def save_data_to_file(path: str, data: any, flag: str, delete: bool) -> None:
         """
         Save data to file.
@@ -111,11 +83,8 @@ class FileUtils:
         :param flag: the write flag
         :param delete: delete the path or not
         """
-        try:
-            if delete and os.path.exists(path):
-                os.remove(path)
-        except OSError as error:
-            raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
+        if delete:
+            FileUtils.delete_file(path)
 
         try:
             with os.fdopen(os.open(path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), flag) as output_file:
