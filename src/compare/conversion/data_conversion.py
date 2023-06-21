@@ -50,15 +50,19 @@ class DumpDataConversion:
         self.type = args.type
         self.multi_process = MultiConvertProcess(self._convert_file, self.input_path, self.output_path)
 
-        self.layer_name_switch = {"caffe": self._get_standard_layer_name,
-                                  "tf": self._get_standard_layer_name,
-                                  "quant": self._get_quant_layer_name,
-                                  "offline": self._get_offline_layer_name}
+        self.layer_name_switch = {
+            "caffe": self._get_standard_layer_name,
+            "tf": self._get_standard_layer_name,
+            "quant": self._get_quant_layer_name,
+            "offline": self._get_offline_layer_name
+        }
 
-        self.file_name_switch = {"caffe": lambda name: name + ".pb",
-                                 "tf": lambda name: name + ".pb",
-                                 "quant": lambda name: name + ".quant",
-                                 "offline": lambda name: name}
+        self.file_name_switch = {
+            "caffe": lambda name: name + ".pb",
+            "tf": lambda name: name + ".pb",
+            "quant": lambda name: name + ".quant",
+            "offline": lambda name: name
+        }
 
     def check_arguments_valid(self: any) -> int:
         """
@@ -103,7 +107,8 @@ class DumpDataConversion:
 
     def _get_op_name_from_path(self: any, file_path: str) -> str:
         layer_name = os.path.basename(file_path)
-        layer_name = self.layer_name_switch[self.type](layer_name) if self.type in self.layer_name_switch else layer_name
+        layer_name = self.layer_name_switch[self.type](layer_name) if \
+            self.type in self.layer_name_switch else layer_name
         return layer_name
 
     def _get_standard_layer_name(self: any, layer_name: str) -> str:
