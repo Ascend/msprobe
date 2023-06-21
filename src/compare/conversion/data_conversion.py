@@ -50,6 +50,16 @@ class DumpDataConversion:
         self.type = args.type
         self.multi_process = MultiConvertProcess(self._convert_file, self.input_path, self.output_path)
 
+        self.layer_name_switch = {"caffe": self._get_standard_layer_name,
+                                  "tf": self._get_standard_layer_name,
+                                  "quant": self._get_quant_layer_name,
+                                  "offline": self._get_offline_layer_name}
+
+        self.file_name_switch = {"caffe": lambda name: name + ".pb",
+                                 "tf": lambda name: name + ".pb",
+                                 "quant": lambda name: name + ".quant",
+                                 "offline": lambda name: name}
+
     def check_arguments_valid(self: any) -> int:
         """
         Check arguments valid
@@ -93,12 +103,7 @@ class DumpDataConversion:
 
     def _get_op_name_from_path(self: any, file_path: str) -> str:
         layer_name = os.path.basename(file_path)
-        if self.type == "caffe" or self.type == "tf":
-            layer_name = self._get_standard_layer_name(layer_name)
-        elif self.type == "quant":
-            layer_name = self._get_quant_layer_name(layer_name)
-        elif self.type == "offline":
-            layer_name = self._get_offline_layer_name(layer_name)
+        layer_name = self.layer_name_switch[self.type](layer_name) if self.type in self.layer_name_switch else layer_name
         return layer_name
 
     def _get_standard_layer_name(self: any, layer_name: str) -> str:
@@ -166,10 +171,12 @@ class DumpDataConversion:
                 continue
             finally:
                 pass
+
             if self.type == "caffe" or self.type == "tf" or self.type == "quant":
                 file_name = "%s.npy" % name
             else:
                 file_name = "%s.%s.%d.npy" % (name, tensor_type, index)
+
             output_dump_path = os.path.join(self.output_path, file_name)
             np.save(output_dump_path, array)
             log.print_info_log('The %s:%d of "%s" has been converted to file "%s".'
@@ -201,13 +208,8 @@ class DumpDataConversion:
         if self.target == "dump":
             log.print_info_log('Start to convert the numpy file "%s" to dump file.' % input_path)
             numpy_data = dump_utils.read_numpy_file(input_path)
-            file_name = ""
-            if self.type == "caffe" or self.type == "tf":
-                file_name = name + ".pb"
-            elif self.type == "quant":
-                file_name = name + ".quant"
-            elif self.type == "offline":
-                file_name = name
+            file_name = self.file_name_switch[self.type](name) if self.type in self.file_name_switch else ""
+
             output_dump_path = os.path.join(self.output_path, file_name)
             big_dump_data.write_dump_data(numpy_data, output_dump_path)
             log.print_info_log(
