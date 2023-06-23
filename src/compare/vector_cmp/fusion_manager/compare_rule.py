@@ -24,12 +24,12 @@ class CompareRule:
     """
     def __init__(self: any, fusion_json_file_path: str, quant_fusion_rule_file_path: str,
                  close_fusion_rule_file_path: str = '') -> None:
-        self.fusion_json_file_path = self.get_real_path_with_default(fusion_json_file_path)
-        self.quant_fusion_rule_file_path = self.get_real_path_with_default(quant_fusion_rule_file_path)
-        self.close_fusion_rule_file_path = self.get_real_path_with_default(close_fusion_rule_file_path)
+        self.fusion_json_file_path = self._get_real_path_with_default(fusion_json_file_path)
+        self.quant_fusion_rule_file_path = self._get_real_path_with_default(quant_fusion_rule_file_path)
+        self.close_fusion_rule_file_path = self._get_real_path_with_default(close_fusion_rule_file_path)
         self.fusion_info = None
 
-    def get_real_path_with_default(self: any, file_path: str) -> str:
+    def _get_real_path_with_default(self: any, file_path: str) -> str:
         if file_path != '':
             return os.path.realpath(file_path)
         return ''
