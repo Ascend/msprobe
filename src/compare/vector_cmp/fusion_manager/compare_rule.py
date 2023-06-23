@@ -29,6 +29,12 @@ class CompareRule:
         self.close_fusion_rule_file_path = self.get_real_path_with_default(close_fusion_rule_file_path)
         self.fusion_info = None
 
+    @classmethod
+    def get_real_path_with_default(self: any, file_path: str) -> str:
+        if file_path != '':
+            return os.path.realpath(file_path)
+        return ''
+
     @staticmethod
     def _sort_file_by_timestamp(dump_info: DumpInfo) -> dict:
         op_name_to_file_map = dump_info.op_name_to_file_map
@@ -76,11 +82,8 @@ class CompareRule:
                     fusion_op = FusionOp(op_id, op_name, [], ConstManager.RIGHT_TYPE, values, attr)
                     op_name_to_op_map[op_name].append(fusion_op)
 
-    @staticmethod
-    def get_real_path_with_default(self: any, file_path: str) -> str:
-        if file_path != '':
-            return os.path.realpath(file_path)
-        return ''
+
+
 
     def parse_fusion_rule(self: any, compare_data: CompareData) -> None:
         """
