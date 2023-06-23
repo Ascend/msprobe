@@ -387,8 +387,8 @@ class FileDesc:
 
     def __init__(self: any, file_desc: dict) -> None:
         self.file_path = file_desc.get("file_path")
-        self.timestamp = file_desc.get("timestamp", None)
-        if self.timestamp is None:
+        self.timestamp = file_desc.get("timestamp")
+        if not self.timestamp:
             self.timestamp = os.path.getmtime(self.file_path)
 
     def get_file_path(self: any) -> str:
