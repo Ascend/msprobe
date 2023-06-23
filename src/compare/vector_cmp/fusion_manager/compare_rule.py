@@ -75,9 +75,9 @@ class CompareRule:
                     op_id = op_name_to_op_map[op_name][0].op_id
                     fusion_op = FusionOp(op_id, op_name, [], ConstManager.RIGHT_TYPE, values, attr)
                     op_name_to_op_map[op_name].append(fusion_op)
-                    
+
     @staticmethod
-    def _get_real_path_with_default(self: any, file_path: str) -> str:
+    def get_real_path_with_default(self: any, file_path: str) -> str:
         if file_path != '':
             return os.path.realpath(file_path)
         return ''
