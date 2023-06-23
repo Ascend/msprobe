@@ -76,6 +76,8 @@ class FileUtils:
         except OSError as error:
             raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
 
+
+    @staticmethod
     def save_data_to_file(path: str, data: any, flag: str, delete: bool) -> None:
         """
         Save data to file.
@@ -138,6 +140,10 @@ class FileUtils:
         """
         if not os.path.exists(path):
             raise ValueError(f"Path {path} does not exist.")
+        if not os.access(path, os.W_OK):
+            raise ValueError(f'No write permission for {path}.')
+        if not os.access(path, os.R_OK):
+            raise ValueError(f'No read permission for {path}.')
         if shape:
             array = array.reshape(shape)
 
