@@ -13,317 +13,6 @@ from dump_parse import dump, dump_utils, mapping
 
 
 class TestUtilsMethods(unittest.TestCase):
-    def test_check_arguments_valid1(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/CONV2.pron.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=1):
-                DP.DumpDataParser(arguments).check_arguments_valid()
-        self.assertEqual(error.value.args[0], 1)
-
-    def test_check_arguments_valid2(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/CONV2.pron.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
-                with mock.patch("cmp_utils.path_check.check_output_path_valid", return_value=1):
-                    DP.DumpDataParser(arguments).check_arguments_valid()
-        self.assertEqual(error.value.args[0], 1)
-
-    def test_parse_dump_data1(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/CONV2.pron.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        buffer = dump_data.buffer.add()
-        buffer.buffer_type = DD.L1
-        buffer.size = 8
-        buffer.data = struct.pack('Q', 35)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file',
-                                return_value=dump_data):
-                    with mock.patch('os.open',
-                                    side_effect=OSError) as open_file, \
-                            mock.patch('os.fdopen'):
-                        with mock.patch("os.path.isfile", return_value=True):
-                            open_file.write = None
-                            ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_WRITE_FILE_ERROR)
-
-    def test_main_parse_dump_data2(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/CONV2.pron.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        buffer = dump_data.buffer.add()
-        buffer.buffer_type = DD.L1
-        buffer.size = 8
-        buffer.data = struct.pack('Q', 35)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file',
-                                return_value=dump_data):
-                    with mock.patch('os.open') as open_file, \
-                            mock.patch('os.fdopen'):
-                        with mock.patch("os.path.isfile", return_value=True):
-                            open_file.write = None
-                            ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
-
-    def test_main_parse_dump_data3(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/CONV2.pron.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        op_output = dump_data.output.add()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_NCHW
-        length = 1
-        for dim in [1, 3, 4, 4]:
-            op_output.shape.dim.append(dim)
-            length *= dim
-        data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('%de' % length, *origin_numpy)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
-                    with mock.patch('numpy.save'):
-                        with mock.patch("os.path.isfile", return_value=True):
-                            ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
-
-    def test_main_parse_dump_data4(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/CONV2.pron.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        op_output = dump_data.output.add()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_NCHW
-        length = 1
-        for dim in [1, 3, 4, 4]:
-            op_output.shape.dim.append(dim)
-            length *= dim
-        data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('%de' % length, *origin_numpy)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file',
-                                return_value=dump_data):
-                    with mock.patch('numpy.save',
-                                    side_effect=ValueError):
-                        with mock.patch("os.path.isfile", return_value=True):
-                            ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
-
-    def test_main_parse_dump_data5(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/CONV2.pron.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "msnpy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        op_output = dump_data.output.add()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_NCHW
-        length = 1
-        for dim in [1, 3, 4, 4]:
-            op_output.shape.dim.append(dim)
-            length *= dim
-        data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('%de' % length, *origin_numpy)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file',
-                                return_value=dump_data):
-                    with mock.patch('numpy.save'):
-                        with mock.patch("os.path.isfile", return_value=True):
-                            ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
-
-    def test_main_parse_dump_data_with_multi_file(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/CONV2.pron1.1.1234567891234567,/home/CONV2.pron2.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "msnpy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        op_output = dump_data.output.add()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_NCHW
-        length = 1
-        for dim in [1, 3, 4, 4]:
-            op_output.shape.dim.append(dim)
-            length *= dim
-        data_list = np.arange(length)
-        origin_numpy = np.array(data_list, np.float16)
-        op_output.data = struct.pack('%de' % length, *origin_numpy)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
-                    with mock.patch('numpy.save'):
-                        with mock.patch("os.path.isfile", return_value=True), \
-                                mock.patch('os.path.getsize', return_value=1000):
-                            ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
-
-    def test_save_op_debug_to_file1(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/Opdebug.Node_OpDebug.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        op_output = dump_data.output.add()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_NCHW
-        op_output.data = struct.pack('Q', 10)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file',
-                                return_value=dump_data):
-                    with mock.patch("os.path.isfile", return_value=True):
-                        ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
-
-    def test_save_op_debug_to_file2(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/Opdebug.Node_OpDebug.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        op_output = dump_data.output.add()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_NCHW
-        zero_bytes = self._make_uint64_data(2048)
-        op_output.data = struct.pack('%dQ' % len(zero_bytes), *zero_bytes)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file',
-                                return_value=dump_data):
-                    with mock.patch('os.open',
-                                    side_effect=OSError) as open_file, \
-                            mock.patch('os.fdopen'):
-                        with mock.patch("os.path.isfile", return_value=True):
-                            open_file.write = None
-                            ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_WRITE_FILE_ERROR)
-
-    def test_save_op_debug_to_file3(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/Opdebug.Node_OpDebug.1.1234567891234567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        op_output = dump_data.output.add()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_NCHW
-        zero_bytes = self._make_uint64_data(2048)
-        op_output.data = struct.pack('%dQ' % len(zero_bytes), *zero_bytes)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file',
-                                return_value=dump_data):
-                    with mock.patch('os.open') as open_file, \
-                            mock.patch('os.fdopen'):
-                        with mock.patch("os.path.isfile", return_value=True):
-                            open_file.write = None
-                            ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
-
-    def test_save_op_debug_to_file4(self):
-        arguments = mock.Mock()
-        arguments.dump_path = '/home/Opdebug.Node_OpDebug.1.1234567891244567'
-        arguments.dump_version = 2
-        arguments.output_file_type = "npy"
-        arguments.output_path = ""
-        dump_data = DD.DumpData()
-        dump_data.version = '1.0'
-        dump_data.dump_time = int(round(time.time() * 1000))
-        op_output = dump_data.output.add()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.format = DD.FORMAT_NCHW
-        overflow_data = self._make_overflow_data_new_version(88)
-        op_output.data = struct.pack('6i11Q', *overflow_data)
-        dump_data = dump_utils.convert_dump_data(dump_data)
-        with mock.patch('cmp_utils.path_check.check_path_valid',
-                        return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('cmp_utils.path_check.check_output_path_valid',
-                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('dump_parse.dump_utils.parse_dump_file',
-                                return_value=dump_data):
-                    with mock.patch('os.open') as open_file, \
-                            mock.patch('os.fdopen'):
-                        with mock.patch("os.path.isfile", return_value=True):
-                            open_file.write = None
-                            ret = DP.DumpDataParser(arguments).parse_dump_data()
-        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
-
     @staticmethod
     def _make_uint64_data(size):
         count = int(size / 8)
@@ -336,3 +25,170 @@ class TestUtilsMethods(unittest.TestCase):
         data = [0x5a5a5a5a, 0, 1, 1, 0, 88]
         data += [0] * count
         return data
+
+    @staticmethod
+    def _fake_arguments(dump_path='/home/CONV2.pron.1.1234567891234567'):
+        arguments = mock.Mock()
+        arguments.dump_path = dump_path
+        arguments.dump_version = 2
+        arguments.output_file_type = "npy"
+        arguments.output_path = ""
+        return arguments
+
+    @staticmethod
+    def _base_fake_data(op_output_data, data_type=DD.DT_FLOAT16):
+        dump_data = DD.DumpData()
+        dump_data.version = '1.0'
+        dump_data.dump_time = int(round(time.time() * 1000))
+        op_output = dump_data.output.add()
+        op_output.data_type = data_type
+        op_output.format = DD.FORMAT_NCHW
+
+        op_output.data = op_output_data
+        dump_data = dump_utils.convert_dump_data(dump_data)
+        return dump_data
+
+    @staticmethod
+    def _fake_fp16_dump_data(data_type=DD.DT_FLOAT16):
+        dump_data = DD.DumpData()
+        dump_data.dump_time = int(round(time.time() * 1000))
+        dump_data.version = '1.0'
+        op_output = dump_data.output.add()
+        op_output.data_type = data_type
+        op_output.format = DD.FORMAT_NCHW
+        length = 1
+        for dim in [1, 3, 4, 4]:
+            op_output.shape.dim.append(dim)
+            length *= dim
+        data_list = np.arange(length)
+        origin_numpy = np.array(data_list, np.float16)
+        op_output.data = struct.pack('%de' % length, *origin_numpy)
+        dump_data = dump_utils.convert_dump_data(dump_data)
+        return dump_data
+
+    @staticmethod
+    def _fake_uint8_dump_data():
+        dump_data = DD.DumpData()
+        dump_data.version = '1.0'
+        dump_data.dump_time = int(round(time.time() * 1000))
+        buffer = dump_data.buffer.add()
+        buffer.buffer_type = DD.L1
+        buffer.size = 8
+        buffer.data = struct.pack('Q', 35)
+        dump_data = dump_utils.convert_dump_data(dump_data)
+        return dump_data
+
+    @staticmethod
+    def _base_mock_run(run_func, dump_data):
+        non_error = CompareError.MSACCUCMP_NONE_ERROR
+        with mock.patch('cmp_utils.path_check.check_path_valid', return_value=non_error):
+            with mock.patch("cmp_utils.path_check.check_output_path_valid", return_value=non_error):
+                with mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data):
+                    with mock.patch("os.path.isfile", return_value=True), mock.patch('os.fdopen'):
+                        return run_func()
+
+    def test_check_arguments_valid_check_path_valid(self):
+        arguments = self._fake_arguments()
+        with pytest.raises(CompareError) as error:
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=1):
+                DP.DumpDataParser(arguments).check_arguments_valid()
+        self.assertEqual(error.value.args[0], 1)
+
+    def test_check_arguments_valid_check_output_path_valid(self):
+        arguments = self._fake_arguments()
+        with pytest.raises(CompareError) as error:
+            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
+                with mock.patch("cmp_utils.path_check.check_output_path_valid", return_value=1):
+                    DP.DumpDataParser(arguments).check_arguments_valid()
+        self.assertEqual(error.value.args[0], 1)
+
+    def test_parse_dump_data_uint8_pass(self):
+        arguments = self._fake_arguments()
+        dump_data = self._fake_uint8_dump_data()
+        with mock.patch('os.open') as open_file:
+            open_file.write = None
+            ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_parse_dump_data_uint8_os_error(self):
+        arguments = self._fake_arguments()
+        dump_data = self._fake_uint8_dump_data()
+        with mock.patch('os.open', side_effect=OSError) as open_file:
+            open_file.write = None
+            ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_WRITE_FILE_ERROR)
+
+    def test_parse_dump_data_fp16_pass(self):
+        arguments = self._fake_arguments()
+        dump_data = self._fake_fp16_dump_data()
+        with mock.patch('numpy.save'):
+            ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_parse_dump_data_fp16_numpy_error(self):
+        arguments = self._fake_arguments()
+        dump_data = self._fake_fp16_dump_data()
+        with mock.patch('numpy.save', side_effect=ValueError):
+            ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_parse_dump_data_fp16_msnpy_pass(self):
+        arguments = self._fake_arguments()
+        arguments.output_file_type = "msnpy"
+        dump_data = self._fake_fp16_dump_data()
+        with mock.patch('numpy.save', side_effect=ValueError):
+            ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_main_parse_dump_data_bfloat16_pass(self):
+        arguments = self._fake_arguments()
+        dump_data = self._fake_fp16_dump_data(data_type=DD.DT_BFLOAT16)
+        with mock.patch('numpy.save'):
+            ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_main_parse_dump_data_with_multi_file(self):
+        arguments = self._fake_arguments()
+        arguments.output_file_type = "msnpy"
+        dump_data = self._fake_fp16_dump_data()
+        with mock.patch('numpy.save'):
+            with mock.patch('os.path.getsize', return_value=1000):
+                ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_save_op_debug_to_file_pass(self):
+        arguments = self._fake_arguments(dump_path='/home/Opdebug.Node_OpDebug.1.1234567891234567')
+        zero_bytes = self._make_uint64_data(2048)
+        op_output_data = struct.pack('%dQ' % len(zero_bytes), *zero_bytes)
+        dump_data = self._base_fake_data(op_output_data)
+        with mock.patch('os.open') as open_file:
+            open_file.write = None
+            ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_save_op_debug_to_file_invalid_dump_data(self):
+        arguments = self._fake_arguments(dump_path='/home/Opdebug.Node_OpDebug.1.1234567891234567')
+        op_output_data = struct.pack('Q', 10)
+        dump_data = self._base_fake_data(op_output_data)
+        ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+
+    def test_save_op_debug_to_file_os_error(self):
+        arguments = self._fake_arguments(dump_path='/home/Opdebug.Node_OpDebug.1.1234567891234567')
+        zero_bytes = self._make_uint64_data(2048)
+        op_output_data = struct.pack('%dQ' % len(zero_bytes), *zero_bytes)
+        dump_data = self._base_fake_data(op_output_data)
+        with mock.patch('os.open', side_effect=OSError) as open_file:
+            open_file.write = None
+            ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_WRITE_FILE_ERROR)
+
+    def test_save_op_debug_to_file_overflow_data(self):
+        arguments = self._fake_arguments(dump_path='/home/Opdebug.Node_OpDebug.1.1234567891234567')
+        overflow_data = self._make_overflow_data_new_version(88)
+        op_output_data = struct.pack('6i11Q', *overflow_data)
+        dump_data = self._base_fake_data(op_output_data)
+        with mock.patch('os.open') as open_file:
+            open_file.write = None
+            ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
