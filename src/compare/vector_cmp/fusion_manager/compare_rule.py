@@ -23,18 +23,11 @@ class CompareRule:
     """
     The class for compare rule
     """
-
     def __init__(self: any, fusion_json_file_path: str, quant_fusion_rule_file_path: str,
                  close_fusion_rule_file_path: str = '') -> None:
-        self.fusion_json_file_path = ""
-        if fusion_json_file_path != "":
-            self.fusion_json_file_path = os.path.realpath(fusion_json_file_path)
-        self.quant_fusion_rule_file_path = ""
-        if quant_fusion_rule_file_path != "":
-            self.quant_fusion_rule_file_path = os.path.realpath(quant_fusion_rule_file_path)
-        self.close_fusion_rule_file_path = ""
-        if close_fusion_rule_file_path != "":
-            self.close_fusion_rule_file_path = os.path.realpath(close_fusion_rule_file_path)
+        self.fusion_json_file_path = self.get_real_path_with_default(fusion_json_file_path)
+        self.quant_fusion_rule_file_path = self.get_real_path_with_default(quant_fusion_rule_file_path)
+        self.close_fusion_rule_file_path = self.get_real_path_with_default(close_fusion_rule_file_path)
         self.fusion_info = None
 
     @staticmethod
@@ -83,6 +76,12 @@ class CompareRule:
                     op_id = op_name_to_op_map[op_name][0].op_id
                     fusion_op = FusionOp(op_id, op_name, [], ConstManager.RIGHT_TYPE, values, attr)
                     op_name_to_op_map[op_name].append(fusion_op)
+
+    @staticmethod
+    def get_real_path_with_default(file_path: str) -> str:
+        if file_path != '':
+            return os.path.realpath(file_path)
+        return ''
 
     def parse_fusion_rule(self: any, compare_data: CompareData) -> None:
         """
