@@ -17,6 +17,7 @@ from cmp_utils import utils
 from cmp_utils import common
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
+from dump_parse import dump_utils
 
 
 class FileUtils:
@@ -359,7 +360,7 @@ class OverflowFileUtils(FileUtils):
         :dump_file_desc: the DumpFileDesc for the debug file
         """
         # only support the default dump version ‘2’
-        dump_data = utils.parse_dump_file(dump_file_desc.file_path, ConstManager.BINARY_DUMP_TYPE)
+        dump_data = dump_utils.parse_dump_file(dump_file_desc.file_path, ConstManager.BINARY_DUMP_TYPE)
         dump_file_desc.set_op_name(dump_data.op_name)
         parsed_dump_files = self._gen_one_tensor_desc(output_path, dump_file_desc,
                                                       dump_data.input_data, 'input')

@@ -271,9 +271,7 @@ class FusionRuleParser:
     @staticmethod
     def process_ffts_op_name(item):
         if ConstManager.FFTS_MANUAL_MODE_FIELD in item:
-            op_name = utils.process_op_name(item)
-            index = item.rsplit(":", 1)[1]
-            item = op_name + ":" + index
+            item = utils.process_op_name(item)
         return item
 
     def analysis_fusion_rule(self: any) -> None:

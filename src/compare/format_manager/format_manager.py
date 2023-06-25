@@ -14,7 +14,7 @@ from functools import reduce
 import numpy as np
 import dump_data_pb2 as DD
 
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from cmp_utils import common
 from cmp_utils.reg_manager import RegManager
@@ -140,8 +140,8 @@ class FormatManager:
         dir_path = os.path.join(os.path.dirname(__file__), self.BUILT_IN_FORMAT_CONVERT_DIR_NAME)
         self._make_support_format_by_path(dir_path, self.built_in_support_format)
         if self.custom_path:
-            ret = utils.check_path_valid(
-                self.custom_path, True, False, utils_type.PathType.Directory)
+            ret = path_check.check_path_valid(
+                self.custom_path, True, False, path_check.PathType.Directory)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
             dir_path = os.path.join(self.custom_path, self.CUSTOM_FORMAT_CONVERT_DIR_NAME)

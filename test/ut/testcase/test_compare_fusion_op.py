@@ -17,7 +17,7 @@ from algorithm_manager.algorithm_manager import AlgorithmManager
 from vector_cmp.fusion_manager.fusion_op import FusionOp, OutputDesc, OpAttr
 from dump_parse.dump import DumpType
 from cmp_utils.constant.compare_error import CompareError
-from cmp_utils import utils
+from dump_parse import dump, dump_utils, mapping
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -46,7 +46,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data.left_dump_info.get_op_dump_file = mock.Mock(return_value="/home/demo")
         format_manager = ""
         fusion_op_name = "demo"
-        with mock.patch("cmp_utils.utils.parse_dump_file", side_effect=CompareError(1)):
+        with mock.patch("dump_parse.dump_utils.parse_dump_file", side_effect=CompareError(1)):
             FusionOpComparison(fusion_op_name, compare_rule, compare_data,
                                format_manager,
                                {'algorithm_manager': AlgorithmManager('', 'all', '')}).make_gpu_and_npu_mapping_table()
@@ -81,8 +81,8 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch("cmp_utils.utils.parse_dump_file", return_value=dump_data):
+        dump_data = dump_utils.convert_dump_data(dump_data)
+        with mock.patch("dump_parse.dump_utils.parse_dump_file", return_value=dump_data):
             FusionOpComparison(fusion_op_name, compare_rule, compare_data,
                                format_manager,
                                {'algorithm_manager': AlgorithmManager('', 'all', '')}).make_gpu_and_npu_mapping_table()
@@ -117,8 +117,8 @@ class TestUtilsMethods(unittest.TestCase):
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
-        dump_data = utils.convert_dump_data(dump_data)
-        with mock.patch("cmp_utils.utils.parse_dump_file", return_value=dump_data):
+        dump_data = dump_utils.convert_dump_data(dump_data)
+        with mock.patch("dump_parse.dump_utils.parse_dump_file", return_value=dump_data):
             FusionOpComparison(fusion_op_name, compare_rule, compare_data,
                                format_manager,
                                {'algorithm_manager': AlgorithmManager('', 'all', '')}).make_gpu_and_npu_mapping_table()

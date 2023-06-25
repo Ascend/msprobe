@@ -9,7 +9,7 @@ import re
 from enum import Enum
 import collections
 
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError

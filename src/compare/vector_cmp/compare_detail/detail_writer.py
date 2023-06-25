@@ -13,7 +13,7 @@ import uuid
 import numpy as np
 
 from cmp_utils import log
-from cmp_utils import utils
+from dump_parse import dump_utils, mapping
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
 from vector_cmp.compare_detail.detail import DetailInfo
@@ -556,7 +556,7 @@ class DetailWriter:
         mapping_file_path = os.path.join(self.output_path, ConstManager.SIMPLE_OP_MAPPING_FILE_NAME)
         if not os.path.exists(mapping_file_path):
             return
-        hash_to_file_name_map = utils.read_mapping_file(mapping_file_path)
+        hash_to_file_name_map = mapping.read_mapping_file(mapping_file_path)
         delete_keys = self._delete_file_by_mapping(hash_to_file_name_map)
         for key in delete_keys:
             hash_to_file_name_map.pop(key)
