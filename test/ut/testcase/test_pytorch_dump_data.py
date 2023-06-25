@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 import numpy as np
 
-from cmp_utils import utils_type
+from cmp_utils import utils_type, path_check
 from cmp_utils.constant.compare_error import CompareError
 from pytorch_cmp import pytorch_dump_data
 

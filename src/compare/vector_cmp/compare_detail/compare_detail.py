@@ -9,15 +9,15 @@ DetailComparison class. This class mainly involves the compare function.
 import os
 
 from vector_cmp.fusion_manager import fusion_rule_parser
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
-from dump_parse import dump
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
+from dump_parse import dump, mapping
 from vector_cmp.compare_detail.detail_writer import DetailWriter
 from vector_cmp.compare_detail.detail import DetailInfo
 from vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
-from cmp_utils.constant.const_manager import ConstManager
 from conversion.tensor_conversion import TensorConversion
-from cmp_utils.constant.compare_error import CompareError
 
 
 class DetailComparison:

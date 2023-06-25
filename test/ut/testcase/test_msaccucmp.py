@@ -187,10 +187,10 @@ class TestUtilsMethods(unittest.TestCase):
         args.op_name = "data"
         args.post_process = 0
         with pytest.raises(CompareError) as error:
-            with mock.patch("cmp_utils.utils.check_hdf5_file_valid", return_value=False):
+            with mock.patch("msaccucmp._check_hdf5_file_valid", return_value=False):
                 with mock.patch("os.path.isfile", return_value=False):
                     with mock.patch("os.path.exists", return_value=False):
-                        with mock.patch("cmp_utils.utils.check_path_valid",
+                        with mock.patch("cmp_utils.path_check.check_path_valid",
                                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
                             msaccucmp.start_compare(args)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
@@ -230,7 +230,7 @@ class TestUtilsMethods(unittest.TestCase):
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
                 with mock.patch("os.path.exists", return_value=False):
-                    with mock.patch("cmp_utils.utils.check_path_valid", return_value=0):
+                    with mock.patch("cmp_utils.path_check.check_path_valid", return_value=0):
                         msaccucmp.main()
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
@@ -240,8 +240,8 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/right.npy', '-out', '/home/output']
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch("cmp_utils.utils.check_path_valid", return_value=0):
-                    with mock.patch("cmp_utils.utils.check_output_path_valid", return_value=0):
+                with mock.patch("cmp_utils.path_check.check_path_valid", return_value=0):
+                    with mock.patch("cmp_utils.path_check.check_output_path_valid", return_value=0):
                         msaccucmp.main()
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_DUMP_FILE_ERROR)
@@ -292,7 +292,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/right.bin', '-f', '', '--max_line', '100']
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch("cmp_utils.utils.check_path_valid", return_value=0):
+                with mock.patch("cmp_utils.path_check.check_path_valid", return_value=0):
                     msaccucmp.main()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
@@ -301,7 +301,7 @@ class TestUtilsMethods(unittest.TestCase):
                 '/home/right.bin', '-f', '', '--max_line', '10000000']
         with pytest.raises(SystemExit) as error:
             with mock.patch('sys.argv', args):
-                with mock.patch("cmp_utils.utils.check_path_valid", return_value=0):
+                with mock.patch("cmp_utils.path_check.check_path_valid", return_value=0):
                     msaccucmp.main()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 

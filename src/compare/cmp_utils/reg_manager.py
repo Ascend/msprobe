@@ -46,6 +46,8 @@ class RegManager:
 
     FFTS_MANUAL_FIELD_PATTERN = r"lxslice[0-9]+"
 
+    LXSLICE_PATTERN = r"_lxslice[0-9]+"
+
     SGT_FLIED_PATTERN = r"sgt_graph_[0-9]+"
 
     @staticmethod

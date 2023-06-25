@@ -5,19 +5,20 @@
 Function:
 This file mainly involves the dump function.
 """
-
+import re
 import os
 from enum import Enum
 from enum import unique
 
 from dump_data_pb2 import DumpData
 
-from cmp_utils import utils, utils_type
+from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse.ffts_parser import FFTSParser
+from dump_parse import dump_utils, mapping
 
 
 @unique
@@ -53,7 +54,7 @@ class DumpInfo:
         """
         Check arguments valid, if invalid, throw exception
         """
-        ret = utils.check_path_valid(self.path, True, False, utils_type.PathType.Directory)
+        ret = path_check.check_path_valid(self.path, True, False, path_check.PathType.Directory)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         self._make_op_name_to_file_map()
@@ -90,7 +91,7 @@ class DumpInfo:
         if not dump_file_list:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         if len(dump_file_list) > 1:
-            dump_file_list = utils.sort_dump_file_list(dump_mode, dump_file_list)
+            dump_file_list = dump_utils.sort_dump_file_list(dump_mode, dump_file_list)
         if print_log:
             log.print_info_log('[%s] [%s] %s' % (op_name, str(self.type.name), dump_file_list))
         return dump_file_list, dump_mode
@@ -105,7 +106,8 @@ class DumpInfo:
         if self.type == DumpType.Quant and output_index is None:
             output_index = 0
         dump_file_list, dump_mode = self.get_op_dump_file(op_name, output_index)
-        dump_data_list = [utils.parse_dump_file(dump_file_path, self.dump_version) for dump_file_path in dump_file_list]
+        dump_data_list = [dump_utils.parse_dump_file(dump_file_path,
+                                                     self.dump_version) for dump_file_path in dump_file_list]
         if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:
             ffts_parser = FFTSParser(dump_file_list, dump_data_list)
             dump_file_path, dump_data = ffts_parser.parse_ffts
@@ -183,7 +185,7 @@ class DumpInfo:
         finally:
             pass
         if not self.ffts:
-            op_name = utils.handle_op_name(match, self.fusion_json_file_path)
+            op_name = handle_op_name(match, self.fusion_json_file_path)
         # if real op name contain '_lxslice' field, the op will not be added to map
             if ConstManager.FFTS_MANUAL_MODE_FIELD in op_name:
                 return
@@ -207,7 +209,7 @@ class DumpInfo:
 
     def _make_op_name_to_file_map(self: any) -> None:
         mapping_file_path = os.path.join(self.path, ConstManager.MAPPING_FILE_NAME)
-        self.hash_to_file_name_map = utils.read_mapping_file(mapping_file_path)
+        self.hash_to_file_name_map = mapping.read_mapping_file(mapping_file_path)
         for item in os.listdir(self.path):
             if item in (ConstManager.MAPPING_FILE_NAME, ConstManager.CONVERT_FAILED_FILE_LIST_NAME):
                 continue
@@ -369,3 +371,36 @@ class CompareData:
             if fusion_json_file_path != "":
                 log.print_error_log('%s there is no need to enter the -f parameter.' % info)
                 raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_TYPE_ERROR)
+
+
+def handle_op_name(file_op_name: str, fusion_json_file_path: str) -> str:
+    if fusion_json_file_path and ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
+        file_op_name = _process_op_name(file_op_name)
+        return file_op_name
+
+    # filter field '_lxsliceX' and '_sgt_field'
+    if ConstManager.FFTS_MANUAL_MODE_FIELD not in file_op_name \
+            and ConstManager.SGT_FIELD not in file_op_name:
+        return file_op_name
+
+    # field '_lxsliceX' at the end of name
+    if ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
+        first_match = RegManager.get_matchs(
+            RegManager.FFTS_MANUAL_FIELD_PATTERN, file_op_name)[0]
+        file_op_name = \
+            file_op_name[:first_match.start() - 1] if first_match.end() == first_match.endpos else file_op_name
+
+    # filter field '_sgt_field'
+    if ConstManager.SGT_FIELD in file_op_name:
+        # field '_sgt_graph' in the name
+        end_match = RegManager.get_matchs(
+            RegManager.SGT_FLIED_PATTERN, file_op_name)[-1]
+        file_op_name = file_op_name[end_match.end() + 1:] if end_match.end() != end_match.endpos else file_op_name
+    return file_op_name
+
+
+def _process_op_name(name):
+    re_pattern = re.compile(RegManager.LXSLICE_PATTERN)
+    op_name = re_pattern.sub("", name)
+    return op_name
+
