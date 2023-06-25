@@ -71,14 +71,14 @@ class QuantFilter:
     @staticmethod
     def _match_existing_type(name_type: int, data_type: str, in_pairs: bool) -> int:
         '''match the existing type'''
-        type_dict = {
+        quantFilter_type_dict = {
             (QuantFilter.NORMAL_OP, None): QuantFilter.NORMAL_OP,
             (QuantFilter.QUANT_OP, 'DT_INT8'): QuantFilter.QUANT_OP,
             (QuantFilter.DEQUANT_OP, 'DT_FLOAT16'): QuantFilter.DEQUANT_OP,
             (QuantFilter.QUANT_DEQUANT_OP, 'DT_INT8'): QuantFilter.QUANT_OP,
             (QuantFilter.QUANT_DEQUANT_OP, 'DT_FLOAT16'): QuantFilter.DEQUANT_OP
         }
-        return type_dict.get((name_type, data_type))
+        return quantFilter_type_dict.get((name_type, data_type))
 
     def process_filtering(self: any) -> None:
         """
