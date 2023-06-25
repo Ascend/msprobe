@@ -189,7 +189,7 @@ def print_out_of_range_error(op_name: str, index_type: str, index: int, range_st
     prefix = ''
     if op_name:
         prefix = '[%s] ' % op_name
-    message = '%sThe %s index (%d) is out of range %s. Please check the index.'% \
+    message = '%sThe %s index (%d) is out of range %s. Please check the index.' % \
           (prefix, index_type, index, range_str)
     print_error_log(message)
 
