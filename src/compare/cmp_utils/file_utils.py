@@ -19,6 +19,14 @@ from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse import dump_utils
 
+OP_TYPE = 1
+OP_NAME = 2
+TASK_ID = 3
+STREAM_ID = 4
+TIMESTAMP = 4
+CONTEXT_ID = 6
+THREAD_ID = 7
+
 
 class FileUtils:
     """
@@ -89,6 +97,9 @@ class FileUtils:
         """
         if delete:
             FileUtils.delete_file(path)
+
+        if flag == "r":
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
         try:
             with os.fdopen(os.open(path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), flag) as output_file:
@@ -168,8 +179,6 @@ class FileUtils:
             log.print_error_log(
                 'Failed to load json object. The content of the json file "%s" is invalid.' % json_file)
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR) from error
-        finally:
-            pass
 
 
 class OverflowFileUtils(FileUtils):
@@ -228,19 +237,21 @@ class OverflowFileUtils(FileUtils):
         :dir_path: file path
         :match: the result of re.match() match with file name
         """
-        file_desc = {
-            "file_path": os.path.join(dir_path, name),
-            "timestamp": int(match.groups()[4])
-        }
-        dump_attr = {
-            "op_name": match.group(2),
-            "op_type": match.group(1),
-            "task_id": int(match.group(3)),
-            "stream_id": match.group(4)
-        }
-        if len(match.groups()) > 7 and match.groups()[6] and match.groups()[7]:
-            dump_attr["context_id"] = int(match.groups()[6])
-            dump_attr["thread_id"] = int(match.groups()[7])
+        
+        if len(match.groups()) > 4:
+            file_desc = {
+                "file_path": os.path.join(dir_path, name),
+                "timestamp": int(match.groups()[TIMESTAMP])
+            }
+            dump_attr = {
+                "op_name": match.group(OP_NAME),
+                "op_type": match.group(OP_TYPE),
+                "task_id": int(match.group(TASK_ID)),
+                "stream_id": match.group(STREAM_ID)
+            }
+        if len(match.groups()) > 7 and match.groups()[CONTEXT_ID] and match.groups()[THREAD_ID]:
+            dump_attr["context_id"] = int(match.groups()[CONTEXT_ID])
+            dump_attr["thread_id"] = int(match.groups()[THREAD_ID])
 
         return DumpFileDesc(file_desc, dump_attr)
 

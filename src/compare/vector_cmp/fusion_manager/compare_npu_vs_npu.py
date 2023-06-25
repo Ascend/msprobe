@@ -214,15 +214,10 @@ class NpuVsNpuComparison:
     def _compare_by_one_tensor(self: any, my_output_dump_data: Tensor, ground_truth_dump_data: Tensor,
                                my_output_tensor: any, ground_truth_tensor: any) -> (list, list):
         error_msg = []
-        try:
-            # 1. deserialize output data to array
-            if my_output_tensor and ground_truth_tensor:
-                my_output_data_array = my_output_tensor.data
-                ground_truth_data_array = ground_truth_tensor.data
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError):
-            error_msg.append("deserialize_dump_data_to_array failed in _compare_by_one_tensor")
-            algorithm_result = self.algorithm_manager.make_nan_result()
-            return algorithm_result, error_msg
+        # 1. deserialize output data to array
+        if my_output_tensor and ground_truth_tensor:
+            my_output_data_array = my_output_tensor.data
+            ground_truth_data_array = ground_truth_tensor.data
         
         try:
             # 2. compare by support algorithm

@@ -30,7 +30,7 @@ def get_format_string(dump_format: any) -> str:
     :return: the string
     """
 
-    for (key, value) in list(ConstManager.STRING_TO_FORMAT_MAP.items()):
+    for key, value in ConstManager.STRING_TO_FORMAT_MAP.items():
         if dump_format == value:
             return key
     message = "The format({}) does not support.".format(str(dump_format))

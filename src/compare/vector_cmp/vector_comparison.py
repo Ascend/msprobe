@@ -216,7 +216,7 @@ class VectorComparison:
         tensor_id = detail.TensorId(arguments.op_name, tensor_type, tensor_index)
         self.detail_info = detail.DetailInfo(tensor_id, arguments.topn, arguments.ignore_single_op_result, max_line)
 
-    def _filter_left_dump_is_npy_overflow(self: any) -> None:
+    def _filter_left_dump_is_npy_overflow(self) -> None:
         """
         npy doesn't support overflow detection.
         We need turned the parameter 'overflow_detection' to False.
@@ -265,7 +265,7 @@ class VectorComparison:
                 else:
                     item.pop()
                     each_row_str = " ".join(item)
-                    output_file.write("{0}{1}".format("\n", each_row_str))
+                    output_file.write(f"\n{each_row_str}")
 
     def _save_cmp_result(self: any, result: list, lock: any) -> None:
         lock.acquire()

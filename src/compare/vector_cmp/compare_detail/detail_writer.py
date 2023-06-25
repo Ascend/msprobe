@@ -100,7 +100,7 @@ class TopN:
         return self._relative_error_top_n_list
 
     def _make_top_n_list(self: any, index_list: list, *data_lists: any) -> list:
-        if len(data_lists) < 5:
+        if len(data_lists) < 6:
             raise RuntimeError('The number of arguments is not correct.')
         dim_list = data_lists[0]
         left_list = data_lists[1]
@@ -156,14 +156,8 @@ class DetailWriter:
 
     @staticmethod
     def _padding_shape_to_4d(dim: tuple) -> list:
-        dims = []
-        for item in dim:
-            dims.append(item)
-        if len(dim) < ConstManager.FOUR_DIMS_LENGTH:
-            left_count = ConstManager.FOUR_DIMS_LENGTH - len(dim)
-            for _ in range(left_count):
-                dims.append(1)
-        return dims
+        left_count = max(0, ConstManager.FOUR_DIMS_LENGTH) - len(dim)
+        return list(dim) + left_count * [1]
 
     @staticmethod
     def _write_one_detail(index: int, file_stream: any, *data_values: any, is_bool: bool = False) -> None:
@@ -265,7 +259,7 @@ class DetailWriter:
         # write each value to file
         self._write_detail_result_multi_proc(res_generator)
         # finish and print progress
-        self.progress.print_progress(ConstManager.MAX_PROGRESS)
+        self.progress.update_and_print_progress(ConstManager.MAX_PROGRESS)
         # write and print top_n
         self._handle_top_n()
         log.print_write_result_info('details result', self.output_path)
