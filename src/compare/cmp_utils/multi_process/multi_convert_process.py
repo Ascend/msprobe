@@ -66,14 +66,14 @@ class MultiConvertProcess:
         mem = psutil.virtual_memory()
         available = mem.available
         cpu_count = int((multiprocessing.cpu_count() + 1) / 2)
-        if cpu_count != 0 and self.MAX_MULTI != 0:
+        if cpu_count != 0:
             return available / cpu_count / self.MAX_MULTI
         else:
             return 0
 
     def _handle_result_callback(self: any, result: list) -> None:
         self._progress.update_progress()
-        self._progress.print_progress()
+        self._progress.update_and_print_progress()
         if len(result) == self.MULTI_THREAD_RESULT_COUNT:
             cur_ret = result[self.MULTI_THREAD_RETURN_CODE_INDEX]
             if cur_ret != CompareError.MSACCUCMP_NONE_ERROR:

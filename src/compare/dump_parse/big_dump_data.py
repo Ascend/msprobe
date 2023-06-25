@@ -145,24 +145,20 @@ class BigDumpDataParser:
             pass
 
     def _read_input_data(self: any, dump_file: BinaryIO) -> None:
-        if len(self.dump_data.input) > 0:
-            for (index, _) in enumerate(self.dump_data.input):
-                self.dump_data.input[index].data = dump_file.read(self.dump_data.input[index].size)
+        for data_input in self.dump_data.input:
+            data_input.data = dump_file.read(data_input.size)
 
     def _read_output_data(self: any, dump_file: BinaryIO) -> None:
-        if len(self.dump_data.output) > 0:
-            for (index, _) in enumerate(self.dump_data.output):
-                self.dump_data.output[index].data = dump_file.read(self.dump_data.output[index].size)
+        for data_output in self.dump_data.output:
+            data_output.data = dump_file.read(data_output.size)
 
     def _read_buffer_data(self: any, dump_file: BinaryIO) -> None:
-        if len(self.dump_data.buffer) > 0:
-            for (index, _) in enumerate(self.dump_data.buffer):
-                self.dump_data.buffer[index].data = dump_file.read(self.dump_data.buffer[index].size)
+        for data_buffer in self.dump_data.buffer:
+            data_buffer.data = dump_file.read(data_buffer.size)
 
     def _read_space_data(self: any, dump_file: BinaryIO) -> None:
-        if len(self.dump_data.space) > 0:
-            for (index, _) in enumerate(self.dump_data.space):
-                self.dump_data.space[index].data = dump_file.read(self.dump_data.space[index].size)
+        for data_space in self.dump_data.space:
+            data_space.data = dump_file.read(data_space.size)
 
 
 class DumpDataHandler:

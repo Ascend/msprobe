@@ -88,27 +88,28 @@ class CompareRule:
         Parse fusion rule
         :param compare_data: compare data
         """
-
-        if self.fusion_json_file_path != "" and self.quant_fusion_rule_file_path != "":
-            offline_fusion_rule = FusionRuleParser(self.fusion_json_file_path)
-            offline_fusion_rule.analysis_fusion_rule()
-            quant_fusion_rule = FusionRuleParser(self.quant_fusion_rule_file_path)
-            quant_fusion_rule.analysis_fusion_rule()
-            self.fusion_info = merge_fusion_rule(offline_fusion_rule, quant_fusion_rule)
-        elif self.fusion_json_file_path != "" and self.close_fusion_rule_file_path != "":
-            open_fusion_rule = FusionRuleParser(self.fusion_json_file_path)
-            open_fusion_rule.analysis_fusion_rule()
-            close_fusion_rule = FusionRuleParser(self.close_fusion_rule_file_path)
-            close_fusion_rule.analysis_fusion_rule()
-            self.fusion_info = merge_close_and_open_fusion_rule(open_fusion_rule, close_fusion_rule)
-        elif self.fusion_json_file_path != "":
-            self.fusion_info = FusionRuleParser(self.fusion_json_file_path)
-            self.fusion_info.analysis_fusion_rule()
+        if self.fusion_json_file_path != "":
+            if self.quant_fusion_rule_file_path != "":
+                offline_fusion_rule = FusionRuleParser(self.fusion_json_file_path)
+                offline_fusion_rule.analysis_fusion_rule()
+                quant_fusion_rule = FusionRuleParser(self.quant_fusion_rule_file_path)
+                quant_fusion_rule.analysis_fusion_rule()
+                self.fusion_info = merge_fusion_rule(offline_fusion_rule, quant_fusion_rule)
+            elif self.close_fusion_rule_file_path != "":
+                open_fusion_rule = FusionRuleParser(self.fusion_json_file_path)
+                open_fusion_rule.analysis_fusion_rule()
+                close_fusion_rule = FusionRuleParser(self.close_fusion_rule_file_path)
+                close_fusion_rule.analysis_fusion_rule()
+                self.fusion_info = merge_close_and_open_fusion_rule(open_fusion_rule, close_fusion_rule)
+            else:
+                self.fusion_info = FusionRuleParser(self.fusion_json_file_path)
+                self.fusion_info.analysis_fusion_rule()
         elif self.quant_fusion_rule_file_path != "":
             self.fusion_info = FusionRuleParser(self.quant_fusion_rule_file_path)
             self.fusion_info.analysis_fusion_rule()
         else:
             self._make_npu_vs_npu_fusion_rule(compare_data)
+            
 
     def check_arguments_valid(self: any) -> None:
         """

@@ -183,7 +183,7 @@ def get_address_from_tensor(tensor: any):
         return ConstManager.NAN
 
 
-def dump_path_contains_npy(dump_path: str):
+def dump_path_contains_npy(dump_path: str) -> bool:
     """
     check dump_file is npy file in dump path
     args: dump_path
@@ -191,13 +191,12 @@ def dump_path_contains_npy(dump_path: str):
     """
     if dump_path and os.path.isfile(dump_path):
         return dump_path.endswith(ConstManager.NUMPY_SUFFIX)
-    elif dump_path and os.path.isdir(dump_path):
+    if dump_path and os.path.isdir(dump_path):
         return has_npy_at_dir(dump_path)
-    else:
-        return False
+    return False
 
 
-def has_npy_at_dir(dump_path: str):
+def has_npy_at_dir(dump_path: str) -> bool:
     """
     check there is npy file at dump_path
     args:dump_path

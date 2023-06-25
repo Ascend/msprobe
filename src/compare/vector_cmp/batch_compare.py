@@ -41,7 +41,7 @@ class BatchCompare:
         :return:bool
         """
         fusion_rule_path = os.path.realpath(fusion_rule_json_dir)
-        if os.path.exists(fusion_rule_path) and os.path.isfile(fusion_rule_path):
+        if os.path.isfile(fusion_rule_path):
             return False
         self._check_path_valid(fusion_rule_json_dir)
         return True
