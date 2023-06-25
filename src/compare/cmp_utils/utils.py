@@ -81,12 +81,6 @@ class SortMode:
 
     @staticmethod
     def _parameter_auto(file_split, file_name):
-        """
-        get the thread_id from the file_name in automatic mode.
-        @param file_split: The list of file name split by '_'.
-        @param file_name: The file name.
-        @returns: thread_id.
-        """
         thread_id = file_split[-1]
         if not thread_id.isdigit():
             log.print_warn_log(
