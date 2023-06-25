@@ -59,8 +59,6 @@ def main() -> None:
         ret = _do_cmd()
     except CompareError as err:
         ret = err.code
-    finally:
-        pass
     end = time.time()
     if ret != 0:
         log.print_error_log("Failed to parse dump log.")

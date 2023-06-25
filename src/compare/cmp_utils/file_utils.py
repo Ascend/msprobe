@@ -33,6 +33,7 @@ class FileUtils:
         :path: csv file path
         """
         content = []
+        path = os.path.realpath(path)  # 标准化文件路径
         if not str(path).endswith(FileUtils.CSV_SUFFIX):
             log.print_warn_log('read csv failed, file path'
                                ' [{}] is invalid'.format(path))
@@ -68,6 +69,16 @@ class FileUtils:
             pass
 
     @staticmethod
+    def delete_file(path: str) -> None:
+        '''Delete file if it exists and user has permission'''
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except OSError as error:
+            raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
+
+
+    @staticmethod
     def save_data_to_file(path: str, data: any, flag: str, delete: bool) -> None:
         """
         Save data to file.
@@ -76,11 +87,8 @@ class FileUtils:
         :param flag: the write flag
         :param delete: delete the path or not
         """
-        try:
-            if delete and os.path.exists(path):
-                os.remove(path)
-        except OSError as error:
-            raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
+        if delete:
+            FileUtils.delete_file(path)
 
         try:
             with os.fdopen(os.open(path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), flag) as output_file:
@@ -131,6 +139,12 @@ class FileUtils:
         :param np_save: save or not
         :param shape: the array shape
         """
+        if not os.path.exists(path):
+            raise ValueError(f"Path {path} does not exist.")
+        if not os.access(path, os.W_OK):
+            raise ValueError(f'No write permission for {path}.')
+        if not os.access(path, os.R_OK):
+            raise ValueError(f'No read permission for {path}.')
         if shape:
             array = array.reshape(shape)
 

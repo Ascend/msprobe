@@ -11,12 +11,12 @@ import logging
 
 
 
-def _setting_config(msg: str) -> str:
+def _setting_config(message: str) -> str:
     pid = os.getpid()
     cur_format = '%(asctime)s (' + str(pid) + ') - [%(levelname)s] %(message)s'
     logging.basicConfig(format=cur_format, datefmt="%Y-%m-%d %H:%M:%S",
                         level=logging.INFO)
-    return msg
+    return message
 
 
 def print_error_log(error_msg: str) -> None:
@@ -54,13 +54,13 @@ def print_no_left_dump_file_error(op_name: str, op_type: str, is_error: bool = F
     :param is_error: the log lever is error
     :return: message
     """
-    msg = '[%s] There is no dump file for my output operator "%s". The type is %s.' \
+    message = '[%s] There is no dump file for my output operator "%s". The type is %s.' \
           % (op_name, op_name, op_type)
     if is_error:
-        print_error_log(msg)
+        print_error_log(message)
     else:
-        print_warn_log(msg)
-    return msg
+        print_warn_log(message)
+    return message
 
 
 def print_no_right_dump_file_error(op_name: str, tensor_id: str, is_error: bool = False) -> str:
@@ -71,22 +71,22 @@ def print_no_right_dump_file_error(op_name: str, tensor_id: str, is_error: bool 
     :param is_error: the log lever is error
     :return message
     """
-    msg = '[%s] There is no the ground truth dump file for %s.' % (op_name, tensor_id)
+    message = '[%s] There is no the ground truth dump file for %s.' % (op_name, tensor_id)
     if is_error:
-        print_error_log(msg)
+        print_error_log(message)
     else:
-        print_warn_log(msg)
-    return msg
+        print_warn_log(message)
+    return message
 
 
-def print_invalid_nz_dump_data(msg: str, op_name: str = None, is_error: bool = False) -> str:
+def print_invalid_nz_dump_data(message: str, op_name: str = None, is_error: bool = False) -> str:
     if not is_error and op_name:
-        msg = "[%s] %s" % (op_name, msg)
+        message = "[%s] %s" % (op_name, message)
     if is_error:
-        print_error_log(msg)
+        print_error_log(message)
     else:
-        print_warn_log(msg)
-    return msg
+        print_warn_log(message)
+    return message
 
 
 def print_start_to_compare_op(op_name: str) -> None:
@@ -94,7 +94,8 @@ def print_start_to_compare_op(op_name: str) -> None:
     Print info log for start to compare op
     :param op_name: the op name
     """
-    print_info_log('[%s] Start to compare op "%s".' % (op_name, op_name))
+    message = '[%s] Start to compare op "%s".' % (op_name, op_name)
+    print_info_log(message)
 
 
 def print_open_file_error(path: str, io_error: any) -> None:
@@ -103,7 +104,8 @@ def print_open_file_error(path: str, io_error: any) -> None:
     :param path: the path
     :param io_error: error info
     """
-    print_error_log('Failed to open "%s". %s' % (path, str(io_error)))
+    message = 'Failed to open "%s". %s' % (path, str(io_error))
+    print_error_log(message)
 
 
 def print_write_result_info(prefix: str, path: str) -> None:
@@ -112,7 +114,8 @@ def print_write_result_info(prefix: str, path: str) -> None:
     :param prefix: the info
     :param path: the path
     """
-    print_info_log('The %s have been written to "%s".' % (prefix, path))
+    message = 'The %s have been written to "%s".' % (prefix, path)
+    print_info_log(message)
 
 
 def print_only_support_error(prefix: str, value: any, support_info: list) -> None:
@@ -122,8 +125,8 @@ def print_only_support_error(prefix: str, value: any, support_info: list) -> Non
     :param value: the value no support
     :param support_info: the support info
     """
-    print_error_log(
-        "The %s '%s' is invalid. It only supports '%s'." % (prefix, str(value), str(support_info)))
+    message = "The %s '%s' is invalid. It only supports '%s'." % (prefix, str(value), str(support_info))
+    print_error_log(message)
 
 
 def print_not_match_error(op_name: str, prefix: str, left_value: str, right_value: str, tensor_id: str = None) -> str:
@@ -186,8 +189,9 @@ def print_out_of_range_error(op_name: str, index_type: str, index: int, range_st
     prefix = ''
     if op_name:
         prefix = '[%s] ' % op_name
-    print_error_log('%sThe %s index (%d) is out of range %s. Please check the index.'
-                    % (prefix, index_type, index, range_str))
+    message = '%sThe %s index (%d) is out of range %s. Please check the index.' % \
+          (prefix, index_type, index, range_str)
+    print_error_log(message)
 
 
 def print_skip_inner_op_msg(op_name: str, is_error: bool) -> None:
@@ -197,12 +201,12 @@ def print_skip_inner_op_msg(op_name: str, is_error: bool) -> None:
     :param is_error: the log lever is error
     :return message
     """
-    msg = '[%s] The op "%s" is inner node for multi to multi relation. Skip the op "%s".' \
+    message = '[%s] The op "%s" is inner node for multi to multi relation. Skip the op "%s".' \
           % (op_name, op_name, op_name)
     if is_error:
-        print_error_log(msg)
+        print_error_log(message)
     else:
-        print_warn_log(msg)
+        print_warn_log(message)
 
 
 def print_deprecated_warning(file_name: str) -> None:
@@ -210,8 +214,9 @@ def print_deprecated_warning(file_name: str) -> None:
     Print deprecated warning
     :param file_name: the file name
     """
-    print_warn_log('Note that "%s" will be deprecated in a future release. It'
-                   ' is recommended to use the next-generation "msaccucmp.py".' % file_name)
+    message = 'Note that "%s" will be deprecated in a future release. It'\
+              ' is recommended to use the next-generation "msaccucmp.py".' % file_name
+    print_warn_log(message)
 
 
 def print_skip_quant_info(op_name: str) -> None:
@@ -220,5 +225,5 @@ def print_skip_quant_info(op_name: str) -> None:
 
     :param op_name: the op name
     """
-
-    print_info_log('[%s] This op is in a quant/dequant op pair. Skip the op.' % op_name)
+    message = '[%s] This op is in a quant/dequant op pair. Skip the op.' % op_name
+    print_info_log(message)
