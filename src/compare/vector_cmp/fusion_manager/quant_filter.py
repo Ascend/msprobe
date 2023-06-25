@@ -70,26 +70,15 @@ class QuantFilter:
 
     @staticmethod
     def _match_existing_type(name_type: int, data_type: str, in_pairs: bool) -> int:
-        _matched_type = None
-        if name_type == QuantFilter.NORMAL_OP:
-            if in_pairs:
-                _matched_type = QuantFilter.MIDDLE_OP
-            else:
-                _matched_type = QuantFilter.NORMAL_OP
-        elif name_type == QuantFilter.QUANT_OP:
-            if data_type == "DT_INT8":
-                _matched_type = QuantFilter.QUANT_OP
-        elif name_type == QuantFilter.DEQUANT_OP:
-            if data_type == "DT_FLOAT16":
-                _matched_type = QuantFilter.DEQUANT_OP
-        elif name_type == QuantFilter.QUANT_DEQUANT_OP:
-            # 5--quant & dequant
-            if data_type == "DT_INT8":
-                _matched_type = QuantFilter.QUANT_OP
-            if data_type == "DT_FLOAT16":
-                _matched_type = QuantFilter.DEQUANT_OP
-
-        return _matched_type
+        '''match the existing type'''
+        type_dict = {
+            (QuantFilter.NORMAL_OP, None): QuantFilter.NORMAL_OP,
+            (QuantFilter.QUANT_OP, 'DT_INT8'): QuantFilter.QUANT_OP,
+            (QuantFilter.DEQUANT_OP, 'DT_FLOAT16'): QuantFilter.DEQUANT_OP,
+            (QuantFilter.QUANT_DEQUANT_OP, 'DT_INT8'): QuantFilter.QUANT_OP,
+            (QuantFilter.QUANT_DEQUANT_OP, 'DT_FLOAT16'): QuantFilter.DEQUANT_OP
+        }
+        return type_dict.get((name_type, data_type))
 
     def process_filtering(self: any) -> None:
         """
