@@ -73,14 +73,14 @@ class QuantFilter:
         if name_type == QuantFilter.NORMAL_OP and in_pairs:
             return QuantFilter.MIDDLE_OP
         '''match the existing type'''
-        quantFilter_type_dict = {
+        _type_dict = {
             (QuantFilter.NORMAL_OP, None): QuantFilter.NORMAL_OP,
             (QuantFilter.QUANT_OP, 'DT_INT8'): QuantFilter.QUANT_OP,
             (QuantFilter.DEQUANT_OP, 'DT_FLOAT16'): QuantFilter.DEQUANT_OP,
             (QuantFilter.QUANT_DEQUANT_OP, 'DT_INT8'): QuantFilter.QUANT_OP,
             (QuantFilter.QUANT_DEQUANT_OP, 'DT_FLOAT16'): QuantFilter.DEQUANT_OP
         }
-        return quantFilter_type_dict.get((name_type, data_type))
+        return _type_dict.get((name_type, data_type))
 
     def process_filtering(self: any) -> None:
         """
