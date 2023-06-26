@@ -157,10 +157,8 @@ class FileUtils:
             np.save(path, array)
         else:
             array.tofile(path)
-        if os.access(path, os.W_OK):
-            os.chmod(path, ConstManager.WRITE_MODES)
-        else:
-            raise PermissionError("No write permission for file: {}".format(path))
+        os.chmod(path, ConstManager.WRITE_MODES)
+
 
     @classmethod
     def load_json_file(cls: any, json_file: str) -> any:
