@@ -150,12 +150,6 @@ class FileUtils:
         :param np_save: save or not
         :param shape: the array shape
         """
-        if not os.path.exists(path):
-            raise ValueError(f"Path {path} does not exist.")
-        if not os.access(path, os.W_OK):
-            raise ValueError(f'No write permission for {path}.')
-        if not os.access(path, os.R_OK):
-            raise ValueError(f'No read permission for {path}.')
         if shape:
             array = array.reshape(shape)
 
@@ -237,7 +231,7 @@ class OverflowFileUtils(FileUtils):
         :dir_path: file path
         :match: the result of re.match() match with file name
         """
-        
+
         if len(match.groups()) > 4:
             file_desc = {
                 "file_path": os.path.join(dir_path, name),
