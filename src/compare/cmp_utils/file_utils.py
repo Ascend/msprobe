@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
@@ -85,7 +84,6 @@ class FileUtils:
         except OSError as error:
             raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
 
-
     @staticmethod
     def save_data_to_file(path: str, data: any, flag: str, delete: bool) -> None:
         """
@@ -150,12 +148,6 @@ class FileUtils:
         :param np_save: save or not
         :param shape: the array shape
         """
-        if not os.path.exists(path):
-            raise ValueError(f"Path {path} does not exist.")
-        if not os.access(path, os.W_OK):
-            raise ValueError(f'No write permission for {path}.')
-        if not os.access(path, os.R_OK):
-            raise ValueError(f'No read permission for {path}.')
         if shape:
             array = array.reshape(shape)
 
@@ -163,7 +155,12 @@ class FileUtils:
             np.save(path, array)
         else:
             array.tofile(path)
-        os.chmod(path, ConstManager.WRITE_MODES)
+
+        # check file permission
+        if os.access(path, os.W_OK):
+            os.chmod(path, ConstManager.WRITE_MODES)
+        else:
+            raise PermissionError("No write permission for file: {}".format(path))
 
     @classmethod
     def load_json_file(cls: any, json_file: str) -> any:
@@ -237,7 +234,7 @@ class OverflowFileUtils(FileUtils):
         :dir_path: file path
         :match: the result of re.match() match with file name
         """
-        
+
         if len(match.groups()) > 4:
             file_desc = {
                 "file_path": os.path.join(dir_path, name),
