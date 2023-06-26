@@ -159,7 +159,6 @@ class FileUtils:
             array.tofile(path)
         os.chmod(path, ConstManager.WRITE_MODES)
 
-
     @classmethod
     def load_json_file(cls: any, json_file: str) -> any:
         """
