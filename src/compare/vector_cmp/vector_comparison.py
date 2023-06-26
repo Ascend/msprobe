@@ -101,14 +101,14 @@ class VectorComparison:
 
     @staticmethod
     def _parser_cmd(parse: any) -> None:
-        parse.add_argument("-l", dest="left_dump_path", default="",
+        parse.add_argument("-l", dest="left_dump_path",
                            help="<Required> the left dump path, the data compared with golden data", required=True)
-        parse.add_argument("-r", dest="right_dump_path", default="",
+        parse.add_argument("-r", dest="right_dump_path",
                            help="<Required> the right dump path, the golden data", required=True)
+        parse.add_argument("-o", dest="output_path", help="<Required> output file path", required=True)
         parse.add_argument("-f", dest="fusion_json_file_path", default="", help="<Optional> fusion json file path")
         parse.add_argument("-q", dest="quant_fusion_rule_file_path",
                            default="", help="<Optional> quant fusion rule file path")
-        parse.add_argument("-o", dest="output_path", default="", help="<Required> output file path", required=True)
         parse.add_argument("-d", dest="op_name", default="", help="<Optional> detail operator name", required=False)
         parse.add_argument("-t", dest="detail_type", default="output", required=False,
                            help="<Optional> detail type for operator, input or output, the default is output")
@@ -441,13 +441,10 @@ class VectorComparison:
 
     def _make_table(self: any) -> int:
         all_task = self._handle_multi_process(self._make_mapping_table_by_op_name)
-        all_result = []
-        for task in all_task:
-            all_result += task.get()
         origin_list = []
-        for item in all_result:
-            origin_list.append((int(item[0]), item))
-        sort_list = sorted(origin_list, key=lambda s: s[0])
+        for task in all_task:
+            origin_list += task.get()
+        origin_list.sort(key=lambda xx: int(xx[0]))
         try:
             with os.fdopen(os.open(self.output_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'a+',
                            newline='') as out_file:
@@ -455,8 +452,8 @@ class VectorComparison:
                 header = ConstManager.MAPPING_FILE_HEADER
                 RangeManager.adjust_header(header)
                 writer.writerow(header)
-                for item in sort_list:
-                    writer.writerow(item[1])
+                for item in origin_list:
+                    writer.writerow(item)
         except IOError as io_error:
             log.print_open_file_error(self.output_path, io_error)
             raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from io_error
@@ -465,6 +462,7 @@ class VectorComparison:
         if os.path.exists(self.output_path):
             log.print_write_result_info('mapping table result', self.output_path)
         return CompareError.MSACCUCMP_NONE_ERROR
+
 
     def _pre_handle_header(self: any) -> list:
         op_header = copy.deepcopy(ConstManager.VECTOR_COMPARE_HEADER)

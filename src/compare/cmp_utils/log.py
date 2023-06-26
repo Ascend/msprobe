@@ -221,7 +221,6 @@ def print_deprecated_warning(file_name: str) -> None:
 def print_skip_quant_info(op_name: str) -> None:
     """
     Print the op skipped info
-
     :param op_name: the op name
     """
     message = '[%s] This op is in a quant/dequant op pair. Skip the op.' % op_name

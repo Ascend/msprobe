@@ -1,6 +1,6 @@
 
 # coding=utf-8
-# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
+# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
 Function:
 This file mainly involves xxxx function.
@@ -9,13 +9,13 @@ import os
 import re
 import time
 
-from cmp_utils import path_check as path_utils
-from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
-from compare_vector import VectorComparison
-from cmp_utils.file_utils import FileUtils
 from cmp_utils import log
+from cmp_utils.file_utils import FileUtils
+from cmp_utils import path_check as path_utils
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
+from compare_vector import VectorComparison
+from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 
 
 class BatchCompare:
