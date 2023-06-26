@@ -55,11 +55,11 @@ def check_shape_valid_in_nz(shape: list, tensor_shape: list, is_convert_mode: bo
         origin_shape.append(tensor_shape[index])
     origin_shape.append(tensor_shape[-2] * tensor_shape[-3])
     origin_shape.append(tensor_shape[-1] * tensor_shape[-4])
-    is_valid_shape = shape[-1] > origin_shape[-1] or \
+    is_invalid_shape = shape[-1] > origin_shape[-1] or \
                      shape[-1] <= origin_shape[-1] - 16 or \
                      shape[-2] > origin_shape[-2] or \
                      shape[-2] <= origin_shape[-2] - 16
-    if len(shape) != len(origin_shape) or is_valid_shape:
+    if len(shape) != len(origin_shape) or is_invalid_shape:
         error_msg = 'The target shape %s is invalid. The recommended shape is %s.' \
             % (convert_shape_to_string(shape), convert_shape_to_string(origin_shape))
         _raise_exception_by_convert_mode(is_convert_mode, error_msg)

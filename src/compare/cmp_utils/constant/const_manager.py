@@ -1,15 +1,15 @@
 
 # coding=utf-8
-# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
+# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
 Function:
 This file mainly involves the const value.
 """
 import os
 import stat
+import numpy as np
 
 import dump_data_pb2 as DD
-import numpy as np
 
 
 class ConstManager:

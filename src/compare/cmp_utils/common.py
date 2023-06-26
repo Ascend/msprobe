@@ -1,6 +1,6 @@
 
 # coding=utf-8
-# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
+# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
 Function:
 This file mainly involves the dump data proto function.
@@ -61,7 +61,7 @@ def get_dtype_by_data_type(data_type: any) -> any:
     :return: the dtype
     """
     if data_type not in ConstManager.DATA_TYPE_TO_DTYPE_MAP:
-        message = "The output data type (%s) does not support." % str(data_type)
+        message = "The output data type ({}) does not support." .format(str(data_type))
         log.print_error_log(message)
         raise CompareError(CompareError.MSACCUCMP_INVALID_DATA_TYPE_ERROR, message)
     return ConstManager.DATA_TYPE_TO_DTYPE_MAP.get(data_type).get(ConstManager.DTYPE_KEY)

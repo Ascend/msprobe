@@ -1,6 +1,6 @@
 
 # coding=utf-8
-# Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
+# Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
 Function:
 This file mainly involves the common function.
@@ -349,8 +349,7 @@ class DetailWriter:
     def _multi_process_group_write(self: any, task_group: list, queue: multiprocessing.Queue) -> None:
         try:
             self._group_write_exec(task_group, queue)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError, CompareError) as error:
+        except Exception as error:
             log.print_error_log('Failed to write detail info in subprocess. %s' % error)
 
     def _transform_dim_list(self: any, dim: tuple) -> list:
