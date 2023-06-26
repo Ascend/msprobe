@@ -77,6 +77,6 @@ class RegManager:
         return False, match
 
     @staticmethod
-    def get_matchs(pattern: str, value: any) -> any:
+    def get_matchs(pattern: str, value: any) -> list:
         re_pattern = re.compile(pattern)
         return [match for match in re.finditer(re_pattern, value)]

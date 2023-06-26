@@ -10,6 +10,7 @@ import math
 
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.compare_error import CompareError
 
 
 class Progress:
@@ -37,9 +38,9 @@ class Progress:
         """
         return self.current_count == self.total_count
 
-    def print_progress(self: any, progress: int = None) -> None:
+    def update_and_print_progress(self: any, progress: int = None) -> None:
         """
-        Print the progress
+        Print the progress realtime
         :param progress: the progress
         """
         if progress is None:
@@ -47,7 +48,6 @@ class Progress:
                 progress = round(self.current_count * 100.0 / self.total_count, 2)
             else:
                 progress = 0
-            if self.total_count == 0:
                 log.print_error_log('Can not divide zero.')
         current_time = time.time()
         denominator = 1

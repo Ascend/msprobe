@@ -126,7 +126,7 @@ class DumpDataObj:
         @return: output shape
         """
         output_shape = []
-        if self.attr["output_tensor_slice"]:
+        if self.attr is not None and self.attr["output_tensor_slice"]:
             for output in self.attr["output_tensor_slice"][0]:
                 output_index = []
                 for addr in output:

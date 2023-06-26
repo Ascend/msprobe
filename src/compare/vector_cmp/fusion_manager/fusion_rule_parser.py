@@ -474,7 +474,7 @@ class FusionRuleParser:
             op_sequence = op_object[ConstManager.ID_OBJECT]
         return op_sequence
 
-    def _parse_op_object(self: any, op_object: any) -> None:
+    def _parse_op_object(self: any, op_object: dict) -> None:
         # check name element is valid
         self.check_string_object_valid(op_object, ConstManager.NAME_OBJECT)
         name = op_object[ConstManager.NAME_OBJECT]

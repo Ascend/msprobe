@@ -257,6 +257,7 @@ class OpDebugInfoParser:
     @staticmethod
     def unpack_uint_value(data: any, index: int, uint_type: str) -> int:
         type_para = ConstManager.UNPACK_FORMAT.get(uint_type)
+        # 返回值是数据类型名字,按照数据字长取地址得到的数据
         return struct.unpack(type_para.get('FMT'), data[index:index + type_para.get('SIZE')])[0]
 
     @staticmethod

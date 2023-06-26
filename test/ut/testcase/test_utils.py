@@ -323,13 +323,13 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('time.time', return_value=3):
             progress = Progress(10)
             progress.update_progress()
-            progress.print_progress(52.25)
+            progress.update_and_print_progress(52.25)
 
     def test_print_progress2(self):
         with mock.patch('time.time', return_value=3):
             progress = Progress(10)
             progress.update_progress()
-            progress.print_progress()
+            progress.update_and_print_progress()
 
     def test_print_deprecated_warning(self):
         log.print_deprecated_warning("/home/a.py")
