@@ -74,7 +74,8 @@ class QuantFilter:
             QuantFilter.NORMAL_OP: QuantFilter.MIDDLE_OP if in_pairs else QuantFilter.NORMAL_OP,
             QuantFilter.QUANT_OP: QuantFilter.QUANT_OP if data_type == 'DT_INT8' else None,
             QuantFilter.DEQUANT_OP: QuantFilter.DEQUANT_OP if data_type == 'DT_FLOAT16' else None,
-            QuantFilter.QUANT_DEQUANT_OP: QuantFilter.QUANT_OP if data_type == 'DT_INT8' else QuantFilter.DEQUANT_OP if data_type == 'DT_FLOAT16' else None
+            QuantFilter.QUANT_DEQUANT_OP: QuantFilter.QUANT_OP if data_type == 'DT_INT8'
+            else QuantFilter.DEQUANT_OP if data_type == 'DT_FLOAT16' else None
         }
         return _type_dict.get(name_type, None)
 
