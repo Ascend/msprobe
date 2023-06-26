@@ -1,3 +1,4 @@
+
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
@@ -83,6 +84,7 @@ class FileUtils:
                 os.remove(path)
         except OSError as error:
             raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
+
 
     @staticmethod
     def save_data_to_file(path: str, data: any, flag: str, delete: bool) -> None:
