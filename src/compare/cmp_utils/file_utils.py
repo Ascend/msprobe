@@ -155,8 +155,6 @@ class FileUtils:
             np.save(path, array)
         else:
             array.tofile(path)
-
-        # check file permission
         if os.access(path, os.W_OK):
             os.chmod(path, ConstManager.WRITE_MODES)
         else:
