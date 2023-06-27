@@ -1,6 +1,9 @@
 
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
+
+MAX_SIZE = 1024 * 1024 * 1024
+
 """
 Function:
 RemoveInplaceLayerProcess class.
@@ -15,8 +18,8 @@ import os
 import google.protobuf.text_format
 import caffe.proto.caffe_pb2 as caffe_pb2
 
+from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import log
-
 
 class RemoveInplaceLayerProcess:
     """
@@ -25,6 +28,7 @@ class RemoveInplaceLayerProcess:
 
     WRITE_FLAGS = os.O_WRONLY | os.O_CREAT
     WRITE_MODES = stat.S_IWUSR | stat.S_IRUSR
+
 
     def __init__(self: any) -> None:
         parse = argparse.ArgumentParser()
@@ -45,23 +49,40 @@ class RemoveInplaceLayerProcess:
         self.cur_layer_idx = -1
 
     @staticmethod
-    def _check_file_valid(path: str, exist: bool) -> None:
+    def _check_input_file_valid(path: str) -> None:
         exist_path = path
-        if not exist:
-            exist_path = os.path.dirname(exist_path)
+        if not os.path.exists(exist_path):
+            log.print_error_log('The path "%s" does not exist.' % path)
+        if not os.path.isfile(path):
+            log.print_error_log('The path "%s" is not a file.' % path)
+            raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        if MAX_SIZE is not None and os.path.getsize(path) > MAX_SIZE:
+            log.print_error_log("The file '%s' is too large." % path)
+            raise CompareError(CompareError.MSACCUCMP_FILE_TOO_LARGE_ERROR)
+
+    @staticmethod
+    def _check_output_file_valid(path: str) -> None:
+        exist_path = path
+        exist_path = os.path.dirname(exist_path)
         if not os.path.exists(exist_path):
             log.print_error_log('The path "%s" does not exist.' % path)
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-        if exist and not os.path.isfile(path):
-            log.print_error_log('The path "%s" is not a file.' % path)
-            raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        if os.path.exists(path):
+            if os.path.islink(path):
+                os.unlink(path)
+                log.print_error_log("The path '%s' is a symbolic link." % path)
+                raise CompareError(CompareError.MSACCUCMP_SYMLINK_ERROR)
+            elif os.access(path, os.R_OK):
+                os.remove(path)
+                log.print_warn_log("The file '%s' already exists and is readable." % path)
+
 
     def check_arguments_valid(self: any) -> None:
         """
         Check file valid.
         """
-        self._check_file_valid(self.input_file_path, True)
-        self._check_file_valid(self.output_file_path, False)
+        self._check_input_file_valid(self.input_file_path)
+        self._check_output_file_valid(self.output_file_path)
 
     def remove_inplace_layer(self: any) -> None:
         """
