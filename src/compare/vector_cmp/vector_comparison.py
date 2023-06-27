@@ -84,63 +84,6 @@ class VectorComparison:
                                                  ConstManager.DETAIL_LINE_COUNT_RANGE_MAX))
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
-    def _init_by_input_arguments(self, arguments) -> None:
-        self.compare_rule = CompareRule(arguments.fusion_rule_file,
-                                        arguments.quant_fusion_rule_file,
-                                        arguments.close_fusion_rule_file)
-        self.compare_data = dump.CompareData(
-            os.path.realpath(arguments.my_dump_path),
-            os.path.realpath(arguments.golden_dump_path),
-            arguments.dump_version,
-            arguments.ffts,
-            arguments.fusion_rule_file)
-        if arguments.op_name:
-            self._process_single_op_parameters(arguments)
-        else:
-            self._process_output_path_parameter(arguments)
-        self.args["csv"] = True
-        self.format_manager = FormatManager(arguments.custom_script_path)
-        self.args["algorithm_manager"] = AlgorithmManager(arguments.custom_script_path,
-                                                          arguments.algorithm, arguments.algorithm_options)
-        self.args["mapping"] = arguments.mapping
-        self.args["overflow_detection"] = arguments.overflow_detection
-        self.args["advisor"] = arguments.advisor
-        self.args["input_nodes"] = []
-        if arguments.range:
-            self.args["range"] = arguments.range
-            self.args[ConstManager.RANGE_MANAGER_KEY] = RangeMode(arguments.range)
-        elif arguments.select:
-            self.args["select"] = arguments.select
-            self.args[ConstManager.RANGE_MANAGER_KEY] = SelectMode(arguments.select)
-        self.args["my_dump_path"] = arguments.my_dump_path
-        self.args["golden_dump_path"] = arguments.golden_dump_path
-
-
-    def _init_by_input_parse(self) -> None:
-        parse = argparse.ArgumentParser()
-        self._parser_cmd(parse)
-        args, _ = parse.parse_known_args(sys.argv[1:])
-
-        self.compare_rule = CompareRule(args.fusion_json_file_path,
-                                        args.quant_fusion_rule_file_path)
-
-        self.compare_data = dump.CompareData(os.path.realpath(args.left_dump_path),
-                                             os.path.realpath(args.right_dump_path), ConstManager.OLD_DUMP_TYPE,
-                                             args.ffts,
-                                             args.fusion_json_file_path
-                                             )
-        self.output_path = os.path.realpath(args.output_path)
-        if args.op_name:
-            tensor_id = detail.TensorId(args.op_name, args.detail_type, args.detail_index)
-            self.detail_info = detail.DetailInfo(tensor_id, ConstManager.DEFAULT_TOP_N, ignore_result=False,
-                                                 max_line=ConstManager.MAX_DETAIL_INFO_LINE_COUNT)
-        self.args["csv"] = args.csv
-        self.format_manager = FormatManager(args.custom_path)
-        self.args["algorithm_manager"] = AlgorithmManager('', 'all', '')
-        self.args["mapping"] = False
-        self.args["my_dump_path"] = args.left_dump_path
-        self.args["golden_dump_path"] = args.right_dump_path
-
     def set_output_path(self: any, output_path: str) -> None:
         """
         Set output path
@@ -193,6 +136,62 @@ class VectorComparison:
             return self._make_table()
         # 5. do compare vector
         return self._compare_vector()
+
+    def _init_by_input_arguments(self, arguments) -> None:
+        self.compare_rule = CompareRule(arguments.fusion_rule_file,
+                                        arguments.quant_fusion_rule_file,
+                                        arguments.close_fusion_rule_file)
+        self.compare_data = dump.CompareData(
+            os.path.realpath(arguments.my_dump_path),
+            os.path.realpath(arguments.golden_dump_path),
+            arguments.dump_version,
+            arguments.ffts,
+            arguments.fusion_rule_file)
+        if arguments.op_name:
+            self._process_single_op_parameters(arguments)
+        else:
+            self._process_output_path_parameter(arguments)
+        self.args["csv"] = True
+        self.format_manager = FormatManager(arguments.custom_script_path)
+        self.args["algorithm_manager"] = AlgorithmManager(arguments.custom_script_path,
+                                                          arguments.algorithm, arguments.algorithm_options)
+        self.args["mapping"] = arguments.mapping
+        self.args["overflow_detection"] = arguments.overflow_detection
+        self.args["advisor"] = arguments.advisor
+        self.args["input_nodes"] = []
+        if arguments.range:
+            self.args["range"] = arguments.range
+            self.args[ConstManager.RANGE_MANAGER_KEY] = RangeMode(arguments.range)
+        elif arguments.select:
+            self.args["select"] = arguments.select
+            self.args[ConstManager.RANGE_MANAGER_KEY] = SelectMode(arguments.select)
+        self.args["my_dump_path"] = arguments.my_dump_path
+        self.args["golden_dump_path"] = arguments.golden_dump_path
+
+    def _init_by_input_parse(self) -> None:
+        parse = argparse.ArgumentParser()
+        self._parser_cmd(parse)
+        args, _ = parse.parse_known_args(sys.argv[1:])
+
+        self.compare_rule = CompareRule(args.fusion_json_file_path,
+                                        args.quant_fusion_rule_file_path)
+
+        self.compare_data = dump.CompareData(os.path.realpath(args.left_dump_path),
+                                             os.path.realpath(args.right_dump_path), ConstManager.OLD_DUMP_TYPE,
+                                             args.ffts,
+                                             args.fusion_json_file_path
+                                             )
+        self.output_path = os.path.realpath(args.output_path)
+        if args.op_name:
+            tensor_id = detail.TensorId(args.op_name, args.detail_type, args.detail_index)
+            self.detail_info = detail.DetailInfo(tensor_id, ConstManager.DEFAULT_TOP_N, ignore_result=False,
+                                                 max_line=ConstManager.MAX_DETAIL_INFO_LINE_COUNT)
+        self.args["csv"] = args.csv
+        self.format_manager = FormatManager(args.custom_path)
+        self.args["algorithm_manager"] = AlgorithmManager('', 'all', '')
+        self.args["mapping"] = False
+        self.args["my_dump_path"] = args.left_dump_path
+        self.args["golden_dump_path"] = args.right_dump_path
 
     def _check_both_dump_data(self: any) -> bool:
         both_dump_data = False
