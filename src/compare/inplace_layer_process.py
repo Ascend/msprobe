@@ -18,7 +18,7 @@ import caffe.proto.caffe_pb2 as caffe_pb2
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import log
 
-MAX_SIZE = 1024 * 1024 * 1024
+MAX_SIZE = 20 * 1024 * 1024 * 1024
 
 
 class RemoveInplaceLayerProcess:
