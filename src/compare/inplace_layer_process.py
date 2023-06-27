@@ -1,9 +1,6 @@
 
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
-
-MAX_SIZE = 1024 * 1024 * 1024
-
 """
 Function:
 RemoveInplaceLayerProcess class.
@@ -21,6 +18,9 @@ import caffe.proto.caffe_pb2 as caffe_pb2
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import log
 
+MAX_SIZE = 1024 * 1024 * 1024
+
+
 class RemoveInplaceLayerProcess:
     """
     The class for remove inplace layer for caffe prototxt
@@ -28,7 +28,6 @@ class RemoveInplaceLayerProcess:
 
     WRITE_FLAGS = os.O_WRONLY | os.O_CREAT
     WRITE_MODES = stat.S_IWUSR | stat.S_IRUSR
-
 
     def __init__(self: any) -> None:
         parse = argparse.ArgumentParser()
