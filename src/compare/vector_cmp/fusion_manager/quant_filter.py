@@ -27,31 +27,10 @@ class QuantFilter:
         """
         self._op_list = op_list
         self._op_output_type_map = {}       # structure like {op_name: [out1_type, out2_type]}
-
-    @staticmethod
-    def _check_name_type(op_name: str) -> int:
-        """
-        check the op type with name, using regex
-
-        :param op_name: the op name need to be checked
-        :return: type of this op, Quant=2/Dequant=3/Quant&Dequant=5/Normal=0
-        """
-        _op_type = QuantFilter.NORMAL_OP
-
-        # All the keywords of quant/dequant ops:
-        # caffe: "_quant_layer", "_dequant_layer", "_anti_quant_layer"
-        # tensorflow: "/AscendQuant", "/AscendWeightQuant", "/AscendDequant", "/AntiQuant"
-        # onnx: ".quant", ".weight_quant", ".dequant", ".anti_quant"
-
-        # find quant keywords
-        if re.search(r"_quant_layer|/AscendQuant|/AscendWeightQuant|\.quant|\.weight_quant", op_name):
-            _op_type += QuantFilter.QUANT_OP
-
-        # find dequant keywords
-        if re.search(r"_dequant_layer|_anti_quant_layer|/AscendDequant|/AntiQuant|\.dequant|\.anti_quant", op_name):
-            _op_type += QuantFilter.DEQUANT_OP
-
-        return _op_type
+        self._quant_name_pattern = \
+            r"_quant_layer|/AscendQuant|/AscendWeightQuant|\.quant|\.weight_quant"
+        self._dequant_name_pattern = \
+            r"_dequant_layer|_anti_quant_layer|/AscendDequant|/AntiQuant|\.dequant|\.anti_quant"
 
     @staticmethod
     def _check_out_type(op_name: str, name_type: int, in_pairs: bool, output_node: any) -> int:
@@ -103,7 +82,7 @@ class QuantFilter:
             _op_name = op.op_name
 
             # check name type using regex
-            _name_type = self._check_name_type(op.op_name)
+            _name_type = self._check_name_type(op)
 
             # check inputs to determine if in middle of pairs
             _in_pairs = self._check_in_pairs(op)
@@ -161,7 +140,35 @@ class QuantFilter:
             if _output != QuantFilter.DEQUANT_OP:
                 _is_dequant = False
                 break
-
         _need_filter = in_pairs and not _is_dequant
 
         op.attr.quant_filter = _need_filter
+
+    def _check_name_type(self, op) -> int:
+        """
+        check the op type with name, using regex
+
+        :param op_name: the op name need to be checked
+        :return: type of this op, Quant=2/Dequant=3/Quant&Dequant=5/Normal=0
+        """
+
+        _op_type = QuantFilter.NORMAL_OP
+
+        # All the keywords of quant/dequant ops:
+        # caffe: "_quant_layer", "_dequant_layer", "_anti_quant_layer"
+        # tensorflow: "/AscendQuant", "/AscendWeightQuant", "/AscendDequant", "/AntiQuant"
+        # onnx: ".quant", ".weight_quant", ".dequant", ".anti_quant"
+
+        # find quant keywords
+        if re.search(self._quant_name_pattern, op.op_name):
+            _op_type += QuantFilter.QUANT_OP
+        elif re.search(self._quant_name_pattern, ''.join(op.attr.original_op_names)):
+            _op_type += QuantFilter.QUANT_OP
+
+        # find dequant keywords
+        if re.search(self._dequant_name_pattern, op.op_name):
+            _op_type += QuantFilter.DEQUANT_OP
+        elif re.search(self._dequant_name_pattern, ''.join(op.attr.original_op_names)):
+            _op_type += QuantFilter.DEQUANT_OP
+
+        return _op_type
