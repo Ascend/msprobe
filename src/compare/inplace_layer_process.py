@@ -18,7 +18,7 @@ import caffe.proto.caffe_pb2 as caffe_pb2
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import log
 
-MAX_SIZE = 1024 * 1024 * 1024
+MAX_SIZE = 10 * 1024 * 1024 * 1024
 
 
 class RemoveInplaceLayerProcess:
@@ -73,7 +73,7 @@ class RemoveInplaceLayerProcess:
                 raise CompareError(CompareError.MSACCUCMP_SYMLINK_ERROR)
             else:
                 os.remove(path)
-                log.print_warn_log("The file '%s' already exists and is readable." % path)
+                log.print_warn_log("The file '%s' already exists" % path)
 
 
     def check_arguments_valid(self: any) -> None:
