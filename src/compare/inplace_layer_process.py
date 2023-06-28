@@ -52,17 +52,17 @@ class RemoveInplaceLayerProcess:
         exist_path = path
         if not os.path.exists(exist_path):
             log.print_error_log('The path "%s" does not exist.' % path)
+            raise CompareError(CompareError.MSACCUCMP_FILE_EXISTS_ERROR)
         if not os.path.isfile(path):
             log.print_error_log('The path "%s" is not a file.' % path)
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-        if MAX_SIZE is not None and os.path.getsize(path) > MAX_SIZE:
+        if os.path.getsize(path) > MAX_SIZE:
             log.print_error_log("The file '%s' is too large." % path)
             raise CompareError(CompareError.MSACCUCMP_FILE_TOO_LARGE_ERROR)
 
     @staticmethod
     def _check_output_file_valid(path: str) -> None:
-        exist_path = path
-        exist_path = os.path.dirname(exist_path)
+        exist_path = os.path.dirname(path)
         if not os.path.exists(exist_path):
             log.print_error_log('The path "%s" does not exist.' % path)
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
@@ -71,7 +71,7 @@ class RemoveInplaceLayerProcess:
                 os.unlink(path)
                 log.print_error_log("The path '%s' is a symbolic link." % path)
                 raise CompareError(CompareError.MSACCUCMP_SYMLINK_ERROR)
-            elif os.access(path, os.R_OK):
+            else:
                 os.remove(path)
                 log.print_warn_log("The file '%s' already exists and is readable." % path)
 
