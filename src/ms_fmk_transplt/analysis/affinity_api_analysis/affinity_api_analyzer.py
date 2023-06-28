@@ -3,6 +3,7 @@
 # Copyright Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 
 import os
+import libcst
 
 from analysis.base_analyzer import BaseAnalyzer
 from utils import trans_utils as utils
@@ -54,9 +55,14 @@ class AffinityApiAnalyzer(BaseAnalyzer):
 
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
+        try:
+            wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
+        except BaseException:
+            translog.warning(f'{file} has unsupported python syntax, skip.')
+            return
         affinity_api_list, \
             affinity_api_call_list, \
-            affinity_special_list = analyse_affinity_api(code,
+            affinity_special_list = analyse_affinity_api(wrapper,
                                                          self.pytorch_version,
                                                          self.global_reference_visitor)
         if affinity_api_list:

@@ -167,8 +167,7 @@ class AffinityApiVisitor(libcst.CSTVisitor):
         return position
 
 
-def analyse_affinity_api(code, pytorch_version, global_reference_visitor=None):
-    wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
+def analyse_affinity_api(wrapper, pytorch_version, global_reference_visitor=None):
     api_visitor = AffinityApiVisitor(pytorch_version, global_reference_visitor)
     wrapper.visit(api_visitor)
     api_visitor.print_affinity_ops()

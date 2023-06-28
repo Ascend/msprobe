@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 import os
+import libcst
 
 from analysis.base_analyzer import BaseAnalyzer
 from utils import trans_utils as utils, transplant_logger as translog
@@ -25,8 +26,13 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
 
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
+        try:
+            wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
+        except BaseException:
+            translog.warning(f'{file} has unsupported python syntax, skip.')
+            return
         (unsupported_op_list, unknown_op_list), _, _ = analyse_unsupported_api(
-            code, OpInfo(self.supported_op_dict, self.unsupported_op_dict, self.cuda_op_list),
+            wrapper, OpInfo(self.supported_op_dict, self.unsupported_op_dict, self.cuda_op_list),
             self.global_reference_visitor)
         self.result_dict.update({'cuda_op_list.csv': self.result_dict.get(
             'cuda_op_list.csv', 0) + len(self.cuda_op_list)})
