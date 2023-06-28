@@ -15,7 +15,10 @@ import os
 import google.protobuf.text_format
 import caffe.proto.caffe_pb2 as caffe_pb2
 
+from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import log
+
+MAX_SIZE = 10 * 1024 * 1024 * 1024
 
 
 class RemoveInplaceLayerProcess:
@@ -45,23 +48,40 @@ class RemoveInplaceLayerProcess:
         self.cur_layer_idx = -1
 
     @staticmethod
-    def _check_file_valid(path: str, exist: bool) -> None:
+    def _check_input_file_valid(path: str) -> None:
         exist_path = path
-        if not exist:
-            exist_path = os.path.dirname(exist_path)
+        if not os.path.exists(exist_path):
+            log.print_error_log('The path "%s" does not exist.' % path)
+            raise CompareError(CompareError.MSACCUCMP_FILE_EXISTS_ERROR)
+        if not os.path.isfile(path):
+            log.print_error_log('The path "%s" is not a file.' % path)
+            raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        if os.path.getsize(path) > MAX_SIZE:
+            log.print_error_log("The file '%s' is too large." % path)
+            raise CompareError(CompareError.MSACCUCMP_FILE_TOO_LARGE_ERROR)
+
+    @staticmethod
+    def _check_output_file_valid(path: str) -> None:
+        exist_path = os.path.dirname(path)
         if not os.path.exists(exist_path):
             log.print_error_log('The path "%s" does not exist.' % path)
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-        if exist and not os.path.isfile(path):
-            log.print_error_log('The path "%s" is not a file.' % path)
-            raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        if os.path.exists(path):
+            if os.path.islink(path):
+                os.unlink(path)
+                log.print_error_log("The path '%s' is a symbolic link." % path)
+                raise CompareError(CompareError.MSACCUCMP_SYMLINK_ERROR)
+            else:
+                os.remove(path)
+                log.print_warn_log("The file '%s' already exists" % path)
+
 
     def check_arguments_valid(self: any) -> None:
         """
         Check file valid.
         """
-        self._check_file_valid(self.input_file_path, True)
-        self._check_file_valid(self.output_file_path, False)
+        self._check_input_file_valid(self.input_file_path)
+        self._check_output_file_valid(self.output_file_path)
 
     def remove_inplace_layer(self: any) -> None:
         """
