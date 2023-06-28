@@ -67,6 +67,8 @@ class FileUtils:
         :content: txt content
         """
         try:
+            if os.path.islink(file_path):
+                os.unlink(file_path)
             with os.fdopen(os.open(file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
                            'w+') as output_file:
                 output_file.write(content)
@@ -143,20 +145,26 @@ class FileUtils:
 
     @staticmethod
     def _save_array_to_file(path: str, array: np.ndarray, np_save: bool, shape: any = None) -> None:
-        """
+        '''
         Save numpy array to file.
         :param path: the saved file path
         :param array: the numpy array
         :param np_save: save or not
         :param shape: the array shape
-        """
+        '''
         if shape:
             array = array.reshape(shape)
 
-        if np_save:
-            np.save(path, array)
-        else:
-            array.tofile(path)
+        if os.path.islink(path):
+            os.unlink(path)
+        if os.path.exists(path):
+            os.remove(path)
+
+        with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT, ConstManager.WRITE_MODES), 'wb') as f:
+            if np_save:
+                np.save(f, array)
+            else:
+                array.tofile(f)
         os.chmod(path, ConstManager.WRITE_MODES)
 
     @classmethod
