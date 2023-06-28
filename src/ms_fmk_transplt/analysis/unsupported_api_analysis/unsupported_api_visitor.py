@@ -339,8 +339,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
         return position
 
 
-def analyse_unsupported_api(code, op_info, global_reference_visitor=None):
-    wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
+def analyse_unsupported_api(wrapper, op_info, global_reference_visitor=None):
     api_visitor = UnsupportedApiVisitor(op_info, global_reference_visitor)
     module = wrapper.visit(api_visitor)
     api_visitor.print_unsupported_ops()

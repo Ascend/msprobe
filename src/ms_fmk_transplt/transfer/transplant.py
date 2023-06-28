@@ -51,8 +51,13 @@ class Transplant(object):
 
     def __analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
+        try:
+            wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
+        except BaseException:
+            translog.warning(f'{file} has unsupported python syntax, skip.')
+            return
         (unsupported_list, unknown_list), module, wrapper = \
-            analyse_unsupported_api(code, self.op_info, self.global_reference_visitor)
+            analyse_unsupported_api(wrapper, self.op_info, self.global_reference_visitor)
         self.transplant_result_statistics.update({'cuda_op_list.csv': self.transplant_result_statistics.get(
             'cuda_op_list.csv', 0) + len(self.op_info.cuda_op_list)})
         self.transplant_result_statistics.update({'unsupported_api.csv': self.transplant_result_statistics.get(
