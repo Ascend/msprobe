@@ -157,7 +157,8 @@ class FileUtils:
 
         if os.path.islink(path):
             os.unlink(path)
-
+        if os.path.exists(path):
+            os.remove(path)
 
         with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT, ConstManager.WRITE_MODES), 'wb') as f:
             if np_save:
