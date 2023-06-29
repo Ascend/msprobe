@@ -11,22 +11,38 @@ class TestUtilsMethods(unittest.TestCase):
     def test_check_name_type(self):
         op_list = mock.Mock
         filtering = quant_filter.QuantFilter(op_list)
-        name_type = filtering._check_name_type('resnet_v1_50/pool1/MaxPoolresnet_v1_50/block1/unit_1/'
-            'bottleneck_v1/shortcut/act_quant/AscendQuant')
+
+        attr = fusion_op.OpAttr([], '', False, 6)
+        fusion_op_info = fusion_op.FusionOp(6, 'resnet_v1_50/pool1/MaxPoolresnet_v1_50/block1/unit_1/'
+            'bottleneck_v1/shortcut/act_quant/AscendQuant', [], 'Left',
+            [''], attr)
+
+        name_type = filtering._check_name_type(fusion_op_info)
         self.assertEqual(name_type, quant_filter.QuantFilter.QUANT_OP)
-        name_type = filtering._check_name_type('pool1res2a_branch1_0_quant_layer')
+
+        fusion_op_info.op_name = 'pool1res2a_branch1_0_quant_layer'
+        name_type = filtering._check_name_type(fusion_op_info)
         self.assertEqual(name_type, quant_filter.QuantFilter.QUANT_OP)
-        name_type = filtering._check_name_type('resnet_v1_50/logits/Conv2Dresnet_v1_50/logits/dequant/AscendDequant')
+        fusion_op_info.op_name = 'resnet_v1_50/logits/Conv2Dresnet_v1_50/logits/dequant/AscendDequant'
+        name_type = filtering._check_name_type(fusion_op_info)
         self.assertEqual(name_type, quant_filter.QuantFilter.DEQUANT_OP)
-        name_type = filtering._check_name_type('res2a_branch2cres2a_branch2c_dequant_layer')
+
+        fusion_op_info.op_name = 'res2a_branch2cres2a_branch2c_dequant_layer'
+        name_type = filtering._check_name_type(fusion_op_info)
         self.assertEqual(name_type, quant_filter.QuantFilter.DEQUANT_OP)
-        name_type = filtering._check_name_type('resnet_v1_50/block4/unit_3/bottleneck_v1/conv1/Conv2Dresnet_v1_50/'
-                                               'block4/unit_3/bottleneck_v1/conv1/dequant/AscendDequantresnet_v1_50'
-                                               '/block4/unit_3/bottleneck_v1/conv2/act_quant/AscendQuant')
+
+        fusion_op_info.op_name = 'resnet_v1_50/block4/unit_3/bottleneck_v1/conv1/Conv2Dresnet_v1_50/' \
+                                 'block4/unit_3/bottleneck_v1/conv1/dequant/AscendDequantresnet_v1_50' \
+                                 '/block4/unit_3/bottleneck_v1/conv2/act_quant/AscendQuant'
+        name_type = filtering._check_name_type(fusion_op_info)
         self.assertEqual(name_type, quant_filter.QuantFilter.QUANT_DEQUANT_OP)
-        name_type = filtering._check_name_type('res2a_branch2ares2a_branch2a_dequant_layerres2a_branch2b_0_quant_layer')
+
+        fusion_op_info.op_name = 'res2a_branch2ares2a_branch2a_dequant_layerres2a_branch2b_0_quant_layer'
+        name_type = filtering._check_name_type(fusion_op_info)
         self.assertEqual(name_type, quant_filter.QuantFilter.QUANT_DEQUANT_OP)
-        name_type = filtering._check_name_type('trans_TransData_1')
+
+        fusion_op_info.op_name = 'trans_TransData_1'
+        name_type = filtering._check_name_type(fusion_op_info)
         self.assertEqual(name_type, quant_filter.QuantFilter.NORMAL_OP)
 
     def test_check_in_pairs(self):
@@ -661,6 +677,7 @@ class TestUtilsMethods(unittest.TestCase):
         op.op_name = name
         op.attr = mock.Mock()
         op.attr.quant_filter = False
+        op.attr.original_op_names = []
         op.input_list = input_list
         op.output_desc = []
         for ot in out_type:
