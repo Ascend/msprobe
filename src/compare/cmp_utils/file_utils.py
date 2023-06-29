@@ -66,9 +66,9 @@ class FileUtils:
         :file_path: file path
         :content: txt content
         """
+        if os.path.islink(file_path):
+            os.unlink(file_path)
         try:
-            if os.path.islink(file_path):
-                os.unlink(file_path)
             with os.fdopen(os.open(file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
                            'w+') as output_file:
                 output_file.write(content)
