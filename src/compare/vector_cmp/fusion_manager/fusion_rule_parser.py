@@ -16,6 +16,7 @@ from cmp_utils.file_utils import FileUtils
 from cmp_utils.constant.compare_error import CompareError
 from vector_cmp.fusion_manager.quant_filter import QuantFilter
 from vector_cmp.fusion_manager.fusion_op import OpAttr, FusionOp, OutputDesc
+from dump_parse import dump
 
 
 def make_left_and_right_string(ground_truth_to_my_output_map: dict) -> (str, str):
@@ -271,7 +272,7 @@ class FusionRuleParser:
     @staticmethod
     def process_ffts_op_name(item):
         if ConstManager.FFTS_MANUAL_MODE_FIELD in item:
-            item = utils.process_op_name(item)
+            item = dump.process_op_name(item)
         return item
 
     def analysis_fusion_rule(self: any) -> None:
@@ -479,7 +480,7 @@ class FusionRuleParser:
         self.check_string_object_valid(op_object, ConstManager.NAME_OBJECT)
         name = op_object[ConstManager.NAME_OBJECT]
         if ConstManager.FFTS_MANUAL_MODE_FIELD in name:
-            name = utils.process_op_name(name)
+            name = dump.process_op_name(name)
         # check type element is valid
         self.check_string_object_valid(op_object, ConstManager.TYPE_OBJECT)
         self._parse_input_nodes(op_object)
