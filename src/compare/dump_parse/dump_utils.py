@@ -156,7 +156,12 @@ def _deserialize_dump_data_to_array(tensor: any) -> any:
     if 0 in tensor.shape.dim:
         return np.array([]).reshape(tensor.shape.dim)
     result = np.frombuffer(tensor.data, dtype=common.get_dtype_by_data_type(tensor.data_type))
-    return result if tensor.data_type not in ConstManager.SPECIAL_DTYPE else np.unpackbits(result)
+    if tensor.data_type in ConstManager.UNPACK_DTYPE:
+        return np.unpackbits(result)
+    elif tensor.data_type in ConstManager.CAST_FP32_DTYPE:
+        return result.astype('float32')
+    else:
+        return result
 
 
 def read_numpy_file(path: str) -> any:
