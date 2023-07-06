@@ -68,10 +68,9 @@ def get_dtype_by_data_type(data_type: any) -> any:
     if dtype == 'bfloat16':
         try:
             from bfloat16ext import bfloat16
-
-            dtype = bfloat16
         except ModuleNotFoundError as ee:
             raise TypeError('bfloat16 is not supported in numpy, run `pip install bfloat16ext` for support.') from ee
+        dtype = bfloat16
     return dtype
 
 
