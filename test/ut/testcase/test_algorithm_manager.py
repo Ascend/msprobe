@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest import mock
 import pytest
@@ -103,11 +104,40 @@ class TestUtilsMethods(unittest.TestCase):
                             return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                  mock.patch('os.path.exists', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
-                 mock.patch('os.listdir', return_value=['alg_xxx.py']):
+                 mock.patch('os.listdir', return_value=['alg_xxx.py']), \
+                 mock.patch('os.stat') as mock_stat:
+                mock_stat.return_value.st_mode = 0o642
+                mock_stat.return_value.st_uid = os.getuid()
+                AlgorithmManager("/xxxxx", "cc", "")
+        self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DANGER_FILE_ERROR)
+
+    def test_make_select_algorithm_map18(self):
+        with pytest.raises(CompareError) as error:
+            with mock.patch('cmp_utils.path_check.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+                 mock.patch('os.path.exists', return_value=True), \
+                 mock.patch('os.path.isfile', return_value=True), \
+                 mock.patch('os.listdir', return_value=['alg_xxx.py']), \
+                 mock.patch('os.stat') as mock_stat:
+                mock_stat.return_value.st_mode = 0o640
+                mock_stat.return_value.st_uid = os.getuid()
                 AlgorithmManager("/xxxxx", "cc", "")
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)
 
-    def test_make_select_algorithm_map18(self):
+    def test_make_select_algorithm_map19(self):
+        with pytest.raises(CompareError) as error:
+            with mock.patch('cmp_utils.path_check.check_path_valid',
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+                 mock.patch('os.path.exists', return_value=True), \
+                 mock.patch('os.path.isfile', return_value=True), \
+                 mock.patch('os.listdir', return_value=['alg_xxx.py']), \
+                 mock.patch('os.stat') as mock_stat:
+                mock_stat.return_value.st_mode = 0o640
+                mock_stat.return_value.st_uid = os.getuid() + 1
+                AlgorithmManager("/xxxxx", "cc", "")
+        self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DANGER_FILE_ERROR)
+
+    def test_make_select_algorithm_map20(self):
         with mock.patch('cmp_utils.path_check.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR), \
              mock.patch('os.path.exists', return_value=True), \
