@@ -79,7 +79,21 @@ class AlgorithmManager:
             file_name_pattern = re.compile(ConstManager.ALGORITHM_FILE_NAME_PATTERN)
             match = file_name_pattern.match(os.path.basename(file_path))
             if match is not None:
+                file_stat = os.stat(file_path)
+                file_mode = file_stat.st_mode
+                # 判断others或group权限是否有写权限
+                if bool(file_mode & stat.S_IWOTH) or bool(file_mode & stat.S_IWGRP):
+                    log.print_error_log(f"File {file_path} is dangerous.Others or group have writting"\
+                                         "permission to this file.Please using chmod to dismiss"\
+                                         "the writting permission.")
+                    raise CompareError(CompareError.MSACCUCMP_DANGER_FILE_ERROR)
                 support_algorithm_list.append(match.group(1))
+                current_uid = os.getuid()
+                # 判断当前用户是普通用户情况下，文件创建者是否是当前用户
+                if file_stat.st_uid != current_uid:
+                    log.print_error_log(f"File {file_path} is not owned by current user,"\
+                                         "if must use this file, copy or chmod this file by yourself.")
+                    raise CompareError(CompareError.MSACCUCMP_DANGER_FILE_ERROR)
                 return True
             log.print_warn_log("The file '%s' does not match 'alg_{algorithm_name}.py'"
                                " in '%s', please check the file." % (os.path.basename(file_path),
