@@ -6,7 +6,7 @@ import numpy as np
 
 from cmp_utils import log
 from dump_parse.dump_data_object import DumpTensor, DumpDataObj
-from cmp_utils import utils
+from dump_parse import dump
 
 
 class FFTSParser:
@@ -86,7 +86,7 @@ class FFTSParser:
     @staticmethod
     def create_merge_dump_data(dump_base: DumpDataObj, merge_output: list) -> DumpDataObj:
         dump_data = DumpDataObj()
-        op_name = utils.process_op_name(dump_base.op_name) if dump_base.op_name else ""
+        op_name = dump.process_op_name(dump_base.op_name) if dump_base.op_name else ""
         dump_data.set_op_attr(op_name, dump_base.ffts_file_check)
         for index, data in enumerate(merge_output):
             shape = list(data.shape)

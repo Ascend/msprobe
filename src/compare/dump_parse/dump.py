@@ -375,7 +375,7 @@ class CompareData:
 
 def handle_op_name(file_op_name: str, fusion_json_file_path: str) -> str:
     if fusion_json_file_path and ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
-        file_op_name = _process_op_name(file_op_name)
+        file_op_name = process_op_name(file_op_name)
         return file_op_name
 
     # filter field '_lxsliceX' and '_sgt_field'
@@ -399,7 +399,7 @@ def handle_op_name(file_op_name: str, fusion_json_file_path: str) -> str:
     return file_op_name
 
 
-def _process_op_name(name):
+def process_op_name(name):
     re_pattern = re.compile(RegManager.LXSLICE_PATTERN)
     op_name = re_pattern.sub("", name)
     return op_name

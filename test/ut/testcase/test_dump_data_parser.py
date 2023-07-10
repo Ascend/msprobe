@@ -1,5 +1,6 @@
 import time
 import struct
+import sys
 
 import unittest
 import pytest
@@ -141,8 +142,15 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_main_parse_dump_data_bfloat16_pass(self):
+        try:
+            from bfloat16ext import bfloat16
+        except ModuleNotFoundError:
+            bfloat16ext = type(sys)('bfloat16ext')
+            bfloat16ext.bfloat16 = np.float16
+            sys.modules['bfloat16ext'] = bfloat16ext
+
         arguments = self._fake_arguments()
-        dump_data = self._fake_fp16_dump_data(data_type=DD.DT_BFLOAT16)
+        dump_data = self._fake_fp16_dump_data(data_type=DD.DT_BF16)
         with mock.patch('numpy.save'):
             ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)

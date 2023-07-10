@@ -324,6 +324,19 @@ class FusionOpComparison:
 
         return dump_match, cmp_result_list, ret
 
+    def _compare_for_l1_fusion_not_timestamp(self, fusion_op_result):
+        error_msg = []
+
+        single_op_cmp_result = compare_result.SingleOpCmpResult()
+        error_msg.append("The fusion operator list is empty")
+        _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
+        result_info = utils.ResultInfo(self.fusion_op_list[0].op_name, False, _result.result_list,
+                                       CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR, self.fusion_op_list[0].input_list,
+                                       _result.input_result_list, _result.output_result_list, _result.is_ffts,
+                                       self.op_name_origin_output_index_map, False)
+        single_op_cmp_result.update_attr(result_info)
+        return False, [single_op_cmp_result], CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR
+
     def _compare_for_l1_fusion(self: any, right_to_left_map: dict) -> (bool, list, int):
         timestamp_list = self.sort_l1_fusion_dump_file()
         error_msg = []
@@ -333,15 +346,7 @@ class FusionOpComparison:
                                                                                      self.is_my_dump_gpu_or_cpu])
 
         if not timestamp_list:
-            single_op_cmp_result = compare_result.SingleOpCmpResult()
-            error_msg.append("The fusion operator list is empty")
-            _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
-            result_info = utils.ResultInfo(self.fusion_op_list[0].op_name, False, _result.result_list,
-                                           CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR, self.fusion_op_list[0].input_list,
-                                           _result.input_result_list, _result.output_result_list, _result.is_ffts,
-                                           self.op_name_origin_output_index_map, False)
-            single_op_cmp_result.update_attr(result_info)
-            return False, [single_op_cmp_result], CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR
+            return self._compare_for_l1_fusion_not_timestamp(fusion_op_result)
 
         # if the dump data is only input,
         # the dump file of min and max timestamp for input is the same
@@ -351,21 +356,21 @@ class FusionOpComparison:
         # the dump file of max timestamp for output is complete
         # the dump file of min timestamp for input is complete
         l1_fusion_list = []
-        if timestamp_list[-1][self.ORIGINAL_NAMES_INDEX] != \
-                timestamp_list[0][self.ORIGINAL_NAMES_INDEX]:
+        if timestamp_list[-1][self.ORIGINAL_NAMES_INDEX] != timestamp_list[0][self.ORIGINAL_NAMES_INDEX]:
             l1_fusion_list.append(timestamp_list[0][ConstManager.FUSION_OP_INDEX])
         l1_fusion_list.append(timestamp_list[-1][ConstManager.FUSION_OP_INDEX])
         dump_match = False
         has_result_for_any_to_multi = False
         ret = CompareError.MSACCUCMP_NONE_ERROR
         cmp_result_list = []
-        # compare each fusion op
 
+        # compare each fusion op
         for fusion_op in l1_fusion_list:
             single_op_cmp_result = compare_result.SingleOpCmpResult()
             if fusion_op.attr.quant_filter:
                 log.print_skip_quant_info(fusion_op.op_name)
                 continue
+
             result = None
             # 1. compare op
             try:
@@ -375,16 +380,13 @@ class FusionOpComparison:
                 error_msg.append(compare_error.message)
                 if ret == CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR:
                     continue
-            finally:
-                pass
             error_msg.clear()
             has_result_for_any_to_multi = True
             dump_match = True
             # 2. write compare result to file
             _result = fusion_op_result.get_result(fusion_op, result, error_msg)
 
-            result_info = utils.ResultInfo(
-                fusion_op.op_name, dump_match, _result.result_list, ret,
+            result_info = utils.ResultInfo(fusion_op.op_name, dump_match, _result.result_list, ret,
                 fusion_op.input_list, _result.input_result_list, _result.output_result_list,
                 _result.is_ffts, self.op_name_origin_output_index_map, False)
 

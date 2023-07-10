@@ -28,7 +28,7 @@ enum OutputDataType{
     DT_RESOURCE = 23;
     DT_STRING_REF = 24;
     DT_DUAL = 25;
-    DT_BFLOAT16 = 27;
+    DT_BF16 = 27;
     DT_UINT1 = 29;
 }
 
@@ -95,6 +95,11 @@ message Shape {
     repeated uint64 dim = 1;
 }
 
+message DimRange{
+    uint64 dim_start = 1;
+    uint64 dim_end = 2;
+}
+
 message OpOutput{
     OutputDataType data_type = 1;
     OutputFormat format = 2;
@@ -105,6 +110,8 @@ message OpOutput{
     Shape original_shape = 7;
     int32 sub_format = 8;
     uint64 address = 9;
+    repeated DimRange dim_range = 10;
+    uint64 offset = 11;
 }
 
 message OpInput{
@@ -116,6 +123,7 @@ message OpInput{
     Shape original_shape = 6;
     int32 sub_format = 7;
     uint64 address = 8;
+    uint64 offset = 9;
 }
 
 enum BufferType{

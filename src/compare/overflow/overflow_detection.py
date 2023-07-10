@@ -31,7 +31,7 @@ class OverflowDetection:
         """
         process model overflow detection
         """
-        if tensor and (tensor.data_type == DD.DT_FLOAT16 or tensor.data_type == DD.DT_BFLOAT16):
+        if tensor and tensor.data_type == DD.DT_FLOAT16:
             tensor_data_array = tensor.data
             overflow_result = OverflowDetection._judge_overflow_data_by_array(tensor_data_array)
             if overflow_result == 'YES':
@@ -77,7 +77,7 @@ class OverflowDetection:
     def _get_tensor_data_info(self: any, tensor_type: str, tensor_list: list, dump_file_path: str) -> list:
         tensor_data_info = []
         for (index, tensor) in enumerate(tensor_list):
-            if tensor and (tensor.data_type == DD.DT_FLOAT16 or tensor.data_type == DD.DT_BFLOAT16):
+            if tensor and tensor.data_type == DD.DT_FLOAT16:
                 log.print_info_log('Start to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_file_path))
                 array = tensor.data
                 tensor_data_info.append(

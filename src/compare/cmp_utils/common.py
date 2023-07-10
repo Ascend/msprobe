@@ -64,7 +64,14 @@ def get_dtype_by_data_type(data_type: any) -> any:
         message = "The output data type ({}) does not support." .format(str(data_type))
         log.print_error_log(message)
         raise CompareError(CompareError.MSACCUCMP_INVALID_DATA_TYPE_ERROR, message)
-    return ConstManager.DATA_TYPE_TO_DTYPE_MAP.get(data_type).get(ConstManager.DTYPE_KEY)
+    dtype = ConstManager.DATA_TYPE_TO_DTYPE_MAP.get(data_type).get(ConstManager.DTYPE_KEY)
+    if dtype == 'bfloat16':
+        try:
+            from bfloat16ext import bfloat16
+        except ModuleNotFoundError as ee:
+            raise TypeError('bfloat16 is not supported in numpy, run `pip install bfloat16ext` for support.') from ee
+        dtype = bfloat16
+    return dtype
 
 
 def get_struct_format_by_data_type(data_type: any) -> any:
