@@ -8,7 +8,6 @@ import dump_data_pb2 as DD
 import numpy as np
 import pytest
 
-
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import file_utils
 from dump_parse import dump_utils
