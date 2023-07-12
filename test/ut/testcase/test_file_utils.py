@@ -6,6 +6,7 @@ import struct
 import dump_data_pb2 as DD
 import numpy as np
 import pytest
+import os
 
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import file_utils
@@ -73,6 +74,17 @@ class TestUtilsMethods(unittest.TestCase):
                 mock.patch('os.fdopen'):
             open_file.write = None
             file_util.save_file("/test", "result")
+
+    def test_save_array_to_file_with_write_then_success(self):
+        file_util = file_utils.FileUtils()
+        test_array = np.array([[1, 2], [3, 4]])
+        test_path = 'test_save_array_to_file.npy'
+        if os.path.exists(test_path):
+            os.remove(test_path)
+        file_util.save_array_to_file(test_path, test_array, np_save=True, shape=None)
+        self.assertTrue(os.path.exists(test_path))
+        loaded_array = np.load(test_path)
+        self.assertTrue(np.array_equal(test_array, loaded_array))
 
     def test_list_file_with_pattern_case1(self):
         overflow_file_util = file_utils.OverflowFileUtils()
