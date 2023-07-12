@@ -80,8 +80,6 @@ class TestUtilsMethods(unittest.TestCase):
         file_util = file_utils.FileUtils()
         test_array = np.array([[1, 2], [3, 4]])
         test_path = 'test_save_array_to_file.npy'
-        if os.path.exists(test_path):
-            os.remove(test_path)
         file_util.save_array_to_file(test_path, test_array, np_save=True, shape=None)
         self.assertTrue(os.path.exists(test_path))
         loaded_array = np.load(test_path)
