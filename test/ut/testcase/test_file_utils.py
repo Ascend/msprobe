@@ -3,10 +3,11 @@ import time
 import unittest
 from unittest import mock
 import struct
+import os
 import dump_data_pb2 as DD
 import numpy as np
 import pytest
-import os
+
 
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import file_utils
