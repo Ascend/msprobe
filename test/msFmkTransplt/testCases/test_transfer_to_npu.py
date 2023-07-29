@@ -66,3 +66,24 @@ class TestTransferToNpu(unittest.TestCase):
         self.assertEqual(torch.profiler.ProfilerActivity.CUDA, torch_npu.profiler.ProfilerActivity.NPU)
         self.assertEqual(torch.profiler.ProfilerActivity.CPU, torch_npu.profiler.ProfilerActivity.CPU)
         self.assertIsInstance(torch.profiler.profile(experimental_config=1), torch_npu.profiler.profile)
+
+    def test_wrap_ddp(self):
+        local_rank = 0
+        device = 'cuda:%d' % local_rank
+        import torchvision
+        vgg = torchvision.models.vgg16(pretrained=False)
+        vgg = vgg.to(device)
+        torch.distributed.init_process_group(
+            backend='nccl',
+            init_method='tcp://localhost:29688',
+            world_size=1,
+            rank=0)
+        vgg = torch.nn.parallel.DistributedDataParallel(vgg, device_ids=[device])
+        vgg_device = next(vgg.module.parameters()).device
+        self.assertEqual(vgg_device, torch.device('npu:0'))
+
+    def test_patch_default_generators(self):
+        self.assertEqual(torch.cuda.default_generators, torch_npu.npu.default_generators)
+
+    def test_patch_is_nccl_available(self):
+        self.assertEqual(torch.distributed.is_nccl_available, torch_npu.distributed.is_hccl_available)
