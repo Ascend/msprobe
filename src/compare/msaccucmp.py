@@ -138,6 +138,11 @@ def _compare_parser(compare_parser: argparse.ArgumentParser) -> None:
         help='<Optional> whether to extract the compare result, only pytorch is supported.'
              '0 indicates the comparison result is not extracted, '
              '1 indicates the comparison result is extracted.')
+
+    compare_parser.add_argument(
+        '--max_cmp_size', dest='max_cmp_size', type=int, default=0,
+        help='<Optional> max size of tensor array to compare')
+
     _add_advisor_argument(compare_parser)
     _add_version_argument(compare_parser)
     _add_argument_for_single_op(compare_parser)

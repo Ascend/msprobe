@@ -128,7 +128,8 @@ class AlgorithmManager:
                       % (value, ConstManager.COMPARE_FUNC_NAME, select_algorithm)
             raise CompareError(ConstManager.COMPARE_FUNC_NAME, err_msg)
 
-    def compare(self: any, my_output_dump_data: any, ground_truth_dump_data: any, args: dict) -> (list, list):
+    def compare(self: any, my_output_dump_data: any, ground_truth_dump_data: any,
+                args: dict, max_cmp_size=0) -> (list, list):
         """
         Compare the my output dump data and the ground truth dump data by select algorithm
         :param my_output_dump_data: the my output dump data to compare
@@ -146,9 +147,16 @@ class AlgorithmManager:
                 error_msg += ["Algorithm %s does not support Boolean types." % select_algorithm]
             else:
                 alg_args = self._make_algorithm_param(select_algorithm, args)
+                if max_cmp_size:
+                    my_output_dump_data_to_cmp = my_output_dump_data[:max_cmp_size]
+                    ground_truth_dump_data_to_cmp = ground_truth_dump_data[:max_cmp_size]
+                else:
+                    my_output_dump_data_to_cmp = my_output_dump_data
+                    ground_truth_dump_data_to_cmp = ground_truth_dump_data
+
                 # call compare function
                 alg_result, alg_error_msg = self._call_compare_function(
-                    compare_func, my_output_dump_data, ground_truth_dump_data, alg_args, select_algorithm)
+                    compare_func, my_output_dump_data_to_cmp, ground_truth_dump_data_to_cmp, alg_args, select_algorithm)
                 result.append(alg_result)
                 if alg_error_msg:
                     error_msg += [alg_error_msg]
@@ -382,6 +390,7 @@ class AlgorithmManagerMain:
         my_output_dump_data = dump_utils.read_numpy_file(self.my_output_dump_file_path)
         ground_truth_dump_data = dump_utils.read_numpy_file(self.ground_truth_dump_file_path)
         self._check_shape_valid(my_output_dump_data, ground_truth_dump_data)
+
         result, error_msg = self.manager.compare(
             my_output_dump_data.flatten(), ground_truth_dump_data.flatten(),
             {'my_output_dump_file': self.my_output_dump_file_path,

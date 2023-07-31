@@ -994,6 +994,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 1024
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1052,6 +1053,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1113,6 +1115,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1174,6 +1177,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1232,6 +1236,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1290,6 +1295,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1350,6 +1356,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1406,6 +1413,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1466,6 +1474,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1524,6 +1533,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1548,6 +1558,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -1608,6 +1619,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -2116,6 +2128,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -2170,6 +2183,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
@@ -2205,6 +2219,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.my_dump_path = "/home/demo"
         arguments.golden_dump_path = "/home/dt"
         arguments.dump_version = 1
+        arguments.max_cmp_size = 0
         arguments.op_name = ""
         arguments.output_path = "/home/de"
         arguments.custom_script_path = ""
