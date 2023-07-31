@@ -167,6 +167,7 @@ class VectorComparison:
             self.args[ConstManager.RANGE_MANAGER_KEY] = SelectMode(arguments.select)
         self.args["my_dump_path"] = arguments.my_dump_path
         self.args["golden_dump_path"] = arguments.golden_dump_path
+        self.args["max_cmp_size"] = arguments.max_cmp_size
 
     def _init_by_input_parse(self) -> None:
         parse = argparse.ArgumentParser()

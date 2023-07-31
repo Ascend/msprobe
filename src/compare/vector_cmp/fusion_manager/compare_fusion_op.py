@@ -48,6 +48,7 @@ class FusionOpComparison:
         self.is_my_dump_gpu_or_cpu = \
             True if utils.dump_path_contains_npy(arguments.get("my_dump_path")) else False
         self.op_name_origin_output_index_map = {}
+        self.max_cmp_size = arguments.get('max_cmp_size')
 
     @staticmethod
     def _check_dequant_op(fusion_op: FusionOp) -> bool:
@@ -433,7 +434,9 @@ class FusionOpComparison:
             my_output_array, ground_truth_array,
             {'my_output_dump_file': self.left_dump_file_path,
              'ground_truth_dump_file': ground_truth_tensor.path,
-             'shape_type': utils.get_shape_type(my_output_shape)})
+             'shape_type': utils.get_shape_type(my_output_shape)},
+            self.max_cmp_size)
+
         return result, compare_fail_message, [my_output_shape, my_output_dtype, ground_truth_dtype]
 
     def _compare_by_tensor(self: any, fusion_op: FusionOp, is_input: bool) -> (bool, list):
