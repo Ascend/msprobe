@@ -5,11 +5,15 @@
 import builtins
 import os
 import warnings
+import logging as logger
 from functools import wraps
 import torch
 import torch_npu
 
 warnings.filterwarnings(action='once')
+LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
+DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+logger.basicConfig(format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 torch_fn_white_list = [
     'logspace', 'randint', 'hann_window', 'rand', 'full_like', 'ones_like', 'rand_like', 'randperm',
@@ -48,7 +52,12 @@ def wrapper_cuda(func):
                     device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
                     kwargs[device_arg] = torch.device(device_info)
             # delete the experimental_config parameter of torch.profiler.profile
-            if 'experimental_config' in kwargs.keys():
+            if 'experimental_config' in kwargs.keys() and not isinstance(kwargs.get('experimental_config'),
+                                                                         torch_npu.profiler._ExperimentalConfig):
+                logger.warning(
+                    'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
+                    'because it can only be used in cuda, please manually modify the code '
+                    'and use the experimental_config parameter adapted to npu.')
                 del kwargs['experimental_config']
             device_ids = kwargs.get('device_ids', None)
             if isinstance(device_ids, list):
