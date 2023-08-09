@@ -217,7 +217,7 @@ def remove_path(path):
         elif os.path.isdir(path):
             shutil.rmtree(path)
     except PermissionError as exp:
-        raise DeleteFileException(f'Failed to delete {path}: {exp}')
+        raise DeleteFileException(f'Failed to delete {path}: {exp}') from exp
 
 
 def check_path_owner_consistent(path):
