@@ -101,6 +101,21 @@ def wrapper_hccl(func):
     return decorated
 
 
+def wrapper_data_loader(func):
+    @wraps(func)
+    def decorated(*args, **kwargs):
+        if kwargs:
+            pin_memory = kwargs.get('pin_memory', False)
+            pin_memory_device = kwargs.get('pin_memory_device', None)
+            if pin_memory and not pin_memory_device:
+                kwargs['pin_memory_device'] = 'npu'
+            if pin_memory and isinstance(pin_memory_device, str) and 'cuda' in pin_memory_device:
+                kwargs['pin_memory_device'] = pin_memory_device.replace('cuda', 'npu')
+        return func(*args, **kwargs)
+
+    return decorated
+
+
 def patch_cuda():
     patchs = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
@@ -140,22 +155,6 @@ def warning_fn(msg, rank0=True):
         warnings.warn(msg, ImportWarning)
 
 
-def wrapped_isinstance(obj, class_or_tuple):
-    try:
-        return torch_npu._isinstance(obj, class_or_tuple)
-    except TypeError as exp:
-        class_tuple = (class_or_tuple,) if type(class_or_tuple) != tuple else class_or_tuple
-        if torch.device not in class_tuple:
-            raise exp
-        class_list = []
-        for type_item in class_tuple:
-            if type_item is torch.device:
-                class_list.append(torch_npu._C.device)
-            else:
-                class_list.append(type_item)
-        return torch_npu._isinstance(obj, tuple(class_list))
-
-
 def init():
     warning_fn('''
     *************************************************************************************************************
@@ -184,9 +183,6 @@ def init():
     # torch.*
     device_wrapper(torch, torch_fn_white_list)
 
-    # wrap isinstance for torch.device
-    builtins.isinstance = wrapped_isinstance
-
     # torch.Tensor.*
     device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
     torch.Tensor.cuda = torch.Tensor.npu
@@ -199,10 +195,13 @@ def init():
 
     # torch.distributed.init_process_group
     torch.distributed.init_process_group = wrapper_hccl(torch.distributed.init_process_group)
-    torch.distributed.is_nccl_available = torch_npu.distributed.is_hccl_available
+    torch.distributed.is_nccl_available = torch.distributed.is_hccl_available
 
     # torch.nn.parallel.DistributedDataParallel
     device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
+    # torch.utils.data.DataLoader
+    if torch.__version__.startswith('2.1'):
+        torch.utils.data.DataLoader.__init__ = wrapper_data_loader(torch.utils.data.DataLoader.__init__)
 
 
 init()

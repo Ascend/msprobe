@@ -34,7 +34,7 @@ class PyTorchAnalyse:
         parser = argparse.ArgumentParser()
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
-        parser.add_argument('-v', '--version', required=True, choices=['1.8.1', '1.11.0'],
+        parser.add_argument('-v', '--version', required=True, choices=['1.8.1', '1.11.0', '2.0.1', '2.1.0'],
                             help='Target pytorch version of output')
         parser.add_argument('-m', '--mode', default='torch_apis',
                             choices=['third_party', 'torch_apis', 'dynamic_shape', 'affinity_apis'],
