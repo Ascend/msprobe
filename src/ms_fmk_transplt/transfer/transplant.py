@@ -13,6 +13,8 @@ from libcst._removal_sentinel import RemovalSentinel
 from utils import trans_utils as utils
 from utils import transplant_logger as translog
 from analysis import analyse_unsupported_api, analyse_cuda_ops, OpInfo
+from analysis.precision_performance_advice_analysis.precision_performance_advice_visitor import \
+    analyse_precision_performance_advice_api, AdviceInfo
 from .rules.distributed_rules import DataLoaderRule
 from .rules.common_rules import InsertMainFileRule
 
@@ -27,8 +29,11 @@ class Transplant(object):
         self.current_file_rel_path = ''
 
         self.global_reference_visitor = None
+        precision_advice_dict, performance_advice_dict = utils.get_precision_performance_advice_dict(
+            args.version)
         self.op_info = OpInfo(utils.get_supported_op_dict(args.version), utils.get_unsupported_op_dict(args.version),
                               analyse_cuda_ops(script_dir, analysis_result_dir))
+        self.advice_info = AdviceInfo(precision_advice_dict, performance_advice_dict)
         self.transplant_result_statistics = {}
         self.analysis_result_dir = analysis_result_dir
 
@@ -56,14 +61,21 @@ class Transplant(object):
         except BaseException:
             translog.warning(f'{file} has unsupported python syntax, skip.')
             return
-        (unsupported_list, unknown_list), module, wrapper = \
-            analyse_unsupported_api(wrapper, self.op_info, self.global_reference_visitor)
-        self.transplant_result_statistics.update({'cuda_op_list.csv': self.transplant_result_statistics.get(
-            'cuda_op_list.csv', 0) + len(self.op_info.cuda_op_list)})
-        self.transplant_result_statistics.update({'unsupported_api.csv': self.transplant_result_statistics.get(
-            'unsupported_api.csv', 0) + len(unsupported_list)})
-        self.transplant_result_statistics.update({'unknown_api.csv': self.transplant_result_statistics.get(
-            'unknown_api.csv', 0) + len(unknown_list)})
+        (unsupported_list, unknown_list), module, wrapper = analyse_unsupported_api(wrapper, self.op_info,
+                                                                                    self.global_reference_visitor)
+        (precision_advice_list, performance_advice_list), _, _ = \
+            analyse_precision_performance_advice_api(wrapper, self.advice_info,
+                                                     self.global_reference_visitor)
+        result_dicts = {
+            'cuda_op_list.csv': self.op_info.cuda_op_list,
+            'unsupported_api.csv': unsupported_list,
+            'unknown_api.csv': unknown_list,
+            'api_precision_advice.csv': precision_advice_list,
+            'api_performance_advice.csv': performance_advice_list
+        }
+        for result_dict in result_dicts.items():
+            self.transplant_result_statistics.update({result_dict[0]: self.transplant_result_statistics.get(
+                result_dict[0], 0) + len(result_dict[1])})
 
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info)
                              for api in unsupported_list), self.analysis_result_dir, "unsupported_api",
@@ -71,7 +83,18 @@ class Transplant(object):
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name)
                              for api in unknown_list), self.analysis_result_dir, "unknown_api",
                         ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
-
+        utils.write_csv(
+            self.__get_content_list(precision_advice_list),
+            self.analysis_result_dir,
+            "api_precision_advice",
+            ('File', 'Start Line', 'End Line', 'OP', 'Tips')
+        )
+        utils.write_csv(
+            self.__get_content_list(performance_advice_list),
+            self.analysis_result_dir,
+            "api_performance_advice",
+            ('File', 'Start Line', 'End Line', 'OP', 'Tips')
+        )
         new_module = self.__visit_rule(file, module)
         utils.write_file_content(file, new_module.code)
 
@@ -110,6 +133,10 @@ class Transplant(object):
         for rule in self.rule_list:
             rule.clean()
         return new_module
+
+    def __get_content_list(self, result_list):
+        return list(
+            (self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info) for api in result_list)
 
 
 class CodeTransformer(libcst.CSTTransformer):

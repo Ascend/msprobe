@@ -1,0 +1,10 @@
+{
+  "api_precision_list": {
+    "torch.baddbmm": "This api may exist process overflow, try modifying to torch.bmm() + add",
+    "torch.reshape": "This api may exist backward overflow, try modifying to npu_confusion_transpose(npu_confusion_transpose = permute + reshape)"
+  },
+  "api_performance_list": {
+    "torch.optim.AdamW": "Try modifying to NpuFusedAdamW, performance has improved significantly, but the memory usage increases by 70%",
+    "torch.nn.Linear": "Replaced by fusion operator NpuLinear, add in front of the file that needs to be replaced:\n\n class NpuLinear(torch.nn.Linear):\n    def forward(self, x):\n        if not x.is_npu:\n            return super(NpuLinear, self).forward(x)\n        input_shape = x.size()\n        if x.dim() == 3:\n            x = x.reshape(-1, self.in_features)\n            return torch.npu_linear(x, self.weight, self.bias).view(input_shape[0],\n                                                                    input_shape[1], self.out_features)\n        elif x.dim() == 2:\n            return torch.npu_linear(x, self.weight, self.bias)\n        else:\n            raise RuntimeError('not support this dim')\n\nnn.Linear = NpuLinear\n"
+  }
+}
