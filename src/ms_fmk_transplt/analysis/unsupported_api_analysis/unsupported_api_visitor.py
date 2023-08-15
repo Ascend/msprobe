@@ -39,10 +39,11 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
             self.unsupported_instance_op_dict[op_name].append(unsupported_op)
         self.unsupported_op_module_tuple = tuple(unsupported_op_module_set)
         all_module_name_set = set()
-        for func_name in [*self.unsupported_op_dict.keys(), *self.supported_op_dict.keys(), *self.cuda_op_list]:
-            if "." not in func_name:
-                continue
-            all_module_name_set.add(f'{func_name.split(".")[0]}.')
+        if len(self.unsupported_op_dict) > 0 and len(self.supported_op_dict) > 0 and len(self.cuda_op_list) > 0:
+            for func_name in [*self.unsupported_op_dict.keys(), *self.supported_op_dict.keys(), *self.cuda_op_list]:
+                if "." not in func_name:
+                    continue
+                all_module_name_set.add(f'{func_name.split(".")[0]}.')
         self.all_module_names = tuple(all_module_name_set)
         self.global_reference_visitor = global_reference_visitor
         self.unsupported_op_result = []

@@ -94,6 +94,15 @@ def get_affinity_info_dict(version, need_type):
     return json.loads(ops).get(need_type)
 
 
+def get_precision_performance_advice_dict(version):
+    if version == '1.8.1':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice_1_8_1.json')
+    else:
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice_1_11_0.json')
+    ops = get_file_content_bytes(op_list_path)
+    return json.loads(ops).get('api_precision_list'), json.loads(ops).get('api_performance_list')
+
+
 def get_file_content_bytes(file):
     check_input_file_valid(file)
     with open(file, 'rb') as file_handle:

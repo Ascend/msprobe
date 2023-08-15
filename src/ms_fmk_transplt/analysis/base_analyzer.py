@@ -22,6 +22,8 @@ class BaseAnalyzer:
         self.global_reference_visitor = None
         self.package_env_path_set = self._search_package_env_path()
         self.result_dict = {}
+        self.precision_advice_dict, self.performance_advice_dict = utils.get_precision_performance_advice_dict(
+            self.pytorch_version)
 
     @staticmethod
     def __need_analysis(file, commonprefix):
