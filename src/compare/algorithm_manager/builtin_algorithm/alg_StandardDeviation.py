@@ -21,18 +21,13 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     :param args: the algorithm parameter
     :return: the result of the standard deviation value and error message (the default is "")
     """
-    np.seterr(divide='ignore', invalid='ignore')
-    _ = args
+    _ = args  # Bypassing parameter is not used
     left_std = np.std(my_output_dump_data, dtype=np.float)
-    left_mean = np.mean(my_output_dump_data, dtype=np.float)
     right_std = np.std(ground_truth_dump_data, dtype=np.float)
+    left_mean = np.mean(my_output_dump_data, dtype=np.float)
     right_mean = np.mean(ground_truth_dump_data, dtype=np.float)
-    if abs(left_std) < ConstManager.MINIMUM_VALUE:
-        left_std = 0.0
-    if abs(left_mean) < ConstManager.MINIMUM_VALUE:
-        left_mean = 0.0
-    if abs(right_std) < ConstManager.MINIMUM_VALUE:
-        right_std = 0.0
-    if abs(right_mean) < ConstManager.MINIMUM_VALUE:
-        right_mean = 0.0
+    left_std = 0.0 if abs(left_std) < ConstManager.MINIMUM_VALUE else left_std
+    left_mean = 0.0 if abs(left_mean) < ConstManager.MINIMUM_VALUE else left_mean
+    right_std = 0.0 if abs(right_std) < ConstManager.MINIMUM_VALUE else right_std
+    right_mean = 0.0 if abs(right_mean) < ConstManager.MINIMUM_VALUE else right_mean
     return "(%.3f;%.3f),(%.3f;%.3f)" % (left_mean, left_std, right_mean, right_std), ""

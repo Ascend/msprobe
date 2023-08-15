@@ -15,6 +15,10 @@ from cmp_utils.constant.compare_error import CompareError
 from vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
 from vector_cmp.fusion_manager.compare_result import SingleOpCmpResult
 from dump_parse import dump_utils
+from vector_cmp import vector_comparison
+
+
+vector_comparison.VectorComparison.MULTI_THREAD_MAX_NUM = 1
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -2016,7 +2020,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
-        with pytest.raises(CompareError) as err:        
+        with pytest.raises(CompareError) as err:
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.exists', return_value=True), \
                      mock.patch('os.access', return_value=True), \
@@ -2230,7 +2234,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare = compare_vector.VectorComparison(arguments)
         compare.compare_rule = mock.Mock
         compare.compare_rule.fusion_info = mock.Mock
-        compare.compare_data = mock.Mock
+        compare.compare_data = mock.Mock()
         compare.left_dump_info = mock.Mock
         compare.left_dump_info.get_op_dump_file = mock.Mock(side_effect=ValueError)
         op_name = "output_ids"
