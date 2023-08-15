@@ -12,6 +12,7 @@ import multiprocessing
 import argparse
 import csv
 import time
+import psutil
 
 from dump_parse import dump, mapping
 from vector_cmp.compare_detail import detail
@@ -41,6 +42,7 @@ class VectorComparison:
     MULTI_THREAD_RETURN_CODE_INDEX = 0
     MULTI_THREAD_DUMP_MATCH_INDEX = 1
     MULTI_THREAD_COMPARE_RESULT_INDEX = 2
+    MULTI_THREAD_MAX_NUM = 16
 
     def __init__(self: any, arguments: any = None) -> None:
         self.compare_rule = None
@@ -234,7 +236,7 @@ class VectorComparison:
         Different types of dump files have different naming rules.
         The suffix of an npy file is '.npy'. Therefore, you only need to
         check the suffix of the path corresponding to any operator to
-        determine whether the file is an npy file.
+        determine whether the file is a npy file.
         If the parameter 'overflow_detection' is set to True, change it to False.
         """
         if self.args.get('overflow_detection') and self.compare_data.left_dump_info.op_name_to_file_map:
@@ -251,6 +253,7 @@ class VectorComparison:
     def _compare_fusion_ops(self: any, fusion_op_names: list, lock: any) -> list:
         all_cmp_res = []
 
+        _ = lock  # Bypassing parameter lock is not used
         for op_name in fusion_op_names:
             res = self._compare_by_fusion_op(op_name)
             all_cmp_res.append(res)
@@ -294,16 +297,31 @@ class VectorComparison:
                                         self.args)
         return comparison.compare()
 
+    def _get_max_process_num(self) -> int:
+        if self.MULTI_THREAD_MAX_NUM == 1:
+            return 1  # Bypasing test code entering `os.listdir`
+
+        golden_dump_path = self.args.get("golden_dump_path")
+        file_sizes = [os.path.getsize(os.path.join(golden_dump_path, ii)) for ii in os.listdir(golden_dump_path)]
+        max_file_size = max(file_sizes)
+
+        mem = psutil.virtual_memory()
+        available_mem = mem.available
+        mem_max_process_num = available_mem // max_file_size // 4
+
+        cpu_max_process_num = int((multiprocessing.cpu_count() + 1) / 2)
+        return min(mem_max_process_num, cpu_max_process_num, self.MULTI_THREAD_MAX_NUM)
+
     def _handle_multi_process(self: any, func: any, lock: any = None) -> list:
-        # 2. compare operator by multi-processing
-        # 1 ensure multi processing number, which is half of the CPUs
-        process_num = int((multiprocessing.cpu_count() + 1) / 2)
+        # 2. compare operator by multi processes
+        # 1 ensure multi processes number, which is half of the CPUs
+        process_num = self._get_max_process_num()
         # 2 get all operator names
         if ConstManager.RANGE_MANAGER_KEY in self.args:
             all_op_names = self.args.get(ConstManager.RANGE_MANAGER_KEY).get_all_ops(self.compare_rule)
         else:
             all_op_names = self.compare_rule.fusion_info.fusion_op_name_to_op_map.keys()
-        # 3 allocate all operator names evenly by multi-processing number
+        # 3 allocate all operator names evenly by multi processes number
         op_names = []
         for _ in range(process_num):
             op_names.append([])
@@ -473,7 +491,6 @@ class VectorComparison:
         if os.path.exists(self.output_path):
             log.print_write_result_info('mapping table result', self.output_path)
         return CompareError.MSACCUCMP_NONE_ERROR
-
 
     def _pre_handle_header(self: any) -> list:
         op_header = copy.deepcopy(ConstManager.VECTOR_COMPARE_HEADER)
