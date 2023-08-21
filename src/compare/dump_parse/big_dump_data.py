@@ -303,6 +303,7 @@ def write_dump_data(numpy_data: np.ndarray, output_dump_path: str) -> None:
     dump_data, data = _convert_numpy_to_dump(numpy_data, only_header=True)
     dump_data_ser = dump_data.SerializeToString()
     try:
+        path_check.check_write_path_secure(output_dump_path)
         with os.fdopen(os.open(output_dump_path, ConstManager.WRITE_FLAGS,
                                ConstManager.WRITE_MODES), 'wb') as dump_file:
             # write the header length
