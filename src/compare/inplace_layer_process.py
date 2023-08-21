@@ -17,6 +17,7 @@ import caffe.proto.caffe_pb2 as caffe_pb2
 
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import log
+from cmp_utils import path_check
 
 MAX_SIZE = 10 * 1024 * 1024 * 1024
 
@@ -107,6 +108,7 @@ class RemoveInplaceLayerProcess:
             if layer_item.type == 'Dropout':
                 self.net_param.layer.remove(layer_item)
 
+        path_check.check_write_path_secure(self.output_file_path)
         # write file to new path
         with os.fdopen(os.open(self.output_file_path, self.WRITE_FLAGS, self.WRITE_MODES),
                        'w') as open_file:
