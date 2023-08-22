@@ -415,7 +415,7 @@ def _check_range_effect(args: argparse.Namespace) -> None:
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
     if args.max_cmp_size < 0:
         log.print_error_log(
-            "Please enter a valid number for max_cmp_size, the max_cmp_size id should be"
+            "Please enter a valid number for max_cmp_size, the max_cmp_size should be"
             " in [0, ∞), now is %s." % args.max_cmp_size)
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
