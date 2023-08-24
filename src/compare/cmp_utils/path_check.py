@@ -117,6 +117,9 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
     ret = check_name_valid(path)
     if ret != CompareError.MSACCUCMP_NONE_ERROR:
         return ret
+    if os.path.islink(os.path.abspath(path)):
+        log.print_error_log('The path "%s" is a softlink, not permitted.' % path)
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     exist_path = os.path.realpath(path)
     if not exist:
