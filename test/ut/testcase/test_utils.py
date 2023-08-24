@@ -225,6 +225,13 @@ class TestUtilsMethods(unittest.TestCase):
                     '/home/result', True, True, path_check.PathType.Directory)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
+    def test_check_path_valid9(self):
+        with mock.patch('os.path.exists', return_value=True):
+            with mock.patch('os.access', return_value=True):
+                with mock.patch('os.path.islink', return_value=True):
+                    ret = path_check.check_path_valid('/home/result', True, True)
+        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+
     def test_parse_dump_file1(self):
         with pytest.raises(CompareError) as error:
             with mock.patch('cmp_utils.path_check.check_path_valid',
