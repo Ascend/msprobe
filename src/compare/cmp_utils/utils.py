@@ -279,6 +279,8 @@ def least_common_multiple(left: int, right: int) -> int:
     :param right: One of the calculation parameters
     :return: left, right Least common multiple
     """
+    if left == 0 or right == 0:
+        return 0
     return (left * right) // math.gcd(left, right)
 
 
@@ -289,6 +291,8 @@ def ceiling_divide(left: int, right: int) -> int:
     :param right: One of the calculation parameters
     :return: left, right Ceiling divide
     """
+    if right == 0:
+        raise ZeroDivisionError('Can not divide zero.')
     return (left + right - 1) // right
 
 
