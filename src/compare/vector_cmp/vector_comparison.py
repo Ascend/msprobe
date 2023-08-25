@@ -303,7 +303,10 @@ class VectorComparison:
 
         golden_dump_path = self.args.get("golden_dump_path")
         file_sizes = [os.path.getsize(os.path.join(golden_dump_path, ii)) for ii in os.listdir(golden_dump_path)]
-        max_file_size = max(file_sizes)
+        if not file_sizes:
+            max_file_size = 1
+        else:
+            max_file_size = max(max(file_sizes), 1)
 
         mem = psutil.virtual_memory()
         available_mem = mem.available

@@ -78,6 +78,13 @@ class TestUtilsMethods(unittest.TestCase):
         new_value = utils.space_to_comma(value)
         self.assertEqual(new_value, 'a b c,d e,1.0,0.1,(3.0 4.0);(5.3 6.5)')
 
+    def test_ceiling_divide(self):
+        self.assertEqual(utils.ceiling_divide(10, 3), 4)
+        self.assertEqual(utils.ceiling_divide(5, 5), 1)
+        self.assertEqual(utils.ceiling_divide(0, 1), 0)
+        with self.assertRaises(ZeroDivisionError):
+            utils.ceiling_divide(10, 0)
+
     def test_check_name_valid1(self):
         ret = path_check.check_name_valid('')
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
@@ -89,6 +96,12 @@ class TestUtilsMethods(unittest.TestCase):
     def test_check_name_valid3(self):
         ret = path_check.check_name_valid('prob')
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_least_common_multiple(self):
+        self.assertEqual(utils.least_common_multiple(2, 3), 6)
+        self.assertEqual(utils.least_common_multiple(4, 6), 12)
+        self.assertEqual(utils.least_common_multiple(0, 5), 0)
+        self.assertEqual(utils.least_common_multiple(7, 0), 0)
 
     def test_read_numpy_file1(self):
         dump_data = np.arange(2)
