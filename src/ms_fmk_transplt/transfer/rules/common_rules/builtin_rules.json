@@ -76,7 +76,332 @@
         "arg_keyword": "experimental_config",
         "arg_new": "",
         "feature_switch": ["normal"]
+      },
+      {
+        "func_name": "to",
+        "arg_idx": 0,
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "to",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "to_empty",
+        "arg_idx": 0,
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "to_empty",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.logspace",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.randint",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.hann_window",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.rand",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.full_like",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.ones_like",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.rand_like",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.randperm",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.arange",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.frombuffer",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.normal",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch._empty_per_channel_affine_quantized",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.empty_strided",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.empty_like",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.scalar_tensor",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.tril_indices",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.bartlett_window",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.ones",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.sparse_coo_tensor",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.randn",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.kaiser_window",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.tensor",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.triu_indices",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.as_tensor",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.zeros",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.randint_like",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.full",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.eye",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch._sparse_csr_tensor_unsafe",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.empty",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch._sparse_coo_tensor_unsafe",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.blackman_window",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.zeros_like",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.range",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.sparse_csr_tensor",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.randn_like",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.from_file",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch._cudnn_init_dropout_state",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch._empty_affine_quantized",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.linspace",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.hamming_window",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.empty_quantized",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch._pin_memory",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.autocast",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.tensor.new_empty",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.tensor.new_empty_strided",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.tensor.new_full",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.tensor.new_ones",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.tensor.new_tensor",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
+      },
+      {
+        "func_name": "torch.tensor.new_zeros",
+        "arg_keyword": "device",
+        "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
+        "feature_switch": ["2.1.0"]
       }
+
     ],
     "FuncNameModifyRule": [
       {

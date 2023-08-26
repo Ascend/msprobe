@@ -197,6 +197,8 @@ class MsFmkTransplt(object):
             shell_file_path = self.output if os.path.isdir(self.output) else os.path.dirname(self.output)
             utils.generate_distributed_shell_file(shell_file_path)
             self.feature_switch.append('distributed')
+        if args.version == '2.1.0':
+            self.feature_switch.append('2.1.0')
 
     def __copy_function_pack(self, pack_name):
         function_pack_dir = os.path.join(os.path.dirname(__file__), "transfer", "adapter", pack_name)
