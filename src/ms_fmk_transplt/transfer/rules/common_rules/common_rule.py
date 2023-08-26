@@ -264,14 +264,22 @@ class ArgsModifyRule(BaseRule):
         return target
 
     def __generate_new_arg(self, origin_arg: "libcst.Arg"):
+        if 'replace_device_int' in self.arg_new:
+            if isinstance(origin_arg.value, libcst.Call):
+                old_arg = libcst.parse_module("").code_for_node(origin_arg.value)
+            else:
+                old_arg = origin_arg.value.value
+            arg_new = self.arg_new.replace('replace_device_int', old_arg)
+        else:
+            arg_new = self.arg_new
         if not self.arg_keyword:
-            return libcst.Arg(libcst.parse_expression(self.arg_new))
+            return libcst.Arg(libcst.parse_expression(arg_new))
         else:
             return origin_arg.with_changes(
                 keyword=libcst.Name(self.arg_keyword),
                 equal=libcst.AssignEqual(whitespace_before=libcst.SimpleWhitespace(''),
                                          whitespace_after=libcst.SimpleWhitespace('')),
-                value=libcst.parse_expression(self.arg_new))
+                value=libcst.parse_expression(arg_new))
 
     def __need_modify(self, arg: "libcst.Arg"):
         arg_str = libcst.parse_module("").code_for_node(arg)
