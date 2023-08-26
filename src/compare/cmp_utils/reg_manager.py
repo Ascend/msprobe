@@ -35,8 +35,9 @@ class RegManager:
                                 r"(\.[0-9]+)?\.[0-9]{1,255}\.[0-9]+\.[0-9]+\.[0-9]+"
 
     # Standard
-    NUMPY_DUMP_PATTERN = r"^([A-Za-z0-9_-]+\.[0-9]+)\.[0-9]{1,255}\.npy$"
-    STANDARD_NUMPY_PATTERN = r"^([A-Za-z0-9_-]+\.[0-9]+\.[0-9]{1,255})\.npy$"
+    NUMPY_DUMP_PATTERN = r"^(.*\.[0-9]+)\.[0-9]{1,255}\.npy$"
+
+    STANDARD_NUMPY_PATTERN = r"^(.*\.[0-9]+\.[0-9]{1,255})\.npy$"
 
     SUPPORT_SHAPE_PATTERN = r"^([0-9]+,)+[0-9]+$"
 
