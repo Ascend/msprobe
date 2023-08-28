@@ -219,6 +219,9 @@ class DumpInfo:
         self._judge_dump_type()
 
     def _check_task_type(self: any, op_name: str, file_name: str) -> None:
+        if file_name.endswith(ConstManager.NUMPY_SUFFIX):
+            self.op_name_to_task_mode_map[op_name] = ConstManager.NORMAL_MODE
+            return
         flied_list = file_name.split(".")
         if len(flied_list) <= ConstManager.OLD_FILE_FIELD_NUM + 1:
             self.op_name_to_task_mode_map[op_name] = ConstManager.NORMAL_MODE
