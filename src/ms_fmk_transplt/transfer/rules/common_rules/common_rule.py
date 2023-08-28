@@ -247,10 +247,10 @@ class ArgsModifyRule(BaseRule):
                                       "delete the arg at position %s of function %s" %
                                       (target_idx, self.func_name))
             else:
-                args[target_idx] = self.__generate_new_arg(args[target_idx])
+                args[target_idx], arg_new = self.__generate_new_arg(args[target_idx])
                 self._record_position(original_node, OperatorType.MODIFY,
                                       "change the arg at position %s of function %s to %s" %
-                                      (target_idx, self.func_name, self.arg_new))
+                                      (target_idx, self.func_name, arg_new))
             return updated_node.with_changes(args=args)
 
         return updated_node
@@ -264,22 +264,18 @@ class ArgsModifyRule(BaseRule):
         return target
 
     def __generate_new_arg(self, origin_arg: "libcst.Arg"):
+        arg_new = self.arg_new
         if 'replace_device_int' in self.arg_new:
-            if isinstance(origin_arg.value, libcst.Call):
-                old_arg = libcst.parse_module("").code_for_node(origin_arg.value)
-            else:
-                old_arg = origin_arg.value.value
-            arg_new = self.arg_new.replace('replace_device_int', old_arg)
-        else:
-            arg_new = self.arg_new
+            old_arg = libcst.parse_module("").code_for_node(origin_arg.value)
+            arg_new = self.arg_new.replace('replace_device_int', str(old_arg))
         if not self.arg_keyword:
-            return libcst.Arg(libcst.parse_expression(arg_new))
+            return libcst.Arg(libcst.parse_expression(arg_new)), arg_new
         else:
             return origin_arg.with_changes(
                 keyword=libcst.Name(self.arg_keyword),
                 equal=libcst.AssignEqual(whitespace_before=libcst.SimpleWhitespace(''),
                                          whitespace_after=libcst.SimpleWhitespace('')),
-                value=libcst.parse_expression(arg_new))
+                value=libcst.parse_expression(arg_new)), arg_new
 
     def __need_modify(self, arg: "libcst.Arg"):
         arg_str = libcst.parse_module("").code_for_node(arg)
