@@ -289,13 +289,26 @@ class ConstManager:
 
     DEQUANT_OP_NANE_SUFFIX_LIST = ["_dequant_layer", "AscendDequant", "_dequant"]
 
+    CHAR_FMT = 's'
+    INT32_FMT = 'i'
     UINT32_FMT = 'I'
+    INT64_FMT = 'q'
     UINT64_FMT = 'Q'
+
+    CHAR_SIZE = 1
+    INT16_SIZE = 2
+    UINT16_SIZE = 2
+    INT32_SIZE = 4
+    INT64_SIZE = 8
     UINT32_SIZE = 4
     UINT64_SIZE = 8
+
     UNPACK_FORMAT = {
+        'CHAR':   {'FMT': CHAR_FMT, 'SIZE': CHAR_SIZE},
         'UINT32': {'FMT': UINT32_FMT, 'SIZE': UINT32_SIZE},
-        'UINT64': {'FMT': UINT64_FMT, 'SIZE': UINT64_SIZE}
+        'UINT64': {'FMT': UINT64_FMT, 'SIZE': UINT64_SIZE},
+        'INT32': {'FMT': INT32_FMT, 'SIZE': INT32_SIZE},
+        'INT64': {'FMT': INT64_FMT, 'SIZE': INT64_SIZE},
     }
     ONE_GB = 1 * 1024 * 1024 * 1024
     ONE_HUNDRED_MB = 100 * 1024 * 1024

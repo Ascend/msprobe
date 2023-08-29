@@ -13,7 +13,7 @@ from vector_cmp.fusion_manager import fusion_op
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.multi_process.progress import Progress
 from cmp_utils.constant.const_manager import ConstManager
-from dump_parse import dump, dump_utils, mapping
+from dump_parse import dump, dump_utils, mapping, dump_data_object
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -70,7 +70,7 @@ class TestUtilsMethods(unittest.TestCase):
         op_output = mock.Mock()
         op_output.data = b'\x01\x02'
         op_output.shape.dim = [1]
-        numpy_data = dump_utils._deserialize_dump_data_to_array(op_output)
+        numpy_data = dump_data_object._deserialize_dump_data_to_array(op_output.data, 1, list(op_output.shape.dim))
         self.assertEqual(len(numpy_data), 2)
 
     def test_space_to_comma(self):
@@ -257,8 +257,10 @@ class TestUtilsMethods(unittest.TestCase):
         with pytest.raises(CompareError) as error:
             with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('builtins.open', side_effect=IOError):
-                    dump_utils.parse_dump_file('/home', 2)
+                with mock.patch('dump_parse.nano_dump_data.NanoDumpDataHandler.check_is_nano_dump_format',
+                                return_value=False):
+                    with mock.patch('builtins.open', side_effect=IOError):
+                        dump_utils.parse_dump_file('/home', 2)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
@@ -266,8 +268,10 @@ class TestUtilsMethods(unittest.TestCase):
         with pytest.raises(CompareError) as error:
             with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                with mock.patch('os.path.getsize', return_value=0):
-                    dump_utils.parse_dump_file('/home/a.dump', 2)
+                with mock.patch('dump_parse.nano_dump_data.NanoDumpDataHandler.check_is_nano_dump_format',
+                                return_value=False):
+                    with mock.patch('os.path.getsize', return_value=0):
+                        dump_utils.parse_dump_file('/home/a.dump', 2)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
@@ -278,10 +282,12 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data_ser = dump_data.SerializeToString()
         with mock.patch('cmp_utils.path_check.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
-                with mock.patch('builtins.open',
-                                mock.mock_open(read_data=dump_data_ser)):
-                    dump_data = dump_utils.parse_dump_file('/home/a.dump', 1)
+            with mock.patch('dump_parse.nano_dump_data.NanoDumpDataHandler.check_is_nano_dump_format',
+                            return_value=False):
+                with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
+                    with mock.patch('builtins.open',
+                                    mock.mock_open(read_data=dump_data_ser)):
+                        dump_data = dump_utils.parse_dump_file('/home/a.dump', 1)
         self.assertEqual(dump_data.output_data[0].data_type, DD.DT_FLOAT16)
         data_byte = utils.convert_ndarray_to_bytes(dump_data.output_data[0].data)
         self.assertEqual(len(data_byte), 48)
@@ -295,7 +301,9 @@ class TestUtilsMethods(unittest.TestCase):
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
                 with mock.patch('builtins.open', mock.mock_open(read_data=dump_data_ser)):
-                    dump_data = dump_utils.parse_dump_file('/home/a.dump', 1)
+                    with mock.patch('dump_parse.nano_dump_data.NanoDumpDataHandler.check_is_nano_dump_format',
+                                    return_value=False):
+                        dump_data = dump_utils.parse_dump_file('/home/a.dump', 1)
         self.assertEqual(dump_data.output_data[0].size, 48)
 
     def test_parse_dump_file6(self):
@@ -336,7 +344,9 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('cmp_utils.path_check.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('os.path.getsize', return_value=1210):
                 with mock.patch('numpy.load', return_value=np.ones([1, 3, 2, 2])):
-                    dump_data = dump_utils.parse_dump_file('/home/a.npy', 0)
+                    with mock.patch('dump_parse.nano_dump_data.NanoDumpDataHandler.check_is_nano_dump_format',
+                                    return_value=False):
+                        dump_data = dump_utils.parse_dump_file('/home/a.npy', 0)
         self.assertEqual(dump_data.output_data[0].shape[1], 3)
 
     def test_print_progress1(self):

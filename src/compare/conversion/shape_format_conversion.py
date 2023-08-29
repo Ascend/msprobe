@@ -28,6 +28,7 @@ from format_manager.format_manager import SrcToDest
 from format_manager.format_manager import ShapeConversion
 from conversion.tensor_conversion import TensorConversion
 from dump_parse import dump, dump_utils, mapping
+from dump_parse.dump_data_object import DumpDataObj, DumpTensor
 
 
 def _check_shape_valid(shape_str: str) -> list:
@@ -402,7 +403,7 @@ class FormatConversionMain:
                 pass
         return ret, msg
 
-    def _convert_format_for_input_or_output(self: any, dump_data: DD.DumpData, dump_file_path: str) -> None:
+    def _convert_format_for_input_or_output(self: any, dump_data: DumpDataObj, dump_file_path: str) -> None:
         if self.one_file_info.get('tensor') == ConstManager.INPUT:
             tensor_list = dump_data.input_data
         else:
@@ -417,7 +418,7 @@ class FormatConversionMain:
             tensor_list[self.one_file_info.get('index')], self.one_file_info.get('index'),
             self.one_file_info.get('tensor'), dump_file_path, dump_data.op_name)
 
-    def _convert_format_for_tensor_list(self: any, dump_data: DD.DumpData, dump_file_path: str) -> (int, str):
+    def _convert_format_for_tensor_list(self: any, dump_data: DumpDataObj, dump_file_path: str) -> (int, str):
         ret = CompareError.MSACCUCMP_NONE_ERROR
         msg = dump_file_path
         ret_input, msg_input = self._convert_format_for_tensor(dump_data.input_data, dump_file_path, ConstManager.INPUT,

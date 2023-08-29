@@ -12,13 +12,13 @@ from functools import wraps
 import numpy as np
 from dump_data_pb2 import DumpData
 
-from cmp_utils import common
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.reg_manager import RegManager
 from cmp_utils import log
 from dump_parse.big_dump_data import DumpDataHandler
 from dump_parse.dump_data_object import DumpDataObj, DumpTensor
+from dump_parse.nano_dump_data import NanoDumpData, NanoDumpDataParser, NanoDumpDataHandler
 
 
 class SortMode:
@@ -147,23 +147,6 @@ def sort_dump_file_list(dump_file_type: int, dump_file_list: list) -> list:
     return dump_file_list
 
 
-def _deserialize_dump_data_to_array(tensor: any) -> any:
-    """
-    Deserialize dump data to array
-    :param tensor: the dump data for input or output
-    :return: the numpy array
-    """
-    if 0 in tensor.shape.dim:
-        return np.array([]).reshape(tensor.shape.dim)
-    result = np.frombuffer(tensor.data, dtype=common.get_dtype_by_data_type(tensor.data_type))
-    if tensor.data_type in ConstManager.UNPACK_DTYPE:
-        return np.unpackbits(result)
-    elif tensor.data_type in ConstManager.CAST_FP32_DTYPE:
-        return result.astype('float32')
-    else:
-        return result
-
-
 def read_numpy_file(path: str) -> any:
     """
     Read numpy file
@@ -173,40 +156,21 @@ def read_numpy_file(path: str) -> any:
     return DumpDataHandler(path).read_numpy_file()
 
 
-def convert_dump_data_object(wrap_function: any) -> any:
+def convert_dump_data_object(input_path, dump_version) -> DumpDataObj:
     """
     This is a wrapper
     @param wrap_function: function need to be wrapped
     @return: inner function
     """
-    @wraps(wrap_function)
-    def inner(*args, **kwargs):
-        try:
-            dump_data = wrap_function(*args, **kwargs)
-        except CompareError as error:
-            if error.code == CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE:
-                dump_data = DumpData()
-            else:
-                raise error
-        dump_data_object = convert_dump_data(dump_data)
-        return dump_data_object
-    return inner
-
-
-def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool) -> None:
-    """
-    replace the input or output object of DD.DumpData to DumpyTensor
-    @param dump_data_object_data: input or output object of DD.DumpData
-    @param is_input: if the tensor is input data
-    @param is_ffts: if the tensor is ffts plus mode
-    @return: None
-    """
-    for index, tensor in enumerate(dump_data_object_data):
-        data_to_np = _deserialize_dump_data_to_array(tensor)
-        dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
-                                 data_to_np, tensor.size, list(tensor.original_shape.dim),
-                                 tensor.address, tensor.sub_format, is_input, is_ffts)
-        dump_data_object_data[index] = dump_tensor
+    try:
+        dump_data = DumpDataHandler(input_path).parse_dump_data(dump_version)
+    except CompareError as error:
+        if error.code == CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE:
+            dump_data = DumpData()
+        else:
+            raise error
+    dump_data_object = convert_dump_data(dump_data)
+    return dump_data_object
 
 
 def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
@@ -216,21 +180,32 @@ def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
     @return: DumpDataObj object
     """
     dump_data_object = DumpDataObj(dump_data)
-    is_ffts = False if dump_data_object.get_ffts_mode is None else True
-    build_dump_tensor(dump_data_object.output_data, is_input=False, is_ffts=is_ffts)
-    build_dump_tensor(dump_data_object.input_data, is_input=True, is_ffts=is_ffts)
+
     return dump_data_object
 
 
-@convert_dump_data_object
+def convert_nano_dump_data(nano_dump_data: NanoDumpData) -> DumpDataObj:
+    """
+    Convert dump_data to DumpDataObj
+    @param dump_data:  DD.DumpData object
+    @return: DumpDataObj object
+    """
+    dump_data_object = DumpDataObj(dump_data=None, nano_dump_data=nano_dump_data)
+    return dump_data_object
+
+
 def parse_dump_file(input_path: str, dump_version: int) -> DumpDataObj:
     """
-    Parse dump fil
+    Parse dump file
     :param input_path: the input file path
     :param dump_version: the dump version
     :return: DumpData
     """
-    return DumpDataHandler(input_path).parse_dump_data(dump_version)
+    if NanoDumpDataHandler(input_path).check_is_nano_dump_format():
+        nano_dump_data = NanoDumpDataHandler(input_path).parse_dump_data(dump_version)
+        return convert_nano_dump_data(nano_dump_data)
+    else:
+        return convert_dump_data_object(input_path, dump_version)
 
 
 def get_op_type_from_file_name(dump_path: str):
