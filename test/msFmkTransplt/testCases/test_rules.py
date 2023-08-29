@@ -31,6 +31,9 @@ class TestRules(unittest.TestCase):
         arg_delete_rule = self.common_rule.ArgsModifyRule('func', '', 1)
         arg_keyword_delete_rule = self.common_rule.ArgsModifyRule('torch.profiler.profile', '', -1,
                                                                   'experimental_config')
+        to_rule = self.common_rule.ArgsModifyRule('to', "f'npu:{replace_device_int}' if "
+                                                        "isinstance(replace_device_int, int) else replace_device_int",
+                                                  0)
 
         load_cases = (
             # map_location not specified
@@ -75,6 +78,17 @@ class TestRules(unittest.TestCase):
         )
         for test_case in arg_keyword_delete_case:
             self._check_modify(arg_keyword_delete_rule, test_case[0], test_case[1])
+
+            # 2.1 device type int replace
+        device_int_cases = (
+            ("a.to(d)", "a.to(f'npu:{d}' if isinstance(d, int) else d)"),
+            (
+                "new_order.to(src_tokens.device)",
+                "new_order.to(f'npu:{src_tokens.device}' if isinstance(src_tokens.device, int) else src_tokens.device)"
+            )
+        )
+        for test_case in device_int_cases:
+            self._check_modify(to_rule, test_case[0], test_case[1])
 
     def test_insert_global_rule(self):
         rule = self.common_rule.InsertGlobalRule(["import key", "key.insert()"])
