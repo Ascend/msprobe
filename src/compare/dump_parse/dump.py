@@ -10,8 +10,6 @@ import os
 from enum import Enum
 from enum import unique
 
-from dump_data_pb2 import DumpData
-
 from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
@@ -19,6 +17,7 @@ from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse.ffts_parser import FFTSParser
 from dump_parse import dump_utils, mapping
+from dump_parse.dump_data_object import DumpDataObj, DumpTensor
 
 
 @unique
@@ -96,7 +95,7 @@ class DumpInfo:
             log.print_info_log('[%s] [%s] %s' % (op_name, str(self.type.name), dump_file_list))
         return dump_file_list, dump_mode
 
-    def get_op_dump_data(self: any, op_name: str, output_index: int = None) -> (str, DumpData):
+    def get_op_dump_data(self: any, op_name: str, output_index: int = None) -> (str, DumpDataObj):
         """
         Get the dump file and data by op name
         :param op_name: the op name
@@ -282,7 +281,7 @@ class CompareData:
             log.print_error_log('%s this scenario cannot be compared.' % info)
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_TYPE_ERROR)
 
-    def get_left_dump_data(self: any, op_name: str) -> (str, DumpData):
+    def get_left_dump_data(self: any, op_name: str) -> (str, DumpDataObj):
         """
         Get the left dump file path and data by fusion op
         :param op_name: the op name
@@ -290,7 +289,7 @@ class CompareData:
         """
         return self.left_dump_info.get_op_dump_data(op_name)
 
-    def get_right_dump_data(self: any, op_name: str, output_index: int = 0) -> (str, DumpData):
+    def get_right_dump_data(self: any, op_name: str, output_index: int = 0) -> (str, DumpDataObj):
         """
         Get the right dump file path and data by fusion op
         :param op_name: the op name

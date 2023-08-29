@@ -163,7 +163,7 @@ class DumpDataParser:
                                % (tensor_type, index, output_file_path))
 
     def _save_buffer_to_file(self: any, dump_path: str, tensor_list: list) -> None:
-        if len(tensor_list) == 0:
+        if tensor_list is None or len(tensor_list) == 0:
             log.print_warn_log('There is no buffer data in "%s".' % dump_path)
             return
         name = os.path.basename(dump_path)

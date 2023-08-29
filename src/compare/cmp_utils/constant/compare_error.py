@@ -58,6 +58,7 @@ class CompareError(Exception):
     MSACCUCMP_SYMLINK_ERROR = 44
     MSACCUCMP_FILE_EXISTS_ERROR = 45
     MSACCUCMP_DANGER_FILE_ERROR = 46
+    MSACCUCMP_PARSE_NANO_DUMP_FILE_ERROR = 47
 
     def __init__(self: any, code: int, message: str = "") -> None:
         super().__init__(code)

@@ -10,10 +10,61 @@ import numpy as np
 from dump_data_pb2 import DumpData
 
 from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils import log
+from cmp_utils import common
 
 
 CommonAttr = collections.namedtuple('CommonAttr', ['data_type', 'tensor_format', 'address', 'original_shape'])
+
+
+def _deserialize_dump_data_to_array(data, data_type, shape: list = None) -> any:
+    """
+    Deserialize dump data to array
+    :param tensor: the dump data for input or output
+    :return: the numpy array
+    """
+    if 0 in shape:
+        return np.array([]).reshape(shape)
+    result = np.frombuffer(data, dtype=common.get_dtype_by_data_type(data_type))
+    if data_type in ConstManager.UNPACK_DTYPE:
+        return np.unpackbits(result)
+    elif data_type in ConstManager.CAST_FP32_DTYPE:
+        return result.astype('float32')
+    else:
+        return result
+
+
+def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool) -> None:
+    """
+    replace the input or output object of DumpDataObj to DumpyTensor
+    @param dump_data_object_data: input or output object of DumpDataObj
+    @param is_input: if the tensor is input data
+    @param is_ffts: if the tensor is ffts plus mode
+    @return: None
+    """
+    for index, tensor in enumerate(dump_data_object_data):
+        data_to_np = _deserialize_dump_data_to_array(tensor.data, tensor.data_type, list(tensor.shape.dim))
+        dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
+                                 data_to_np, tensor.size, list(tensor.original_shape.dim),
+                                 tensor.address, tensor.sub_format, is_input, is_ffts)
+        dump_data_object_data[index] = dump_tensor
+
+
+def build_nano_dump_tensor(dump_data_object_data: list, is_input: bool) -> None:
+    """
+    replace the input or output object of DumpDataObj to DumpyTensor
+    @param dump_data_object_data: input or output object of DumpDataObj
+    @param is_input: if the tensor is input data
+    @param is_ffts: if the tensor is ffts plus mode
+    @return: None
+    """
+    for index, tensor in enumerate(dump_data_object_data):
+        data_to_np = _deserialize_dump_data_to_array(tensor.data, tensor.data_type, tensor.shape_dims)
+        dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, tensor.shape_dims,
+                                 data_to_np, tensor.size, tensor.original_shape_dims,
+                                 tensor.address, is_input=is_input, is_ffts=False)
+        dump_data_object_data[index] = dump_tensor
 
 
 class DumpTensor:
@@ -50,19 +101,39 @@ class DumpTensor:
 
 class DumpDataObj:
     """
-    The class of DumpDataObject, replace the class DD.DumpData.
+    The class of DumpDataObject, replace the class DD.DumpData or NanoDumpData.
     Include dump_file information
     """
-    def __init__(self: any, dump_data: DumpData = DumpData()) -> None:
-        self.version = dump_data.version
-        self.op_name = dump_data.op_name
-        self.dump_time = dump_data.dump_time
-        self.buffer = dump_data.buffer
-        self.space = [_space_data for _space_data in dump_data.space]
-        self.attr = json.loads(dump_data.attr[0].value) if dump_data.attr else None
-        self.input_data = [_input_data for _input_data in dump_data.input]
-        self.output_data = [_output_data for _output_data in dump_data.output]
-        self.ffts_file_check = True
+    def __init__(self: any, dump_data: DumpData = DumpData(), nano_dump_data=None) -> None:
+        if nano_dump_data:
+            self.version = nano_dump_data.version_id
+            self.op_name = nano_dump_data.op_name
+            self.dump_time = nano_dump_data.dump_time
+            self.buffer = None
+            self.space = None
+            self.attr = None
+            self.input_data = nano_dump_data.inputs
+            self.output_data = nano_dump_data.outputs
+            self.ffts_file_check = False
+
+            build_nano_dump_tensor(self.output_data, is_input=False)
+            build_nano_dump_tensor(self.input_data, is_input=True)
+
+        else:
+            self.version = dump_data.version
+            self.op_name = dump_data.op_name
+            self.dump_time = dump_data.dump_time
+            self.buffer = dump_data.buffer
+            self.space = [_space_data for _space_data in dump_data.space]
+            self.attr = json.loads(dump_data.attr[0].value) if dump_data.attr else None
+            self.input_data = [_input_data for _input_data in dump_data.input]
+            self.output_data = [_output_data for _output_data in dump_data.output]
+
+            is_ffts = False if self.get_ffts_mode is None else True
+            build_dump_tensor(self.output_data, is_input=False, is_ffts=is_ffts)
+            build_dump_tensor(self.input_data, is_input=True, is_ffts=is_ffts)
+
+            self.ffts_file_check = True
 
     @property
     def get_output_data(self: any) -> list:

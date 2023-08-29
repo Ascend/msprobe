@@ -64,8 +64,10 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.getsize', return_value=100):
-                    main = shape_format_conversion.ShapeConversionMain()
-                    ret = main.process()
+                    with mock.patch('dump_parse.nano_dump_data.NanoDumpDataHandler.check_is_nano_dump_format',
+                                    return_value=False):
+                        main = shape_format_conversion.ShapeConversionMain()
+                        ret = main.process()
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def test_process5(self):
@@ -75,8 +77,10 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('cmp_utils.path_check.check_path_valid',
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.getsize', return_value=100):
-                    main = shape_format_conversion.ShapeConversionMain()
-                    ret = main.process()
+                    with mock.patch('dump_parse.nano_dump_data.NanoDumpDataHandler.check_is_nano_dump_format',
+                                    return_value=False):
+                        main = shape_format_conversion.ShapeConversionMain()
+                        ret = main.process()
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def test_process6(self):
@@ -413,7 +417,7 @@ class TestUtilsMethods(unittest.TestCase):
         index = 0
         tensor_type = "input"
         dump_file_path = "/home/a.npy"
-        with mock.patch("dump_parse.dump_utils._deserialize_dump_data_to_array", return_value=[1, 2]):
+        with mock.patch("dump_parse.dump_data_object._deserialize_dump_data_to_array", return_value=[1, 2]):
             with mock.patch("cmp_utils.common.get_format_string", return_value=tensor.format):
                 with mock.patch("cmp_utils.common.get_sub_format", return_value=1):
                     format_main._convert_format_for_one_tensor(tensor, index, tensor_type, dump_file_path, 'bbb')
