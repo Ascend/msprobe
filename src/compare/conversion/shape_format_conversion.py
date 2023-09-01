@@ -10,7 +10,6 @@ import argparse
 import os
 import sys
 import re
-import time
 
 import numpy as np
 import dump_data_pb2 as DD
