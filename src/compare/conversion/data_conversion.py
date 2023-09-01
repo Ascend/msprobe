@@ -9,7 +9,6 @@ DumpDataConversion class. This class mainly involves the convert_data function.
 import os
 import sys
 import argparse
-import time
 import numpy as np
 
 from cmp_utils import utils, path_check
