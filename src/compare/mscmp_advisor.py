@@ -20,13 +20,10 @@ def parse_input_nodes(input_nodes):
     Convert input_nodes string to nodes list
     :param input_nodes: string of input nodes
     """
-    nodes_list = []
-    if input_nodes:
-        nodes = input_nodes.strip().split(";")
-        for node in nodes:
-            if node.strip():
-                nodes_list.append(node.strip())
-    return nodes_list
+    if not input_nodes:
+        return []
+    else:
+        return [node.strip() for node in input_nodes.strip().split(";") if node.strip()]
 
 
 def _compare_advisor_parser(parser):
@@ -63,9 +60,7 @@ def check_file_size(input_file):
         log.print_error_log('Failed to open "%s". %s' % (input_file, str(os_error)))
         raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from os_error
     if file_size > ConstManager.ONE_HUNDRED_MB:
-        log.print_error_log(
-            'The size (%d) of %s exceeds 100MB, tools not support.'
-            % (file_size, input_file))
+        log.print_error_log('The size (%d) of %s exceeds 100MB, tools not support.' % (file_size, input_file))
         raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
 
 
@@ -74,8 +69,6 @@ if __name__ == '__main__':
         _do_advisor()
     except CompareError as err:
         sys.exit(err.code)
-    finally:
-        pass
+
     log.print_info_log("Advisor completed.")
     sys.exit(CompareError.MSACCUCMP_NONE_ERROR)
-

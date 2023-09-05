@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
@@ -79,9 +78,7 @@ class CompareRule:
 
     @staticmethod
     def get_real_path_with_default(file_path: str) -> str:
-        if file_path != '':
-            return os.path.realpath(file_path)
-        return ''
+        return os.path.realpath(file_path) if file_path else ""
 
     def parse_fusion_rule(self: any, compare_data: CompareData) -> None:
         """
@@ -109,21 +106,20 @@ class CompareRule:
             self.fusion_info.analysis_fusion_rule()
         else:
             self._make_npu_vs_npu_fusion_rule(compare_data)
-            
 
     def check_arguments_valid(self: any) -> None:
         """
         Check arguments valid, if invalid, throw exception
         """
-        if self.fusion_json_file_path != "":
+        if self.fusion_json_file_path:
             ret = path_check.check_path_valid(self.fusion_json_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
-        if self.quant_fusion_rule_file_path != "":
+        if self.quant_fusion_rule_file_path:
             ret = path_check.check_path_valid(self.quant_fusion_rule_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
-        if self.close_fusion_rule_file_path != "":
+        if self.close_fusion_rule_file_path:
             ret = path_check.check_path_valid(self.close_fusion_rule_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)

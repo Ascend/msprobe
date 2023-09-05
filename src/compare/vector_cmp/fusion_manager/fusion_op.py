@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
@@ -139,15 +138,13 @@ class FusionOp:
         :return: the Tensor
         """
         if index >= len(self.input_list):
-            message = 'The input index (%d) is out of range (%d) for the operator list.' \
-                      % (index, len(self.input_list))
+            message = 'The input index (%d) is out of range (%d) for the operator list.' % (index, len(self.input_list))
             log.print_error_log(message)
             raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
 
         input_op_info = self.input_list[index].split(':')
         if len(input_op_info) != ConstManager.INPUT_INFO_COUNT:
-            message = 'The input information (%s) is invalid. It only supports op_name:index.' \
-                      % self.input_list[index]
+            message = 'The input information (%s) is invalid. It only supports op_name:index.' % self.input_list[index]
             log.print_error_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_JSON_FILE_ERROR, message)
 

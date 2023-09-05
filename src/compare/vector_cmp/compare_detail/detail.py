@@ -1,18 +1,17 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
 Function:
 This file mainly involves the common function.
 """
-import re
 import dump_data_pb2 as DD
 
 from cmp_utils import common
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
-from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.reg_manager import RegManager
+from cmp_utils.path_check import check_name_valid
 from vector_cmp.fusion_manager.fusion_op import FusionOp
 from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from vector_cmp.fusion_manager import fusion_rule_parser
@@ -31,29 +30,11 @@ class TensorId:
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
         self.index = int(index)
 
-    @staticmethod
-    def _check_name_valid(name: str) -> int:
-        """
-        Check name valid
-        :param name: the name to check
-        :return: VectorComparisonErrorCode
-        """
-        if name == "":
-            log.print_error_log("The parameter is null.")
-            return CompareError.MSACCUCMP_INVALID_PARAM_ERROR
-        name_pattern = re.compile(RegManager.SUPPORT_PATH_PATTERN)
-        match = name_pattern.match(name)
-        if match is None:
-            log.print_only_support_error('name', name, '"A-Za-z0-9_\\./:()=-"')
-            return CompareError.MSACCUCMP_INVALID_PARAM_ERROR
-        return CompareError.MSACCUCMP_NONE_ERROR
-
-
     def check_arguments_valid(self: any) -> None:
         """
         check arguments valid, if invalid, throw exception
         """
-        ret = self._check_name_valid(self.op_name)
+        ret = check_name_valid(self.op_name)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         if self.tensor_type not in ConstManager.SUPPORT_DETAIL_TYPE:
@@ -124,8 +105,7 @@ class DetailInfo:
         # get the map for {original_op_names, op_list}
         right_to_left_map = fusion_rule_parser.make_right_to_left_multi_map(
             fusion_op_list)
-        my_output_ops_str, ground_truth_ops_str = fusion_rule_parser. \
-            make_left_and_right_string(right_to_left_map)
+        my_output_ops_str, ground_truth_ops_str = fusion_rule_parser.make_left_and_right_string(right_to_left_map)
         # if right ops is empty, mark '*' indicates that the left op is a
         # new operator, and there is no operator on the right that matches it
         if ground_truth_ops_str == "":
@@ -178,8 +158,7 @@ class DetailInfo:
         """
         Make detail header
         """
-        return "Index,%s,NPUDump,GroundTruth,AbsoluteError,RelativeError\n" \
-               % self.detail_format
+        return "Index,%s,NPUDump,GroundTruth,AbsoluteError,RelativeError\n" % self.detail_format
 
     def get_detail_info(self: any) -> str:
         """

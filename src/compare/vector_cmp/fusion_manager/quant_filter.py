@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
@@ -26,9 +25,8 @@ class QuantFilter:
         :param op_list: the list of parsed ops
         """
         self._op_list = op_list
-        self._op_output_type_map = {}       # structure like {op_name: [out1_type, out2_type]}
-        self._quant_name_pattern = \
-            r"_quant_layer|/AscendQuant|/AscendWeightQuant|\.quant|\.weight_quant"
+        self._op_output_type_map = {}  # structure like {op_name: [out1_type, out2_type]}
+        self._quant_name_pattern = r"_quant_layer|/AscendQuant|/AscendWeightQuant|\.quant|\.weight_quant"
         self._dequant_name_pattern = \
             r"_dequant_layer|_anti_quant_layer|/AscendDequant|/AntiQuant|\.dequant|\.anti_quant"
 
@@ -148,7 +146,7 @@ class QuantFilter:
         """
         check the op type with name, using regex
 
-        :param op_name: the op name need to be checked
+        :param op: the op name need to be checked
         :return: type of this op, Quant=2/Dequant=3/Quant&Dequant=5/Normal=0
         """
 

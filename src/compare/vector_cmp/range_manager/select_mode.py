@@ -11,16 +11,16 @@ from cmp_utils.reg_manager import RegManager
 from cmp_utils import log
 from vector_cmp.fusion_manager.compare_rule import CompareRule
 from cmp_utils.constant.compare_error import CompareError
-from vector_cmp.range_manager import range_manager as RM
+from vector_cmp.range_manager import range_manager
 
 
-class SelectMode(RM.RangeManager):
+class SelectMode(range_manager.RangeManager):
     """
     The subclass of range manager
     """
 
     def __init__(self: any, input_str: str) -> None:
-        super(RM.RangeManager, self).__init__()
+        super(range_manager.RangeManager, self).__init__()
         self.selected_op = self._parse_input_str(input_str)
 
     @staticmethod
@@ -46,12 +46,8 @@ class SelectMode(RM.RangeManager):
         :param compare_rule: the compare rule
         :return: operator list
         """
-        op_list = []
-        for op in compare_rule.fusion_info.op_list:
-            op_sequence = op.attr.get_op_sequence()
-            if op_sequence in self.selected_op:
-                op_list.append(op)
-        return super(SelectMode, self)._get_op_list(op_list, compare_rule)
+        op_list = [op for op in compare_rule.fusion_info.op_list if op.attr.get_op_sequence() in self.selected_op]
+        return self._get_op_list(op_list, compare_rule)
 
     def check_input_valid(self: any, op_count: int) -> None:
         """

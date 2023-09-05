@@ -33,6 +33,5 @@ if __name__ == "__main__":
     finally:
         pass
     END = time.time()
-    log.print_info_log("The comparison was completed and took "
-                       + str(END - START) + " seconds.")
+    log.print_info_log("The comparison was completed and took " + str(END - START) + " seconds.")
     sys.exit(RET)

@@ -12,16 +12,16 @@ from cmp_utils.reg_manager import RegManager
 from cmp_utils import log
 from vector_cmp.fusion_manager.compare_rule import CompareRule
 from cmp_utils.constant.compare_error import CompareError
-from vector_cmp.range_manager import range_manager as RM
+from vector_cmp.range_manager import range_manager
 
 
-class RangeMode(RM.RangeManager):
+class RangeMode(range_manager.RangeManager):
     """
     The subclass of range manager
     """
 
     def __init__(self: any, input_str: str) -> None:
-        super(RM.RangeManager, self).__init__()
+        super(range_manager.RangeManager, self).__init__()
         self.start, self.end, self.step = self._parse_input_str(input_str)
 
     @staticmethod
@@ -29,8 +29,7 @@ class RangeMode(RM.RangeManager):
         cur_range = [ConstManager.DEFAULT_START, ConstManager.DEFAULT_END, ConstManager.DEFAULT_STEP]
         range_list = input_str.split(',')
         if len(range_list) != len(cur_range):
-            log.print_error_log('The range (%s) is invalid, just supports '
-                                '"start,end,step".' % input_str)
+            log.print_error_log('The range (%s) is invalid, just supports "start,end,step".' % input_str)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
         for index, item in enumerate(range_list):
             value = item.strip()
@@ -58,10 +57,9 @@ class RangeMode(RM.RangeManager):
                 break
             if op_sequence < self.start:
                 continue
-            if self.start == op_sequence or self.end == op_sequence or (
-                    (op_sequence - self.start) % self.step) == 0:
+            if self.start == op_sequence or self.end == op_sequence or ((op_sequence - self.start) % self.step) == 0:
                 op_list.append(op)
-        return super(RangeMode, self)._get_op_list(op_list, compare_rule)
+        return self._get_op_list(op_list, compare_rule)
 
     def check_input_valid(self: any, op_count: int) -> None:
         """
@@ -80,5 +78,3 @@ class RangeMode(RM.RangeManager):
             log.print_out_of_range_error('', 'step', self.step, '[1, %d)' % op_count)
             raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
         log.print_info_log('The range compare for [%d,%d,%d].' % (self.start, self.end, self.step))
-
-

@@ -141,8 +141,7 @@ class BatchCompare:
                 path_data.pop(model_id_index)
                 if "" in path_data:
                     path_data.remove("")
-                result_csv = 'result_%s.csv' \
-                             % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+                result_csv = 'result_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
                 # generate result file,for example:'0_ge_default_20210420113943_71_1_result_20210715022552.csv'
                 file_name = "".join(["_".join(path_data), "_", result_csv])
                 arguments.my_dump_path = dump_path

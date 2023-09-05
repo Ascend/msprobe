@@ -20,15 +20,13 @@ def _save_log_parser(save_log_parser: argparse.ArgumentParser) -> None:
         '-d', '--dump_file', dest='dump_path', default='',
         help='<Required> the dump file path, supports one AICPU custom operator dump file.',
         required=True)
-    save_log_parser.add_argument('-out', '--output', dest='output_path',
-                                 default='', help='<Optional> the output path')
+    save_log_parser.add_argument('-out', '--output', dest='output_path', default='', help='<Optional> the output path')
 
 
 def _do_cmd() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help='commands')
-    save_log_parser = subparsers.add_parser(
-        'save_log', help='Save AICPU custom operator log.')
+    save_log_parser = subparsers.add_parser('save_log', help='Save AICPU custom operator log.')
 
     _save_log_parser(save_log_parser)
 
