@@ -186,8 +186,8 @@ class TLV:
             setattr(x, ele_name, None)
             return aux, x
 
-        aux = aux_try
-        return self._unpack_atom_value(aux, tlv_cfg, x)
+        new_aux, new_x = self._unpack_atom_value(aux_try, tlv_cfg, x)
+        return new_aux, new_x
 
     def _unpack_tlnv_value(self, aux: bytes, tlv_cfg, x: object) -> (bytes, object):
         tag_in_cfg, ele_type, ele_name = tlv_cfg.get("Tag"), tlv_cfg.get('Ele_Type'), tlv_cfg.get('Name')

@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
@@ -105,8 +104,7 @@ class NpuVsNpuComparison:
             msg = "This is a FFTS+ mode dump data, The number of files does not match the number of thread"
             error_msg.append(msg)
         # if no input and output, result is NaN
-        if input_ret != CompareError.MSACCUCMP_NONE_ERROR and \
-                output_ret != CompareError.MSACCUCMP_NONE_ERROR:
+        if input_ret != CompareError.MSACCUCMP_NONE_ERROR and output_ret != CompareError.MSACCUCMP_NONE_ERROR:
             error_msg.append(input_error_msg)
             error_msg.append(output_error_msg)
             compare_vector_result = None
@@ -218,6 +216,8 @@ class NpuVsNpuComparison:
         if my_output_tensor and ground_truth_tensor:
             my_output_data_array = my_output_tensor.data
             ground_truth_data_array = ground_truth_tensor.data
+        else:
+            return self.algorithm_manager.make_nan_result(), error_msg
         
         try:
             # 2. compare by support algorithm

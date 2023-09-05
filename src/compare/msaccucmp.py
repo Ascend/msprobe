@@ -256,8 +256,7 @@ def _file_compare_parser(file_compare_parser: argparse.ArgumentParser) -> None:
         help='<Required> the output path', required=True)
 
 
-def _check_argument_effect(required_arg: any, options_arg: any, options_arg_str: str,
-                           required_arg_str: str) -> None:
+def _check_argument_effect(required_arg: any, options_arg: any, options_arg_str: str, required_arg_str: str) -> None:
     if required_arg is None and options_arg is not None:
         log.print_error_log(
             'The argument %s takes effect only when the "%s" exists.' % (
@@ -314,8 +313,7 @@ def start_compare(args: argparse.Namespace) -> int:
     """
     compare entry.
     """
-    if _check_hdf5_file_valid(args.my_dump_path) and \
-            _check_hdf5_file_valid(args.golden_dump_path):
+    if _check_hdf5_file_valid(args.my_dump_path) and _check_hdf5_file_valid(args.golden_dump_path):
         pytorch_compare = PytorchComparison(args)
         pytorch_compare.check_arguments_valid(args)
         ret = pytorch_compare.compare()
@@ -325,8 +323,7 @@ def start_compare(args: argparse.Namespace) -> int:
         log.print_error_log('param -p only used in pytorch session.')
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
-    if os.path.isfile(os.path.realpath(args.my_dump_path)) and \
-            os.path.isfile(os.path.realpath(args.golden_dump_path)):
+    if os.path.isfile(os.path.realpath(args.my_dump_path)) and os.path.isfile(os.path.realpath(args.golden_dump_path)):
         compare = AlgorithmManagerMain(args)
         ret = compare.process()
     elif args.fusion_rule_file != "" and BatchCompare().check_fusion_rule_json_dir(args.fusion_rule_file):
@@ -341,14 +338,10 @@ def start_compare(args: argparse.Namespace) -> int:
 def _do_cmd() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(help='commands')
-    compare_parser = subparsers.add_parser(
-        'compare', help='Compare network or single op.')
-    covert_parser = subparsers.add_parser(
-        'convert', help='Convert my dump data to numpy data or bin data.')
-    overflow_parser = subparsers.add_parser(
-        'overflow', help='Analyze the information of the overflow operators.')
-    file_compare_parser = subparsers.add_parser(
-        'file_compare', help='Compare two single .npy file.')
+    compare_parser = subparsers.add_parser('compare', help='Compare network or single op.')
+    covert_parser = subparsers.add_parser('convert', help='Convert my dump data to numpy data or bin data.')
+    overflow_parser = subparsers.add_parser('overflow', help='Analyze the information of the overflow operators.')
+    file_compare_parser = subparsers.add_parser('file_compare', help='Compare two single .npy file.')
 
     _compare_parser(compare_parser)
     _convert_parser(covert_parser)
@@ -374,44 +367,35 @@ def _do_cmd() -> int:
 
 def _check_advisor_effect(args):
     if args.advisor and args.range is not None:
-        log.print_warn_log(
-            'The argument "-advisor" takes no effect when the "-r" or "--range" exists.')
+        log.print_warn_log('The argument "-advisor" takes no effect when the "-r" or "--range" exists.')
         args.advisor = False
     if args.advisor and args.select is not None:
-        log.print_warn_log(
-            'The argument "-advisor" takes no effect when the "-s" or "--select" exists.')
+        log.print_warn_log('The argument "-advisor" takes no effect when the "-s" or "--select" exists.')
         args.advisor = False
     if args.advisor and args.op_name is not None:
-        log.print_warn_log(
-            'The argument "-advisor" takes no effect when the "-op" exists.')
+        log.print_warn_log('The argument "-advisor" takes no effect when the "-op" exists.')
         args.advisor = False
     if args.advisor:
-        log.print_warn_log(
-            'The argument "-advisor" will automatically configure "-overflow_detection".')
+        log.print_warn_log('The argument "-advisor" will automatically configure "-overflow_detection".')
         args.overflow_detection = True
     return args
 
 
 def _check_range_effect(args: argparse.Namespace) -> None:
     if not args.fusion_rule_file and args.range is not None:
-        log.print_error_log(
-            'The argument "-r" or "--range" takes effect only when the "-f" exists.')
+        log.print_error_log('The argument "-r" or "--range" takes effect only when the "-f" exists.')
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
     if args.op_name and args.range is not None:
-        log.print_error_log(
-            'The argument "-r" or "--range" exists, the "-op" parameter is invalid.')
+        log.print_error_log('The argument "-r" or "--range" exists, the "-op" parameter is invalid.')
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
     if not args.fusion_rule_file and args.select is not None:
-        log.print_error_log(
-            'The argument "-s" or "--select" takes effect only when the "-f" exists.')
+        log.print_error_log('The argument "-s" or "--select" takes effect only when the "-f" exists.')
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
     if args.op_name and args.select is not None:
-        log.print_error_log(
-            'The argument "-s" or "--select" exists, the "-op" parameter is invalid.')
+        log.print_error_log('The argument "-s" or "--select" exists, the "-op" parameter is invalid.')
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
     if args.range and args.select is not None:
-        log.print_error_log(
-            'The argument "-r" and "-s" can not be used at the same time')
+        log.print_error_log('The argument "-r" and "-s" can not be used at the same time')
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
     if args.max_cmp_size < 0:
         log.print_error_log(
@@ -427,19 +411,14 @@ def _do_compare(args: argparse.Namespace) -> int:
         compare = VectorComparison(args)
         ret = compare.compare()
     else:
-        _check_argument_effect(args.op_name, args.output,
-                               '"-o" or "--output_tensor"', '-op')
-        _check_argument_effect(args.op_name, args.input,
-                               '"-i" or "--input_tensor"', '-op')
+        _check_argument_effect(args.op_name, args.output, '"-o" or "--output_tensor"', '-op')
+        _check_argument_effect(args.op_name, args.input, '"-i" or "--input_tensor"', '-op')
         if '-n' in sys.argv or '--topn' in sys.argv:
-            _check_argument_effect(args.op_name, args.topn,
-                                   '"-n" or "--topn"', '-op')
+            _check_argument_effect(args.op_name, args.topn, '"-n" or "--topn"', '-op')
         if '--ignore_single_op_result' in sys.argv:
-            _check_argument_effect(args.op_name, args.ignore_single_op_result,
-                                   '"--ignore_single_op_result"', '-op')
+            _check_argument_effect(args.op_name, args.ignore_single_op_result, '"--ignore_single_op_result"', '-op')
         if '-ml' in sys.argv or '--max_line' in sys.argv:
-            _check_argument_effect(args.op_name, args.max_line,
-                                   '"-ml" or "--max_line"', '-op')
+            _check_argument_effect(args.op_name, args.max_line, '"-ml" or "--max_line"', '-op')
         dump_path_array = [args.my_dump_path, args.golden_dump_path]
         _check_dump_path_exist(dump_path_array)
         ret = start_compare(args)
@@ -448,19 +427,15 @@ def _do_compare(args: argparse.Namespace) -> int:
 
 
 def _do_convert(args: argparse.Namespace) -> int:
-    _check_argument_effect(args.format, args.output,
-                           '"-o" or "--output_tensor"', '-f')
-    _check_argument_effect(args.format, args.input,
-                           '"-i" or "--input_tensor"', '-f')
-    _check_argument_effect(args.format, args.shape,
-                           '"-s" or "--shape"', '-f')
-    _check_argument_effect(args.format, args.custom_script_path,
-                           '"-c" or "--custom_script_path"', '-f')
+    _check_argument_effect(args.format, args.output, '"-o" or "--output_tensor"', '-f')
+    _check_argument_effect(args.format, args.input, '"-i" or "--input_tensor"', '-f')
+    _check_argument_effect(args.format, args.shape, '"-s" or "--shape"', '-f')
+    _check_argument_effect(args.format, args.custom_script_path, '"-c" or "--custom_script_path"', '-f')
     if args.format is not None:
         if os.path.isdir(os.path.relpath(args.dump_path)):
-            log.print_warn_log('The dump path is a directory. If the '
-                               '-o, -i and -s arguments exist, these '
-                               'arguments will be ignored.')
+            log.print_warn_log(
+                'The dump path is a directory. If the -o, -i and -s arguments exist, these arguments will be ignored.'
+            )
         conversion = FormatConversionMain(args)
         ret = conversion.convert_format()
     else:
@@ -502,8 +477,7 @@ def main() -> None:
     finally:
         pass
     end = time.time()
-    log.print_info_log(
-        'The command was completed and took %d seconds.' % (end - start))
+    log.print_info_log('The command was completed and took %d seconds.' % (end - start))
     sys.exit(ret)
 
 

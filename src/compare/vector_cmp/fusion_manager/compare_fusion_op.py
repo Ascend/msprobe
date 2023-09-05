@@ -38,8 +38,7 @@ class FusionOpComparison:
         self.compare_rule = compare_rule
         self.format_manager = format_manager
         self.algorithm_manager = arguments.get('algorithm_manager')
-        self.fusion_op_list = \
-            self.compare_rule.fusion_info.fusion_op_name_to_op_map[fusion_op_name]
+        self.fusion_op_list = self.compare_rule.fusion_info.fusion_op_name_to_op_map[fusion_op_name]
         self.left_dump_file_path = ''
         self.left_dump_data = None
         self.overflow_detection = arguments.get('overflow_detection', False)

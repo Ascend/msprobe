@@ -32,11 +32,8 @@ class RemoveInplaceLayerProcess:
 
     def __init__(self: any) -> None:
         parse = argparse.ArgumentParser()
-        parse.add_argument("-i", dest="input_file_path",
-                           help="<Required> the prototxt file path",
-                           required=True)
-        parse.add_argument("-o", dest="output_file_path",
-                           help="<Optional> the output file path")
+        parse.add_argument("-i", dest="input_file_path", help="<Required> the prototxt file path", required=True)
+        parse.add_argument("-o", dest="output_file_path", help="<Optional> the output file path")
         args, _ = parse.parse_known_args(sys.argv[1:])
         self.input_file_path = os.path.realpath(args.input_file_path)
         if args.output_file_path:
@@ -76,7 +73,6 @@ class RemoveInplaceLayerProcess:
                 os.remove(path)
                 log.print_warn_log("The file '%s' already exists" % path)
 
-
     def check_arguments_valid(self: any) -> None:
         """
         Check file valid.
@@ -110,8 +106,7 @@ class RemoveInplaceLayerProcess:
 
         path_check.check_write_path_secure(self.output_file_path)
         # write file to new path
-        with os.fdopen(os.open(self.output_file_path, self.WRITE_FLAGS, self.WRITE_MODES),
-                       'w') as open_file:
+        with os.fdopen(os.open(self.output_file_path, self.WRITE_FLAGS, self.WRITE_MODES), 'w') as open_file:
             file_content = str(self.net_param)
             open_file.write(file_content)
         log.print_info_log('The "%s" has removed inplace layer.' % self.input_file_path)

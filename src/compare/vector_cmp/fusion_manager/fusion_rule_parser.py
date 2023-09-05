@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
@@ -309,10 +308,9 @@ class FusionRuleParser:
                     # the fusion op name is original op name
                     self.op_name_to_fusion_op_name_map[name] = original_op_names[0]
             else:
-                # The original op name more then one,
+                # The original op name more than one,
                 # the fusion op name is uuid names
-                self.op_name_to_fusion_op_name_map[name] = \
-                    uuid.uuid3(uuid.NAMESPACE_DNS, ''.join(original_op_names))
+                self.op_name_to_fusion_op_name_map[name] = uuid.uuid3(uuid.NAMESPACE_DNS, ''.join(original_op_names))
         else:
             self.op_name_to_fusion_op_name_map[name] = name
 
@@ -379,8 +377,7 @@ class FusionRuleParser:
     def _adjust_rename_node(self: any) -> None:
         for _, fusion_op_list in self.fusion_op_name_to_op_map.items():
             if len(fusion_op_list) == 1 and self._is_rename_node(fusion_op_list[0]):
-                self._make_output_desc(fusion_op_list[0].output_desc,
-                                       fusion_op_list[0].attr.original_op_names[0])
+                self._make_output_desc(fusion_op_list[0].output_desc, fusion_op_list[0].attr.original_op_names[0])
 
     def _parse_fusion_op_json_object(self: any) -> None:
         # check graph element in json file
@@ -575,8 +572,7 @@ class FusionRuleParser:
                 if ConstManager.STRING_TYPE_OBJECT not in value[ConstManager.LIST_TYPE_OBJECT]:
                     array = ['']
                 else:
-                    self.check_array_object_valid(value[ConstManager.LIST_TYPE_OBJECT],
-                                                  ConstManager.STRING_TYPE_OBJECT)
+                    self.check_array_object_valid(value[ConstManager.LIST_TYPE_OBJECT], ConstManager.STRING_TYPE_OBJECT)
                     array = value[ConstManager.LIST_TYPE_OBJECT][ConstManager.STRING_TYPE_OBJECT]
                 match = True
                 break

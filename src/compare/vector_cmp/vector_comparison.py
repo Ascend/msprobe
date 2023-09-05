@@ -299,14 +299,11 @@ class VectorComparison:
 
     def _get_max_process_num(self) -> int:
         if self.MULTI_THREAD_MAX_NUM == 1:
-            return 1  # Bypasing test code entering `os.listdir`
+            return 1  # Bypassing test code entering `os.listdir`
 
         golden_dump_path = self.args.get("golden_dump_path")
-        file_sizes = [os.path.getsize(os.path.join(golden_dump_path, ii)) for ii in os.listdir(golden_dump_path)]
-        if not file_sizes:
-            max_file_size = 1
-        else:
-            max_file_size = max(max(file_sizes), 1)
+        file_sizes = [1] + [os.path.getsize(os.path.join(golden_dump_path, ii)) for ii in os.listdir(golden_dump_path)]
+        max_file_size = max(file_sizes)
 
         mem = psutil.virtual_memory()
         available_mem = mem.available
@@ -371,8 +368,6 @@ class VectorComparison:
                     result_mapping[single_op_cmp_res.op_name] = single_op_cmp_res
 
         for i, res in enumerate(all_result):
-            if len(res) != self.MULTI_THREAD_RESULT_COUNT:
-                continue
             for single_op_cmp_res in res[self.MULTI_THREAD_COMPARE_RESULT_INDEX]:
                 if single_op_cmp_res.is_ffts and single_op_cmp_res.op_name_origin_output_index_map:
                     single_op_cmp_res.find_pre_op(result_mapping)
@@ -390,8 +385,7 @@ class VectorComparison:
         if not dump_match:
             ret = CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR
             if self.args.get("range"):
-                log.print_warn_log('The model in [%s] range does not match '
-                                   'the dump data.' % self.args.get('range'))
+                log.print_warn_log('The model in [%s] range does not match the dump data.' % self.args.get('range'))
             elif self.args.get("select"):
                 log.print_warn_log('The model in index list [%s] does not match '
                                    'the dump data.' % self.args.get('select'))
@@ -459,8 +453,6 @@ class VectorComparison:
         except IOError as io_error:
             log.print_open_file_error(self.output_path, io_error)
             return False
-        finally:
-            pass
         return True
 
     def _make_mapping_table_by_op_name(self: any, fusion_op_names: list) -> list:
@@ -489,8 +481,6 @@ class VectorComparison:
         except IOError as io_error:
             log.print_open_file_error(self.output_path, io_error)
             raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from io_error
-        finally:
-            pass
         if os.path.exists(self.output_path):
             log.print_write_result_info('mapping table result', self.output_path)
         return CompareError.MSACCUCMP_NONE_ERROR

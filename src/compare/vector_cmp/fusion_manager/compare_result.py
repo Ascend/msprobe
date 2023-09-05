@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
 """
@@ -18,7 +17,7 @@ from cmp_utils.constant.compare_error import CompareError
 
 class TensorResult:
     """
-    The class for tensor result result
+    The class for tensor compare result
     """
 
     def __init__(self: any, tensor_info: dict, result: list, error_msg: list, is_ffts: bool) -> None:
@@ -169,7 +168,7 @@ class FusionOpComResult:
             ]
             self._pre_handle_result(current_tensor_info)
             if self.overflow_detection:
-                # using 'NaN' as a overflow detection for 'no tensor_result'
+                # using 'NaN' as an overflow detection for 'no tensor_result'
                 # and insert it after the column 'Shape'.
                 result = current_tensor_info + ['NaN'] + self.algorithm_manager.make_nan_result() \
                          + [",".join(error_msg)]
@@ -230,7 +229,7 @@ def get_result_title(algorithm_manager: AlgorithmManager, op_header: list, overf
     Get result title
     :param algorithm_manager: the algorithm manager
     :param op_header: the op header
-    :param overflow_info: whether to display overflow info
+    :param overflow_detection: whether to display overflow info
     :return  [Index, op_header, shape, algorithm_result, error_msg]
     """
 
@@ -293,9 +292,13 @@ class SingleOpCmpResult:
         """
         self.check_result_list_valid()
         for index, input_result in enumerate(self.input_result_list):
+            if len(input_result) <= ConstManager.TENSOR_INDEX:
+                log.print_warn_log(f"Broken result, id {index}, skip")
+                continue
+
             tensor_id = input_result[ConstManager.TENSOR_INDEX]
             pre_op = self.op_name_origin_output_index_map.get(tensor_id)
-            if not pre_op:
+            if not pre_op or len(pre_op) < 2:
                 message = "The tensor index '%s' is invalid, no input mapping information" % tensor_id
                 log.print_error_log(message)
                 raise CompareError(CompareError.MSACCUCMP_INVALID_INPUT_MAPPING)
@@ -304,6 +307,5 @@ class SingleOpCmpResult:
             output_result = self.get_pre_op_output(pre_op_name, pre_op_index, result_mapping)
             if not output_result:
                 continue
-            origin_result = self.result_list[index]
-            self.result_list[index] = \
-                origin_result[:ConstManager.TENSOR_INDEX + 1] + output_result[ConstManager.TENSOR_INDEX + 1:]
+            origin_result = self.result_list[index][:ConstManager.TENSOR_INDEX + 1]
+            self.result_list[index] = origin_result + output_result[ConstManager.TENSOR_INDEX + 1:]
