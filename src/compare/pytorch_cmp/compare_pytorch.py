@@ -12,8 +12,7 @@ import csv
 import time
 import numpy as np
 
-from cmp_utils import utils, utils_type, path_check
-from cmp_utils import log
+from cmp_utils import utils, utils_type, path_check, log
 from pytorch_cmp import pytorch_dump_data as pytorch_dump
 from algorithm_manager.algorithm_manager import AlgorithmManager
 from cmp_utils.constant.const_manager import ConstManager
@@ -45,7 +44,7 @@ class PytorchComparison:
     @staticmethod
     def _save_numpy_data(file_path: str, data: any) -> None:
         if not os.path.exists(os.path.dirname(file_path)):
-            os.makedirs(os.path.dirname(file_path))
+            os.makedirs(os.path.dirname(file_path), mode=0o700)
         np.save(file_path, data)
 
     @staticmethod
@@ -318,7 +317,7 @@ class PytorchComparison:
         filtered_result_folder_name = "{}_{}".format(result_filename_base, "filtered")
         filtered_result_folder_path = os.path.join(os.path.dirname(self.output_path), filtered_result_folder_name)
         if not os.path.exists(filtered_result_folder_path):
-            os.makedirs(filtered_result_folder_path)
+            os.makedirs(filtered_result_folder_path, mode=0o700)
 
         filtered_result_file = os.path.join(filtered_result_folder_path, "filtered_result.csv")
         self.compare_data.open_file('r')
