@@ -88,7 +88,7 @@ class AlgorithmManager:
                 support_algorithm_list.append(match.group(1))
                 current_uid = os.getuid()
                 # 判断当前用户是普通用户情况下，文件创建者是否是当前用户
-                if file_stat.st_uid != current_uid:
+                if file_stat.st_uid != 0 and file_stat.st_uid != current_uid:
                     log.print_error_log(f"File {file_path} is not owned by current user, "
                                         "if must use this file, copy or chmod this file by yourself.")
                     raise CompareError(CompareError.MSACCUCMP_DANGER_FILE_ERROR)
