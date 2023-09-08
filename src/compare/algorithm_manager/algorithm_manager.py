@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
@@ -83,16 +82,15 @@ class AlgorithmManager:
                 file_mode = file_stat.st_mode
                 # 判断others或group权限是否有写权限
                 if bool(file_mode & stat.S_IWOTH) or bool(file_mode & stat.S_IWGRP):
-                    log.print_error_log(f"File {file_path} is dangerous.Others or group have writting"\
-                                         "permission to this file.Please using chmod to dismiss"\
-                                         "the writting permission.")
+                    log.print_error_log(f"File {file_path} is dangerous. Others or group have writing "
+                                        "permission to this file. Please use chmod to dismiss the writing permission.")
                     raise CompareError(CompareError.MSACCUCMP_DANGER_FILE_ERROR)
                 support_algorithm_list.append(match.group(1))
                 current_uid = os.getuid()
                 # 判断当前用户是普通用户情况下，文件创建者是否是当前用户
                 if file_stat.st_uid != current_uid:
-                    log.print_error_log(f"File {file_path} is not owned by current user,"\
-                                         "if must use this file, copy or chmod this file by yourself.")
+                    log.print_error_log(f"File {file_path} is not owned by current user, "
+                                        "if must use this file, copy or chmod this file by yourself.")
                     raise CompareError(CompareError.MSACCUCMP_DANGER_FILE_ERROR)
                 return True
             log.print_warn_log("The file '%s' does not match 'alg_{algorithm_name}.py'"
@@ -129,37 +127,46 @@ class AlgorithmManager:
             raise CompareError(ConstManager.COMPARE_FUNC_NAME, err_msg)
 
     def compare(self: any, my_output_dump_data: any, ground_truth_dump_data: any,
-                args: dict, max_cmp_size=0) -> (list, list):
+                args: dict, max_cmp_size: int = 0) -> (list, list):
         """
-        Compare the my output dump data and the ground truth dump data by select algorithm
-        :param my_output_dump_data: the my output dump data to compare
+        Compare my output dump data and the ground truth dump data by select algorithm
+        :param my_output_dump_data: my output dump data to compare
         :param ground_truth_dump_data: the ground truth dump data to compare
         :param args: the algorithm parameter
+        :param max_cmp_size: max cmp array size
         :return the result list and compare_fail_message
         """
         self._check_data_size_valid(my_output_dump_data, ground_truth_dump_data, args)
+        np.seterr(divide='ignore', invalid='ignore')
         result = []
         error_msg = []
+
+        is_bool_data = my_output_dump_data.dtype == np.bool_ and ground_truth_dump_data.dtype == np.bool_
+        if max_cmp_size:
+            my_output_dump_data_to_cmp = my_output_dump_data[:max_cmp_size]
+            ground_truth_dump_data_to_cmp = ground_truth_dump_data[:max_cmp_size]
+        else:
+            my_output_dump_data_to_cmp = my_output_dump_data
+            ground_truth_dump_data_to_cmp = ground_truth_dump_data
+
+        if not is_bool_data:
+            my_output_dump_data_to_cmp = np.array(my_output_dump_data_to_cmp).astype("float32")
+            ground_truth_dump_data_to_cmp = np.array(ground_truth_dump_data_to_cmp).astype("float32")
+
         for select_algorithm, compare_func in self.support_algorithm_map.items():
-            if my_output_dump_data.dtype == np.bool_ and ground_truth_dump_data.dtype == np.bool_ and \
-                    select_algorithm not in ConstManager.BOOL_ALGORITHM:
+            if is_bool_data and select_algorithm not in ConstManager.BOOL_ALGORITHM:
                 result.append(ConstManager.NAN)
                 error_msg += ["Algorithm %s does not support Boolean types." % select_algorithm]
-            else:
-                alg_args = self._make_algorithm_param(select_algorithm, args)
-                if max_cmp_size:
-                    my_output_dump_data_to_cmp = my_output_dump_data[:max_cmp_size]
-                    ground_truth_dump_data_to_cmp = ground_truth_dump_data[:max_cmp_size]
-                else:
-                    my_output_dump_data_to_cmp = my_output_dump_data
-                    ground_truth_dump_data_to_cmp = ground_truth_dump_data
+                continue
 
-                # call compare function
-                alg_result, alg_error_msg = self._call_compare_function(
-                    compare_func, my_output_dump_data_to_cmp, ground_truth_dump_data_to_cmp, alg_args, select_algorithm)
-                result.append(alg_result)
-                if alg_error_msg:
-                    error_msg += [alg_error_msg]
+            alg_args = self._make_algorithm_param(select_algorithm, args)
+
+            # call compare function
+            alg_result, alg_error_msg = self._call_compare_function(
+                compare_func, my_output_dump_data_to_cmp, ground_truth_dump_data_to_cmp, alg_args, select_algorithm)
+            result.append(alg_result)
+            if alg_error_msg:
+                error_msg += [alg_error_msg]
         return result, error_msg
 
     def get_result_title(self: any) -> list:
@@ -361,11 +368,11 @@ class AlgorithmManagerMain:
         Check arguments valid, if invalid, throw exception
         """
         ret = path_check.check_path_valid(self.my_output_dump_file_path, True, False,
-                                     path_check.PathType.File)
+                                          path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         ret = path_check.check_path_valid(self.ground_truth_dump_file_path, True, False,
-                                     path_check.PathType.File)
+                                          path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 

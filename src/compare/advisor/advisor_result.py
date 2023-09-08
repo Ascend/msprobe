@@ -9,6 +9,7 @@ import os
 
 from advisor.advisor_const import AdvisorConst
 from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils import path_check
 from cmp_utils import log
 
 
@@ -32,6 +33,7 @@ class AdvisorResult:
         """
         result_file = os.path.join(out_path, "advisor_summary.txt")
         try:
+            path_check.check_write_path_secure(result_file)
             with os.fdopen(os.open(result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
                            'w+') as output_file:
                 output_file.truncate(0)

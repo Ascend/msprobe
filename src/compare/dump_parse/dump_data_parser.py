@@ -63,6 +63,7 @@ class DumpDataParser:
     def _write_log(log_file_path, log_space):
         log_str = log_space.data.decode()
         log_str = log_str.replace(ConstManager.END_FLAG, "")
+        path_check.check_write_path_secure(log_file_path)
         with os.fdopen(os.open(log_file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w+') as text_file:
             text_file.truncate()
             text_file.write(log_str)

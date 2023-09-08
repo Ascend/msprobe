@@ -136,3 +136,9 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
 
     return _check_path_file_or_directory(path, path_type)
 
+
+def check_write_path_secure(path: str):
+    if os.path.islink(path):
+        os.unlink(path)
+    if os.path.exists(path):
+        os.remove(path)
