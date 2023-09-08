@@ -43,7 +43,7 @@ class CompareRule:
             if dump_task_mode == ConstManager.NORMAL_MODE:
                 timestamp = dump_utils.get_normal_timestamp(dump_file_list[-1])
             else:
-                timestamp = utils.get_ffts_timestamp(dump_file_list[-1])
+                timestamp = dump_utils.get_ffts_timestamp(dump_file_list[-1])
             origin_dic[(op_name, timestamp)] = dump_file_list
         return dict(sorted(origin_dic.items(), key=lambda s: s[0][1]))
 
