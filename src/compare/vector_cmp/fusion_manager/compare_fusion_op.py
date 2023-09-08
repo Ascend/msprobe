@@ -86,7 +86,7 @@ class FusionOpComparison:
             if data_mode == ConstManager.NORMAL_MODE:
                 timestamp = dump_utils.get_normal_timestamp(file_path)
             else:
-                timestamp = utils.get_ffts_timestamp(file_path)
+                timestamp = dump_utils.get_ffts_timestamp(file_path)
             original_names = utils.get_string_from_list(
                 fusion_op.attr.original_op_names)
             timestamp_list.append([timestamp, fusion_op, original_names])
