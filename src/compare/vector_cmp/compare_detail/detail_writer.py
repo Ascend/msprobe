@@ -11,7 +11,7 @@ import uuid
 
 import numpy as np
 
-from cmp_utils import log
+from cmp_utils import log, path_check
 from dump_parse import dump_utils, mapping
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
@@ -454,6 +454,7 @@ class DetailWriter:
         top_n_type_suffix = "_%s_error_topn.csv" % top_n_type
         new_file_name = self._handle_too_long_file_name(old_file_name, top_n_type_suffix)
         top_n_path = os.path.join(self.output_path, new_file_name)
+        path_check.check_write_path_secure(top_n_path)
         try:
             with os.fdopen(os.open(top_n_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w') as top_n_file:
                 top_n_file.write(self.detail_info.make_detail_header())
@@ -497,6 +498,7 @@ class DetailWriter:
         old_file_name = "%s_summary.txt" % (self.detail_info.tensor_id.get_file_prefix())
         new_file_name = self._handle_too_long_file_name(old_file_name, ConstManager.SUMMARY_TXT_SUFFIX)
         summary_file_path = os.path.join(self.output_path, new_file_name)
+        path_check.check_write_path_secure(summary_file_path)
         try:
             with os.fdopen(os.open(summary_file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
                            'w') as summary_file:
