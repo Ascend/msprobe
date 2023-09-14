@@ -6,8 +6,10 @@ import traceback
 import atexit
 import logging
 import os
+import stat
 import pandas as pd
 import torch
+from utils import trans_utils as utils
 
 
 class Logger(logging.Logger):
@@ -141,10 +143,15 @@ class DynamicShapeDetect:
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         csv_file = os.path.join(script_dir, 'msft_dynamic_shape_analysis_report.csv')
         header = ('Function Name', 'File Path', 'Line Number', 'Call Stack', 'Input Shape Range', 'Output Shape Range')
-        data_frame = pd.DataFrame(columns=header)
-        data_frame.to_csv(csv_file, index=False)
-        new_data = pd.DataFrame(content)
-        new_data.to_csv(csv_file, mode='a+', header=False, index=False)
+        if os.path.exists(csv_file):
+            translog.warning(f"The file {csv_file} already exists, it will be removed.")
+            utils.remove_path(csv_file)
+        with os.fdopen(os.open(csv_file, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP), 'w+') \
+             as fp:
+            data_frame = pd.DataFrame(columns=header)
+            data_frame.to_csv(fp, index=False)
+            new_data = pd.DataFrame(content)
+            new_data.to_csv(fp, mode='a+', header=False, index=False)
         if len(content) > 0:
             translog.warning(
                 'It is detected that the model contains dynamic shapes, and it is recommended to enable binary when '
