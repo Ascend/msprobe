@@ -12,8 +12,8 @@ import sys
 import argparse
 import time
 
-from cmp_utils import utils, utils_type, path_check
-from cmp_utils import log
+from cmp_utils import log, path_check
+from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
@@ -76,35 +76,35 @@ def _add_alg_argument(compare_parser: argparse.ArgumentParser) -> None:
                                     default=default_value_list,
                                     help=_get_algorithm_help_info_for_int(default_value_list))
     else:
-        compare_parser.add_argument('-alg', '--algorithm', dest='algorithm', type=str, default="all",
+        compare_parser.add_argument('-alg', '--algorithm', dest='algorithm', default="all",
                                     help=_get_algorithm_help_info())
 
 
 def _add_fusion_rule_argument(compare_parser: argparse.ArgumentParser) -> None:
     compare_parser.add_argument(
-        '-f', '--fusion_rule_file', dest='fusion_rule_file', default='',
+        '-f', '--fusion_rule_file', dest='fusion_rule_file', default='', type=safe_path_string,
         help='<Optional> the fusion rule file path')
     compare_parser.add_argument(
-        '-q', '--quant_fusion_rule_file', dest='quant_fusion_rule_file',
+        '-q', '--quant_fusion_rule_file', dest='quant_fusion_rule_file', type=safe_path_string,
         default='', help='<Optional> the quant fusion rule file path')
     compare_parser.add_argument(
-        '-cf', '--close_fusion_rule_file', dest='close_fusion_rule_file',
+        '-cf', '--close_fusion_rule_file', dest='close_fusion_rule_file', type=safe_path_string,
         default='', help='<Optional> the rule file path without fusion')
 
 
 def _compare_parser(compare_parser: argparse.ArgumentParser) -> None:
     compare_parser.add_argument(
-        '-m', '--my_dump_path', dest='my_dump_path', default='',
+        '-m', '--my_dump_path', dest='my_dump_path', default='', type=safe_path_string,
         help='<Required> my dump path, the data compared with golden data',
         required=True)
     compare_parser.add_argument(
-        '-g', '--golden_dump_path', dest='golden_dump_path', default='',
+        '-g', '--golden_dump_path', dest='golden_dump_path', default='', type=safe_path_string,
         help='<Required> the golden dump path', required=True)
     _add_fusion_rule_argument(compare_parser)
-    compare_parser.add_argument('-out', '--output', dest='output_path',
+    compare_parser.add_argument('-out', '--output', dest='output_path', type=safe_path_string,
                                 default='', help='<Optional> the output path')
     compare_parser.add_argument(
-        '-c', '--custom_script_path', dest='custom_script_path', default='',
+        '-c', '--custom_script_path', dest='custom_script_path', default='', type=safe_path_string,
         help='<Optional> the user-defined script path, '
              'including format conversion and algorithm')
     compare_parser.add_argument(
@@ -193,7 +193,7 @@ def _add_version_argument(parser: argparse.ArgumentParser) -> None:
 def _convert_parser(covert_parser: argparse.ArgumentParser) -> None:
     group = covert_parser.add_mutually_exclusive_group()
     covert_parser.add_argument(
-        '-d', '--dump_file', dest='dump_path', default='',
+        '-d', '--dump_file', dest='dump_path', default='', type=safe_path_string,
         help='<Required> the dump file path, supports one file, file list(splits by ",") and directory.',
         required=True)
     covert_parser.add_argument(
@@ -213,7 +213,7 @@ def _convert_parser(covert_parser: argparse.ArgumentParser) -> None:
         help='<Optional> the index for input, takes effect only when '
              'the "-f" exists')
     covert_parser.add_argument(
-        '-c', '--custom_script_path', dest='custom_script_path', default=None,
+        '-c', '--custom_script_path', dest='custom_script_path', default=None, type=safe_path_string,
         help='<Optional> the user-defined script path, '
              'including format conversion.')
     covert_parser.add_argument('-out', '--output', dest='output_path',
@@ -231,10 +231,10 @@ def _convert_parser(covert_parser: argparse.ArgumentParser) -> None:
 
 def _overflow_parser(overflow_parser: argparse.ArgumentParser) -> None:
     overflow_parser.add_argument(
-        '-d', '--dump_path', dest='dump_path', default='',
+        '-d', '--dump_path', dest='dump_path', default='', type=safe_path_string,
         help='<Required> the dump file path', required=True)
     overflow_parser.add_argument(
-        '-out', '--output', dest='output_path', default='',
+        '-out', '--output', dest='output_path', default='', type=safe_path_string,
         help='<Optional> the output path', required=True)
     overflow_parser.add_argument(
         '-n', '--top_n', dest='top_num', choices=[1, 2, 3, 4, 5], type=int,
@@ -245,14 +245,14 @@ def _overflow_parser(overflow_parser: argparse.ArgumentParser) -> None:
 
 def _file_compare_parser(file_compare_parser: argparse.ArgumentParser) -> None:
     file_compare_parser.add_argument(
-        '-m', '--my_dump_path', dest='my_dump_path', default='',
+        '-m', '--my_dump_path', dest='my_dump_path', default='', type=safe_path_string,
         help='<Required> my dump path, the data compared with golden data',
         required=True)
     file_compare_parser.add_argument(
-        '-g', '--golden_dump_path', dest='golden_dump_path', default='',
+        '-g', '--golden_dump_path', dest='golden_dump_path', default='', type=safe_path_string,
         help='<Required> the golden dump path', required=True)
     file_compare_parser.add_argument(
-        '-out', '--output', dest='output_path', default='',
+        '-out', '--output', dest='output_path', default='', type=safe_path_string,
         help='<Required> the output path', required=True)
 
 

@@ -18,6 +18,7 @@ import caffe.proto.caffe_pb2 as caffe_pb2
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import log
 from cmp_utils import path_check
+from cmp_utils.utils import safe_path_string
 
 MAX_SIZE = 10 * 1024 * 1024 * 1024
 
@@ -32,8 +33,9 @@ class RemoveInplaceLayerProcess:
 
     def __init__(self: any) -> None:
         parse = argparse.ArgumentParser()
-        parse.add_argument("-i", dest="input_file_path", help="<Required> the prototxt file path", required=True)
-        parse.add_argument("-o", dest="output_file_path", help="<Optional> the output file path")
+        parse.add_argument("-i", dest="input_file_path", help="<Required> the prototxt file path",
+                           type=safe_path_string, required=True)
+        parse.add_argument("-o", dest="output_file_path", help="<Optional> the output file path", type=safe_path_string)
         args, _ = parse.parse_known_args(sys.argv[1:])
         self.input_file_path = os.path.realpath(args.input_file_path)
         if args.output_file_path:

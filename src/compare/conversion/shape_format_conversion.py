@@ -17,6 +17,7 @@ import dump_data_pb2 as DD
 from cmp_utils import utils, utils_type, path_check
 from cmp_utils import common
 from cmp_utils import log
+from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
 from cmp_utils.reg_manager import RegManager
@@ -58,13 +59,13 @@ class ShapeConversionMain:
 
     def __init__(self: any) -> None:
         parse = argparse.ArgumentParser()
-        parse.add_argument("-i", dest="dump_file_path", default="",
+        parse.add_argument("-i", dest="dump_file_path", default="", type=safe_path_string,
                            help="<Required> the dump file path",
                            required=True)
         parse.add_argument("-format", dest="format", default="",
                            help="<Required> the format to transfer",
                            required=True)
-        parse.add_argument("-o", dest="output_path", default="",
+        parse.add_argument("-o", dest="output_path", default="", type=safe_path_string,
                            help="<Required> the output path", required=True)
         parse.add_argument('-tensor', dest="tensor", default="output",
                            help="<Optional> the tensor, input or output")
@@ -75,7 +76,7 @@ class ShapeConversionMain:
             help="<Optional> the shape for format transfer, currently only"
                  " used for FRACTAL_NZ conversion, shape format is "
                  "([0-9]+,)+[0-9]+, such as 1,3,224,224")
-        parse.add_argument("-custom", dest="custom_path", default="",
+        parse.add_argument("-custom", dest="custom_path", default="", type=safe_path_string,
                            help="<Optional> user-defined path, including format conversion",
                            required=False)
         args, _ = parse.parse_known_args(sys.argv[1:])

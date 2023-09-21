@@ -6,6 +6,7 @@ Function:
 This file mainly involves the common function.
 """
 import os
+import re
 import math
 import collections
 import csv
@@ -16,6 +17,15 @@ from cmp_utils import log
 from cmp_utils.utils_type import ShapeType
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
+
+
+PATH_BLACK_LIST_REGEX = re.compile(r"[^_A-Za-z0-9/.,-]")  # Includes `,`
+
+
+def safe_path_string(value):
+    if re.search(PATH_BLACK_LIST_REGEX, value):
+        raise ValueError("String parameter contains invalid characters.")
+    return value
 
 
 def make_msnpy_file_name(file_path: str, op_name: str, tensor_type: str, index: int, tensor_format: int) -> str:

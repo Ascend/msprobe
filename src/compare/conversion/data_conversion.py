@@ -14,6 +14,7 @@ import numpy as np
 from cmp_utils import utils, path_check
 from dump_parse import big_dump_data, dump_utils
 from cmp_utils import log
+from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
 from cmp_utils.reg_manager import RegManager
@@ -37,9 +38,9 @@ class DumpDataConversion:
                            help="<Required> the type for data, "
                                 "caffe, tf, quant or offline",
                            required=True)
-        parse.add_argument("-i", dest="input_path",
+        parse.add_argument("-i", dest="input_path", type=safe_path_string,
                            help="<Required> the input path", required=True)
-        parse.add_argument("-o", dest="output_path", default="",
+        parse.add_argument("-o", dest="output_path", default="", type=safe_path_string,
                            help="<Required> the output path", required=True)
 
         args, _ = parse.parse_known_args(sys.argv[1:])
@@ -50,17 +51,17 @@ class DumpDataConversion:
         self.multi_process = MultiConvertProcess(self._convert_file, self.input_path, self.output_path)
 
         self.layer_name_switch = {
-            "caffe":self._get_standard_layer_name,
-            "tf":self._get_standard_layer_name,
-            "quant":self._get_quant_layer_name,
-            "offline":self._get_offline_layer_name
+            "caffe": self._get_standard_layer_name,
+            "tf": self._get_standard_layer_name,
+            "quant": self._get_quant_layer_name,
+            "offline": self._get_offline_layer_name
         }
 
         self.file_name_switch = {
-            "caffe":lambda name: name + ".pb",
-            "tf":lambda name: name + ".pb",
-            "quant":lambda name: name + ".quant",
-            "offline":lambda name: name
+            "caffe": lambda name: name + ".pb",
+            "tf": lambda name: name + ".pb",
+            "quant": lambda name: name + ".quant",
+            "offline": lambda name: name
         }
 
     def check_arguments_valid(self: any) -> int:

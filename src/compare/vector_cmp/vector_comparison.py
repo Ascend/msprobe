@@ -25,6 +25,7 @@ from vector_cmp.compare_detail.compare_detail import DetailComparison
 from vector_cmp.compare_detail.compare_detail import DumpDetailComparison
 from dump_parse.dump import DumpType
 from cmp_utils import log, utils, utils_type, path_check
+from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.const_manager import ConstManager
 from vector_cmp.range_manager.range_manager import RangeManager
 from vector_cmp.range_manager.range_mode import RangeMode
@@ -57,13 +58,15 @@ class VectorComparison:
 
     @staticmethod
     def _parser_cmd(parse: any) -> None:
-        parse.add_argument("-l", dest="left_dump_path",
+        parse.add_argument("-l", dest="left_dump_path", type=safe_path_string,
                            help="<Required> the left dump path, the data compared with golden data", required=True)
-        parse.add_argument("-r", dest="right_dump_path",
+        parse.add_argument("-r", dest="right_dump_path", type=safe_path_string,
                            help="<Required> the right dump path, the golden data", required=True)
-        parse.add_argument("-o", dest="output_path", help="<Required> output file path", required=True)
-        parse.add_argument("-f", dest="fusion_json_file_path", default="", help="<Optional> fusion json file path")
-        parse.add_argument("-q", dest="quant_fusion_rule_file_path",
+        parse.add_argument("-o", dest="output_path", help="<Required> output file path", type=safe_path_string,
+                           required=True)
+        parse.add_argument("-f", dest="fusion_json_file_path", default="", type=safe_path_string,
+                           help="<Optional> fusion json file path")
+        parse.add_argument("-q", dest="quant_fusion_rule_file_path", type=safe_path_string,
                            default="", help="<Optional> quant fusion rule file path")
         parse.add_argument("-d", dest="op_name", default="", help="<Optional> detail operator name", required=False)
         parse.add_argument("-t", dest="detail_type", default="output", required=False,
@@ -72,7 +75,7 @@ class VectorComparison:
                            help="<Optional> detail index for input or output, the default is 0", required=False)
         parse.add_argument("-csv", dest="csv", action="store_true",
                            default=False, help="<Optional> save file as csv format", required=False)
-        parse.add_argument("-custom", dest="custom_path", default="",
+        parse.add_argument("-custom", dest="custom_path", default="", type=safe_path_string,
                            help="<Optional> user-defined path, including format conversion", required=False)
         parse.add_argument("-ffts", dest="ffts", action="store_true",
                            help="<optional> Enable the comparison between ffts+ and ffts+. "

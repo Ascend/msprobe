@@ -10,6 +10,7 @@ import os
 import sys
 import argparse
 from cmp_utils import log
+from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
 from advisor.compare_advisor import CompareAdvisor
@@ -27,13 +28,13 @@ def parse_input_nodes(input_nodes):
 
 
 def _compare_advisor_parser(parser):
-    parser.add_argument("-i", "--input_file", dest="input_file", default="",
+    parser.add_argument("-i", "--input_file", dest="input_file", default="", type=safe_path_string,
                         help="<Required> The compare result file: generate from msaccucmp compare command, a csv file.",
                         required=True)
     parser.add_argument('-input_nodes', dest="input_nodes", default="",
                         help="<optional> Input nodes designated by user. Separate multiple nodes with semicolons(;)."
                              " E.g: \"node_name1;node_name2;node_name3\"", required=False)
-    parser.add_argument("-o", "--out_path", dest="out_path", default="",
+    parser.add_argument("-o", "--out_path", dest="out_path", default="", type=safe_path_string,
                         help="<optional> The compare advice out path.",
                         required=False)
 

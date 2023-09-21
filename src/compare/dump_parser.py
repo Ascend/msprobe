@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
@@ -11,16 +10,18 @@ import sys
 import time
 
 from cmp_utils import log
+from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse.dump_data_parser import DumpDataParser
 
 
 def _save_log_parser(save_log_parser: argparse.ArgumentParser) -> None:
     save_log_parser.add_argument(
-        '-d', '--dump_file', dest='dump_path', default='',
+        '-d', '--dump_file', dest='dump_path', default='', type=safe_path_string,
         help='<Required> the dump file path, supports one AICPU custom operator dump file.',
         required=True)
-    save_log_parser.add_argument('-out', '--output', dest='output_path', default='', help='<Optional> the output path')
+    save_log_parser.add_argument('-out', '--output', dest='output_path', default='', type=safe_path_string,
+                                 help='<Optional> the output path')
 
 
 def _do_cmd() -> int:
@@ -39,7 +40,9 @@ def _do_cmd() -> int:
         args.dump_version = 2
         args.output_file_type = None
         ret = _do_save_log(args)
-    return ret
+        return ret
+    else:
+        return 0
 
 
 def _do_save_log(args: argparse.Namespace) -> int:
