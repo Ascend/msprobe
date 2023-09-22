@@ -41,6 +41,9 @@ class SortMode:
             file_path = wrap_function(*args, **kwargs)
             file_name = os.path.basename(file_path)
             file_name = self.hash_to_file_name_map.get(file_name) if file_name.isdigit() else file_name
+            if file_name is None:
+                log.print_warn_log('The file_name is invalid, failed to sort')
+                return ConstManager.INVALID_SORT_MODE
             file_split = file_name.split('.')
             if self.parameter == ConstManager.NORMAL_MODE or \
                     self.parameter == ConstManager.FFTS_TIMESTAMP:
