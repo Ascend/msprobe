@@ -41,39 +41,39 @@ class RemoveInplaceLayerProcess:
         if args.output_file_path:
             self.output_file_path = os.path.realpath(args.output_file_path)
         else:
-            self.output_file_path = os.path.join(
+            output_file_path = os.path.join(
                 os.path.dirname(self.input_file_path),
                 "new_" + os.path.basename(self.input_file_path))
+            self.output_file_path = os.path.realpath(output_file_path)
         self.net_param = None
         self.cur_layer_idx = -1
 
     @staticmethod
     def _check_input_file_valid(path: str) -> None:
-        exist_path = path
-        if not os.path.exists(exist_path):
-            log.print_error_log('The path "%s" does not exist.' % path)
-            raise CompareError(CompareError.MSACCUCMP_FILE_EXISTS_ERROR)
-        if not os.path.isfile(path):
-            log.print_error_log('The path "%s" is not a file.' % path)
-            raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        ret = path_check.check_path_valid(
+            path, exist=True, have_write_permission=False, path_type=path_check.PathType.File
+        )
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
+
         if os.path.getsize(path) > MAX_SIZE:
             log.print_error_log("The file '%s' is too large." % path)
             raise CompareError(CompareError.MSACCUCMP_FILE_TOO_LARGE_ERROR)
 
     @staticmethod
     def _check_output_file_valid(path: str) -> None:
-        exist_path = os.path.dirname(path)
-        if not os.path.exists(exist_path):
-            log.print_error_log('The path "%s" does not exist.' % path)
-            raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+        ret = path_check.check_path_valid(
+            path, exist=False, have_write_permission=True, path_type=path_check.PathType.File
+        )
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
+
         if os.path.exists(path):
-            if os.path.islink(path):
-                os.unlink(path)
-                log.print_error_log("The path '%s' is a symbolic link." % path)
+            if not os.path.isfile(path):
+                log.print_error_log("Provided output_file_path exists but is not a file.")
                 raise CompareError(CompareError.MSACCUCMP_SYMLINK_ERROR)
-            else:
-                os.remove(path)
-                log.print_warn_log("The file '%s' already exists" % path)
+            os.remove(path)
+            log.print_warn_log("The file '%s' already exists" % path)
 
     def check_arguments_valid(self: any) -> None:
         """
@@ -91,8 +91,12 @@ class RemoveInplaceLayerProcess:
 
         # read prototxt file
         self.net_param = caffe_pb2.NetParameter()
-        with open(self.input_file_path, 'rb') as model_file:
-            google.protobuf.text_format.Parse(model_file.read(), self.net_param)
+        try:
+            with open(self.input_file_path, 'rb') as model_file:
+                google.protobuf.text_format.Parse(model_file.read(), self.net_param)
+        except (google.protobuf.text_format.ParseError, UnicodeDecodeError) as error:
+            log.print_error_log("Provided input_file_path is not a valid protobuf text file")
+            raise CompareError(CompareError.MSACCUCMP_INVALID_FORMAT_ERROR) from error
 
         # parse net
         while True:
@@ -106,7 +110,6 @@ class RemoveInplaceLayerProcess:
             if layer_item.type == 'Dropout':
                 self.net_param.layer.remove(layer_item)
 
-        path_check.check_write_path_secure(self.output_file_path)
         # write file to new path
         with os.fdopen(os.open(self.output_file_path, self.WRITE_FLAGS, self.WRITE_MODES), 'w') as open_file:
             file_content = str(self.net_param)
