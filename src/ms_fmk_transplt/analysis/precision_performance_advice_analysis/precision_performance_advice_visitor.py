@@ -81,7 +81,7 @@ class PrecisionPerformanceAdviceVisitor(UnsupportedApiVisitor):
 
 
 def analyse_precision_performance_advice_api(wrapper, advice_info, global_reference_visitor=None):
-    op_info = OpInfo([], [], [])
+    op_info = OpInfo({}, {}, [])
     api_visitor = PrecisionPerformanceAdviceVisitor(op_info, advice_info, global_reference_visitor)
     module = wrapper.visit(api_visitor)
     api_visitor.print_unsupported_ops()
