@@ -116,7 +116,8 @@ class MsFmkTransplt(object):
         output_dir = os.path.dirname(self.transplant_file_output) if os.path.isfile(self.transplant_file_output) \
             else self.transplant_file_output
         report_files = [
-            'msFmkTranspltlog.txt', 'unsupported_api.csv', 'change_list.csv', 'unknown_api.csv', 'cuda_op_list.csv'
+            'msFmkTranspltlog.txt', 'unsupported_api.csv', 'change_list.csv', 'unknown_api.csv', 'cuda_op_list.csv',
+            'api_performance_advice.csv', 'api_precision_advice.csv'
         ]
         report_files.extend(f'msFmkTranspltlog.txt.{idx}' for idx in range(1, translog.BACKUP_COUNT + 1))
         for filename in report_files:

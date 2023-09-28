@@ -280,6 +280,18 @@ def check_file_need_analysis(file, commonprefix, record=False):
         if record:
             translog.warning(f'The real path or file name of {file_relative_path} is too long, skip.')
         return False
+    if platform.system().lower() == 'windows':
+        pattern = re.compile(r'(\.|\\|/|:|_|-|\s|[~0-9a-zA-Z])+')
+        if not pattern.fullmatch(file):
+            translog.warning(f'{file_relative_path} contains special characters, skip, only the following characters '
+                             f'are allowed in the path: A-Z a-z 0-9 - _ . / \\ :')
+            return False
+    else:
+        pattern = re.compile(r'(\.|/|:|_|-|\s|[~0-9a-zA-Z])+')
+        if not pattern.fullmatch(file):
+            translog.warning(f'{file_relative_path} contains special characters, skip, only the following characters '
+                             f'are allowed in the path: A-Z a-z 0-9 - _ . / :')
+            return False
     return True
 
 
@@ -381,3 +393,16 @@ def get_analysis_result_statistics(result_dict: dict, output_path):
         info = '   The detailed transplant result files are in the output path you defined, the relative path is ' \
                + output_path + '.' + '\n' + str(tb)
         translog.info_without_format(info)
+
+
+def make_dir_safety(path: str, permission=0o750):
+    if os.path.islink(path):
+        msg = f"Invalid path is soft link: {path}"
+        raise RuntimeError(msg)
+    if os.path.exists(path):
+        return
+    try:
+        os.makedirs(path, permission)
+        os.chmod(path, permission)
+    except Exception as e:
+        raise RuntimeError("Can't create directory: " + path) from e

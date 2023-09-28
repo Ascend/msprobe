@@ -8,6 +8,7 @@ import shutil
 from enum import Enum, auto
 import pathlib
 from collections import namedtuple
+from utils import trans_utils as utils
 
 try:
     import moxing as mox
@@ -136,9 +137,9 @@ class ModelArtsPathManager:
             else:
                 cache_path = os.path.realpath(os.path.join(self.CACHE_DIR, local_path.lstrip('/')))
                 if path_type == ModelArtsPathManager.PathType.DIR:
-                    os.makedirs(cache_path, exist_ok=True)
+                    utils.make_dir_safety(cache_path)
                 else:
-                    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+                    utils.make_dir_safety(os.path.dirname(cache_path))
                 output_path_mapping.update(
                     {os.path.realpath(local_path): ModelArtsPathManager.PathPair(path_type, cache_path, obs_path)})
 
@@ -147,12 +148,12 @@ class ModelArtsPathManager:
     def _download_before_training(self):
         for _, (path_type, local_path, obs_path) in self._input_path_mapping.items():
             if path_type == ModelArtsPathManager.PathType.DIR:
-                os.makedirs(local_path, exist_ok=True)
+                utils.make_dir_safety(local_path)
                 self.log_info(f'Download directory from {obs_path} to {local_path} ...')
                 self._check_obs_path_size_valid(obs_path, local_path)
                 mox.file.copy_parallel(obs_path, local_path)
             else:
-                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                utils.make_dir_safety(os.path.dirname(local_path))
                 self.log_info(f'Download file from {obs_path} to {local_path} ...')
                 self._check_obs_path_size_valid(obs_path, local_path)
                 mox.file.copy(obs_path, local_path)
