@@ -7,9 +7,9 @@ import atexit
 import logging
 import os
 import stat
+import shutil
 import pandas as pd
 import torch
-from utils import trans_utils as utils
 
 
 class Logger(logging.Logger):
@@ -145,7 +145,7 @@ class DynamicShapeDetect:
         header = ('Function Name', 'File Path', 'Line Number', 'Call Stack', 'Input Shape Range', 'Output Shape Range')
         if os.path.exists(csv_file):
             translog.warning(f"The file {csv_file} already exists, it will be removed.")
-            utils.remove_path(csv_file)
+            remove_path(csv_file)
         with os.fdopen(os.open(csv_file, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP), 'w+') \
              as fp:
             data_frame = pd.DataFrame(columns=header)
@@ -226,6 +226,16 @@ def save_report():
         translog.error("Save dynamic shape analysis report failed.")
         return
     translog.info("Save dynamic shape analysis report success.")
+
+
+def remove_path(path):
+    try:
+        if os.path.islink(os.path.abspath(path)) or os.path.isfile(path):
+            os.remove(path)
+        elif os.path.isdir(path):
+            shutil.rmtree(path)
+    except PermissionError as exp:
+        raise Exception(f'Failed to delete {path}: {exp}') from exp
 
 
 DETECTOR = DynamicShapeDetect()
