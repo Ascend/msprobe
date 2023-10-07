@@ -56,12 +56,12 @@ def write_csv(content_list, output_dir, csv_name, header):
     else:
         csv_file = os.path.join(output_dir, '%s.csv' % csv_name)
     if not os.path.exists(csv_file):
+        make_file_safty(csv_file)
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
 
     new_data = pd.DataFrame(list(content for content in content_list))
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
-    change_mode(csv_file)
 
 
 def get_unsupported_op_dict(version):
@@ -406,3 +406,21 @@ def make_dir_safety(path: str, permission=0o750):
         os.chmod(path, permission)
     except Exception as e:
         raise RuntimeError("Can't create directory: " + path) from e
+
+
+def make_file_safty(file_path: str, permission=0o640):
+    if os.path.islink(file_path):
+        raise RuntimeError("Invalid soft link path: {}".format(file_path))
+    if os.path.exists(file_path):
+        return
+    file_abs_path = os.path.realpath(file_path)
+    parent_path = os.path.dirname(file_abs_path)
+    if not os.path.exists(parent_path):
+        make_dir_safety(parent_path)
+    if not os.access(parent_path, os.W_OK):
+        raise PermissionError("The path {} is not writable!".format(parent_path))
+    try:
+        os.close(os.open(file_path, os.O_WRONLY | os.O_CREAT, permission))
+        os.chmod(file_path, permission)
+    except Exception as e:
+        raise RuntimeError("Can't create file: " + path) from e
