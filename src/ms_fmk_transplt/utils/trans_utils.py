@@ -404,9 +404,9 @@ def make_dir_safety(path: str, permission=0o750):
         return
     try:
         os.makedirs(real_path, permission)
-        os.chmod(real_path, permission)
     except Exception as e:
         raise RuntimeError("Can't create directory: " + real_path) from e
+    os.chmod(real_path, permission)
 
 
 def make_file_safety(file_path: str, permission=0o640):
@@ -422,6 +422,6 @@ def make_file_safety(file_path: str, permission=0o640):
         raise PermissionError("The path {} is not writable!".format(parent_path))
     try:
         os.close(os.open(file_real_path, os.O_WRONLY | os.O_CREAT, permission))
-        os.chmod(file_real_path, permission)
     except Exception as e:
-        raise RuntimeError("Can't create file: " + path) from e
+        raise RuntimeError("Can't create file: " + file_real_path) from e
+    os.chmod(file_real_path, permission)
