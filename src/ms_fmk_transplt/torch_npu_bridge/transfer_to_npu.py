@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
 
-import builtins
 import os
 import warnings
 import logging as logger
@@ -160,6 +159,12 @@ def warning_fn(msg, rank0=True):
         warnings.warn(msg, ImportWarning)
 
 
+def jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None):
+    msg = 'torch.jit.script will be disabled by transfer_to_npu, which currently does not support it.'
+    warnings.warn(msg, RuntimeWarning)
+    return obj
+
+
 def init():
     warning_fn('''
     *************************************************************************************************************
@@ -205,6 +210,7 @@ def init():
     # torch.utils.data.DataLoader
     if torch.__version__.startswith('2.1'):
         torch.utils.data.DataLoader.__init__ = wrapper_data_loader(torch.utils.data.DataLoader.__init__)
+        torch.jit.script = jit_script
 
 
 init()
