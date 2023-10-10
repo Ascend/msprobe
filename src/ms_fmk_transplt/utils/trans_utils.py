@@ -344,6 +344,10 @@ def refresh_parso_cache():
 def check_is_subdirectory(path_may_be_parent, path_may_be_child):
     path_may_be_parent = os.path.realpath(path_may_be_parent)
     path_may_be_child = os.path.realpath(path_may_be_child)
+    parent_owner = os.stat(path_may_be_parent).st_uid
+    child_owner = os.stat(path_may_be_child).st_uid
+    if parent_owner != child_owner:
+        return False
     if path_may_be_parent[0] != path_may_be_child[0]:
         return False
     commonpath = os.path.commonpath([path_may_be_parent, path_may_be_child])
