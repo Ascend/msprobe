@@ -8,6 +8,7 @@ from typing import Optional, Union
 import libcst as cst
 import libcst.matchers as m
 from libcst.metadata import PositionProvider, ParentNodeProvider, QualifiedNameProvider
+from utils import transplant_logger as translog
 
 
 class DynamicShapeTransformer(cst.CSTTransformer):
@@ -34,7 +35,20 @@ class DynamicShapeTransformer(cst.CSTTransformer):
             return updated_node
         func_arg = cst.Arg(value=updated_node.func)
         args = []
+        index = 0
         for arg in updated_node.args:
+            if arg.keyword:
+                index += 1
+            if arg.keyword and arg.keyword.value == 'self':
+                position = self.get_metadata(cst.metadata.PositionProvider, original_node)
+                msg = 'In Python, `self` is usually used to represent an instance object of a class, ' \
+                      'please do not use it as a keyword argument'
+                translog.warning(
+                    "%-21s %-35s %s" % ("line: %s ~ %s" % (position.start.line, position.end.line), ":", msg))
+                if index == 1:
+                    arg = arg.with_changes(keyword=None, equal=cst.MaybeSentinel.DEFAULT)
+                else:
+                    continue
             if isinstance(arg.value, cst.GeneratorExp):
                 args.append(arg.deep_clone().with_changes(
                     value=cst.ListComp(elt=arg.value.elt, for_in=arg.value.for_in)))
