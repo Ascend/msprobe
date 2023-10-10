@@ -26,7 +26,15 @@ def _deserialize_dump_data_to_array(data, data_type, shape: list = None) -> any:
     """
     if 0 in shape:
         return np.array([]).reshape(shape)
-    result = np.frombuffer(data, dtype=common.get_dtype_by_data_type(data_type))
+    if shape:
+        cnt = 1
+        for ii in shape:
+            cnt *= ii
+        cur_type = common.get_dtype_by_data_type(data_type)
+        cur_byte = np.dtype(cur_type).itemsize
+        result = np.frombuffer(data[:cur_byte * cnt], dtype=cur_type)
+    else:
+        result = np.frombuffer(data, dtype=common.get_dtype_by_data_type(data_type))
     if data_type in ConstManager.UNPACK_DTYPE:
         return np.unpackbits(result)
     elif data_type in ConstManager.CAST_FP32_DTYPE:

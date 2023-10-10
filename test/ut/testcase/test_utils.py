@@ -71,7 +71,7 @@ class TestUtilsMethods(unittest.TestCase):
         op_output.data = b'\x01\x02'
         op_output.shape.dim = [1]
         numpy_data = dump_data_object._deserialize_dump_data_to_array(op_output.data, 1, list(op_output.shape.dim))
-        self.assertEqual(len(numpy_data), 2)
+        self.assertEqual(len(numpy_data), 1)
 
     def test_space_to_comma(self):
         value = 'a,b,c d,e 1.0 0.1 (3.0,4.0);(5.3,6.5)'
