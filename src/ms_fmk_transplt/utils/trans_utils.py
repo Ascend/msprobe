@@ -70,7 +70,11 @@ def get_unsupported_op_dict(version):
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
-    return json.loads(ops).get('op_list')
+    try:
+        json_file = json.loads(ops)
+    except ValueError:
+        return {}
+    return json_file.get('op_list')
 
 
 def get_supported_op_dict(version):
@@ -79,7 +83,11 @@ def get_supported_op_dict(version):
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
-    return json.loads(ops).get("op_list")
+    try:
+        json_file = json.loads(ops)
+    except ValueError:
+        return {}
+    return json_file.get('op_list')
 
 
 def get_affinity_info_dict(version, need_type):
@@ -91,7 +99,11 @@ def get_affinity_info_dict(version, need_type):
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/affinity_list_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
-    return json.loads(ops).get(need_type)
+    try:
+        json_file = json.loads(ops)
+    except ValueError:
+        return {}
+    return json_file.get(need_type)
 
 
 def get_precision_performance_advice_dict(version):
@@ -100,7 +112,11 @@ def get_precision_performance_advice_dict(version):
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
-    return json.loads(ops).get('api_precision_list'), json.loads(ops).get('api_performance_list')
+    try:
+        json_file = json.loads(ops)
+    except ValueError:
+        return {}, {}
+    return json_file.get('api_precision_list'), json.loads(ops).get('api_performance_list')
 
 
 def get_file_content_bytes(file):

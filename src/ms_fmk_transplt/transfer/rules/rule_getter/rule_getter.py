@@ -35,7 +35,13 @@ def get_rule_from_json_file(feature_switch, rule_list, json_file):
     if not os.path.exists(json_file):
         return
     json_file_content = get_file_content(json_file)
-    rule_dict = json.loads(json_file_content).get('rules', {})
+    try:
+        json_file = json.loads(json_file_content)
+    except ValueError:
+        return
+    rule_dict = json_file.get('rules', {})
+    if not isinstance(rule_dict, dict):
+        return
     for key in rule_dict:
         init_rule_to_list(key, rule_dict, rule_list, feature_switch)
 

@@ -140,6 +140,8 @@ class DataLoaderRule(BaseRule):
         self.data_set_target = ''
 
     def __get_func_usage_params(self, jedi_script, func_usage_position, func_name):
+        if not func_usage_position:
+            return []
         first_param = jedi_script._module_node.get_leaf_for_position(
             (func_usage_position.get('line'), func_usage_position.get('column') + len(func_name) + 2))
         parent = first_param.parent
