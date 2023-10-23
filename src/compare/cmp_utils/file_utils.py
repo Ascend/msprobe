@@ -53,7 +53,7 @@ class FileUtils:
                 for row in csv_handle:
                     content.append(row)
             return content
-        except IOError as io_error:
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as io_error:
             log.print_open_file_error(path, io_error)
             raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from io_error
         finally:

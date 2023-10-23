@@ -70,10 +70,10 @@ class CompareAdvisor:
         if self.input_file.endswith(".csv"):
             try:
                 df = pd.read_csv(self.input_file, on_bad_lines='skip')
-            except OSError as os_err:
+            except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as io_err:
                 log.print_error_log('Failed to parse the input file %s. %s'
-                                    % (self.input_file, str(os_err)))
-                raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from os_err
+                                    % (self.input_file, str(io_err)))
+                raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from io_err
             data_columns = df.columns.values
             if not {AdvisorConst.INDEX, AdvisorConst.NPU_DUMP}.issubset(data_columns):
                 log.print_error_log('Input csv file does not contain %s, %s columns.'

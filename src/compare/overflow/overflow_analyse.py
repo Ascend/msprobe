@@ -81,7 +81,7 @@ class OverflowAnalyse:
         acc_type = json_txt.get('acc_list', {}).get('acc_type')
         if acc_type in ConstManager.ACC_TYPE.values():
             overflow_type = acc_type
-            detail = json_txt.get('acc_list', {}).get('data')
+            detail = json_txt.get('acc_list', {}).get('data', {})
             return OverflowAnalyse._gen_overflow_info(res, overflow_type, detail)
         log.print_error_log("[Overflow] Invalid overflow type, type is {}".format(acc_type))
         raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
@@ -172,6 +172,10 @@ class OverflowAnalyse:
                     break
                 parsed_debug_file = self._get_parsed_debug_file(debug_file)
                 overflow_json = self.overflow_file_utils.load_json_file(parsed_debug_file.file_path)
+                if not isinstance(overflow_json, dict):
+                    log.print_warn_log("[Overflow] overflow summary file {} contents is not dict"
+                                       .format(parsed_debug_file.file_path))
+                    continue
                 overflow_result = '{}{}\n'.format(overflow_result,
                                                   self._json_summary(i + 1, overflow_json, debug_file))
 

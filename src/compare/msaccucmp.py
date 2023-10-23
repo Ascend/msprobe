@@ -76,7 +76,7 @@ def _add_alg_argument(compare_parser: argparse.ArgumentParser) -> None:
                                     default=default_value_list,
                                     help=_get_algorithm_help_info_for_int(default_value_list))
     else:
-        compare_parser.add_argument('-alg', '--algorithm', dest='algorithm', default="all",
+        compare_parser.add_argument('-alg', '--algorithm', dest='algorithm', default="all", type=safe_path_string,
                                     help=_get_algorithm_help_info())
 
 
