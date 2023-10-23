@@ -9,7 +9,7 @@ import argparse
 import sys
 import time
 
-from cmp_utils import log
+from cmp_utils import log, file_utils
 from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse.dump_data_parser import DumpDataParser
@@ -56,10 +56,14 @@ def main() -> None:
     :return:
     """
     start = time.time()
-    try:
-        ret = _do_cmd()
-    except CompareError as err:
-        ret = err.code
+    with file_utils.UmaskWrapper():
+        try:
+            ret = _do_cmd()
+        except CompareError as err:
+            ret = err.code
+        except Exception as base_err:
+            log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
+            sys.exit(1)
     end = time.time()
     if ret != 0:
         log.print_error_log("Failed to parse dump log.")

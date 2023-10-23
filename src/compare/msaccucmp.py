@@ -12,7 +12,7 @@ import sys
 import argparse
 import time
 
-from cmp_utils import log, path_check
+from cmp_utils import log, path_check, file_utils
 from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
@@ -470,12 +470,14 @@ def main() -> None:
     :return:
     """
     start = time.time()
-    try:
-        ret = _do_cmd()
-    except CompareError as err:
-        ret = err.code
-    finally:
-        pass
+    with file_utils.UmaskWrapper():
+        try:
+            ret = _do_cmd()
+        except CompareError as err:
+            ret = err.code
+        except Exception as base_err:
+            log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
+            sys.exit(1)
     end = time.time()
     log.print_info_log('The command was completed and took %d seconds.' % (end - start))
     sys.exit(ret)

@@ -16,7 +16,7 @@ import google.protobuf.text_format
 import caffe.proto.caffe_pb2 as caffe_pb2
 
 from cmp_utils.constant.compare_error import CompareError
-from cmp_utils import log
+from cmp_utils import log, file_utils
 from cmp_utils import path_check
 from cmp_utils.utils import safe_path_string
 
@@ -161,4 +161,9 @@ class RemoveInplaceLayerProcess:
 
 
 if __name__ == "__main__":
-    RemoveInplaceLayerProcess().remove_inplace_layer()
+    with file_utils.UmaskWrapper():
+        try:
+            RemoveInplaceLayerProcess().remove_inplace_layer()
+        except Exception as base_err:
+            log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
+            sys.exit(1)

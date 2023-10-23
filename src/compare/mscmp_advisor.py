@@ -9,7 +9,7 @@ Make advisor, perform comparative analysis, This class mainly involves the main 
 import os
 import sys
 import argparse
-from cmp_utils import log
+from cmp_utils import log, file_utils
 from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
@@ -66,10 +66,14 @@ def check_file_size(input_file):
 
 
 if __name__ == '__main__':
-    try:
-        _do_advisor()
-    except CompareError as err:
-        sys.exit(err.code)
+    with file_utils.UmaskWrapper():
+        try:
+            _do_advisor()
+        except CompareError as err:
+            sys.exit(err.code)
+        except Exception as base_err:
+            log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
+            sys.exit(1)
 
     log.print_info_log("Advisor completed.")
     sys.exit(CompareError.MSACCUCMP_NONE_ERROR)

@@ -450,3 +450,19 @@ class ParsedDumpFileDesc(DumpFileDesc):
         self.type = anchor.get("anchor_type")
         self.idx = anchor.get("anchor_idx")
         self.format = anchor.get("format")
+
+
+class UmaskWrapper:
+    """Write with preset umask
+    >>> with UmaskWrapper():
+    >>>     ...
+    """
+
+    def __init__(self, umask=0o027):
+        self.umask, self.ori_umask = umask, None
+
+    def __enter__(self):
+        self.ori_umask = os.umask(self.umask)
+
+    def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
+        os.umask(self.ori_umask)
