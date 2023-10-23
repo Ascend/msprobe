@@ -100,6 +100,16 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
                 self.unsupported_op_result.extend(unsupported_apis)
                 self.unknown_api_result.extend(unknown_apis)
 
+    def visit_Decorator(self, node: "libcst.Decorator") -> Optional[bool]:
+        full_name = self.get_full_name_for_node(node)
+        position = self.get_metadata(libcst.metadata.PositionProvider, node)
+        if full_name:
+            unsupported_apis, unknown_apis = self.get_class_api_instances(full_name, position, None)
+            self.unsupported_op_result.extend(unsupported_apis)
+            self.unknown_api_result.extend(unknown_apis)
+        return True
+
+
     def print_unsupported_ops(self):
         for unsupported_op in self.unsupported_op_result:
             if unsupported_op.info:
