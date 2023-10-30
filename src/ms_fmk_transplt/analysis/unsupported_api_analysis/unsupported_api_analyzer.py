@@ -18,6 +18,12 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
                                                      unsupported_third_party_file_list)
         self.cuda_op_list = analyse_cuda_ops(script_dir, output_path)
 
+    def run(self):
+        export_performance_configuration(self.performance_configuration_dict, self.result_dict, self.output_path)
+        super().run()
+
+
+
     def _analysis_file(self, file, commonprefix):
         if self.global_reference_visitor:
             self.global_reference_visitor.visit_file(os.path.relpath(file, self.script_dir))
@@ -39,7 +45,8 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
                                                                                self.global_reference_visitor)
         (precision_advice_list, performance_advice_list), _, _ = \
             analyse_precision_performance_advice_api(wrapper, AdviceInfo(self.precision_advice_dict,
-                                                                         self.performance_advice_dict),
+                                                                         self.performance_advice_dict,
+                                                                         self.api_parameters_performance_dict),
                                                      self.global_reference_visitor)
         result_dicts = {
             'cuda_op_list.csv': self.cuda_op_list,
@@ -64,3 +71,14 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
     def _get_content_list(self, result_list):
         return list(
             (self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info) for api in result_list)
+
+
+def export_performance_configuration(configuration_dict, result_dict, output_path):
+    result_list = []
+    for key, value in configuration_dict.items():
+        result_list.append(('NA', 'NA', 'NA', key, value))
+    if result_list:
+        result_dict.update({'api_performance_advice.csv': result_dict.get(
+            'api_performance_advice.csv', 0) + len(result_list)})
+        utils.write_csv(result_list, output_path, "api_performance_advice",
+                        ('File', 'Start Line', 'End Line', 'OP', 'Tips'))

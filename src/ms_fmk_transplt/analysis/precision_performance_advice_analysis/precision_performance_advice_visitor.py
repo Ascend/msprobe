@@ -10,7 +10,8 @@ from libcst.metadata import PositionProvider, QualifiedNameProvider
 from analysis.unsupported_api_analysis.unsupported_api_visitor import UnsupportedApiVisitor, ApiInstance, OpInfo
 from utils import transplant_logger as translog
 
-AdviceInfo = namedtuple("AdviceInfo", ["precision_advice_dict", "performance_advice_dict"])
+AdviceInfo = namedtuple("AdviceInfo",
+                        ["precision_advice_dict", "performance_advice_dict", "api_parameters_performance_dict"])
 
 
 class PrecisionPerformanceAdviceVisitor(UnsupportedApiVisitor):
@@ -28,6 +29,7 @@ class PrecisionPerformanceAdviceVisitor(UnsupportedApiVisitor):
                 continue
             all_module_name_set.add(f'{func_name.split(".")[0]}.')
         self.all_module_names = tuple(all_module_name_set)
+        self.api_parameters_performance_dict = advice_info.api_parameters_performance_dict
 
     def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
         full_name = self.get_full_name_for_node(node)
@@ -37,8 +39,12 @@ class PrecisionPerformanceAdviceVisitor(UnsupportedApiVisitor):
                                                                      self.precision_advice_dict)
             performance_advice_apis, _ = self.get_advice_api_instances(node, full_name, position, None,
                                                                        self.performance_advice_dict)
+            api_parameters_performance_advice = \
+                self.get_api_parameters_performance_advice_instances(node, full_name, position, None)
+
             self.precision_advice_result.extend(precision_advice_apis)
             self.performance_advice_result.extend(performance_advice_apis)
+            self.performance_advice_result.extend(api_parameters_performance_advice)
         return True
 
     def visit_ClassDef(self, node) -> Optional[bool]:
@@ -78,6 +84,23 @@ class PrecisionPerformanceAdviceVisitor(UnsupportedApiVisitor):
             return [ApiInstance(full_name, position, file_path, need_analyze_dict.get(full_name))], []
         else:
             return [], []
+
+    def get_api_parameters_performance_advice_instances(self, node, full_name, position, file_path):
+        info_dict = self.api_parameters_performance_dict.get(full_name)
+        if info_dict:
+            args = node.args
+            for arg in args:
+                keyword = None if arg.keyword is None else libcst.parse_module("").code_for_node(arg.keyword)
+                value = None if arg.value is None else libcst.parse_module("").code_for_node(arg.value)
+                if keyword == info_dict.get('parameter') and str(value) != info_dict.get('expected_value'):
+                    return [ApiInstance(full_name, position, file_path,
+                                        self.api_parameters_performance_dict.get(full_name).get('msg'))]
+                if keyword == info_dict.get('parameter') and str(value) == info_dict.get('expected_value'):
+                    return []
+            if info_dict.get('default_value') != info_dict.get('expected_value'):
+                return [ApiInstance(full_name, position, file_path,
+                                    self.api_parameters_performance_dict.get(full_name).get('msg'))]
+        return []
 
 
 def analyse_precision_performance_advice_api(wrapper, advice_info, global_reference_visitor=None):

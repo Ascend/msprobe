@@ -24,6 +24,8 @@ class BaseAnalyzer:
         self.result_dict = {}
         self.precision_advice_dict, self.performance_advice_dict = utils.get_precision_performance_advice_dict(
             self.pytorch_version)
+        self.api_parameters_performance_dict = utils.get_api_parameters_performance_dict(self.pytorch_version)
+        self.performance_configuration_dict = utils.get_performance_configuration_dict(self.pytorch_version)
 
     @staticmethod
     def __need_analysis(file, commonprefix):

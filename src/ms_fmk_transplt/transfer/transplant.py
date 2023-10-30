@@ -15,6 +15,7 @@ from utils import transplant_logger as translog
 from analysis import analyse_unsupported_api, analyse_cuda_ops, OpInfo
 from analysis.precision_performance_advice_analysis.precision_performance_advice_visitor import \
     analyse_precision_performance_advice_api, AdviceInfo
+from analysis.unsupported_api_analysis.unsupported_api_analyzer import export_performance_configuration
 from .rules.distributed_rules import DataLoaderRule
 from .rules.common_rules import InsertMainFileRule
 
@@ -31,9 +32,11 @@ class Transplant(object):
         self.global_reference_visitor = None
         precision_advice_dict, performance_advice_dict = utils.get_precision_performance_advice_dict(
             args.version)
+        api_parameters_performance_dict = utils.get_api_parameters_performance_dict(args.version)
+        self.performance_configuration_dict = utils.get_performance_configuration_dict(args.version)
         self.op_info = OpInfo(utils.get_supported_op_dict(args.version), utils.get_unsupported_op_dict(args.version),
                               analyse_cuda_ops(script_dir, analysis_result_dir))
-        self.advice_info = AdviceInfo(precision_advice_dict, performance_advice_dict)
+        self.advice_info = AdviceInfo(precision_advice_dict, performance_advice_dict, api_parameters_performance_dict)
         self.transplant_result_statistics = {}
         self.analysis_result_dir = analysis_result_dir
 
@@ -45,6 +48,8 @@ class Transplant(object):
         self.global_reference_visitor = global_reference_visitor
 
     def run(self):
+        export_performance_configuration(self.performance_configuration_dict, self.transplant_result_statistics,
+                                         self.analysis_result_dir)
         translog.info('Analysis start...')
 
         if not os.access(self.script_dir, os.R_OK):
