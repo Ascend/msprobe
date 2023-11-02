@@ -33,7 +33,7 @@ class TestUtilsMethods(unittest.TestCase):
         dump_data.output_data.append(data1)
         data2 = DumpTensor(data=np.random.rand(2, 3, 5, 1, 1).reshape(-1), shape=[2, 3, 5, 1, 1])
         dump_data.output_data.append(data2)
-        output = dump_data.get_output_data
+        output = dump_data.get_output_data()
         self.assertEqual(output[0].all(), data1.data.all())
         self.assertEqual(output[1].all(), data2.data.all())
 

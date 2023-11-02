@@ -19,6 +19,7 @@ from cmp_utils.file_utils import FileUtils
 from cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse import dump_utils
+from dump_parse.dump_data_object import DumpDataObj
 
 
 class DumpDataParser:
@@ -130,10 +131,23 @@ class DumpDataParser:
             log.print_info_log('The data of log:%d has been parsed into "%s".'
                                % (index, log_file_path))
 
-    def _save_tensor_to_file(self: any, dump_path: str, tensor_list: list, tensor_type: str, op_name: str) -> None:
+    def _save_tensor_to_file(self: any, dump_path: str, dump_data: DumpDataObj, tensor_type: str) -> None:
+        tensor_list = dump_data.input_data if tensor_type == ConstManager.INPUT else dump_data.output_data
+        op_name = dump_data.op_name
+        ffts_auto = False
         if len(tensor_list) == 0:
             log.print_warn_log('There is no %s in "%s".' % (tensor_type, dump_path))
             return
+        if dump_data.get_ffts_mode:
+            shape_list = dump_data.ffts_auto_input_shape_list if tensor_type == ConstManager.INPUT \
+                else dump_data.ffts_auto_output_shape_list
+            if len(shape_list) == len(tensor_list):
+                ffts_auto = True
+            else:
+                log.print_error_log('The length of shape_list %s is not equal \
+                    to the length of tensor_list %s.' % (shape_list, tensor_list))
+                raise CompareError(CompareError.MSACCUCMP_INVALID_INPUT_MAPPING)
+                
         name = os.path.basename(dump_path)
         for (index, tensor) in enumerate(tensor_list):
             log.print_info_log('Start to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_path))
@@ -158,7 +172,11 @@ class DumpDataParser:
                 file_name = FileUtils.handle_too_long_file_name(
                     file_name, '.bin', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             output_file_path = os.path.join(self.output_path, file_name)
-            FileUtils.save_array_to_file(output_file_path, array, self.output_file_type != 'bin', tensor.shape)
+            if ffts_auto:
+                FileUtils.save_array_to_file(
+                    output_file_path, array, self.output_file_type != 'bin', shape_list[index])
+            else:
+                FileUtils.save_array_to_file(output_file_path, array, self.output_file_type != 'bin', tensor.shape)
             log.print_info_log('The data of %s:%d has been parsed into "%s".'
                                % (tensor_type, index, output_file_path))
 
@@ -231,11 +249,16 @@ class DumpDataParser:
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         dump_data = dump_utils.parse_dump_file(dump_path, self.dump_version)
+        
         if os.path.basename(dump_path).startswith('Opdebug.Node_OpDebug.'):
             self._save_op_debug_to_file(dump_path, dump_data.output_data)
         else:
-            self._save_tensor_to_file(dump_path, dump_data.input_data, 'input', dump_data.op_name)
-            self._save_tensor_to_file(dump_path, dump_data.output_data, 'output', dump_data.op_name)
+            if dump_data.get_ffts_mode:
+                thread_id = int(dump_path.split('.')[-2])     
+                dump_data.ffts_auto_input_shape_list = dump_data.calculate_auto_mode_shape(thread_id, "input")    
+                dump_data.ffts_auto_output_shape_list = dump_data.calculate_auto_mode_shape(thread_id, "output")
+            self._save_tensor_to_file(dump_path, dump_data, 'input')
+            self._save_tensor_to_file(dump_path, dump_data, 'output')
             self._save_buffer_to_file(dump_path, dump_data.buffer)
 
     def _parse_one_dump_file(self: any, dump_path: str) -> (int, str):

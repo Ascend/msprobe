@@ -142,18 +142,8 @@ class DumpDataObj:
             build_dump_tensor(self.input_data, is_input=True, is_ffts=is_ffts)
 
             self.ffts_file_check = True
-
-    @property
-    def get_output_data(self: any) -> list:
-        """
-        Get output data
-        @return: list of output data
-        """
-        output_data_list = []
-        for output in self.output_data:
-            if self.check_shape_match(output.data, output.shape):
-                output_data_list.append(output.data.reshape(output.shape))
-        return output_data_list
+            self.ffts_auto_input_shape_list = []
+            self.ffts_auto_output_shape_list = []
 
     @property
     def get_dump_time(self: any) -> int:
@@ -194,25 +184,16 @@ class DumpDataObj:
         calculate the cut axis of auto mode
         @return: cut axis
         """
-        output_shape = self.calculate_auto_mode_shape
         cut_axis = []
+        if not self.attr or not self.attr["outputCutList"]:
+            return cut_axis
+        for output in self.attr["outputCutList"]:
+            output_index = []
+            for index, value in enumerate(output):
+                if value != 1:
+                    output_index.append(index)
+            cut_axis.append(output_index)
         return cut_axis
-
-    @property
-    def calculate_auto_mode_shape(self: any) -> list:
-        """
-        calculate the output data shape of auto mode
-        @return: output shape
-        """
-        output_shape = []
-        if self.attr is not None and self.attr["output_tensor_slice"]:
-            for output in self.attr["output_tensor_slice"][0]:
-                output_index = []
-                for addr in output:
-                    dim = addr.get("higher") - addr.get("lower")
-                    output_index.append(dim)
-                output_shape.append(output_index)
-        return output_shape
 
     @property
     def get_ffts_mode(self: any) -> any:
@@ -230,6 +211,47 @@ class DumpDataObj:
             log.print_error_log(
                 f"The output_data shape {output_data.shape[-1]} doesn't match the shape in dump file {shape}")
             raise CompareError(CompareError.MSACCUCMP_UNMATCH_DATA_SHAPE_ERROR)
+
+    def get_output_data(self: any) -> list:
+        """
+        Get output data
+        @return: list of output data
+        """
+        output_data_list = []
+        for output in self.output_data:
+            if self.check_shape_match(output.data, output.shape):
+                output_data_list.append(output.data.reshape(output.shape))
+        return output_data_list
+
+    def get_auto_output_data(self: any, output_shape: list) -> list:
+        """
+        Get output data
+        @return: list of output data
+        """
+        output_data_list = []
+        for index, output in enumerate(self.output_data):
+            if self.check_shape_match(output.data, output_shape[index]):
+                output_data_list.append(output.data.reshape(output_shape[index]))
+        return output_data_list
+    
+    def calculate_auto_mode_shape(self: any, thread_id: int, tensor_type: str) -> list:
+        """
+        calculate the output data shape of auto mode
+        @return: output shape
+        """
+        output_shape = []
+        if tensor_type == ConstManager.INPUT:
+            attr_name = "input_tensor_slice"
+        elif tensor_type == ConstManager.OUTPUT:
+            attr_name = "output_tensor_slice"
+        if self.attr is not None and self.attr[attr_name]:
+            for output in self.attr[attr_name][thread_id]:
+                output_index = []
+                for addr in output:
+                    dim = addr.get("higher") - addr.get("lower")
+                    output_index.append(dim)
+                output_shape.append(output_index)
+        return output_shape
 
     def set_op_attr(self: any, op_name: str, ffts_file_check: bool) -> None:
         """

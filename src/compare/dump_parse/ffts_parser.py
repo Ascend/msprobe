@@ -16,7 +16,7 @@ class FFTSParser:
     def __init__(self, dump_file_list, dump_data_list):
         self.dump_file_list = dump_file_list
         self.dump_data_list = dump_data_list
-
+    
     @property
     def parse_ffts(self: any) -> tuple:
         """
@@ -47,7 +47,13 @@ class FFTSParser:
                                "All dump files are {}".format(dump_data_to_file[-1][1], ",".join(self.dump_file_list)))
         else:
             output_num = len(dump_base.output_data)
-            output_data_list = [dump_data.get_output_data for dump_data in self.dump_data_list]
+            if dump_base.get_ffts_mode:
+                output_data_list = []
+                for index, dump_file in enumerate(self.dump_data_list):
+                    output_shape = dump_file.calculate_auto_mode_shape(index, "output")
+                    output_data_list.append(dump_file.get_auto_output_data(output_shape))
+            else:
+                output_data_list = [dump_data.get_output_data() for dump_data in self.dump_data_list]
 
             dump_data_output_list = []
             for i in range(output_num):

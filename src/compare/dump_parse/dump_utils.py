@@ -70,7 +70,7 @@ class SortMode:
 
     @staticmethod
     def _parameter_auto(file_split, file_name):
-        thread_id = file_split[-1]
+        thread_id = file_split[-2]
         if not thread_id.isdigit():
             log.print_warn_log(
                 'The file name \"{}\"\'s thread_id is invalid.'.format(file_name))
