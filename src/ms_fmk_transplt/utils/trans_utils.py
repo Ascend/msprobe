@@ -65,10 +65,7 @@ def write_csv(content_list, output_dir, csv_name, header):
 
 
 def get_unsupported_op_dict(version):
-    if version == '1.8.1':
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_8_1.json')
-    else:
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
+    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
     try:
         json_file = json.loads(ops)
@@ -78,10 +75,7 @@ def get_unsupported_op_dict(version):
 
 
 def get_supported_op_dict(version):
-    if version == '1.8.1':
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_8_1.json')
-    else:
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
+    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
     try:
         json_file = json.loads(ops)
@@ -94,10 +88,7 @@ def get_affinity_info_dict(version, need_type):
     need_type_list = ['class', 'function', 'torch']
     if need_type not in need_type_list:
         return {}
-    if version == '1.8.1':
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/affinity_list_1_8_1.json')
-    else:
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/affinity_list_1_11_0.json')
+    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/affinity_list_1_11_0.json')
     ops = get_file_content_bytes(op_list_path)
     try:
         json_file = json.loads(ops)
@@ -107,10 +98,7 @@ def get_affinity_info_dict(version, need_type):
 
 
 def get_precision_performance_advice_json_info(version):
-    if version == '1.8.1':
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice_1_8_1.json')
-    else:
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice_1_11_0.json')
+    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice_1_11_0.json')
     return get_file_content_bytes(op_list_path)
 
 

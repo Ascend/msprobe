@@ -31,7 +31,7 @@ TRANS_ERROR = 1
 
 
 class Args(object):
-    def __init__(self, input_path, output_path, main=None, target_model='model', version='1.8.1'):
+    def __init__(self, input_path, output_path, main=None, target_model='model', version='1.11.0'):
         self.input = input_path
         self.output = output_path
         self.specify_device = False
@@ -90,7 +90,7 @@ class TestMsFmkTransplt(unittest.TestCase):
                 self.standard_py_file_list.append(sub_file.replace(self.abs_input_path, self.standard_dir))
 
     def test_main(self):
-        trans_funcs = [get_normal_transplant_params, get_multi_transplant_params, get_1_8_transplant_params]
+        trans_funcs = [get_normal_transplant_params, get_multi_transplant_params]
         all_args = []
         all_transplt_files = []
         for func in trans_funcs:
@@ -176,20 +176,6 @@ def get_multi_transplant_params(input_path, output_path, standard_dir=None):
     return [args, transplt_files, output_path]
 
 
-def get_1_8_transplant_params(input_path, output_path, standard_dir=None):
-    model_names = [
-        'ID0339_CarPeting_Pytorch_EAST_1.8'
-    ]
-    args = []
-    transplt_files = []
-    for model_name in model_names:
-        transplt_files.append([model_name, '1_8_1'])
-        mock_args = mock.Mock(return_value=Args(input_path + '/' + model_name, output_path,
-                                                version='1.8.1'))
-        args.append([mock_args, model_name, standard_dir])
-    return [args, transplt_files, output_path]
-
-
 def transplant(args, transplt_files, output_path):
     process_list = []
     result_dict = Manager().dict()
@@ -216,7 +202,7 @@ def update_standard():
     shutil.rmtree(standard_dir, ignore_errors=True)
     os.makedirs(standard_dir)
 
-    trans_funcs = [get_normal_transplant_params, get_multi_transplant_params, get_1_8_transplant_params]
+    trans_funcs = [get_normal_transplant_params, get_multi_transplant_params]
     all_args = []
     all_transplt_files = []
     for func in trans_funcs:
