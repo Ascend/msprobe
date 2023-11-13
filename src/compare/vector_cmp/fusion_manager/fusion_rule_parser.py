@@ -214,6 +214,22 @@ def _make_open_fusion_output_desc(fusion_op: FusionOp, close_fusion_origin_to_op
                                % (fusion_op.op_name, output_index))
 
 
+def _check_unity_onnx_op(delete_open_fusion_op_name_to_op_name: list, delete_close_fusion_op_name_to_op_name: list,
+                         fusion_op: FusionOp, close_fusion_origin_to_op_map: list) -> bool:
+    if fusion_op.attr.original_op_names[0] in delete_open_fusion_op_name_to_op_name:
+        return False
+    delete_open_fusion_op_name_to_op_name.append(fusion_op.attr.original_op_names[0])
+    if fusion_op.attr.original_op_names[0] not in close_fusion_origin_to_op_map:
+        return True
+    if close_fusion_origin_to_op_map.get(fusion_op.attr.original_op_names[0]) in delete_close_fusion_op_name_to_op_name:
+        return False
+    delete_close_fusion_op_name_to_op_name.append(close_fusion_origin_to_op_map.get(
+        fusion_op.attr.original_op_names[0]))
+    return True
+
+
+
+
 def merge_close_and_open_fusion_rule(open_fusion_rule: any, close_fusion_rule: any) -> any:
     """
     Merge close fusion rule and open fusion rule
@@ -222,10 +238,19 @@ def merge_close_and_open_fusion_rule(open_fusion_rule: any, close_fusion_rule: a
     :return the merged fusion rule
     """
     merged_fusion_rule = FusionRuleParser('')
+    delete_fusion_op_name_list = []
+    delete_open_fusion_op_name_to_op_name = []
+    delete_close_fusion_op_name_to_op_name = []
     close_fusion_origin_to_op_map = close_fusion_rule.get_origin_name_to_op_name_map()
-    for key, value in open_fusion_rule.op_name_to_fusion_op_name_map.items():
+    for key, value in reversed(open_fusion_rule.op_name_to_fusion_op_name_map.items()):
+        if value in delete_fusion_op_name_list:
+            continue
+        delete_fusion_op_name_list.append(value)
         merged_fusion_rule.op_name_to_fusion_op_name_map[key] = value
         for fusion_op in open_fusion_rule.fusion_op_name_to_op_map.get(value):
+            if not _check_unity_onnx_op(delete_open_fusion_op_name_to_op_name, delete_close_fusion_op_name_to_op_name,
+                                        fusion_op, close_fusion_origin_to_op_map):
+                continue
             # make new original op names
             fusion_op.attr.original_op_names = _make_open_fusion_original_op_names(fusion_op,
                                                                                    close_fusion_origin_to_op_map)
