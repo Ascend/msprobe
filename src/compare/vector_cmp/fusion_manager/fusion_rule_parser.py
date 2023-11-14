@@ -242,7 +242,7 @@ def merge_close_and_open_fusion_rule(open_fusion_rule: any, close_fusion_rule: a
     delete_open_fusion_op_name_to_op_name = []
     delete_close_fusion_op_name_to_op_name = []
     close_fusion_origin_to_op_map = close_fusion_rule.get_origin_name_to_op_name_map()
-    for key, value in reversed(open_fusion_rule.op_name_to_fusion_op_name_map.items()):
+    for key, value in reversed(list(open_fusion_rule.op_name_to_fusion_op_name_map.items())):
         if value in delete_fusion_op_name_list:
             continue
         delete_fusion_op_name_list.append(value)
