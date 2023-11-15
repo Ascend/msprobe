@@ -294,7 +294,7 @@ class FusionRuleParser:
                     output_desc_list[index].origin_name = name
 
     @staticmethod
-    def process_ffts_op_name(item):
+    def _process_ffts_op_name(item):
         if ConstManager.FFTS_MANUAL_MODE_FIELD in item:
             item = dump.process_op_name(item)
         return item
@@ -436,7 +436,7 @@ class FusionRuleParser:
                     break
                 # skip control edge
                 if not item.endswith(':-1') and item != "":
-                    item = self.process_ffts_op_name(item)
+                    item = self._process_ffts_op_name(item)
                     input_list.append(item)
         return input_list
 
