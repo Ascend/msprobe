@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
@@ -36,7 +35,7 @@ def _get_algorithm_help_info() -> str:
         algorithm_help_info.append("".join([str(index), "=", item, ", "]))
     algorithm_help_info.append('The custom algorithm uses the algorithm name. '
                                'The selection splits by ",", such as "0,MaxAbsoluteError,4,CustomAlg" or "all". '
-                               'The default value is "all".')
+                               'The default value is "all"')
     return "".join(algorithm_help_info)
 
 
@@ -71,13 +70,13 @@ def _add_alg_argument(compare_parser: argparse.ArgumentParser) -> None:
         default_value_list = []
         for index, _ in enumerate(ConstManager.BUILT_IN_ALGORITHM):
             default_value_list.append(index)
-        compare_parser.add_argument('-alg', '--algorithm', dest='algorithm', type=int,
-                                    nargs="+", choices=default_value_list,
-                                    default=default_value_list,
-                                    help=_get_algorithm_help_info_for_int(default_value_list))
+        compare_parser.add_argument(
+            '-alg', '--algorithm', dest='algorithm', type=int, nargs="+", choices=default_value_list,
+            default=default_value_list, help=_get_algorithm_help_info_for_int(default_value_list))
     else:
-        compare_parser.add_argument('-alg', '--algorithm', dest='algorithm', default="all", type=safe_path_string,
-                                    help=_get_algorithm_help_info())
+        compare_parser.add_argument(
+            '-alg', '--algorithm', dest='algorithm', default="all", type=safe_path_string,
+            help=_get_algorithm_help_info())
 
 
 def _add_fusion_rule_argument(compare_parser: argparse.ArgumentParser) -> None:
@@ -94,50 +93,43 @@ def _add_fusion_rule_argument(compare_parser: argparse.ArgumentParser) -> None:
 
 def _compare_parser(compare_parser: argparse.ArgumentParser) -> None:
     compare_parser.add_argument(
-        '-m', '--my_dump_path', dest='my_dump_path', default='', type=safe_path_string,
-        help='<Required> my dump path, the data compared with golden data',
-        required=True)
+        '-m', '--my_dump_path', dest='my_dump_path', default='', type=safe_path_string, required=True,
+        help='<Required> my dump path, the data compared with golden data')
     compare_parser.add_argument(
         '-g', '--golden_dump_path', dest='golden_dump_path', default='', type=safe_path_string,
         help='<Required> the golden dump path', required=True)
     _add_fusion_rule_argument(compare_parser)
-    compare_parser.add_argument('-out', '--output', dest='output_path', type=safe_path_string,
-                                default='', help='<Optional> the output path')
+    compare_parser.add_argument(
+        '-out', '--output', dest='output_path', type=safe_path_string, default='', help='<Optional> the output path')
     compare_parser.add_argument(
         '-c', '--custom_script_path', dest='custom_script_path', default='', type=safe_path_string,
-        help='<Optional> the user-defined script path, '
-             'including format conversion and algorithm')
+        help='<Optional> the user-defined script path, including format conversion and algorithm')
     compare_parser.add_argument(
         '-a', '--algorithm_options', dest='algorithm_options', default='',
         help='<Optional> the arguments for each algorithm. The format is "algorithm_name:param_name='
              'param_value". The parameter splits by ",". The algorithm splits by ";". '
-             'Such as "CosineSimilarity:max=1,min=0;aa:max=1,min=0".')
+             'Such as "CosineSimilarity:max=1,min=0;aa:max=1,min=0"')
     _add_alg_argument(compare_parser)
-    compare_parser.add_argument('-map', '--mapping', dest="mapping", action="store_true",
-                                help="<Optional> create mappings between my output operators "
-                                     "and ground truth operators.",
-                                default=False, required=False)
-    compare_parser.add_argument("-overflow_detection", dest="overflow_detection", action="store_true",
-                                default=False, help="<Optional> Operator overflow detection,"
-                                                    "only operators of the fp16 type are supported.", required=False)
-    compare_parser.add_argument('-r', '--range', dest="range", default=None,
-                                help='<Optional> compare network with the range. The format is "start,end,step". '
-                                     'The start means the count starts from start, limited to [1, op_count]. '
-                                     'The default is 1.'
-                                     'The end means the count ends at end, limited to [>=start, op_count] or -1. '
-                                     'The default is -1. The step limited to [1, op_count]. The default is 1.'
-                                     '-r command and -s command can not be used at the same time.',
-                                required=False)
-    compare_parser.add_argument('-s', '--select', dest="select", default=None,
-                                help='<Optional> compare network with the range. The format is "index_1, index_2,..."'
-                                     'Every index should be a number in the fusion operator list'
-                                     '-r command and -s command can not be used at the same time.',
-                                required=False)
+    compare_parser.add_argument(
+        '-map', '--mapping', dest="mapping", action="store_true", required=False,
+        help="<Optional> create mappings between my output operators and ground truth one")
+    compare_parser.add_argument(
+        "-overflow_detection", dest="overflow_detection", action="store_true", required=False,
+        help="<Optional> Operator overflow detection, only operators of the fp16 type are supported")
+    compare_parser.add_argument(
+        '-r', '--range', dest="range", default=None, required=False,
+        help='<Optional> compare network with the range. The format is "start,end,step". '
+             '`start` means the count starts position, limited to [1, op_count], default 1.'
+             '`end` means the count ends position, limited to [>=start, op_count] or -1, default -1'
+             '`step` limited to [1, op_count], default 1. -r command and -s command can not be used at the same time')
+    compare_parser.add_argument(
+        '-s', '--select', dest="select", default=None, required=False,
+        help='<Optional> compare network with the range. The format is "index_1, index_2,..." Every index should be'
+             'a number in the fusion operator list -r command and -s command can not be used at the same time')
     compare_parser.add_argument(
         '-p', '--post_process', dest='post_process', choices=[0, 1], type=int, default=None,
         help='<Optional> whether to extract the compare result, only pytorch is supported.'
-             '0 indicates the comparison result is not extracted, '
-             '1 indicates the comparison result is extracted.')
+             '0 indicates the comparison result is not extracted, 1 indicates the comparison result is extracted')
 
     compare_parser.add_argument(
         '-max', '--max_cmp_size', dest='max_cmp_size', type=int, default=0,
@@ -150,74 +142,68 @@ def _compare_parser(compare_parser: argparse.ArgumentParser) -> None:
 
 
 def _add_advisor_argument(compare_parser: argparse.ArgumentParser) -> None:
-    compare_parser.add_argument('-advisor', dest="advisor", action="store_true",
-                                help="<optional> Enable advisor after compare.", required=False)
+    compare_parser.add_argument(
+        '-advisor', dest="advisor", action="store_true", required=False, help="<optional> Enable advisor after compare"
+    )
 
 
 def _add_ffts_argument(compare_parser: argparse.ArgumentParser) -> None:
-    compare_parser.add_argument('-ffts', dest="ffts", action="store_true",
-                                help="<optional> Enable the comparison between ffts+ and ffts+."
-                                     " Direct comparison is performed without data combination. ")
+    compare_parser.add_argument(
+        '-ffts', dest="ffts", action="store_true",
+        help="<optional> Enable the comparison between ffts+ and ffts+. "
+             "Direct comparison is performed without data combination")
 
 
 def _add_argument_for_single_op(compare_parser: argparse.ArgumentParser) -> None:
     compare_parser.add_argument('-op', '--op_name', dest='op_name', default=None, help='<Optional> operator name')
     group = compare_parser.add_mutually_exclusive_group()
-    group.add_argument('-o', '--output_tensor', dest='output', default=None,
-                       help='<Optional> the index of output, takes effect only when the "-op" exists')
-    group.add_argument('-i', '--input_tensor', dest='input', default=None,
-                       help='<Optional> the index for input, takes effect only when the "-op" exists')
-    compare_parser.add_argument('--ignore_single_op_result', dest="ignore_single_op_result", action="store_true",
-                                help='<Optional> ignore the single operator detail result, takes effect only '
-                                     'when the "-op" exists', default=False, required=False)
-    compare_parser.add_argument('-n', '--topn', dest='topn', type=int, default=ConstManager.DEFAULT_TOP_N,
-                                help='<Optional> the TopN for the single operator detail result, takes effect '
-                                     'only when the "-op" exists. The value ranges from 1 to 10000. '
-                                     'The default value is 20.')
-    compare_parser.add_argument('-ml', '--max_line', dest='max_line', type=int, default=None,
-                                help='<Optional> the max line count for the single operator detail result, takes effect'
-                                     ' only when the "-op" exists. The default value is 1000000, and it should range '
-                                     'from {} to {}.'.format(ConstManager.DETAIL_LINE_COUNT_RANGE_MIN,
-                                                             ConstManager.DETAIL_LINE_COUNT_RANGE_MAX))
+    group.add_argument(
+        '-o', '--output_tensor', dest='output', default=None,
+        help='<Optional> the index of output, takes effect only when the "-op" exists')
+    group.add_argument(
+        '-i', '--input_tensor', dest='input', default=None,
+        help='<Optional> the index for input, takes effect only when the "-op" exists')
+    compare_parser.add_argument(
+        '--ignore_single_op_result', dest="ignore_single_op_result", action="store_true", default=False, required=False,
+        help='<Optional> ignore the single operator detail result, takes effect only when the "-op" exists')
+    compare_parser.add_argument(
+        '-n', '--topn', dest='topn', type=int, default=ConstManager.DEFAULT_TOP_N,
+        help='<Optional> the TopN for the single operator detail result, takes effect '
+             'only when the "-op" exists. The value ranges from 1 to 10000. The default value is 20')
+    compare_parser.add_argument(
+        '-ml', '--max_line', dest='max_line', type=int, default=None,
+        help='<Optional> the max line count for the single operator detail result, takes effect '
+             'only when the "-op" exists. The default value is 1000000, and it should range '
+             'from {} to {}'.format(ConstManager.DETAIL_LINE_COUNT_RANGE_MIN, ConstManager.DETAIL_LINE_COUNT_RANGE_MAX))
 
 
 def _add_version_argument(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
-        '-v', '--version', dest='dump_version', choices=[1, 2], type=int,
-        default=2,
+        '-v', '--version', dest='dump_version', choices=[1, 2], type=int, default=2,
         help='<Optional> the version of the dump file, '
-             '1 means the protobuf dump file, 2 means the binary dump file, '
-             'the default value is 2.')
+             '1 means the protobuf dump file, 2 means the binary dump file, the default value is 2')
 
 
 def _convert_parser(covert_parser: argparse.ArgumentParser) -> None:
     group = covert_parser.add_mutually_exclusive_group()
     covert_parser.add_argument(
-        '-d', '--dump_file', dest='dump_path', default='', type=safe_path_string,
-        help='<Required> the dump file path, supports one file, file list(splits by ",") and directory.',
-        required=True)
-    covert_parser.add_argument(
-        '-f', '--format', dest='format', default=None,
-        help='<Optional> the format to transfer')
+        '-d', '--dump_file', dest='dump_path', default='', type=safe_path_string, required=True,
+        help='<Required> the dump file path, supports one file, file list(splits by ",") and directory')
+    covert_parser.add_argument('-f', '--format', dest='format', default=None, help='<Optional> the format to transfer')
     covert_parser.add_argument(
         '-s', '--shape', dest='shape', default=None,
-        help='<Optional> the shape for format transfer, currently only used '
-             'for FRACTAL_NZ conversion, shape format is ([0-9]+,)+[0-9]+'
-             ', such as 1,3,224,224')
+        help='<Optional> the shape for format transfer, currently only used for FRACTAL_NZ conversion, '
+             'shape format is ([0-9]+,)+[0-9]+, such as 1,3,224,224')
     group.add_argument(
         '-o', '--output_tensor', dest='output', default=None,
-        help='<Optional> the index for output, takes effect only when '
-             'the "-f" exists')
+        help='<Optional> the index for output, takes effect only when the "-f" exists')
     group.add_argument(
         '-i', '--input_tensor', dest='input', default=None,
-        help='<Optional> the index for input, takes effect only when '
-             'the "-f" exists')
+        help='<Optional> the index for input, takes effect only when the "-f" exists')
     covert_parser.add_argument(
         '-c', '--custom_script_path', dest='custom_script_path', default=None, type=safe_path_string,
-        help='<Optional> the user-defined script path, '
-             'including format conversion.')
-    covert_parser.add_argument('-out', '--output', dest='output_path',
-                               default='', help='<Optional> the output path')
+        help='<Optional> the user-defined script path, including format conversion')
+    covert_parser.add_argument('-out', '--output', dest='output_path', default='', help='<Optional> the output path')
     _add_version_argument(covert_parser)
     covert_parser.add_argument(
         '-t', '--type', dest='output_file_type', choices=['npy', 'bin', 'msnpy'],
@@ -226,21 +212,19 @@ def _convert_parser(covert_parser: argparse.ArgumentParser) -> None:
              'npy means the output is saved as numpy format, '
              'bin means the output is saved as binary format, '
              'msnpy means the output is saved as numpy format for MindSpore, '
-             'the default value is npy.')
+             'the default value is npy')
 
 
 def _overflow_parser(overflow_parser: argparse.ArgumentParser) -> None:
     overflow_parser.add_argument(
-        '-d', '--dump_path', dest='dump_path', default='', type=safe_path_string,
-        help='<Required> the dump file path', required=True)
+        '-d', '--dump_path', dest='dump_path', default='', type=safe_path_string, required=True,
+        help='<Required> the dump file path')
     overflow_parser.add_argument(
-        '-out', '--output', dest='output_path', default='', type=safe_path_string,
-        help='<Optional> the output path', required=True)
+        '-out', '--output', dest='output_path', default='', type=safe_path_string, required=True,
+        help='<Optional> the output path')
     overflow_parser.add_argument(
-        '-n', '--top_n', dest='top_num', choices=[1, 2, 3, 4, 5], type=int,
-        default=1,
-        help='<Optional> the number of overflow ops, first n will be analyzed. '
-             'the default value is 1.')
+        '-n', '--top_n', dest='top_num', choices=[1, 2, 3, 4, 5], type=int, default=1,
+        help='<Optional> the number of overflow ops, first n will be analyzed. the default value is 1')
 
 
 def _file_compare_parser(file_compare_parser: argparse.ArgumentParser) -> None:
@@ -259,8 +243,7 @@ def _file_compare_parser(file_compare_parser: argparse.ArgumentParser) -> None:
 def _check_argument_effect(required_arg: any, options_arg: any, options_arg_str: str, required_arg_str: str) -> None:
     if required_arg is None and options_arg is not None:
         log.print_error_log(
-            'The argument %s takes effect only when the "%s" exists.' % (
-                options_arg_str, required_arg_str))
+            'The argument %s takes effect only when the "%s" exists.' % (options_arg_str, required_arg_str))
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
 
