@@ -5,9 +5,11 @@
 import os
 import warnings
 import logging as logger
+import functools
 from functools import wraps
 import torch
 import torch_npu
+
 
 warnings.filterwarnings(action='once')
 LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
@@ -29,11 +31,24 @@ torch_module_fn_white_list = ['to', 'to_empty']
 torch_cuda_fn_white_list = [
     'get_device_properties', 'get_device_name', 'get_device_capability', 'list_gpu_processes', 'set_device',
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
-    'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached'
+    'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached',
+    'reset_peak_memory_stats'
 ]
 torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type']
+
+
+def is_torch_version_greater_than_2_1():
+    major, minor = torch.__version__.split('.')[:2]
+    if int(major) > 2 or (int(major) == 2 and int(minor) >= 1):
+        return True
+    else:
+        return False
+
+
+if is_torch_version_greater_than_2_1():
+    import torchair
 
 
 def wrapper_cuda(func):
@@ -46,23 +61,15 @@ def wrapper_cuda(func):
         if kwargs:
             for device_arg in device_kwargs_list:
                 device = kwargs.get(device_arg, None)
-                if isinstance(device, str) and 'cuda' in device:
+                if type(device) == str and 'cuda' in device:
                     kwargs[device_arg] = device.replace('cuda', 'npu')
-                if isinstance(device, torch.device) and 'cuda' in device.type:
+                if type(device) == torch.device and 'cuda' in device.type:
                     device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
                     kwargs[device_arg] = torch.device(device_info)
-                if isinstance(device, int):
+                if type(device) == int:
                     kwargs[device_arg] = f'npu:{device}'
-            # delete the experimental_config parameter of torch.profiler.profile
-            if 'experimental_config' in kwargs.keys() and not isinstance(kwargs.get('experimental_config'),
-                                                                         torch_npu.profiler._ExperimentalConfig):
-                logger.warning(
-                    'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
-                    'because it can only be used in cuda, please manually modify the code '
-                    'and use the experimental_config parameter adapted to npu.')
-                del kwargs['experimental_config']
             device_ids = kwargs.get('device_ids', None)
-            if isinstance(device_ids, list):
+            if type(device_ids) == list:
                 replace_cuda_to_npu_in_list(device_ids, replace_int)
         return func(*args, **kwargs)
 
@@ -116,6 +123,41 @@ def wrapper_data_loader(func):
             if pin_memory and isinstance(pin_memory_device, str) and 'cuda' in pin_memory_device:
                 kwargs['pin_memory_device'] = pin_memory_device.replace('cuda', 'npu')
         return func(*args, **kwargs)
+
+    return decorated
+
+
+def wrapper_profiler(fn):
+    @wraps(fn)
+    def decorated(*args, **kwargs):
+        if kwargs:
+            if 'experimental_config' in kwargs.keys() and \
+                    type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
+                logger.warning(
+                    'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
+                    'because it can only be used in cuda, please manually modify the code '
+                    'and use the experimental_config parameter adapted to npu.')
+                del kwargs['experimental_config']
+        return fn(*args, **kwargs)
+
+    return decorated
+
+
+def wrapper_compile(fn):
+    @wraps(fn)
+    def decorated(*args, **kwargs):
+        npu_backend = torchair.get_npu_backend()
+        if kwargs:
+            backend = kwargs.get('backend', None)
+            if not backend:
+                kwargs['backend'] = npu_backend
+            elif not isinstance(backend, functools.partial):
+                kwargs['backend'] = npu_backend
+            elif not isinstance(backend.func, type(npu_backend.func)):
+                kwargs['backend'] = npu_backend
+        else:
+            kwargs['backend'] = npu_backend
+        return fn(*args, **kwargs)
 
     return decorated
 
@@ -186,7 +228,7 @@ def init():
 
     # torch.profiler.*
     patch_profiler()
-    device_wrapper(torch.profiler, torch_profiler_fn_white_list)
+    torch.profiler.profile = wrapper_profiler(torch.profiler.profile)
 
     # torch.*
     device_wrapper(torch, torch_fn_white_list)
@@ -208,9 +250,11 @@ def init():
     # torch.nn.parallel.DistributedDataParallel
     device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
     # torch.utils.data.DataLoader
-    if torch.__version__.startswith('2.1'):
+    if is_torch_version_greater_than_2_1():
         torch.utils.data.DataLoader.__init__ = wrapper_data_loader(torch.utils.data.DataLoader.__init__)
         torch.jit.script = jit_script
+        torch.compile = wrapper_compile(torch.compile)
+        torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
 
 
 init()
