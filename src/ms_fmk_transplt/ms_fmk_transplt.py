@@ -52,7 +52,11 @@ class MsFmkTransplt(object):
         distributed_parser = subparsers.add_parser('distributed',
                                                    help='This option is required only if you want to transplant '
                                                         'a single GPU script to a distributed NPU script. '
-                                                        'Ensure that your code is a single GPU script.')
+                                                        'Ensure that your code is a single GPU script. '
+                                                        'This option contains the -m and -t parameters. '
+                                                        'If you want to view the specific information of '
+                                                        'the parameters, please execute the command '
+                                                        '"./pytorch_gpu2npu.sh distributed -h"')
         distributed_parser.add_argument('-m', '--main', default='', metavar='FILE', required=True,
                                         help='The entry python file of the project, for example, train.py main.py.')
         distributed_parser.add_argument('-t', '--target_model', metavar='model', default='model',
@@ -173,13 +177,14 @@ class MsFmkTransplt(object):
 
     def __parse_command(self):
         parser = argparse.ArgumentParser()
-        parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
-        parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
+        parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)',
+                            help='Input path or file. (required)')
+        parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path. (required)')
         parser.add_argument('-s', '--specify-device', dest='specify_device', action='store_true',
                             help='This option is required only if you want to use the DEVICE_ID'
                                  'environment variable to specify the running device.')
         parser.add_argument('-v', '--version', required=True, choices=['1.11.0', '2.0.1', '2.1.0'],
-                            help='Target pytorch version of output.')
+                            help='Target pytorch version of output. (required)')
         parser.add_argument('-m', '--modelarts', action='store_true',
                             help='Convert to a ModelArts-compatible project.')
         subparsers = parser.add_subparsers(help='commands')

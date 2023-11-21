@@ -32,17 +32,18 @@ class PyTorchAnalyse:
     @staticmethod
     def __parse_command():
         parser = argparse.ArgumentParser()
-        parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)', help='Input path or file')
-        parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path')
+        parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)',
+                            help='Input path or file. (required)')
+        parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path. (required)')
         parser.add_argument('-v', '--version', required=True, choices=['1.11.0', '2.0.1', '2.1.0'],
-                            help='Target pytorch version of output')
+                            help='Target pytorch version of output. (required)')
         parser.add_argument('-m', '--mode', default='torch_apis',
                             choices=['third_party', 'torch_apis', 'dynamic_shape', 'affinity_apis'],
                             help='The way the script is analyzed. Only support torch_apis,'
-                                 'third_party and dynamic_shape currently')
+                                 'third_party and dynamic_shape currently.')
         parser.add_argument('-api', '--api-files', nargs='*', metavar='FILE',
-                            help='The unsupported op list file path output by the third-party analyse')
-        parser.add_argument('-env', '--env-path', nargs='*', type=str, help='env path of the input project')
+                            help='The unsupported op list file path output by the third-party analyse.')
+        parser.add_argument('-env', '--env-path', nargs='*', type=str, help='env path of the input project.')
         return parser.parse_args()
 
     @staticmethod
