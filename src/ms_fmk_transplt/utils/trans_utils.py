@@ -65,7 +65,10 @@ def write_csv(content_list, output_dir, csv_name, header):
 
 
 def get_unsupported_op_dict(version):
-    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
+    if version == '1.11.0':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
+    else:
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_2_1.json')
     ops = get_file_content_bytes(op_list_path)
     try:
         json_file = json.loads(ops)
@@ -75,7 +78,10 @@ def get_unsupported_op_dict(version):
 
 
 def get_supported_op_dict(version):
-    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
+    if version == '1.11.0':
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
+    else:
+        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_2_1.json')
     ops = get_file_content_bytes(op_list_path)
     try:
         json_file = json.loads(ops)
