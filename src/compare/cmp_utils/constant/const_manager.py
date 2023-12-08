@@ -238,7 +238,8 @@ class ConstManager:
         DD.DT_COMPLEX64: {DTYPE_KEY: np.complex64, STRUCT_FORMAT_KEY: '?'},
         DD.DT_COMPLEX128: {DTYPE_KEY: np.complex128, STRUCT_FORMAT_KEY: '?'},
         DD.DT_BF16: {DTYPE_KEY: 'bfloat16', STRUCT_FORMAT_KEY: 'e'},
-        DD.DT_UINT1: {DTYPE_KEY: np.uint8, STRUCT_FORMAT_KEY: '?'}
+        DD.DT_UINT1: {DTYPE_KEY: np.uint8, STRUCT_FORMAT_KEY: '?'},
+        DD.DT_UNDEFINED: {DTYPE_KEY: np.int8, STRUCT_FORMAT_KEY: 'b'},
     }
     DATA_TYPE_TO_STR_DTYPE_MAP = {
         DD.DT_FLOAT: "float32",
@@ -256,7 +257,8 @@ class ConstManager:
         DD.DT_COMPLEX64: "complex64",
         DD.DT_COMPLEX128: "complex128",
         DD.DT_BF16: "bfloat16",
-        DD.DT_UINT1: "uint1"
+        DD.DT_UINT1: "uint1",
+        DD.DT_UNDEFINED: "int8",
     }
 
     UNPACK_DTYPE = [
