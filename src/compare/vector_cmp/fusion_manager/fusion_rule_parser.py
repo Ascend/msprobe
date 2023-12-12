@@ -260,7 +260,7 @@ def merge_close_and_open_fusion_rule(open_fusion_rule: any, close_fusion_rule: a
                 merged_fusion_rule.fusion_op_name_to_op_map.get(value).append(fusion_op)
             else:
                 merged_fusion_rule.fusion_op_name_to_op_map[value] = [fusion_op]
-            merged_fusion_rule.op_list.append(fusion_op)
+            merged_fusion_rule.op_list.insert(0, fusion_op)
     return merged_fusion_rule
 
 
@@ -280,7 +280,7 @@ class FusionRuleParser:
     @staticmethod
     def _check_key_exist(json_object: any, key: str) -> None:
         if key not in json_object:
-            log.print_error_log('There is no "%s" element in fusion rule file.' % key)
+            log.print_warn_log('There is no "%s" element in fusion rule file.' % key)
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
 
     @staticmethod
@@ -382,7 +382,7 @@ class FusionRuleParser:
         """
         if op_name not in self.op_name_to_fusion_op_name_map:
             message = 'There is no "%s" in the fusion rule file.' % op_name
-            log.print_error_log(message)
+            log.print_warn_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
         fusion_op_name = self.op_name_to_fusion_op_name_map.get(op_name)
         fusion_op_list = self.fusion_op_name_to_op_map.get(fusion_op_name, [])
@@ -395,7 +395,7 @@ class FusionRuleParser:
                 break
         if fusion_op_info is None:
             message = 'There is no "%s" in the fusion rule file.' % op_name
-            log.print_error_log(message)
+            log.print_warn_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
         return fusion_op_list, fusion_op_info
 
