@@ -5,6 +5,8 @@
 from collections import namedtuple
 import re
 
+from analysis.dynamic_shape_analysis.msft_dynamic_analysis.hook import translog
+
 MIN_ARGS_NUM = 0
 CudaOp = namedtuple('CudaOp', ['file_path', 'func_name', 'min_args_num', 'max_args_num'])
 CPP_FUNC_SUB_RE_PATTERN = re.compile('&|\(|\)')
@@ -13,6 +15,16 @@ FUNC_NAMES_RE_PATTERN = re.compile('"(.*?)"')
 INIT_FUNC_RE_PATTERN = re.compile('::init<.*?>')
 LAMBDA_ARG_RE_PATTERN = re.compile('\[\]\((.*?)\)')
 TORCH_FN_RE_PATTERN = re.compile('TORCH_FN\((.*?)\)')
+MAX_STRING_LENGTH = 10000
+
+
+def re_limit_length(pattern, string, func):
+    if len(string) > MAX_STRING_LENGTH:
+        translog.warning(f'The character string contains more than {MAX_STRING_LENGTH} characters, '
+                         f'regular expression matching is skipped.')
+        return func(pattern, '')
+    else:
+        return func(pattern, string)
 
 
 class _DeclareLineParser:
@@ -24,11 +36,11 @@ class _DeclareLineParser:
     def parse_class_declare(self, func_line):
         # deal with m.class_<GPUDecoder>("GPUDecoder").def(torch::init<std::string, torch::Device>())
         #  "----.def("next", &GPUDecoder::decode);
-        names = re.findall(FUNC_NAMES_RE_PATTERN, func_line)
+        names = re_limit_length(FUNC_NAMES_RE_PATTERN, func_line, re.findall)
         if not names:
             return
         class_name = names[0]
-        class_init_func = re.search(INIT_FUNC_RE_PATTERN, func_line)
+        class_init_func = re_limit_length(INIT_FUNC_RE_PATTERN, func_line, re.search)
         if not class_init_func:
             self.cuda_ops.append(CudaOp(self.rel_file_path, class_name, MIN_ARGS_NUM, -1))
         else:
@@ -75,7 +87,8 @@ class _DeclareLineParser:
         if '...' in func_def_line:
             return MIN_ARGS_NUM, -1
         # escape at::TensorAccessor<scalar_t, 2> waveform_accessor
-        type_sep_count = sum(type_sep.count(',') for type_sep in re.findall(TYPE_DECLARE_RE_PATTERN, func_def_line))
+        type_sep_count = sum(
+            type_sep.count(',') for type_sep in re_limit_length(TYPE_DECLARE_RE_PATTERN, func_def_line, re.findall))
         sep_count = func_def_line.count(',') - type_sep_count
         return sep_count + 1, sep_count + 1
 
@@ -85,7 +98,7 @@ class PybindModuleParser(_DeclareLineParser):
         super().__init__(cuda_ops_list, file_lines, rel_file_path)
 
     def parse_m_def(self, m_def_line):
-        names = re.findall(FUNC_NAMES_RE_PATTERN, m_def_line)
+        names = re_limit_length(FUNC_NAMES_RE_PATTERN, m_def_line, re.findall)
         if not names:
             return
         func_name = names[0].replace('::', '.')
@@ -133,7 +146,7 @@ class TorchLibraryParser(_DeclareLineParser):
             # "----av_log_set_level(static_cast<int>(level));
             #   });
             func_name = func_line.split('"')[1].replace('::', '.')
-            arg_declare = re.findall(LAMBDA_ARG_RE_PATTERN, func_line)
+            arg_declare = re_limit_length(LAMBDA_ARG_RE_PATTERN, func_line, re.findall)
             if not arg_declare:
                 return
             arg_declare = arg_declare[0]
@@ -160,7 +173,7 @@ class TorchLibraryParser(_DeclareLineParser):
             if len(func_line.split('"')) <= 1:
                 return
             func_name = func_line.split('"')[1].replace('::', '.')
-            cpp_func_name = re.findall(TORCH_FN_RE_PATTERN, func_line)
+            cpp_func_name = re_limit_length(TORCH_FN_RE_PATTERN, func_line, re.findall)
             if not cpp_func_name:
                 min_args_num, max_args_num = MIN_ARGS_NUM, -1
             else:
@@ -168,7 +181,7 @@ class TorchLibraryParser(_DeclareLineParser):
                 min_args_num, max_args_num = self._parse_cpp_func_args_num(cpp_func_name)
         else:
             # deal with m.impl("rnnt_loss", &compute);
-            names = re.findall(FUNC_NAMES_RE_PATTERN, func_line)
+            names = re_limit_length(FUNC_NAMES_RE_PATTERN, func_line, re.findall)
             func_name = names[0].replace('::', '.')
             if len(func_line.split(',')) <= 1:
                 min_args_num, max_args_num = MIN_ARGS_NUM, -1
