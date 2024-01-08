@@ -5,7 +5,7 @@
 from collections import namedtuple
 import re
 
-from analysis.dynamic_shape_analysis.msft_dynamic_analysis.hook import translog
+from utils import transplant_logger as translog
 
 MIN_ARGS_NUM = 0
 CudaOp = namedtuple('CudaOp', ['file_path', 'func_name', 'min_args_num', 'max_args_num'])
