@@ -52,6 +52,33 @@ def prepare_third_party_tool():
     logging.info("--------------------" + result + "--------------------")
 
 
+def prepare_ait_backend():
+    cur_dir = os.path.realpath(os.path.dirname(__file__))
+    prepare_shell = os.path.join(cur_dir, "prepare_ait_backend.sh")
+
+    os.chmod(prepare_shell, stat.S_IRUSR | stat.S_IXGRP | stat.S_IXUSR | stat.S_IRGRP)
+    cmd = [prepare_shell]
+    logging.info("--------------------start compile ait_backend"
+                 + "--------------------")
+    prepare_protoc = subprocess.Popen(cmd, shell=False,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT)
+
+    while prepare_protoc.poll() is None:
+        line = prepare_protoc.stdout.readline()
+        line = line.strip()
+        if line:
+            logging.info(line)
+
+    top_dir = os.path.join(os.path.dirname(cur_dir))
+    protoc_dir = os.path.join(top_dir, "build/output/ait_backend/opcheck_test_framework")
+    if os.path.exists(protoc_dir):
+        result = "Compile ait_backend success."
+    else:
+        result = "Compile ait_backend failed."
+    logging.info("--------------------" + result + "--------------------")
+
+
 def generate_dump_data_api():
     cur_dir = os.path.realpath(os.path.dirname(__file__))
     top_dir = os.path.realpath(os.path.dirname(cur_dir))
@@ -94,6 +121,7 @@ def main():
     os.mkdir(output_dir)
 
     prepare_third_party_tool()
+    prepare_ait_backend()
     generate_dump_data_api()
 
     for mod, mod_out in ALL_MODULES.items():
