@@ -20,5 +20,10 @@ make_ait_backend() {
   fi
   make install
 }
+# 编译AIT_LLM_ABI=0
+export AIT_LLM_ABI=0
+make_ait_backend
 
+# 编译AIT_LLM_ABI=1
+export AIT_LLM_ABI=1
 make_ait_backend
