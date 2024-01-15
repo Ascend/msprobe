@@ -24,6 +24,8 @@ endif()
 add_library(${LIB_NAME} SHARED atb_probe.cpp binfile.cpp)
 
 # 设置头文件目录
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/nlohmannJson/include)
+
 #target_include_directories(dump PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # 设置共享库输出目录

@@ -13,10 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
+#include <unistd.h>
+#include <syscall.h>
 #include "atb_probe.h"
 #include "binfile.h"
+#include "nlohmann/json.hpp"
+
+static int32_t GetCurrentProcessId()
+{
+    int32_t pid = getpid();
+    if (pid == -1) {
+        std::cout << "get pid failed " << std::endl;
+    }
+    return pid;
+}
 
 static bool IsPrefix(const std::string &str, const std::string &prefix)
 {
@@ -85,9 +95,26 @@ static bool isOutTensorBinPath(const std::string &filePath)
     return (fileName.find("outtensor") != std::string::npos) || (fileName.find("outTensor") != std::string::npos);
 }
 
+static bool IsSaveDumpType(const std::string &tar)
+{
+    const char* dumpTypeList = std::getenv("ATB_DUMP_TYPE");
+    if (dumpTypeList != nullptr) {
+        std::vector<std::string> dumpTypes = SplitString(dumpTypeList, '|');
+        for (const auto &type : dumpTypes) {
+            if (type == tar) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::string &optype)
 {
+    if (!IsSaveDumpType("tensor")) {
+        return false;
+    }
+
     const char *vid = std::getenv("ATB_SAVE_TENSOR_IDS"); // 应该是20_1_9,1_23,5_29_1
     const char *tid = std::getenv("ATB_SAVE_TENSOR_RUNNER"); // 应该是LinearOps，SelfAttention
     if (!vid && !tid) {
@@ -311,4 +338,168 @@ bool atb::Probe::IsSaveOuttensor()
         return true;
     }
     return false;
+}
+
+bool atb::Probe::ReportOperationGraphEnable()
+{
+    return IsSaveDumpType("layer");
+}
+
+static void DfsToModifyGraphTensors(nlohmann::json &curNodeToSave, 
+    const std::vector<std::string> &fatherNodeTensorNameList, const nlohmann::json &curNodeInput)
+{
+    std::string opName = curNodeInput["opName"].get<std::string>();
+    curNodeToSave["opName"] = curNodeInput["opName"];
+    curNodeToSave["opType"] = curNodeInput["opType"];
+    curNodeToSave["param"] = curNodeInput["param"];
+
+    std::vector<std::string> curNodeTensorNameList;
+
+    // 子节点的inTensors\outTensors为父节点的fatherNodeTensorNameList子集, 根据inTensorIds、outTensorIds获取
+    for (auto item : curNodeInput["inTensorIds"]) {
+        uint32_t inputIndex = item.get<uint32_t>();
+        if (inputIndex >= fatherNodeTensorNameList.size()) {
+            std::cout << "Error! inputIndex out of fatherNodeTensorNameList:" << opName << std::endl;
+            return;
+        }
+
+        curNodeToSave["inTensors"].emplace_back(fatherNodeTensorNameList[inputIndex]);
+        curNodeTensorNameList.emplace_back(fatherNodeTensorNameList[inputIndex]);
+    }
+
+    for (auto item : curNodeInput["outTensorIds"]) {
+        uint32_t outputIndex = item.get<uint32_t>();
+        if (outputIndex >= fatherNodeTensorNameList.size()) {
+            std::cout << "Error! outputIndex out of fatherNodeTensorNameList:" << opName << std::endl;
+            return;
+        }
+        curNodeToSave["outTensors"].emplace_back(fatherNodeTensorNameList[outputIndex]);
+        curNodeTensorNameList.emplace_back(fatherNodeTensorNameList[outputIndex]);
+    }
+
+    // 子节点的internalTensors根据自己的opName + id, 组成tensor name
+    uint32_t internalTensorNum = (curNodeInput.find("internalTensorNum") == curNodeInput.end()) ?
+                                  0 : curNodeInput["internalTensorNum"].get<uint32_t>();
+    for (size_t i = 0; i < internalTensorNum; i++) {
+        std::string tensorName = opName + "_internal_" + std::to_string(i);
+        curNodeToSave["internalTensors"].emplace_back(tensorName);
+        curNodeTensorNameList.emplace_back(tensorName);
+    }
+
+    // 递归调用获取子节点信息
+    if (curNodeInput.find("nodes") != curNodeInput.end()) {
+        for (auto childNodeInput : curNodeInput["nodes"]) {
+            nlohmann::json childNodeToSave;
+            DfsToModifyGraphTensors(childNodeToSave, curNodeTensorNameList, childNodeInput);
+            curNodeToSave["nodes"].emplace_back(childNodeToSave);
+        }
+    }
+    return;
+}
+
+static void ModifyRootNodeTensors(nlohmann::json &graphNodeJsonToSave, std::vector<std::string> &tensorNameList,
+    const nlohmann::json &graphNodeJson)
+{
+    // 根节点根据自己的opName + id, 组成tensor name
+    uint32_t inTensorNum = graphNodeJson["inTensorNum"].get<uint32_t>();
+    uint32_t outTensorNum = graphNodeJson["outTensorNum"].get<uint32_t>();
+    uint32_t internalTensorNum = (graphNodeJson.find("internalTensorNum") == graphNodeJson.end()) ?
+                                        0 : graphNodeJson["internalTensorNum"].get<uint32_t>();
+    std::string opNameInJson = graphNodeJson["opName"].get<std::string>();
+
+    std::string tensorName;
+    for (size_t i = 0; i < inTensorNum; i++) {
+        tensorName = opNameInJson + "_input_" + std::to_string(i);
+        graphNodeJsonToSave["inTensors"].emplace_back(tensorName);
+        tensorNameList.emplace_back(tensorName);
+    }
+    for (size_t i = 0; i < outTensorNum; i++) {
+        tensorName = opNameInJson + "_output_" + std::to_string(i);
+        graphNodeJsonToSave["outTensors"].emplace_back(tensorName);
+        tensorNameList.emplace_back(tensorName);
+    }
+    for (size_t i = 0; i < internalTensorNum; i++) {
+        tensorName = opNameInJson + "_internal_" + std::to_string(i);
+        graphNodeJsonToSave["internalTensors"].emplace_back(tensorName);
+        tensorNameList.emplace_back(tensorName);
+    }
+    return;
+}
+
+static bool CheckGraphInputInvalid(const std::string &opName, const nlohmann::json &graphNodeJson)
+{
+    if (graphNodeJson.find("opName") == graphNodeJson.end() || 
+        graphNodeJson.find("opType") == graphNodeJson.end() ||
+        graphNodeJson.find("inTensorNum") == graphNodeJson.end() ||
+        graphNodeJson.find("outTensorNum") == graphNodeJson.end()) {
+
+        std::cout << "json parse error! opName:" << opName << std::endl;
+        return true;
+    }
+
+    std::string opNameInJson = graphNodeJson["opName"].get<std::string>();
+    if (opNameInJson != opName) {
+        std::cout << "json parse error! opName is not equal opName in json. opName:" << 
+            opName << ", opNameInJson:" << opNameInJson << std::endl;
+        return true;
+    }
+    return false;
+}
+
+void atb::Probe::ReportOperationGraph(const std::string &opName, const std::string &graph)
+{
+    nlohmann::json graphNodeJson;
+
+    try {
+        graphNodeJson = nlohmann::json::parse(graph);
+    } catch (nlohmann::json::parse_error& ex) {
+        std::cout << "json parse error! opName:" << opName << std::endl;
+        return;
+    }
+
+    // 检查必选项
+    if (CheckGraphInputInvalid(opName, graphNodeJson)) {
+        return;
+    }
+
+    nlohmann::json graphNodeJsonToSave;
+    graphNodeJsonToSave["opName"] = graphNodeJson["opName"];
+    graphNodeJsonToSave["opType"] = graphNodeJson["opType"];
+    graphNodeJsonToSave["param"] = graphNodeJson["param"];
+
+    // 根节点
+    std::vector<std::string> tensorNameList;
+    ModifyRootNodeTensors(graphNodeJsonToSave, tensorNameList, graphNodeJson);
+
+    // 递归调用获取子节点信息
+    if (graphNodeJson.find("nodes") != graphNodeJson.end()) {
+        for (auto childNodeInput : graphNodeJson["nodes"]) {
+            nlohmann::json childNodeToSave;
+            DfsToModifyGraphTensors(childNodeToSave, tensorNameList, childNodeInput);
+            graphNodeJsonToSave["nodes"].emplace_back(childNodeToSave);
+        }
+    }
+
+    // 保存修改的Json
+    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
+    std::string outDir = outputDir != nullptr ? outputDir : "./";
+    std::string pid = std::to_string(GetCurrentProcessId());
+    std::string pidDir = outDir + "operation_graph/" + pid + '/';
+    bool ret = CheckDirectory(pidDir);
+    if (!ret) {
+        std::cout << "Create directory failed: " << pidDir << std::endl;
+        return;
+    }
+
+    std::string outPath = pidDir + opName + ".json";
+    std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
+
+    if (outfile.is_open()) {
+        outfile << graphNodeJsonToSave.dump() << std::endl;
+        outfile.close();
+        std::cout << "layer topo info written to file successfully! File name:" << outPath << std::endl;
+    } else {
+        std::cout << "Unable to open file! File name:" << outPath << std::endl;
+    }
+    return;
 }

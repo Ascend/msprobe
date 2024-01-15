@@ -51,6 +51,8 @@ public:
     static bool IsSaveTiling();
     static bool IsSaveOuttensor();
     static bool IsSaveIntensor();
+    static bool ReportOperationGraphEnable();
+    static void ReportOperationGraph(const std::string &opName, const std::string &graph);
 };
 }
 #endif
