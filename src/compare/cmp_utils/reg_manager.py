@@ -41,7 +41,8 @@ class RegManager:
 
     SUPPORT_SHAPE_PATTERN = r"^([0-9]+,)+[0-9]+$"
 
-    FORMAT_CONVERT_FILE_NAME_PATTERN = r"^(convert_[A-Za-z0-9_]+_to_[A-Za-z0-9_]+)\.py[c]?$"
+    # matching `convert_xxx_to_yyy.py`, the `{1,128}` is used for limiting string length, bypassing ReDoS attack.
+    FORMAT_CONVERT_FILE_NAME_PATTERN = r"^(convert_[A-Za-z0-9_]{1,128}_to_[A-Za-z0-9_]{1,128})\.py[c]?$"
 
     SUPPORT_PATH_PATTERN = r"^[A-Za-z0-9_\./:()=\\-]+$"
 
