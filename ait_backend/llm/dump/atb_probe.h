@@ -53,6 +53,11 @@ public:
     static bool IsSaveIntensor();
     static bool ReportOperationGraphEnable();
     static void ReportOperationGraph(const std::string &opName, const std::string &graph);
+    static bool ReportOperationStatisticEnable();
+    static void ReportOperationSetupStatistic(const uint64_t executeCount,
+        const std::string &opname, const std::string &st);
+    static void ReportOperationExecuteStatistic(const uint64_t executeCount,
+        const std::string &opname, const std::string &st);
 };
 }
 #endif

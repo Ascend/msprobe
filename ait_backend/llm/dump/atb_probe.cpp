@@ -345,7 +345,7 @@ bool atb::Probe::ReportOperationGraphEnable()
     return IsSaveDumpType("layer");
 }
 
-static void DfsToModifyGraphTensors(nlohmann::json &curNodeToSave, 
+static void DfsToModifyGraphTensors(nlohmann::json &curNodeToSave,
     const std::vector<std::string> &fatherNodeTensorNameList, const nlohmann::json &curNodeInput)
 {
     std::string opName = curNodeInput["opName"].get<std::string>();
@@ -428,7 +428,7 @@ static void ModifyRootNodeTensors(nlohmann::json &graphNodeJsonToSave, std::vect
 
 static bool CheckGraphInputInvalid(const std::string &opName, const nlohmann::json &graphNodeJson)
 {
-    if (graphNodeJson.find("opName") == graphNodeJson.end() || 
+    if (graphNodeJson.find("opName") == graphNodeJson.end() ||
         graphNodeJson.find("opType") == graphNodeJson.end() ||
         graphNodeJson.find("inTensorNum") == graphNodeJson.end() ||
         graphNodeJson.find("outTensorNum") == graphNodeJson.end()) {
@@ -439,7 +439,7 @@ static bool CheckGraphInputInvalid(const std::string &opName, const nlohmann::js
 
     std::string opNameInJson = graphNodeJson["opName"].get<std::string>();
     if (opNameInJson != opName) {
-        std::cout << "json parse error! opName is not equal opName in json. opName:" << 
+        std::cout << "json parse error! opName is not equal opName in json. opName:" <<
             opName << ", opNameInJson:" << opNameInJson << std::endl;
         return true;
     }
@@ -502,4 +502,71 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
         std::cout << "Unable to open file! File name:" << outPath << std::endl;
     }
     return;
+}
+
+bool atb::Probe::ReportOperationStatisticEnable()
+{
+    const char* isSaveCpuProfiling = std::getenv("ATB_SAVE_CPU_PROFILING");
+    if (isSaveCpuProfiling == nullptr) {
+        return false;
+    }
+    int value = std::stoi(isSaveCpuProfiling);
+    if (value == 1) {
+        return true;
+    }
+    return false;
+}
+
+void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
+    const std::string &opname, const std::string &st)
+{
+    // 得到文件保存地址
+    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
+    std::string outDir = outputDir != nullptr? outputDir : "./";
+    std::string filePath = "cpu_statistic/operation_statistic_" + std::to_string(executeCount) + ".txt";
+    std::string outPath = outDir + filePath;
+    size_t found = outPath.find_last_of("/");
+    std::string directory = outPath.substr(0, found);
+
+    // 检验地址是否存在
+    bool ret = CheckDirectory(directory);
+    if (!ret) {
+        std::cout << "Create directory failed: " << directory << std::endl;
+        return;
+    }
+
+    std::ofstream file(outPath, std::ios_base::app);
+    if (file.is_open()) {
+        file << "[" << opname << "]:" << st << std::endl;
+        file.close();
+    } else {
+        std::cout << "Unable to open file!" << std::endl;
+    }
+}
+
+void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
+    const std::string &opname, const std::string &st)
+{
+    // 得到文件保存地址
+    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
+    std::string outDir = outputDir != nullptr? outputDir : "./";
+    std::string filePath = "cpu_statistic/operation_statistic_" + std::to_string(executeCount) + ".txt";
+    std::string outPath = outDir + filePath;
+    size_t found = outPath.find_last_of("/");
+    std::string directory = outPath.substr(0, found);
+
+    // 检验地址是否存在
+    bool ret = CheckDirectory(directory);
+    if (!ret) {
+        std::cout << "Create directory failed: " << directory << std::endl;
+        return;
+    }
+
+    std::ofstream file(outPath, std::ios_base::app);
+    if (file.is_open()) {
+        file << "[" << opname << "]:" << st << std::endl;
+        file.close();
+    } else {
+        std::cout << "Unable to open file!" << std::endl;
+    }
 }
