@@ -37,6 +37,12 @@ constexpr int SAVE_ALL_TENSOR = 2;
 
 class Probe {
 public:
+    struct Tensor {
+        std::string dype;
+        std::string format;
+        std::string shape;
+    };
+public:
     static bool IsTensorNeedSave(const std::vector<int64_t> &ids, const std::string &optype);
     static bool IsSaveTensorData();
     static bool IsSaveTensorDesc();
@@ -58,6 +64,14 @@ public:
         const std::string &opname, const std::string &st);
     static void ReportOperationExecuteStatistic(const uint64_t executeCount,
         const std::string &opname, const std::string &st);
+    static bool ReportOperationIOTensorEnable();
+    static void ReportOperationIOTensor(const size_t executeCount, const std::string &opName,
+        const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
+        const std::vector<atb::Probe::Tensor> &outTensors);
+    static bool ReportKernelIOTensorEnable();
+    static void ReportKernelIOTensor(const size_t executeCount, const std::string &opName,
+        const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
+        const std::vector<atb::Probe::Tensor> &outTensors);
 };
 }
 #endif

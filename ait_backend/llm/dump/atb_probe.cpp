@@ -15,6 +15,7 @@
  */
 #include <unistd.h>
 #include <syscall.h>
+#include <cctype>
 #include "atb_probe.h"
 #include "binfile.h"
 #include "nlohmann/json.hpp"
@@ -569,4 +570,164 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
     } else {
         std::cout << "Unable to open file!" << std::endl;
     }
+}
+
+
+static std::string GetInputString(int &caseNum, const std::string &opName, const std::string &opParam,
+    const std::vector<atb::Probe::Tensor> &inTensors, const std::vector<atb::Probe::Tensor> &outTensors)
+{
+    const std::string caseName = opName + std::to_string(caseNum);
+    int inNum = inTensors.size();
+    std::string inDType = "";
+    std::string inFormat = "";
+    std::string inShape = "";
+    for (int i = 0; i < inNum; ++i) {
+        inDType = inDType + inTensors[i].dype + ";";
+        inFormat = inFormat + inTensors[i].format + ";";
+        inShape = inShape + inTensors[i].shape + ";";
+    }
+    int outNum = outTensors.size();
+    std::string outDType = "";
+    std::string outFormat = "";
+    std::string outShape = "";
+    for (int i = 0; i < outNum; ++i) {
+        outDType = outDType + outTensors[i].dype + ";";
+        outFormat = outFormat + outTensors[i].format + ";";
+        outShape = outShape + outTensors[i].shape + ";";
+    }
+    const std::string input_string = std::to_string(caseNum) + "|" + caseName + "|" + opName + "|" + opParam + "|" + \
+        std::to_string(inNum) + "|" + inDType + "|" + inFormat + "|" + inShape + "|" + \
+        std::to_string(outNum) + "|" + outDType + "|" + outFormat + "|" + outShape + "|" + \
+        "customize|\t|\t|\t|\t|\t|\t|\t|NO_ERROR";
+    return input_string;
+}
+
+
+static void ReportIOTensor(std::string &outPath, const std::string &opName, const std::string &opParam,
+    const std::vector<atb::Probe::Tensor> &inTensors, const std::vector<atb::Probe::Tensor> &outTensors)
+{
+    int caseNum;
+    std::ifstream f(outPath, std::ios::in);
+    if (f.is_open()) {
+        caseNum = 0;
+        std::string line;
+        const int maxLoopCount = 10000;
+        while (std::getline(f, line, '\n') && caseNum < maxLoopCount) {
+            caseNum++;
+        }
+        if (caseNum == maxLoopCount) {
+            std::cout << "Too many lines in csv file. Maxcount is 10000." << std::endl;
+        }
+        f.close();
+    } else {
+        std::ofstream outfile(outPath, std::ios::out);
+        caseNum = 1;
+        const std::string csv_head = "CaseNum|CaseName|OpName|OpParam|InNum|InDType|InFormat|InShape|OutNum|OutDType|\
+OutFormat|OutShape|DataGenType|DataGenRange|InTensorFile|OutTensorFile|TestType|TestLevel|FromModel|SocVersion|\
+ExpectedError";
+        if (outfile.is_open()) {
+            outfile << csv_head << std::endl;
+            outfile.close();
+            std::cout << "Data written to file successfully!" << std::endl;
+        } else {
+            std::cout << "Unable to open file!" << std::endl;
+        }
+    }
+    
+    const std::string input_string = GetInputString(caseNum, opName, opParam, inTensors, outTensors);
+    std::ofstream outfile(outPath, std::ios::app);
+    if (outfile.is_open()) {
+        outfile << input_string << std::endl;
+        outfile.close();
+        std::cout << "Data written to file successfully!" << std::endl;
+    } else {
+        std::cout << "Unable to open file!" << std::endl;
+    }
+    return;
+}
+
+
+bool atb::Probe::ReportOperationIOTensorEnable()
+{
+    const char* IsSaveOperationInfo = std::getenv("ATB_SAVE_OPERATION_INFO");
+    if (IsSaveOperationInfo == nullptr) {
+        return false;
+    }
+    try {
+        int value = std::stoi(IsSaveOperationInfo);
+        return value == 1 ? true : false;
+    } catch (const std::exception& e) {
+        std::cout << "IsSaveOperationInfo is not a number!" << std::endl;
+    }
+    return false;
+}
+
+
+void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::string &opName,
+    const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
+    const std::vector<atb::Probe::Tensor> &outTensors)
+{
+    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
+    std::string outDir = outputDir != nullptr ? outputDir : "./";
+    const std::string pid = std::to_string(GetCurrentProcessId());
+    std::string fPath = "operation_io_tensors/" + pid + "/operation_tensors_" + std::to_string(executeCount) + ".csv";
+    std::string outPath = outDir + fPath;
+    size_t found = outPath.find_last_of("/");
+    if (found == std::string::npos) {
+        std::cout << "Could not find last / of outPath!" << std::endl;
+        return;
+    }
+    std::string directory = outPath.substr(0, found);
+    
+    bool ret = CheckDirectory(directory);
+    if (!ret) {
+        std::cout << "Create directory failed: " << directory << std::endl;
+        return;
+    }
+    
+    ReportIOTensor(outPath, opName, opParam, inTensors, outTensors);
+    return;
+}
+
+
+bool atb::Probe::ReportKernelIOTensorEnable()
+{
+    const char* IsSaveKernelLaunchInfo = std::getenv("ATB_SAVE_KERNEL_INFO");
+    if (IsSaveKernelLaunchInfo == nullptr) {
+        return false;
+    }
+    try {
+        int value = std::stoi(IsSaveKernelLaunchInfo);
+        return value == 1 ? true : false;
+    } catch (const std::exception& e) {
+        std::cout << "IsSaveKernelLaunchInfo is not a number!" << std::endl;
+    }
+    return false;
+}
+
+
+void atb::Probe::ReportKernelIOTensor(const size_t executeCount, const std::string &opName,
+    const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
+    const std::vector<atb::Probe::Tensor> &outTensors)
+{
+    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
+    std::string outDir = outputDir != nullptr ? outputDir : "./";
+    const std::string pid = std::to_string(GetCurrentProcessId());
+    std::string fPath = "kernel_io_tensors/" + pid + "/kernel_tensors_" + std::to_string(executeCount) + ".csv";
+    std::string outPath = outDir + fPath;
+    size_t found = outPath.find_last_of("/");
+    if (found == std::string::npos) {
+        std::cout << "Could not find last / of outPath!" << std::endl;
+        return;
+    }
+    std::string directory = outPath.substr(0, found);
+
+    bool ret = CheckDirectory(directory);
+    if (!ret) {
+        std::cout << "Create directory failed: " << directory << std::endl;
+        return;
+    }
+
+    ReportIOTensor(outPath, opName, opParam, inTensors, outTensors);
+    return;
 }
