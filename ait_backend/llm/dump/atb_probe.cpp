@@ -16,9 +16,9 @@
 #include <unistd.h>
 #include <syscall.h>
 #include <cctype>
-#include "atb_probe.h"
 #include "binfile.h"
 #include "nlohmann/json.hpp"
+#include "atb_probe.h"
 
 static int32_t GetCurrentProcessId()
 {
@@ -277,7 +277,7 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
         return;
     }
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr? outputDir : "./";
+    std::string outDir = outputDir != nullptr ? outputDir : "./";
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
@@ -433,7 +433,6 @@ static bool CheckGraphInputInvalid(const std::string &opName, const nlohmann::js
         graphNodeJson.find("opType") == graphNodeJson.end() ||
         graphNodeJson.find("inTensorNum") == graphNodeJson.end() ||
         graphNodeJson.find("outTensorNum") == graphNodeJson.end()) {
-
         std::cout << "json parse error! opName:" << opName << std::endl;
         return true;
     }
@@ -523,7 +522,7 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
 {
     // 得到文件保存地址
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr? outputDir : "./";
+    std::string outDir = outputDir != nullptr ? outputDir : "./";
     std::string filePath = "cpu_statistic/operation_statistic_" + std::to_string(executeCount) + ".txt";
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
@@ -550,7 +549,7 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
 {
     // 得到文件保存地址
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr? outputDir : "./";
+    std::string outDir = outputDir != nullptr ? outputDir : "./";
     std::string filePath = "cpu_statistic/operation_statistic_" + std::to_string(executeCount) + ".txt";
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
@@ -595,11 +594,11 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
         outFormat = outFormat + outTensors[i].format + ";";
         outShape = outShape + outTensors[i].shape + ";";
     }
-    const std::string input_string = std::to_string(caseNum) + "|" + caseName + "|" + opName + "|" + opParam + "|" + \
+    const std::string inputString = std::to_string(caseNum) + "|" + caseName + "|" + opName + "|" + opParam + "|" + \
         std::to_string(inNum) + "|" + inDType + "|" + inFormat + "|" + inShape + "|" + \
         std::to_string(outNum) + "|" + outDType + "|" + outFormat + "|" + outShape + "|" + \
         "customize|\t|\t|\t|\t|\t|\t|\t|NO_ERROR";
-    return input_string;
+    return inputString;
 }
 
 
@@ -622,11 +621,11 @@ static void ReportIOTensor(std::string &outPath, const std::string &opName, cons
     } else {
         std::ofstream outfile(outPath, std::ios::out);
         caseNum = 1;
-        const std::string csv_head = "CaseNum|CaseName|OpName|OpParam|InNum|InDType|InFormat|InShape|OutNum|OutDType|\
+        const std::string csvHead = "CaseNum|CaseName|OpName|OpParam|InNum|InDType|InFormat|InShape|OutNum|OutDType|\
 OutFormat|OutShape|DataGenType|DataGenRange|InTensorFile|OutTensorFile|TestType|TestLevel|FromModel|SocVersion|\
 ExpectedError";
         if (outfile.is_open()) {
-            outfile << csv_head << std::endl;
+            outfile << csvHead << std::endl;
             outfile.close();
             std::cout << "Data written to file successfully!" << std::endl;
         } else {
@@ -634,10 +633,10 @@ ExpectedError";
         }
     }
     
-    const std::string input_string = GetInputString(caseNum, opName, opParam, inTensors, outTensors);
+    const std::string inputString = GetInputString(caseNum, opName, opParam, inTensors, outTensors);
     std::ofstream outfile(outPath, std::ios::app);
     if (outfile.is_open()) {
-        outfile << input_string << std::endl;
+        outfile << inputString << std::endl;
         outfile.close();
         std::cout << "Data written to file successfully!" << std::endl;
     } else {
@@ -649,12 +648,12 @@ ExpectedError";
 
 bool atb::Probe::ReportOperationIOTensorEnable()
 {
-    const char* IsSaveOperationInfo = std::getenv("ATB_SAVE_OPERATION_INFO");
-    if (IsSaveOperationInfo == nullptr) {
+    const char* isSaveOperationInfo = std::getenv("ATB_SAVE_OPERATION_INFO");
+    if (isSaveOperationInfo == nullptr) {
         return false;
     }
     try {
-        int value = std::stoi(IsSaveOperationInfo);
+        int value = std::stoi(isSaveOperationInfo);
         return value == 1 ? true : false;
     } catch (const std::exception& e) {
         std::cout << "IsSaveOperationInfo is not a number!" << std::endl;
@@ -692,12 +691,12 @@ void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::s
 
 bool atb::Probe::ReportKernelIOTensorEnable()
 {
-    const char* IsSaveKernelLaunchInfo = std::getenv("ATB_SAVE_KERNEL_INFO");
-    if (IsSaveKernelLaunchInfo == nullptr) {
+    const char* isSaveKernelLaunchInfo = std::getenv("ATB_SAVE_KERNEL_INFO");
+    if (isSaveKernelLaunchInfo == nullptr) {
         return false;
     }
     try {
-        int value = std::stoi(IsSaveKernelLaunchInfo);
+        int value = std::stoi(isSaveKernelLaunchInfo);
         return value == 1 ? true : false;
     } catch (const std::exception& e) {
         std::cout << "IsSaveKernelLaunchInfo is not a number!" << std::endl;
