@@ -627,9 +627,8 @@ ExpectedError";
         if (outfile.is_open()) {
             outfile << csvHead << std::endl;
             outfile.close();
-            std::cout << "Data written to file successfully!" << std::endl;
         } else {
-            std::cout << "Unable to open file!" << std::endl;
+            std::cout << "Unable to open file:" << outPath << std::endl;
         }
     }
     
@@ -638,9 +637,8 @@ ExpectedError";
     if (outfile.is_open()) {
         outfile << inputString << std::endl;
         outfile.close();
-        std::cout << "Data written to file successfully!" << std::endl;
     } else {
-        std::cout << "Unable to open file!" << std::endl;
+        std::cout << "Unable to open file:" << outPath << std::endl;
     }
     return;
 }
@@ -669,11 +667,12 @@ void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::s
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
     const std::string pid = std::to_string(GetCurrentProcessId());
-    std::string fPath = "operation_io_tensors/" + pid + "/operation_tensors_" + std::to_string(executeCount) + ".csv";
+    std::string fPath =
+        "ait_dump/operation_io_tensors/" + pid + "/operation_tensors_" + std::to_string(executeCount) + ".csv";
     std::string outPath = outDir + fPath;
     size_t found = outPath.find_last_of("/");
     if (found == std::string::npos) {
-        std::cout << "Could not find last / of outPath!" << std::endl;
+        std::cout << "Could not find last / of outPath:" << outPath << std::endl;
         return;
     }
     std::string directory = outPath.substr(0, found);
@@ -712,11 +711,12 @@ void atb::Probe::ReportKernelIOTensor(const size_t executeCount, const std::stri
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
     const std::string pid = std::to_string(GetCurrentProcessId());
-    std::string fPath = "kernel_io_tensors/" + pid + "/kernel_tensors_" + std::to_string(executeCount) + ".csv";
+    std::string fPath =
+        "ait_dump/kernel_io_tensors/" + pid + "/kernel_tensors_" + std::to_string(executeCount) + ".csv";
     std::string outPath = outDir + fPath;
     size_t found = outPath.find_last_of("/");
     if (found == std::string::npos) {
-        std::cout << "Could not find last / of outPath!" << std::endl;
+        std::cout << "Could not find last / of outPath:" << outPath << std::endl;
         return;
     }
     std::string directory = outPath.substr(0, found);
