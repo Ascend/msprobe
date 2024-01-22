@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
-
+from collections import namedtuple
 from typing import Optional, Union
 import libcst
 import libcst.matchers as m
@@ -9,6 +9,8 @@ import libcst.helpers as helper
 from libcst.metadata import PositionProvider, QualifiedNameProvider
 from utils import trans_utils
 from utils import transplant_logger as translog
+
+AffinityInfo = namedtuple("AffinityInfo", ["affinity_api_def_list", "affinity_api_call_list", "affinity_special_list"])
 
 INIT = '__init__'
 FORWARD = 'forward'
@@ -57,7 +59,7 @@ class AffinityApiVisitor(libcst.CSTVisitor):
     def visit_Call(self, node: "libcst.Call") -> Optional[bool]:
         full_name = self.get_full_name_for_node(node)
         position = self._get_call_position(node)
-        if full_name.startswith('torch'):
+        if full_name and full_name.startswith('torch.'):
             name = full_name.split('.')[-1]
             if name in self.affinity_torch_dict.keys():
                 affinity_full_name = self.affinity_torch_dict.get(name).get('full_name')
@@ -171,7 +173,7 @@ def analyse_affinity_api(wrapper, pytorch_version, global_reference_visitor=None
     api_visitor = AffinityApiVisitor(pytorch_version, global_reference_visitor)
     wrapper.visit(api_visitor)
     api_visitor.print_affinity_ops()
-    return api_visitor.affinity_list, api_visitor.affinity_call_list, api_visitor.affinity_special_list
+    return AffinityInfo(api_visitor.affinity_list, api_visitor.affinity_call_list, api_visitor.affinity_special_list)
 
 
 class ApiInstance:

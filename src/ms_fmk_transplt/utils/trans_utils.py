@@ -366,7 +366,9 @@ def clear_parso_cache():
 
 
 def refresh_parso_cache():
-    from jedi.settings import cache_directory
+    import jedi.settings as settings
+    settings.cache_directory = os.path.join(settings.cache_directory, 'jedi' + str(os.getpid()))
+    cache_directory = settings.cache_directory
     clear_parso_cache()
     if os.path.exists(cache_directory):
         raise JediCacheClearException('Failed to delete jedi cache. Please delete it manually.')

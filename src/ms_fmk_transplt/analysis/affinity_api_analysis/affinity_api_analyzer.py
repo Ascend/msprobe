@@ -8,16 +8,15 @@ import libcst
 from analysis.base_analyzer import BaseAnalyzer
 from utils import trans_utils as utils
 from utils import transplant_logger as translog
-from .affinity_api_visitor import analyse_affinity_api
+from .affinity_api_visitor import analyse_affinity_api, AffinityInfo
 
 
 class AffinityApiAnalyzer(BaseAnalyzer):
     def __init__(self, script_dir, output_path, pytorch_version, unsupported_third_party_file_list=None):
         super().__init__(script_dir, output_path, pytorch_version, unsupported_third_party_file_list)
         self.affinity_api_dict = {}
-        self.affinity_api_list = []
         self.affinity_api_call_list = []
-        self.affinity_special_list = []
+        self.affinity_info = AffinityInfo([], [], [])
         self.current_file_rel_path = ''
 
     def run(self):
@@ -43,6 +42,23 @@ class AffinityApiAnalyzer(BaseAnalyzer):
                         ('File', 'Start Line', 'End Line', 'Api Type', 'Api Call Name', 'Affinity Api Name'))
         self.result_dict.update({'affinity_api_call.csv': len(affinity_api_call_set)})
 
+    def collect_affinity_analysis_results(self):
+        if self.affinity_info.affinity_api_def_list:
+            for api in self.affinity_info.affinity_api_def_list:
+                full_name_list = api.full_name.split('.')
+                if len(full_name_list) < 2:
+                    continue
+                full_name = full_name_list[-2] + '.' + full_name_list[-1]
+                self.affinity_api_dict[full_name] = api.info
+        if self.affinity_info.affinity_api_call_list:
+            for api in self.affinity_info.affinity_api_call_list:
+                api.file_path = self.current_file_rel_path
+                self.affinity_api_call_list.append(api)
+        if self.affinity_info.affinity_special_list:
+            for api in self.affinity_info.affinity_special_list:
+                api.file_path = self.current_file_rel_path
+                self.affinity_api_call_list.append(api)
+
     def _analysis_file(self, file, commonprefix):
         if self.global_reference_visitor:
             self.global_reference_visitor.visit_file(os.path.relpath(file, self.script_dir))
@@ -60,25 +76,6 @@ class AffinityApiAnalyzer(BaseAnalyzer):
         except BaseException:
             translog.warning(f'{file} has unsupported python syntax, skip.')
             return
-        affinity_api_list, \
-            affinity_api_call_list, \
-            affinity_special_list = analyse_affinity_api(wrapper,
-                                                         self.pytorch_version,
-                                                         self.global_reference_visitor)
-        if affinity_api_list:
-            for api in affinity_api_list:
-                api.file_path = self.current_file_rel_path
-                self.affinity_api_list.append(api)
-                full_name_list = api.full_name.split('.')
-                if len(full_name_list) < 2:
-                    continue
-                full_name = full_name_list[-2] + '.' + full_name_list[-1]
-                self.affinity_api_dict[full_name] = api.info
-        if affinity_api_call_list:
-            for api in affinity_api_call_list:
-                api.file_path = self.current_file_rel_path
-                self.affinity_api_call_list.append(api)
-        if affinity_special_list:
-            for api in affinity_special_list:
-                api.file_path = self.current_file_rel_path
-                self.affinity_api_call_list.append(api)
+        self.affinity_info = analyse_affinity_api(wrapper, self.pytorch_version, self.global_reference_visitor)
+        self.collect_affinity_analysis_results()
+

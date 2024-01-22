@@ -15,6 +15,8 @@ from utils import transplant_logger as translog
 from analysis import analyse_unsupported_api, analyse_cuda_ops, OpInfo
 from analysis.precision_performance_advice_analysis.precision_performance_advice_visitor import \
     analyse_precision_performance_advice_api, AdviceInfo
+from analysis.affinity_api_analysis.affinity_api_visitor import analyse_affinity_api
+from analysis.affinity_api_analysis.affinity_api_analyzer import AffinityApiAnalyzer
 from analysis.unsupported_api_analysis.unsupported_api_analyzer import export_performance_configuration
 from .rules.distributed_rules import DataLoaderRule
 from .rules.common_rules import InsertMainFileRule
@@ -39,6 +41,7 @@ class Transplant(object):
         self.advice_info = AdviceInfo(precision_advice_dict, performance_advice_dict, api_parameters_performance_dict)
         self.transplant_result_statistics = {}
         self.analysis_result_dir = analysis_result_dir
+        self.affinity_api_analyzer = AffinityApiAnalyzer(script_dir, analysis_result_dir, args.version)
 
     @staticmethod
     def __need_analysis(file, commonprefix):
@@ -55,6 +58,8 @@ class Transplant(object):
         if not os.access(self.script_dir, os.R_OK):
             raise utils.TransplantException('%s is not readable.' % self.script_dir)
         self.__analysis_dir()
+        self.affinity_api_analyzer.write_csv()
+        self.transplant_result_statistics.update(self.affinity_api_analyzer.result_dict)
 
     def set_py_file_counts(self, py_file_counts):
         self.py_file_counts = py_file_counts
@@ -71,6 +76,8 @@ class Transplant(object):
         (precision_advice_list, performance_advice_list), _, _ = \
             analyse_precision_performance_advice_api(wrapper, self.advice_info,
                                                      self.global_reference_visitor)
+        self.affinity_api_analyzer.affinity_info = analyse_affinity_api(wrapper, self.args.version,
+                                                                        self.global_reference_visitor)
         result_dicts = {
             'cuda_op_list.csv': self.op_info.cuda_op_list,
             'unsupported_api.csv': unsupported_list,
@@ -100,6 +107,8 @@ class Transplant(object):
             "api_performance_advice",
             ('File', 'Start Line', 'End Line', 'OP', 'Tips')
         )
+        self.affinity_api_analyzer.collect_affinity_analysis_results()
+
         new_module = self.__visit_rule(file, module)
         utils.write_file_content(file, new_module.code)
 

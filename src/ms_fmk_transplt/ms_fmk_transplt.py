@@ -80,8 +80,7 @@ class MsFmkTransplt(object):
             translog.info('MsFmkTransplt start working now, please wait for a moment.')
             transplant = Transplant(self.output, self.rule_list, args, self.transplant_file_output)
             transplant.set_py_file_counts(self.py_file_counts)
-            if hasattr(args, 'main'):
-                transplant.init_global_visitor(self.__get_global_visitor())
+            transplant.init_global_visitor(self.__get_global_visitor())
             transplant.run()
             if args.modelarts:
                 self.__copy_function_pack('ascend_modelarts_function')
@@ -93,7 +92,7 @@ class MsFmkTransplt(object):
             translog.error(exp)
             ret = 1
         finally:
-            if hasattr(args, 'main') and utils.IS_JEDI_INSTALLED:
+            if utils.IS_JEDI_INSTALLED:
                 utils.clear_parso_cache()
 
         if ret != 0:
