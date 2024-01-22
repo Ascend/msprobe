@@ -484,7 +484,7 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
     std::string pid = std::to_string(GetCurrentProcessId());
-    std::string pidDir = outDir + "operation_graph/" + pid + '/';
+    std::string pidDir = outDir + "ait_dump/layer/" + pid + '/';
     bool ret = CheckDirectory(pidDir);
     if (!ret) {
         std::cout << "Create directory failed: " << pidDir << std::endl;
