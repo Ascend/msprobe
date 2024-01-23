@@ -585,23 +585,35 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
     std::string inFormat = "";
     std::string inShape = "";
     for (int i = 0; i < inNum; ++i) {
-        inDType = inDType + inTensors[i].dype + ";";
-        inFormat = inFormat + inTensors[i].format + ";";
-        inShape = inShape + inTensors[i].shape + ";";
+        if (i == inNum - 1) {
+            inDType = inDType + inTensors[i].dype;
+            inFormat = inFormat + inTensors[i].format;
+            inShape = inShape + inTensors[i].shape;
+        } else {
+            inDType = inDType + inTensors[i].dype + ";";
+            inFormat = inFormat + inTensors[i].format + ";";
+            inShape = inShape + inTensors[i].shape + ";";
+        }
     }
     int outNum = outTensors.size();
     std::string outDType = "";
     std::string outFormat = "";
     std::string outShape = "";
     for (int i = 0; i < outNum; ++i) {
-        outDType = outDType + outTensors[i].dype + ";";
-        outFormat = outFormat + outTensors[i].format + ";";
-        outShape = outShape + outTensors[i].shape + ";";
+        if (i == outNum - 1) {
+            outDType = outDType + outTensors[i].dype;
+            outFormat = outFormat + outTensors[i].format;
+            outShape = outShape + outTensors[i].shape;
+        } else {
+            outDType = outDType + outTensors[i].dype + ";";
+            outFormat = outFormat + outTensors[i].format + ";";
+            outShape = outShape + outTensors[i].shape + ";";
+        }
     }
     const std::string inputString = std::to_string(caseNum) + "|" + caseName + "|" + opName + "|" + opParam + "|" + \
         std::to_string(inNum) + "|" + inDType + "|" + inFormat + "|" + inShape + "|" + \
         std::to_string(outNum) + "|" + outDType + "|" + outFormat + "|" + outShape + "|" + \
-        "customize|\t|\t|\t|\t|\t|\t|\t|NO_ERROR";
+        "customize| | | | | | | |NO_ERROR";
     return inputString;
 }
 
