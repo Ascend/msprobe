@@ -16,9 +16,25 @@
 #include <unistd.h>
 #include <syscall.h>
 #include <cctype>
+#include <sys/statvfs.h>
 #include "binfile.h"
 #include "nlohmann/json.hpp"
 #include "atb_probe.h"
+
+unsigned long long g_minDiskSpaceFreeSize = 2147483648; // 2G
+constexpr size_t FREE_SIZE_MULTIPLE_OF_DATA_SIZE = 2; // free size至少两倍data size大小
+
+int GetFreeSpace(std::string path, unsigned long long *freeSpace)
+{
+    struct statvfs diskInfo;
+
+    if (statvfs(path.c_str(), &diskInfo) == -1) {
+        perror("statvfs() error");
+        return 1;
+    }
+    *freeSpace = diskInfo.f_bavail * diskInfo.f_bsize;
+    return 0;
+}
 
 static int32_t GetCurrentProcessId()
 {
@@ -75,7 +91,7 @@ static bool CheckDirectory(const std::string &directory)
 }
 
 
-static bool isInTensorBinPath(const std::string &filePath)
+static bool IsInTensorBinPath(const std::string &filePath)
 {
     size_t sepPos = filePath.rfind("/");
     std::string fileName = filePath;
@@ -86,7 +102,7 @@ static bool isInTensorBinPath(const std::string &filePath)
 }
 
 
-static bool isOutTensorBinPath(const std::string &filePath)
+static bool IsOutTensorBinPath(const std::string &filePath)
 {
     size_t sepPos = filePath.rfind("/");
     std::string fileName = filePath;
@@ -237,14 +253,25 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     const std::string &filePath)
 {
     // 判断是否需要保存
-    bool saveFlag = (isInTensorBinPath(filePath) && IsSaveIntensor()) ||
-                (isOutTensorBinPath(filePath) && IsSaveOuttensor());
+    bool saveFlag = (IsInTensorBinPath(filePath) && IsSaveIntensor()) ||
+                (IsOutTensorBinPath(filePath) && IsSaveOuttensor());
     if (!saveFlag) {
         return;
     }
 
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = (outputDir != nullptr? outputDir : "./");
+    std::string outDir = (outputDir != nullptr ? outputDir : "./");
+
+    // 磁盘空间判断
+    unsigned long long freeSpace = 0;
+    int retGetFreeSpace = GetFreeSpace(outDir, &freeSpace);
+    if (retGetFreeSpace == 0 &&
+        (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE)) {
+        std::cout << "Disk space is not enough, it's must more than 2G, free size(MB) is: " << (freeSpace >> 20)
+                  << std::endl;
+        return;
+    }
+
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
@@ -484,7 +511,7 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
     std::string pid = std::to_string(GetCurrentProcessId());
-    std::string pidDir = outDir + "ait_dump/layer/" + pid + '/';
+    std::string pidDir = outDir + "ait_dump/layer/" + pid + "/";
     bool ret = CheckDirectory(pidDir);
     if (!ret) {
         std::cout << "Create directory failed: " << pidDir << std::endl;
