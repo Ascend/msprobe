@@ -689,17 +689,7 @@ ExpectedError";
 
 bool atb::Probe::ReportOperationIOTensorEnable()
 {
-    const char* isSaveOperationInfo = std::getenv("ATB_SAVE_OPERATION_INFO");
-    if (isSaveOperationInfo == nullptr) {
-        return false;
-    }
-    try {
-        int value = std::stoi(isSaveOperationInfo);
-        return value == 1 ? true : false;
-    } catch (const std::exception& e) {
-        std::cout << "IsSaveOperationInfo is not a number!" << std::endl;
-    }
-    return false;
+    return IsSaveDumpType("op");
 }
 
 
@@ -733,17 +723,7 @@ void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::s
 
 bool atb::Probe::ReportKernelIOTensorEnable()
 {
-    const char* isSaveKernelLaunchInfo = std::getenv("ATB_SAVE_KERNEL_INFO");
-    if (isSaveKernelLaunchInfo == nullptr) {
-        return false;
-    }
-    try {
-        int value = std::stoi(isSaveKernelLaunchInfo);
-        return value == 1 ? true : false;
-    } catch (const std::exception& e) {
-        std::cout << "IsSaveKernelLaunchInfo is not a number!" << std::endl;
-    }
-    return false;
+    return IsSaveDumpType("kernel");
 }
 
 
