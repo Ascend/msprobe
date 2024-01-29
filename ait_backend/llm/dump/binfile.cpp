@@ -16,7 +16,7 @@
 
 
 #include "binfile.h"
-
+#include "securec.h"
 
 FileSystem::BinFile::BinFile() {}
 FileSystem::BinFile::~BinFile() {}
@@ -93,8 +93,12 @@ bool FileSystem::BinFile::AddObject(const std::string &name, const void* binaryB
     uint64_t copyLen = binaryLen;
     while (copyLen > 0) {
         uint64_t curCopySize = copyLen > MAX_SINGLE_MEMCPY_SIZE ? MAX_SINGLE_MEMCPY_SIZE : copyLen;
-        auto ret = memcpy(binariesBuffer_.data() + currentLen + offset,
-                          static_cast<const uint8_t*>(binaryBuffer) + offset, curCopySize);
+        auto err = memcpy_s(binariesBuffer_.data() + currentLen + offset, curCopySize,
+            static_cast<const uint8_t*>(binaryBuffer) + offset, curCopySize);
+        if (err != EOK) {
+            std::cout << "memcpy_s failed, err = " << err << std::endl;
+            return false;
+        }
         offset += curCopySize;
         copyLen -= curCopySize;
     }

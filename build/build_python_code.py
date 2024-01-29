@@ -70,14 +70,6 @@ def prepare_ait_backend():
         if line:
             logging.info(line)
 
-    top_dir = os.path.join(os.path.dirname(cur_dir))
-    protoc_dir = os.path.join(top_dir, "build/output/ait_backend/opcheck_test_framework")
-    if os.path.exists(protoc_dir):
-        result = "Compile ait_backend success."
-    else:
-        result = "Compile ait_backend failed."
-    logging.info("--------------------" + result + "--------------------")
-
 
 def generate_dump_data_api():
     cur_dir = os.path.realpath(os.path.dirname(__file__))
