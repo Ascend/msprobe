@@ -29,6 +29,21 @@ function fn_build_atb_probe()
     $TEST_DIR/../build/prepare_ait_backend.sh
 }
 
+function fn_build_libsecurec_if_not_exists()
+{
+    SECUREC_SOURCE_PATH=$SCRIPT_DIR/../../../platform/securec  # Use source code built lib if CANN toolkit not installed
+    if [ "$ASCEND_HOME_PATH" = "" ] && [ -d "$SECUREC_SOURCE_PATH" ]; then
+        echo "Build libsecurec.so from source"
+        if [ ! -e "$SECUREC_SOURCE_PATH/lib/libsecurec.so" ]; then
+            cd $SECUREC_SOURCE_PATH/src && make && cd -
+        fi
+
+        echo "copy securec lib and include from $SECUREC_SOURCE_PATH to $THIRD_PARTY_DIR/securec"
+        mkdir -p $THIRD_PARTY_DIR/securec
+        cp $SECUREC_SOURCE_PATH/include $SECUREC_SOURCE_PATH/lib $THIRD_PARTY_DIR/securec -r
+    fi
+}
+
 function fn_build_googletest()
 {
     if [ -d "$THIRD_PARTY_DIR/googletest/lib" -a -d "$THIRD_PARTY_DIR/googletest/include" ]; then
@@ -97,6 +112,7 @@ function fn_execute_cases()
 function fn_main()
 {
     # 1、构建最新的atbprobe
+    fn_build_libsecurec_if_not_exists
     fn_build_atb_probe
 
     # 2、构建测试工程
@@ -107,3 +123,4 @@ function fn_main()
     fn_execute_cases
 }
 fn_main "$@"
+

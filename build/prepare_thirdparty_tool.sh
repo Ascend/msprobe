@@ -11,6 +11,7 @@ make_protobuf() {
     cmake . -Dprotobuf_BUILD_TESTS=OFF -DCMAKE_SKIP_RPATH=TRUE && make -j16
   else
     echo "Can't find "${PROTOBUF_DIR}
+    return 1
   fi
 }
 

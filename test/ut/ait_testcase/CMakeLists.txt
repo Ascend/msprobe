@@ -23,6 +23,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/3rdpart
 target_link_directories(${PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/3rdparty/googletest/lib
     ${PROJECT_SOURCE_DIR}/3rdparty/googletest/lib64
+    ${PROJECT_SOURCE_DIR}/3rdparty/securec/lib
+    ${PROJECT_SOURCE_DIR}/../../../build/output/ait_backend/dump
+    $ENV{ASCEND_HOME_PATH}/lib64
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
     libgtest.a
@@ -30,8 +33,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     libgmock.a
     libgmock_main.a
     ${CMAKE_THREAD_LIBS_INIT}
-    ${PROJECT_SOURCE_DIR}/../../../build/output/ait_backend/dump/libatb_probe_abi1.so
+    libatb_probe_abi1.so
+    libsecurec.so
 )
 
 add_test(Test ${PROJECT_NAME})
 enable_testing()
+
