@@ -23,7 +23,7 @@ endif()
 
 # 设置头文件目录
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/nlohmannJson/include)
-include_directories($ENV{ASCEND_HOME_PATH}/runtime/include/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/securec/include)
 
 add_library(${LIB_NAME} SHARED atb_probe.cpp binfile.cpp)
 
