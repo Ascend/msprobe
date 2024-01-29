@@ -39,7 +39,7 @@ function fn_build_googletest()
     fi
     cd $CACHE_DIR
     if [[ ! -f "googletest-release-1.12.1.tar.gz" ]]; then
-        wget https://cmc-hgh-artifactory.cmc.tools.huawei.com/artifactory/opensource_general/googletest/1.12.1/package/googletest-release-1.12.1.tar.gz
+        wget --no-check-certificate https://cmc-hgh-artifactory.cmc.tools.huawei.com/artifactory/opensource_general/googletest/1.12.1/package/googletest-release-1.12.1.tar.gz
     fi
     tar -xf googletest-release-1.12.1.tar.gz
     cd googletest-release-1.12.1
@@ -76,11 +76,22 @@ function fn_build_cases()
     make
 }
 
-function fn_execute_cases()
+function fn_run_and_record()
 {
     cd $SCRIPT_DIR/build
     ./ait_backend_ut > ut.log 2>&1
+}
+
+function fn_execute_cases()
+{
+    local ret=1
+    fn_run_and_record && ret=$?
     cat ut.log
+    if [ "x"$ret == "x"0 ]; then
+        exit 0
+    else
+        exit 1;
+    fi
 }
 
 function fn_main()
@@ -90,7 +101,6 @@ function fn_main()
 
     # 2、构建测试工程
     fn_build_googletest
-    fn_build_stub
     fn_build_cases
 
     # 3、执行用例

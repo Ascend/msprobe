@@ -11,7 +11,7 @@ BUILD_TYPE=Debug
 function fn_build_nlohmann_json()
 {
   cd ${CUR_DIR}/"../ait_backend/llm/dump/"
-  if [ -d "${AIT_DIR}/dump/nlohmannJson" ]; then
+  if [ -d "nlohmannJson" ]; then
       return $?
   fi
 

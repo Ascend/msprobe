@@ -20,7 +20,10 @@ FILE(GLOB_RECURSE GTEST_CXX_SOURCE
 add_executable(${PROJECT_NAME} ${GTEST_CXX_SOURCE})
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/3rdparty/googletest/include)
-target_link_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/3rdparty/googletest/lib)
+target_link_directories(${PROJECT_NAME} PRIVATE
+    ${PROJECT_SOURCE_DIR}/3rdparty/googletest/lib
+    ${PROJECT_SOURCE_DIR}/3rdparty/googletest/lib64
+)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     libgtest.a
     libgtest_main.a

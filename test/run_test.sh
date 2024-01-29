@@ -48,12 +48,19 @@ gen_dump_api() {
   COMPILE_FLAG=1
 }
 
+run_ait() {
+  cd ${TEST_DIR}/ut/ait_testcase
+  chmod +x ./run_ait_cases.sh
+  ./run_ait_cases.sh
+}
+
 run_st() {
   export PYTHONPATH=${SRC_DIR}/compare:${PYTHONPATH} && python3 run_st.py
 }
 
 run_ut() {
   export PYTHONPATH=${SRC_DIR}/compare:${PYTHONPATH} && python3 run_ut.py
+  run_ait
 }
 
 main() {
