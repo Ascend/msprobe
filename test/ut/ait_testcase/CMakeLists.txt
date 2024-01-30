@@ -10,6 +10,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/../../../ait_backend/llm/dump/
     ${PROJECT_SOURCE_DIR}/common/
     ${PROJECT_SOURCE_DIR}/common/stub/
+    ${PROJECT_SOURCE_DIR}/../../../ait_backend/llm/dump/nlohmannJson/include/
 )
 
 FILE(GLOB_RECURSE GTEST_CXX_SOURCE

@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-
+#include <cstdlib>
 #include <fstream>
+#include <unistd.h>
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "atb_probe.h"
+#include "nlohmann/json.hpp"
 #include "tools.h"
-
 
 static void ReportIOTensorTest(const size_t &executeCount, const std::string &testType)
 {
@@ -78,12 +79,128 @@ TEST(atb_Probe, IsSaveChild_001)
     EXPECT_FALSE(atb::Probe::IsSaveChild());
 }
 
+TEST(atb_Probe, ReportOperationGraphEnable_TRUE)
+{
+    const char *value = "layer|model";
+    setenv("ATB_DUMP_TYPE", value, 1);
+    EXPECT_TRUE(atb::Probe::ReportOperationGraphEnable());
+
+    value = "model";
+    setenv("ATB_DUMP_TYPE", value, 1);
+    EXPECT_TRUE(atb::Probe::ReportOperationGraphEnable());
+
+    value = "layer";
+    setenv("ATB_DUMP_TYPE", value, 1);
+    EXPECT_TRUE(atb::Probe::ReportOperationGraphEnable());
+}
+
+using ordered_json = nlohmann::ordered_json;
+TEST(atb_Probe, ReportOperationGraph)
+{
+    std::ifstream file("../layer_test.json");
+    EXPECT_TRUE(file.is_open());
+    unsetenv("ATB_OUTPUT_DIR");
+
+    ordered_json graphNodeJson = ordered_json::parse(file);
+    std::string opName = "EncoderLayer_2";
+    atb::Probe::ReportOperationGraph(opName, graphNodeJson.dump());
+
+    int32_t pid = getpid();
+    std::string pidDir = "./ait_dump/layer/" + std::to_string(pid) + "/EncoderLayer_2.json";
+    std::ifstream dumpFile(pidDir);
+    EXPECT_TRUE(dumpFile.is_open());
+
+    ordered_json dumpJson = ordered_json::parse(dumpFile);
+    EXPECT_EQ(dumpJson["opName"].get<std::string>(), opName);
+
+    EXPECT_EQ(dumpJson["inTensors"].size(), 12);
+    EXPECT_EQ(dumpJson["internalTensors"].size(), 8);
+    EXPECT_EQ(dumpJson["outTensors"].size(), 3);
+    EXPECT_EQ(dumpJson["nodes"].size(), 9);
+}
+
+ordered_json g_model = {{"modelName", "EncoderModel"},
+    {"inTensors", {"EncoderModel_input_0", "EncoderModel_input_1", "EncoderModel_input_2"}},
+    {"outTensors", {"EncoderModel_output_0", "EncoderModel_output_1", "EncoderModel_output_2"}},
+    {"internalTensors", {"EncoderModel_internal_0", "EncoderModel_internal_1", "EncoderModel_internal_2"}},
+    {"weightTensors", {"EncoderModel_weight_0", "EncoderModel_weight_1", "EncoderModel_weight_2"}},
+    {"nodes",
+        {{
+            {"opName", "EncoderLayer"},
+            {"inTensors", {"EncoderModel_input_0", "EncoderModel_weight_0"}},
+            {"outTensors", {"EncoderModel_output_0", "EncoderModel_internal_0", "EncoderModel_internal_1"}},
+            },
+            {
+                {"opName", "EncoderLayer"},
+                {"inTensors", {"EncoderModel_output_0", "EncoderModel_internal_0", "EncoderModel_internal_1"}},
+                {"outTensors", {"EncoderModel_output_1", "EncoderModel_output_2"}},
+            }}}};
+
+TEST(atb_speed_Probe, ReportModelTopoInfo)
+{
+    const char *value = "layer|model";
+    setenv("ATB_DUMP_TYPE", value, 1);
+    unsetenv("ATB_OUTPUT_DIR");
+
+    std::string modelName = "EncoderModel";
+
+    EXPECT_TRUE(atb_speed::SpeedProbe::IsReportModelTopoInfo(modelName));
+
+    std::string opName0 = "EncoderLayer_0";
+    ordered_json node0 = {{"inTensorNum", 2},
+        {"outTensorNum", 3},
+        {"internalTensorNum", 2},
+        {"opName", opName0},
+        {"opType", "EncoderLayer"},
+        {"outTensorNum", 3},
+        {"param", ""}};
+
+    atb::Probe::ReportOperationGraph(opName0, node0.dump());
+    int32_t pid = getpid();
+    std::string node0Json = "./ait_dump/layer/" + std::to_string(pid) + "/EncoderLayer_0.json";
+    std::ifstream node0File(node0Json);
+    EXPECT_TRUE(node0File.is_open());
+
+    std::string opName1 = "EncoderLayer_1";
+    ordered_json node1 = {{"inTensorNum", 3},
+        {"outTensorNum", 2},
+        {"internalTensorNum", 3},
+        {"opName", opName1},
+        {"opType", "EncoderLayer"},
+        {"param", ""}};
+    atb::Probe::ReportOperationGraph(opName1, node1.dump());
+    std::string node1Json = "./ait_dump/layer/" + std::to_string(pid) + "/EncoderLayer_1.json";
+    std::ifstream node1File(node1Json);
+    EXPECT_TRUE(node1File.is_open());
+
+    ordered_json model = g_model;
+
+    atb_speed::SpeedProbe::ReportModelTopoInfo(modelName, model.dump());
+
+    std::string pidDir = "./ait_dump/model/" + std::to_string(pid) + "/EncoderModel.json";
+    std::ifstream dumpFile(pidDir);
+    EXPECT_TRUE(dumpFile.is_open());
+
+    ordered_json dumpJson = ordered_json::parse(dumpFile);
+    EXPECT_EQ(dumpJson["modelName"].get<std::string>(), modelName);
+
+    // node0
+    EXPECT_EQ(dumpJson["nodes"][0]["opName"].get<std::string>(), "EncoderLayer_0");
+    EXPECT_EQ(dumpJson["nodes"][0]["inTensors"][1].get<std::string>(), "EncoderModel_weight_0");
+    EXPECT_EQ(dumpJson["nodes"][0]["outTensors"][2].get<std::string>(), "EncoderModel_internal_1");
+    EXPECT_EQ(dumpJson["nodes"][0]["internalTensors"][0].get<std::string>(), "EncoderLayer_0_internal_0");
+    EXPECT_EQ(dumpJson["nodes"][0]["internalTensors"][1].get<std::string>(), "EncoderLayer_0_internal_1");
+
+    // node1
+    EXPECT_EQ(dumpJson["nodes"][1]["opName"].get<std::string>(), "EncoderLayer_1");
+    EXPECT_EQ(dumpJson["nodes"][1]["internalTensors"][2].get<std::string>(), "EncoderLayer_1_internal_2");
+}
+
 TEST(atb_Probe, ReportOperationIOTensorEnable_001)
 {
     setenv("ATB_DUMP_TYPE", "tensor", 1);
     EXPECT_FALSE(atb::Probe::ReportOperationIOTensorEnable());
 }
-
 
 TEST(atb_Probe, ReportOperationIOTensorEnable_002)
 {

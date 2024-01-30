@@ -73,5 +73,15 @@ public:
         const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
         const std::vector<atb::Probe::Tensor> &outTensors);
 };
-}
+} // namespace atb
+
+namespace atb_speed {
+
+class SpeedProbe {
+public:
+    static bool IsReportModelTopoInfo(const std::string &modelName);
+    static void ReportModelTopoInfo(const std::string &modelName, const std::string &graph);
+};
+} // namespace atb_speed
+
 #endif
