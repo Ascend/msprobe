@@ -53,3 +53,17 @@ void DeleteFile(const std::string &outPath)
     }
     return;
 }
+
+bool CheckFileContainsString(const std::string& filePath, const std::string& targetString)
+{
+    std::ifstream file(filePath);
+    std::string line;
+ 
+    while (std::getline(file, line)) {
+        if (line.find(targetString) != std::string::npos) {
+            return true;
+        }
+    }
+ 
+    return false;
+}

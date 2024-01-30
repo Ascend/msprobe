@@ -533,15 +533,7 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
 
 bool atb::Probe::ReportOperationStatisticEnable()
 {
-    const char* isSaveCpuProfiling = std::getenv("ATB_SAVE_CPU_PROFILING");
-    if (isSaveCpuProfiling == nullptr) {
-        return false;
-    }
-    int value = std::stoi(isSaveCpuProfiling);
-    if (value == 1) {
-        return true;
-    }
-    return false;
+    return IsSaveDumpType("cpu_profiling");
 }
 
 void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,

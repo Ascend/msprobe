@@ -15,6 +15,7 @@
  */
 
 
+#include <fstream>
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "atb_probe.h"
@@ -51,6 +52,23 @@ static void ReportIOTensorTest(const size_t &executeCount, const std::string &te
     } else {
         atb::Probe::ReportKernelIOTensor(executeCount, opName, opParam, inTensors, outTensors);
     }
+
+    return;
+}
+
+static void ReportOperationStatisticTest(const size_t &executeCount)
+{
+    const std::string opName = "TestOperation";
+    std::string setupSt = "totalTime:535801, streamSyncTime:0, \
+    tillingCopyTime:69, kernelExecuteTime:416";
+    std::string executeSt = "totalTime:188, runnerSetupTime:115, \
+    runnerFillHostTilingTime:40, setupTotalCount:1, setupCacheHitCount:0, setupCacheMissCount:1, \
+    opsInitLuanchBufferTime:0, tilingCacheHitCount:1, tilingCacheMissCount:0, tilingLocalCacheHitCount:1, \
+    tilingGlobalCacheHitCount:0, kernelCacheGetTilingTime:20, kernelCacheAddTilingTime:0, \
+    kernelCacheCompareRunInfoTime:10, kernelCacheGetRunInfoTime:6";
+    
+    atb::Probe::ReportOperationSetupStatistic(executeCount, opName, setupSt);
+    atb::Probe::ReportOperationExecuteStatistic(executeCount, opName, executeSt);
 
     return;
 }
@@ -114,4 +132,39 @@ TEST(atb_Probe, ReportKernelIOTensor_001)
     DeleteFile(outPath);
     ReportIOTensorTest(executeCount, testType);
     EXPECT_TRUE(IfFileExists(outPath));
+}
+
+TEST(atb_Probe, ReportOperationStatisticEnable_001)
+{
+    setenv("ATB_DUMP_TYPE", "tensor", 1);
+    EXPECT_FALSE(atb::Probe::ReportOperationStatisticEnable());
+}
+
+TEST(atb_Probe, ReportOperationStatisticEnable_002)
+{
+    setenv("ATB_DUMP_TYPE", "cpu_profiling", 1);
+    EXPECT_TRUE(atb::Probe::ReportOperationStatisticEnable());
+}
+
+TEST(atb_Probe, ReportOperationStatisticTest_001)
+{
+    const size_t executeCount = 0;
+    const std::string pid = std::to_string(GetCurrentProcessId());
+    setenv("ATB_CUR_PID", pid.c_str(), 0);
+    setenv("ATB_OUTPUT_DIR", "./tmp/", 0);
+    const std::string fPath =
+        "ait_dump/cpu_profiling/" + pid + "/operation_statistic_" + std::to_string(executeCount) + ".txt";
+    const std::string outPath = "./tmp/" + fPath;
+    const std::string testType = "cpu_profiling";
+ 
+    DeleteFile(outPath);
+    ReportOperationStatisticTest(executeCount);
+    EXPECT_TRUE(IfFileExists(outPath));
+    EXPECT_TRUE(CheckFileContainsString(outPath, "[TestOperation]:totalTime:535801, streamSyncTime:0, \
+    tillingCopyTime:69, kernelExecuteTime:416"));
+    EXPECT_TRUE(CheckFileContainsString(outPath, "[TestOperation]:totalTime:188, runnerSetupTime:115, \
+    runnerFillHostTilingTime:40, setupTotalCount:1, setupCacheHitCount:0, setupCacheMissCount:1, \
+    opsInitLuanchBufferTime:0, tilingCacheHitCount:1, tilingCacheMissCount:0, tilingLocalCacheHitCount:1, \
+    tilingGlobalCacheHitCount:0, kernelCacheGetTilingTime:20, kernelCacheAddTilingTime:0, \
+    kernelCacheCompareRunInfoTime:10, kernelCacheGetRunInfoTime:6"));
 }
