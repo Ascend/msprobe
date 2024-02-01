@@ -78,7 +78,7 @@ static bool CheckDirectory(const std::string &directory)
     for (auto &dir : dirs) {
         curDir += dir + "/";
         if (!DirectoryExists(curDir)) {
-            int status = mkdir(curDir.c_str(), 0755);
+            int status = mkdir(curDir.c_str(), 0750);
             if (status) {
                 std::cout << "cannot create directory: " << curDir << std::endl;
             }
@@ -884,3 +884,4 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
 }
 
 } // end of namespace atb_speed
+
