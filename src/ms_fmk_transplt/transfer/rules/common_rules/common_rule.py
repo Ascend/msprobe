@@ -107,24 +107,22 @@ class FuncNameModifyRule(BaseRule):
         full_func_name = self.get_full_name_for_node(original_node)
         if not (self.__compare_func_name(full_func_name) or self.__compare_func_last_name(original_node)):
             return updated_node
+        desc = "change function %s to %s"
         if not self.replace_module:
             func = updated_node.func
             if isinstance(func, libcst.Name):
                 updated_node = updated_node.with_changes(func=func.with_changes(value=self.new_name))
-                self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
-                                      (self.old_name, self.new_name))
+                self._record_position(original_node, OperatorType.MODIFY, desc % (self.old_name, self.new_name))
             elif isinstance(func, libcst.Attribute):
                 func = updated_node.func
                 func = func.with_changes(attr=libcst.Name(self.new_name))
                 updated_node = updated_node.with_changes(func=func)
-                self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
-                                      (self.old_name, self.new_name))
+                self._record_position(original_node, OperatorType.MODIFY, desc % (self.old_name, self.new_name))
             else:
                 return updated_node
         else:
             new_func = self.__set_value_of_attr_with_module_replace()
-            self._record_position(original_node, OperatorType.MODIFY, "change function %s to %s" %
-                                  (self.old_name, self.new_name))
+            self._record_position(original_node, OperatorType.MODIFY, desc % (self.old_name, self.new_name))
             return updated_node.with_changes(func=new_func)
 
         return updated_node
