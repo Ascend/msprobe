@@ -128,9 +128,10 @@ class TorchLibraryParser(_DeclareLineParser):
         super().__init__(cuda_ops_list, file_lines, rel_file_path)
 
     def parse_m_def(self, func_line):
+        double_quotes = '::'
         if len(func_line.split('"')) <= 1:
             return
-        func_name = func_line.split('"')[1].replace('::', '.')
+        func_name = func_line.split('"')[1].replace(double_quotes, '.')
         if '(' in func_name:
             # deal with m.def(TORCH_SELECTIVE_SCHEMA(
             #  "----"torchvision::roi_pool(Tensor input, Tensor rois, float spatial_scale, int pooled_height
@@ -145,7 +146,7 @@ class TorchLibraryParser(_DeclareLineParser):
             # def with m.def("torchaudio::ffmpeg_set_log_level", [](int64_t level) {
             # "----av_log_set_level(static_cast<int>(level));
             #   });
-            func_name = func_line.split('"')[1].replace('::', '.')
+            func_name = func_line.split('"')[1].replace(double_quotes, '.')
             arg_declare = re_limit_length(LAMBDA_ARG_RE_PATTERN, func_line, re.findall)
             if not arg_declare:
                 return
@@ -157,7 +158,7 @@ class TorchLibraryParser(_DeclareLineParser):
         else:
             # deal with m.def("_cuda_version", &cuda_version);
             # deal with m.def("read_video_from_file", read_video_from_file);
-            func_name = func_line.split('"')[1].replace('::', '.')
+            func_name = func_line.split('"')[1].replace(double_quotes, '.')
             if len(func_line.split(',')) <= 1:
                 min_args_num, max_args_num = MIN_ARGS_NUM, -1
             else:

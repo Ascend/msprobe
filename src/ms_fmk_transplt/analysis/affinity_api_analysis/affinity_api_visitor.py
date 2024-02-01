@@ -38,6 +38,12 @@ class AffinityApiVisitor(libcst.CSTVisitor):
             class_body_list.extend(call_function)
         return class_body_list
 
+    @staticmethod
+    def _get_affinity_msg(api):
+        affinity_api_info = "Message: %s has an affinity api that can be replaced!" % api.name
+        return "%-21s %-35s %s" % ("line: %s ~ %s" % (api.start_line, api.end_line),
+                                   "Operation Type: HAVE AFFINITY API", affinity_api_info)
+
     def visit_Assign(self, node: "libcst.Assign") -> Optional[bool]:
         pattern = m.Assign(
             targets=[
@@ -126,20 +132,14 @@ class AffinityApiVisitor(libcst.CSTVisitor):
 
     def print_affinity_ops(self):
         for api in self.affinity_list:
-            affinity_api_info = "Message: %s has an affinity api that can be replaced!" % api.name
-            msg = "%-21s %-35s %s" % ("line: %s ~ %s" % (api.start_line, api.end_line),
-                                      "Operation Type: HAVE AFFINITY API", affinity_api_info)
+            msg = self._get_affinity_msg(api)
             translog.warning(msg)
         for api in self.affinity_call_list:
             if api.full_name.startswith('torch'):
-                affinity_api_info = "Message: %s has an affinity api that can be replaced!" % api.name
-                msg = "%-21s %-35s %s" % ("line: %s ~ %s" % (api.start_line, api.end_line),
-                                          "Operation Type: HAVE AFFINITY API", affinity_api_info)
+                msg = self._get_affinity_msg(api)
                 translog.warning(msg)
         for api in self.affinity_special_list:
-            affinity_api_info = "Message: %s has an affinity api that can be replaced!" % api.name
-            msg = "%-21s %-35s %s" % ("line: %s ~ %s" % (api.start_line, api.end_line),
-                                      "Operation Type: HAVE AFFINITY API", affinity_api_info)
+            msg = self._get_affinity_msg(api)
             translog.warning(msg)
 
     def get_full_name_for_node(self, node: Union[str, libcst.CSTNode]) -> Optional[str]:

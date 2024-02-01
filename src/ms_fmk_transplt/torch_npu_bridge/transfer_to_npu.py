@@ -37,6 +37,8 @@ torch_cuda_fn_white_list = [
 torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type', 'map_location']
+CUDA = 'cuda'
+NPU = 'npu'
 
 
 def is_torch_version_greater_than_2_1():
@@ -72,10 +74,10 @@ def wrapper_cuda(func):
 
 
 def replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
-    if type(device) == str and 'cuda' in device:
-        kwargs[device_arg] = device.replace('cuda', 'npu')
-    elif type(device) == torch.device and 'cuda' in device.type:
-        device_info = 'npu:{}'.format(device.index) if device.index is not None else 'npu'
+    if type(device) == str and CUDA in device:
+        kwargs[device_arg] = device.replace(CUDA, NPU)
+    elif type(device) == torch.device and CUDA in device.type:
+        device_info = 'npu:{}'.format(device.index) if device.index is not None else NPU
         kwargs[device_arg] = torch.device(device_info)
     elif type(device) == int:
         kwargs[device_arg] = f'npu:{device}'
@@ -85,10 +87,10 @@ def replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
 
 def replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
-        if isinstance(arg, str) and 'cuda' in arg:
-            args_list[idx] = arg.replace('cuda', 'npu')
-        elif isinstance(arg, torch.device) and 'cuda' in arg.type:
-            device_info = 'npu:{}'.format(arg.index) if arg.index is not None else 'npu'
+        if isinstance(arg, str) and CUDA in arg:
+            args_list[idx] = arg.replace(CUDA, NPU)
+        elif isinstance(arg, torch.device) and CUDA in arg.type:
+            device_info = 'npu:{}'.format(arg.index) if arg.index is not None else NPU
             args_list[idx] = torch.device(device_info)
         elif replace_int and not isinstance(arg, bool) and isinstance(arg, int):
             args_list[idx] = f'npu:{arg}'
@@ -136,12 +138,13 @@ def wrapper_data_loader(func):
     @wraps(func)
     def decorated(*args, **kwargs):
         if kwargs:
+            pin_memory_device_key = 'pin_memory_device'
             pin_memory = kwargs.get('pin_memory', False)
-            pin_memory_device = kwargs.get('pin_memory_device', None)
+            pin_memory_device = kwargs.get(pin_memory_device_key, None)
             if pin_memory and not pin_memory_device:
-                kwargs['pin_memory_device'] = 'npu'
+                kwargs[pin_memory_device_key] = 'npu'
             if pin_memory and isinstance(pin_memory_device, str) and 'cuda' in pin_memory_device:
-                kwargs['pin_memory_device'] = pin_memory_device.replace('cuda', 'npu')
+                kwargs[pin_memory_device_key] = pin_memory_device.replace('cuda', 'npu')
         return func(*args, **kwargs)
 
     return decorated
@@ -151,13 +154,14 @@ def wrapper_profiler(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
         if kwargs:
-            if 'experimental_config' in kwargs.keys() and \
-                    type(kwargs.get('experimental_config')) != torch_npu.profiler._ExperimentalConfig:
+            key = 'experimental_config'
+            if key in kwargs.keys() and \
+                    type(kwargs.get(key)) != torch_npu.profiler._ExperimentalConfig:
                 logger.warning(
                     'The parameter experimental_config of torch.profiler.profile has been deleted by the tool '
                     'because it can only be used in cuda, please manually modify the code '
                     'and use the experimental_config parameter adapted to npu.')
-                del kwargs['experimental_config']
+                del kwargs[key]
         return fn(*args, **kwargs)
 
     return decorated
@@ -167,16 +171,14 @@ def wrapper_compile(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
         npu_backend = torchair.get_npu_backend()
+        key = 'backend'
         if kwargs:
-            backend = kwargs.get('backend', None)
-            if not backend:
-                kwargs['backend'] = npu_backend
-            elif not isinstance(backend, functools.partial):
-                kwargs['backend'] = npu_backend
-            elif not isinstance(backend.func, type(npu_backend.func)):
-                kwargs['backend'] = npu_backend
+            backend = kwargs.get(key, None)
+            if not backend or not isinstance(backend, functools.partial) or not isinstance(backend.func,
+                                                                                           type(npu_backend.func)):
+                kwargs[key] = npu_backend
         else:
-            kwargs['backend'] = npu_backend
+            kwargs[key] = npu_backend
         return fn(*args, **kwargs)
 
     return decorated

@@ -89,23 +89,24 @@ class Transplant(object):
             self.transplant_result_statistics.update({result_dict[0]: self.transplant_result_statistics.get(
                 result_dict[0], 0) + len(result_dict[1])})
 
+        csv_title = ('File', 'Start Line', 'End Line', 'OP', 'Tips')
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info)
                              for api in unsupported_list), self.analysis_result_dir, "unsupported_api",
-                        ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
+                        csv_title)
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name)
                              for api in unknown_list), self.analysis_result_dir, "unknown_api",
-                        ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
+                        csv_title)
         utils.write_csv(
             self.__get_content_list(precision_advice_list),
             self.analysis_result_dir,
             "api_precision_advice",
-            ('File', 'Start Line', 'End Line', 'OP', 'Tips')
+            csv_title
         )
         utils.write_csv(
             self.__get_content_list(performance_advice_list),
             self.analysis_result_dir,
             "api_performance_advice",
-            ('File', 'Start Line', 'End Line', 'OP', 'Tips')
+            csv_title
         )
         self.affinity_api_analyzer.collect_affinity_analysis_results()
 
@@ -201,14 +202,14 @@ class CodeTransformer(libcst.CSTTransformer):
             updated_node = rule.leave_For(original_node, updated_node)
         return updated_node
 
-    def leave_Module(self, original_node: "libcst.Module", updated_node: "libcst.Module") -> "libcst.Module":
+    def leave_Module(self, original_node: libcst.Module, updated_node: libcst.Module) -> libcst.Module:
         for rule in self.rule_list:
             updated_node = rule.leave_Module(original_node, updated_node)
         return updated_node
 
     def leave_Name(
-            self, original_node: "libcst.Name", updated_node: "libcst.Name"
-    ) -> "libcst.Name":
+            self, original_node: libcst.Name, updated_node: libcst.Name
+    ) -> libcst.Name:
         for rule in self.rule_list:
             updated_node = rule.leave_Name(original_node, updated_node)
         return updated_node
@@ -252,8 +253,8 @@ class CodeTransformer(libcst.CSTTransformer):
             change_info_list.extend(rule.print_change_info())
         return change_info_list
 
-    def leave_Attribute(self, original_node: "libcst.Attribute", updated_node: "libcst.Attribute") \
-            -> "libcst.Attribute":
+    def leave_Attribute(self, original_node: libcst.Attribute, updated_node: libcst.Attribute) \
+            -> libcst.Attribute:
         for rule in self.rule_list:
             updated_node = rule.leave_Attribute(original_node, updated_node)
         return updated_node

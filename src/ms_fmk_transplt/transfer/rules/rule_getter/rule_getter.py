@@ -48,13 +48,14 @@ def get_rule_from_json_file(feature_switch, rule_list, json_file):
 
 def init_rule_to_list(key, rule_dict, rule_list, feature_switch):
     tmp = []
+    feature_key = 'feature_switch'
     if not hasattr(rule_module, key):
         return
     for kwargs in rule_dict.get(key, []):
-        if not set(kwargs.get('feature_switch', ['normal'])).intersection(set(feature_switch)):
+        if not set(kwargs.get(feature_key, ['normal'])).intersection(set(feature_switch)):
             continue
-        if kwargs.get('feature_switch', []):
-            del kwargs['feature_switch']
+        if kwargs.get(feature_key, []):
+            del kwargs[feature_key]
         rule = getattr(rule_module, key)
         tmp.append(rule(**kwargs))
 

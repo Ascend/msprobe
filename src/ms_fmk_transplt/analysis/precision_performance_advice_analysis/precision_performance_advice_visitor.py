@@ -86,18 +86,19 @@ class PrecisionPerformanceAdviceVisitor(UnsupportedApiVisitor):
             return [], []
 
     def get_api_parameters_performance_advice_instances(self, node, full_name, position, file_path):
+        expected_value = 'expected_value'
         info_dict = self.api_parameters_performance_dict.get(full_name)
         if info_dict:
             args = node.args
             for arg in args:
                 keyword = None if arg.keyword is None else libcst.parse_module("").code_for_node(arg.keyword)
                 value = None if arg.value is None else libcst.parse_module("").code_for_node(arg.value)
-                if keyword == info_dict.get('parameter') and str(value) != info_dict.get('expected_value'):
+                if keyword == info_dict.get('parameter') and str(value) != info_dict.get(expected_value):
                     return [ApiInstance(full_name, position, file_path,
                                         self.api_parameters_performance_dict.get(full_name).get('msg'))]
-                if keyword == info_dict.get('parameter') and str(value) == info_dict.get('expected_value'):
+                if keyword == info_dict.get('parameter') and str(value) == info_dict.get(expected_value):
                     return []
-            if info_dict.get('default_value') != info_dict.get('expected_value'):
+            if info_dict.get('default_value') != info_dict.get(expected_value):
                 return [ApiInstance(full_name, position, file_path,
                                     self.api_parameters_performance_dict.get(full_name).get('msg'))]
         return []

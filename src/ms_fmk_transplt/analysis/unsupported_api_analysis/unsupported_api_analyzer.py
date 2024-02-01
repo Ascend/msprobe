@@ -58,15 +58,16 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
         for result_dict in result_dicts.items():
             self.result_dict.update({result_dict[0]: self.result_dict.get(
                 result_dict[0], 0) + len(result_dict[1])})
+        csv_title = ('File', 'Start Line', 'End Line', 'OP', 'Tips')
         utils.write_csv(self._get_content_list(unsupported_op_list), self.output_path, "unsupported_api",
-                        ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
+                        csv_title)
         utils.write_csv(list((self.current_file_rel_path, api.start_line, api.end_line, api.name)
                              for api in unknown_op_list), self.output_path, "unknown_api",
-                        ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
+                        csv_title)
         utils.write_csv(self._get_content_list(precision_advice_list), self.output_path, "api_precision_advice",
-                        ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
+                        csv_title)
         utils.write_csv(self._get_content_list(performance_advice_list), self.output_path, "api_performance_advice",
-                        ('File', 'Start Line', 'End Line', 'OP', 'Tips'))
+                        csv_title)
 
     def _get_content_list(self, result_list):
         return list(
@@ -75,8 +76,9 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
 
 def export_performance_configuration(configuration_dict, result_dict, output_path):
     result_list = []
+    na = 'NA'
     for key, value in configuration_dict.items():
-        result_list.append(('NA', 'NA', 'NA', key, value))
+        result_list.append((na, na, na, key, value))
     if result_list:
         result_dict.update({'api_performance_advice.csv': result_dict.get(
             'api_performance_advice.csv', 0) + len(result_list)})

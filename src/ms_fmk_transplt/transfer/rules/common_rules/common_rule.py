@@ -29,7 +29,7 @@ class BaseInsertGlobalRule(BaseRule):
             return False
         return True
 
-    def leave_Module(self, original_node: "libcst.Module", updated_node: "libcst.Module") -> "libcst.Module":
+    def leave_Module(self, original_node: libcst.Module, updated_node: libcst.Module) -> libcst.Module:
         new_body = []
         insert_len = 0
         for content in self.insert_content:
@@ -102,8 +102,8 @@ class FuncNameModifyRule(BaseRule):
         return body.value
 
     def leave_Call(
-            self, original_node: "libcst.Call", updated_node: "libcst.Call"
-    ) -> "libcst.Call":
+            self, original_node: libcst.Call, updated_node: libcst.Call
+    ) -> libcst.Call:
         full_func_name = self.get_full_name_for_node(original_node)
         if not (self.__compare_func_name(full_func_name) or self.__compare_func_last_name(original_node)):
             return updated_node
@@ -287,8 +287,8 @@ class ArgsModifyRule(BaseRule):
 
 class PythonVersionConvertRule(BaseRule):
     def leave_Call(
-            self, original_node: "libcst.Call", updated_node: "libcst.Call"
-    ) -> "libcst.Call":
+            self, original_node: libcst.Call, updated_node: libcst.Call
+    ) -> libcst.Call:
         call_name = self.get_full_name_for_node(original_node)
         if call_name and call_name.split(".")[-1] == "hasattr":
             args = list(updated_node.args)
@@ -341,8 +341,8 @@ class ReplaceAttributeRule(BaseRule):
         self.attr_name = old_name
         self.attr_name_new = new_name
 
-    def leave_Attribute(self, original_node: "libcst.Attribute", updated_node: "libcst.Attribute") \
-            -> "libcst.Attribute":
+    def leave_Attribute(self, original_node: libcst.Attribute, updated_node: libcst.Attribute) \
+            -> libcst.Attribute:
         full_name = self.get_full_name_for_node(original_node)
         new_name_list = self.attr_name_new.split(".")
         if full_name == self.attr_name and len(new_name_list) > 1:

@@ -87,16 +87,17 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         self.result_dict.update({'unknown_op.csv': self.result_dict.get(
             'unknown_op.csv', 0) + len(unknown_op)})
 
+        csv_title = ('Torch API', 'Affected 3rd-party API')
         utils.write_csv(full_unsupported_results, self.output_path, 'full_unsupported_results',
                         ('File', '3rd-party API', 'Message'))
         utils.write_csv(unknown_op, self.output_path, 'unknown_op',
-                        ('Torch API', 'Affected 3rd-party API'))
+                        csv_title)
         utils.write_csv(framework_unsupported_op, self.output_path, 'framework_unsupported_op',
-                        ('Torch API', 'Affected 3rd-party API'))
+                        csv_title)
         utils.write_csv(cuda_op, self.output_path, 'cuda_op',
                         ('OP Name', 'Affected 3rd-party API'))
         utils.write_csv(migration_needed_op, self.output_path, 'migration_needed_op',
-                        ('Torch API', 'Affected 3rd-party API'))
+                        csv_title)
 
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)
