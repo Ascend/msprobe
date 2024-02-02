@@ -236,6 +236,31 @@ void MergeLayerTopoInfo(ordered_json &layerJson)
     return;
 }
 
+void SaveSubProcessInfo(const std::string infoToSave)
+{
+    // 将子进程的信息保存给ait侧
+    const char *outputDir = std::getenv("ATB_DUMP_SUB_PROC_INFO_SAVE_PATH");
+    if (outputDir == nullptr) {
+        return;
+    }
+
+    std::string outDir = outputDir;
+    bool ret = CheckDirectory(outDir);
+    if (!ret) {
+        std::cout << "Create directory failed: " << outDir << std::endl;
+        return;
+    }
+
+    std::string outPath = outDir + "/subprocess_info.txt";
+    std::ofstream outfile(outPath, std::ios::app);
+
+    if (outfile.is_open()) {
+        outfile << infoToSave << std::endl;
+        outfile.close();
+    }
+    return;
+}
+
 namespace atb {
 
 bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::string &optype)
@@ -595,6 +620,10 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     } else {
         std::cout << "Unable to open file! File name:" << outPath << std::endl;
     }
+
+    if (IsSaveDumpType("onnx")) {
+        SaveSubProcessInfo(outPath);
+    }
     return;
 }
 
@@ -879,6 +908,10 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
         std::cout << "model topo info written to file successfully! File name:" << outPath << std::endl;
     } else {
         std::cout << "Unable to open file! File name:" << outPath << std::endl;
+    }
+
+    if (IsSaveDumpType("onnx")) {
+        SaveSubProcessInfo(outPath);
     }
     return;
 }
