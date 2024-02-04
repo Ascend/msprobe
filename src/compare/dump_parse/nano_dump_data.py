@@ -227,7 +227,6 @@ class NanoDumpDataParser:
         self.file_size = os.path.getsize(self.dump_file_path)
         self.tlv_header_length = 0
 
-        # file name format： {op_type}.{op_name}.{taskid}.{streamid}.{timestamp}
         file_name = os.path.basename(self.dump_file_path)
         op_name = file_name.split('.')[1]
         dump_time = file_name.split('.')[4]
@@ -238,8 +237,8 @@ class NanoDumpDataParser:
         Parse the dump file path by nano dump data format
 
         file format:
-        |file length| tlv head length| tlv head |input0 data |input1 data |...|output0 data |output1 data |...|
-        |uint64     | uint64         | tlv head |input0 data |input1 data |...|output0 data |output1 data |...|
+        |tlv head length| tlv head |input0 data |input1 data |...|output0 data |output1 data |...|
+        |uint64         | tlv head |input0 data |input1 data |...|output0 data |output1 data |...|
 
         tlv head format:
         |——uint32 magicnum  //0x5A5A5A5A
@@ -343,7 +342,6 @@ class NanoDumpDataHandler:
         if not self.check_is_nano_dump_format():
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
-        # file_len(UINT64)\tlv_head_len(UINT64)\magicnum(UINT32)\version(UINT32)
         head_len = ConstManager.UINT64_SIZE * 2 + ConstManager.UINT32_SIZE * 2
         if self.file_size < head_len:
             log.print_error_log(

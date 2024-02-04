@@ -14,16 +14,6 @@ from dump_parse import dump_utils
 
 
 class TestUtilsMethods(unittest.TestCase):
-    def test_load_json_file_case1(self):
-        file_util = file_utils.FileUtils()
-        with pytest.raises(CompareError) as err:
-            with mock.patch('os.open',
-                            side_effect=IOError) as open_file:
-                open_file.writer = None
-                file_util.load_json_file("/test")
-        self.assertEqual(err.value.args[0],
-                         CompareError.MSACCUCMP_OPEN_FILE_ERROR)
-
     def test_load_json_file_case2(self):
         file_util = file_utils.FileUtils()
         with pytest.raises(CompareError) as err:

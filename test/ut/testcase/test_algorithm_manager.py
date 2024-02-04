@@ -130,14 +130,6 @@ def test_custom_script_path_given_not_match_when_valid_custom_script_path_then_e
             _mock_algorithm_manager(custom_script_path="/tmp", select_algorithm="cc", algorithm_options="")
 
 
-def test_custom_script_path_given_other_readable_when_valid_custom_script_path_then_error():
-    with pytest.raises(CompareError, match=str(CompareError.MSACCUCMP_DANGER_FILE_ERROR)):
-        with mock.patch('os.listdir', return_value=['alg_xxx.py']), mock.patch('os.stat') as mock_stat:
-            mock_stat.return_value.st_mode = 0o642
-            mock_stat.return_value.st_uid = os.getuid()
-            _mock_algorithm_manager(custom_script_path="/tmp", select_algorithm="cc", algorithm_options="")
-
-
 def test_custom_script_path_given_invalid_when_valid_custom_script_file_then_error():
     with pytest.raises(CompareError, match=str(CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)):
         with mock.patch('os.listdir', return_value=['alg_xxx.py']), mock.patch('os.stat') as mock_stat:

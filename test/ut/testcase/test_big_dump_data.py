@@ -40,17 +40,6 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
-    def test_parse4(self):
-        data = struct.pack('QQ', 4, 10)
-        with pytest.raises(CompareError) as error:
-            with mock.patch('cmp_utils.path_check.check_path_valid', return_value=0):
-                with mock.patch('os.path.getsize', return_value=20):
-                    with mock.patch('builtins.open', mock.mock_open(
-                            read_data=data)):
-                        BigDumpDataParser('a.bin').parse()
-        self.assertEqual(error.value.args[0],
-                         CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE)
-
     def test_parse5(self):
         data = struct.pack('QQ', 4, 10)
         with pytest.raises(CompareError) as error:

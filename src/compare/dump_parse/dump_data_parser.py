@@ -139,8 +139,10 @@ class DumpDataParser:
             log.print_warn_log('There is no %s in "%s".' % (tensor_type, dump_path))
             return
         if dump_data.get_ffts_mode:
-            shape_list = dump_data.ffts_auto_input_shape_list if tensor_type == ConstManager.INPUT \
-                else dump_data.ffts_auto_output_shape_list
+            if tensor_type == ConstManager.INPUT:
+                shape_list = dump_data.ffts_auto_input_shape_list
+            else:
+                shape_list = dump_data.ffts_auto_output_shape_list
             if len(shape_list) == len(tensor_list):
                 ffts_auto = True
             else:
