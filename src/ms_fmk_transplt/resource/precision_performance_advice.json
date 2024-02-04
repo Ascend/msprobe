@@ -1,0 +1,74 @@
+{
+  "api_precision_dict": {
+    "torch.baddbmm": "This api may exist process overflow, try modifying to torch.bmm() + add.",
+    "torch.reshape": "This api may exist backward overflow, try modifying to npu_confusion_transpose(npu_confusion_transpose = permute + reshape).",
+    "torch.nn.Embedding": "This api may have an issue with uncertain backward calculation results.",
+    "torch.nn.functional.embedding": "This api may have an issue with uncertain backward calculation results.",
+    "torch.matmul": "This api may have an issue with uncertain calculation results.",
+    "torch.Tensor.matmul": "This api may have an issue with uncertain calculation results."
+  },
+  "api_performance_dict": {
+    "torch.optim.AdamW": "Try modifying to apex.optimizers.NpuFusedAdamW, performance has improved significantly, but the memory usage increases by 70%.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html",
+    "torch.optim.Adadelta": "Try modifying to apex.optimizers.NpuFusedAdadelta.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html",
+    "torch.optim.Adam": "Try modifying to apex.optimizers.NpuFusedAdam.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html",
+    "torch.optim.RMSprop": "Try modifying to apex.optimizers.NpuFusedRMSprop.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html",
+    "torch.optim.SGD": "Try modifying to apex.optimizers.NpuFusedSGD.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html",
+    "torch.nn.Linear": "Replaced by fusion operator NpuLinear, add in front of the file that needs to be replaced:\n\n class NpuLinear(torch.nn.Linear):\n    def forward(self, x):\n        if not x.is_npu:\n            return super(NpuLinear, self).forward(x)\n        input_shape = x.size()\n        if x.dim() == 3:\n            x = x.reshape(-1, self.in_features)\n            return torch.npu_linear(x, self.weight, self.bias).view(input_shape[0],\n                                                                    input_shape[1], self.out_features)\n        elif x.dim() == 2:\n            return torch.npu_linear(x, self.weight, self.bias)\n        else:\n            raise RuntimeError('not support this dim')\n\nnn.Linear = NpuLinear\n",
+    "torch.optim.Lamb": "Try modifying to torch_npu.optim.NpuFusedLamb.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html",
+    "torch.optim.BertAdam": "Try modifying to apex.optimizers.NpuFusedBertAdam.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html",
+    "torch.optim.AdamP": "Try modifying to apex.optimizers.NpuFusedAdamP.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html",
+    "torch.optim.RMSpropTF": "Try modifying to apex.optimizers.NpuFusedRMSpropTF.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000062.html",
+    "torch.autograd.set_detect_anomaly": "This api is used for overflow checking, delete it for better performance.",
+    "torch.autograd.detect_anomaly": "This api is used for overflow checking, delete it for better performance.",
+    "torch.autograd.gradcheck": "This api is used for overflow checking, delete it for better performance."
+  },
+  "api_parameters_performance_dict": {
+    "torch.utils.data.DataLoader": {
+      "parameter": {
+        "pin_memory": {
+          "parameter_idx": [8],
+          "expected_value": "True",
+          "default_value": "False",
+          "msg": "When using the Ascend AI processor for training, it is recommended to set pin_memory to True.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000056.html"
+        },
+        "num_workers": {
+          "parameter_idx": [6],
+          "unexpected_value": "0",
+          "default_value": "0",
+          "msg": "To speed up data loading, it is recommended to set num_workers to a value greater than 0."
+        }
+      }
+    },
+    "torch.nn.parallel.DistributedDataParallel": {
+      "parameter": {
+        "bucket_cap_mb": {
+          "parameter_idx": [7],
+          "expected_value": "500",
+          "default_value": "25",
+          "msg": "To optimize communication between devices, it is recommended to set bucket_cap_mb to 500."
+        }
+      }
+    },
+    "to": {
+      "parameter": {
+        "non_blocking": {
+          "parameter_idx": [2, 3],
+          "expected_value": "True",
+          "default_value": "False",
+          "msg": "To optimize communication between devices, it is recommended to set non_blocking to True.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000055.html"
+        }
+      }
+    }
+  },
+  "performance_api_suggest_use": {
+    "no_sync": {
+      "dependency": ["torch.nn.parallel.DistributedDataParallel"],
+      "msg": "DistributedDataParallel is used in the codes, it is recommended to use no_sync()."
+    }
+  },
+  "performance_configuration_dict": {
+    "torch_npu.npu.set_compile_mode": "If it is a dynamic shape scenario, it is recommended to set torch_npu.npu.set_compile_mode(jit_compile=False) above the training entry file; if it is a fixed shape scenario, it is recommended to set torch_npu.npu.set_compile_mode(jit_compile=True) above the training entry file.\nFor more information, please refer to: https://www.hiascend.com/document/detail/zh/canncommercial/700/modeldevpt/ptmigr/AImpug_000060.html",
+    "TASK_QUEUE_ENABLE": "If you want to improve performance, please set environment variables 'export TASK_QUEUE_ENABLE=1'.",
+    "HCCL_OP_BASE_FFTS_MODE_ENABLE": "If you want to improve performance, please set environment variables 'export HCCL_OP_BASE_FFTS_MODE_ENABLE=TRUE'."
+  }
+}

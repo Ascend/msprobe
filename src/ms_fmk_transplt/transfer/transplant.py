@@ -13,10 +13,14 @@ from libcst._removal_sentinel import RemovalSentinel
 from utils import trans_utils as utils
 from utils import transplant_logger as translog
 from analysis import analyse_unsupported_api, analyse_cuda_ops, OpInfo
-from analysis.precision_performance_advice_analysis.precision_performance_advice_visitor import \
-    analyse_precision_performance_advice_api, AdviceInfo
 from analysis.affinity_api_analysis.affinity_api_visitor import analyse_affinity_api
 from analysis.affinity_api_analysis.affinity_api_analyzer import AffinityApiAnalyzer
+from analysis.precision_performance_advice_analysis.precision_performance_advice_visitor import (
+    analyse_precision_performance_advice_api, generate_perf_suggest
+)
+from analysis.precision_performance_advice_analysis.prec_perf_utils import AdviceInfo
+from analysis.precision_performance_advice_analysis.prec_perf_utils import PerfApiSuggest
+
 from analysis.unsupported_api_analysis.unsupported_api_analyzer import export_performance_configuration
 from .rules.distributed_rules import DataLoaderRule
 from .rules.common_rules import InsertMainFileRule
@@ -32,13 +36,21 @@ class Transplant(object):
         self.current_file_rel_path = ''
 
         self.global_reference_visitor = None
-        precision_advice_dict, performance_advice_dict = utils.get_precision_performance_advice_dict(
-            args.version)
-        api_parameters_performance_dict = utils.get_api_parameters_performance_dict(args.version)
-        self.performance_configuration_dict = utils.get_performance_configuration_dict(args.version)
+
+        # init dict for precision and performance advice analyse
+        prec_perf_advice_dict = utils.parse_precision_performance_advice_file()
+        if not isinstance(prec_perf_advice_dict, dict):
+            raise TypeError("Inner precision and performance config file is incorrect!")
+        api_prec_dict = prec_perf_advice_dict.get("api_precision_dict")
+        api_perf_dict = prec_perf_advice_dict.get("api_performance_dict")
+        api_params_perf_dict = prec_perf_advice_dict.get("api_parameters_performance_dict")
+        perf_api_suggest_dict = prec_perf_advice_dict.get("performance_api_suggest_use")
+        perf_api_suggest = PerfApiSuggest(perf_api_suggest_dict)
+        self.perf_config_dict = prec_perf_advice_dict.get("performance_configuration_dict")
+        self.advice_info = AdviceInfo(api_prec_dict, api_perf_dict, api_params_perf_dict, perf_api_suggest)
+
         self.op_info = OpInfo(utils.get_supported_op_dict(args.version), utils.get_unsupported_op_dict(args.version),
                               analyse_cuda_ops(script_dir, analysis_result_dir))
-        self.advice_info = AdviceInfo(precision_advice_dict, performance_advice_dict, api_parameters_performance_dict)
         self.transplant_result_statistics = {}
         self.analysis_result_dir = analysis_result_dir
         self.affinity_api_analyzer = AffinityApiAnalyzer(script_dir, analysis_result_dir, args.version)
@@ -51,7 +63,7 @@ class Transplant(object):
         self.global_reference_visitor = global_reference_visitor
 
     def run(self):
-        export_performance_configuration(self.performance_configuration_dict, self.transplant_result_statistics,
+        export_performance_configuration(self.perf_config_dict, self.transplant_result_statistics,
                                          self.analysis_result_dir)
         translog.info('Analysis start...')
 
@@ -124,6 +136,16 @@ class Transplant(object):
                 self.__analysis_file(file, self.script_dir)
                 count += 1
                 translog.set_progress_info(f'[Progress:{count / self.py_file_counts * 100:6.2f}%]')
+        # Give performance suggestion about the api not used.
+        suggest_list = generate_perf_suggest(self.advice_info.perf_api_suggest)
+        self.transplant_result_statistics.update({'api_performance_advice.csv': self.transplant_result_statistics.get(
+            'api_performance_advice.csv', 0) + len(suggest_list)})
+        utils.write_csv(
+            self.__get_content_list(suggest_list, with_file=False),
+            self.analysis_result_dir,
+            "api_performance_advice",
+            ('File', 'Start Line', 'End Line', 'OP', 'Tips')
+        )
 
     def __analysis_file(self, file, commonprefix):
         self.current_file_rel_path = os.path.relpath(file, commonprefix)
@@ -149,9 +171,14 @@ class Transplant(object):
             rule.clean()
         return new_module
 
-    def __get_content_list(self, result_list):
-        return list(
-            (self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info) for api in result_list)
+    def __get_content_list(self, result_list, with_file=True):
+        if with_file:
+            result = [(self.current_file_rel_path, api.start_line, api.end_line,
+                        api.name, api.info) for api in result_list]
+        else:
+            result = [("NA", api.start_line, api.end_line,
+                        api.name, api.info) for api in result_list]
+        return result
 
 
 class CodeTransformer(libcst.CSTTransformer):

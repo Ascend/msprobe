@@ -8,7 +8,8 @@ from analysis.base_analyzer import BaseAnalyzer
 from utils import trans_utils as utils, transplant_logger as translog
 from .unsupported_api_visitor import analyse_unsupported_api, OpInfo
 from ..precision_performance_advice_analysis.precision_performance_advice_visitor import \
-    analyse_precision_performance_advice_api, AdviceInfo
+    analyse_precision_performance_advice_api
+from ..precision_performance_advice_analysis.prec_perf_utils import AdviceInfo
 from .cuda_cpp_visitor import analyse_cuda_ops
 
 
@@ -19,10 +20,9 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
         self.cuda_op_list = analyse_cuda_ops(script_dir, output_path)
 
     def run(self):
-        export_performance_configuration(self.performance_configuration_dict, self.result_dict, self.output_path)
+        export_performance_configuration(self.perf_config_dict, self.result_dict, self.output_path)
         super().run()
-
-
+        self.gen_perf_suggest_use()
 
     def _analysis_file(self, file, commonprefix):
         if self.global_reference_visitor:
@@ -44,10 +44,7 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
                                                                                                self.cuda_op_list),
                                                                                self.global_reference_visitor)
         (precision_advice_list, performance_advice_list), _, _ = \
-            analyse_precision_performance_advice_api(wrapper, AdviceInfo(self.precision_advice_dict,
-                                                                         self.performance_advice_dict,
-                                                                         self.api_parameters_performance_dict),
-                                                     self.global_reference_visitor)
+            analyse_precision_performance_advice_api(wrapper, self.advice_info, self.global_reference_visitor)
         result_dicts = {
             'cuda_op_list.csv': self.cuda_op_list,
             'unsupported_api.csv': unsupported_op_list,
@@ -68,10 +65,6 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
                         csv_title)
         utils.write_csv(self._get_content_list(performance_advice_list), self.output_path, "api_performance_advice",
                         csv_title)
-
-    def _get_content_list(self, result_list):
-        return list(
-            (self.current_file_rel_path, api.start_line, api.end_line, api.name, api.info) for api in result_list)
 
 
 def export_performance_configuration(configuration_dict, result_dict, output_path):

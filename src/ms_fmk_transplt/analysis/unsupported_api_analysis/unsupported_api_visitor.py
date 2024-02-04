@@ -357,9 +357,10 @@ def analyse_unsupported_api(wrapper, op_info, global_reference_visitor=None):
 
 
 class ApiInstance:
-    def __init__(self, name, position, file_path, info=""):
+    def __init__(self, name, position=None, file_path="", info=""):
+        null_val = "NA"
         self.name = name
-        self.start_line = position.start.line
-        self.end_line = position.end.line
-        self.file_path = file_path
-        self.info = info
+        self.start_line = position.start.line if position else null_val
+        self.end_line = position.end.line if position else null_val
+        self.file_path = file_path if file_path else null_val
+        self.info = info if info else null_val

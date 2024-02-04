@@ -7,6 +7,8 @@ import os
 import platform
 import re
 import shutil
+from typing import Dict
+from pathlib import Path
 
 import pandas as pd
 from prettytable import PrettyTable
@@ -48,6 +50,23 @@ class DeleteFileException(Exception):
 
 class JediCacheClearException(Exception):
     pass
+
+
+def search_package_env_path(script_dir: str):
+    package_env_path_set = set()
+    search_file_list = [script_dir]
+    while search_file_list:
+        file_path = search_file_list.pop()
+        if not os.path.isdir(file_path):
+            continue
+        if os.path.exists(os.path.join(file_path, "__init__.py")):
+            package_env_path_set.add(str(Path(file_path).parent))
+            continue
+        for sub_file in os.listdir(file_path):
+            full_path = os.path.join(file_path, sub_file)
+            if os.path.isdir(full_path):
+                search_file_list.append(full_path)
+    return package_env_path_set
 
 
 def write_csv(content_list, output_dir, csv_name, header):
@@ -103,36 +122,22 @@ def get_affinity_info_dict(version, need_type):
     return json_file.get(need_type)
 
 
-def get_precision_performance_advice_json_info(version):
-    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice_1_11_0.json')
+def get_precision_performance_advice_json_info():
+    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice.json')
     return get_file_content_bytes(op_list_path)
 
 
-def get_precision_performance_advice_dict(version):
-    ops = get_precision_performance_advice_json_info(version)
-    try:
-        json_file = json.loads(ops)
-    except ValueError:
-        return {}, {}
-    return json_file.get('api_precision_list'), json.loads(ops).get('api_performance_list')
-
-
-def get_api_parameters_performance_dict(version):
-    ops = get_precision_performance_advice_json_info(version)
+def parse_precision_performance_advice_file() -> Dict:
+    """
+    Read precision performance advice json file and load it 
+    as a json object.
+    """
+    ops = get_precision_performance_advice_json_info()
     try:
         json_file = json.loads(ops)
     except ValueError:
         return {}
-    return json_file.get('api_parameters_performance_list')
-
-
-def get_performance_configuration_dict(version):
-    ops = get_precision_performance_advice_json_info(version)
-    try:
-        json_file = json.loads(ops)
-    except ValueError:
-        return {}
-    return json_file.get('performance_configuration_list')
+    return json_file
 
 
 def get_file_content_bytes(file):

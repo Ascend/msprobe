@@ -25,6 +25,7 @@ class MsFmkTransplt(object):
         self.rule_list = []
         self.py_file_counts = 0
         self.transplant_file_output = ''
+        self.package_env_path_set = None
 
     @staticmethod
     def __check_distributed_rule_param_valid(args):
@@ -109,7 +110,7 @@ class MsFmkTransplt(object):
         if utils.IS_JEDI_INSTALLED:
             utils.refresh_parso_cache()
             from global_analysis import GlobalReferenceVisitor
-            global_reference_visitor = GlobalReferenceVisitor(self.input)
+            global_reference_visitor = GlobalReferenceVisitor(self.input, self.package_env_path_set)
         else:
             translog.warning('Since jedi is not correctly installed, global analysis will not take effect. You '
                              'can install it via pip.')
@@ -229,6 +230,7 @@ class MsFmkTransplt(object):
 
     def __check_output_valid(self, args):
         self.input = os.path.realpath(args.input)
+        self.package_env_path_set = utils.search_package_env_path(self.input)
         if hasattr(args, 'main'):
             project_suffix = '_msft_multi'
         else:

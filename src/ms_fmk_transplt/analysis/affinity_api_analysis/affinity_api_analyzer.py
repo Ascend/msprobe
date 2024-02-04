@@ -78,4 +78,3 @@ class AffinityApiAnalyzer(BaseAnalyzer):
             return
         self.affinity_info = analyse_affinity_api(wrapper, self.pytorch_version, self.global_reference_visitor)
         self.collect_affinity_analysis_results()
-
