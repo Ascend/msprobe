@@ -26,7 +26,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/nlohmannJson/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../platform/securec/include)  # 编译环境中 git clone 的路径
 include_directories($ENV{ASCEND_HOME_PATH}/runtime/include/)  # 保留 CANN 包中的路径，避免本地编译不通过
 
-add_library(${LIB_NAME} SHARED atb_probe.cpp binfile.cpp)
+add_library(${LIB_NAME} SHARED atb_probe.cpp bin_file.cpp)
 
 set(ATB_PROBE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/output/ait_backend/dump/)
 install(

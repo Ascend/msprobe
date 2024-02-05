@@ -17,7 +17,7 @@
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "binfile.h"
+#include "bin_file.h"
 
 TEST(FileSystem_BinFile, AddAttr_001)
 {

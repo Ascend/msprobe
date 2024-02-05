@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2023 Huawei Technologies Co., Ltd.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #include <syscall.h>
 #include <cctype>
 #include <sys/statvfs.h>
-#include "binfile.h"
+#include "bin_file.h"
 #include "nlohmann/json.hpp"
 #include "atb_probe.h"
 
@@ -25,7 +25,7 @@ using ordered_json = nlohmann::ordered_json;
 unsigned long long g_minDiskSpaceFreeSize = 2147483648; // 2G
 constexpr size_t FREE_SIZE_MULTIPLE_OF_DATA_SIZE = 2; // free size至少两倍data size大小
 
-int GetFreeSpace(std::string path, unsigned long long *freeSpace)
+static int GetFreeSpace(std::string path, unsigned long long *freeSpace)
 {
     struct statvfs diskInfo;
 
@@ -193,9 +193,9 @@ struct LayerGraphMap {
     };
 };
 
-LayerGraphMap g_layerGraphMap;
+static LayerGraphMap g_layerGraphMap;
 static unsigned long long g_aitOperationBaseId(0);
-void MergeLayerTopoInfo(ordered_json &layerJson)
+static void MergeLayerTopoInfo(ordered_json &layerJson)
 {
     // 获取atb仓打桩保存的layer的拓扑信息
     layerJson["opType"] = layerJson["opName"];
@@ -385,9 +385,7 @@ bool atb::Probe::IsSaveTensorAfter()
 }
 
 
-void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
-    const std::string &dims, const void *hostData, uint64_t dataSize,
-    const std::string &filePath)
+void atb::Probe::SaveTensor(const atb::Probe::TensorInfo &tensorInfo, const std::string &filePath)
 {
     // 判断是否需要保存
     bool saveFlag = (IsInTensorBinPath(filePath) && IsSaveIntensor()) ||
@@ -403,7 +401,7 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     unsigned long long freeSpace = 0;
     int retGetFreeSpace = GetFreeSpace(outDir, &freeSpace);
     if (retGetFreeSpace == 0 &&
-        (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE)) {
+        (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= tensorInfo.dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE)) {
         std::cout << "Disk space is not enough, it's must more than 2G, free size(MB) is: " << (freeSpace >> 20)
                   << std::endl;
         return;
@@ -419,16 +417,16 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
         return;
     }
 
-    if (!hostData) {
+    if (!tensorInfo.hostData) {
         std::cout << "hostData is None." << std::endl;
         return;
     }
     FileSystem::BinFile binFile;
-    binFile.AddAttr("format", format);
-    binFile.AddAttr("dtype", dtype);
-    binFile.AddAttr("dims", dims);
+    binFile.AddAttr("format", tensorInfo.format);
+    binFile.AddAttr("dtype", tensorInfo.dtype);
+    binFile.AddAttr("dims", tensorInfo.dims);
     if (IsSaveTensorData()) {
-        binFile.AddObject("data", hostData, dataSize);
+        binFile.AddObject("data", tensorInfo.hostData, tensorInfo.dataSize);
     }
     binFile.Write(outPath);
 }
@@ -640,7 +638,8 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
     std::string nowPid = curPid != nullptr ? curPid : "";
-    std::string filePath = "ait_dump/cpu_profiling/" + nowPid + "/operation_statistic_" + std::to_string(executeCount) + ".txt";
+    std::string filePath = "ait_dump/cpu_profiling/" + nowPid + "/operation_statistic_" + \
+                            std::to_string(executeCount) + ".txt";
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
@@ -669,7 +668,8 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
     std::string nowPid = curPid != nullptr ? curPid : "";
-    std::string filePath = "ait_dump/cpu_profiling/" + nowPid + "/operation_statistic_" + std::to_string(executeCount) + ".txt";
+    std::string filePath = "ait_dump/cpu_profiling/" + nowPid + "/operation_statistic_" + \
+                            std::to_string(executeCount) + ".txt";
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);

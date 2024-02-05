@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2023 Huawei Technologies Co., Ltd.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 
 
-#include "binfile.h"
+#include "bin_file.h"
 #include "securec.h"
 
 FileSystem::BinFile::BinFile() {}
@@ -68,7 +68,7 @@ bool FileSystem::BinFile::Write(const std::string &filePath, const mode_t mode)
     return true;
 }
 
-bool FileSystem::BinFile::AddObject(const std::string &name, const void* binaryBuffer, uint64_t binaryLen)
+bool FileSystem::BinFile::AddObject(const std::string &name, const uint8_t* binaryBuffer, uint64_t binaryLen)
 {
     if (binaryBuffer == nullptr) {
         std::cout << "binary buffer size is none" << std::endl;
@@ -94,7 +94,7 @@ bool FileSystem::BinFile::AddObject(const std::string &name, const void* binaryB
     while (copyLen > 0) {
         uint64_t curCopySize = copyLen > MAX_SINGLE_MEMCPY_SIZE ? MAX_SINGLE_MEMCPY_SIZE : copyLen;
         auto err = memcpy_s(binariesBuffer_.data() + currentLen + offset, curCopySize,
-            static_cast<const uint8_t*>(binaryBuffer) + offset, curCopySize);
+            binaryBuffer + offset, curCopySize);
         if (err != EOK) {
             std::cout << "memcpy_s failed, err = " << err << std::endl;
             return false;
@@ -105,9 +105,9 @@ bool FileSystem::BinFile::AddObject(const std::string &name, const void* binaryB
     return true;
 }
 
-bool FileSystem::BinFile::WriteAttr(std::ofstream &outputFile, const std::string &name, const std::string &value)
+bool FileSystem::BinFile::WriteAttr(std::ofstream &outputFile, const std::string &filePath, const std::string &value)
 {
-    std::string line = name + "=" + value + "\n";
+    std::string line = filePath + "=" + value + "\n";
     outputFile << line;
     return true;
 }
