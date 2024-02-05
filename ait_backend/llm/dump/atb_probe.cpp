@@ -22,8 +22,25 @@
 #include "atb_probe.h"
 
 using ordered_json = nlohmann::ordered_json;
-unsigned long long g_minDiskSpaceFreeSize = 2147483648; // 2G
-constexpr size_t FREE_SIZE_MULTIPLE_OF_DATA_SIZE = 2; // free size至少两倍data size大小
+
+namespace {
+    unsigned long long g_minDiskSpaceFreeSize = 2147483648; // 2G
+    constexpr size_t FREE_SIZE_MULTIPLE_OF_DATA_SIZE = 2; // free size至少两倍data size大小
+    struct LayerGraphMap {
+        std::map<std::string, std::string> layerGraphMap_;
+
+        void SaveLayerGraph(const std::string &opName, const std::string &graph)
+        {
+            layerGraphMap_[opName] = graph;
+        };
+
+        std::string GetLayerGraph(const std::string &opName)
+        {
+            auto it = layerGraphMap_.find(opName);
+            return (it == layerGraphMap_.end()) ? "" : it->second;
+        };
+    };
+}
 
 static int GetFreeSpace(std::string path, unsigned long long *freeSpace)
 {
@@ -177,21 +194,6 @@ static void DfsToModifyGraphTensors(ordered_json &curNodeToSave,
     }
     return;
 }
-
-struct LayerGraphMap {
-    std::map<std::string, std::string> layerGraphMap_;
-
-    void SaveLayerGraph(const std::string &opName, const std::string &graph)
-    {
-        layerGraphMap_[opName] = graph;
-    };
-
-    std::string GetLayerGraph(const std::string &opName)
-    {
-        auto it = layerGraphMap_.find(opName);
-        return (it == layerGraphMap_.end()) ? "" : it->second;
-    };
-};
 
 static LayerGraphMap g_layerGraphMap;
 static unsigned long long g_aitOperationBaseId(0);
