@@ -238,7 +238,9 @@ class FormatConversionMain:
         :return error_code
         """
         # 1. check arguments valid
-        self.check_arguments_valid()
+        ret = self.check_arguments_valid()
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            log.print_error_log('Check arguments Failed. Please recheck the arguments')
         # 2. convert format for dump data
         if len(self.input_path) == 1 and os.path.isfile(self.input_path[0]):
             ret, _ = self._convert_format_for_one_file(self.input_path[0])
