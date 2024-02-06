@@ -387,7 +387,9 @@ bool atb::Probe::IsSaveTensorAfter()
 }
 
 
-void atb::Probe::SaveTensor(const atb::Probe::TensorInfo &tensorInfo, const std::string &filePath)
+void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
+    const std::string &dims, const void *hostData, uint64_t dataSize,
+    const std::string &filePath)
 {
     // 判断是否需要保存
     bool saveFlag = (IsInTensorBinPath(filePath) && IsSaveIntensor()) ||
@@ -395,40 +397,40 @@ void atb::Probe::SaveTensor(const atb::Probe::TensorInfo &tensorInfo, const std:
     if (!saveFlag) {
         return;
     }
-
+ 
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = (outputDir != nullptr ? outputDir : "./");
-
+ 
     // 磁盘空间判断
     unsigned long long freeSpace = 0;
     int retGetFreeSpace = GetFreeSpace(outDir, &freeSpace);
     if (retGetFreeSpace == 0 &&
-        (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= tensorInfo.dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE)) {
+        (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE)) {
         std::cout << "Disk space is not enough, it's must more than 2G, free size(MB) is: " << (freeSpace >> 20)
                   << std::endl;
         return;
     }
-
+ 
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
-
+ 
     bool ret = CheckDirectory(directory);
     if (!ret) {
         std::cout << "Create directory failed: " << directory << std::endl;
         return;
     }
-
-    if (!tensorInfo.hostData) {
+ 
+    if (!hostData) {
         std::cout << "hostData is None." << std::endl;
         return;
     }
     FileSystem::BinFile binFile;
-    binFile.AddAttr("format", tensorInfo.format);
-    binFile.AddAttr("dtype", tensorInfo.dtype);
-    binFile.AddAttr("dims", tensorInfo.dims);
+    binFile.AddAttr("format", format);
+    binFile.AddAttr("dtype", dtype);
+    binFile.AddAttr("dims", dims);
     if (IsSaveTensorData()) {
-        binFile.AddObject("data", tensorInfo.hostData, tensorInfo.dataSize);
+        binFile.AddObject("data", hostData, dataSize);
     }
     binFile.Write(outPath);
 }
