@@ -28,25 +28,25 @@ static void ReportIOTensorTest(const size_t &executeCount, const std::string &te
     const std::string opName = "TestOperation";
     const std::string opParam = "{\"testParam1\":0,\"testParam2\":[0,0,0],\"testParam3\":{\"testParam4\":9.99}}";
 
-    atb::Probe::Tensor testInTentor1;
-    testInTentor1.dype = "ACL_FLOAT16";
-    testInTentor1.format = "ACL_FORMAT_ND";
-    testInTentor1.shape = "65024,4096";
-    atb::Probe::Tensor testInTentor2;
-    testInTentor2.dype = "ACL_INT64";
-    testInTentor2.format = "ACL_FORMAT_ND";
-    testInTentor2.shape = "8,1024";
-    atb::Probe::Tensor testOutTentor;
-    testOutTentor.dype = "ACL_FLOAT16";
-    testOutTentor.format = "ACL_FORMAT_ND";
-    testOutTentor.shape = "8,1024,4096";
+    atb::Probe::Tensor testInTensor1;
+    testInTensor1.dype = "ACL_FLOAT16";
+    testInTensor1.format = "ACL_FORMAT_ND";
+    testInTensor1.shape = "65024,4096";
+    atb::Probe::Tensor testInTensor2;
+    testInTensor2.dype = "ACL_INT64";
+    testInTensor2.format = "ACL_FORMAT_ND";
+    testInTensor2.shape = "8,1024";
+    atb::Probe::Tensor testOutTensor;
+    testOutTensor.dype = "ACL_FLOAT16";
+    testOutTensor.format = "ACL_FORMAT_ND";
+    testOutTensor.shape = "8,1024,4096";
 
     std::vector<atb::Probe::Tensor> inTensors;
-    inTensors.push_back(testInTentor1);
-    inTensors.push_back(testInTentor2);
+    inTensors.push_back(testInTensor1);
+    inTensors.push_back(testInTensor2);
 
     std::vector<atb::Probe::Tensor> outTensors;
-    outTensors.push_back(testOutTentor);
+    outTensors.push_back(testOutTensor);
 
     if (testType == "op") {
         atb::Probe::ReportOperationIOTensor(executeCount, opName, opParam, inTensors, outTensors);
@@ -217,10 +217,18 @@ TEST(atb_Probe, ReportOperationIOTensor_001)
         "ait_dump/operation_io_tensors/" + pid + "/operation_tensors_" + std::to_string(executeCount) + ".csv";
     const std::string outPath = "./tmp/" + fPath;
     const std::string testType = "op";
+    const std::string headStr = "CaseNum|CaseName|OpName|OpParam|InNum|InDType|InFormat|InShape|\
+OutNum|OutDType|OutFormat|OutShape|DataGenType|DataGenRange|InTensorFile|OutTensorFile|TestType|TestLevel|FromModel|\
+SocVersion|ExpectedError";
+    const std::string contentStr = "1|TestOperation1|TestOperation|{\"testParam1\":0,\"testParam2\":\
+[0,0,0],\"testParam3\":{\"testParam4\":9.99}}|2|ACL_FLOAT16;ACL_INT64|ACL_FORMAT_ND;ACL_FORMAT_ND|65024,4096;8,1024|1|\
+ACL_FLOAT16|ACL_FORMAT_ND|8,1024,4096|customize| | | | | | | |NO_ERROR";
 
     DeleteFile(outPath);
     ReportIOTensorTest(executeCount, testType);
     EXPECT_TRUE(IfFileExists(outPath));
+    EXPECT_TRUE(CheckFileContainsString(outPath, headStr));
+    EXPECT_TRUE(CheckFileContainsString(outPath, contentStr));
 }
 
 TEST(atb_Probe, ReportKernelIOTensorEnable_001)
@@ -245,10 +253,18 @@ TEST(atb_Probe, ReportKernelIOTensor_001)
         "ait_dump/kernel_io_tensors/" + pid + "/kernel_tensors_" + std::to_string(executeCount) + ".csv";
     const std::string outPath = "./tmp/" + fPath;
     const std::string testType = "kernel";
+    const std::string headStr = "CaseNum|CaseName|OpName|OpParam|InNum|InDType|InFormat|InShape|\
+OutNum|OutDType|OutFormat|OutShape|DataGenType|DataGenRange|InTensorFile|OutTensorFile|TestType|TestLevel|FromModel|\
+SocVersion|ExpectedError";
+    const std::string contentStr = "1|TestOperation1|TestOperation|{\"testParam1\":0,\"testParam2\":\
+[0,0,0],\"testParam3\":{\"testParam4\":9.99}}|2|ACL_FLOAT16;ACL_INT64|ACL_FORMAT_ND;ACL_FORMAT_ND|65024,4096;8,1024|1|\
+ACL_FLOAT16|ACL_FORMAT_ND|8,1024,4096|customize| | | | | | | |NO_ERROR";
 
     DeleteFile(outPath);
     ReportIOTensorTest(executeCount, testType);
     EXPECT_TRUE(IfFileExists(outPath));
+    EXPECT_TRUE(CheckFileContainsString(outPath, headStr));
+    EXPECT_TRUE(CheckFileContainsString(outPath, contentStr));
 }
 
 TEST(atb_Probe, ReportOperationStatisticEnable_001)
