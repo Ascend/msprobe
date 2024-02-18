@@ -638,12 +638,10 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
     const std::string &opname, const std::string &st)
 {
     // 得到文件保存地址
-    const char* curPid = std::getenv("ATB_CUR_PID");
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
-    std::string nowPid = curPid != nullptr ? curPid : "";
-    std::string filePath = "ait_dump/cpu_profiling/" + nowPid + "/operation_statistic_" + \
-                            std::to_string(executeCount) + ".txt";
+    std::string filePath = "ait_dump/cpu_profiling/" + std::to_string(GetCurrentProcessId()) + \
+                            "/operation_statistic_" + std::to_string(executeCount) + ".txt";
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
@@ -662,18 +660,17 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
     } else {
         std::cout << "Unable to open file!" << std::endl;
     }
+    return;
 }
 
 void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
     const std::string &opname, const std::string &st)
 {
     // 得到文件保存地址
-    const char* curPid = std::getenv("ATB_CUR_PID");
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
-    std::string nowPid = curPid != nullptr ? curPid : "";
-    std::string filePath = "ait_dump/cpu_profiling/" + nowPid + "/operation_statistic_" + \
-                            std::to_string(executeCount) + ".txt";
+    std::string filePath = "ait_dump/cpu_profiling/" + std::to_string(GetCurrentProcessId()) + \
+                            "/operation_statistic_" + std::to_string(executeCount) + ".txt";
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
@@ -692,6 +689,7 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
     } else {
         std::cout << "Unable to open file!" << std::endl;
     }
+    return;
 }
 
 
