@@ -59,7 +59,7 @@ public:
     static bool IsSaveTensorBefore();
     static bool IsSaveTensorAfter();
     static void SaveTensor(const std::string &format, const std::string &dtype,
-        const std::string &dims, const void *deviceData, uint64_t dataSize,
+        const std::string &dims, const void *hostData, uint64_t dataSize,
         const std::string &filePath);
     static void SaveTiling(const uint8_t* data, uint64_t dataSize, const std::string &filePath);
     static bool IsSaveTiling();
