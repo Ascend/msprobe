@@ -9,6 +9,7 @@ import re
 import shutil
 from typing import Dict
 from pathlib import Path
+from typing import ByteString
 
 import pandas as pd
 from prettytable import PrettyTable
@@ -83,17 +84,30 @@ def write_csv(content_list, output_dir, csv_name, header):
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
 
 
+def get_config_json_dict(config_path: str) -> Dict:
+    bstr = get_file_content_bytes(config_path)
+    warn_msg = "Inner config json file is incorrect!"
+    try:
+        json_dict = json.loads(bstr)
+    except ValueError:
+        translog.warning(warn_msg)
+        return {}
+    if not isinstance(json_dict, dict):
+        translog.warning(warn_msg)
+        json_dict = {}
+    return json_dict
+
+
 def get_unsupported_op_dict(version):
     if version == '1.11.0':
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_2_1.json')
-    ops = get_file_content_bytes(op_list_path)
-    try:
-        json_file = json.loads(ops)
-    except ValueError:
-        return {}
-    return json_file.get('op_list')
+    json_dict = get_config_json_dict(op_list_path)
+    # Check dict field
+    if 'op_list' not in json_dict:
+        translog.warning("op_list field was not found in the op list json file!")
+    return json_dict.get('op_list', {})
 
 
 def get_supported_op_dict(version):
@@ -101,30 +115,21 @@ def get_supported_op_dict(version):
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
     else:
         op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_2_1.json')
-    ops = get_file_content_bytes(op_list_path)
-    try:
-        json_file = json.loads(ops)
-    except ValueError:
-        return {}
-    return json_file.get('op_list')
+    json_dict = get_config_json_dict(op_list_path)
+    if 'op_list' not in json_dict:
+        translog.warning("op_list field was not found in the support op json file!")
+    return json_dict.get('op_list', {})
 
 
 def get_affinity_info_dict(version, need_type):
     need_type_list = ['class', 'function', 'torch']
     if need_type not in need_type_list:
         return {}
-    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/affinity_list_1_11_0.json')
-    ops = get_file_content_bytes(op_list_path)
-    try:
-        json_file = json.loads(ops)
-    except ValueError:
-        return {}
-    return json_file.get(need_type)
-
-
-def get_precision_performance_advice_json_info():
-    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice.json')
-    return get_file_content_bytes(op_list_path)
+    affinity_list_path = os.path.join(os.path.dirname(__file__), '../resource/affinity_list_1_11_0.json')
+    json_dict = get_config_json_dict(affinity_list_path)
+    if need_type not in json_dict:
+        translog.warning(f"{need_type} field was not found in the affinity list json file!")
+    return json_dict.get(need_type, {})
 
 
 def parse_precision_performance_advice_file() -> Dict:
@@ -132,12 +137,17 @@ def parse_precision_performance_advice_file() -> Dict:
     Read precision performance advice json file and load it 
     as a json object.
     """
-    ops = get_precision_performance_advice_json_info()
-    try:
-        json_file = json.loads(ops)
-    except ValueError:
-        return {}
-    return json_file
+    op_list_path = os.path.join(os.path.dirname(__file__), '../resource/precision_performance_advice.json')
+    json_dict = get_config_json_dict(op_list_path)
+    check_fields = [
+        "api_precision_dict", "api_performance_dict", "api_parameters_performance_dict",
+        "performance_api_suggest_use", "performance_configuration_dict"
+    ]
+    for field in check_fields:
+        if field not in json_dict:
+            translog.warning(f"{field} field was not found in the advice json file!")
+            json_dict[field] = {}
+    return json_dict
 
 
 def get_file_content_bytes(file):

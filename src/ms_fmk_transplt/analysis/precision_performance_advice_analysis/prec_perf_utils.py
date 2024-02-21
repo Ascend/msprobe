@@ -34,7 +34,7 @@ class PerfApiSuggest:
         self.__set_dependency()
 
     def __set_dependency(self):
-        if not self.suggest_apis_info:
+        if not self.suggest_apis_info or not isinstance(self.suggest_apis_info, dict):
             return
 
         for api_name, val in self.suggest_apis_info.items():

@@ -27,14 +27,12 @@ class BaseAnalyzer:
         self.result_dict = {}
         # init dict for precision and performance advice analyse
         prec_perf_advice_dict = utils.parse_precision_performance_advice_file()
-        if not isinstance(prec_perf_advice_dict, dict):
-            raise TypeError("Inner precision and performance config file is incorrect!")
-        api_prec_dict = prec_perf_advice_dict.get("api_precision_dict")
-        api_perf_dict = prec_perf_advice_dict.get("api_performance_dict")
-        api_params_perf_dict = prec_perf_advice_dict.get("api_parameters_performance_dict")
-        perf_api_suggest_dict = prec_perf_advice_dict.get("performance_api_suggest_use")
+        api_prec_dict = prec_perf_advice_dict.get("api_precision_dict", {})
+        api_perf_dict = prec_perf_advice_dict.get("api_performance_dict", {})
+        api_params_perf_dict = prec_perf_advice_dict.get("api_parameters_performance_dict", {})
+        perf_api_suggest_dict = prec_perf_advice_dict.get("performance_api_suggest_use", {})
         perf_api_suggest = PerfApiSuggest(perf_api_suggest_dict)
-        self.perf_config_dict = prec_perf_advice_dict.get("performance_configuration_dict")
+        self.perf_config_dict = prec_perf_advice_dict.get("performance_configuration_dict", {})
         self.advice_info = AdviceInfo(api_prec_dict, api_perf_dict, api_params_perf_dict, perf_api_suggest)
 
     @staticmethod

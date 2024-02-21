@@ -6,6 +6,7 @@ import logging as logger
 from logging.handlers import RotatingFileHandler
 import os
 import re
+from utils import trans_utils as utils
 
 LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
 DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
@@ -27,7 +28,7 @@ class RotatingFileHandlerWithPermission(RotatingFileHandler):
 def init_logging_file(filename):
     file_path = os.path.split(filename)[0]
     if not os.path.exists(file_path):
-        os.makedirs(file_path)
+        utils.make_dir_safety(file_path)
 
     formatter = logger.Formatter(LOG_FORMAT, DATE_FORMAT)
     file_handler = RotatingFileHandlerWithPermission(filename=filename, encoding="utf-8", maxBytes=MAX_BYTES,

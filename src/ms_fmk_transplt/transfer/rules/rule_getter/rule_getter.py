@@ -39,6 +39,8 @@ def get_rule_from_json_file(feature_switch, rule_list, json_file):
         json_file = json.loads(json_file_content)
     except ValueError:
         return
+    if not isinstance(json_file, dict):
+        return
     rule_dict = json_file.get('rules', {})
     if not isinstance(rule_dict, dict):
         return

@@ -178,12 +178,16 @@ def generate_perf_suggest(perf_api_suggest: PerfApiSuggest) -> List[ApiInstance]
     dependency = perf_api_suggest.dependency
     suggest_apis = perf_api_suggest.suggest_apis
     suggest_apis_info = perf_api_suggest.suggest_apis_info
-    for api_name, infos in suggest_apis_info.items():
-        dep_apis = infos.get("dependency", [])
-        dep_meet = [dependency.get(dep, False) for dep in dep_apis]
-        if sum(dep_meet) != len(dep_meet):
-            continue
-        # Add suggesttion api instance to list if all dependencies are satisfied.
-        if api_name in suggest_apis and not suggest_apis.get(api_name):
-            suggest_list.append(ApiInstance(api_name, info=infos.get("msg")))
+    try:
+        for api_name, infos in suggest_apis_info.items():
+            dep_apis = infos.get("dependency", [])
+            dep_meet = [dependency.get(dep, False) for dep in dep_apis]
+            if sum(dep_meet) != len(dep_meet):
+                continue
+            # Add suggesttion api instance to list if all dependencies are satisfied.
+            if api_name in suggest_apis and not suggest_apis.get(api_name):
+                suggest_list.append(ApiInstance(api_name, info=infos.get("msg")))
+    except AttributeError as err:
+        raise RuntimeError("Inner precision and performance config file is incorrect!") from err
+
     return suggest_list
