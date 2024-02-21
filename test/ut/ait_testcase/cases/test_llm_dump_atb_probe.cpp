@@ -301,3 +301,23 @@ TEST(atb_Probe, ReportOperationStatisticTest_001)
     tilingGlobalCacheHitCount:0, kernelCacheGetTilingTime:20, kernelCacheAddTilingTime:0, \
     kernelCacheCompareRunInfoTime:10, kernelCacheGetRunInfoTime:6"));
 }
+
+TEST(atb_Probe, IsSaveParam_001)
+{
+    EXPECT_TRUE(atb::Probe::IsSaveParam());
+}
+
+TEST(atb_Probe, SaveParamTest)
+{
+    std::string paramJson = "fake_param";
+    std::string fileName = "fake_param.json";
+
+    atb::Probe::SaveParam(paramJson, fileName);
+    setenv("ATB_OUTPUT_DIR", "./tmp/", 0);
+
+    std::string paramDir = "./tmp/ait_dump/tensors/fake_param.json";
+    std::ifstream paramFile(paramDir);
+    EXPECT_TRUE(paramFile.is_open());
+
+    DeleteFile(paramDir);
+}

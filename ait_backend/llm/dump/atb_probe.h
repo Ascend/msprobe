@@ -80,6 +80,8 @@ public:
     static void ReportKernelIOTensor(const size_t executeCount, const std::string &opName,
         const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
         const std::vector<atb::Probe::Tensor> &outTensors);
+    static void SaveParam(const std::string &param, const std::string &filePath);
+    static bool IsSaveParam();
 };
 } // namespace atb
 

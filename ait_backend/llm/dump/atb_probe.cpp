@@ -400,7 +400,8 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
  
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = (outputDir != nullptr ? outputDir : "./");
- 
+    outDir = outDir + "ait_dump/tensors/";
+
     // 磁盘空间判断
     unsigned long long freeSpace = 0;
     int retGetFreeSpace = GetFreeSpace(outDir, &freeSpace);
@@ -843,6 +844,39 @@ void atb::Probe::ReportKernelIOTensor(const size_t executeCount, const std::stri
     ReportIOTensor(outPath, opName, opParam, inTensors, outTensors);
     return;
 }
+
+void atb::Probe::SaveParam(const std::string &param, const std::string &filePath)
+{
+    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
+    std::string outDir = outputDir != nullptr ? outputDir : "./";
+    outDir = outDir + "ait_dump/tensors/";
+ 
+    std::string outPath = outDir + filePath;
+    size_t found = outPath.find_last_of("/");
+    std::string directory = outPath.substr(0, found);
+ 
+    bool ret = CheckDirectory(directory);
+    if (!ret) {
+        std::cout << "[atb::Probe::SaveParam] Create directory failed: " << directory << std::endl;
+        return;
+    }
+ 
+    std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
+    if (outfile.is_open()) {
+        outfile << param << std::endl;
+        outfile.close();
+    } else {
+        std::cout << "Unable to open file! File name:" << outPath << std::endl;
+    }
+    return;
+}
+ 
+bool atb::Probe::IsSaveParam()
+{
+    // atb侧该函数返回fasle，通过ait启动模型时改成true，该函数有用，不要删除
+    return true;
+}
+
 } // end of namespace atb
 
 namespace atb_speed {
