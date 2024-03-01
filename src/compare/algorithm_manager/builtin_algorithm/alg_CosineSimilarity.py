@@ -40,5 +40,5 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
         log.print_warn_log(message)
         return ConstManager.NAN, message
 
-    result = (my_output_dump_data / my_output_norm) @ (ground_truth_dump_data / ground_truth_norm)
+    result = ((my_output_dump_data / my_output_norm) * (ground_truth_dump_data / ground_truth_norm)).sum()
     return utils.format_value(result), ""
