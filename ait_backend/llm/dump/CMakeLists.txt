@@ -4,6 +4,7 @@ project(dump)
 # 设置编译选项，可以根据需要进行修改
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_SKIP_RPATH TRUE)
 
 if (DEFINED ENV{AIT_LLM_ABI})
     if ($ENV{AIT_LLM_ABI} STREQUAL "0")
@@ -27,6 +28,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../platform/securec/includ
 include_directories($ENV{ASCEND_HOME_PATH}/runtime/include/)  # 保留 CANN 包中的路径，避免本地编译不通过
 
 add_library(${LIB_NAME} SHARED atb_probe.cpp bin_file.cpp)
+target_compile_options(${LIB_NAME} PRIVATE
+    "-Wl,-z,now,noexecstack,relro"
+    "-fPIC"
+    "-pie"
+    "-fstack-protector-all"
+    "-D_FORTIFY_SOURCE=2"
+    "-ftrapv"
+    "-s"
+)
 
 set(ATB_PROBE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/output/ait_backend/dump/)
 install(
