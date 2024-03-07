@@ -32,6 +32,12 @@ MAX_PYTHON_FILE_SIZE = 10 * 1024 ** 2
 MAX_JSON_FILE_SIZE = 10 * 1024 ** 2
 MAX_CSV_FILE_SIZE = 10 * 1024 ** 2
 
+VERSION_JSON_NAME_DICT = {
+    "1.11.0": "_1_11_0.json",
+    "2.0.1": "_2_0.json",
+    "2.1.0": "_2_1.json"
+}
+
 
 class TransplantException(Exception):
     pass
@@ -99,10 +105,8 @@ def get_config_json_dict(config_path: str) -> Dict:
 
 
 def get_unsupported_op_dict(version):
-    if version == '1.11.0':
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_1_11_0.json')
-    else:
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/op_list_2_1.json')
+    op_list_path = os.path.join(os.path.dirname(__file__),
+                                '../resource/op_list' + VERSION_JSON_NAME_DICT.get(version, '_1_11_0.json'))
     json_dict = get_config_json_dict(op_list_path)
     # Check dict field
     if 'op_list' not in json_dict:
@@ -111,10 +115,8 @@ def get_unsupported_op_dict(version):
 
 
 def get_supported_op_dict(version):
-    if version == '1.11.0':
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_1_11_0.json')
-    else:
-        op_list_path = os.path.join(os.path.dirname(__file__), '../resource/supported_op_2_1.json')
+    op_list_path = os.path.join(os.path.dirname(__file__),
+                                '../resource/supported_op' + VERSION_JSON_NAME_DICT.get(version, '_1_11_0.json'))
     json_dict = get_config_json_dict(op_list_path)
     if 'op_list' not in json_dict:
         translog.warning("op_list field was not found in the support op json file!")
