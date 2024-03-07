@@ -1,5 +1,6 @@
 import unittest
 from unittest import mock
+from collections import namedtuple
 import pytest
 import numpy as np
 import dump_data_pb2 as DD
@@ -8,11 +9,30 @@ from vector_cmp.fusion_manager import fusion_op
 from format_manager.format_manager import FormatManager
 from vector_cmp.fusion_manager.fusion_op import Tensor
 from cmp_utils.constant.compare_error import CompareError
-from conversion.tensor_conversion import TensorConversion
+from conversion.tensor_conversion import TensorConversion, ConvertSingleTensorFormat
 from dump_parse.dump_data_object import DumpTensor
 
 
 class TestUtilsMethods(unittest.TestCase):
+    @staticmethod
+    def _make_fusion_op():
+        attr = fusion_op.OpAttr(['conv1', 'conv1_relu'], '', False, 12)
+        output_desc_list = []
+        output_desc = fusion_op.OutputDesc('conv1_relu', 0, 'NCHW',
+                                           [1, 3, 224, 224])
+        output_desc_list.append(output_desc)
+        return fusion_op.FusionOp(12, 'conv1conv1_relu', ['a:0,b:0'], 'Relu', output_desc_list, attr)
+
+    @staticmethod
+    def _make_op_output(dd_format, shape):
+        op_output = DumpTensor()
+        op_output.data_type = DD.DT_FLOAT16
+        op_output.tensor_format = dd_format
+        op_output.shape = shape
+        length = np.prod(shape)
+        data_list = np.arange(length)
+        op_output.data = np.array(data_list, np.float16)
+        return op_output
 
     def test_get_my_output_and_ground_truth_data1(self):
         attr = fusion_op.OpAttr(['conv1', 'conv1_relu'], '', False, 12)
@@ -199,26 +219,49 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(dest1, DD.FORMAT_NCHW)
         self.assertEqual(dest1, DD.FORMAT_NCHW)
 
-    @staticmethod
-    def _make_fusion_op():
-        attr = fusion_op.OpAttr(['conv1', 'conv1_relu'], '', False, 12)
-        output_desc_list = []
-        output_desc = fusion_op.OutputDesc('conv1_relu', 0, 'NCHW',
-                                           [1, 3, 224, 224])
-        output_desc_list.append(output_desc)
-        return fusion_op.FusionOp(12, 'conv1conv1_relu', ['a:0,b:0'], 'Relu', output_desc_list, attr)
+    def test_convert_single_tensor_format_nc1hwc0(self):
+        my_tensor = namedtuple("my_tensor", ["data", "shape", "original_shape", "tensor_format"])
+        raw_data = np.ones([4, 2, 12, 12, 16]).astype("float32")
+        my_tensor.data = raw_data.flatten()
+        my_tensor.shape = raw_data.shape
+        my_tensor.original_shape = [4, 32, 12, 12]
+        my_tensor.tensor_format = 3  # NC1HWC0
 
-    @staticmethod
-    def _make_op_output(dd_format, shape):
-        op_output = DumpTensor()
-        op_output.data_type = DD.DT_FLOAT16
-        op_output.tensor_format = dd_format
-        op_output.shape = shape
-        length = np.prod(shape)
-        data_list = np.arange(length)
-        op_output.data = np.array(data_list, np.float16)
-        return op_output
+        data = ConvertSingleTensorFormat()(my_tensor)
+        self.assertEqual(data.shape, (4, 32, 12, 12))
 
+    def test_convert_single_tensor_format_nd(self):
+        my_tensor = namedtuple("my_tensor", ["data", "shape", "original_shape", "tensor_format"])
+        raw_data = np.ones([4, 16]).astype("float32")
+        my_tensor.data = raw_data.flatten()
+        my_tensor.shape = raw_data.shape
+        my_tensor.original_shape = [4, 16]
+        my_tensor.tensor_format = 2  # ND
+
+        data = ConvertSingleTensorFormat()(my_tensor)
+        self.assertEqual(data.shape, (4, 16))
+
+    def test_convert_single_tensor_format_ncwh(self):
+        my_tensor = namedtuple("my_tensor", ["data", "shape", "original_shape", "tensor_format"])
+        raw_data = np.ones([4, 12, 16 * 16]).astype("float32")
+        my_tensor.data = raw_data.flatten()
+        my_tensor.shape = raw_data.shape
+        my_tensor.original_shape = [4, 12, 16 * 16]
+        my_tensor.tensor_format = 0  # NCHW
+
+        data = ConvertSingleTensorFormat()(my_tensor)
+        self.assertEqual(data.shape, (4, 12, 16 * 16))
+
+    def test_convert_single_tensor_format_ncwh_to_nd(self):
+        my_tensor = namedtuple("my_tensor", ["data", "shape", "original_shape", "tensor_format"])
+        raw_data = np.ones([4, 12, 16, 16]).astype("float32")
+        my_tensor.data = raw_data.flatten()
+        my_tensor.shape = raw_data.shape
+        my_tensor.original_shape = [4, 12, 16 * 16]
+        my_tensor.tensor_format = 0  # NCHW
+
+        data = ConvertSingleTensorFormat()(my_tensor)
+        self.assertEqual(data.shape, (4, 12, 16, 16))
 
 if __name__ == '__main__':
     unittest.main()

@@ -277,3 +277,58 @@ class TensorConversion:
                               str(my_output_np.shape), common.get_format_string(ground_truth_dest_format),
                               str(ground_truth_np.shape)))
         return my_output_np, ground_truth_np
+
+
+class ConvertSingleTensorFormat:
+    def __init__(self, custom_path: str = "", additional_target_dim_to_format: dict = None) -> None:
+        if custom_path and not isinstance(custom_path, str):
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, "custom_path needs to be a string")
+        if additional_target_dim_to_format and not isinstance(additional_target_dim_to_format, dict):
+            message = "additional_target_dim_to_format needs to be a string"
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
+
+        self.manager = FormatManager(custom_path=custom_path)
+        self.manager.check_arguments_valid()
+        self.shape_conversion = ShapeConversion(self.manager)
+        self.tensor_conversion = TensorConversion(fusion_op=None, format_manager=self.manager, is_detail=False)
+
+        self.nd_source_formats = [ConstManager.STRING_TO_FORMAT_MAP.get(ii, None) for ii in ['HWCN', 'NCHW', 'NHWC']]
+        self.nd_target_format = ConstManager.STRING_TO_FORMAT_MAP.get("ND", None)
+
+        self.target_dim_to_format = {
+            4: ConstManager.STRING_TO_FORMAT_MAP.get("NCHW"),
+            3: ConstManager.STRING_TO_FORMAT_MAP.get("ND"),
+            2: ConstManager.STRING_TO_FORMAT_MAP.get("ND"),
+        }
+        if additional_target_dim_to_format:
+            self.target_dim_to_format.update(additional_target_dim_to_format)
+        self.nchw_format_len = 4
+
+    def __call__(self, my_tensor: Tensor) -> any:
+        real_format = my_tensor.tensor_format
+        if my_tensor.tensor_format in self.nd_source_formats:
+            if len(my_tensor.shape) != self.nchw_format_len:
+                real_format = self.nd_target_format
+        shape_to = my_tensor.original_shape
+        format_to = self.target_dim_to_format.get(len(shape_to), real_format)
+        src_to_dest = SrcToDest(real_format, format_to, my_tensor.shape, shape_to)
+
+        if real_format == format_to:
+            dump_data_np = self.shape_conversion.reshape(src_to_dest, my_tensor.data)
+        else:
+            try:
+                dump_data_np = self.manager.execute_format_convert(
+                  src_to_dest, my_tensor.data, {'group': common.get_sub_format(my_tensor)}
+                )
+            except CompareError as ee:
+                log.print_error_log(ee)
+                return my_tensor.data.reshape(my_tensor.shape)
+
+        # slice data
+        if len(shape_to) > 0 and real_format != format_to:
+            try:
+                dump_data_np = self.tensor_conversion.slice_data(dump_data_np, shape_to)
+            except CompareError as ee:
+                log.print_error_log(ee)
+                return dump_data_np
+        return dump_data_np
