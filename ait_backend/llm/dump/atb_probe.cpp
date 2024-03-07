@@ -922,14 +922,15 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
     }
 
     const std::string pidID = std::to_string(GetCurrentProcessId());
-    const std::string outPath = std::string(outputDir) + "/" + pidID + ".txt";
-
+    const std::string fileName = "ait_overflow_res_" + pidID + ".txt";
+    const std::string outPath = std::string(outputDir) + "/" + fileName;
+    
     std::ofstream ofs(outPath, std::ios::app);
     if (ofs.is_open()) {
         ofs << "Overflow detected! Operator name: " << kernelPath << std::endl;
         ofs.close();
     } else {
-        std::cerr << "Unable to open file: " << outPath << std::endl;
+        std::cerr << "Unable to open the file: " << outPath << std::endl;
         ofs.close();
     }
 
