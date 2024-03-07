@@ -353,6 +353,10 @@ bool atb::Probe::IsSaveTensorDesc()
 bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
 {
     const char* saveTensorRange = std::getenv("ATB_SAVE_TENSOR_RANGE");
+    // overflow check required
+    if (!saveTensorRange) {
+        return false;
+    }
     std::vector<std::string> saveTensorRan = SplitString(saveTensorRange, ',');
     for (size_t i = 1U; i < saveTensorRan.size(); i += RANGE_COUNT) {
         uint64_t left = stoi(saveTensorRan[i - 1]);
@@ -875,6 +879,61 @@ bool atb::Probe::IsSaveParam()
 {
     // atb侧该函数返回fasle，通过ait启动模型时改成true，该函数有用，不要删除
     return true;
+}
+
+/****************************************************************************************\
+                                    算子溢出检测接口
+\****************************************************************************************/
+
+bool atb::Probe::IsOverflowCheck()
+{
+    const char* checkType = std::getenv("ATB_CHECK_TYPE");
+    if (!checkType) {
+        std::cerr << "The environment variable ATB_CHECK_TYPE is not set." << std::endl;
+        return false;
+    }
+    
+    return std::string(checkType).find("1") != std::string::npos;
+}
+
+bool atb::Probe::IsOverflowStop()
+{
+    const char* exitFlag = std::getenv("ATB_EXIT");
+    if (!exitFlag) {
+        std::cerr << "The environment variable ATB_EXIT is not set." << std::endl;
+        
+        return false;
+    }
+
+    return std::string(exitFlag) == "1";
+}
+
+void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
+{
+    if (kernelPath.empty()) {
+        std::cerr << "The kernel path is empty. Please check the overflowed operator from the atb source." << std::endl;
+        return;
+    }
+
+    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
+    if (!outputDir) {
+        std::cerr << "The environment variable ATB_OUTPUT_DIR is not set." << std::endl;
+        return;
+    }
+
+    const std::string pidID = std::to_string(GetCurrentProcessId());
+    const std::string outPath = std::string(outputDir) + "/" + pidID + ".txt";
+
+    std::ofstream ofs(outPath, std::ios::app);
+    if (ofs.is_open()) {
+        ofs << "Overflow detected! Operator name: " << kernelPath << std::endl;
+        ofs.close();
+    } else {
+        std::cerr << "Unable to open file: " << outPath << std::endl;
+        ofs.close();
+    }
+
+    return;
 }
 
 } // end of namespace atb

@@ -82,6 +82,11 @@ public:
         const std::vector<atb::Probe::Tensor> &outTensors);
     static void SaveParam(const std::string &param, const std::string &filePath);
     static bool IsSaveParam();
+
+    // ait llm antiCheck demo
+    static bool IsOverflowCheck();
+    static bool IsOverflowStop();
+    static void ReportOverflowKernel(const std::string &kernelPath);
 };
 } // namespace atb
 
