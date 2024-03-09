@@ -176,7 +176,8 @@ class MsFmkTransplt(object):
         self.__check_distributed_rule_param_valid(args)
 
     def __parse_command(self):
-        parser = argparse.ArgumentParser()
+        description = 'Pytorch GPU2NPU powered by MindStudio\nCopyright (c) Huawei Technologies Co., Ltd. 2022-2024'
+        parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)',
                             help='Input path or file. (required)')
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path. (required)')
