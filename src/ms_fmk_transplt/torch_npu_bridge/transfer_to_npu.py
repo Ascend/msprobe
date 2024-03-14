@@ -32,7 +32,7 @@ torch_cuda_fn_white_list = [
     'get_device_properties', 'get_device_name', 'get_device_capability', 'list_gpu_processes', 'set_device',
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached',
-    'reset_peak_memory_stats'
+    'reset_peak_memory_stats', 'device'
 ]
 torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
@@ -76,7 +76,7 @@ def wrapper_cuda(func):
 def replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
     if type(device) == str and CUDA in device:
         kwargs[device_arg] = device.replace(CUDA, NPU)
-    elif type(device) == torch.device and CUDA in device.type:
+    elif (type(device) == torch.device or str(type(device)) == "<class 'torch.device'>") and CUDA in device.type:
         device_info = 'npu:{}'.format(device.index) if device.index is not None else NPU
         kwargs[device_arg] = torch.device(device_info)
     elif type(device) == int:
@@ -89,7 +89,7 @@ def replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
         if isinstance(arg, str) and CUDA in arg:
             args_list[idx] = arg.replace(CUDA, NPU)
-        elif isinstance(arg, torch.device) and CUDA in arg.type:
+        elif (isinstance(arg, torch.device) or str(type(arg)) == "<class 'torch.device'>") and CUDA in arg.type:
             device_info = 'npu:{}'.format(arg.index) if arg.index is not None else NPU
             args_list[idx] = torch.device(device_info)
         elif replace_int and not isinstance(arg, bool) and isinstance(arg, int):
@@ -277,6 +277,18 @@ def init():
         torch.jit.script = jit_script
         torch.compile = wrapper_compile(torch.compile)
         torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
+
+    # torch version < 2.1 needs to be adapted
+    if not is_torch_version_greater_than_2_1():
+        torch.distributed.distributed_c10d.broadcast_object_list \
+            = torch_npu.distributed.distributed_c10d.broadcast_object_list
+        torch.distributed.distributed_c10d.all_gather_object \
+            = torch_npu.distributed.distributed_c10d.all_gather_object
+        torch.npu.amp.autocast_mode.npu_autocast.__init__ = wrapper_cuda(
+            torch.npu.amp.autocast_mode.npu_autocast.__init__)
+    # torch 1.11.0 does not have this API
+    if '1.11.0' not in torch.__version__:
+        torch.distributed.ProcessGroup._get_backend = wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
 
 
 init()
