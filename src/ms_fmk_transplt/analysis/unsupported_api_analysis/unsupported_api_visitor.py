@@ -297,7 +297,7 @@ class UnsupportedApiVisitor(libcst.CSTVisitor):
     def _handle_define_type_class(self, define_node, call_obj_name_set):
         super_class_list = self.global_reference_visitor.get_super_class(define_node.name, str(define_node.module_path))
         for super_class in super_class_list:
-            if super_class.startswith(self.unsupported_op_module_tuple):
+            if super_class and super_class.startswith(self.unsupported_op_module_tuple):
                 call_obj_name_set.add(super_class)
         if define_node.full_name:
             call_obj_name_set.add(define_node.full_name)
