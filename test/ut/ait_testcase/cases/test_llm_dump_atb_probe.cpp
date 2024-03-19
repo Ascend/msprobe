@@ -321,3 +321,76 @@ TEST(atb_Probe, SaveParamTest)
 
     DeleteFile(paramDir);
 }
+/*
+    ait llm --type
+*/
+TEST(atb_probe, IsOverflowEnabled)
+{
+    setenv("ATB_CHECK_TYPE", "1", 1);
+    EXPECT_TRUE(atb::Probe::IsOverflowCheck()) << "ATB_CHECK_TYPE (which is '1') should result in TRUE, got FALSE.";
+    setenv("ATB_CHECK_TYPE", "123", 1);
+    EXPECT_TRUE(atb::Probe::IsOverflowCheck()) << "ATB_CHECK_TYPE (which is '123') should result in TRUE, got FALSE.";
+    setenv("ATB_CHECK_TYPE", "231", 1);
+    EXPECT_TRUE(atb::Probe::IsOverflowCheck()) << "ATB_CHECK_TYPE (which is '231') should result in TRUE, got FALSE.";
+
+    unsetenv("ATB_CHECK_TYPE");
+    EXPECT_FALSE(atb::Probe::IsOverflowCheck()) << "ATB_CHECK_TYPE (which is '') should result in FALSE, got TRUE.";
+    setenv("ATB_CHECK_TYPE", "23", 1);
+    EXPECT_FALSE(atb::Probe::IsOverflowCheck()) << "ATB_CHECK_TYPE (which is '23') should result in FALSE, got TRUE.";
+}
+/*
+    ait llm --exit
+*/
+TEST(atb_probe, HandlesExitFlag)
+{
+    setenv("ATB_EXIT", "1", 1);
+    EXPECT_TRUE(atb::Probe::IsOverflowStop()) << "ATB_EXIT (which is '1') should result in TRUE, got FALSE.";
+
+    unsetenv("ATB_EXIT");
+    EXPECT_FALSE(atb::Probe::IsOverflowStop()) << "ATB_EXIT (which is nullptr) should result in TRUE, got FALSE.";
+    setenv("ATB_EXIT", "0", 1);
+    EXPECT_FALSE(atb::Probe::IsOverflowStop()) << "ATB_EXIT (which is '0') should result in FALSE, got TRUE.";
+    setenv("ATB_EXIT", "", 1);
+    EXPECT_FALSE(atb::Probe::IsOverflowStop()) << "ATB_EXIT (which is '') should result in FALSE, got TRUE.";
+    setenv("ATB_EXIT", "2", 1);
+    EXPECT_FALSE(atb::Probe::IsOverflowStop()) << "ATB_EXIT (which is '2') should result in FALSE, got TRUE.";
+}
+/*
+    ait llm --output
+*/
+TEST(atb_probe, HandlesEmptyKernelPath)
+{
+    EXPECT_NO_THROW(atb::Probe::ReportOverflowKernel("")) << "Empty Kernel Path should not result in any error.";
+}
+
+TEST(atb_probe, HandlesEmptyOutputDir)
+{
+    const std::string kernelPath("Some operators got some errors.");
+    unsetenv("ATB_OUTPUT_DIR");
+    EXPECT_NO_THROW(atb::Probe::ReportOverflowKernel(kernelPath)) << "AIT_OUTPUT_DIR (which is nullptr)" \
+                                                                     "should not result in any error.";
+}
+
+TEST(atb_probe, HandlesOutputFile)
+{
+    const std::string kernelPath("a");
+    setenv("ATB_OUTPUT_DIR", "./", 1);
+    ASSERT_NO_THROW(atb::Probe::ReportOverflowKernel(kernelPath)) << "invoking ReportOverflowKernel normally" \
+                                                                     "should not return any error.";
+
+    const std::string pidID(std::to_string(getpid()));
+    const std::string fileName("ait_overflow_res_" + pidID + ".txt");
+    const std::string outPath("./" + fileName);
+
+    std::ifstream ifs(outPath);
+    ASSERT_TRUE(ifs.is_open()) << "ReportOverflowKernel should have created a file, but not found.";
+
+    std::string content;
+    while (getline(ifs, content)) {
+        EXPECT_EQ(content, "Overflow detected! Operator name: a") << "The error information should be the same, " \
+                                                                     "but got different.";
+    }
+
+    ifs.close();
+    DeleteFile(outPath);
+}

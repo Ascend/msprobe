@@ -882,22 +882,29 @@ bool atb::Probe::IsSaveParam()
 }
 
 /****************************************************************************************\
-                                    算子溢出检测接口
+                                    算子溢出检测 AIT 接口
 \****************************************************************************************/
 
 bool atb::Probe::IsOverflowCheck()
 {
+    std::cout << "IsOverflowCheck is invoked..." << std::endl;
+
     const char* checkType = std::getenv("ATB_CHECK_TYPE");
     if (!checkType) {
         std::cerr << "The environment variable ATB_CHECK_TYPE is not set." << std::endl;
         return false;
     }
+
+    bool res = std::string(checkType).find("1") != std::string::npos;
+    std::cout << "Overflow Check enabled: " << std::boolalpha << res << std::endl;
     
-    return std::string(checkType).find("1") != std::string::npos;
+    return res;
 }
 
 bool atb::Probe::IsOverflowStop()
 {
+    std::cout << "IsOverflowStop is invoked..." << std::endl;
+
     const char* exitFlag = std::getenv("ATB_EXIT");
     if (!exitFlag) {
         std::cerr << "The environment variable ATB_EXIT is not set." << std::endl;
@@ -905,11 +912,16 @@ bool atb::Probe::IsOverflowStop()
         return false;
     }
 
-    return std::string(exitFlag) == "1";
+    bool res = std::string(exitFlag) == "1";
+    std::cout << "Terminate after detecting overflow: " << std::boolalpha << res << std::endl;
+
+    return res;
 }
 
 void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
 {
+    std::cout << "ReportOverflowKernel is invoked..." << std::endl;
+
     if (kernelPath.empty()) {
         std::cerr << "The kernel path is empty. Please check the overflowed operator from the atb source." << std::endl;
         return;
@@ -927,10 +939,12 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
     
     std::ofstream ofs(outPath, std::ios::app);
     if (ofs.is_open()) {
+        std::cout << "Output File created. File name: " << outPath << std::endl;
         ofs << "Overflow detected! Operator name: " << kernelPath << std::endl;
         ofs.close();
     } else {
-        std::cerr << "Unable to open the file: " << outPath << std::endl;
+        std::cerr << "Unable to create the file: " << outPath << std::endl;
+        std::cerr << "Please check if the directory is valid." << outPath << std::endl;
         ofs.close();
     }
 
