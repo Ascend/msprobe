@@ -698,44 +698,76 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
 }
 
 
+static std::string MakeAbsolutePath(const std::string& path)
+{
+    // 如果传入的是绝对路径，则直接返回路径，如果传入的是相对路径，转化为当前程序运行所在的绝对路径
+    char cwd[PATH_MAX];
+    getcwd(cwd, sizeof(cwd));
+    std::string curAbsolutePath = std::string(cwd);
+    std::string curHomePath = std::getenv("HOME");
+    if (path.empty()) {
+        return curAbsolutePath + "/";
+    } else if (path[0] == '/') {
+        return path;
+    } else if (path[0] == '~') {
+        return curHomePath + path.substr(1);
+    } else if (path == "." || path == "./") {
+        return curAbsolutePath + "/";
+    } else if (path.size() > 1 && path[0] == '.' && path[1] == '/') {
+        return curAbsolutePath + path.substr(1);
+    }
+    return curAbsolutePath + "/" + path;
+}
+
+
 static std::string GetInputString(int &caseNum, const std::string &opName, const std::string &opParam,
     const std::vector<atb::Probe::Tensor> &inTensors, const std::vector<atb::Probe::Tensor> &outTensors)
 {
+    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
+    std::string outDir = outputDir != nullptr ? outputDir : "./";
+    std::string curAbsolutePath = MakeAbsolutePath(outDir);
+    std::string dumpTensorOutPath = curAbsolutePath + "ait_dump/tensors/";
     const std::string caseName = opName + std::to_string(caseNum);
     int inNum = inTensors.size();
     std::string inDType = "";
     std::string inFormat = "";
     std::string inShape = "";
+    std::string inPath = "";
     for (int i = 0; i < inNum; ++i) {
         if (i == inNum - 1) {
             inDType = inDType + inTensors[i].dype;
             inFormat = inFormat + inTensors[i].format;
             inShape = inShape + inTensors[i].shape;
+            inPath = inPath + inTensors[i].path;
         } else {
             inDType = inDType + inTensors[i].dype + ";";
             inFormat = inFormat + inTensors[i].format + ";";
             inShape = inShape + inTensors[i].shape + ";";
+            inPath = inPath + inTensors[i].path + ";";
         }
     }
     int outNum = outTensors.size();
     std::string outDType = "";
     std::string outFormat = "";
     std::string outShape = "";
+    std::string outPath = "";
     for (int i = 0; i < outNum; ++i) {
         if (i == outNum - 1) {
             outDType = outDType + outTensors[i].dype;
             outFormat = outFormat + outTensors[i].format;
             outShape = outShape + outTensors[i].shape;
+            outPath = outPath + outTensors[i].path;
         } else {
             outDType = outDType + outTensors[i].dype + ";";
             outFormat = outFormat + outTensors[i].format + ";";
             outShape = outShape + outTensors[i].shape + ";";
+            outPath = outPath + outTensors[i].path + ";";
         }
     }
     const std::string inputString = std::to_string(caseNum) + "|" + caseName + "|" + opName + "|" + opParam + "|" + \
         std::to_string(inNum) + "|" + inDType + "|" + inFormat + "|" + inShape + "|" + \
         std::to_string(outNum) + "|" + outDType + "|" + outFormat + "|" + outShape + "|" + \
-        "customize| | | | | | | |NO_ERROR";
+        "customize| |" + dumpTensorOutPath + inPath + "|" + dumpTensorOutPath + outPath + "| | | | |NO_ERROR";
     return inputString;
 }
 

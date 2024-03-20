@@ -32,14 +32,17 @@ static void ReportIOTensorTest(const size_t &executeCount, const std::string &te
     testInTensor1.dype = "ACL_FLOAT16";
     testInTensor1.format = "ACL_FORMAT_ND";
     testInTensor1.shape = "65024,4096";
+    testInTensor1.path = "";
     atb::Probe::Tensor testInTensor2;
     testInTensor2.dype = "ACL_INT64";
     testInTensor2.format = "ACL_FORMAT_ND";
     testInTensor2.shape = "8,1024";
+    testInTensor2.path = "";
     atb::Probe::Tensor testOutTensor;
     testOutTensor.dype = "ACL_FLOAT16";
     testOutTensor.format = "ACL_FORMAT_ND";
     testOutTensor.shape = "8,1024,4096";
+    testOutTensor.path = "";
 
     std::vector<atb::Probe::Tensor> inTensors;
     inTensors.push_back(testInTensor1);
@@ -222,7 +225,7 @@ OutNum|OutDType|OutFormat|OutShape|DataGenType|DataGenRange|InTensorFile|OutTens
 SocVersion|ExpectedError";
     const std::string contentStr = "1|TestOperation1|TestOperation|{\"testParam1\":0,\"testParam2\":\
 [0,0,0],\"testParam3\":{\"testParam4\":9.99}}|2|ACL_FLOAT16;ACL_INT64|ACL_FORMAT_ND;ACL_FORMAT_ND|65024,4096;8,1024|1|\
-ACL_FLOAT16|ACL_FORMAT_ND|8,1024,4096|customize| | | | | | | |NO_ERROR";
+ACL_FLOAT16|ACL_FORMAT_ND|8,1024,4096|customize";
 
     DeleteFile(outPath);
     ReportIOTensorTest(executeCount, testType);
@@ -258,7 +261,7 @@ OutNum|OutDType|OutFormat|OutShape|DataGenType|DataGenRange|InTensorFile|OutTens
 SocVersion|ExpectedError";
     const std::string contentStr = "1|TestOperation1|TestOperation|{\"testParam1\":0,\"testParam2\":\
 [0,0,0],\"testParam3\":{\"testParam4\":9.99}}|2|ACL_FLOAT16;ACL_INT64|ACL_FORMAT_ND;ACL_FORMAT_ND|65024,4096;8,1024|1|\
-ACL_FLOAT16|ACL_FORMAT_ND|8,1024,4096|customize| | | | | | | |NO_ERROR";
+ACL_FLOAT16|ACL_FORMAT_ND|8,1024,4096|customize";
 
     DeleteFile(outPath);
     ReportIOTensorTest(executeCount, testType);

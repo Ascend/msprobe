@@ -23,6 +23,8 @@
 #include <vector>
 #include <cstdint>
 #include <algorithm>
+#include <unistd.h>
+#include <climits>
 
 
 namespace atb {
@@ -41,6 +43,7 @@ public:
         std::string dype;
         std::string format;
         std::string shape;
+        std::string path;
     };
 
     struct TensorInfo {
