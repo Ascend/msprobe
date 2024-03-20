@@ -891,7 +891,6 @@ bool atb::Probe::IsOverflowCheck()
 
     const char* checkType = std::getenv("ATB_CHECK_TYPE");
     if (!checkType) {
-        std::cerr << "The environment variable ATB_CHECK_TYPE is not set." << std::endl;
         return false;
     }
 
@@ -907,8 +906,6 @@ bool atb::Probe::IsOverflowStop()
 
     const char* exitFlag = std::getenv("ATB_EXIT");
     if (!exitFlag) {
-        std::cerr << "The environment variable ATB_EXIT is not set." << std::endl;
-        
         return false;
     }
 
