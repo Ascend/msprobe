@@ -19,6 +19,7 @@
 #include <sys/statvfs.h>
 #include "bin_file.h"
 #include "nlohmann/json.hpp"
+#include "ait_logger.h"
 #include "atb_probe.h"
 
 using ordered_json = nlohmann::ordered_json;
@@ -47,7 +48,7 @@ static int GetFreeSpace(std::string path, unsigned long long *freeSpace)
     struct statvfs diskInfo;
 
     if (statvfs(path.c_str(), &diskInfo) == -1) {
-        perror("statvfs() error");
+        AIT_LOG_ERROR("statvfs() error");
         return 1;
     }
     *freeSpace = diskInfo.f_bavail * diskInfo.f_bsize;
@@ -58,7 +59,7 @@ static int32_t GetCurrentProcessId()
 {
     int32_t pid = getpid();
     if (pid == -1) {
-        std::cout << "get pid failed " << std::endl;
+        AIT_LOG_WARNING("get pid failed");
     }
     return pid;
 }
@@ -97,12 +98,12 @@ static bool CheckDirectory(const std::string &directory)
         if (!DirectoryExists(curDir)) {
             int status = mkdir(curDir.c_str(), 0750);
             if (status) {
-                std::cout << "cannot create directory: " << curDir << std::endl;
+                AIT_LOG_WARNING("cannot create directory: " + curDir);
             }
         }
     }
     if (!DirectoryExists(directory)) {
-        std::cout << "cannot create directory: " << directory << std::endl;
+        AIT_LOG_WARNING("cannot create directory: " + directory);
         return false;
     }
     return true;
@@ -116,7 +117,9 @@ static bool IsInTensorBinPath(const std::string &filePath)
     if (sepPos != std::string::npos) {
         fileName.erase(0, sepPos + 1U);
     }
-    return (fileName.find("intensor") != std::string::npos) || (fileName.find("inTensor") != std::string::npos);
+    bool flag = (fileName.find("intensor") != std::string::npos) || (fileName.find("inTensor") != std::string::npos);
+    AIT_LOG_DEBUG("IsInTensorBinPath: " + std::to_string(flag));
+    return flag;
 }
 
 
@@ -127,7 +130,9 @@ static bool IsOutTensorBinPath(const std::string &filePath)
     if (sepPos != std::string::npos) {
         fileName.erase(0, sepPos + 1U);
     }
-    return (fileName.find("outtensor") != std::string::npos) || (fileName.find("outTensor") != std::string::npos);
+    bool flag = (fileName.find("outtensor") != std::string::npos) || (fileName.find("outTensor") != std::string::npos);
+    AIT_LOG_DEBUG("IsOutTensorBinPath: " + std::to_string(flag));
+    return flag;
 }
 
 static bool IsSaveDumpType(const std::string &tar)
@@ -158,7 +163,7 @@ static void DfsToModifyGraphTensors(ordered_json &curNodeToSave,
     for (auto item : curNodeInput["inTensorIds"]) {
         uint32_t inputIndex = item.get<uint32_t>();
         if (inputIndex >= fatherNodeTensorNameList.size()) {
-            std::cout << "Error! inputIndex out of fatherNodeTensorNameList:" << opName << std::endl;
+            AIT_LOG_ERROR("inputIndex out of fatherNodeTensorNameList: " + opName);
             return;
         }
         curNodeToSave["inTensors"].emplace_back(fatherNodeTensorNameList[inputIndex]);
@@ -168,7 +173,7 @@ static void DfsToModifyGraphTensors(ordered_json &curNodeToSave,
     for (auto item : curNodeInput["outTensorIds"]) {
         uint32_t outputIndex = item.get<uint32_t>();
         if (outputIndex >= fatherNodeTensorNameList.size()) {
-            std::cout << "Error! outputIndex out of fatherNodeTensorNameList:" << opName << std::endl;
+            AIT_LOG_ERROR("outputIndex out of fatherNodeTensorNameList: " + opName);
             return;
         }
         curNodeToSave["outTensors"].emplace_back(fatherNodeTensorNameList[outputIndex]);
@@ -249,7 +254,7 @@ void SaveSubProcessInfo(const std::string infoToSave)
     std::string outDir = outputDir;
     bool ret = CheckDirectory(outDir);
     if (!ret) {
-        std::cout << "Create directory failed: " << outDir << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + outDir);
         return;
     }
 
@@ -398,8 +403,20 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     // 判断是否需要保存
     bool saveFlag = (IsInTensorBinPath(filePath) && IsSaveIntensor()) ||
                 (IsOutTensorBinPath(filePath) && IsSaveOuttensor());
+    AIT_LOG_DEBUG("saveFlag: " + std::to_string(saveFlag));
+    AIT_LOG_DEBUG("filePath: " + filePath);
     if (!saveFlag) {
         return;
+    }
+
+    const char* saveDeviceId = std::getenv("ATB_DEVICE_ID");
+    if (saveDeviceId) {
+        size_t found = filePath.find("_");  // filePath like {device_id}_{pid}/xxx/xxx
+        std::string curDeviceId = filePath.substr(0, found);
+        if (std::string(saveDeviceId) != curDeviceId) {
+            AIT_LOG_DEBUG("Skip saving, curDeviceId: " + curDeviceId);
+            return;  // if ATB_DEVICE_ID provided and not equal, skip saving
+        }
     }
  
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
@@ -411,8 +428,9 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     int retGetFreeSpace = GetFreeSpace(outDir, &freeSpace);
     if (retGetFreeSpace == 0 &&
         (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE)) {
-        std::cout << "Disk space is not enough, it's must more than 2G, free size(MB) is: " << (freeSpace >> 20)
-                  << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + outDir);
+        AIT_LOG_WARNING("Disk space is not enough, it's must more than 2G, free size(MB) is: " +
+            std::to_string(freeSpace >> 20));
         return;
     }
  
@@ -422,12 +440,12 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
  
     bool ret = CheckDirectory(directory);
     if (!ret) {
-        std::cout << "Create directory failed: " << directory << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + directory);
         return;
     }
  
     if (!hostData) {
-        std::cout << "hostData is None." << std::endl;
+        AIT_LOG_WARNING("hostData is None.");
         return;
     }
     FileSystem::BinFile binFile;
@@ -444,7 +462,7 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
 void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::string &filePath)
 {
     if (!data) {
-        std::cout << "Data is None." << std::endl;
+        AIT_LOG_WARNING("Data is None.");
         return;
     }
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
@@ -455,7 +473,7 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
 
     bool ret = CheckDirectory(directory);
     if (!ret) {
-        std::cout << "Create directory failed: " << directory << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + directory);
         return;
     }
 
@@ -464,9 +482,9 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
     if (outfile.is_open()) {
         outfile.write(reinterpret_cast<const char*>(data), dataSize);
         outfile.close();
-        std::cout << "Data written to file successfully!" << std::endl;
+        AIT_LOG_INFO("Data written to file successfully!");
     } else {
-        std::cout << "Unable to open file! file path: " << outPath << std::endl;
+        AIT_LOG_WARNING("Unable to open file! file path: " + outPath);
     }
     return;
 }
@@ -489,12 +507,15 @@ bool atb::Probe::IsSaveIntensor()
 {
     const char* saveTensorPart = std::getenv("ATB_SAVE_TENSOR_PART");
     if (saveTensorPart == nullptr) {
+        AIT_LOG_DEBUG("IsSaveIntensor: 0");
         return false;
     }
     int value = std::stoi(saveTensorPart);
     if (value == SAVE_INTENSOR || value == SAVE_ALL_TENSOR) {
+        AIT_LOG_DEBUG("IsSaveIntensor: 1");
         return true;
     }
+    AIT_LOG_DEBUG("IsSaveIntensor: 0");
     return false;
 }
 
@@ -503,12 +524,15 @@ bool atb::Probe::IsSaveOuttensor()
 {
     const char* saveTensorPart = std::getenv("ATB_SAVE_TENSOR_PART");
     if (saveTensorPart == nullptr) {
+        AIT_LOG_DEBUG("IsSaveOuttensor: 0");
         return false;
     }
     int value = std::stoi(saveTensorPart);
     if (value == SAVE_OUTTENSOR || value == SAVE_ALL_TENSOR) {
+        AIT_LOG_DEBUG("IsSaveOuttensor: 1");
         return true;
     }
+    AIT_LOG_DEBUG("IsSaveOuttensor: 0");
     return false;
 }
 
@@ -554,14 +578,14 @@ static bool CheckGraphInputInvalid(const std::string &opName, const ordered_json
         graphNodeJson.find("opType") == graphNodeJson.end() ||
         graphNodeJson.find("inTensorNum") == graphNodeJson.end() ||
         graphNodeJson.find("outTensorNum") == graphNodeJson.end()) {
-        std::cout << "json parse error! opName:" << opName << std::endl;
+        AIT_LOG_WARNING("json parse error! opName: " + opName);
         return true;
     }
 
     std::string opNameInJson = graphNodeJson["opName"].get<std::string>();
     if (opNameInJson != opName) {
-        std::cout << "json parse error! opName is not equal opName in json. opName:" <<
-            opName << ", opNameInJson:" << opNameInJson << std::endl;
+        AIT_LOG_WARNING("json parse error! opName is not equal opName in json. opName: " + opName +
+            ", opNameInJson: " + opNameInJson);
         return true;
     }
     return false;
@@ -574,9 +598,9 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     try {
         graphNodeJson = ordered_json::parse(graph);
     } catch (const ordered_json::parse_error& ex) {
-        std::cout << "json parse error! opName:" << opName << std::endl;
-        std::cout << "message: " << ex.what() << '\n' << "exception id: " << ex.id << '\n'
-                  << "byte position of error: " << ex.byte << std::endl;
+        AIT_LOG_WARNING("json parse error! opName:" + opName);
+        AIT_LOG_WARNING("message: " + std::string(ex.what()) + '\n' + "exception id: " + std::to_string(ex.id) + '\n' +
+               "byte position of error: " + std::to_string(ex.byte));
         return;
     }
 
@@ -614,7 +638,7 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     std::string pidDir = outDir + "ait_dump/layer/" + std::to_string(GetCurrentProcessId()) + "/";
     bool ret = CheckDirectory(pidDir);
     if (!ret) {
-        std::cout << "Create directory failed: " << pidDir << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + pidDir);
         return;
     }
 
@@ -623,9 +647,9 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     if (outfile.is_open()) {
         outfile << graphNodeJsonToSave.dump() << std::endl;
         outfile.close();
-        std::cout << "layer topo info written to file successfully! File name:" << outPath << std::endl;
+        AIT_LOG_INFO("layer topo info written to file successfully! File name:" + outPath);
     } else {
-        std::cout << "Unable to open file! File name:" << outPath << std::endl;
+        AIT_LOG_WARNING("Unable to open file! File name:" + outPath);
     }
 
     if (IsSaveDumpType("onnx")) {
@@ -654,7 +678,7 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
     // 检验地址是否存在
     bool ret = CheckDirectory(directory);
     if (!ret) {
-        std::cout << "Create directory failed: " << directory << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + directory);
         return;
     }
 
@@ -663,7 +687,7 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
         file << "[" << opname << "]:" << st << std::endl;
         file.close();
     } else {
-        std::cout << "Unable to open file!" << std::endl;
+        AIT_LOG_WARNING("Unable to open file!");
     }
     return;
 }
@@ -683,7 +707,7 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
     // 检验地址是否存在
     bool ret = CheckDirectory(directory);
     if (!ret) {
-        std::cout << "Create directory failed: " << directory << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + directory);
         return;
     }
 
@@ -692,7 +716,7 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
         file << "[" << opname << "]:" << st << std::endl;
         file.close();
     } else {
-        std::cout << "Unable to open file!" << std::endl;
+        AIT_LOG_WARNING("Unable to open file!");
     }
     return;
 }
@@ -785,7 +809,7 @@ static void ReportIOTensor(std::string &outPath, const std::string &opName, cons
             caseNum++;
         }
         if (caseNum == maxLoopCount) {
-            std::cout << "Too many lines in csv file. Maxcount is 10000." << std::endl;
+            AIT_LOG_WARNING("Too many lines in csv file. Maxcount is 10000.");
         }
         f.close();
     } else {
@@ -798,7 +822,7 @@ ExpectedError";
             outfile << csvHead << std::endl;
             outfile.close();
         } else {
-            std::cout << "Unable to open file:" << outPath << std::endl;
+            AIT_LOG_WARNING("Unable to open file: " + outPath);
         }
     }
     
@@ -808,7 +832,7 @@ ExpectedError";
         outfile << inputString << std::endl;
         outfile.close();
     } else {
-        std::cout << "Unable to open file:" << outPath << std::endl;
+        AIT_LOG_WARNING("Unable to open file: " + outPath);
     }
     return;
 }
@@ -832,14 +856,14 @@ void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::s
     std::string outPath = outDir + fPath;
     size_t found = outPath.find_last_of("/");
     if (found == std::string::npos) {
-        std::cout << "Could not find last / of outPath:" << outPath << std::endl;
+        AIT_LOG_WARNING("Could not find last / of outPath: " + outPath);
         return;
     }
     std::string directory = outPath.substr(0, found);
     
     bool ret = CheckDirectory(directory);
     if (!ret) {
-        std::cout << "Create directory failed: " << directory << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + directory);
         return;
     }
     
@@ -866,14 +890,14 @@ void atb::Probe::ReportKernelIOTensor(const size_t executeCount, const std::stri
     std::string outPath = outDir + fPath;
     size_t found = outPath.find_last_of("/");
     if (found == std::string::npos) {
-        std::cout << "Could not find last / of outPath:" << outPath << std::endl;
+        AIT_LOG_WARNING("Could not find last / of outPath: " + outPath);
         return;
     }
     std::string directory = outPath.substr(0, found);
 
     bool ret = CheckDirectory(directory);
     if (!ret) {
-        std::cout << "Create directory failed: " << directory << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + directory);
         return;
     }
 
@@ -893,7 +917,7 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
  
     bool ret = CheckDirectory(directory);
     if (!ret) {
-        std::cout << "[atb::Probe::SaveParam] Create directory failed: " << directory << std::endl;
+        AIT_LOG_WARNING("[atb::Probe::SaveParam] Create directory failed: " + directory);
         return;
     }
  
@@ -902,7 +926,7 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
         outfile << param << std::endl;
         outfile.close();
     } else {
-        std::cout << "Unable to open file! File name:" << outPath << std::endl;
+        AIT_LOG_WARNING("Unable to open file! File name: " + outPath);
     }
     return;
 }
@@ -919,7 +943,7 @@ bool atb::Probe::IsSaveParam()
 
 bool atb::Probe::IsOverflowCheck()
 {
-    std::cout << "IsOverflowCheck is invoked..." << std::endl;
+    AIT_LOG_DEBUG("IsOverflowCheck is invoked...");
 
     const char* checkType = std::getenv("ATB_CHECK_TYPE");
     if (!checkType) {
@@ -927,14 +951,14 @@ bool atb::Probe::IsOverflowCheck()
     }
 
     bool res = std::string(checkType).find("1") != std::string::npos;
-    std::cout << "Overflow Check enabled: " << std::boolalpha << res << std::endl;
+    AIT_LOG_DEBUG("Overflow Check enabled: " + res);
     
     return res;
 }
 
 bool atb::Probe::IsOverflowStop()
 {
-    std::cout << "IsOverflowStop is invoked..." << std::endl;
+    AIT_LOG_DEBUG("IsOverflowStop is invoked...");
 
     const char* exitFlag = std::getenv("ATB_EXIT");
     if (!exitFlag) {
@@ -942,23 +966,22 @@ bool atb::Probe::IsOverflowStop()
     }
 
     bool res = std::string(exitFlag) == "1";
-    std::cout << "Terminate after detecting overflow: " << std::boolalpha << res << std::endl;
+    AIT_LOG_DEBUG("Terminate after detecting overflow: " + res);
 
     return res;
 }
 
 void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
 {
-    std::cout << "ReportOverflowKernel is invoked..." << std::endl;
+    AIT_LOG_DEBUG("ReportOverflowKernel is invoked...");
 
     if (kernelPath.empty()) {
-        std::cerr << "The kernel path is empty. Please check the overflowed operator from the atb source." << std::endl;
         return;
     }
 
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     if (!outputDir) {
-        std::cerr << "The environment variable ATB_OUTPUT_DIR is not set." << std::endl;
+        AIT_LOG_WARNING("The environment variable ATB_OUTPUT_DIR is not set.");
         return;
     }
 
@@ -968,12 +991,11 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
     
     std::ofstream ofs(outPath, std::ios::app);
     if (ofs.is_open()) {
-        std::cout << "Output File created. File name: " << outPath << std::endl;
+        AIT_LOG_INFO("Output File created. File name: " + outPath);
         ofs << "Overflow detected! Operator name: " << kernelPath << std::endl;
         ofs.close();
     } else {
-        std::cerr << "Unable to create the file: " << outPath << std::endl;
-        std::cerr << "Please check if the directory is valid." << outPath << std::endl;
+        AIT_LOG_WARNING("Unable to create file: " + outPath + ". Please check if the directory is valid.");
         ofs.close();
     }
 
@@ -1013,10 +1035,9 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
     try {
         modelJson = ordered_json::parse(graph);
     } catch (ordered_json::parse_error &ex) {
-        std::cout << "parse model topo info error! modelName:" << modelName << std::endl;
-        std::cout << "message: " << ex.what() << '\n'
-                  << "exception id: " << ex.id << '\n'
-                  << "byte position of error: " << ex.byte << std::endl;
+        AIT_LOG_WARNING("parse model topo info error! modelName: " + modelName);
+        AIT_LOG_WARNING("message: " + std::string(ex.what()) + "\nexception id: " + std::to_string(ex.id) +
+            "\nbyte position of error: " + std::to_string(ex.byte));
         return;
     }
 
@@ -1034,7 +1055,7 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
     std::string pidDir = outDir + "ait_dump/model/" + pid + "/";
     bool ret = CheckDirectory(pidDir);
     if (!ret) {
-        std::cout << "Create directory failed: " << pidDir << std::endl;
+        AIT_LOG_WARNING("Create directory failed: " + pidDir);
         return;
     }
 
@@ -1044,9 +1065,9 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
     if (outfile.is_open()) {
         outfile << modelJson.dump() << std::endl;
         outfile.close();
-        std::cout << "model topo info written to file successfully! File name:" << outPath << std::endl;
+        AIT_LOG_INFO("model topo info written to file successfully! File name: " + outPath);
     } else {
-        std::cout << "Unable to open file! File name:" << outPath << std::endl;
+        AIT_LOG_WARNING("Unable to open file! File name: " + outPath);
     }
 
     if (IsSaveDumpType("onnx")) {
