@@ -24,20 +24,26 @@ else()
 endif()
 
 # 设置头文件目录
+set(TOP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../)
 include_directories(${AIT_LOGGER_PATH})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/nlohmannJson/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../platform/securec/include)  # 编译环境中 git clone 的路径
+include_directories(${TOP_DIR}/platform/securec/include)  # 编译环境中 git clone 的路径
 include_directories($ENV{ASCEND_HOME_PATH}/runtime/include/)  # 保留 CANN 包中的路径，避免本地编译不通过
 
-add_library(${LIB_NAME} SHARED atb_probe.cpp bin_file.cpp ${AIT_LOGGER_PATH}/ait_logger.cpp)
+set(SECUREC_DIR ${TOP_DIR}/platform/securec)
+file(GLOB_RECURSE SECUREC_SRC ${SECUREC_DIR}/src/*.c)
+add_library(${LIB_NAME} SHARED atb_probe.cpp bin_file.cpp ${AIT_LOGGER_PATH}/ait_logger.cpp ${SECUREC_SRC})
+
 target_compile_options(${LIB_NAME} PRIVATE
-    "-Wl,-z,now,noexecstack,relro"
     "-fPIC"
     "-pie"
     "-fstack-protector-all"
     "-D_FORTIFY_SOURCE=2"
     "-ftrapv"
-    "-s"
+)
+target_link_options(${LIB_NAME} PRIVATE
+    -Wl,-z,relro,-z,now,-z,noexecstack
+    -s
 )
 
 set(ATB_PROBE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/output/ait_backend/dump/)

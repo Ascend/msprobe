@@ -6,7 +6,21 @@ CUR_DIR=$(dirname $(readlink -f $0))
 AIT_DIR=${CUR_DIR}/"../"${PROJECT_NAME}
 
 BUILD_TYPE=Debug
-#BUILD_TYPE=Release
+
+function fn_clone_securec()
+{
+  PLATFORM_PATH=${CUR_DIR}/../platform
+  if [ -d "${PLATFORM_PATH}/securec" ]; then
+      return
+  fi
+
+  mkdir -p ${PLATFORM_PATH}
+  cd ${PLATFORM_PATH}
+  SECUREC_GIT_URL="https://codehub-dg-y.huawei.com/hwsecurec_group/huawei_secure_c.git"
+  SECUREC_BRANCH="tag_Huawei_Secure_C_V100R001C01SPC012B002_00001"
+  git clone $SECUREC_GIT_URL -b $SECUREC_BRANCH securec
+  cd -
+}
 
 function fn_build_nlohmann_json()
 {
@@ -22,6 +36,7 @@ function fn_build_nlohmann_json()
 
 make_ait_backend() {
   fn_build_nlohmann_json
+  fn_clone_securec
   cd ${AIT_DIR} && echo "Start building project \"${PROJECT_NAME}\""
   if [ ! -d "${BUILD_TYPE}" ]; then
       mkdir "${BUILD_TYPE}"
@@ -44,4 +59,3 @@ fi
 # 编译AIT_LLM_ABI=1
 export AIT_LLM_ABI=1
 make_ait_backend
-
