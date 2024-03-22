@@ -313,7 +313,7 @@ bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::st
         c = std::tolower(c);
     }
     // 先用逗号分隔vid和tid
-    
+
     if (tid != nullptr) {
         std::vector<std::string> splitTid = SplitString(tid, ',');
         for (const auto &indice : splitTid) {
@@ -322,7 +322,7 @@ bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::st
             }
         }
     }
-    
+
     return false;
 }
 
@@ -418,7 +418,7 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
             return;  // if ATB_DEVICE_ID provided and not equal, skip saving
         }
     }
- 
+
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = (outputDir != nullptr ? outputDir : "./");
     outDir = outDir + "ait_dump/tensors/";
@@ -433,17 +433,17 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
             std::to_string(freeSpace >> 20));
         return;
     }
- 
+
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
- 
+
     bool ret = CheckDirectory(directory);
     if (!ret) {
         AIT_LOG_WARNING("Create directory failed: " + directory);
         return;
     }
- 
+
     if (!hostData) {
         AIT_LOG_WARNING("hostData is None.");
         return;
@@ -728,13 +728,14 @@ static std::string MakeAbsolutePath(const std::string& path)
     char cwd[PATH_MAX];
     getcwd(cwd, sizeof(cwd));
     std::string curAbsolutePath = std::string(cwd);
-    std::string curHomePath = std::getenv("HOME");
     if (path.empty()) {
         return curAbsolutePath + "/";
     } else if (path[0] == '/') {
         return path;
     } else if (path[0] == '~') {
-        return curHomePath + path.substr(1);
+        const char* curHomePath = std::getenv("HOME");
+        std::string expandedPath = curHomePath ? (curHomePath + path.substr(1)) : path;
+        return expandedPath;
     } else if (path == "." || path == "./") {
         return curAbsolutePath + "/";
     } else if (path.size() > 1 && path[0] == '.' && path[1] == '/') {
@@ -825,7 +826,7 @@ ExpectedError";
             AIT_LOG_WARNING("Unable to open file: " + outPath);
         }
     }
-    
+
     const std::string inputString = GetInputString(caseNum, opName, opParam, inTensors, outTensors);
     std::ofstream outfile(outPath, std::ios::app);
     if (outfile.is_open()) {
@@ -860,13 +861,13 @@ void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::s
         return;
     }
     std::string directory = outPath.substr(0, found);
-    
+
     bool ret = CheckDirectory(directory);
     if (!ret) {
         AIT_LOG_WARNING("Create directory failed: " + directory);
         return;
     }
-    
+
     ReportIOTensor(outPath, opName, opParam, inTensors, outTensors);
     return;
 }
@@ -910,17 +911,17 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
     outDir = outDir + "ait_dump/tensors/";
- 
+
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
- 
+
     bool ret = CheckDirectory(directory);
     if (!ret) {
         AIT_LOG_WARNING("[atb::Probe::SaveParam] Create directory failed: " + directory);
         return;
     }
- 
+
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
     if (outfile.is_open()) {
         outfile << param << std::endl;
@@ -930,7 +931,7 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
     }
     return;
 }
- 
+
 bool atb::Probe::IsSaveParam()
 {
     // atb侧该函数返回fasle，通过ait启动模型时改成true，该函数有用，不要删除
@@ -952,7 +953,7 @@ bool atb::Probe::IsOverflowCheck()
 
     bool res = std::string(checkType).find("1") != std::string::npos;
     AIT_LOG_DEBUG("Overflow Check enabled: " + res);
-    
+
     return res;
 }
 
@@ -988,7 +989,7 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
     const std::string pidID = std::to_string(GetCurrentProcessId());
     const std::string fileName = "ait_overflow_res_" + pidID + ".txt";
     const std::string outPath = std::string(outputDir) + "/" + fileName;
-    
+
     std::ofstream ofs(outPath, std::ios::app);
     if (ofs.is_open()) {
         AIT_LOG_INFO("Output File created. File name: " + outPath);
@@ -1077,4 +1078,3 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
 }
 
 } // end of namespace atb_speed
-
