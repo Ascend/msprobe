@@ -25,6 +25,9 @@ from pytorch_cmp.compare_pytorch import PytorchComparison
 from vector_cmp.batch_compare import BatchCompare
 
 
+MIND_STUDIO_LOGO = "[Powered by MindStudio]"
+
+
 def _get_algorithm_help_info() -> str:
     """
     get algorithm help info
@@ -319,12 +322,20 @@ def start_compare(args: argparse.Namespace) -> int:
 
 
 def _do_cmd() -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=MIND_STUDIO_LOGO)
     subparsers = parser.add_subparsers(help='commands')
-    compare_parser = subparsers.add_parser('compare', help='Compare network or single op.')
-    covert_parser = subparsers.add_parser('convert', help='Convert my dump data to numpy data or bin data.')
-    overflow_parser = subparsers.add_parser('overflow', help='Analyze the information of the overflow operators.')
-    file_compare_parser = subparsers.add_parser('file_compare', help='Compare two single .npy file.')
+    compare_parser = subparsers.add_parser(
+        'compare', help='Compare network or single op.', description=MIND_STUDIO_LOGO
+    )
+    covert_parser = subparsers.add_parser(
+        'convert', help='Convert my dump data to numpy data or bin data.', description=MIND_STUDIO_LOGO
+    )
+    overflow_parser = subparsers.add_parser(
+        'overflow', help='Analyze the information of the overflow operators.', description=MIND_STUDIO_LOGO
+    )
+    file_compare_parser = subparsers.add_parser(
+        'file_compare', help='Compare two single .npy file.', description=MIND_STUDIO_LOGO
+    )
 
     _compare_parser(compare_parser)
     _convert_parser(covert_parser)
