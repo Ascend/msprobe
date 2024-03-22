@@ -377,7 +377,10 @@ bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
 bool atb::Probe::IsSaveTensorBefore()
 {
     const char* saveTensorTime = std::getenv("ATB_SAVE_TENSOR_TIME");
-    int value = std::stoi(saveTensorTime);
+    int value = SAVE_TENSOR_AFTER;  // Default to SAVE_TENSOR_AFTER
+    if (saveTensorTime) {
+        value = std::stoi(saveTensorTime);
+    }
     if (value == SAVE_TENSOR_BEFORE || value == SAVE_TENSOR_BOTH) {
         return true;
     }
@@ -388,7 +391,10 @@ bool atb::Probe::IsSaveTensorBefore()
 bool atb::Probe::IsSaveTensorAfter()
 {
     const char* saveTensorTime = std::getenv("ATB_SAVE_TENSOR_TIME");
-    int value = std::stoi(saveTensorTime);
+    int value = SAVE_TENSOR_AFTER;  // Default to SAVE_TENSOR_AFTER
+    if (saveTensorTime) {
+        value = std::stoi(saveTensorTime);
+    }
     if (value == SAVE_TENSOR_AFTER || value == SAVE_TENSOR_BOTH) {
         return true;
     }
