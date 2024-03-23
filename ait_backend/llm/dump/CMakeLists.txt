@@ -45,6 +45,9 @@ target_link_options(${LIB_NAME} PRIVATE
     -Wl,-z,relro,-z,now,-z,noexecstack
     -s
 )
+target_link_libraries(${LIB_NAME} PRIVATE
+    libstdc++fs.a
+)
 
 set(ATB_PROBE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/output/ait_backend/dump/)
 install(

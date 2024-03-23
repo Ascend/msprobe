@@ -36,6 +36,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     ${CMAKE_THREAD_LIBS_INIT}
     libatb_probe_abi1.so
     libsecurec.so
+    libstdc++fs.a
 )
 
 add_test(Test ${PROJECT_NAME})

@@ -17,6 +17,7 @@
 #include <syscall.h>
 #include <cctype>
 #include <sys/statvfs.h>
+#include <experimental/filesystem>
 #include "bin_file.h"
 #include "nlohmann/json.hpp"
 #include "ait_logger.h"
@@ -88,6 +89,13 @@ static bool DirectoryExists(const std::string &path)
     return (stat(path.c_str(), &info) == 0) && (S_ISDIR(info.st_mode));
 }
 
+static std::string GetRealPath(const std::string &outPath)
+{
+    std::experimental::filesystem::path realOutPath = std::experimental::filesystem::is_symlink(outPath.c_str()) ? \
+std::experimental::filesystem::read_symlink(outPath.c_str()) : std::experimental::filesystem::path(outPath.c_str());
+    return std::string(realOutPath.c_str());
+}
+
 static bool CheckDirectory(const std::string &directory)
 {
     std::vector<std::string> dirs = SplitString(directory, '/');
@@ -95,6 +103,7 @@ static bool CheckDirectory(const std::string &directory)
     // 检查目录是否存在，如果不存在则创建目录和文件
     for (auto &dir : dirs) {
         curDir += dir + "/";
+        curDir = GetRealPath(curDir);
         if (!DirectoryExists(curDir)) {
             int status = mkdir(curDir.c_str(), 0750);
             if (status) {
@@ -807,6 +816,7 @@ static void ReportIOTensor(std::string &outPath, const std::string &opName, cons
     const std::vector<atb::Probe::Tensor> &inTensors, const std::vector<atb::Probe::Tensor> &outTensors)
 {
     int caseNum;
+    outPath = GetRealPath(outPath);
     std::ifstream f(outPath, std::ios::in);
     if (f.is_open()) {
         caseNum = 0;
