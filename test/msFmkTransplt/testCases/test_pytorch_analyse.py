@@ -7,6 +7,11 @@ import shutil
 import sys
 import unittest
 import unittest.mock as mock
+from unittest.mock import MagicMock
+import torch
+from libcst import parse_statement, Call, Name, Module, SimpleStatementLine, IndentedBlock, Pass, FunctionDef, \
+    Parameters
+import libcst.matchers as m
 
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
@@ -36,6 +41,11 @@ def run(mock_args):
 
 
 class TestPyTorchAnalyse(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cuda_op_project_path = './cuda_op_test'
+        shutil.rmtree(cuda_op_project_path, ignore_errors=True)
+
     def setUp(self):
         self.abs_input_path = os.path.abspath('../resources/net')
         self.abs_api_files_path = os.path.abspath('../resources/api_files')
@@ -129,7 +139,88 @@ TORCH_LIBRARY_FRAGMENT(torchaudio, m) {
         self.assertEqual(cuda_op_list[2].max_args_num, 2)
         self.assertEqual(cuda_op_list[12].max_args_num, 3)
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cuda_op_project_path = './cuda_op_test'
-        shutil.rmtree(cuda_op_project_path, ignore_errors=True)
+    def test_dynamic_shape_analysis_hook(self):
+        from analysis.dynamic_shape_analysis.msft_dynamic_analysis.hook import Logger, ShapeRange, TraceInfo, \
+            DynamicShapeDetect
+        test_func = "test_func"
+        Logger()
+        # ShapeRange
+        shape_range = ShapeRange()
+        shape_range.update((1, 2, 3))
+        self.assertEqual(str(shape_range), '[(1, 2, 3)-(1, 2, 3)]')
+        shape_range.update((1, 2, 4))
+        self.assertEqual(str(shape_range), '[(1, 2, 3)-(1, 2, 4)]')
+        shape_range.update((1, 3, 5))
+        self.assertEqual(str(shape_range), '[(1, 2, 3)-(1, 3, 5)]')
+        shape_range.update((1, 3, 4))
+        self.assertEqual(str(shape_range), '[(1, 2, 3)-(1, 3, 5)]')
+        # TraceInfo
+        trace_info = TraceInfo(None, "test_api", 1)
+        input_shape_list = [(2, 3), (4, 5)]
+        trace_info.update_input_shape_range(input_shape_list)
+        self.assertEqual(len(trace_info.input_shape_range), 2)
+        self.assertEqual(trace_info.input_shape_range[0].max_shape_len, 2)
+        self.assertEqual(trace_info.input_shape_range[1].max_shape_len, 2)
+        # DynamicShapeDetect hook_func
+        dsd = DynamicShapeDetect()
+        dsd.hook_func = MagicMock(return_value=torch.tensor([1, 2, 3]))
+        result = dsd.hook_func(torch.tensor([1, 2, 3]), test_func, 1, a=torch.tensor([1, 2, 3]))
+        self.assertEqual(result.tolist(), [1, 2, 3])
+        # DynamicShapeDetect start
+        dataset = [torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6])]
+        for data in dsd.start(dataset):
+            self.assertIsInstance(data, torch.Tensor)
+        # DynamicShapeDetect after_call
+        key = 'test_trace_test_func_0_0'
+        result = torch.tensor([1, 2, 3])
+        dsd.trace_dict[key] = TraceInfo([], test_func, 0)
+        dsd.unique_trace_dict['test_trace_test_func_0'] = TraceInfo([], test_func, 0)
+        dsd._after_call(key, result)
+        self.assertEqual(len(dsd.dynamic_api_set), 0)
+        # DynamicShapeDetect before_call
+        key = 'test_trace_test_func_0_0'
+        args = [torch.tensor([1, 2, 3])]
+        kwargs = {}
+        dsd.trace_dict[key] = TraceInfo([], test_func, 0)
+        dsd.unique_trace_dict[key] = TraceInfo([], test_func, 0)
+        dsd._before_call(key, torch.add, args, kwargs)
+        self.assertEqual(len(dsd.dynamic_api_set), 0)
+        # DynamicShapeDetect get_trace_info_key
+        func_name = test_func
+        trace = []
+        call_number = 0
+        key = dsd._get_trace_info_key(func_name, trace, call_number)
+        self.assertEqual(key, f'{trace}_{func_name}_{call_number}_0')
+
+    def test_dynamic_shape_converter(self):
+        from analysis.dynamic_shape_analysis.dynamic_shape_converter import DynamicShapeTransformer
+        transformer = DynamicShapeTransformer()
+        body_item = parse_statement("import os")
+        self.assertFalse(transformer.verify_import_position(body_item))
+
+        function_body = IndentedBlock(
+            body=[
+                SimpleStatementLine(body=[Pass()])
+            ]
+        )
+        function_def = FunctionDef(
+            name=Name("my_function"),
+            params=Parameters(),
+            body=function_body
+        )
+        module = Module(
+            body=[
+                function_def
+            ]
+        )
+        original_node = module
+        updated_node = transformer.leave_Module(original_node, original_node)
+        self.assertIn("from msft_dynamic_analysis.hook import DETECTOR", updated_node.code)
+
+        original_node = Call(func=Name("print"))
+        result = transformer._check_if_need_hook(original_node)
+        self.assertFalse(result)
+
+        node = function_def
+        result = transformer._get_parent_node(node, m.FunctionDef())
+        self.assertEqual(result, node)

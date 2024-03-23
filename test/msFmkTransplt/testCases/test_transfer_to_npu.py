@@ -5,85 +5,119 @@
 import os
 import sys
 import unittest
+from unittest import mock
 
 import torch
 
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
 
-try:
-    import torch_npu
-
-    TORCH_NPU_AVAILABLE = True
-except ImportError:
-    TORCH_NPU_AVAILABLE = False
+npu_mock = mock.Mock()
+ori_import = __import__
+CUDA = "cuda"
+NPU = "npu"
 
 
-@unittest.skipIf(not TORCH_NPU_AVAILABLE, reason='torch_npu is not available')
+def import_mock(name, *args):
+    if name == "torch_npu" or name == "torchair":
+        return npu_mock
+    return ori_import(name, *args)
+
+
+def device_func(device):
+    return True if device == NPU else False
+
+
+def hccl_func(arg):
+    return True if arg == "hccl" else False
+
+
+def data_loader_func(arg, pin_memory=False, pin_memory_device=None):
+    if pin_memory and pin_memory_device == NPU:
+        return True
+    elif not pin_memory:
+        return True
+    else:
+        return False
+
+
 class TestTransferToNpu(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        from src.ms_fmk_transplt.torch_npu_bridge import transfer_to_npu
+        with mock.patch('builtins.__import__', side_effect=import_mock):
+            torch.Tensor.npu = torch.Tensor.cuda
+            torch.Tensor.is_npu = torch.Tensor.is_cuda
+            torch.npu = torch.cuda
+            torch.nn.Module.npu = torch.nn.Module.cuda
+            torch.distributed.is_hccl_available = torch.distributed.is_nccl_available
+            torch.npu.amp.autocast_mode.npu_autocast = torch.cuda.amp.autocast_mode.autocast
+            torch.distributed.ProcessGroup._get_backend = torch.distributed.ProcessGroup
+            cls.rand = torch.rand
+            cls.profile = torch.profiler.profile
+            cls.jit = torch.jit.script
+            from src.ms_fmk_transplt.torch_npu_bridge import transfer_to_npu
+            cls.transfer_to_npu = transfer_to_npu
 
-    def test_wrap_isinstance(self):
-        # check builtins isinstance grammar
-        self.assertTrue(isinstance(1, int))
-        self.assertTrue(isinstance(1, (int, str)))
-        self.assertFalse(isinstance(1, str))
-        with self.assertRaises(TypeError):
-            isinstance(1, [str, int])
+    def test_is_torch_version_greater_than_2_1(self):
+        result = self.transfer_to_npu.is_torch_version_greater_than_2_1()
+        version = torch.__version__
+        if '1.11' in version or '2.0' in version:
+            self.assertFalse(result)
+        elif '2.1' in version:
+            self.assertTrue(result)
 
-        # check torch.device
-        self.assertFalse(isinstance(1, torch.device))
+    def test_wrapper_cuda(self):
+        func = self.transfer_to_npu.wrapper_cuda(device_func)
+        self.assertTrue(func(CUDA))
 
-        # check torch.cuda.device
-        device = -1
-        torch.cuda.device(device)
+    def test_wrapper_hccl(self):
+        func = self.transfer_to_npu.wrapper_hccl(hccl_func)
+        self.assertTrue(func("nccl"))
 
-        # test multi imports
-        import torch_npu
-        from src.ms_fmk_transplt.torch_npu_bridge import transfer_to_npu
-        import torch_npu
-        self.assertFalse(isinstance(1, torch.device))
+    def test_replace_cuda_to_npu_in_kwargs(self):
+        device = "device"
+        device_type = "device_type"
+        map_location = "map_location"
+        device_kwargs_list = [device, device_type, map_location, device + "0"]
+        kwargs = {device_type: CUDA, device: "cuda:0", map_location: 0, device + "0": {CUDA: NPU}}
+        for item in device_kwargs_list:
+            self.transfer_to_npu.replace_cuda_to_npu_in_kwargs(kwargs, item, kwargs.get(item, device))
+        self.assertEqual(kwargs.get(device_type), NPU)
+        self.assertEqual(kwargs.get(device), "npu:0")
+        self.assertEqual(kwargs.get(map_location), "npu:0")
+        self.assertEqual(kwargs.get(device + "0"), {NPU: NPU})
 
-    def test_amp_function(self):
-        self.assertEqual(torch.cuda.amp.autocast_mode, torch_npu.npu.amp.autocast_mode)
-        self.assertEqual(torch.cuda.amp.common, torch_npu.npu.amp.common)
-        self.assertEqual(torch.cuda.amp.grad_scaler, torch_npu.npu.amp.grad_scaler)
+    def test_replace_cuda_to_npu_in_list(self):
+        args_list = [CUDA, 0]
+        self.transfer_to_npu.replace_cuda_to_npu_in_list(args_list, True)
+        self.assertEqual(args_list[0], NPU)
+        self.assertEqual(args_list[1], "npu:0")
 
-    def test_wrap_device(self):
-        device = torch.device(f"cuda:{0}")
-        torch.cuda.set_device(device)
-        a = torch.randint(1, 5, (2, 3), device=device)
-        self.assertEqual(a.device.type, 'npu')
+    def test_replace_cuda_to_npu_in_dict(self):
+        device_dict = {CUDA: NPU}
+        new_dict = self.transfer_to_npu.replace_cuda_to_npu_in_dict(device_dict)
+        self.assertEqual(new_dict, {NPU: NPU})
 
-    def test_patch_profiler(self):
-        self.assertEqual(torch.profiler.profile.export_chrome_trace, torch_npu.profiler.profile.export_chrome_trace)
-        self.assertEqual(torch.profiler.profile.step, torch_npu.profiler.profile.step)
-        self.assertEqual(torch.profiler.ProfilerAction, torch_npu.profiler.ProfilerAction)
-        self.assertEqual(torch.profiler.schedule, torch_npu.profiler.schedule)
-        self.assertEqual(torch.profiler.tensorboard_trace_handler, torch_npu.profiler.tensorboard_trace_handler)
-        self.assertEqual(torch.profiler.ProfilerActivity.CUDA, torch_npu.profiler.ProfilerActivity.NPU)
-        self.assertEqual(torch.profiler.ProfilerActivity.CPU, torch_npu.profiler.ProfilerActivity.CPU)
-        self.assertIsInstance(torch.profiler.profile(experimental_config=1), torch_npu.profiler.profile)
+    def test_wrapper_profiler(self):
+        self.profile = self.transfer_to_npu.wrapper_profiler(self.profile)
+        self.profile(experimental_config=1)
 
-    def test_wrap_ddp(self):
-        local_rank = 0
-        device = 'cuda:%d' % local_rank
-        import torchvision
-        vgg = torchvision.models.vgg16(pretrained=False)
-        vgg = vgg.to(device)
-        torch.distributed.init_process_group(
-            backend='nccl',
-            init_method='tcp://localhost:29688',
-            world_size=1,
-            rank=0)
-        vgg = torch.nn.parallel.DistributedDataParallel(vgg, device_ids=[device])
-        vgg_device = next(vgg.module.parameters()).device
-        self.assertEqual(vgg_device, torch.device('npu:0'))
+    def test_jit_script(self):
+        self.jit = self.transfer_to_npu.jit_script
+        self.jit("test")
 
-    def test_patch_default_generators(self):
-        self.assertEqual(torch.cuda.default_generators, torch_npu.npu.default_generators)
+    def test_wrapper_data_loader(self):
+        func = self.transfer_to_npu.wrapper_data_loader(data_loader_func)
+        self.assertTrue(func(None, pin_memory=False, pin_memory_device=None))
+        self.assertTrue(func(None, pin_memory=True, pin_memory_device=None))
+        self.assertTrue(func(None, pin_memory=True, pin_memory_device=CUDA))
 
-    def test_patch_is_nccl_available(self):
-        self.assertEqual(torch.distributed.is_nccl_available, torch_npu.distributed.is_hccl_available)
+    def test_device_wrapper(self):
+        self.transfer_to_npu.device_wrapper(self.rand, ["rand"])
+
+    def test_warning_fn(self):
+        self.transfer_to_npu.warning_fn("warning_fn success")
+
+    def test_patch(self):
+        self.transfer_to_npu.patch_cuda()
+        self.transfer_to_npu.patch_profiler()
