@@ -139,7 +139,8 @@ NANO_DATA_TYPE_TO_PROTO_DATA_TYPE = {
     NanoDataType.DT_COMPLEX64.value: DD.DT_COMPLEX64,
     NanoDataType.DT_COMPLEX128.value: DD.DT_COMPLEX128,
     NanoDataType.DT_BF16.value: DD.DT_BF16,
-    NanoDataType.DT_UINT1.value: DD.DT_UINT1
+    NanoDataType.DT_UINT1.value: DD.DT_UINT1,
+    NanoDataType.DT_RESOURCE.value: DD.DT_INT64,
 }
 
 
