@@ -697,6 +697,7 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
         return;
     }
 
+    outPath = GetRealPath(outPath);
     std::ofstream file(outPath, std::ios_base::app);
     if (file.is_open()) {
         file << "[" << opname << "]:" << st << std::endl;
@@ -726,6 +727,7 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
         return;
     }
 
+    outPath = GetRealPath(outPath);
     std::ofstream file(outPath, std::ios_base::app);
     if (file.is_open()) {
         file << "[" << opname << "]:" << st << std::endl;
