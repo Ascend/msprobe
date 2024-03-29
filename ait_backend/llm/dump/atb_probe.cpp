@@ -18,6 +18,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/statvfs.h>
+#include <sys/stat.h>
 #include <experimental/filesystem>
 #include "bin_file.h"
 #include "nlohmann/json.hpp"
@@ -1019,6 +1020,11 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
     if (ofs.is_open()) {
         AIT_LOG_INFO("Output File created. File name: " + outPath);
         ofs << "Overflow detected! Operator name: " << kernelPath << std::endl;
+
+        int stat = chmod(outPath.c_str(), 0640);
+        if (stat) {
+            AIT_LOG_WARNING("Change file mode failed.");
+        }
     } else {
         AIT_LOG_WARNING("Unable to create file: " + outPath + ". Please check if the directory is valid.");
     }
