@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <unistd.h>
 #include <syscall.h>
 #include <cctype>
+#include <cstdlib>
+#include <unistd.h>
 #include <sys/statvfs.h>
 #include <experimental/filesystem>
 #include "bin_file.h"
@@ -1004,20 +1005,26 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
         return;
     }
 
+    char resolvedPath[PATH_MAX] = {0};
+    if (realpath(outputDir, resolvedPath) == nullptr) {
+        AIT_LOG_WARNING("There is something wrong with the directory, please try another one instead.");
+        return;
+    }
+
     const std::string pidID = std::to_string(GetCurrentProcessId());
     const std::string fileName = "ait_overflow_res_" + pidID + ".txt";
-    const std::string outPath = std::string(outputDir) + "/" + fileName;
+    const std::string outPath = std::string(resolvedPath) + "/" + fileName;
 
-    std::ofstream ofs(outPath, std::ios::app);
+    std::ofstream ofs(outPath);
     if (ofs.is_open()) {
         AIT_LOG_INFO("Output File created. File name: " + outPath);
         ofs << "Overflow detected! Operator name: " << kernelPath << std::endl;
-        ofs.close();
     } else {
         AIT_LOG_WARNING("Unable to create file: " + outPath + ". Please check if the directory is valid.");
-        ofs.close();
     }
-
+    
+    ofs.close();
+    
     return;
 }
 
