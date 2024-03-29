@@ -35,12 +35,13 @@ file(GLOB_RECURSE SECUREC_SRC ${SECUREC_DIR}/src/*.c)
 add_library(${LIB_NAME} SHARED atb_probe.cpp bin_file.cpp ${AIT_LOGGER_PATH}/ait_logger.cpp ${SECUREC_SRC})
 
 target_compile_options(${LIB_NAME} PRIVATE
-    "-fPIC"
-    "-pie"
-    "-fstack-protector-all"
-    "-D_FORTIFY_SOURCE=2"
-    "-ftrapv"
+    -fPIC
+    -pie
+    -fstack-protector-all
+    -D_FORTIFY_SOURCE=2
+    -ftrapv
 )
+add_compile_options(-fstack-check)
 target_link_options(${LIB_NAME} PRIVATE
     -Wl,-z,relro,-z,now,-z,noexecstack
     -s
