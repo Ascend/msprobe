@@ -263,6 +263,7 @@ void SaveSubProcessInfo(const std::string infoToSave)
     }
 
     std::string outDir = outputDir;
+    outDir = GetRealPath(outDir);
     bool ret = CheckDirectory(outDir);
     if (!ret) {
         AIT_LOG_WARNING("Create directory failed: " + outDir);
@@ -438,6 +439,7 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
 
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = (outputDir != nullptr ? outputDir : "./");
+    outDir = GetRealPath(outDir);
     outDir = outDir + "ait_dump/tensors/";
 
     // 磁盘空间判断
@@ -484,6 +486,7 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
     }
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
+    outDir = GetRealPath(outDir);
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
@@ -652,6 +655,7 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     // 保存修改的Json
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
+    outDir = GetRealPath(outDir);
     std::string pidDir = outDir + "ait_dump/layer/" + std::to_string(GetCurrentProcessId()) + "/";
     bool ret = CheckDirectory(pidDir);
     if (!ret) {
@@ -930,6 +934,7 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
 {
     const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
+    outDir = GetRealPath(outDir);
     outDir = outDir + "ait_dump/tensors/";
 
     std::string outPath = outDir + filePath;
@@ -1083,6 +1088,7 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
     // 保存合并后的Json
     const char *outputDir = std::getenv("ATB_OUTPUT_DIR");
     std::string outDir = outputDir != nullptr ? outputDir : "./";
+    outDir = GetRealPath(outDir);
     std::string pid = std::to_string(GetCurrentProcessId());
     std::string pidDir = outDir + "ait_dump/model/" + pid + "/";
     bool ret = CheckDirectory(pidDir);
