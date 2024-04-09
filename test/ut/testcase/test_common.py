@@ -37,10 +37,8 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(ret, DD.DT_INT8)
 
     def test_get_data_type_by_dtype4(self):
-        with pytest.raises(CompareError) as error:
-            common.get_data_type_by_dtype(np.complex)
-        self.assertEqual(error.value.args[0],
-                         CompareError.MSACCUCMP_INVALID_DATA_TYPE_ERROR)
+        ret = common.get_data_type_by_dtype(np.complex128)
+        self.assertEqual(ret, DD.DT_COMPLEX128)
 
     def test_get_dtype_by_data_type1(self):
         with pytest.raises(CompareError) as error:
