@@ -283,9 +283,6 @@ class ConvertSingleTensorFormat:
     def __init__(self, custom_path: str = "", additional_target_dim_to_format: dict = None) -> None:
         if custom_path and not isinstance(custom_path, str):
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, "custom_path needs to be a string")
-        if additional_target_dim_to_format and not isinstance(additional_target_dim_to_format, dict):
-            message = "additional_target_dim_to_format needs to be a string"
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
 
         self.manager = FormatManager(custom_path=custom_path)
         self.manager.check_arguments_valid()
@@ -301,6 +298,7 @@ class ConvertSingleTensorFormat:
             2: ConstManager.STRING_TO_FORMAT_MAP.get("ND"),
         }
         if additional_target_dim_to_format:
+            self._check_and_set_additional_target_dim_to_format(additional_target_dim_to_format)
             self.target_dim_to_format.update(additional_target_dim_to_format)
         self.nchw_format_len = 4
 
@@ -332,3 +330,21 @@ class ConvertSingleTensorFormat:
                 log.print_error_log(ee)
                 return dump_data_np
         return dump_data_np
+
+    @staticmethod
+    def _check_and_set_additional_target_dim_to_format(additional_target_dim_to_format):
+        if additional_target_dim_to_format is None:
+            return
+        if not isinstance(additional_target_dim_to_format, dict):
+            message = "additional_target_dim_to_format needs to be None or a dict"
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
+
+        for source_dim, target_format in list(additional_target_dim_to_format.items()):  # like {4: "NCHW", 5: "ND"}
+            if not isinstance(source_dim, int):
+                message = "additional_target_dim_to_format key should be an int value indicates source dim"
+                raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
+            if not isinstance(target_format, str) or target_format not in ConstManager.STRING_TO_FORMAT_MAP:
+                message = "additional_target_dim_to_format value should be a string indicates target format like NCHW"
+                raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
+            additional_target_dim_to_format[source_dim] = ConstManager.STRING_TO_FORMAT_MAP.get(target_format)
+

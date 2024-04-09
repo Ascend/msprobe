@@ -263,5 +263,24 @@ class TestUtilsMethods(unittest.TestCase):
         data = ConvertSingleTensorFormat()(my_tensor)
         self.assertEqual(data.shape, (4, 12, 16, 16))
 
+    def test_convert_single_tensor_format_invalid_additional_target_dim_to_format_key(self):
+        with pytest.raises(CompareError):
+            ConvertSingleTensorFormat(additional_target_dim_to_format={"test": "ND"})
+
+    def test_convert_single_tensor_format_invalid_additional_target_dim_to_format_value(self):
+        with pytest.raises(CompareError):
+            ConvertSingleTensorFormat(additional_target_dim_to_format={3: "NOT_EXISTS"})
+
+    def test_convert_single_tensor_format_valid_additional_target_dim_to_format(self):
+        my_tensor = namedtuple("my_tensor", ["data", "shape", "original_shape", "tensor_format"])
+        raw_data = np.ones([1, 64, 2, 16, 32]).astype("float32")
+        my_tensor.data = raw_data.flatten()
+        my_tensor.shape = raw_data.shape
+        my_tensor.original_shape = [1, 28, 2048]
+        my_tensor.tensor_format = 29  # FRACTAL_NZ
+
+        data = ConvertSingleTensorFormat(additional_target_dim_to_format={3: "ND"})(my_tensor)
+        self.assertEqual(data.shape, (1, 28, 2048))
+
 if __name__ == '__main__':
     unittest.main()
