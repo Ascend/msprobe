@@ -41,4 +41,4 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
         return ConstManager.NAN, message
 
     result = ((my_output_dump_data / my_output_norm) * (ground_truth_dump_data / ground_truth_norm)).sum()
-    return utils.format_value(result), ""
+    return utils.format_value(min(result, 1.0)), ""

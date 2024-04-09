@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2019-2021. All rights reserved.
 """
@@ -7,11 +6,13 @@ KullbackLeiblerDivergence algorithm. This file mainly involves the compare funct
 """
 
 import numpy as np
-import scipy.stats
 
 from algorithm_manager.algorithm_parameter import AlgorithmParameter
 from cmp_utils import utils, log
 from cmp_utils.constant.const_manager import ConstManager
+
+
+FLOAT_EPSILON = np.finfo(np.float32).eps
 
 
 def _normalized(dump_data: any) -> any:
@@ -23,7 +24,7 @@ def _normalized(dump_data: any) -> any:
     else:
         dump_data_to_1 = dump_data
     # normalized, the sum of dump data is not equal with zero
-    return dump_data_to_1
+    return np.maximum(dump_data_to_1, FLOAT_EPSILON)
 
 
 def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: AlgorithmParameter) -> (str, str):
@@ -55,7 +56,11 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
         message = 'Cannot compare by KL Divergence. All the data is zero in ' + args.ground_truth_dump_file + '.'
         log.print_warn_log(message)
         return ConstManager.NAN, message
-    result = scipy.stats.entropy(my_output_dump_data_pdf, ground_true_dump_data_pdf)
+
+    norm_xx = my_output_dump_data_pdf / my_output_dump_data_pdf.sum()  # cannot be all 0
+    norm_yy = ground_true_dump_data_pdf / ground_true_dump_data_pdf.sum()  # cannot be all 0
+    result = (norm_xx * np.log(norm_xx / norm_yy)).sum()
+
     inf_message = ''
     if abs(result) < ConstManager.FLOAT_EPSILON:
         result = 0.0
