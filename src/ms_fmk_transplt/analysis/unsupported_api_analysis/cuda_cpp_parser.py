@@ -69,7 +69,7 @@ class _DeclareLineParser:
             line = line.split('//')[0].strip()
             # def with c10::Dict<std::string, c10::Dict<std::string, double>> GPUDecoder::
             # "----get_metadata() const {xxx}
-            if line.endswith('::'):
+            if line.endswith('::') and row + 1 < len(self._file_lines):
                 line += self._file_lines[row + 1].strip()
             if f' {cpp_func_name}(' in line:
                 in_func_def_line = True
