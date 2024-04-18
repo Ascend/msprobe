@@ -291,11 +291,14 @@ class ConvertSingleTensorFormat:
 
         self.nd_source_formats = [ConstManager.STRING_TO_FORMAT_MAP.get(ii, None) for ii in ['HWCN', 'NCHW', 'NHWC']]
         self.nd_target_format = ConstManager.STRING_TO_FORMAT_MAP.get("ND", None)
+        if self.nd_target_format is None:
+            message = "This should not happen, check if the installed CANN toolkit is broken"
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
 
         self.target_dim_to_format = {
             4: ConstManager.STRING_TO_FORMAT_MAP.get("NCHW"),
-            3: ConstManager.STRING_TO_FORMAT_MAP.get("ND"),
-            2: ConstManager.STRING_TO_FORMAT_MAP.get("ND"),
+            3: self.nd_target_format,
+            2: self.nd_target_format,
         }
         if additional_target_dim_to_format:
             self._check_and_set_additional_target_dim_to_format(additional_target_dim_to_format)
