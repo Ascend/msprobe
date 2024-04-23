@@ -290,5 +290,13 @@ def init():
     if '1.11.0' not in torch.__version__:
         torch.distributed.ProcessGroup._get_backend = wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
 
+    if '2.2.0' in torch.__version__:
+        from torch.utils._triton import has_triton
+
+        def patch_has_triton():
+            return False
+
+        setattr(torch.utils._triton, 'has_triton', patch_has_triton)
+
 
 init()

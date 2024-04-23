@@ -184,7 +184,7 @@ class MsFmkTransplt(object):
         parser.add_argument('-s', '--specify-device', dest='specify_device', action='store_true',
                             help='This option is required only if you want to use the DEVICE_ID'
                                  'environment variable to specify the running device.')
-        parser.add_argument('-v', '--version', required=True, choices=['1.11.0', '2.0.1', '2.1.0'],
+        parser.add_argument('-v', '--version', required=True, choices=['1.11.0', '2.0.1', '2.1.0', '2.2.0'],
                             help='Target pytorch version of output. (required)')
         parser.add_argument('-m', '--modelarts', action='store_true',
                             help='Convert to a ModelArts-compatible project.')
@@ -204,7 +204,7 @@ class MsFmkTransplt(object):
             shell_file_path = self.output if os.path.isdir(self.output) else os.path.dirname(self.output)
             utils.generate_distributed_shell_file(shell_file_path)
             self.feature_switch.append('distributed')
-        if args.version == '2.1.0':
+        if args.version in ['2.1.0', '2.2.0']:
             self.feature_switch.append('2.1.0')
 
     def __copy_function_pack(self, pack_name):
