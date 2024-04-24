@@ -781,17 +781,20 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
     std::string inFormat = "";
     std::string inShape = "";
     std::string inPath = "";
+    std::string dataGenType = "";
     for (int i = 0; i < inNum; ++i) {
         if (i == inNum - 1) {
             inDType = inDType + inTensors[i].dype;
             inFormat = inFormat + inTensors[i].format;
             inShape = inShape + inTensors[i].shape;
             inPath = inPath + inTensors[i].path;
+            dataGenType = dataGenType + "customize";
         } else {
             inDType = inDType + inTensors[i].dype + ";";
             inFormat = inFormat + inTensors[i].format + ";";
             inShape = inShape + inTensors[i].shape + ";";
             inPath = inPath + inTensors[i].path + ";";
+            dataGenType = dataGenType + "customize;";
         }
     }
     int outNum = outTensors.size();
@@ -814,8 +817,8 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
     }
     const std::string inputString = std::to_string(caseNum) + "|" + caseName + "|" + opName + "|" + opParam + "|" + \
         std::to_string(inNum) + "|" + inDType + "|" + inFormat + "|" + inShape + "|" + \
-        std::to_string(outNum) + "|" + outDType + "|" + outFormat + "|" + outShape + "|" + \
-        "customize| |" + dumpTensorOutPath + inPath + "|" + dumpTensorOutPath + outPath + "| | | | |NO_ERROR";
+        std::to_string(outNum) + "|" + outDType + "|" + outFormat + "|" + outShape + "|" + dataGenType + \
+        "| |" + dumpTensorOutPath + inPath + "|" + dumpTensorOutPath + outPath + "| | | | |NO_ERROR";
     return inputString;
 }
 
