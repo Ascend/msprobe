@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright Huawei Technologies Co., Ltd. 2022-2022. All rights reserved.
-
 import os
+import sys
 import warnings
+import json
 import logging as logger
 import functools
 from functools import wraps
+from enum import Enum
 import torch
 import torch_npu
+try:
+    from packaging.version import Version as Version
+except ImportError:
+    from distutils.version import LooseVersion as Version
 
 
 warnings.filterwarnings(action='once')
@@ -39,6 +45,15 @@ torch_distributed_fn_white_list = ['__init__']
 device_kwargs_list = ['device', 'device_type', 'map_location']
 CUDA = 'cuda'
 NPU = 'npu'
+is_available = torch.cuda.is_available
+cur_path = os.path.dirname(os.path.realpath(__file__))
+config_path = os.path.join(cur_path, 'apis_config.json')
+python_version = sys.version_info
+
+
+class ApiType(Enum):
+    METHOD = 'method'
+    FUNCTION = 'function'
 
 
 def is_torch_version_greater_than_2_1():
@@ -51,6 +66,113 @@ def is_torch_version_greater_than_2_1():
 
 if is_torch_version_greater_than_2_1():
     import torchair
+
+
+if python_version >= (3, 8):
+    import importlib.metadata
+else:
+    import importlib
+    import pkg_resources
+
+
+def get_function_from_string(attribute_string):
+    try:
+        module_path, _, attr_name = attribute_string.rpartition('.')
+        module = importlib.import_module(module_path)
+        return [module, attr_name]
+    except BaseException:
+        return []
+
+
+def get_method_from_string(attribute_string):
+    try:
+        parts = attribute_string.split('.')
+        module_path = '.'.join(parts[:-2])
+        class_name = parts[-2]
+        attr_name = parts[-1]
+        module = getattr(importlib.import_module(module_path), class_name)
+        return [module, attr_name]
+    except BaseException:
+        return []
+
+
+def get_package_version(package_name):
+    if python_version >= (3, 8):
+        try:
+            return importlib.metadata.version(package_name)
+        except importlib.metadata.PackageNotFoundError:
+            return ""
+    else:
+        try:
+            return pkg_resources.get_distribution(package_name).version
+        except pkg_resources.DistributionNotFound:
+            return ""
+
+
+def compare_versions(current_version, version):
+    return Version(current_version) >= Version(version)
+
+
+def check_input_file_valid(file_path, max_file_size=10 * 1024 ** 2):
+    if os.path.islink(os.path.abspath(file_path)):
+        return False
+    input_path = os.path.realpath(file_path)
+    if not os.path.exists(input_path):
+        return False
+    if not os.access(input_path, os.R_OK):
+        return False
+    if not len(os.path.basename(input_path)) <= 200:
+        return False
+    if os.path.getsize(input_path) > max_file_size:
+        return False
+    return True
+
+
+def load_json_file(file_path):
+    if not check_input_file_valid(file_path):
+        return {}
+    try:
+        with open(file_path, 'r') as file:
+            file_dict = json.load(file)
+            if not isinstance(file_dict, dict):
+                return {}
+            return file_dict
+    except json.JSONDecodeError:
+        return {}
+
+
+def wrapper_libraries_func(fn):
+    @wraps(fn)
+    def decorated(*args, **kwargs):
+        patched_is_available = torch.cuda.is_available
+        torch.cuda.is_available = is_available
+        result = fn(*args, **kwargs)
+        torch.cuda.is_available = patched_is_available
+        return result
+
+    return decorated
+
+
+def set_attr_wrapper_func(apis_dict):
+    for full_name, api_type in apis_dict.items():
+        modules = None
+        if api_type == ApiType.METHOD.value:
+            modules = get_method_from_string(full_name)
+        elif api_type == ApiType.FUNCTION.value:
+            modules = get_function_from_string(full_name)
+        if modules and getattr(modules[0], modules[1], None):
+            setattr(modules[0], modules[1], wrapper_libraries_func(getattr(modules[0], modules[1])))
+
+
+def do_wrapper_libraries_func(json_dict):
+    for key, value in json_dict.items():
+        current_version = get_package_version(key)
+        if not current_version:
+            continue
+        version = value.get('version')
+        apis: dict = value.get('apis')
+        if version and apis and compare_versions(current_version, version):
+            set_attr_wrapper_func(apis)
 
 
 def wrapper_cuda(func):
@@ -297,6 +419,8 @@ def init():
             return False
 
         setattr(torch.utils._triton, 'has_triton', patch_has_triton)
+
+    do_wrapper_libraries_func(load_json_file(config_path))
 
 
 init()
