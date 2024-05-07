@@ -47,6 +47,6 @@ function fn_main()
     cmake ..
 
     # 使用make来编译项目
-    make
+    make -j20
 }
 fn_main "$@"

@@ -61,7 +61,7 @@ function fn_build_googletest()
     mkdir gtest_build
     cd gtest_build
     cmake -DCMAKE_INSTALL_PREFIX=$THIRD_PARTY_DIR/googletest ..
-    make -j4
+    make -j20
     make install
 }
 
@@ -88,7 +88,7 @@ function fn_build_cases()
     fi
     cd $SCRIPT_DIR/build
     cmake ..
-    make
+    make -j20
 }
 
 function fn_run_and_record()
