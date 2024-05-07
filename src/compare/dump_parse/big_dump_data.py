@@ -261,7 +261,7 @@ class DumpDataHandler:
         dump_data = DD.DumpData()
         try:
             parse_size = dump_data.ParseFromString(file_content)
-        except DecodeError:
+        except (DecodeError, UnicodeDecodeError, TypeError):
             return BigDumpDataParser(self.dump_file_path).parse()
         finally:
             pass
