@@ -166,7 +166,8 @@ class DumpInfo:
 
     def _handle_one_file(self: any, file_path: str) -> None:
         item = os.path.basename(file_path)
-        if item.isdigit():
+        item_name, item_extension = os.path.splitext(item)
+        if item.isdigit() or (item_name.isdigit() and item_extension == ".npy"):
             mapping_file_path = os.path.join(self.path, ConstManager.MAPPING_FILE_NAME)
             if not os.path.exists(mapping_file_path):
                 log.print_warn_log('The file name \"{}\" corresponding mapping file \"{}\" is not exist.'
