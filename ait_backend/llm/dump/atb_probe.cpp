@@ -809,13 +809,13 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
             inDType = inDType + inTensors[i].dype;
             inFormat = inFormat + inTensors[i].format;
             inShape = inShape + inTensors[i].shape;
-            inPath = inPath + inTensors[i].path;
+            inPath = inPath + dumpTensorOutPath + inTensors[i].path;
             dataGenType = dataGenType + "customize";
         } else {
             inDType = inDType + inTensors[i].dype + ";";
             inFormat = inFormat + inTensors[i].format + ";";
             inShape = inShape + inTensors[i].shape + ";";
-            inPath = inPath + inTensors[i].path + ";";
+            inPath = inPath + dumpTensorOutPath + inTensors[i].path + ";";
             dataGenType = dataGenType + "customize;";
         }
     }
@@ -829,18 +829,18 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
             outDType = outDType + outTensors[i].dype;
             outFormat = outFormat + outTensors[i].format;
             outShape = outShape + outTensors[i].shape;
-            outPath = outPath + outTensors[i].path;
+            outPath = outPath + dumpTensorOutPath + outTensors[i].path;
         } else {
             outDType = outDType + outTensors[i].dype + ";";
             outFormat = outFormat + outTensors[i].format + ";";
             outShape = outShape + outTensors[i].shape + ";";
-            outPath = outPath + outTensors[i].path + ";";
+            outPath = outPath + dumpTensorOutPath + outTensors[i].path + ";";
         }
     }
     const std::string inputString = std::to_string(caseNum) + "|" + caseName + "|" + opName + "|" + opParam + "|" + \
         std::to_string(inNum) + "|" + inDType + "|" + inFormat + "|" + inShape + "|" + \
         std::to_string(outNum) + "|" + outDType + "|" + outFormat + "|" + outShape + "|" + dataGenType + \
-        "| |" + dumpTensorOutPath + inPath + "|" + dumpTensorOutPath + outPath + "| | | | |NO_ERROR";
+        "| |" + inPath + "|" + outPath + "| | | | |NO_ERROR";
 
     AIT_LOG_DEBUG("inputString: " + inputString);
 
