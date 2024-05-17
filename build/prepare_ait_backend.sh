@@ -42,7 +42,14 @@ make_ait_backend() {
       mkdir "${BUILD_TYPE}"
   fi
   cd ${BUILD_TYPE}
-  cmake -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" .. && make
+
+  # Hi Test
+  HI_TEST="off"
+  if [ ! -z ${TOOLKIT_HITEST} ] && [ ${TOOLKIT_HITEST} == "on" ]; then
+      HI_TEST=${TOOLKIT_HITEST}
+  fi
+
+  cmake -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DHITEST=${HI_TEST} .. && make
   if [ $? -ne 0 ]; then
       echo -e "Build ${PROJECT_NAME} Failed"
       return 1
