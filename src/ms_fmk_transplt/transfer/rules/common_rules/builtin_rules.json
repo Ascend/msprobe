@@ -81,7 +81,7 @@
         "func_name": "to",
         "arg_idx": 0,
         "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
-        "white_list": ["[\"']"],
+        "white_list": ["[\"']", "cpu", "type|bool|int|short|long|half|float|double|complex", "memory_format", "grad"],
         "feature_switch": ["2.1.0"]
       },
       {
@@ -95,7 +95,7 @@
         "func_name": "to_empty",
         "arg_idx": 0,
         "arg_new": "f'npu:{replace_device_int}' if isinstance(replace_device_int, int) else replace_device_int",
-        "white_list": ["[\"']"],
+        "white_list": ["[\"']", "cpu", "type|bool|int|short|long|half|float|double|complex", "memory_format", "grad"],
         "feature_switch": ["2.1.0"]
       },
       {
