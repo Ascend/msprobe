@@ -27,6 +27,9 @@
 
 
 namespace atb {
+const std::string ARGS_DUMP_TYPE_TENSOR = "tensors";
+const std::string ARGS_DUMP_TYPE_CPU_PROFILING = "cpu_profiling";
+
 constexpr int SAVE_TENSOR_BEFORE = 0;
 constexpr int SAVE_TENSOR_AFTER = 1;
 constexpr int SAVE_TENSOR_BOTH = 2;

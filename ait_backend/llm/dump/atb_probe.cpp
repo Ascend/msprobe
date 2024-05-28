@@ -98,6 +98,24 @@ std::experimental::filesystem::read_symlink(outPath.c_str()) : std::experimental
     return std::string(realOutPath.c_str());
 }
 
+static std::string GetOutDir()
+{
+    static std::string outDir = "";
+    if (outDir == "") {
+        const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
+        outDir = (outputDir != nullptr ? outputDir : "./");
+        outDir = GetRealPath(outDir);
+        const char* timestamp = std::getenv("ATB_TIMESTAMP");
+        const std::string timestampStr = (timestamp != nullptr ? timestamp : "");
+        if (timestampStr == "") {
+            outDir = outDir + "ait_dump/";
+        } else {
+            outDir = outDir + "ait_dump_" + timestampStr + "/";
+        }
+    }
+    return outDir;
+}
+
 static bool CheckDirectory(const std::string &directory)
 {
     std::vector<std::string> dirs = SplitString(directory, '/');
@@ -445,10 +463,7 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
         }
     }
 
-    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = (outputDir != nullptr ? outputDir : "./");
-    outDir = GetRealPath(outDir);
-    outDir = outDir + "ait_dump/tensors/";
+    std::string outDir = GetOutDir();
 
     // 磁盘空间判断
     unsigned long long freeSpace = 0;
@@ -461,7 +476,7 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
         return;
     }
 
-    std::string outPath = outDir + filePath;
+    std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
 
@@ -669,9 +684,8 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     }
 
     // 保存修改的Json
-    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr ? outputDir : "./";
-    std::string pidDir = GetRealPath(outDir) + "ait_dump/layer/" + std::to_string(GetCurrentProcessId()) + "/";
+    std::string outDir = GetOutDir();
+    std::string pidDir = outDir + "layer/" + std::to_string(GetCurrentProcessId()) + "/";
     if (!CheckDirectory(pidDir)) {
         AIT_LOG_ERROR("Create directory failed: " + pidDir);
         return;
@@ -702,9 +716,8 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
     const std::string &opname, const std::string &st)
 {
     // 得到文件保存地址
-    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr ? outputDir : "./";
-    std::string filePath = "ait_dump/cpu_profiling/" + std::to_string(GetCurrentProcessId()) + \
+    std::string outDir = GetOutDir();
+    std::string filePath = ARGS_DUMP_TYPE_CPU_PROFILING + "/" + std::to_string(GetCurrentProcessId()) + \
                             "/operation_statistic_" + std::to_string(executeCount) + ".txt";
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
@@ -735,9 +748,8 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
     const std::string &opname, const std::string &st)
 {
     // 得到文件保存地址
-    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr ? outputDir : "./";
-    std::string filePath = "ait_dump/cpu_profiling/" + std::to_string(GetCurrentProcessId()) + \
+    std::string outDir = GetOutDir();
+    std::string filePath = ARGS_DUMP_TYPE_CPU_PROFILING + "/" + std::to_string(GetCurrentProcessId()) + \
                             "/operation_statistic_" + std::to_string(executeCount) + ".txt";
     std::string outPath = outDir + filePath;
     size_t found = outPath.find_last_of("/");
@@ -791,9 +803,8 @@ static std::string MakeAbsolutePath(const std::string& path)
 static std::string GetInputString(int &caseNum, const std::string &opName, const std::string &opParam,
     const std::vector<atb::Probe::Tensor> &inTensors, const std::vector<atb::Probe::Tensor> &outTensors)
 {
-    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr ? outputDir : "./";
-    std::string dumpTensorOutPath = MakeAbsolutePath(outDir) + "ait_dump/tensors/";
+    std::string outDir = GetOutDir();
+    std::string dumpTensorOutPath = MakeAbsolutePath(outDir) + ARGS_DUMP_TYPE_TENSOR + "/";
     const std::string caseName = opName + std::to_string(caseNum);
 
     AIT_LOG_DEBUG("caseName: " + caseName);
@@ -902,11 +913,9 @@ void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::s
     const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
     const std::vector<atb::Probe::Tensor> &outTensors)
 {
-    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr ? outputDir : "./";
+    std::string outDir = GetOutDir();
     const std::string pid = std::to_string(GetCurrentProcessId());
-    std::string fPath =
-        "ait_dump/operation_io_tensors/" + pid + "/operation_tensors_" + std::to_string(executeCount) + ".csv";
+    std::string fPath = "operation_io_tensors/" + pid + "/operation_tensors_" + std::to_string(executeCount) + ".csv";
     std::string outPath = outDir + fPath;
     size_t found = outPath.find_last_of("/");
     if (found == std::string::npos) {
@@ -936,11 +945,9 @@ void atb::Probe::ReportKernelIOTensor(const size_t executeCount, const std::stri
     const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
     const std::vector<atb::Probe::Tensor> &outTensors)
 {
-    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr ? outputDir : "./";
+    std::string outDir = GetOutDir();
     const std::string pid = std::to_string(GetCurrentProcessId());
-    std::string fPath =
-        "ait_dump/kernel_io_tensors/" + pid + "/kernel_tensors_" + std::to_string(executeCount) + ".csv";
+    std::string fPath = "kernel_io_tensors/" + pid + "/kernel_tensors_" + std::to_string(executeCount) + ".csv";
     std::string outPath = outDir + fPath;
     size_t found = outPath.find_last_of("/");
     if (found == std::string::npos) {
@@ -961,12 +968,9 @@ void atb::Probe::ReportKernelIOTensor(const size_t executeCount, const std::stri
 
 void atb::Probe::SaveParam(const std::string &param, const std::string &filePath)
 {
-    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr ? outputDir : "./";
-    outDir = GetRealPath(outDir);
-    outDir = outDir + "ait_dump/tensors/";
+    std::string outDir = GetOutDir();
 
-    std::string outPath = outDir + filePath;
+    std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
 
@@ -1108,11 +1112,9 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
     }
 
     // 保存合并后的Json
-    const char *outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr ? outputDir : "./";
-    outDir = GetRealPath(outDir);
+    std::string outDir = GetOutDir();
     std::string pid = std::to_string(GetCurrentProcessId());
-    std::string pidDir = outDir + "ait_dump/model/" + pid + "/";
+    std::string pidDir = outDir + "model/" + pid + "/";
     bool ret = CheckDirectory(pidDir);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + pidDir);

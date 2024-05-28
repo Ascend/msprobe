@@ -213,12 +213,12 @@ TEST(atb_Probe, ReportOperationIOTensorEnable_002)
 
 TEST(atb_Probe, ReportOperationIOTensor_001)
 {
-    setenv("ATB_OUTPUT_DIR", "./tmp/", 0);
+    setenv("ATB_OUTPUT_DIR", "./", 0);
     const size_t executeCount = 0;
     const std::string pid = std::to_string(GetCurrentProcessId());
     const std::string fPath =
         "ait_dump/operation_io_tensors/" + pid + "/operation_tensors_" + std::to_string(executeCount) + ".csv";
-    const std::string outPath = "./tmp/" + fPath;
+    const std::string outPath = "./" + fPath;
     const std::string testType = "op";
     const std::string headStr = "CaseNum|CaseName|OpName|OpParam|InNum|InDType|InFormat|InShape|\
 OutNum|OutDType|OutFormat|OutShape|DataGenType|DataGenRange|InTensorFile|OutTensorFile|TestType|TestLevel|FromModel|\
@@ -249,12 +249,12 @@ TEST(atb_Probe, ReportKernelIOTensorEnable_002)
 
 TEST(atb_Probe, ReportKernelIOTensor_001)
 {
-    setenv("ATB_OUTPUT_DIR", "./tmp/", 0);
+    setenv("ATB_OUTPUT_DIR", "./", 0);
     const size_t executeCount = 0;
     const std::string pid = std::to_string(GetCurrentProcessId());
     const std::string fPath =
         "ait_dump/kernel_io_tensors/" + pid + "/kernel_tensors_" + std::to_string(executeCount) + ".csv";
-    const std::string outPath = "./tmp/" + fPath;
+    const std::string outPath = "./" + fPath;
     const std::string testType = "kernel";
     const std::string headStr = "CaseNum|CaseName|OpName|OpParam|InNum|InDType|InFormat|InShape|\
 OutNum|OutDType|OutFormat|OutShape|DataGenType|DataGenRange|InTensorFile|OutTensorFile|TestType|TestLevel|FromModel|\
@@ -287,10 +287,10 @@ TEST(atb_Probe, ReportOperationStatisticTest_001)
     const size_t executeCount = 0;
     const std::string pid = std::to_string(GetCurrentProcessId());
     setenv("ATB_CUR_PID", pid.c_str(), 0);
-    setenv("ATB_OUTPUT_DIR", "./tmp/", 0);
+    setenv("ATB_OUTPUT_DIR", "./", 0);
     const std::string fPath =
         "ait_dump/cpu_profiling/" + pid + "/operation_statistic_" + std::to_string(executeCount) + ".txt";
-    const std::string outPath = "./tmp/" + fPath;
+    const std::string outPath = "./" + fPath;
     const std::string testType = "cpu_profiling";
  
     DeleteFile(outPath);
@@ -316,9 +316,9 @@ TEST(atb_Probe, SaveParamTest)
     std::string fileName = "fake_param.json";
 
     atb::Probe::SaveParam(paramJson, fileName);
-    setenv("ATB_OUTPUT_DIR", "./tmp/", 0);
+    setenv("ATB_OUTPUT_DIR", "./", 0);
 
-    std::string paramDir = "./tmp/ait_dump/tensors/fake_param.json";
+    std::string paramDir = "./ait_dump/tensors/fake_param.json";
     std::ifstream paramFile(paramDir);
     EXPECT_TRUE(paramFile.is_open());
 
