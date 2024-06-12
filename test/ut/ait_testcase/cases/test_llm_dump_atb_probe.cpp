@@ -397,3 +397,148 @@ TEST(atb_probe, HandlesOutputFile)
     ifs.close();
     DeleteFile(outPath);
 }
+
+TEST(atb_Probe, IsTensorNeedSaveTest_001)
+{
+    setenv("ATB_DUMP_TYPE", "op", 1);
+    std::vector<int64_t> ids {};
+    std::string optype {};
+    EXPECT_FALSE(atb::Probe::IsTensorNeedSave(ids, optype));
+}
+ 
+TEST(atb_Probe, IsTensorNeedSaveTest_002)
+{
+    setenv("ATB_DUMP_TYPE", "tensor", 1);
+    std::vector<int64_t> ids {};
+    std::string optype {};
+    EXPECT_TRUE(atb::Probe::IsTensorNeedSave(ids, optype));
+}
+ 
+TEST(atb_Probe, IsTensorNeedSaveTest_003)
+{
+    setenv("ATB_DUMP_TYPE", "tensor", 1);
+    setenv("ATB_SAVE_TENSOR_IDS", "20_1_9", 1);
+    std::vector<int64_t> ids {20, 1, 9};
+    std::string optype {};
+    EXPECT_TRUE(atb::Probe::IsTensorNeedSave(ids, optype));
+}
+ 
+TEST(atb_Probe, IsTensorNeedSaveTest_004)
+{
+    setenv("ATB_DUMP_TYPE", "tensor", 1);
+    setenv("ATB_SAVE_TENSOR_RUNNER", "linearops", 1);
+    std::vector<int64_t> ids {};
+    std::string optype {"linearops"};
+    EXPECT_TRUE(atb::Probe::IsTensorNeedSave(ids, optype));
+}
+ 
+TEST(atb_Probe, IsTensorNeedSaveTest_005)
+{
+    setenv("ATB_DUMP_TYPE", "tensor", 1);
+    setenv("ATB_SAVE_TENSOR_RUNNER", "LinearOps", 1);
+    std::vector<int64_t> ids {};
+    std::string optype {"LinearOps"};
+    EXPECT_FALSE(atb::Probe::IsTensorNeedSave(ids, optype));
+}
+ 
+TEST(atb_Probe, IsSaveOuttensor_001)
+{
+    setenv("ATB_SAVE_TENSOR_PART", "1", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveOuttensor());
+}
+ 
+TEST(atb_Probe, IsSaveOuttensor_002)
+{
+    setenv("ATB_SAVE_TENSOR_PART", "2", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveOuttensor());
+}
+ 
+TEST(atb_Probe, IsSaveOuttensor_003)
+{
+    unsetenv("ATB_SAVE_TENSOR_PART");
+    EXPECT_FALSE(atb::Probe::IsSaveOuttensor());
+}
+ 
+TEST(atb_Probe, IsSaveOuttensor_004)
+{
+    setenv("ATB_SAVE_TENSOR_PART", "5", 1);
+    EXPECT_FALSE(atb::Probe::IsSaveOuttensor());
+}
+ 
+TEST(atb_Probe, IsSaveIntensor_001)
+{
+    setenv("ATB_SAVE_TENSOR_PART", "0", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveIntensor());
+}
+ 
+TEST(atb_Probe, IsSaveIntensor_002)
+{
+    setenv("ATB_SAVE_TENSOR_PART", "2", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveIntensor());
+}
+ 
+TEST(atb_Probe, IsSaveIntensor_003)
+{
+    unsetenv("ATB_SAVE_TENSOR_PART");
+    EXPECT_FALSE(atb::Probe::IsSaveIntensor());
+}
+ 
+TEST(atb_Probe, IsSaveIntensor_004)
+{
+    setenv("ATB_SAVE_TENSOR_PART", "5", 1);
+    EXPECT_FALSE(atb::Probe::IsSaveIntensor());
+}
+ 
+TEST(atb_Probe, IsSaveTiling_001)
+{
+    setenv("ATB_SAVE_TILING", "0", 1);
+    EXPECT_FALSE(atb::Probe::IsSaveTiling());
+}
+ 
+TEST(atb_Probe, IsSaveTiling_002)
+{
+    unsetenv("ATB_SAVE_TILING");
+    EXPECT_FALSE(atb::Probe::IsSaveTiling());
+}
+ 
+TEST(atb_Probe, IsSaveTiling_003)
+{
+    setenv("ATB_SAVE_TILING", "5", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTiling());
+}
+ 
+TEST(atb_Probe, IsSaveTensorAfter_001)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "1", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
+}
+ 
+TEST(atb_Probe, IsSaveTensorAfter_002)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "2", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
+}
+ 
+TEST(atb_Probe, IsSaveTensorAfter_003)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "3", 1);
+    EXPECT_FALSE(atb::Probe::IsSaveTensorAfter());
+}
+ 
+TEST(atb_Probe, IsSaveTensorBefore_001)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "0", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorBefore());
+}
+ 
+TEST(atb_Probe, IsSaveTensorBefore_002)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "2", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorBefore());
+}
+ 
+TEST(atb_Probe, IsSaveTensorBefore_003)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "3", 1);
+    EXPECT_FALSE(atb::Probe::IsSaveTensorBefore());
+}
