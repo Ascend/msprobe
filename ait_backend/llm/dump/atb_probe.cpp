@@ -167,9 +167,10 @@ static bool IsOutTensorBinPath(const std::string &filePath)
 static bool IsSaveDumpType(const std::string &tar)
 {
     const char* dumpTypeList = std::getenv("ATB_DUMP_TYPE");
-    AIT_LOG_DEBUG("Got ATB_DUMP_TYPE: " + std::string(dumpTypeList));
-
+    
     if (dumpTypeList != nullptr) {
+        AIT_LOG_DEBUG("Got ATB_DUMP_TYPE: " + std::string(dumpTypeList));
+        
         std::vector<std::string> dumpTypes = SplitString(dumpTypeList, '|');
         for (const auto &type : dumpTypes) {
             if (type == tar) {
@@ -178,7 +179,7 @@ static bool IsSaveDumpType(const std::string &tar)
             }
         }
     }
-    AIT_LOG_DEBUG(tar + " is not found.");
+    
     return false;
 }
 
