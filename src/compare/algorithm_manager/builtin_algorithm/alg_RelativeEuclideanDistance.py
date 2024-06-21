@@ -29,4 +29,4 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
         result = 0.0
     else:
         result = ((my_output_dump_data - ground_truth_dump_data) ** 2).sum() / ground_truth_square_num
-    return utils.format_value(result), ""
+    return utils.format_value(result ** 0.5), ""
