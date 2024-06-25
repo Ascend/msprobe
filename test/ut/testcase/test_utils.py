@@ -1,3 +1,4 @@
+import os
 import unittest
 from unittest import mock
 import struct
@@ -18,6 +19,8 @@ from dump_parse import dump, dump_utils, mapping, dump_data_object
 
 class TestUtilsMethods(unittest.TestCase):
 
+    mock_stat_result = os.stat_result((0, 0, 0, 0, os.getuid(), 0, 0, 0, 0, 0)) 
+    
     @staticmethod
     def _make_op_output(dd_format, shape):
         op_output = DD.OpOutput()
@@ -211,14 +214,16 @@ class TestUtilsMethods(unittest.TestCase):
     def test_check_path_valid5(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
-                ret = path_check.check_path_valid('/home/result', True, True)
+                with mock.patch('os.stat', return_value=self.mock_stat_result):
+                    ret = path_check.check_path_valid('/home/result', True, True)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_check_path_valid6(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
                 with mock.patch('os.path.isfile', return_value=False):
-                    ret = path_check.check_path_valid(
+                    with mock.patch('os.stat', return_value=self.mock_stat_result):
+                        ret = path_check.check_path_valid(
                         '/home/result.txt', True, False, path_check.PathType.File)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
@@ -226,7 +231,8 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
                 with mock.patch('os.path.isdir', return_value=False):
-                    ret = path_check.check_path_valid(
+                    with mock.patch('os.stat', return_value=self.mock_stat_result):
+                        ret = path_check.check_path_valid(
                         '/home/result.txt', True, False,
                         path_check.PathType.Directory)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)

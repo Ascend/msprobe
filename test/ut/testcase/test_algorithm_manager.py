@@ -114,8 +114,12 @@ def test_custom_script_path_given_any_when_invalid_custom_script_path_then_error
 
 
 def test_custom_script_path_given_invalid_when_valid_custom_script_path_then_error():
+    mock_stat_result = os.stat_result((16877, 2, 64768, 22, os.getuid(), 0, 0, 0, 0, 0))
+    
     with pytest.raises(CompareError, match=str(CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)):
-        AlgorithmManager(custom_script_path="/", select_algorithm="cc", algorithm_options="")
+        with mock.patch('os.stat', return_value=mock_stat_result), \
+             mock.patch('os.path.exists', side_effect=[True, True, False]):
+            AlgorithmManager(custom_script_path="/", select_algorithm="cc", algorithm_options="")
 
 
 def test_custom_script_path_given_valid_when_valid_then_pass():
