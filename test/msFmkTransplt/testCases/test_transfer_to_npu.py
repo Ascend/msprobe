@@ -59,7 +59,7 @@ class TestTransferToNpu(unittest.TestCase):
             cls.transfer_to_npu = transfer_to_npu
 
     def test_is_torch_version_greater_than_2_1(self):
-        result = self.transfer_to_npu.is_torch_version_greater_than_2_1()
+        result = self.transfer_to_npu._is_torch_version_greater_than_2_1()
         version = torch.__version__
         if '1.11' in version or '2.0' in version:
             self.assertFalse(result)
@@ -67,11 +67,11 @@ class TestTransferToNpu(unittest.TestCase):
             self.assertTrue(result)
 
     def test_wrapper_cuda(self):
-        func = self.transfer_to_npu.wrapper_cuda(device_func)
+        func = self.transfer_to_npu._wrapper_cuda(device_func)
         self.assertTrue(func(CUDA))
 
     def test_wrapper_hccl(self):
-        func = self.transfer_to_npu.wrapper_hccl(hccl_func)
+        func = self.transfer_to_npu._wrapper_hccl(hccl_func)
         self.assertTrue(func("nccl"))
 
     def test_replace_cuda_to_npu_in_kwargs(self):
@@ -81,7 +81,7 @@ class TestTransferToNpu(unittest.TestCase):
         device_kwargs_list = [device, device_type, map_location, device + "0"]
         kwargs = {device_type: CUDA, device: "cuda:0", map_location: 0, device + "0": {CUDA: NPU}}
         for item in device_kwargs_list:
-            self.transfer_to_npu.replace_cuda_to_npu_in_kwargs(kwargs, item, kwargs.get(item, device))
+            self.transfer_to_npu._replace_cuda_to_npu_in_kwargs(kwargs, item, kwargs.get(item, device))
         self.assertEqual(kwargs.get(device_type), NPU)
         self.assertEqual(kwargs.get(device), "npu:0")
         self.assertEqual(kwargs.get(map_location), "npu:0")
@@ -89,35 +89,35 @@ class TestTransferToNpu(unittest.TestCase):
 
     def test_replace_cuda_to_npu_in_list(self):
         args_list = [CUDA, 0]
-        self.transfer_to_npu.replace_cuda_to_npu_in_list(args_list, True)
+        self.transfer_to_npu._replace_cuda_to_npu_in_list(args_list, True)
         self.assertEqual(args_list[0], NPU)
         self.assertEqual(args_list[1], "npu:0")
 
     def test_replace_cuda_to_npu_in_dict(self):
         device_dict = {CUDA: NPU}
-        new_dict = self.transfer_to_npu.replace_cuda_to_npu_in_dict(device_dict)
+        new_dict = self.transfer_to_npu._replace_cuda_to_npu_in_dict(device_dict)
         self.assertEqual(new_dict, {NPU: NPU})
 
     def test_wrapper_profiler(self):
-        self.profile = self.transfer_to_npu.wrapper_profiler(self.profile)
+        self.profile = self.transfer_to_npu._wrapper_profiler(self.profile)
         self.profile(experimental_config=1)
 
     def test_jit_script(self):
-        self.jit = self.transfer_to_npu.jit_script
+        self.jit = self.transfer_to_npu._jit_script
         self.jit("test")
 
     def test_wrapper_data_loader(self):
-        func = self.transfer_to_npu.wrapper_data_loader(data_loader_func)
+        func = self.transfer_to_npu._wrapper_data_loader(data_loader_func)
         self.assertTrue(func(None, pin_memory=False, pin_memory_device=None))
         self.assertTrue(func(None, pin_memory=True, pin_memory_device=None))
         self.assertTrue(func(None, pin_memory=True, pin_memory_device=CUDA))
 
     def test_device_wrapper(self):
-        self.transfer_to_npu.device_wrapper(self.rand, ["rand"])
+        self.transfer_to_npu._device_wrapper(self.rand, ["rand"])
 
     def test_warning_fn(self):
-        self.transfer_to_npu.warning_fn("warning_fn success")
+        self.transfer_to_npu._warning_fn("warning_fn success")
 
     def test_patch(self):
-        self.transfer_to_npu.patch_cuda()
-        self.transfer_to_npu.patch_profiler()
+        self.transfer_to_npu._patch_cuda()
+        self.transfer_to_npu._patch_profiler()

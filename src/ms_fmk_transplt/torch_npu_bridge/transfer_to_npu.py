@@ -56,7 +56,7 @@ class ApiType(Enum):
     FUNCTION = 'function'
 
 
-def is_torch_version_greater_than_2_1():
+def _is_torch_version_greater_than_2_1():
     major, minor = torch.__version__.split('.')[:2]
     if int(major) > 2 or (int(major) == 2 and int(minor) >= 1):
         return True
@@ -64,7 +64,7 @@ def is_torch_version_greater_than_2_1():
         return False
 
 
-if is_torch_version_greater_than_2_1():
+if _is_torch_version_greater_than_2_1():
     import torchair
 
 
@@ -75,7 +75,7 @@ else:
     import pkg_resources
 
 
-def get_function_from_string(attribute_string):
+def _get_function_from_string(attribute_string):
     try:
         module_path, _, attr_name = attribute_string.rpartition('.')
         module = importlib.import_module(module_path)
@@ -84,7 +84,7 @@ def get_function_from_string(attribute_string):
         return []
 
 
-def get_method_from_string(attribute_string):
+def _get_method_from_string(attribute_string):
     try:
         parts = attribute_string.split('.')
         module_path = '.'.join(parts[:-2])
@@ -96,7 +96,7 @@ def get_method_from_string(attribute_string):
         return []
 
 
-def get_package_version(package_name):
+def _get_package_version(package_name):
     if python_version >= (3, 8):
         try:
             return importlib.metadata.version(package_name)
@@ -109,11 +109,11 @@ def get_package_version(package_name):
             return ""
 
 
-def compare_versions(current_version, version):
+def _compare_versions(current_version, version):
     return Version(current_version) >= Version(version)
 
 
-def check_input_file_valid(file_path, max_file_size=10 * 1024 ** 2):
+def _check_input_file_valid(file_path, max_file_size=10 * 1024 ** 2):
     if os.path.islink(os.path.abspath(file_path)):
         return False
     input_path = os.path.realpath(file_path)
@@ -128,8 +128,8 @@ def check_input_file_valid(file_path, max_file_size=10 * 1024 ** 2):
     return True
 
 
-def load_json_file(file_path):
-    if not check_input_file_valid(file_path):
+def _load_json_file(file_path):
+    if not _check_input_file_valid(file_path):
         return {}
     try:
         with open(file_path, 'r') as file:
@@ -141,7 +141,7 @@ def load_json_file(file_path):
         return {}
 
 
-def wrapper_libraries_func(fn):
+def _wrapper_libraries_func(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
         patched_is_available = torch.cuda.is_available
@@ -153,49 +153,49 @@ def wrapper_libraries_func(fn):
     return decorated
 
 
-def set_attr_wrapper_func(apis_dict):
+def _set_attr_wrapper_func(apis_dict):
     for full_name, api_type in apis_dict.items():
         modules = None
         if api_type == ApiType.METHOD.value:
-            modules = get_method_from_string(full_name)
+            modules = _get_method_from_string(full_name)
         elif api_type == ApiType.FUNCTION.value:
-            modules = get_function_from_string(full_name)
+            modules = _get_function_from_string(full_name)
         if modules and getattr(modules[0], modules[1], None):
-            setattr(modules[0], modules[1], wrapper_libraries_func(getattr(modules[0], modules[1])))
+            setattr(modules[0], modules[1], _wrapper_libraries_func(getattr(modules[0], modules[1])))
 
 
-def do_wrapper_libraries_func(json_dict):
+def _do_wrapper_libraries_func(json_dict):
     for key, value in json_dict.items():
-        current_version = get_package_version(key)
+        current_version = _get_package_version(key)
         if not current_version:
             continue
         version = value.get('version')
         apis: dict = value.get('apis')
-        if version and apis and compare_versions(current_version, version):
-            set_attr_wrapper_func(apis)
+        if version and apis and _compare_versions(current_version, version):
+            _set_attr_wrapper_func(apis)
 
 
-def wrapper_cuda(func):
+def _wrapper_cuda(func):
     @wraps(func)
     def decorated(*args, **kwargs):
         replace_int = func.__name__ in ['to', 'to_empty']
         if args:
             args_new = list(args)
-            args = replace_cuda_to_npu_in_list(args_new, replace_int)
+            args = _replace_cuda_to_npu_in_list(args_new, replace_int)
         if kwargs:
             for device_arg in device_kwargs_list:
                 device = kwargs.get(device_arg, None)
                 if device is not None:
-                    replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
+                    _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device)
             device_ids = kwargs.get('device_ids', None)
             if type(device_ids) == list:
-                replace_cuda_to_npu_in_list(device_ids, replace_int)
+                _replace_cuda_to_npu_in_list(device_ids, replace_int)
         return func(*args, **kwargs)
 
     return decorated
 
 
-def replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
+def _replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
     if type(device) == str and CUDA in device:
         kwargs[device_arg] = device.replace(CUDA, NPU)
     elif (type(device) == torch.device or str(type(device)) == "<class 'torch.device'>") and CUDA in device.type:
@@ -204,10 +204,10 @@ def replace_cuda_to_npu_in_kwargs(kwargs, device_arg, device):
     elif type(device) == int:
         kwargs[device_arg] = f'npu:{device}'
     elif type(device) == dict:
-        kwargs[device_arg] = replace_cuda_to_npu_in_dict(device)
+        kwargs[device_arg] = _replace_cuda_to_npu_in_dict(device)
 
 
-def replace_cuda_to_npu_in_list(args_list, replace_int):
+def _replace_cuda_to_npu_in_list(args_list, replace_int):
     for idx, arg in enumerate(args_list):
         if isinstance(arg, str) and CUDA in arg:
             args_list[idx] = arg.replace(CUDA, NPU)
@@ -217,11 +217,11 @@ def replace_cuda_to_npu_in_list(args_list, replace_int):
         elif replace_int and not isinstance(arg, bool) and isinstance(arg, int):
             args_list[idx] = f'npu:{arg}'
         elif isinstance(arg, dict):
-            args_list[idx] = replace_cuda_to_npu_in_dict(arg)
+            args_list[idx] = _replace_cuda_to_npu_in_dict(arg)
     return args_list
 
 
-def replace_cuda_to_npu_in_dict(device_dict):
+def _replace_cuda_to_npu_in_dict(device_dict):
     new_dict = {}
     for key, value in device_dict.items():
         if isinstance(key, str):
@@ -232,14 +232,14 @@ def replace_cuda_to_npu_in_dict(device_dict):
     return new_dict
 
 
-def device_wrapper(enter_fn, white_list):
+def _device_wrapper(enter_fn, white_list):
     for fn_name in white_list:
         func = getattr(enter_fn, fn_name, None)
         if func:
-            setattr(enter_fn, fn_name, wrapper_cuda(func))
+            setattr(enter_fn, fn_name, _wrapper_cuda(func))
 
 
-def wrapper_hccl(func):
+def _wrapper_hccl(func):
     @wraps(func)
     def decorated(*args, **kwargs):
         if args:
@@ -256,7 +256,7 @@ def wrapper_hccl(func):
     return decorated
 
 
-def wrapper_data_loader(func):
+def _wrapper_data_loader(func):
     @wraps(func)
     def decorated(*args, **kwargs):
         if kwargs:
@@ -272,7 +272,7 @@ def wrapper_data_loader(func):
     return decorated
 
 
-def wrapper_profiler(fn):
+def _wrapper_profiler(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
         if kwargs:
@@ -289,7 +289,7 @@ def wrapper_profiler(fn):
     return decorated
 
 
-def wrapper_compile(fn):
+def _wrapper_compile(fn):
     @wraps(fn)
     def decorated(*args, **kwargs):
         npu_backend = torchair.get_npu_backend()
@@ -306,7 +306,7 @@ def wrapper_compile(fn):
     return decorated
 
 
-def patch_cuda():
+def _patch_cuda():
     patchs = [
         ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
         ['cuda.random', torch_npu.npu.random],
@@ -317,7 +317,7 @@ def patch_cuda():
     torch_npu._apply_patches(patchs)
 
 
-def patch_profiler():
+def _patch_profiler():
     patchs = [
         ['profiler.profile', torch_npu.profiler.profile],
         ['profiler.schedule', torch_npu.profiler.schedule],
@@ -329,7 +329,7 @@ def patch_profiler():
     torch_npu._apply_patches(patchs)
 
 
-def warning_fn(msg, rank0=True):
+def _warning_fn(msg, rank0=True):
     is_distributed = torch.distributed.is_available() and \
                      torch.distributed.is_initialized() and \
                      torch.distributed.get_world_size() > 1
@@ -345,14 +345,14 @@ def warning_fn(msg, rank0=True):
         warnings.warn(msg, ImportWarning)
 
 
-def jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None):
+def _jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None):
     msg = 'torch.jit.script will be disabled by transfer_to_npu, which currently does not support it.'
     warnings.warn(msg, RuntimeWarning)
     return obj
 
 
-def init():
-    warning_fn('''
+def _init():
+    _warning_fn('''
     *************************************************************************************************************
     The torch.Tensor.cuda and torch.nn.Module.cuda are replaced with torch.Tensor.npu and torch.nn.Module.npu now..
     The torch.cuda.DoubleTensor is replaced with torch.npu.FloatTensor cause the double type is not supported now..
@@ -367,50 +367,50 @@ def init():
     )
 
     # torch.cuda.*
-    patch_cuda()
-    device_wrapper(torch.cuda, torch_cuda_fn_white_list)
+    _patch_cuda()
+    _device_wrapper(torch.cuda, torch_cuda_fn_white_list)
 
     # torch.profiler.*
-    patch_profiler()
-    torch.profiler.profile = wrapper_profiler(torch.profiler.profile)
+    _patch_profiler()
+    torch.profiler.profile = _wrapper_profiler(torch.profiler.profile)
 
     # torch.*
-    device_wrapper(torch, torch_fn_white_list)
+    _device_wrapper(torch, torch_fn_white_list)
 
     # torch.Tensor.*
-    device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
+    _device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
     torch.Tensor.cuda = torch.Tensor.npu
     torch.Tensor.is_cuda = torch.Tensor.is_npu
     torch.cuda.DoubleTensor = torch.npu.FloatTensor
 
     # torch.nn.Module.*
-    device_wrapper(torch.nn.Module, torch_module_fn_white_list)
+    _device_wrapper(torch.nn.Module, torch_module_fn_white_list)
     torch.nn.Module.cuda = torch.nn.Module.npu
 
     # torch.distributed.init_process_group
-    torch.distributed.init_process_group = wrapper_hccl(torch.distributed.init_process_group)
+    torch.distributed.init_process_group = _wrapper_hccl(torch.distributed.init_process_group)
     torch.distributed.is_nccl_available = torch.distributed.is_hccl_available
 
     # torch.nn.parallel.DistributedDataParallel
-    device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
+    _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
     # torch.utils.data.DataLoader
-    if is_torch_version_greater_than_2_1():
-        torch.utils.data.DataLoader.__init__ = wrapper_data_loader(torch.utils.data.DataLoader.__init__)
-        torch.jit.script = jit_script
-        torch.compile = wrapper_compile(torch.compile)
+    if _is_torch_version_greater_than_2_1():
+        torch.utils.data.DataLoader.__init__ = _wrapper_data_loader(torch.utils.data.DataLoader.__init__)
+        torch.jit.script = _jit_script
+        torch.compile = _wrapper_compile(torch.compile)
         torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
 
     # torch version < 2.1 needs to be adapted
-    if not is_torch_version_greater_than_2_1():
+    if not _is_torch_version_greater_than_2_1():
         torch.distributed.distributed_c10d.broadcast_object_list \
             = torch_npu.distributed.distributed_c10d.broadcast_object_list
         torch.distributed.distributed_c10d.all_gather_object \
             = torch_npu.distributed.distributed_c10d.all_gather_object
-        torch.npu.amp.autocast_mode.npu_autocast.__init__ = wrapper_cuda(
+        torch.npu.amp.autocast_mode.npu_autocast.__init__ = _wrapper_cuda(
             torch.npu.amp.autocast_mode.npu_autocast.__init__)
     # torch 1.11.0 does not have this API
     if '1.11.0' not in torch.__version__:
-        torch.distributed.ProcessGroup._get_backend = wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
+        torch.distributed.ProcessGroup._get_backend = _wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
 
     if '2.2.0' in torch.__version__:
         from torch.utils._triton import has_triton
@@ -420,7 +420,7 @@ def init():
 
         setattr(torch.utils._triton, 'has_triton', patch_has_triton)
 
-    do_wrapper_libraries_func(load_json_file(config_path))
+    _do_wrapper_libraries_func(_load_json_file(config_path))
 
 
-init()
+_init()
