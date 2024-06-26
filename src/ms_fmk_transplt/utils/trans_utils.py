@@ -78,10 +78,27 @@ def search_package_env_path(script_dir: str):
 
 
 def write_csv(content_list, output_dir, csv_name, header):
+    """
+    Write data to a CSV file.
+
+    Parameters:
+    content_list (list): A list of data to be written to the CSV file. Each element in the list should be a dictionary
+                        where keys are column names.
+    output_dir (str): The directory where the CSV file will be saved.
+    csv_name (str): The name of the CSV file (without the .csv extension). This should not be an absolute path.
+    header (pandas.ListLike): A list of column names for the CSV file.
+
+    Raises:
+    ValueError: If csv_name is an absolute path.
+    """
+    if os.path.isabs(csv_name):
+        raise ValueError(f"csv_name {csv_name} should not be an absolute path")
+
     if os.path.isfile(output_dir):
-        csv_file = os.path.join(os.path.dirname(output_dir), '%s.csv' % csv_name)
-    else:
-        csv_file = os.path.join(output_dir, '%s.csv' % csv_name)
+        output_dir = os.path.dirname(output_dir)
+
+    csv_file = os.path.join(output_dir, '%s.csv' % csv_name)
+
     if not os.path.exists(csv_file):
         make_file_safety(csv_file)
         data_frame = pd.DataFrame(columns=header)
