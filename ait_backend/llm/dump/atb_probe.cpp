@@ -19,10 +19,10 @@
 #include <unistd.h>
 #include <sys/statvfs.h>
 #include <sys/stat.h>
-#include <experimental/filesystem>
 #include "bin_file.h"
 #include "nlohmann/json.hpp"
 #include "ait_logger.h"
+#include "utils.h"
 #include "atb_probe.h"
 
 using ordered_json = nlohmann::ordered_json;
@@ -51,7 +51,7 @@ static int GetFreeSpace(std::string path, unsigned long long *freeSpace)
     struct statvfs diskInfo;
 
     if (statvfs(path.c_str(), &diskInfo) == -1) {
-        AIT_LOG_ERROR("statvfs() error");
+        AIT_LOG_ERROR("statvfs() error:" + std::string(std::strerror(errno)));
         return 1;
     }
     *freeSpace = diskInfo.f_bavail * diskInfo.f_bsize;
@@ -72,32 +72,6 @@ static bool IsPrefix(const std::string &str, const std::string &prefix)
     return str.compare(0, prefix.length(), prefix) == 0;
 }
 
-static std::vector<std::string> SplitString(const std::string &ss, const char &tar)
-{
-    std::vector<std::string> tokens;
-    std::stringstream input(ss);
-    std::string token;
-    while (std::getline(input, token, tar)) {
-        tokens.emplace_back(token);
-    }
-
-    return tokens;
-}
-
-
-static bool DirectoryExists(const std::string &path)
-{
-    struct stat info;
-    return (stat(path.c_str(), &info) == 0) && (S_ISDIR(info.st_mode));
-}
-
-static std::string GetRealPath(const std::string &outPath)
-{
-    std::experimental::filesystem::path realOutPath = std::experimental::filesystem::is_symlink(outPath.c_str()) ? \
-std::experimental::filesystem::read_symlink(outPath.c_str()) : std::experimental::filesystem::path(outPath.c_str());
-    return std::string(realOutPath.c_str());
-}
-
 static std::string GetOutDir()
 {
     static std::string outDir = "";
@@ -114,28 +88,6 @@ static std::string GetOutDir()
         }
     }
     return outDir;
-}
-
-static bool CheckDirectory(const std::string &directory)
-{
-    std::vector<std::string> dirs = SplitString(directory, '/');
-    std::string curDir = "";
-    // 检查目录是否存在，如果不存在则创建目录和文件
-    for (auto &dir : dirs) {
-        curDir += dir + "/";
-        curDir = GetRealPath(curDir);
-        if (!DirectoryExists(curDir)) {
-            int status = mkdir(curDir.c_str(), 0750);
-            if (status) {
-                AIT_LOG_ERROR("cannot create directory: " + curDir);
-            }
-        }
-    }
-    if (!DirectoryExists(directory)) {
-        AIT_LOG_ERROR("cannot create directory: " + directory);
-        return false;
-    }
-    return true;
 }
 
 
@@ -466,6 +418,14 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
 
     std::string outDir = GetOutDir();
 
+    std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + filePath;
+    size_t found = outPath.find_last_of("/");
+    std::string directory = outPath.substr(0, found);
+    if (!CheckDirectory(directory)) {
+        AIT_LOG_ERROR("Create directory failed: " + directory);
+        return;
+    }
+
     // 磁盘空间判断
     unsigned long long freeSpace = 0;
     int retGetFreeSpace = GetFreeSpace(outDir, &freeSpace);
@@ -474,16 +434,6 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
         AIT_LOG_ERROR("Create directory failed: " + outDir);
         AIT_LOG_ERROR("Disk space is not enough, it's must more than 2G, free size(MB) is: " +
             std::to_string(freeSpace >> 20));
-        return;
-    }
-
-    std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + filePath;
-    size_t found = outPath.find_last_of("/");
-    std::string directory = outPath.substr(0, found);
-
-    bool ret = CheckDirectory(directory);
-    if (!ret) {
-        AIT_LOG_ERROR("Create directory failed: " + directory);
         return;
     }
 
@@ -499,7 +449,7 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
         binFile.AddObject("data", hostData, dataSize);
     }
     binFile.Write(outPath);
-    AIT_LOG_INFO("Saving tensor: success.");
+    AIT_LOG_DEBUG("Saving tensor: success.");
 }
 
 
