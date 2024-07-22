@@ -24,9 +24,10 @@ def _deserialize_dump_data_to_array(data, data_type, shape: list = None) -> any:
     :param tensor: the dump data for input or output
     :return: the numpy array
     """
-    if 0 in shape:
+    if shape is not None and 0 in shape:
         return np.array([]).reshape(shape)
-    if shape:
+
+    if shape is not None:  # shape can be empty [] for scalar data
         cnt = 1
         for ii in shape:
             cnt *= ii

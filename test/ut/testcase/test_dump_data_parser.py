@@ -9,6 +9,7 @@ import dump_data_pb2 as DD
 import numpy as np
 
 from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
 from dump_parse import dump_data_parser as DP
 from dump_parse import dump, dump_utils, mapping
 
@@ -44,8 +45,12 @@ class TestUtilsMethods(unittest.TestCase):
         op_output = dump_data.output.add()
         op_output.data_type = data_type
         op_output.format = DD.FORMAT_NCHW
-
         op_output.data = op_output_data
+
+        numpy_dtype = ConstManager.DATA_TYPE_TO_DTYPE_MAP.get(data_type, {}).get('dtype', np.float32)
+        numpy_dtype_size = np.dtype(numpy_dtype).itemsize  # float32 -> 4, float16 -> 2
+        op_output.shape.dim.append(len(op_output_data) // numpy_dtype_size)
+
         dump_data = dump_utils.convert_dump_data(dump_data)
         return dump_data
 
