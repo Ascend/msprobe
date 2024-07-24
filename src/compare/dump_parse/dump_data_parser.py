@@ -256,7 +256,12 @@ class DumpDataParser:
             self._save_op_debug_to_file(dump_path, dump_data.output_data)
         else:
             if dump_data.get_ffts_mode:
-                thread_id = int(dump_path.split('.')[-2])     
+                try:
+                    thread_id = int(dump_path.split('.')[-2])
+                except (IndexError, ValueError) as e:
+                    log.print_error_log('Parse thread_id failed, please check dump_path! dump_path: {}'
+                                        .format(dump_path))
+                    raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR) from e
                 dump_data.ffts_auto_input_shape_list = dump_data.calculate_auto_mode_shape(thread_id, "input")    
                 dump_data.ffts_auto_output_shape_list = dump_data.calculate_auto_mode_shape(thread_id, "output")
             self._save_tensor_to_file(dump_path, dump_data, 'input')
