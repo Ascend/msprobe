@@ -364,32 +364,82 @@ bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
 bool atb::Probe::IsSaveTensorBefore()
 {
     const char* saveTensorTime = std::getenv("ATB_SAVE_TENSOR_TIME");
-    int value = SAVE_TENSOR_AFTER;  // Default to SAVE_TENSOR_AFTER
-    if (saveTensorTime) {
-        value = std::stoi(saveTensorTime);
-    }
-    if (value == SAVE_TENSOR_BEFORE || value == SAVE_TENSOR_BOTH) {
-        AIT_LOG_DEBUG("IsSaveTensorBefore: true");
-        return true;
-    }
-    AIT_LOG_DEBUG("IsSaveTensorBefore: false");
-    return false;
+    const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+
+    int value = (saveTensorTime) ? std::stoi(saveTensorTime) : SAVE_TENSOR_AFTER;
+    int saveFlag = (saveTensorInBeforeOutAfter) ? std::stoi(saveTensorInBeforeOutAfter) :
+                    SAVE_TENSOR_IN_BEFORE_OUT_AFTER;
+
+    bool isSaveBefore = (value == SAVE_TENSOR_BEFORE || value == SAVE_TENSOR_BOTH ||
+                        saveFlag == SAVE_TENSOR_IN_BEFORE_OUT_AFTER);
+
+    AIT_LOG_DEBUG("IsSaveTensorBefore: " + std::to_string(isSaveBefore));
+    return isSaveBefore;
 }
 
 
 bool atb::Probe::IsSaveTensorAfter()
 {
     const char* saveTensorTime = std::getenv("ATB_SAVE_TENSOR_TIME");
-    int value = SAVE_TENSOR_AFTER;  // Default to SAVE_TENSOR_AFTER
-    if (saveTensorTime) {
-        value = std::stoi(saveTensorTime);
+    const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+
+    int value = (saveTensorTime) ? std::stoi(saveTensorTime) : SAVE_TENSOR_AFTER;
+    int saveFlag = (saveTensorInBeforeOutAfter) ? std::stoi(saveTensorInBeforeOutAfter) :
+                    SAVE_TENSOR_IN_BEFORE_OUT_AFTER;
+
+    bool isSaveAfter = (value == SAVE_TENSOR_AFTER || value == SAVE_TENSOR_BOTH ||
+                        saveFlag == SAVE_TENSOR_IN_BEFORE_OUT_AFTER);
+
+    AIT_LOG_DEBUG("IsSaveTensorAfter: " + std::to_string(isSaveAfter));
+    return isSaveAfter;
+}
+
+
+static bool IsDeviceIdValid(const std::string &filePath)
+{
+    const char* saveDeviceId = std::getenv("ATB_DEVICE_ID");
+    if (saveDeviceId) {
+        size_t found = filePath.find("_");  // filePath like {device_id}_{pid}/xxx/xxx
+        std::string curDeviceId = filePath.substr(0, found);
+        if (std::string(saveDeviceId) != curDeviceId) {
+            AIT_LOG_DEBUG("Skip saving, curDeviceId: " + curDeviceId);
+            return false;  // if ATB_DEVICE_ID provided and not equal, skip saving
+        }
     }
-    if (value == SAVE_TENSOR_AFTER || value == SAVE_TENSOR_BOTH) {
-        AIT_LOG_DEBUG("IsSaveTensorAfter: true");
-        return true;
+    return true;
+}
+
+
+static bool IsDiskSpaceValid(std::string path, uint64_t dataSize)
+{
+    unsigned long long freeSpace = 0;
+    int retGetFreeSpace = GetFreeSpace(path, &freeSpace);
+    if (retGetFreeSpace == 1) {
+        AIT_LOG_ERROR("Failed to get disk space for path: " + path);
+        return false;
     }
-    AIT_LOG_DEBUG("IsSaveTensorAfter: false");
-    return false;
+    if (retGetFreeSpace == 0) {
+        if (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE) {
+            AIT_LOG_ERROR("Disk space is not enough, it's must more than 2G, free size(MB) is: " +
+            std::to_string(freeSpace >> 20));
+            return false;
+        }
+    }
+    return true;
+}
+
+
+static bool IsSubString(const std::string& inputString, const std::vector<std::string>& subStrings)
+{
+    if (subStrings.empty()) {
+        return false;
+    }
+    for (const auto& subStr : subStrings) {
+        if (inputString.find(subStr) == std::string::npos) {
+            return false;
+        }
+    }
+    return true;
 }
 
 
@@ -406,34 +456,13 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
         return;
     }
 
-    const char* saveDeviceId = std::getenv("ATB_DEVICE_ID");
-    if (saveDeviceId) {
-        size_t found = filePath.find("_");  // filePath like {device_id}_{pid}/xxx/xxx
-        std::string curDeviceId = filePath.substr(0, found);
-        if (std::string(saveDeviceId) != curDeviceId) {
-            AIT_LOG_DEBUG("Skip saving, curDeviceId: " + curDeviceId);
-            return;  // if ATB_DEVICE_ID provided and not equal, skip saving
-        }
-    }
-
     std::string outDir = GetOutDir();
-
     std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
-    if (!CheckDirectory(directory)) {
-        AIT_LOG_ERROR("Create directory failed: " + directory);
-        return;
-    }
-
-    // 磁盘空间判断
-    unsigned long long freeSpace = 0;
-    int retGetFreeSpace = GetFreeSpace(outDir, &freeSpace);
-    if (retGetFreeSpace == 0 &&
-        (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE)) {
-        AIT_LOG_ERROR("Create directory failed: " + outDir);
-        AIT_LOG_ERROR("Disk space is not enough, it's must more than 2G, free size(MB) is: " +
-            std::to_string(freeSpace >> 20));
+    bool envValidFlag = (IsDeviceIdValid(filePath)) && (IsDiskSpaceValid(outDir, dataSize)) &&
+                        CheckDirectory(directory);
+    if (!envValidFlag) {
         return;
     }
 
@@ -441,6 +470,16 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
         AIT_LOG_ERROR("hostData is None.");
         return;
     }
+
+    const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+    if (saveTensorInBeforeOutAfter && std::stoi(saveTensorInBeforeOutAfter) == SAVE_TENSOR_IN_BEFORE_OUT_AFTER) {
+        bool isIntensorBefore = IsSubString(filePath, {"before", "intensor"});
+        bool isOuttensorAfter = IsSubString(filePath, {"after", "outtensor"});
+        if (!(isIntensorBefore || isOuttensorAfter)) {
+            return;
+        }
+    }
+
     FileSystem::BinFile binFile;
     binFile.AddAttr("format", format);
     binFile.AddAttr("dtype", dtype);
@@ -449,6 +488,7 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
         binFile.AddObject("data", hostData, dataSize);
     }
     binFile.Write(outPath);
+
     AIT_LOG_DEBUG("Saving tensor: success.");
 }
 

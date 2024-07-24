@@ -33,6 +33,7 @@ const std::string ARGS_DUMP_TYPE_CPU_PROFILING = "cpu_profiling";
 constexpr int SAVE_TENSOR_BEFORE = 0;
 constexpr int SAVE_TENSOR_AFTER = 1;
 constexpr int SAVE_TENSOR_BOTH = 2;
+constexpr int SAVE_TENSOR_IN_BEFORE_OUT_AFTER = 1;
 constexpr int SAVE_TENSOR_DATA = 1;
 constexpr int RANGE_COUNT = 2;
 constexpr int SAVE_INTENSOR = 0;

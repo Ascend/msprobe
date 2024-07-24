@@ -507,38 +507,86 @@ TEST(atb_Probe, IsSaveTiling_003)
     EXPECT_TRUE(atb::Probe::IsSaveTiling());
 }
  
-TEST(atb_Probe, IsSaveTensorAfter_001)
-{
-    setenv("ATB_SAVE_TENSOR_TIME", "1", 1);
-    EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
-}
- 
-TEST(atb_Probe, IsSaveTensorAfter_002)
-{
-    setenv("ATB_SAVE_TENSOR_TIME", "2", 1);
-    EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
-}
- 
-TEST(atb_Probe, IsSaveTensorAfter_003)
-{
-    setenv("ATB_SAVE_TENSOR_TIME", "3", 1);
-    EXPECT_FALSE(atb::Probe::IsSaveTensorAfter());
-}
- 
-TEST(atb_Probe, IsSaveTensorBefore_001)
+TEST(atb_Probe, IsSaveTensorAfter_When_Input_0)
 {
     setenv("ATB_SAVE_TENSOR_TIME", "0", 1);
-    EXPECT_TRUE(atb::Probe::IsSaveTensorBefore());
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "0", 1);
+    EXPECT_FALSE(atb::Probe::IsSaveTensorAfter());
 }
- 
-TEST(atb_Probe, IsSaveTensorBefore_002)
+
+TEST(atb_Probe, IsSaveTensorAfter_When_Input_1)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "1", 1);
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "0", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
+}
+
+TEST(atb_Probe, IsSaveTensorAfter_When_Input_2)
 {
     setenv("ATB_SAVE_TENSOR_TIME", "2", 1);
-    EXPECT_TRUE(atb::Probe::IsSaveTensorBefore());
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "0", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
 }
- 
-TEST(atb_Probe, IsSaveTensorBefore_003)
+
+TEST(atb_Probe, IsSaveTensorAfter_When_Input_3)
 {
     setenv("ATB_SAVE_TENSOR_TIME", "3", 1);
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "1", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
+}
+
+TEST(atb_Probe, IsSaveTensorAfter_When_Input_4)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "4", 1);
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "2", 1);
+    EXPECT_FALSE(atb::Probe::IsSaveTensorAfter());
+}
+
+TEST(atb_Probe, IsSaveTensorAfter_When_Unset_Env)
+{
+    unsetenv("ATB_SAVE_TENSOR_TIME");
+    unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+    EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
+}
+
+TEST(atb_Probe, IsSaveTensorBefore_When_Input_0)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "0", 1);
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "0", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorBefore());
+}
+
+TEST(atb_Probe, IsSaveTensorBefore_When_Input_1)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "1", 1);
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "0", 1);
     EXPECT_FALSE(atb::Probe::IsSaveTensorBefore());
+}
+
+TEST(atb_Probe, IsSaveTensorBefore_When_Input_2)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "2", 1);
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "0", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorBefore());
+}
+
+TEST(atb_Probe, IsSaveTensorBefore_When_Input_3)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "3", 1);
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "1", 1);
+    EXPECT_TRUE(atb::Probe::IsSaveTensorBefore());
+}
+
+TEST(atb_Probe, IsSaveTensorBefore_When_Input_4)
+{
+    setenv("ATB_SAVE_TENSOR_TIME", "4", 1);
+    setenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER", "2", 1);
+    EXPECT_FALSE(atb::Probe::IsSaveTensorBefore());
+}
+
+TEST(atb_Probe, IsSaveTensorBefore_When_Unset_Env)
+{
+    unsetenv("ATB_SAVE_TENSOR_TIME");
+    unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+    EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
 }
