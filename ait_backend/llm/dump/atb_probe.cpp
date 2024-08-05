@@ -410,7 +410,7 @@ static bool IsDeviceIdValid(const std::string &filePath)
 }
 
 
-static bool IsDiskSpaceValid(std::string path, uint64_t dataSize)
+static bool IsDiskSpaceValid(const std::string path, uint64_t dataSize)
 {
     unsigned long long freeSpace = 0;
     int retGetFreeSpace = GetFreeSpace(path, &freeSpace);
@@ -460,8 +460,8 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
-    bool envValidFlag = (IsDeviceIdValid(filePath)) && (IsDiskSpaceValid(outDir, dataSize)) &&
-                        CheckDirectory(directory);
+    bool envValidFlag = (IsDeviceIdValid(filePath)) && CheckDirectory(directory) &&
+                        (IsDiskSpaceValid(outDir, dataSize));
     if (!envValidFlag) {
         return;
     }
