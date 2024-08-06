@@ -425,8 +425,12 @@ def _do_convert(args: argparse.Namespace) -> int:
     _check_argument_effect(args.format, args.input, '"-i" or "--input_tensor"', '-f')
     _check_argument_effect(args.format, args.shape, '"-s" or "--shape"', '-f')
     _check_argument_effect(args.format, args.custom_script_path, '"-c" or "--custom_script_path"', '-f')
-    if args.format is not None:
-        if os.path.isdir(os.path.relpath(args.dump_path)):
+    abs_dump_path = os.path.abspath(args.dump_path)
+    if os.path.isdir(abs_dump_path) and not os.listdir(abs_dump_path):
+        log.print_error_log('The dump path is empty.')
+        raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+    if args.format:
+        if os.path.isdir(abs_dump_path):
             log.print_warn_log(
                 'The dump path is a directory. If the -o, -i and -s arguments exist, these arguments will be ignored.'
             )
