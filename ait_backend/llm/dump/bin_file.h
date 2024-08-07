@@ -55,6 +55,7 @@ public:
     bool Write(const std::string &filePath, const mode_t mode = BIN_FILE_MODE);
     bool WriteAttr(std::ofstream &outputFile, const std::string &filePath, const std::string &value);
     bool AddObject(const std::string &name, const void* binaryBuffer, uint64_t binaryLen);
+    uint64_t CalcHash();
 
 private:
     std::string version_ = "1.0";

@@ -23,6 +23,7 @@
 #include "nlohmann/json.hpp"
 #include "ait_logger.h"
 #include "utils.h"
+#include "DumpThreadPool.h"
 #include "atb_probe.h"
 
 using ordered_json = nlohmann::ordered_json;
@@ -257,6 +258,55 @@ void SaveSubProcessInfo(const std::string infoToSave)
 
 namespace atb {
 
+static std::map<uint64_t, std::string> g_filecheck;
+static std::mutex g_mtx;
+void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile, std::string cpoutPath)
+{
+    uint64_t hashValue = binFile->CalcHash();
+
+    std::unique_lock<std::mutex> lock(g_mtx);
+    auto it = g_filecheck.find(hashValue);
+    if (it == g_filecheck.end()) {
+        g_filecheck[hashValue] = cpoutPath;
+        lock.unlock();
+
+        binFile->Write(cpoutPath);
+        AIT_LOG_DEBUG("Saving tensor: success.");
+        return;
+    } else {
+        std::string same = it->second;
+        lock.unlock();
+
+        if (symlink(same.c_str(), cpoutPath.c_str()) != 0) {
+            std::cerr << "Error creating symlink from " << same.c_str() << " to " << cpoutPath << std::endl;
+        };
+        AIT_LOG_DEBUG("create tensor symlink: success.");
+        return;
+    }
+}
+
+static DumpThreadPool *g_pool = nullptr;
+static const int POOLNUM = 4;
+void PrepareToWriteFile(std::shared_ptr<FileSystem::BinFile> binfile, const std::string &outPath)
+{
+    if (g_pool == nullptr) {
+        g_pool = new DumpThreadPool(POOLNUM);
+        std::atexit([]() {
+            if (g_pool != nullptr) {
+                delete g_pool;
+                g_pool = nullptr;
+            }
+            return;
+        });
+    }
+
+    std::string cpoutPath = outPath;
+
+    if (g_pool != nullptr) {
+        g_pool->enqueue(CheckAndWriteFile, binfile, cpoutPath);
+    }
+}
+
 bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::string &optype)
 {
     if (!IsSaveDumpType("tensor")) {
@@ -479,17 +529,15 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
             return;
         }
     }
+    std::shared_ptr<FileSystem::BinFile> binfile(std::make_shared<FileSystem::BinFile>());
+    binfile->AddAttr("format", format);
+    binfile->AddAttr("dtype", dtype);
+    binfile->AddAttr("dims", dims);
 
-    FileSystem::BinFile binFile;
-    binFile.AddAttr("format", format);
-    binFile.AddAttr("dtype", dtype);
-    binFile.AddAttr("dims", dims);
-    if (IsSaveTensorData()) {
-        binFile.AddObject("data", hostData, dataSize);
+    if (atb::Probe::IsSaveTensorData()) {
+        binfile->AddObject("data", hostData, dataSize);
     }
-    binFile.Write(outPath);
-
-    AIT_LOG_DEBUG("Saving tensor: success.");
+    PrepareToWriteFile(binfile, outPath);
 }
 
 

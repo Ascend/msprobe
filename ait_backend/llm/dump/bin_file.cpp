@@ -111,3 +111,21 @@ bool FileSystem::BinFile::WriteAttr(std::ofstream &outputFile, const std::string
     outputFile << line;
     return true;
 }
+
+uint64_t FileSystem::BinFile::CalcHash()
+{
+    const uint64_t fnvOffsetBasis = 14695981039346656037ULL;
+
+    uint64_t hashValue = fnvOffsetBasis;
+    hashValue ^= static_cast<uint64_t>(binariesBuffer_.size());
+
+    const int next = 8;
+    for (size_t i = 0; i < binariesBuffer_.size();i += next) {
+        if (i > binariesBuffer_.size()||i == binariesBuffer_.size()) {
+            break;
+        }
+        hashValue ^= static_cast<uint64_t>(binariesBuffer_[i]);
+    }
+
+    return hashValue;
+};

@@ -50,6 +50,7 @@ target_link_options(${LIB_NAME} PRIVATE
 )
 target_link_libraries(${LIB_NAME} PRIVATE
     libstdc++fs.a
+    -lpthread
 )
 
 set(ATB_PROBE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../build/output/ait_backend/dump/)
