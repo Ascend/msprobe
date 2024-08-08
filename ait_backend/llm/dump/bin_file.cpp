@@ -121,7 +121,7 @@ uint64_t FileSystem::BinFile::CalcHash()
 
     const int next = 8;
     for (size_t i = 0; i < binariesBuffer_.size();i += next) {
-        if (i > binariesBuffer_.size()||i == binariesBuffer_.size()) {
+        if (i > binariesBuffer_.size() || i == binariesBuffer_.size()) {
             break;
         }
         hashValue ^= static_cast<uint64_t>(binariesBuffer_[i]);

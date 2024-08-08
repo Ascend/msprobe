@@ -27,12 +27,13 @@
 #include <thread>
 #include <memory>
 
+namespace ThreadPool {
 class DumpThreadPool {
 public:
-    explicit DumpThreadPool(size_t);
+    explicit DumpThreadPool(size_t threads);
     ~DumpThreadPool();
     template<class F, class... Args>
-    auto enqueue(F &&f, Args &&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+    auto Enqueue(F &&f, Args &&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
 
 private:
     std::vector<std::thread> thread_workers;
@@ -42,8 +43,9 @@ private:
     std::condition_variable threadCondition;
     bool poolStop;
 };
+}
 
-inline DumpThreadPool::DumpThreadPool(size_t threads) : poolStop(false)
+inline ThreadPool::DumpThreadPool::DumpThreadPool(size_t threads) : poolStop(false)
 {
     for (size_t i = 0; i < threads; ++i)
         thread_workers.emplace_back([this] {
@@ -69,7 +71,8 @@ inline DumpThreadPool::DumpThreadPool(size_t threads) : poolStop(false)
 }
 
 template<class F, class... Args>
-auto DumpThreadPool::enqueue(F &&f, Args &&... args) -> std::future<typename std::result_of<F(Args...)>::type>
+auto ThreadPool::DumpThreadPool::Enqueue(F &&f, Args &&... args)
+-> std::future<typename std::result_of<F(Args...)>::type>
 {
     using return_functype = typename std::result_of<F(Args...)>::type;
 
@@ -77,20 +80,20 @@ auto DumpThreadPool::enqueue(F &&f, Args &&... args) -> std::future<typename std
             std::bind(std::forward<F>(f), std::forward<Args>(args)...)
     );
 
-    std::future<return_functype> res_task = nowtask->get_future();
+    std::future<return_functype> resTask = nowtask->get_future();
     {
         std::unique_lock<std::mutex> lock(threadQueueMtx);
 
         if (poolStop) {
-            throw std::runtime_error("enqueue on stopped DumpThreadPool");
+            throw std::runtime_error("Enqueue on stopped DumpThreadPool");
         }
         thread_tasks.emplace([nowtask]() { (*nowtask)(); });
     }
     threadCondition.notify_one();
-    return res_task;
+    return resTask;
 }
 
-inline DumpThreadPool::~DumpThreadPool()
+inline ThreadPool::DumpThreadPool::~DumpThreadPool()
 {
     {
         std::unique_lock<std::mutex> lock(threadQueueMtx);

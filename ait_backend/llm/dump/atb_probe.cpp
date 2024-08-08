@@ -285,12 +285,12 @@ void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile, std::string
     }
 }
 
-static DumpThreadPool *g_pool = nullptr;
+static ThreadPool::DumpThreadPool *g_pool = nullptr;
 static const int POOLNUM = 4;
 void PrepareToWriteFile(std::shared_ptr<FileSystem::BinFile> binfile, const std::string &outPath)
 {
     if (g_pool == nullptr) {
-        g_pool = new DumpThreadPool(POOLNUM);
+        g_pool = new ThreadPool::DumpThreadPool(POOLNUM);
         std::atexit([]() {
             if (g_pool != nullptr) {
                 delete g_pool;
@@ -303,7 +303,7 @@ void PrepareToWriteFile(std::shared_ptr<FileSystem::BinFile> binfile, const std:
     std::string cpoutPath = outPath;
 
     if (g_pool != nullptr) {
-        g_pool->enqueue(CheckAndWriteFile, binfile, cpoutPath);
+        g_pool->Enqueue(CheckAndWriteFile, binfile, cpoutPath);
     }
 }
 
