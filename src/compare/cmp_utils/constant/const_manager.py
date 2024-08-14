@@ -378,7 +378,6 @@ class ConstManager:
 
     FFTS_TIMESTAMP = 'timestamp'
 
-    INVALID_TIMESTAMP = 0
     INVALID_SORT_MODE = 1
     INVALID_THREAD_ID = 2
     INVALID_SLICE_X = 3
