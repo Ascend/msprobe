@@ -39,6 +39,8 @@ VERSION_JSON_NAME_DICT = {
     "2.2.0": "_2_2.json"
 }
 
+DISTRIBUTED_SHELL_NAME = 'run_distributed_npu.sh'
+
 
 class TransplantException(Exception):
     pass
@@ -241,7 +243,9 @@ do
     please input your shell script here > output_npu_${i}.log 2>&1 &
     let rank++
 done'''
-    write_file_content(os.path.join(path, 'run_distributed_npu.sh'), code, permission=0o750)
+    file_path = os.path.join(path, DISTRIBUTED_SHELL_NAME)
+    check_input_file_valid(file_path, file_name=DISTRIBUTED_SHELL_NAME, check_writable=True, must_exists=False)
+    write_file_content(file_path, code, permission=0o750)
 
 
 def walk_input_path(path, output_free_size):
@@ -428,16 +432,27 @@ def islink(path):
     return os.path.islink(path)
 
 
-def check_input_file_valid(input_path, max_file_size=MAX_JSON_FILE_SIZE):
+def check_input_file_valid(input_path, max_file_size=MAX_JSON_FILE_SIZE, file_name='Input', check_writable=False,
+                           must_exists=True):
     if islink(input_path):
-        raise SoftlinkCheckException("Input path doesn't support soft link.")
+        raise SoftlinkCheckException("{} file {} doesn't support soft link.".format(file_name, input_path))
 
     input_path = os.path.realpath(input_path)
     if not os.path.exists(input_path):
-        raise ValueError('Input file %s does not exist!' % input_path)
+        if must_exists:
+            raise ValueError('{} file {} does not exist!'.format(file_name, input_path))
+        else:
+            return
+
+    if not os.path.isfile(input_path):
+        raise ValueError('{} file {} is not a common file!'.format(file_name, input_path))
 
     if not os.access(input_path, os.R_OK):
-        raise PermissionError('Input file %s is not readable!' % input_path)
+        raise PermissionError('{} file {} is not readable!'.format(file_name, input_path))
+
+    if check_writable:
+        if not os.access(input_path, os.W_OK):
+            raise PermissionError('{} file {} is not writable!'.format(file_name, input_path))
 
     if not check_path_length_valid(input_path):
         raise ValueError('The real path or file name of input is too long.')
