@@ -497,4 +497,3 @@ def make_file_safety(file_path: str, permission=0o640):
         os.close(os.open(file_real_path, os.O_WRONLY | os.O_CREAT, permission))
     except Exception as e:
         raise RuntimeError("Can't create file: " + file_real_path) from e
-    os.chmod(file_real_path, permission)
