@@ -32,8 +32,11 @@ class CudaOpVisitor:
                 self.visit_file(file_path)
 
     def visit_file(self, file_path):
-        with open(file_path, 'r', encoding='utf-8') as file_reader:
-            self._file_lines = file_reader.readlines()
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file_reader:
+                self._file_lines = file_reader.readlines()
+        except Exception as e:
+            raise RuntimeError("Can't open file: " + file_path) from e
         # parse cuda ops via "PYBIND11_MODULE"
         self._visit_py_bind_module()
         # parse cuda ops via "TORCH_LIBRARY"

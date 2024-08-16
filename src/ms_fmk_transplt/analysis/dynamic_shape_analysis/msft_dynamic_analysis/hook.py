@@ -146,12 +146,15 @@ class DynamicShapeDetect:
         if os.path.exists(csv_file):
             translog.warning(f"The file {csv_file} already exists, it will be removed.")
             remove_path(csv_file)
-        with os.fdopen(os.open(csv_file, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP), 'w+') \
-             as fp:
-            data_frame = pd.DataFrame(columns=header)
-            data_frame.to_csv(fp, index=False)
-            new_data = pd.DataFrame(content)
-            new_data.to_csv(fp, mode='a+', header=False, index=False)
+        try:
+            with os.fdopen(os.open(csv_file, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR | stat.S_IRGRP),
+                           'w+') as fp:
+                data_frame = pd.DataFrame(columns=header)
+                data_frame.to_csv(fp, index=False)
+                new_data = pd.DataFrame(content)
+                new_data.to_csv(fp, mode='a+', header=False, index=False)
+        except Exception as e:
+            raise RuntimeError("Can't open file: " + csv_file) from e
         if len(content) > 0:
             translog.warning(
                 'It is detected that the model contains dynamic shapes, and it is recommended to enable binary when '

@@ -49,8 +49,11 @@ class GlobalReferenceVisitor:
     @lru_cache()
     def _readlines(file_path):
         utils.check_input_file_valid(file_path)
-        with open(file_path, 'r', encoding='utf-8') as file_handler:
-            return file_handler.readlines()
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file_handler:
+                return file_handler.readlines()
+        except Exception as e:
+            raise RuntimeError("Can't open file: " + file_path) from e
 
     @classmethod
     def complete_undefined_name(cls, jedi_script, name, line, column):
@@ -74,8 +77,11 @@ class GlobalReferenceVisitor:
         if not os.path.exists(self.file_path):
             return -1
         utils.check_input_file_valid(self.file_path)
-        with open(self.file_path, 'r', encoding='utf-8') as file_handle:
-            lines = file_handle.readlines()
+        try:
+            with open(self.file_path, 'r', encoding='utf-8') as file_handle:
+                lines = file_handle.readlines()
+        except Exception as e:
+            raise RuntimeError("Can't open file: " + self.file_path) from e
         for index, line in enumerate(lines):
             if line.strip().startswith(f'def {func_name}('):
                 return index + 1

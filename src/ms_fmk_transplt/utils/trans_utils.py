@@ -174,21 +174,30 @@ def parse_precision_performance_advice_file() -> Dict:
 
 def get_file_content_bytes(file):
     check_input_file_valid(file)
-    with open(file, 'rb') as file_handle:
-        return file_handle.read()
+    try:
+        with open(file, 'rb') as file_handle:
+            return file_handle.read()
+    except Exception as e:
+        raise RuntimeError("Can't open file: " + file) from e
 
 
 def get_file_content(file):
     check_input_file_valid(file)
-    with open(file, 'r', encoding='utf8') as file_handle:
-        return file_handle.read()
+    try:
+        with open(file, 'r', encoding='utf8') as file_handle:
+            return file_handle.read()
+    except Exception as e:
+        raise RuntimeError("Can't open file: " + file) from e
 
 
 def write_file_content(file, code, permission=0o640):
-    with os.fdopen(os.open(file, os.O_WRONLY | os.O_CREAT, permission),
-                   'w', encoding='utf8', newline='') as file_handle:
-        file_handle.truncate()
-        file_handle.write(code)
+    try:
+        with os.fdopen(os.open(file, os.O_WRONLY | os.O_CREAT, permission),
+                       'w', encoding='utf8', newline='') as file_handle:
+            file_handle.truncate()
+            file_handle.write(code)
+    except Exception as e:
+        raise RuntimeError("Can't open file: " + file) from e
 
 
 def _compare_authority(origin_auth, advise_auth):
@@ -376,11 +385,14 @@ def name_to_jedi_position(file, line, name):
     if not os.path.isfile(file):
         return {}
     check_input_file_valid(file)
-    with open(file, 'r', encoding='utf-8') as file_handler:
-        file_lines = file_handler.readlines()
-        if line > len(file_lines):
-            return {}
-        content = file_lines[line - 1]
+    try:
+        with open(file, 'r', encoding='utf-8') as file_handler:
+            file_lines = file_handler.readlines()
+            if line > len(file_lines):
+                return {}
+            content = file_lines[line - 1]
+    except Exception as e:
+        raise RuntimeError("Can't open file: " + file) from e
     if not name or not content:
         return {}
     column = content.find(name)
