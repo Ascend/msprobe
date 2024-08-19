@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-
-#include "bin_file.h"
+#include <sstream>
 #include "securec.h"
+#include "bin_file.h"
 
 FileSystem::BinFile::BinFile() {}
 FileSystem::BinFile::~BinFile() {}
@@ -49,7 +49,7 @@ bool FileSystem::BinFile::Write(const std::string &filePath, const mode_t mode)
     bool ret = WriteAttr(outputFile, ATTR_VERSION, version_);
     ret = WriteAttr(outputFile, ATTR_OBJECT_COUNT, std::to_string(binaries_.size()));
     ret = WriteAttr(outputFile, ATTR_OBJECT_LENGTH, std::to_string(binariesBuffer_.size()));
-    
+
     for (const auto &attrIt : attrs_) {
         ret = WriteAttr(outputFile, attrIt.first, attrIt.second);
     }
@@ -115,17 +115,50 @@ bool FileSystem::BinFile::WriteAttr(std::ofstream &outputFile, const std::string
 uint64_t FileSystem::BinFile::CalcHash()
 {
     const uint64_t fnvOffsetBasis = 14695981039346656037ULL;
+    const uint64_t fnvPrime = 1099511628211ULL;
+    const int width = 8;
 
     uint64_t hashValue = fnvOffsetBasis;
-    hashValue ^= static_cast<uint64_t>(binariesBuffer_.size());
 
-    const int next = 8;
-    for (size_t i = 0; i < binariesBuffer_.size();i += next) {
-        if (i > binariesBuffer_.size() || i == binariesBuffer_.size()) {
-            break;
-        }
-        hashValue ^= static_cast<uint64_t>(binariesBuffer_[i]);
+    // 计算文件地址
+    std::string tempAttrs;
+    for (const auto &attrIt : attrs_) {
+        tempAttrs += attrIt.first;
+        tempAttrs += attrIt.second;
+    }
+    std::vector<char> hashAttrs(tempAttrs.begin(), tempAttrs.end());
+    if (hashAttrs.size() % width != 0) {
+        auto newsize = hashAttrs.size() + (width - hashAttrs.size() % width);
+        hashAttrs.resize(newsize, 0);
+    }
+    for (size_t i = 0; i < hashAttrs.size(); i += width) {
+        auto addr = &(hashAttrs[i]);
+        auto *next64Binary = reinterpret_cast<uint64_t *>(addr);
+        hashValue ^= (*next64Binary);
+        hashValue *= fnvPrime;
     }
 
+    for (const auto &attrIt : binaries_) {
+        hashValue ^= attrIt.second.offset;
+        hashValue *= fnvPrime;
+        hashValue ^= attrIt.second.length;
+        hashValue *= fnvPrime;
+    }
+
+    // 计算文件内容
+    size_t rawSize = binariesBuffer_.size();
+    if (binariesBuffer_.size() % width != 0) {
+        auto newsize = binariesBuffer_.size() + (width - binariesBuffer_.size() % width);
+        binariesBuffer_.resize(newsize, 0);
+    }
+    for (size_t i = 0; i < binariesBuffer_.size(); i += width) {
+        auto addr = &(binariesBuffer_[i]);
+        auto *next64Binary = reinterpret_cast<uint64_t *>(addr);
+        hashValue ^= (*next64Binary);
+        hashValue *= fnvPrime;
+    }
+    if (binariesBuffer_.size() != rawSize) {
+        binariesBuffer_.resize(rawSize);
+    }
     return hashValue;
-};
+}

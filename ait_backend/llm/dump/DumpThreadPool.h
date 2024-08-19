@@ -26,6 +26,7 @@
 #include <queue>
 #include <thread>
 #include <memory>
+#include <atomic>
 
 namespace ThreadPool {
 class DumpThreadPool {
@@ -41,7 +42,7 @@ private:
 
     std::mutex threadQueueMtx;
     std::condition_variable threadCondition;
-    bool poolStop;
+    std::atomic<bool> poolStop;
 };
 }
 
@@ -54,10 +55,10 @@ inline ThreadPool::DumpThreadPool::DumpThreadPool(size_t threads) : poolStop(fal
                 {
                     std::unique_lock<std::mutex> task_lock(this->threadQueueMtx);
                     this->threadCondition.wait(task_lock, [this] {
-                        return this->poolStop || !this->thread_tasks.empty();
+                        return this->poolStop.load() || !this->thread_tasks.empty();
                     });
 
-                    if (this->poolStop && this->thread_tasks.empty()) {
+                    if (this->poolStop.load() && this->thread_tasks.empty()) {
                         return;
                     }
                     task = std::move(this->thread_tasks.front());
@@ -84,7 +85,7 @@ auto ThreadPool::DumpThreadPool::Enqueue(F &&f, Args &&... args)
     {
         std::unique_lock<std::mutex> lock(threadQueueMtx);
 
-        if (poolStop) {
+        if (poolStop.load()) {
             throw std::runtime_error("Enqueue on stopped DumpThreadPool");
         }
         thread_tasks.emplace([nowtask]() { (*nowtask)(); });
@@ -97,7 +98,7 @@ inline ThreadPool::DumpThreadPool::~DumpThreadPool()
 {
     {
         std::unique_lock<std::mutex> lock(threadQueueMtx);
-        poolStop = true;
+        poolStop.store(true);
     }
     threadCondition.notify_all();
     for (std::thread &worker: thread_workers) {

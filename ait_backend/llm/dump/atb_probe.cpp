@@ -16,6 +16,7 @@
 #include <syscall.h>
 #include <cctype>
 #include <cstdlib>
+#include <unordered_map>
 #include <unistd.h>
 #include <sys/statvfs.h>
 #include <sys/stat.h>
@@ -257,10 +258,10 @@ void SaveSubProcessInfo(const std::string infoToSave)
 }
 
 namespace atb {
-
-static std::map<uint64_t, std::string> g_filecheck;
+    
+static std::unordered_map<uint64_t, std::shared_ptr<const std::string>> g_filecheck;
 static std::mutex g_mtx;
-void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile, std::string cpoutPath)
+void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile, std::shared_ptr<const std::string> cpoutPath)
 {
     uint64_t hashValue = binFile->CalcHash();
 
@@ -270,23 +271,23 @@ void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile, std::string
         g_filecheck[hashValue] = cpoutPath;
         lock.unlock();
 
-        binFile->Write(cpoutPath);
+        binFile->Write(*cpoutPath);
         AIT_LOG_DEBUG("Saving tensor: success.");
         return;
     } else {
-        std::string same = it->second;
+        std::string same = *(it->second);
         lock.unlock();
 
-        if (symlink(same.c_str(), cpoutPath.c_str()) != 0) {
-            std::cerr << "Error creating symlink from " << same.c_str() << " to " << cpoutPath << std::endl;
-        };
+        if (symlink(same.c_str(), cpoutPath->c_str()) != 0) {
+            std::cerr << "Error creating symlink from " << same.c_str() << " to " << cpoutPath->c_str() << std::endl;
+        }
         AIT_LOG_DEBUG("create tensor symlink: success.");
         return;
     }
 }
 
 static ThreadPool::DumpThreadPool *g_pool = nullptr;
-static const int POOLNUM = 4;
+static const int POOLNUM = 12;
 void PrepareToWriteFile(std::shared_ptr<FileSystem::BinFile> binfile, const std::string &outPath)
 {
     if (g_pool == nullptr) {
@@ -300,7 +301,7 @@ void PrepareToWriteFile(std::shared_ptr<FileSystem::BinFile> binfile, const std:
         });
     }
 
-    std::string cpoutPath = outPath;
+    std::shared_ptr<const std::string> cpoutPath = std::make_shared<const std::string>(outPath);
 
     if (g_pool != nullptr) {
         g_pool->Enqueue(CheckAndWriteFile, binfile, cpoutPath);
