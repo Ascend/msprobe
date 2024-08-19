@@ -16,12 +16,15 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <experimental/filesystem>
 #include <unistd.h>
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "atb_probe.h"
 #include "nlohmann/json.hpp"
 #include "tools.h"
+
+namespace fs = std::experimental::filesystem;
 
 static void ReportIOTensorTest(const size_t &executeCount, const std::string &testType)
 {
@@ -589,4 +592,51 @@ TEST(atb_Probe, IsSaveTensorBefore_When_Unset_Env)
     unsetenv("ATB_SAVE_TENSOR_TIME");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
+}
+
+TEST(atb_Probe, SaveTensorTest)
+{
+    auto isSymlink = [](const std::string& path) -> bool {
+        try {
+            return fs::is_symlink(path);
+        } catch (const fs::filesystem_error& e) {
+            std::cerr << "Filesystem error: " << e.what() << std::endl;
+            return false;
+        }
+    };
+
+    unsetenv("ATB_OUTPUT_DIR");
+    unsetenv("ATB_TIMESTAMP");
+    unsetenv("ATB_DEVICE_ID");
+    unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+    setenv("ATB_SAVE_TENSOR_PART", "0", 1);
+
+    std::string format = "2";
+    std::string dtype = "1";
+    std::string dims = "1024,4096";
+    const uint8_t temp[10] = {0};
+    const uint8_t* hostData = temp;
+    uint64_t dataSize = 10;
+
+    std::string filePath = "0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
+    sleep(5);
+    std::string outPath1 = "./ait_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::ifstream tensorFile1(outPath1);
+    EXPECT_TRUE(tensorFile1.is_open());
+    EXPECT_FALSE(isSymlink(outPath1));
+
+    filePath = "0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor2.bin";
+    atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
+    sleep(5);
+    std::string outPath2 = "./ait_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor2.bin";
+
+    EXPECT_TRUE(fs::read_symlink(outPath2) == outPath1);
+    EXPECT_TRUE(isSymlink(outPath2));
+
+    if (isSymlink(outPath2)) {
+        remove(outPath2.c_str());
+    }
+    tensorFile1.close();
+    DeleteFile(outPath1);
 }
