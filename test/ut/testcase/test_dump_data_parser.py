@@ -205,3 +205,18 @@ class TestUtilsMethods(unittest.TestCase):
             open_file.write = None
             ret = self._base_mock_run(DP.DumpDataParser(arguments).parse_dump_data, dump_data)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_when_parse_invalid_thread_id_then_raise_error(self):
+        with mock.patch('cmp_utils.path_check.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+                mock.patch('dump_parse.dump_utils.parse_dump_file',
+                           return_value=mock.Mock(get_ffts_mode=True, output_data=None)):
+            arguments = self._fake_arguments(dump_path='/home/Opdebug.OpDebug.a.invalid_thread_id')
+            dump_data = self._fake_uint8_dump_data()
+            parser = DP.DumpDataParser(arguments)
+
+            dump_path = '/home/Opdebug.OpDebug.a.invalid_thread_id'
+
+            with pytest.raises(CompareError) as error:
+                parser._parse_one_file_exec(dump_path)
+            self.assertEqual(error.value.args[0],
+                             CompareError.MSACCUCMP_INVALID_PATH_ERROR)

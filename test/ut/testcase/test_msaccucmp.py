@@ -134,6 +134,16 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
+    def test_convert_when_dump_path_is_empty_then_error(self):
+        args = ['aaa.py', 'convert', '-d', '/home/empty']
+        with pytest.raises(SystemExit) as error:
+            with mock.patch('os.path.isdir', return_value=True):
+                with mock.patch('os.listdir', return_value=False):
+                    with mock.patch('sys.argv', args):
+                        msaccucmp.main()
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+
     def test_mapping_error_parameter1(self):
         args = ['aaa.py', 'compare', '-m', '/home/left.bin', '-g',
                 '/home/right.bin', "-map"]

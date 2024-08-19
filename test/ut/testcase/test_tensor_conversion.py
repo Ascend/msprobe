@@ -282,5 +282,23 @@ class TestUtilsMethods(unittest.TestCase):
         data = ConvertSingleTensorFormat(additional_target_dim_to_format={3: "ND"})(my_tensor)
         self.assertEqual(data.shape, (1, 28, 2048))
 
+    def test_check_additional_target_dim_to_format_when_not_dict(self):
+        with pytest.raises(CompareError) as error:
+            ConvertSingleTensorFormat(additional_target_dim_to_format=[3, "ND"])
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+
+    def test_check_additional_target_dim_to_format_when_is_None(self):
+        ret = ConvertSingleTensorFormat(additional_target_dim_to_format=None)
+        self.assertNotEqual(ret, None)
+
+    def test_given_nd_target_format_is_None_then_raise_error(self):
+        with mock.patch('cmp_utils.constant.const_manager.ConstManager.STRING_TO_FORMAT_MAP', {}):
+            with pytest.raises(CompareError) as error:
+                ConvertSingleTensorFormat()
+        self.assertEqual(error.value.args[0],
+                         CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+
+
 if __name__ == '__main__':
     unittest.main()

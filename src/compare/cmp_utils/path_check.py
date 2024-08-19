@@ -138,7 +138,7 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
     
     file_stat = os.stat(exist_path)
-    if file_stat.st_uid != os.getuid() and file_stat.st_gid not in os.getgroups():
+    if os.getuid() != 0 and file_stat.st_uid != os.getuid() and file_stat.st_gid not in os.getgroups():
         log.print_warn_log('You are neither the owner nor in the group of the path "%s".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
