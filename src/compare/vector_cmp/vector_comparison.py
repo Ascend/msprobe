@@ -32,6 +32,7 @@ from vector_cmp.range_manager.range_mode import RangeMode
 from vector_cmp.range_manager.select_mode import SelectMode
 from overflow.overflow_detection import OverflowDetection
 from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.utils import sanitize_csv_value
 
 
 class VectorComparison:
@@ -278,7 +279,8 @@ class VectorComparison:
             for item in item_list:
                 if self.args.get("csv"):
                     writer = csv.writer(output_file)
-                    writer.writerow(item)
+                    sanitized_item = [sanitize_csv_value(cell) for cell in item]
+                    writer.writerow(sanitized_item)
                 else:
                     item.pop()
                     each_row_str = " ".join(item)
@@ -450,7 +452,8 @@ class VectorComparison:
                                                          self.args.get('overflow_detection'))
                 if self.args.get("csv"):
                     writer = csv.writer(output_file)
-                    writer.writerow(header)
+                    sanitized_header = [sanitize_csv_value(cell) for cell in header]
+                    writer.writerow(sanitized_header)
                 else:
                     output_file.write(" ".join(header))
         except IOError as io_error:
@@ -478,9 +481,11 @@ class VectorComparison:
                 writer = csv.writer(out_file)
                 header = ConstManager.MAPPING_FILE_HEADER
                 RangeManager.adjust_header(header)
-                writer.writerow(header)
+                sanitized_header = [sanitize_csv_value(cell) for cell in header]
+                writer.writerow(sanitized_header)
                 for item in origin_list:
-                    writer.writerow(item)
+                    sanitized_item = [sanitize_csv_value(cell) for cell in item]
+                    writer.writerow(sanitized_item)
         except IOError as io_error:
             log.print_open_file_error(self.output_path, io_error)
             raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from io_error
@@ -498,3 +503,4 @@ class VectorComparison:
         if utils.dump_path_contains_npy(my_dump_path) and len(address_index) > 0:
             op_header.pop(address_index[0])
         return op_header
+

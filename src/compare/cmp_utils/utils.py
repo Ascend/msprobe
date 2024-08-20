@@ -20,12 +20,33 @@ from cmp_utils.constant.compare_error import CompareError
 
 
 PATH_BLACK_LIST_REGEX = re.compile(r"[^_A-Za-z0-9/.,-]")  # Includes `,`
+MALICIOUS_CSV_PATTERN = re.compile(r'^[＝＋－\+\-=%@]|;[＝＋－\+\-=%@]')
 
 
 def safe_path_string(value):
     if re.search(PATH_BLACK_LIST_REGEX, value):
         raise ValueError("String parameter contains invalid characters.")
     return value
+
+
+def sanitize_csv_value(value: str, errors='strict'):
+    # 如果不是 str 或者不是危险字符不做修改
+    sanitized_value = value
+
+    if isinstance(value, str) and MALICIOUS_CSV_PATTERN.search(value):
+        if errors == 'ignore':
+            sanitized_value = value
+        
+        # 如果选择 replace，添加一个空格在最前面可以防止注入
+        elif errors == 'replace':
+            sanitized_value = ' ' + value
+
+        else:
+            msg = 'Malicious value is not allowed to be written to the csv'
+            log.print_error_log("Please check the value written to csv")
+            raise ValueError(msg)
+
+    return sanitized_value
 
 
 def make_msnpy_file_name(file_path: str, op_name: str, tensor_type: str, index: int, tensor_format: int) -> str:
@@ -312,3 +333,4 @@ ResultInfo = collections.namedtuple(
      "ret", "input_list", "input_result_list",
      "output_result_list", "is_ffts",
      "op_name_origin_output_index_map", "npu_vs_npu"])
+

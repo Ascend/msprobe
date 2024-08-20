@@ -18,6 +18,7 @@ from algorithm_manager.algorithm_manager import AlgorithmManager
 from cmp_utils.constant.const_manager import ConstManager
 from vector_cmp.fusion_manager import compare_result
 from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.utils import sanitize_csv_value
 
 
 class PytorchComparison:
@@ -131,7 +132,8 @@ class PytorchComparison:
                 compare_result_header = compare_result.get_result_title(self.algorithm_manager, self.OP_HEADER)
                 writer = csv.writer(output_file)
                 if writer is not None:
-                    writer.writerow(compare_result_header)
+                    sanitized_compare_result_header = [sanitize_csv_value(cell) for cell in compare_result_header]
+                    writer.writerow(sanitized_compare_result_header)
             return True
         except IOError as io_error:
             log.print_open_file_error(self.output_path, io_error)
@@ -144,7 +146,8 @@ class PytorchComparison:
                                ConstManager.WRITE_MODES), 'a+', newline='') as output_file:
             writer = csv.writer(output_file)
             for item in result:
-                writer.writerow(item)
+                sanitized_row = [sanitize_csv_value(cell) for cell in item]
+                writer.writerow(sanitized_row)
 
     def _save_cmp_result(self: any, result: list, lock: any = None) -> None:
         """
@@ -285,7 +288,8 @@ class PytorchComparison:
         my_dump_index = position[1]
         golden_index = position[2]
         if row[cos_index] == ConstManager.NAN or float(row[cos_index]) <= 0.95:
-            csv_writer.writerow(row)
+            sanitized_row = [sanitize_csv_value(cell) for cell in row]
+            csv_writer.writerow(sanitized_row)
             if row[my_dump_index] != ConstManager.NAN:
                 tensor_data = self.compare_data.my_dump.get_dump_data(row[my_dump_index])
                 dump_data_path = os.path.join(result_path, "my_dump" + row[my_dump_index])
@@ -307,7 +311,8 @@ class PytorchComparison:
         for row in csv_reader:
             if line_num == 0:
                 location = self._get_item_location(row)
-                csv_writer.writerow(row)
+                sanitized_row = [sanitize_csv_value(cell) for cell in row]
+                csv_writer.writerow(sanitized_row)
             else:
                 self._filter_one_line(filtered_result_path, row, csv_writer, location)
             line_num = line_num + 1
@@ -361,3 +366,4 @@ class PytorchComparison:
             advisor_result = compare_advisor.advisor()
             message_list = advisor_result.print_advisor_log()
             advisor_result.gen_summary_file(out_path, message_list)
+

