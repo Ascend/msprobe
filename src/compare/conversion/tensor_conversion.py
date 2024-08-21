@@ -25,6 +25,9 @@ class TensorConversion:
     The class for tensor conversion
     """
 
+    NEED_CONVERT_TYPE = (DD.FORMAT_FRACTAL_NZ, DD.FORMAT_NDC1HWC0)
+    ND = DD.FORMAT_ND
+
     def __init__(self: any, fusion_op: FusionOp, format_manager: FormatManager, is_detail: bool) -> None:
         self.fusion_op = fusion_op
         self.shape_conversion = ShapeConversion(format_manager)
@@ -163,7 +166,7 @@ class TensorConversion:
         my_output_np, ground_truth_np = self._convert_shape(my_output_tensor, ground_truth_tensor, origin_format)
 
         # slice data
-        if (my_output_tensor.tensor_format != DD.FORMAT_ND or
+        if (my_output_tensor.tensor_format != self.ND or
            (is_tensor and (my_output_np.size != ground_truth_np.size))):
             my_output_np = self.slice_data(my_output_np, ground_truth_np.shape)
 
@@ -252,15 +255,15 @@ class TensorConversion:
         my_output_array = my_output_tensor.data
         ground_truth_array = ground_truth_tensor.data.data
 
-        # ND format no need to convert, except FORMAT_FRACTAL_NZ to ND
-        if (my_output_dest_format == DD.FORMAT_ND and my_output_tensor.tensor_format != DD.FORMAT_FRACTAL_NZ) \
+        # ND format no need to convert, except (FORMAT_FRACTAL_NZ or NDC1HWC0) to ND
+        if my_output_dest_format == self.ND and my_output_tensor.tensor_format not in self.NEED_CONVERT_TYPE \
                 or utils.get_shape_type(my_output_tensor.shape) != utils_type.ShapeType.Tensor:
             return my_output_array, ground_truth_array
 
         # shape convert for my output
         my_output_group = common.get_sub_format(my_output_tensor)
         my_output_src_to_dest = SrcToDest(my_output_tensor.tensor_format, my_output_dest_format, my_output_tensor.shape,
-                                          ground_truth_tensor.data.shape)
+                                          ground_truth_tensor.shape)
         my_output_np = self.shape_conversion.convert_shape(my_output_src_to_dest, my_output_array,
                                                            {'group': my_output_group})
 

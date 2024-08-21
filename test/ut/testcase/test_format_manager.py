@@ -19,7 +19,7 @@ class TestUtilsMethods(unittest.TestCase):
         manager = FormatManager("")
         manager.check_arguments_valid()
         self.assertEqual(len(manager.custom_support_format), 0)
-        self.assertEqual(len(manager.built_in_support_format), 17)
+        self.assertEqual(len(manager.built_in_support_format), 18)
 
     def test_check_arguments_valid2(self):
         with pytest.raises(CompareError) as error:
