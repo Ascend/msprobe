@@ -30,21 +30,21 @@ def safe_path_string(value):
 
 
 def sanitize_csv_value(value: str, errors='strict'):
-    # 如果不是 str 或者不是危险字符不做修改
-    sanitized_value = value
+    if errors == 'ignore' or not isinstance(value, str):
+        return value
 
-    if isinstance(value, str) and MALICIOUS_CSV_PATTERN.search(value):
-        if errors == 'ignore':
-            sanitized_value = value
-        
-        # 如果选择 replace，添加一个空格在最前面可以防止注入
+    sanitized_value = value
+    try:
+        float(value) # in case value is a digit but in str format
+    except ValueError as e: # not digit
+        if not MALICIOUS_CSV_PATTERN.search(value):
+            pass
         elif errors == 'replace':
             sanitized_value = ' ' + value
-
         else:
-            msg = 'Malicious value is not allowed to be written to the csv'
-            log.print_error_log("Please check the value written to csv")
-            raise ValueError(msg)
+            msg = f'Malicious value is not allowed to be written to the csv: {value}'
+            log.print_error_log("Please check the value written to the csv")
+            raise ValueError(msg) from e
 
     return sanitized_value
 
