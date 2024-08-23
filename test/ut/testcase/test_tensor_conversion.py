@@ -198,6 +198,23 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
 
+    def test_get_my_output_and_ground_truth_data10(self):
+        left_op_output = self._make_op_output(DD.FORMAT_NDC1HWC0, [1, 3, 1, 2, 2, 5])
+        right_op_output = self._make_op_output(DD.FORMAT_ND, [1, 2, 3, 2, 2])
+        manager = FormatManager("")
+        manager.check_arguments_valid()
+        tensor_conversion = TensorConversion(self._make_fusion_op(), manager, False)
+        compare_data = mock.Mock()
+        compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=False)
+        ground_truth_tensor = Tensor('conv1_relu', 0, 'ND', [1, 2, 3, 2, 2])
+        ground_truth_tensor.set_data(right_op_output)
+        left, right, shape = tensor_conversion.get_my_output_and_ground_truth_data(compare_data, left_op_output,
+                                                                                   ground_truth_tensor)
+        self.assertEqual(len(left), 24)
+        self.assertEqual(len(right), 24)
+        self.assertEqual(len(shape), 5)
+        self.assertEqual(shape[1], 2)
+
     def test_make_detail_dest_format1(self):
         dest1, dest2 = TensorConversion._make_detail_dest_format(
             self._make_op_output(DD.FORMAT_NDHWC, [1, 2, 3, 4, 5, 6]),
