@@ -84,9 +84,9 @@ static std::string GetOutDir()
         const char* timestamp = std::getenv("ATB_TIMESTAMP");
         const std::string timestampStr = (timestamp != nullptr ? timestamp : "");
         if (timestampStr == "") {
-            outDir = outDir + "ait_dump/";
+            outDir = outDir + "msit_dump/";
         } else {
-            outDir = outDir + "ait_dump_" + timestampStr + "/";
+            outDir = outDir + "msit_dump_" + timestampStr + "/";
         }
     }
     return outDir;

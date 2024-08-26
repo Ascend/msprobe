@@ -112,7 +112,7 @@ TEST(atb_Probe, ReportOperationGraph)
     atb::Probe::ReportOperationGraph(opName, graphNodeJson.dump());
 
     int32_t pid = getpid();
-    std::string pidDir = "./ait_dump/layer/" + std::to_string(pid) + "/EncoderLayer_2.json";
+    std::string pidDir = "./msit_dump/layer/" + std::to_string(pid) + "/EncoderLayer_2.json";
     std::ifstream dumpFile(pidDir);
     EXPECT_TRUE(dumpFile.is_open());
 
@@ -163,7 +163,7 @@ TEST(atb_speed_Probe, ReportModelTopoInfo)
 
     atb::Probe::ReportOperationGraph(opName0, node0.dump());
     int32_t pid = getpid();
-    std::string node0Json = "./ait_dump/layer/" + std::to_string(pid) + "/EncoderLayer_0.json";
+    std::string node0Json = "./msit_dump/layer/" + std::to_string(pid) + "/EncoderLayer_0.json";
     std::ifstream node0File(node0Json);
     EXPECT_TRUE(node0File.is_open());
 
@@ -175,7 +175,7 @@ TEST(atb_speed_Probe, ReportModelTopoInfo)
         {"opType", "EncoderLayer"},
         {"param", ""}};
     atb::Probe::ReportOperationGraph(opName1, node1.dump());
-    std::string node1Json = "./ait_dump/layer/" + std::to_string(pid) + "/EncoderLayer_1.json";
+    std::string node1Json = "./msit_dump/layer/" + std::to_string(pid) + "/EncoderLayer_1.json";
     std::ifstream node1File(node1Json);
     EXPECT_TRUE(node1File.is_open());
 
@@ -183,7 +183,7 @@ TEST(atb_speed_Probe, ReportModelTopoInfo)
 
     atb_speed::SpeedProbe::ReportModelTopoInfo(modelName, model.dump());
 
-    std::string pidDir = "./ait_dump/model/" + std::to_string(pid) + "/EncoderModel.json";
+    std::string pidDir = "./msit_dump/model/" + std::to_string(pid) + "/EncoderModel.json";
     std::ifstream dumpFile(pidDir);
     EXPECT_TRUE(dumpFile.is_open());
 
@@ -220,7 +220,7 @@ TEST(atb_Probe, ReportOperationIOTensor_001)
     const size_t executeCount = 0;
     const std::string pid = std::to_string(GetCurrentProcessId());
     const std::string fPath =
-        "ait_dump/operation_io_tensors/" + pid + "/operation_tensors_" + std::to_string(executeCount) + ".csv";
+        "msit_dump/operation_io_tensors/" + pid + "/operation_tensors_" + std::to_string(executeCount) + ".csv";
     const std::string outPath = "./" + fPath;
     const std::string testType = "op";
     const std::string headStr = "CaseNum|CaseName|OpName|OpParam|InNum|InDType|InFormat|InShape|\
@@ -256,7 +256,7 @@ TEST(atb_Probe, ReportKernelIOTensor_001)
     const size_t executeCount = 0;
     const std::string pid = std::to_string(GetCurrentProcessId());
     const std::string fPath =
-        "ait_dump/kernel_io_tensors/" + pid + "/kernel_tensors_" + std::to_string(executeCount) + ".csv";
+        "msit_dump/kernel_io_tensors/" + pid + "/kernel_tensors_" + std::to_string(executeCount) + ".csv";
     const std::string outPath = "./" + fPath;
     const std::string testType = "kernel";
     const std::string headStr = "CaseNum|CaseName|OpName|OpParam|InNum|InDType|InFormat|InShape|\
@@ -292,7 +292,7 @@ TEST(atb_Probe, ReportOperationStatisticTest_001)
     setenv("ATB_CUR_PID", pid.c_str(), 0);
     setenv("ATB_OUTPUT_DIR", "./", 0);
     const std::string fPath =
-        "ait_dump/cpu_profiling/" + pid + "/operation_statistic_" + std::to_string(executeCount) + ".txt";
+        "msit_dump/cpu_profiling/" + pid + "/operation_statistic_" + std::to_string(executeCount) + ".txt";
     const std::string outPath = "./" + fPath;
     const std::string testType = "cpu_profiling";
  
@@ -321,7 +321,7 @@ TEST(atb_Probe, SaveParamTest)
     atb::Probe::SaveParam(paramJson, fileName);
     setenv("ATB_OUTPUT_DIR", "./", 0);
 
-    std::string paramDir = "./ait_dump/tensors/fake_param.json";
+    std::string paramDir = "./msit_dump/tensors/fake_param.json";
     std::ifstream paramFile(paramDir);
     EXPECT_TRUE(paramFile.is_open());
 
@@ -621,7 +621,7 @@ TEST(atb_Probe, SaveTensorTest)
     std::string filePath = "0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
     sleep(5);
-    std::string outPath1 = "./ait_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
     EXPECT_FALSE(isSymlink(outPath1));
@@ -629,7 +629,7 @@ TEST(atb_Probe, SaveTensorTest)
     filePath = "0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor2.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
     sleep(5);
-    std::string outPath2 = "./ait_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor2.bin";
+    std::string outPath2 = "./msit_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor2.bin";
 
     EXPECT_TRUE(fs::read_symlink(outPath2) == outPath1);
     EXPECT_TRUE(isSymlink(outPath2));
