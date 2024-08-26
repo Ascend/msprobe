@@ -11,11 +11,26 @@ from functools import wraps
 from enum import Enum
 import torch
 import torch_npu
+
 try:
     from packaging.version import Version as Version
 except ImportError:
     from distutils.version import LooseVersion as Version
+try:
+    from torch.utils._device import _device_constructors
+except ImportError:
+    DO_DEVICE_CONSTRUCTORS = False
+else:
+    DO_DEVICE_CONSTRUCTORS = True
+try:
+    from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+except ImportError:
+    DO_FSDP_WRAP = False
+else:
+    DO_FSDP_WRAP = True
 
+if DO_DEVICE_CONSTRUCTORS:
+    _device_constructors()
 
 warnings.filterwarnings(action='once')
 LOG_FORMAT = '%(asctime)s [%(levelname)s] %(message)s'
@@ -30,7 +45,7 @@ torch_fn_white_list = [
     'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
     'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
     '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-    'empty_quantized', '_pin_memory', 'autocast', 'load'
+    'empty_quantized', '_pin_memory', 'autocast', 'load', "Generator", 'set_default_device'
 ]
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
@@ -38,17 +53,19 @@ torch_cuda_fn_white_list = [
     'get_device_properties', 'get_device_name', 'get_device_capability', 'list_gpu_processes', 'set_device',
     'synchronize', 'mem_get_info', 'memory_stats', 'memory_summary', 'memory_allocated', 'max_memory_allocated',
     'reset_max_memory_allocated', 'memory_reserved', 'max_memory_reserved', 'reset_max_memory_cached',
-    'reset_peak_memory_stats', 'device'
+    'reset_peak_memory_stats'
 ]
 torch_profiler_fn_white_list = ['profile']
 torch_distributed_fn_white_list = ['__init__']
-device_kwargs_list = ['device', 'device_type', 'map_location']
+device_kwargs_list = ['device', 'device_type', 'map_location', 'device_id']
 CUDA = 'cuda'
 NPU = 'npu'
 is_available = torch.cuda.is_available
 cur_path = os.path.dirname(os.path.realpath(__file__))
 config_path = os.path.join(cur_path, 'apis_config.json')
 python_version = sys.version_info
+NCCL = 'nccl'
+HCCL = 'hccl'
 
 
 class ApiType(Enum):
@@ -62,10 +79,6 @@ def _is_torch_version_greater_than_2_1():
         return True
     else:
         return False
-
-
-if _is_torch_version_greater_than_2_1():
-    import torchair
 
 
 if python_version >= (3, 8):
@@ -245,12 +258,13 @@ def _wrapper_hccl(func):
         if args:
             args_new = list(args)
             for idx, arg in enumerate(args_new):
-                if isinstance(arg, str) and 'nccl' in arg:
-                    args_new[idx] = arg.replace('nccl', 'hccl')
+                if isinstance(arg, str) and NCCL in arg:
+                    args_new[idx] = arg.replace(NCCL, HCCL)
             args = args_new
         if kwargs:
-            if isinstance(kwargs.get('backend', None), str):
-                kwargs['backend'] = 'hccl'
+            backend = kwargs.get('backend', None)
+            if isinstance(backend, str) and NCCL in backend:
+                kwargs['backend'] = backend.replace(NCCL, HCCL)
         return func(*args, **kwargs)
 
     return decorated
@@ -284,23 +298,6 @@ def _wrapper_profiler(fn):
                     'because it can only be used in cuda, please manually modify the code '
                     'and use the experimental_config parameter adapted to npu.')
                 del kwargs[key]
-        return fn(*args, **kwargs)
-
-    return decorated
-
-
-def _wrapper_compile(fn):
-    @wraps(fn)
-    def decorated(*args, **kwargs):
-        npu_backend = torchair.get_npu_backend()
-        key = 'backend'
-        if kwargs:
-            backend = kwargs.get(key, None)
-            if not backend or not isinstance(backend, functools.partial) or not isinstance(backend.func,
-                                                                                           type(npu_backend.func)):
-                kwargs[key] = npu_backend
-        else:
-            kwargs[key] = npu_backend
         return fn(*args, **kwargs)
 
     return decorated
@@ -346,9 +343,19 @@ def _warning_fn(msg, rank0=True):
 
 
 def _jit_script(obj, optimize=None, _frames_up=0, _rcb=None, example_inputs=None):
-    msg = 'torch.jit.script will be disabled by transfer_to_npu, which currently does not support it.'
-    warnings.warn(msg, RuntimeWarning)
     return obj
+
+
+def _jit_script_method(fn):
+    return fn
+
+
+def _patch_jit_script():
+    msg = ('torch.jit.script and torch.jit.script_method will be disabled by transfer_to_npu, '
+           'which currently does not support them, if you need to enable them, please do not use transfer_to_npu.')
+    warnings.warn(msg, RuntimeWarning)
+    torch.jit.script = _jit_script
+    torch.jit.script_method = _jit_script_method
 
 
 def _init():
@@ -369,6 +376,7 @@ def _init():
     # torch.cuda.*
     _patch_cuda()
     _device_wrapper(torch.cuda, torch_cuda_fn_white_list)
+    torch.cuda.device.__init__ = _wrapper_cuda(torch.cuda.device.__init__)
 
     # torch.profiler.*
     _patch_profiler()
@@ -387,18 +395,22 @@ def _init():
     _device_wrapper(torch.nn.Module, torch_module_fn_white_list)
     torch.nn.Module.cuda = torch.nn.Module.npu
 
-    # torch.distributed.init_process_group
+    # torch.distributed
     torch.distributed.init_process_group = _wrapper_hccl(torch.distributed.init_process_group)
     torch.distributed.is_nccl_available = torch.distributed.is_hccl_available
+    if DO_FSDP_WRAP:
+        torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__ = \
+            _wrapper_cuda(torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__)
 
     # torch.nn.parallel.DistributedDataParallel
     _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
     # torch.utils.data.DataLoader
     if _is_torch_version_greater_than_2_1():
         torch.utils.data.DataLoader.__init__ = _wrapper_data_loader(torch.utils.data.DataLoader.__init__)
-        torch.jit.script = _jit_script
-        torch.compile = _wrapper_compile(torch.compile)
+        _patch_jit_script()
         torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
+        torch.UntypedStorage.__new__ = _wrapper_cuda(torch.UntypedStorage.__new__)
+        torch.utils._device.DeviceContext.__init__ = _wrapper_cuda(torch.utils._device.DeviceContext.__init__)
 
     # torch version < 2.1 needs to be adapted
     if not _is_torch_version_greater_than_2_1():
