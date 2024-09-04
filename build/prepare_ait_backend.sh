@@ -56,6 +56,17 @@ make_ait_backend() {
   fi
   make install
 }
+
+make_ait_mindie_torch() {
+    cd ${CUR_DIR}/"../ait_backend/llm/mindie_torch_dump/"
+    rm -rf build
+    mkdir build
+    cd build
+    cmake ..
+    make -j
+    cd -
+}
+
 # 编译AIT_LLM_ABI=0
 export AIT_LLM_ABI=0
 make_ait_backend
@@ -66,3 +77,7 @@ fi
 # 编译AIT_LLM_ABI=1
 export AIT_LLM_ABI=1
 make_ait_backend
+
+# 编译mindie-torch依赖
+make_ait_mindie_torch
+
