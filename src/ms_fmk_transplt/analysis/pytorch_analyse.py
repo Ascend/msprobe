@@ -66,6 +66,9 @@ class PyTorchAnalyse:
             if not real_path.endswith('.csv'):
                 raise ValueError('The unsupported api file %s should be a csv file!' % file_path)
 
+            if not os.path.isfile(real_path):
+                raise ValueError(f'The unsupported api file {file_path} is not a common file!')
+
             utils.check_api_file_valid(real_path)
             utils.check_path_pattern_valid(real_path)
 
@@ -80,6 +83,9 @@ class PyTorchAnalyse:
     @staticmethod
     def __check_env_path_valid(args):
         env_path = args.env_path
+        if not utils.check_path_length_valid(env_path):
+            raise ValueError('The real path or file name of env path is too long.')
+        utils.check_path_pattern_valid(env_path)
         for path in env_path:
             if not utils.check_is_subdirectory(args.input, path):
                 raise ValueError('env path %s should be a subdirectory of Input %s' % (path, args.input))
