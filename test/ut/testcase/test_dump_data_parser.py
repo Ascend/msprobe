@@ -81,6 +81,10 @@ class TestUtilsMethods(unittest.TestCase):
         buffer.buffer_type = DD.L1
         buffer.size = 8
         buffer.data = struct.pack('Q', 35)
+
+        space = dump_data.space.add()
+        space.size = 8
+        space.data = struct.pack('Q', 35)
         dump_data = dump_utils.convert_dump_data(dump_data)
         return dump_data
 

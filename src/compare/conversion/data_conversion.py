@@ -208,6 +208,25 @@ class DumpDataConversion:
             finally:
                 pass
 
+    def _save_space_to_file(self: any, tensor_list: list, name: str, input_path: str) -> None:
+        if len(tensor_list) == 0:
+            log.print_warn_log('There is no space data in "%s".' % input_path)
+            return
+        for (index, tensor) in enumerate(tensor_list):
+            file_name = "%s.space.%s.bin" % (name, index)
+            log.print_info_log('Start to save space:%d of "%s" to bin file.' % (index, input_path))
+            output_dump_path = os.path.join(self.output_path, file_name)
+            try:
+                with os.fdopen(os.open(output_dump_path, ConstManager.WRITE_FLAGS,
+                               ConstManager.WRITE_MODES), 'wb') as output_file:
+                    output_file.write(tensor.data)
+                    log.print_info_log('The space:%d of "%s" has been converted to file "%s".'
+                               % (index, input_path, output_dump_path))
+            except IOError as io_error:
+                log.print_error_log('Failed to open "%s". %s ' % (output_dump_path, str(io_error)))
+            finally:
+                pass
+
     def _convert_file_exec(self: any, input_path: str) -> None:
         name = self._get_op_name_from_path(input_path)
         if self.target == "dump":
@@ -224,6 +243,7 @@ class DumpDataConversion:
             self._save_tensor_to_file(dump_data.input_data, name, input_path, 'input')
             self._save_tensor_to_file(dump_data.output_data, name, input_path, 'output')
             self._save_buffer_to_file(dump_data.buffer, name, input_path)
+            self._save_space_to_file(dump_data.space, name, input_path)
 
     def _convert_file(self: any, input_path: str) -> (int, str):
         return_code = CompareError.MSACCUCMP_NONE_ERROR

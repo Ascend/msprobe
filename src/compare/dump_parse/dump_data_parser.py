@@ -199,6 +199,20 @@ class DumpDataParser:
             log.print_info_log('The data of %sbuffer:%d has been parsed into "%s".'
                                % (buffer_type, index, output_dump_path))
 
+    def _save_space_to_file(self: any, dump_path: str, tensor_list: list) -> None:
+        if tensor_list is None or len(tensor_list) == 0:
+            log.print_warn_log('There is no space data in "%s".' % dump_path)
+            return
+        name = os.path.basename(dump_path)
+        for (index, tensor) in enumerate(tensor_list):
+            log.print_info_log('Start to parse the data of space:%d in "%s".' % (index, dump_path))
+            file_name = "%s.space.%s.bin" % (name, index)
+            file_name = FileUtils.handle_too_long_file_name(
+                file_name, '.bin', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
+            output_dump_path = os.path.join(self.output_path, file_name)
+            FileUtils.save_data_to_file(output_dump_path, tensor.data, 'wb', delete=True)
+            log.print_info_log('The data of space:%d has been parsed into "%s".' % (index, output_dump_path))
+
     def _save_op_debug_to_file(self: any, dump_path: str, output: any) -> None:
         for idx, item in enumerate(output):
             bytes_data = utils.convert_ndarray_to_bytes(item.data)
@@ -267,6 +281,7 @@ class DumpDataParser:
             self._save_tensor_to_file(dump_path, dump_data, 'input')
             self._save_tensor_to_file(dump_path, dump_data, 'output')
             self._save_buffer_to_file(dump_path, dump_data.buffer)
+            self._save_space_to_file(dump_path, dump_data.space)
 
     def _parse_one_dump_file(self: any, dump_path: str) -> (int, str):
         try:
