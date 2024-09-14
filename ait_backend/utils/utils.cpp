@@ -60,11 +60,13 @@ bool CheckDirectory(const std::string &directory)
             int status = mkdir(curDir.c_str(), 0750);
             if (status) {
                 AIT_LOG_ERROR("cannot create directory: " + curDir);
+                AIT_LOG_ERROR("mkdir: " + std::string(std::strerror(errno)));
             }
         }
     }
     if (!DirectoryExists(directory)) {
         AIT_LOG_ERROR("cannot create directory: " + directory);
+        AIT_LOG_ERROR("mkdir: " + std::string(std::strerror(errno)));
         return false;
     }
     return true;

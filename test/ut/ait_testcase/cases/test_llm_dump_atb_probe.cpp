@@ -385,7 +385,7 @@ TEST(atb_probe, HandlesOutputFile)
                                                                      "should not return any error.";
 
     const std::string pidID(std::to_string(getpid()));
-    const std::string fileName("ait_overflow_res_" + pidID + ".txt");
+    const std::string fileName("msit_overflow_res_" + pidID + ".txt");
     const std::string outPath("./" + fileName);
 
     std::ifstream ifs(outPath);

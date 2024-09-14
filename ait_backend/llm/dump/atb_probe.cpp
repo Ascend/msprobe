@@ -27,6 +27,7 @@
 #include "DumpThreadPool.h"
 #include "atb_probe.h"
 
+
 using ordered_json = nlohmann::ordered_json;
 
 namespace {
@@ -1077,31 +1078,42 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
         return;
     }
 
-    char resolvedPath[PATH_MAX] = {0};
-    if (realpath(outputDir, resolvedPath) == nullptr) {
+    char realOutputDir[PATH_MAX] = {0};
+    if (realpath(outputDir, realOutputDir) == nullptr) {
         AIT_LOG_ERROR("There is something wrong with the directory, please try another one instead.");
         return;
     }
 
-    const std::string pidID = std::to_string(GetCurrentProcessId());
-    const std::string fileName = "ait_overflow_res_" + pidID + ".txt";
-    const std::string outPath = std::string(resolvedPath) + "/" + fileName;
-
-    std::ofstream ofs(outPath);
-    if (ofs.is_open()) {
-        AIT_LOG_INFO("Output File created. File name: " + outPath);
-        ofs << "Overflow detected! Operator name: " << kernelPath << std::endl;
-
-        int stat = chmod(outPath.c_str(), 0640);
-        if (stat) {
-            AIT_LOG_ERROR("Change file mode failed.");
-        }
-    } else {
-        AIT_LOG_ERROR("Unable to create file: " + outPath + ". Please check if the directory is valid.");
+    if (!CheckDirectory(realOutputDir)) {
+        return;
     }
-    
-    ofs.close();
-    
+
+    const std::string pidID = std::to_string(GetCurrentProcessId());
+    const std::string fileName = "msit_overflow_res_" + pidID + ".txt";
+    const std::string outPath = std::string(realOutputDir) + "/" + fileName;
+
+    int fd = open(outPath.c_str(), O_CREAT | O_WRONLY, 0600);
+    if (fd == -1) {
+        AIT_LOG_ERROR("open: " + std::string(std::strerror(errno)));
+        AIT_LOG_ERROR("Unable to create file: " + outPath + ". Please check if the output path is valid.");
+        return;
+    }
+
+    std::FILE *fp = fdopen(fd, "w");
+    if (fp == nullptr) {
+        AIT_LOG_ERROR("fdopen: " + std::string(std::strerror(errno)));
+        return;
+    }
+
+    std::string err_msg = "Overflow detected! Operator name: " + kernelPath;
+    int returnCode = std::fputs(err_msg.c_str(), fp);
+    if (returnCode == EOF) {
+        AIT_LOG_ERROR("fputs: " + std::string(std::strerror(errno)));
+        std::fclose(fp);
+        return;
+    }
+
+    std::fclose(fp);
     return;
 }
 
