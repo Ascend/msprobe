@@ -21,6 +21,7 @@ logger.basicConfig(level=logger.INFO, format=LOG_FORMAT, datefmt=DATE_FORMAT)
 
 class RotatingFileHandlerWithPermission(RotatingFileHandler):
     def doRollover(self):
+        os.chmod(self.baseFilename, 0o440)
         super().doRollover()
         os.chmod(self.baseFilename, 0o640)
 
@@ -35,6 +36,7 @@ def init_logging_file(filename):
                                                      backupCount=BACKUP_COUNT)
     file_handler.setFormatter(formatter)
     logger.getLogger().addHandler(file_handler)
+    os.chmod(filename, 0o640)
 
 
 def set_progress_info(progress):

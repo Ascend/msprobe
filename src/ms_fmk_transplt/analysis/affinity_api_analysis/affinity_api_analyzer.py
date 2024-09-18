@@ -63,10 +63,10 @@ class AffinityApiAnalyzer(BaseAnalyzer):
         if self.global_reference_visitor:
             self.global_reference_visitor.visit_file(os.path.relpath(file, self.script_dir))
         self.current_file_rel_path = os.path.relpath(file, commonprefix)
-        info_msg = f'Start analysis {self.current_file_rel_path}.'
+        info_msg = f'Start the analysis of {self.current_file_rel_path}.'
         translog.info(info_msg)
         self._analysis_code(file)
-        info_msg = f'Analysis {self.current_file_rel_path} complete.'
+        info_msg = f'Analysis of {self.current_file_rel_path} completed.'
         translog.info(info_msg)
 
     def _analysis_code(self, file):

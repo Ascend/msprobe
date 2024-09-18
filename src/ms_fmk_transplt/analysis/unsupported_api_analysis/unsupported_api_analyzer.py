@@ -28,9 +28,9 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
         if self.global_reference_visitor:
             self.global_reference_visitor.visit_file(os.path.relpath(file, self.script_dir))
         self.current_file_rel_path = os.path.relpath(file, commonprefix)
-        translog.info(f'Start analysis {self.current_file_rel_path}.')
+        translog.info(f'Start the analysis of {self.current_file_rel_path}.')
         self._analysis_code(file)
-        translog.info(f'Analysis {self.current_file_rel_path} complete.')
+        translog.info(f'Analysis of {self.current_file_rel_path} completed.')
 
     def _analysis_code(self, file):
         code = utils.get_file_content_bytes(file)

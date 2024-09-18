@@ -90,16 +90,16 @@ class MsFmkTransplt(object):
             translog.error("User canceled.")
             ret = 1
         except BaseException as exp:
-            translog.error(exp)
+            translog.error(f"An error occurred: {exp}")
             ret = 1
         finally:
             if utils.IS_JEDI_INSTALLED:
                 utils.clear_parso_cache()
 
         if ret != 0:
-            translog.error('MsFmkTransplt run fail!')
+            translog.error('MsFmkTransplt run failed!')
         else:
-            translog.info('MsFmkTransplt run success, welcome to the next use.')
+            translog.info('MsFmkTransplt run succeeded, welcome to the next use.')
             analysis_rel_path = os.path.basename(self.output)
             utils.get_analysis_result_statistics(result_dict, analysis_rel_path)
         self.__set_report_files_permission(0o440)

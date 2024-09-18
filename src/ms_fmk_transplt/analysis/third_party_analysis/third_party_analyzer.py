@@ -125,9 +125,9 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         if self.global_reference_visitor:
             self.global_reference_visitor.visit_file(os.path.relpath(file, self.script_dir))
         file_relative_path = os.path.relpath(file, commonprefix)
-        translog.info(f'Start analysis {file_relative_path}.')
+        translog.info(f'Start the analysis of {file_relative_path}.')
         self._analysis_code(file)
-        translog.info(f'Analysis {file_relative_path} complete.')
+        translog.info(f'Analysis of {file_relative_path} completed.')
 
     def _analysis_init_file(self, package_path):
         defined_names = self.global_reference_visitor.complete()

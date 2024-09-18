@@ -413,7 +413,7 @@ def clear_parso_cache():
     try:
         remove_path(cache_directory)
     except DeleteFileException as exp:
-        translog.warning(exp)
+        translog.warning(f'Failed to delete jedi cache, the reason is: {exp}')
 
 
 def refresh_parso_cache():

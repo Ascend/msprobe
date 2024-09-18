@@ -225,10 +225,9 @@ def save_report():
     try:
         DETECTOR.save()
     except PermissionError as exception:
-        translog.error(exception)
-        translog.error("Save dynamic shape analysis report failed.")
+        translog.error(f"Saving dynamic shape analysis report failed, the error message is: {exception}")
         return
-    translog.info("Save dynamic shape analysis report success.")
+    translog.info("Saving dynamic shape analysis report succeeded.")
 
 
 def remove_path(path):

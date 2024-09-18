@@ -128,15 +128,15 @@ class PyTorchAnalyse:
             translog.error('User canceled.')
             ret = 1
         except BaseException as exp:
-            translog.error(exp)
+            translog.error(f"An error occurred: {exp}")
             ret = 1
         finally:
             if args.mode == 'third_party' and utils.IS_JEDI_INSTALLED:
                 utils.clear_parso_cache()
         if ret != 0:
-            translog.error('Analyse run fail!')
+            translog.error('Analyse run failed!')
         else:
-            translog.info('Analyse run success, welcome to the next use.')
+            translog.info('Analyse run succeeded, welcome to the next use.')
             analysis_rel_path = os.path.basename(self.output_path)
             utils.get_analysis_result_statistics(result_dict, analysis_rel_path)
         self.__set_report_files_permission(0o440)
@@ -147,8 +147,8 @@ class PyTorchAnalyse:
             self.__copy_analysis_pack()
         if args.mode == 'third_party' and result_dict.get('full_unsupported_results.csv', 0) > 0:
             translog.info(
-                "The path to the 'full_unsupported_results.csv' file can be used as the -api parameter \
-                to analyze the full unsupported api information in the script.")
+                "The path to the 'full_unsupported_results.csv' file can be used as the -api parameter "
+                "to analyze the full unsupported api information in the script.")
 
     def __check_param_valid(self, args):
         if utils.islink(args.input):

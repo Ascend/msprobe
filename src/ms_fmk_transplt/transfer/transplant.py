@@ -151,9 +151,9 @@ class Transplant(object):
         self.current_file_rel_path = os.path.relpath(file, commonprefix)
         if self.global_reference_visitor:
             self.global_reference_visitor.visit_file(self.current_file_rel_path)
-        translog.info(f'Start analysis {self.current_file_rel_path}.')
+        translog.info(f'Start the analysis of {self.current_file_rel_path}.')
         self.__analysis_code(file)
-        translog.info(f'Analysis {self.current_file_rel_path} complete.')
+        translog.info(f'Analysis of {self.current_file_rel_path} completed.')
 
     def __visit_rule(self, file, module):
         code_transformer = CodeTransformer(self.rule_list,
