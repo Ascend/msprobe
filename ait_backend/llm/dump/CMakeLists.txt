@@ -42,6 +42,7 @@ target_compile_options(${LIB_NAME} PRIVATE
     -fstack-protector-all
     -D_FORTIFY_SOURCE=2
     -ftrapv
+    -fvisibility=hidden
 )
 add_compile_options(-fstack-check)
 target_link_options(${LIB_NAME} PRIVATE

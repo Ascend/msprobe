@@ -27,6 +27,7 @@
 #include <thread>
 #include <memory>
 #include <atomic>
+#define EXPORT_LLM __attribute__ ((visibility("default")))
 
 namespace ThreadPool {
 class DumpThreadPool {
@@ -34,7 +35,7 @@ public:
     explicit DumpThreadPool(size_t threads);
     ~DumpThreadPool();
     template<class F, class... Args>
-    auto Enqueue(F &&f, Args &&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+    EXPORT_LLM auto Enqueue(F &&f, Args &&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
 
 private:
     std::vector<std::thread> thread_workers;

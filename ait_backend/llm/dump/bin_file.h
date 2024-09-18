@@ -29,7 +29,7 @@
 #include <map>
 #include <sstream>
 #include <fstream>
-
+#define EXPORT_LLM __attribute__ ((visibility("default")))
 
 namespace FileSystem {
 const std::string ATTR_VERSION = "$Version";
@@ -48,14 +48,14 @@ struct Binary {
     uint64_t length = 0UL;
 };
 public:
-    BinFile();
-    ~BinFile();
+    EXPORT_LLM BinFile();
+    EXPORT_LLM ~BinFile();
 
-    bool AddAttr(const std::string &name, const std::string &value);
-    bool Write(const std::string &filePath, const mode_t mode = BIN_FILE_MODE);
-    bool WriteAttr(std::ofstream &outputFile, const std::string &filePath, const std::string &value);
-    bool AddObject(const std::string &name, const void* binaryBuffer, uint64_t binaryLen);
-    uint64_t CalcHash();
+    EXPORT_LLM bool AddAttr(const std::string &name, const std::string &value);
+    EXPORT_LLM bool Write(const std::string &filePath, const mode_t mode = BIN_FILE_MODE);
+    EXPORT_LLM bool WriteAttr(std::ofstream &outputFile, const std::string &filePath, const std::string &value);
+    EXPORT_LLM bool AddObject(const std::string &name, const void* binaryBuffer, uint64_t binaryLen);
+    EXPORT_LLM uint64_t CalcHash();
 
 private:
     std::string version_ = "1.0";
