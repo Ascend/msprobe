@@ -1105,8 +1105,8 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
         return;
     }
 
-    std::string err_msg = "Overflow detected! Operator name: " + kernelPath;
-    int returnCode = std::fputs(err_msg.c_str(), fp);
+    std::string errMsg = "Overflow detected! Operator name: " + kernelPath;
+    int returnCode = std::fputs(errMsg.c_str(), fp);
     if (returnCode == EOF) {
         AIT_LOG_ERROR("fputs: " + std::string(std::strerror(errno)));
         std::fclose(fp);
