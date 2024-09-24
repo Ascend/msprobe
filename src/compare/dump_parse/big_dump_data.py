@@ -260,7 +260,8 @@ class DumpDataHandler:
     def _parse_by_old_version(self: any, file_content: any) -> DD.DumpData:
         dump_data = DD.DumpData()
         try:
-            parse_size = dump_data.ParseFromString(file_content)
+            decoded_data = file_content.decode('utf-8', errors='ignore')
+            parse_size = dump_data.ParseFromString(decoded_data)
         except (DecodeError, UnicodeDecodeError, TypeError):
             return BigDumpDataParser(self.dump_file_path).parse()
         finally:
