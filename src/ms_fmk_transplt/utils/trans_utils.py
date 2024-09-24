@@ -79,6 +79,13 @@ def search_package_env_path(script_dir: str):
     return package_env_path_set
 
 
+def sanitize_csv_value(value):
+    csv_pattern = re.compile(r'^[＝＋－\+\-=%@]|;[＝＋－\+\-=%@]')
+    if isinstance(value, str) and csv_pattern.search(value):
+        return ' ' + value
+    return value
+
+
 def write_csv(content_list, output_dir, csv_name, header):
     """
     Write data to a CSV file.
@@ -106,7 +113,15 @@ def write_csv(content_list, output_dir, csv_name, header):
         data_frame = pd.DataFrame(columns=header)
         data_frame.to_csv(csv_file, index=False)
 
-    new_data = pd.DataFrame(list(content for content in content_list))
+    filtered_content_list = []
+    for content in content_list:
+        if isinstance(content, list):
+            filtered_content = [sanitize_csv_value(item) for item in content]
+        else:
+            filtered_content = sanitize_csv_value(content)
+        filtered_content_list.append(filtered_content)
+
+    new_data = pd.DataFrame(filtered_content_list)
     new_data.to_csv(csv_file, mode='a+', header=False, index=False)
 
 
