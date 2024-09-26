@@ -19,6 +19,7 @@
 #include <string>
 #include <climits>
 #include <dlfcn.h>
+#include "ait_logger.h"
 
 using FuncPtr1 = int (*)();
 using FuncPtr2 = int (*)(const char *);
@@ -41,13 +42,13 @@ bool DumpUtils::IsDumpEnabled()
 {
     std::string dumpConfigFile = GetEnv(MINDIE_RT_DUMP_CONFIG_PATH);
     if (dumpConfigFile.empty()) {
-        std::cout << "[mindie-dump]Dump config file path is not set in env. Disable dump." << std::endl;
+        AIT_LOG_ERROR("[mindie-dump]Dump config file path is not set in env. Disable dump.");
         return false;
     }
 
     char path[PATH_MAX] = { 0 };
     if (realpath(dumpConfigFile.c_str(), path) == nullptr) {
-        std::cout << "[mindie-dump]Dump config file path is not exist. Disable dump." << std::endl;
+        AIT_LOG_ERROR("[mindie-dump]Dump config file path is not exist. Disable dump.");
         return false;
     }
 
@@ -59,14 +60,14 @@ void DumpUtils::SetDump()
     std::string dumpConfigFile = GetEnv(MINDIE_RT_DUMP_CONFIG_PATH);
     void *handle = dlopen("libascendcl.so", RTLD_LAZY);
     if (!handle) {
-        std::cout << "[mindie-dump]Load library failed." << std::endl;
+        AIT_LOG_ERROR("[mindie-dump]Load library failed.");
         return;
     }
 
     void *func1 = dlsym(handle, "aclmdlInitDump");
     void *func2 = dlsym(handle, "aclmdlSetDump");
     if (func1 == nullptr || func2 == nullptr) {
-        std::cout << "[mindie-dump]Dynamic linking symbol failed. " << std::endl;
+        AIT_LOG_ERROR("[mindie-dump]Dynamic linking symbol failed. ");
         dlclose(handle);
         return;
     }
@@ -75,42 +76,42 @@ void DumpUtils::SetDump()
     FuncPtr2 aclSetDumpFunc = reinterpret_cast<FuncPtr2>(func2);
     auto ret = aclImitFunc();
     if (ret != 0) {
-        std::cout << "[mindie-dump]Failed to init acl dump. Acl ret code = " << ret << std::endl;
+        AIT_LOG_ERROR("[mindie-dump]Failed to init acl dump. Acl ret code = " + std::to_string(ret));
         dlclose(handle);
         return;
     }
 
     ret = aclSetDumpFunc(dumpConfigFile.c_str());
     if (ret != 0) {
-        std::cout << "[mindie-dump]Failed to set acl dump info. Acl ret code = " << ret << std::endl;
+        AIT_LOG_ERROR("[mindie-dump]Failed to set acl dump info. Acl ret code = " + std::to_string(ret));
         dlclose(handle);
         return;
     }
     dlclose(handle);
-    std::cout << "[mindie-dump]Init acl dump succeed." << std::endl;
+    AIT_LOG_INFO("[mindie-dump]Init acl dump succeed.");
 }
 
 void DumpUtils::FinalizeDump()
 {
     void *handle = dlopen("libascendcl.so", RTLD_LAZY);
     if (!handle) {
-        std::cout << "[mindie-dump]Load library failed." << std::endl;
+        AIT_LOG_ERROR("[mindie-dump]Load library failed.");
         return;
     }
     void *func1 = dlsym(handle, "aclmdlFinalizeDump");
     if (func1 == nullptr) {
-        std::cout << "[mindie-dump]Dynamic linking symbol failed. " << std::endl;
+        AIT_LOG_ERROR("[mindie-dump]Dynamic linking symbol failed. ");
         dlclose(handle);
         return;
     }
     FuncPtr1 aclFinalizeDumpFunc = reinterpret_cast<FuncPtr1>(func1);
     auto ret = aclFinalizeDumpFunc();
     if (ret != 0) {
-        std::cout << "[mindie-dump]Failed to finalize acl dump. Acl ret code = " << ret << std::endl;
+        AIT_LOG_ERROR("[mindie-dump]Failed to finalize acl dump. Acl ret code = " + std::to_string(ret));
         dlclose(handle);
         return;
     }
     dlclose(handle);
-    std::cout << "[mindie-dump]Finalize acl dump succeed." << std::endl;
+    AIT_LOG_INFO("[mindie-dump]Finalize acl dump succeed.");
 }
 }

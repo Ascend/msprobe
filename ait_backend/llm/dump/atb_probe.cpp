@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include "atb_probe.h"
 #include <syscall.h>
 #include <cctype>
 #include <cstdlib>
@@ -25,7 +27,6 @@
 #include "ait_logger.h"
 #include "utils.h"
 #include "DumpThreadPool.h"
-#include "atb_probe.h"
 
 
 using ordered_json = nlohmann::ordered_json;
@@ -960,7 +961,9 @@ void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::s
     std::string outPath = outDir + fPath;
     size_t found = outPath.find_last_of("/");
     if (found == std::string::npos) {
-        AIT_LOG_ERROR("Could not find last / of outPath: " + outPath);
+        std::string errMsg = "Could not find last '/' of outPath, it may caused by process exited abnormally."
+                              "Please try again.";
+        AIT_LOG_ERROR(errMsg);
         return;
     }
     std::string directory = outPath.substr(0, found);

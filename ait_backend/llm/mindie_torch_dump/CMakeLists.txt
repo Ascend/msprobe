@@ -5,6 +5,7 @@ PROJECT(mindiedump)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_SKIP_RPATH TRUE)
+set(AIT_LOGGER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../ait_logger)
 
 add_compile_options(-fPIE -fstack-protector-all -ftrapv -fPIC -Wall -Wfatal-errors -O2)
 add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
@@ -13,7 +14,10 @@ SET(ASCEND_HOME     /usr/local/Ascend     CACHE STRING "")
 SET(ASCEND_TOOLKIT_HOME $ENV{ASCEND_HOME_PATH}/ascend-toolkit/latest)
 SET(ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
-add_library(mindiedump SHARED ${ROOT_DIR}/dump_utils.cpp)
+# 设置头文件目录
+include_directories(${AIT_LOGGER_PATH})
+
+add_library(mindiedump SHARED ${ROOT_DIR}/dump_utils.cpp ${AIT_LOGGER_PATH}/ait_logger.cpp)
 set_property(TARGET mindiedump PROPERTY CXX_STANDARD 11)
 
 target_link_options(mindiedump PRIVATE

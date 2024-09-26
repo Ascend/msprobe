@@ -78,11 +78,11 @@ class DumpDataConversion:
             return return_code
 
         if self.target not in self.SUPPORT_TARGET:
-            log.print_error_log('The target "%s" does not support, only supports dump and numpy.' % self.target)
+            log.print_error_log("The input of target argument does not support, only supports dump and numpy.")
             return CompareError.MSACCUCMP_INVALID_TARGET_ERROR
         if self.type not in self.SUPPORT_TYPE:
             log.print_error_log(
-                'The type "%s" does not support, only supports tf, caffe, quant and offline.' % self.type)
+                "The input of type argument does not support, only supports tf, caffe, quant and offline.")
             return CompareError.MSACCUCMP_INVALID_TYPE_ERROR
         # remove old error file list
         error_file_path = os.path.join(self.output_path, ConstManager.CONVERT_FAILED_FILE_LIST_NAME)

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
+#include "bin_file.h"
 #include <sstream>
 #include "securec.h"
-#include "bin_file.h"
+#include "ait_logger.h"
 
 FileSystem::BinFile::BinFile() {}
 FileSystem::BinFile::~BinFile() {}
@@ -24,7 +25,7 @@ FileSystem::BinFile::~BinFile() {}
 bool FileSystem::BinFile::AddAttr(const std::string &name, const std::string &value)
 {
     if (attrNames_.find(name) != attrNames_.end()) {
-        std::cout << "Attr: " << name << " already exists" << std::endl;
+        AIT_LOG_ERROR("Attr: " + name + " already exists");
         return false;
     }
     attrNames_.insert(name);
@@ -42,7 +43,7 @@ bool FileSystem::BinFile::Write(const std::string &filePath, const mode_t mode)
     // 再写end
     std::ofstream outputFile(filePath, std::ios::app);
     if (!outputFile.is_open()) {
-        std::cout << "File to write can't open : " << filePath << std::endl;
+        AIT_LOG_ERROR("File to write can't open : " + filePath);
         return false;
     }
 
@@ -71,7 +72,7 @@ bool FileSystem::BinFile::Write(const std::string &filePath, const mode_t mode)
 bool FileSystem::BinFile::AddObject(const std::string &name, const void* binaryBuffer, uint64_t binaryLen)
 {
     if (binaryBuffer == nullptr) {
-        std::cout << "binary buffer size is none" << std::endl;
+        AIT_LOG_ERROR("binary buffer size is none");
         return false;
     }
     size_t needLen = binariesBuffer_.size() + binaryLen;
@@ -96,7 +97,7 @@ bool FileSystem::BinFile::AddObject(const std::string &name, const void* binaryB
         auto err = memcpy_s(binariesBuffer_.data() + currentLen + offset, curCopySize,
             static_cast<const uint8_t*>(binaryBuffer) + offset, curCopySize);
         if (err != EOK) {
-            std::cout << "memcpy_s failed, err = " << err << std::endl;
+            AIT_LOG_ERROR("memcpy_s failed, err = " + std::to_string(static_cast<int>(err)));
             return false;
         }
         offset += curCopySize;
