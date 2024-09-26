@@ -53,6 +53,9 @@ def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool
     @return: None
     """
     for index, tensor in enumerate(dump_data_object_data):
+        if not tensor.HasField('shape') and tensor.size:
+            log.print_info_log(f"Tensor shape is empty, using size {tensor.size} as shape")
+            tensor.shape.dim.append(tensor.size) # Ignore dtype size, just set a value large enough
         data_to_np = _deserialize_dump_data_to_array(tensor.data, tensor.data_type, list(tensor.shape.dim))
         dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
                                  data_to_np, tensor.size, list(tensor.original_shape.dim),
