@@ -121,3 +121,67 @@ class TestTransferToNpu(unittest.TestCase):
     def test_patch(self):
         self.transfer_to_npu._patch_cuda()
         self.transfer_to_npu._patch_profiler()
+
+    def test__patch_jit_script(self):
+        self.transfer_to_npu._patch_jit_script()
+        self.assertEqual(torch.jit.script, self.transfer_to_npu._jit_script)
+        self.assertEqual(torch.jit.script_method, self.transfer_to_npu._jit_script_method)
+
+    def test__get_function_from_string(self):
+        attribute_string = 'torch.cuda.seed'
+        result = self.transfer_to_npu._get_function_from_string(attribute_string)
+        self.assertEqual(len(result), 2)
+        self.assertIn('torch.cuda', str(result[0]))
+        self.assertEqual(result[1], 'seed')
+        attribute_string = 'a'
+        result = self.transfer_to_npu._get_function_from_string(attribute_string)
+        self.assertEqual(result, [])
+
+    def test__get_method_from_string(self):
+        attribute_string = 'torch.cuda.Stream.synchronize'
+        result = self.transfer_to_npu._get_method_from_string(attribute_string)
+        self.assertEqual(len(result), 2)
+        self.assertIn('Stream', str(result[0]))
+        self.assertEqual(result[1], 'synchronize')
+        attribute_string = 'a'
+        result = self.transfer_to_npu._get_method_from_string(attribute_string)
+        self.assertEqual(result, [])
+
+    def test__get_package_version(self):
+        result = self.transfer_to_npu._get_package_version('a')
+        self.assertEqual(result, '')
+
+    def test__compare_versions(self):
+        result = self.transfer_to_npu._compare_versions('1.1', '1.2')
+        self.assertFalse(result)
+        result = self.transfer_to_npu._compare_versions('2.1', '1.2')
+        self.assertTrue(result)
+
+    def test__check_input_file_valid(self):
+        result = self.transfer_to_npu._check_input_file_valid('')
+        self.assertTrue(result)
+
+    def test__wrapper_libraries_func(self):
+        is_available = torch.cuda.is_available
+        self.assertEqual(torch.cuda.is_available, is_available)
+        self.transfer_to_npu._wrapper_libraries_func(torch.matmul)
+        self.assertEqual(torch.cuda.is_available, is_available)
+
+    def test__set_attr_wrapper_func(self):
+        apis_dict = {
+            'torch.cuda.seed': self.transfer_to_npu.ApiType.METHOD.value,
+            'torch.cuda.Stream.synchronize': self.transfer_to_npu.ApiType.FUNCTION.value
+        }
+
+        self.transfer_to_npu._set_attr_wrapper_func(apis_dict)
+
+        self.assertTrue(hasattr(torch.cuda.seed, '__wrapped__'))
+
+    def test__do_wrapper_libraries_func(self):
+        json_dict = {
+            'torch.cuda.seed': self.transfer_to_npu.ApiType.METHOD.value,
+            'torch.cuda.Stream.synchronize': self.transfer_to_npu.ApiType.FUNCTION.value
+        }
+        self.transfer_to_npu._do_wrapper_libraries_func(json_dict)
+
+        self.assertFalse(hasattr(torch.cuda.seed, '__wrapped__'))
