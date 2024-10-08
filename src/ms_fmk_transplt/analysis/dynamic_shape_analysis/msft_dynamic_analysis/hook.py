@@ -131,6 +131,8 @@ class DynamicShapeDetect:
                     continue
                 line.lineno -= 1
                 stack.append(line)
+            if not stack:
+                continue
             file_path = os.path.abspath(stack[-1].filename).replace(
                 os.path.dirname(os.path.dirname(os.path.realpath(__file__))), ".")
             str_stack = list(('<' + str(line)[len('<FrameSummary '):]) for line in stack)
