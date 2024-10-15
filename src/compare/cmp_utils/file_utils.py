@@ -203,6 +203,7 @@ class OverflowFileUtils(FileUtils):
     PARSED_DEBUG_FILE_PATTERN = r"Opdebug\.Node_OpDebug\.([0-9]+)\.?([0-9]+)?" \
                                 r"\.([0-9]{1,255})(\.[0-9])?\.?([0-9]+)?\.?([0-9]+)?" \
                                 r"\.?([0-9]+)?\.([a-z]+)\.([0-9]{1,255})\.json"
+    MAX_DEPTH = 30
 
     @staticmethod
     def _list_file_with_pattern(path: str, pattern: str,
@@ -220,7 +221,13 @@ class OverflowFileUtils(FileUtils):
 
         matched_files = {}
         re_pattern = re.compile(pattern)
-        for dir_path, _, files in os.walk(path, followlinks=True):
+        for dir_path, _, files in os.walk(path):
+            current_depth = dir_path.count(os.sep) - path.count(os.sep)
+            if current_depth > OverflowFileUtils.MAX_DEPTH:
+                log.print_warn_log(
+                    "The current file depth has exceeded the maximum depth limit, "
+                    f"which is set to {OverflowFileUtils.MAX_DEPTH}.")
+                break
             for file in files:
                 match = re_pattern.match(file)
                 if match is None:
