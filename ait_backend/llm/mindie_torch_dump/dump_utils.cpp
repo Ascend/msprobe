@@ -19,6 +19,7 @@
 #include <string>
 #include <climits>
 #include <dlfcn.h>
+#include <sys/stat.h>
 #include "ait_logger.h"
 
 using FuncPtr1 = int (*)();
@@ -34,6 +35,33 @@ std::string GetEnv(const std::string &name, size_t maxLen = ENV_MAX_LENGTH)
         return std::string(env).size() > maxLen ? "" : env;
     }
     return "";
+}
+
+const std::string LIBASCENDCL_SO = "libascendcl.so";
+constexpr char const * ASCEND_TOOLKIT_HOME = "ASCEND_TOOLKIT_HOME";
+bool FileExists(const std::string& path)
+{
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
+std::string GetSoInCANNPackagePath(const std::string& libPath)
+{
+    std::string absoluteSoPath;
+    std::string cannPath = GetEnv(ASCEND_TOOLKIT_HOME);
+    if (cannPath.empty() || !FileExists(cannPath)) {
+        AIT_LOG_ERROR("[mindie-dump]cann_path is invalid, please install " +
+                      std::string("cann-toolkit and set the environment variables."));
+        absoluteSoPath.clear();
+        return absoluteSoPath;
+    }
+    absoluteSoPath = cannPath + "/lib64/" + libPath;
+    if (!FileExists(absoluteSoPath)) {
+        AIT_LOG_ERROR("[mindie-dump]" + libPath + "is not found in " + cannPath +
+                      ". Try installing the latest cann-toolkit");
+        absoluteSoPath.clear();
+        return absoluteSoPath;
+    }
+    return absoluteSoPath;
 }
 }
 
@@ -58,7 +86,12 @@ bool DumpUtils::IsDumpEnabled()
 void DumpUtils::SetDump()
 {
     std::string dumpConfigFile = GetEnv(MINDIE_RT_DUMP_CONFIG_PATH);
-    void *handle = dlopen("libascendcl.so", RTLD_LAZY);
+    std::string libAscendclsoPath = GetSoInCANNPackagePath(LIBASCENDCL_SO);
+    if (libAscendclsoPath.empty()) {
+        AIT_LOG_ERROR("[mindie-dump]Library absolute path got failed.");
+        return;
+    }
+    void* handle = dlopen(libAscendclsoPath.c_str(), RTLD_LAZY);
     if (!handle) {
         AIT_LOG_ERROR("[mindie-dump]Load library failed.");
         return;
@@ -93,7 +126,12 @@ void DumpUtils::SetDump()
 
 void DumpUtils::FinalizeDump()
 {
-    void *handle = dlopen("libascendcl.so", RTLD_LAZY);
+    std::string libAscendclsoPath = GetSoInCANNPackagePath(LIBASCENDCL_SO);
+    if (libAscendclsoPath.empty()) {
+        AIT_LOG_ERROR("[mindie-dump]Library path got failed.");
+        return;
+    }
+    void* handle = dlopen(libAscendclsoPath.c_str(), RTLD_LAZY);
     if (!handle) {
         AIT_LOG_ERROR("[mindie-dump]Load library failed.");
         return;
