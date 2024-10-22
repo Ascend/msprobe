@@ -83,10 +83,10 @@ class PyTorchAnalyse:
     @staticmethod
     def __check_env_path_valid(args):
         env_path = args.env_path
-        if not utils.check_path_length_valid(env_path):
-            raise ValueError('The real path or file name of env path is too long.')
-        utils.check_path_pattern_valid(env_path)
         for path in env_path:
+            if not utils.check_path_length_valid(path):
+                raise ValueError('The real path or file name of env path is too long.')
+            utils.check_path_pattern_valid(path)
             if not utils.check_is_subdirectory(args.input, path):
                 raise ValueError('env path %s should be a subdirectory of Input %s' % (path, args.input))
 
