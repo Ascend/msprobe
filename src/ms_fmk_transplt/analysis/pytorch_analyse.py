@@ -49,44 +49,24 @@ class PyTorchAnalyse:
 
     @staticmethod
     def __check_file_valid(args):
+        if len(args.api_files) > utils.MAX_INPUT_FILE_COUNT:
+            raise ValueError(f'The count of api files cannot exceed {utils.MAX_INPUT_FILE_COUNT}.')
         for file_path in args.api_files:
-            if utils.islink(file_path):
-                raise utils.SoftlinkCheckException("unsupported api file doesn't support soft link.")
-
+            input_info = utils.InputInfo(max_file_size=utils.MAX_PYTHON_FILE_SIZE, file_name='unsupported api file')
+            utils.check_input_file_valid(file_path, input_info)
             real_path = os.path.realpath(file_path)
-            if not os.path.exists(real_path):
-                raise ValueError('The unsupported api file %s does not exist!' % file_path)
-
-            if not os.access(real_path, os.R_OK):
-                raise PermissionError('The unsupported api file %s is not readable!' % real_path)
-
-            if not utils.check_path_length_valid(real_path):
-                raise ValueError('The real path or file name of unsupported api file is too long.')
-
             if not real_path.endswith('.csv'):
                 raise ValueError('The unsupported api file %s should be a csv file!' % file_path)
-
-            if not os.path.isfile(real_path):
-                raise ValueError(f'The unsupported api file {file_path} is not a common file!')
-
             utils.check_api_file_valid(real_path)
-            utils.check_path_pattern_valid(real_path)
-
-            if not utils.check_path_owner_consistent(real_path):
-                utils.user_interactive_confirm(
-                    'The unsupported api file is insecure because it does not belong to you. Do you want to continue?')
-
-            if os.path.getsize(real_path) > utils.MAX_CSV_FILE_SIZE:
-                raise ValueError(f'The unsupported api file is too large, '
-                                 f'exceeds {utils.MAX_CSV_FILE_SIZE // 1024 ** 2}MB')
 
     @staticmethod
     def __check_env_path_valid(args):
         env_path = args.env_path
+        if len(env_path) > utils.MAX_INPUT_FILE_COUNT:
+            raise ValueError(f'The count of env paths cannot exceed {utils.MAX_INPUT_FILE_COUNT}.')
         for path in env_path:
-            if not utils.check_path_length_valid(path):
-                raise ValueError('The real path or file name of env path is too long.')
-            utils.check_path_pattern_valid(path)
+            input_info = utils.InputInfo(file_name='env path', is_dir=True)
+            utils.check_input_file_valid(path, input_info)
             if not utils.check_is_subdirectory(args.input, path):
                 raise ValueError('env path %s should be a subdirectory of Input %s' % (path, args.input))
 

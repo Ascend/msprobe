@@ -48,7 +48,7 @@ class GlobalReferenceVisitor:
     @staticmethod
     @lru_cache()
     def _readlines(file_path):
-        utils.check_input_file_valid(file_path)
+        utils.check_input_file_valid(file_path, utils.InputInfo(use_root_file=True))
         try:
             with open(file_path, 'r', encoding='utf-8') as file_handler:
                 return file_handler.readlines()
@@ -76,7 +76,7 @@ class GlobalReferenceVisitor:
     def get_func_def_line(self, func_name):
         if not os.path.exists(self.file_path):
             return -1
-        utils.check_input_file_valid(self.file_path)
+        utils.check_input_file_valid(self.file_path, utils.InputInfo())
         try:
             with open(self.file_path, 'r', encoding='utf-8') as file_handle:
                 lines = file_handle.readlines()

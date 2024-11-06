@@ -34,6 +34,7 @@ class MsFmkTransplt(object):
         if utils.islink(args.main):
             raise utils.SoftlinkCheckException("Main file path doesn't support soft link.")
         main_file = os.path.realpath(args.main)
+        utils.check_path_pattern_valid(main_file)
         if not utils.check_path_length_valid(main_file):
             raise ValueError('The real path or file name of main file is too long.')
         if not main_file.endswith('.py'):
@@ -44,6 +45,12 @@ class MsFmkTransplt(object):
             raise ValueError('Main file %s is not in Input %s' % (args.main, args.input))
         if not os.access(main_file, os.R_OK):
             raise PermissionError('Main file %s is not readable!' % args.main)
+        if os.path.getsize(main_file) > utils.MAX_PYTHON_FILE_SIZE:
+            raise ValueError(f'Main file is too large, '
+                             f'exceeds {utils.MAX_PYTHON_FILE_SIZE // 1024 ** 2}MB')
+        if not utils.check_path_owner_consistent(main_file):
+            utils.user_interactive_confirm(
+                'Main file is insecure because it does not belong to you. Do you want to continue?')
         if not args.target_model:
             raise ValueError('Target model variable name is not set!')
         utils.check_model_name_valid(args.target_model)

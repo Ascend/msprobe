@@ -27,7 +27,7 @@ class CudaOpVisitor:
                 file_path = os.path.join(root, file)
                 if utils.islink(file_path):
                     continue
-                utils.check_input_file_valid(file_path)
+                utils.check_input_file_valid(file_path, utils.InputInfo())
                 self.rel_file_path = os.path.relpath(file_path, self.project_path)
                 self.visit_file(file_path)
 
