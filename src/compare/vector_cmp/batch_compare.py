@@ -130,6 +130,9 @@ class BatchCompare:
             raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def _execute_batch_compare(self: any, arguments: any) -> int:
+        if os.path.islink(os.path.abspath(arguments.output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % arguments.output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         output_path = os.path.realpath(arguments.output_path)
         my_dump_path = os.path.realpath(arguments.my_dump_path)
         ret = CompareError.MSACCUCMP_NONE_ERROR

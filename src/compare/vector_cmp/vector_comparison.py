@@ -95,6 +95,9 @@ class VectorComparison:
         Set output path
         :param output_path: the output path
         """
+        if os.path.islink(os.path.abspath(output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(output_path)
 
     def check_arguments_valid(self: any) -> None:
@@ -188,6 +191,9 @@ class VectorComparison:
                                              args.ffts,
                                              args.fusion_json_file_path
                                              )
+        if os.path.islink(os.path.abspath(args.output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(args.output_path)
         if args.op_name:
             tensor_id = detail.TensorId(args.op_name, args.detail_type, args.detail_index)
@@ -214,6 +220,9 @@ class VectorComparison:
             file_name = 'mapping_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
         else:
             file_name = 'result_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+        if os.path.islink(os.path.abspath(arguments.output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % arguments.output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.join(os.path.realpath(arguments.output_path), file_name)
 
     def _process_single_op_parameters(self: any, arguments: any) -> None:
@@ -229,6 +238,9 @@ class VectorComparison:
         if arguments.output:
             tensor_type = ConstManager.OUTPUT
             tensor_index = arguments.output
+        if os.path.islink(os.path.abspath(arguments.output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % arguments.output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(arguments.output_path)
         tensor_id = detail.TensorId(arguments.op_name, tensor_type, tensor_index)
         self.detail_info = detail.DetailInfo(tensor_id, arguments.topn, arguments.ignore_single_op_result, max_line)

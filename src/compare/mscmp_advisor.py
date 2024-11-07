@@ -46,7 +46,13 @@ def _do_advisor():
     input_file = os.path.realpath(args.input_file)
     check_file_size(input_file)
     input_nodes = parse_input_nodes(args.input_nodes)
-    out_path = os.path.realpath(args.out_path) if args.out_path else ""
+    if args.out_path:
+        if os.path.islink(os.path.abspath(args.out_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % args.out_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+        out_path = os.path.realpath(args.out_path) 
+    else:
+        out_path = ""
     compare_advisor = CompareAdvisor(input_file, input_nodes, out_path)
     advisor_result = compare_advisor.advisor()
     message_list = advisor_result.print_advisor_log()

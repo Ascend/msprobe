@@ -81,6 +81,9 @@ class ShapeConversionMain:
                            required=False)
         args, _ = parse.parse_known_args(sys.argv[1:])
         self.dump_file_path = os.path.realpath(args.dump_file_path)
+        if os.path.islink(os.path.abspath(args.output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(args.output_path)
         format_str = args.format
         shape_str = args.shape
@@ -199,6 +202,9 @@ class FormatConversionMain:
 
     def __init__(self: any, arguments: any = None) -> None:
         self.path_str = arguments.dump_path
+        if os.path.islink(os.path.abspath(arguments.output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % arguments.output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(arguments.output_path)
         self.attr = {
             'dump_version': arguments.dump_version,

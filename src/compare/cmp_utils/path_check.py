@@ -69,6 +69,9 @@ def check_output_path_valid(path: str, exist: bool, path_type: PathType = PathTy
     :param path_type: the path type
     :return: VectorComparisonErrorCode
     """
+    if os.path.islink(os.path.abspath(path)):
+        log.print_error_log('The path "%r" is a softlink, not permitted.' % path)
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
     output_path = os.path.realpath(path)
     if path_type == PathType.File:
         output_path = os.path.dirname(output_path)

@@ -46,6 +46,9 @@ class DumpDataConversion:
         args, _ = parse.parse_known_args(sys.argv[1:])
         self.target = args.target
         self.input_path = os.path.realpath(args.input_path)
+        if os.path.islink(os.path.abspath(args.output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(args.output_path)
         self.type = args.type
         self.multi_process = MultiConvertProcess(self._convert_file, self.input_path, self.output_path)

@@ -32,6 +32,9 @@ class DumpDataParser:
         self.path_str = arguments.dump_path
         self.input_path = []
         self.multi_process = None
+        if os.path.islink(os.path.abspath(arguments.output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % arguments.output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(arguments.output_path)
         self.dump_version = arguments.dump_version
         self.output_file_type = arguments.output_file_type

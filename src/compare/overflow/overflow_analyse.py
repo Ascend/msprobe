@@ -31,6 +31,9 @@ class OverflowAnalyse:
 
     def __init__(self: any, args: any = None) -> None:
         self.dump_path = os.path.realpath(args.dump_path)
+        if os.path.islink(os.path.abspath(args.output_path)):
+            log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_path)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(args.output_path)
         self.top_n = args.top_num
         self.debug_files = None

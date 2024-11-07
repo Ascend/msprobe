@@ -39,6 +39,9 @@ class RemoveInplaceLayerProcess:
         args, _ = parse.parse_known_args(sys.argv[1:])
         self.input_file_path = os.path.realpath(args.input_file_path)
         if args.output_file_path:
+            if os.path.islink(os.path.abspath(args.output_file_path)):
+                log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_file_path)
+                raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
             self.output_file_path = os.path.realpath(args.output_file_path)
         else:
             output_file_path = os.path.join(
