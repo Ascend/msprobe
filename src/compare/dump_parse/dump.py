@@ -199,7 +199,7 @@ class DumpInfo:
             self.type = current_dump_type
         else:
             if self.type != current_dump_type:
-                log.print_error_log('Not all files in the path "%s" are of the same type, such as "%s".'
+                log.print_error_log('Not all files in the path "%r" are of the same type, such as "%s".'
                                     % (self.path, item))
                 raise CompareError(CompareError.MSACCUCMP_DUMP_FILE_ERROR)
         if op_name in self.op_name_to_file_map:
@@ -238,7 +238,7 @@ class DumpInfo:
 
     def _judge_dump_type(self: any) -> None:
         if self.type is None:
-            log.print_error_log('No valid dump files in the path "%s".' % self.path)
+            log.print_error_log('No valid dump files in the path "%r".' % self.path)
             raise CompareError(CompareError.MSACCUCMP_DUMP_FILE_ERROR)
         if self.type == DumpType.Numpy:
             if self.quant:

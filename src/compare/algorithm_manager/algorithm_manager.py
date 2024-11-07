@@ -42,7 +42,7 @@ class AlgorithmManager:
     def _check_value_invalid(value: object, parameter: str) -> None:
         is_list_value_invalid = isinstance(value, list) and len(value) != 2
         if not value or is_list_value_invalid:
-            log.print_error_log('The algorithm argument (%s) is invalid, just supports '
+            log.print_error_log('The algorithm argument (%r) is invalid, just supports '
                                 '"algorithm_name:name1=value1,name2=value2;".' % parameter)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
@@ -95,8 +95,8 @@ class AlgorithmManager:
                                         "if must use this file, copy or chmod this file by yourself.")
                     raise CompareError(CompareError.MSACCUCMP_DANGER_FILE_ERROR)
                 return True
-            log.print_warn_log("The file '%s' does not match 'alg_{algorithm_name}.py'"
-                               " in '%s', please check the file." % (os.path.basename(file_path),
+            log.print_warn_log("The file '%r' does not match 'alg_{algorithm_name}.py'"
+                               " in '%r', please check the file." % (os.path.basename(file_path),
                                                                      os.path.dirname(file_path)))
         return False
 
@@ -104,18 +104,18 @@ class AlgorithmManager:
     def _check_data_size_valid(my_output_dump_data: any, ground_truth_dump_data: any, args: dict) -> None:
         my_output_dump_data_size = len(my_output_dump_data)
         if my_output_dump_data_size == 0 and args.get('my_output_dump_file') is not None:
-            msg = 'The dump data size is 0 in %s.' % args.get('my_output_dump_file')
+            msg = 'The dump data size is 0 in %r.' % args.get('my_output_dump_file')
             log.print_warn_log(msg)
         ground_truth_dump_data_size = len(ground_truth_dump_data)
         if ground_truth_dump_data_size == 0 and args.get('ground_truth_dump_file') is not None:
-            msg = 'The dump data size is 0 in %s.' % args.get('ground_truth_dump_file')
+            msg = 'The dump data size is 0 in %r.' % args.get('ground_truth_dump_file')
             log.print_warn_log(msg)
 
         if my_output_dump_data_size != ground_truth_dump_data_size \
                 and args.get('my_output_dump_file') is not None \
                 and args.get('ground_truth_dump_file') is not None:
-            msg = "The my output dump data size (%d) in '%s' does not match the ground truth dump data size (%d) " \
-                  "in '%s'." % (my_output_dump_data_size, args.get('my_output_dump_file'),
+            msg = "The my output dump data size (%d) in '%r' does not match the ground truth dump data size (%d) " \
+                  "in '%r'." % (my_output_dump_data_size, args.get('my_output_dump_file'),
                                 ground_truth_dump_data_size, args.get('ground_truth_dump_file'))
             log.print_warn_log(msg)
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
@@ -315,7 +315,7 @@ class AlgorithmManager:
 
     def _make_support_algorithm_by_path(self: any, dir_path: str, support_algorithm_list: list) -> None:
         if not os.path.exists(dir_path):
-            log.print_warn_log("There is no '%s' in '%s', please check the custom path."
+            log.print_warn_log("There is no '%s' in '%r', please check the custom path."
                                % (ConstManager.CUSTOM_ALGORITHM_DIR_NAME, os.path.dirname(dir_path)))
             return
         one_match = False
@@ -323,7 +323,7 @@ class AlgorithmManager:
             if self._add_algorithm_file_to_list(os.path.join(dir_path, item), support_algorithm_list):
                 one_match = True
         if not one_match:
-            log.print_warn_log("There is no legal 'alg_{algorithm_name}.py' file in '%s', "
+            log.print_warn_log("There is no legal 'alg_{algorithm_name}.py' file in '%r', "
                                "please check the path." % dir_path)
 
     def _make_algorithm_param(self: any, algorithm_name: str, args: dict) -> AlgorithmParameter:
@@ -385,8 +385,8 @@ class AlgorithmManagerMain:
         :return: VectorComparisonErrorCode
         """
         self.check_arguments_valid()
-        log.print_info_log("The my output dump file is %s." % self.my_output_dump_file_path)
-        log.print_info_log("The ground truth file is %s." % self.ground_truth_dump_file_path)
+        log.print_info_log("The my output dump file is %r." % self.my_output_dump_file_path)
+        log.print_info_log("The ground truth file is %r." % self.ground_truth_dump_file_path)
         try:
             self._process_exec(save_result)
         except CompareError as error:
@@ -429,13 +429,13 @@ class AlgorithmManagerMain:
             file_name = 'file_result_%s.txt' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
             summary_file_path = os.path.join(self.output_path, file_name)
             FileUtils.save_file(summary_file_path, content)
-            log.print_info_log('The file compare result have been written to "%s".' % summary_file_path)
+            log.print_info_log('The file compare result have been written to "%r".' % summary_file_path)
 
     def _check_shape_valid(self: any, my_output_dump_data: any, ground_truth_dump_data: any) -> None:
         my_output_shape = my_output_dump_data.shape
         ground_truth_shape = ground_truth_dump_data.shape
         if my_output_shape != ground_truth_shape:
-            log.print_error_log("My output shape %s in '%s' does not match the ground truth shape %s in '%s'."
+            log.print_error_log("My output shape %s in '%r' does not match the ground truth shape %s in '%r'."
                                 % (my_output_shape, self.my_output_dump_file_path, ground_truth_shape,
                                    self.ground_truth_dump_file_path))
             raise CompareError(CompareError.MSACCUCMP_INVALID_SHAPE_ERROR)

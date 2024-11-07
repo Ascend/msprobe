@@ -83,7 +83,7 @@ class BatchCompare:
                 self._parse_json_file(json_file_path)
 
         if not self.model_name_to_json_map:
-            log.print_error_log('There is no fusion rule json file in "%s".' % json_dir_path)
+            log.print_error_log('There is no fusion rule json file in "%r".' % json_dir_path)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def _parse_json_file(self: any, json_file_path: str) -> None:

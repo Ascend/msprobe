@@ -42,7 +42,7 @@ class AdvisorResult:
         except IOError as io_error:
             log.print_error_log("Failed to save the advisor summary, the reason is %s." % io_error)
         else:
-            log.print_info_log('The advisor summary (.txt) is saved in: "%s" .' % result_file)
+            log.print_info_log('The advisor summary (.txt) is saved in: "%r" .' % result_file)
 
     def print_advisor_log(self):
         """

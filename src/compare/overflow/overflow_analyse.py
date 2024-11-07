@@ -45,12 +45,12 @@ class OverflowAnalyse:
         ret = path_check.check_path_valid(arguments.dump_path, exist=True,
                                      path_type=path_check.PathType.Directory)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
-            log.print_error_log('[Overflow] the -d parameter: "%s"'
+            log.print_error_log('[Overflow] the -d parameter: "%r"'
                                 ' is invalid!' % arguments.dump_path)
         else:
             ret = path_check.check_output_path_valid(arguments.output_path, exist=True)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
-                log.print_error_log('[Overflow] the -out parameter: "%s"'
+                log.print_error_log('[Overflow] the -out parameter: "%r"'
                                     ' is invalid!' % arguments.output_path)
         return ret
 
@@ -133,7 +133,7 @@ class OverflowAnalyse:
         """
         parse debug file or dump/debug file
         :file_path: the path of dump/debug file
-        :output_path： store the result file
+        :output_path: store the result file
         """
         args = argparse.Namespace(dump_path=file_path,
                                   output_path=output_path,
@@ -205,7 +205,7 @@ class OverflowAnalyse:
         get the summary info about overflow op
         :overflow_index: index of overflow op
         :json_txt: the parsed info from debug file
-        :debug_file： the desc of debug file
+        :debug_file: the desc of debug file
         """
         res = []
         if ConstManager.MAGIC_KEY_WORD in json_txt.keys():

@@ -26,11 +26,11 @@ def _check_path_file_or_directory(path: str, path_type: PathType) -> int:
     ret = CompareError.MSACCUCMP_NONE_ERROR
     if path_type == PathType.File:
         if os.path.exists(path) and not os.path.isfile(path):
-            log.print_error_log('The path "%s" is not a file. Please check the path.' % path)
+            log.print_error_log('The path "%r" is not a file. Please check the path.' % path)
             ret = CompareError.MSACCUCMP_INVALID_PATH_ERROR
     elif path_type == PathType.Directory:
         if not os.path.isdir(path):
-            log.print_error_log('The path "%s" is not a directory. Please check the path.' % path)
+            log.print_error_log('The path "%r" is not a directory. Please check the path.' % path)
             ret = CompareError.MSACCUCMP_INVALID_PATH_ERROR
     return ret
 
@@ -56,7 +56,7 @@ def get_path_list_for_str(path_str: str) -> list:
         input_path_list.append(new_path)
     if not input_path_list:
         log.print_error_log(
-            'There is no valid file in "%s". Please check the path.' % path_str)
+            'There is no valid file in "%r". Please check the path.' % path_str)
         raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
     return input_path_list
 
@@ -76,7 +76,7 @@ def check_output_path_valid(path: str, exist: bool, path_type: PathType = PathTy
         try:
             os.makedirs(output_path, mode=0o700)
         except OSError as ex:
-            log.print_error_log('Failed to create "%s". %s' % (output_path, str(ex)))
+            log.print_error_log('Failed to create "%r". %s' % (output_path, str(ex)))
             return CompareError.MSACCUCMP_INVALID_PATH_ERROR
         finally:
             pass
@@ -118,7 +118,7 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
     if ret != CompareError.MSACCUCMP_NONE_ERROR:
         return ret
     if os.path.islink(os.path.abspath(path)):
-        log.print_error_log('The path "%s" is a softlink, not permitted.' % path)
+        log.print_error_log('The path "%r" is a softlink, not permitted.' % path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     exist_path = os.path.realpath(path)
@@ -126,20 +126,20 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
         exist_path = os.path.dirname(exist_path)
 
     if not os.path.exists(exist_path):
-        log.print_error_log('The path "%s" does not exist.' % exist_path)
+        log.print_error_log('The path "%r" does not exist.' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     if not os.access(exist_path, os.R_OK):
-        log.print_error_log('You do not have permission to read the path "%s".' % exist_path)
+        log.print_error_log('You do not have permission to read the path "%r".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     if have_write_permission and not os.access(exist_path, os.W_OK):
-        log.print_error_log('You do not have permission to write the path "%s".' % exist_path)
+        log.print_error_log('You do not have permission to write the path "%r".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
     
     file_stat = os.stat(exist_path)
     if os.getuid() != 0 and file_stat.st_uid != os.getuid() and file_stat.st_gid not in os.getgroups():
-        log.print_warn_log('You are neither the owner nor in the group of the path "%s".' % exist_path)
+        log.print_warn_log('You are neither the owner nor in the group of the path "%r".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     return _check_path_file_or_directory(path, path_type)

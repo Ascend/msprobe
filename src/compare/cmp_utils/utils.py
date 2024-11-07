@@ -299,7 +299,7 @@ def check_file_size(file_path: str, size_limit: int) -> None:
         raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from os_error
     if file_size > size_limit:
         log.print_warn_log(
-            'The size (%d) of %s exceeds %dMB, it may task more time to run, please wait.'
+            'The size (%d) of %r exceeds %dMB, it may task more time to run, please wait.'
             % (file_size, file_path, size_limit / 1024 / 1024))
 
 

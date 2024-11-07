@@ -31,7 +31,7 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     """
     compare my output dump data and the ground truth dump data
     by kullback leibler divergence
-    1. P(x)=（x-Min）/(Max-Min)
+    1. P(x)=(x-Min)/(Max-Min)
     2. pdf = x/sum(x)
     3. sum(P(x)log(P(x)/Q(x)))
     :param my_output_dump_data: my output dump data to compare
@@ -44,7 +44,7 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     is_my_output_all_zero = np.all(my_output_dump_data_pdf == 0)
     is_ground_truth_all_zero = np.all(ground_true_dump_data_pdf == 0)
     if is_my_output_all_zero and is_ground_truth_all_zero:
-        message = 'Cannot compare by KL Divergence. All the data is zero in %s and %s.' \
+        message = 'Cannot compare by KL Divergence. All the data is zero in %r and %r.' \
                   % (args.my_output_dump_file, args.ground_truth_dump_file)
         log.print_warn_log(message)
         return ConstManager.NAN, message
@@ -65,5 +65,5 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     if abs(result) < ConstManager.FLOAT_EPSILON:
         result = 0.0
     if str(result) == "inf":
-        inf_message = 'Cannot compare by KL Divergence. The data contains 0 in %s.' % args.ground_truth_dump_file
+        inf_message = 'Cannot compare by KL Divergence. The data contains 0 in %r.' % args.ground_truth_dump_file
     return utils.format_value(result), inf_message

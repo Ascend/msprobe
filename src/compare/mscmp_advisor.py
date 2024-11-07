@@ -58,10 +58,10 @@ def check_file_size(input_file):
     try:
         file_size = os.path.getsize(input_file)
     except OSError as os_error:
-        log.print_error_log('Failed to open "%s". %s' % (input_file, str(os_error)))
+        log.print_error_log('Failed to open "%r". %s' % (input_file, str(os_error)))
         raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from os_error
     if file_size > ConstManager.ONE_HUNDRED_MB:
-        log.print_error_log('The size (%d) of %s exceeds 100MB, tools not support.' % (file_size, input_file))
+        log.print_error_log('The size (%d) of %r exceeds 100MB, tools not support.' % (file_size, input_file))
         raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
 
 

@@ -49,7 +49,7 @@ class CompareAdvisor:
 
     def advisor(self):
         analyze_data = self._parse_input_file()
-        log.print_info_log('Start analyzing the comparison results: "%s" .' % self.input_file)
+        log.print_info_log('Start analyzing the comparison results: "%r" .' % self.input_file)
         advisor_result = AdvisorResult()
         advisor_result = self._overflow_check(advisor_result, analyze_data)
         advisor_result = self._input_check(advisor_result, analyze_data)
@@ -71,7 +71,7 @@ class CompareAdvisor:
             try:
                 df = pd.read_csv(self.input_file, on_bad_lines='skip')
             except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as io_err:
-                log.print_error_log('Failed to parse the input file %s. %s'
+                log.print_error_log('Failed to parse the input file %r. %s'
                                     % (self.input_file, str(io_err)))
                 raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from io_err
             data_columns = df.columns.values

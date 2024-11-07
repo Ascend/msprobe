@@ -162,17 +162,17 @@ class DumpDataConversion:
 
     def _save_tensor_to_file(self: any, tensor_list: list, name: str, input_path: str, tensor_type: str) -> None:
         if len(tensor_list) == 0:
-            log.print_warn_log('There is no %s in "%s".' % (tensor_type, input_path))
+            log.print_warn_log('There is no %s in "%r".' % (tensor_type, input_path))
             return
         for (index, tensor) in enumerate(tensor_list):
-            log.print_info_log('Start to convert %s:%d of "%s" to numpy file.'
+            log.print_info_log('Start to convert %s:%d of "%r" to numpy file.'
                                % (tensor_type, index, input_path))
             array = tensor.data
             try:
                 array = array.reshape(tensor.shape)
             except ValueError as error:
                 log.print_error_log(
-                    'Failed to convert %s:%d of "%s" to numpy file. %s' % (tensor_type, index, input_path, error))
+                    'Failed to convert %s:%d of "%r" to numpy file. %s' % (tensor_type, index, input_path, error))
                 continue
             finally:
                 pass
@@ -184,16 +184,16 @@ class DumpDataConversion:
 
             output_dump_path = os.path.join(self.output_path, file_name)
             np.save(output_dump_path, array)
-            log.print_info_log('The %s:%d of "%s" has been converted to file "%s".'
+            log.print_info_log('The %s:%d of "%r" has been converted to file "%r".'
                                % (tensor_type, index, input_path, output_dump_path))
 
     def _save_buffer_to_file(self: any, tensor_list: list, name: str, input_path: str) -> None:
         if len(tensor_list) == 0:
-            log.print_warn_log('There is no buffer data in "%s".' % input_path)
+            log.print_warn_log('There is no buffer data in "%r".' % input_path)
             return
         for (index, tensor) in enumerate(tensor_list):
             buffer_type = ConstManager.BUFFER_TYPE_MAP.get(tensor.buffer_type)
-            log.print_info_log('Start to convert %sbuffer:%d of "%s" to bin file.'
+            log.print_info_log('Start to convert %sbuffer:%d of "%r" to bin file.'
                                % (buffer_type, index, input_path))
             file_name = "%s.%sbuffer.%s.bin" % (name, buffer_type, index)
             output_dump_path = os.path.join(self.output_path, file_name)
@@ -201,43 +201,43 @@ class DumpDataConversion:
                 with os.fdopen(os.open(output_dump_path, ConstManager.WRITE_FLAGS,
                                        ConstManager.WRITE_MODES), 'wb') as output_file:
                     output_file.write(tensor.data)
-                    log.print_info_log('The %sbuffer:%d of "%s" has been converted to file "%s".'
+                    log.print_info_log('The %sbuffer:%d of "%r" has been converted to file "%r".'
                                        % (buffer_type, index, input_path, output_dump_path))
             except IOError as io_error:
-                log.print_error_log('Failed to open "%s". %s ' % (output_dump_path, str(io_error)))
+                log.print_error_log('Failed to open "%r". %s ' % (output_dump_path, str(io_error)))
             finally:
                 pass
 
     def _save_space_to_file(self: any, tensor_list: list, name: str, input_path: str) -> None:
         if len(tensor_list) == 0:
-            log.print_warn_log('There is no space data in "%s".' % input_path)
+            log.print_warn_log('There is no space data in "%r".' % input_path)
             return
         for (index, tensor) in enumerate(tensor_list):
             file_name = "%s.space.%s.bin" % (name, index)
-            log.print_info_log('Start to save space:%d of "%s" to bin file.' % (index, input_path))
+            log.print_info_log('Start to save space:%d of "%r" to bin file.' % (index, input_path))
             output_dump_path = os.path.join(self.output_path, file_name)
             try:
                 with os.fdopen(os.open(output_dump_path, ConstManager.WRITE_FLAGS,
                                ConstManager.WRITE_MODES), 'wb') as output_file:
                     output_file.write(tensor.data)
-                    log.print_info_log('The space:%d of "%s" has been converted to file "%s".'
+                    log.print_info_log('The space:%d of "%r" has been converted to file "%r".'
                                % (index, input_path, output_dump_path))
             except IOError as io_error:
-                log.print_error_log('Failed to open "%s". %s ' % (output_dump_path, str(io_error)))
+                log.print_error_log('Failed to open "%r". %s ' % (output_dump_path, str(io_error)))
             finally:
                 pass
 
     def _convert_file_exec(self: any, input_path: str) -> None:
         name = self._get_op_name_from_path(input_path)
         if self.target == "dump":
-            log.print_info_log('Start to convert the numpy file "%s" to dump file.' % input_path)
+            log.print_info_log('Start to convert the numpy file "%r" to dump file.' % input_path)
             numpy_data = dump_utils.read_numpy_file(input_path)
             file_name = self.file_name_switch[self.type](name) if self.type in self.file_name_switch else ""
 
             output_dump_path = os.path.join(self.output_path, file_name)
             big_dump_data.write_dump_data(numpy_data, output_dump_path)
             log.print_info_log(
-                'The file "%s" has been converted to file "%s".' % (input_path, output_dump_path))
+                'The file "%r" has been converted to file "%r".' % (input_path, output_dump_path))
         elif self.target == "numpy":
             dump_data = dump_utils.parse_dump_file(input_path, ConstManager.OLD_DUMP_TYPE)
             self._save_tensor_to_file(dump_data.input_data, name, input_path, 'input')
@@ -252,7 +252,7 @@ class DumpDataConversion:
         except CompareError as error:
             return_code = error.code
         except MemoryError:
-            log.print_error_log('Failed to convert file "%s" by memory error.' % input_path)
+            log.print_error_log('Failed to convert file "%r" by memory error.' % input_path)
             return_code = CompareError.MSACCUCMP_UNKNOWN_ERROR
         finally:
             pass

@@ -73,7 +73,7 @@ class FileUtils:
                            'w+') as output_file:
                 output_file.write(content)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
-            log.print_error_log('Failed to open "%s". %s ' % (file_path, str(error)))
+            log.print_error_log('Failed to open "%r". %s ' % (file_path, str(error)))
             raise CompareError(CompareError.MSACCUCMP_WRITE_FILE_ERROR) from error
         finally:
             pass
@@ -86,7 +86,6 @@ class FileUtils:
                 os.remove(path)
         except OSError as error:
             raise CompareError(CompareError.MSACCUCMP_DELETE_FILE_ERROR) from error
-
 
     @staticmethod
     def save_data_to_file(path: str, data: any, flag: str, delete: bool) -> None:
@@ -107,7 +106,7 @@ class FileUtils:
             with os.fdopen(os.open(path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), flag) as output_file:
                 output_file.write(data)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
-            log.print_error_log('Failed to write data to "%s". %s ' % (path, str(error)))
+            log.print_error_log('Failed to write data to "%r". %s ' % (path, str(error)))
             raise CompareError(CompareError.MSACCUCMP_WRITE_FILE_ERROR) from error
         finally:
             pass
@@ -124,7 +123,7 @@ class FileUtils:
         try:
             FileUtils._save_array_to_file(path, array, np_save, shape)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
-            log.print_error_log('Failed to write data to "%s". %s' % (path, str(error)))
+            log.print_error_log('Failed to write data to "%r". %s' % (path, str(error)))
         finally:
             pass
 
@@ -179,7 +178,7 @@ class FileUtils:
                 return json.load(input_file)
         except Exception as error:
             log.print_error_log(
-                'Failed to load json object. The content of the json file "%s" is invalid.' % json_file)
+                'Failed to load json object. The content of the json file "%r" is invalid.' % json_file)
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR) from error
 
 
@@ -346,7 +345,7 @@ class OverflowFileUtils(FileUtils):
         for item in mapping:
             src_file = os.path.realpath(os.path.join(path, item[hash_index]))
             if not os.path.isfile(src_file):
-                log.print_warn_log("the file %s in mapping.csv is not exist, dir: %s."
+                log.print_warn_log("the file %r in mapping.csv is not exist, dir: %r."
                                    % (item[hash_index], path))
                 continue
             match = re_pattern.match(item[file_name_index])

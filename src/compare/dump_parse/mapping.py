@@ -19,7 +19,7 @@ def _handle_csv_object(csv_object: any, mapping_file_path: str) -> dict:
             hash_to_file_name_map[item[0]] = item[1]
         else:
             log.print_error_log(
-                'The content (%s) of the mapping file "%s" is invalid.' % (item, mapping_file_path))
+                'The content (%s) of the mapping file "%r" is invalid.' % (item, mapping_file_path))
     return hash_to_file_name_map
 
 
@@ -38,7 +38,7 @@ def read_mapping_file(mapping_file_path: str) -> dict:
             csv_object = csv.reader(mapping_file)
             return _handle_csv_object(csv_object, mapping_file_path)
     except csv.Error:
-        log.print_error_log('Failed to read csv object. The content of the mapping file "%s" is invalid.'
+        log.print_error_log('Failed to read csv object. The content of the mapping file "%r" is invalid.'
                             % mapping_file_path)
     except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
         log.print_open_file_error(mapping_file_path, error)

@@ -103,7 +103,7 @@ def print_open_file_error(path: str, io_error: any) -> None:
     :param path: the path
     :param io_error: error info
     """
-    message = 'Failed to open "%s". %s' % (path, str(io_error))
+    message = 'Failed to open "%r". %s' % (path, str(io_error))
     print_error_log(message)
 
 
@@ -113,7 +113,7 @@ def print_write_result_info(prefix: str, path: str) -> None:
     :param prefix: the info
     :param path: the path
     """
-    message = 'The %s have been written to "%s".' % (prefix, path)
+    message = 'The %s have been written to "%r".' % (prefix, path)
     print_info_log(message)
 
 

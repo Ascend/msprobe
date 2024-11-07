@@ -57,7 +57,7 @@ class RemoveInplaceLayerProcess:
             raise CompareError(ret)
 
         if os.path.getsize(path) > MAX_SIZE:
-            log.print_error_log("The file '%s' is too large." % path)
+            log.print_error_log("The file '%r' is too large." % path)
             raise CompareError(CompareError.MSACCUCMP_FILE_TOO_LARGE_ERROR)
 
     @staticmethod
@@ -73,7 +73,7 @@ class RemoveInplaceLayerProcess:
                 log.print_error_log("Provided output_file_path exists but is not a file.")
                 raise CompareError(CompareError.MSACCUCMP_SYMLINK_ERROR)
             os.remove(path)
-            log.print_warn_log("The file '%s' already exists" % path)
+            log.print_warn_log("The file '%r' already exists" % path)
 
     def check_arguments_valid(self: any) -> None:
         """
@@ -114,8 +114,8 @@ class RemoveInplaceLayerProcess:
         with os.fdopen(os.open(self.output_file_path, self.WRITE_FLAGS, self.WRITE_MODES), 'w') as open_file:
             file_content = str(self.net_param)
             open_file.write(file_content)
-        log.print_info_log('The "%s" has removed inplace layer.' % self.input_file_path)
-        log.print_info_log('The new prototxt file has been saved to "%s".' % self.output_file_path)
+        log.print_info_log('The "%r" has removed inplace layer.' % self.input_file_path)
+        log.print_info_log('The new prototxt file has been saved to "%r".' % self.output_file_path)
 
     def _handle_top(self: any, layer_item: any, layer_idx: int) -> (bool, str, str):
         for (top_index, top_item) in enumerate(layer_item.top):

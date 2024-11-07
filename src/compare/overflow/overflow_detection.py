@@ -78,7 +78,7 @@ class OverflowDetection:
         tensor_data_info = []
         for (index, tensor) in enumerate(tensor_list):
             if tensor and tensor.data_type == DD.DT_FLOAT16:
-                log.print_info_log('Start to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_file_path))
+                log.print_info_log('Start to parse the data of %s:%d in "%r".' % (tensor_type, index, dump_file_path))
                 array = tensor.data
                 tensor_data_info.append(
                     {"tensor_type": tensor_type, "index": str(index), "tensor_data": array, "tensor_info": tensor,
@@ -96,7 +96,7 @@ class OverflowDetection:
         if len(tensor_list) == 0:
             dump_file_list, dump_mode = self.left_dump_info.get_op_dump_file(self.op_name)
             dump_file_path = dump_file_list[-1]
-            log.print_warn_log('There is no %s in "%s".' % (
+            log.print_warn_log('There is no %s in "%r".' % (
                 tensor_type, dump_file_path))
             return
         for item in tensor_list:

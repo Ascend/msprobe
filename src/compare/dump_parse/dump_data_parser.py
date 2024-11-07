@@ -115,12 +115,12 @@ class DumpDataParser:
         log_space = dump_data.space
         dump_file_name = os.path.basename(self.path_str)
         if len(log_space) == 0:
-            log.print_error_log("There is no log data in {}".format(self.path_str))
+            log.print_error_log("There is no log data in %r" % self.path_str)
             raise CompareError(CompareError.MSACCUCMP_INVALID_OVERFLOW_TYPE_ERROR)
         for (index, log_data) in enumerate(log_space):
             log_file_name = '%s.%d.log' % (dump_file_name, index)
             log_file_path = os.path.join(self.output_path, log_file_name)
-            log.print_info_log('Start to parse the data of log:%d in "%s".' % (index, self.path_str))
+            log.print_info_log('Start to parse the data of log:%d in "%r".' % (index, self.path_str))
             try:
                 self._write_log(log_file_path, log_data)
             except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
@@ -128,7 +128,7 @@ class DumpDataParser:
                                     % str(error))
                 raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR) from error
 
-            log.print_info_log('The data of log:%d has been parsed into "%s".'
+            log.print_info_log('The data of log:%d has been parsed into "%r".'
                                % (index, log_file_path))
 
     def _save_tensor_to_file(self: any, dump_path: str, dump_data: DumpDataObj, tensor_type: str) -> None:
@@ -136,7 +136,7 @@ class DumpDataParser:
         op_name = dump_data.op_name
         ffts_auto = False
         if len(tensor_list) == 0:
-            log.print_warn_log('There is no %s in "%s".' % (tensor_type, dump_path))
+            log.print_warn_log('There is no %s in "%r".' % (tensor_type, dump_path))
             return
         if dump_data.get_ffts_mode:
             if tensor_type == ConstManager.INPUT:
@@ -152,11 +152,11 @@ class DumpDataParser:
                 
         name = os.path.basename(dump_path)
         for (index, tensor) in enumerate(tensor_list):
-            log.print_info_log('Start to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_path))
+            log.print_info_log('Start to parse the data of %s:%d in "%r".' % (tensor_type, index, dump_path))
             try:
                 array = tensor.data
             except CompareError:
-                log.print_warn_log('Failed to parse the data of %s:%d in "%s".' % (tensor_type, index, dump_path))
+                log.print_warn_log('Failed to parse the data of %s:%d in "%r".' % (tensor_type, index, dump_path))
                 continue
             if self.output_file_type == 'npy':
                 file_name = '%s.%s.%d.npy' % (name, tensor_type, index)
@@ -179,24 +179,24 @@ class DumpDataParser:
                     output_file_path, array, self.output_file_type != 'bin', shape_list[index])
             else:
                 FileUtils.save_array_to_file(output_file_path, array, self.output_file_type != 'bin', tensor.shape)
-            log.print_info_log('The data of %s:%d has been parsed into "%s".'
+            log.print_info_log('The data of %s:%d has been parsed into "%r".'
                                % (tensor_type, index, output_file_path))
 
     def _save_buffer_to_file(self: any, dump_path: str, tensor_list: list) -> None:
         if tensor_list is None or len(tensor_list) == 0:
-            log.print_warn_log('There is no buffer data in "%s".' % dump_path)
+            log.print_warn_log('There is no buffer data in "%r".' % dump_path)
             return
         name = os.path.basename(dump_path)
         for (index, tensor) in enumerate(tensor_list):
             buffer_type = ConstManager.BUFFER_TYPE_MAP.get(tensor.buffer_type)
-            log.print_info_log('Start to parse the data of %sbuffer:%d in "%s".'
+            log.print_info_log('Start to parse the data of %sbuffer:%d in "%r".'
                                % (buffer_type, index, dump_path))
             file_name = "%s.%sbuffer.%s.bin" % (name, buffer_type, index)
             file_name = FileUtils.handle_too_long_file_name(
                 file_name, '.bin', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             output_dump_path = os.path.join(self.output_path, file_name)
             FileUtils.save_data_to_file(output_dump_path, tensor.data, 'wb', delete=True)
-            log.print_info_log('The data of %sbuffer:%d has been parsed into "%s".'
+            log.print_info_log('The data of %sbuffer:%d has been parsed into "%r".'
                                % (buffer_type, index, output_dump_path))
 
     def _save_space_to_file(self: any, dump_path: str, tensor_list: list) -> None:
@@ -205,13 +205,13 @@ class DumpDataParser:
             return
         name = os.path.basename(dump_path)
         for (index, tensor) in enumerate(tensor_list):
-            log.print_info_log('Start to parse the data of space:%d in "%s".' % (index, dump_path))
+            log.print_info_log('Start to parse the data of space:%d in "%r".' % (index, dump_path))
             file_name = "%s.space.%s.bin" % (name, index)
             file_name = FileUtils.handle_too_long_file_name(
                 file_name, '.bin', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
             output_dump_path = os.path.join(self.output_path, file_name)
             FileUtils.save_data_to_file(output_dump_path, tensor.data, 'wb', delete=True)
-            log.print_info_log('The data of space:%d has been parsed into "%s".' % (index, output_dump_path))
+            log.print_info_log('The data of space:%d has been parsed into "%r".' % (index, output_dump_path))
 
     def _save_op_debug_to_file(self: any, dump_path: str, output: any) -> None:
         for idx, item in enumerate(output):
@@ -222,13 +222,13 @@ class DumpDataParser:
                 debug_info = debug_info_parser.parse_op_debug_new_version()
             else:
                 debug_info = self._parse_op_debug_old_version(dump_path, idx, bytes_data)
-            json_path = os.path.join(self.output_path, "%s.output.%d.json" % (os.path.basename(dump_path), idx))
+            json_path = os.path.join(self.output_path, "%r.output.%d.json" % (os.path.basename(dump_path), idx))
             FileUtils.save_data_to_file(json_path, json.dumps(debug_info, sort_keys=False, indent=4), 'w+', delete=True)
-            log.print_info_log('The data of output:%d has been parsed into "%s".' % (idx, json_path))
+            log.print_info_log('The data of output:%d has been parsed into "%r".' % (idx, json_path))
 
     def _parse_op_debug_old_version(self: any, dump_path: str, idx: int, item_data: any) -> dict:
         if len(item_data) != ConstManager.OVERFLOW_CHECK_SIZE:
-            log.print_error_log('The data size (%d) of output:%d is not equal to %d in %s. '
+            log.print_error_log('The data size (%d) of output:%d is not equal to %d in %r. '
                                 'Please check the dump file.'
                                 % (len(item_data), idx, ConstManager.OVERFLOW_CHECK_SIZE, dump_path))
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)

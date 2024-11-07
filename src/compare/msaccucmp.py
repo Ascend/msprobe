@@ -246,7 +246,7 @@ def _file_compare_parser(file_compare_parser: argparse.ArgumentParser) -> None:
 def _check_argument_effect(required_arg: any, options_arg: any, options_arg_str: str, required_arg_str: str) -> None:
     if required_arg is None and options_arg is not None:
         log.print_error_log(
-            'The argument %s takes effect only when the "%s" exists.' % (options_arg_str, required_arg_str))
+            'The argument %r takes effect only when the "%r" exists.' % (options_arg_str, required_arg_str))
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
 
@@ -272,7 +272,7 @@ def _check_dump_path_exist(dump_path_array: list) -> None:
 def _check_file_compare_file(args: argparse.Namespace, file_type) -> None:
     for file in [args.my_dump_path, args.golden_dump_path]:
         if not file.endswith(file_type):
-            log.print_error_log("[file_compare] The file %s is invalid.Only support %s file." % (file, file_type))
+            log.print_error_log("[file_compare] The file %r is invalid.Only support %s file." % (file, file_type))
             raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
         ret = path_check.check_path_valid(file, True, False, path_type=path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
@@ -282,7 +282,7 @@ def _check_file_compare_file(args: argparse.Namespace, file_type) -> None:
 def _check_file_compare_out(args: argparse.Namespace) -> None:
     ret = path_check.check_output_path_valid(args.output_path, exist=True)
     if ret != CompareError.MSACCUCMP_NONE_ERROR:
-        log.print_error_log('[file_compare] The -out parameter: "%s"  is invalid!' % args.output_path)
+        log.print_error_log('[file_compare] The -out parameter: "%r" is invalid!' % args.output_path)
         raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
 

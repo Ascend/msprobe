@@ -38,7 +38,7 @@ def _check_shape_valid(shape_str: str) -> list:
         shape_pattern = re.compile(RegManager.SUPPORT_SHAPE_PATTERN)
         match = shape_pattern.match(shape_str)
         if match is None:
-            log.print_error_log('The shape(%s) is invalid. The supported formats are "1,3,224,224".' % shape_str)
+            log.print_error_log('The shape(%r) is invalid. The supported formats are "1,3,224,224".' % shape_str)
             raise CompareError(CompareError.MSACCUCMP_INVALID_SHAPE_ERROR)
         split_list = shape_str.split(',')
 
@@ -47,7 +47,7 @@ def _check_shape_valid(shape_str: str) -> list:
             if dim > 0:
                 shape.append(dim)
             else:
-                log.print_error_log('The shape(%s) is invalid. Each dimension must be greater than 0.' % shape_str)
+                log.print_error_log('The shape(%r) is invalid. Each dimension must be greater than 0.' % shape_str)
                 raise CompareError(CompareError.MSACCUCMP_INVALID_SHAPE_ERROR)
     return shape
 
@@ -93,7 +93,7 @@ class ShapeConversionMain:
         self.index = int(index_str)
         # check format is valid
         if format_str not in ConstManager.STRING_TO_FORMAT_MAP:
-            log.print_error_log('The format "%s" is not supported. '
+            log.print_error_log('The format "%r" is not supported. '
                                 'Please check the format.' % format_str)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
         self.format_to = ConstManager.STRING_TO_FORMAT_MAP.get(format_str)
@@ -149,8 +149,8 @@ class ShapeConversionMain:
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             return ret
 
-        log.print_info_log('Start to transfer format for the dump file "%s".' % self.dump_file_path)
-        log.print_info_log('The target format is %s for %s:%d.'
+        log.print_info_log('Start to transfer format for the dump file "%r".' % self.dump_file_path)
+        log.print_info_log('The target format is %s for %r:%d.'
                            % (common.get_format_string(self.format_to), self.tensor, self.index))
         return CompareError.MSACCUCMP_NONE_ERROR
 
@@ -184,11 +184,11 @@ class ShapeConversionMain:
                            % (common.get_format_string(self.format_to),
                               utils.convert_shape_to_string(dump_data_np.shape)))
         # save numpy data to file
-        output_file_path = os.path.join(self.output_path, '%s.%s.%d.%s.npy'
+        output_file_path = os.path.join(self.output_path, '%r.%r.%d.%s.npy'
                                         % (os.path.basename(self.dump_file_path), self.tensor, index,
                                            utils.get_string_from_list(dump_data_np.shape, 'x')))
         np.save(output_file_path, dump_data_np)
-        log.print_info_log('The dump data for %s:%d has been saved to "%s".'
+        log.print_info_log('The dump data for %r:%d has been saved to "%r".'
                            % (self.tensor, index, output_file_path))
 
 
@@ -274,7 +274,7 @@ class FormatConversionMain:
     def _save_to_file(self: any, *args: any) -> None:
         output_format, dump_data_np, tensor_type, index, dump_file_path, tensor, op_name = args
         if self.attr.get('output_file_type') == 'npy':
-            file_name = '%s.%s.%d.%s.npy' % (os.path.basename(dump_file_path), tensor_type, index,
+            file_name = '%r.%s.%d.%s.npy' % (os.path.basename(dump_file_path), tensor_type, index,
                                              utils.get_string_from_list(dump_data_np.shape, 'x'))
             file_name = FileUtils.handle_too_long_file_name(
                 file_name, '.npy', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
@@ -283,7 +283,7 @@ class FormatConversionMain:
             file_name = FileUtils.handle_too_long_file_name(
                 file_name, '.npy', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
         else:
-            file_name = '%s.%s.%d.%s.%s.%s.bin' % (os.path.basename(dump_file_path), tensor_type, index,
+            file_name = '%r.%s.%d.%s.%s.%s.bin' % (os.path.basename(dump_file_path), tensor_type, index,
                                                    utils.get_string_from_list(dump_data_np.shape, '_'),
                                                    np.dtype(common.get_dtype_by_data_type(tensor.data_type)).name,
                                                    common.get_format_string(output_format))
@@ -293,7 +293,7 @@ class FormatConversionMain:
         FileUtils.save_array_to_file(output_file_path, dump_data_np,
                                      self.attr.get('output_file_type') != 'bin', dump_data_np.shape)
         log.print_info_log(
-            'The data of %s:%s has been saved to "%s".' % (tensor_type, index, output_file_path))
+            'The data of %s:%s has been saved to "%r".' % (tensor_type, index, output_file_path))
 
     def _get_format_and_shape(self: any, tensor: any, index: int, tensor_type: str,
                               dump_file_path: str) -> (int, DD.Shape):
@@ -304,7 +304,7 @@ class FormatConversionMain:
             if len(tensor.shape) != ConstManager.FOUR_DIMS_LENGTH:
                 log.print_warn_log(
                     'The format(%s) of the dump data is 4 dimensions, but the shape %s is not 4 dimensions,'
-                    ' the real format is ND for %s:%d of "%s".'
+                    ' the real format is ND for %s:%d of "%r".'
                     % (common.get_format_string(tensor.tensor_format), utils.convert_shape_to_string(tensor.shape),
                        tensor_type, index, dump_file_path))
                 real_format = DD.FORMAT_ND
@@ -334,7 +334,7 @@ class FormatConversionMain:
         if real_format == self.format_to:
             log.print_info_log(
                 'There is no need to transfer format because the format (%s) '
-                'is the same for %s:%d of "%s".'
+                'is the same for %s:%d of "%r".'
                 % (common.get_format_string(tensor.tensor_format), tensor_type,
                    index, dump_file_path))
             dump_data_np = ShapeConversion(self.manager).reshape(src_to_dest, dump_data_array)
@@ -358,7 +358,7 @@ class FormatConversionMain:
                                     utils.convert_shape_to_string(shape_to)))
         except (OSError, SystemError, ValueError, TypeError, RuntimeError,
                 MemoryError, CompareError):
-            log.print_error_log('Failed to slice data for %s from %s to %s.'
+            log.print_error_log('Failed to slice data for %r from %s to %s.'
                                 % (dump_file_path,
                                    utils.convert_shape_to_string(dump_data_np.shape),
                                    utils.convert_shape_to_string(shape_to)))
@@ -378,7 +378,7 @@ class FormatConversionMain:
             FileUtils.save_array_to_file(output_file_path, tensor.data,
                                          self.attr.get('output_file_type') != 'bin',
                                          tensor.shape)
-            log.print_info_log('The data of %s:%d has been parsed into "%s".'
+            log.print_info_log('The data of %s:%d has been parsed into "%r".'
                                % (tensor_type, index, output_file_path))
 
     def _convert_format_for_tensor(self: any, tensor_list: list, dump_file_path: str, tensor_type: str,
@@ -390,13 +390,13 @@ class FormatConversionMain:
                 self._convert_format_for_one_tensor(tensor, index, tensor_type, dump_file_path, op_name)
             except (OSError, SystemError, ValueError, TypeError, RuntimeError,
                     MemoryError) as error:
-                log.print_error_log('Failed to convert format for %s:%d of "%s". %s'
+                log.print_error_log('Failed to convert format for %s:%d of "%r". %s'
                                     % (tensor_type, index, dump_file_path, error))
                 ret = CompareError.MSACCUCMP_UNKNOWN_ERROR
                 msg += ',%s:%d' % (tensor_type, index)
                 self._save_file_for_convert_failed_tensor(tensor, dump_file_path, tensor_type, index, op_name)
             except CompareError as error:
-                log.print_error_log('Failed to convert format for %s:%d of "%s"'
+                log.print_error_log('Failed to convert format for %s:%d of "%r"'
                                     % (tensor_type, index, dump_file_path))
                 ret = error.code
                 msg += ',%s:%d' % (tensor_type, index)
@@ -438,7 +438,7 @@ class FormatConversionMain:
     def _convert_format_for_one_file(self: any, dump_file_path: str) -> (int, str):
         ret = CompareError.MSACCUCMP_NONE_ERROR
         msg = dump_file_path
-        log.print_info_log('Start to transfer format for the dump file "%s".' % dump_file_path)
+        log.print_info_log('Start to transfer format for the dump file "%r".' % dump_file_path)
         try:
             dump_data = dump_utils.parse_dump_file(dump_file_path, self.attr.get('dump_version'))
 
@@ -451,7 +451,7 @@ class FormatConversionMain:
             else:
                 ret, msg = self._convert_format_for_tensor_list(dump_data, dump_file_path)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
-            log.print_error_log('Failed to convert format for "%s". %s' % (dump_file_path, error))
+            log.print_error_log('Failed to convert format for "%r". %s' % (dump_file_path, error))
             ret = CompareError.MSACCUCMP_UNKNOWN_ERROR
         except CompareError as error:
             ret = error.code

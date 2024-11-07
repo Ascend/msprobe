@@ -268,7 +268,7 @@ class NanoDumpDataParser:
         if self.tlv_header_length + input_data_size + output_data_size + \
                 ConstManager.UINT64_SIZE != self.file_size:
             log.print_error_log(
-                'The file size (%d) of %s is not equal to %d (tlv_header_length)'
+                'The file size (%d) of %r is not equal to %d (tlv_header_length)'
                 '+ %d(the sum of input data) + %d(the sum of output data) '
                 '. Please check the dump file.'
                 % (self.file_size, self.dump_file_path,
@@ -282,7 +282,7 @@ class NanoDumpDataParser:
 
         if self.tlv_header_length > self.file_size - ConstManager.UINT64_SIZE:
             log.print_warn_log(
-                'The header content size (%d) of %s must be less than or'
+                'The header content size (%d) of %r must be less than or'
                 ' equal to %d (file size) - %d (tlv header length).'
                 ' Please check the dump file.'
                 % (self.tlv_header_length, self.dump_file_path, self.file_size, ConstManager.UINT64_SIZE))
@@ -294,7 +294,7 @@ class NanoDumpDataParser:
             self.nano_dump_data.parse_tlv_head(content)
         except CompareError as de_error:
             log.print_warn_log(
-                'Failed to parse the serialized header content of %s. '
+                'Failed to parse the serialized header content of %r. '
                 'Please check the dump file. %s '
                 % (self.dump_file_path, str(de_error)))
             raise CompareError(CompareError.MSACCUCMP_PARSE_NANO_DUMP_FILE_ERROR) from de_error
@@ -346,13 +346,13 @@ class NanoDumpDataHandler:
         head_len = ConstManager.UINT64_SIZE * 2 + ConstManager.UINT32_SIZE * 2
         if self.file_size < head_len:
             log.print_error_log(
-                'The file size (%d) of %s must to bigger than%d (head_len).'
+                'The file size (%d) of %r must to bigger than%d (head_len).'
                 'Please check the dump file.'
                 % (self.file_size, self.dump_file_path, head_len))
 
         if self.file_size > ConstManager.ONE_GB:
             log.print_warn_log(
-                'The size (%d) of %s exceeds 1GB, it may task more time to run, please wait.'
+                'The size (%d) of %r exceeds 1GB, it may task more time to run, please wait.'
                 % (self.file_size, self.dump_file_path))
 
     def parse_dump_data(self: any, dump_version: int) -> NanoDumpData:
@@ -366,7 +366,7 @@ class NanoDumpDataHandler:
             nano_dump_parser = NanoDumpDataParser(self.dump_file_path)
             return nano_dump_parser.parse()
         except CompareError as error:
-            message = 'Failed to parse the dump file %s, type is nano dump format. Please check the dump file. %s' \
+            message = 'Failed to parse the dump file %r, type is nano dump format. Please check the dump file. %s' \
                       % (self.dump_file_path, str(error))
             log.print_error_log(message)
             raise error

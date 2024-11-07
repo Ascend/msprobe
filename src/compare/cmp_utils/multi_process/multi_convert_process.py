@@ -53,7 +53,7 @@ class MultiConvertProcess:
         if return_code != CompareError.MSACCUCMP_NONE_ERROR:
             error_file_path = os.path.join(self._output_path, ConstManager.CONVERT_FAILED_FILE_LIST_NAME)
             if os.path.exists(error_file_path):
-                log.print_info_log('The list of files that failed to be converted has been written to "%s".'
+                log.print_info_log('The list of files that failed to be converted has been written to "%r".'
                                    % error_file_path)
 
         return return_code

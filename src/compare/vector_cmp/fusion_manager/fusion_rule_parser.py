@@ -358,7 +358,7 @@ class FusionRuleParser:
         """
         self._check_key_exist(json_object, key)
         if not isinstance(json_object[key], list):
-            log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not an array.'
+            log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not an array.'
                                 % (self.json_path, key))
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
 
@@ -370,7 +370,7 @@ class FusionRuleParser:
         """
         self._check_key_exist(json_object, key)
         if not isinstance(json_object[key], str):
-            log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not a string.'
+            log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not a string.'
                                 % (self.json_path, key))
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
 
@@ -428,7 +428,7 @@ class FusionRuleParser:
         # data layer has no input layer
         if ConstManager.INPUT_OBJECT in op_object:
             if not isinstance(op_object[ConstManager.INPUT_OBJECT], list):
-                log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not '
+                log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not '
                                     'an array.' % (self.json_path, ConstManager.INPUT_OBJECT))
                 raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
             for item in op_object[ConstManager.INPUT_OBJECT]:
@@ -608,13 +608,13 @@ class FusionRuleParser:
     def _check_int_object_valid(self: any, json_object: any, key: str) -> None:
         self._check_key_exist(json_object, key)
         if not isinstance(json_object[key], int):
-            log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not a integer.'
+            log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not a integer.'
                                 % (self.json_path, key))
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
 
     def _check_bool_object_valid(self: any, json_object: any, key: str) -> None:
         self._check_key_exist(json_object, key)
         if not isinstance(json_object[key], bool):
-            log.print_error_log('The content of the json file "%s" is invalid. The "%s" element is not a bool.'
+            log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not a bool.'
                                 % (self.json_path, key))
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
