@@ -9,11 +9,14 @@ Make advisor, perform comparative analysis, This class mainly involves the main 
 import os
 import sys
 import argparse
-from cmp_utils import log, file_utils
+import re
+from cmp_utils import log, path_check, file_utils
 from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
 from advisor.compare_advisor import CompareAdvisor
+MAX_STRING_LENGTH = 1024
+NODE_WHITE_LIST_REGEX = re.compile(r"[^_A-Za-z0-9/.,;-]")
 
 
 def parse_input_nodes(input_nodes):
@@ -24,6 +27,8 @@ def parse_input_nodes(input_nodes):
     if not input_nodes:
         return []
     else:
+        check_safe_string(input_nodes)
+        check_string_length(input_nodes)
         return [node.strip() for node in input_nodes.strip().split(";") if node.strip()]
 
 
@@ -45,6 +50,7 @@ def _do_advisor():
     args = parser.parse_args(sys.argv[1:])
     input_file = os.path.realpath(args.input_file)
     check_file_size(input_file)
+    _check_input_file(input_file, ConstManager.CSV_SUFFIX)
     input_nodes = parse_input_nodes(args.input_nodes)
     if args.out_path:
         if os.path.islink(os.path.abspath(args.out_path)):
@@ -57,6 +63,7 @@ def _do_advisor():
     advisor_result = compare_advisor.advisor()
     message_list = advisor_result.print_advisor_log()
     if out_path:
+        path_check.check_output_path_valid(out_path, exist=True)
         advisor_result.gen_summary_file(out_path, message_list)
 
 
@@ -69,6 +76,27 @@ def check_file_size(input_file):
     if file_size > ConstManager.ONE_HUNDRED_MB:
         log.print_error_log('The size (%d) of %r exceeds 100MB, tools not support.' % (file_size, input_file))
         raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
+
+
+def check_string_length(s):
+    byte_length = len(s.encode('utf-8'))
+    if byte_length > MAX_STRING_LENGTH:
+        log.print_error_log('The length (%d) of %s exceeds 1024, tools not support.' % (byte_length, s))
+        raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
+
+
+def check_safe_string(s):
+    if re.search(NODE_WHITE_LIST_REGEX, s):
+        raise ValueError("String parameter contains invalid characters.")
+
+
+def _check_input_file(input_file:str, file_type:str) -> None:
+    if not input_file.endswith(file_type):
+        log.print_error_log("[file_compare] The file %s is invalid.Only support %s file." % (input_file, file_type))
+        raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
+    ret = path_check.check_exec_file_valid(input_file)
+    if ret != CompareError.MSACCUCMP_NONE_ERROR:
+        raise CompareError(ret)
 
 
 if __name__ == '__main__':
