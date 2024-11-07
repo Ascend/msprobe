@@ -291,7 +291,7 @@ def _sort_result_file_exec(result_file: str, csv_file: bool = True) -> None:
     _write_sorted_result(result_file, sorted_result_line, header_list, table_header_info, csv_file)
 
 
-def check_file_size(file_path: str, size_limit: int) -> None:
+def check_file_size(file_path: str, size_limit: int, is_raise=False) -> None:
     try:
         file_size = os.path.getsize(file_path)
     except OSError as os_error:
@@ -301,6 +301,8 @@ def check_file_size(file_path: str, size_limit: int) -> None:
         log.print_warn_log(
             'The size (%d) of %r exceeds %dMB, it may task more time to run, please wait.'
             % (file_size, file_path, size_limit / 1024 / 1024))
+        if is_raise:
+            raise CompareError(f"{file_path} file size ({file_size}) exceeds {size_limit}")
 
 
 def least_common_multiple(left: int, right: int) -> int:

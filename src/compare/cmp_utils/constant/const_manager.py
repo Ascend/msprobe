@@ -315,6 +315,7 @@ class ConstManager:
         'INT64': {'FMT': INT64_FMT, 'SIZE': INT64_SIZE},
     }
     ONE_GB = 1 * 1024 * 1024 * 1024
+    ONE_MB = 1 * 1024 * 1024
     ONE_HUNDRED_MB = 100 * 1024 * 1024
     DHA_ATOMIC_ADD_INFO_SIZE = 128
     L2_ATOMIC_ADD_INFO_SIZE = 128
@@ -389,6 +390,10 @@ class ConstManager:
     FFTS_MANUAL_MODE_FIELD = "_lxslice"
     SGT_FIELD = "_sgt_graph"
     LXSLICE_FILED = "lxslice"
+
+    # walk limit
+    MAX_WALK_FILE_NUM = 1000
+    MAX_WALK_DIR_DEEP_NUM = 10
 
     @property
     def max_top_n(self: any) -> int:

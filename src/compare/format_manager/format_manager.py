@@ -144,6 +144,8 @@ class FormatManager:
                 self.custom_path, True, False, path_check.PathType.Directory)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
+
+            path_check.check_path_all_file_exec_valid(self.custom_path)
             dir_path = os.path.join(self.custom_path, self.CUSTOM_FORMAT_CONVERT_DIR_NAME)
             self._make_support_format_by_path(dir_path, self.custom_support_format)
             sys.path.append(self.custom_path)

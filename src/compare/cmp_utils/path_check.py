@@ -6,11 +6,14 @@ This file mainly involves the path check function.
 """
 import os
 import re
+import stat
 from enum import Enum
 
 from cmp_utils import log
+from cmp_utils import utils
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
 
 
 class PathType(Enum):
@@ -84,6 +87,59 @@ def check_output_path_valid(path: str, exist: bool, path_type: PathType = PathTy
         finally:
             pass
     return check_path_valid(path, exist, True, path_type)
+
+
+def check_exec_file_valid(exist_path: str) -> int:
+    """
+    Check exec path valid
+    :param path: the path to check
+    :return: VectorComparisonErrorCode
+    """
+    file_stat = os.stat(exist_path)
+    if file_stat.st_uid != 0 and file_stat.st_uid != os.getuid():
+        log.print_warn_log('You are not the owner of the path "%s".' % exist_path)
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
+    if file_stat.st_gid != 0 and file_stat.st_gid not in os.getgroups():
+        log.print_warn_log('You are not in the group of the path "%s".' % exist_path)
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
+    file_mode = file_stat.st_mode
+    # 判断others或group权限是否有写权限
+    if file_stat.st_gid != 0 and bool(file_mode & stat.S_IWGRP):
+        log.print_warn_log(f"File {exist_path} is not safe. Groups have writing permission to this file.")
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
+    if bool(file_mode & stat.S_IWOTH):
+        log.print_error_log(f"File {exist_path} is dangerous. Others have writing "
+                            "permission to this file. Please use chmod to dismiss the writing permission.")
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
+    return check_path_valid(exist_path, True, False, PathType.File)
+
+
+def check_path_all_file_exec_valid(custom_path):
+    # all file and dir in custom path check safe
+    file_count = 0
+    for up_dir, dirs, files in os.walk(custom_path):
+        if len(up_dir.split(os.path.sep)) > ConstManager.MAX_WALK_DIR_DEEP_NUM:
+            raise CompareError(f"custom path is deep then {ConstManager.MAX_WALK_DIR_DEEP_NUM}")
+        
+        for name in files:
+            sub_file_path = os.path.join(up_dir, name)
+            ret = check_exec_file_valid(sub_file_path)
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                raise CompareError(ret)
+            utils.check_file_size(sub_file_path, ConstManager.ONE_MB, is_raise=True)
+            file_count = file_count + 1
+            if file_count > ConstManager.MAX_WALK_FILE_NUM:
+                raise CompareError(f"file count in custom path is more then {ConstManager.MAX_WALK_FILE_NUM}")
+
+        for name in dirs:
+            sub_dir_path = os.path.join(up_dir, name)
+            ret = check_path_valid(sub_dir_path, True, False, PathType.Directory)
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                raise CompareError(ret)
 
 
 def check_name_valid(name: str) -> int:
