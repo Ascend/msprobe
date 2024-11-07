@@ -268,6 +268,7 @@ class AlgorithmManager:
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
             dir_path = os.path.join(self.custom_path, ConstManager.CUSTOM_ALGORITHM_DIR_NAME)
+            path_check.check_path_all_file_exec_valid(dir_path)
             self._make_support_algorithm_by_path(dir_path, self.custom_support_algorithm)
 
     def _get_module(self: any, algorithm_name: str) -> (bool, any, str):
