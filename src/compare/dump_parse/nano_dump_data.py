@@ -340,6 +340,11 @@ class NanoDumpDataHandler:
         check argument valid
         :exception when invalid
         """
+        file_name = os.path.basename(self.dump_file_path)
+
+        if len(file_name.split('.')) < 5:
+            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, "The file name has no dump time")
+
         if not self.check_is_nano_dump_format():
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
