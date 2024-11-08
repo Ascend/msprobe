@@ -226,10 +226,12 @@ class TestUtilsMethods(unittest.TestCase):
 
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
-                '/home/right.h5','-p', '1']
+                '/home/right.h5','-p', '1', '-out', '/home/demo']
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        with mock.patch('sys.argv', args):
+        with mock.patch('sys.argv', args), \
+            mock.patch('cmp_utils.path_check.check_output_path_valid',
+                return_value=CompareError.MSACCUCMP_NONE_ERROR):
             args = parser.parse_args(sys.argv[1:])
             pytorch_compare = compare_pytorch.PytorchComparison(args)
 
@@ -275,10 +277,12 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_one_op_exception1(self):
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
-                '/home/right.h5', '-p', '0']
+                '/home/right.h5', '-p', '0', '-out', '/home/out']
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        with mock.patch('sys.argv', args):
+        with mock.patch('sys.argv', args), \
+            mock.patch('cmp_utils.path_check.check_output_path_valid',
+                return_value=CompareError.MSACCUCMP_NONE_ERROR):
             args = parser.parse_args(sys.argv[1:])
             pytorch_compare = compare_pytorch.PytorchComparison(args)
             with mock.patch('pytorch_cmp.pytorch_dump_data.CompareData.get_my_dump_datasets',
@@ -288,11 +292,13 @@ class TestUtilsMethods(unittest.TestCase):
     def test_get_item_location(self):
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
-                '/home/right.h5', '-p', '0']
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         row = ["CosineSimilarity", "MyDumpDataPath", "GoldenDumpDataPath"]
-        with mock.patch('sys.argv', args):
+        with mock.patch('sys.argv', args), \
+            mock.patch('cmp_utils.path_check.check_output_path_valid',
+                return_value=CompareError.MSACCUCMP_NONE_ERROR):
             args = parser.parse_args(sys.argv[1:])
             pytorch_compare = compare_pytorch.PytorchComparison(args)
             index_result = pytorch_compare._get_item_location(row)
@@ -302,13 +308,15 @@ class TestUtilsMethods(unittest.TestCase):
     def test_filter_one_line(self):
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
-                '/home/right.h5', '-p', '0']
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         row = [0.93, "MyDumpDataPath", "GoldenDumpDataPath"]
         result_path = "/home/test"
         position = [0, 1, 2]
-        with mock.patch('sys.argv', args):
+        with mock.patch('sys.argv', args), \
+            mock.patch('cmp_utils.path_check.check_output_path_valid',
+                return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch("csv.writer", return_value=None) as writer:
                 with mock.patch('pytorch_cmp.hdf5_parser.Hdf5Parser.get_dump_data',
                                 side_effect=[np.array(np.arange(9)).reshape(3, 3),
@@ -322,13 +330,15 @@ class TestUtilsMethods(unittest.TestCase):
     def test_filter_result_process(self):
         parser = self._construct_args()
         args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
-                '/home/right.h5', '-p', '0']
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
         row = [0.93, "MyDumpDataPath", "GoldenDumpDataPath"]
         result_path = "/home/test"
         position = [0, 1, 2]
-        with mock.patch('sys.argv', args):
+        with mock.patch('sys.argv', args), \
+            mock.patch('cmp_utils.path_check.check_output_path_valid',
+                return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('os.open') as open_file, mock.patch('os.fdopen'):
                 with mock.patch("csv.reader", return_value=[["CosineSimilarity", "MyDumpDataPath","GoldenDumpDataPath"],
                                                             [0.93, "/home/test/my1", "/home/test/gold1"]]):
@@ -349,7 +359,9 @@ class TestUtilsMethods(unittest.TestCase):
         actual = ['1', 'addmm', '/addmm/3/input/mat1', '/addmm/10/input/mat1', 'float64', '[8]',
                   '1.000000', '0.000000', '0.000000', '0.000000', '0.000000', '(-0.034;1.017),(-0.034;1.017)',
                   '0.000000', '0.000000', '0.000000', '0.000000', '']
-        with mock.patch('sys.argv', args[1:]):
+        with mock.patch('sys.argv', args[1:]), \
+            mock.patch('cmp_utils.path_check.check_output_path_valid',
+                return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('pytorch_cmp.compare_pytorch.PytorchComparison._get_compare_dump_data',
                             return_value=[my_dump_data, golden_dump_data, shape]):
                 args = parser.parse_args(sys.argv)

@@ -255,10 +255,10 @@ def _write_sorted_result(result_file: str, sorted_result_line: list, header_list
         if csv_file:
             # write header to file
             writer = csv.writer(fp_write)
-            writer.writerow(header_list)
+            writer.writerow((sanitize_csv_value(ii) for ii in header_list))
             # write sorted result to file
             for item in sorted_result_line:
-                writer.writerow(item[1])
+                writer.writerow((sanitize_csv_value(ii) for ii in item[1]))
         else:
             # write header to file
             fp_write.write(table_header_info)

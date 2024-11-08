@@ -34,6 +34,9 @@ class PytorchComparison:
         file_name = 'result_%s.csv' \
                     % time.strftime("%Y%m%d%H%M%S",
                                     time.localtime(time.time()))
+        ret = path_check.check_output_path_valid(args.output_path, True)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
         if os.path.islink(os.path.abspath(args.output_path)):
             log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_path)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
