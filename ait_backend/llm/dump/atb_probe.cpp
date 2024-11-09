@@ -550,10 +550,8 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
         AIT_LOG_ERROR("Data is None.");
         return;
     }
-    const char* outputDir = std::getenv("ATB_OUTPUT_DIR");
-    std::string outDir = outputDir != nullptr ? outputDir : "./";
-    outDir = GetRealPath(outDir);
-    std::string outPath = outDir + filePath;
+    std::string outDir = GetOutDir();
+    std::string outPath = outDir + "tiling/" + filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
 
