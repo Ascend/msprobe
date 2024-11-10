@@ -1,3 +1,4 @@
+import os
 import unittest
 import pytest
 from unittest import mock
@@ -7,6 +8,7 @@ from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):
+    mock_stat_result = os.stat_result((0, 0, 0, 0, os.getuid(), 0, 0, 0, 0, 0))
 
     def test_main1(self):
         args = ['aaa.py', 'compare', '-m', '/home/left.bin', '-g',
@@ -15,7 +17,8 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('sys.argv', args):
                 with mock.patch('os.path.isfile', return_value=True):
                     with mock.patch("msaccucmp._check_dump_path_exist"):
-                        msaccucmp.main()
+                        with mock.patch('os.stat', return_value=self.mock_stat_result):
+                            msaccucmp.main()
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_main2(self):

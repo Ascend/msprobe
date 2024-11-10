@@ -12,10 +12,11 @@ import argparse
 import time
 
 from cmp_utils import log, path_check, file_utils
-from cmp_utils.utils import safe_path_string
+from cmp_utils.utils import safe_path_string, check_file_size
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.path_check import check_exec_file_valid
 from algorithm_manager.algorithm_manager import AlgorithmManagerMain
 from compare_vector import VectorComparison
 from conversion.shape_format_conversion import FormatConversionMain
@@ -302,6 +303,14 @@ def start_compare(args: argparse.Namespace) -> int:
     if _check_hdf5_file_valid(args.my_dump_path) and _check_hdf5_file_valid(args.golden_dump_path):
         pytorch_compare = PytorchComparison(args)
         pytorch_compare.check_arguments_valid(args)
+        check_file_size(args.my_dump_path, ConstManager.ONE_HUNDRED_MB)
+        check_file_size(args.golden_dump_path, ConstManager.ONE_HUNDRED_MB)
+        ret = check_exec_file_valid(args.my_dump_path)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
+        ret = check_exec_file_valid(args.golden_dump_path)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
         ret = pytorch_compare.compare()
         return ret
 
@@ -310,6 +319,12 @@ def start_compare(args: argparse.Namespace) -> int:
         raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     if os.path.isfile(os.path.realpath(args.my_dump_path)) and os.path.isfile(os.path.realpath(args.golden_dump_path)):
+        ret = check_exec_file_valid(args.my_dump_path)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
+        ret = check_exec_file_valid(args.golden_dump_path)
+        if ret != CompareError.MSACCUCMP_NONE_ERROR:
+            raise CompareError(ret)
         compare = AlgorithmManagerMain(args)
         ret = compare.process()
     elif args.fusion_rule_file != "" and BatchCompare().check_fusion_rule_json_dir(args.fusion_rule_file):
