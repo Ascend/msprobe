@@ -97,24 +97,17 @@ def check_exec_file_valid(exist_path: str) -> int:
     """
     file_stat = os.stat(exist_path)
     if file_stat.st_uid != 0 and file_stat.st_uid != os.getuid():
-        log.print_warn_log('You are not the owner of the path "%s".' % exist_path)
+        log.print_error_log('You are not the owner of the path "%s".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     if file_stat.st_gid != 0 and file_stat.st_gid not in os.getgroups():
-        log.print_warn_log('You are not in the group of the path "%s".' % exist_path)
+        log.print_error_log('You are not in the group of the path "%s".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
-    file_mode = file_stat.st_mode
-    # 判断others或group权限是否有写权限
-    if file_stat.st_gid != 0 and bool(file_mode & stat.S_IWGRP):
-        log.print_warn_log(f"File {exist_path} is not safe. Groups have writing permission to this file.")
-        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
-
-    if bool(file_mode & stat.S_IWOTH):
-        log.print_error_log(f"File {exist_path} is dangerous. Others have writing "
-                            "permission to this file. Please use chmod to dismiss the writing permission.")
-        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
-
+    ret = check_others_permission(exist_path)
+    if ret != CompareError.MSACCUCMP_NONE_ERROR:
+        raise CompareError(ret)
+    
     return check_path_valid(exist_path, True, False, PathType.File)
 
 
@@ -209,3 +202,25 @@ def check_write_path_secure(path: str):
         os.unlink(path)
     if os.path.exists(path):
         os.remove(path)
+
+
+def check_others_permission(exist_path: str) -> int:
+    """
+    Check others permission
+    :param path: the path to check
+    :return: VectorComparisonErrorCode
+    """
+    file_stat = os.stat(exist_path)
+    file_mode = file_stat.st_mode
+    # 判断others或group权限是否有写权限
+    if file_stat.st_gid != 0 and bool(file_mode & stat.S_IWGRP):
+        log.print_error_log(f"File {exist_path} is not safe. Groups have writing permission to this file.")
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
+    if bool(file_mode & stat.S_IWOTH):
+        log.print_error_log(f"File {exist_path} is dangerous. Others have writing "
+                            "permission to this file. Please use chmod to dismiss the writing permission.")
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
+    return CompareError.MSACCUCMP_NONE_ERROR
+

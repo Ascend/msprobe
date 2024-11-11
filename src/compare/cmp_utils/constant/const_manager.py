@@ -393,7 +393,7 @@ class ConstManager:
 
     # walk limit
     MAX_WALK_FILE_NUM = 1000
-    MAX_WALK_DIR_DEEP_NUM = 10
+    MAX_WALK_DIR_DEEP_NUM = 50
 
     @property
     def max_top_n(self: any) -> int:
