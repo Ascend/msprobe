@@ -431,7 +431,11 @@ class AlgorithmManagerMain:
             for index, data in enumerate(result):
                 content += "%s: %s\n" % (header[index], data)
             file_name = 'file_result_%s.txt' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+            path_type = path_check.PathType.File
             summary_file_path = os.path.join(self.output_path, file_name)
+            ret = path_check.check_output_path_valid(summary_file_path, exist=False, path_type=path_type)
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                raise CompareError(ret)
             FileUtils.save_file(summary_file_path, content)
             log.print_info_log('The file compare result have been written to "%r".' % summary_file_path)
 
