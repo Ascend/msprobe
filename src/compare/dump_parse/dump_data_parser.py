@@ -225,7 +225,7 @@ class DumpDataParser:
                 debug_info = debug_info_parser.parse_op_debug_new_version()
             else:
                 debug_info = self._parse_op_debug_old_version(dump_path, idx, bytes_data)
-            json_path = os.path.join(self.output_path, "%r.output.%d.json" % (os.path.basename(dump_path), idx))
+            json_path = os.path.join(self.output_path, "%s.output.%d.json" % (os.path.basename(dump_path), idx))
             FileUtils.save_data_to_file(json_path, json.dumps(debug_info, sort_keys=False, indent=4), 'w+', delete=True)
             log.print_info_log('The data of output:%d has been parsed into "%r".' % (idx, json_path))
 

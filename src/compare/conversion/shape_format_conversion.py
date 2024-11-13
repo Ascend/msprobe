@@ -187,7 +187,7 @@ class ShapeConversionMain:
                            % (common.get_format_string(self.format_to),
                               utils.convert_shape_to_string(dump_data_np.shape)))
         # save numpy data to file
-        output_file_path = os.path.join(self.output_path, '%r.%r.%d.%s.npy'
+        output_file_path = os.path.join(self.output_path, '%s.%s.%d.%s.npy'
                                         % (os.path.basename(self.dump_file_path), self.tensor, index,
                                            utils.get_string_from_list(dump_data_np.shape, 'x')))
         np.save(output_file_path, dump_data_np)
@@ -280,7 +280,7 @@ class FormatConversionMain:
     def _save_to_file(self: any, *args: any) -> None:
         output_format, dump_data_np, tensor_type, index, dump_file_path, tensor, op_name = args
         if self.attr.get('output_file_type') == 'npy':
-            file_name = '%r.%s.%d.%s.npy' % (os.path.basename(dump_file_path), tensor_type, index,
+            file_name = '%s.%s.%d.%s.npy' % (os.path.basename(dump_file_path), tensor_type, index,
                                              utils.get_string_from_list(dump_data_np.shape, 'x'))
             file_name = FileUtils.handle_too_long_file_name(
                 file_name, '.npy', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
@@ -289,7 +289,7 @@ class FormatConversionMain:
             file_name = FileUtils.handle_too_long_file_name(
                 file_name, '.npy', os.path.join(self.output_path, ConstManager.MAPPING_FILE_NAME))
         else:
-            file_name = '%r.%s.%d.%s.%s.%s.bin' % (os.path.basename(dump_file_path), tensor_type, index,
+            file_name = '%s.%s.%d.%s.%s.%s.bin' % (os.path.basename(dump_file_path), tensor_type, index,
                                                    utils.get_string_from_list(dump_data_np.shape, '_'),
                                                    np.dtype(common.get_dtype_by_data_type(tensor.data_type)).name,
                                                    common.get_format_string(output_format))
