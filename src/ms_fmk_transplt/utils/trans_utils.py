@@ -7,6 +7,7 @@ import os
 import platform
 import re
 import shutil
+import stat
 from typing import Dict
 from pathlib import Path
 from typing import ByteString
@@ -325,14 +326,26 @@ def user_interactive_confirm(message):
             print("Input is error, please enter 'exit' or 'c' or 'continue'.")
 
 
+def remove_readonly(func, path, _):
+    if check_path_owner_consistent(path):
+        os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
 def remove_path(path):
     if not os.path.exists(path):
         return
+
+    if platform.system().lower() == 'windows' and check_path_owner_consistent(path):
+        os.chmod(path, stat.S_IWRITE)
     try:
         if islink(path) or os.path.isfile(path):
             os.remove(path)
         elif os.path.isdir(path):
-            shutil.rmtree(path)
+            if platform.system().lower() == 'windows':
+                shutil.rmtree(path, onerror=remove_readonly)
+            else:
+                shutil.rmtree(path)
     except PermissionError as exp:
         raise DeleteFileException(f'Failed to delete {path}: {exp}') from exp
 
