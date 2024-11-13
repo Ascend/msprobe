@@ -39,6 +39,8 @@ std::string GetRealPath(const std::string &outPath);
 
 extern bool DirectoryExists(const std::string &path);
 
-extern bool CheckDirectory(const std::string &directory);
+extern bool CheckDirectory(const std::string &directory, bool existOK = true);
+
+bool ValidateCsvString(const std::string& str);
 
 #endif

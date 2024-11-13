@@ -8,6 +8,7 @@ find_package(Threads REQUIRED)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/../../../ait_backend/llm/dump/
+    ${PROJECT_SOURCE_DIR}/../../../ait_backend/utils/
     ${PROJECT_SOURCE_DIR}/common/
     ${PROJECT_SOURCE_DIR}/common/stub/
     ${PROJECT_SOURCE_DIR}/../../../ait_backend/llm/dump/nlohmannJson/include/
@@ -26,6 +27,7 @@ target_link_directories(${PROJECT_NAME} PRIVATE
     ${PROJECT_SOURCE_DIR}/3rdparty/googletest/lib64
     ${PROJECT_SOURCE_DIR}/3rdparty/securec/lib
     ${PROJECT_SOURCE_DIR}/../../../build/output/ait_backend/dump
+    ${PROJECT_SOURCE_DIR}/../../../build/output/ait_backend/utils/
     $ENV{ASCEND_HOME_PATH}/lib64
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -34,7 +36,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     libgmock.a
     libgmock_main.a
     ${CMAKE_THREAD_LIBS_INIT}
-    libatb_probe_abi1.so
+    ${PROJECT_SOURCE_DIR}/../../../build/output/ait_backend/dump/libatb_probe_abi1.so
     libsecurec.so
     libstdc++fs.a
 )

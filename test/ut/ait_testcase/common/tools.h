@@ -25,5 +25,7 @@ int32_t GetCurrentProcessId();
 bool IfFileExists(const std::string &outPath);
 void DeleteFile(const std::string &outPath);
 bool CheckFileContainsString(const std::string& filePath, const std::string& targetString);
+bool IsPathExist(const std::string& path);
+std::string ExecShellCommand(const std::string& cmd);
 
 #endif

@@ -17,6 +17,10 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <cstdio>
+#include <cstdlib>
+#include <sys/stat.h>
 #include <unistd.h>
 #include "tools.h"
 
@@ -58,12 +62,32 @@ bool CheckFileContainsString(const std::string& filePath, const std::string& tar
 {
     std::ifstream file(filePath);
     std::string line;
- 
+
     while (std::getline(file, line)) {
         if (line.find(targetString) != std::string::npos) {
             return true;
         }
     }
- 
+
     return false;
+}
+
+bool IsPathExist(const std::string& path)
+{
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
+
+std::string ExecShellCommand(const std::string& cmd)
+{
+    std::array<char, 1024> cmdBuf;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
+    while (fgets(cmdBuf.data(), cmdBuf.size(), pipe.get()) != nullptr) {
+        result += cmdBuf.data();
+    }
+    return result;
 }

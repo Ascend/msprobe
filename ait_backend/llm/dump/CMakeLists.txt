@@ -34,7 +34,13 @@ include_directories($ENV{ASCEND_HOME_PATH}/runtime/include/)  # 保留 CANN 包�
 
 set(SECUREC_DIR ${TOP_DIR}/platform/securec)
 file(GLOB_RECURSE SECUREC_SRC ${SECUREC_DIR}/src/*.c)
-add_library(${LIB_NAME} SHARED atb_probe.cpp bin_file.cpp ${AIT_LOGGER_PATH}/ait_logger.cpp ${AIT_UTILS_PATH}/utils.cpp ${SECUREC_SRC})
+add_library(${LIB_NAME} SHARED
+    atb_probe.cpp bin_file.cpp ${AIT_LOGGER_PATH}/ait_logger.cpp
+    ${AIT_UTILS_PATH}/utils.cpp
+    ${AIT_UTILS_PATH}/safety_guard.cpp
+    ${AIT_UTILS_PATH}/file.cpp
+    ${SECUREC_SRC}
+)
 
 target_compile_options(${LIB_NAME} PRIVATE
     -fPIC
@@ -42,7 +48,6 @@ target_compile_options(${LIB_NAME} PRIVATE
     -fstack-protector-all
     -D_FORTIFY_SOURCE=2
     -ftrapv
-    -fvisibility=hidden
 )
 add_compile_options(-fstack-check)
 target_link_options(${LIB_NAME} PRIVATE

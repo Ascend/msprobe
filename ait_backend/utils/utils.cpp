@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 #include "utils.h"
-
+#include "safety_guard.h"
+#include "const.h"
 
 std::string GetRealPath(const std::string &outPath)
 {
@@ -32,7 +33,7 @@ std::vector<std::string> SplitString(const std::string &ss, const char &tar)
         tokens.emplace_back(token);
     }
 
-    return tokens;
+    return std::move(tokens);
 }
 
 bool Exists(const std::string &path)
@@ -49,25 +50,28 @@ bool DirectoryExists(const std::string &path)
     return (stat(path.c_str(), &info) == 0) && (S_ISDIR(info.st_mode));
 }
 
-bool CheckDirectory(const std::string &directory)
+bool CheckDirectory(const std::string &directory, bool existOK)
 {
-    std::vector<std::string> dirs = SplitString(directory, '/');
-    std::string curDir = "";
-    for (auto &dir : dirs) {
-        curDir += dir + "/";
-        curDir = GetRealPath(curDir);
-        if (!DirectoryExists(curDir)) {
-            int status = mkdir(curDir.c_str(), 0750);
-            if (status) {
-                AIT_LOG_ERROR("cannot create directory: " + curDir);
-                AIT_LOG_ERROR("mkdir: " + std::string(std::strerror(errno)));
-            }
-        }
-    }
-    if (!DirectoryExists(directory)) {
-        AIT_LOG_ERROR("cannot create directory: " + directory);
-        AIT_LOG_ERROR("mkdir: " + std::string(std::strerror(errno)));
+    SAFETY_RET ret = SafetyGuard::CreateDir(directory, NORMAL_DIR_MODE_DEFAULT, existOK);
+    if (ret != SAFETY_RET::SAFE_ERR_NONE) {
         return false;
     }
     return true;
+}
+
+bool ValidateCsvString(const std::string& str)
+{
+    if (str.empty()) {
+        return true;  // 字符串为空
+    }
+
+    char firstChar = str[0];
+    if (firstChar == '-') {
+        std::regex pattern("[0-9,-;]+");
+        if (!std::regex_match(str, pattern)) {
+            return false;
+        }
+    }
+
+    return !(firstChar == '+' || firstChar == '=' || firstChar == '@' || firstChar == '%');
 }
