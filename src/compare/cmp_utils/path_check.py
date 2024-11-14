@@ -152,6 +152,27 @@ def check_name_valid(name: str) -> int:
     return CompareError.MSACCUCMP_NONE_ERROR
 
 
+def is_same_owner(path) -> bool:
+    file_stat = os.stat(path)
+    if os.getuid() != 0 and file_stat.st_uid != os.getuid():
+        return False
+    return True
+
+
+def is_group_and_others_writable(path) -> bool:
+    file_stat = os.stat(path)
+    file_mode = file_stat.st_mode
+    if bool(file_mode & stat.S_IWGRP) or bool(file_mode & stat.S_IWOTH):
+        return True
+    return False
+
+
+def is_parent_dir_has_right_permission(path) -> bool:
+    if not is_same_owner(path) or is_group_and_others_writable(path):
+        return False
+    return True
+
+
 def check_path_valid(path: str, exist: bool, have_write_permission: bool = False,
                      path_type: PathType = PathType.All) -> int:
     """
@@ -191,8 +212,12 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
     
     file_stat = os.stat(exist_path)
     if os.getuid() != 0 and file_stat.st_uid != os.getuid() and file_stat.st_gid not in os.getgroups():
-        log.print_warn_log('You are neither the owner nor in the group of the path "%r".' % exist_path)
+        log.print_error_log('You are neither the owner nor in the group of the path "%r".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
+    parent_directory = os.path.dirname(os.path.abspath(path))
+    if not have_write_permission and not is_parent_dir_has_right_permission(parent_directory):
+        log.print_warn_log('The permissions of the parent directory of the current file are incorrect.')
 
     return _check_path_file_or_directory(path, path_type)
 

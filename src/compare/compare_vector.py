@@ -14,17 +14,11 @@ from cmp_utils.constant.compare_error import CompareError
 from vector_cmp.vector_comparison import VectorComparison
 
 
-def _handle_stop(sig: any, frame: any) -> None:
-    _ = sig
-    _ = frame
-    sys.exit(-1)
-
-
 if __name__ == "__main__":
     log.print_deprecated_warning(sys.argv[0])
     START = time.time()
     for SIG in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
-        signal.signal(SIG, _handle_stop)
+        signal.signal(SIG, lambda sig, frame : sys.exit(-1))
     VECTOR_COMPARISON = VectorComparison()
     RET = 0
     with file_utils.UmaskWrapper():
