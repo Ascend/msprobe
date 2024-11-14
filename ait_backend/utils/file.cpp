@@ -117,9 +117,9 @@ bool File::IsFileWritable(const std::string& path)
     return access(path.c_str(), W_OK) == 0;
 }
 
-bool File::IsDirReadable(const std::string& path)
+bool File::IsOtherWritable(const std::string& path)
 {
-    return (access(path.c_str(), R_OK) == 0) && (access(path.c_str(), X_OK) == 0);
+    return ((GetPathPermissions(path) & READ_FILE_NOT_PERMITTED) > 0);
 }
 
 bool File::IsPathExist(const std::string& path)
@@ -198,11 +198,11 @@ std::string File::GetFileName(const std::string& path)
     return path;
 }
 
-mode_t File::GetFilePermissions(const std::string& path)
+mode_t File::GetPathPermissions(const std::string& path)
 {
     struct stat pathStat;
     if (stat(path.c_str(), &pathStat) != 0) {
-        AIT_LOG_ERROR("file not exists");
+        AIT_LOG_ERROR("path is not exists");
         return MAX_PERMISSION;
     }
     mode_t permissions = pathStat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
@@ -248,7 +248,7 @@ bool File::CheckFileSuffixAndSize(const std::string &path, SUFFIX type, const si
         return false;
     }
     if (size > iter->second.second && size > maxSize) {
-        AIT_LOG_ERROR("file size invalid");
+        AIT_LOG_ERROR("file size is invalid");
         return false;
     }
     return true;
@@ -281,7 +281,10 @@ static bool CreateDirAux(const std::string& path, bool recursion, mode_t mode)
             return false;
         }
     }
-
+    if (!File::CheckDir(parent)) { // 每当需要创建文件夹时都要校验父目录
+        AIT_LOG_ERROR("parent directory is illegal");
+        return false;
+    }
     if (mkdir(path.c_str(), mode) != 0) {
         if (errno == EACCES || errno == EROFS) {
             AIT_LOG_ERROR("mkdir permission denined");
@@ -356,19 +359,22 @@ bool File::CheckDir(const std::string &path)
         return false;
     }
     if (!IsPathExist(absPath)) {
-        AIT_LOG_ERROR("path not exist");
-        return false;
-    }
-    if (!IsDir(absPath)) {
-        AIT_LOG_ERROR("path is not dir");
+        AIT_LOG_ERROR("path is not exist");
         return false;
     }
     if (IsSoftLink(absPath)) {
         AIT_LOG_ERROR("path is soft link");
         return false;
     }
-    if (!IsDirReadable(absPath)) {
-        AIT_LOG_ERROR("path have no rw access");
+    if (!CheckOwner(absPath)) {
+        return false;
+    }
+    if (!IsDir(absPath)) {
+        AIT_LOG_ERROR("path is not a dir");
+        return false;
+    }
+    if (IsOtherWritable(absPath)) {
+        AIT_LOG_ERROR("dir permission should not be over 0o755(rwxr-xr-x)");
         return false;
     }
     return true;
@@ -398,23 +404,26 @@ bool File::CheckFileBeforeRead(const std::string &path, SUFFIX type, const size_
         return false;
     }
     if (IsSoftLink(absPath)) {
-        AIT_LOG_ERROR("path is soft link");
+        AIT_LOG_ERROR("path is a soft link");
         return false;
     }
-    if ((GetFilePermissions(absPath) & READ_FILE_NOT_PERMITTED) > 0) {
-        AIT_LOG_ERROR("path permission should not be over 0o755(rwxr-xr-x)");
+    if (!CheckOwner(absPath)) {
         return false;
     }
-    if (!IsFileReadable(absPath) || (GetFilePermissions(absPath) & S_IRUSR) == 0) {
-        AIT_LOG_ERROR("path permission should be at least 0o400(r--------)");
+    if (IsOtherWritable(absPath)) {
+        AIT_LOG_ERROR("file permission should not be over 0o755(rwxr-xr-x)");
+        return false;
+    }
+    if (!IsFileReadable(absPath) || (GetPathPermissions(absPath) & S_IRUSR) == 0) {
+        AIT_LOG_ERROR("file permission should be at least 0o400(r--------)");
         return false;
     }
     /* 如果是/dev/random之类的无法计算size的文件，不要用本函数check */
     if (!CheckFileSuffixAndSize(path, type, maxSize)) {
-        AIT_LOG_ERROR("path suffix and size invalid");
+        AIT_LOG_ERROR("file suffix and size invalid");
         return false;
     }
-    return true;
+    return CheckDir(GetParentDir(absPath));
 }
 
 bool File::CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite)
@@ -449,7 +458,7 @@ bool File::CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite)
             AIT_LOG_ERROR("path is soft link");
             return false;
         }
-        if ((GetFilePermissions(absPath) & WRITE_FILE_NOT_PERMITTED) > 0) {
+        if ((GetPathPermissions(absPath) & WRITE_FILE_NOT_PERMITTED) > 0) {
             AIT_LOG_ERROR("path permission should not be over 0o750(rwxr-x---)");
             return false;
         }
@@ -459,5 +468,5 @@ bool File::CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite)
             return false;
         }
     }
-    return true;
+    return CheckDir(GetParentDir(absPath));
 }

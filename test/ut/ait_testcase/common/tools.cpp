@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include "tools.h"
 
+const size_t CMD_BUFFER_LEN = 1024;
 
 int32_t GetCurrentProcessId()
 {
@@ -80,14 +81,14 @@ bool IsPathExist(const std::string& path)
 
 std::string ExecShellCommand(const std::string& cmd)
 {
-    std::array<char, 1024> cmdBuf;
+    std::array<char, CMD_BUFFER_LEN> buffer;
     std::string result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
     if (!pipe) {
         throw std::runtime_error("popen() failed!");
     }
-    while (fgets(cmdBuf.data(), cmdBuf.size(), pipe.get()) != nullptr) {
-        result += cmdBuf.data();
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
     }
     return result;
 }

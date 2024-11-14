@@ -33,6 +33,7 @@ constexpr size_t MAX_FILE_SIZE_DEFAULT = 10ULL * 1024 * 1024 * 1024;
 constexpr int DIR_CHECK_MODE = R_OK | W_OK | X_OK;
 constexpr const char PATH_SEPARATOR = '/';
 constexpr const char* FILE_VALID_PATTERN = "^[a-zA-Z0-9_./-]+$";
+constexpr const char* NORMAL_STRING_VALID_PATTERN = "^[_A-Za-z0-9\"'><=\\[\\])(,}{: /.~-]+$";
 
 constexpr const uint32_t FULL_PATH_LENGTH_MAX = 4096;
 constexpr const uint32_t FILE_NAME_LENGTH_MAX = 255;
@@ -46,10 +47,6 @@ constexpr mode_t MAX_PERMISSION = 0777;
 constexpr mode_t READ_FILE_NOT_PERMITTED = S_IWGRP | S_IWOTH;
 constexpr mode_t WRITE_FILE_NOT_PERMITTED = S_IWGRP | S_IWOTH | S_IROTH | S_IXOTH;
 constexpr mode_t CREATE_FILE_MODE_DEFAULT = O_EXCL | O_CREAT;
-
-const std::vector<std::string> DEFAULT_INVALID_CHARS = {
-    "\n", "\f", "\r", "\b", "\t", "\v", "\007F", "\000D", "\0008", "\000A", "\000C", "\000B", "\0009",
-};
 
 const size_t DEFAULT_STRING_MAX_LEN = 4096;
 

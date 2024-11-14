@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "safety_guard.h"
+#include <regex>
 #include "ait_logger.h"
 #include "file.h"
+#include "safety_guard.h"
 
 SAFETY_RET SafetyGuard::CheckFileLegality(
     const std::string originPath,
@@ -38,17 +39,15 @@ SAFETY_RET SafetyGuard::CheckFileLegality(
 
 SAFETY_RET SafetyGuard::CheckNormalStr(
     const std::string str,
-    const std::vector<std::string> illegalChars,
+    const char* whiteList,
     const size_t maxLen
 )
 {
     if (str.size() > maxLen) {
         return SAFETY_RET::SAFE_ERR_STR_OVER_MAX_LEN;
     }
-    for (const auto &item : illegalChars) {
-        if (str.find(item) != std::string::npos) {
-            return SAFETY_RET::SAFE_ERR_STR_CONTAIN_ILLEGAL_CHAR;
-        }
+    if (!std::regex_match(str, std::regex(whiteList))) {
+        return SAFETY_RET::SAFE_ERR_STR_CONTAIN_ILLEGAL_CHAR;
     }
     return SAFETY_RET::SAFE_ERR_NONE;
 }

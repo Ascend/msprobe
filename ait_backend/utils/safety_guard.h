@@ -37,7 +37,7 @@ public:
 
     static SAFETY_RET CheckNormalStr(
         const std::string str,
-        const std::vector<std::string> illegalChars = DEFAULT_INVALID_CHARS,
+        const char* whiteList = NORMAL_STRING_VALID_PATTERN,
         const size_t maxLen = DEFAULT_STRING_MAX_LEN
     );
 

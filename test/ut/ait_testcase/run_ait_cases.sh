@@ -111,6 +111,8 @@ function fn_execute_cases()
 
 function fn_main()
 {
+    umask 022 # 确保所有编译完的目录权限不会超过755
+    chmod 755 $SCRIPT_DIR
     # 1、构建最新的atbprobe
     fn_build_libsecurec_if_not_exists
     fn_build_atb_probe

@@ -37,7 +37,7 @@ public:
     // 文件权限校验
     static bool IsFileReadable(const std::string& path);
     static bool IsFileWritable(const std::string& path);
-    static bool IsDirReadable(const std::string& path);
+    static bool IsOtherWritable(const std::string& path);
     // 文件存在性校验
     static bool IsPathExist(const std::string& path);
     // 软链接校验
@@ -64,7 +64,7 @@ public:
     // 获取文件名
     static std::string GetFileName(const std::string& path);
     // 获取文件权限
-    static mode_t GetFilePermissions(const std::string& path);
+    static mode_t GetPathPermissions(const std::string& path);
     // 获取文件后缀
     static std::string GetFileSuffix(const std::string& path);
     // 校验文件后缀和内容长度
