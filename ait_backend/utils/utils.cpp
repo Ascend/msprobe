@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "utils.h"
+#include <regex>
 #include "safety_guard.h"
 #include "const.h"
+#include "utils.h"
 
 std::string GetRealPath(const std::string &outPath)
 {
