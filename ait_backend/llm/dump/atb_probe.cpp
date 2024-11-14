@@ -27,6 +27,8 @@
 #include "ait_logger.h"
 #include "utils.h"
 #include "DumpThreadPool.h"
+#include "const.h"
+#include "safety_guard.h"
 
 
 using ordered_json = nlohmann::ordered_json;
@@ -680,10 +682,28 @@ static bool CheckGraphInputInvalid(const std::string &opName, const ordered_json
     return false;
 }
 
+void saveJsonField(const std::string& fieldName, const ordered_json& graphNodeJson, ordered_json& graphNodeJsonToSave)
+{
+    try {
+        if (graphNodeJson.contains(fieldName)) {
+            graphNodeJsonToSave[fieldName] = graphNodeJson[fieldName];
+        } else {
+            AIT_LOG_ERROR(fieldName + " not found in graph.");
+            return;
+        }
+    } catch (const std::exception& e) {
+        AIT_LOG_ERROR("An unexpected error occurred: " + std::string(e.what()));
+        return;
+    }
+}
+
 void atb::Probe::ReportOperationGraph(const std::string &opName, const std::string &graph)
 {
     ordered_json graphNodeJson;
-
+    if (SafetyGuard::CheckNormalStr(opName) != SAFETY_RET::SAFE_ERR_NONE) {
+        AIT_LOG_ERROR("Check opName string failed!");
+        return;
+    }
     try {
         graphNodeJson = ordered_json::parse(graph);
     } catch (const ordered_json::parse_error& ex) {
@@ -692,37 +712,46 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
                "byte position of error: " + std::to_string(ex.byte));
         return;
     }
-
+ 
     // 检查必选项
     if (CheckGraphInputInvalid(opName, graphNodeJson)) {
         AIT_LOG_ERROR("CheckGraphInput failed: input is invalid.");
         return;
     }
-
+ 
     // 保存原始json信息，用于和model拓扑合并成模型的拓扑信息
     if (IsSaveDumpType("model")) {
         AIT_LOG_DEBUG("Save dump type contains `model`: true.");
         g_layerGraphMap.SaveLayerGraph(opName, graph);
     }
-
+ 
     ordered_json graphNodeJsonToSave;
-    graphNodeJsonToSave["opName"] = graphNodeJson["opName"];
-    graphNodeJsonToSave["opType"] = graphNodeJson["opType"];
-    graphNodeJsonToSave["param"] = graphNodeJson["param"];
-
+    saveJsonField("opName", graphNodeJson, graphNodeJsonToSave);
+    saveJsonField("opType", graphNodeJson, graphNodeJsonToSave);
+    saveJsonField("param", graphNodeJson, graphNodeJsonToSave);
+ 
     // 根节点
     std::vector<std::string> tensorNameList;
-    ModifyRootNodeTensors(graphNodeJsonToSave, tensorNameList, graphNodeJson);
-
+    try {
+        ModifyRootNodeTensors(graphNodeJsonToSave, tensorNameList, graphNodeJson);
+    } catch (const std::exception& e) {
+        AIT_LOG_ERROR("An unexpected error occurred: "+ std::string(e.what()));
+        return;
+    }
     // 递归调用获取子节点信息
     if (graphNodeJson.find("nodes") != graphNodeJson.end()) {
         for (auto childNodeInput : graphNodeJson["nodes"]) {
             ordered_json childNodeToSave;
-            DfsToModifyGraphTensors(childNodeToSave, tensorNameList, childNodeInput);
+            try {
+                DfsToModifyGraphTensors(childNodeToSave, tensorNameList, childNodeInput);
+            } catch (const std::exception& e) {
+                AIT_LOG_ERROR("An unexpected error occurred: "+ std::string(e.what()));
+                return;
+            }
             graphNodeJsonToSave["nodes"].emplace_back(childNodeToSave);
         }
     }
-
+ 
     // 保存修改的Json
     std::string outDir = GetOutDir();
     std::string pidDir = outDir + "layer/" + std::to_string(GetCurrentProcessId()) + "/";
@@ -730,7 +759,7 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
         AIT_LOG_ERROR("Create directory failed: " + pidDir);
         return;
     }
-
+ 
     std::string outPath = pidDir + opName + ".json";
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
     if (outfile.is_open()) {
@@ -740,12 +769,13 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     } else {
         AIT_LOG_ERROR("Unable to open file! File name:" + outPath);
     }
-
+ 
     if (IsSaveDumpType("onnx")) {
         SaveSubProcessInfo(outPath);
     }
     return;
 }
+
 
 bool atb::Probe::ReportOperationStatisticEnable()
 {
@@ -1140,12 +1170,20 @@ ModelGraphMap g_modelGraphMap;
 bool atb_speed::SpeedProbe::IsReportModelTopoInfo(const std::string &modelName)
 {
     // 只保存一次
+    if (SafetyGuard::CheckNormalStr(modelName) != SAFETY_RET::SAFE_ERR_NONE)  {
+        AIT_LOG_ERROR("Check modelName string failed!");
+        return false;
+    }
     return IsSaveDumpType("model") && (g_modelGraphMap.IsInitModelGraph(modelName));
 }
 
 void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, const std::string &graph)
 {
     ordered_json modelJson;
+    if (SafetyGuard::CheckNormalStr(modelName) != SAFETY_RET::SAFE_ERR_NONE) {
+        AIT_LOG_ERROR("Check modelName string failed!");
+        return;
+    }
     g_modelGraphMap.SaveModelGraph(modelName, graph);
 
     try {
@@ -1160,7 +1198,12 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
     // 和atb保存的layer拓扑信息进行合并
     if (modelJson.find("nodes") != modelJson.end()) {
         for (auto &layerJson : modelJson["nodes"]) {
-            MergeLayerTopoInfo(layerJson);
+            try {
+                MergeLayerTopoInfo(layerJson);
+            } catch (const std::exception& e) {
+                AIT_LOG_ERROR("An unexpected error occurred: "+ std::string(e.what()));
+                return;
+            }
         }
     }
 

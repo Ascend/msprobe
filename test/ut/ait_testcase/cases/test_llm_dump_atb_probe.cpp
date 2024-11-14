@@ -125,6 +125,26 @@ TEST(atb_Probe, ReportOperationGraph)
     EXPECT_EQ(dumpJson["nodes"].size(), 9);
 }
 
+TEST(atb_Probe, ReportOperationGraph_json_01) {
+    std::ifstream file("../test_json.json");
+    EXPECT_TRUE(file.is_open());
+    unsetenv("ATB_OUTPUT_DIR");
+
+    ordered_json graphNodeJson = ordered_json::parse(file);
+    std::string opName = "EncoderLayer_2";
+    atb::Probe::ReportOperationGraph(opName, graphNodeJson.dump());
+}
+
+TEST(atb_Probe, ReportOperationGraph_json_02) {
+    std::ifstream file("../test_json.json");
+    EXPECT_TRUE(file.is_open());
+    unsetenv("ATB_OUTPUT_DIR");
+
+    ordered_json graphNodeJson = ordered_json::parse(file);
+    std::string opName = "ElewiseOperation_2_8";
+    atb::Probe::ReportOperationGraph(opName, graphNodeJson.dump());
+}
+
 ordered_json g_model = {{"modelName", "EncoderModel"},
     {"inTensors", {"EncoderModel_input_0", "EncoderModel_input_1", "EncoderModel_input_2"}},
     {"outTensors", {"EncoderModel_output_0", "EncoderModel_output_1", "EncoderModel_output_2"}},
