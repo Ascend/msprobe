@@ -49,6 +49,7 @@ DISTRIBUTED_SHELL_NAME = 'run_distributed_npu.sh'
 class InputInfo:
     max_file_size: int = MAX_JSON_FILE_SIZE
     file_name: str = 'Input file'
+    check_readable: bool = True
     check_writable: bool = False
     must_exists: bool = True
     is_dir: bool = False
@@ -485,6 +486,26 @@ def islink(path):
     return os.path.islink(path)
 
 
+def check_others_writable(directory):
+    dir_stat = os.stat(directory)
+    is_writable = (
+            bool(dir_stat.st_mode & stat.S_IWGRP) or  # 组可写
+            bool(dir_stat.st_mode & stat.S_IWOTH)  # 其他用户可写
+    )
+    return is_writable
+
+
+def check_dirpath_before_read(path):
+    path = os.path.realpath(path)
+    dirpath = os.path.dirname(path)
+    if check_others_writable(dirpath):
+        translog.warning(f"The dir is writable by others: {dirpath}.")
+    try:
+        check_path_owner_consistent(dirpath)
+    except PermissionError:
+        translog.warning(f"The directory {dirpath} is not yours.")
+
+
 def check_input_file_valid(input_path, input_info):
     file_name = input_info.file_name
     if islink(input_path):
@@ -511,8 +532,11 @@ def check_input_file_valid(input_path, input_info):
     if not input_info.is_dir and not os.path.isfile(input_path):
         raise ValueError('{} {} is not a common file!'.format(file_name, input_path))
 
-    if not os.access(input_path, os.R_OK):
-        raise PermissionError('{} {} is not readable!'.format(file_name, input_path))
+    if input_info.check_readable:
+        if not os.access(input_path, os.R_OK):
+            raise PermissionError('{} {} is not readable!'.format(file_name, input_path))
+        if os.path.isfile(input_path) and input_info.must_exists:
+            check_dirpath_before_read(input_path)
 
     if input_info.check_writable:
         if not os.access(input_path, os.W_OK):
