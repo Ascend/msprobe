@@ -145,6 +145,21 @@ static bool IsSaveDumpType(const std::string &tar)
     return false;
 }
 
+static int SafetyStoi(const char* env, int defalutValue)
+{
+    int ans = defalutValue;
+    try {
+        ans = std::stoi(env);
+    } catch (const std::invalid_argument& e) {
+        AIT_LOG_ERROR("Cannot converting environment varible to int.");
+        return ans;
+    } catch (const std::out_of_range& e) {
+        AIT_LOG_ERROR("The value of environment is illegal.");
+        return ans;
+    }
+    return ans;
+}
+
 static void DfsToModifyGraphTensors(ordered_json &curNodeToSave,
     const std::vector<std::string> &fatherNodeTensorNameList, const ordered_json &curNodeInput)
 {
@@ -380,15 +395,14 @@ bool atb::Probe::IsSaveChild()
     if (child == nullptr) {
         return false;
     }
-    int value = std::stoi(child);
-    return value;
+    return SafetyStoi(child, 0) != 0;
 }
 
 bool atb::Probe::IsSaveTensorData()
 {
     const char* saveTensor = std::getenv("ATB_SAVE_TENSOR");
     if (saveTensor != nullptr) {
-        int value = std::stoi(saveTensor);
+        int value = SafetyStoi(saveTensor, 0);
         if (value == SAVE_TENSOR_DATA) {
             return true;
         }
@@ -410,8 +424,8 @@ bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
     }
     std::vector<std::string> saveTensorRan = SplitString(saveTensorRange, ',');
     for (size_t i = 1U; i < saveTensorRan.size(); i += RANGE_COUNT) {
-        uint64_t left = stoi(saveTensorRan[i - 1]);
-        uint64_t right = stoi(saveTensorRan[i]);
+        uint64_t left = SafetyStoi(saveTensorRan[i - 1].c_str(), 0);
+        uint64_t right = SafetyStoi(saveTensorRan[i].c_str(), 0);
         if ((executeCount <= right) && (executeCount >= left)) {
             return true;
         }
@@ -424,8 +438,8 @@ bool atb::Probe::IsSaveTensorBefore()
     const char* saveTensorTime = std::getenv("ATB_SAVE_TENSOR_TIME");
     const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
 
-    int value = (saveTensorTime) ? std::stoi(saveTensorTime) : SAVE_TENSOR_AFTER;
-    int saveFlag = (saveTensorInBeforeOutAfter) ? std::stoi(saveTensorInBeforeOutAfter) :
+    int value = (saveTensorTime) ? SafetyStoi(saveTensorTime, 0) : SAVE_TENSOR_AFTER;
+    int saveFlag = (saveTensorInBeforeOutAfter) ? SafetyStoi(saveTensorInBeforeOutAfter, 0) :
                     SAVE_TENSOR_IN_BEFORE_OUT_AFTER;
 
     bool isSaveBefore = (value == SAVE_TENSOR_BEFORE || value == SAVE_TENSOR_BOTH ||
@@ -440,8 +454,8 @@ bool atb::Probe::IsSaveTensorAfter()
     const char* saveTensorTime = std::getenv("ATB_SAVE_TENSOR_TIME");
     const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
 
-    int value = (saveTensorTime) ? std::stoi(saveTensorTime) : SAVE_TENSOR_AFTER;
-    int saveFlag = (saveTensorInBeforeOutAfter) ? std::stoi(saveTensorInBeforeOutAfter) :
+    int value = (saveTensorTime) ? SafetyStoi(saveTensorTime, 0) : SAVE_TENSOR_AFTER;
+    int saveFlag = (saveTensorInBeforeOutAfter) ? SafetyStoi(saveTensorInBeforeOutAfter, 0) :
                     SAVE_TENSOR_IN_BEFORE_OUT_AFTER;
 
     bool isSaveAfter = (value == SAVE_TENSOR_AFTER || value == SAVE_TENSOR_BOTH ||
@@ -496,6 +510,15 @@ static bool IsSubString(const std::string& inputString, const std::vector<std::s
     return true;
 }
 
+static bool IsTensorFileHeadVaild(const std::string &head, const uint64_t maxHead = 50)
+{
+    if (head.size() > maxHead) {
+        AIT_LOG_ERROR("The head of binfile is too long.");
+        return false;
+    }
+    return true;
+}
+
 void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     const std::string &dims, const void *hostData, uint64_t dataSize,
     const std::string &filePath)
@@ -506,6 +529,11 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     AIT_LOG_DEBUG("saveFlag: " + std::to_string(saveFlag));
     AIT_LOG_DEBUG("filePath: " + filePath);
     if (!saveFlag) {
+        return;
+    }
+    // 检查dataSize是否超过最大值，是否为0
+    if ((dataSize > MAX_FILE_SIZE_DEFAULT) || (dataSize == 0)) {
+        AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(dataSize));
         return;
     }
 
@@ -528,12 +556,15 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     }
 
     const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
-    if (saveTensorInBeforeOutAfter && std::stoi(saveTensorInBeforeOutAfter) == SAVE_TENSOR_IN_BEFORE_OUT_AFTER) {
+    if (saveTensorInBeforeOutAfter && SafetyStoi(saveTensorInBeforeOutAfter, 0) == SAVE_TENSOR_IN_BEFORE_OUT_AFTER) {
         bool isIntensorBefore = IsSubString(filePath, {"before", "intensor"});
         bool isOuttensorAfter = IsSubString(filePath, {"after", "outtensor"});
         if (!(isIntensorBefore || isOuttensorAfter)) {
             return;
         }
+    }
+    if (!IsTensorFileHeadVaild(format) || !IsTensorFileHeadVaild(dtype) || !IsTensorFileHeadVaild(dims)) {
+        return;
     }
     std::shared_ptr<FileSystem::BinFile> binfile(std::make_shared<FileSystem::BinFile>());
     binfile->AddAttr("format", format);
@@ -588,7 +619,7 @@ bool atb::Probe::IsSaveTiling()
         AIT_LOG_DEBUG("IsSaveTiling: false");
         return false;
     }
-    if (std::stoi(isSaveTiling) != 0) {
+    if (SafetyStoi(isSaveTiling, 0) != 0) {
         AIT_LOG_DEBUG("IsSaveTiling: true");
         return true;
     }
@@ -603,7 +634,7 @@ bool atb::Probe::IsSaveIntensor()
         AIT_LOG_DEBUG("IsSaveIntensor: false");
         return false;
     }
-    int value = std::stoi(saveTensorPart);
+    int value = SafetyStoi(saveTensorPart, 0);
     if (value == SAVE_INTENSOR || value == SAVE_ALL_TENSOR) {
         AIT_LOG_DEBUG("IsSaveIntensor: true");
         return true;
@@ -619,7 +650,7 @@ bool atb::Probe::IsSaveOuttensor()
         AIT_LOG_DEBUG("IsSaveOuttensor: false");
         return false;
     }
-    int value = std::stoi(saveTensorPart);
+    int value = SafetyStoi(saveTensorPart, 0);
     if (value == SAVE_OUTTENSOR || value == SAVE_ALL_TENSOR) {
         AIT_LOG_DEBUG("IsSaveOuttensor: true");
         return true;
