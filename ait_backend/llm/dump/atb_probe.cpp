@@ -26,6 +26,7 @@
 #include "nlohmann/json.hpp"
 #include "ait_logger.h"
 #include "utils.h"
+#include "umask_wrapper.h"
 #include "DumpThreadPool.h"
 #include "const.h"
 #include "safety_guard.h"
@@ -101,7 +102,6 @@ static const std::string& GetOutDir()
     return outDir;
 }
 
-
 static bool IsInTensorBinPath(const std::string &filePath)
 {
     size_t sepPos = filePath.rfind("/");
@@ -113,7 +113,6 @@ static bool IsInTensorBinPath(const std::string &filePath)
     AIT_LOG_DEBUG("IsInTensorBinPath: " + std::to_string(flag));
     return flag;
 }
-
 
 static bool IsOutTensorBinPath(const std::string &filePath)
 {
@@ -130,10 +129,10 @@ static bool IsOutTensorBinPath(const std::string &filePath)
 static bool IsSaveDumpType(const std::string &tar)
 {
     const char* dumpTypeList = std::getenv("ATB_DUMP_TYPE");
-    
+
     if (dumpTypeList != nullptr) {
         AIT_LOG_DEBUG("Got ATB_DUMP_TYPE: " + std::string(dumpTypeList));
-        
+
         std::vector<std::string> dumpTypes = SplitString(dumpTypeList, '|');
         for (const auto &type : dumpTypes) {
             if (type == tar) {
@@ -142,7 +141,7 @@ static bool IsSaveDumpType(const std::string &tar)
             }
         }
     }
-    
+
     return false;
 }
 
@@ -257,6 +256,7 @@ void SaveSubProcessInfo(const std::string infoToSave)
     }
 
     std::string outPath = outDir + "/subprocess_info.txt";
+    ms::UmaskWrapper uw;
     std::ofstream outfile(outPath, std::ios::app);
 
     if (outfile.is_open()) {
@@ -267,11 +267,12 @@ void SaveSubProcessInfo(const std::string infoToSave)
 }
 
 namespace atb {
-    
+
 static std::unordered_map<uint64_t, std::shared_ptr<const std::string>> g_filecheck;
 static std::mutex g_mtx;
 void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile, std::shared_ptr<const std::string> cpoutPath)
 {
+    ms::UmaskWrapper uw;
     uint64_t hashValue = binFile->CalcHash();
 
     std::unique_lock<std::mutex> lock(g_mtx);
@@ -395,12 +396,10 @@ bool atb::Probe::IsSaveTensorData()
     return false;
 }
 
-
 bool atb::Probe::IsSaveTensorDesc()
 {
     return true;
 }
-
 
 bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
 {
@@ -420,7 +419,6 @@ bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
     return false;
 }
 
-
 bool atb::Probe::IsSaveTensorBefore()
 {
     const char* saveTensorTime = std::getenv("ATB_SAVE_TENSOR_TIME");
@@ -436,7 +434,6 @@ bool atb::Probe::IsSaveTensorBefore()
     AIT_LOG_DEBUG("IsSaveTensorBefore: " + std::to_string(isSaveBefore));
     return isSaveBefore;
 }
-
 
 bool atb::Probe::IsSaveTensorAfter()
 {
@@ -454,7 +451,6 @@ bool atb::Probe::IsSaveTensorAfter()
     return isSaveAfter;
 }
 
-
 static bool IsDeviceIdValid(const std::string &filePath)
 {
     const char* saveDeviceId = std::getenv("ATB_DEVICE_ID");
@@ -468,7 +464,6 @@ static bool IsDeviceIdValid(const std::string &filePath)
     }
     return true;
 }
-
 
 static bool IsDiskSpaceValid(const std::string path, uint64_t dataSize)
 {
@@ -488,7 +483,6 @@ static bool IsDiskSpaceValid(const std::string path, uint64_t dataSize)
     return true;
 }
 
-
 static bool IsSubString(const std::string& inputString, const std::vector<std::string>& subStrings)
 {
     if (subStrings.empty()) {
@@ -501,7 +495,6 @@ static bool IsSubString(const std::string& inputString, const std::vector<std::s
     }
     return true;
 }
-
 
 void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     const std::string &dims, const void *hostData, uint64_t dataSize,
@@ -553,7 +546,6 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     PrepareToWriteFile(binfile, outPath);
 }
 
-
 void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::string &filePath)
 {
     if (!data) {
@@ -576,6 +568,7 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
         return;
     }
 
+    ms::UmaskWrapper uw;
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
 
     if (outfile.is_open()) {
@@ -587,7 +580,6 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
     }
     return;
 }
-
 
 bool atb::Probe::IsSaveTiling()
 {
@@ -604,7 +596,6 @@ bool atb::Probe::IsSaveTiling()
     return false;
 }
 
-
 bool atb::Probe::IsSaveIntensor()
 {
     const char* saveTensorPart = std::getenv("ATB_SAVE_TENSOR_PART");
@@ -620,7 +611,6 @@ bool atb::Probe::IsSaveIntensor()
     AIT_LOG_DEBUG("IsSaveIntensor: false");
     return false;
 }
-
 
 bool atb::Probe::IsSaveOuttensor()
 {
@@ -694,6 +684,7 @@ static bool CheckGraphInputInvalid(const std::string &opName, const ordered_json
     }
     return false;
 }
+
 
 void saveJsonField(const std::string& fieldName, const ordered_json& graphNodeJson, ordered_json& graphNodeJsonToSave)
 {
@@ -777,6 +768,8 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     }
  
     std::string outPath = pidDir + opName + ".json";
+
+    ms::UmaskWrapper uw;
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
     if (outfile.is_open()) {
         outfile << graphNodeJsonToSave.dump() << std::endl;
@@ -791,7 +784,6 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     }
     return;
 }
-
 
 bool atb::Probe::ReportOperationStatisticEnable()
 {
@@ -823,6 +815,7 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
     }
 
     outPath = GetRealPath(outPath);
+    ms::UmaskWrapper uw;
     std::ofstream file(outPath, std::ios_base::app);
     if (file.is_open()) {
         file << "[" << opname << "]:" << st << std::endl;
@@ -858,6 +851,7 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
     }
 
     outPath = GetRealPath(outPath);
+    ms::UmaskWrapper uw;
     std::ofstream file(outPath, std::ios_base::app);
     if (file.is_open()) {
         file << "[" << opname << "]:" << st << std::endl;
@@ -867,7 +861,6 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
     }
     return;
 }
-
 
 static std::string MakeAbsolutePath(const std::string& path)
 {
@@ -890,7 +883,6 @@ static std::string MakeAbsolutePath(const std::string& path)
     }
     return curAbsolutePath + "/" + path;
 }
-
 
 static std::string GetInputString(int &caseNum, const std::string &opName, const std::string &opParam,
     const std::vector<atb::Probe::Tensor> &inTensors, const std::vector<atb::Probe::Tensor> &outTensors)
@@ -965,12 +957,13 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
     return inputString;
 }
 
-
 static void ReportIOTensor(std::string &outPath, const std::string &opName, const std::string &opParam,
     const std::vector<atb::Probe::Tensor> &inTensors, const std::vector<atb::Probe::Tensor> &outTensors)
 {
-    int caseNum;
+    int caseNum = 1;
     outPath = GetRealPath(outPath);
+    ms::UmaskWrapper uw;
+
     std::ifstream f(outPath, std::ios::in);
     if (f.is_open()) {
         caseNum = 0;
@@ -1009,12 +1002,10 @@ ExpectedError";
     return;
 }
 
-
 bool atb::Probe::ReportOperationIOTensorEnable()
 {
     return IsSaveDumpType("op");
 }
-
 
 void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::string &opName,
     const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
@@ -1046,12 +1037,10 @@ void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::s
     return;
 }
 
-
 bool atb::Probe::ReportKernelIOTensorEnable()
 {
     return IsSaveDumpType("kernel");
 }
-
 
 void atb::Probe::ReportKernelIOTensor(const size_t executeCount, const std::string &opName,
     const std::string &opParam, const std::vector<atb::Probe::Tensor> &inTensors,
@@ -1097,6 +1086,7 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
         return;
     }
 
+    ms::UmaskWrapper uw;
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
     if (outfile.is_open()) {
         outfile << param << std::endl;
@@ -1266,6 +1256,7 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
     }
 
     std::string outPath = pidDir + modelName + ".json";
+    ms::UmaskWrapper uw;
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
 
     if (outfile.is_open()) {

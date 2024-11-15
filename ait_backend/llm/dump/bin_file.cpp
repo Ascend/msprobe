@@ -15,8 +15,8 @@
  */
 
 #include "bin_file.h"
-#include <sstream>
 #include "securec.h"
+#include "umask_wrapper.h"
 #include "ait_logger.h"
 
 FileSystem::BinFile::BinFile() {}
@@ -41,6 +41,7 @@ bool FileSystem::BinFile::Write(const std::string &filePath, const mode_t mode)
     // 写format dtype dims
     // 再写data
     // 再写end
+    ms::UmaskWrapper um;
     std::ofstream outputFile(filePath, std::ios::app);
     if (!outputFile.is_open()) {
         AIT_LOG_ERROR("File to write can't open : " + filePath);
