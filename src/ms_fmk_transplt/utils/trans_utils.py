@@ -37,7 +37,6 @@ MAX_INPUT_FILE_COUNT = 100
 
 VERSION_JSON_NAME_DICT = {
     "1.11.0": "_1_11_0.json",
-    "2.0.1": "_2_0.json",
     "2.1.0": "_2_1.json",
     "2.2.0": "_2_2.json"
 }
