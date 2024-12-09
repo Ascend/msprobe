@@ -190,7 +190,8 @@ class NanoDumpData:
             log.print_error_log('Failed to decode inputs info %s', error)
             raise CompareError(CompareError.MSACCUCMP_PARSE_NANO_DUMP_FILE_ERROR) from error
 
-        self.inputs = nested_obj.input_desc.inputs
+        if nested_obj.input_desc is not None:
+            self.inputs = nested_obj.input_desc.inputs
 
         # outputs
         outputs_desc_obj = EmptyObj()
@@ -201,7 +202,8 @@ class NanoDumpData:
             log.print_error_log('Failed to decode outputs info %s' % error)
             raise CompareError(CompareError.MSACCUCMP_PARSE_NANO_DUMP_FILE_ERROR) from error
 
-        self.outputs = nested_obj.output_desc.outputs
+        if nested_obj.output_desc is not None:
+            self.outputs = nested_obj.output_desc.outputs
 
         self._convert_data_type_to_proto_data_type()
 
