@@ -24,6 +24,8 @@
 #include <cstdint>
 #include <algorithm>
 #include <climits>
+#include <map>
+
 #define EXPORT_LLM __attribute__ ((visibility("default")))
 
 namespace atb {
@@ -35,6 +37,7 @@ constexpr int SAVE_TENSOR_AFTER = 1;
 constexpr int SAVE_TENSOR_BOTH = 2;
 constexpr int SAVE_TENSOR_IN_BEFORE_OUT_AFTER = 1;
 constexpr int SAVE_TENSOR_DATA = 1;
+constexpr int SAVE_TENSOR_STATS = 1;
 constexpr int RANGE_COUNT = 2;
 constexpr int SAVE_INTENSOR = 0;
 constexpr int SAVE_OUTTENSOR = 1;
@@ -104,5 +107,94 @@ public:
     EXPORT_LLM static void ReportModelTopoInfo(const std::string &modelName, const std::string &graph);
 };
 } // namespace atb_speed
+
+namespace Mki {
+
+enum TensorDType : int {
+    TENSOR_DTYPE_UNDEFINED = -1,
+    TENSOR_DTYPE_FLOAT = 0,
+    TENSOR_DTYPE_FLOAT16 = 1,
+    TENSOR_DTYPE_INT8 = 2,
+    TENSOR_DTYPE_INT32 = 3,
+    TENSOR_DTYPE_UINT8 = 4,
+    TENSOR_DTYPE_INT16 = 6,
+    TENSOR_DTYPE_UINT16 = 7,
+    TENSOR_DTYPE_UINT32 = 8,
+    TENSOR_DTYPE_INT64 = 9,
+    TENSOR_DTYPE_UINT64 = 10,
+    TENSOR_DTYPE_DOUBLE = 11,
+    TENSOR_DTYPE_BOOL = 12,
+    TENSOR_DTYPE_STRING = 13,
+    TENSOR_DTYPE_COMPLEX64 = 16,
+    TENSOR_DTYPE_COMPLEX128 = 17,
+    TENSOR_DTYPE_BF16 = 27
+};
+
+constexpr size_t HALF_DATA_SIZE = 2;
+const std::string UNDEFINED_STR = "undefined";
+
+const std::map<TensorDType, size_t> MAP_OF_DTYPE_SIZE = {
+    {TensorDType::TENSOR_DTYPE_UNDEFINED, 0},
+    {TensorDType::TENSOR_DTYPE_FLOAT, sizeof(float)},
+    {TensorDType::TENSOR_DTYPE_FLOAT16, HALF_DATA_SIZE},
+    {TensorDType::TENSOR_DTYPE_INT8, sizeof(int8_t)},
+    {TensorDType::TENSOR_DTYPE_INT32, sizeof(int32_t)},
+    {TensorDType::TENSOR_DTYPE_UINT8, sizeof(uint8_t)},
+    {TensorDType::TENSOR_DTYPE_INT16, sizeof(int16_t)},
+    {TensorDType::TENSOR_DTYPE_UINT16, sizeof(uint16_t)},
+    {TensorDType::TENSOR_DTYPE_UINT32, sizeof(uint32_t)},
+    {TensorDType::TENSOR_DTYPE_INT64, sizeof(int64_t)},
+    {TensorDType::TENSOR_DTYPE_UINT64, sizeof(uint64_t)},
+    {TensorDType::TENSOR_DTYPE_DOUBLE, sizeof(double)},
+    {TensorDType::TENSOR_DTYPE_BOOL, sizeof(bool)},
+    {TensorDType::TENSOR_DTYPE_BF16, HALF_DATA_SIZE},
+    {TensorDType::TENSOR_DTYPE_COMPLEX64, sizeof(double)}
+};
+
+const std::map<std::string, TensorDType> MAP_STRING_TO_DTYPE = {
+    { "float", TensorDType::TENSOR_DTYPE_FLOAT },
+    { "float16", TensorDType::TENSOR_DTYPE_FLOAT16 },
+    { "int8", TensorDType::TENSOR_DTYPE_INT8 },
+    { "int32", TensorDType::TENSOR_DTYPE_INT32 },
+    { "uint8", TensorDType::TENSOR_DTYPE_UINT8 },
+    { "int16", TensorDType::TENSOR_DTYPE_INT16 },
+    { "uint16", TensorDType::TENSOR_DTYPE_UINT16 },
+    { "uint32", TensorDType::TENSOR_DTYPE_UINT32 },
+    { "int64", TensorDType::TENSOR_DTYPE_INT64 },
+    { "uint64", TensorDType::TENSOR_DTYPE_UINT64 },
+    { "double", TensorDType::TENSOR_DTYPE_DOUBLE },
+    { "bool", TensorDType::TENSOR_DTYPE_BOOL },
+    { "string", TensorDType::TENSOR_DTYPE_STRING },
+    { "complex64", TensorDType::TENSOR_DTYPE_COMPLEX64 },
+    { "complex128", TensorDType::TENSOR_DTYPE_COMPLEX128 },
+    { "bf16", TensorDType::TENSOR_DTYPE_BF16 },
+};
+
+const std::map<int, std::string> MAP_DTYPE_TO_STRING = {
+    { TensorDType::TENSOR_DTYPE_FLOAT, "float" },
+    { TensorDType::TENSOR_DTYPE_FLOAT16, "float16" },
+    { TensorDType::TENSOR_DTYPE_INT8, "int8" },
+    { TensorDType::TENSOR_DTYPE_INT32, "int32" },
+    { TensorDType::TENSOR_DTYPE_UINT8, "uint8" },
+    { TensorDType::TENSOR_DTYPE_INT16, "int16" },
+    { TensorDType::TENSOR_DTYPE_UINT16, "uint16" },
+    { TensorDType::TENSOR_DTYPE_UINT32, "uint32" },
+    { TensorDType::TENSOR_DTYPE_INT64, "int64" },
+    { TensorDType::TENSOR_DTYPE_UINT64, "uint64" },
+    { TensorDType::TENSOR_DTYPE_DOUBLE, "double" },
+    { TensorDType::TENSOR_DTYPE_BOOL, "bool" },
+    { TensorDType::TENSOR_DTYPE_STRING, "string" },
+    { TensorDType::TENSOR_DTYPE_COMPLEX64, "complex64" },
+    { TensorDType::TENSOR_DTYPE_COMPLEX128, "complex128" },
+    { TensorDType::TENSOR_DTYPE_BF16, "bf16" },
+};
+
+size_t GetTensorElementSize(const TensorDType dtype);
+TensorDType GetDTypeWithStr(const std::string &typeStr);
+const std::string &GetStrWithDType(int dType);
+
+// 补充
+float ConvertToFloat32(uint16_t value, size_t exponentBits, size_t mantissaBits);
+} // namespace MKi
 
 #endif

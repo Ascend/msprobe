@@ -19,6 +19,16 @@
 #include <cctype>
 #include <cstdlib>
 #include <unordered_map>
+// for calculating dumped-tensor statistics
+#include <vector>
+#include <thread>
+#include <algorithm>
+#include <functional>
+#include <memory>
+#include <complex>
+#include <utility>
+#include "Statistics.h"
+// endfor
 #include <unistd.h>
 #include <sys/statvfs.h>
 #include <sys/stat.h>
@@ -281,6 +291,77 @@ void SaveSubProcessInfo(const std::string infoToSave)
     return;
 }
 
+namespace Mki {
+
+    size_t GetTensorElementSize(const TensorDType dtype)
+    {
+        auto iter = MAP_OF_DTYPE_SIZE.find(dtype);
+        if (iter == MAP_OF_DTYPE_SIZE.end()) {
+            AIT_LOG_ERROR("Get Tensor ElementSize:dtype not found!");
+            return 0;
+        }
+        return iter->second;
+    }
+
+    TensorDType GetDTypeWithStr(const std::string &typeStr)
+    {
+        auto it = MAP_STRING_TO_DTYPE.find(typeStr);
+        if (it != MAP_STRING_TO_DTYPE.end()) {
+            return it->second;
+        }
+        return TensorDType::TENSOR_DTYPE_UNDEFINED;
+    }
+
+    const std::string &GetStrWithDType(int dType)
+    {
+        auto it = MAP_DTYPE_TO_STRING.find(dType);
+        if (it != MAP_DTYPE_TO_STRING.end()) {
+            return it->second;
+        }
+        return UNDEFINED_STR;
+    }
+
+    float ConvertToFloat32(uint16_t value, size_t exponentBits, size_t mantissaBits)
+    {
+        // Determine the bias of the semi-precision type
+        int32_t exponentBias = (1 << (exponentBits - 1)) - 1;
+
+        // Obtain the mask
+        uint16_t exponentMask = ((1 << exponentBits) - 1) << mantissaBits;
+        uint16_t mantissaMask = (1 << mantissaBits) - 1;
+        uint16_t signMask = 1 << (exponentBits + mantissaBits);
+
+        // Extract symbol bits
+        int sign = (value & signMask) ? -1 : 1;
+
+        // Extract index and mantissa
+        int32_t rawExponent = (value & exponentMask) >> mantissaBits;
+        uint32_t mantissa = value & mantissaMask;
+
+        // Handle special values
+        if (rawExponent == (1 << exponentBits) - 1) { // All 1s represent NaN or infinity
+            if (mantissa != 0) {
+                return std::numeric_limits<float>::quiet_NaN(); // NaN
+            } else {
+                return sign * std::numeric_limits<float>::infinity(); // Infinity
+            }
+        } else if (rawExponent == 0) { // Exponents with all zeros indicate non-normalized numbers or zeros
+            if (mantissa == 0) {
+                return sign * 0.0f; // Zero
+            } else {
+                // Unnormalized number
+                float result = sign * std::ldexp(static_cast<float>(mantissa), 1 - exponentBias - mantissaBits);
+                return result;
+            }
+        }
+
+        // Normalized number
+        float normalizedMantissa = 1.0f + static_cast<float>(mantissa) / (1 << mantissaBits);
+        float result = sign * std::ldexp(normalizedMantissa, rawExponent - exponentBias);
+        return result;
+    }
+}
+
 namespace atb {
 
 static std::unordered_map<uint64_t, std::shared_ptr<const std::string>> g_filecheck;
@@ -519,59 +600,245 @@ static bool IsTensorFileHeadVaild(const std::string &head, const uint64_t maxHea
     return true;
 }
 
+// helper Functions for Calculating the needed Statistics
+struct BinFileContent {
+    const void *hostData;
+    uint64_t dataSize;
+};
+
+struct BinFileInfo {
+    const std::string format;
+    const std::string dtype;
+    const std::string dims;
+    BinFileContent binFileContent;
+    const std::string filePath;
+};
+
+template<typename T>
+static void CalculateStatistics(BinFileContent binFileContent,
+    std::pair<size_t, size_t> rangeThread, Statistics<T> &stats,
+    Mki::TensorDType tensorDType = Mki::TensorDType::TENSOR_DTYPE_UNDEFINED)
+{
+    const void* binData = binFileContent.hostData;
+    size_t dataSize = binFileContent.dataSize;
+    size_t start = rangeThread.first;
+    size_t end = rangeThread.second;
+    switch (tensorDType) {
+        case Mki::TensorDType::TENSOR_DTYPE_UNDEFINED: {
+            const T* data = static_cast<const T*>(binData);
+            for (size_t i = start; i < end; ++i) {
+                stats.Compute(data[i]);
+            }
+            break;
+        }
+        case Mki::TensorDType::TENSOR_DTYPE_FLOAT16: {
+            const uint16_t* data16 = static_cast<const uint16_t*>(binData);
+            constexpr size_t exponentBits = 5;
+            constexpr size_t mantissaBits = 10;
+            for (size_t i = start; i < end; ++i) {
+                float value = Mki::ConvertToFloat32(data16[i], exponentBits, mantissaBits);
+                stats.Compute(static_cast<T>(value));
+            }
+            break;
+        }
+        case Mki::TensorDType::TENSOR_DTYPE_BF16: {
+            const uint16_t* data16 = static_cast<const uint16_t*>(binData);
+            constexpr size_t exponentBits = 8;
+            constexpr size_t mantissaBits = 7;
+            for (size_t i = start; i < end; ++i) {
+                float value = Mki::ConvertToFloat32(data16[i], exponentBits, mantissaBits);
+                stats.Compute(static_cast<T>(value));
+            }
+            break;
+        }
+        default:
+            AIT_LOG_ERROR("Invalid datatype: " + Mki::GetStrWithDType(tensorDType));
+    }
+}
+
+template<typename T>
+static std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithBasicType(
+    const void *binData, size_t dataSize,
+    Mki::TensorDType tensorDType = Mki::TensorDType::TENSOR_DTYPE_UNDEFINED)
+{
+    size_t typeSize = (tensorDType != Mki::TensorDType::TENSOR_DTYPE_UNDEFINED) ?
+                    Mki::GetTensorElementSize(tensorDType) : sizeof(T);
+    if (dataSize % typeSize != 0) {
+        AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(dataSize));
+        return std::unique_ptr<StatisticsBase>(new Statistics<std::string>);
+    }
+
+    BinFileContent binFileContent{binData, dataSize};
+    size_t numThreads = std::thread::hardware_concurrency() > 1 ? std::thread::hardware_concurrency() : 1;
+    size_t numElements = dataSize / typeSize;
+    size_t chunkSize = numElements / numThreads; // Elements per thread
+    std::vector<std::thread> threads;
+    std::vector<Statistics<T>> threadStats(numThreads);
+
+    for (size_t i = 0; i < numThreads; ++i) {
+        size_t start = i * chunkSize;
+        size_t end = (i == numThreads - 1) ? numElements : start + chunkSize;
+        threads.emplace_back(CalculateStatistics<T>,
+            binFileContent, std::make_pair(start, end),
+            std::ref(threadStats[i]), tensorDType);
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    std::unique_ptr<Statistics<T>> totalStats(new Statistics<T>);
+    for (const auto& stats : threadStats) {
+        (*totalStats) += stats; // call the Overloaded operator+=
+    }
+
+    // Finalize average and L2 norm
+    totalStats->ComputeAverage();
+    totalStats->l2norm_ = std::sqrt(totalStats->sumOfSquares_);
+
+    return totalStats; // std::unique_ptr 支持派生类到基类的隐式转换
+}
+
+std::unordered_map<Mki::TensorDType,
+    std::function<std::unique_ptr<StatisticsBase>(const void*, size_t)>> typeToFunction = {
+    {Mki::TensorDType::TENSOR_DTYPE_INT8,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<int8_t>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_INT16,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<int16_t>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_INT32,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<int32_t>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_INT64,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<int64_t>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_UINT8,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<uint8_t>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_UINT16,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<uint16_t>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_UINT32,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<uint32_t>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_UINT64,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<uint64_t>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_FLOAT,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<float>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_DOUBLE,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<double>(binData, dataSize); }},
+    {Mki::TensorDType::TENSOR_DTYPE_FLOAT16,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<float>(binData, dataSize,
+                Mki::TensorDType::TENSOR_DTYPE_FLOAT16); }},
+    {Mki::TensorDType::TENSOR_DTYPE_BF16,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<float>(binData, dataSize,
+                Mki::TensorDType::TENSOR_DTYPE_BF16); }},
+    {Mki::TensorDType::TENSOR_DTYPE_COMPLEX64,
+        [](const void* binData, size_t dataSize)
+            { return GetStatisticsFromBinaryDataWithBasicType<std::complex<float>>(binData, dataSize); }}
+};
+
+std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithTensorDType(
+    const void* binData, size_t dataSize, Mki::TensorDType dType)
+{
+    auto it = typeToFunction.find(dType);
+    if (it != typeToFunction.end()) {
+        return it->second(binData, dataSize);
+    } else {
+        AIT_LOG_DEBUG("[Warning]: Unsupported tensor datatype: " + Mki::GetStrWithDType(dType));
+        return std::unique_ptr<StatisticsBase>(new Statistics<std::string>());
+    }
+}
+
+static bool IsSaveTensorStats()
+{
+    const char* saveTensor = std::getenv("ATB_SAVE_TENSOR_STATISTICS");
+    if (saveTensor != nullptr) {
+        int value = SafetyStoi(saveTensor, 0);
+        if (value == atb::SAVE_TENSOR_DATA) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool IsSaveTensorValid(BinFileInfo &inputFile, std::string &outPath)
+{
+    // 判断是否需要保存
+    bool saveFlag = (IsInTensorBinPath(inputFile.filePath) && atb::Probe::IsSaveIntensor()) ||
+                    (IsOutTensorBinPath(inputFile.filePath) && atb::Probe::IsSaveOuttensor());
+    AIT_LOG_DEBUG("saveFlag: " + std::to_string(saveFlag));
+    AIT_LOG_DEBUG("filePath: " + inputFile.filePath);
+    if (!saveFlag) { return false; }
+    // 检查dataSize是否超过最大值，是否为0
+    if ((inputFile.binFileContent.dataSize > MAX_FILE_SIZE_DEFAULT) ||
+        (inputFile.binFileContent.dataSize == 0)) {
+        AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(inputFile.binFileContent.dataSize));
+        return false;
+    }
+
+    const std::string& outDir = GetOutDir();
+    if (outDir == "") { return false; }
+    outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + inputFile.filePath;
+    size_t found = outPath.find_last_of("/");
+    std::string directory = outPath.substr(0, found);
+    bool envValidFlag = (IsDeviceIdValid(inputFile.filePath)) && CheckDirectory(directory) &&
+                        (IsDiskSpaceValid(outDir, inputFile.binFileContent.dataSize));
+    if (!envValidFlag) { return false; }
+    if (!inputFile.binFileContent.hostData) {
+        AIT_LOG_ERROR("hostData is None.");
+        return false;
+    }
+
+    const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+    if (saveTensorInBeforeOutAfter &&
+        SafetyStoi(saveTensorInBeforeOutAfter, 0) == SAVE_TENSOR_IN_BEFORE_OUT_AFTER) {
+        bool isIntensorBefore = IsSubString(inputFile.filePath, {"before", "intensor"});
+        bool isOuttensorAfter = IsSubString(inputFile.filePath, {"after", "outtensor"});
+        if (!(isIntensorBefore || isOuttensorAfter)) {
+            return false;
+        }
+    }
+    if (!IsTensorFileHeadVaild(inputFile.format) ||
+        !IsTensorFileHeadVaild(inputFile.dtype) ||
+        !IsTensorFileHeadVaild(inputFile.dims)) {
+        return false;
+    }
+    return true;
+}
+
+static inline Mki::TensorDType GetDTypeWithStr(const std::string &dtype)
+{
+    // 若ATB侧返回的值不再为枚举对应的数字, 而为字符串, 则此处仅保留Mki::GetDTypeWithStr即可
+    return Mki::GetDTypeWithStr(Mki::GetStrWithDType(SafetyStoi(dtype.c_str(), -1)));
+}
+
 void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     const std::string &dims, const void *hostData, uint64_t dataSize,
     const std::string &filePath)
 {
-    // 判断是否需要保存
-    bool saveFlag = (IsInTensorBinPath(filePath) && IsSaveIntensor()) ||
-                (IsOutTensorBinPath(filePath) && IsSaveOuttensor());
-    AIT_LOG_DEBUG("saveFlag: " + std::to_string(saveFlag));
-    AIT_LOG_DEBUG("filePath: " + filePath);
-    if (!saveFlag) {
-        return;
-    }
-    // 检查dataSize是否超过最大值，是否为0
-    if ((dataSize > MAX_FILE_SIZE_DEFAULT) || (dataSize == 0)) {
-        AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(dataSize));
-        return;
-    }
-
-    const std::string& outDir = GetOutDir();
-    if (outDir == "") {
-        return;
-    }
-    std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + filePath;
-    size_t found = outPath.find_last_of("/");
-    std::string directory = outPath.substr(0, found);
-    bool envValidFlag = (IsDeviceIdValid(filePath)) && CheckDirectory(directory) &&
-                        (IsDiskSpaceValid(outDir, dataSize));
-    if (!envValidFlag) {
-        return;
-    }
-
-    if (!hostData) {
-        AIT_LOG_ERROR("hostData is None.");
-        return;
-    }
-
-    const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
-    if (saveTensorInBeforeOutAfter && SafetyStoi(saveTensorInBeforeOutAfter, 0) == SAVE_TENSOR_IN_BEFORE_OUT_AFTER) {
-        bool isIntensorBefore = IsSubString(filePath, {"before", "intensor"});
-        bool isOuttensorAfter = IsSubString(filePath, {"after", "outtensor"});
-        if (!(isIntensorBefore || isOuttensorAfter)) {
-            return;
-        }
-    }
-    if (!IsTensorFileHeadVaild(format) || !IsTensorFileHeadVaild(dtype) || !IsTensorFileHeadVaild(dims)) {
-        return;
-    }
+    BinFileContent inputFileContent{hostData, dataSize};
+    BinFileInfo inputFile{format, dtype, dims, inputFileContent, filePath};
+    std::string outPath;
+    if (!IsSaveTensorValid(inputFile, outPath)) { return; }
     std::shared_ptr<FileSystem::BinFile> binfile(std::make_shared<FileSystem::BinFile>());
     binfile->AddAttr("format", format);
     binfile->AddAttr("dtype", dtype);
     binfile->AddAttr("dims", dims);
-
-    if (atb::Probe::IsSaveTensorData()) {
+    if (IsSaveTensorStats()) {
+        auto stats = GetStatisticsFromBinaryDataWithTensorDType(hostData, dataSize, GetDTypeWithStr(dtype));
+        bool statsIsNullPtr = (stats == nullptr);
+        binfile->AddAttr("max", statsIsNullPtr ? "N/A" : stats->GetMaxStr());
+        binfile->AddAttr("min", statsIsNullPtr ? "N/A" : stats->GetMinStr());
+        binfile->AddAttr("mean", statsIsNullPtr ? "N/A" : stats->GetMeanStr());
+        binfile->AddAttr("l2norm", statsIsNullPtr ? "N/A" : stats->GetL2NormStr());
+    } else if (atb::Probe::IsSaveTensorData()) {
         binfile->AddObject("data", hostData, dataSize);
     }
     PrepareToWriteFile(binfile, outPath);
