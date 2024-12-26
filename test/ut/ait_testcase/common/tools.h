@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2024. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #define AIT_TEST_COMMON_TOOLS_H
 
 #include <string>
-
+#include <fstream>
 
 int32_t GetCurrentProcessId();
 bool IfFileExists(const std::string &outPath);
@@ -27,5 +27,7 @@ void DeleteFile(const std::string &outPath);
 bool CheckFileContainsString(const std::string& filePath, const std::string& targetString);
 bool IsPathExist(const std::string& path);
 std::string ExecShellCommand(const std::string& cmd);
-
+std::string RoundStrNum(std::string numberStr, uint8_t decimalPlaces);
+std::string ExtractValue(std::ifstream& file, const std::string& prefix, uint8_t decimalPlaces);
+std::string ExtractValueComplex64(std::ifstream& file, const std::string& prefix, uint8_t decimalPlaces);
 #endif

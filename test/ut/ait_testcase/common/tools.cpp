@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2024. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 
 #include <fstream>
+#include <sstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <cstdio>
@@ -91,4 +93,72 @@ std::string ExecShellCommand(const std::string& cmd)
         result += buffer.data();
     }
     return result;
+}
+
+std::string RoundStrNum(std::string numberStr, uint8_t decimalPlaces)
+{
+    std::string result = "N/A";
+    try {
+        if (numberStr != "N/A") {
+            double value = std::stod(numberStr);
+            std::stringstream stream;
+            stream << std::fixed << std::setprecision(decimalPlaces) << value;
+            stream >> result;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error converting number: " << e.what() << std::endl;
+    }
+    return result;
+};
+
+std::string ExtractValue(std::ifstream& file, const std::string& prefix, uint8_t decimalPlaces)
+{
+    std::string line;
+    std::string value = "N/A";
+    auto originalPosition = file.tellg();
+    const size_t tagLength = prefix.length() + 1; // 1 = "=".length()
+    while (std::getline(file, line)) {
+        if (line.find(prefix) == 0) {
+            if (prefix.length() + 1 > line.length()) {
+                std::cerr << "Prefix with wrong length: " << tagLength << std::endl;
+                break;
+            }
+            std::istringstream iss(line.substr(tagLength));
+            std::string numberStr;
+            if (std::getline(iss, numberStr)) {
+                value = RoundStrNum(numberStr, decimalPlaces);
+            }
+            break;
+        }
+    }
+    file.seekg(originalPosition); // 重置文件读写指针到原始位置
+    return value;
+}
+
+std::string ExtractValueComplex64(std::ifstream& file, const std::string& prefix, uint8_t decimalPlaces)
+{
+    std::string line;
+    std::string value = "N/A";
+    auto originalPosition = file.tellg();
+    const size_t tagLength = prefix.length() + 2; // 2 = ("=" + "(").length()
+    while (std::getline(file, line)) {
+        if (line.find(prefix) == 0) {
+            value="";
+            if (tagLength > line.length()) {
+                std::cerr << "Prefix with wrong length: " << tagLength << std::endl;
+                break;
+            }
+            std::istringstream iss(line.substr(tagLength));
+            std::string numberStr;
+            if (std::getline(iss, numberStr, ',')) {
+                value += "(" + RoundStrNum(numberStr, decimalPlaces);
+            }
+            if (std::getline(iss, numberStr, ')')) {
+                value += "," + RoundStrNum(numberStr, decimalPlaces) + ")";
+            }
+            break;
+        }
+    }
+    file.seekg(originalPosition); // 重置文件读写指针到原始位置
+    return value;
 }

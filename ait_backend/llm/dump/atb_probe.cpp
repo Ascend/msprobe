@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2024. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -700,7 +700,7 @@ static std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithBasicType(
 }
 
 std::unordered_map<Mki::TensorDType,
-    std::function<std::unique_ptr<StatisticsBase>(const void*, size_t)>> typeToFunction = {
+    std::function<std::unique_ptr<StatisticsBase>(const void*, size_t)>> typeToFunctionMap = {
     {Mki::TensorDType::TENSOR_DTYPE_INT8,
         [](const void* binData, size_t dataSize)
             { return GetStatisticsFromBinaryDataWithBasicType<int8_t>(binData, dataSize); }},
@@ -747,8 +747,8 @@ std::unordered_map<Mki::TensorDType,
 std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithTensorDType(
     const void* binData, size_t dataSize, Mki::TensorDType dType)
 {
-    auto it = typeToFunction.find(dType);
-    if (it != typeToFunction.end()) {
+    auto it = typeToFunctionMap.find(dType);
+    if (it != typeToFunctionMap.end()) {
         return it->second(binData, dataSize);
     } else {
         AIT_LOG_DEBUG("[Warning]: Unsupported tensor datatype: " + Mki::GetStrWithDType(dType));
