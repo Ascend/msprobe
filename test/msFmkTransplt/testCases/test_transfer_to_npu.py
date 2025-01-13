@@ -8,6 +8,7 @@ import unittest
 from unittest import mock
 
 import torch
+from torch.nn.parameter import UninitializedTensorMixin
 
 sys.path.append(os.path.abspath("../../../"))
 sys.path.append(os.path.abspath("../../../src/ms_fmk_transplt"))
@@ -185,3 +186,9 @@ class TestTransferToNpu(unittest.TestCase):
         self.transfer_to_npu._do_wrapper_libraries_func(json_dict)
 
         self.assertFalse(hasattr(torch.cuda.seed, '__wrapped__'))
+
+    def test__replace_to_method_in_allowed_methods(self):
+        for method in UninitializedTensorMixin._allowed_methods:
+            if method.__name__ == "to":
+                self.assertFalse(hasattr(method, "__self__"))   # 替换后torch.Tensor.to变成普通函数，而不是原来的绑定方法
+                break

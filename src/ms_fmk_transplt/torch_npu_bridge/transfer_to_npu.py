@@ -10,6 +10,7 @@ import functools
 from functools import wraps
 from enum import Enum
 import torch
+from torch.nn.parameter import UninitializedTensorMixin
 import torch_npu
 
 try:
@@ -358,6 +359,22 @@ def _patch_jit_script():
     torch.jit.script_method = _jit_script_method
 
 
+def _disable_torch_triton():
+    from torch.utils._triton import has_triton
+
+    def patch_has_triton():
+        return False
+
+    setattr(torch.utils._triton, 'has_triton', patch_has_triton)
+
+
+def _replace_to_method_in_allowed_methods():
+    for i, method in enumerate(UninitializedTensorMixin._allowed_methods):
+        if method.__name__ == "to":
+            UninitializedTensorMixin._allowed_methods[i] = torch.Tensor.to
+            break
+
+
 def _init():
     _warning_fn('''
     *************************************************************************************************************
@@ -420,19 +437,17 @@ def _init():
             = torch_npu.distributed.distributed_c10d.all_gather_object
         torch.npu.amp.autocast_mode.npu_autocast.__init__ = _wrapper_cuda(
             torch.npu.amp.autocast_mode.npu_autocast.__init__)
+
     # torch 1.11.0 does not have this API
     if '1.11.0' not in torch.__version__:
         torch.distributed.ProcessGroup._get_backend = _wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
 
     if '2.2.0' in torch.__version__:
-        from torch.utils._triton import has_triton
-
-        def patch_has_triton():
-            return False
-
-        setattr(torch.utils._triton, 'has_triton', patch_has_triton)
+        _disable_torch_triton()
 
     _do_wrapper_libraries_func(_load_json_file(config_path))
+
+    _replace_to_method_in_allowed_methods()
 
 
 _init()
