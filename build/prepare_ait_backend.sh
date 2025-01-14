@@ -24,6 +24,7 @@ function fn_clone_securec()
 
 function fn_build_nlohmann_json()
 {
+  echo "Start building nolhmann_json"
   cd ${CUR_DIR}/"../ait_backend/llm/dump/"
   if [ -d "nlohmannJson" ]; then
       return $?
@@ -32,6 +33,7 @@ function fn_build_nlohmann_json()
   wget --no-check-certificate $CMC_URL_COMMON/nlohmannjson-v3.11.2.tar.gz
   tar -xf nlohmannjson-v3.11.2.tar.gz
   rm nlohmannjson-v3.11.2.tar.gz
+  echo "End building nolhmann_json"
 }
 
 make_ait_backend() {
