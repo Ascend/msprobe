@@ -1,8 +1,10 @@
 import os
 import unittest
 from unittest import mock
+from unittest.mock import patch, MagicMock
 import struct
 import csv
+import stat
 import pytest
 import numpy as np
 from google.protobuf.message import DecodeError
@@ -131,6 +133,156 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(utils.ceiling_divide(0, 1), 0)
         with self.assertRaises(ZeroDivisionError):
             utils.ceiling_divide(10, 0)
+    
+    @patch('os.stat')
+    @patch('os.getuid', return_value=100)
+    @patch("cmp_utils.log.print_error_log")
+    def test_check_exec_file_valid_when_not_owner(self, mock_error, mock_getuid, mock_os_stat):
+        exist_path = "path"
+        mock_os_stat.return_value = MagicMock(st_uid=1000)
+        ret = path_check.check_exec_file_valid(exist_path)
+        mock_error.assert_called_once_with('You are not the owner of the path "%s".' % exist_path)
+        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+    
+    @patch('os.stat')
+    @patch('os.getuid', return_value=1000)
+    @patch('os.getgroups', return_value=[100, 200])
+    @patch("cmp_utils.log.print_error_log")
+    def test_check_exec_file_valid_when_not_in_group(self, mock_error, mock_getgroups, mock_getuid, mock_os_stat):
+        exist_path = "path"
+        mock_os_stat.return_value = MagicMock(st_uid=1000)
+        ret = path_check.check_exec_file_valid(exist_path)
+        mock_error.assert_called_once_with('You are not in the group of the path "%s".' % exist_path)
+        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+    
+    @patch('os.stat')
+    @patch('os.getuid', return_value=1000)
+    @patch('os.getgroups', return_value=[1000, 2000])
+    @patch('cmp_utils.path_check.check_others_permission', return_value=9)
+    def test_check_exec_file_valid_when_not_none_error(self, mock_check_others_permission, 
+                                                            mock_getgroups, mock_getuid, mock_os_stat):
+        exist_path = "path"
+        mock_os_stat.return_value = MagicMock(st_uid=0, st_gid=0)
+
+        with self.assertRaises(CompareError) as context:
+            ret = path_check.check_exec_file_valid(exist_path)
+        assert context.exception.args[0] == CompareError.MSACCUCMP_OPEN_DIR_ERROR
+
+    @patch('os.stat')
+    @patch('os.getuid', return_value=1000)
+    @patch('os.getgroups', return_value=[1000, 2000])
+    @patch('cmp_utils.path_check.check_others_permission', return_value=0)
+    @patch('cmp_utils.path_check.check_path_valid', return_value="hhh")
+    def test_check_exec_file_valid_when_correct_input(self, mock_check_path_valid, 
+                                        mock_check_others_permission, mock_getgroups, mock_getuid, mock_os_stat):
+        exist_path = "path"
+        mock_os_stat.return_value = MagicMock(st_uid=0, st_gid=0)
+        ret = path_check.check_exec_file_valid(exist_path)
+        self.assertEqual(ret, "hhh")
+    
+    @patch('os.walk', return_value=[["z/z"*60, 1, 1]])
+    def test_check_path_all_file_exec_valid_when_input_too_deep_path(self, mock_os_walk):
+        custom_path = "path"
+        with self.assertRaises(CompareError) as context:
+            ret = path_check.check_path_all_file_exec_valid(custom_path)
+        assert context.exception.args[0] == f"custom path is deep then {ConstManager.MAX_WALK_DIR_DEEP_NUM}"
+    
+    @patch('os.walk', return_value=[["z/z"*10, 1, ['1']]])
+    @patch('cmp_utils.path_check.check_exec_file_valid', return_value=9)
+    def test_check_path_all_file_exec_valid_when_raise_raise_compare_error_ret(self, 
+                                                                        mock_check_exec_file_valid, mock_os_walk):
+        custom_path = "path"
+        with self.assertRaises(CompareError) as context:
+            ret = path_check.check_path_all_file_exec_valid(custom_path)
+        assert context.exception.args[0] == CompareError.MSACCUCMP_OPEN_DIR_ERROR
+    
+    @patch('os.walk', return_value=[["z/z"*10, 1, ['1']*2000]])
+    @patch('cmp_utils.path_check.check_exec_file_valid', return_value=0)
+    @patch('cmp_utils.utils.check_file_size', return_value=True)
+    def test_check_path_all_file_exec_valid_when_input_too_much_files(self, mock_check_file_size, 
+                                                                            mock_check_exec_file_valid, mock_os_walk):
+        custom_path = "path"
+        with self.assertRaises(CompareError) as context:
+            ret = path_check.check_path_all_file_exec_valid(custom_path)
+        assert context.exception.args[0] == f"file count in custom path is more then {ConstManager.MAX_WALK_FILE_NUM}"
+
+    @patch('os.walk', return_value=[["z/z"*10, ["1"], []]])
+    @patch('cmp_utils.path_check.check_exec_file_valid', return_value=1)
+    @patch('cmp_utils.path_check.check_path_valid', return_value=9)
+    def test_check_path_all_file_exec_valid_when_input_too_much_files(self, mock_check_path_valid, 
+                                                                            mock_check_exec_file_valid, mock_os_walk):
+        custom_path = "path"
+        with self.assertRaises(CompareError) as context:
+            ret = path_check.check_path_all_file_exec_valid(custom_path)
+        assert context.exception.args[0] == CompareError.MSACCUCMP_OPEN_DIR_ERROR
+    
+    @patch('os.stat')
+    @patch('os.getuid', return_value=100)
+    def test_is_same_owner_false(self, mock_getuid, mock_os_stat):
+        path = "path"
+        mock_os_stat.return_value = MagicMock(st_uid=1000)
+        self.assertFalse(path_check.is_same_owner(path))
+
+    @patch('os.stat')
+    @patch('os.getuid', return_value=0)
+    def test_is_same_owner_true(self, mock_getuid, mock_os_stat):
+        path = "path"
+        mock_os_stat.return_value = MagicMock(st_uid=1000)
+        self.assertTrue(path_check.is_same_owner(path))
+    
+    @patch('os.stat')
+    def test_is_group_and_others_writable_true(self, mock_os_stat):
+        path = "path"
+        mock_os_stat.return_value = MagicMock(st_mode=stat.S_IWGRP)
+        self.assertTrue(path_check.is_group_and_others_writable(path))
+    
+    @patch('os.stat')
+    def test_is_group_and_others_writable_false(self, mock_os_stat):
+        path = "path"
+        mock_os_stat.return_value = MagicMock(st_mode=0o000)
+        self.assertFalse(path_check.is_group_and_others_writable(path))
+
+    @patch("cmp_utils.path_check.is_same_owner", return_value=True)
+    @patch("cmp_utils.path_check.is_group_and_others_writable", return_value=False)
+    def test_is_parent_dir_has_right_permission_both_true(self,     
+                                                        mock_is_group_and_others_writable, mock_is_same_owner):
+        path = "path"
+        self.assertTrue(path_check.is_parent_dir_has_right_permission(path))
+    
+    @patch("cmp_utils.path_check.is_same_owner", return_value=True)
+    @patch("cmp_utils.path_check.is_group_and_others_writable", return_value=True)
+    def test_is_parent_dir_has_right_permission_both_false(self, 
+                                                        mock_is_group_and_others_writable, mock_is_same_owner):
+        path = "path"
+        self.assertFalse(path_check.is_parent_dir_has_right_permission(path))
+    
+    @patch('os.stat')
+    @patch("cmp_utils.log.print_error_log")
+    def test_check_others_permission_when_groups_have_write_premission(self, mock_error, mock_os_stat):
+        exist_path = "path"
+        mock_os_stat.return_value = MagicMock(st_gid=1, st_mode=stat.S_IWGRP)
+        ret = path_check.check_others_permission(exist_path)
+        mock_error.assert_called_once_with(f"File {exist_path} is not safe. "
+                                                "Groups have writing permission to this file.")
+        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+    
+    @patch('os.stat')
+    @patch("cmp_utils.log.print_error_log")
+    def test_check_others_permission_when_others_have_write_premission(self, mock_error, mock_os_stat):
+        exist_path = "path"
+        mock_os_stat.return_value = MagicMock(st_gid=0, st_mode=stat.S_IWOTH)
+        ret = path_check.check_others_permission(exist_path)
+        mock_error.assert_called_once_with(f"File {exist_path} is dangerous. Others have writing "
+                            "permission to this file. Please use chmod to dismiss the writing permission.")
+        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+    
+    @patch('os.stat')
+    @patch("cmp_utils.log.print_error_log")
+    def test_check_others_permission_when_premission_right(self, mock_error, mock_os_stat):
+        exist_path = "path"
+        mock_os_stat.return_value = MagicMock(st_gid=0, st_mode=0)
+        ret = path_check.check_others_permission(exist_path)
+        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_check_name_valid1(self):
         ret = path_check.check_name_valid('')
