@@ -1,7 +1,8 @@
 import os
 import unittest
-import pytest
 from unittest import mock
+
+import pytest
 
 import msaccucmp
 from cmp_utils.constant.compare_error import CompareError
@@ -207,6 +208,24 @@ class TestUtilsMethods(unittest.TestCase):
                                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
                             msaccucmp.start_compare(args)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+        
+    def test_start_compare_2(self):
+        args = mock.Mock
+        args.my_dump_path = "/home/my_dump_path"
+        args.golden_dump_path = "/home/golden_dump_path"
+        args.fusion_rule_file = "/home/fusion_rule_file"
+        args.op_name = "data"
+        args.post_process = 0
+        args.output_path = "/home/output_path"
+        with pytest.raises(CompareError) as error:
+            with mock.patch("msaccucmp._check_hdf5_file_valid", return_value=True):
+                with mock.patch("os.path.isfile", return_value=True):
+                    with mock.patch("pytorch_cmp.compare_pytorch.PytorchComparison.check_arguments_valid"):
+                        with mock.patch("cmp_utils.utils.check_file_size", return_value=True):
+                            with mock.patch("cmp_utils.path_check.check_others_permission",
+                                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                                msaccucmp.start_compare(args)
+        self.assertEqual(error.value.code, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_main_overflow_case1(self):
         args = ['aaa.py', 'overflow', '-d', '/home/left.bin', '-out', '/home/output', '-n', '1']
