@@ -1,5 +1,7 @@
 import os
+import unittest
 from unittest import mock
+from unittest.mock import patch 
 from collections import namedtuple
 
 import pytest
@@ -218,3 +220,31 @@ def test_algorithm_manager_compare_given_none_dtype_when_valid_then_pass():
                     'algorithm_manager.algorithm_manager.AlgorithmManager._call_compare_function',
                     return_value=(123, '')):
                 a_m.compare(my_output_dump_data, ground_truth_dump_data, {})
+
+
+class TestAlgorithmManagerMain(unittest.TestCase):
+
+    def setUp(self):
+        self.args = mock.Mock
+        self.args.my_dump_path = "a.npy"
+        self.args.golden_dump_path = "b.npy"
+        self.args.custom_script_path = ""
+        self.args.algorithm = "all"
+        self.args.algorithm_options = ""
+        self.args.output_path = "path"
+
+    @patch('os.path.realpath', return_value=True)
+    @patch('os.path.islink', return_value=True)
+    @patch("cmp_utils.log.print_error_log")
+    def test_init_when_init_raise_error(self, mock_error_log, mock_islink, mock_realpath):
+        with self.assertRaises(CompareError) as context:
+            ret = AlgorithmManagerMain(self.args)
+        mock_error_log.assert_called_once_with('The path "%r" is a softlink, not permitted.' % self.args.output_path)
+        assert context.exception.args[0] == CompareError.MSACCUCMP_INVALID_PATH_ERROR
+    
+    @patch("cmp_utils.path_check.check_output_path_valid", return_value=9)
+    def test_print_result_save_result_invalid(self, mock_check_output_path_valid):
+        with self.assertRaises(CompareError) as context:
+            ret = AlgorithmManagerMain(self.args)._print_result([], [], "path")
+        assert context.exception.args[0] == CompareError.MSACCUCMP_OPEN_DIR_ERROR
+    

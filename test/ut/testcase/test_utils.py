@@ -209,7 +209,7 @@ class TestUtilsMethods(unittest.TestCase):
     @patch('os.walk', return_value=[["z/z"*10, ["1"], []]])
     @patch('cmp_utils.path_check.check_exec_file_valid', return_value=1)
     @patch('cmp_utils.path_check.check_path_valid', return_value=9)
-    def test_check_path_all_file_exec_valid_when_input_too_much_files(self, mock_check_path_valid, 
+    def test_check_path_all_file_exec_valid_when_input_dir_not_valid(self, mock_check_path_valid, 
                                                                             mock_check_exec_file_valid, mock_os_walk):
         custom_path = "path"
         with self.assertRaises(CompareError) as context:
