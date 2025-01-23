@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2025. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +24,15 @@
 #include <sys/stat.h>
 #include "const.h"
 #include "file.h"
+using MsConst::SUFFIX;
+using MsConst::SUFFIX_TYPE_TABLE;
 
 std::string File::GetFullPath(const std::string &originPath)
 {
     if (originPath.empty()) {
         return "";
     }
-    if (originPath[0] == PATH_SEPARATOR) {
+    if (originPath[0] == MsConst::PATH_SEPARATOR) {
         return originPath;
     }
 
@@ -48,7 +50,7 @@ std::string File::GetFullPath(const std::string &originPath)
         return "";
     }
 
-    std::string fullPath = std::move(std::string(cwd) + PATH_SEPARATOR + originPath);
+    std::string fullPath = std::move(std::string(cwd) + MsConst::PATH_SEPARATOR + originPath);
     delete[] cwdBuf;
     cwdBuf = nullptr;
 
@@ -62,7 +64,7 @@ static std::vector<std::string> SplitPath(const std::string &path)
     size_t start = 0;
 
     while (start < len) {
-        size_t end = path.find(PATH_SEPARATOR, start);
+        size_t end = path.find(MsConst::PATH_SEPARATOR, start);
         if (end == std::string::npos) {
             end = len;
         }
@@ -119,7 +121,7 @@ bool File::IsFileWritable(const std::string& path)
 
 bool File::IsOtherWritable(const std::string& path)
 {
-    return ((GetPathPermissions(path) & READ_FILE_NOT_PERMITTED) > 0);
+    return ((GetPathPermissions(path) & MsConst::READ_FILE_NOT_PERMITTED) > 0);
 }
 
 bool File::IsPathExist(const std::string& path)
@@ -130,12 +132,12 @@ bool File::IsPathExist(const std::string& path)
 
 bool File::IsPathLengthLegal(const std::string& path)
 {
-    if (path.length() > FULL_PATH_LENGTH_MAX || path.length() == 0) {
+    if (path.length() > MsConst::FULL_PATH_LENGTH_MAX || path.length() == 0) {
         return false;
     }
     std::vector<std::string> tokens = SplitPath(path);
     for (std::string& token : tokens) {
-        if (token.length() > FILE_NAME_LENGTH_MAX) {
+        if (token.length() > MsConst::FILE_NAME_LENGTH_MAX) {
             return false;
         }
     }
@@ -144,12 +146,12 @@ bool File::IsPathLengthLegal(const std::string& path)
 
 bool File::IsPathCharactersValid(const std::string& path)
 {
-    return std::regex_match(path, std::regex(FILE_VALID_PATTERN));
+    return std::regex_match(path, std::regex(MsConst::FILE_VALID_PATTERN));
 }
 
 bool File::IsPathDepthValid(const std::string& path)
 {
-    return std::count(path.begin(), path.end(), PATH_SEPARATOR) <= PATH_DEPTH_MAX;
+    return std::count(path.begin(), path.end(), MsConst::PATH_SEPARATOR) <= MsConst::PATH_DEPTH_MAX;
 }
 
 bool File::IsRegularFile(const std::string& path)
@@ -203,7 +205,7 @@ mode_t File::GetPathPermissions(const std::string& path)
     struct stat pathStat;
     if (stat(path.c_str(), &pathStat) != 0) {
         AIT_LOG_ERROR("path is not exists");
-        return MAX_PERMISSION;
+        return MsConst::MAX_PERMISSION;
     }
     mode_t permissions = pathStat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
     return permissions;
@@ -458,7 +460,7 @@ bool File::CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite)
             AIT_LOG_ERROR("path is soft link");
             return false;
         }
-        if ((GetPathPermissions(absPath) & WRITE_FILE_NOT_PERMITTED) > 0) {
+        if ((GetPathPermissions(absPath) & MsConst::WRITE_FILE_NOT_PERMITTED) > 0) {
             AIT_LOG_ERROR("path permission should not be over 0o750(rwxr-x---)");
             return false;
         }

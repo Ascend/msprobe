@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@
 
 
 using ordered_json = nlohmann::ordered_json;
+using MsConst::SAFETY_RET;
 
 namespace {
     unsigned long long g_minDiskSpaceFreeSize = 2147483648; // 2G
@@ -777,7 +778,7 @@ static bool IsSaveTensorValid(BinFileInfo &inputFile, std::string &outPath)
     AIT_LOG_DEBUG("filePath: " + inputFile.filePath);
     if (!saveFlag) { return false; }
     // 检查dataSize是否超过最大值，是否为0
-    if ((inputFile.binFileContent.dataSize > MAX_FILE_SIZE_DEFAULT) ||
+    if ((inputFile.binFileContent.dataSize > MsConst::MAX_FILE_SIZE_DEFAULT) ||
         (inputFile.binFileContent.dataSize == 0)) {
         AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(inputFile.binFileContent.dataSize));
         return false;
@@ -851,7 +852,7 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
         return;
     }
     // 检查dataSize是否超过最大值，是否为0
-    if ((dataSize > MAX_FILE_SIZE_DEFAULT) || (dataSize == 0)) {
+    if ((dataSize > MsConst::MAX_FILE_SIZE_DEFAULT) || (dataSize == 0)) {
         AIT_LOG_ERROR("Invalid dataSize: " + dataSize);
         return;
     }

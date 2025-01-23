@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,8 +53,8 @@ bool DirectoryExists(const std::string &path)
 
 bool CheckDirectory(const std::string &directory, bool existOK)
 {
-    SAFETY_RET ret = SafetyGuard::CreateDir(directory, NORMAL_DIR_MODE_DEFAULT, existOK);
-    if (ret != SAFETY_RET::SAFE_ERR_NONE) {
+    MsConst::SAFETY_RET ret = SafetyGuard::CreateDir(directory, MsConst::NORMAL_DIR_MODE_DEFAULT, existOK);
+    if (ret != MsConst::SAFETY_RET::SAFE_ERR_NONE) {
         return false;
     }
     return true;

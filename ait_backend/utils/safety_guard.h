@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2025. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,9 @@
 #include <vector>
 #include <map>
 #include "const.h"
+using MsConst::SAFETY_RET;
+using MsConst::OPERATE_MODE;
+using MsConst::SUFFIX;
 
 
 class SafetyGuard {
@@ -31,21 +34,21 @@ public:
     static SAFETY_RET CheckFileLegality(
         const std::string originPath,
         OPERATE_MODE operateMode = OPERATE_MODE::READ,
-        const size_t maxSize = MAX_FILE_SIZE_DEFAULT,
+        const size_t maxSize = MsConst::MAX_FILE_SIZE_DEFAULT,
         SUFFIX fileSuffix = SUFFIX::NONE
     );
 
     static SAFETY_RET CheckNormalStr(
         const std::string str,
-        const char* whiteList = NORMAL_STRING_VALID_PATTERN,
-        const size_t maxLen = DEFAULT_STRING_MAX_LEN
+        const char* whiteList = MsConst::NORMAL_STRING_VALID_PATTERN,
+        const size_t maxLen = MsConst::DEFAULT_STRING_MAX_LEN
     );
 
 public:
 // function for doing something
     static SAFETY_RET CreateDir(
         std::string originPath,
-        mode_t mode = NORMAL_DIR_MODE_DEFAULT,
+        mode_t mode = MsConst::NORMAL_DIR_MODE_DEFAULT,
         bool existOK = false
     );
 };

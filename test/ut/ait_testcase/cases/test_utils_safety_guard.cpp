@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2025. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,9 @@ const std::string TEST_SUB_DIR = "./test_dir/subdir";
 const std::string LINK_FILE = "./link_file.bin";
 const std::string ILLEGAL_CHAR_FILE = "./&AS.bin";
 const std::string NOT_SUPPORT_SUFFIX_FILE = "./test.ccs";
+using MsConst::SAFETY_RET;
+using MsConst::OPERATE_MODE;
+using MsConst::SUFFIX;
 
 TEST(SafetyGuard_Func, CheckFileLegality_read_failed_sofelink)
 {
@@ -167,7 +170,7 @@ TEST(SafetyGuard_Func, CreateDir_failed_check_failed)
     }
     ExecShellCommand("mkdir " + TEST_DIR);
     ExecShellCommand("chmod 770 " + TEST_DIR);
-    SAFETY_RET ret = SafetyGuard::CreateDir(TEST_DIR, NORMAL_DIR_MODE_DEFAULT, true);
+    SAFETY_RET ret = SafetyGuard::CreateDir(TEST_DIR, MsConst::NORMAL_DIR_MODE_DEFAULT, true);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_EXIST_DIR_ILLEGAL);
     ExecShellCommand("rm -rf " + TEST_DIR);
 }
