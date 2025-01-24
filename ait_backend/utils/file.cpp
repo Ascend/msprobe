@@ -27,7 +27,8 @@
 using MsConst::SUFFIX;
 using MsConst::SUFFIX_TYPE_TABLE;
 
-std::string File::GetFullPath(const std::string &originPath)
+namespace File {
+std::string GetFullPath(const std::string &originPath)
 {
     if (originPath.empty()) {
         return "";
@@ -76,7 +77,7 @@ static std::vector<std::string> SplitPath(const std::string &path)
     return tokens;
 }
 
-std::string File::GetAbsPath(const std::string &originPath)
+std::string GetAbsPath(const std::string &originPath)
 {
     std::string fullPath = GetFullPath(originPath);
     if (fullPath.empty()) {
@@ -109,28 +110,28 @@ std::string File::GetAbsPath(const std::string &originPath)
     return resolvedPath;
 }
 
-bool File::IsFileReadable(const std::string& path)
+bool IsFileReadable(const std::string& path)
 {
     return access(path.c_str(), R_OK) == 0;
 }
 
-bool File::IsFileWritable(const std::string& path)
+bool IsFileWritable(const std::string& path)
 {
     return access(path.c_str(), W_OK) == 0;
 }
 
-bool File::IsOtherWritable(const std::string& path)
+bool IsOtherWritable(const std::string& path)
 {
     return ((GetPathPermissions(path) & MsConst::READ_FILE_NOT_PERMITTED) > 0);
 }
 
-bool File::IsPathExist(const std::string& path)
+bool IsPathExist(const std::string& path)
 {
     struct stat buffer;
     return (stat(path.c_str(), &buffer) == 0);
 }
 
-bool File::IsPathLengthLegal(const std::string& path)
+bool IsPathLengthLegal(const std::string& path)
 {
     if (path.length() > MsConst::FULL_PATH_LENGTH_MAX || path.length() == 0) {
         return false;
@@ -144,17 +145,17 @@ bool File::IsPathLengthLegal(const std::string& path)
     return true;
 }
 
-bool File::IsPathCharactersValid(const std::string& path)
+bool IsPathCharactersValid(const std::string& path)
 {
     return std::regex_match(path, std::regex(MsConst::FILE_VALID_PATTERN));
 }
 
-bool File::IsPathDepthValid(const std::string& path)
+bool IsPathDepthValid(const std::string& path)
 {
     return std::count(path.begin(), path.end(), MsConst::PATH_SEPARATOR) <= MsConst::PATH_DEPTH_MAX;
 }
 
-bool File::IsRegularFile(const std::string& path)
+bool IsRegularFile(const std::string& path)
 {
     struct stat pathStat;
     if (stat(path.c_str(), &pathStat) == 0) {
@@ -163,7 +164,7 @@ bool File::IsRegularFile(const std::string& path)
     return false;
 }
 
-bool File::IsDir(const std::string& path)
+bool IsDir(const std::string& path)
 {
     struct stat buffer;
     if (stat(path.c_str(), &buffer) == 0) {
@@ -172,7 +173,7 @@ bool File::IsDir(const std::string& path)
     return false;
 }
 
-size_t File::GetFileSize(const std::string &path)
+size_t GetFileSize(const std::string &path)
 {
     struct stat pathStat;
     if (stat(path.c_str(), &pathStat) != 0) {
@@ -182,7 +183,7 @@ size_t File::GetFileSize(const std::string &path)
     return static_cast<size_t>(pathStat.st_size);
 }
 
-std::string File::GetParentDir(const std::string& path)
+std::string GetParentDir(const std::string& path)
 {
     size_t found = path.find_last_of('/');
     if (found != std::string::npos) {
@@ -191,7 +192,7 @@ std::string File::GetParentDir(const std::string& path)
     return ".";
 }
 
-std::string File::GetFileName(const std::string& path)
+std::string GetFileName(const std::string& path)
 {
     size_t found = path.find_last_of('/');
     if (found != std::string::npos) {
@@ -200,7 +201,7 @@ std::string File::GetFileName(const std::string& path)
     return path;
 }
 
-mode_t File::GetPathPermissions(const std::string& path)
+mode_t GetPathPermissions(const std::string& path)
 {
     struct stat pathStat;
     if (stat(path.c_str(), &pathStat) != 0) {
@@ -211,7 +212,7 @@ mode_t File::GetPathPermissions(const std::string& path)
     return permissions;
 }
 
-std::string File::GetFileSuffix(const std::string& path)
+std::string GetFileSuffix(const std::string& path)
 {
     std::string fileName = GetFileName(path);
     size_t dotPos = fileName.find_last_of('.');
@@ -221,7 +222,7 @@ std::string File::GetFileSuffix(const std::string& path)
     return "";
 }
 
-bool File::CheckFileSuffixAndSize(const std::string &path, SUFFIX type, const size_t maxSize)
+bool CheckFileSuffixAndSize(const std::string &path, SUFFIX type, const size_t maxSize)
 {
     struct stat pathStat;
     if (stat(path.c_str(), &pathStat) != 0) {
@@ -256,7 +257,7 @@ bool File::CheckFileSuffixAndSize(const std::string &path, SUFFIX type, const si
     return true;
 }
 
-bool File::IsSoftLink(const std::string &path)
+bool IsSoftLink(const std::string &path)
 {
     std::string absPath = GetAbsPath(path);
     struct stat fileStat;
@@ -271,8 +272,8 @@ bool File::IsSoftLink(const std::string &path)
 
 static bool CreateDirAux(const std::string& path, bool recursion, mode_t mode)
 {
-    std::string parent = File::GetParentDir(path);
-    if (!File::IsPathExist(parent)) {
+    std::string parent = GetParentDir(path);
+    if (!IsPathExist(parent)) {
         if (!recursion) {
             AIT_LOG_ERROR("dir path not exist");
             return false;
@@ -283,7 +284,7 @@ static bool CreateDirAux(const std::string& path, bool recursion, mode_t mode)
             return false;
         }
     }
-    if (!File::CheckDir(parent)) { // 每当需要创建文件夹时都要校验父目录
+    if (!CheckDir(parent)) { // 每当需要创建文件夹时都要校验父目录
         AIT_LOG_ERROR("parent directory is illegal");
         return false;
     }
@@ -299,7 +300,7 @@ static bool CreateDirAux(const std::string& path, bool recursion, mode_t mode)
     return true;
 }
 
-bool File::CreateDir(const std::string &path, bool recursion, mode_t mode)
+bool CreateDir(const std::string &path, bool recursion, mode_t mode)
 {
     if (IsPathExist(path)) {
         AIT_LOG_INFO("dir already exist, no need to create");
@@ -326,7 +327,7 @@ bool File::CreateDir(const std::string &path, bool recursion, mode_t mode)
 }
 
 /****************************** 通用检查函数 ********************************/
-bool File::CheckOwner(const std::string &path)
+bool CheckOwner(const std::string &path)
 {
     std::string absPath = GetAbsPath(path);
     struct stat buf;
@@ -341,7 +342,7 @@ bool File::CheckOwner(const std::string &path)
     return true;
 }
 
-bool File::CheckDir(const std::string &path)
+bool CheckDir(const std::string &path)
 {
     std::string absPath = GetAbsPath(path);
     if (absPath.empty()) {
@@ -382,7 +383,7 @@ bool File::CheckDir(const std::string &path)
     return true;
 }
 
-bool File::CheckFileBeforeRead(const std::string &path, SUFFIX type, const size_t maxSize)
+bool CheckFileBeforeRead(const std::string &path, SUFFIX type, const size_t maxSize)
 {
     std::string absPath = GetAbsPath(path);
     if (absPath.empty()) {
@@ -428,7 +429,7 @@ bool File::CheckFileBeforeRead(const std::string &path, SUFFIX type, const size_
     return CheckDir(GetParentDir(absPath));
 }
 
-bool File::CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite)
+bool CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite)
 {
     std::string absPath = GetAbsPath(path);
     if (absPath.empty()) {
@@ -471,4 +472,5 @@ bool File::CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite)
         }
     }
     return CheckDir(GetParentDir(absPath));
+}
 }

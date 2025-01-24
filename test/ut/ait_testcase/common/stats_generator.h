@@ -35,9 +35,9 @@ uint16_t Float32ToFloat16Binary(float value);
 uint16_t Float32ToBFloat16Binary(float value);
 std::vector<uint16_t> GenerateVectorHalfPrecFloats(size_t dataSize, Mki::TensorDType dtype);
 std::vector<std::complex<float>> GenerateVectorComplex64(size_t numComplexes);
-std::unique_ptr<StatisticsBase> CalStatsHalfPrec(std::vector<uint16_t>& random_nums, Mki::TensorDType dtype);
-std::unique_ptr<StatisticsBase> CalStatsComplex64(std::vector<std::complex<float>>& random_nums,
-                                                  uint8_t decimalPlaces);
+std::unique_ptr<LLM::StatisticsBase> CalStatsHalfPrec(std::vector<uint16_t>& random_nums, Mki::TensorDType dtype);
+std::unique_ptr<LLM::StatisticsBase> CalStatsComplex64(std::vector<std::complex<float>>& random_nums,
+                                                       uint8_t decimalPlaces);
 
 template<typename T>
 std::vector<T> GenerateVectorNorm(size_t dataSize)
@@ -67,9 +67,9 @@ std::vector<T> GenerateVectorNorm(size_t dataSize)
 }
 
 template<typename T>
-std::unique_ptr<StatisticsBase> CalStatsNorm(std::vector<T>& random_nums)
+std::unique_ptr<LLM::StatisticsBase> CalStatsNorm(std::vector<T>& random_nums)
 {
-    auto statistics = std::make_unique<Statistics<std::string>>();
+    auto statistics = std::make_unique<LLM::Statistics<std::string>>();
     size_t numSize = random_nums.size();
     double fmax = std::numeric_limits<double>::lowest();
     double fmin = std::numeric_limits<double>::max();

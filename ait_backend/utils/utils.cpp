@@ -51,7 +51,7 @@ bool DirectoryExists(const std::string &path)
     return (stat(path.c_str(), &info) == 0) && (S_ISDIR(info.st_mode));
 }
 
-bool CheckDirectory(const std::string &directory, bool existOK)
+bool Utils::CheckDirectory(const std::string &directory, bool existOK)
 {
     MsConst::SAFETY_RET ret = SafetyGuard::CreateDir(directory, MsConst::NORMAL_DIR_MODE_DEFAULT, existOK);
     if (ret != MsConst::SAFETY_RET::SAFE_ERR_NONE) {
@@ -60,7 +60,7 @@ bool CheckDirectory(const std::string &directory, bool existOK)
     return true;
 }
 
-bool ValidateCsvString(const std::string& str)
+bool Utils::ValidateCsvString(const std::string& str)
 {
     if (str.empty()) {
         return true;  // 字符串为空

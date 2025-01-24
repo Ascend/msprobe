@@ -43,7 +43,7 @@ TEST(SafetyGuard_Func, CheckFileLegality_read_failed_sofelink)
     ExecShellCommand("touch " + TEST_FILE);
     ExecShellCommand("chmod 640 " + TEST_FILE);
     ExecShellCommand("ln -s " + TEST_FILE + " " + LINK_FILE);
-    SAFETY_RET ret = SafetyGuard::CheckFileLegality(LINK_FILE, OPERATE_MODE::READ);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckFileLegality(LINK_FILE, OPERATE_MODE::READ);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_FILE_TO_READ_ILLEGAL);
     ExecShellCommand("rm -f " + TEST_FILE);
     ExecShellCommand("rm -f " + LINK_FILE);
@@ -56,7 +56,7 @@ TEST(SafetyGuard_Func, CheckFileLegality_read_failed_permission_high)
     }
     ExecShellCommand("touch " + TEST_FILE);
     ExecShellCommand("chmod 770 " + TEST_FILE);
-    SAFETY_RET ret = SafetyGuard::CheckFileLegality(TEST_FILE, OPERATE_MODE::READ);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckFileLegality(TEST_FILE, OPERATE_MODE::READ);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_FILE_TO_READ_ILLEGAL);
     ExecShellCommand("rm -f " + TEST_FILE);
 }
@@ -67,13 +67,13 @@ TEST(SafetyGuard_Func, CheckFileLegality_read_failed_not_exist)
         ExecShellCommand("rm -f " + INVALID_PATH);
     }
     ExecShellCommand("rm -f " + INVALID_PATH);
-    SAFETY_RET ret = SafetyGuard::CheckFileLegality(INVALID_PATH, OPERATE_MODE::READ);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckFileLegality(INVALID_PATH, OPERATE_MODE::READ);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_FILE_TO_READ_ILLEGAL);
 }
 
 TEST(SafetyGuard_Func, CheckFileLegality_read_failed_illegal_chars)
 {
-    SAFETY_RET ret = SafetyGuard::CheckFileLegality(ILLEGAL_CHAR_FILE, OPERATE_MODE::READ);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckFileLegality(ILLEGAL_CHAR_FILE, OPERATE_MODE::READ);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_FILE_TO_READ_ILLEGAL);
 }
 
@@ -84,7 +84,7 @@ TEST(SafetyGuard_Func, CheckFileLegality_read_failed_not_a_file)
     }
     ExecShellCommand("mkdir " + TEST_DIR);
     ExecShellCommand("chmod 750 " + TEST_DIR);
-    SAFETY_RET ret = SafetyGuard::CheckFileLegality(TEST_DIR, OPERATE_MODE::READ);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckFileLegality(TEST_DIR, OPERATE_MODE::READ);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_FILE_TO_READ_ILLEGAL);
     ExecShellCommand("rm -rf " + TEST_DIR);
 }
@@ -96,7 +96,7 @@ TEST(SafetyGuard_Func, CheckFileLegality_read_failed_size_over_max)
     }
     ExecShellCommand("dd if=/dev/zero of=" + TEST_FILE + " bs=1024 count=1"); // create a 1MB file
     ExecShellCommand("chmod 640 " + TEST_FILE);
-    SAFETY_RET ret = SafetyGuard::CheckFileLegality(TEST_FILE, OPERATE_MODE::READ, 1023);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckFileLegality(TEST_FILE, OPERATE_MODE::READ, 1023);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_FILE_TO_READ_ILLEGAL);
     ExecShellCommand("rm -f " + TEST_FILE);
 }
@@ -108,7 +108,8 @@ TEST(SafetyGuard_Func, CheckFileLegality_read_failed_suffix_wrong)
     }
     ExecShellCommand("touch " + NOT_SUPPORT_SUFFIX_FILE);
     ExecShellCommand("chmod 640 " + NOT_SUPPORT_SUFFIX_FILE);
-    SAFETY_RET ret = SafetyGuard::CheckFileLegality(NOT_SUPPORT_SUFFIX_FILE, OPERATE_MODE::READ, 1023, SUFFIX::JSON);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckFileLegality(
+        NOT_SUPPORT_SUFFIX_FILE, OPERATE_MODE::READ, 1023, SUFFIX::JSON);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_FILE_TO_READ_ILLEGAL);
     ExecShellCommand("rm -f " + NOT_SUPPORT_SUFFIX_FILE);
 }
@@ -120,7 +121,7 @@ TEST(SafetyGuard_Func, CheckFileLegality_write_failed_exist)
     }
     ExecShellCommand("touch " + TEST_FILE);
     ExecShellCommand("chmod 640 " + TEST_FILE);
-    SAFETY_RET ret = SafetyGuard::CheckFileLegality(TEST_FILE, OPERATE_MODE::WRITE);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckFileLegality(TEST_FILE, OPERATE_MODE::WRITE);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_FILE_TO_WRITE_ILLEGAL);
     ExecShellCommand("rm -f " + TEST_FILE);
 }
@@ -128,14 +129,14 @@ TEST(SafetyGuard_Func, CheckFileLegality_write_failed_exist)
 TEST(SafetyGuard_Func, CheckNormalStr_failed_over_len)
 {
     std::string str(4097, 'a');
-    SAFETY_RET ret = SafetyGuard::CheckNormalStr(str);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckNormalStr(str);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_STR_OVER_MAX_LEN);
 }
 
 TEST(SafetyGuard_Func, CheckNormalStr_failed_illegal_char)
 {
     std::string str = "a&";
-    SAFETY_RET ret = SafetyGuard::CheckNormalStr(str);
+    SAFETY_RET ret = Utils::SafetyGuard::CheckNormalStr(str);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_STR_CONTAIN_ILLEGAL_CHAR);
 }
 
@@ -146,7 +147,7 @@ TEST(SafetyGuard_Func, CreateDir_failed_create_failed)
     }
     ExecShellCommand("mkdir " + TEST_DIR);
     ExecShellCommand("chmod 200 " + TEST_DIR);
-    SAFETY_RET ret = SafetyGuard::CreateDir(TEST_SUB_DIR);
+    SAFETY_RET ret = Utils::SafetyGuard::CreateDir(TEST_SUB_DIR);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_CREATE_DIR_FAILED);
     ExecShellCommand("rm -rf " + TEST_DIR);
 }
@@ -158,7 +159,7 @@ TEST(SafetyGuard_Func, CreateDir_failed_is_exist)
     }
     ExecShellCommand("mkdir " + TEST_DIR);
     ExecShellCommand("chmod 640 " + TEST_DIR);
-    SAFETY_RET ret = SafetyGuard::CreateDir(TEST_DIR);
+    SAFETY_RET ret = Utils::SafetyGuard::CreateDir(TEST_DIR);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_PATH_IS_EXIST);
     ExecShellCommand("rm -rf " + TEST_DIR);
 }
@@ -170,7 +171,7 @@ TEST(SafetyGuard_Func, CreateDir_failed_check_failed)
     }
     ExecShellCommand("mkdir " + TEST_DIR);
     ExecShellCommand("chmod 770 " + TEST_DIR);
-    SAFETY_RET ret = SafetyGuard::CreateDir(TEST_DIR, MsConst::NORMAL_DIR_MODE_DEFAULT, true);
+    SAFETY_RET ret = Utils::SafetyGuard::CreateDir(TEST_DIR, MsConst::NORMAL_DIR_MODE_DEFAULT, true);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_EXIST_DIR_ILLEGAL);
     ExecShellCommand("rm -rf " + TEST_DIR);
 }
@@ -182,7 +183,7 @@ TEST(SafetyGuard_Func, CreateDir_parent_check_failed)
     }
     ExecShellCommand("mkdir " + TEST_DIR);
     ExecShellCommand("chmod 770 " + TEST_DIR);
-    SAFETY_RET ret = SafetyGuard::CreateDir(TEST_SUB_DIR);
+    SAFETY_RET ret = Utils::SafetyGuard::CreateDir(TEST_SUB_DIR);
     EXPECT_TRUE(ret == SAFETY_RET::SAFE_ERR_CREATE_DIR_FAILED);
     ExecShellCommand("rm -rf " + TEST_DIR);
 }

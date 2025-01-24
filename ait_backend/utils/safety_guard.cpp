@@ -21,6 +21,7 @@ using MsConst::SAFETY_RET;
 using MsConst::OPERATE_MODE;
 using MsConst::SUFFIX;
 
+namespace Utils {
 SAFETY_RET SafetyGuard::CheckFileLegality(
     const std::string originPath,
     OPERATE_MODE operateMode,
@@ -74,4 +75,5 @@ SAFETY_RET SafetyGuard::CreateDir(
         return SAFETY_RET::SAFE_ERR_CREATE_DIR_FAILED;
     }
     return SAFETY_RET::SAFE_ERR_NONE;
+}
 }

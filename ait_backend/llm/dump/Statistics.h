@@ -23,6 +23,7 @@
 #include <cmath>
 #include <limits>
 
+namespace LLM {
 // helper Definations for Calculating the needed Statistics
 class StatisticsBase {
 public:
@@ -213,5 +214,5 @@ public:
         return l2norm_;
     }
 };
-
+}
 #endif // STATISTICS_H

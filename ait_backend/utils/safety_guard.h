@@ -26,7 +26,7 @@ using MsConst::SAFETY_RET;
 using MsConst::OPERATE_MODE;
 using MsConst::SUFFIX;
 
-
+namespace Utils {
 class SafetyGuard {
 public:
 // function for checking
@@ -52,5 +52,5 @@ public:
         bool existOK = false
     );
 };
-
+}
 #endif // SAFETY_GUARD_H

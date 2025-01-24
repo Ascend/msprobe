@@ -104,7 +104,7 @@ static const std::string& GetOutDir()
         } else {
             outDir = outDir + "msit_dump_" + timestampStr + "/";
         }
-        bool ret = CheckDirectory(outDir);
+        bool ret = Utils::CheckDirectory(outDir);
         if (!ret) {
             AIT_LOG_ERROR("Create directory failed: " + outDir);
             outDir = "";
@@ -275,7 +275,7 @@ void SaveSubProcessInfo(const std::string infoToSave)
 
     std::string outDir = outputDir;
     outDir = GetRealPath(outDir);
-    bool ret = CheckDirectory(outDir);
+    bool ret = Utils::CheckDirectory(outDir);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + outDir);
         return;
@@ -617,7 +617,7 @@ struct BinFileInfo {
 
 template<typename T>
 static void CalculateStatistics(BinFileContent binFileContent,
-    std::pair<size_t, size_t> rangeThread, Statistics<T> &stats,
+    std::pair<size_t, size_t> rangeThread, LLM::Statistics<T> &stats,
     Mki::TensorDType tensorDType = Mki::TensorDType::TENSOR_DTYPE_UNDEFINED)
 {
     const void* binData = binFileContent.hostData;
@@ -658,7 +658,7 @@ static void CalculateStatistics(BinFileContent binFileContent,
 }
 
 template<typename T>
-static std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithBasicType(
+static std::unique_ptr<LLM::StatisticsBase> GetStatisticsFromBinaryDataWithBasicType(
     const void *binData, size_t dataSize,
     Mki::TensorDType tensorDType = Mki::TensorDType::TENSOR_DTYPE_UNDEFINED)
 {
@@ -666,7 +666,7 @@ static std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithBasicType(
                     Mki::GetTensorElementSize(tensorDType) : sizeof(T);
     if (dataSize % typeSize != 0) {
         AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(dataSize));
-        return std::unique_ptr<StatisticsBase>(new Statistics<std::string>);
+        return std::unique_ptr<LLM::StatisticsBase>(new LLM::Statistics<std::string>);
     }
 
     BinFileContent binFileContent{binData, dataSize};
@@ -674,7 +674,7 @@ static std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithBasicType(
     size_t numElements = dataSize / typeSize;
     size_t chunkSize = numElements / numThreads; // Elements per thread
     std::vector<std::thread> threads;
-    std::vector<Statistics<T>> threadStats(numThreads);
+    std::vector<LLM::Statistics<T>> threadStats(numThreads);
 
     for (size_t i = 0; i < numThreads; ++i) {
         size_t start = i * chunkSize;
@@ -688,7 +688,7 @@ static std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithBasicType(
         thread.join();
     }
 
-    std::unique_ptr<Statistics<T>> totalStats(new Statistics<T>);
+    std::unique_ptr<LLM::Statistics<T>> totalStats(new LLM::Statistics<T>);
     for (const auto& stats : threadStats) {
         (*totalStats) += stats; // call the Overloaded operator+=
     }
@@ -701,7 +701,7 @@ static std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithBasicType(
 }
 
 std::unordered_map<Mki::TensorDType,
-    std::function<std::unique_ptr<StatisticsBase>(const void*, size_t)>> typeToFunctionMap = {
+    std::function<std::unique_ptr<LLM::StatisticsBase>(const void*, size_t)>> typeToFunctionMap = {
     {Mki::TensorDType::TENSOR_DTYPE_INT8,
         [](const void* binData, size_t dataSize)
             { return GetStatisticsFromBinaryDataWithBasicType<int8_t>(binData, dataSize); }},
@@ -745,7 +745,7 @@ std::unordered_map<Mki::TensorDType,
             { return GetStatisticsFromBinaryDataWithBasicType<std::complex<float>>(binData, dataSize); }}
 };
 
-std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithTensorDType(
+std::unique_ptr<LLM::StatisticsBase> GetStatisticsFromBinaryDataWithTensorDType(
     const void* binData, size_t dataSize, Mki::TensorDType dType)
 {
     auto it = typeToFunctionMap.find(dType);
@@ -753,7 +753,7 @@ std::unique_ptr<StatisticsBase> GetStatisticsFromBinaryDataWithTensorDType(
         return it->second(binData, dataSize);
     } else {
         AIT_LOG_DEBUG("[Warning]: Unsupported tensor datatype: " + Mki::GetStrWithDType(dType));
-        return std::unique_ptr<StatisticsBase>(new Statistics<std::string>());
+        return std::unique_ptr<LLM::StatisticsBase>(new LLM::Statistics<std::string>());
     }
 }
 
@@ -789,7 +789,7 @@ static bool IsSaveTensorValid(BinFileInfo &inputFile, std::string &outPath)
     outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + inputFile.filePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
-    bool envValidFlag = (IsDeviceIdValid(inputFile.filePath)) && CheckDirectory(directory) &&
+    bool envValidFlag = (IsDeviceIdValid(inputFile.filePath)) && Utils::CheckDirectory(directory) &&
                         (IsDiskSpaceValid(outDir, inputFile.binFileContent.dataSize));
     if (!envValidFlag) { return false; }
     if (!inputFile.binFileContent.hostData) {
@@ -861,7 +861,7 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
 
-    bool ret = CheckDirectory(directory);
+    bool ret = Utils::CheckDirectory(directory);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + directory);
         return;
@@ -1003,7 +1003,7 @@ void saveJsonField(const std::string& fieldName, const ordered_json& graphNodeJs
 void atb::Probe::ReportOperationGraph(const std::string &opName, const std::string &graph)
 {
     ordered_json graphNodeJson;
-    if (SafetyGuard::CheckNormalStr(opName) != SAFETY_RET::SAFE_ERR_NONE) {
+    if (Utils::SafetyGuard::CheckNormalStr(opName) != SAFETY_RET::SAFE_ERR_NONE) {
         AIT_LOG_ERROR("Check opName string failed!");
         return;
     }
@@ -1061,7 +1061,7 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
         return;
     }
     std::string pidDir = outDir + "layer/" + std::to_string(GetCurrentProcessId()) + "/";
-    if (!CheckDirectory(pidDir)) {
+    if (!Utils::CheckDirectory(pidDir)) {
         AIT_LOG_ERROR("Create directory failed: " + pidDir);
         return;
     }
@@ -1107,7 +1107,7 @@ void atb::Probe::ReportOperationSetupStatistic(const uint64_t executeCount,
     AIT_LOG_DEBUG("directory: " + directory);
 
     // 检验地址是否存在
-    bool ret = CheckDirectory(directory);
+    bool ret = Utils::CheckDirectory(directory);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + directory);
         return;
@@ -1143,7 +1143,7 @@ void atb::Probe::ReportOperationExecuteStatistic(const uint64_t executeCount,
     AIT_LOG_DEBUG("directory: " + directory);
 
     // 检验地址是否存在
-    bool ret = CheckDirectory(directory);
+    bool ret = Utils::CheckDirectory(directory);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + directory);
         return;
@@ -1239,7 +1239,7 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
     };
 
     for (const std::string& value : inputStringParts) {
-        bool ret = ValidateCsvString(value);
+        bool ret = Utils::ValidateCsvString(value);
         if (!ret) {
             AIT_LOG_ERROR("Check input string failed! Cannot write into csv!");
             return "";
@@ -1326,7 +1326,7 @@ void atb::Probe::ReportOperationIOTensor(const size_t executeCount, const std::s
     }
     std::string directory = outPath.substr(0, found);
 
-    bool ret = CheckDirectory(directory);
+    bool ret = Utils::CheckDirectory(directory);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + directory);
         return;
@@ -1359,7 +1359,7 @@ void atb::Probe::ReportKernelIOTensor(const size_t executeCount, const std::stri
     }
     std::string directory = outPath.substr(0, found);
 
-    bool ret = CheckDirectory(directory);
+    bool ret = Utils::CheckDirectory(directory);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + directory);
         return;
@@ -1379,7 +1379,7 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
 
-    bool ret = CheckDirectory(directory);
+    bool ret = Utils::CheckDirectory(directory);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + directory);
         return;
@@ -1449,7 +1449,7 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
         return;
     }
 
-    if (!CheckDirectory(realOutputDir)) {
+    if (!Utils::CheckDirectory(realOutputDir)) {
         return;
     }
 
@@ -1504,7 +1504,7 @@ ModelGraphMap g_modelGraphMap;
 bool atb_speed::SpeedProbe::IsReportModelTopoInfo(const std::string &modelName)
 {
     // 只保存一次
-    if (SafetyGuard::CheckNormalStr(modelName) != SAFETY_RET::SAFE_ERR_NONE)  {
+    if (Utils::SafetyGuard::CheckNormalStr(modelName) != SAFETY_RET::SAFE_ERR_NONE)  {
         AIT_LOG_ERROR("Check modelName string failed!");
         return false;
     }
@@ -1514,7 +1514,7 @@ bool atb_speed::SpeedProbe::IsReportModelTopoInfo(const std::string &modelName)
 void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, const std::string &graph)
 {
     ordered_json modelJson;
-    if (SafetyGuard::CheckNormalStr(modelName) != SAFETY_RET::SAFE_ERR_NONE) {
+    if (Utils::SafetyGuard::CheckNormalStr(modelName) != SAFETY_RET::SAFE_ERR_NONE) {
         AIT_LOG_ERROR("Check modelName string failed!");
         return;
     }
@@ -1548,7 +1548,7 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
     }
     std::string pid = std::to_string(GetCurrentProcessId());
     std::string pidDir = outDir + "model/" + pid + "/";
-    bool ret = CheckDirectory(pidDir);
+    bool ret = Utils::CheckDirectory(pidDir);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + pidDir);
         return;

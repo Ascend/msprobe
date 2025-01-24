@@ -61,9 +61,9 @@ std::unordered_map<Mki::TensorDType, std::pair<int, int>> halfPrecisionMap = {
     {Mki::TensorDType::TENSOR_DTYPE_BF16, std::make_pair(8, 7)}
 };
 
-std::unique_ptr<StatisticsBase> CalStatsHalfPrec(std::vector<uint16_t>& random_nums, Mki::TensorDType dtype)
+std::unique_ptr<LLM::StatisticsBase> CalStatsHalfPrec(std::vector<uint16_t>& random_nums, Mki::TensorDType dtype)
 {
-    auto statistics = std::make_unique<Statistics<std::string>>();
+    auto statistics = std::make_unique<LLM::Statistics<std::string>>();
     size_t numSize = random_nums.size();
 
     int exp = 0;
@@ -74,7 +74,7 @@ std::unique_ptr<StatisticsBase> CalStatsHalfPrec(std::vector<uint16_t>& random_n
         man = it->second.second;
     } else {
         std::cout << "Unsupported dtype: " << Mki::GetStrWithDType(dtype) << std::endl;
-        return std::make_unique<Statistics<std::string>>();
+        return std::make_unique<LLM::Statistics<std::string>>();
     }
 
     float fmax = std::numeric_limits<float>::lowest();
@@ -115,10 +115,10 @@ std::vector<std::complex<float>> GenerateVectorComplex64(size_t numComplexes)
     return randomComplexes;
 }
 
-std::unique_ptr<StatisticsBase> CalStatsComplex64(std::vector<std::complex<float>>& random_nums,
+std::unique_ptr<LLM::StatisticsBase> CalStatsComplex64(std::vector<std::complex<float>>& random_nums,
     uint8_t decimalPlaces)
 {
-    auto statistics = std::make_unique<Statistics<std::string>>();
+    auto statistics = std::make_unique<LLM::Statistics<std::string>>();
     size_t numSize = random_nums.size();
 
     auto fmax = std::complex<float>(0, 0);

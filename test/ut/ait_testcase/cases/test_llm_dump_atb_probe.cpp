@@ -677,7 +677,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_double)
     std::string dims = "1024,4096";
     const int vecSize = 1e3;
     std::vector<double> tensorVec = GenerateVectorNorm<double>(vecSize);
-    std::unique_ptr<StatisticsBase> calStats = CalStatsNorm<double>(tensorVec);
+    std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<double>(tensorVec);
 
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
@@ -712,7 +712,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_bf16)
     std::string dims = "1024,4096";
     const int vecSize = 1e3;
     std::vector<uint16_t> tensorVec = GenerateVectorHalfPrecFloats(vecSize, tdtype);
-    std::unique_ptr<StatisticsBase> calStats = CalStatsHalfPrec(tensorVec, tdtype);
+    std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsHalfPrec(tensorVec, tdtype);
 
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
@@ -747,7 +747,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_float16)
     std::string dims = "1024,4096";
     const int vecSize = 1e3;
     std::vector<uint16_t> tensorVec = GenerateVectorHalfPrecFloats(vecSize, tdtype);
-    std::unique_ptr<StatisticsBase> calStats = CalStatsHalfPrec(tensorVec, tdtype);
+    std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsHalfPrec(tensorVec, tdtype);
 
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
@@ -782,7 +782,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int64)
     std::string dims = "1024,4096";
     const int vecSize = 1e3;
     std::vector<int64_t> tensorVec = GenerateVectorNorm<int64_t>(vecSize);
-    std::unique_ptr<StatisticsBase> calStats = CalStatsNorm<int64_t>(tensorVec);
+    std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<int64_t>(tensorVec);
 
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
@@ -817,7 +817,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint64)
     std::string dims = "1024,4096";
     const int vecSize = 1e3;
     std::vector<uint64_t> tensorVec = GenerateVectorNorm<uint64_t>(vecSize);
-    std::unique_ptr<StatisticsBase> calStats = CalStatsNorm<uint64_t>(tensorVec);
+    std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<uint64_t>(tensorVec);
 
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
@@ -853,7 +853,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_complex64)
     const int vecSize = 1e3;
     std::vector<std::complex<float>> tensorVec = GenerateVectorComplex64(vecSize);
     uint8_t decimalPlaces = 6;
-    std::unique_ptr<StatisticsBase> calStats = CalStatsComplex64(tensorVec, decimalPlaces);
+    std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsComplex64(tensorVec, decimalPlaces);
 
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);

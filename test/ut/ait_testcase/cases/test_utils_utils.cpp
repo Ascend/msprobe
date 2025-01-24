@@ -23,65 +23,65 @@
 TEST(Utils_Func, ValidateCsvString_success_opname)
 {
     const std::string testString = "TransdataOperation_01";
-    EXPECT_TRUE(ValidateCsvString(testString));
+    EXPECT_TRUE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_success_dtype)
 {
     const std::string testString = "float16;float16;float16;float16;int32";
-    EXPECT_TRUE(ValidateCsvString(testString));
+    EXPECT_TRUE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_success_format)
 {
     const std::string testString = "nd;nd;fractal_nz;fractal_nz;nd";
-    EXPECT_TRUE(ValidateCsvString(testString));
+    EXPECT_TRUE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_success_shape)
 {
     const std::string testString = "1,16,128;9,8,128,16;9,8,128,16;1,1;1";
-    EXPECT_TRUE(ValidateCsvString(testString));
+    EXPECT_TRUE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_success_shape_with_minus)
 {
     const std::string testString = "-1,16,128;9,8,128,16;9,8,128,16;1,1;1";
-    EXPECT_TRUE(ValidateCsvString(testString));
+    EXPECT_TRUE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_success_path)
 {
     const std::string testString = "msit_dump_20241010_082402/tensors/0_1563353/0/3_Decoder_layer/after/intensor0.bin";
-    EXPECT_TRUE(ValidateCsvString(testString));
+    EXPECT_TRUE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_failed_with_minus)
 {
     const std::string testString = "-1a,16,128;9,8,128,16;";
-    EXPECT_FALSE(ValidateCsvString(testString));
+    EXPECT_FALSE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_failed_with_plus)
 {
     const std::string testString = "+1,16,128;9,8,128,16;";
-    EXPECT_FALSE(ValidateCsvString(testString));
+    EXPECT_FALSE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_failed_with_equal)
 {
     const std::string testString = "=1,16,128;9,8,128,16;";
-    EXPECT_FALSE(ValidateCsvString(testString));
+    EXPECT_FALSE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_failed3_with_at)
 {
     const std::string testString = "@1,16,128;9,8,128,16;";
-    EXPECT_FALSE(ValidateCsvString(testString));
+    EXPECT_FALSE(Utils::ValidateCsvString(testString));
 }
 
 TEST(Utils_Func, ValidateCsvString_failed_with_percent)
 {
     const std::string testString = "%1,16,128;9,8,128,16;";
-    EXPECT_FALSE(ValidateCsvString(testString));
+    EXPECT_FALSE(Utils::ValidateCsvString(testString));
 }
