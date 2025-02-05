@@ -22,23 +22,20 @@
 #include <vector>
 #include <map>
 #include "const.h"
-using MsConst::SAFETY_RET;
-using MsConst::OPERATE_MODE;
-using MsConst::SUFFIX;
 
 namespace Utils {
 class SafetyGuard {
 public:
 // function for checking
     // read write exec
-    static SAFETY_RET CheckFileLegality(
+    static MsConst::SAFETY_RET CheckFileLegality(
         const std::string originPath,
-        OPERATE_MODE operateMode = OPERATE_MODE::READ,
+        MsConst::OPERATE_MODE operateMode = MsConst::OPERATE_MODE::READ,
         const size_t maxSize = MsConst::MAX_FILE_SIZE_DEFAULT,
-        SUFFIX fileSuffix = SUFFIX::NONE
+        MsConst::SUFFIX fileSuffix = MsConst::SUFFIX::NONE
     );
 
-    static SAFETY_RET CheckNormalStr(
+    static MsConst::SAFETY_RET CheckNormalStr(
         const std::string str,
         const char* whiteList = MsConst::NORMAL_STRING_VALID_PATTERN,
         const size_t maxLen = MsConst::DEFAULT_STRING_MAX_LEN
@@ -46,7 +43,7 @@ public:
 
 public:
 // function for doing something
-    static SAFETY_RET CreateDir(
+    static MsConst::SAFETY_RET CreateDir(
         std::string originPath,
         mode_t mode = MsConst::NORMAL_DIR_MODE_DEFAULT,
         bool existOK = false

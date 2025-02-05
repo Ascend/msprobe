@@ -24,13 +24,11 @@
 #include <fcntl.h>
 #include "ait_logger.h"
 #include "const.h"
-using MsConst::SUFFIX;
-using MsConst::NORMAL_DIR_MODE_DEFAULT;
 
 // File 类主要处理文件相关操作
 namespace File {
     // 安全的创建目录
-    bool CreateDir(const std::string &path, bool recursion = false, mode_t mode = NORMAL_DIR_MODE_DEFAULT);
+    bool CreateDir(const std::string &path, bool recursion = false, mode_t mode = MsConst::NORMAL_DIR_MODE_DEFAULT);
     // 文件夹校验：包括路径长度，文件存在性，软链接，属组，权限
     bool CheckDir(const std::string &path);
     // 文件权限校验
@@ -67,9 +65,9 @@ namespace File {
     // 获取文件后缀
     std::string GetFileSuffix(const std::string& path);
     // 校验文件后缀和内容长度
-    bool CheckFileSuffixAndSize(const std::string &path, SUFFIX type, const size_t maxSize);
+    bool CheckFileSuffixAndSize(const std::string &path, MsConst::SUFFIX type, const size_t maxSize);
     // 读文件前的校验
-    bool CheckFileBeforeRead(const std::string &path, SUFFIX type, const size_t maxSize);
+    bool CheckFileBeforeRead(const std::string &path, MsConst::SUFFIX type, const size_t maxSize);
     bool CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite = false);
 };
 #endif // FILE_H
