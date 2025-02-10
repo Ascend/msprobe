@@ -320,3 +320,12 @@ class TestUtilsMethods(unittest.TestCase):
             with pytest.raises(CompareError) as error:
                 main._get_standard_layer_name(layer_name)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_DUMP_FILE_ERROR)
+
+    def test_DumpDataConversion_softlink_path_raises_error(self):
+        with pytest.raises(CompareError) as exc_info:
+            args = ['aaa.py', '-i', '', '-target', 'dump', '-o', '', '-type', 'tf']
+            with mock.patch('sys.argv', args):
+                with mock.patch("os.path.islink", return_value=True):
+                    main = dump_data_conversion.DumpDataConversion()
+        # 验证异常类型和错误码
+        assert exc_info.value.code == CompareError.MSACCUCMP_INVALID_PATH_ERROR

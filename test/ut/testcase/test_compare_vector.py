@@ -1,6 +1,7 @@
 import struct
 import multiprocessing
 import os
+from tempfile import TemporaryDirectory
 
 import pytest
 import numpy as np
@@ -11,7 +12,7 @@ import unittest
 from unittest import mock
 
 import compare_vector
-from cmp_utils import utils, path_check
+from cmp_utils import utils, path_check, log
 from cmp_utils.constant.compare_error import CompareError
 from vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
 from vector_cmp.fusion_manager.compare_result import SingleOpCmpResult
@@ -2465,6 +2466,98 @@ class TestUtilsMethods(unittest.TestCase):
             single_op_cmp_result.find_pre_op(result_mapping)
         self.assertEqual(error.value.code,
                          CompareError.MSACCUCMP_INVALID_INPUT_MAPPING)
+
+    def test_set_output_path_softlink_path_raises_error(self):
+        with TemporaryDirectory() as tmpdir:
+            # 创建目标文件和符号链接
+            target_path = os.path.join(tmpdir, 'target')
+            open(target_path, 'w').close()
+            link_path = os.path.join(tmpdir, 'link')
+            os.symlink(target_path, link_path)
+
+            with mock.patch.object(log, 'print_error_log') as mock_log:
+                with pytest.raises(CompareError) as exc_info:
+                    args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
+                            '/home/a.json', '-o', '/home/result', '-d', 'C2']
+                    with mock.patch('sys.argv', args):
+                        main = compare_vector.VectorComparison()
+                        main.set_output_path(link_path)
+
+                # 验证异常类型和错误码
+                assert exc_info.value.code == CompareError.MSACCUCMP_INVALID_PATH_ERROR
+                # 验证错误日志内容
+                expected_msg = f'The path "{link_path!r}" is a softlink, not permitted.'
+                mock_log.assert_called_once_with(expected_msg)
+
+    def test_init_by_input_parse_softlink_path_raises_error(self):
+        with TemporaryDirectory() as tmpdir:
+            # 创建目标文件和符号链接
+            target_path = os.path.join(tmpdir, 'target')
+            open(target_path, 'w').close()
+            link_path = os.path.join(tmpdir, 'link')
+            os.symlink(target_path, link_path)
+
+            with mock.patch.object(log, 'print_error_log') as mock_log:
+                with pytest.raises(CompareError) as exc_info:
+                    args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
+                            '/home/a.json', '-o', link_path, '-d', 'C2']
+                    with mock.patch('sys.argv', args):
+                        main = compare_vector.VectorComparison()
+                        main._init_by_input_parse()
+
+                # 验证异常类型和错误码
+                assert exc_info.value.code == CompareError.MSACCUCMP_INVALID_PATH_ERROR
+                # 验证错误日志内容
+                expected_msg = f'The path "{link_path!r}" is a softlink, not permitted.'
+                mock_log.assert_called_once_with(expected_msg)
+
+    def test_process_output_path_parameter_softlink_path_raises_error(self):
+        with TemporaryDirectory() as tmpdir:
+            # 创建目标文件和符号链接
+            target_path = os.path.join(tmpdir, 'target')
+            open(target_path, 'w').close()
+            link_path = os.path.join(tmpdir, 'link')
+            os.symlink(target_path, link_path)
+
+            with mock.patch.object(log, 'print_error_log') as mock_log:
+                with pytest.raises(CompareError) as exc_info:
+                    arguments = mock.Mock()
+                    arguments.fusion_rule_file = "/home/b.json"
+                    arguments.quant_fusion_rule_file = ""
+                    arguments.close_fusion_rule_file = ""
+                    arguments.my_dump_path = "/home/demo"
+                    arguments.golden_dump_path = "/home/dt"
+                    arguments.dump_version = 1
+                    arguments.max_cmp_size = 0
+                    arguments.op_name = ""
+                    arguments.output_path = link_path
+                    main = compare_vector.VectorComparison(arguments)
+                    main._process_output_path_parameter(arguments)
+
+                # 验证异常类型和错误码
+                assert exc_info.value.code == CompareError.MSACCUCMP_INVALID_PATH_ERROR
+                # 验证错误日志内容
+                expected_msg = f'The path "{link_path!r}" is a softlink, not permitted.'
+                mock_log.assert_called_once_with(expected_msg)
+
+
+    def test_process_single_op_parameters_softlink_path_raises_error(self):
+        with TemporaryDirectory() as tmpdir:
+            # 创建目标文件和符号链接
+            target_path = os.path.join(tmpdir, 'target')
+            open(target_path, 'w').close()
+            link_path = os.path.join(tmpdir, 'link')
+            os.symlink(target_path, link_path)
+            with mock.patch.object(vector_comparison.VectorComparison, '__init__', return_value=None):
+                with pytest.raises(CompareError) as exc_info:
+                    arguments = mock.Mock()
+                    arguments.output_path = link_path
+                    arguments.max_line = None
+                    main = compare_vector.VectorComparison(arguments)
+                    main._process_single_op_parameters(arguments)
+
+                # 验证异常类型和错误码
+                assert exc_info.value.code == CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
 
 if __name__ == '__main__':

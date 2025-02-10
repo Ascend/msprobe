@@ -758,6 +758,11 @@ class TestUtilsMethods(unittest.TestCase):
         ret = dump.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
 
+    def test_check_output_path_valid_softlink_path_raises_error(self):
+        with mock.patch("os.path.islink", return_value=True):
+            ret = path_check.check_output_path_valid('/home/output_path', exist=True)
+        # 验证异常类型和错误码
+        assert ret == CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
 if __name__ == '__main__':
     unittest.main()
