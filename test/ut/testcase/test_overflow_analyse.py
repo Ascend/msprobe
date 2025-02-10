@@ -38,6 +38,15 @@ class TestUtilsMethods(unittest.TestCase):
                 ret = decode.check_argument(args)
         self.assertEqual(ret, CompareError.MSACCUCMP_UNKNOWN_ERROR)
 
+    def test_output_path_argument_when_is_softlink_then_raise_error(self):
+        args = mock.Mock()
+        args.dump_path = ''
+        args.output_path = '/home/result'
+        with self.assertRaises(CompareError) as error:
+            with mock.patch("os.path.islink", return_value=True):
+                overflow_tester = overflow_analyse.OverflowAnalyse(args)
+        self.assertEqual(str(error.exception), "3")
+
     def test_find_all_debug_files(self):
         args = argparse.Namespace()
         args.dump_path = "/home"

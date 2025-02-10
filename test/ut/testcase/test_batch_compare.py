@@ -15,6 +15,26 @@ from cmp_utils.constant.compare_error import CompareError
 
 
 class TestUtilsMethods(unittest.TestCase):
+
+    @staticmethod
+    def _make_json_object():
+        return {'graph': [
+            {'name': 'ge_default_20210420113943_71',
+             'op': [
+                 {
+                     "attr": [],
+                     "dst_index": [],
+                     "dst_name": [],
+                     "has_out_attr": True,
+                     "input": [],
+                     "input_desc": [],
+                     "name": "input_ids",
+                     "output_desc": [],
+                     "output_i": [],
+                     "type": "Data"
+                 }
+             ]}]}
+
     def test_init(self):
         test = BatchCompare()
         self.assertNotEqual(test, None)
@@ -87,6 +107,15 @@ class TestUtilsMethods(unittest.TestCase):
             batch_compare_test._execute_batch_compare(arguments)
         self.assertEqual(error.value.args[0], 3)
 
+    def test_execute_batch_compare_when_out_path_is_link(self):
+        batch_compare_test = BatchCompare()
+        arguments = mock.Mock()
+        arguments.output_path = '/home/result'
+        with self.assertRaises(CompareError) as error:
+            with mock.patch("os.path.islink", return_value=True):
+                batch_compare_test._execute_batch_compare(arguments)
+        self.assertEqual(str(error.exception), "3")
+
     def test_compare(self):
         arguments = mock.Mock()
         arguments.output_path = '/home/result'
@@ -131,22 +160,3 @@ class TestUtilsMethods(unittest.TestCase):
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 batch_compare_test.check_argument_valid(arguments)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-
-    @staticmethod
-    def _make_json_object():
-        return {'graph': [
-            {'name': 'ge_default_20210420113943_71',
-             'op': [
-                 {
-                     "attr": [],
-                     "dst_index": [],
-                     "dst_name": [],
-                     "has_out_attr": True,
-                     "input": [],
-                     "input_desc": [],
-                     "name": "input_ids",
-                     "output_desc": [],
-                     "output_i": [],
-                     "type": "Data"
-                 }
-             ]}]}

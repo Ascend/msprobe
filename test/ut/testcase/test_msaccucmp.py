@@ -1,11 +1,13 @@
 import os
 import unittest
 from unittest import mock
+import tempfile
 
 import pytest
 
 import msaccucmp
 from cmp_utils.constant.compare_error import CompareError
+from pytorch_cmp.compare_pytorch import PytorchComparison
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -208,24 +210,51 @@ class TestUtilsMethods(unittest.TestCase):
                                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
                             msaccucmp.start_compare(args)
         self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
-        
-    def test_start_compare_2(self):
+    
+    @mock.patch('os.path.getsize', return_value=209715200)
+    @mock.patch('msaccucmp._check_hdf5_file_valid', return_value=True)
+    def test_start_compare_when_file_size_exceed_limit_then_pass(self,
+                                                                 mock_check_hdf5_file_valid,
+                                                                 mock_getsize):        
         args = mock.Mock
-        args.my_dump_path = "/home/my_dump_path"
-        args.golden_dump_path = "/home/golden_dump_path"
-        args.fusion_rule_file = "/home/fusion_rule_file"
-        args.op_name = "data"
-        args.post_process = 0
-        args.output_path = "/home/output_path"
-        with pytest.raises(CompareError) as error:
-            with mock.patch("msaccucmp._check_hdf5_file_valid", return_value=True):
-                with mock.patch("os.path.isfile", return_value=True):
-                    with mock.patch("pytorch_cmp.compare_pytorch.PytorchComparison.check_arguments_valid"):
-                        with mock.patch("cmp_utils.utils.check_file_size", return_value=True):
-                            with mock.patch("cmp_utils.path_check.check_others_permission",
-                                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                                msaccucmp.start_compare(args)
-        self.assertEqual(error.value.code, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+        with tempfile.NamedTemporaryFile(suffix='.h5') as tmp_file1, \
+             tempfile.NamedTemporaryFile(suffix='.h5') as tmp_file2:
+
+            args.my_dump_path = tmp_file1.name
+            args.golden_dump_path = tmp_file2.name
+            os.chmod(args.my_dump_path, 0o755)
+            os.chmod(args.golden_dump_path, 0o755)
+            warn_msg1 = "exceeds 100MB, it may task more time to run, please wait."
+            warn_msg2 = "The size (209715200) of"
+            with mock.patch.object(PytorchComparison, '__init__', return_value=None):
+                with mock.patch.object(PytorchComparison, 'check_arguments_valid', return_value=None):
+                    with mock.patch.object(PytorchComparison, 'compare', return_value=None):
+                        with self.assertLogs() as log:
+                            result = msaccucmp.start_compare(args)
+                            self.assertIn(warn_msg1, log.output[0])
+                            self.assertIn(warn_msg2, log.output[0])
+
+        self.assertEqual(mock_getsize.call_count, 2)
+    
+    @mock.patch('os.path.getsize', return_value=5200)
+    @mock.patch('msaccucmp._check_hdf5_file_valid', return_value=True)
+    def test_start_compare_when_permission_not_valid(self,
+                                                     mock_check_hdf5_file_valid,
+                                                     mock_getsize):  
+        args = mock.Mock
+        with tempfile.NamedTemporaryFile(suffix='.h5') as tmp_file1, \
+             tempfile.NamedTemporaryFile(suffix='.h5') as tmp_file2:
+
+            args.my_dump_path = tmp_file1.name
+            args.golden_dump_path = tmp_file2.name
+            os.chmod(args.my_dump_path, 0o775)
+            os.chmod(args.golden_dump_path, 0o775)
+            with mock.patch.object(PytorchComparison, '__init__', return_value=None):
+                with mock.patch.object(PytorchComparison, 'check_arguments_valid', return_value=None):
+                    with mock.patch.object(PytorchComparison, 'compare', return_value=None):
+                        with self.assertRaises(CompareError) as error:
+                            result = msaccucmp.start_compare(args)
+                        self.assertEqual(str(error.exception), "3")
 
     def test_main_overflow_case1(self):
         args = ['aaa.py', 'overflow', '-d', '/home/left.bin', '-out', '/home/output', '-n', '1']
