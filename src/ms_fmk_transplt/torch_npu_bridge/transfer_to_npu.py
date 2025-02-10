@@ -74,9 +74,9 @@ class ApiType(Enum):
     FUNCTION = 'function'
 
 
-def _is_torch_version_greater_than_2_1():
+def _is_torch_version_greater_than_2_x(x: int):
     major, minor = torch.__version__.split('.')[:2]
-    if int(major) > 2 or (int(major) == 2 and int(minor) >= 1):
+    if int(major) > 2 or (int(major) == 2 and int(minor) > x):
         return True
     else:
         return False
@@ -375,6 +375,16 @@ def _replace_to_method_in_allowed_methods():
             break
 
 
+def _torch_version_less_than_2_1_adapt():
+    if not _is_torch_version_greater_than_2_x(0):
+        torch.distributed.distributed_c10d.broadcast_object_list \
+            = torch_npu.distributed.distributed_c10d.broadcast_object_list
+        torch.distributed.distributed_c10d.all_gather_object \
+            = torch_npu.distributed.distributed_c10d.all_gather_object
+        torch.npu.amp.autocast_mode.npu_autocast.__init__ = _wrapper_cuda(
+            torch.npu.amp.autocast_mode.npu_autocast.__init__)
+
+
 def _init():
     _warning_fn('''
     *************************************************************************************************************
@@ -422,27 +432,24 @@ def _init():
     # torch.nn.parallel.DistributedDataParallel
     _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
     # torch.utils.data.DataLoader
-    if _is_torch_version_greater_than_2_1():
+    if _is_torch_version_greater_than_2_x(0):
         torch.utils.data.DataLoader.__init__ = _wrapper_data_loader(torch.utils.data.DataLoader.__init__)
         _patch_jit_script()
-        torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
+        if _is_torch_version_greater_than_2_x(2):
+            torch._dynamo.trace_rules._disallowed_callable_ids.function_ids = None
+        else:
+            torch._dynamo.allowed_functions._disallowed_function_ids.function_ids = None
         torch.UntypedStorage.__new__ = _wrapper_cuda(torch.UntypedStorage.__new__)
         torch.utils._device.DeviceContext.__init__ = _wrapper_cuda(torch.utils._device.DeviceContext.__init__)
 
     # torch version < 2.1 needs to be adapted
-    if not _is_torch_version_greater_than_2_1():
-        torch.distributed.distributed_c10d.broadcast_object_list \
-            = torch_npu.distributed.distributed_c10d.broadcast_object_list
-        torch.distributed.distributed_c10d.all_gather_object \
-            = torch_npu.distributed.distributed_c10d.all_gather_object
-        torch.npu.amp.autocast_mode.npu_autocast.__init__ = _wrapper_cuda(
-            torch.npu.amp.autocast_mode.npu_autocast.__init__)
+    _torch_version_less_than_2_1_adapt()
 
     # torch 1.11.0 does not have this API
     if '1.11.0' not in torch.__version__:
         torch.distributed.ProcessGroup._get_backend = _wrapper_cuda(torch.distributed.ProcessGroup._get_backend)
 
-    if '2.2.0' in torch.__version__:
+    if _is_torch_version_greater_than_2_x(1):
         _disable_torch_triton()
 
     _do_wrapper_libraries_func(_load_json_file(config_path))

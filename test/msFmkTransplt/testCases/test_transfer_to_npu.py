@@ -59,12 +59,52 @@ class TestTransferToNpu(unittest.TestCase):
             from src.ms_fmk_transplt.torch_npu_bridge import transfer_to_npu
             cls.transfer_to_npu = transfer_to_npu
 
+    def test_is_torch_version_greater_than_2_0(self):
+        result = self.transfer_to_npu._is_torch_version_greater_than_2_x(0)
+        version = torch.__version__
+        if '1.11' in version:
+            self.assertFalse(result)
+        elif '2.0' in version:
+            self.assertTrue(result)
+        elif '2.1' in version:
+            self.assertTrue(result)
+        elif '2.2' in version:
+            self.assertTrue(result)
+        elif '2.3' in version:
+            self.assertTrue(result)
+        elif '2.4' in version:
+            self.assertTrue(result)
+        elif '2.5' in version:
+            self.assertTrue(result)
+
     def test_is_torch_version_greater_than_2_1(self):
-        result = self.transfer_to_npu._is_torch_version_greater_than_2_1()
+        result = self.transfer_to_npu._is_torch_version_greater_than_2_x(1)
         version = torch.__version__
         if '1.11' in version or '2.0' in version:
             self.assertFalse(result)
         elif '2.1' in version:
+            self.assertFalse(result)
+        elif '2.2' in version:
+            self.assertTrue(result)
+        elif '2.3' in version:
+            self.assertTrue(result)
+        elif '2.4' in version:
+            self.assertTrue(result)
+        elif '2.5' in version:
+            self.assertTrue(result)
+
+    def test_is_torch_version_greater_than_2_2(self):
+        result = self.transfer_to_npu._is_torch_version_greater_than_2_x(2)
+        version = torch.__version__
+        if '1.11' in version or '2.0' in version or '2.1' in version:
+            self.assertFalse(result)
+        elif '2.2' in version:
+            self.assertFalse(result)
+        elif '2.3' in version:
+            self.assertTrue(result)
+        elif '2.4' in version:
+            self.assertTrue(result)
+        elif '2.5' in version:
             self.assertTrue(result)
 
     def test_wrapper_cuda(self):
