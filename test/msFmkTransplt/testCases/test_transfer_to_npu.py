@@ -6,6 +6,7 @@ import os
 import sys
 import unittest
 from unittest import mock
+from unittest.mock import patch
 
 import torch
 from torch.nn.parameter import UninitializedTensorMixin
@@ -232,3 +233,32 @@ class TestTransferToNpu(unittest.TestCase):
             if method.__name__ == "to":
                 self.assertFalse(hasattr(method, "__self__"))   # 替换后torch.Tensor.to变成普通函数，而不是原来的绑定方法
                 break
+
+    @patch('torch.distributed.Backend')
+    def test_cuda_entry_exists(self, mock_backend):
+        # 模拟 default_device_backend_map 的存在及其内容
+        mock_backend.default_device_backend_map = {'cpu': 'gloo', 'cuda': 'nccl', 'npu': 'hccl'}
+
+        self.transfer_to_npu._del_nccl_device_backend_map()
+
+        # 验证 'cuda' 是否被删除
+        self.assertNotIn('cuda', mock_backend.default_device_backend_map)
+
+    @patch('torch.distributed.Backend')
+    def test_cuda_entry_does_not_exist(self, mock_backend):
+        # 模拟 default_device_backend_map 的存在但没有 'cuda'
+        mock_backend.default_device_backend_map = {'cpu': 'gloo', 'npu': 'hccl'}
+
+        self.transfer_to_npu._del_nccl_device_backend_map()
+
+        # 验证 'cuda' 仍然不存在
+        self.assertNotIn('cuda', mock_backend.default_device_backend_map)
+
+    @patch('torch.distributed.Backend')
+    def test_default_device_backend_map_not_exist(self, mock_backend):
+        # 模拟 default_device_backend_map 不存在
+        del mock_backend.default_device_backend_map
+
+        self.transfer_to_npu._del_nccl_device_backend_map()
+
+        # 没有抛出异常，测试通过
