@@ -38,7 +38,10 @@ MAX_INPUT_FILE_COUNT = 100
 VERSION_JSON_NAME_DICT = {
     "1.11.0": "_1_11_0.json",
     "2.1.0": "_2_1.json",
-    "2.2.0": "_2_2.json"
+    "2.2.0": "_2_2.json",
+    "2.3.1": "_2_3.json",
+    "2.4.0": "_2_4.json",
+    "2.5.1": "_2_5.json",
 }
 
 DISTRIBUTED_SHELL_NAME = 'run_distributed_npu.sh'
