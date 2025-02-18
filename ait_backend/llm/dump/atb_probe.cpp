@@ -48,6 +48,13 @@ using MsConst::SAFETY_RET;
 namespace {
     unsigned long long g_minDiskSpaceFreeSize = 2147483648; // 2G
     constexpr size_t FREE_SIZE_MULTIPLE_OF_DATA_SIZE = 2; // free size至少两倍data size大小
+    constexpr uint64_t SECOND_DECODE_ID = 2;
+    constexpr uint64_t TOKEN_ID_INDEX = 3;
+    const char* FINAL_OP_NAME = "LmHead";
+    uint32_t g_maxPrefillOpId = 0xFFFF;
+    bool g_isSavePrefill = false;
+    bool g_isSaveFirstDecode = false;
+    bool g_isSaveSecondDecode = false;
     struct LayerGraphMap {
         std::map<std::string, std::string> layerGraphMap_;
 
@@ -499,16 +506,27 @@ bool atb::Probe::IsSaveTensorDesc()
 
 bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
 {
-    const char* saveTensorRange = std::getenv("ATB_SAVE_TENSOR_RANGE");
+    const char *saveTensorRange = std::getenv("ATB_SAVE_TENSOR_RANGE");
     // overflow check required
     if (!saveTensorRange) {
         return false;
     }
-    std::vector<std::string> saveTensorRan = SplitString(saveTensorRange, ',');
+    uint64_t realExecuteCount = executeCount + 1;
+    std::vector <std::string> saveTensorRan = SplitString(saveTensorRange, ',');
     for (size_t i = 1U; i < saveTensorRan.size(); i += RANGE_COUNT) {
         uint64_t left = SafetyStoi(saveTensorRan[i - 1].c_str(), 0);
         uint64_t right = SafetyStoi(saveTensorRan[i].c_str(), 0);
-        if ((executeCount <= right) && (executeCount >= left)) {
+        if (1 >= left && 1 <= right) {
+            g_isSaveFirstDecode = true;
+        }
+        if (SECOND_DECODE_ID >= left && SECOND_DECODE_ID <= right) {
+            g_isSaveSecondDecode = true;
+        }
+        if (left == 0 && realExecuteCount == SECOND_DECODE_ID) {
+            g_isSavePrefill = true;
+            return true;
+        }
+        if ((realExecuteCount <= right) && (realExecuteCount >= left)) {
             return true;
         }
     }
@@ -814,10 +832,93 @@ static bool IsSaveTensorValid(BinFileInfo &inputFile, std::string &outPath)
     return true;
 }
 
+
+static uint32_t GetOpId(const std::string &opName)
+{
+    std::string opId;
+    bool foundUnderscore = false;
+
+    for (char ch: opName) {
+        if (ch == '_') {
+            foundUnderscore = true;
+        } else if (!foundUnderscore && std::isdigit(ch)) {
+            opId += ch;
+        } else if (foundUnderscore) {
+            break;
+        }
+    }
+
+    if (!opId.empty()) {
+        return static_cast<uint32_t>(std::stoi(opId));
+    } else {
+        AIT_LOG_ERROR("No number found after underscore.");
+    }
+}
+
+static void UpdateLmHeadId(const std::string &opName)
+{
+    size_t pos = opName.find('_');
+    uint32_t finalOpNameLength = strlen(FINAL_OP_NAME);
+    if (pos != std::string::npos && (pos + 1 >= finalOpNameLength)) {
+        std::string subOpName = opName.substr(0, finalOpNameLength);
+        if (subOpName == FINAL_OP_NAME) { // 比较是否为 "LmHead"
+            auto opId = std::stoi(opName.substr(pos + 1, opName.length()));
+            g_maxPrefillOpId = std::min(static_cast<uint32_t>(opId), g_maxPrefillOpId);
+        }
+    }
+    return;
+}
+
 static inline Mki::TensorDType GetDTypeWithStr(const std::string &dtype)
 {
     // 若ATB侧返回的值不再为枚举对应的数字, 而为字符串, 则此处仅保留Mki::GetDTypeWithStr即可
     return Mki::GetDTypeWithStr(Mki::GetStrWithDType(SafetyStoi(dtype.c_str(), -1)));
+}
+
+static std::string ConvertRealTokenId(std::string filePath)
+{
+    std::vector <std::string> subStrs;
+    size_t start = 0;
+    size_t end;
+
+    while ((end = filePath.find('/', start)) != std::string::npos) {
+        subStrs.push_back(filePath.substr(start, end - start));
+        start = end + 1;
+    }
+    subStrs.push_back(filePath.substr(start));
+    if (subStrs.size() < TOKEN_ID_INDEX) {
+        AIT_LOG_ERROR("filePath:" + filePath + " is Illegal, Please Check");
+    }
+
+    uint32_t tokenId = static_cast<uint32_t>(std::stoul(subStrs[1]));
+    uint32_t opId = GetOpId(subStrs[2]);
+    if (tokenId == 0) {
+        if (opId <= g_maxPrefillOpId) { // warmup 数据，不进行落盘
+            return "";
+        } else if (!g_isSaveFirstDecode) { // 未配置采集第一个Decode数据
+            return "";
+        } else {
+            tokenId++;
+        }
+    } else if (tokenId == 1) {
+        if (g_isSavePrefill && opId <= g_maxPrefillOpId) { // 保存Prefill数据
+            tokenId--;
+        } else if (!g_isSaveSecondDecode || opId <= g_maxPrefillOpId) { // 未配置采集第二个Decode数据
+            return "";
+        } else {
+            tokenId++;
+        }
+    } else {
+        tokenId++; // decode数据实际tokenID为atb的tokenID+1
+    }
+
+    subStrs[1] = std::to_string(tokenId);
+    std::ostringstream oss;
+    oss << subStrs[0];
+    for (size_t index = 1; index < subStrs.size(); ++index) {
+        oss << '/' << subStrs[index];
+    }
+    return oss.str();
 }
 
 void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
@@ -825,7 +926,9 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     const std::string &filePath)
 {
     BinFileContent inputFileContent{hostData, dataSize};
-    BinFileInfo inputFile{format, dtype, dims, inputFileContent, filePath};
+    auto realTokenFilePath = ConvertRealTokenId(filePath);
+    if (realTokenFilePath == "") { return; }
+    BinFileInfo inputFile{format, dtype, dims, inputFileContent, realTokenFilePath};
     std::string outPath;
     if (!IsSaveTensorValid(inputFile, outPath)) { return; }
     std::shared_ptr<FileSystem::BinFile> binfile(std::make_shared<FileSystem::BinFile>());
@@ -929,7 +1032,7 @@ bool atb::Probe::IsSaveOuttensor()
 
 bool atb::Probe::ReportOperationGraphEnable()
 {
-    return IsSaveDumpType("layer") | IsSaveDumpType("model");
+    return IsSaveDumpType("layer") | IsSaveDumpType("model") | IsSaveDumpType("tensor");
 }
 
 static void ModifyRootNodeTensors(ordered_json &graphNodeJsonToSave, std::vector<std::string> &tensorNameList,
@@ -1007,6 +1110,10 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
         AIT_LOG_ERROR("Check opName string failed!");
         return;
     }
+    UpdateLmHeadId(opName);
+    if (!IsSaveDumpType("layer") && !IsSaveDumpType("model")) {
+        return;
+    }
     try {
         graphNodeJson = ordered_json::parse(graph);
     } catch (const ordered_json::parse_error& ex) {
@@ -1015,24 +1122,20 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
                "byte position of error: " + std::to_string(ex.byte));
         return;
     }
- 
     // 检查必选项
     if (CheckGraphInputInvalid(opName, graphNodeJson)) {
         AIT_LOG_ERROR("CheckGraphInput failed: input is invalid.");
         return;
     }
- 
     // 保存原始json信息，用于和model拓扑合并成模型的拓扑信息
     if (IsSaveDumpType("model")) {
         AIT_LOG_DEBUG("Save dump type contains `model`: true.");
         g_layerGraphMap.SaveLayerGraph(opName, graph);
     }
- 
     ordered_json graphNodeJsonToSave;
     saveJsonField("opName", graphNodeJson, graphNodeJsonToSave);
     saveJsonField("opType", graphNodeJson, graphNodeJsonToSave);
     saveJsonField("param", graphNodeJson, graphNodeJsonToSave);
- 
     // 根节点
     std::vector<std::string> tensorNameList;
     try {
@@ -1054,7 +1157,6 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
             graphNodeJsonToSave["nodes"].emplace_back(childNodeToSave);
         }
     }
- 
     // 保存修改的Json
     const std::string& outDir = GetOutDir();
     if (outDir == "") {
@@ -1065,7 +1167,7 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
         AIT_LOG_ERROR("Create directory failed: " + pidDir);
         return;
     }
- 
+
     std::string outPath = pidDir + opName + ".json";
 
     ms::UmaskWrapper uw;
@@ -1077,7 +1179,7 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     } else {
         AIT_LOG_ERROR("Unable to open file! File name:" + outPath);
     }
- 
+
     if (IsSaveDumpType("onnx")) {
         SaveSubProcessInfo(outPath);
     }
@@ -1375,7 +1477,9 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
     if (outDir == "") {
         return;
     }
-    std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + filePath;
+    std::string realFilePath = ConvertRealTokenId(filePath);
+    if (realFilePath == "") { return; }
+    std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + realFilePath;
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
 
