@@ -428,14 +428,22 @@ bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::st
         return false;
     }
 
+    std::string vidStr;
     const char *vid = std::getenv("ATB_SAVE_TENSOR_IDS"); // 应该是20_1_9,1_23,5_29_1
+    if (vid != nullptr) {
+        vidStr = std::string(vid);
+    }
+    std::string tidStr;
     const char *tid = std::getenv("ATB_SAVE_TENSOR_RUNNER"); // 应该是LinearOps，SelfAttention
-    if (!vid && !tid) {
+    if (tid != nullptr) {
+        tidStr = std::string(tid);
+    }
+    if (vidStr.empty() && tidStr.empty()) {
         return true;
     }
 
-    if (vid != nullptr) {
-        std::vector<std::string> splitVid = SplitString(vid, ',');
+    if (!vidStr.empty()) {
+        std::vector<std::string> splitVid = SplitString(vidStr.c_str(), ',');
         std::string query = "";
         for (size_t i = 0; i < ids.size(); ++i) {
             if (i != 0U) {
@@ -466,8 +474,8 @@ bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::st
     }
     // 先用逗号分隔vid和tid
 
-    if (tid != nullptr) {
-        std::vector<std::string> splitTid = SplitString(tid, ',');
+    if (!tidStr.empty()) {
+        std::vector<std::string> splitTid = SplitString(tidStr.c_str(), ',');
         for (const auto &indice : splitTid) {
             if (IsPrefix(copyOptype, indice)) {
                 return true;
@@ -514,8 +522,8 @@ bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
     uint64_t realExecuteCount = executeCount + 1;
     std::vector <std::string> saveTensorRan = SplitString(saveTensorRange, ',');
     for (size_t i = 1U; i < saveTensorRan.size(); i += RANGE_COUNT) {
-        uint64_t left = SafetyStoi(saveTensorRan[i - 1].c_str(), 0);
-        uint64_t right = SafetyStoi(saveTensorRan[i].c_str(), 0);
+        uint64_t left = static_cast<uint64_t>(SafetyStoi(saveTensorRan[i - 1].c_str(), 0));
+        uint64_t right = static_cast<uint64_t>(SafetyStoi(saveTensorRan[i].c_str(), 0));
         if (1 >= left && 1 <= right) {
             g_isSaveFirstDecode = true;
         }
@@ -536,9 +544,9 @@ bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
 bool atb::Probe::IsSaveTensorBefore()
 {
     const char* saveTensorTime = std::getenv("ATB_SAVE_TENSOR_TIME");
+    int value = (saveTensorTime) ? SafetyStoi(saveTensorTime, 0) : SAVE_TENSOR_AFTER;
     const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
 
-    int value = (saveTensorTime) ? SafetyStoi(saveTensorTime, 0) : SAVE_TENSOR_AFTER;
     int saveFlag = (saveTensorInBeforeOutAfter) ? SafetyStoi(saveTensorInBeforeOutAfter, 0) :
                     SAVE_TENSOR_IN_BEFORE_OUT_AFTER;
 
@@ -552,9 +560,9 @@ bool atb::Probe::IsSaveTensorBefore()
 bool atb::Probe::IsSaveTensorAfter()
 {
     const char* saveTensorTime = std::getenv("ATB_SAVE_TENSOR_TIME");
+    int value = (saveTensorTime) ? SafetyStoi(saveTensorTime, 0) : SAVE_TENSOR_AFTER;
     const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
 
-    int value = (saveTensorTime) ? SafetyStoi(saveTensorTime, 0) : SAVE_TENSOR_AFTER;
     int saveFlag = (saveTensorInBeforeOutAfter) ? SafetyStoi(saveTensorInBeforeOutAfter, 0) :
                     SAVE_TENSOR_IN_BEFORE_OUT_AFTER;
 
@@ -1294,7 +1302,7 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
 
     AIT_LOG_DEBUG("caseName: " + caseName);
 
-    int inNum = inTensors.size();
+    int inNum = static_cast<int>(inTensors.size());
     std::string inDType = "";
     std::string inFormat = "";
     std::string inShape = "";
@@ -1315,7 +1323,7 @@ static std::string GetInputString(int &caseNum, const std::string &opName, const
             dataGenType = dataGenType + "customize;";
         }
     }
-    int outNum = outTensors.size();
+    int outNum = static_cast<int>(outTensors.size());
     std::string outDType = "";
     std::string outFormat = "";
     std::string outShape = "";

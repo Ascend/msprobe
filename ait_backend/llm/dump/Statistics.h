@@ -47,6 +47,8 @@ public:
 
     Statistics() : maxValue_(std::numeric_limits<T>::lowest()),
                    minValue_(std::numeric_limits<T>::max()),
+                   average_(0.0),
+                   l2norm_(0.0),
                    sumValue_(0),
                    sumOfSquares_(0),
                    count_(0) {}
