@@ -358,7 +358,8 @@ namespace Mki {
                 return sign * 0.0f; // Zero
             } else {
                 // Unnormalized number
-                float result = sign * std::ldexp(static_cast<float>(mantissa), 1 - exponentBias - mantissaBits);
+                float result = sign * std::ldexp(static_cast<float>(mantissa),
+                1 - static_cast<int>(exponentBias) - static_cast<int>(mantissaBits));
                 return result;
             }
         }
