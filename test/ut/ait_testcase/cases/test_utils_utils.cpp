@@ -85,3 +85,89 @@ TEST(Utils_Func, ValidateCsvString_failed_with_percent)
     const std::string testString = "%1,16,128;9,8,128,16;";
     EXPECT_FALSE(Utils::ValidateCsvString(testString));
 }
+
+TEST(Utils_Func, Exists_file_exists)
+{
+    char tmpFile[] = "/tmp/testfileXXXXXX";
+    int fd = mkstemp(tmpFile);
+    ASSERT_NE(fd, -1);
+    close(fd);
+    
+    EXPECT_TRUE(Exists(tmpFile));
+    unlink(tmpFile);
+}
+
+TEST(Utils_Func, Exists_directory_exists)
+{
+    char tmpDir[] = "/tmp/testdirXXXXXX";
+    char* dirName = mkdtemp(tmpDir);
+    ASSERT_NE(dirName, nullptr);
+    
+    EXPECT_TRUE(Exists(dirName));
+    rmdir(dirName);
+}
+
+TEST(Utils_Func, Exists_path_not_exist)
+{
+    std::string invalidPath = "/tmp/nonexistent_" + std::to_string(getpid());
+    EXPECT_FALSE(Exists(invalidPath));
+}
+
+TEST(Utils_Func, DirectoryExists_normal_directory)
+{
+    char tmpDir[] = "/tmp/testdirXXXXXX";
+    char* dirName = mkdtemp(tmpDir);
+    ASSERT_NE(dirName, nullptr);
+    
+    EXPECT_TRUE(DirectoryExists(dirName));
+    rmdir(dirName);
+}
+
+TEST(Utils_Func, DirectoryExists_file_instead_of_dir)
+{
+    char tmpFile[] = "/tmp/testfileXXXXXX";
+    int fd = mkstemp(tmpFile);
+    ASSERT_NE(fd, -1);
+    close(fd);
+    
+    EXPECT_FALSE(DirectoryExists(tmpFile));
+    unlink(tmpFile);
+}
+
+TEST(Utils_Func, DirectoryExists_symlink_to_dir)
+{
+    char tmpDir[] = "/tmp/testdirXXXXXX";
+    char* dirName = mkdtemp(tmpDir);
+    ASSERT_NE(dirName, nullptr);
+    
+    const std::string symlinkPath = std::string(dirName) + "_symlink";
+    ASSERT_EQ(symlink(dirName, symlinkPath.c_str()), 0);
+    
+    EXPECT_TRUE(DirectoryExists(symlinkPath));
+    
+    unlink(symlinkPath.c_str());
+    rmdir(dirName);
+}
+
+TEST(Utils_Func, DirectoryExists_invalid_path)
+{
+    std::string invalidPath = "/tmp/nonexistent_" + std::to_string(getpid());
+    EXPECT_FALSE(DirectoryExists(invalidPath));
+}
+
+TEST(Util_Func, CheckDirectory_path_exists_when_exist_OK_false)
+{
+    char tmpDir[] = "/tmp/testdirXXXXXX";
+    char* dirName = mkdtemp(tmpDir);
+    ASSERT_NE(dirName, nullptr);
+    bool result = Utils::CheckDirectory(dirName, false);
+    EXPECT_FALSE(result);
+    rmdir(dirName);
+}
+
+TEST(Utils_Func, ValidateCsvString_empty_input)
+{
+    const std::string emptyStr("");
+    bool result = Utils::ValidateCsvString(emptyStr);
+    EXPECT_TRUE(result);
+}
