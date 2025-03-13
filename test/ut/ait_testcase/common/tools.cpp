@@ -1,5 +1,6 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
+ * Create Date: 2023
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +21,17 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <thread>
+#include <experimental/filesystem>
 #include <cstdio>
 #include <cstdlib>
+#include <poll.h>
 #include <sys/stat.h>
+#include <sys/inotify.h>
 #include <unistd.h>
 #include "tools.h"
 
+namespace fs = std::experimental::filesystem;
 const size_t CMD_BUFFER_LEN = 1024;
 
 int32_t GetCurrentProcessId()
@@ -78,7 +84,7 @@ bool CheckFileContainsString(const std::string& filePath, const std::string& tar
 bool IsPathExist(const std::string& path)
 {
     struct stat buffer;
-    return (stat(path.c_str(), &buffer) == 0);
+    return (lstat(path.c_str(), &buffer) == 0);
 }
 
 std::string ExecShellCommand(const std::string& cmd)
@@ -161,4 +167,42 @@ std::string ExtractValueComplex64(std::ifstream& file, const std::string& prefix
     }
     file.seekg(originalPosition); // 重置文件读写指针到原始位置
     return value;
+}
+
+bool WaitUntilFileReady(const std::string& path,
+                        std::chrono::milliseconds timeout,
+                        std::chrono::milliseconds checkBaseInterval)
+{
+    using Clock = std::chrono::steady_clock;
+    constexpr int requiredStableChecks = 3;
+    const int backoffFactor = 2;
+    constexpr auto maxCheckInterval = std::chrono::seconds(2);  // 保持为seconds类型
+    std::string checkPath = path;
+    auto start = Clock::now();
+    struct stat prevAttr;
+    while (!IsPathExist(checkPath)) { // 阶段1：等待文件出现
+        if (Clock::now() - start > timeout) { return false; }
+        std::this_thread::sleep_for(checkBaseInterval);
+    }
+    if (fs::is_symlink(checkPath)) { checkPath = fs::read_symlink(checkPath); } // 符号链接检查指向的文件
+    int stableCount = 0; // 阶段2：检测稳定性
+    auto checkInterval = checkBaseInterval;
+    while (true) {
+        std::this_thread::sleep_for(checkInterval);
+        struct stat currAttr;
+        if (stat(checkPath.c_str(), &currAttr) != 0) { return false; }
+        checkInterval = std::min(
+            checkInterval * backoffFactor,
+            std::chrono::duration_cast<std::chrono::milliseconds>(maxCheckInterval)
+        );
+        if (currAttr.st_mtime == prevAttr.st_mtime &&
+            currAttr.st_size == prevAttr.st_size) {
+            if (++stableCount >= requiredStableChecks) { return true; }
+        } else {
+            stableCount = 0;
+            checkInterval = checkBaseInterval;
+            prevAttr = currAttr;
+        }
+        if (Clock::now() - start > timeout) { return false; }
+    }
 }

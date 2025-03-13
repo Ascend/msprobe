@@ -1,5 +1,6 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2024-2024. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024-2025. All rights reserved.
+ * Create Date: 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +28,7 @@
 #include <map>
 #include <complex>
 #include <unordered_map>
+#include <type_traits>
 #include "atb_probe.h"
 #include "Statistics.h"
 
@@ -43,24 +45,32 @@ template<typename T>
 std::vector<T> GenerateVectorNorm(size_t dataSize)
 {
     std::vector<T> random_values(dataSize);
-
-    // 使用随机设备获取种子
     std::random_device rd;
     std::mt19937 gen(rd());
 
-    // 根据类型 T 选择合适的分布
-    // 此处假设 T 是浮点数或可以隐式转换为浮点数的类型
-    auto dis = std::uniform_real_distribution<
-            typename std::conditional<
-                    std::is_floating_point<T>::value,
-                    T,
-                    double // 如果 T 不是浮点数，则使用 double 作为中间类型
-            >::type
-    >(-1000.0, 1000.0);
+    if constexpr (std::is_integral<T>::value) {
+        using range_type = typename std::conditional<
+                            std::is_signed<T>::value,
+                            int8_t,
+                            uint8_t
+                        >::type;
+        range_type lower_bound = std::numeric_limits<range_type>::min();
+        range_type upper_bound = std::numeric_limits<range_type>::max();
 
-    // 生成随机数
-    for (size_t i = 0; i < dataSize; ++i) {
-        random_values[i] = dis(gen);
+        std::uniform_int_distribution<range_type> dis(lower_bound, upper_bound);
+        for (auto& val : random_values) {
+            val = static_cast<T>(dis(gen));
+        }
+    } else {
+        // 浮点类型处理（保持原逻辑但自动转换）
+        int lower_bound = -1000;
+        int upper_bound = 1000;
+        using distribution_type = std::uniform_real_distribution<T>;
+        distribution_type dis(lower_bound, upper_bound);
+        
+        for (auto& val : random_values) {
+            val = dis(gen);
+        }
     }
 
     return random_values;
