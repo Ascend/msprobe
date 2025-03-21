@@ -1,0 +1,77 @@
+diff --git a/configure.ac b/configure.ac
+index eb70a76..2f82be2 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -17,7 +17,7 @@ AC_PREREQ(2.59)
+ # In the SVN trunk, the version should always be the next anticipated release
+ # version with the "-pre" suffix.  (We used to use "-SNAPSHOT" but this pushed
+ # the size of one file name in the dist tarfile over the 99-char limit.)
+-AC_INIT([Protocol Buffers],[3.14.0],[protobuf@googlegroups.com],[protobuf])
++AC_INIT([Protocol Buffers],[3.13.0],[protobuf@googlegroups.com],[protobuf])
+ 
+ AM_MAINTAINER_MODE([enable])
+ 
+diff --git a/src/google/protobuf/arena.cc b/src/google/protobuf/arena.cc
+index 414e023..81bb05a 100644
+--- a/src/google/protobuf/arena.cc
++++ b/src/google/protobuf/arena.cc
+@@ -445,5 +445,9 @@ void* Arena::AllocateAlignedNoHook(size_t n) {
+   return impl_.AllocateAligned(n);
+ }
+ 
++void Arena::OnArenaAllocation(const std::type_info* allocated_type,
++                               size_t n) const {
++}
++
+ }  // namespace protobuf
+ }  // namespace google
+diff --git a/src/google/protobuf/arena.h b/src/google/protobuf/arena.h
+index f28bebf..aef69ca 100644
+--- a/src/google/protobuf/arena.h
++++ b/src/google/protobuf/arena.h
+@@ -471,6 +471,8 @@ class PROTOBUF_EXPORT PROTOBUF_ALIGNAS(8) Arena final {
+   PROTOBUF_ALWAYS_INLINE static T* CreateInternal(Arena* arena,
+                                                   Args&&... args) {
+     if (arena == NULL) {
++      static thread_local size_t arena_internal_unused = 0;
++      ++arena_internal_unused;
+       return new T(std::forward<Args>(args)...);
+     } else {
+       return arena->DoCreate<T>(std::is_trivially_destructible<T>::value,
+@@ -478,6 +480,7 @@ class PROTOBUF_EXPORT PROTOBUF_ALIGNAS(8) Arena final {
+     }
+   }
+ 
++  void OnArenaAllocation(const std::type_info* allocated_type, size_t n) const;
+   inline void AllocHook(const std::type_info* allocated_type, size_t n) const {
+     impl_.RecordAlloc(allocated_type, n);
+   }
+diff --git a/src/google/protobuf/parse_context.cc b/src/google/protobuf/parse_context.cc
+index 22cdcbb..832adf9 100644
+--- a/src/google/protobuf/parse_context.cc
++++ b/src/google/protobuf/parse_context.cc
+@@ -204,6 +204,12 @@ std::pair<const char*, bool> EpsCopyInputStream::DoneFallback(int overrun,
+   return {p, false};
+ }
+ 
++std::pair<const char*, bool> EpsCopyInputStream::DoneFallback(const char* ptr,
++                                                              int d) {
++  (void)d;
++  return {ptr, false};
++}
++
+ const char* EpsCopyInputStream::SkipFallback(const char* ptr, int size) {
+   return AppendSize(ptr, size, [](const char* p, int s) {});
+ }
+diff --git a/src/google/protobuf/parse_context.h b/src/google/protobuf/parse_context.h
+index 6610085..cda6a87 100644
+--- a/src/google/protobuf/parse_context.h
++++ b/src/google/protobuf/parse_context.h
+@@ -291,6 +291,7 @@ class PROTOBUF_EXPORT EpsCopyInputStream {
+   // kSlopBytes bytes can be accessed from the returned ptr. This function might
+   // advance more buffers than one in the underlying ZeroCopyInputStream.
+   std::pair<const char*, bool> DoneFallback(int overrun, int depth);
++  std::pair<const char*, bool> DoneFallback(const char* ptr, int d);
+   // Advances to the next buffer, at most one call to Next() on the underlying
+   // ZeroCopyInputStream is made. This function DOES NOT match the returned
+   // pointer to where in the slop region the parse ends, hence no overrun
