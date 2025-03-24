@@ -141,7 +141,7 @@ class TestUtilsMethods(unittest.TestCase):
         exist_path = "path"
         mock_os_stat.return_value = MagicMock(st_uid=1000)
         ret = path_check.check_exec_file_valid(exist_path)
-        mock_error.assert_called_once_with('You are not the owner of the path "%s".' % exist_path)
+        mock_error.assert_called_once_with('You are not the owner of the path "%r".' % exist_path)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
     
     @patch('os.stat')
@@ -152,7 +152,7 @@ class TestUtilsMethods(unittest.TestCase):
         exist_path = "path"
         mock_os_stat.return_value = MagicMock(st_uid=1000)
         ret = path_check.check_exec_file_valid(exist_path)
-        mock_error.assert_called_once_with('You are not in the group of the path "%s".' % exist_path)
+        mock_error.assert_called_once_with('You are not in the group of the path "%r".' % exist_path)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
     
     @patch('os.stat')
@@ -272,8 +272,8 @@ class TestUtilsMethods(unittest.TestCase):
         exist_path = "path"
         mock_os_stat.return_value = MagicMock(st_gid=0, st_mode=stat.S_IWOTH)
         ret = path_check.check_others_permission(exist_path)
-        mock_error.assert_called_once_with(f"File {exist_path} is dangerous. Others have writing "
-                            "permission to this file. Please use chmod to dismiss the writing permission.")
+        mock_error.assert_called_once_with("File %r is dangerous. Others have writing "
+                            "permission to this file. Please use chmod to dismiss the writing permission." % exist_path)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
     
     @patch('os.stat')

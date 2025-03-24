@@ -92,7 +92,7 @@ def check_safe_string(s):
 
 def _check_input_file(input_file:str, file_type:str) -> None:
     if not input_file.endswith(file_type):
-        log.print_error_log("[file_compare] The file %s is invalid.Only support %s file." % (input_file, file_type))
+        log.print_error_log("[file_compare] The file %r is invalid.Only support %r file." % (input_file, file_type))
         raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
     ret = path_check.check_exec_file_valid(input_file)
     if ret != CompareError.MSACCUCMP_NONE_ERROR:

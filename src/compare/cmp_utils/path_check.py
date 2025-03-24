@@ -97,11 +97,11 @@ def check_exec_file_valid(exist_path: str) -> int:
     """
     file_stat = os.stat(exist_path)
     if file_stat.st_uid != 0 and file_stat.st_uid != os.getuid():
-        log.print_error_log('You are not the owner of the path "%s".' % exist_path)
+        log.print_error_log('You are not the owner of the path "%r".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     if file_stat.st_gid != 0 and file_stat.st_gid not in os.getgroups():
-        log.print_error_log('You are not in the group of the path "%s".' % exist_path)
+        log.print_error_log('You are not in the group of the path "%r".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     ret = check_others_permission(exist_path)
@@ -243,8 +243,8 @@ def check_others_permission(exist_path: str) -> int:
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     if bool(file_mode & stat.S_IWOTH):
-        log.print_error_log(f"File {exist_path} is dangerous. Others have writing "
-                            "permission to this file. Please use chmod to dismiss the writing permission.")
+        log.print_error_log("File %r is dangerous. Others have writing "
+                            "permission to this file. Please use chmod to dismiss the writing permission." % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     return CompareError.MSACCUCMP_NONE_ERROR

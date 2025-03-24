@@ -302,7 +302,7 @@ def check_file_size(file_path: str, size_limit: int, is_raise=False) -> None:
             'The size (%d) of %r exceeds %dMB, it may task more time to run, please wait.'
             % (file_size, file_path, size_limit / 1024 / 1024))
         if is_raise:
-            raise CompareError(f"{file_path} file size ({file_size}) exceeds {size_limit}")
+            raise CompareError("%r file size (%d) exceeds %d" % (file_path, file_size, size_limit))
 
 
 def least_common_multiple(left: int, right: int) -> int:
