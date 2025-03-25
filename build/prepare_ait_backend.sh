@@ -69,6 +69,43 @@ make_ait_mindie_torch() {
     cd -
 }
 
+make_load_balancing() {
+    OLD_PYTHONPATH="$PYTHONPATH"
+    export PYTHONPATH="/opt/buildtools/cython-3.0.10:$OLD_PYTHONPATH"
+
+    cd "${CUR_DIR}/../src/load_balancing/"
+    rm -f ./*.so ./*.c
+    cp "./c2lb/computing_communication.py" "./c2lb.pyx"
+    cp "./speculative_moe/speculative_moe_interface.py" "./speculative_moe.pyx"
+
+    python3 setup.py build_ext --inplace
+
+    for module in c2lb speculative_moe; do
+        # 匹配模式：<module>.cpython-<version>-<arch>.so
+        so_file=$(find . -name "${module}.cpython-*.so" -print -quit)
+        
+        if [ -n "$so_file" ]; then
+            mv "$so_file" "${module}.so"
+            echo "Generated: $(pwd)/${module}.so"
+        else
+            echo "Error: Failed to build ${module}.so"
+            exit 1
+        fi
+    done
+    
+    for module in c2lb speculative_moe; do
+        pattern="${module}.cpython-*.so"
+        if ls $pattern >/dev/null 2>&1; then
+            echo "Deleting original files matching pattern: $pattern"
+            rm -f $pattern
+        else
+            echo "No original files found for module: $module"
+        fi
+    done
+    export PYTHONPATH="$OLD_PYTHONPATH"
+}
+
+
 # 编译AIT_LLM_ABI=0
 export AIT_LLM_ABI=0
 make_ait_backend
@@ -83,3 +120,4 @@ make_ait_backend
 # 编译mindie-torch依赖
 make_ait_mindie_torch
 
+make_load_balancing
