@@ -102,15 +102,6 @@ def generate_dump_data_api():
         return 1
 
 
-def ignore_function(dir, contents):
-    if os.path.basename(dir) == "compare":
-        return []
-    elif os.path.basename(dir) == "load_balancing":
-        return [f for f in contents if not (f.endswith(".so") and os.path.isfile(os.path.join(dir, f)))]
-    else:
-        return []
-
-
 def main():
     build_dir = os.path.dirname(os.path.realpath(__file__))
     output_dir = os.path.join(build_dir, "output")
@@ -139,7 +130,7 @@ def main():
 
         mod_output_path = os.path.join(output_dir, mod_out)
         logging.info("Copy from %s to %s", mod_dir, mod_output_path)
-        shutil.copytree(mod_dir, mod_output_path, ignore=ignore_function)
+        shutil.copytree(mod_dir, mod_output_path)
 
     return 0
 
