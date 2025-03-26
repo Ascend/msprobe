@@ -69,6 +69,52 @@ make_ait_mindie_torch() {
     cd -
 }
 
+make_load_balancing() {
+    if [ -f /etc/profile ]; then    # 检查文件是否存在
+        source /etc/profile         # 重新加载配置文件
+    fi
+    
+    if [ -n "$CYTHON_PATH" ]; then
+        export PYTHONPATH="$CYTHON_PATH:$PYTHONPATH"
+    else
+        echo "警告：CYTHON_PATH 未定义或为空，跳过路径添加。"
+    fi
+
+    cd "${CUR_DIR}/../src/load_balancing/"
+    rm -f ./*.so ./*.c
+    cp "./c2lb/computing_communication.py" "./c2lb.pyx"
+    cp "./speculative_moe/speculative_moe_interface.py" "./speculative_moe.pyx"
+
+    python3 setup.py build_ext --inplace
+
+    for module in c2lb speculative_moe; do
+        # 匹配模式：<module>.cpython-<version>-<arch>.so
+        so_file=$(find . -name "${module}.cpython-*.so" -print -quit)
+        
+        if [ -n "$so_file" ]; then
+            mv "$so_file" "${module}.so"
+            echo "Generated: $(pwd)/${module}.so"
+        else
+            echo "Error: Failed to build ${module}.so"
+            exit 1
+        fi
+    done
+    
+    for module in c2lb speculative_moe; do
+        pattern="${module}.cpython-*.so"
+        if ls $pattern >/dev/null 2>&1; then
+            echo "Deleting original files matching pattern: $pattern"
+            rm -f $pattern
+        else
+            echo "No original files found for module: $module"
+        fi
+    done
+    echo "===== 编译完成，恢复环境 ====="
+    export PYTHONPATH="$OLD_PYTHONPATH"
+    unset OLD_PYTHONPATH
+}
+
+
 # 编译AIT_LLM_ABI=0
 export AIT_LLM_ABI=0
 make_ait_backend
@@ -83,3 +129,4 @@ make_ait_backend
 # 编译mindie-torch依赖
 make_ait_mindie_torch
 
+make_load_balancing
