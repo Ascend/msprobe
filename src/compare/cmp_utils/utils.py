@@ -252,6 +252,10 @@ def _write_sorted_result(result_file: str, sorted_result_line: list, header_list
                          csv_file: bool) -> None:
     with os.fdopen(os.open(result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w',
                    newline="") as fp_write:
+        for item in sorted_result_line:
+            if len(item) < 2:
+                log.print_error_log('Failed to write sorted result')
+                raise IndexError(" list index out of range")
         if csv_file:
             # write header to file
             writer = csv.writer(fp_write)
