@@ -255,7 +255,7 @@ def _write_sorted_result(result_file: str, sorted_result_line: list, header_list
         for item in sorted_result_line:
             if len(item) < 2:
                 log.print_error_log('Failed to write sorted result')
-                raise IndexError(" list index out of range")
+                raise IndexError("Invalid data to save, please check it!")
         if csv_file:
             # write header to file
             writer = csv.writer(fp_write)
