@@ -100,6 +100,7 @@
     "torch.autograd.profiler.emit_itt": "",
     "torch.autograd.profiler.load_nvprof": "",
     "torch.cuda.StreamContext": "",
+    "torch.cuda.get_device_capability": "",
     "torch.cuda.memory_usage": "",
     "torch.cuda.comm.scatter": "",
     "torch.cuda.comm.gather": "",
