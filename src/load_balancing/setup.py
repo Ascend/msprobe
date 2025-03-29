@@ -12,16 +12,46 @@ import numpy as np
 # pip install cython setuptools wheel
 extensions = [
     Extension(
-        "c2lb",  # 这是生成的模块名称，不需要加 .so 后缀
-        ["c2lb.pyx"],  # 列出需要编译的 .pyx 文件
-        include_dirs=[np.get_include()],  # 如果不使用 NumPy 可以移除这一行
-        language="python"  # 使用 python 语言级别
+        "c2lb", 
+        ["c2lb.pyx"],  # 需要编译的 .pyx 文件
+        include_dirs=[np.get_include()],
+        language="c",  # 使用 C 语言级别
+        extra_compile_args=[
+            "-O2",
+            "-D_FORTIFY_SOURCE=2",
+            "-fPIC",
+            "-fstack-protector-all",
+            "-fno-strict-aliasing",
+            "-fno-common",
+            "-Wextra",
+        ],
+        extra_link_args=[
+            "-Wl,-z,now",
+            "-s",
+            "-Wl,-z,relro",
+            "-Wl,-z,noexecstack",
+        ]
     ),
     Extension(
         "speculative_moe",
         ["speculative_moe.pyx"],
         include_dirs=[np.get_include()],
-        language="python"
+        language="c",
+        extra_compile_args=[
+            "-O2",
+            "-D_FORTIFY_SOURCE=2",
+            "-fPIC",
+            "-fstack-protector-all",
+            "-fno-strict-aliasing",
+            "-fno-common",
+            "-Wextra",
+        ],
+        extra_link_args=[
+            "-Wl,-z,now",
+            "-s",
+            "-Wl,-z,relro",
+            "-Wl,-z,noexecstack",
+        ]
     )
 ]
 
