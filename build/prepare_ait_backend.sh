@@ -84,10 +84,11 @@ make_load_balancing() {
     rm -f ./*.so ./*.c
     cp "./c2lb/computing_communication.py" "./c2lb.pyx"
     cp "./speculative_moe/speculative_moe_interface.py" "./speculative_moe.pyx"
+    cp "./c2lb_dynamic/c2lb_dynamic.py" "./c2lb_dynamic.pyx"
 
     python3 setup.py build_ext --inplace
 
-    for module in c2lb speculative_moe; do
+    for module in c2lb speculative_moe c2lb_dynamic; do
         # 匹配模式：<module>.cpython-<version>-<arch>.so
         so_file=$(find . -name "${module}.cpython-*.so" -print -quit)
         
@@ -100,7 +101,7 @@ make_load_balancing() {
         fi
     done
     
-    for module in c2lb speculative_moe; do
+    for module in c2lb speculative_moe c2lb_dynamic; do
         pattern="${module}.cpython-*.so"
         if ls $pattern >/dev/null 2>&1; then
             echo "Deleting original files matching pattern: $pattern"
