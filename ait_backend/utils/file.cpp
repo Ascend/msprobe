@@ -292,6 +292,10 @@ static bool CreateDirAux(const std::string& path, bool recursion, mode_t mode)
         if (errno == EACCES || errno == EROFS) {
             AIT_LOG_ERROR("mkdir permission denined");
             return false;
+        } else if (errno == EEXIST) {
+            std::string msg = "path is exists: " + path;
+            AIT_LOG_DEBUG(msg);
+            return true;
         } else {
             AIT_LOG_ERROR("syscall failed");
             return false;

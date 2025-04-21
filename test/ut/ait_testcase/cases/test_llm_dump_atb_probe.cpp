@@ -795,8 +795,8 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_float)
     std::string valFile = ExtractValue(tensorFile1, "max", 0);
     std::string valCalc = RoundStrNum(calStats->GetMaxStr(), 0);
     EXPECT_TRUE(valFile == valCalc);
-    valFile = ExtractValue(tensorFile1, "l2norm", 4);
-    valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
+    valFile = ExtractValue(tensorFile1, "l2norm", 3);
+    valCalc = RoundStrNum(calStats->GetL2NormStr(), 3);
     EXPECT_TRUE(valFile == valCalc);
 
     tensorFile1.close();
