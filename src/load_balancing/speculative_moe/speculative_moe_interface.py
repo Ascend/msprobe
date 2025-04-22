@@ -7,9 +7,7 @@
 """
 import math
 import logging
-import argparse
 import csv
-import json
 from collections import defaultdict
 from typing import List
 import multiprocessing as mp
@@ -17,12 +15,8 @@ import multiprocessing as mp
 import numpy as np
 from ortools.sat.python import cp_model
 
-# 配置日志记录
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[logging.StreamHandler()])
 
-logger = logging.getLogger()
+logger = logging.getLogger("msit_logger")
 
 
 class SpeculativeMoe(object):
@@ -257,7 +251,6 @@ def speculative_moe_algo_multi_process(n_devices: int,
                                        n_experts: int,
                                        n_red_experts: int,
                                        trace_fp: str,
-                                       deploy_fp: str,
                                        cpu_per_process: int = 8):
     """多进程执行speculative_moe_algo, 每个进程独立求解不同layers的专家布放结果"""
     n_processes = (mp.cpu_count() - 3) // cpu_per_process
@@ -279,7 +272,7 @@ def speculative_moe_algo_multi_process(n_devices: int,
                 logger.error('ERROR: can not solve the e2d tables for all layers successfully')
                 return None
         results.extend(cur_results)
-    dump_tables(deploy_fp, results, n_devices)
+    return results
 
 
 def speculative_moe_algo(trace_fp: str,
@@ -304,25 +297,3 @@ def speculative_moe_algo(trace_fp: str,
         d2e_tables[deploy_algo.layer_idxes[i]] = d2e_table
     d2e_tables = dict(sorted(d2e_tables.items()))
     return d2e_tables
-
-
-def dump_tables(deploy_fp, d2e_tables_list, n_devices):
-    layer_list = []
-
-    for layer_idx, d2e_tables in enumerate(d2e_tables_list):
-        device_list = [
-            {"device_id": d, "device_expert": d2e_tables[layer_idx][d].tolist()} 
-            for d in range(n_devices)
-        ]
-        layer_list.append({
-            "layer_id": layer_idx,
-            "device_count": n_devices,
-            "device_list": device_list
-        })
-    json_data = {
-        "moe_layer_count": len(layer_list),
-        "layer_list": layer_list
-    }
-    logger.debug(json_data)
-    with open(deploy_fp, 'w') as json_file:
-        json.dump(json_data, json_file, indent=4)

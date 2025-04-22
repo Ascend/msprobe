@@ -8,62 +8,7 @@ import numpy as np
 import pandas as pd
 
 
-# 配置日志记录
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[logging.StreamHandler()])
-
-logger = logging.getLogger()
-
-
-def save_matrix_to_csv(output_path, file_name, matrix):
-    """
-    保存矩阵到 CSV 文件或 Excel 文件（用于处理三维矩阵的多个 sheet）
-    :param output_path: 输出文件的路径
-    :param file_name: 输出文件的名字
-    :param matrix: 矩阵
-    """
-    if matrix.ndim == 2:
-        # 二维矩阵保存为普通 CSV 文件
-        df = pd.DataFrame(matrix)
-        file_name = f"{output_path}/{file_name}.csv"
-        df.to_csv(file_name, index=False)
-    elif matrix.ndim == 3:
-        # 三维矩阵保存到 Excel 文件的不同 sheet 中
-        file_name = f"{output_path}/{file_name}.xlsx"
-        with pd.ExcelWriter(file_name) as writer:
-            for i in range(matrix.shape[0]):
-                slice_2d = matrix[i]
-                df = pd.DataFrame(slice_2d)
-                df.to_excel(writer, sheet_name=f'slice_{i}', index=False)
-    else:
-        logger.error(f"矩阵的维度 {matrix.ndim} 不支持，仅支持二维和三维矩阵。")
-
-
-def save_matrix_to_json(output_path, file_name, deployment):
-    num_layers = len(deployment)
-    num_cards = len(deployment[0])
-
-    data = {"moe_layer_count": num_layers}
-    layer_list = []
-    for i in range(num_layers):
-        layer = {"layer_id": i, "device_count": num_cards}
-        device_list = []
-        for j in range(num_cards):
-            # 将 1*4 的行矩阵转换为列表
-            device = {"device_id": j, "device_expert": list(deployment[i][j])}
-            device_list.append(device)
-        layer["device_list"] = device_list
-        layer_list.append(layer)
-    data["layer_list"] = layer_list
-
-    file_name = f"{output_path}/{file_name}.json"
-    # 保存为 JSON 文件
-    try:
-        with open(file_name, 'w') as f:
-            json.dump(data, f, indent=4)
-    except Exception as e:
-        logger.error(f"写入文件 {deployment} 时出错: {e}")
+logger = logging.getLogger("msit_logger")
 
 
 # 热点专家拆分为冗余专家
@@ -207,8 +152,6 @@ def compute_balanced_pack(origin_weights, card_num):
 def lb_and_intra_layer_affinity_redundancy_deploy(
         layer_workloads,  
         num_redundancy_expert, 
-        output_path, 
-        file_name,
         num_npus=64, 
         num_original_expert=256,):
     """
@@ -247,4 +190,4 @@ def lb_and_intra_layer_affinity_redundancy_deploy(
             )
         global_deployment[layer] = layer_deployment
 
-    save_matrix_to_json(output_path, file_name, global_deployment)
+    return global_deployment

@@ -1,64 +1,11 @@
 # coding=utf-8
 # Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
 import logging
-import json
 
-import pandas as pd
 import numpy as np
 
 
 logger = logging.getLogger("msit_logger")
-
-
-def save_matrix_to_csv(output_path, file_name, matrix):
-    """
-    保存矩阵到 CSV 文件或 Excel 文件（用于处理三维矩阵的多个 sheet）
-    :param output_path: 输出文件的路径
-    :param file_name: 输出文件的名字
-    :param matrix: 矩阵
-    """
-    if matrix.ndim == 2:
-        # 二维矩阵保存为普通 CSV 文件
-        df = pd.DataFrame(matrix)
-        file_name = f"{output_path}/{file_name}.csv"
-        df.to_csv(file_name, index=False)
-    elif matrix.ndim == 3:
-        # 三维矩阵保存到 Excel 文件的不同 sheet 中
-        file_name = f"{output_path}/{file_name}.xlsx"
-        with pd.ExcelWriter(file_name) as writer:
-            for i in range(matrix.shape[0]):
-                slice_2d = matrix[i]
-                df = pd.DataFrame(slice_2d)
-                df.to_excel(writer, sheet_name=f'slice_{i}', index=False)
-    else:
-        logger.error(f"矩阵的维度 {matrix.ndim} 不支持，仅支持二维和三维矩阵。")
-
-
-def save_matrix_to_json(output_path, file_name, deployment):
-    num_layers = len(deployment)
-    num_cards = len(deployment[0])
-
-    data = {"moe_layer_count": num_layers}
-    layer_list = []
-    for i in range(num_layers):
-        layer = {"layer_id": i, "device_count": num_cards}
-        device_list = []
-        for j in range(num_cards):
-            # 将 1*4 的行矩阵转换为列表
-            device = {"device_id": j, "device_expert": list(deployment[i][j])}
-            device_list.append(device)
-        layer["device_list"] = device_list
-        layer_list.append(layer)
-    data["layer_list"] = layer_list
-
-    file_name = f"{output_path}/{file_name}.json"
-
-    # 保存为 JSON 文件
-    try:
-        with open(file_name, 'w') as f:
-            json.dump(data, f, indent=4)
-    except Exception as e:
-        logger.error(f"写入文件 {deployment} 时出错: {e}")
 
 
 def get_redundant_experts(
@@ -318,8 +265,6 @@ def get_layer_deployment(layer_workload,
 def lb_redundancy_deploy_for_dynamic(
     layer_workloads,
     num_redundancy_expert,
-    output_path,
-    file_name="global_deployment",
     num_nodes=8,
     num_npus=64,
 ):
@@ -333,8 +278,6 @@ def lb_redundancy_deploy_for_dynamic(
     :param num_nodes: 节点（机器）数量
     :param num_npus: NPU卡数量
     :param num_redundancy_expert: 总的冗余专家数量
-    :param output_path: 生成json文件保存路径
-    :param file_name: 生成json文件名
     :param layer_workloads[layer_num, expert_num] 58*256
     :return: optimized layer_deployment: [layer_num, card_num, card_expert_num] 58*64*4
     """
@@ -380,5 +323,5 @@ def lb_redundancy_deploy_for_dynamic(
             tmp_layer_depolyment, num_npus, num_nodes, expert_num
         )  # 校验生成的部署文件是否符合要求
         global_deployment[layer] = tmp_layer_depolyment
-    # 保存部署策略到文件
-    save_matrix_to_json(output_path, file_name, global_deployment)
+
+    return global_deployment
