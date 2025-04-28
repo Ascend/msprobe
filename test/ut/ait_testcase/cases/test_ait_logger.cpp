@@ -122,3 +122,16 @@ TEST(ait_logger_Func, Logger_BoundaryCondition_CRITICAL)
     ASSERT_NE(output.find("[CRITICAL]"), std::string::npos);
     ASSERT_EQ(output.find("[FATAL]"), std::string::npos);
 }
+
+TEST(ait_logger_Func, Logger_BoundaryCondition_ERRORINPUT)
+{
+    testing::internal::CaptureStdout();
+    EnvVarGuard envGuard("ATB_AIT_LOG_LEVEL");
+    setenv("ATB_AIT_LOG_LEVEL", "aaa", 1);
+
+    AIT_LOG_DEBUG("0");
+
+    std::string output = testing::internal::GetCapturedStdout();
+    ASSERT_EQ(output.find("[DEBUG]"), std::string::npos);
+    ASSERT_NE(output.find("[WARNING]"), std::string::npos);
+}

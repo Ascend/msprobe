@@ -55,6 +55,7 @@ namespace {
     bool g_isSavePrefill = false;
     bool g_isSaveFirstDecode = false;
     bool g_isSaveSecondDecode = false;
+    uint32_t g_maxDeep = 1000;
     struct LayerGraphMap {
         std::map<std::string, std::string> layerGraphMap_;
 
@@ -179,8 +180,12 @@ static int SafetyStoi(const char* env, int defalutValue)
 }
 
 static void DfsToModifyGraphTensors(ordered_json &curNodeToSave,
-    const std::vector<std::string> &fatherNodeTensorNameList, const ordered_json &curNodeInput)
+    const std::vector<std::string> &fatherNodeTensorNameList, const ordered_json &curNodeInput, uint32_t curDeep = 0)
 {
+    if (curDeep >= g_maxDeep) {
+        AIT_LOG_ERROR("Function " + std::string(__func__) + "has been terminated.");
+        throw std::runtime_error("The maximum recursive depth exceeds " + std::to_string(g_maxDeep) + ".");
+    }
     std::string opName = curNodeInput["opName"].get<std::string>();
     curNodeToSave["opName"] = curNodeInput["opName"];
     curNodeToSave["opType"] = curNodeInput["opType"];
@@ -222,7 +227,7 @@ static void DfsToModifyGraphTensors(ordered_json &curNodeToSave,
     if (curNodeInput.find("nodes") != curNodeInput.end()) {
         for (auto childNodeInput : curNodeInput["nodes"]) {
             ordered_json childNodeToSave;
-            DfsToModifyGraphTensors(childNodeToSave, curNodeTensorNameList, childNodeInput);
+            DfsToModifyGraphTensors(childNodeToSave, curNodeTensorNameList, childNodeInput, curDeep + 1);
             curNodeToSave["nodes"].emplace_back(childNodeToSave);
         }
     }
@@ -241,9 +246,16 @@ static void MergeLayerTopoInfo(ordered_json &layerJson)
     if (atbLayerGraph == "") {
         return;
     }
-
+    ordered_json atbLayerJson;
     // inTensor和outTensor从model里获取，internalTensor自己申请id, 组成layerTensorNameList
-    ordered_json atbLayerJson = ordered_json::parse(atbLayerGraph);
+    try {
+        atbLayerJson = ordered_json::parse(atbLayerGraph);
+    } catch (const ordered_json::parse_error& ex) {
+        AIT_LOG_ERROR("json parse error! opName:" + opName);
+        AIT_LOG_ERROR("message: " + std::string(ex.what()) + '\n' + "exception id: " + std::to_string(ex.id) + '\n' +
+               "byte position of error: " + std::to_string(ex.byte));
+        return;
+    }
     std::vector<std::string> layerTensorNameList;
     for (auto item : layerJson["inTensors"]) {
         layerTensorNameList.emplace_back(item);
@@ -779,7 +791,7 @@ std::unique_ptr<LLM::StatisticsBase> GetStatisticsFromBinaryDataWithTensorDType(
     if (it != typeToFunctionMap.end()) {
         return it->second(binData, dataSize);
     } else {
-        AIT_LOG_DEBUG("[Warning]: Unsupported tensor datatype: " + Mki::GetStrWithDType(dType));
+        AIT_LOG_WARNING("Unsupported tensor datatype: " + Mki::GetStrWithDType(dType));
         return std::unique_ptr<LLM::StatisticsBase>(new LLM::Statistics<std::string>());
     }
 }
@@ -871,7 +883,7 @@ static void UpdateLmHeadId(const std::string &opName)
     if (pos != std::string::npos && (pos + 1 >= finalOpNameLength)) {
         std::string subOpName = opName.substr(0, finalOpNameLength);
         if (subOpName == FINAL_OP_NAME) { // 比较是否为 "LmHead"
-            auto opId = std::stoi(opName.substr(pos + 1, opName.length()));
+            auto opId = SafetyStoi(opName.substr(pos + 1, opName.length()).c_str(), g_maxPrefillOpId);
             g_maxPrefillOpId = std::min(static_cast<uint32_t>(opId), g_maxPrefillOpId);
         }
     }

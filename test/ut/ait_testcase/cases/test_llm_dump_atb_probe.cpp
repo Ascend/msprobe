@@ -225,6 +225,17 @@ TEST(atb_speed_Probe, ReportModelTopoInfo)
     EXPECT_EQ(dumpJson["nodes"][1]["internalTensors"][2].get<std::string>(), "EncoderLayer_1_internal_2");
 }
 
+TEST(atb_speed_Probe, IsReportModelTopoInfo_FALSE)
+{
+    const char *value = "layer|model";
+    setenv("ATB_DUMP_TYPE", value, 1);
+    unsetenv("ATB_OUTPUT_DIR");
+
+    std::string modelName = "%#$#%#$%^#$";
+
+    EXPECT_FALSE(atb_speed::SpeedProbe::IsReportModelTopoInfo(modelName));
+}
+
 TEST(atb_Probe, ReportOperationIOTensorEnable_001)
 {
     setenv("ATB_DUMP_TYPE", "tensor", 1);

@@ -22,7 +22,16 @@ void ait::Logger(const std::string message, const char *fileName, int line, cons
 {
     const char* atbLog = std::getenv("ATB_AIT_LOG_LEVEL");
     const char* levelName[] = {"DEBUG", "INFO", "WARNING", "ERROR", "FATAL", "CRITICAL"};
-    int atbLogLevel = atbLog ? std::stoi(atbLog) : int(LogLevel::INFO);
+    int atbLogLevel = int(LogLevel::INFO);
+    if (atbLog) {
+        try {
+            atbLogLevel = std::stoi(atbLog);
+        } catch (const std::invalid_argument& e) {
+            std::cout << "[WARNING] [" << fileName << "+" << line << "][" << funcName << "] "
+            << "Cannot convert environment variable to int." << std::endl;
+            std::cout << "[WARNING] Log level resets to INFO." << std::endl;
+        }
+    }
     int levelInt = int(level);  // levelInt from Enum has to in the range of length of levelName
     if (atbLogLevel <= levelInt) {
         std::cout << "[" << levelName[levelInt] << "] [" << fileName << "+" << line << "][" << funcName << "] "
