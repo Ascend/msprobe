@@ -183,7 +183,7 @@ static void DfsToModifyGraphTensors(ordered_json &curNodeToSave,
     const std::vector<std::string> &fatherNodeTensorNameList, const ordered_json &curNodeInput, uint32_t curDeep = 0)
 {
     if (curDeep >= g_maxDeep) {
-        AIT_LOG_ERROR("Function " + std::string(__func__) + "has been terminated.");
+        AIT_LOG_ERROR("The depth of the current graph structure is too deep, and the traversal node fails");
         throw std::runtime_error("The maximum recursive depth exceeds " + std::to_string(g_maxDeep) + ".");
     }
     std::string opName = curNodeInput["opName"].get<std::string>();
