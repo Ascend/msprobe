@@ -13,6 +13,7 @@ from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils import log
 from cmp_utils import common
+from conversion.dtype_conversion import hifloat8_to_float32, float8e4m3fn_to_float32, float8e5m2_to_float32
 
 
 CommonAttr = collections.namedtuple('CommonAttr', ['data_type', 'tensor_format', 'address', 'original_shape'])
@@ -44,6 +45,42 @@ def _deserialize_dump_data_to_array(data, data_type, shape: list = None) -> any:
         return result
 
 
+def _deserialize_dump_data_david_to_array(data, data_type, shape: list = None) -> any:
+    """
+    Deserialize the dump data in the unique special data format of the new chip
+    @param data: the dump data for input or output
+    @param data_type: the data target dtype
+    @param shape: the data target shape
+    @return: the numpy array
+    """
+    if shape is not None and 0 in shape:
+        return np.array([]).reshape(shape)
+    cur_type = common.get_dtype_by_data_type(data_type)
+    if shape is not None:  # shape can be empty [] for scalar data
+        cnt = 1
+        for ii in shape:
+            cnt *= ii
+        cur_byte = 1
+        if cur_type == "float8_e4m3fn":
+            result = np.frombuffer(data[:cur_byte * cnt], dtype=np.uint8)
+            result = np.array([float8e4m3fn_to_float32(ele) for ele in result])
+        elif cur_type == "hifloat8":
+            result = np.frombuffer(data[:cur_byte * cnt], dtype=np.uint8)
+            result = np.array([hifloat8_to_float32(ele) for ele in result])
+        elif cur_type == "float8_e5m2":
+            result = np.frombuffer(data[:cur_byte * cnt], dtype=np.uint8)
+            result = np.array([float8e5m2_to_float32(ele) for ele in result])
+    else:
+        result = np.frombuffer(data, dtype=np.uint8)
+        if cur_type == "float8_e4m3fn":
+            result = np.array(float8e4m3fn_to_float32(result))
+        if cur_type == "hifloat8":
+            result = np.array(hifloat8_to_float32(result))
+        if cur_type == "float8_e5m2":
+            result = np.array(float8e5m2_to_float32(result))          
+    return result
+
+
 def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool) -> None:
     """
     replace the input or output object of DumpDataObj to DumpyTensor
@@ -56,7 +93,10 @@ def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool
         if not tensor.HasField('shape') and tensor.size:
             log.print_info_log(f"Tensor shape is empty, using size {tensor.size} as shape")
             tensor.shape.dim.append(tensor.size) # Ignore dtype size, just set a value large enough
-        data_to_np = _deserialize_dump_data_to_array(tensor.data, tensor.data_type, list(tensor.shape.dim))
+        if tensor.data_type in ConstManager.DAVID_DATA_DTYPE:
+            data_to_np = _deserialize_dump_data_david_to_array(tensor.data, tensor.data_type, list(tensor.shape.dim))
+        else:
+            data_to_np = _deserialize_dump_data_to_array(tensor.data, tensor.data_type, list(tensor.shape.dim))
         dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
                                  data_to_np, tensor.size, list(tensor.original_shape.dim),
                                  tensor.address, tensor.sub_format, is_input, is_ffts)

@@ -241,6 +241,9 @@ class ConstManager:
         DD.DT_UINT1: {DTYPE_KEY: np.uint8, STRUCT_FORMAT_KEY: '?'},
         DD.DT_UNDEFINED: {DTYPE_KEY: np.int8, STRUCT_FORMAT_KEY: 'b'},
         DD.DT_RESOURCE: {DTYPE_KEY: np.int64, STRUCT_FORMAT_KEY: 'q'},
+        DD.DT_FLOAT8_E4M3FN: {DTYPE_KEY: "float8_e4m3fn", STRUCT_FORMAT_KEY: 'b'},
+        DD.DT_FLOAT8_E5M2: {DTYPE_KEY: "float8_e5m2", STRUCT_FORMAT_KEY: 'b'},
+        DD.DT_HIFLOAT8: {DTYPE_KEY: "hifloat8", STRUCT_FORMAT_KEY: 'b'},
     }
     DATA_TYPE_TO_STR_DTYPE_MAP = {
         DD.DT_FLOAT: "float32",
@@ -261,6 +264,9 @@ class ConstManager:
         DD.DT_UINT1: "uint1",
         DD.DT_UNDEFINED: "int8",
         DD.DT_RESOURCE: "int64",
+        DD.DT_FLOAT8_E4M3FN: "float8_e4m3fn",
+        DD.DT_HIFLOAT8: "hifloat8",
+        DD.DT_FLOAT8_E5M2: "float8_e5m2",
     }
 
     UNPACK_DTYPE = [
@@ -269,6 +275,12 @@ class ConstManager:
     CAST_FP32_DTYPE = [
         DD.DT_BF16,
     ]
+    DAVID_DATA_DTYPE = [
+        DD.DT_FLOAT8_E4M3FN,
+        DD.DT_HIFLOAT8,
+        DD.DT_FLOAT8_E5M2,
+    ]
+
 
     # Standard
     STANDARD_SUFFIX = ".pb"

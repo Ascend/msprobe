@@ -30,6 +30,15 @@ enum OutputDataType{
     DT_DUAL = 25;
     DT_BF16 = 27;
     DT_UINT1 = 29;
+    DT_COMPLEX32 = 32;
+    DT_HIFLOAT8 = 33;
+    DT_FLOAT8_E5M2 = 34;
+    DT_FLOAT8_E4M3FN = 35;
+    DT_FLOAT8_E8M0 = 36;
+    DT_FLOAT6_E3M2 = 37;
+    DT_FLOAT6_E2M3 = 38;
+    DT_FLOAT4_E2M1 = 39;
+    DT_FLOAT4_E1M2 = 40;
 }
 
 enum OutputFormat{
