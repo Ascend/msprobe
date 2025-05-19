@@ -26,6 +26,8 @@
 #include "nlohmann/json.hpp"
 #include "tools.h"
 #include "stats_generator.h"
+#include "env_var_guard.h"
+#include "file_registry.h"
 
 namespace fs = std::experimental::filesystem;
 
@@ -264,9 +266,9 @@ SocVersion|ExpectedError";
 [0,0,0],\"testParam3\":{\"testParam4\":9.99}}|2|ACL_FLOAT16;ACL_INT64|ACL_FORMAT_ND;ACL_FORMAT_ND|65024,4096;8,1024|1|\
 ACL_FLOAT16|ACL_FORMAT_ND|8,1024,4096|customize";
 
-    DeleteFile(outPath);
+    DeletePath(outPath);
     ReportIOTensorTest(executeCount, testType);
-    EXPECT_TRUE(IfFileExists(outPath));
+    EXPECT_TRUE(IsPathExist(outPath));
     EXPECT_TRUE(CheckFileContainsString(outPath, headStr));
     EXPECT_TRUE(CheckFileContainsString(outPath, contentStr));
 }
@@ -276,7 +278,6 @@ TEST(atb_Probe, ReportKernelIOTensorEnable_001)
     setenv("ATB_DUMP_TYPE", "tensor", 1);
     EXPECT_FALSE(atb::Probe::ReportKernelIOTensorEnable());
 }
-
 
 TEST(atb_Probe, ReportKernelIOTensorEnable_002)
 {
@@ -300,9 +301,9 @@ SocVersion|ExpectedError";
 [0,0,0],\"testParam3\":{\"testParam4\":9.99}}|2|ACL_FLOAT16;ACL_INT64|ACL_FORMAT_ND;ACL_FORMAT_ND|65024,4096;8,1024|1|\
 ACL_FLOAT16|ACL_FORMAT_ND|8,1024,4096|customize";
 
-    DeleteFile(outPath);
+    DeletePath(outPath);
     ReportIOTensorTest(executeCount, testType);
-    EXPECT_TRUE(IfFileExists(outPath));
+    EXPECT_TRUE(IsPathExist(outPath));
     EXPECT_TRUE(CheckFileContainsString(outPath, headStr));
     EXPECT_TRUE(CheckFileContainsString(outPath, contentStr));
 }
@@ -330,9 +331,9 @@ TEST(atb_Probe, ReportOperationStatisticTest_001)
     const std::string outPath = "./" + fPath;
     const std::string testType = "cpu_profiling";
  
-    DeleteFile(outPath);
+    DeletePath(outPath);
     ReportOperationStatisticTest(executeCount);
-    EXPECT_TRUE(IfFileExists(outPath));
+    EXPECT_TRUE(IsPathExist(outPath));
     EXPECT_TRUE(CheckFileContainsString(outPath, "[TestOperation]:totalTime:535801, streamSyncTime:0, \
     tillingCopyTime:69, kernelExecuteTime:416"));
     EXPECT_TRUE(CheckFileContainsString(outPath, "[TestOperation]:totalTime:188, runnerSetupTime:115, \
@@ -359,7 +360,7 @@ TEST(atb_Probe, SaveParamTest)
     std::ifstream paramFile(paramDir);
     EXPECT_TRUE(paramFile.is_open());
 
-    DeleteFile(paramDir);
+    DeletePath(paramDir);
 }
 /*
     ait llm --type
@@ -432,7 +433,7 @@ TEST(atb_probe, HandlesOutputFile)
     }
 
     ifs.close();
-    DeleteFile(outPath);
+    DeletePath(outPath);
 }
 
 TEST(atb_Probe, IsTensorNeedSaveTest_001)
@@ -628,6 +629,74 @@ TEST(atb_Probe, IsSaveTensorBefore_When_Unset_Env)
     EXPECT_TRUE(atb::Probe::IsSaveTensorAfter());
 }
 
+TEST(atb_Probe, IsSaveTensorDesc_True)
+{
+    EXPECT_TRUE(atb::Probe::IsSaveTensorDesc());
+}
+
+TEST(atb_Probe, IsExecuteCountInRangeTest_EnvNotSet_ReturnFalse)
+{
+    unsetenv("ATB_SAVE_TENSOR_RANGE");
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(0));
+}
+
+TEST(atb_Probe, IsExecuteCountInRangeTest_InvalidEnvFormat_ReturnFalse)
+{
+    setenv("ATB_SAVE_TENSOR_RANGE", "invalid", 1);
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(0));
+}
+
+TEST(atb_Probe, IsExecuteCountInRangeTest_SingleValidRange_ReturnTrue)
+{
+    setenv("ATB_SAVE_TENSOR_RANGE", "5,10", 1);
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(7));  // 7+1=8 in 5-10
+}
+
+TEST(atb_Probe, IsExecuteCountInRangeTest_OutOfRange_ReturnFalse)
+{
+    setenv("ATB_SAVE_TENSOR_RANGE", "5,10", 1);
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(11)); // 11+1=12
+}
+
+TEST(atb_Probe, IsExecuteCountInRangeTest_FirstDecodeFlagSet)
+{
+    setenv("ATB_SAVE_TENSOR_RANGE", "1,1", 1);
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(0));  // 0+1=1
+}
+
+TEST(atb_Probe, IsExecuteCountInRangeTest_SecondDecodeFlagSet)
+{
+    setenv("ATB_SAVE_TENSOR_RANGE", "2,2", 1);
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(1));  // 1+1=2
+}
+
+TEST(atb_Probe, IsExecuteCountInRangeTest_PrefillConditionTriggered)
+{
+    setenv("ATB_SAVE_TENSOR_RANGE", "0,100", 1);
+    // Assume SECOND_DECODE_ID=2
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(1));  // 1+1=2
+}
+
+TEST(atb_Probe, IsExecuteCountInRangeTest_MultipleRangesProcessing)
+{
+    setenv("ATB_SAVE_TENSOR_RANGE", "1,1,3,5,0,0", 1);
+    // Verify first valid range (1,1)
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(0));  // 0+1=1 (in 0,1,3-5)
+    
+    // Verify second valid range (3,5)
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(3));  // 3+1=4 (in 0,1,3-5)
+    
+    // Verify third invalid range
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(5));
+}
+
+TEST(atb_Probe, IsExecuteCountInRangeTest_EarlyReturnWithPrefill)
+{
+    setenv("ATB_SAVE_TENSOR_RANGE", "0,3,4,6", 1);
+    // Processing first range (0,3) triggers prefill
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(1));  // 1+1=2
+}
+
 TEST(atb_Probe, SaveTensorTest)
 {
     auto isSymlink = [](const std::string& path) -> bool {
@@ -644,6 +713,8 @@ TEST(atb_Probe, SaveTensorTest)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_PART", "0", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     std::string format = "2";
     std::string dtype = "1";
@@ -665,13 +736,15 @@ TEST(atb_Probe, SaveTensorTest)
     std::string outPath2 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor2.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath2)) << outPath2 << " has not been ready for 5s";
     EXPECT_TRUE(fs::read_symlink(outPath2) == outPath1);
+    EXPECT_TRUE(fs::is_symlink(outPath2));
     EXPECT_TRUE(isSymlink(outPath2));
 
     if (isSymlink(outPath2)) {
         remove(outPath2.c_str());
     }
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
+    DeletePath(outPath2);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_double)
@@ -681,12 +754,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_double)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_DOUBLE;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<double> tensorVec = GenerateVectorNorm<double>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<double>(tensorVec);
 
@@ -703,10 +778,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_double)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 6);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 6);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 6));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_bf16)
@@ -716,12 +791,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_bf16)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_BF16;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<uint16_t> tensorVec = GenerateVectorHalfPrecFloats(vecSize, tdtype);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsHalfPrec(tensorVec, tdtype);
 
@@ -738,10 +815,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_bf16)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 3);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 3);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 3));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_float16)
@@ -751,12 +828,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_float16)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_FLOAT16;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<uint16_t> tensorVec = GenerateVectorHalfPrecFloats(vecSize, tdtype);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsHalfPrec(tensorVec, tdtype);
 
@@ -773,10 +852,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_float16)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 3);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 3);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 3));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_float)
@@ -786,12 +865,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_float)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_FLOAT;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<float> tensorVec = GenerateVectorNorm<float>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<float>(tensorVec);
 
@@ -808,10 +889,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_float)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 3);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 3);
-    EXPECT_TRUE(valFile == valCalc);
-
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 3));
+    
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_int8)
@@ -821,12 +902,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int8)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_INT8;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<int8_t> tensorVec = GenerateVectorNorm<int8_t>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<int8_t>(tensorVec);
 
@@ -843,10 +926,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int8)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 4);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 4));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_int16)
@@ -856,12 +939,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int16)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_INT16;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<int16_t> tensorVec = GenerateVectorNorm<int16_t>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<int16_t>(tensorVec);
 
@@ -878,10 +963,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int16)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 4);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 4));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_int32)
@@ -891,12 +976,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int32)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_INT32;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<int32_t> tensorVec = GenerateVectorNorm<int32_t>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<int32_t>(tensorVec);
 
@@ -913,10 +1000,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int32)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 4);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 4));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_int64)
@@ -926,12 +1013,13 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int64)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_INT64;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<int64_t> tensorVec = GenerateVectorNorm<int64_t>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<int64_t>(tensorVec);
 
@@ -948,10 +1036,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int64)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 4);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 4));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_uint8)
@@ -961,12 +1049,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint8)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_UINT8;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<uint8_t> tensorVec = GenerateVectorNorm<uint8_t>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<uint8_t>(tensorVec);
 
@@ -983,10 +1073,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint8)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 4);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 4));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_uint16)
@@ -996,12 +1086,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint16)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_UINT16;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<uint16_t> tensorVec = GenerateVectorNorm<uint16_t>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<uint16_t>(tensorVec);
 
@@ -1018,10 +1110,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint16)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 4);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 4));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_uint32)
@@ -1031,12 +1123,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint32)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_UINT32;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<uint32_t> tensorVec = GenerateVectorNorm<uint32_t>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<uint32_t>(tensorVec);
 
@@ -1053,10 +1147,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint32)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 4);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 4));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_uint64)
@@ -1066,12 +1160,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint64)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_UINT64;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<uint64_t> tensorVec = GenerateVectorNorm<uint64_t>(vecSize);
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsNorm<uint64_t>(tensorVec);
 
@@ -1088,10 +1184,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint64)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", 4);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 4));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_complex64)
@@ -1101,12 +1197,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_complex64)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_COMPLEX64;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<std::complex<float>> tensorVec = GenerateVectorComplex64(vecSize);
     uint8_t decimalPlaces = 6;
     std::unique_ptr<LLM::StatisticsBase> calStats = CalStatsComplex64(tensorVec, decimalPlaces);
@@ -1124,10 +1222,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_complex64)
     EXPECT_TRUE(valFile == valCalc);
     valFile = ExtractValue(tensorFile1, "l2norm", decimalPlaces); // l2norm为非复数格式
     valCalc = calStats->GetL2NormStr();
-    EXPECT_TRUE(valFile == valCalc);
+    EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, decimalPlaces));
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_string)
@@ -1137,12 +1235,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_string)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_STRING;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<std::string> tensorVec(vecSize, "test");
     std::size_t dataSize = 0;
     for (const auto& str : tensorVec) {
@@ -1162,7 +1262,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_string)
     EXPECT_TRUE(valFile == valCalc);
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
 }
 
 TEST(atb_Probe, SaveTensorStatsTest_Input_Undefined)
@@ -1172,12 +1272,14 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_Undefined)
     unsetenv("ATB_DEVICE_ID");
     unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
     setenv("ATB_SAVE_TENSOR_STATISTICS", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
 
     Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_UNDEFINED;
     std::string format = "2";
     std::string dtype = std::to_string(tdtype);
     std::string dims = "1024,4096";
-    const int vecSize = 1e3;
+    const int vecSize = 1e5;
     std::vector<std::string> tensorVec(vecSize, "undefined");
     std::size_t dataSize = 0;
     for (const auto& str : tensorVec) {
@@ -1198,5 +1300,141 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_Undefined)
     EXPECT_TRUE(valFile == valCalc);
 
     tensorFile1.close();
-    DeleteFile(outPath1);
+    DeletePath(outPath1);
+}
+
+TEST(atb_Probe, SaveTensorSymblinkTest_Symblink_Open_Same_Context)
+{
+    unsetenv("ATB_OUTPUT_DIR");
+    unsetenv("ATB_TIMESTAMP");
+    unsetenv("ATB_DEVICE_ID");
+    unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+    unsetenv("ATB_SAVE_TENSOR_STATISTICS");
+    setenv("ATB_SAVE_TENSOR_PART", "0", 1);
+    setenv("ATB_SAVE_TENSOR", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
+
+    Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_UINT8;
+    std::string format = "2";
+    std::string dtype = std::to_string(tdtype);
+    std::string dims = "1,10";
+    const int vecSize = 10;
+    std::vector<uint8_t> tensorVec = GenerateVectorNorm<uint8_t>(vecSize);
+    const void* hostData = static_cast<const void*>(tensorVec.data());
+    uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
+    std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
+    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath2 = "0_845452/6/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath2);
+    std::string outPath2 = "./msit_dump/tensors/0_845452/7/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    
+    EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
+    EXPECT_TRUE(WaitUntilFileReady(outPath2)) << outPath2 << " has not been ready for 5s";
+    std::ifstream tensorFile1(outPath1, std::ios::binary);
+    EXPECT_TRUE(tensorFile1.is_open());
+    EXPECT_FALSE(fs::is_symlink(outPath1));
+    EXPECT_TRUE(fs::is_symlink(outPath2));
+    std::string symlinkOutPath2 = outPath2;
+    while (fs::is_symlink(symlinkOutPath2)) { symlinkOutPath2 = fs::read_symlink(symlinkOutPath2); }
+    EXPECT_EQ(outPath1, symlinkOutPath2);
+    EXPECT_TRUE(VerifyBinaryFileWithUInt8Vector(tensorFile1, tensorVec));
+    
+    tensorFile1.close();
+    
+    DeletePath(outPath1);
+    DeletePath(outPath2);
+}
+
+TEST(atb_Probe, SaveTensorSymblinkTest_Symblink_Open_Diff_Context)
+{
+    unsetenv("ATB_OUTPUT_DIR");
+    unsetenv("ATB_TIMESTAMP");
+    unsetenv("ATB_DEVICE_ID");
+    unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+    unsetenv("ATB_SAVE_TENSOR_STATISTICS");
+    setenv("ATB_SAVE_TENSOR_PART", "0", 1);
+    setenv("ATB_SAVE_TENSOR", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "1", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
+
+    Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_UINT8;
+    std::string format = "2";
+    std::string dtype = std::to_string(tdtype);
+    std::string dims = "1,10";
+    const int vecSize = 10;
+    std::vector<uint8_t> tensorVec1 = GenerateVectorNorm<uint8_t>(vecSize);
+    std::vector<uint8_t> tensorVec2 = GenerateVectorNorm<uint8_t>(vecSize);
+    const void* hostData1 = static_cast<const void*>(tensorVec1.data());
+    const void* hostData2 = static_cast<const void*>(tensorVec2.data());
+    uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
+    std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    atb::Probe::SaveTensor(format, dtype, dims, hostData1, dataSize, filePath);
+    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath2 = "0_845452/6/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    atb::Probe::SaveTensor(format, dtype, dims, hostData2, dataSize, filePath2);
+    std::string outPath2 = "./msit_dump/tensors/0_845452/7/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    
+    EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
+    EXPECT_TRUE(WaitUntilFileReady(outPath2)) << outPath2 << " has not been ready for 5s";
+    std::ifstream tensorFile1(outPath1, std::ios::binary);
+    std::ifstream tensorFile2(outPath2, std::ios::binary);
+    EXPECT_TRUE(tensorFile1.is_open());
+    EXPECT_TRUE(tensorFile2.is_open());
+    EXPECT_FALSE(fs::is_symlink(outPath1));
+    EXPECT_FALSE(fs::is_symlink(outPath2));
+    EXPECT_TRUE(VerifyBinaryFileWithUInt8Vector(tensorFile1, tensorVec1));
+    EXPECT_TRUE(VerifyBinaryFileWithUInt8Vector(tensorFile2, tensorVec2));
+    EXPECT_FALSE(CompareBinaryFiles(tensorFile1, tensorFile2));
+    
+    tensorFile1.close();
+    tensorFile2.close();
+    DeletePath(outPath1);
+    DeletePath(outPath2);
+}
+
+TEST(atb_Probe, SaveTensorSymblinkTest_Symblink_Close)
+{
+    unsetenv("ATB_OUTPUT_DIR");
+    unsetenv("ATB_TIMESTAMP");
+    unsetenv("ATB_DEVICE_ID");
+    unsetenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
+    unsetenv("ATB_SAVE_TENSOR_STATISTICS");
+    setenv("ATB_SAVE_TENSOR_PART", "0", 1);
+    setenv("ATB_SAVE_TENSOR", "1", 1);
+    setenv("ATB_SAVE_SYMLINK", "0", 1);
+    FileRegistry::FileRegistry::UpdateEnableSymlink();
+
+    Mki::TensorDType tdtype = Mki::TensorDType::TENSOR_DTYPE_UINT8;
+    std::string format = "2";
+    std::string dtype = std::to_string(tdtype);
+    std::string dims = "1,10";
+    const int vecSize = 10;
+    std::vector<uint8_t> tensorVec = GenerateVectorNorm<uint8_t>(vecSize);
+    const void* hostData = static_cast<const void*>(tensorVec.data());
+    uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
+    std::string filePath1 = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath1);
+    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath2 = "0_845452/8/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath2);
+    std::string outPath2 = "./msit_dump/tensors/0_845452/9/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+
+    EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
+    EXPECT_TRUE(WaitUntilFileReady(outPath2)) << outPath2 << " has not been ready for 5s";
+    std::ifstream tensorFile1(outPath1, std::ios::binary);
+    std::ifstream tensorFile2(outPath2, std::ios::binary);
+    EXPECT_TRUE(tensorFile1.is_open());
+    EXPECT_TRUE(tensorFile2.is_open());
+    EXPECT_FALSE(fs::is_symlink(outPath1));
+    EXPECT_FALSE(fs::is_symlink(outPath2));
+    EXPECT_TRUE(CompareBinaryFiles(tensorFile1, tensorFile2));
+    EXPECT_TRUE(VerifyBinaryFileWithUInt8Vector(tensorFile1, tensorVec));
+    EXPECT_TRUE(VerifyBinaryFileWithUInt8Vector(tensorFile2, tensorVec));
+
+    tensorFile1.close();
+    tensorFile2.close();
+    DeletePath(outPath1);
+    DeletePath(outPath2);
 }

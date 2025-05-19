@@ -18,6 +18,7 @@
 #include <syscall.h>
 #include <cctype>
 #include <cstdlib>
+#include <cstdio>
 #include <unordered_map>
 // for calculating dumped-tensor statistics
 #include <vector>
@@ -40,14 +41,45 @@
 #include "DumpThreadPool.h"
 #include "const.h"
 #include "safety_guard.h"
-
+#include "file_registry.h"
 
 using ordered_json = nlohmann::ordered_json;
 using MsConst::SAFETY_RET;
 
+// C++11标准不支持make_unique函数，此处为make_unique的简单实现
+#if __cplusplus < 201402L
+namespace std {
+    // 非数组类型
+    template<typename T, typename... Args>
+    typename std::enable_if<!std::is_array<T>::value, std::unique_ptr<T>>::type make_unique(Args&&... args)
+    {
+        return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+    }
+
+    // 数组类型(T[])
+    template <typename T>
+    using EnableIfDynamicArray = typename std::enable_if<
+        std::is_array<T>::value && std::extent<T>::value == 0,
+        std::unique_ptr<T>
+    >::type;
+
+    template<typename T>
+    EnableIfDynamicArray<T> make_unique(size_t size)
+    {
+        using U = typename std::remove_extent<T>::type;
+        return std::unique_ptr<T>(new U[size]);
+    }
+
+    // 禁用定长数组(如T[5])
+    template<typename T, typename... Args>
+    typename std::enable_if<std::extent<T>::value != 0, std::unique_ptr<T>>::type make_unique(Args&&...) = delete;
+}
+#endif
+
 namespace {
     unsigned long long g_minDiskSpaceFreeSize = 2147483648; // 2G
     constexpr size_t FREE_SIZE_MULTIPLE_OF_DATA_SIZE = 2; // free size至少两倍data size大小
+    static const int POOLNUM = 12;
     constexpr uint64_t SECOND_DECODE_ID = 2;
     constexpr uint64_t TOKEN_ID_INDEX = 3;
     const char* FINAL_OP_NAME = "LmHead";
@@ -56,6 +88,34 @@ namespace {
     bool g_isSaveFirstDecode = false;
     bool g_isSaveSecondDecode = false;
     uint32_t g_maxDeep = 1000;
+
+    template <typename T>
+    inline bool Likely(T&& condition) noexcept
+    {
+        return __builtin_expect(static_cast<bool>(condition), 1);
+    }
+
+    template <typename T>
+    inline bool Unlikely(T&& condition) noexcept
+    {
+        return __builtin_expect(static_cast<bool>(condition), 0);
+    }
+
+    static int SafetyStoi(const char* env, int defalutValue)
+    {
+        int ans = defalutValue;
+        try {
+            ans = std::stoi(env);
+        } catch (const std::invalid_argument& e) {
+            AIT_LOG_ERROR("Cannot converting environment varible to int.");
+            return ans;
+        } catch (const std::out_of_range& e) {
+            AIT_LOG_ERROR("The value of environment is illegal.");
+            return ans;
+        }
+        return ans;
+    }
+
     struct LayerGraphMap {
         std::map<std::string, std::string> layerGraphMap_;
 
@@ -70,6 +130,20 @@ namespace {
             return (it == layerGraphMap_.end()) ? "" : it->second;
         };
     };
+
+    std::unique_ptr<FileRegistry::FileRegistry>& GetFileRegistry()
+    {
+        static std::unique_ptr<FileRegistry::FileRegistry> instance =
+            std::make_unique<FileRegistry::FileRegistry>();
+        return instance;
+    }
+
+    std::unique_ptr<ThreadPool::DumpThreadPool>& GetGlobalPool(size_t numThreads = POOLNUM)
+    {
+        static std::unique_ptr<ThreadPool::DumpThreadPool> instance =
+            std::make_unique<ThreadPool::DumpThreadPool>(numThreads);
+        return instance;
+    }
 }
 
 static int GetFreeSpace(std::string path, unsigned long long *freeSpace)
@@ -77,7 +151,7 @@ static int GetFreeSpace(std::string path, unsigned long long *freeSpace)
     struct statvfs diskInfo;
 
     if (statvfs(path.c_str(), &diskInfo) == -1) {
-        AIT_LOG_ERROR("statvfs() error:" + std::string(std::strerror(errno)));
+        AIT_LOG_ERROR("statvfs() error:" + Utils::GetLastErrorStr());
         return 1;
     }
     *freeSpace = diskInfo.f_bavail * diskInfo.f_bsize;
@@ -162,21 +236,6 @@ static bool IsSaveDumpType(const std::string &tar)
     }
 
     return false;
-}
-
-static int SafetyStoi(const char* env, int defalutValue)
-{
-    int ans = defalutValue;
-    try {
-        ans = std::stoi(env);
-    } catch (const std::invalid_argument& e) {
-        AIT_LOG_ERROR("Cannot converting environment varible to int.");
-        return ans;
-    } catch (const std::out_of_range& e) {
-        AIT_LOG_ERROR("The value of environment is illegal.");
-        return ans;
-    }
-    return ans;
 }
 
 static void DfsToModifyGraphTensors(ordered_json &curNodeToSave,
@@ -311,6 +370,37 @@ void SaveSubProcessInfo(const std::string infoToSave)
     return;
 }
 
+namespace FileRegistry {
+
+    bool FileRegistry::enableSymlink_ = false;
+    
+    const std::string* FileRegistry::RegisterFile(const uint64_t hash,
+                                                  const std::string& path)
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        auto it = registry_.find(hash);
+        if (it != registry_.end()) {
+            return &(it->second);
+        }
+        registry_[hash] = path;
+        return nullptr;
+    }
+
+    void FileRegistry::UpdateEnableSymlink()
+    {
+        enableSymlink_ = [] {
+            const char* env = std::getenv("ATB_SAVE_SYMLINK"); // 软链接环境变量开关
+            if (env != nullptr) {
+                int value = SafetyStoi(env, 0);
+                if (value == atb::SAVE_SYMLINK) {
+                    return true;
+                }
+            }
+            return false;
+        }();
+    }
+}
+
 namespace Mki {
 
     size_t GetTensorElementSize(const TensorDType dtype)
@@ -385,54 +475,34 @@ namespace Mki {
 
 namespace atb {
 
-static std::unordered_map<uint64_t, std::shared_ptr<const std::string>> g_filecheck;
-static std::mutex g_mtx;
-void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile, std::shared_ptr<const std::string> cpoutPath)
+void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile,
+                       const std::string &outputPath)
 {
-    ms::UmaskWrapper uw;
-    uint64_t hashValue = binFile->CalcHash();
-
-    std::unique_lock<std::mutex> lock(g_mtx);
-    auto it = g_filecheck.find(hashValue);
-    if (it == g_filecheck.end()) {
-        g_filecheck[hashValue] = cpoutPath;
-        lock.unlock();
-
-        binFile->Write(*cpoutPath);
+    auto& fileRegistry = GetFileRegistry();
+    // 优先处理软链接关闭的情况
+    if (!fileRegistry->GetEnableSymlink()) {
+        binFile->Write(outputPath);
+        AIT_LOG_DEBUG("Direct write to " + outputPath);
         AIT_LOG_DEBUG("Saving tensor: success.");
         return;
-    } else {
-        std::string same = *(it->second);
-        lock.unlock();
-
-        if (symlink(same.c_str(), cpoutPath->c_str()) != 0) {
-            std::cerr << "Error creating symlink from " << same.c_str() << " to " << cpoutPath->c_str() << std::endl;
-        }
-        AIT_LOG_DEBUG("create tensor symlink: success.");
-        return;
     }
-}
-
-static ThreadPool::DumpThreadPool *g_pool = nullptr;
-static const int POOLNUM = 12;
-void PrepareToWriteFile(std::shared_ptr<FileSystem::BinFile> binfile, const std::string &outPath)
-{
-    if (g_pool == nullptr) {
-        g_pool = new ThreadPool::DumpThreadPool(POOLNUM);
-        std::atexit([]() {
-            if (g_pool != nullptr) {
-                delete g_pool;
-                g_pool = nullptr;
-            }
+    
+    ms::UmaskWrapper umask_guard;
+    const uint64_t fileHash = binFile->CalcHash();
+    // 原子化注册文件
+    if (const std::string* existingPath = fileRegistry->RegisterFile(fileHash, outputPath)) {
+        // 创建符号链接
+        if (::symlink(existingPath->c_str(), outputPath.c_str()) != 0) {
+            AIT_LOG_ERROR("Error creating symlink from " + (*existingPath) +
+                " to " + outputPath + ": " + Utils::GetLastErrorStr());
             return;
-        });
+        }
+        AIT_LOG_DEBUG("Create tensor symlink success: " + outputPath + " -> " + *existingPath);
+    } else {
+        binFile->Write(outputPath);
+        AIT_LOG_DEBUG("Direct write to " + outputPath);
     }
-
-    std::shared_ptr<const std::string> cpoutPath = std::make_shared<const std::string>(outPath);
-
-    if (g_pool != nullptr) {
-        g_pool->Enqueue(CheckAndWriteFile, binfile, cpoutPath);
-    }
+    AIT_LOG_DEBUG("Saving tensor: success.");
 }
 
 bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::string &optype)
@@ -641,26 +711,20 @@ static bool IsTensorFileHeadVaild(const std::string &head, const uint64_t maxHea
 }
 
 // helper Functions for Calculating the needed Statistics
-struct BinFileContent {
-    const void *hostData;
-    uint64_t dataSize;
-};
-
 struct BinFileInfo {
     const std::string format;
     const std::string dtype;
     const std::string dims;
-    BinFileContent binFileContent;
+    const void *hostData;
+    const uint64_t dataSize;
     const std::string filePath;
 };
 
 template<typename T>
-static void CalculateStatistics(BinFileContent binFileContent,
+static void CalculateStatistics(const void* binData,
     std::pair<size_t, size_t> rangeThread, LLM::Statistics<T> &stats,
     Mki::TensorDType tensorDType = Mki::TensorDType::TENSOR_DTYPE_UNDEFINED)
 {
-    const void* binData = binFileContent.hostData;
-    size_t dataSize = binFileContent.dataSize;
     size_t start = rangeThread.first;
     size_t end = rangeThread.second;
     switch (tensorDType) {
@@ -705,29 +769,37 @@ static std::unique_ptr<LLM::StatisticsBase> GetStatisticsFromBinaryDataWithBasic
                     Mki::GetTensorElementSize(tensorDType) : sizeof(T);
     if (dataSize % typeSize != 0) {
         AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(dataSize));
-        return std::unique_ptr<LLM::StatisticsBase>(new LLM::Statistics<std::string>);
+        return std::make_unique<LLM::Statistics<std::string>>();
     }
 
-    BinFileContent binFileContent{binData, dataSize};
-    size_t numThreads = std::thread::hardware_concurrency() > 1 ? std::thread::hardware_concurrency() : 1;
+    size_t numThreads = POOLNUM;
     size_t numElements = dataSize / typeSize;
     size_t chunkSize = numElements / numThreads; // Elements per thread
-    std::vector<std::thread> threads;
+    
+    // 线程池初始化
+    auto& pool = GetGlobalPool(numThreads);
     std::vector<LLM::Statistics<T>> threadStats(numThreads);
+    std::vector<std::future<void>> futures;
+    futures.reserve(numThreads);  // 预分配避免重分配
 
+    // 任务分发
     for (size_t i = 0; i < numThreads; ++i) {
-        size_t start = i * chunkSize;
-        size_t end = (i == numThreads - 1) ? numElements : start + chunkSize;
-        threads.emplace_back(CalculateStatistics<T>,
-            binFileContent, std::make_pair(start, end),
-            std::ref(threadStats[i]), tensorDType);
+        const size_t start = i * chunkSize;
+        const size_t end = (i == numThreads - 1) ? numElements : start + chunkSize;
+
+        auto task = [i, start, end, binData, tensorDType, &threadStats]() {
+            CalculateStatistics<T>(binData, std::make_pair(start, end), threadStats[i], tensorDType);
+        };
+
+        futures.emplace_back(pool->Enqueue(std::move(task)));
     }
 
-    for (auto& thread : threads) {
-        thread.join();
+    // 等待任务完成
+    for (auto& future : futures) {
+        future.get();  // 阻塞直到任务完成
     }
 
-    std::unique_ptr<LLM::Statistics<T>> totalStats(new LLM::Statistics<T>);
+    auto totalStats = std::make_unique<LLM::Statistics<T>>();
     for (const auto& stats : threadStats) {
         (*totalStats) += stats; // call the Overloaded operator+=
     }
@@ -788,11 +860,11 @@ std::unique_ptr<LLM::StatisticsBase> GetStatisticsFromBinaryDataWithTensorDType(
     const void* binData, size_t dataSize, Mki::TensorDType dType)
 {
     auto it = typeToFunctionMap.find(dType);
-    if (it != typeToFunctionMap.end()) {
+    if (Likely(it != typeToFunctionMap.end())) {
         return it->second(binData, dataSize);
     } else {
         AIT_LOG_WARNING("Unsupported tensor datatype: " + Mki::GetStrWithDType(dType));
-        return std::unique_ptr<LLM::StatisticsBase>(new LLM::Statistics<std::string>());
+        return std::make_unique<LLM::Statistics<std::string>>();
     }
 }
 
@@ -817,9 +889,9 @@ static bool IsSaveTensorValid(BinFileInfo &inputFile, std::string &outPath)
     AIT_LOG_DEBUG("filePath: " + inputFile.filePath);
     if (!saveFlag) { return false; }
     // 检查dataSize是否超过最大值，是否为0
-    if ((inputFile.binFileContent.dataSize > MsConst::MAX_FILE_SIZE_DEFAULT) ||
-        (inputFile.binFileContent.dataSize == 0)) {
-        AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(inputFile.binFileContent.dataSize));
+    if ((inputFile.dataSize > MsConst::MAX_FILE_SIZE_DEFAULT) ||
+        (inputFile.dataSize == 0)) {
+        AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(inputFile.dataSize));
         return false;
     }
 
@@ -829,9 +901,9 @@ static bool IsSaveTensorValid(BinFileInfo &inputFile, std::string &outPath)
     size_t found = outPath.find_last_of("/");
     std::string directory = outPath.substr(0, found);
     bool envValidFlag = (IsDeviceIdValid(inputFile.filePath)) && Utils::CheckDirectory(directory) &&
-                        (IsDiskSpaceValid(outDir, inputFile.binFileContent.dataSize));
+                        (IsDiskSpaceValid(outDir, inputFile.dataSize));
     if (!envValidFlag) { return false; }
-    if (!inputFile.binFileContent.hostData) {
+    if (!inputFile.hostData) {
         AIT_LOG_ERROR("hostData is None.");
         return false;
     }
@@ -869,11 +941,10 @@ static uint32_t GetOpId(const std::string &opName)
         }
     }
 
-    if (!opId.empty()) {
-        return static_cast<uint32_t>(std::stoi(opId));
-    } else {
+    if (opId.empty()) {
         AIT_LOG_ERROR("No number found after underscore.");
     }
+    return static_cast<uint32_t>(std::stoi(opId));
 }
 
 static void UpdateLmHeadId(const std::string &opName)
@@ -946,10 +1017,9 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     const std::string &dims, const void *hostData, uint64_t dataSize,
     const std::string &filePath)
 {
-    BinFileContent inputFileContent{hostData, dataSize};
     auto realTokenFilePath = ConvertRealTokenId(filePath);
     if (realTokenFilePath == "") { return; }
-    BinFileInfo inputFile{format, dtype, dims, inputFileContent, realTokenFilePath};
+    BinFileInfo inputFile{format, dtype, dims, hostData, dataSize, realTokenFilePath};
     std::string outPath;
     if (!IsSaveTensorValid(inputFile, outPath)) { return; }
     std::shared_ptr<FileSystem::BinFile> binfile(std::make_shared<FileSystem::BinFile>());
@@ -958,15 +1028,14 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
     binfile->AddAttr("dims", dims);
     if (IsSaveTensorStats()) {
         auto stats = GetStatisticsFromBinaryDataWithTensorDType(hostData, dataSize, GetDTypeWithStr(dtype));
-        bool statsIsNullPtr = (stats == nullptr);
-        binfile->AddAttr("max", statsIsNullPtr ? "N/A" : stats->GetMaxStr());
-        binfile->AddAttr("min", statsIsNullPtr ? "N/A" : stats->GetMinStr());
-        binfile->AddAttr("mean", statsIsNullPtr ? "N/A" : stats->GetMeanStr());
-        binfile->AddAttr("l2norm", statsIsNullPtr ? "N/A" : stats->GetL2NormStr());
+        binfile->AddAttr("max", stats ? stats->GetMaxStr() : "N/A");
+        binfile->AddAttr("min", stats ? stats->GetMinStr() : "N/A");
+        binfile->AddAttr("mean", stats ? stats->GetMeanStr() : "N/A");
+        binfile->AddAttr("l2norm", stats ? stats->GetL2NormStr() : "N/A");
     } else if (atb::Probe::IsSaveTensorData()) {
         binfile->AddObject("data", hostData, dataSize);
     }
-    PrepareToWriteFile(binfile, outPath);
+    GetGlobalPool()->Enqueue(CheckAndWriteFile, binfile, outPath);
 }
 
 void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::string &filePath)
@@ -1584,21 +1653,21 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
 
     int fd = open(outPath.c_str(), O_CREAT | O_WRONLY, 0600);
     if (fd == -1) {
-        AIT_LOG_ERROR("open: " + std::string(std::strerror(errno)));
+        AIT_LOG_ERROR("open: " + Utils::GetLastErrorStr());
         AIT_LOG_ERROR("Unable to create file: " + outPath + ". Please check if the output path is valid.");
         return;
     }
 
     std::FILE *fp = fdopen(fd, "w");
     if (fp == nullptr) {
-        AIT_LOG_ERROR("fdopen: " + std::string(std::strerror(errno)));
+        AIT_LOG_ERROR("fdopen: " + Utils::GetLastErrorStr());
         return;
     }
 
     std::string errMsg = "Overflow detected! Operator name: " + kernelPath;
     int returnCode = std::fputs(errMsg.c_str(), fp);
     if (returnCode == EOF) {
-        AIT_LOG_ERROR("fputs: " + std::string(std::strerror(errno)));
+        AIT_LOG_ERROR("fputs: " + Utils::GetLastErrorStr());
         std::fclose(fp);
         return;
     }

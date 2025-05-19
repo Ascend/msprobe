@@ -42,6 +42,7 @@ constexpr int RANGE_COUNT = 2;
 constexpr int SAVE_INTENSOR = 0;
 constexpr int SAVE_OUTTENSOR = 1;
 constexpr int SAVE_ALL_TENSOR = 2;
+constexpr int SAVE_SYMLINK = 1;
 
 class Probe {
 public:
@@ -193,7 +194,7 @@ size_t GetTensorElementSize(const TensorDType dtype);
 TensorDType GetDTypeWithStr(const std::string &typeStr);
 const std::string &GetStrWithDType(int dType);
 
-// 补充
+// 工具函数接口的补充, 用于UT测试
 float ConvertToFloat32(uint16_t value, size_t exponentBits, size_t mantissaBits);
 } // namespace MKi
 

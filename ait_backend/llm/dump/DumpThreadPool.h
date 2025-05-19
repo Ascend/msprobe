@@ -27,6 +27,8 @@
 #include <thread>
 #include <memory>
 #include <atomic>
+#include "ait_logger.h"
+
 #define EXPORT_LLM __attribute__ ((visibility("default")))
 
 namespace ThreadPool {
@@ -34,6 +36,13 @@ class DumpThreadPool {
 public:
     explicit DumpThreadPool(size_t threads);
     ~DumpThreadPool();
+
+    // 禁止拷贝和移动
+    DumpThreadPool(const DumpThreadPool&) = delete;
+    DumpThreadPool& operator=(const DumpThreadPool&) = delete;
+    DumpThreadPool(DumpThreadPool&&) = delete;
+    DumpThreadPool& operator=(DumpThreadPool&&) = delete;
+
     template<class F, class... Args>
     EXPORT_LLM auto Enqueue(F &&f, Args &&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
 
@@ -47,7 +56,7 @@ private:
 };
 }
 
-inline ThreadPool::DumpThreadPool::DumpThreadPool(size_t threads) : poolStop(false)
+ThreadPool::DumpThreadPool::DumpThreadPool(size_t threads) : poolStop(false)
 {
     for (size_t i = 0; i < threads; ++i)
         thread_workers.emplace_back([this] {
@@ -56,20 +65,37 @@ inline ThreadPool::DumpThreadPool::DumpThreadPool(size_t threads) : poolStop(fal
                 {
                     std::unique_lock<std::mutex> task_lock(this->threadQueueMtx);
                     this->threadCondition.wait(task_lock, [this] {
-                        return this->poolStop.load() || !this->thread_tasks.empty();
+                        return this->poolStop.load(std::memory_order_acquire) ||
+                            !this->thread_tasks.empty(); // 防止虚假唤醒
                     });
 
-                    if (this->poolStop.load() && this->thread_tasks.empty()) {
+                    if (this->poolStop.load(std::memory_order_acquire) && this->thread_tasks.empty()) {
                         return;
                     }
                     task = std::move(this->thread_tasks.front());
                     this->thread_tasks.pop();
                 }
-
-                task();
+                try {
+                    task();
+                } catch (const std::exception &e) {
+                    AIT_LOG_ERROR("DumpThreadPool task exception: " + std::string(e.what()));
+                    throw;
+                }
             }
         }
     );
+}
+
+ThreadPool::DumpThreadPool::~DumpThreadPool()
+{
+    {
+        std::unique_lock<std::mutex> lock(threadQueueMtx);
+        poolStop.store(true, std::memory_order_release);
+    }
+    threadCondition.notify_all();
+    for (std::thread &worker: thread_workers) {
+        if (worker.joinable()) { worker.join(); }
+    }
 }
 
 template<class F, class... Args>
@@ -85,26 +111,21 @@ auto ThreadPool::DumpThreadPool::Enqueue(F &&f, Args &&... args)
     std::future<return_functype> resTask = nowtask->get_future();
     {
         std::unique_lock<std::mutex> lock(threadQueueMtx);
-
-        if (poolStop.load()) {
+        if (poolStop.load(std::memory_order_acquire)) {
             throw std::runtime_error("Enqueue on stopped DumpThreadPool");
         }
-        thread_tasks.emplace([nowtask]() { (*nowtask)(); });
+        thread_tasks.emplace([nowtask]() {
+            try {
+                (*nowtask)();
+            } catch (const std::exception &e) {
+                AIT_LOG_ERROR("DumpThreadPool task exception: " + std::string(e.what()));
+                throw;
+            }
+        });
     }
     threadCondition.notify_one();
-    return resTask;
-}
 
-inline ThreadPool::DumpThreadPool::~DumpThreadPool()
-{
-    {
-        std::unique_lock<std::mutex> lock(threadQueueMtx);
-        poolStop.store(true);
-    }
-    threadCondition.notify_all();
-    for (std::thread &worker: thread_workers) {
-        worker.join();
-    }
+    return resTask;
 }
 
 #endif

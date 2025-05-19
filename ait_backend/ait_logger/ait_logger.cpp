@@ -28,7 +28,7 @@ void ait::Logger(const std::string message, const char *fileName, int line, cons
             atbLogLevel = std::stoi(atbLog);
         } catch (const std::invalid_argument& e) {
             std::cout << "[WARNING] [" << fileName << "+" << line << "][" << funcName << "] "
-            << "Cannot convert environment variable to int." << std::endl;
+            << "Cannot convert environment variable to int." << "\n";
             std::cout << "[WARNING] Log level resets to INFO." << std::endl;
         }
     }

@@ -18,6 +18,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -25,10 +26,12 @@
 #include <experimental/filesystem>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <poll.h>
 #include <sys/stat.h>
 #include <sys/inotify.h>
 #include <unistd.h>
+#include "file_state_guard.h"
 #include "tools.h"
 
 namespace fs = std::experimental::filesystem;
@@ -41,30 +44,6 @@ int32_t GetCurrentProcessId()
         std::cout << "get pid failed " << std::endl;
     }
     return pid;
-}
-
-bool IfFileExists(const std::string &outPath)
-{
-    std::ifstream f(outPath);
-    if (f.good()) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-void DeleteFile(const std::string &outPath)
-{
-    if (IfFileExists(outPath)) {
-        if (std::remove(outPath.c_str()) == 0) {
-            std::cout << "File deleted sucessfully! outPath: " << outPath << std::endl;
-        } else {
-            std::cout << "Failed to delete file! outPath: " << outPath << std::endl;
-        }
-    } else {
-        std::cout << "File is not existed! outPath: " << outPath << std::endl;
-    }
-    return;
 }
 
 bool CheckFileContainsString(const std::string& filePath, const std::string& targetString)
@@ -101,21 +80,36 @@ std::string ExecShellCommand(const std::string& cmd)
     return result;
 }
 
-std::string RoundStrNum(std::string numberStr, uint8_t decimalPlaces)
+std::string RoundStrNum(std::string numberStr, uint8_t decimalPlaces, bool enableRound)
 {
     std::string result = "N/A";
     try {
         if (numberStr != "N/A") {
             double value = std::stod(numberStr);
             std::stringstream stream;
-            stream << std::fixed << std::setprecision(decimalPlaces) << value;
-            stream >> result;
+            
+            if (enableRound) {
+                // 启用四舍五入模式
+                stream << std::fixed << std::setprecision(decimalPlaces) << value;
+            } else {
+                // 禁用四舍五入模式（截断小数位）
+                double factor = std::pow(10, decimalPlaces);
+                double truncated = std::trunc(value * factor) / factor;
+                stream << std::fixed << std::setprecision(decimalPlaces) << truncated;
+            }
+            
+            // 优化显示：移除尾部多余的零和小数点（可选）
+            std::string s = stream.str();
+            s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+            if (s.back() == '.') { s.pop_back(); }
+            
+            return s.empty() ? "0" : s;
         }
     } catch (const std::exception& e) {
         std::cerr << "Error converting number: " << e.what() << std::endl;
     }
     return result;
-};
+}
 
 std::string ExtractValue(std::ifstream& file, const std::string& prefix, uint8_t decimalPlaces)
 {
@@ -169,6 +163,35 @@ std::string ExtractValueComplex64(std::ifstream& file, const std::string& prefix
     return value;
 }
 
+bool AreLastDigitsWithinRangeStr(const std::string& numStr1,
+    const std::string& numStr2,
+    uint8_t decimalPlaces)
+{
+    // 处理特殊值N/A
+    if (numStr1 == "N/A" && numStr2 == "N/A") { return true; }
+    if (numStr1 == "N/A" || numStr2 == "N/A") { return false; }
+
+    try {
+        // 字符串转数值
+        const double num1 = std::stod(numStr1);
+        const double num2 = std::stod(numStr2);
+
+        // 缩放因子
+        const double factor = std::pow(10, decimalPlaces);
+
+        // 四舍五入并取整（精确到指定位数）
+        const long long scaled1 = std::llround(num1 * factor);
+        const long long scaled2 = std::llround(num2 * factor);
+
+        // 计算绝对差值
+        const long long diff = std::abs(scaled1 - scaled2);
+        return (diff <= 1);
+    } catch (const std::exception& e) {
+        std::cerr << "数值转换错误: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 bool WaitUntilFileReady(const std::string& path,
                         std::chrono::milliseconds timeout,
                         std::chrono::milliseconds checkBaseInterval)
@@ -184,7 +207,7 @@ bool WaitUntilFileReady(const std::string& path,
         if (Clock::now() - start > timeout) { return false; }
         std::this_thread::sleep_for(checkBaseInterval);
     }
-    if (fs::is_symlink(checkPath)) { checkPath = fs::read_symlink(checkPath); } // 符号链接检查指向的文件
+    while (fs::is_symlink(checkPath)) { checkPath = fs::read_symlink(checkPath); } // 符号链接检查指向的文件
     int stableCount = 0; // 阶段2：检测稳定性
     auto checkInterval = checkBaseInterval;
     while (true) {
@@ -205,4 +228,119 @@ bool WaitUntilFileReady(const std::string& path,
         }
         if (Clock::now() - start > timeout) { return false; }
     }
+}
+
+void DeletePath(const std::string& path)
+{
+    try {
+        if (!IsPathExist(path)) {
+            // std::cout << "Path not exist: " << path << std::endl;
+            return;
+        }
+        // 处理文件
+        if (fs::is_regular_file(path) || fs::is_symlink(path)) {
+            if (fs::remove(path)) {
+                // std::cout << "File deleted: " << path << std::endl;
+            } else {
+                std::cerr << "Delete file failed: " << path << std::endl;
+            }
+            return;
+        }
+        // 处理目录（递归删除）
+        if (fs::is_directory(path)) {
+            uintmax_t count = fs::remove_all(path);
+            // std::cout << "Deleted " << count << " items in directory: " << path << std::endl;
+            return;
+        }
+        // 处理特殊文件类型
+        std::cerr << "Unsupported file type: " << path << std::endl;
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Error deleting " << path << ": " << e.what() << std::endl;
+    }
+}
+
+bool CompareBinaryFiles(std::ifstream& file1, std::ifstream& file2)
+{
+    auto resetStreams = [](std::ifstream& file1, std::ifstream& file2) {
+        file1.clear();
+        file2.clear();
+        file1.seekg(0);
+        file2.seekg(0);
+    };
+    resetStreams(file1, file2);
+    if (!file1.is_open() || !file2.is_open()) {
+        resetStreams(file1, file2);
+        return false;
+    }
+    file1.seekg(0, std::ios::end);
+    file2.seekg(0, std::ios::end);
+    const auto size1 = file1.tellg();
+    const auto size2 = file2.tellg();
+    if (size1 != size2) {
+        resetStreams(file1, file2);  // 关键修正：在返回前重置
+        return false;
+    }
+    resetStreams(file1, file2);  // 回到文件开头
+    const size_t bufferSize = 4096;
+    std::vector<char> buffer1(bufferSize);
+    std::vector<char> buffer2(bufferSize);
+    while (true) {
+        file1.read(buffer1.data(), bufferSize);
+        file2.read(buffer2.data(), bufferSize);
+        const auto bytesRead1 = file1.gcount();
+        const auto bytesRead2 = file2.gcount();
+        if (file1.fail() && !file1.eof()) {
+            resetStreams(file1, file2);
+            return false;
+        }
+        if (bytesRead1 != bytesRead2) {
+            resetStreams(file1, file2);
+            return false;
+        }
+        if (bytesRead1 == 0) { break; }
+        if (std::memcmp(buffer1.data(), buffer2.data(), bytesRead1) != 0) {
+            resetStreams(file1, file2);
+            return false;
+        }
+    }
+    resetStreams(file1, file2);
+    return true;
+}
+
+namespace FileRegistry {
+    std::streampos FindDataStart(std::ifstream& inFile)
+    {
+        const std::string endMarker = "$End=1";
+        std::string line;
+        while (std::getline(inFile, line)) {
+            if (line.find(endMarker) != std::string::npos) {
+                return inFile.tellg();
+            }
+        }
+        return std::streampos(-1);
+    }
+}
+
+bool VerifyBinaryFileWithUInt8Vector(std::ifstream& inFile,
+    const std::vector<uint8_t>& expected)
+{
+    FileRegistry::FileStateGuard stateGuard(inFile); // RAII自动管理状态
+    const auto dataStart = FileRegistry::FindDataStart(inFile);
+    if (dataStart == std::streampos(-1)) { return false; }
+    inFile.seekg(0, std::ios::end);
+    const size_t fileSize = inFile.tellg() - dataStart;
+    if (fileSize != expected.size()) { return false; }
+    inFile.seekg(dataStart);
+    constexpr size_t blockSize = 4096;
+    std::vector<char> buffer(blockSize);
+    size_t compared = 0;
+    while (compared < fileSize) {
+        const size_t remain = fileSize - compared;
+        const size_t readSize = std::min(remain, blockSize);
+        inFile.read(buffer.data(), readSize);
+        if (inFile.gcount() != static_cast<std::streamsize>(readSize)) { return false; }
+        if (memcmp(buffer.data(), &expected[compared], readSize) != 0) { return false; }
+        compared += readSize;
+    }
+    return true;
 }

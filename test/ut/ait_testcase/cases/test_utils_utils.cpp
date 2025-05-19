@@ -155,7 +155,7 @@ TEST(Utils_Func, DirectoryExists_invalid_path)
     EXPECT_FALSE(DirectoryExists(invalidPath));
 }
 
-TEST(Util_Func, CheckDirectory_path_exists_when_exist_OK_false)
+TEST(Utils_Func, CheckDirectory_path_exists_when_exist_OK_false)
 {
     char tmpDir[] = "/tmp/testdirXXXXXX";
     char* dirName = mkdtemp(tmpDir);

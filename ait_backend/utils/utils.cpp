@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 #include <regex>
+#include <string>
+#include <cstring>
+#include <cerrno>
 #include "safety_guard.h"
 #include "const.h"
 #include "utils.h"
@@ -34,7 +37,7 @@ std::vector<std::string> SplitString(const std::string &ss, const char &tar)
         tokens.emplace_back(token);
     }
 
-    return std::move(tokens);
+    return tokens;
 }
 
 bool Exists(const std::string &path)
@@ -75,4 +78,24 @@ bool Utils::ValidateCsvString(const std::string& str)
     }
 
     return !(firstChar == '+' || firstChar == '=' || firstChar == '@' || firstChar == '%');
+}
+
+std::string Utils::GetLastErrorStr()
+{
+    const int savedErrno = errno;
+    // 使用线程局部存储（thread_local）确保线程安全
+    thread_local char buffer[1024] = {};  // 缓冲区建议 >= 256 字节
+
+#if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE
+    const int ret = ::strerror_r(savedErrno, buffer, sizeof(buffer));
+    if (ret == 0) {
+        return std::string(buffer);
+    } else {
+        return "strerror_r failed with code " + std::to_string(ret) +
+            " (original errno=" + std::to_string(savedErrno) + ").";
+    }
+#else
+    const char* const msg = ::strerror_r(savedErrno, buffer, sizeof(buffer));
+    return std::string(msg);
+#endif
 }

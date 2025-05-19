@@ -43,5 +43,7 @@ namespace Utils {
 extern bool CheckDirectory(const std::string &directory, bool existOK = true);
 
 bool ValidateCsvString(const std::string& str);
+
+std::string GetLastErrorStr();
 }
 #endif
