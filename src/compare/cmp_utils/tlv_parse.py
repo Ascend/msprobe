@@ -49,13 +49,13 @@ INT64_SIZE = 8
 UINT64_SIZE = 8
 
 _UNPACK_FORMAT = {
-    'CHAR':   {'FMT': 's', 'SIZE': 1},
+    'CHAR': {'FMT': 's', 'SIZE': 1},
     'UINT16': {'FMT': 'H', 'SIZE': 2},
-    'INT16':  {'FMT': 'h', 'SIZE': 2},
+    'INT16': {'FMT': 'h', 'SIZE': 2},
     'UINT32': {'FMT': 'I', 'SIZE': 4},
-    'INT32':  {'FMT': 'i', 'SIZE': 4},
+    'INT32': {'FMT': 'i', 'SIZE': 4},
     'UINT64': {'FMT': 'Q', 'SIZE': 8},
-    'INT64':  {'FMT': 'q', 'SIZE': 8},
+    'INT64': {'FMT': 'q', 'SIZE': 8},
 }
 
 TLV_TYPE = ['ATOM', 'TLV', 'TLNV', 'NV']
@@ -132,7 +132,7 @@ class TLV:
             # Nested tlv
             if isinstance(ele_type, list):
                 self._check_cfg_tab(ele_type)
-            elif _UNPACK_FORMAT.get(ele_type) is None :
+            elif _UNPACK_FORMAT.get(ele_type) is None:
                 log.print_error_log('invalid ele_type: %s.' % ele_type)
                 raise CompareError(CompareError.MSACCUCMP_PARSE_NANO_DUMP_FILE_ERROR)
 

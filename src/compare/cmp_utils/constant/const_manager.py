@@ -320,7 +320,7 @@ class ConstManager:
     UINT64_SIZE = 8
 
     UNPACK_FORMAT = {
-        'CHAR':   {'FMT': CHAR_FMT, 'SIZE': CHAR_SIZE},
+        'CHAR': {'FMT': CHAR_FMT, 'SIZE': CHAR_SIZE},
         'UINT32': {'FMT': UINT32_FMT, 'SIZE': UINT32_SIZE},
         'UINT64': {'FMT': UINT64_FMT, 'SIZE': UINT64_SIZE},
         'INT32': {'FMT': INT32_FMT, 'SIZE': INT32_SIZE},

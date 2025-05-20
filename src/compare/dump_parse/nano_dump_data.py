@@ -48,7 +48,7 @@ INPUT_INFO_CONFIG_TAB = [
 
 INPUTS_LIST_CONFIG_TAB = [
     {'Name': 'inputs_num', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT32'},
-    {'Name': 'inputs', 'TLV_Type': 'NV', 'Ele_Type': INPUT_INFO_CONFIG_TAB, 'N':'inputs_num'}
+    {'Name': 'inputs', 'TLV_Type': 'NV', 'Ele_Type': INPUT_INFO_CONFIG_TAB, 'N': 'inputs_num'}
 ]
 
 INPUTS_CONFIG_TAB = [
@@ -79,7 +79,7 @@ OUTPUT_INFO_CONFIG_TAB = [
 
 OUTPUTS_LIST_CONFIG_TAB = [
     {'Name': 'outputs_num', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT32'},
-    {'Name': 'outputs', 'TLV_Type': 'NV', 'Ele_Type': OUTPUT_INFO_CONFIG_TAB, 'N':'outputs_num'}
+    {'Name': 'outputs', 'TLV_Type': 'NV', 'Ele_Type': OUTPUT_INFO_CONFIG_TAB, 'N': 'outputs_num'}
 ]
 
 OUTPUTS_CONFIG_TAB = [

@@ -197,7 +197,7 @@ def check_layer_deployment(layer_deployment, num_npus, num_nodes, expert_num):
     experts_per_node = expert_num // num_nodes
     for i in range(num_nodes):
         cur_nodes_deployment = layer_deployment[
-            i * npus_per_node : (i + 1) * npus_per_node
+            i * npus_per_node: (i + 1) * npus_per_node
         ]
         merged_list = sorted(sum(cur_nodes_deployment, []))
         try:
@@ -239,7 +239,7 @@ def get_layer_deployment(layer_workload,
         # 每个节点内做冗余和负载均衡放置
         node_weights = weights[
             node_idx
-            * origin_experts_per_node : (node_idx + 1)
+            * origin_experts_per_node: (node_idx + 1)
             * origin_experts_per_node
         ]
         if len(node_weights) != origin_experts_per_node:

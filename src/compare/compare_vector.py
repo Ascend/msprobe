@@ -18,7 +18,7 @@ if __name__ == "__main__":
     log.print_deprecated_warning(sys.argv[0])
     START = time.time()
     for SIG in [signal.SIGINT, signal.SIGHUP, signal.SIGTERM]:
-        signal.signal(SIG, lambda sig, frame : sys.exit(-1))
+        signal.signal(SIG, lambda sig, frame: sys.exit(-1))
     VECTOR_COMPARISON = VectorComparison()
     RET = 0
     with file_utils.UmaskWrapper():

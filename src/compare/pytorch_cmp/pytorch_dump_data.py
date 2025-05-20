@@ -340,7 +340,7 @@ class CompareData:
 
         return ''
 
-    def _opname_map_by_map_table(self:any, ext_opname: str, device_type: int) -> str:
+    def _opname_map_by_map_table(self: any, ext_opname: str, device_type: int) -> str:
         replaced_ext_opname = ''
         opname = self.get_original_opname(ext_opname)
         mapping_opname_list = self.mapping.get_mapping_opname(opname)
