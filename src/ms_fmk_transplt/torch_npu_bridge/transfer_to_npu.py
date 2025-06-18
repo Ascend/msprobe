@@ -391,6 +391,18 @@ def _del_nccl_device_backend_map():
             del torch.distributed.Backend.default_device_backend_map['cuda']
 
 
+def _patch_distributed():
+    torch.distributed.init_process_group = _wrapper_hccl(torch.distributed.init_process_group)
+    torch.distributed.is_nccl_available = torch.distributed.is_hccl_available
+    if DO_FSDP_WRAP:
+        torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__ = \
+            _wrapper_cuda(torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__)
+    if hasattr(torch.distributed, 'init_device_mesh'):
+        _del_nccl_device_backend_map()
+        torch.distributed.device_mesh.init_device_mesh = _wrapper_cuda(torch.distributed.device_mesh.init_device_mesh)
+    torch.distributed.new_group = _wrapper_hccl(torch.distributed.new_group)
+
+
 def _init():
     _warning_fn('''
     *************************************************************************************************************
@@ -429,14 +441,7 @@ def _init():
     torch.nn.Module.cuda = torch.nn.Module.npu
 
     # torch.distributed
-    torch.distributed.init_process_group = _wrapper_hccl(torch.distributed.init_process_group)
-    torch.distributed.is_nccl_available = torch.distributed.is_hccl_available
-    if DO_FSDP_WRAP:
-        torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__ = \
-            _wrapper_cuda(torch.distributed.fsdp.fully_sharded_data_parallel.FullyShardedDataParallel.__init__)
-    if hasattr(torch.distributed, 'init_device_mesh'):
-        _del_nccl_device_backend_map()
-        torch.distributed.device_mesh.init_device_mesh = _wrapper_cuda(torch.distributed.device_mesh.init_device_mesh)
+    _patch_distributed()
 
     # torch.nn.parallel.DistributedDataParallel
     _device_wrapper(torch.nn.parallel.DistributedDataParallel, torch_distributed_fn_white_list)
