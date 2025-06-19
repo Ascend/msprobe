@@ -27,10 +27,11 @@ class PerfApiSuggest:
     Args:
         perf_suggest (Dict): The dict parsed from 'precision_performance_advice' json file.
     """
+
     def __init__(self, perf_suggest: Optional[Dict[str, Dict[str, str]]]):
-        self.dependency : Dict[str, bool] = {}
-        self.suggest_apis : Dict[str, bool] = {}
-        self.suggest_apis_info : Dict[str, Dict[str, str]] = perf_suggest
+        self.dependency: Dict[str, bool] = {}
+        self.suggest_apis: Dict[str, bool] = {}
+        self.suggest_apis_info: Dict[str, Dict[str, str]] = perf_suggest
         self.__set_dependency()
 
     def __set_dependency(self):
