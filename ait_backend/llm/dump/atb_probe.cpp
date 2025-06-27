@@ -87,7 +87,7 @@ namespace {
     bool g_isSavePrefill = false;
     bool g_isSaveFirstDecode = false;
     bool g_isSaveSecondDecode = false;
-    uint32_t g_maxDeep = 1000;
+    constexpr uint32_t g_maxDeep = 1000;
 
     template <typename T>
     inline bool Likely(T&& condition) noexcept

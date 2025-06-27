@@ -152,7 +152,8 @@ bool IsPathCharactersValid(const std::string& path)
 
 bool IsPathDepthValid(const std::string& path)
 {
-    return std::count(path.begin(), path.end(), MsConst::PATH_SEPARATOR) <= MsConst::PATH_DEPTH_MAX;
+    return std::count(path.begin(), path.end(), MsConst::PATH_SEPARATOR) <=
+           static_cast<size_t>(MsConst::PATH_DEPTH_MAX);
 }
 
 bool IsRegularFile(const std::string& path)
