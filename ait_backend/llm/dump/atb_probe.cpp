@@ -239,7 +239,7 @@ static bool IsSaveDumpType(const std::string &tar)
 }
 
 static void DfsToModifyGraphTensors(ordered_json &curNodeToSave,
-    const std::vector<std::string> &fatherNodeTensorNameList, const ordered_json &curNodeInput, uint32_t curDeep = 0)
+    const std::vector<std::string> &fatherNodeTensorNameList, const ordered_json &curNodeInput, uint32_t curDeep = 1)
 {
     if (curDeep >= g_maxDeep) {
         AIT_LOG_ERROR("The depth of the current graph structure is too deep, and the traversal node fails");

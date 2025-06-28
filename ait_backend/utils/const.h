@@ -38,7 +38,7 @@ namespace MsConst {
 
     constexpr const uint32_t FULL_PATH_LENGTH_MAX = 4096;
     constexpr const uint32_t FILE_NAME_LENGTH_MAX = 255;
-    constexpr const uint32_t PATH_DEPTH_MAX = 32;
+    constexpr const size_t PATH_DEPTH_MAX = 32;
 
     constexpr mode_t NORMAL_FILE_MODE_DEFAULT = 0640;
     constexpr mode_t READONLY_FILE_MODE_DEFAULT = 0440;
