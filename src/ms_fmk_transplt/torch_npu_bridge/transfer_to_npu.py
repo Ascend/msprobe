@@ -400,7 +400,11 @@ def _patch_distributed():
     if hasattr(torch.distributed, 'init_device_mesh'):
         _del_nccl_device_backend_map()
         torch.distributed.device_mesh.init_device_mesh = _wrapper_cuda(torch.distributed.device_mesh.init_device_mesh)
-    torch.distributed.new_group = _wrapper_hccl(torch.distributed.new_group)
+    if _is_torch_version_greater_than_2_x(0):
+        torch.distributed.distributed_c10d._new_group_with_tag = _wrapper_hccl(
+            torch.distributed.distributed_c10d._new_group_with_tag)
+    else:
+        torch.distributed.distributed_c10d.new_group = _wrapper_hccl(torch.distributed.distributed_c10d.new_group)
 
 
 def _init():
