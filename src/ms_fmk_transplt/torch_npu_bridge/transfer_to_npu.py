@@ -46,7 +46,7 @@ torch_fn_white_list = [
     'eye', '_sparse_csr_tensor_unsafe', 'empty', '_sparse_coo_tensor_unsafe', 'blackman_window',
     'zeros_like', 'range', 'sparse_csr_tensor', 'randn_like', 'from_file',
     '_cudnn_init_dropout_state', '_empty_affine_quantized', 'linspace', 'hamming_window',
-    'empty_quantized', '_pin_memory', 'autocast', 'load', "Generator", 'set_default_device'
+    'empty_quantized', '_pin_memory', 'autocast', 'load', 'set_default_device'
 ]
 torch_tensor_fn_white_list = ['new_empty', 'new_empty_strided', 'new_full', 'new_ones', 'new_tensor', 'new_zeros', 'to']
 torch_module_fn_white_list = ['to', 'to_empty']
@@ -72,6 +72,14 @@ HCCL = 'hccl'
 class ApiType(Enum):
     METHOD = 'method'
     FUNCTION = 'function'
+
+
+class _GeneratorProxy(torch.Generator):
+
+    def __new__(cls, device='cpu'):
+        device = _replace_cuda_to_npu_in_list([device], None)[0]
+        instance = super().__new__(cls, device)
+        return instance
 
 
 def _is_torch_version_greater_than_2_x(x: int):
@@ -433,6 +441,7 @@ def _init():
 
     # torch.*
     _device_wrapper(torch, torch_fn_white_list)
+    torch.Generator = _GeneratorProxy
 
     # torch.Tensor.*
     _device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
