@@ -351,12 +351,12 @@ TEST(atb_Probe, IsSaveParam_001)
 TEST(atb_Probe, SaveParamTest)
 {
     std::string paramJson = "fake_param";
-    std::string fileName = "0_60930/2/66_RmsNormOperation/fake_param.json";
+    std::string fileName = "fake_param.json";
 
     atb::Probe::SaveParam(paramJson, fileName);
     setenv("ATB_OUTPUT_DIR", "./", 0);
 
-    std::string paramDir = "./msit_dump/tensors/0_60930/3/66_RmsNormOperation/fake_param.json";
+    std::string paramDir = "./msit_dump/tensors/fake_param.json";
     std::ifstream paramFile(paramDir);
     EXPECT_TRUE(paramFile.is_open());
 
@@ -649,45 +649,39 @@ TEST(atb_Probe, IsExecuteCountInRangeTest_InvalidEnvFormat_ReturnFalse)
 TEST(atb_Probe, IsExecuteCountInRangeTest_SingleValidRange_ReturnTrue)
 {
     setenv("ATB_SAVE_TENSOR_RANGE", "5,10", 1);
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(7));  // 7+1=8 in 5-10
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(7));  // 7 in 5-10
 }
 
 TEST(atb_Probe, IsExecuteCountInRangeTest_OutOfRange_ReturnFalse)
 {
     setenv("ATB_SAVE_TENSOR_RANGE", "5,10", 1);
-    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(11)); // 11+1=12
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(11));
 }
 
 TEST(atb_Probe, IsExecuteCountInRangeTest_FirstDecodeFlagSet)
 {
-    setenv("ATB_SAVE_TENSOR_RANGE", "1,1", 1);
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(0));  // 0+1=1
-}
-
-TEST(atb_Probe, IsExecuteCountInRangeTest_SecondDecodeFlagSet)
-{
-    setenv("ATB_SAVE_TENSOR_RANGE", "2,2", 1);
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(1));  // 1+1=2
+    setenv("ATB_SAVE_TENSOR_RANGE", "0,0", 1);
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(0));
 }
 
 TEST(atb_Probe, IsExecuteCountInRangeTest_PrefillConditionTriggered)
 {
     setenv("ATB_SAVE_TENSOR_RANGE", "0,100", 1);
     // Assume SECOND_DECODE_ID=2
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(1));  // 1+1=2
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(1));
 }
 
 TEST(atb_Probe, IsExecuteCountInRangeTest_MultipleRangesProcessing)
 {
     setenv("ATB_SAVE_TENSOR_RANGE", "1,1,3,5,0,0", 1);
     // Verify first valid range (1,1)
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(0));  // 0+1=1 (in 0,1,3-5)
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(0));
     
     // Verify second valid range (3,5)
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(3));  // 3+1=4 (in 0,1,3-5)
+    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(3));
     
     // Verify third invalid range
-    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(5));
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(6));
 }
 
 TEST(atb_Probe, IsExecuteCountInRangeTest_EarlyReturnWithPrefill)
@@ -725,15 +719,16 @@ TEST(atb_Probe, SaveTensorTest)
 
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
+
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
     EXPECT_FALSE(isSymlink(outPath1));
 
     filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor2.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath2 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor2.bin";
+    std::string outPath2 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor2.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath2)) << outPath2 << " has not been ready for 5s";
     EXPECT_TRUE(fs::read_symlink(outPath2) == outPath1);
     EXPECT_TRUE(fs::is_symlink(outPath2));
@@ -769,7 +764,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_double)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/55/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/56/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/55/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -806,7 +801,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_bf16)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -843,7 +838,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_float16)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -880,7 +875,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_float)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -917,7 +912,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int8)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -954,7 +949,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int16)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -991,7 +986,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int32)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -1027,7 +1022,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_int64)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -1064,7 +1059,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint8)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -1101,8 +1096,9 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint16)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
+
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
     std::string valFile = ExtractValue(tensorFile1, "max", 0);
@@ -1111,7 +1107,6 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint16)
     valFile = ExtractValue(tensorFile1, "l2norm", 4);
     valCalc = RoundStrNum(calStats->GetL2NormStr(), 4);
     EXPECT_TRUE(AreLastDigitsWithinRangeStr(valFile, valCalc, 4));
-
     tensorFile1.close();
     DeletePath(outPath1);
 }
@@ -1138,7 +1133,7 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint32)
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
     std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -1173,9 +1168,9 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_uint64)
 
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
-    std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath = "0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -1211,9 +1206,9 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_complex64)
 
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
-    std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath = "0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -1250,9 +1245,9 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_string)
     }
     const void* hostData = static_cast<const void*>(tensorVec.data());
     std::string valCalc = "N/A";
-    std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath = "0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -1287,10 +1282,10 @@ TEST(atb_Probe, SaveTensorStatsTest_Input_Undefined)
     }
     const void* hostData = static_cast<const void*>(tensorVec.data());
     std::string valCalc = "N/A";
-    std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath = "0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
-    std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string outPath1 = "./msit_dump/tensors/0_845452/0/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     EXPECT_TRUE(WaitUntilFileReady(outPath1)) << outPath1 << " has not been ready for 5s";
     std::ifstream tensorFile1(outPath1);
     EXPECT_TRUE(tensorFile1.is_open());
@@ -1323,10 +1318,10 @@ TEST(atb_Probe, SaveTensorSymblinkTest_Symblink_Open_Same_Context)
     std::vector<uint8_t> tensorVec = GenerateVectorNorm<uint8_t>(vecSize);
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
-    std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath = "0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath);
     std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
-    std::string filePath2 = "0_845452/6/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath2 = "0_845452/7/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath2);
     std::string outPath2 = "./msit_dump/tensors/0_845452/7/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     
@@ -1369,10 +1364,10 @@ TEST(atb_Probe, SaveTensorSymblinkTest_Symblink_Open_Diff_Context)
     const void* hostData1 = static_cast<const void*>(tensorVec1.data());
     const void* hostData2 = static_cast<const void*>(tensorVec2.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
-    std::string filePath = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath = "0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData1, dataSize, filePath);
     std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
-    std::string filePath2 = "0_845452/6/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath2 = "0_845452/7/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData2, dataSize, filePath2);
     std::string outPath2 = "./msit_dump/tensors/0_845452/7/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     
@@ -1414,10 +1409,10 @@ TEST(atb_Probe, SaveTensorSymblinkTest_Symblink_Close)
     std::vector<uint8_t> tensorVec = GenerateVectorNorm<uint8_t>(vecSize);
     const void* hostData = static_cast<const void*>(tensorVec.data());
     uint64_t dataSize = vecSize * Mki::GetTensorElementSize(tdtype);
-    std::string filePath1 = "0_845452/2/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath1 = "0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath1);
     std::string outPath1 = "./msit_dump/tensors/0_845452/3/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
-    std::string filePath2 = "0_845452/8/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
+    std::string filePath2 = "0_845452/9/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
     atb::Probe::SaveTensor(format, dtype, dims, hostData, dataSize, filePath2);
     std::string outPath2 = "./msit_dump/tensors/0_845452/9/1_WordEmbedding/0_GatherOperation/after/intensor1.bin";
 
