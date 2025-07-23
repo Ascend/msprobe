@@ -156,3 +156,160 @@ TEST(test_IsTensorNeedSave, fuzz_test)
     }
     DT_FUZZ_END()
 }
+
+TEST(test_ReportOperationSetupStatistic, fuzz_test)
+{
+    char testApi[] = "test_ReportOperationSetupStatistic";
+    DT_FUZZ_START(0, g_fuzzRunTime, testApi, 0)
+    {
+        printf("\r%d", fuzzSeed + fuzzi);
+        u64 executeCount = *(u64 *)DT_SetGetNumberRange(&g_Element[0], 10, 1, 1000);
+        char *opname = DT_SetGetString(&g_Element[1], 28, 4096, "/conv1/Convfunction_graph_0");
+        char *st = DT_SetGetString(&g_Element[2], 3, 4096, "30");
+        char *outputDir = DT_SetGetString(&g_Element[3], 15, 4096, "/tmp/fuzz_out/");
+        setenv("ATB_OUTPUT_DIR", outputDir, 1);
+        atb::Probe::ReportOperationSetupStatistic(executeCount, opname, st);
+    }
+    DT_FUZZ_END()
+}
+
+TEST(test_ReportOperationExecuteStatistic, fuzz_test)
+{
+    char testApi[] = "test_ReportOperationExecuteStatistic";
+    DT_FUZZ_START(0, g_fuzzRunTime, testApi, 0)
+    {
+        printf("\r%d", fuzzSeed + fuzzi);
+        u64 executeCount = *(u64 *)DT_SetGetNumberRange(&g_Element[0], 10, 1, 1000);
+        char *opname = DT_SetGetString(&g_Element[1], 28, 4096, "/conv1/Convfunction_graph_0");
+        char *st = DT_SetGetString(&g_Element[2], 3, 4096, "30");
+        char *outputDir = DT_SetGetString(&g_Element[3], 15, 4096, "/tmp/fuzz_out/");
+        setenv("ATB_OUTPUT_DIR", outputDir, 1);
+        atb::Probe::ReportOperationExecuteStatistic(executeCount, opname, st);
+    }
+    DT_FUZZ_END()
+}
+
+TEST(test_SaveTiling, fuzz_test)
+{
+    char testApi[] = "test_SaveTiling";
+    DT_FUZZ_START(0, g_fuzzRunTime, testApi, 0)
+    {
+        printf("\r%d", fuzzSeed + fuzzi);
+        u64 dataSize = *(u64 *)DT_SetGetNumberRange(&g_Element[0], 10, 1, 1000);
+        char *filePath = DT_SetGetString(&g_Element[1], 7, 50, "./save");
+        std::vector<uint8_t> data = {};
+        int size = dataSize / sizeof(uint8_t);
+        std::cout << "size: " << size << std::endl;
+        for (int i = 0; i < size; i++) {
+            u8 num = *(u8 *)DT_SetGetU8(&g_Element[2], 1);
+            data.push_back(num);
+        }
+        uint8_t *hostData = &data[0];
+        char *outputDir = DT_SetGetString(&g_Element[3], 15, 4096, "/tmp/fuzz_out/");
+        setenv("ATB_OUTPUT_DIR", outputDir, 1);
+        atb::Probe::SaveTiling(hostData, dataSize, filePath);
+    }
+    DT_FUZZ_END()
+}
+
+TEST(test_ReportOperationIOTensor, fuzz_test)
+{
+    char testApi[] = "test_ReportOperationIOTensor";
+    DT_FUZZ_START(0, g_fuzzRunTime, testApi, 0)
+    {
+        printf("\r%d", fuzzSeed + fuzzi);
+        u64 executeCount = *(u64 *)DT_SetGetNumberRange(&g_Element[0], 10, 1, 1000);
+        char *opName = DT_SetGetString(&g_Element[1], 28, 4096, "/conv1/Convfunction_graph_0");
+        char *opParam = DT_SetGetString(&g_Element[2], 8, 4096, "Param:1");
+        u64 dataSize = *(u64 *)DT_SetGetNumberRange(&g_Element[3], 10, 1, 1000);
+        int size = dataSize / sizeof(uint8_t);
+        atb::Probe::Tensor inTensor;
+        inTensor.dype = "ACL_FLOAT16";
+        inTensor.format = "ACL_FORMAT_ND";
+        inTensor.shape = "65024,4096";
+        inTensor.path = "";
+        std::vector<atb::Probe::Tensor> inTensors;
+        for (int i = 0; i < size; i++) {
+            inTensors.push_back(inTensor);
+        }
+
+        atb::Probe::Tensor outTensor;
+        outTensor.dype = "ACL_FLOAT16";
+        outTensor.format = "ACL_FORMAT_ND";
+        outTensor.shape = "8,1024,4096";
+        outTensor.path = "";
+        std::vector<atb::Probe::Tensor> outTensors;
+        for (int i = 0; i < size; i++) {
+            outTensors.push_back(outTensor);
+        }
+        char *outputDir = DT_SetGetString(&g_Element[4], 15, 4096, "/tmp/fuzz_out/");
+        setenv("ATB_OUTPUT_DIR", outputDir, 1);
+        atb::Probe::ReportOperationIOTensor(executeCount, opName, opParam, inTensors, outTensors);
+    }
+    DT_FUZZ_END()
+}
+
+TEST(test_ReportKernelIOTensor, fuzz_test)
+{
+    char testApi[] = "test_ReportKernelIOTensor";
+    DT_FUZZ_START(0, g_fuzzRunTime, testApi, 0)
+    {
+        printf("\r%d", fuzzSeed + fuzzi);
+        u64 executeCount = *(u64 *)DT_SetGetNumberRange(&g_Element[0], 10, 1, 1000);
+        char *opName = DT_SetGetString(&g_Element[1], 28, 4096, "/conv1/Convfunction_graph_0");
+        char *opParam = DT_SetGetString(&g_Element[2], 8, 4096, "Param:1");
+        u64 dataSize = *(u64 *)DT_SetGetNumberRange(&g_Element[3], 10, 1, 1000);
+        int size = dataSize / sizeof(uint8_t);
+        atb::Probe::Tensor inTensor;
+        inTensor.dype = "ACL_FLOAT16";
+        inTensor.format = "ACL_FORMAT_ND";
+        inTensor.shape = "65024,4096";
+        inTensor.path = "";
+        std::vector<atb::Probe::Tensor> inTensors;
+        for (int i = 0; i < size; i++) {
+            inTensors.push_back(inTensor);
+        }
+        atb::Probe::Tensor outTensor;
+        outTensor.dype = "ACL_FLOAT16";
+        outTensor.format = "ACL_FORMAT_ND";
+        outTensor.shape = "8,1024,4096";
+        outTensor.path = "";
+        std::vector<atb::Probe::Tensor> outTensors;
+        for (int i = 0; i < size; i++) {
+            outTensors.push_back(outTensor);
+        }
+        char *outputDir = DT_SetGetString(&g_Element[4], 15, 4096, "/tmp/fuzz_out/");
+        setenv("ATB_OUTPUT_DIR", outputDir, 1);
+        atb::Probe::ReportKernelIOTensor(executeCount, opName, opParam, inTensors, outTensors);
+    }
+    DT_FUZZ_END()
+}
+
+TEST(test_SaveParam, fuzz_test)
+{
+    char testApi[] = "test_SaveParam";
+    DT_FUZZ_START(0, g_fuzzRunTime, testApi, 0)
+    {
+        printf("\r%d", fuzzSeed + fuzzi);
+        char *param = DT_SetGetString(&g_Element[0], 8, 4096, "Param:1");
+        char *filePath = DT_SetGetString(&g_Element[1], 11, 100, "./save_param");
+        char *outputDir = DT_SetGetString(&g_Element[4], 15, 4096, "/tmp/fuzz_out/");
+        setenv("ATB_OUTPUT_DIR", outputDir, 1);
+        atb::Probe::SaveParam(param, filePath);
+    }
+    DT_FUZZ_END()
+}
+
+TEST(test_ReportOverflowKernel, fuzz_test)
+{
+    char testApi[] = "test_ReportOverflowKernel";
+    DT_FUZZ_START(0, g_fuzzRunTime, testApi, 0)
+    {
+        printf("\r%d", fuzzSeed + fuzzi);
+        char *filePath = DT_SetGetString(&g_Element[0], 16, 100, "./save_overflow");
+        char *outputDir = DT_SetGetString(&g_Element[4], 15, 4096, "/tmp/fuzz_out/");
+        setenv("ATB_OUTPUT_DIR", outputDir, 1);
+        atb::Probe::ReportOverflowKernel(filePath);
+    }
+    DT_FUZZ_END()
+}
