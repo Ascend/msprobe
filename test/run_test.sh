@@ -36,7 +36,7 @@ gen_dump_api() {
   cd ${CUR_DIR}
   local top_dir=$(dirname $(pwd))
 
-  local protoc_path=${top_dir}/opensource/protobuf/cmake/protoc
+  local protoc_path=${top_dir}/opensource/protobuf/install/bin/protoc
   local make_proto_sh=${top_dir}/build/prepare_thirdparty_tool.sh
   if [ ! -e protoc_path ]; then
     bash $make_proto_sh

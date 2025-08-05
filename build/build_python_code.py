@@ -40,12 +40,8 @@ def prepare_third_party_tool():
         if line:
             logging.info(line)
 
-    if prepare_protoc.returncode != 0:
-        logging.info("-------------------- Compiling protobuf failed. --------------------")
-        return prepare_protoc.returncode
-
     top_dir = os.path.realpath(os.path.dirname(cur_dir))
-    protoc_dir = os.path.join(top_dir, "opensource", "protobuf", "cmake", "protoc")
+    protoc_dir = os.path.join(top_dir, "opensource", "protobuf", "install", "bin", "protoc")
     if os.path.exists(protoc_dir):
         logging.info("-------------------- Compiling protobuf success. --------------------")
         return 0
@@ -77,7 +73,7 @@ def generate_dump_data_api():
     dump_proto_dir = os.path.join(top_dir, "resource")
     dump_proto_path = os.path.join(dump_proto_dir, "dump_data.proto")
     src_compare_path = os.path.join(top_dir, "src", "compare")
-    protoc_dir = os.path.join(top_dir, "opensource", "protobuf", "cmake", "protoc")
+    protoc_dir = os.path.join(top_dir, "opensource", "protobuf", "install", "bin", "protoc")
 
     if not os.path.exists(protoc_dir):
         logging.info(protoc_dir, "is not exist.")
