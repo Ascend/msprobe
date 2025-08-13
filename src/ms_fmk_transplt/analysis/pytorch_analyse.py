@@ -31,13 +31,13 @@ class PyTorchAnalyse:
 
     @staticmethod
     def __parse_command():
-        description = 'Pytorch Analyse powered by MindStudio\nCopyright (c) Huawei Technologies Co., Ltd. 2022-2024'
+        description = 'Pytorch Analyse powered by MindStudio\nCopyright (c) Huawei Technologies Co., Ltd. 2022-2025'
         parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
         parser.add_argument('-i', '--input', required=True, metavar='(DIR, FILE)',
                             help='Input path or file. (required)')
         parser.add_argument('-o', '--output', required=True, default='', metavar='DIR', help='Output path. (required)')
         parser.add_argument('-v', '--version', required=True,
-                            choices=['1.11.0', '2.1.0', '2.2.0', '2.3.1', '2.4.0', '2.5.1'],
+                            choices=['1.11.0', '2.1.0', '2.2.0', '2.3.1', '2.4.0', '2.5.1', '2.6.0'],
                             help='Target pytorch version of output. (required)')
         parser.add_argument('-m', '--mode', default='torch_apis',
                             choices=['third_party', 'torch_apis', 'dynamic_shape', 'affinity_apis'],

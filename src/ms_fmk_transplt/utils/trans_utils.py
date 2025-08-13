@@ -42,6 +42,7 @@ VERSION_JSON_NAME_DICT = {
     "2.3.1": "_2_3.json",
     "2.4.0": "_2_4.json",
     "2.5.1": "_2_5.json",
+    "2.6.0": "_2_6.json"
 }
 
 DISTRIBUTED_SHELL_NAME = 'run_distributed_npu.sh'

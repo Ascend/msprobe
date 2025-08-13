@@ -179,7 +179,7 @@ class MsFmkTransplt(object):
                             help='This option is required only if you want to use the DEVICE_ID'
                                  'environment variable to specify the running device.')
         parser.add_argument('-v', '--version', required=True,
-                            choices=['1.11.0', '2.1.0', '2.2.0', '2.3.1', '2.4.0', '2.5.1'],
+                            choices=['1.11.0', '2.1.0', '2.2.0', '2.3.1', '2.4.0', '2.5.1', '2.6.0'],
                             help='Target pytorch version of output. (required)')
         parser.add_argument('-m', '--modelarts', action='store_true',
                             help='Convert to a ModelArts-compatible project.')
