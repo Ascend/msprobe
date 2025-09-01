@@ -7,6 +7,7 @@ from functools import reduce
 import json
 
 import numpy as np
+import dump_data_pb2 as DD
 from dump_data_pb2 import DumpData
 
 from cmp_utils.constant.compare_error import CompareError
@@ -56,6 +57,10 @@ def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool
         if not tensor.HasField('shape') and tensor.size:
             log.print_info_log(f"Tensor shape is empty, using size {tensor.size} as shape")
             tensor.shape.dim.append(tensor.size) # Ignore dtype size, just set a value large enough
+        if tensor.data_type == DD.DT_UNDEFINED and tensor.size:
+            tensor.shape.Clear()
+            tensor.shape.dim.append(tensor.size)
+
         data_to_np = _deserialize_dump_data_to_array(tensor.data, tensor.data_type, list(tensor.shape.dim))
         dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
                                  data_to_np, tensor.size, list(tensor.original_shape.dim),
