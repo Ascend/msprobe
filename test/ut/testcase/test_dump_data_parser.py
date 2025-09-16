@@ -159,11 +159,11 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_main_parse_dump_data_bfloat16_pass(self):
         try:
-            from bfloat16ext import bfloat16
+            from ml_dtypes import bfloat16
         except ModuleNotFoundError:
-            bfloat16ext = type(sys)('bfloat16ext')
-            bfloat16ext.bfloat16 = np.float16
-            sys.modules['bfloat16ext'] = bfloat16ext
+            ml_dtypes = type(sys)('ml_dtypes')
+            ml_dtypes.bfloat16 = np.float16
+            sys.modules['ml_dtypes'] = ml_dtypes
 
         arguments = self._fake_arguments()
         dump_data = self._fake_fp16_dump_data(data_type=DD.DT_BF16)

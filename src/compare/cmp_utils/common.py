@@ -67,9 +67,9 @@ def get_dtype_by_data_type(data_type: any) -> any:
     dtype = ConstManager.DATA_TYPE_TO_DTYPE_MAP.get(data_type).get(ConstManager.DTYPE_KEY)
     if dtype == 'bfloat16':
         try:
-            from bfloat16ext import bfloat16
+            from ml_dtypes import bfloat16
         except ModuleNotFoundError as ee:
-            raise TypeError('bfloat16 is not supported in numpy, run `pip install bfloat16ext` for support.') from ee
+            raise TypeError('bfloat16 is not supported in numpy, run `pip install ml_dtypes` for support.') from ee
         dtype = bfloat16
     return dtype
 
