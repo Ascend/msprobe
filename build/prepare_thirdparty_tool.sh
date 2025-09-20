@@ -59,7 +59,6 @@ function compile_protobuf() {
       -Dprotobuf_BUILD_TESTS=OFF \
       -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
       -DCMAKE_INSTALL_PREFIX=${PROTOBUF_DIR}/install && \
-
     make -j16 && \
     make install && \
 
