@@ -166,6 +166,8 @@ class PyTorchAnalyse:
         if not utils.check_path_length_valid(output_path):
             raise ValueError('The real path or file name of output is too long.')
 
+        utils.check_path_pattern_valid(output_path)
+
         if not utils.check_path_owner_consistent(output_path):
             utils.user_interactive_confirm(
                 'The output path is insecure because it does not belong to you. Do you want to continue?')
