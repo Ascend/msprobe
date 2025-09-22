@@ -17,6 +17,7 @@
 #define AIT_LOGGER_H
 
 #include <cstring>
+#include <string>
 
 #define FILENAME (strrchr("/" __FILE__, '/') + 1)
 #define AIT_LOG_DEBUG(message) ait::Logger((message), FILENAME, __LINE__, __FUNCTION__, ait::LogLevel::DEBUG)

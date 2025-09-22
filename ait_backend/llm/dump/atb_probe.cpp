@@ -749,6 +749,10 @@ static std::unique_ptr<LLM::StatisticsBase> GetStatisticsFromBinaryDataWithBasic
 {
     size_t typeSize = (tensorDType != Mki::TensorDType::TENSOR_DTYPE_UNDEFINED) ?
                     Mki::GetTensorElementSize(tensorDType) : sizeof(T);
+    if (typeSize == 0) {
+        AIT_LOG_ERROR("Invalid typeSize: " + std::to_string(typeSize));
+        return std::make_unique<LLM::Statistics<std::string>>();
+    }
     if (dataSize % typeSize != 0) {
         AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(dataSize));
         return std::make_unique<LLM::Statistics<std::string>>();
@@ -958,6 +962,14 @@ void atb::Probe::SaveTiling(const uint8_t* data, uint64_t dataSize, const std::s
         return;
     }
 
+    std::string fileName = outPath.substr(found + 1);
+    outPath = GetRealPath(directory);
+    ret = Utils::CheckDirectory(outPath);
+    if (!ret) {
+        AIT_LOG_ERROR("Illegal path: " + outPath);
+        return;
+    }
+    outPath = outPath + "/" + fileName;
     ms::UmaskWrapper uw;
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
 
@@ -1150,14 +1162,19 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     if (outDir == "") {
         return;
     }
-    std::string pidDir = outDir + "layer/" + std::to_string(GetCurrentProcessId()) + "/";
+    std::string pidDir = outDir + "layer/" + std::to_string(GetCurrentProcessId());
     if (!Utils::CheckDirectory(pidDir)) {
         AIT_LOG_ERROR("Create directory failed: " + pidDir);
         return;
     }
  
-    std::string outPath = pidDir + opName + ".json";
-
+    std::string outPath = GetRealPath(pidDir);
+    bool ret = Utils::CheckDirectory(outPath);
+    if (!ret) {
+        AIT_LOG_ERROR("Illegal path: " + outPath);
+        return;
+    }
+    outPath = outPath + "/" + opName + ".json";
     ms::UmaskWrapper uw;
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
     if (outfile.is_open()) {
@@ -1475,6 +1492,14 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
         return;
     }
 
+    std::string fileName = outPath.substr(found + 1);
+    outPath = GetRealPath(directory);
+    ret = Utils::CheckDirectory(outPath);
+    if (!ret) {
+        AIT_LOG_ERROR("Illegal path: " + outPath);
+        return;
+    }
+    outPath = outPath + "/" + fileName;
     ms::UmaskWrapper uw;
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
     if (outfile.is_open()) {
@@ -1636,14 +1661,20 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
         return;
     }
     std::string pid = std::to_string(GetCurrentProcessId());
-    std::string pidDir = outDir + "model/" + pid + "/";
+    std::string pidDir = outDir + "model/" + pid;
     bool ret = Utils::CheckDirectory(pidDir);
     if (!ret) {
         AIT_LOG_ERROR("Create directory failed: " + pidDir);
         return;
     }
 
-    std::string outPath = pidDir + modelName + ".json";
+    std::string outPath = GetRealPath(pidDir);
+    ret = Utils::CheckDirectory(outPath);
+    if (!ret) {
+        AIT_LOG_ERROR("Illegal path: " + outPath);
+        return;
+    }
+    outPath = outPath + "/" + modelName + ".json";
     ms::UmaskWrapper uw;
     std::ofstream outfile(outPath, std::ios::out | std::ios::binary);
 

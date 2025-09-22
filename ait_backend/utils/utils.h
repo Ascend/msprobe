@@ -31,9 +31,9 @@
 #include "ait_logger.h"
 
 
-extern std::vector<std::string> SplitString(const std::string &ss, const char &tar);
+std::vector<std::string> SplitString(const std::string &ss, const char &tar);
 
-extern bool Exists(const std::string &path);
+bool Exists(const std::string &path);
 
 std::string GetRealPath(const std::string &outPath);
 

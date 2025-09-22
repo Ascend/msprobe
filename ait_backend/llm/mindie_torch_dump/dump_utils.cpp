@@ -21,6 +21,7 @@
 #include <dlfcn.h>
 #include <sys/stat.h>
 #include "ait_logger.h"
+#include "utils.h"
 
 using FuncPtr1 = int (*)();
 using FuncPtr2 = int (*)(const char *);
@@ -91,6 +92,12 @@ void DumpUtils::SetDump()
         AIT_LOG_ERROR("[mindie-dump]Library absolute path got failed.");
         return;
     }
+    libAscendclsoPath = GetRealPath(libAscendclsoPath);
+    if (!Exists(libAscendclsoPath)) {
+        AIT_LOG_ERROR("No such file: " + libAscendclsoPath);
+        return;
+    }
+
     void* handle = dlopen(libAscendclsoPath.c_str(), RTLD_LAZY);
     if (!handle) {
         AIT_LOG_ERROR("[mindie-dump]Load library failed.");
@@ -131,6 +138,13 @@ void DumpUtils::FinalizeDump()
         AIT_LOG_ERROR("[mindie-dump]Library path got failed.");
         return;
     }
+
+    libAscendclsoPath = GetRealPath(libAscendclsoPath);
+    if (!Exists(libAscendclsoPath)) {
+        AIT_LOG_ERROR("No such file: " + libAscendclsoPath);
+        return;
+    }
+
     void* handle = dlopen(libAscendclsoPath.c_str(), RTLD_LAZY);
     if (!handle) {
         AIT_LOG_ERROR("[mindie-dump]Load library failed.");

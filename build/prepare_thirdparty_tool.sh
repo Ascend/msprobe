@@ -61,7 +61,6 @@ function compile_protobuf() {
       -DCMAKE_INSTALL_PREFIX=${PROTOBUF_DIR}/install && \
     make -j16 && \
     make install && \
-
     echo "[INFO] Protobuf v${PROTOBUF_VERSION} install successfully, path: ${PROTOBUF_DIR}/install"
 }
 
