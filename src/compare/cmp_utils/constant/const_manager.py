@@ -18,6 +18,7 @@ class ConstManager:
     """
     # common const
     LINUX_FILE_NAME_MAX_LEN = 255
+    LINUX_PATH_MAX_LEN = 4096
     INPUT = 'input'
     OUTPUT = 'output'
     SUPPORT_DETAIL_TYPE = [INPUT, OUTPUT]

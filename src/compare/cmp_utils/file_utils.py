@@ -218,6 +218,12 @@ class OverflowFileUtils(FileUtils):
             raise CompareError(
                 CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
+        if len(path) >= ConstManager.LINUX_PATH_MAX_LEN:
+            log.print_error_log(
+                "The path length exceeds the maximum limit, "
+                f"the maximum limit is {ConstManager.LINUX_PATH_MAX_LEN}.")
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+
         matched_files = {}
         re_pattern = re.compile(pattern)
         for dir_path, _, files in os.walk(path):
