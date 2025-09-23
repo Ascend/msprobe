@@ -479,6 +479,8 @@ class ConstManager:
     MAX_WALK_FILE_NUM = 1000
     MAX_WALK_DIR_DEEP_NUM = 50
 
+    SPECIAL_CHAR = ["\n", "\r", "\u007F", "\b", "\f", "\t", "\u000B", "%08", "%0a", "%0b", "%0c", "%0d", "%7f"]
+
     @property
     def max_top_n(self: any) -> int:
         """

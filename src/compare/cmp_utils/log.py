@@ -7,7 +7,19 @@ This file mainly involves the print function.
 
 import os
 import logging
+from functools import wraps
+from cmp_utils.constant.const_manager import ConstManager
 
+
+def filter_special_chars(func):
+    @wraps(func)
+    def func_level(msg, **kwargs):
+        if isinstance(msg, str):
+            for char in ConstManager.SPECIAL_CHAR:
+                msg = msg.replace(char, '_')
+        return func(msg, **kwargs)
+
+    return func_level
 
 
 def _setting_config(message: str) -> str:
@@ -18,6 +30,7 @@ def _setting_config(message: str) -> str:
     return message
 
 
+@filter_special_chars
 def print_error_log(error_msg: str) -> None:
     """
     print error log
@@ -27,6 +40,7 @@ def print_error_log(error_msg: str) -> None:
     logging.error(message)
 
 
+@filter_special_chars
 def print_warn_log(warn_msg: str) -> None:
     """
     print warn log
@@ -36,6 +50,7 @@ def print_warn_log(warn_msg: str) -> None:
     logging.warning(message)
 
 
+@filter_special_chars
 def print_info_log(info_msg: str) -> None:
     """
     print info log
