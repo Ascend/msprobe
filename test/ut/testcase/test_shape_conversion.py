@@ -3,13 +3,14 @@ import struct
 import pytest
 
 import numpy as np
-import dump_data_pb2 as DD
 from unittest import mock
 
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import common
 from conversion import shape_format_conversion
 from dump_parse import dump_utils
+from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput, Shape
+from cmp_utils.constant.const_manager import DD
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -86,7 +87,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process6(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home', '-shape', '1,3,4,4']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -103,7 +104,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process7(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -138,7 +139,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process10(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home', '-index', '10', '-tensor', 'input']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -167,7 +168,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process12(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home', '-index', '-1', '-tensor', 'output']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NC1HWC0, [1, 2, 4, 4, 2]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -186,7 +187,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process13(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_NZ,
                                  [1, 2, 4, 4 * 16, 2 * 16]))
@@ -205,7 +206,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process14(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home', '-shape', '3,2']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_NZ,
                                  [1, 2, 4, 4 * 16, 2 * 16]))
@@ -224,7 +225,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process15(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home', '-shape', '2,64,32']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_NZ,
                                  [1, 1, 1, 4 * 16, 2 * 16]))
@@ -243,7 +244,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process16(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home', '-shape', '1,64,32']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_NZ,
                                  [1, 1, 1, 4 * 16, 2 * 16]))
@@ -262,7 +263,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_process17(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-format', 'NCHW', '-o',
                 '/home', '-shape', '1,64,32']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW,
                                  [1, 1, 4 * 16, 2 * 16]))
@@ -288,7 +289,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.format = "NCDHW"
         arguments.custom_script_path = ''
         arguments.shape = ""
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NDC1HWC0, [1, 4, 16, 2, 2, 16], [1, 256, 4, 2, 2]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -312,7 +313,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.format = "NCHW"
         arguments.custom_script_path = ''
         arguments.shape = ""
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_Z, [36, 4, 16, 16], [64, 64, 3, 3]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -336,7 +337,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.format = "HWCN"
         arguments.custom_script_path = ''
         arguments.shape = ""
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_FRACTAL_Z, [49, 4, 16, 16], [7, 7, 3, 64]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -555,14 +556,14 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_shape(dim_list):
-        shape = DD.Shape()
+        shape = Shape()
         for dim in dim_list:
             shape.dim.append(dim)
         return shape
 
     @staticmethod
     def _make_op_output(dd_format, shape, dim_list=None):
-        op_output = DD.OpOutput()
+        op_output = OpOutput()
         op_output.data_type = DD.DT_FLOAT16
         op_output.format = dd_format
         if dim_list:
@@ -579,8 +580,8 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_dump_data_ser(dd_format, shape, data_type):
-        dump_data = DD.DumpData()
-        op_output = DD.OpOutput()
+        dump_data = DumpData()
+        op_output = OpOutput()
         op_output.data_type = data_type
         op_output.format = dd_format
         length = 1
@@ -595,7 +596,7 @@ class TestUtilsMethods(unittest.TestCase):
             *origin_numpy)
         dump_data.output.append(op_output)
 
-        op_input = DD.OpInput()
+        op_input = OpInput()
         op_input.data_type = data_type
         op_input.format = dd_format
         length = 1

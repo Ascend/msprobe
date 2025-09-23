@@ -281,6 +281,7 @@ class DumpDataParser:
                     raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR) from e
                 dump_data.ffts_auto_input_shape_list = dump_data.calculate_auto_mode_shape(thread_id, "input")    
                 dump_data.ffts_auto_output_shape_list = dump_data.calculate_auto_mode_shape(thread_id, "output")
+            
             self._save_tensor_to_file(dump_path, dump_data, 'input')
             self._save_tensor_to_file(dump_path, dump_data, 'output')
             self._save_buffer_to_file(dump_path, dump_data.buffer)

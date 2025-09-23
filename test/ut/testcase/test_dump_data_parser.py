@@ -5,13 +5,14 @@ import sys
 import unittest
 import pytest
 from unittest import mock
-import dump_data_pb2 as DD
 import numpy as np
 
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
 from dump_parse import dump_data_parser as DP
 from dump_parse import dump, dump_utils, mapping
+from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput
+from cmp_utils.constant.const_manager import DD
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -39,7 +40,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _base_fake_data(op_output_data, data_type=DD.DT_FLOAT16):
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.version = '1.0'
         dump_data.dump_time = int(round(time.time() * 1000))
         op_output = dump_data.output.add()
@@ -56,7 +57,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _fake_fp16_dump_data(data_type=DD.DT_FLOAT16):
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.dump_time = int(round(time.time() * 1000))
         dump_data.version = '1.0'
         op_output = dump_data.output.add()
@@ -74,7 +75,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _fake_uint8_dump_data():
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.version = '1.0'
         dump_data.dump_time = int(round(time.time() * 1000))
         buffer = dump_data.buffer.add()

@@ -10,11 +10,9 @@ import warnings
 from typing.io import BinaryIO
 from enum import Enum
 
-import dump_data_pb2 as DD
-
 from cmp_utils import path_check
 from cmp_utils import log
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager, DD
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.tlv_parse import TLV
 
@@ -362,7 +360,7 @@ class NanoDumpDataHandler:
                 'The size (%d) of %r exceeds 1GB, it may task more time to run, please wait.'
                 % (self.file_size, self.dump_file_path))
 
-    def parse_dump_data(self: any, dump_version: int) -> NanoDumpData:
+    def parse_dump_data(self: any) -> NanoDumpData:
         """
         Parse dump file
         :param dump_version: the dump version
@@ -377,5 +375,3 @@ class NanoDumpDataHandler:
                       % (self.dump_file_path, str(error))
             log.print_error_log(message)
             raise error
-
-

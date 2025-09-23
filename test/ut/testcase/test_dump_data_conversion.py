@@ -5,16 +5,17 @@ import unittest
 from unittest import mock
 import numpy as np
 import pytest
-import dump_data_pb2 as DD
 
 from cmp_utils.constant.compare_error import CompareError
+from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput
+from cmp_utils.constant.const_manager import DD
 import dump_data_conversion
 
 
 class TestUtilsMethods(unittest.TestCase):
     @staticmethod
     def _make_op_output(dd_format, shape):
-        op_output = DD.OpOutput()
+        op_output = OpOutput()
         op_output.data_type = DD.DT_FLOAT16
         op_output.format = dd_format
         length = 1
@@ -104,7 +105,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_convert_file1(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'dump', '-o', '/home', '-type', 'tf']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.version = '2.0'
         dump_data.dump_time = int(round(time.time() * 1000))
         buffer = dump_data.buffer.add()
@@ -138,6 +139,7 @@ class TestUtilsMethods(unittest.TestCase):
                 main = dump_data_conversion.DumpDataConversion()
                 main._save_tensor_to_file = mock.Mock()
                 main._save_buffer_to_file = mock.Mock()
+                main._save_space_to_file = mock.Mock()
                 main._get_op_name_from_path = mock.Mock(return_value="demo")
                 return_code, input_path = main._convert_file("/home/left.bin")
         self.assertEqual(return_code, 0)
@@ -175,7 +177,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_convert_file5(self):
         args = ['aaa.py', '-i', '/home/left.bin', '-target', 'dump', '-o', '/home', '-type', 'tf']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.version = '2.0'
         dump_data.dump_time = int(round(time.time() * 1000))
         space = dump_data.space.add()

@@ -12,13 +12,12 @@ import sys
 import re
 
 import numpy as np
-import dump_data_pb2 as DD
 
 from cmp_utils import utils, utils_type, path_check
 from cmp_utils import common
 from cmp_utils import log
 from cmp_utils.utils import safe_path_string
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager, DD
 from cmp_utils.multi_process.multi_convert_process import MultiConvertProcess
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.file_utils import FileUtils
@@ -302,7 +301,7 @@ class FormatConversionMain:
             'The data of %s:%s has been saved to "%r".' % (tensor_type, index, output_file_path))
 
     def _get_format_and_shape(self: any, tensor: any, index: int, tensor_type: str,
-                              dump_file_path: str) -> (int, DD.Shape):
+                              dump_file_path: str):
         # check the 4-dimension valid
         real_format = tensor.tensor_format
         if tensor.tensor_format == DD.FORMAT_HWCN or tensor.tensor_format == DD.FORMAT_NCHW \

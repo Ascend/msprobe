@@ -9,16 +9,19 @@ import os
 import time
 import struct
 import warnings
+import ctypes
+import tempfile
+import json
 from typing.io import BinaryIO
 
 import numpy as np
 from google.protobuf.message import DecodeError
-import dump_data_pb2 as DD
 
+from dump_parse.proto_dump_data import DumpData
 from cmp_utils import path_check
 from cmp_utils import log
 from cmp_utils import common
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager, DD
 from cmp_utils.constant.compare_error import CompareError
 
 
@@ -32,9 +35,34 @@ class BigDumpDataParser:
         self.dump_file_path = dump_file_path
         self.file_size = 0
         self.header_length = 0
-        self.dump_data = None
+        self.dump_data = DumpData()
+        self.dump_json_data = {}
+        self.data_types = ['input', 'output', 'buffer', 'space']
+        self.parse_dump_so = "libascend_dump_parser.so"
 
-    def parse(self: any) -> DD.DumpData:
+    @staticmethod
+    def find_shared_library(lib_name: str, relative_path: str) -> str:
+        """
+        优先从LD_LIBRARY_PATH查找 so 文件，如果没有则从相对路径中查找。
+        """
+        # 从环境变量 LD_LIBRARY_PATH 中查找
+        ld_paths = os.environ.get("LD_LIBRARY_PATH", "").split(":")
+        for path in ld_paths:
+            candidate = os.path.join(path, lib_name)
+            if os.path.exists(candidate):
+                return os.path.realpath(candidate)
+
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        candidate = os.path.realpath(os.path.join(current_dir, relative_path, lib_name))
+
+        if os.path.exists(candidate):
+            return candidate
+
+        raise OSError(
+            f"Shared library {lib_name} not found."
+        )
+
+    def parse(self: any):
         """
         Parse the dump file path by big dump data format
         :return: DumpData
@@ -45,15 +73,9 @@ class BigDumpDataParser:
             with open(self.dump_file_path, 'rb') as dump_file:
                 # read header length
                 self._read_header_length(dump_file)
-                # read dump data proto
-                self._read_dump_data(dump_file)
-                self._check_size_match()
-                # read tensor data
-                self._read_input_data(dump_file)
-                self._read_output_data(dump_file)
-                self._read_buffer_data(dump_file)
-                self._read_space_data(dump_file)
-                return self.dump_data
+                self._parse_dump_to_json()
+                self._parse_binary_to_json_data(dump_file)
+                return self.dump_data.from_dict(self.dump_json_data)
         except (OSError, IOError) as io_error:
             log.print_error_log('Failed to read the dump file %r. %s'
                                 % (self.dump_file_path, str(io_error)))
@@ -90,33 +112,6 @@ class BigDumpDataParser:
                 'The size (%d) of %r exceeds 1GB, it may task more time to run, please wait.'
                 % (self.file_size, self.dump_file_path))
 
-    def _check_size_match(self: any) -> None:
-        input_data_size = 0
-        for item in self.dump_data.input:
-            input_data_size += item.size
-        output_data_size = 0
-        for item in self.dump_data.output:
-            output_data_size += item.size
-        buffer_data_size = 0
-        for item in self.dump_data.buffer:
-            buffer_data_size += item.size
-        space_data_size = 0
-        for item in self.dump_data.space:
-            space_data_size += item.size
-        # check 8 + content size + sum(input.data) + sum(output.data)
-        # + sum(buffer.data) equal to file size
-        if self.header_length + ConstManager.UINT64_SIZE + input_data_size \
-                + output_data_size + buffer_data_size + space_data_size != self.file_size:
-            log.print_error_log(
-                'The file size (%d) of %r is not equal to %d (header length)'
-                ' + %d(the size of header content) '
-                '+ %d(the sum of input data) + %d(the sum of output data) '
-                '+ %d(the sum of buffer data) + %d(the sum of space data). Please check the dump file.'
-                % (self.file_size, self.dump_file_path, ConstManager.UINT64_SIZE, self.header_length,
-                   input_data_size, output_data_size, buffer_data_size, space_data_size))
-            raise CompareError(
-                CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE)
-
     def _read_header_length(self: any, dump_file: BinaryIO) -> None:
         # read header length
         header_length = dump_file.read(ConstManager.UINT64_SIZE)
@@ -129,36 +124,56 @@ class BigDumpDataParser:
                 ' Please check the dump file.'
                 % (self.header_length, self.dump_file_path, self.file_size, ConstManager.UINT64_SIZE))
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+        dump_file.read(self.header_length)
 
-    def _read_dump_data(self: any, dump_file: BinaryIO) -> None:
-        content = dump_file.read(self.header_length)
-        self.dump_data = DD.DumpData()
+    def _parse_dump_to_json(self):
+        # 读取 dump 二进制数据
+        with open(self.dump_file_path, 'rb') as dump_file:
+            binary_data = dump_file.read()
+        # 加载 C 解析库
         try:
-            self.dump_data.ParseFromString(content)
-        except DecodeError as de_error:
-            log.print_warn_log(
-                'Failed to parse the serialized header content of %r. '
-                'Please check the dump file. %s '
-                % (self.dump_file_path, str(de_error)))
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR) from de_error
+            self.parse_dump_so = self.find_shared_library(self.parse_dump_so, "../../../adump/lib64")
+            ret = path_check.check_path_valid(self.parse_dump_so, True, False)
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                raise CompareError(ret)
+            if path_check.is_group_and_others_writable(self.parse_dump_so):
+                log.print_error_log(f"Failed to load {self.parse_dump_so}, this file is not safe. Please check.")
+                raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
+            dump_parse_cdll = ctypes.CDLL(self.parse_dump_so)
+        except (OSError, IOError) as e:
+            log.print_error_log(f"Failed to load {self.parse_dump_so}:{e}")
+            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR) from e
+        data_ptr = ctypes.c_char_p(binary_data)
+
+        # 使用临时文件替代落盘 JSON
+        fd, tmp_json_path = tempfile.mkstemp(suffix=".json")
+        # 关闭 fd，让 C 库写文件
+        os.close(fd)
+        try:
+            res = dump_parse_cdll.ParseDumpProtoToJson(
+                data_ptr, ctypes.c_size_t(len(binary_data)), tmp_json_path.encode('utf-8'))
+
+            if res != 0 or not os.path.isfile(tmp_json_path):
+                log.print_error_log(f"Parse dump file to json failed.")
+                raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+            # 从临时文件加载 JSON
+            with open(tmp_json_path, 'r') as load_f:
+                self.dump_json_data = json.load(load_f)
         finally:
-            pass
+            # 删除临时文件，避免落盘
+            if os.path.exists(tmp_json_path):
+                os.remove(tmp_json_path)
 
-    def _read_input_data(self: any, dump_file: BinaryIO) -> None:
-        for data_input in self.dump_data.input:
-            data_input.data = dump_file.read(data_input.size)
-
-    def _read_output_data(self: any, dump_file: BinaryIO) -> None:
-        for data_output in self.dump_data.output:
-            data_output.data = dump_file.read(data_output.size)
-
-    def _read_buffer_data(self: any, dump_file: BinaryIO) -> None:
-        for data_buffer in self.dump_data.buffer:
-            data_buffer.data = dump_file.read(data_buffer.size)
-
-    def _read_space_data(self: any, dump_file: BinaryIO) -> None:
-        for data_space in self.dump_data.space:
-            data_space.data = dump_file.read(data_space.size)
+    def _parse_binary_to_json_data(self, dump_file: BinaryIO):
+        used_size = self.header_length + ConstManager.UINT64_SIZE
+        for data_type in self.data_types:
+            for item in self.dump_json_data.get(data_type, []):
+                size = int(item.get('size', 0))
+                used_size += size
+                if used_size > self.file_size:
+                    log.print_error_log(f'The size of {self.dump_file_path} is invalid, please check the dump file.')
+                    raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+                item['data'] = dump_file.read(size)
 
 
 class DumpDataHandler:
@@ -216,7 +231,7 @@ class DumpDataHandler:
             pass
         return numpy_data
 
-    def parse_dump_data(self: any, dump_version: int) -> DD.DumpData:
+    def parse_dump_data(self: any):
         """
         Parse dump file
         :param dump_version: the dump version
@@ -237,44 +252,11 @@ class DumpDataHandler:
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message) from error
         finally:
             pass
-
-        # compatible with earlier versions
-        if dump_version == ConstManager.OLD_DUMP_TYPE:
-            return self._parse_by_old_version(file_content)
-
-        try:
-            if dump_version == ConstManager.PROTOBUF_DUMP_TYPE:
-                dump_data = DD.DumpData()
-                dump_data.ParseFromString(file_content)
-                return dump_data
-        except DecodeError as error:
-            message = 'Failed to parse the dump file %r, type is protobuf type. Please check the dump file. %s' \
-                      % (self.dump_file_path, str(error))
-            log.print_error_log(message)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message) from error
-        finally:
-            pass
-
         return BigDumpDataParser(self.dump_file_path).parse()
 
-    def _parse_by_old_version(self: any, file_content: any) -> DD.DumpData:
-        dump_data = DD.DumpData()
-        try:
-            decoded_data = file_content.decode('utf-8', errors='ignore')
-            parse_size = dump_data.ParseFromString(decoded_data)
-        except (DecodeError, UnicodeDecodeError, TypeError):
-            return BigDumpDataParser(self.dump_file_path).parse()
-        finally:
-            pass
-        # if parse size is not equal to file size,
-        # means the content cannot parse by protobuf
-        if parse_size != self.file_size or dump_data.version == '2.0':
-            return BigDumpDataParser(self.dump_file_path).parse()
-        return dump_data
 
-
-def _convert_numpy_to_dump(numpy_data: np.ndarray, only_header: bool) -> (DD.DumpData, bytes):
-    dump_data = DD.DumpData()
+def _convert_numpy_to_dump(numpy_data: np.ndarray, only_header: bool):
+    dump_data = DumpData()
     dump_data.version = '2.0'
     dump_data.dump_time = int(round(time.time() * ConstManager.TIME_LENGTH))
     output = dump_data.output.add()

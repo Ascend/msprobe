@@ -415,6 +415,10 @@ def _check_range_effect(args: argparse.Namespace) -> None:
 
 def _do_compare(args: argparse.Namespace) -> int:
     _check_range_effect(args)
+    if args.dump_version == 1:
+        log.print_warn_log(
+            "The -v argument will be deprecated. when the -v value is 1, it will be processed as 2."
+        )
     if args.mapping:
         _check_single_op_argument(args)
         compare = VectorComparison(args)
@@ -440,6 +444,10 @@ def _do_convert(args: argparse.Namespace) -> int:
     _check_argument_effect(args.format, args.input, '"-i" or "--input_tensor"', '-f')
     _check_argument_effect(args.format, args.shape, '"-s" or "--shape"', '-f')
     _check_argument_effect(args.format, args.custom_script_path, '"-c" or "--custom_script_path"', '-f')
+    if args.dump_version == 1:
+        log.print_warn_log(
+            "The -v argument will be deprecated. when the -v value is 1, it will be processed as 2."
+        )
     abs_dump_path = os.path.abspath(args.dump_path)
     if os.path.isdir(abs_dump_path) and not os.listdir(abs_dump_path):
         log.print_error_log('The dump path is empty.')

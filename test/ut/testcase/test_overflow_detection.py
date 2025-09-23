@@ -11,12 +11,13 @@ import struct
 import unittest
 import numpy as np
 from unittest import mock
-import dump_data_pb2 as DD
 
 from overflow.overflow_detection import OverflowDetection
 from dump_parse import dump, mapping
 from vector_cmp.compare_detail import detail
 from dump_parse import dump_utils
+from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput
+from cmp_utils.constant.const_manager import DD
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -26,7 +27,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data = dump.CompareData("Pooling.MaxPool_3.5.1612779097467502", "Null", 2)
         compare_data.left_dump_info.op_name_to_file_map = {"MaxPool_3": ["Pooling.MaxPool_3.5.1612779097467502"]}
         compare_data.left_dump_info.type = dump.DumpType.Quant
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -75,7 +76,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data = dump.CompareData("Pooling.MaxPool_3.5.1612779097467502", "Null", 2)
         compare_data.left_dump_info.op_name_to_file_map = {"MaxPool_3": ["Pooling.MaxPool_3.5.1612779097467502"]}
         compare_data.left_dump_info.type = dump.DumpType.Quant
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -132,7 +133,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_op_output(dd_format):
-        op_output = DD.OpOutput()
+        op_output = OpOutput()
         op_output.data_type = DD.DT_FLOAT16
         op_output.format = dd_format
         length = 3
@@ -142,7 +143,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_op_input(dd_format, shape):
-        op_input = DD.OpInput()
+        op_input = OpInput()
         op_input.data_type = DD.DT_FLOAT
         op_input.format = dd_format
         length = 1

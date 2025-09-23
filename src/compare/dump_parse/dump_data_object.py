@@ -7,11 +7,9 @@ from functools import reduce
 import json
 
 import numpy as np
-import dump_data_pb2 as DD
-from dump_data_pb2 import DumpData
-
+from dump_parse.proto_dump_data import DumpData
 from cmp_utils.constant.compare_error import CompareError
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager, DD
 from cmp_utils import log
 from cmp_utils import common
 
@@ -27,7 +25,6 @@ def _deserialize_dump_data_to_array(data, data_type, shape: list = None) -> any:
     """
     if shape is not None and 0 in shape:
         return np.array([]).reshape(shape)
-
     if shape is not None:  # shape can be empty [] for scalar data
         cnt = 1
         for ii in shape:
@@ -54,12 +51,12 @@ def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool
     @return: None
     """
     for index, tensor in enumerate(dump_data_object_data):
-        if not tensor.HasField('shape') and tensor.size:
+        if not (hasattr(tensor, "shape") and tensor.shape) and tensor.size:
             log.print_info_log(f"Tensor shape is empty, using size {tensor.size} as shape")
-            tensor.shape.dim.append(tensor.size) # Ignore dtype size, just set a value large enough
+            tensor.shape.append(tensor.size) # Ignore dtype size, just set a value large enough
         if tensor.data_type == DD.DT_UNDEFINED and tensor.size:
             tensor.shape.Clear()
-            tensor.shape.dim.append(tensor.size)
+            tensor.shape.append(tensor.size)
 
         data_to_np = _deserialize_dump_data_to_array(tensor.data, tensor.data_type, list(tensor.shape.dim))
         dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
@@ -86,7 +83,7 @@ def build_nano_dump_tensor(dump_data_object_data: list, is_input: bool) -> None:
 
 class DumpTensor:
     """
-    The class of DumpTensor, replace the class of DD.DumpData.input or output.
+    The class of DumpTensor, replace the class of DumpData.input or output.
     Include the data detail: index, data_type, tensor_format, shape, data, size, original_shape
     """
 
@@ -118,10 +115,10 @@ class DumpTensor:
 
 class DumpDataObj:
     """
-    The class of DumpDataObject, replace the class DD.DumpData or NanoDumpData.
+    The class of DumpDataObject, replace the class DumpData or NanoDumpData.
     Include dump_file information
     """
-    def __init__(self: any, dump_data: DumpData = DumpData(), nano_dump_data=None) -> None:
+    def __init__(self, dump_data=DumpData(), nano_dump_data=None) -> None:
         if nano_dump_data:
             self.version = nano_dump_data.version_id
             self.op_name = nano_dump_data.op_name
@@ -271,5 +268,3 @@ class DumpDataObj:
         """
         self.op_name = op_name
         self.ffts_file_check = ffts_file_check
-
-

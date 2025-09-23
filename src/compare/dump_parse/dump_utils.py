@@ -10,7 +10,7 @@ import os
 
 from functools import wraps
 import numpy as np
-from dump_data_pb2 import DumpData
+from dump_parse.proto_dump_data import DumpData
 
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
@@ -166,7 +166,7 @@ def convert_dump_data_object(input_path, dump_version) -> DumpDataObj:
     @return: inner function
     """
     try:
-        dump_data = DumpDataHandler(input_path).parse_dump_data(dump_version)
+        dump_data = DumpDataHandler(input_path).parse_dump_data()
     except CompareError as error:
         if error.code == CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE:
             dump_data = DumpData()
@@ -179,7 +179,7 @@ def convert_dump_data_object(input_path, dump_version) -> DumpDataObj:
 def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
     """
     Convert dump_data to DumpDataObj
-    @param dump_data:  DD.DumpData object
+    @param dump_data: DumpData object
     @return: DumpDataObj object
     """
     dump_data_object = DumpDataObj(dump_data)
@@ -190,7 +190,7 @@ def convert_dump_data(dump_data: DumpData) -> DumpDataObj:
 def convert_nano_dump_data(nano_dump_data: NanoDumpData) -> DumpDataObj:
     """
     Convert dump_data to DumpDataObj
-    @param dump_data:  DD.DumpData object
+    @param dump_data: DumpData object
     @return: DumpDataObj object
     """
     dump_data_object = DumpDataObj(dump_data=None, nano_dump_data=nano_dump_data)
@@ -205,7 +205,7 @@ def parse_dump_file(input_path: str, dump_version: int) -> DumpDataObj:
     :return: DumpData
     """
     if NanoDumpDataHandler(input_path).check_is_nano_dump_format():
-        nano_dump_data = NanoDumpDataHandler(input_path).parse_dump_data(dump_version)
+        nano_dump_data = NanoDumpDataHandler(input_path).parse_dump_data()
         return convert_nano_dump_data(nano_dump_data)
     else:
         return convert_dump_data_object(input_path, dump_version)

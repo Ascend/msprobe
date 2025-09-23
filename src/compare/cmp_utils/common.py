@@ -7,10 +7,9 @@ This file mainly involves the dump data proto function.
 """
 
 import numpy as np
-import dump_data_pb2 as DD
 
 from cmp_utils import log
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager, DD
 from cmp_utils.constant.compare_error import CompareError
 
 

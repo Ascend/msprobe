@@ -8,15 +8,15 @@ Huawei Technologies Co., Ltd. All Rights Reserved © 2021
 """
 import unittest
 from unittest import mock
-import dump_data_pb2 as DD
 import numpy as np
 import struct
-
+from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput
 from vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
 from algorithm_manager.algorithm_manager import AlgorithmManager
 from vector_cmp.fusion_manager.fusion_op import FusionOp, OutputDesc, OpAttr
 from dump_parse.dump import DumpType
 from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import DD
 from dump_parse import dump, dump_utils, mapping
 
 
@@ -76,7 +76,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data.left_dump_info.get_op_dump_file = mock.Mock(return_value="/home/demo")
         format_manager = ""
         fusion_op_name = "demo"
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -112,7 +112,7 @@ class TestUtilsMethods(unittest.TestCase):
         compare_data.left_dump_info.get_op_dump_file = mock.Mock(return_value="/home/demo")
         format_manager = ""
         fusion_op_name = "demo"
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -125,7 +125,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_op_output(dd_format, shape):
-        op_output = DD.OpOutput()
+        op_output = OpOutput()
         op_output.data_type = DD.DT_FLOAT
         op_output.format = dd_format
         length = 1
@@ -142,7 +142,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_op_input(dd_format, shape):
-        op_input = DD.OpInput()
+        op_input = OpInput()
         op_input.data_type = DD.DT_FLOAT
         op_input.format = dd_format
         length = 1

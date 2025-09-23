@@ -8,15 +8,17 @@ import stat
 import pytest
 import numpy as np
 from google.protobuf.message import DecodeError
-import dump_data_pb2 as DD
 
 from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from vector_cmp.fusion_manager import fusion_op
+from dump_parse.big_dump_data import BigDumpDataParser
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.multi_process.progress import Progress
 from cmp_utils.constant.const_manager import ConstManager
 from dump_parse import dump, dump_utils, mapping, dump_data_object
+from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput
+from cmp_utils.constant.const_manager import DD
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -24,7 +26,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_op_output(dd_format, shape):
-        op_output = DD.OpOutput()
+        op_output = OpOutput()
         op_output.data_type = DD.DT_FLOAT16
         op_output.format = dd_format
         length = 1
@@ -489,38 +491,49 @@ class TestUtilsMethods(unittest.TestCase):
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def test_parse_dump_file4(self):
-        dump_data = DD.DumpData()
-        output = dump_data.output.add()
-        self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
-        dump_data_ser = dump_data.SerializeToString()
+        fake_json = {
+            "version": "1.0",
+            "dump_time": 12345678,
+            "input": [
+                {"data_type": 2, "size": 8}
+            ],
+            "output": [
+                {"data_type": 2, "size": 8}
+            ]
+        }
         with mock.patch('cmp_utils.path_check.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
             with mock.patch('dump_parse.nano_dump_data.NanoDumpDataHandler.check_is_nano_dump_format',
                             return_value=False):
-                with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
-                    with mock.patch('builtins.open',
-                                    mock.mock_open(read_data=dump_data_ser)):
-                        dump_data = dump_utils.parse_dump_file('/home/a.dump', 1)
+                with mock.patch('os.path.getsize', return_value=10):
+                    with mock.patch('builtins.open', mock.mock_open(read_data="0")):
+                        with mock.patch.object(BigDumpDataParser, "parse", return_value=DumpData.from_dict(fake_json)):
+                            dump_data = dump_utils.parse_dump_file('/home/a.dump', 1)
         self.assertEqual(dump_data.output_data[0].data_type, DD.DT_FLOAT16)
         data_byte = utils.convert_ndarray_to_bytes(dump_data.output_data[0].data)
-        self.assertEqual(len(data_byte), 48)
+        self.assertEqual(len(data_byte), 0)
 
     def test_parse_dump_file5(self):
-        dump_data = DD.DumpData()
-        output = dump_data.output.add()
-        self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
-        dump_data_ser = dump_data.SerializeToString()
+        fake_json = {
+            "version": "1.0",
+            "dump_time": 12345678,
+            "input": [
+                {"data_type": 2, "size": 8}
+            ],
+            "output": [
+                {"data_type": 2, "size": 8}
+            ]
+        }
         with mock.patch('cmp_utils.path_check.check_path_valid',
                         return_value=CompareError.MSACCUCMP_NONE_ERROR):
-            with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
-                with mock.patch('builtins.open', mock.mock_open(read_data=dump_data_ser)):
-                    with mock.patch('dump_parse.nano_dump_data.NanoDumpDataHandler.check_is_nano_dump_format',
-                                    return_value=False):
+            with mock.patch('os.path.getsize', return_value=10):
+                with mock.patch('builtins.open', mock.mock_open(read_data="0")):
+                    with mock.patch.object(BigDumpDataParser, "parse", return_value=DumpData.from_dict(fake_json)):
                         dump_data = dump_utils.parse_dump_file('/home/a.dump', 1)
-        self.assertEqual(dump_data.output_data[0].size, 48)
+        self.assertEqual(dump_data.output_data[0].size, 8)
 
     def test_parse_dump_file6(self):
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         output = dump_data.output.add()
         self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
         dump_data_ser = dump_data.SerializeToString()
@@ -529,13 +542,13 @@ class TestUtilsMethods(unittest.TestCase):
                             return_value=CompareError.MSACCUCMP_NONE_ERROR):
                 with mock.patch('os.path.getsize', return_value=len(dump_data_ser)):
                     with mock.patch('builtins.open', mock.mock_open(read_data=dump_data_ser)):
-                        with mock.patch('dump_data_pb2.DumpData.ParseFromString', return_value=1000):
+                        with mock.patch('dump_parse.proto_dump_data.DumpData.ParseFromString', return_value=1000):
                             dump_utils.parse_dump_file('/home/a.dump', 0)
         self.assertEqual(error.value.args[0],
                          CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def test_parse_dump_file7(self):
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         output = dump_data.output.add()
         self._set_op_output(output, DD.FORMAT_NC1HWC0, [1, 3, 2, 2, 2])
         dump_data_ser = dump_data.SerializeToString()
@@ -547,7 +560,7 @@ class TestUtilsMethods(unittest.TestCase):
                     with mock.patch('builtins.open',
                                     mock.mock_open(read_data=dump_data_ser)):
                         with mock.patch(
-                                'dump_data_pb2.DumpData.ParseFromString',
+                                'dump_parse.proto_dump_data.DumpData.ParseFromString',
                                 side_effect=DecodeError):
                             dump_utils.parse_dump_file('/home/a.dump', 0)
         self.assertEqual(error.value.args[0],

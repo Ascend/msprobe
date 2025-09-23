@@ -7,9 +7,8 @@ This file mainly involves xxxx function.
 """
 
 import numpy as np
-import dump_data_pb2 as DD
 
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager, DD
 from cmp_utils import log
 from dump_parse import dump_utils
 

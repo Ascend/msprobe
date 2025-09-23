@@ -7,7 +7,6 @@ import pytest
 import numpy as np
 import compare_vector
 import json
-import dump_data_pb2 as DD
 import unittest
 from unittest import mock
 
@@ -18,6 +17,8 @@ from vector_cmp.fusion_manager.fusion_op import OutputDesc, FusionOp, OpAttr
 from vector_cmp.fusion_manager.compare_result import SingleOpCmpResult
 from dump_parse import dump_utils
 from vector_cmp import vector_comparison
+from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput
+from cmp_utils.constant.const_manager import DD
 
 
 vector_comparison.VectorComparison.MULTI_THREAD_MAX_NUM = 1
@@ -28,7 +29,7 @@ class TestUtilsMethods(unittest.TestCase):
     
     @staticmethod
     def _make_op_output(dd_format, shape):
-        op_output = DD.OpOutput()
+        op_output = OpOutput()
         op_output.data_type = DD.DT_FLOAT
         op_output.format = dd_format
         length = 1
@@ -45,7 +46,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_op_input(dd_format, shape):
-        op_input = DD.OpInput()
+        op_input = OpInput()
         op_input.data_type = DD.DT_FLOAT
         op_input.format = dd_format
         length = 1
@@ -1028,7 +1029,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.algorithm_options = ''
         arguments.range = None
         arguments.select = None
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1090,7 +1091,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1153,7 +1154,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1216,7 +1217,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1276,7 +1277,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1336,7 +1337,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1398,7 +1399,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
@@ -1456,7 +1457,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1518,7 +1519,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1603,7 +1604,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1665,7 +1666,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1815,7 +1816,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'data',
                 '-i', '10']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -1845,7 +1846,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_detail7(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'data']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -1877,7 +1878,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'data', '-t',
                 'input']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -1911,7 +1912,7 @@ class TestUtilsMethods(unittest.TestCase):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'conv1conv1_relu',
                 '-t', 'input']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1945,7 +1946,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_detail10(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'conv1conv1_relu']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -1981,7 +1982,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_detail_l1_fusion1(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'A1']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -2019,7 +2020,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_detail_l1_fusion2(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'A1', '-t', 'input']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -2058,7 +2059,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_detail_l1_fusion3(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'B1']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(
             self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data.output.append(
@@ -2098,7 +2099,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_detail_l1_fusion4(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'C1']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -2135,7 +2136,7 @@ class TestUtilsMethods(unittest.TestCase):
     def test_compare_detail_l1_fusion5(self):
         args = ['aaa.py', '-l', '/home/left', '-r', '/home/right', '-f',
                 '/home/a.json', '-o', '/home/result', '-d', 'C2']
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(
             self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
@@ -2189,7 +2190,7 @@ class TestUtilsMethods(unittest.TestCase):
         arguments.select = None
         multiprocessing.Manager = mock.Mock
         multiprocessing.Manager.RLock = mock.Mock
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data = dump_utils.convert_dump_data(dump_data)
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):

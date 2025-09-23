@@ -4,14 +4,14 @@ import unittest
 from unittest import mock
 import struct
 import os
-import dump_data_pb2 as DD
 import numpy as np
 import pytest
 
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import file_utils
 from dump_parse import dump_utils
-
+from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput
+from cmp_utils.constant.const_manager import DD
 
 class TestUtilsMethods(unittest.TestCase):
     def test_load_json_file_case2(self):
@@ -186,7 +186,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     def test_list_parsed_dump_files_case1(self):
         overflow_file_util = file_utils.OverflowFileUtils()
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.version = '1.0'
         dump_data.op_name = 'Node_OpDebug'
         dump_data.dump_time = int(round(time.time() * 1000))

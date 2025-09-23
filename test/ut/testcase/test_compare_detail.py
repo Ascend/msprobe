@@ -2,14 +2,14 @@ import unittest
 from unittest import mock
 import pytest
 import numpy as np
-import dump_data_pb2 as DD
 import struct
-
+from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput
 from vector_cmp.compare_detail import compare_detail
 from vector_cmp.compare_detail import detail
 from cmp_utils import utils, utils_type, path_check
 from vector_cmp.fusion_manager import fusion_op
 from format_manager.format_manager import FormatManager
+from cmp_utils.constant.const_manager import DD
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse import dump, dump_utils, mapping
 
@@ -65,7 +65,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_rule = mock.Mock()
         fusion_op_comparison.compare_rule.fusion_info = mock.Mock()
         fusion_op_comparison.compare_data = mock.Mock()
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin/", dump_data))
@@ -88,7 +88,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_rule = mock.Mock()
         fusion_op_comparison.compare_rule.fusion_info = mock.Mock()
         fusion_op_comparison.compare_data = mock.Mock()
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.input.append(self._make_op_input(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
@@ -111,7 +111,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.compare_rule = mock.Mock()
         fusion_op_comparison.compare_rule.fusion_info = mock.Mock()
         fusion_op_comparison.compare_data = mock.Mock()
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
@@ -143,7 +143,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.format_manager = FormatManager("")
         fusion_op_comparison.format_manager.check_arguments_valid()
         fusion_op_comparison.compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=True)
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
         tensor = fusion_op.Tensor('prob', 0, "NCHW", [1, 3, 4, 4])
@@ -179,7 +179,7 @@ class TestUtilsMethods(unittest.TestCase):
         fusion_op_comparison.format_manager = FormatManager("")
         fusion_op_comparison.format_manager.check_arguments_valid()
         fusion_op_comparison.compare_data.is_standard_quant_vs_origin = mock.Mock(return_value=False)
-        dump_data = DD.DumpData()
+        dump_data = DumpData()
         dump_data.output.append(self._make_op_output(DD.FORMAT_NCHW, [1, 3, 4, 4]))
         dump_data = dump_utils.convert_dump_data(dump_data)
         fusion_op_comparison.compare_data.get_left_dump_data = mock.Mock(return_value=("/home/bin", dump_data))
@@ -199,7 +199,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_op_output(dd_format, shape):
-        op_output = DD.OpOutput()
+        op_output = OpOutput()
         op_output.data_type = DD.DT_FLOAT
         op_output.format = dd_format
         length = 1
@@ -216,7 +216,7 @@ class TestUtilsMethods(unittest.TestCase):
 
     @staticmethod
     def _make_op_input(dd_format, shape):
-        op_input = DD.OpInput()
+        op_input = OpInput()
         op_input.data_type = DD.DT_FLOAT
         op_input.format = dd_format
         length = 1

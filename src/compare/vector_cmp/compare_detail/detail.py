@@ -4,11 +4,10 @@
 Function:
 This file mainly involves the common function.
 """
-import dump_data_pb2 as DD
 
 from cmp_utils import common
 from cmp_utils import log
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager, DD
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.path_check import check_name_valid

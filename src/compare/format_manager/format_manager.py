@@ -12,13 +12,12 @@ import importlib
 from functools import reduce
 
 import numpy as np
-import dump_data_pb2 as DD
 
 from cmp_utils import utils, utils_type, path_check
 from cmp_utils import log
 from cmp_utils import common
 from cmp_utils.reg_manager import RegManager
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager, DD
 from cmp_utils.constant.compare_error import CompareError
 
 

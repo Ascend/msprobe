@@ -3,7 +3,6 @@ from unittest import mock
 from collections import namedtuple
 import pytest
 import numpy as np
-import dump_data_pb2 as DD
 
 from vector_cmp.fusion_manager import fusion_op
 from format_manager.format_manager import FormatManager
@@ -11,6 +10,7 @@ from vector_cmp.fusion_manager.fusion_op import Tensor
 from cmp_utils.constant.compare_error import CompareError
 from conversion.tensor_conversion import TensorConversion, ConvertSingleTensorFormat
 from dump_parse.dump_data_object import DumpTensor
+from cmp_utils.constant.const_manager import DD
 
 
 class TestUtilsMethods(unittest.TestCase):

@@ -2,13 +2,12 @@ import json
 
 import unittest
 import pytest
-import dump_data_pb2 as DD
 from unittest import mock
 
 from vector_cmp.compare_detail import detail
 from vector_cmp.fusion_manager import fusion_rule_parser
 from cmp_utils.constant.compare_error import CompareError
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager, DD
 
 
 class TestUtilsMethods(unittest.TestCase):
