@@ -73,7 +73,7 @@ class AffinityApiAnalyzer(BaseAnalyzer):
         code = utils.get_file_content_bytes(file)
         try:
             wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-        except BaseException:
+        except Exception:
             translog.warning(f'{file} has unsupported python syntax, skip.')
             return
         self.affinity_info = analyse_affinity_api(wrapper, self.pytorch_version, self.global_reference_visitor)

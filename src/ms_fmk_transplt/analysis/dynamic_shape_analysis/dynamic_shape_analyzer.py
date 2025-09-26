@@ -27,7 +27,7 @@ class DynamicShapeAnalyzer(BaseAnalyzer):
         code = utils.get_file_content_bytes(file)
         try:
             wrapper = cst.metadata.MetadataWrapper(cst.parse_module(code))
-        except BaseException:
+        except Exception:
             translog.warning(f'{file} has unsupported python syntax, skip.')
             return
         module = wrapper.visit(DynamicShapeTransformer())

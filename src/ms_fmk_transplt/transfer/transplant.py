@@ -80,7 +80,7 @@ class Transplant(object):
         code = utils.get_file_content_bytes(file)
         try:
             wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-        except BaseException:
+        except Exception:
             translog.warning(f'{file} has unsupported python syntax, skip.')
             return
         (unsupported_list, unknown_list), module, wrapper = analyse_unsupported_api(wrapper, self.op_info,

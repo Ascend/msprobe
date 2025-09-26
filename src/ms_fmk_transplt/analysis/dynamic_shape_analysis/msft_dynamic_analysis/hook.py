@@ -229,6 +229,9 @@ def save_report():
     except PermissionError as exception:
         translog.error(f"Saving dynamic shape analysis report failed, the error message is: {exception}")
         return
+    except Exception as exception:
+        translog.error(f"An error occurred: {exception}")
+        return
     translog.info("Saving dynamic shape analysis report succeeded.")
 
 

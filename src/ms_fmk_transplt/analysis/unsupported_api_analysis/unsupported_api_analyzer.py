@@ -36,7 +36,7 @@ class UnsupportedApiAnalyzer(BaseAnalyzer):
         code = utils.get_file_content_bytes(file)
         try:
             wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-        except BaseException:
+        except Exception:
             translog.warning(f'{file} has unsupported python syntax, skip.')
             return
         (unsupported_op_list, unknown_op_list), _, _ = analyse_unsupported_api(wrapper, OpInfo(self.supported_op_dict,

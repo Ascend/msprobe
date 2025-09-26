@@ -343,6 +343,8 @@ class ReplaceAttributeRule(BaseRule):
             -> libcst.Attribute:
         full_name = self.get_full_name_for_node(original_node)
         new_name_list = self.attr_name_new.split(".")
+        if any(x == '' for x in new_name_list):
+            return updated_node
         if full_name == self.attr_name and len(new_name_list) > 1:
             new_attribute = libcst.Attribute(value=libcst.Name(new_name_list[0]), attr=libcst.Name(new_name_list[1]))
             if len(new_name_list) > 2:

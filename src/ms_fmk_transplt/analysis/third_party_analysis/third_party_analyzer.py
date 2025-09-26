@@ -103,7 +103,7 @@ class ThirdPartyAnalyzer(BaseAnalyzer):
         code = utils.get_file_content_bytes(file)
         try:
             wrapper = libcst.metadata.MetadataWrapper(libcst.parse_module(code))
-        except BaseException:
+        except Exception:
             translog.warning(f'{file} has unsupported python syntax, skip.')
             return
         file_path = Path(file)

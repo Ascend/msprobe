@@ -179,15 +179,16 @@ class GlobalReferenceVisitor:
             super_class_names = super_class_name.split(',')
             script = self.get_jedi_script(file_path)
             last_found_index = line.find('(')
+            final_delim_index = last_found_index
             for super_class_name in super_class_names:
                 super_class_name = super_class_name.strip()
 
-                delta_index = next(i for i, c in enumerate(line[last_found_index:]) if c not in (' ', ',', ')'))
-                last_found_index += delta_index
-                delta_index = next(i for i, c in enumerate(line[last_found_index:]) if c in (' ', ',', ')'))
-                last_found_index += delta_index
-                final_delim_index = last_found_index
                 try:
+                    delta_index = next(i for i, c in enumerate(line[last_found_index:]) if c not in (' ', ',', ')'))
+                    last_found_index += delta_index
+                    delta_index = next(i for i, c in enumerate(line[last_found_index:]) if c in (' ', ',', ')'))
+                    last_found_index += delta_index
+                    final_delim_index = last_found_index
                     definitions = script.infer(line_id + 1, final_delim_index)
                 except BaseException:
                     definitions = None

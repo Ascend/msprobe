@@ -44,6 +44,9 @@ class PerfApiSuggest:
                 translog.warning(warn_msg)
                 continue
             dep_api = val.get("dependency", [])
+            if not isinstance(dep_api, list):
+                translog.warning("The data format in inner json file is not correct!")
+                continue
             for api in dep_api:
                 self.dependency[api] = False
             self.suggest_apis[api_name] = False
