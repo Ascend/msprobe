@@ -30,6 +30,10 @@ void ait::Logger(const std::string message, const char *fileName, int line, cons
             std::cout << "[WARNING] [" << fileName << "+" << line << "][" << funcName << "] "
             << "Cannot convert environment variable to int." << "\n";
             std::cout << "[WARNING] Log level resets to INFO." << std::endl;
+        } catch (const std::out_of_range& e) {
+            std::cout << "[WARNING] [" << fileName << "+" << line << "][" << funcName << "] "
+            << "Cannot convert environment variable to int." << "\n";
+            std::cout << "[WARNING] Log level resets to INFO." << std::endl;
         }
     }
     int levelInt = int(level);  // levelInt from Enum has to in the range of length of levelName
