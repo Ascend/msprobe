@@ -316,6 +316,9 @@ class OverflowFileUtils(FileUtils):
         :match: the result of re.match() match with \
                the name of parsed debug file
         """
+        if len(match.groups()) < 3:
+            log.print_error_log(f"Invalid debug file name {name}")
+            raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
         file_desc = {
             "file_path": os.path.join(dir_path, name),
             "timestamp": int(match.groups()[2])

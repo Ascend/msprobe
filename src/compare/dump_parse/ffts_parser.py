@@ -5,6 +5,7 @@ import os
 import numpy as np
 
 from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
 from dump_parse.dump_data_object import DumpTensor, DumpDataObj
 from dump_parse import dump
 
@@ -54,6 +55,15 @@ class FFTSParser:
                     output_data_list.append(dump_file.get_auto_output_data(output_shape))
             else:
                 output_data_list = [dump_data.get_output_data() for dump_data in self.dump_data_list]
+
+            expected_len = len(output_data_list[0])
+            for output in (output_data_list):
+                if len(output) != expected_len:
+                    log.print_error_log(
+                        f"Inconsistent output length detected: expected {expected_len}, "
+                        f"but got {len(output)}"
+                    )
+                    raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
             dump_data_output_list = []
             for i in range(output_num):
