@@ -6,6 +6,8 @@ Function:
 convert format from NDC1HWC0 to NCDHW.
 """
 import numpy as np
+from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
 
 
 def convert(shape_from: list, shape_to: list, array: any) -> any:
@@ -16,6 +18,9 @@ def convert(shape_from: list, shape_to: list, array: any) -> any:
     :param array: the one-dimensional array
     :return:the data array of NCDHW shape
     """
+    if len(shape_from) < 6:
+        log.print_error_log("length of shape of NDC1HWC0 is less than 6, please check.")
+        raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
     axis_n = shape_from[0]
     axis_d = shape_from[1]
     axis_c1 = shape_from[2]

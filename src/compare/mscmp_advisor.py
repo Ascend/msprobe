@@ -87,7 +87,8 @@ def check_string_length(s):
 
 def check_safe_string(s):
     if re.search(NODE_WHITE_LIST_REGEX, s):
-        raise ValueError("String parameter contains invalid characters.")
+        log.print_error_log("String parameter contains invalid characters.")
+        raise ValueError
 
 
 def _check_input_file(input_file: str, file_type: str) -> None:

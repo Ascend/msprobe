@@ -289,6 +289,9 @@ class VectorComparison:
                 continue
             item_list = self._get_result_list(res)
             for item in item_list:
+                if not item:
+                    log.print_error_log("result item is empty, please check.")
+                    raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
                 if self.args.get("csv"):
                     writer = csv.writer(output_file)
                     sanitized_item = [sanitize_csv_value(cell) for cell in item]

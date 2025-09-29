@@ -181,6 +181,9 @@ class Hdf5Parser:
         """
         if dataset_path in self.ext_opname_dataset_map.get(ext_opname, []):
             return True
+        if ConstManager.DELIMITER not in ext_opname:
+            log.print_error_log(f": not in {ext_opname}, please check.")
+            raise CompareError(CompareError.MSACCUCMP_NAME_ERROR)
         op_name, _ = ext_opname.split(ConstManager.DELIMITER, 1)
         # get 4 from '/AddmmBackward/4/input/mat1'
 
@@ -352,6 +355,9 @@ class Hdf5Parser:
         for order in self.order_ext_opname_map.keys():
             ext_opname_group = self.order_ext_opname_map.get(order, [])
             for ext_opname in ext_opname_group:
+                if ConstManager.DELIMITER not in ext_opname:
+                    log.print_error_log(f": not in {ext_opname}, please check.")
+                    raise CompareError(CompareError.MSACCUCMP_NAME_ERROR)
                 op_name, _ = ext_opname.split(ConstManager.DELIMITER, 1)
                 group_path = "/{}/{}".format(op_name, order)
                 self._parse_dataset_recursively(ext_opname, group_path)

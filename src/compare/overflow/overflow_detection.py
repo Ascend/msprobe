@@ -10,6 +10,7 @@ import numpy as np
 
 from cmp_utils.constant.const_manager import ConstManager, DD
 from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
 from dump_parse import dump_utils
 
 
@@ -65,6 +66,9 @@ class OverflowDetection:
         process op overflow detection
         """
         dump_file_list, dump_mode = self.left_dump_info.get_op_dump_file(self.op_name)
+        if not dump_file_list:
+            log.print_error_log("dump_file_list is empty, please check.")
+            raise CompareError(CompareError.MSACCUCMP_MISSING_FILE)
         dump_file_path = dump_file_list[-1]
         if not dump_file_path:
             return [], []

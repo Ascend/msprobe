@@ -6,6 +6,8 @@ Function:
 convert format from NC1HWC0 to NCHW.
 """
 import numpy as np
+from cmp_utils import log
+from cmp_utils.constant.compare_error import CompareError
 
 
 def convert(shape_from: list, shape_to: list, array: any) -> any:
@@ -17,6 +19,9 @@ def convert(shape_from: list, shape_to: list, array: any) -> any:
     :return: the data array of NCHW shape
     """
     _ = shape_to
+    if len(shape_from) < 5:
+        log.print_error_log("length of shape of NC1HWC0 is less than 5, please check.")
+        raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
     n_from = shape_from[0]
     c1_from = shape_from[1]
     h_from = shape_from[2]

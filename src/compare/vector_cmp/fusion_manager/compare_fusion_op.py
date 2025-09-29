@@ -272,7 +272,6 @@ class FusionOpComparison:
                                                             self.overflow_detection,
                                                             dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu,
                                                                                      self.is_my_dump_gpu_or_cpu])
-
         # compare each fusion op
         for fusion_op in self.fusion_op_list:
             single_op_cmp_result = compare_result.SingleOpCmpResult()
@@ -313,15 +312,12 @@ class FusionOpComparison:
         if not has_result_for_any_to_multi:
             single_op_cmp_result = compare_result.SingleOpCmpResult()
             _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
-
             result_info = utils.ResultInfo(
                 self.fusion_op_list[0].op_name, dump_match, _result.result_list, ret,
                 self.fusion_op_list[0].input_list, _result.input_result_list, _result.output_result_list,
                 _result.is_ffts, self.op_name_origin_output_index_map, False)
-
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
-
         return dump_match, cmp_result_list, ret
 
     def _compare_for_l1_fusion_not_timestamp(self, fusion_op_result):
@@ -524,6 +520,9 @@ class FusionOpComparison:
                          table_content: list) -> (bool, DumpDataObj):
         try:
             return True, dump_utils.parse_dump_file(my_output_dump_path, self.compare_data.dump_version)
+        except IndexError as e:
+            log.print_error_log("index out of bounds error when get op dump file, please check.")
+            raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR) from e
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
                 AttributeError, CompareError):
             log.print_error_log("{} file parse error".format(my_output_dump_path))

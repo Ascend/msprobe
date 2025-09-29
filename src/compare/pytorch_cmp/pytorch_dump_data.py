@@ -127,6 +127,9 @@ class CompareData:
         Get original op name in ext_opname.
         :ext_opname: extend op name. such as cov2d:2
         """
+        if ConstManager.DELIMITER not in ext_opname:
+            log.print_error_log(f": not in {ext_opname}, please check.")
+            raise CompareError(CompareError.MSACCUCMP_NAME_ERROR)
         op_name, _ = ext_opname.split(ConstManager.DELIMITER, 1)
         return op_name
 
