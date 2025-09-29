@@ -494,6 +494,9 @@ class FusionOpComparison:
             output_index = 0
         try:
             return True, self.compare_data.left_dump_info.get_op_dump_file(fusion_op.op_name, output_index)[0][-1]
+        except IndexError as e:
+            log.print_error_log("index out of bounds error when get op dump file, please check.")
+            raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR) from e
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
                 AttributeError, CompareError):
             message = '[{0}] There is no left dump file for the op "{0}".'.format(fusion_op.op_name)
@@ -520,9 +523,6 @@ class FusionOpComparison:
                          table_content: list) -> (bool, DumpDataObj):
         try:
             return True, dump_utils.parse_dump_file(my_output_dump_path, self.compare_data.dump_version)
-        except IndexError as e:
-            log.print_error_log("index out of bounds error when get op dump file, please check.")
-            raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR) from e
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
                 AttributeError, CompareError):
             log.print_error_log("{} file parse error".format(my_output_dump_path))
