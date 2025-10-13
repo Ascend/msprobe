@@ -61,6 +61,8 @@ public:
         uint64_t dataSize;
     };
 public:
+    EXPORT_LLM static void UpdateConfig();
+    EXPORT_LLM static bool IsSaveTensorInSpecificDir(const std::string &tensorDir);
     EXPORT_LLM static bool IsTensorNeedSave(const std::vector<int64_t> &ids, const std::string &optype);
     EXPORT_LLM static bool IsSaveTensorData();
     EXPORT_LLM static bool IsSaveTensorDesc();

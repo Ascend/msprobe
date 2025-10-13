@@ -28,6 +28,7 @@
 #include <memory>
 #include <complex>
 #include <utility>
+#include <chrono>
 #include "Statistics.h"
 // endfor
 #include <unistd.h>
@@ -42,6 +43,7 @@
 #include "const.h"
 #include "safety_guard.h"
 #include "file_registry.h"
+#include "file.h"
 
 using ordered_json = nlohmann::ordered_json;
 using MsConst::SAFETY_RET;
@@ -468,6 +470,15 @@ namespace Mki {
 
 namespace atb {
 
+static std::string g_configPath;
+static std::string g_dumpEnable;
+static std::string g_tensorIdsStr;
+static std::vector<std::string> g_splitTensorIds;
+static bool g_isSaveChild;
+static std::string g_tensorRangeStr;
+static std::string g_dumpDevice;
+static std::vector<std::string> g_splitDeviceIds;
+
 void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile,
                        const std::string &outputPath)
 {
@@ -498,11 +509,36 @@ void CheckAndWriteFile(std::shared_ptr<FileSystem::BinFile> binFile,
     AIT_LOG_DEBUG("Saving tensor: success.");
 }
 
-bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::string &optype)
+bool CheckOpType(const std::string &opType, bool withId, const std::string &typeStr)
 {
-    if (!IsSaveDumpType("tensor")) {
-        return false;
+    std::string copyOpType = opType;
+    for (char &c : copyOpType) {
+        c = std::tolower(c);
     }
+
+    if (withId) {
+        size_t found = copyOpType.find_first_of("_");
+        if (found == std::string::npos) {
+            return false;
+        }
+        copyOpType = copyOpType.substr(found + 1);
+    }
+
+    if (!typeStr.empty()) {
+        std::vector<std::string> splitTid = SplitString(typeStr.c_str(), ',');
+        for (const auto &indice : splitTid) {
+            if (IsPrefix(copyOpType, indice)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::string &opType)
+{
+    if (!IsSaveDumpType("tensor")) {return false;}
+    if (!g_configPath.empty()) {return true;}
 
     std::string vidStr;
     const char *vid = std::getenv("ATB_SAVE_TENSOR_IDS"); // 应该是20_1_9,1_23,5_29_1
@@ -544,22 +580,7 @@ bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::st
         }
     }
 
-    std::string copyOptype = optype;
-    for (char &c : copyOptype) {
-        c = std::tolower(c);
-    }
-    // 先用逗号分隔vid和tid
-
-    if (!tidStr.empty()) {
-        std::vector<std::string> splitTid = SplitString(tidStr.c_str(), ',');
-        for (const auto &indice : splitTid) {
-            if (IsPrefix(copyOptype, indice)) {
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return CheckOpType(opType, false, tidStr);
 }
 
 bool atb::Probe::IsSaveChild()
@@ -591,11 +612,13 @@ bool atb::Probe::IsSaveTensorDesc()
 bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
 {
     const char *saveTensorRange = std::getenv("ATB_SAVE_TENSOR_RANGE");
-    // overflow check required
-    if (!saveTensorRange) {
-        return false;
+    if (g_configPath.empty()) {
+        g_tensorRangeStr = saveTensorRange == nullptr ? "" : std::string(saveTensorRange);
     }
-    std::vector<std::string> saveTensorRan = SplitString(saveTensorRange, ',');
+    if (g_tensorRangeStr.empty()) {return false;}
+    if (g_tensorRangeStr == "all") { return true;}
+
+    std::vector<std::string> saveTensorRan = SplitString(g_tensorRangeStr.c_str(), ',');
     for (size_t i = 1U; i < saveTensorRan.size(); i += RANGE_COUNT) {
         uint64_t left = static_cast<uint64_t>(SafetyStoi(saveTensorRan[i - 1].c_str(), 0));
         uint64_t right = static_cast<uint64_t>(SafetyStoi(saveTensorRan[i].c_str(), 0));
@@ -604,6 +627,115 @@ bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
         }
     }
     return false;
+}
+
+void atb::Probe::UpdateConfig()
+{
+    const char *configPath = std::getenv("ATB_DUMP_CONFIG");
+    g_configPath = (configPath != nullptr ? File::GetFullPath(std::string(configPath)) : "");
+    if (g_configPath.empty()) {return;}
+
+    const double configFreshPeriod = 5;
+    static auto lastReadTime = std::chrono::system_clock::now();
+
+    auto nowTime = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = nowTime - lastReadTime;
+
+    if (g_dumpEnable.empty() || elapsed_seconds.count() >= configFreshPeriod) {
+        lastReadTime = std::chrono::system_clock::now();
+        if (!File::IsPathExist(g_configPath) || !File::IsFileReadable(g_configPath)) {
+            AIT_LOG_ERROR("Valid ATB dump config: " + g_configPath);
+            return;
+        }
+        nlohmann::json config;
+        try {
+            std::ifstream ifs(g_configPath, std::ios::in);
+            ifs >> config;
+        } catch (...) {
+            AIT_LOG_ERROR("Json parse error! json path:" + g_configPath);
+            return;
+        }
+
+        nlohmann::json::const_iterator iter = config.find("dump_enable");
+        g_dumpEnable = iter != config.end() && !iter->get<std::string>().empty() ? iter->get<std::string>(): "false";
+
+        iter = config.find("ids");
+        g_tensorIdsStr = iter != config.end() ? iter->get<std::string>() : "";
+        g_splitTensorIds = SplitString(g_tensorIdsStr.c_str(), ',');
+
+        iter = config.find("child");
+        if (iter == config.end() || iter->get<std::string>().empty()) {
+            g_isSaveChild = true;
+        } else {
+            g_isSaveChild = (iter->get<std::string>() == "true");
+        }
+
+        iter = config.find("er");
+        if (iter == config.end() || iter->get<std::string>().empty()) {
+            g_tensorRangeStr = "0,0";
+        } else {
+            g_tensorRangeStr = iter->get<std::string>();
+        }
+
+        iter = config.find("device");
+        g_dumpDevice = iter != config.end() ? iter->get<std::string>() : "";
+        g_splitDeviceIds = SplitString(g_dumpDevice.c_str(), ',');
+    }
+}
+
+bool atb::Probe::IsSaveTensorInSpecificDir(const std::string &tensorDir)
+{
+    if (g_configPath.empty()) {return true;}
+    if (!g_dumpEnable.empty() && g_dumpEnable != "true") {return false;}
+
+    std::vector<std::string> splitPath = SplitString(tensorDir.c_str(), '/');
+    constexpr size_t minSizeOfDirSegs = 3;
+    if (splitPath.size() < minSizeOfDirSegs) {
+        AIT_LOG_WARNING("Expected a valid parent directory of tensors, but got \"" + tensorDir + "\"");
+        return false;
+    }
+
+    std::string operationType;
+    const char *tid = std::getenv("ATB_SAVE_TENSOR_RUNNER"); // 应该是LinearOps，SelfAttention
+    if (tid != nullptr) {
+        operationType = std::string(tid);
+    }
+    if (g_tensorIdsStr.empty() && operationType.empty()) {
+        if (!g_isSaveChild && splitPath.size() > minSizeOfDirSegs) {return false;}
+        return true;
+    }
+
+    if (!g_tensorIdsStr.empty()) {
+        std::string currentIds;
+        for (size_t i = 2; i < splitPath.size(); ++i) {
+            size_t found = splitPath[i].find_first_of("_");
+            if (found == std::string::npos) {
+                return false;
+            }
+            std::string singleId = splitPath[i].substr(0, found);
+            if (i != 2U) {
+                currentIds += "_" + singleId;
+            } else {
+                currentIds += singleId;
+            }
+        }
+        for (const auto &indice : g_splitTensorIds) {
+            bool result = false;
+            if (g_isSaveChild) {
+                result = IsPrefix(currentIds, indice) &&
+                         (currentIds == indice ||
+                         ((currentIds.length() > indice.length()) &&
+                         (currentIds[indice.length()] == '_')));
+            } else {
+                result = (indice == currentIds);
+            }
+            if (result) {
+                return true;
+            }
+        }
+    }
+
+    return CheckOpType(splitPath[splitPath.size() - 1], true, operationType);
 }
 
 bool atb::Probe::IsSaveTensorBefore()
@@ -640,14 +772,20 @@ bool atb::Probe::IsSaveTensorAfter()
 
 static bool IsDeviceIdValid(const std::string &filePath)
 {
-    const char* saveDeviceId = std::getenv("ATB_DEVICE_ID");
-    if (saveDeviceId) {
+    if (g_configPath.empty()) {
+        const char* saveDeviceId = std::getenv("ATB_DEVICE_ID");
+        g_dumpDevice = saveDeviceId != nullptr ? std::string(saveDeviceId) : "";
+        g_splitDeviceIds = SplitString(g_dumpDevice.c_str(), ',');
+    }
+    if (!g_dumpDevice.empty()) {
         size_t found = filePath.find("_");  // filePath like {device_id}_{pid}/xxx/xxx
         std::string curDeviceId = filePath.substr(0, found);
-        if (std::string(saveDeviceId) != curDeviceId) {
-            AIT_LOG_DEBUG("Skip saving, curDeviceId: " + curDeviceId);
-            return false;  // if ATB_DEVICE_ID provided and not equal, skip saving
+        for (const auto &indice : g_splitDeviceIds) {
+            if (indice == curDeviceId) {
+                return true;
+            }
         }
+        return false;
     }
     return true;
 }
@@ -1479,7 +1617,7 @@ void atb::Probe::ReportKernelIOTensor(const size_t executeCount, const std::stri
 void atb::Probe::SaveParam(const std::string &param, const std::string &filePath)
 {
     const std::string& outDir = GetOutDir();
-    if (outDir == "") {
+    if (outDir == "" || !IsDeviceIdValid(filePath)) {
         return;
     }
     std::string outPath = outDir + ARGS_DUMP_TYPE_TENSOR + "/" + filePath;
