@@ -891,13 +891,13 @@ static std::unique_ptr<LLM::StatisticsBase> GetStatisticsFromBinaryDataWithBasic
         AIT_LOG_ERROR("Invalid typeSize: " + std::to_string(typeSize));
         return std::make_unique<LLM::Statistics<std::string>>();
     }
-    if (dataSize % typeSize != 0) {
+    if (dataSize == 0 || dataSize % typeSize != 0) {
         AIT_LOG_ERROR("Invalid dataSize: " + std::to_string(dataSize));
         return std::make_unique<LLM::Statistics<std::string>>();
     }
 
-    size_t numThreads = POOLNUM;
     size_t numElements = dataSize / typeSize;
+    size_t numThreads = numElements > POOLNUM ? POOLNUM : numElements;
     size_t chunkSize = numElements / numThreads; // Elements per thread
     
     // 线程池初始化
