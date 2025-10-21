@@ -1720,6 +1720,7 @@ void atb::Probe::ReportOverflowKernel(const std::string &kernelPath)
     std::FILE *fp = fdopen(fd, "w");
     if (fp == nullptr) {
         AIT_LOG_ERROR("fdopen: " + Utils::GetLastErrorStr());
+        close(fd);
         return;
     }
 
