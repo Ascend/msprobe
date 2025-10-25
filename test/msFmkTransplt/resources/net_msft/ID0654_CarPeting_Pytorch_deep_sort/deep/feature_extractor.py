@@ -15,7 +15,7 @@ class Extractor(object):
         self.net.load_state_dict(state_dict)
         logger = logging.getLogger("root.tracker")
         logger.info("Loading weights from {}... Done!".format(model_path))
-        self.net.to(self.device)
+        self.net.to(f'npu:{self.device}' if isinstance(self.device, int) else self.device)
         self.size = (64, 128)
         self.norm = transforms.Compose([
             transforms.ToTensor(),
@@ -43,7 +43,7 @@ class Extractor(object):
     def __call__(self, im_crops):
         im_batch = self._preprocess(im_crops)
         with torch.no_grad():
-            im_batch = im_batch.to(self.device)
+            im_batch = im_batch.to(f'npu:{self.device}' if isinstance(self.device, int) else self.device)
             features = self.net(im_batch)
         return features.cpu().numpy()
 

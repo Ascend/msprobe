@@ -21,7 +21,7 @@ def val(model, val_loader):
             data = torch.squeeze(data, dim=0)
             target = torch.squeeze(target, dim=0)
             data, target = data.float(), target.float()
-            data, target = data.to(device), target.to(device)
+            data, target = data.to(f'npu:{device}' if isinstance(device, int) else device), target.to(f'npu:{device}' if isinstance(device, int) else device)
             output = model(data)
 
             loss = metrics.DiceMeanLoss()(output, target)
@@ -53,7 +53,7 @@ def train(model, train_loader):
         data = torch.squeeze(data, dim=0)
         target = torch.squeeze(target, dim=0)
         data, target = data.float(), target.float()
-        data, target = data.to(device), target.to(device)
+        data, target = data.to(f'npu:{device}' if isinstance(device, int) else device), target.to(f'npu:{device}' if isinstance(device, int) else device)
         output = model(data)
 
         optimizer.zero_grad()
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     train_loader = DataLoader(dataset=train_set, shuffle=True)
     val_loader = DataLoader(dataset=val_set, shuffle=True)
     # model info
-    model = UNet(1, [32, 48, 64, 96, 128], 3, net_mode='3d',conv_block=RecombinationBlock).to(device)
+    model = UNet(1, [32, 48, 64, 96, 128], 3, net_mode='3d',conv_block=RecombinationBlock).to(f'npu:{device}' if isinstance(device, int) else device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     init_util.print_network(model)
     # model = nn.DataParallel(model, device_ids=[0])   # multi-GPU

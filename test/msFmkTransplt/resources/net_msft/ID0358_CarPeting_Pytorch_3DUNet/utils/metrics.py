@@ -83,7 +83,7 @@ class WeightDiceLoss(nn.Module):
         num_sum = torch.sum(targets, dim=(0, 2, 3, 4))
         w = torch.Tensor([0.2, 0.5, 0.3])
         if device is not None:
-            w = w.to(device)
+            w = w.to(f'npu:{device}' if isinstance(device, int) else device)
         for i in range(targets.size(1)):
             if (num_sum[i] < 1):
                 w[i] = 0

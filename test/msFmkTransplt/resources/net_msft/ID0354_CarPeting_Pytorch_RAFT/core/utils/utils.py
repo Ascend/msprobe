@@ -81,5 +81,5 @@ def coords_grid(batch, ht, wd):
 
 def upflow8(flow, mode='bilinear'):
     new_size = (8 * flow.shape[2], 8 * flow.shape[3])
-    return  8 * F.interpolate(flow.cpu(), size=new_size, mode=mode, align_corners=True).to(flow.device)
+    return  8 * F.interpolate(flow.cpu(), size=new_size, mode=mode, align_corners=True).to(f'npu:{flow.device}' if isinstance(flow.device, int) else flow.device)
     # return  8 * F.interpolate(flow, size=new_size, mode=mode, align_corners=True)

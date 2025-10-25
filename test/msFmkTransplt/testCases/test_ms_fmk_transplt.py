@@ -30,7 +30,7 @@ TRANS_ERROR = 1
 
 
 class Args(object):
-    def __init__(self, input_path, output_path, main=None, target_model='model', version='1.11.0'):
+    def __init__(self, input_path, output_path, main=None, target_model='model', version='2.1.0'):
         self.input = input_path
         self.output = output_path
         self.specify_device = False

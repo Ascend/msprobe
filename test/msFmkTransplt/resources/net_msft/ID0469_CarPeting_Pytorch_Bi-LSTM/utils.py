@@ -81,11 +81,11 @@ class DatasetIterater(object):
         self.device = device
 
     def _to_tensor(self, datas):
-        x = torch.LongTensor([_[0] for _ in datas]).to(self.device)
-        y = torch.LongTensor([_[1] for _ in datas]).to(self.device)
+        x = torch.LongTensor([_[0] for _ in datas]).to(f'npu:{self.device}' if isinstance(self.device, int) else self.device)
+        y = torch.LongTensor([_[1] for _ in datas]).to(f'npu:{self.device}' if isinstance(self.device, int) else self.device)
 
         # pad前的长度(超过pad_size的设为pad_size)
-        seq_len = torch.LongTensor([_[2] for _ in datas]).to(self.device)
+        seq_len = torch.LongTensor([_[2] for _ in datas]).to(f'npu:{self.device}' if isinstance(self.device, int) else self.device)
         return (x, seq_len), y
 
     def __next__(self):

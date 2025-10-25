@@ -28,7 +28,7 @@ def train_one_epoch(model, criterion, optimizer, data_loader, device, epoch, pri
     header = 'Epoch: [{}]'.format(epoch)
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
         start_time = time.time()
-        image, target = image.to(device), target.to(device)
+        image, target = image.to(f'npu:{device}' if isinstance(device, int) else device), target.to(f'npu:{device}' if isinstance(device, int) else device)
         output = model(image)
         loss = criterion(output, target)
 
@@ -54,8 +54,8 @@ def evaluate(model, criterion, data_loader, device):
     header = 'Test:'
     with torch.no_grad():
         for image, target in metric_logger.log_every(data_loader, 100, header):
-            image = image.to(device, non_blocking=True)
-            target = target.to(device, non_blocking=True)
+            image = image.to(f'npu:{device}' if isinstance(device, int) else device, non_blocking=True)
+            target = target.to(f'npu:{device}' if isinstance(device, int) else device, non_blocking=True)
             output = model(image)
             loss = criterion(output, target)
 
@@ -171,7 +171,7 @@ def main(args):
     else:
         model = torchvision.models.__dict__[args.model](pretrained=args.pretrained)
 
-    model.to(device)
+    model.to(f'npu:{device}' if isinstance(device, int) else device)
     if args.distributed and args.sync_bn:
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 

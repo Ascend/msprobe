@@ -45,7 +45,7 @@ checkpoint = torch.load("./checkpoint/ckpt.t7")
 net_dict = checkpoint['net_dict']
 net.load_state_dict(net_dict, strict=False)
 net.eval()
-net.to(device)
+net.to(f'npu:{device}' if isinstance(device, int) else device)
 
 # compute features
 query_features = torch.tensor([]).float()
@@ -55,13 +55,13 @@ gallery_labels = torch.tensor([]).long()
 
 with torch.no_grad():
     for idx,(inputs,labels) in enumerate(queryloader):
-        inputs = inputs.to(device)
+        inputs = inputs.to(f'npu:{device}' if isinstance(device, int) else device)
         features = net(inputs).cpu()
         query_features = torch.cat((query_features, features), dim=0)
         query_labels = torch.cat((query_labels, labels))
 
     for idx,(inputs,labels) in enumerate(galleryloader):
-        inputs = inputs.to(device)
+        inputs = inputs.to(f'npu:{device}' if isinstance(device, int) else device)
         features = net(inputs).cpu()
         gallery_features = torch.cat((gallery_features, features), dim=0)
         gallery_labels = torch.cat((gallery_labels, labels))

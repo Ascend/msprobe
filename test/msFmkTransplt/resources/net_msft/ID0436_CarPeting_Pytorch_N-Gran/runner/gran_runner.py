@@ -173,7 +173,7 @@ class GranRunner(object):
     model = eval(self.model_conf.name)(self.config)
 
     if self.use_gpu:
-      model = DataParallel(model, device_ids=self.gpus).to(self.device)
+      model = DataParallel(model, device_ids=self.gpus).to(f'npu:{self.device}' if isinstance(self.device, int) else self.device)
 
     # create optimizer
     params = filter(lambda p: p.requires_grad, model.parameters())
@@ -236,14 +236,14 @@ class GranRunner(object):
           if self.use_gpu:
             for dd, gpu_id in enumerate(self.gpus):
               data = {}
-              data['adj'] = batch_data[dd][ff]['adj'].pin_memory().to(gpu_id, non_blocking=True)          
-              data['edges'] = batch_data[dd][ff]['edges'].pin_memory().to(gpu_id, non_blocking=True)
-              data['node_idx_gnn'] = batch_data[dd][ff]['node_idx_gnn'].pin_memory().to(gpu_id, non_blocking=True)
-              data['node_idx_feat'] = batch_data[dd][ff]['node_idx_feat'].pin_memory().to(gpu_id, non_blocking=True)
-              data['label'] = batch_data[dd][ff]['label'].pin_memory().to(gpu_id, non_blocking=True)
-              data['att_idx'] = batch_data[dd][ff]['att_idx'].pin_memory().to(gpu_id, non_blocking=True)
-              data['subgraph_idx'] = batch_data[dd][ff]['subgraph_idx'].pin_memory().to(gpu_id, non_blocking=True)
-              data['subgraph_idx_base'] = batch_data[dd][ff]['subgraph_idx_base'].pin_memory().to(gpu_id, non_blocking=True)
+              data['adj'] = batch_data[dd][ff]['adj'].pin_memory().to(f'npu:{gpu_id}' if isinstance(gpu_id, int) else gpu_id, non_blocking=True)          
+              data['edges'] = batch_data[dd][ff]['edges'].pin_memory().to(f'npu:{gpu_id}' if isinstance(gpu_id, int) else gpu_id, non_blocking=True)
+              data['node_idx_gnn'] = batch_data[dd][ff]['node_idx_gnn'].pin_memory().to(f'npu:{gpu_id}' if isinstance(gpu_id, int) else gpu_id, non_blocking=True)
+              data['node_idx_feat'] = batch_data[dd][ff]['node_idx_feat'].pin_memory().to(f'npu:{gpu_id}' if isinstance(gpu_id, int) else gpu_id, non_blocking=True)
+              data['label'] = batch_data[dd][ff]['label'].pin_memory().to(f'npu:{gpu_id}' if isinstance(gpu_id, int) else gpu_id, non_blocking=True)
+              data['att_idx'] = batch_data[dd][ff]['att_idx'].pin_memory().to(f'npu:{gpu_id}' if isinstance(gpu_id, int) else gpu_id, non_blocking=True)
+              data['subgraph_idx'] = batch_data[dd][ff]['subgraph_idx'].pin_memory().to(f'npu:{gpu_id}' if isinstance(gpu_id, int) else gpu_id, non_blocking=True)
+              data['subgraph_idx_base'] = batch_data[dd][ff]['subgraph_idx_base'].pin_memory().to(f'npu:{gpu_id}' if isinstance(gpu_id, int) else gpu_id, non_blocking=True)
               batch_fwd.append((data,))
 
           if batch_fwd:
@@ -291,7 +291,7 @@ class GranRunner(object):
       load_model(model, model_file, self.device)
 
       if self.use_gpu:
-        model = nn.DataParallel(model, device_ids=self.gpus).to(self.device)
+        model = nn.DataParallel(model, device_ids=self.gpus).to(f'npu:{self.device}' if isinstance(self.device, int) else self.device)
 
       model.eval()
 

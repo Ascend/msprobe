@@ -64,7 +64,7 @@ def setup(args):
 
     model = VisionTransformer(config, args.img_size, zero_head=True, num_classes=num_classes)
     model.load_from(np.load(args.pretrained_dir))
-    model.to(args.device)
+    model.to(f'npu:{args.device}' if isinstance(args.device, int) else args.device)
     num_params = count_parameters(model)
 
     logger.info("{}".format(config))
@@ -104,7 +104,7 @@ def valid(args, model, writer, test_loader, global_step):
                           disable=args.local_rank not in [-1, 0])
     loss_fct = torch.nn.CrossEntropyLoss()
     for step, batch in enumerate(epoch_iterator):
-        batch = tuple(t.to(args.device) for t in batch)
+        batch = tuple(t.to(f'npu:{args.device}' if isinstance(args.device, int) else args.device) for t in batch)
         x, y = batch
         with torch.no_grad():
             logits = model(x)[0]
@@ -192,7 +192,7 @@ def train(args, model):
                               dynamic_ncols=True,
                               disable=args.local_rank not in [-1, 0])
         for step, batch in enumerate(epoch_iterator):
-            batch = tuple(t.to(args.device) for t in batch)
+            batch = tuple(t.to(f'npu:{args.device}' if isinstance(args.device, int) else args.device) for t in batch)
             x, y = batch
             loss = model(x, y)
 

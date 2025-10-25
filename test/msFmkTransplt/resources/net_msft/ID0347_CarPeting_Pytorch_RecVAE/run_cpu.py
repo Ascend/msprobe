@@ -67,7 +67,7 @@ class Batch:
         return self._idx
     
     def get_idx_to_dev(self):
-        return torch.LongTensor(self.get_idx()).to(self._device)
+        return torch.LongTensor(self.get_idx()).to(f'npu:{self._device}' if isinstance(self._device, int) else self._device)
         
     def get_ratings(self, is_out=False):
         data = self._data_out if is_out else self._data_in
@@ -76,7 +76,7 @@ class Batch:
     def get_ratings_to_dev(self, is_out=False):
         return torch.Tensor(
             self.get_ratings(is_out).toarray()
-        ).to(self._device)
+        ).to(f'npu:{self._device}' if isinstance(self._device, int) else self._device)
 
 
 def evaluate(model, data_in, data_out, metrics, samples_perc_per_epoch=1, batch_size=500):
@@ -150,8 +150,8 @@ metrics = [{'metric': ndcg, 'k': 100}]
 best_ndcg = -np.inf
 train_scores, valid_scores = [], []
 
-model = VAE(**model_kwargs).to(device)
-model_best = VAE(**model_kwargs).to(device)
+model = VAE(**model_kwargs).to(f'npu:{device}' if isinstance(device, int) else device)
+model_best = VAE(**model_kwargs).to(f'npu:{device}' if isinstance(device, int) else device)
 
 learning_kwargs = {
     'model': model,

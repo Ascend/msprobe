@@ -21,7 +21,7 @@ def val(model, val_loader):
         for idx,(data, target) in tqdm(enumerate(val_loader),total=len(val_loader)):
             target = common.to_one_hot_3d(target.long())
             data, target = data.float(), target.float()
-            data, target = data.to(device), target.to(device)
+            data, target = data.to(f'npu:{device}' if isinstance(device, int) else device), target.to(f'npu:{device}' if isinstance(device, int) else device)
             output = model(data)
 
             loss = metrics.DiceMeanLoss()(output, target)
@@ -55,7 +55,7 @@ def train(model, train_loader, optimizer,args):
 
         target = common.to_one_hot_3d(target.long())
         data, target = data.float(), target.float()
-        data, target = data.to(device), target.to(device)
+        data, target = data.to(f'npu:{device}' if isinstance(device, int) else device), target.to(f'npu:{device}' if isinstance(device, int) else device)
         output = model(data)
         optimizer.zero_grad()
 
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     val_loader = DataLoader(dataset=val_set,batch_size=args.batch_size,num_workers=1, shuffle=True)
     
     # model info
-    model = UNet(1, [16, 32, 48, 64, 96], 3, net_mode='3d',conv_block=RecombinationBlock).to(device)
+    model = UNet(1, [16, 32, 48, 64, 96], 3, net_mode='3d',conv_block=RecombinationBlock).to(f'npu:{device}' if isinstance(device, int) else device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     init_util.print_network(model)
     # model = nn.DataParallel(model, device_ids=[0,1])  # multi-GPU

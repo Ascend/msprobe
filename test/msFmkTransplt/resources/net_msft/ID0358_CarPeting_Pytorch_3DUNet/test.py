@@ -25,7 +25,7 @@ def test(model, dataset, save_path, filename):
     with torch.no_grad():
         for data in tqdm(dataloader,total=len(dataloader)):
             data = data.unsqueeze(1)
-            data = data.float().to(device)
+            data = data.float().to(f'npu:{device}' if isinstance(device, int) else device)
             output = model(data)
             save_tool.add_result(output.detach().cpu())
 
@@ -56,7 +56,7 @@ if __name__ == '__main__':
         device = torch.device('npu')
 
     # model info
-    model = UNet(1, [32, 48, 64, 96, 128], 3, net_mode='3d',conv_block=RecombinationBlock).to(device)
+    model = UNet(1, [32, 48, 64, 96, 128], 3, net_mode='3d',conv_block=RecombinationBlock).to(f'npu:{device}' if isinstance(device, int) else device)
     ckpt = torch.load('./output/{}/best_model.pth'.format(args.save))
     model.load_state_dict(ckpt['net'])
 

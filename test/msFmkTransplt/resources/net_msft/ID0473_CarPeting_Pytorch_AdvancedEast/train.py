@@ -28,7 +28,7 @@ def train(train_img_path, pths_path, batch_size, lr,decay, num_workers, epoch_it
 	if torch_npu.npu.device_count() > 1:
 		model = nn.DataParallel(model)
 		data_parallel = True
-	model.to(device)
+	model.to(f'npu:{device}' if isinstance(device, int) else device)
 	optimizer = torch.optim.Adam(model.parameters(), lr=lr,weight_decay=decay)
 	# scheduler = lr_scheduler.StepLR(optimizer, step_size=10000, gamma=0.94)
 
@@ -39,7 +39,7 @@ def train(train_img_path, pths_path, batch_size, lr,decay, num_workers, epoch_it
 		epoch_time = time.time()
 		for i, (img, gt_map) in enumerate(train_loader):
 			start_time = time.time()
-			img, gt_map = img.to(device),gt_map.to(device)
+			img, gt_map = img.to(f'npu:{device}' if isinstance(device, int) else device),gt_map.to(f'npu:{device}' if isinstance(device, int) else device)
 			east_detect = model(img)
 			loss = criterion(gt_map, east_detect)
 

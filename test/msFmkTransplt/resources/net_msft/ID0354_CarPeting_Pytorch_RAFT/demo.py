@@ -21,7 +21,7 @@ DEVICE = 'npu'
 def load_image(imfile):
     img = np.array(Image.open(imfile)).astype(np.uint8)
     img = torch.from_numpy(img).permute(2, 0, 1).float()
-    return img[None].to(DEVICE)
+    return img[None].to(f'npu:{DEVICE}' if isinstance(DEVICE, int) else DEVICE)
 
 
 def viz(img, flo):
@@ -45,7 +45,7 @@ def demo(args):
     model.load_state_dict(torch.load(args.model))
 
     model = model.module
-    model.to(DEVICE)
+    model.to(f'npu:{DEVICE}' if isinstance(DEVICE, int) else DEVICE)
     model.eval()
 
     with torch.no_grad():

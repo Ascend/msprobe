@@ -20,7 +20,7 @@ ANALYSE_ERROR = 1
 
 
 class Args:
-    def __init__(self, input_path, output_path, version='1.11.0', mode='torch_apis', api_files='', env_path=None):
+    def __init__(self, input_path, output_path, version='2.1.0', mode='torch_apis', api_files='', env_path=None):
         self.input = input_path
         self.output = output_path
         self.version = version

@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     # train
     config.n_vocab = len(vocab)
-    model = x.Model(config).to(config.device)
+    model = x.Model(config).to(f'npu:{config.device}' if isinstance(config.device, int) else config.device)
     if model_name != 'Transformer':
         init_network(model)
     print(model.parameters)

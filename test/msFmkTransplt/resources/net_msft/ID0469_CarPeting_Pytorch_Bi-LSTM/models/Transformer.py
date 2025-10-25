@@ -96,7 +96,7 @@ class Positional_Encoding(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        out = x + nn.Parameter(self.pe, requires_grad=False).to(self.device)
+        out = x + nn.Parameter(self.pe, requires_grad=False).to(f'npu:{self.device}' if isinstance(self.device, int) else self.device)
         out = self.dropout(out)
         return out
 

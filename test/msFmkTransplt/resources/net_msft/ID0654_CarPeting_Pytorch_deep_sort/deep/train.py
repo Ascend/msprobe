@@ -63,7 +63,7 @@ if args.resume:
     net.load_state_dict(net_dict)
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
-net.to(device)
+net.to(f'npu:{device}' if isinstance(device, int) else device)
 
 # loss and optimizer
 criterion = torch.nn.CrossEntropyLoss()
@@ -83,7 +83,7 @@ def train(epoch):
     #print("**************",trainloader,"***************")
     for idx, (inputs, labels) in enumerate(trainloader):
         # forward
-        inputs,labels = inputs.to(device),labels.to(device)
+        inputs,labels = inputs.to(f'npu:{device}' if isinstance(device, int) else device),labels.to(f'npu:{device}' if isinstance(device, int) else device)
         outputs = net(inputs)
         #print("*************",inputs,labels,outputs,"***********")
         loss = criterion(outputs, labels)
@@ -119,7 +119,7 @@ def test(epoch):
     start = time.time()
     with torch.no_grad():
         for idx, (inputs, labels) in enumerate(testloader):
-            inputs, labels = inputs.to(device), labels.to(device)
+            inputs, labels = inputs.to(f'npu:{device}' if isinstance(device, int) else device), labels.to(f'npu:{device}' if isinstance(device, int) else device)
             outputs = net(inputs)
             loss = criterion(outputs, labels)
 

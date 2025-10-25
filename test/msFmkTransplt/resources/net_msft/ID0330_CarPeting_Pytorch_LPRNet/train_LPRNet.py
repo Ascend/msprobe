@@ -100,7 +100,7 @@ def train():
     #pdb.set_trace()
     lprnet = build_lprnet(lpr_max_len=args.lpr_max_len, phase=args.phase_train, class_num=len(CHARS), dropout_rate=args.dropout_rate)
     device = torch.device("npu:0" if args.cuda else "cpu")
-    lprnet.to(device)
+    lprnet.to(f'npu:{device}' if isinstance(device, int) else device)
     print("Successful to build network!")
 
     # load pretrained model
@@ -171,8 +171,8 @@ def train():
         lr = adjust_learning_rate(optimizer, epoch, args.learning_rate, args.lr_schedule)
 
         if args.cuda:
-            images = Variable(images, requires_grad=False).to(device)
-            labels = Variable(labels, requires_grad=False).to(device)
+            images = Variable(images, requires_grad=False).to(f'npu:{device}' if isinstance(device, int) else device)
+            labels = Variable(labels, requires_grad=False).to(f'npu:{device}' if isinstance(device, int) else device)
         else:
             images = Variable(images, requires_grad=False)
             labels = Variable(labels, requires_grad=False)

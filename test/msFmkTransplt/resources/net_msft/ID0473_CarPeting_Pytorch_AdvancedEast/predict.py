@@ -28,7 +28,7 @@ def detect(img_path, model, device,pixel_threshold,quiet=True):
     d_wight, d_height = resize_image(img, cfg.max_predict_img_size)
     img = img.resize((d_wight, d_height), Image.NEAREST).convert('RGB')
     with torch.no_grad():
-        east_detect=model(load_pil(img).to(device))
+        east_detect=model(load_pil(img).to(f'npu:{device}' if isinstance(device, int) else device))
     y = np.squeeze(east_detect.cpu().numpy(), axis=0)
     y[:3, :, :] = sigmoid(y[:3, :, :])
     cond = np.greater_equal(y[0, :, :], pixel_threshold)
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     model_path='./saved_model/mb3_512_model_epoch_535.pth'
 
     device = torch.device("npu:0" if torch_npu.npu.is_available() else "cpu")
-    model = EAST().to(device)
+    model = EAST().to(f'npu:{device}' if isinstance(device, int) else device)
     model.load_state_dict(torch.load(model_path))
     model.eval()
 
