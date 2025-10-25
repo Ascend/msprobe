@@ -478,4 +478,42 @@ bool CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite)
     }
     return CheckDir(GetParentDir(absPath));
 }
+
+bool CheckConfigFile(const std::string &absPath, const size_t maxSize)
+{
+    struct stat fileStat;
+    if (lstat(absPath.c_str(), &fileStat) != 0) {
+        AIT_LOG_DEBUG("the file lstat failed");
+        return false;
+    }
+
+    if (!S_ISREG(fileStat.st_mode) || S_ISLNK(fileStat.st_mode)) {
+        AIT_LOG_DEBUG("path is not regular file");
+        return false;
+    }
+
+    if (getuid() != 0 && fileStat.st_uid != getuid()) {
+        AIT_LOG_DEBUG("file owner is not process user");
+        return false;
+    }
+
+    if (access(absPath.c_str(), R_OK) != 0) {
+        AIT_LOG_DEBUG("file is not Readable");
+        return false;
+    }
+
+    mode_t permissions = fileStat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+    if ((permissions & MsConst::READ_FILE_NOT_PERMITTED) > 0) {
+        AIT_LOG_DEBUG("file permission should not be over 0o755(rwxr-xr-x)");
+        return false;
+    }
+
+    size_t fileSize = static_cast<size_t>(fileStat.st_size);
+    if (fileSize == 0 || fileSize > maxSize) {
+        AIT_LOG_DEBUG("file size is invalid");
+        return false;
+    }
+
+    return true;
 }
+} // end of namespace File

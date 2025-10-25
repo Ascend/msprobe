@@ -69,5 +69,6 @@ namespace File {
     // 读文件前的校验
     bool CheckFileBeforeRead(const std::string &path, MsConst::SUFFIX type, const size_t maxSize);
     bool CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite = false);
+    bool CheckConfigFile(const std::string &absPath, const size_t maxSize = MsConst::MAX_JSON_SIZE);
 };
 #endif // FILE_H

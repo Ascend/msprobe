@@ -218,6 +218,10 @@ static bool IsSaveDumpType(const std::string &tar)
 {
     const char* dumpTypeList = std::getenv("ATB_DUMP_TYPE");
 
+    if (dumpTypeList == nullptr) {
+        return tar == "layer" || tar == "model" || tar == "tensor";
+    }
+
     if (dumpTypeList != nullptr) {
         AIT_LOG_DEBUG("Got ATB_DUMP_TYPE: " + std::string(dumpTypeList));
 
@@ -535,6 +539,25 @@ bool CheckOpType(const std::string &opType, bool withId, const std::string &type
     return false;
 }
 
+static bool IsDiskSpaceValid(const std::string path, uint64_t dataSize)
+{
+    unsigned long long freeSpace = 0;
+    int retGetFreeSpace = GetFreeSpace(path, &freeSpace);
+    if (retGetFreeSpace == 1) {
+        AIT_LOG_ERROR("Failed to get disk space for path: " + path);
+        return false;
+    }
+    if (retGetFreeSpace == 0) {
+        if (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE) {
+            AIT_LOG_ERROR(
+                "Disk space is not enough, it's must more than 2G and twice size of data, free size(MB) is: " +
+                std::to_string(freeSpace >> 20));
+            return false;
+        }
+    }
+    return true;
+}
+
 bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::string &opType)
 {
     if (!IsSaveDumpType("tensor")) {return false;}
@@ -580,6 +603,7 @@ bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::st
         }
     }
 
+    if (tidStr.empty()) {return false;}
     return CheckOpType(opType, false, tidStr);
 }
 
@@ -595,13 +619,10 @@ bool atb::Probe::IsSaveChild()
 bool atb::Probe::IsSaveTensorData()
 {
     const char* saveTensor = std::getenv("ATB_SAVE_TENSOR");
-    if (saveTensor != nullptr) {
-        int value = SafetyStoi(saveTensor, 0);
-        if (value == SAVE_TENSOR_DATA) {
-            return true;
-        }
-    }
-    return false;
+    if (saveTensor == nullptr) { return true;}
+
+    int value = SafetyStoi(saveTensor, 0);
+    return (value == SAVE_TENSOR_DATA);
 }
 
 bool atb::Probe::IsSaveTensorDesc()
@@ -614,6 +635,8 @@ bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
     const char *saveTensorRange = std::getenv("ATB_SAVE_TENSOR_RANGE");
     if (g_configPath.empty()) {
         g_tensorRangeStr = saveTensorRange == nullptr ? "" : std::string(saveTensorRange);
+    } else {
+        if (g_dumpEnable != "true") {return false;}
     }
     if (g_tensorRangeStr.empty()) {return false;}
     if (g_tensorRangeStr == "all") { return true;}
@@ -632,26 +655,32 @@ bool atb::Probe::IsExecuteCountInRange(const uint64_t executeCount)
 void atb::Probe::UpdateConfig()
 {
     const char *configPath = std::getenv("ATB_DUMP_CONFIG");
-    g_configPath = (configPath != nullptr ? File::GetFullPath(std::string(configPath)) : "");
-    if (g_configPath.empty()) {return;}
+    if (configPath == nullptr) {return;}
+    g_configPath = File::GetAbsPath(std::string(configPath));
+    if (!File::CheckConfigFile(g_configPath)) {
+        AIT_LOG_DEBUG("ATB dump configuration would not take effect due to illegal file path");
+        g_dumpEnable.clear();
+        return;
+    }
+
+    static bool isAtbRunning = false;
+    if (!isAtbRunning) {
+        isAtbRunning = true;
+        IsDiskSpaceValid(GetOutDir(), g_minDiskSpaceFreeSize / FREE_SIZE_MULTIPLE_OF_DATA_SIZE);
+    }
 
     const double configFreshPeriod = 5;
     static auto lastReadTime = std::chrono::system_clock::now();
-
     auto nowTime = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds = nowTime - lastReadTime;
 
     if (g_dumpEnable.empty() || elapsed_seconds.count() >= configFreshPeriod) {
         lastReadTime = std::chrono::system_clock::now();
-        if (!File::IsPathExist(g_configPath) || !File::IsFileReadable(g_configPath)) {
-            AIT_LOG_ERROR("Valid ATB dump config: " + g_configPath);
-            return;
-        }
         nlohmann::json config;
         try {
             std::ifstream ifs(g_configPath, std::ios::in);
             ifs >> config;
-        } catch (...) {
+        } catch (const std::exception& e) {
             AIT_LOG_ERROR("Json parse error! json path:" + g_configPath);
             return;
         }
@@ -735,6 +764,7 @@ bool atb::Probe::IsSaveTensorInSpecificDir(const std::string &tensorDir)
         }
     }
 
+    if (operationType.empty()) {return false;}
     return CheckOpType(splitPath[splitPath.size() - 1], true, operationType);
 }
 
@@ -786,24 +816,6 @@ static bool IsDeviceIdValid(const std::string &filePath)
             }
         }
         return false;
-    }
-    return true;
-}
-
-static bool IsDiskSpaceValid(const std::string path, uint64_t dataSize)
-{
-    unsigned long long freeSpace = 0;
-    int retGetFreeSpace = GetFreeSpace(path, &freeSpace);
-    if (retGetFreeSpace == 1) {
-        AIT_LOG_ERROR("Failed to get disk space for path: " + path);
-        return false;
-    }
-    if (retGetFreeSpace == 0) {
-        if (freeSpace <= g_minDiskSpaceFreeSize || freeSpace <= dataSize * FREE_SIZE_MULTIPLE_OF_DATA_SIZE) {
-            AIT_LOG_ERROR("Disk space is not enough, it's must more than 2G, free size(MB) is: " +
-            std::to_string(freeSpace >> 20));
-            return false;
-        }
     }
     return true;
 }
@@ -1033,7 +1045,7 @@ static bool IsSaveTensorValid(BinFileInfo &inputFile, std::string &outPath)
     }
 
     const char* saveTensorInBeforeOutAfter = std::getenv("ATB_SAVE_TENSOR_IN_BEFORE_OUT_AFTER");
-    if (saveTensorInBeforeOutAfter &&
+    if (saveTensorInBeforeOutAfter == nullptr ||
         SafetyStoi(saveTensorInBeforeOutAfter, 0) == SAVE_TENSOR_IN_BEFORE_OUT_AFTER) {
         bool isIntensorBefore = IsSubString(inputFile.filePath, {"before", "intensor"});
         bool isOuttensorAfter = IsSubString(inputFile.filePath, {"after", "outtensor"});
@@ -1139,10 +1151,7 @@ bool atb::Probe::IsSaveTiling()
 bool atb::Probe::IsSaveIntensor()
 {
     const char* saveTensorPart = std::getenv("ATB_SAVE_TENSOR_PART");
-    if (saveTensorPart == nullptr) {
-        AIT_LOG_DEBUG("IsSaveIntensor: false");
-        return false;
-    }
+    if (saveTensorPart == nullptr) {return true;}
     int value = SafetyStoi(saveTensorPart, 0);
     if (value == SAVE_INTENSOR || value == SAVE_ALL_TENSOR) {
         AIT_LOG_DEBUG("IsSaveIntensor: true");
@@ -1155,10 +1164,7 @@ bool atb::Probe::IsSaveIntensor()
 bool atb::Probe::IsSaveOuttensor()
 {
     const char* saveTensorPart = std::getenv("ATB_SAVE_TENSOR_PART");
-    if (saveTensorPart == nullptr) {
-        AIT_LOG_DEBUG("IsSaveOuttensor: false");
-        return false;
-    }
+    if (saveTensorPart == nullptr) {return true;}
     int value = SafetyStoi(saveTensorPart, 0);
     if (value == SAVE_OUTTENSOR || value == SAVE_ALL_TENSOR) {
         AIT_LOG_DEBUG("IsSaveOuttensor: true");
