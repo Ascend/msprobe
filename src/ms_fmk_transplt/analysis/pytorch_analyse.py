@@ -72,6 +72,7 @@ class PyTorchAnalyse:
                 raise ValueError('env path %s should be a subdirectory of Input %s' % (path, args.input))
 
     def main(self):
+        utils.root_privilege_warning()
         args = self.__parse_command()
         ret = 0
         result_dict = {}
@@ -118,8 +119,7 @@ class PyTorchAnalyse:
             translog.error('Analyse run failed!')
         else:
             translog.info('Analyse run succeeded, welcome to the next use.')
-            analysis_rel_path = os.path.basename(self.output_path)
-            utils.get_analysis_result_statistics(result_dict, analysis_rel_path)
+            utils.get_analysis_result_statistics(result_dict, os.path.basename(self.output_path))
         self.__set_report_files_permission(0o440)
         return ret
 

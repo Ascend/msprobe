@@ -484,13 +484,36 @@ def islink(path):
     return os.path.islink(path)
 
 
-def check_others_writable(directory):
-    dir_stat = os.stat(directory)
-    is_writable = (
-            bool(dir_stat.st_mode & stat.S_IWGRP) or  # 组可写
-            bool(dir_stat.st_mode & stat.S_IWOTH)  # 其他用户可写
-    )
+def check_group_writable(file_path):
+    path_stat = os.stat(file_path)
+    is_writable = bool(path_stat.st_mode & stat.S_IWGRP)
     return is_writable
+
+
+def check_others_writable(file_path):
+    path_stat = os.stat(file_path)
+    is_writable = bool(path_stat.st_mode & stat.S_IWOTH)
+    return is_writable
+
+
+def check_path_no_others_write(file_path):
+    if check_group_writable(file_path):
+        translog.warning(f"The directory/file path is writable by group: {file_path}.")
+
+    if check_others_writable(file_path):
+        raise PermissionError(
+            f"The directory/file must not allow write access to others. Directory/File path: {file_path}"
+        )
+
+
+def root_privilege_warning():
+    if platform.system().lower() == 'windows':
+        return
+    if os.getuid() == 0:
+        translog.warning(
+            "msfmktransplt is being run as root. "
+            "To avoid security risks, it is recommended to switch to a regular user to run it."
+        )
 
 
 def check_dirpath_before_read(path):
@@ -519,10 +542,9 @@ def check_input_file_valid(input_path, input_info):
     check_path_pattern_valid(input_path)
 
     if not check_path_owner_consistent(input_path):
-        if input_info.use_root_file and is_owned_by_root(input_path):
-            translog.info(f'Use root file: {input_path}')
-        else:
-            raise PermissionError(f'The {file_name} {input_path} is insecure because it does not belong to you.')
+        raise PermissionError(f'The {file_name} {input_path} is insecure because it does not belong to you.')
+
+    check_path_no_others_write(input_path)
 
     if input_info.is_dir and not os.path.isdir(input_path):
         raise ValueError('{} {} is not a folder!'.format(file_name, input_path))
@@ -530,21 +552,25 @@ def check_input_file_valid(input_path, input_info):
     if not input_info.is_dir and not os.path.isfile(input_path):
         raise ValueError('{} {} is not a common file!'.format(file_name, input_path))
 
-    if input_info.check_readable:
-        if not os.access(input_path, os.R_OK):
-            raise PermissionError('{} {} is not readable!'.format(file_name, input_path))
-        if os.path.isfile(input_path) and input_info.must_exists:
-            check_dirpath_before_read(input_path)
-
-    if input_info.check_writable:
-        if not os.access(input_path, os.W_OK):
-            raise PermissionError('{} {} is not writable!'.format(file_name, input_path))
+    check_input_file_r_w(input_path, input_info)
 
     if not check_path_length_valid(input_path):
         raise ValueError('The real path or file name of input is too long.')
 
     if not input_info.is_dir and os.path.getsize(input_path) > input_info.max_file_size:
         raise ValueError(f'The file is too large, exceeds {input_info.max_file_size // 1024 ** 2}MB')
+
+
+def check_input_file_r_w(input_path, input_info):
+    if input_info.check_readable:
+        if not os.access(input_path, os.R_OK):
+            raise PermissionError('{} {} is not readable!'.format(input_info.file_name, input_path))
+        if os.path.isfile(input_path) and input_info.must_exists:
+            check_dirpath_before_read(input_path)
+
+    if input_info.check_writable:
+        if not os.access(input_path, os.W_OK):
+            raise PermissionError('{} {} is not writable!'.format(input_info.file_name, input_path))
 
 
 def is_owned_by_root(path):

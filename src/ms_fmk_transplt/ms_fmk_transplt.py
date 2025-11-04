@@ -59,6 +59,7 @@ class MsFmkTransplt(object):
                                              '"model=LeNet() model", "self.model=LeNet() self.model"')
 
     def main(self):
+        utils.root_privilege_warning()
         args = self.__parse_command()
         ret = 0
         result_dict = {}
