@@ -139,6 +139,19 @@ namespace {
             std::make_unique<ThreadPool::DumpThreadPool>(numThreads);
         return instance;
     }
+
+    template<typename T>
+    bool ParseJsonBaseObj2Var(const nlohmann::json& content, const std::string& field, T& output)
+    {
+        nlohmann::json::const_iterator iter = content.find(field);
+        if (iter == content.end()) {return false;}
+        try {
+            output = iter->get<T>();
+            return true;
+        } catch (const nlohmann::detail::type_error& e) {
+            return false;
+        }
+    }
 }
 
 static int GetFreeSpace(std::string path, unsigned long long *freeSpace)
@@ -594,8 +607,11 @@ bool CheckOpId(const std::vector<int64_t> &ids, bool isSaveChild, const std::str
 
 void SetConfigParameters(const nlohmann::json &config)
 {
-    nlohmann::json::const_iterator iter = config.find("dump_enable");
-    g_dumpEnable = iter != config.end() && !iter->get<std::string>().empty() ? iter->get<std::string>(): "false";
+    if (!ParseJsonBaseObj2Var<std::string>(config, "dump_enable", g_dumpEnable) || g_dumpEnable.empty()) {
+        g_dumpEnable = "false";
+        AIT_LOG_WARNING(std::string("\"dump_enable\" in ATB dump configuration file is empty or of wrong type, ") +
+                        "which should be a string. As a result, it would be set to \"false\"");
+    }
     if (g_dumpEnable == "true" && !g_isDebugMode) {
         g_isDebugMode = true;
         AIT_LOG_WARNING("Ready to dump ATB data, the running speed of the model will be affected");
@@ -610,26 +626,33 @@ void SetConfigParameters(const nlohmann::json &config)
         }
     }
 
-    iter = config.find("ids");
-    g_tensorIdsStr = iter != config.end() ? iter->get<std::string>() : "";
+    if (!ParseJsonBaseObj2Var<std::string>(config, "ids", g_tensorIdsStr)) {
+        g_tensorIdsStr = "";
+        AIT_LOG_WARNING(std::string("\"ids\" in ATB dump configuration file does not exist or has a wrong type, ") +
+                        "which should be a string. As a result, it would be set to empty");
+    }
     g_splitTensorIds = SplitString(g_tensorIdsStr.c_str(), ',');
 
-    iter = config.find("child");
-    if (iter == config.end() || iter->get<std::string>().empty()) {
+    std::string isSaveChildStr;
+    if (!ParseJsonBaseObj2Var<std::string>(config, "child", isSaveChildStr) || isSaveChildStr.empty()) {
         g_isSaveChild = true;
+        AIT_LOG_WARNING(std::string("\"child\" in ATB dump configuration file is empty or of wrong type, ") +
+                        "which should be a string. As a result, it would be set to \"true\"");
     } else {
-        g_isSaveChild = (iter->get<std::string>() == "true");
+        g_isSaveChild = (isSaveChildStr == "true");
     }
 
-    iter = config.find("er");
-    if (iter == config.end() || iter->get<std::string>().empty()) {
+    if (!ParseJsonBaseObj2Var<std::string>(config, "er", g_tensorRangeStr) || g_tensorRangeStr.empty()) {
         g_tensorRangeStr = "0,0";
-    } else {
-        g_tensorRangeStr = iter->get<std::string>();
+        AIT_LOG_WARNING(std::string("\"er\" in ATB dump configuration file is empty or of wrong type, ") +
+                        "which should be a string. As a result, it would be set to \"0,0\"");
     }
 
-    iter = config.find("device");
-    g_dumpDevice = iter != config.end() ? iter->get<std::string>() : "";
+    if (!ParseJsonBaseObj2Var<std::string>(config, "device", g_dumpDevice)) {
+        g_dumpDevice = "";
+        AIT_LOG_WARNING(std::string("\"device\" in ATB dump configuration file does not exist or has a wrong type, ") +
+                        "which should be a string. As a result, it would be set to empty");
+    }
     g_splitDeviceIds = SplitString(g_dumpDevice.c_str(), ',');
 }
 
@@ -745,7 +768,7 @@ void atb::Probe::UpdateConfig()
 bool atb::Probe::IsSaveTensorInSpecificDir(const std::string &tensorDir)
 {
     if (g_configPath.empty()) {return true;}
-    if (!g_dumpEnable.empty() && g_dumpEnable != "true") {return false;}
+    if (g_dumpEnable != "true") {return false;}
 
     std::vector<std::string> splitPath = SplitString(tensorDir.c_str(), '/');
     constexpr size_t minSizeOfDirSegs = 3;
