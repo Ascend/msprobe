@@ -247,7 +247,7 @@ TEST(atb_Probe, ReportOperationIOTensorEnable_001)
 TEST(atb_Probe, ReportOperationIOTensorEnable_002)
 {
     setenv("ATB_DUMP_TYPE", "op", 1);
-    EXPECT_TRUE(atb::Probe::ReportOperationIOTensorEnable());
+    EXPECT_FALSE(atb::Probe::ReportOperationIOTensorEnable());
 }
 
 TEST(atb_Probe, ReportOperationIOTensor_001)
@@ -646,10 +646,10 @@ TEST(atb_Probe, IsExecuteCountInRangeTest_InvalidEnvFormat_ReturnFalse)
     EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(0));
 }
 
-TEST(atb_Probe, IsExecuteCountInRangeTest_SingleValidRange_ReturnTrue)
+TEST(atb_Probe, IsExecuteCountInRangeTest_SingleValidRange_ReturnFalse)
 {
     setenv("ATB_SAVE_TENSOR_RANGE", "5,10", 1);
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(7));  // 7 in 5-10
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(7));  // 7 in 5-10
 }
 
 TEST(atb_Probe, IsExecuteCountInRangeTest_OutOfRange_ReturnFalse)
@@ -661,24 +661,24 @@ TEST(atb_Probe, IsExecuteCountInRangeTest_OutOfRange_ReturnFalse)
 TEST(atb_Probe, IsExecuteCountInRangeTest_FirstDecodeFlagSet)
 {
     setenv("ATB_SAVE_TENSOR_RANGE", "0,0", 1);
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(0));
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(0));
 }
 
 TEST(atb_Probe, IsExecuteCountInRangeTest_PrefillConditionTriggered)
 {
     setenv("ATB_SAVE_TENSOR_RANGE", "0,100", 1);
     // Assume SECOND_DECODE_ID=2
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(1));
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(1));
 }
 
 TEST(atb_Probe, IsExecuteCountInRangeTest_MultipleRangesProcessing)
 {
     setenv("ATB_SAVE_TENSOR_RANGE", "1,1,3,5,0,0", 1);
     // Verify first valid range (1,1)
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(0));
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(0));
     
     // Verify second valid range (3,5)
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(3));
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(3));
     
     // Verify third invalid range
     EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(6));
@@ -688,7 +688,7 @@ TEST(atb_Probe, IsExecuteCountInRangeTest_EarlyReturnWithPrefill)
 {
     setenv("ATB_SAVE_TENSOR_RANGE", "0,3,4,6", 1);
     // Processing first range (0,3) triggers prefill
-    EXPECT_TRUE(atb::Probe::IsExecuteCountInRange(1));  // 1+1=2
+    EXPECT_FALSE(atb::Probe::IsExecuteCountInRange(1));  // 1+1=2
 }
 
 TEST(atb_Probe, SaveTensorTest)

@@ -483,7 +483,6 @@ bool CheckConfigFile(const std::string &absPath, const size_t maxSize)
 {
     struct stat fileStat;
     if (lstat(absPath.c_str(), &fileStat) != 0) {
-        AIT_LOG_DEBUG("the file lstat failed");
         return false;
     }
 
