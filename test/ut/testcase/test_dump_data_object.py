@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
+import numpy as np
 from dump_parse.proto_dump_data import DumpData, OpInput, OpOutput
-from dump_parse.dump_data_object import build_dump_tensor
+from dump_parse.dump_data_object import build_dump_tensor, _deserialize_dump_data_david_to_array
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -19,5 +21,31 @@ class TestUtilsMethods(unittest.TestCase):
             self.fail(f"build dump tensor failed: {e}")
         self.assertEqual(dump_data[0].size, 4)
         self.assertEqual(dump_data[0].shape, [4])
-
-
+    
+    def setUp(self):
+        self.mock_float8e4m3fn = np.array([0x3C], dtype=np.uint8)  # 1.5
+        self.mock_hifloat8 = np.array([0x40], dtype=np.uint8)      # 16.0
+        self.mock_float8e5m2 = np.array([0x45], dtype=np.uint8)    # 5.0
+ 
+    def test_deserialize_dump_data_david_to_array_given_empty_shape_when_zero_in_shape_then_return_empty_array(self):
+        result = _deserialize_dump_data_david_to_array(b'', 'float8_e4m3fn', [0])
+        self.assertEqual(result.size, 0)
+        self.assertEqual(result.shape, (0,))
+ 
+    def test_deserialize_dump_data_david_to_array_given_shape_when_float8_e4m3fn_then_return_correct_array(self):
+        with patch('cmp_utils.common.get_dtype_by_data_type', return_value="float8_e4m3fn"):
+            result = _deserialize_dump_data_david_to_array(self.mock_float8e4m3fn.tobytes(), 'float8_e4m3fn', [1])
+            self.assertEqual(result[0], 1.5)
+            self.assertEqual(result.shape, (1,))
+ 
+    def test_deserialize_dump_data_david_to_array_given_shape_when_hifloat8_then_return_correct_array(self):
+        with patch('cmp_utils.common.get_dtype_by_data_type', return_value="float8_e5m2"):
+            result = _deserialize_dump_data_david_to_array(self.mock_float8e5m2.tobytes(), 'float8_e5m2', [1])
+            self.assertEqual(result[0], 5.0)
+            self.assertEqual(result.shape, (1,))
+ 
+    def test_deserialize_dump_data_david_to_array_given_shape_when_float8_e5m2_then_return_correct_array(self):
+        with patch('cmp_utils.common.get_dtype_by_data_type', return_value="hifloat8"):
+            result = _deserialize_dump_data_david_to_array(self.mock_hifloat8, 'hifloat8', [1])
+            self.assertEqual(result[0], 16.0)
+            self.assertEqual(result.shape, (1,))

@@ -90,7 +90,15 @@ class DD:
     DT_DUAL = 25
     DT_BF16 = 27
     DT_UINT1 = 29
-
+    DT_COMPLEX32 = 32
+    DT_HIFLOAT8 = 33
+    DT_FLOAT8_E5M2 = 34
+    DT_FLOAT8_E4M3FN = 35
+    DT_FLOAT8_E8M0 = 36
+    DT_FLOAT6_E3M2 = 37
+    DT_FLOAT6_E2M3 = 38
+    DT_FLOAT4_E2M1 = 39
+    DT_FLOAT4_E1M2 = 40
     # 其他
     L1 = 0
 
@@ -325,6 +333,9 @@ class ConstManager:
         DD.DT_UINT1: {DTYPE_KEY: np.uint8, STRUCT_FORMAT_KEY: '?'},
         DD.DT_UNDEFINED: {DTYPE_KEY: np.int8, STRUCT_FORMAT_KEY: 'b'},
         DD.DT_RESOURCE: {DTYPE_KEY: np.int64, STRUCT_FORMAT_KEY: 'q'},
+        DD.DT_FLOAT8_E4M3FN: {DTYPE_KEY: "float8_e4m3fn", STRUCT_FORMAT_KEY: 'b'},
+        DD.DT_FLOAT8_E5M2: {DTYPE_KEY: "float8_e5m2", STRUCT_FORMAT_KEY: 'b'},
+        DD.DT_HIFLOAT8: {DTYPE_KEY: "hifloat8", STRUCT_FORMAT_KEY: 'b'},
     }
     DATA_TYPE_TO_STR_DTYPE_MAP = {
         DD.DT_FLOAT: "float32",
@@ -345,6 +356,9 @@ class ConstManager:
         DD.DT_UINT1: "uint1",
         DD.DT_UNDEFINED: "int8",
         DD.DT_RESOURCE: "int64",
+        DD.DT_FLOAT8_E4M3FN: "float8_e4m3fn",
+        DD.DT_HIFLOAT8: "hifloat8",
+        DD.DT_FLOAT8_E5M2: "float8_e5m2",
     }
 
     UNPACK_DTYPE = [
@@ -352,6 +366,11 @@ class ConstManager:
     ]
     CAST_FP32_DTYPE = [
         DD.DT_BF16,
+    ]
+    DAVID_DATA_DTYPE = [
+        DD.DT_FLOAT8_E4M3FN,
+        DD.DT_HIFLOAT8,
+        DD.DT_FLOAT8_E5M2,
     ]
 
     # Standard
