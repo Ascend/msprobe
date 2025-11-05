@@ -215,6 +215,14 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
         log.print_error_log('You are neither the owner nor in the group of the path "%r".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
+    if bool(file_stat.st_mode & stat.S_IWGRP):
+        log.print_warn_log(f"The file path is writable by group: {exist_path}.")
+
+    if bool(file_stat.st_mode & stat.S_IWOTH):
+        log.print_error_log(f"The file must not allow write access to others. File path: {exist_path}.")
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
+
     parent_directory = os.path.dirname(os.path.abspath(path))
     if not have_write_permission and not is_parent_dir_has_right_permission(parent_directory):
         log.print_warn_log('The permissions of the parent directory of the current file are incorrect.')

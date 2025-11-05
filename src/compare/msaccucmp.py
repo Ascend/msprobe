@@ -485,6 +485,14 @@ def _do_overflow(args: argparse.Namespace) -> int:
     return ret
 
 
+def _root_privilege_warning():
+    if os.getuid() == 0:
+        log.print_warn_log(
+            "msaccucmp is being run as root. "
+            "To avoid security risks, it is recommended to switch to a regular user to run it."
+        )
+
+
 def main() -> None:
     """
     parse argument and run command
@@ -493,6 +501,7 @@ def main() -> None:
     start = time.time()
     with file_utils.UmaskWrapper():
         try:
+            _root_privilege_warning()
             ret = _do_cmd()
         except CompareError as err:
             ret = err.code
