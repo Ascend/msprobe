@@ -36,6 +36,9 @@ void ait::Logger(const std::string message, const char *fileName, int line, cons
             std::cout << "[WARNING] Log level resets to INFO." << std::endl;
         }
     }
+    if (atbLogLevel < int(LogLevel::DEBUG) || atbLogLevel > int(LogLevel::CRITICAL)) {
+        atbLogLevel = int(LogLevel::INFO);
+    }
     int levelInt = int(level);  // levelInt from Enum has to in the range of length of levelName
     if (atbLogLevel <= levelInt) {
         std::cout << "[" << levelName[levelInt] << "] [" << fileName << "+" << line << "][" << funcName << "] "
