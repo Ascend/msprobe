@@ -182,12 +182,6 @@ def lb_and_intra_layer_affinity_redundancy_deploy(
 
         # 获取每一层全局计算均衡的放置策略
         result, layer_deployment = compute_balanced_pack_redundancy(weights, num_npus, num_redundancy_expert, 0)
-        for box in result:
-            logger.info(
-                f"before: Box {box['box_index']}: "
-                f"Items = {box['items']}, weight = {box['weight']}, "
-                f"Total Weight = {box['total_weight']}, Item Count = {box['item_count']}"
-            )
         global_deployment[layer] = layer_deployment
 
     return global_deployment

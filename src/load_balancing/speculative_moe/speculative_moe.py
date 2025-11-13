@@ -17,9 +17,10 @@ logger = logging.getLogger("msit_logger")
 
 def parse_ep_file(ep_file_path, ep_file=None, n_share_expert_devices=0):
     experts_table = {}
+
+    # should not be here
     if ep_file is None:
-        with open(ep_file_path) as handle:
-            ep_file = json.load(handle)
+        raise ValueError("Eplb file should be loaded before running algorithm.")
 
     layer_count = ep_file["moe_layer_count"]
     layer_list = ep_file["layer_list"]

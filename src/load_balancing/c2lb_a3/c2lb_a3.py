@@ -439,13 +439,6 @@ def lb_and_intra_layer_affinity_redundancy_deploy_a3(
                 is_only=0 # 默认切分多份冗余专家
             )
 
-        for box in result:
-            logger.info(
-                f"after: Box {box['box_index']}: "
-                f"Items = {box['items']}, weight = {box['weight']}, "
-                f"Total Weight = {box['total_weight']}, Item Count = {box['item_count']}"
-            )
-
         global_deployment[layer] = layer_deployment
 
     global_deployment = np.array(global_deployment)
