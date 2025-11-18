@@ -181,7 +181,7 @@ def lb_and_intra_layer_affinity_redundancy_deploy(
             weights[expert_id] = (expert_id, workload_weight)
 
         # 获取每一层全局计算均衡的放置策略
-        result, layer_deployment = compute_balanced_pack_redundancy(weights, num_npus, num_redundancy_expert, 0)
+        _, layer_deployment = compute_balanced_pack_redundancy(weights, num_npus, num_redundancy_expert, 0)
         global_deployment[layer] = layer_deployment
 
     return global_deployment

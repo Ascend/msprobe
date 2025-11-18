@@ -423,7 +423,7 @@ def lb_and_intra_layer_affinity_redundancy_deploy_a3(
         # 获取每一层全局计算均衡的放置策略
         if num_npus == 256 and num_redundancy_expert == 256:
             # 调用新的冗余专家切分策略代码
-            result, layer_deployment, _ = a3_new_compute_balanced_pack_redundancy(
+            _, layer_deployment, _ = a3_new_compute_balanced_pack_redundancy(
                 weights,
                 num_npus,
                 num_redundancy_expert,
@@ -431,7 +431,7 @@ def lb_and_intra_layer_affinity_redundancy_deploy_a3(
                 threshold
             )
         else:
-            result, layer_deployment, _ = new_compute_balanced_pack_redundancy(
+            _, layer_deployment, _ = new_compute_balanced_pack_redundancy(
                 weights,
                 num_npus,
                 num_redundancy_expert,
