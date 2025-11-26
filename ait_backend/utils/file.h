@@ -70,5 +70,6 @@ namespace File {
     bool CheckFileBeforeRead(const std::string &path, MsConst::SUFFIX type, const size_t maxSize);
     bool CheckFileBeforeCreateOrWrite(const std::string &path, bool overwrite = false);
     bool CheckConfigFile(const std::string &absPath, const size_t maxSize = MsConst::MAX_JSON_SIZE);
+    bool WriteTextToFile(const std::string &filePath, const std::string &textContent);
 };
 #endif // FILE_H

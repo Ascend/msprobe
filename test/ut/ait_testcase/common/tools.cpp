@@ -31,7 +31,6 @@
 #include <sys/stat.h>
 #include <sys/inotify.h>
 #include <unistd.h>
-#include "file_state_guard.h"
 #include "tools.h"
 
 namespace fs = std::experimental::filesystem;
@@ -234,13 +233,11 @@ void DeletePath(const std::string& path)
 {
     try {
         if (!IsPathExist(path)) {
-            // std::cout << "Path not exist: " << path << std::endl;
             return;
         }
         // 处理文件
         if (fs::is_regular_file(path) || fs::is_symlink(path)) {
             if (fs::remove(path)) {
-                // std::cout << "File deleted: " << path << std::endl;
             } else {
                 std::cerr << "Delete file failed: " << path << std::endl;
             }
@@ -248,8 +245,7 @@ void DeletePath(const std::string& path)
         }
         // 处理目录（递归删除）
         if (fs::is_directory(path)) {
-            uintmax_t count = fs::remove_all(path);
-            // std::cout << "Deleted " << count << " items in directory: " << path << std::endl;
+            fs::remove_all(path);
             return;
         }
         // 处理特殊文件类型
@@ -304,43 +300,5 @@ bool CompareBinaryFiles(std::ifstream& file1, std::ifstream& file2)
         }
     }
     resetStreams(file1, file2);
-    return true;
-}
-
-namespace FileRegistry {
-    std::streampos FindDataStart(std::ifstream& inFile)
-    {
-        const std::string endMarker = "$End=1";
-        std::string line;
-        while (std::getline(inFile, line)) {
-            if (line.find(endMarker) != std::string::npos) {
-                return inFile.tellg();
-            }
-        }
-        return std::streampos(-1);
-    }
-}
-
-bool VerifyBinaryFileWithUInt8Vector(std::ifstream& inFile,
-    const std::vector<uint8_t>& expected)
-{
-    FileRegistry::FileStateGuard stateGuard(inFile); // RAII自动管理状态
-    const auto dataStart = FileRegistry::FindDataStart(inFile);
-    if (dataStart == std::streampos(-1)) { return false; }
-    inFile.seekg(0, std::ios::end);
-    const size_t fileSize = inFile.tellg() - dataStart;
-    if (fileSize != expected.size()) { return false; }
-    inFile.seekg(dataStart);
-    constexpr size_t blockSize = 4096;
-    std::vector<char> buffer(blockSize);
-    size_t compared = 0;
-    while (compared < fileSize) {
-        const size_t remain = fileSize - compared;
-        const size_t readSize = std::min(remain, blockSize);
-        inFile.read(buffer.data(), readSize);
-        if (inFile.gcount() != static_cast<std::streamsize>(readSize)) { return false; }
-        if (memcmp(buffer.data(), &expected[compared], readSize) != 0) { return false; }
-        compared += readSize;
-    }
     return true;
 }

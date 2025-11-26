@@ -84,38 +84,6 @@ TEST_F(TestLLMDumpBinFile, AddObject_DuplicateName)
     EXPECT_FALSE(bin_file_.AddObject("dup_obj", data, sizeof(data)));
 }
 
-/******************​ CalcHash 测试 ​******************/
-TEST_F(TestLLMDumpBinFile, CalcHash_EmptyData)
-{
-    auto hash = bin_file_.CalcHash();
-    EXPECT_NE(hash, 0);
-}
-
-TEST_F(TestLLMDumpBinFile, CalcHash_AlignedData)
-{
-    const uint8_t data[8] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-    bin_file_.AddObject("aligned", data, sizeof(data));
-    auto hash = bin_file_.CalcHash();
-    EXPECT_NE(hash, 0);
-}
-
-TEST_F(TestLLMDumpBinFile, CalcHash_UnalignedData)
-{
-    const uint8_t data[5] = {0x01, 0x02, 0x03, 0x04, 0x05};
-    bin_file_.AddObject("unaligned", data, sizeof(data));
-    auto hash = bin_file_.CalcHash();
-    EXPECT_NE(hash, 0);
-}
-
-TEST_F(TestLLMDumpBinFile, CalcHash_VerifyRestoreBuffer)
-{
-    const uint8_t data[5] = {0x01};
-    bin_file_.AddObject("temp", data, sizeof(data));
-    size_t original_size = bin_file_.binariesBuffer_.size();
-    bin_file_.CalcHash();
-    EXPECT_EQ(bin_file_.binariesBuffer_.size(), original_size);
-}
-
 /******************​ WriteAttr 测试 ​******************/
 TEST_F(TestLLMDumpBinFile, WriteAttr_ContentCheck)
 {

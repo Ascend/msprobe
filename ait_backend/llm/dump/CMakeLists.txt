@@ -46,6 +46,7 @@ target_compile_options(${LIB_NAME} PRIVATE
     -fPIC
     -pie
     -fstack-protector-all
+    -O2
     -D_FORTIFY_SOURCE=2
     -ftrapv
 )

@@ -73,7 +73,7 @@ std::unique_ptr<LLM::StatisticsBase> CalStatsHalfPrec(std::vector<uint16_t>& ran
         exp = it->second.first;
         man = it->second.second;
     } else {
-        std::cout << "Unsupported dtype: " << Mki::GetStrWithDType(dtype) << std::endl;
+        std::cout << "Unsupported dtype: " << Mki::GetDTypeStr(dtype) << std::endl;
         return std::make_unique<LLM::Statistics<std::string>>();
     }
 

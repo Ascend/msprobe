@@ -22,27 +22,14 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <algorithm>
 #include <climits>
 #include <map>
 
 #define EXPORT_LLM __attribute__ ((visibility("default")))
 
 namespace atb {
-const std::string ARGS_DUMP_TYPE_TENSOR = "tensors";
-const std::string ARGS_DUMP_TYPE_CPU_PROFILING = "cpu_profiling";
-
-constexpr int SAVE_TENSOR_BEFORE = 0;
-constexpr int SAVE_TENSOR_AFTER = 1;
-constexpr int SAVE_TENSOR_BOTH = 2;
-constexpr int SAVE_TENSOR_IN_BEFORE_OUT_AFTER = 1;
-constexpr int SAVE_TENSOR_DATA = 1;
-constexpr int SAVE_TENSOR_STATS = 1;
+const std::string TENSOR_AND_STATS_DATA_DIR = "data/";
 constexpr int RANGE_COUNT = 2;
-constexpr int SAVE_INTENSOR = 0;
-constexpr int SAVE_OUTTENSOR = 1;
-constexpr int SAVE_ALL_TENSOR = 2;
-constexpr int SAVE_SYMLINK = 1;
 
 class Probe {
 public:
@@ -113,7 +100,7 @@ public:
 
 namespace Mki {
 
-enum TensorDType : int {
+enum class TensorDType {
     TENSOR_DTYPE_UNDEFINED = -1,
     TENSOR_DTYPE_FLOAT = 0,
     TENSOR_DTYPE_FLOAT16 = 1,
@@ -130,7 +117,38 @@ enum TensorDType : int {
     TENSOR_DTYPE_STRING = 13,
     TENSOR_DTYPE_COMPLEX64 = 16,
     TENSOR_DTYPE_COMPLEX128 = 17,
-    TENSOR_DTYPE_BF16 = 27
+    TENSOR_DTYPE_BF16 = 27,
+    TENSOR_DTYPE_INT4 = 29,
+    TENSOR_DTYPE_UINT1 = 30,
+    TENSOR_DTYPE_COMPLEX32 = 33,
+    TENSOR_DTYPE_HIFLOAT8 = 34,
+    TENSOR_DTYPE_FLOAT8_E5M2 = 35,
+    TENSOR_DTYPE_FLOAT8_E4M3FN = 36,
+    TENSOR_DTYPE_FLOAT8_E8M0 = 37,
+    TENSOR_DTYPE_FLOAT6_E3M2 = 38,
+    TENSOR_DTYPE_FLOAT6_E2M3 = 39,
+    TENSOR_DTYPE_FLOAT4_E2M1 = 40,
+    TENSOR_DTYPE_FLOAT4_E1M2 = 41,
+};
+
+enum class TensorFormat {
+    TENSOR_FORMAT_UNDEFINED = -1,
+    TENSOR_FORMAT_NCHW = 0,
+    TENSOR_FORMAT_NHWC = 1,
+    TENSOR_FORMAT_ND = 2,
+    TENSOR_FORMAT_NC1HWC0 = 3,
+    TENSOR_FORMAT_FRACTAL_Z = 4,
+    TENSOR_FORMAT_NC1HWC0_C04 = 12,
+    TENSOR_FORMAT_HWCN = 16,
+    TENSOR_FORMAT_NDHWC = 27,
+    TENSOR_FORMAT_FRACTAL_NZ = 29,
+    TENSOR_FORMAT_NCDHW = 30,
+    TENSOR_FORMAT_NDC1HWC0 = 32,
+    TENSOR_FORMAT_FRACTAL_Z_3D = 33,
+    TENSOR_FORMAT_NC = 35,
+    TENSOR_FORMAT_NCL = 47,
+    TENSOR_FORMAT_FRACTAL_NZ_C0_16 = 50,
+    TENSOR_FORMAT_FRACTAL_NZ_C0_32 = 51,
 };
 
 constexpr size_t HALF_DATA_SIZE = 2;
@@ -154,47 +172,60 @@ const std::map<TensorDType, size_t> MAP_OF_DTYPE_SIZE = {
     {TensorDType::TENSOR_DTYPE_COMPLEX64, sizeof(double)}
 };
 
-const std::map<std::string, TensorDType> MAP_STRING_TO_DTYPE = {
-    { "float", TensorDType::TENSOR_DTYPE_FLOAT },
-    { "float16", TensorDType::TENSOR_DTYPE_FLOAT16 },
-    { "int8", TensorDType::TENSOR_DTYPE_INT8 },
-    { "int32", TensorDType::TENSOR_DTYPE_INT32 },
-    { "uint8", TensorDType::TENSOR_DTYPE_UINT8 },
-    { "int16", TensorDType::TENSOR_DTYPE_INT16 },
-    { "uint16", TensorDType::TENSOR_DTYPE_UINT16 },
-    { "uint32", TensorDType::TENSOR_DTYPE_UINT32 },
-    { "int64", TensorDType::TENSOR_DTYPE_INT64 },
-    { "uint64", TensorDType::TENSOR_DTYPE_UINT64 },
-    { "double", TensorDType::TENSOR_DTYPE_DOUBLE },
-    { "bool", TensorDType::TENSOR_DTYPE_BOOL },
-    { "string", TensorDType::TENSOR_DTYPE_STRING },
-    { "complex64", TensorDType::TENSOR_DTYPE_COMPLEX64 },
-    { "complex128", TensorDType::TENSOR_DTYPE_COMPLEX128 },
-    { "bf16", TensorDType::TENSOR_DTYPE_BF16 },
+const std::map<TensorDType, std::string> MAP_DTYPE_TO_STRING = {
+    {TensorDType::TENSOR_DTYPE_FLOAT, "float"},
+    {TensorDType::TENSOR_DTYPE_FLOAT16, "float16"},
+    {TensorDType::TENSOR_DTYPE_INT8, "int8"},
+    {TensorDType::TENSOR_DTYPE_INT32, "int32"},
+    {TensorDType::TENSOR_DTYPE_UINT8, "uint8"},
+    {TensorDType::TENSOR_DTYPE_INT16, "int16"},
+    {TensorDType::TENSOR_DTYPE_UINT16, "uint16"},
+    {TensorDType::TENSOR_DTYPE_UINT32, "uint32"},
+    {TensorDType::TENSOR_DTYPE_INT64, "int64"},
+    {TensorDType::TENSOR_DTYPE_UINT64, "uint64"},
+    {TensorDType::TENSOR_DTYPE_DOUBLE, "double"},
+    {TensorDType::TENSOR_DTYPE_BOOL, "bool"},
+    {TensorDType::TENSOR_DTYPE_STRING, "string"},
+    {TensorDType::TENSOR_DTYPE_COMPLEX64, "complex64"},
+    {TensorDType::TENSOR_DTYPE_COMPLEX128, "complex128"},
+    {TensorDType::TENSOR_DTYPE_BF16, "bf16"},
+    {TensorDType::TENSOR_DTYPE_INT4, "int4"},
+    {TensorDType::TENSOR_DTYPE_UINT1, "uint1"},
+    {TensorDType::TENSOR_DTYPE_COMPLEX32, "complex32"},
+    {TensorDType::TENSOR_DTYPE_HIFLOAT8, "hifloat8"},
+    {TensorDType::TENSOR_DTYPE_FLOAT8_E5M2, "float8_e5m2"},
+    {TensorDType::TENSOR_DTYPE_FLOAT8_E4M3FN, "float8_e4m3fn"},
+    {TensorDType::TENSOR_DTYPE_FLOAT8_E8M0, "float8_e8m0"},
+    {TensorDType::TENSOR_DTYPE_FLOAT6_E3M2, "float6_e3m2"},
+    {TensorDType::TENSOR_DTYPE_FLOAT6_E2M3, "float6_e2m3"},
+    {TensorDType::TENSOR_DTYPE_FLOAT4_E2M1, "float4_e2m1"},
+    {TensorDType::TENSOR_DTYPE_FLOAT4_E1M2, "float4_e1m2"},
 };
 
-const std::map<int, std::string> MAP_DTYPE_TO_STRING = {
-    { TensorDType::TENSOR_DTYPE_FLOAT, "float" },
-    { TensorDType::TENSOR_DTYPE_FLOAT16, "float16" },
-    { TensorDType::TENSOR_DTYPE_INT8, "int8" },
-    { TensorDType::TENSOR_DTYPE_INT32, "int32" },
-    { TensorDType::TENSOR_DTYPE_UINT8, "uint8" },
-    { TensorDType::TENSOR_DTYPE_INT16, "int16" },
-    { TensorDType::TENSOR_DTYPE_UINT16, "uint16" },
-    { TensorDType::TENSOR_DTYPE_UINT32, "uint32" },
-    { TensorDType::TENSOR_DTYPE_INT64, "int64" },
-    { TensorDType::TENSOR_DTYPE_UINT64, "uint64" },
-    { TensorDType::TENSOR_DTYPE_DOUBLE, "double" },
-    { TensorDType::TENSOR_DTYPE_BOOL, "bool" },
-    { TensorDType::TENSOR_DTYPE_STRING, "string" },
-    { TensorDType::TENSOR_DTYPE_COMPLEX64, "complex64" },
-    { TensorDType::TENSOR_DTYPE_COMPLEX128, "complex128" },
-    { TensorDType::TENSOR_DTYPE_BF16, "bf16" },
+const std::map<TensorFormat, std::string> MAP_FORMAT_TO_STRING = {
+    {TensorFormat::TENSOR_FORMAT_NCHW, "nchw"},
+    {TensorFormat::TENSOR_FORMAT_NHWC, "nhwc"},
+    {TensorFormat::TENSOR_FORMAT_ND, "nd"},
+    {TensorFormat::TENSOR_FORMAT_NC1HWC0, "nc1hwc0"},
+    {TensorFormat::TENSOR_FORMAT_FRACTAL_Z, "fractal_z"},
+    {TensorFormat::TENSOR_FORMAT_NC1HWC0_C04, "nc1hwc0_c04"},
+    {TensorFormat::TENSOR_FORMAT_HWCN, "hwcn"},
+    {TensorFormat::TENSOR_FORMAT_NDHWC, "ndhwc"},
+    {TensorFormat::TENSOR_FORMAT_FRACTAL_NZ, "fractal_nz"},
+    {TensorFormat::TENSOR_FORMAT_NCDHW, "ncdhw"},
+    {TensorFormat::TENSOR_FORMAT_NDC1HWC0, "ndc1hwc0"},
+    {TensorFormat::TENSOR_FORMAT_FRACTAL_Z_3D, "fractal_z_3d"},
+    {TensorFormat::TENSOR_FORMAT_NC, "nc"},
+    {TensorFormat::TENSOR_FORMAT_NCL, "ncl"},
+    {TensorFormat::TENSOR_FORMAT_FRACTAL_NZ_C0_16, "fractal_nz_c0_16"},
+    {TensorFormat::TENSOR_FORMAT_FRACTAL_NZ_C0_32, "fractal_nz_c0_32"},
 };
 
-size_t GetTensorElementSize(const TensorDType dtype);
-TensorDType GetDTypeWithStr(const std::string &typeStr);
-const std::string &GetStrWithDType(int dType);
+size_t GetTensorElementSize(const TensorDType dType);
+TensorDType ConvertToTensorDType(int dType);
+TensorFormat ConvertToTensorFormat(int format);
+const std::string &GetDTypeStr(const TensorDType &dType);
+const std::string &GetFormatStr(const TensorFormat &format);
 
 // 工具函数接口的补充, 用于UT测试
 float ConvertToFloat32(uint16_t value, size_t exponentBits, size_t mantissaBits);

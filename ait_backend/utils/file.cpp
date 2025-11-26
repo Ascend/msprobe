@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "file.h"
+
 #include <map>
 #include <iostream>
 #include <cstring>
@@ -22,8 +24,11 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+
 #include "const.h"
-#include "file.h"
+#include "umask_wrapper.h"
+
+
 using MsConst::SUFFIX;
 using MsConst::SUFFIX_TYPE_TABLE;
 
@@ -513,6 +518,26 @@ bool CheckConfigFile(const std::string &absPath, const size_t maxSize)
         return false;
     }
 
+    return true;
+}
+
+bool WriteTextToFile(const std::string &filePath, const std::string &textContent)
+{
+    ms::UmaskWrapper uw;
+    std::ofstream file(filePath, std::ios::out | std::ios::binary);
+    if (!file.is_open()) {
+        AIT_LOG_WARNING("Unable to open file! File name: " + filePath);
+        return false;
+    }
+
+    file << textContent << std::endl;
+    if (!file.good()) {
+        AIT_LOG_WARNING("Failed to write text to " + filePath);
+        file.close();
+        return false;
+    }
+
+    file.close();
     return true;
 }
 } // end of namespace File

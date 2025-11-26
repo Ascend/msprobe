@@ -39,5 +39,4 @@ bool AreLastDigitsWithinRangeStr(const std::string& numStr1, const std::string& 
 bool WaitUntilFileReady(const std::string& path, std::chrono::milliseconds timeout = std::chrono::seconds(TIMEOUT),
                         std::chrono::milliseconds checkBaseInterval = std::chrono::milliseconds(CHECK_INTERVAL));
 bool CompareBinaryFiles(std::ifstream& file1, std::ifstream& file2);
-bool VerifyBinaryFileWithUInt8Vector(std::ifstream& inFile, const std::vector<uint8_t>& expected);
 #endif

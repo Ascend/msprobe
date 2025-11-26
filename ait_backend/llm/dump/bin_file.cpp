@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,10 +19,12 @@
 #include "umask_wrapper.h"
 #include "ait_logger.h"
 
-FileSystem::BinFile::BinFile() {}
-FileSystem::BinFile::~BinFile() {}
+namespace FileSystem {
 
-bool FileSystem::BinFile::AddAttr(const std::string &name, const std::string &value)
+BinFile::BinFile() {}
+BinFile::~BinFile() {}
+
+bool BinFile::AddAttr(const std::string &name, const std::string &value)
 {
     if (attrNames_.find(name) != attrNames_.end()) {
         AIT_LOG_ERROR("Attr: " + name + " already exists");
@@ -34,7 +36,12 @@ bool FileSystem::BinFile::AddAttr(const std::string &name, const std::string &va
     return true;
 }
 
-bool FileSystem::BinFile::Write(const std::string &filePath, const mode_t mode)
+bool BinFile::HasAttr(const std::string &name)
+{
+    return attrNames_.find(name) != attrNames_.end();
+}
+
+bool BinFile::Write(const std::string &filePath, const mode_t mode)
 {
     // 先写头
     // 先写version、count、length
@@ -48,20 +55,20 @@ bool FileSystem::BinFile::Write(const std::string &filePath, const mode_t mode)
         return false;
     }
 
-    bool ret = WriteAttr(outputFile, ATTR_VERSION, version_);
-    ret = WriteAttr(outputFile, ATTR_OBJECT_COUNT, std::to_string(binaries_.size()));
-    ret = WriteAttr(outputFile, ATTR_OBJECT_LENGTH, std::to_string(binariesBuffer_.size()));
+    WriteAttr(outputFile, ATTR_VERSION, version_);
+    WriteAttr(outputFile, ATTR_OBJECT_COUNT, std::to_string(binaries_.size()));
+    WriteAttr(outputFile, ATTR_OBJECT_LENGTH, std::to_string(binariesBuffer_.size()));
 
     for (const auto &attrIt : attrs_) {
-        ret = WriteAttr(outputFile, attrIt.first, attrIt.second);
+        WriteAttr(outputFile, attrIt.first, attrIt.second);
     }
 
     for (const auto &objIt : binaries_) {
-        ret = WriteAttr(outputFile, ATTR_OBJECT_PREFIX + objIt.first,
-                        std::to_string(objIt.second.offset) + "," + std::to_string(objIt.second.length));
+        WriteAttr(outputFile, ATTR_OBJECT_PREFIX + objIt.first,
+                  std::to_string(objIt.second.offset) + "," + std::to_string(objIt.second.length));
     }
 
-    ret = WriteAttr(outputFile, ATTR_END, END_VALUE);
+    WriteAttr(outputFile, ATTR_END, END_VALUE);
 
     if (binariesBuffer_.size() > 0U) {
         outputFile.write(binariesBuffer_.data(), binariesBuffer_.size());
@@ -70,7 +77,7 @@ bool FileSystem::BinFile::Write(const std::string &filePath, const mode_t mode)
     return true;
 }
 
-bool FileSystem::BinFile::AddObject(const std::string &name, const void* binaryBuffer, uint64_t binaryLen)
+bool BinFile::AddObject(const std::string &name, const void* binaryBuffer, uint64_t binaryLen)
 {
     if (binaryBuffer == nullptr) {
         AIT_LOG_ERROR("binary buffer size is none");
@@ -96,7 +103,7 @@ bool FileSystem::BinFile::AddObject(const std::string &name, const void* binaryB
     while (copyLen > 0) {
         uint64_t curCopySize = copyLen > MAX_SINGLE_MEMCPY_SIZE ? MAX_SINGLE_MEMCPY_SIZE : copyLen;
         auto err = memcpy_s(binariesBuffer_.data() + currentLen + offset, curCopySize,
-            static_cast<const uint8_t*>(binaryBuffer) + offset, curCopySize);
+                            static_cast<const uint8_t*>(binaryBuffer) + offset, curCopySize);
         if (err != EOK) {
             AIT_LOG_ERROR("memcpy_s failed, err = " + std::to_string(static_cast<int>(err)));
             return false;
@@ -107,60 +114,14 @@ bool FileSystem::BinFile::AddObject(const std::string &name, const void* binaryB
     return true;
 }
 
-bool FileSystem::BinFile::WriteAttr(std::ofstream &outputFile, const std::string &filePath, const std::string &value)
+bool BinFile::WriteAttr(std::ofstream &outputFile, const std::string &name, const std::string &value)
 {
-    std::string line = filePath + "=" + value + "\n";
+    std::string line = name + "=" + value + "\n";
     outputFile << line;
+    if (!outputFile.good()) {
+        AIT_LOG_WARNING("Failed to write " + name + " attribute");
+        return false;
+    }
     return true;
 }
-
-uint64_t FileSystem::BinFile::CalcHash()
-{
-    const uint64_t fnvOffsetBasis = 14695981039346656037ULL;
-    const uint64_t fnvPrime = 1099511628211ULL;
-    const int width = 8;
-
-    uint64_t hashValue = fnvOffsetBasis;
-
-    // 计算文件地址
-    std::string tempAttrs;
-    for (const auto &attrIt : attrs_) {
-        tempAttrs += attrIt.first;
-        tempAttrs += attrIt.second;
-    }
-    std::vector<char> hashAttrs(tempAttrs.begin(), tempAttrs.end());
-    if (hashAttrs.size() % width != 0) {
-        auto newsize = hashAttrs.size() + (width - hashAttrs.size() % width);
-        hashAttrs.resize(newsize, 0);
-    }
-    for (size_t i = 0; i < hashAttrs.size(); i += width) {
-        auto addr = &(hashAttrs[i]);
-        auto *next64Binary = reinterpret_cast<uint64_t *>(addr);
-        hashValue ^= (*next64Binary);
-        hashValue *= fnvPrime;
-    }
-
-    for (const auto &attrIt : binaries_) {
-        hashValue ^= attrIt.second.offset;
-        hashValue *= fnvPrime;
-        hashValue ^= attrIt.second.length;
-        hashValue *= fnvPrime;
-    }
-
-    // 计算文件内容
-    size_t rawSize = binariesBuffer_.size();
-    if (binariesBuffer_.size() % width != 0) {
-        auto newsize = binariesBuffer_.size() + (width - binariesBuffer_.size() % width);
-        binariesBuffer_.resize(newsize, 0);
-    }
-    for (size_t i = 0; i < binariesBuffer_.size(); i += width) {
-        auto addr = &(binariesBuffer_[i]);
-        auto *next64Binary = reinterpret_cast<uint64_t *>(addr);
-        hashValue ^= (*next64Binary);
-        hashValue *= fnvPrime;
-    }
-    if (binariesBuffer_.size() != rawSize) {
-        binariesBuffer_.resize(rawSize);
-    }
-    return hashValue;
-}
+} // end of namespace FileSystem

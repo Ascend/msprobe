@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Huawei Technologies Co., Ltd. 2023-2023. All rights reserved.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2023-2025. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,10 +52,10 @@ public:
     EXPORT_LLM ~BinFile();
 
     EXPORT_LLM bool AddAttr(const std::string &name, const std::string &value);
+    EXPORT_LLM bool HasAttr(const std::string &name);
     EXPORT_LLM bool Write(const std::string &filePath, const mode_t mode = BIN_FILE_MODE);
-    EXPORT_LLM bool WriteAttr(std::ofstream &outputFile, const std::string &filePath, const std::string &value);
+    EXPORT_LLM bool WriteAttr(std::ofstream &outputFile, const std::string &name, const std::string &value);
     EXPORT_LLM bool AddObject(const std::string &name, const void* binaryBuffer, uint64_t binaryLen);
-    EXPORT_LLM uint64_t CalcHash();
 
 private:
     std::string version_ = "1.0";
