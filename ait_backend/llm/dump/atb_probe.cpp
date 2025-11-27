@@ -508,7 +508,7 @@ constexpr int NO_FILTER_FOR_DATA = 0;
 constexpr int FILTER_OPERATION_DATA = 1;
 constexpr int FILTER_KERNEL_DATA = 2;
 const std::string TENSOR_TASK = "tensor";
-const std::string STATS_TASK = "stats";
+const std::string STATS_TASK = "statistics";
 const std::string ALL_TASK = "all";
 const std::string INTENSOR_PREFIX = "intensor";
 const std::string OUTTENSOR_PREFIX = "outtensor";
@@ -773,7 +773,7 @@ static void ReportTensorStats(std::string &statsFilePath, const std::string &sta
             return;
         }
 
-        const std::string csvHead = std::string("Device And PID,Execution Count,Op Name,Op Type,Op Id,") +
+        const std::string csvHead = std::string("Device and PID,Execution Count,Op Name,Op Type,Op Id,") +
                                     "Input/Output,Index,Dtype,Format,Shape,Max,Min,Mean,Norm,Tensor Path";
         statsFile << csvHead << std::endl;
         if (!statsFile.good()) {
@@ -886,7 +886,7 @@ void SetTaskValue(const nlohmann::json &config)
     }
     if (std::find(VALID_TASKS.begin(), VALID_TASKS.end(), g_task) == VALID_TASKS.end()) {
         AIT_LOG_WARNING(std::string("Invalid task in ATB dump configuration file, should be one of: ") +
-                        "\"tensor\", \"stats\", \"all\". As a result, it would be set to \"tensor\"");
+                        "\"tensor\", \"statistics\", \"all\". As a result, it would be set to \"tensor\"");
     }
 }
 
