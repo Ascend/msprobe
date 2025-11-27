@@ -135,6 +135,7 @@ class ConstManager:
     MAGIC_KEY_WORD = 'magic'
     MAGIC_NUM = 0x5a5a5a5a
     INVALID_ID = 65535
+    STATUS_LEN = 4
 
     # algorithm
     FLOAT_EPSILON = np.finfo(float).eps

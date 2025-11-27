@@ -317,7 +317,10 @@ class OpDebugInfoParser:
                 debug_info[item] = hex(debug_info[item])
 
     @staticmethod
-    def _check_acc_debug_info(acc_debug_info: dict) -> None:
+    def is_david_type(acc_type: str, version: int):
+        return acc_type in ("AIC", "AIV") and version == 1
+
+    def _check_acc_debug_info(self, acc_debug_info: dict, version: int) -> None:
         if acc_debug_info.get('valid') != 1:
             log.print_error_log('The value of valid in the OpDebug file is {}, it is not 1'
                                 .format(acc_debug_info.get('valid')))
@@ -329,7 +332,11 @@ class OpDebugInfoParser:
 
         expect_data_len = 0
         if acc_type in ConstManager.DEBUG_INFO_MAP.keys():
-            expect_data_len = len(ConstManager.DEBUG_INFO_MAP.get(acc_type))
+            if self.is_david_type(acc_type, version):
+                # david 上 status多3个长度
+                expect_data_len = len(ConstManager.DEBUG_INFO_MAP.get(acc_type)) + 3
+            else:
+                expect_data_len = len(ConstManager.DEBUG_INFO_MAP.get(acc_type))
         expect_data_len *= ConstManager.UINT64_SIZE
 
         real_data_len = acc_debug_info.get('data_len')
@@ -339,19 +346,25 @@ class OpDebugInfoParser:
 
     def parse_op_debug_new_version(self: any) -> dict:
         op_debug = {}
+
+        # 先解析所有 UINT32 字段（包括 version）
         for idx, key in enumerate(ConstManager.OVERFLOW_DEBUG):
-            index = idx * ConstManager.UINT32_SIZE
             if key == 'acc_list':
-                value = self._parse_acc_debug_info(index)
-            else:
-                value = self.unpack_uint_value(self.data, index, 'UINT32')
+                continue
+            index = idx * ConstManager.UINT32_SIZE
+            value = self.unpack_uint_value(self.data, index, 'UINT32')
             op_debug[key] = value
+        version = op_debug.get('version', None)
+        
+        # 再解析 acc_list
+        acc_index = ConstManager.OVERFLOW_DEBUG.index('acc_list') * ConstManager.UINT32_SIZE
+        op_debug['acc_list'] = self._parse_acc_debug_info(acc_index, version)
 
         magic_key = ConstManager.MAGIC_KEY_WORD
         op_debug[magic_key] = hex(op_debug.get(magic_key))
         return op_debug
 
-    def _parse_acc_debug_info(self: any, start: int) -> dict:
+    def _parse_acc_debug_info(self: any, start: int, version: int) -> dict:
         acc_debug_info = {}
         acc_type = 0
         data_index = 0
@@ -368,19 +381,45 @@ class OpDebugInfoParser:
                 value = self.unpack_uint_value(self.data, index, 'UINT32')
                 acc_debug_info[key] = value
 
-        self._check_acc_debug_info(acc_debug_info)
-        acc_debug_info['data'] = self._parse_debug_info(data_index, acc_type)
+        self._check_acc_debug_info(acc_debug_info, version)
+        acc_debug_info['data'] = self._parse_debug_info(data_index, acc_type, version)
         return acc_debug_info
 
-    def _parse_debug_info(self: any, start: int, acc_type: int) -> dict:
+    def _parse_david_debug_info(self, data_names: tuple, start: int) -> dict:
+        """解析 David AIC/AIV """
+        debug_info = {}
+        for idx, key in enumerate(data_names):
+            if key == 'status':
+                debug_info[key] = self._parse_david_status_field(start, idx)
+            else:
+                index = start + idx * ConstManager.UINT64_SIZE
+                debug_info[key] = self.unpack_uint_value(self.data, index, 'UINT64')
+        return debug_info
+
+    def _parse_david_status_field(self, start: int, idx: int) -> list:
+        """解析 David status 字段为4个长度"""
+        base_index = start + idx * ConstManager.UINT64_SIZE
+        return [
+            self.unpack_uint_value(self.data, base_index + i * ConstManager.UINT64_SIZE, 'UINT64')
+            for i in range(ConstManager.STATUS_LEN)
+        ]
+
+    def _parse_normal_debug_info(self, data_names: tuple, start: int) -> dict:
+        """解析普通类型字段"""
+        return {
+            key: self.unpack_uint_value(self.data, start + idx * ConstManager.UINT64_SIZE, 'UINT64')
+            for idx, key in enumerate(data_names)
+        }
+
+    def _parse_debug_info(self: any, start: int, acc_type: str, version: int) -> dict:
         data_names = []
         if acc_type in ConstManager.DEBUG_INFO_MAP.keys():
             data_names = ConstManager.DEBUG_INFO_MAP.get(acc_type)
 
         debug_info = {}
-        for idx, key in enumerate(data_names):
-            index = start + idx * ConstManager.UINT64_SIZE
-            value = self.unpack_uint_value(self.data, index, 'UINT64')
-            debug_info[key] = value
+        if self.is_david_type(acc_type, version):
+            debug_info = self._parse_david_debug_info(data_names, start)
+        else:
+            debug_info = self._parse_normal_debug_info(data_names, start)
         self._change_debug_info_fomat(debug_info)
         return debug_info
