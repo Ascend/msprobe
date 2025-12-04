@@ -4,6 +4,7 @@
 Function:
 NpuVsNpuComparison class. This class mainly involves the compare function.
 """
+import numpy as np
 
 from cmp_utils import utils
 from cmp_utils import common
@@ -18,6 +19,7 @@ from cmp_utils.constant.compare_error import CompareError
 from overflow.overflow_detection import OverflowDetection
 from dump_parse.ffts_parser import FFTSParser
 from dump_parse import dump_utils
+from conversion.tensor_conversion import ConvertSingleTensorFormat 
 
 
 class NpuVsNpuComparison:
@@ -32,6 +34,8 @@ class NpuVsNpuComparison:
         self.algorithm_manager = algorithm_manager
         self.op_name = fusion_op_list[0].op_name
         self.overflow_detection = overflow_detection
+        self.enable_padding_restore = True # 预留用于控制是否开启补齐恢复
+        self._tensor_converter = ConvertSingleTensorFormat()
 
     def check_tensor_valid(self: any, my_output_tensor_list: any, ground_truth_tensor_list: any,
                            tensor_type: str) -> (int, str):
@@ -50,6 +54,26 @@ class NpuVsNpuComparison:
         message = '[%s] There is no %s. Skip the %s:%s.' % (self.op_name, tensor_type, self.op_name, tensor_type)
         log.print_info_log(message)
         return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
+
+    def _restore_tensor_data_if_needed(self, tensor: Tensor):
+        """
+        根据开关决定是否对 tensor 做格式转换 + 按 original_shape 切掉 padding。
+        """
+        if not self._tensor_converter:
+            return tensor.data
+
+        try:
+            # ConvertSingleTensorFormat.__call__ 返回的是 np.ndarray
+            restored = self._tensor_converter(tensor)
+        except CompareError as ee:
+            # 出错时回退到原始数据，保证比对流程不中断
+            log.print_error_log(ee)
+            return tensor.data
+        except Exception as ee:  # 兜底
+            log.print_error_log(ee)
+            return tensor.data
+
+        return restored
 
     def compare(self: any) -> (int, bool, list):
         """
@@ -212,10 +236,28 @@ class NpuVsNpuComparison:
     def _compare_by_one_tensor(self: any, my_output_dump_data: Tensor, ground_truth_dump_data: Tensor,
                                my_output_tensor: any, ground_truth_tensor: any) -> (list, list):
         error_msg = []
+        tensor_id = f"{self.op_name}_TENSOR"
+
         # 1. deserialize output data to array
         if my_output_tensor and ground_truth_tensor:
-            my_output_data_array = my_output_tensor.data
-            ground_truth_data_array = ground_truth_tensor.data
+            if self.enable_padding_restore:
+
+                restored_left = self._restore_tensor_data_if_needed(my_output_tensor)
+                restored_right = self._restore_tensor_data_if_needed(ground_truth_tensor)
+
+                # 强制 numpy flatten，避免后端 compare 出现 numpy bool 错误
+                my_output_data_array = np.asarray(restored_left).astype(np.float32).flatten()
+                ground_truth_data_array = np.asarray(restored_right).astype(np.float32).flatten()
+
+                # 若长度不一致，直接报 warning，方便定位问题
+                if my_output_data_array.shape != ground_truth_data_array.shape:
+                    message = f"[{tensor_id}] Shape mismatch after restore: " \
+                              f"{my_output_data_array.shape} vs {ground_truth_data_array.shape}"
+                    log.print_warn_log(message)
+                    raise CompareError(CompareError.MSACCUCMP_INVALID_SHAPE_ERROR, message)
+            else:
+                my_output_data_array = my_output_tensor.data.flatten()
+                ground_truth_data_array = ground_truth_tensor.data.flatten()
         else:
             return self.algorithm_manager.make_nan_result(), error_msg
         

@@ -45,6 +45,29 @@ class TestUtilsMethods(unittest.TestCase):
         return op_output
 
     @staticmethod
+    def _fake_listdir(path):
+        # 内置格式转换脚本目录
+        if 'builtin_format_convert' in path:
+            return ['convert_NC1HWC0_to_NCHW.py']
+
+        # 左侧 dump 目录（my_dump_path）
+        if path.startswith('/home/demo'):
+            return [
+                'xxxx.conv1conv1_relu.0.1111111111111111',
+                'xxxx.ccccc.0.1111111111111111'
+            ]
+
+        # 右侧 dump 目录（golden_dump_path）
+        if path.startswith('/home/dt'):
+            return [
+                'xxxx.conv1conv1_relu.0.1111111111111111',
+                'xxxx.ddddd.0.1111111111111111'
+            ]
+
+        # 其余情况：算法脚本目录
+        return ['alg_CosineSimilarity.py']
+
+    @staticmethod
     def _make_op_input(dd_format, shape):
         op_input = OpInput()
         op_input.data_type = DD.DT_FLOAT
@@ -1163,15 +1186,9 @@ class TestUtilsMethods(unittest.TestCase):
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
-                 mock.patch('os.access', return_value=True), \
-                 mock.patch('os.remove'), \
-                 mock.patch('os.listdir',
-                            side_effect=[['alg_CosineSimilarity.py'],
-                                         ['xxxx.conv1conv1_relu.0.1111111111111111',
-                                          'xxxx.ccccc.0.1111111111111111'],
-                                         ['xxxx.conv1conv1_relu.0.1111111111111111',
-                                          'xxxx.ddddd.0.1111111111111111'],
-                                         ['convert_NC1HWC0_to_NCHW.py']]), \
+                mock.patch('os.access', return_value=True), \
+                mock.patch('os.remove'), \
+                mock.patch('os.listdir', side_effect=self._fake_listdir), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
                  mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data), \
@@ -1226,15 +1243,9 @@ class TestUtilsMethods(unittest.TestCase):
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
-                 mock.patch('os.access', return_value=True), \
-                 mock.patch('os.remove'), \
-                 mock.patch('os.listdir',
-                            side_effect=[['alg_CosineSimilarity.py'],
-                                         ['xxxx.conv1conv1_relu.0.1111111111111111',
-                                          'xxxx.ccccc.0.1111111111111111'],
-                                         ['xxxx.conv1conv1_relu.0.1111111111111111',
-                                          'xxxx.ddddd.0.1111111111111111'],
-                                         ['convert_NC1HWC0_to_NCHW.py']]), \
+                mock.patch('os.access', return_value=True), \
+                mock.patch('os.remove'), \
+                mock.patch('os.listdir', side_effect=self._fake_listdir), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
                  mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data), \
@@ -1286,15 +1297,9 @@ class TestUtilsMethods(unittest.TestCase):
         result = [[0, True, "data&message"]]
         with mock.patch('sys.argv', args):
             with mock.patch('os.path.exists', return_value=True), \
-                 mock.patch('os.access', return_value=True), \
-                 mock.patch('os.remove'), \
-                 mock.patch('os.listdir',
-                            side_effect=[['alg_CosineSimilarity.py'],
-                                         ['xxxx.conv1conv1_relu.0.1111111111111111',
-                                          'xxxx.ccccc.0.1111111111111111'],
-                                         ['xxxx.conv1conv1_relu.0.1111111111111111',
-                                          'xxxx.ddddd.0.1111111111111111'],
-                                         ['convert_NC1HWC0_to_NCHW.py']]), \
+                mock.patch('os.access', return_value=True), \
+                mock.patch('os.remove'), \
+                mock.patch('os.listdir', side_effect=self._fake_listdir), \
                  mock.patch('os.path.isdir', return_value=True), \
                  mock.patch('os.path.isfile', return_value=True), \
                  mock.patch('dump_parse.dump_utils.parse_dump_file', return_value=dump_data), \
