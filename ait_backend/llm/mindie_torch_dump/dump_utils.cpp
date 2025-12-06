@@ -15,13 +15,14 @@
  */
 
 #include "dump_utils.h"
+
+#include <unistd.h>
 #include <iostream>
 #include <string>
 #include <climits>
 #include <dlfcn.h>
 #include <sys/stat.h>
 #include "ait_logger.h"
-#include "utils.h"
 
 using FuncPtr1 = int (*)();
 using FuncPtr2 = int (*)(const char *);
@@ -92,11 +93,12 @@ void DumpUtils::SetDump()
         AIT_LOG_ERROR("[mindie-dump]Library absolute path got failed.");
         return;
     }
-    libAscendclsoPath = GetRealPath(libAscendclsoPath);
-    if (!Exists(libAscendclsoPath)) {
-        AIT_LOG_ERROR("No such file: " + libAscendclsoPath);
-        return;
-    }
+
+    struct stat fileStat;
+    if (stat(libAscendclsoPath.c_str(), &fileStat) != 0) { return; }
+    if (getuid() != 0 && fileStat.st_uid != getuid()) { return; }
+    mode_t permissions = fileStat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+    if ((permissions & (S_IWGRP | S_IWOTH)) > 0) { return; }
 
     void* handle = dlopen(libAscendclsoPath.c_str(), RTLD_LAZY);
     if (!handle) {
@@ -139,11 +141,11 @@ void DumpUtils::FinalizeDump()
         return;
     }
 
-    libAscendclsoPath = GetRealPath(libAscendclsoPath);
-    if (!Exists(libAscendclsoPath)) {
-        AIT_LOG_ERROR("No such file: " + libAscendclsoPath);
-        return;
-    }
+    struct stat fileStat;
+    if (stat(libAscendclsoPath.c_str(), &fileStat) != 0) { return; }
+    if (getuid() != 0 && fileStat.st_uid != getuid()) { return; }
+    mode_t permissions = fileStat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+    if ((permissions & (S_IWGRP | S_IWOTH)) > 0) { return; }
 
     void* handle = dlopen(libAscendclsoPath.c_str(), RTLD_LAZY);
     if (!handle) {

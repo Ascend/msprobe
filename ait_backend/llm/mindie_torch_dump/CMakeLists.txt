@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_SKIP_RPATH TRUE)
 set(AIT_LOGGER_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../ait_logger)
-set(AIT_UTILS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../utils)
 
 add_compile_options(-fPIE -fstack-protector-all -ftrapv -fPIC -Wall -Wfatal-errors -O2)
 add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
@@ -17,16 +16,8 @@ SET(ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 # 设置头文件目录
 include_directories(${AIT_LOGGER_PATH})
-include_directories(${AIT_UTILS_PATH})
 
-add_library(mindiedump SHARED
-    ${ROOT_DIR}/dump_utils.cpp
-    ${AIT_LOGGER_PATH}/ait_logger.cpp
-    ${AIT_UTILS_PATH}/utils.cpp
-    ${AIT_UTILS_PATH}/safety_guard.cpp
-    ${AIT_UTILS_PATH}/file.cpp
-)
-
+add_library(mindiedump SHARED ${ROOT_DIR}/dump_utils.cpp ${AIT_LOGGER_PATH}/ait_logger.cpp)
 set_property(TARGET mindiedump PROPERTY CXX_STANDARD 11)
 
 target_link_options(mindiedump PRIVATE
