@@ -1,0 +1,150 @@
+.app-container {
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-splitter {
+  height: 100%;
+  width: 100%;
+}
+
+.controls-panel {
+  background-color: #f4f4f4;
+}
+
+.controls-panel-space {
+  padding-top: 15px;
+}
+
+.controls-panel-space-divider {
+  width: 300px;
+  margin: 0;
+  border-color: #000000;
+}
+
+.controls-panel-space-mode-text {
+  width: 150px;
+  font-size: 15px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.change-mode-button {
+  width: 150px;
+}
+
+.segmented-div {
+  width: 300px;
+}
+
+.set-graph-button {
+  width: 300px;
+}
+
+.change-whole-graph-button {
+  width: 300px;
+}
+
+.anchor-line-id-input {
+  width: 150px;
+}
+
+.set-anchor-button {
+  width: 150px;
+}
+
+.focus-node-line-id-input {
+  width: 150px;
+}
+
+.focus-node-button {
+  width: 150px;
+}
+
+.up-compare-button {
+  width: 300px;
+}
+
+.down-compare-button {
+  width: 300px;
+}
+
+.replace-equal-subgraph-button {
+  width: 300px;
+}
+
+.del-nodes-button {
+  width: 300px;
+}
+
+.del-edges-button {
+  width: 300px;
+}
+
+.set-second-level-anchor-button {
+  width: 300px;
+}
+
+.del-second-level-anchor-button {
+  width: 300px;
+}
+
+.legends-panel-space {
+  padding-top: 8px;
+}
+
+.default-node-legend-div {
+  width: 20px;
+  height: 20px;
+  background-color: var(--default-node-color);
+  border-radius: 50%;
+}
+
+.selected-node-legend-div {
+  width: 20px;
+  height: 20px;
+  background-color: var(--selected-node-color);
+  border-radius: 50%;
+}
+
+.match-node-legend-div {
+  width: 20px;
+  height: 20px;
+  background-color: var(--match-node-color);
+  border-radius: 50%;
+}
+
+.mismatch-node-legend-div {
+  width: 20px;
+  height: 20px;
+  background-color: var(--mismatch-node-color);
+  border-radius: 50%;
+}
+
+.anchor-node-legend-div {
+  width: 20px;
+  height: 20px;
+  background-color: var(--anchor-node-color);
+  border-radius: 50%;
+}
+
+.network-splitter-panel {
+  position: relative;
+}
+
+.network-div {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.zoom-scale-div {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0,0,0,0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+}

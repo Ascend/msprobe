@@ -1,0 +1,11 @@
+node_modules/
+__pycache__/
+*.egg-info/
+dist/
+build/
+
+package-lock.json
+
+backend/static/index.css
+backend/static/index.html
+backend/static/index.js

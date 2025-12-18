@@ -1,0 +1,4523 @@
+{
+  "aclnnAdaptiveMaxPool3d": [
+    "self（aclTensor，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "outputOut（aclTensor*，计算输出）",
+    "indicesOut（aclTensor*，计算输出）"
+  ],
+  "aclnnAdaptiveMaxPool3dBackward": [
+    "gradOutput（aclTensor *， 计算输入）",
+    "self（aclTensor *， 计算输入）",
+    "indices（aclTensor *， 计算输入）",
+    "gradInput（aclTensor *， 计算输出）"
+  ],
+  "aclnnAcos": [
+    "input (aclTensor*, 计算输入)",
+    "out (aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceAcos": [
+    "inputRef(aclTensor*, 计算输入|计算输出)"
+  ],
+  "aclnnAcosh": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnInplaceAcosh": [
+    "selfRef（aclTensor*, 计算输入|计算输出）"
+  ],
+  "aclnnAdaptiveMaxPool2d": [
+    "self(aclTensor*, 计算输入)",
+    "outputSize(aclIntArray*, 计算输入)",
+    "outputOut(aclTensor *, 计算输出)",
+    "indicesOut(aclTensor *, 计算输出)"
+  ],
+  "aclnnAdd": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "alpha(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceAdd": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclTensor*, 计算输入)",
+    "alpha(aclScalar*, 计算输入)"
+  ],
+  "aclnnAdaptiveMaxPool2dBackward": [
+    "gradOutput（aclTensor *， 计算输入）",
+    "self（aclTensor *， 计算输入）",
+    "indices（aclTensor *， 计算输入）",
+    "gradInput（aclTensor *，计算输出）"
+  ],
+  "aclnnAdaptiveAvgPool2d": [
+    "self(aclTensor*, 计算输入)",
+    "outputSize(aclIntArray*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAdaptiveAvgPool3dBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAdaptiveAvgPool3d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize(aclIntArray*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAdaptiveAvgPool2dBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor *, 计算输入)",
+    "out (aclTensor*, 计算输出)"
+  ],
+  "aclnnAbs": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnAddbmm": [
+    "self（aclTensor*,计算输入）",
+    "batch1（aclTensor*,计算输入）",
+    "batch2（aclTensor*,计算输入）",
+    "beta（aclScalar*,计算输入）",
+    "alpha（aclScalar*,计算输入）",
+    "out（aclTensor*，计算输出）",
+    "cubeMathType（INT8，计算输入）"
+  ],
+  "aclnnInplaceAddbmm": [
+    "selfRef（aclTensor*，计算输入|计算输出）",
+    "batch1（aclTensor*,计算输入）",
+    "batch2（aclTensor*,计算输入）",
+    "beta（aclScalar*,计算输入）",
+    "alpha（aclScalar*,计算输入）",
+    "cubeMathType（INT8，计算输入）"
+  ],
+  "aclnnAddcdiv": [
+    "self（aclTensor*, 计算输入）",
+    "tensor1（aclTensor*, 计算输入）",
+    "tensor2（aclTensor*, 计算输入）",
+    "value（aclScalar*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnInplaceAddcdiv": [
+    "selfRef（aclTensor*, 计算输入/输出）",
+    "tensor1（aclTensor*, 计算输入）",
+    "tensor2（aclTensor*, 计算输入）",
+    "value（aclScalar*, 计算输入）"
+  ],
+  "aclnnAminmax": [
+    "self(aclTensor*, 计算输入)",
+    "dim(aclIntArray*, 计算输入)",
+    "keepDim(bool, 计算输入)",
+    "minOut(aclTensor*, 计算输出)",
+    "maxOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnAddmmWeightNz": [
+    "self（aclTensor*，计算输入）",
+    "mat1（aclTensor*，计算输入）",
+    "mat2（aclTensor*，计算输入）",
+    "beta(β)(aclScalar，计算输入)",
+    "alpha(α)(aclScalar，计算输入)",
+    "out（aclTensor*，计算输出）",
+    "cubeMathType（int8_t，计算输入）"
+  ],
+  "aclnnAmin": [
+    "self(aclTensor*, 计算输入)",
+    "dim(aclIntArray*, 计算输入)",
+    "keepDim(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAddcmul": [
+    "self（aclTensor*，计算输入）",
+    "tensor1（aclTensor*，计算输入）",
+    "tensor2（aclTensor*，计算输入）",
+    "value（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceAddcmul": [
+    "selfRef（aclTensor*，计算输入/输出）",
+    "tensor1（aclTensor*，计算输入）",
+    "tensor2（aclTensor*，计算输入）",
+    "value（aclScalar*，计算输入）"
+  ],
+  "aclnnAddRelu": [
+    "self(aclTensor*，计算输入)",
+    "other(aclTensor*，计算输入)",
+    "alpha(aclScalar*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceAddRelu": [
+    "selfRef(aclTensor*，计算输入|计算输出)",
+    "other(aclTensor*，计算输入)",
+    "alpha(aclScalar*，计算输入)"
+  ],
+  "aclnnAdds": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "alpha(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAffineGrid": [
+    "theta(aclTensor*, 计算输入)",
+    "size(aclIntArray*, 计算输入)",
+    "alignCorners(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAddmv": [
+    "self(aclTensor*, 计算输入)",
+    "mat(aclTensor*, 计算输入)",
+    "vec(aclTensor*, 计算输入)",
+    "alpha(aclScalar*, 计算输入)",
+    "beta(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "cubeMathType（INT8，计算输入）"
+  ],
+  "aclnnAmax": [
+    "self(aclTensor*, 计算输入)",
+    "dim(aclIntArray*, 计算输入)",
+    "keepDim(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAddr": [
+    "self(aclTensor*, 计算输入)",
+    "vec1(aclTensor*, 计算输入)",
+    "vec2(aclTensor*, 计算输入)",
+    "betaOptional(aclScalar*, 计算输入)",
+    "alphaOptional(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceAddr": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "vec1(aclTensor*, 计算输入)",
+    "vec2(aclTensor*, 计算输入)",
+    "betaOptional(aclScalar*, 计算输入)",
+    "alphaOptional(aclScalar*, 计算输入)"
+  ],
+  "aclnnAminmaxAll": [
+    "self(aclTensor*, 计算输入)",
+    "minOut(aclTensor*, 计算输出)",
+    "maxOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnAll": [
+    "self(aclTensor*, 计算输入)",
+    "dim(aclIntArray*, 计算输入)",
+    "keepdim(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAddmm": [
+    "self（aclTensor*, 计算输入）",
+    "mat1（aclTensor*, 计算输入）",
+    "mat2（aclTensor*, 计算输入）",
+    "beta(β)(aclScalar, 计算输入)",
+    "alpha(α)(aclScalar, 计算输入)",
+    "out（aclTensor*, 计算输出）",
+    "cubeMathType(int8_t，计算输入)"
+  ],
+  "aclnnInplaceAddmm": [
+    "selfRef（aclTensor*, 计算输入|计算输出）",
+    "mat1（aclTensor*, 计算输入）",
+    "mat2（aclTensor*, 计算输入）",
+    "beta(β)(aclScalar, 计算输入)",
+    "alpha(α)(aclScalar, 计算输入)",
+    "cubeMathType(int8_t，计算输入)"
+  ],
+  "aclnnAdvanceStep": [
+    "inputTokens（aclTensor*，计算输入/输出）",
+    "sampledTokenIds（aclTensor*，计算输入）",
+    "inputPositions（aclTensor*，计算输入/输出）",
+    "seqLens（aclTensor*，计算输入/输出）",
+    "slotMapping（aclTensor*，计算输入/输出）",
+    "blockTables（aclTensor*，计算输入）",
+    "numSeqs（int64_t，计算输入）",
+    "numQueries（int64_t，计算输入）",
+    "blockSize（int64_t，计算输入）"
+  ],
+  "aclnnAminmaxDim": [
+    "self(aclTensor*, 计算输入)",
+    "dim(const int64_t 计算输入)",
+    "keepDim(bool, 计算输入)",
+    "minOut(aclTensor*, 计算输出)",
+    "maxOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnAny": [
+    "self(aclTensor*, 计算输入)",
+    "dim(aclIntArray*, 计算输入)",
+    "keepdim(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAsinh": [
+    "input(aclTensor*,计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceAsinh": [
+    "inputRef(aclTensor*，计算输入/输出)"
+  ],
+  "aclnnArange": [
+    "start(aclScalar,计算输入)",
+    "end(aclScalar,计算输入)",
+    "step(aclScalar,计算输入)",
+    "out(aclTensor，计算输出)"
+  ],
+  "aclnnArgMin": [
+    "self(aclTensor*,计算输入)",
+    "dim(int64_t，计算输入)",
+    "keepdim(bool，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnAscendAntiQuant": [
+    "x（aclTensor*，计算输入）",
+    "scale（aclTensor*，计算输入）",
+    "offset（aclTensor*，计算输入）",
+    "dstType（int64_t，计算输入）",
+    "sqrtMode（bool，计算输入）",
+    "y（aclTensor*，计算输出）"
+  ],
+  "aclnnApplyAdamWV2": [
+    "varRef（aclTensor*, 计算输入/计算输出）",
+    "mRef（aclTensor*, 计算输入/计算输出）",
+    "vRef（aclTensor*, 计算输入/计算输出）",
+    "maxGradNormOptionalRef（aclTensor*, 计算输入/计算输出）",
+    "grad（aclTensor*, 计算输入）",
+    "step（aclTensor*, 计算输入）",
+    "lr（float*, 计算输入）",
+    "beta1（float*, 计算输入）",
+    "beta2（float*, 计算输入）",
+    "weightDecay（float*, 计算输入）",
+    "eps（float*, 计算输入）",
+    "amsgrad（bool, 计算输入）",
+    "maximize（bool, 计算输入）"
+  ],
+  "aclnnArgsort": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t*, 计算输入)",
+    "descending(bool*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnAsin": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceAsin": [
+    "selfRef(aclTensor *，计算输入|计算输出)"
+  ],
+  "aclnnApplyTopKTopP": [
+    "logits(aclTensor*, 计算输入)",
+    "p(aclTensor*, 计算输入)",
+    "k(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnApplyFusedEmaAdam": [
+    "grad（aclTensor*，计算输入）",
+    "varRef（aclTensor*，计算输入/输出）",
+    "mRef（aclTensor*，计算输入/输出）",
+    "vRef（aclTensor*，计算输入/输出）",
+    "sRef（aclTensor*，计算输入/输出）",
+    "step（aclTensor*，计算输入）",
+    "lr（double，计算输入）",
+    "emaDecay（double，计算输入）",
+    "beta1（double，计算输入）",
+    "beta2（double，计算输入）",
+    "eps（double，计算输入）",
+    "mode（int64_t，计算输入）",
+    "biasCorrection（bool，计算输入）",
+    "weightDecay（double，计算输入）"
+  ],
+  "aclnnApplyAdamWQuant": [
+    "varRef（const aclTensor*，计算输入/计算输出）",
+    "grad（aclTensor*， 计算输入）",
+    "mRef（aclTensor*， 计算输入/计算输出）",
+    "vRef（aclTensor*， 计算输入/计算输出）",
+    "qmapM（aclTensor*， 计算输入）",
+    "qmapV（aclTensor*， 计算输入）",
+    "absmaxMRef（aclTensor*， 计算输入/计算输出） ",
+    "absmaxVRef（aclTensor*， 计算输入/计算输出） ",
+    "lr（float*, 计算输入）",
+    "beta1（float*, 计算输入）",
+    "beta2（float*, 计算输入）",
+    "weightDecay（float*, 计算输入）",
+    "eps（float*, 计算输入）",
+    "gnormScale（float*, 计算输入）",
+    "blockSize（int64*, 计算输入）",
+    "quantModeOptional（char*, 计算输入）"
+  ],
+  "aclnnAscendQuantV3": [
+    "x（aclTensor*，计算输入）",
+    "scale（aclTensor*，计算输入）",
+    "offset（aclTensor*，计算输入）",
+    "sqrtMode（bool，计算输入）",
+    "roundMode（char*，计算输入）",
+    "dstType（int32_t，计算输入）",
+    "axis（int32_t，计算输入）",
+    "y（aclTensor*，计算输出）"
+  ],
+  "aclnnAtan": [
+    "input(aclTensor*,计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceAtan": [
+    "inputRef(aclTensor*，计算输入|输出)"
+  ],
+  "aclnnArgMax": [
+    "self（aclTensor*, 计算输入）",
+    "dim（int64_t, 计算输入）",
+    "keepdim（bool, 计算输入）",
+    "out（aclTensor*, 计算输入）"
+  ],
+  "aclnnAtan2": [
+    "self(aclTensor*，计算输入)",
+    "other(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceAtan2": [
+    "selfRef(aclTensor * ，计算输入|输出)",
+    "other(aclTensor*，计算输入)"
+  ],
+  "aclnnAscendQuant": [
+    "x（aclTensor*，计算输入）",
+    "scale（aclTensor*，计算输入）",
+    "offset（aclTensor*，计算输入）",
+    "sqrtMode（bool，计算输入）",
+    "roundMode（char*，计算输入）",
+    "dstType（int32_t，计算输入）",
+    "y（aclTensor*，计算输出）"
+  ],
+  "aclnnAtanh": [
+    "input(aclTensor*,计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceAtanh": [
+    "inputRef(aclTensor*，计算输入|输出)"
+  ],
+  "aclnnAttentionUpdate": [
+    "lse（aclTensorList*,计算输入）",
+    "localOut（aclTensorList*,计算输入）",
+    "updateType（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "lseOut（aclTensor*，计算输出）"
+  ],
+  "aclnnAvgPool3d": [
+    "self（aclTensor*,计算输入）",
+    "kernelSize（aclIntArray*,计算输入）",
+    "stride（aclIntArray*,计算输入）",
+    "padding（aclIntArray*,计算输入）",
+    "ceilMode（bool，计算输入）",
+    "countIncludePad（bool，计算输入）",
+    "divisorOverride（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnBackgroundReplace": [
+    "bkg(aclTensor*, 计算输入)",
+    "src(aclTensor*, 计算输入)",
+    "mask(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnBatchNorm": [
+    "input（aclTensor*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "bias（aclTensor*，计算输入）",
+    "runningMean（aclTensor*，计算输入）",
+    "runningVar（aclTensor*，计算输入）",
+    "training（bool，计算输入）",
+    "momentum（double，计算输入）",
+    "eps（double，计算输入）",
+    "output（aclTensor *，计算输出）",
+    "saveMean（aclTensor *，计算输出）",
+    "saveInvstd（aclTensor *，计算输出）"
+  ],
+  "aclnnBaddbmm": [
+    "self(aclTensor*, 计算输入)",
+    "batch1(aclTensor*, 计算输入)",
+    "batch2(aclTensor*, 计算输入)",
+    "beta(aclScalar*,计算输入)",
+    "alpha(aclScalar*,计算输入)",
+    "out(aclTensor *, 计算输出)",
+    "cubeMathType（INT8，计算输入）"
+  ],
+  "aclnnInplaceBaddbmm": [
+    "selfRef(aclTensor*, 计算输入/输出)",
+    "batch1(aclTensor*, 计算输入)",
+    "batch2(aclTensor*, 计算输入)"
+  ],
+  "aclnnAvgPool2d": [
+    "self（aclTensor*，计算输入）",
+    "kernelSize（aclIntArray*，计算输入）",
+    "strides（aclIntArray*，计算输入）",
+    "paddings（aclIntArray*，计算输入）",
+    "ceilMode（bool，计算输入）",
+    "countIncludePad（bool，计算输入）",
+    "divisorOverride（int64_t，计算输入）",
+    "cubeMathType（INT8，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnAvgPool2dBackward": [
+    "gradOutput（aclTensor *， 计算输入）",
+    "self（aclTensor *，计算输入）",
+    "kernelSize（aclIntArray *，计算输入）",
+    "stride（aclIntArray *，计算输入）",
+    "padding（aclIntArray *，计算输入）",
+    "ceilMode（bool，计算输入）",
+    "countIncludePad（bool，计算输入）",
+    "divisorOverride（int64_t，计算输入）",
+    "cubeMathType（INT8，计算输入）",
+    "gradInput（aclTensor *，计算输出）"
+  ],
+  "aclnnAvgPool3dBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "kernelSize（aclIntArray*,计算输入）",
+    "stride（aclIntArray*,计算输入）",
+    "padding（aclIntArray*,计算输入）",
+    "ceilMode（bool，计算输入）",
+    "countIncludePad（bool，计算输入）",
+    "divisorOverride（int64_t，计算输入）",
+    "output（aclTensor *，计算输出）"
+  ],
+  "aclnnBatchMatMul": [
+    "self（aclTensor*，计算输入）",
+    "mat2（aclTensor*，计算输入）",
+    "out（aclTensor *，计算输出）",
+    "cubeMathType（INT8，计算输入）"
+  ],
+  "aclnnBatchNormElemt": [
+    "input（aclTensor*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "bias（aclTensor*，计算输入）",
+    "mean（aclTensor *，计算输入）",
+    "invstd（aclTensor *，计算输入）",
+    "eps（double，计算输入）",
+    "output（aclTensor *，计算输出）"
+  ],
+  "aclnnBatchNormBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "input（aclTensor*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "runningMean（aclTensor*，计算输入）",
+    "runningVar（aclTensor*，计算输入）",
+    "saveMean（aclTensor*，计算输入）",
+    "saveInvstd（aclTensor*，计算输入）",
+    "training（bool，计算输入）",
+    "eps（double，计算输入）",
+    "outputMask（aclBoolArray *，计算输入）",
+    "gradInput（aclTensor *，出参）",
+    "gradWeight（aclTensor *，出参）",
+    "gradBias（aclTensor *，出参）"
+  ],
+  "aclnnBatchNormElemtBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "input（aclTensor*，计算输入）",
+    "mean（aclTensor*，计算输入）",
+    "invstd（aclTensor*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "sumDy（aclTensor*，计算输入）",
+    "sumDyXmu（aclTensor*，计算输入）",
+    "counter（aclTensor*，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnBatchMatmulQuant": [
+    "x1(aclTensor*, 计算输入)",
+    "x2(aclTensor*, 计算输入)",
+    "bias(aclTensor*, 计算输入)",
+    "quantParam(aclTensor*, 计算输入)",
+    "transposeX1(bool, 计算输入)",
+    "transposeX2(bool, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnBatchMatMulWeightNz": [
+    "self（aclTensor*，计算输入）",
+    "mat2（aclTensor*，计算输入）",
+    "out（aclTensor *，计算输出）",
+    "cubeMathType（INT8，计算输入）"
+  ],
+  "aclnnBatchNormGatherStatsWithCounts": [
+    "input（aclTensor*，计算输入）",
+    "mean（aclTensor*，计算输入）",
+    "invstd（aclTensor*，计算输入）",
+    "runningMean（aclTensor*，计算输入）",
+    "runningVar（aclTensor*，计算输入）",
+    "momentum（double，计算输入）",
+    "eps（double，计算输入）",
+    "counts（aclTensor*，计算输入）",
+    "meanAll（aclTensor*，计算输出）",
+    "invstdAll（aclTensor*，计算输出）"
+  ],
+  "aclnnBatchNormReduceBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "input（aclTensor*，计算输入）",
+    "mean（aclTensor*，计算输入）",
+    "invstd（aclTensor*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "inputG（bool，计算输入）",
+    "weightG（bool，计算输入）",
+    "biasG（bool，计算输入）",
+    "sumDy（aclTensor*，计算输出）",
+    "sumDyXmu（aclTensor*，计算输出）",
+    "gradWeight（aclTensor*，计算输出）",
+    "gradBias（aclTensor*，计算输出）"
+  ],
+  "aclnnBernoulli": [
+    "self（aclTensor*，计算输入）",
+    "prob（aclScalar*，计算输入）",
+    "seed（int64_t，计算输入）",
+    "offset（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceBernoulli": [
+    "selfRef（aclTensor*，计算输入/输出）",
+    "prob（aclScalar*，计算输入）",
+    "seed（int64_t，计算输入）",
+    "offset（int64_t，计算输入）"
+  ],
+  "aclnnBatchNormStats": [
+    "input(aclTensor *, 计算输入)",
+    "eps(double, 计算输入)",
+    "mean(aclTensor *, 计算输出)",
+    "invstd(aclTensor *, 计算输出)"
+  ],
+  "aclnnBinaryCrossEntropyWithLogitsBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "weightOptional(aclTensor*, 计算输入)",
+    "posWeightOptional(aclTensor*, 计算输入)",
+    "reduction(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnBinaryCrossEntropyBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor *, 计算输入)",
+    "target(aclTensor *, 计算输入)",
+    "weightOptional(aclTensor *, 计算输入)",
+    "reduction(int64_t, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnBitwiseAndTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnBitwiseNot": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnBinaryCrossEntropyWithLogitsTargetBackward": [
+    "gradOutput(aclTensor *, 计算输入)",
+    "self(aclTensor *, 计算输入)",
+    "target(aclTensor *, 计算输入)",
+    "weightOptional(aclTensor *, 计算输入)",
+    "posWeightOptional(aclTensor *, 计算输入)",
+    "reduction(int64_t, 计算输入)",
+    "gradTarget(aclTensor*, 计算输出)"
+  ],
+  "aclnnBernoulliTensor": [
+    "self（aclTensor*，计算输入）",
+    "prob（aclTensor*，计算输入）",
+    "seed（int64_t，计算输入）",
+    "offset（int64_t，计算输入）",
+    "out（aclTensor*,计算输出）"
+  ],
+  "aclnnInplaceBernoulliTensor": [
+    "selfRef（aclTensor*，计算输入/输出）",
+    "prob（aclTensor*，计算输入）",
+    "seed（int64_t，计算输入）",
+    "offset（int64_t，计算输入）"
+  ],
+  "aclnnBinaryCrossEntropy": [
+    "self（aclTensor*, 计算输入）",
+    "target（aclTensor*, 计算输入）",
+    "weight（aclTensor*, 计算输入）",
+    "reduction（int64_t, 计算输入）",
+    "out（aclTensor *, 计算输出）"
+  ],
+  "aclnnBitwiseOrScalar": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceBitwiseOrScalar": [
+    "selfRef(aclTensor *，计算输入|计算输出)",
+    "other(aclScalar*,计算输入)"
+  ],
+  "aclnnBinaryCrossEntropyWithLogits": [
+    "self(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "weightOptional(aclTensor*, 计算输入)",
+    "posWeightOptional(aclTensor*, 计算输入)",
+    "reduction(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnBitwiseAndScalar": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnBincount": [
+    "self(aclTensor*,计算输入)",
+    "weights(aclTensor*,计算输入)",
+    "minlength(int64_t，计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnBitwiseOrTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceBitwiseOrTensor": [
+    "selfRef(aclTensor *，计算输入|计算输出)",
+    "other(aclTensor*,计算输入)"
+  ],
+  "aclnnBitwiseXorTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceBitwiseXorTensor": [
+    "selfRef(aclTensor *，计算输入|计算输出)",
+    "other(aclTensor*,计算输入)"
+  ],
+  "aclnnBitwiseXorScalar": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceBitwiseXorScalar": [
+    "selfRef(aclTensor *，计算输入和计算输出)",
+    "other(aclScalar*,计算输入)"
+  ],
+  "aclnnBlendImagesCustom": [
+    "rgb(aclTensor*, 计算输入)",
+    "alpha(aclTensor*, 计算输入)",
+    "frame(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnClamp": [
+    "self(aclTensor*, 计算输入)",
+    "clipValueMin(aclScalar*, 计算输入)",
+    "clipValueMax(aclScalar*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnCat": [
+    "tensors(aclTensorList*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnChamferDistanceBackward": [
+    "xyz1（aclTensor*, 计算输入）",
+    "xyz2（aclTensor*, 计算输入）",
+    "idx1（aclTensor*, 计算输入）",
+    "idx2（aclTensor*, 计算输入）",
+    "gradDist1（aclTensor*, 计算输入）",
+    "gradDist2（aclTensor*, 计算输出）",
+    "gradXyz1（aclTensor*, 计算输出）",
+    "gradXyz2（aclTensor*, 计算输出）"
+  ],
+  "aclnnCast": [
+    "self(aclTensor*, 计算输入)",
+    "dtype(const aclDataType, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnCircularPad3d": [
+    "self（aclTensor*, 计算输入）",
+    "padding（aclIntArray*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnCircularPad3dBackward": [
+    "gradOutput（aclTensor*, 计算输入）",
+    "self（aclTensor*，计算输入）",
+    "padding（aclIntArray*，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnCircularPad2d": [
+    "self（aclTensor*, 计算输入）",
+    "padding（aclIntArray*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnCelu": [
+    "self(aclTensor*, 计算输入)",
+    "alpha(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceCelu": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "alpha(aclScalar*, 计算输入)"
+  ],
+  "aclnnCircularPad2dBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "padding（aclIntArray*，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnCeil": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceCeil": [
+    "selfRef(aclTensor *，计算输入|计算输出)"
+  ],
+  "aclnnClampMax": [
+    "self(aclTensor*,计算输入)",
+    "clipValueMax(aclScalar*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceClampMax": [
+    "selfRef(aclTensor*,计算输入|计算输出)",
+    "clipValueMax(aclScalar*,计算输入)"
+  ],
+  "aclnnChannelShuffle": [
+    "self(aclTensor*, 计算输入)",
+    "groups(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnClampMaxTensor": [
+    "self(aclTensor*, 计算输入)",
+    "max(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceClampMaxTensor": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "max(aclTensor*, 计算输入)"
+  ],
+  "aclnnClampTensor": [
+    "self(aclTensor*,计算输入)",
+    "clipValueMin(aclTensor*,计算输入)",
+    "clipValueMax(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnComplex": [
+    "real(aclTensor*, 计算输入)",
+    "imag(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnQuantConvolution": [
+    "input（aclTensor *，计算输入）",
+    "weight（aclTensor *，计算输入）",
+    "bias（aclTensor *，计算输入）",
+    "scale（aclTensor*，计算输入）",
+    "offset（aclTensor*，计算输入）",
+    "stride（aclIntArray *，计算输入）",
+    "padding（aclIntArray *，计算输入）",
+    "dilation（aclIntArray *，计算输入）",
+    "transposed（bool，计算输入）",
+    "outputPadding（aclIntArray *，计算输入）",
+    "groups（int64_t，计算输入）",
+    "offsetx（int32_t，计算输入）",
+    "roundMode（char *，计算输入）",
+    "output（aclTensor *，计算输出）"
+  ],
+  "aclnnConstantPadNd": [
+    "self(aclTensor*, 计算输入)",
+    "pad(aclIntArray*, 计算输入)",
+    "value(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnClampMin": [
+    "self(aclTensor*,计算输入)",
+    "clipValueMin(aclScalar*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnConvTbc": [
+    "self(aclTensor*, 计算输入)",
+    "weight(aclTensor*, 计算输入)",
+    "bias(aclTensor*, 计算输入)",
+    "pad(int64_t, 计算输入)",
+    "output(aclTensor*, 计算输出)",
+    "cubeMathType(int8_t, 计算输入)"
+  ],
+  "aclnnConvTbcBackward": [
+    "self(aclTensor *，计算输入)",
+    "input(aclTensor *，计算输入)",
+    "weight(aclTensor *，计算输入)",
+    "bias(aclTensor *，计算输入)",
+    "pad(int64_t，计算输入)",
+    "cubeMathType(int8_t，计算输入)",
+    "gradInput(aclTensor *，计算输出)",
+    "gradWeight(aclTensor *，计算输出)",
+    "gradBias(aclTensor *，计算输出)"
+  ],
+  "aclnnCos": [
+    "input(aclTensor *, 计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceCos": [
+    "inputRef(aclTensor *，计算输入|计算输出)"
+  ],
+  "aclnnCosh": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnInplaceCosh": [
+    "selfRef（aclTensor*, 计算输入|计算输出）"
+  ],
+  "aclnnConvDepthwise2d": [
+    "self(aclTensor*, 计算输入)",
+    "weight(aclTensor*, 计算输入)",
+    "kernelSize(aclIntArray*, 计算输入)",
+    "bias(aclTensor*, 计算输入)",
+    "stride(aclIntArray*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "dilation(aclIntArray*, 计算输入)",
+    "out(aclTensor *, 计算输出)",
+    "cubeMathType(int8_t, 计算输入)"
+  ],
+  "aclnnConvolution": [
+    "input(aclTensor *, 计算输入)",
+    "weight(aclTensor *, 计算输入)",
+    "bias(aclTensor *, 计算输入)",
+    "stride(aclIntArray *, 计算输入)",
+    "padding(aclIntArray *, 计算输入)",
+    "dilation(aclIntArray *, 计算输入)",
+    "transposed(bool, 计算输入)",
+    "outputPadding(aclIntArray *, 计算输入)",
+    "groups(int64_t, 计算输入)",
+    "output(aclTensor *, 计算输出)",
+    "cubeMathType(int8_t, 计算输入)"
+  ],
+  "aclnnConvolutionBackward": [
+    "gradOutput(aclTensor *，计算输入)",
+    "input(aclTensor *，计算输入)",
+    "weight(aclTensor *，计算输入)",
+    "biasSizes(aclIntArray *，计算输入)",
+    "stride(aclIntArray *，计算输入)",
+    "padding(aclIntArray *，计算输入)",
+    "dilation(aclIntArray *，计算输入)",
+    "transposed(bool，计算输入)",
+    "outputPadding(aclIntArray *，计算输入)",
+    "groups(int，计算输入)",
+    "outputMask(const aclBoolArray *，计算输入)",
+    "cubeMathType(int8_t，计算输入)",
+    "gradInput(aclTensor *, 计算输出)",
+    "gradWeight(aclTensor *, 计算输出)",
+    "gradBias(aclTensor *, 计算输出)"
+  ],
+  "aclnnConvertWeightToINT4Pack": [
+    "weight（aclTensor*，计算输入）",
+    "weightInt4Pack（aclTensor*，计算输出）"
+  ],
+  "aclnnCrossEntropyLoss": [
+    "input(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "weightOptional(aclTensor*, 计算输入)",
+    "reductionOptional(char*, 计算输入)",
+    "ignoreIndex(int64_t, 计算输入)",
+    "labelSmoothing(double, 计算输入)",
+    "lseSquareScaleForZloss(double, 计算输入)",
+    "returnZloss(bool, 计算输入)",
+    "lossOut(aclTensor*，计算输出)",
+    "logProbOut(aclTensor*，计算输出)",
+    "zlossOut(aclTensor*，计算输出)",
+    "lseForZlossOut(aclTensor*，计算输出)"
+  ],
+  "aclnnCtcLoss": [
+    "logProbs(aclTensor*, 计算输入)",
+    "targets(aclTensor*, 计算输入)",
+    "inputLengths(aclIntArray*, 计算输入)",
+    "targetLengths(aclIntArray*, 计算输入)",
+    "blank(int64_t, 计算输入)",
+    "zeroInfinity(bool, 计算输入)",
+    "negLogLikelihoodOut(aclTensor*, 计算输出)",
+    "logAlphaOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnCtcLossBackward": [
+    "gradOut(aclTensor*, 计算输入)",
+    "logProbs(aclTensor*, 计算输入)",
+    "targets(aclTensor*, 计算输入)",
+    "inputLengths(aclIntArray*, 计算输入)",
+    "targetLengths(aclIntArray*, 计算输入)",
+    "negLogLikelihood(aclTensor*, 计算输入)",
+    "logAlpha(aclTensor*, 计算输入)",
+    "blank(int, 计算输入)",
+    "zeroInfinity(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnDistributeBarrier": [
+    "xRef（aclTensor*，计算输入）",
+    "group（char*，计算输入）",
+    "worldSize（int64_t，计算输入）"
+  ],
+  "aclnnDequantBias": [
+    "x（aclTensor*，计算输入）",
+    "weightScale（aclTensor*，计算输入）",
+    "activateScaleOptional（aclTensor*，计算输入）",
+    "biasOptional（aclTensor*，计算输入）",
+    "outputDtype（uint64_t *，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnCumsum": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "dtype(aclDataType, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnCumsumV2": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnCummin": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "valuesOut(aclTensor*, 计算输出)",
+    "indicesOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnDequantSwigluQuant": [
+    "x（aclTensor*，计算输入）",
+    "weightScaleOptional（aclTensor*，计算输入）",
+    "activationScaleOptional（aclTensor*，计算输入）",
+    "biasOptional（aclTensor*，计算输入）",
+    "quantScaleOptional（aclTensor*，计算输入）",
+    "quantOffsetOptional（aclTensor*，计算输入）",
+    "groupIndexOptional（aclTensor*，计算输入）",
+    "activateLeft（bool，计算输入）",
+    "quantModeOptional（char*，计算输入）",
+    "yOut（aclTensor*，计算输出）",
+    "scaleOut（aclTensor*，计算输出）"
+  ],
+  "aclnnDigamma": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnCummax": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "valuesOut(aclTensor*, 计算输出)",
+    "indicesOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnDiagFlat": [
+    "self（aclTensor*, 计算输入）",
+    "diagonal（int64, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnDiag": [
+    "self(aclTensor*, 计算输入)",
+    "diagonal(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnDeformableConv2d": [
+    "x（aclTensor*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "offset（aclTensor*，计算输入）",
+    "biasOptional（aclTensor*，计算输入）",
+    "kernelSize（aclIntArray*，计算输入）",
+    "stride（aclIntArray*，计算输入）",
+    "padding（aclIntArray*，计算输入）",
+    "dilation（aclIntArray*，计算输入）",
+    "groups（int64_t，计算输入）",
+    "deformableGroups（int64_t，计算输入）",
+    "modulated（bool，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "deformOutOptional（aclTensor*，计算输出）"
+  ],
+  "aclnnCumprod": [
+    "input（aclTensor*, 计算输入）",
+    "dim（aclScalar*, 计算输入）",
+    "dtype（aclDataType, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnInplaceCumprod": [
+    "input（aclTensor*, 计算输入|计算输出）",
+    "dim（aclScalar*, 计算输入）"
+  ],
+  "aclnnDequantRopeQuantKvcache": [
+    "x(aclTensor*，计算输入)",
+    "cos(aclTensor*，计算输入)",
+    "sin(aclTensor*，计算输入)",
+    "kCacheRef(aclTensor*，计算输入)",
+    "vCacheRef(aclTensor*，计算输入)",
+    "indices(aclTensor*，计算输入)",
+    "scaleK(aclTensor*，计算输入)",
+    "scaleV(aclTensor*，计算输入)",
+    "offsetKOptional(aclTensor*，计算输入)",
+    "offsetVOptional(aclTensor*，计算输入)",
+    "weightScaleOptional(aclTensor*，计算输入)",
+    "activationScaleOptional(aclTensor*，计算输入)",
+    "biasOptional(aclTensor*，计算输入)",
+    "sizeSplits(aclIntArray *，计算输入)",
+    "quantModeOptional(char*，计算输入)",
+    "layoutOptional(char*，计算输入)",
+    "kvOutput(bool，计算输入)",
+    "cacheModeOptional(char*，计算输入)",
+    "qOut(aclTensor*，计算输出)",
+    "kOut(aclTensor*，计算输出)",
+    "vOut(aclTensor*，计算输出)"
+  ],
+  "aclnnDiv": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceDiv": [
+    "selfRef(aclTensor*, 计算输入|输出)",
+    "other(aclTensor*, 计算输入)"
+  ],
+  "aclnnDivMod": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "mode(int, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceDivMod": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclTensor*, 计算输入)",
+    "mode(int, 计算输入)"
+  ],
+  "aclnnDivMods": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "mode(int, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceDivMods": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclScalar*, 计算输入)",
+    "mode(int, 计算输入)"
+  ],
+  "aclnnDropoutBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "mask(aclTensor*, 计算输入)",
+    "scale(double, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnDot": [
+    "self(aclTensor*, 计算输入)",
+    "tensor(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnEmbeddingDenseBackward": [
+    "grad(aclTensor*, 计算输入)",
+    "indices(aclTensor*, 计算输入)",
+    "numWeights(uint64_t, 计算输入)",
+    "paddingIdx(uint64_t, 计算输入)",
+    "scaleGradByFreq(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnDropout": [
+    "input(aclTensor*, 计算输入)",
+    "p(double, 计算输入)",
+    "train(bool, 计算输入)",
+    "seed(int64_t, 计算输入)",
+    "offset(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "maskOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnDropoutGenMaskV2Tensor": [
+    "shape（aclIntArray*，计算输入）",
+    "prob（double， 计算输入）",
+    "seedTensor（aclTensor*，计算输入）",
+    "offsetTensor（aclTensor*，计算输入）",
+    "offset（int64_t，计算输入）",
+    "probDataType（aclDataType，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnEmbeddingBag": [
+    "weight(aclTensor*, 计算输入)",
+    "indices(aclTensor*, 计算输入)",
+    "offsets(aclTensor*, 计算输入)",
+    "scaleGradByFreq(bool，计算输入)",
+    "mode(int64_t, 计算输入)",
+    "sparse(bool, 计算输入)",
+    "perSampleWeights(aclTensor*, 计算输入)",
+    "includeLastOffset(bool, 计算输入)",
+    "paddingIdx(int64_t, 计算输入)",
+    "output(aclTensor*, 计算输出)",
+    "offset2bag(aclTensor*, 计算输出)",
+    "bagSize(aclTensor*, 计算输出)",
+    "maxIndices(aclTensor*, 计算输出)"
+  ],
+  "aclnnDropoutGenMask": [
+    "shape(aclIntArray*, 计算输入)",
+    "prob(double, 计算输入)",
+    "seed(int64_t, 计算输入)",
+    "offset(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnDropoutDoMask": [
+    "self(aclTensor*, 计算输入)",
+    "mask(aclTensor*, 计算输入)",
+    "prob(double, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnDynamicBlockQuant": [
+    "x（aclTensor*，计算输入）",
+    "minScale（double，计算输入）",
+    "roundModeOptional（char*，计算输入）",
+    "dstType（int64_t，计算输入）",
+    "rowBlockSize（int64_t，计算输入）",
+    "colBlockSize（int64_t，计算输入）",
+    "yOut（aclTensor*，计算输出）",
+    "scaleOut（aclTensor*，计算输出）"
+  ],
+  "aclnnElu": [
+    "self（aclTensor*，计算输入）",
+    "alpha（aclScalar*，计算输入）",
+    "scale（aclScalar*，计算输入）",
+    "inputScale（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceElu": [
+    "selfRef（aclTensor*，计算输入|输出）",
+    "alpha（aclScalar*，计算输入）",
+    "scale（aclScalar*，计算输入）",
+    "inputScale（aclScalar*，计算输入）"
+  ],
+  "aclnnEmbedding": [
+    "weight(aclTensor*, 计算输入)",
+    "indices(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnEluBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "alpha（aclScalar*，计算输入）",
+    "scale（aclScalar*，计算输入）",
+    "inputScale（aclScalar*，计算输入）",
+    "isResult（bool，计算输入）",
+    "selfOrResult（aclTensor*，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnDropoutGenMaskV2": [
+    "shape(aclIntArray*, 计算输入)",
+    "prob(double, 计算输入)",
+    "seed(int64_t, 计算输入)",
+    "offset(int64_t, 计算输入)",
+    "probDataType(aclDataType, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnEmbeddingRenorm": [
+    "selfRef（aclTensor*，计算输入/输出）",
+    "indices（aclTensor*，计算输入）",
+    "maxNorm（double，计算输入）",
+    "normType（double，计算输入）"
+  ],
+  "aclnnEqTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceEqTensor": [
+    "selfRef（aclTensor*, 计算输入/输出）",
+    "other（aclTensor*, 计算输入）"
+  ],
+  "aclnnEqScalar": [
+    "self（aclTensor*，计算输入）",
+    "other（aclScalar*, 计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceEqScalar": [
+    "selfRef（aclTensor* 计算输入/输出）",
+    "other（aclScalar*, 计算输入）"
+  ],
+  "aclnnEqual": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnErfc": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceErfc": [
+    "selfRef(aclTensor*,计算输入|输出)"
+  ],
+  "aclnnErf": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceErf": [
+    "selfRef(aclTensor *，计算输入|输出)"
+  ],
+  "aclnnFastGelu": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnErfinv": [
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceErfinv": [
+    "selfRef（aclTensor*，计算输入/输出）"
+  ],
+  "aclnnExpand": [
+    "self（aclTensor*，计算输入）",
+    "size（aclIntArray*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnEye": [
+    "n(int64_t, 计算输入)",
+    "m(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnFakeQuantPerChannelAffineCachemask": [
+    "self(aclTensor*, 计算输入)",
+    "scale(aclTensor*, 计算输入)",
+    "zeroPoint(aclTensor*, 计算输入)",
+    "axis(int64_t, 计算输入)",
+    "quantMin(int64_t, 计算输入)",
+    "quantMax(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "mask(aclTensor*, 计算输出)"
+  ],
+  "aclnnExp2": [
+    "self(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceExp2": [
+    "selfRef(aclTensor*，计算输入|计算输出)"
+  ],
+  "aclnnExpm1": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceExpm1": [
+    "selfRef(aclTensor*, 计算输入|计算输出)"
+  ],
+  "aclnnFakeQuantPerTensorAffineCachemask": [
+    "self(aclTensor*, 计算输入)",
+    "scale(aclTensor*, 计算输入)",
+    "zeroPoint(aclTensor*, 计算输入)",
+    "fakeQuantEnbled(float, 计算输入)",
+    "quantMin(int64_t, 计算输入)",
+    "quantMax(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "mask(aclTensor*, 计算输出)"
+  ],
+  "aclnnExp": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceExp": [
+    "selfRef(aclTensor *，计算输入|输出)"
+  ],
+  "aclnnFlatQuant": [
+    "x（aclTensor*，计算输入）",
+    "kroneckerP1（aclTensor*，计算输入）",
+    "kroneckerP2（aclTensor*，计算输入）",
+    "clipRatio（double，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "quantScale（aclTensor*，计算输出）"
+  ],
+  "aclnnFastGeluBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "gradInput(aclTensor*, 计算输出)"
+  ],
+  "aclnnFlatten": [
+    "self(aclTensor*,计算输入)",
+    "axis(int64_t, 计算输入)",
+    "out(aclTensor*,计算输出)"
+  ],
+  "aclnnFlip": [
+    "self(aclTensor*, 计算输入)",
+    "dims(aclIntArray*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnFloorDivide": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceFloorDivide": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclTensor*, 计算输入)"
+  ],
+  "aclnnFloor": [
+    "self(aclTensor*, 计算输入) ",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceFloor": [
+    "selfRef（aclTensor*,  计算输入|计算输出）"
+  ],
+  "aclnnForeachAcos": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnFloorDivides": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceFloorDivides": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclScalar*, 计算输入)"
+  ],
+  "aclnnForeachAbs": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnFmodTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceFmodTensor": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclTensor*, 计算输入)"
+  ],
+  "aclnnForeachAddcmulList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "x3（aclTensorList*，计算输入）",
+    "scalars（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAddcdivScalarList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "x3（aclTensorList*，计算输入）",
+    "scalars（aclTensor *，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnFmodScalar": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceFmodScalar": [
+    "selfRef(aclTensor *，计算输入|计算输出)",
+    "other(aclScalar*,计算输入)"
+  ],
+  "aclnnForeachAddcmulScalarList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "x3（aclTensorList*，计算输入）",
+    "scalars（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAddcdivScalar": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "x3（aclTensorList*，计算输入）",
+    "scalar（aclTensor *，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAddcdivList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "x3（aclTensorList*，计算输入）",
+    "scalars（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAddcdivScalarV2": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "x3（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAddcmulScalar": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "x3（aclTensorList*，计算输入）",
+    "scalar（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAddList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "alpha（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAddScalarList": [
+    "x（aclTensorList *，计算输入）",
+    "scalars（aclScalarList *，计算输入）",
+    "out（aclTensorList *，计算输出）"
+  ],
+  "aclnnForeachAddListV2": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "alpha（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachCopy": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachDivList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAddScalar": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAsin": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachErf": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachDivScalarV2": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachDivScalarList": [
+    "x（aclTensorList*，计算输入）",
+    "scalars（aclScalarList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAtan": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachCos": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachCosh": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachExpm1": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachAddScalarV2": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachLog1p": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachLog10": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMaximumScalar": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMaximumList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachErfc": [
+    "x（aclTensorList*, 计算输入）",
+    "out（aclTensorList*, 计算输出）"
+  ],
+  "aclnnForeachExp": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachDivScalar": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachLerpScalar": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "weight（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMaximumScalarV2": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachLog": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMaximumScalarList": [
+    "x（aclTensorList*，计算输入）",
+    "scalars（aclScalarList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachLog2": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMinimumList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMinimumScalarList": [
+    "x（aclTensorList*，计算输入）",
+    "scalars（aclScalarList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachLerpList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "weight（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMinimumScalar": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachPowScalarAndTensor": [
+    "scalar（aclScalar*，计算输入）",
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMinimumScalarV2": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachNorm": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachNeg": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMulScalar": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachNonFiniteCheckAndUnscale": [
+    "scaledGrads(aclTensorList*，计算输入/输出)",
+    "foundInf(aclTensor*，计算输入/输出)",
+    "invScale(aclTensor*，计算输入)"
+  ],
+  "aclnnForeachPowScalarList": [
+    "x（aclTensorList*，计算输入）",
+    "scalars（aclScalarList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMulList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMulScalarV2": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachPowScalar": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachMulScalarList": [
+    "x（aclTensorList*，计算输入）",
+    "scalars（aclScalarList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachPowList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachReciprocal": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachPowScalarV2": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachRoundOffNumber": [
+    "x（aclTensorList*，计算输入）",
+    "roundMode（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachRoundOffNumberV2": [
+    "x（aclTensorList*，计算输入）",
+    "roundMode（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachZeroInplace": [
+    "x（aclTensorList*, 计算输入&计算输出）"
+  ],
+  "aclnnForeachSign": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachSigmoid": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachSqrt": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachSin": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachTan": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachTanh": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachSinh": [
+    "x（aclTensorList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachSubList": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "alpha（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachSubScalarV2": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachSubListV2": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "alpha（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachSubScalar": [
+    "x（aclTensorList*，计算输入）",
+    "scalar（aclTensor*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnForeachSubScalarList": [
+    "x（aclTensorList*，计算输入）",
+    "scalars（aclScalarList*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnFusedLinearCrossEntropyLossGrad": [
+    "grad(aclTensor*, 计算输入)",
+    "input(aclTensor*, 计算输入)",
+    "weight(aclTensor*, 计算输入)",
+    "targetMask(aclTensor*, 计算输入)",
+    "maskedTarget(aclTensor*, 计算输入)",
+    "labelSmoothing(float, 计算输入)",
+    "logitsMaxOptional(aclTensor*, 可选输入)",
+    "sumExpLogitsOptional(aclTensor*, 可选输入)",
+    "softmaxOptional(aclTensor*, 计算输入)",
+    "inputGradOut(aclTensor*, 计算输出)",
+    "weightGradOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnGeGluV3": [
+    "self(aclTensor *，计算输入)",
+    "dim(int64_t，计算输入)",
+    "approximate(int64_t，计算输入)",
+    "activateLeft(bool，计算输入)",
+    "out(aclTensor *，计算输出)",
+    "outGelu(aclTensor *，计算输出)"
+  ],
+  "aclnnGeGlu": [
+    "self(aclTensor *，计算输入)",
+    "dim(int64_t，计算输入)",
+    "approximate(int64_t，计算输入)",
+    "out(aclTensor *，计算输出)",
+    "outGelu(aclTensor *，计算输出)"
+  ],
+  "aclnnGeluV2": [
+    "x（aclTensor*，计算输入）",
+    "approximate（int64_t，属性）",
+    "y（aclTensor*，计算输出）"
+  ],
+  "aclnnFusedLinearOnlineMaxSum": [
+    "input(aclTensor*, 计算输入)",
+    "weight(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "vocabStartIndex(int64_t, 计算输入)",
+    "vocabEndIndex(int64_t, 计算输入)",
+    "logitsMaxLocalOut(aclTensor*, 计算输出)",
+    "sumExpLogitsLocalOut(aclTensor*, 计算输出)",
+    "predictedLogitsLocalOut(aclTensor*, 计算输出)",
+    "targetMaskOut(aclTensor*, 计算输出)",
+    "maskedTargetOut(aclTensor*, 计算输出)",
+    "vocabParallelLogitsOutOptional(aclTensor*, 计算输出)"
+  ],
+  "aclnnGcd": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnGatherNd": [
+    "self(aclTensor*, 计算输入) ",
+    "indices(const aclTensor *,计算输入)",
+    "negativeIndexSupport(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnGatherV2": [
+    "self(aclTensor*, 计算输入) ",
+    "dim(int64_t, 计算输入)",
+    "index(aclTensor*,计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnGatherV3": [
+    "self(aclTensor*，计算输入)",
+    "dim(int64_t, 计算输入)",
+    "index(aclTensor*,计算输入)",
+    "batchDims(int64_t, 计算输入)",
+    "mode(int64_t, 计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnGelu": [
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGeGluBackward": [
+    "gradOutput(aclTensor*，计算输入)",
+    "self(aclTensor*，计算输入)",
+    "gelu(aclTensor*，计算输入)",
+    "dim(int64_t，计算输入)",
+    "approximate(int64_t，计算输入)",
+    "gradInput(aclTensor*，计算输出)"
+  ],
+  "aclnnGeluMul": [
+    "input（aclTensor*，计算输入）",
+    "approximateOptional（char*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGeGluV3Backward": [
+    "gradOutput(aclTensor*，计算输入)",
+    "self(aclTensor*，计算输入)",
+    "gelu(aclTensor*，计算输入)",
+    "dim(int64_t，计算输入)",
+    "approximate(int64_t，计算输入)",
+    "activateLeft(bool，计算输入)",
+    "gradInput(aclTensor*，计算输出)"
+  ],
+  "aclnnGemm": [
+    "A(aclTensor*, 计算输入)",
+    "B(aclTensor*, 计算输入)",
+    "C(aclTensor*, 计算输入)",
+    "alpha(float, 计算输入)",
+    "beta(float, 计算输入)",
+    "transA(int64_t, 计算输入)",
+    "transB(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "cubeMathType（int8_t, 计算输入）"
+  ],
+  "aclnnGer": [
+    "self(aclTensor*, 计算输入)",
+    "vec2(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnGlobalMaxPool": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnGroupedMatmulAdd": [
+    "x（aclTensor*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "groupList（aclTensor*，计算输入）",
+    "y（aclTensor*，计算输入）",
+    "yRef（aclTensor*，计算输出）",
+    "transposeX（bool，计算输入）",
+    "transposeWeight（bool，计算输入）",
+    "groupType(int64_t，计算输入)"
+  ],
+  "aclnnGeScalar": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceGeScalar": [
+    "selfRef(aclTensor *，计算输入|计算输出)",
+    "other(aclScalar*,计算输入)"
+  ],
+  "aclnnGlu": [
+    "self（aclTensor，计算输入）",
+    "dim（int64_t*，计算输入）",
+    "out（aclTensor，计算输出）"
+  ],
+  "aclnnGluBackward": [
+    "gradOut（aclTensor，计算输入）",
+    "self（aclTensor，计算输入）",
+    "dim（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGeTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceGeTensor": [
+    "selfRef(aclTensor *，计算输入|计算输出)",
+    "other(aclTensor*，计算输入)"
+  ],
+  "aclnnGlobalAveragePool": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnGridSampler2D": [
+    "input（aclTensor*，计算输入）",
+    "grid（aclTensor*，计算输入）",
+    "interpolationMode（int64_t，计算输入）",
+    "paddingMode（int64_t，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGridSampler2DBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "input（aclTensor*，计算输入）",
+    "grid（aclTensor*，计算输入）",
+    "interpolationMode（int64_t，计算输入）",
+    "paddingMode（int64_t，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "outputMask（aclBoolArray，计算输入）",
+    "inputGrad（aclTensor*，计算输出）",
+    "gridGrad（aclTensor*，计算输出）"
+  ],
+  "aclnnGridSampler3D": [
+    "input（aclTensor*，计算输入）",
+    "grid（aclTensor*，计算输入）",
+    "interpolationMode（int64_t，计算输入）",
+    "paddingMode（int64_t，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGroupedBiasAddGradV2": [
+    "gradY（aclTensor*，计算输入）",
+    "groupIdxOptional（aclTensor*，计算输入）",
+    "groupIdxType（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGroupedBiasAddGrad": [
+    "gradY（aclTensor*，计算输入）",
+    "groupIdxOptional（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGroupNormBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "input（aclTensor*，计算输入）",
+    "mean（aclTensor*，计算输入）",
+    "rstd（aclTensor*，计算输入）",
+    "gamma（aclTensor*，计算输入）",
+    "N（int64_t，计算输入）",
+    "C（int64_t，计算输入）",
+    "HxW（int64_t，计算输入）",
+    "group（int64_t，计算输入）",
+    "outputMask（aclBoolArray*，计算输入）",
+    "gradInput（aclTensor*，计算输出）",
+    "gradGammaOut（aclTensor*，计算输出）",
+    "gradBetaOut（aclTensor*，计算输出）"
+  ],
+  "aclnnGridSampler3DBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "input（aclTensor*，计算输入）",
+    "grid（aclTensor*，计算输入）",
+    "interpolationMode（int64_t，计算输入）",
+    "paddingMode（int64_t，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "outputMask（aclBoolArray*，计算输入）",
+    "inputGrad（aclTensor*，计算输出）",
+    "gridGrad（aclTensor*，计算输出）"
+  ],
+  "aclnnGroupNormSwishGrad": [
+    "dy (aclTensor*, 计算输入)",
+    "mean (aclTensor*, 计算输入)",
+    "rstd (aclTensor*, 计算输入)",
+    "x (aclTensor*, 计算输入)",
+    "gamma (aclTensor*, 计算输入)",
+    "beta (aclTensor*, 计算输入)",
+    "numGroups (int64_t, 计算输入)",
+    "dataFormatOptional (char*, 计算输入)",
+    "swishScale (double, 计算输入)",
+    "dgammaIsRequire (bool, 计算输入)",
+    "dbetaIsRequire (bool, 计算输入)",
+    "dxOut (aclTensor*, 计算输出)",
+    "dgammaOut (aclTensor*, 计算输出)",
+    "dbetaOut (aclTensor*, 计算输出)"
+  ],
+  "aclnnGroupNormSilu": [
+    "self(aclTensor*, 计算输入)",
+    "gamma(aclTensor*, 计算输入)",
+    "beta(aclTensor*, 计算输入)",
+    "group(int, 计算输入)",
+    "eps(double, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "meanOut(aclTensor*, 计算输出)",
+    "rstdOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnHardshrink": [
+    "self（aclTensor*，计算输入）",
+    "lambd（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGroupNormSiluV2": [
+    "self(aclTensor*, 计算输入)",
+    "gamma(aclTensor*, 计算输入)",
+    "beta(aclTensor*, 计算输入)",
+    "group(int, 计算输入)",
+    "eps(double, 计算输入)",
+    "activateSilu(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "meanOut(aclTensor*, 计算输出)",
+    "rstdOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnGroupNormSwish": [
+    "x（aclTensor*， 计算输入）",
+    "gamma（aclTensor*， 计算输入）",
+    "beta（aclTensor*， 计算输入）",
+    "numGroups（int64_t， 计算输入）",
+    "dataFormatOptional（char*，计算输入）",
+    "eps（double， 计算输入）",
+    "activateSwish（bool， 计算输入）",
+    "swishScale（double， 计算输入）",
+    "yOut（aclTensor*， 计算输出）",
+    "meanOut（aclTensor*， 计算输出）",
+    "rstdOut（aclTensor*， 计算输出）"
+  ],
+  "aclnnHardsigmoidBackward": [
+    "gradOutput(aclTensor*，计算输入)",
+    "self(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnGtTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceGtTensor": [
+    "selfRef(aclTensor *，计算输入|计算输出)",
+    "other(aclTensor*，计算输入)"
+  ],
+  "aclnnIm2colBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "inputSize(aclIntArray*, 计算输入)",
+    "kernelSize(aclIntArray*, 计算输入)",
+    "dilation(aclIntArray*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "stride(aclIntArray*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnHardshrinkBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "lambd（aclScalar*，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnIm2col": [
+    "self（aclTensor*, 计算输入）",
+    "kernelSize（aclIntArray*, 计算输入）",
+    "dilation（aclIntArray*, 计算输入）",
+    "padding（aclIntArray*, 计算输入）",
+    "stride（aclIntArray*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnGtScalar": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceGtScalar": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclScalar*, 计算输入)"
+  ],
+  "aclnnHardsigmoid": [
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceHardsigmoid": [
+    "self（aclTensor*，计算输入|计算输出）"
+  ],
+  "aclnnHardswish": [
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceHardswish": [
+    "self（aclTensor*，计算输入/输出）"
+  ],
+  "aclnnHardswishBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnHistc": [
+    "self(aclTensor*, 计算输入)",
+    "bins(int64_t, 计算输入)",
+    "min(aclScalar*, 计算输入)",
+    "max(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnHardtanhBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "min（aclScalar*，计算输入）",
+    "max（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnHeaviside": [
+    "input（aclTensor*，计算输入）",
+    "values（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnHardtanh": [
+    "self(aclTensor*,计算输入)",
+    "clipValueMin(aclScalar*,计算输入)",
+    "clipValueMax(aclScalar*,计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceHardtanh": [
+    "selfRef(aclTensor*，计算输入|计算输出)",
+    "clipValueMin(aclScalar*,计算输入)",
+    "clipValueMax(aclScalar*,计算输入)"
+  ],
+  "aclnnIndexCopy": [
+    "selfRef(aclTensor*, 计算输入)",
+    "dim(int64_t,计算输入)",
+    "index(aclTensor*, 计算输入)",
+    "source(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceIndexCopy": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "dim(int64_t,计算输入)",
+    "index(aclTensor*, 计算输入)",
+    "source(aclTensor*, 计算输入)"
+  ],
+  "aclnnIndexFillTensor": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "index(aclIntArray*, 计算输入)",
+    "value(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceIndexFill": [
+    "selfRef(aclTensor*, 计算输入/计算输出)",
+    "dim(int64_t, 计算输入)",
+    "index(aclTensor, 计算输入)",
+    "value(aclScalar*, 计算输入)"
+  ],
+  "aclnnIndexPutImpl": [
+    "selfRef（aclTensor*，计算输入/输出）",
+    "indices（aclTensorList*，计算输入）",
+    "values（aclTensor*，计算输入）",
+    "accumulate（bool，计算输入）",
+    "unsafe（bool，计算输入）"
+  ],
+  "aclnnIndexSelect": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "index(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceIndexFillTensor": [
+    "selfRef(aclTensor*, 计算输入/计算输出)",
+    "dim(int64_t, 计算输入)",
+    "index(aclIntArray, 计算输入)",
+    "value(aclScalar*, 计算输入)"
+  ],
+  "aclnnInplaceAdds": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclScalar*, 计算输入)",
+    "alpha(aclScalar*, 计算输入)"
+  ],
+  "aclnnInplaceBitwiseAndTensor": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclTensor*, 计算输入)"
+  ],
+  "aclnnInplaceBitwiseAndScalar": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclScalar*, 计算输入)"
+  ],
+  "aclnnClampMinTensor": [
+    "self(aclTensor*,计算输入)",
+    "clipValueMin(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceClampMinTensor": [
+    "selfRef(aclTensor*,计算输入|计算输出)",
+    "clipValueMin(aclTensor*,计算输入)"
+  ],
+  "aclnnInplaceCopy": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "src(aclTensor*, 计算输入)"
+  ],
+  "aclnnInplaceFillScalar": [
+    "selfRef(aclTensor *，计算输入|计算输出)",
+    "value(aclScalar*,计算输入)"
+  ],
+  "aclnnFrac": [
+    "input(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceFrac": [
+    "inputRef(aclTensor*，计算输入|计算输出)"
+  ],
+  "aclnnInplaceFillTensor": [
+    "selfRef（aclTensor*，计算输入|计算输出）",
+    "value（aclTensor*，计算输入）"
+  ],
+  "aclnnInplaceFillDiagonal": [
+    "selfRef（aclTensor*, 计算输入/输出）",
+    "fillValue（aclScalar*, 计算输入）",
+    "wrap（bool, 计算输入）"
+  ],
+  "aclnnLeScalar": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceLeScalar": [
+    "selfRef(aclTensor*，计算输入|计算输出)",
+    "other(aclScalar*，计算输入)"
+  ],
+  "aclnnLog2": [
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceLog2": [
+    "selfRef(aclTensor*,计算输入|计算输出)"
+  ],
+  "aclnnLog": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceLog": [
+    "selfRef(aclTensor*,计算输入|计算输出)"
+  ],
+  "aclnnLerp": [
+    "self(aclTensor*, 计算输入)",
+    "end(aclTensor*, 计算输入)",
+    "weight(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceLerp": [
+    "selfRef(aclTensor*, 计算输入/输出)",
+    "end(aclTensor*, 计算输入)",
+    "weight(aclTensor*, 计算输入)"
+  ],
+  "aclnnLog10": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnInplaceLog10": [
+    "selfRef（aclTensor, 计算输入/输出）"
+  ],
+  "aclnnLeakyRelu": [
+    "self(aclTensor*，计算输入)",
+    "negativeSlope（aclScalar*，计算输入）",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceLeakyRelu": [
+    "selfRef（aclTensor*, 计算输入|计算输出）",
+    "negativeSlope（aclScalar*, 计算输入）"
+  ],
+  "aclnnLogicalAnd": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceLogicalAnd": [
+    "selfRef(aclTensor *, 计算输入|计算输出)",
+    "other(aclTensor*, 计算输入)"
+  ],
+  "aclnnLog1p": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceLog1p": [
+    "selfRef(aclTensor *，计算输入|计算输出)"
+  ],
+  "aclnnLeTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceLeTensor": [
+    "selfRef(aclTensor*，计算输入|计算输出)",
+    "other(aclTensor*，计算输入)"
+  ],
+  "aclnnLogicalOr": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceLogicalOr": [
+    "selfRef(aclTensor *, 计算输入|计算输出)",
+    "other(aclTensor*, 计算输入)"
+  ],
+  "aclnnLerps": [
+    "self(aclTensor*, 计算输入)",
+    "end(aclTensor*, 计算输入)",
+    "weight(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceLerps": [
+    "selfRef(aclTensor*, 计算输入/输出)",
+    "end(aclTensor*, 计算输入)",
+    "weight(aclScalar*, 计算输入)"
+  ],
+  "aclnnLogicalNot": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceLogicalNot": [
+    "selfRef(aclTensor*, 计算输入|计算输出)"
+  ],
+  "aclnnLtTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceLtTensor": [
+    "selfRef(aclTensor*,计算输入|计算输出)",
+    "other(aclTensor*,计算输入)"
+  ],
+  "aclnnLtScalar": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceLtScalar": [
+    "selfRef(aclTensor*,计算输入|计算输出)",
+    "other(aclScalar*,计算输入)"
+  ],
+  "aclnnInplaceMaskedFillTensor": [
+    "selfRef（aclTensor *，计算输入|计算输出）",
+    "mask（aclTensor*，计算输入）",
+    "value（aclTensor*，计算输入）"
+  ],
+  "aclnnInplaceMaskedFillScalar": [
+    "selfRef（aclTensor *，计算输入|计算输出）",
+    "mask（aclTensor*，计算输入）",
+    "value（aclScalar*，计算输入）"
+  ],
+  "aclnnInplaceMaskedScatter": [
+    "selfRef（aclTensor*, 计算输入/输出）",
+    "mask（aclTensor*, 计算输入）",
+    "source（aclTensor*, 计算输入）"
+  ],
+  "aclnnInplaceOne": [
+    "selfRef（aclTensor*, 计算输入|计算输出）"
+  ],
+  "aclnnMul": [
+    "self(aclTensor *, 计算输入)",
+    "other(aclTensor *, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceMul": [
+    "selfRef(aclTensor *, 计算输入|计算输出)",
+    "other(aclTensor *, 计算输入)"
+  ],
+  "aclnnNeScalar": [
+    "self（aclTensor*，计算输入）",
+    "other（aclScalar*, 计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceNeScalar": [
+    "selfRef（aclTensor* 计算输入/输出）",
+    "other（aclScalar*, 计算输入）"
+  ],
+  "aclnnPowTensorTensor": [
+    "self(aclTensor*，计算输入)",
+    "exponent(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplacePowTensorTensor": [
+    "self(aclTensor*, 计算输入|计算输出)",
+    "exponent(aclTensor*, 计算输入)"
+  ],
+  "aclnnNanToNum": [
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor *，计算输出）",
+    "nan（float，计算输入）",
+    "posinf（float，计算输入）",
+    "neginf（float，计算输入）"
+  ],
+  "aclnnInplaceNanToNum": [
+    "selfRef（aclTensor *，计算输入|计算输出）",
+    "nan（float，计算输入）",
+    "posinf（float，计算输入）",
+    "neginf（float，计算输入）"
+  ],
+  "aclnnNeTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceNeTensor": [
+    "selfRef（aclTensor*, 计算输入/输出）",
+    "other（aclTensor*, 计算输入）"
+  ],
+  "aclnnInplaceRandom": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "from(int64_t, 计算输入)",
+    "to(int64_t, 计算输入)",
+    "seed(int64_t, 计算输入)",
+    "offset(int64_t, 计算输入)"
+  ],
+  "aclnnPowTensorScalar": [
+    "self（aclTensor*，计算输入）",
+    "exponent（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplacePowTensorScalar": [
+    "exponent（aclScalar*, 计算输入|计算输出）"
+  ],
+  "aclnnNeg": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "workspaceSize(uint64_t*, 计算输出)",
+    "executor(aclOpExecutor**, 计算输出)"
+  ],
+  "aclnnInplaceNeg": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "workspaceSize(uint64_t*, 计算输出)",
+    "executor(aclOpExecutor**, 计算输出)"
+  ],
+  "aclnnReciprocal": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceReciprocal": [
+    "selfRef(aclTensor*,计算输入|计算输出)"
+  ],
+  "aclnnInplacePut": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "index(aclTensor*, 计算输入)",
+    "source(aclTensor*, 计算输入)",
+    "accumulate(bool, 计算输入)"
+  ],
+  "aclnnMish": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceMish": [
+    "selfRef(aclTensor*, 计算输入|计算输出)"
+  ],
+  "aclnnScatter": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "index(aclTensor*, 计算输入)",
+    "src(aclTensor*, 计算输入)",
+    "reduce(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceScatter": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "dim(int64_t, 计算输入)",
+    "index(aclTensor*, 计算输入)",
+    "src(aclTensor*, 计算输入)",
+    "reduce(int64_t, 计算输入)"
+  ],
+  "aclnnScatterValue": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "index(aclTensor*, 计算输入)",
+    "value(aclScalar*, 计算输入)",
+    "reduce(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceScatterValue": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "dim(int64_t, 计算输入)",
+    "index(aclTensor*, 计算输入)",
+    "value(aclScalar*, 计算输入)",
+    "reduce(int64_t, 计算输入)"
+  ],
+  "aclnnSelu": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceSelu": [
+    "selfRef(aclTensor*, 计算输入|计算输出)"
+  ],
+  "aclnnSigmoid": [
+    "self(aclTensor*，计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceSigmoid": [
+    "selfRef(aclTensor *，计算输入/计算输出)"
+  ],
+  "aclnnRelu": [
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceRelu": [
+    "selfRef（aclTensor *, 计算输入/计算输出）"
+  ],
+  "aclnnInplaceScatterUpdate": [
+    "data(aclTensor*, 计算输入|计算输出)",
+    "indices(aclTensor*, 计算输入)",
+    "updates(aclTensor*, 计算输入)",
+    "axis(int64_t, 计算输入)"
+  ],
+  "aclnnRenorm": [
+    "self（aclTensor*，计算输入）",
+    "p（aclScalar*，计算输入）",
+    "dim（int64_t，计算输入）",
+    "maxNorm（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceRenorm": [
+    "selfRef（aclTensor*，计算输入|计算输出）",
+    "p（aclScalar*，计算输入）",
+    "dim（int64_t，计算输入）",
+    "maxNorm（aclScalar*，计算输入）"
+  ],
+  "aclnnInplaceRandomTensor": [
+    "selfRef（aclTensor*，计算输入|计算输出）",
+    "from（int64_t，计算输入）",
+    "to（int64_t，计算输入）",
+    "seedTensor（aclTensor*，计算输入）",
+    "offsetTensor（aclTensor*，计算输入）",
+    "offset（int64_t，计算输入）"
+  ],
+  "aclnnSinh": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceSinh": [
+    "selfRef（aclTensor*, 计算输入|计算输出）"
+  ],
+  "aclnnRsqrt": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceRsqrt": [
+    "selfRef(aclTensor *, 计算输入|计算输出)"
+  ],
+  "aclnnRemainderTensorScalar": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceRemainderTensorScalar": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclScalar*, 计算输入)"
+  ],
+  "aclnnRemainderTensorTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceRemainderTensorTensor": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "other(aclTensor*, 计算输入)"
+  ],
+  "aclnnRound": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceRound": [
+    "selfRef(aclTensor*,计算输入|计算输出)"
+  ],
+  "aclnnRoundDecimals": [
+    "self(aclTensor*, 计算输入)",
+    "decimals(int64_t, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceRoundDecimals": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "decimals(int64_t, 计算输入)"
+  ],
+  "aclnnSub": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "alpha(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceSub": [
+    "selfRef (aclTensor*, 计算输入/输出)",
+    "other (aclTensor*,计算输入)",
+    "alpha (aclScalar*,计算输入)"
+  ],
+  "aclnnSin": [
+    "self(aclTensor*，计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceSin": [
+    "selfRef(aclTensor *，计算输出|计算输入)"
+  ],
+  "aclnnSqrt": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnInplaceSqrt": [
+    "self（aclTensor *, 计算输入|计算输出）"
+  ],
+  "aclnnInplaceUniformTensor": [
+    "selfRef（aclTensor*，计算输入|计算输出）",
+    "from（double，计算输入）",
+    "to（double，计算输入）",
+    "seedTensor（aclTensor*，计算输入）",
+    "offsetTensor（aclTensor*，计算输入）",
+    "offset（uint64_t，计算输入）"
+  ],
+  "aclnnThreshold": [
+    "self（aclTensor*，计算输入）",
+    "threshold（aclScalar*，计算输入）",
+    "value（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnInplaceThreshold": [
+    "selfRef（aclTensor*，计算输入/输出）",
+    "threshold（aclScalar*，计算输入）",
+    "value（aclScalar*，计算输入）"
+  ],
+  "aclnnXLogYScalarOther": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceXLogYScalarOther": [
+    "selfRef(aclTensor *, 计算输入|计算输出)",
+    "other(aclScalar*, 计算输入)"
+  ],
+  "aclnnTril": [
+    "self(aclTensor*， 计算输入)",
+    "diagonal(int64_t， 计算输入)",
+    "out(aclTensor*， 计算输入)"
+  ],
+  "aclnnInplaceTril": [
+    "selfRef(aclTensor*， 计算输入|计算输出)",
+    "diagonal(int64_t， 计算输入)"
+  ],
+  "aclnnSubs": [
+    "self（aclTensor*, 计算输入）",
+    "other（aclScalar*，计算输入）",
+    "alpha（aclScalar*, 计算输入）",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceSubs": [
+    "selfRef（aclTensor*, 计算输入|计算输出）",
+    "other（aclScalar*，计算输入）",
+    "alpha（aclScalar*, 计算输入）"
+  ],
+  "aclnnTan": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnInplaceTan": [
+    "selfRef(aclTensor*, 计算输入|计算输出)"
+  ],
+  "aclnnTanh": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnInplaceTanh": [
+    "selfRef（aclTensor*, 计算输入/输出）"
+  ],
+  "aclnnRReluWithNoise": [
+    "self(aclTensor*，计算输入)",
+    "noise(aclTensor*，计算输入)",
+    "lower(aclScalar*，计算输入)",
+    "upper(aclScalar*，计算输入)",
+    "training(bool，计算输入)",
+    "seed(int64_t, 计算输入)",
+    "offset(int64_t，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnInplaceRReluWithNoise": [
+    "self(aclTensor*，计算输入|计算输出)",
+    "noise(aclTensor*，计算输入)",
+    "lower(aclScalar*，计算输入)",
+    "upper(aclScalar*，计算输入)",
+    "training(bool，计算输入)",
+    "seed(int64_t，计算输入)",
+    "offset(int64_t，计算输入)"
+  ],
+  "aclnnTriu": [
+    "self(aclTensor*, 计算输入)",
+    "diagonal(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceTriu": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "diagonal(int64_t, 计算输入)"
+  ],
+  "aclnnInplaceUniform": [
+    "selfRef(aclTensor*, 计算输入|计算输出)",
+    "from（double, 计算输入）",
+    "to（double, 计算输入）",
+    "seed（uint64_t, 计算输入）",
+    "offset（uint64_t, 计算输入）"
+  ],
+  "aclnnXLogYTensor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceXLogYTensor": [
+    "selfRef(aclTensor *, 计算输入/输出)",
+    "other(aclTensor*, 计算输入)"
+  ],
+  "aclnnTrunc": [
+    "self(aclTensor*，计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceTrunc": [
+    "selfRef(aclTensor*，计算输入|计算输出)"
+  ],
+  "aclnnInverse": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnIsInf": [
+    "x(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnIsClose": [
+    "self（aclTensor*，计算输入）",
+    "other（aclTensor*，计算输入）",
+    "rtol（double，计算输入）",
+    "atol（double，计算输入）",
+    "equal_nan（bool，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "workspaceSize（uint64_t *，计算输出）",
+    "executor（aclOpExecutor **，计算输出）"
+  ],
+  "aclnnIsFinite": [
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnIsInScalarTensor": [
+    "element(aclScalar*, 计算输入)",
+    "testElements(aclTensor*, 计算输入)",
+    "assumeUnique(bool, 计算输入)",
+    "invert(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnIsNegInf": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnIsInTensorScalar": [
+    "element(aclTensor*, 计算输入)",
+    "testElement(aclScalar*, 计算输入)",
+    "assumeUnique(bool, 计算输入)",
+    "invert(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnIsPosInf": [
+    "self(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnKlDiv": [
+    "self (aclTensor*,计算输入)",
+    "target (aclTensor*, 计算输入)",
+    "reduction (int64_t，计算输入)",
+    "logTarget(bool，计算输入)",
+    "out (aclTensor*，计算输出)"
+  ],
+  "aclnnL1LossBackward": [
+    "gradOutput (aclTensor*，计算输入)",
+    "self (aclTensor*，计算输入)",
+    "target (aclTensor*，计算输入)",
+    "reduction (int64_t, 计算输入)",
+    "gradInput (aclTensor*，计算输出)"
+  ],
+  "aclnnKlDivBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "reduction(int64_t, 计算输入)",
+    "logTarget(bool, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnKthvalue": [
+    "self（aclTensor*, 计算输入）",
+    "k（int64_t, 计算输入）",
+    "dim（int64_t, 计算输入）",
+    "keepdim（bool, 计算输入）",
+    "valuesOut（aclTensor*, 计算输出）",
+    "indicesOut（aclTensor*, 计算输出）"
+  ],
+  "aclnnL1Loss": [
+    "self (aclTensor*，计算输入)",
+    "target (aclTensor*，计算输入)",
+    "reduction (int64_t，计算输入，为属性)",
+    "out (aclTensor*，计算输出)"
+  ],
+  "aclnnLayerNormBackward": [
+    "gradOut(aclTensor*，计算输入)",
+    "input(aclTensor*，计算输入)",
+    "normalizedShape(aclIntArray*，计算输入)",
+    "mean(aclTensor*，计算输入)",
+    "rstd(aclTensor*，计算输入)",
+    "weightOptional(aclTensor*，计算输入)",
+    "biasOptional(aclTensor*，计算输入)",
+    "outputMask(aclBoolArray*，计算输入)",
+    "gradInputOut(aclTensor*，可选输出)",
+    "gradWeightOut(aclTensor*，可选输出)",
+    "gradBiasOut(aclTensor*，可选输出)"
+  ],
+  "aclnnLayerNorm": [
+    "input（aclTensor*，计算输入）",
+    "normalizedShape（aclIntArray*，计算输入）",
+    "weightOptional（aclTensor*，计算输入）",
+    "biasOptional（aclTensor*，计算输入）",
+    "eps（double，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "meanOutOptional（aclTensor*，计算输出）",
+    "rstdOutOptional（aclTensor*，计算输出）"
+  ],
+  "aclnnLayerNormWithImplMode": [
+    "input（aclTensor*，计算输入）",
+    "normalizedShape（aclIntArray*，计算输入）",
+    "weightOptional（aclTensor*，计算输入）",
+    "biasOptional（aclTensor*，计算输入）",
+    "eps（double，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "meanOutOptional（aclTensor*，计算输出）",
+    "rstdOutOptional（aclTensor*，计算输出）",
+    "implMode（int32_t，计算输入）"
+  ],
+  "aclnnLeakyReluBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "negativeSlope（aclScalar*，计算输入）",
+    "selfIsResult（bool，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnLgamma": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnLinalgQr": [
+    "self(aclTensor*, 计算输入)",
+    "mode(int64_t, 计算输入)",
+    "Q(aclTensor *, 计算输出)",
+    "R(aclTensor *, 计算输出)"
+  ],
+  "aclnnLogdet": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnLogAddExp": [
+    "self（aclTensor*，计算输入）",
+    "other（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnLinspace": [
+    "start(aclScalar *，计算输入)",
+    "end(aclScalar *，计算输入)",
+    "steps(int64_t，计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnLogAddExp2": [
+    "self（aclTensor*，计算输入）",
+    "other（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnLinalgVectorNorm": [
+    "self（aclTensor*，计算输入）",
+    "ord（aclScalar*，计算输入）",
+    "dims（aclIntArray*，计算输入）",
+    "keepDims（bool，计算输入）",
+    "dtype（aclDataType, 计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnLogicalXor": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMaskedSoftmaxWithRelPosBias": [
+    "x（aclTensor*，计算输入）",
+    "attenMaskOptional（aclTensor*，计算输入）",
+    "relativePosBias（aclTensor*，计算输入）",
+    "scaleValue（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnLogit": [
+    "input（aclTensor*，计算输入）",
+    "eps（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnMaskedSelect": [
+    "self (aclTensor*, 计算输入)",
+    "mask (aclTensor*, 计算输入)",
+    "out (aclTensor*, 计算输出)"
+  ],
+  "aclnnLogitGrad": [
+    "x（aclTensor*，计算输入）",
+    "dy（aclTensor*，计算输入）",
+    "eps（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnMatmul": [
+    "self（aclTensor*，计算输入）",
+    "mat2（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "cubeMathType（INT8，计算输入）"
+  ],
+  "aclnnMax": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnLogSumExp": [
+    "self（aclTensor*, 计算输入）",
+    "dim（aclIntArray*，计算输入）",
+    "keepDim（bool, 计算输入）",
+    "out（aclTensor*, 计算输入）"
+  ],
+  "aclnnLogSigmoid": [
+    "self(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnLogSigmoidBackward": [
+    "gradOutput(aclTensor*，计算输入)",
+    "self(aclTensor*，计算输入)",
+    "buffer(aclTensor*，计算输入)",
+    "gradInput(aclTensor*，计算输出)"
+  ],
+  "aclnnLogSoftmax": [
+    "self(aclTensor*，计算输入)",
+    "dim(int64_t，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnLogSigmoidForward": [
+    "self(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)",
+    "buffer(aclTensor*，计算输出)"
+  ],
+  "aclnnLogSoftmaxBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "output（const aclTensor*，计算输入）",
+    "dim（int64_t*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnMatmulWeightNz": [
+    "self（aclTensor*，计算输入）",
+    "mat2（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "cubeMathType（int8_t，计算输入）"
+  ],
+  "aclnnMaximum": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMaxDim": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "keepdim(bool，计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "indices(aclTensor*, 计算输出)"
+  ],
+  "aclnnMaxUnpool3d": [
+    "self（aclTensor*，计算输入）",
+    "indices（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "stride（aclIntArray*，计算输入）",
+    "padding（aclIntArray*，计算输入）",
+    "outRef（aclTensor*，计算输出）"
+  ],
+  "aclnnMaxUnpool2dBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "indices(aclTensor*, 计算输入)",
+    "outputSize(aclIntArray*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMaxPool": [
+    "self（aclTensor*，计算输入）",
+    "kernelShape（aclIntArray*，计算输入）",
+    "strides（aclIntArray*，计算输入）",
+    "autoPad（int64_t，计算输入）",
+    "pads（aclIntArray*，计算输入）",
+    "dilations（aclIntArray*，计算输入）",
+    "ceilMode（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnMaxPool2dWithIndicesBackward": [
+    "gradOutput(const aclTensor *, 计算输入)",
+    "self(const aclTensor *, 计算输入)",
+    "indices(aclTensor *, 计算输入)",
+    "kernelSize(const aclIntArray *, 计算输入)",
+    "stride(aclIntArray*, 计算输入)",
+    "padding(const aclIntArray *, 计算输入)",
+    "dilation(const aclIntArray *, 计算输入)",
+    "ceilMode(const bool *, 计算输入)",
+    "gradInput(aclTensor *, 计算输出)"
+  ],
+  "aclnnMaxPool2dWithMask": [
+    "self（aclTensor*，计算输入）",
+    "kernelSize（aclIntArray*，计算输入）",
+    "stride（aclIntArray*，计算输入）",
+    "padding（aclIntArray*，计算输入）",
+    "dilation（aclIntArray*，计算输入）",
+    "ceilMode（bool，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "indices（aclTensor*，计算输出）"
+  ],
+  "aclnnMaxPool2dWithIndices": [
+    "self(aclTensor*, 计算输入)",
+    "kernelSize(aclIntArray*, 计算输入)",
+    "stride(aclIntArray*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "dilation(aclIntArray*, 计算输入)",
+    "ceilMode(bool, 计算输入)",
+    "out(aclTensor *, 计算输出)",
+    "indices(aclTensor *, 计算输出)"
+  ],
+  "aclnnMaxPool2dWithMaskBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "indices(aclTensor *, 计算输入)",
+    "kernelSize(aclIntArray*, 计算输入)",
+    "stride(aclIntArray*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "dilation(aclIntArray*, 计算输入)",
+    "ceilMode(const bool, 计算输入)",
+    "gradInput(aclTensor *, 计算输出)"
+  ],
+  "aclnnMaxPool3dWithArgmax": [
+    "self(aclTensor*, 计算输入)",
+    "kernelSize(aclIntArray*, 计算输入)",
+    "stride(aclIntArray*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "dilation(aclIntArray*, 计算输入)",
+    "ceilMode(bool, 计算输入)",
+    "out(aclTensor *, 计算输出)",
+    "indices(aclTensor *, 计算输出)"
+  ],
+  "aclnnMaxN": [
+    "tensors(aclTensorList*, 计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnMaxPool3dWithArgmaxBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "indices(aclTensor *, 计算输入)",
+    "kernelSize(aclIntArray*, 计算输入)",
+    "stride(aclIntArray*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "dilation(aclIntArray*, 计算输入)",
+    "ceilMode(bool, 计算输入)",
+    "gradInput(aclTensor *, 计算输出)"
+  ],
+  "aclnnMaxUnpool3dBackward": [
+    "gradOutput（aclTensor*, 计算输入）",
+    "self（aclTensor*, 计算输入）",
+    "indices（aclTensor*, 计算输入）",
+    "outputSize（aclIntArray*, 计算输入）",
+    "stride（aclIntArray*, 计算输入）",
+    "padding（aclIntArray*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnMaxUnpool2d": [
+    "self(aclTensor*, 计算输入)",
+    "indices(aclTensor*, 计算输入)",
+    "outputSize(aclIntArray*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMaxV2": [
+    "self（aclTensor*, 计算输入）",
+    "dims（aclIntArray*, 计算输入）",
+    "keepDims（bool, 计算输入）",
+    "noopWithEmptyDims（bool, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnMean": [
+    "self(aclTensor*, 计算输入)",
+    "dim(aclIntArray*,计算输入)",
+    "keepDim(bool，计算输入)",
+    "dtype(aclDataType，计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMeanV2": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnMedian": [
+    "self（aclTensor*, 计算输入）",
+    "valuesOut（aclTensor*, 计算输出）"
+  ],
+  "aclnnMin": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMedianDim": [
+    "self（aclTensor*, 计算输入）",
+    "dim（int64_t, 计算输入）",
+    "keepDim（bool, 计算输入）",
+    "valuesOut（aclTensor*, 计算输出）",
+    "indicesOut（aclTensor*, 计算输出）"
+  ],
+  "aclnnMuls": [
+    "self(const aclTensor *, 计算输入)",
+    "other(aclScalar *, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnInplaceMuls": [
+    "selfRef(aclTensor *, 计算输入|计算输出)",
+    "other(aclScalar *, 计算输入)"
+  ],
+  "aclnnMm": [
+    "self（aclTensor*，计算输入）",
+    "mat2（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "cubeMathType（INT8，计算输入）"
+  ],
+  "aclnnMinN": [
+    "tensors(aclTensorList*, 计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnMinimum": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMishBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "gradInput(aclTensor*, 计算输出)"
+  ],
+  "aclnnMseLoss": [
+    "self(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "reduction(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMseLossBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "reduction(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMseLossOut": [
+    "self(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "reduction(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnMinDim": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "keepdim(bool，计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "indices(aclTensor*, 计算输出)"
+  ],
+  "aclnnMultilabelMarginLoss": [
+    "self（aclTensor*, 计算输入）",
+    "target（aclTensor*, 计算输入）",
+    "reduction（int64_t, 计算输入）",
+    "out（aclTensor*, 计算输出）",
+    "isTarget（aclTensor*, 计算输出）"
+  ],
+  "aclnnMultinomial": [
+    "self(aclTensor*, 计算输入)",
+    "numsamples(int64_t, 计算输入)",
+    "replacement(bool， 计算输入)",
+    "seed(int64_t, 计算输入)",
+    "offset(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnNonMaxSuppression": [
+    "boxes(aclTensor*, 计算输入)",
+    "scores(aclTensor*, 计算输入)",
+    "maxOutputBoxesPerClass(aclIntArray*, 计算输入)",
+    "iouThreshold(aclFloatArray*, 计算输入)",
+    "scoreThreshold(aclFloatArray*, 计算输入)",
+    "centerPointBox(int, 计算输入)",
+    "selectedIndices(aclTensor*, 计算输出)"
+  ],
+  "aclnnMultinomialTensor": [
+    "self（aclTensor*，计算输入）",
+    "numsamples（int64_t，计算输入）",
+    "replacement（bool，计算输入）",
+    "seedTensor（aclTensor*，计算输入）",
+    "offsetTensor（aclTensor*，计算输入）",
+    "offset（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnNanMedian": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnNanMedianDim": [
+    "self（aclTensor*，计算输入）",
+    "dim（int64_t，计算输入）",
+    "keepDim（bool，计算输入）",
+    "valuesOut（aclTensor*，计算输出）",
+    "indicesOut（aclTensor*，计算输出）"
+  ],
+  "aclnnNLLLoss2dBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "weight(aclTensor*, 计算输入)",
+    "reduction(int64_t, 计算输入)",
+    "ignoreIndex(int64_t, 计算输入)",
+    "totalWeight(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnNLLLoss": [
+    "self(aclTensor*, 计算输入)",
+    "target(aclTensor*, 计算输入)",
+    "weight(aclTensor*, 计算输入)",
+    "reduction(int64_t*, 计算输入)",
+    "ignoreIndex(int64_t*, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "totalWeightOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnNonzeroV2": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnNLLLoss2d": [
+    "self（aclTensor*，计算输入）",
+    "target（aclTensor*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "reduction（int64_t，计算输入）",
+    "ignoreIndex（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）",
+    "totalWeightOut（aclTensor*，计算输出）"
+  ],
+  "aclnnNLLLossBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "target（aclTensor*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "reduction（int64_t*，计算输入）",
+    "ignoreIndex（int64_t*，计算输入）",
+    "totalWeight（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnNonzero": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnNorm": [
+    "self（aclTensor*，计算输入）",
+    "pScalar（aclScalar*，计算输入）",
+    "dim（aclIntArray*，计算输入）",
+    "keepdim（bool，计算输入）",
+    "relType（aclDataType，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnNormalFloatFloat": [
+    "mean(float, 计算输入)",
+    "std(float, 计算输入)",
+    "seed(int64_t, 计算输入)",
+    "offset(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnObfuscationSetup": [
+    "fdToClose（int32_t，计算输入）",
+    "dataType（int32_t，计算输入）",
+    "hiddenSize（int32_t，计算输入）",
+    "tpRank（int32_t，计算输入）",
+    "modelObfSeedId（int32_t，计算输入）",
+    "dataObfSeedId（int32_t，计算输入）",
+    "cmd（int32_t，计算输入）",
+    "threadNum（int32_t，计算输入）",
+    "fd（aclTensor*，计算输出）"
+  ],
+  "aclnnNormalFloatTensor": [
+    "mean(float, 计算输入)",
+    "std(aclTensor*, 计算输入)",
+    "seed(int64_t*, 计算输入)",
+    "offset(int64_t*, 计算输入)",
+    "out(aclTensor*, 计算输出 )"
+  ],
+  "aclnnNormalTensorFloat": [
+    "mean(aclTensor*, 计算输入)",
+    "std(float, 计算输入)",
+    "seed(int64_t*, 计算输入)",
+    "offset(int64_t*, 计算输入)",
+    "out(aclTensor*, 计算输出 )"
+  ],
+  "aclnnPolar": [
+    "input(aclTensor*，计算输入)",
+    "angle(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnObfuscationCalculate": [
+    "fd（int32_t ，计算输入）",
+    "x（aclTensor* ，计算输入）",
+    "param（int32_t，计算输入）",
+    "cmd（int32_t，计算输入）",
+    "y（aclTensor*，计算输出）"
+  ],
+  "aclnnObfuscationCalculateV2": [
+    "fd（int32_t ，计算输入）",
+    "x（aclTensor* ，计算输入）",
+    "param（int32_t，计算输入）",
+    "cmd（int32_t，计算输入）",
+    "obfCoefficient（float，计算输入）",
+    "y（aclTensor*，计算输出）"
+  ],
+  "aclnnObfuscationSetupV2": [
+    "fdToClose（int32_t，计算输入）",
+    "dataType（int32_t，计算输入）",
+    "hiddenSize（int32_t，计算输入）",
+    "tpRank（int32_t，计算输入）",
+    "modelObfSeedId（int32_t，计算输入）",
+    "dataObfSeedId（int32_t，计算输入）",
+    "cmd（int32_t，计算输入）",
+    "threadNum（int32_t，计算输入）",
+    "obfCoefficient（float，计算输入）",
+    "fd（aclTensor*，计算输出）"
+  ],
+  "aclnnPdist": [
+    "self(aclTensor*, 计算输入)",
+    "p(float, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnPermute": [
+    "self(aclTensor*,计算输入)",
+    "dims(aclIntArray*,计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnOneHot": [
+    "self(aclTensor*，计算输入)",
+    "numClasses(int，计算输入)",
+    "onValue(aclTensor*，计算输入)",
+    "offValue(aclTensor*，计算输入)",
+    "axis(int64_t，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnPowScalarTensor": [
+    "self(aclScalar*，计算输入)",
+    "exponent(aclTensor*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnPdistForward": [
+    "self（aclTensor*, 计算输入）",
+    "pScalar（aclScalar*，计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnQuantMatmulV5": [
+    "x1（aclTensor*，计算输入）",
+    "x2（aclTensor*，计算输入）",
+    "x1Scale（aclTensor*，计算输入）",
+    "x2Scale（aclTensor*，计算输入）",
+    "yScale（aclTensor*，计算输入）",
+    "x1Offset（aclTensor*，计算输入）",
+    "x2Offset（aclTensor*，计算输入）",
+    "yOffset（aclTensor*，计算输入）",
+    "bias（aclTensor*，计算输入）",
+    "transposeX1（bool，计算输入）",
+    "transposeX2（bool，计算输入）",
+    "groupSize（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnQuantMatmul": [
+    "x1(aclTensor*, 计算输入)",
+    "x2(aclTensor*, 计算输入)",
+    "bias(aclTensor*, 计算输入)",
+    "deqScale(float, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnQuantizedBatchNorm": [
+    "input（aclTensor*，计算输入）",
+    "mean（aclTensor*，计算输入）",
+    "var（aclTensor*，计算输入）",
+    "inputScale（aclScalar*，计算输入）",
+    "inputZeroPoint（aclScalar*，计算输入）",
+    "outputScale（aclScalar*，计算输入）",
+    "outputZeroPoint（aclScalar*，计算输入）",
+    "weight（aclTensor*，计算输入）",
+    "bias（aclTensor*，计算输入）",
+    "epsilon（float，计算输入）",
+    "output（aclTensor*，计算输出）"
+  ],
+  "aclnnQuantMatmulV4": [
+    "x1（aclTensor*，计算输入）",
+    "x2（aclTensor*，计算输入）",
+    "scale（aclTensor*，计算输入）",
+    "offset（aclTensor*，计算输入）",
+    "pertokenScaleOptional（aclTensor*，计算输入）",
+    "bias（aclTensor*，计算输入）",
+    "transposeX1（bool，计算输入）",
+    "transposeX2（bool，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnPrelu": [
+    "self(aclTensor *，计算输入)",
+    "weight(aclTensor *，计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnProdDim": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "keepDim(bool, 计算输入)",
+    "dtype(const aclDataType, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnProd": [
+    "self(aclTensor*, 计算输入)",
+    "dtype(const aclDataType, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnQuantize": [
+    "x（aclTensor*, 计算输入）",
+    "scales（aclTensor*, 计算输入）",
+    "zeroPoints（aclTensor*, 计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnPrecisionCompare": [
+    "golden(aclTensor*, 计算输入)",
+    "realdata(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnPreluBackward": [
+    "gradOutput(aclTensor *，计算输入)",
+    "self(aclTensor *，计算输入)",
+    "weight(aclTensor *，计算输入)",
+    "gradInput(aclTensor *，计算输出)",
+    "gradWeight(aclTensor *，计算输出)"
+  ],
+  "aclnnQuantMatmulV3": [
+    "x1（aclTensor*，计算输入）",
+    "x2（aclTensor*，计算输入）",
+    "scale（aclTensor*，计算输入）",
+    "offset（aclTensor*，计算输入）",
+    "bias（aclTensor*，计算输入）",
+    "transposeX1（bool，计算输入）",
+    "transposeX2（bool，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnRandperm": [
+    "n(int64_t, 计算输入)",
+    "seed(int64_t, 计算输入)",
+    "offset(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnQuantMatmulV2": [
+    "x1（aclTensor*， 计算输入）",
+    "x2（aclTensor*， 计算输入）",
+    "bias（aclTensor*， 计算输入）",
+    "deqScale（aclTensor*， 计算输入）",
+    "adjX1（bool， 计算输入）",
+    "adjX2（bool， 计算输入）",
+    "out（aclTensor*， 计算输出）"
+  ],
+  "aclnnQuantMatmulWeightNz": [
+    "x1（aclTensor*，计算输入）",
+    "x2（aclTensor*，计算输入）",
+    "x1Scale（aclTensor*，计算输入）",
+    "x2Scale（aclTensor*，计算输入）",
+    "yScale（aclTensor*，计算输入）",
+    "x1Offset（aclTensor*，计算输入）",
+    "x2Offset（aclTensor*，计算输入）",
+    "yOffset（aclTensor*，计算输入）",
+    "bias（aclTensor*，计算输入）",
+    "transposeX1（bool，计算输入）",
+    "transposeX2（bool，计算输入）",
+    "groupSize（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnQr": [
+    "self(aclTensor*, 计算输入)",
+    "some(bool, 计算输入)",
+    "Q(aclTensor *, 计算输出)",
+    "R(aclTensor *, 计算输出)"
+  ],
+  "aclnnReduceSum": [
+    "self（aclTensor*, 计算输入）",
+    "dims（aclIntArray*, 计算输入）",
+    "keepDims（bool, 计算输入）",
+    "dtype（aclDataType, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnReduceNansum": [
+    "self(aclTensor*, 计算输入)",
+    "dim(aclIntArray*, 计算输入)",
+    "keepDim(bool, 计算输入)",
+    "dtype(aclDataType, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnReal": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnReduceLogSum": [
+    "data（aclTensor*, 计算输入）",
+    "axes（aclIntArray*, 计算输入）",
+    "keepDims（bool, 计算输入）",
+    "noopWithEmptyAxes（bool, 计算输入）",
+    "reduce（aclTensor*, 计算输出）"
+  ],
+  "aclnnReflectionPad3d": [
+    "self(aclTensor*,计算输入)",
+    "padding(aclIntArray*,计算输入)",
+    "out(aclTensor*,计算输出)"
+  ],
+  "aclnnReflectionPad1d": [
+    "self(aclTensor*,计算输入)",
+    "padding(aclIntArray*,计算输入)",
+    "out(aclTensor*,计算输出)"
+  ],
+  "aclnnRepeatInterleaveInt": [
+    "self(aclTensor*, 计算输入)",
+    "repeats(int64_t, 计算输入)",
+    "outputSize(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnReflectionPad2dBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "gradInput(aclTensor*, 计算输出)"
+  ],
+  "aclnnReflectionPad2d": [
+    "self(aclTensor*,计算输入)",
+    "padding(aclIntArray*,计算输入)",
+    "out(aclTensor*,计算输出)"
+  ],
+  "aclnnReflectionPad1dBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "gradInput(aclTensor*, 计算输出)"
+  ],
+  "aclnnReflectionPad3dBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "padding(aclIntArray*，计算输入)",
+    "gradInput(aclTensor*，计算输出)"
+  ],
+  "aclnnRemainderScalarTensor": [
+    "self(aclScalar*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnRepeat": [
+    "self(aclTensor*,计算输入)",
+    "repeats(aclIntArray*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnRepeatInterleave": [
+    "self(aclTensor*, 计算输入)",
+    "repeats(aclTensor*, 计算输入)",
+    "outputSize(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnRepeatInterleaveIntWithDim": [
+    "self(aclTensor*, 计算输入)",
+    "repeats(int64_t, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "outputSize(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnRepeatInterleaveWithDim": [
+    "self(aclTensor*, 计算输入)",
+    "repeats(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "outputSize(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnResize": [
+    "self（aclTensor*，计算输入）",
+    "scales（aclFloatArray*，计算输入）",
+    "mode（char*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnRoiAlign": [
+    "self(aclTensor*, 计算输入)",
+    "rois(aclTensor*, 计算输入)",
+    "batchIndices(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)",
+    "mode(char*, 计算输入)",
+    "outputHeight(int, 计算输入)",
+    "outputWidth(int, 计算输入)",
+    "samplingRatio(int, 计算输入)",
+    "spatialScale(float, 计算输入)"
+  ],
+  "aclnnRepeatInterleaveTensor": [
+    "repeats(aclTensor*, 计算输入)",
+    "outputSize(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnReplicationPad1d": [
+    "self(aclTensor*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnRoiAlignV2Backward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "boxes（aclTensor*，计算输入）",
+    "inputShape（aclIntArray*，计算输入）",
+    "pooledHeight（int64_t，计算输入）",
+    "pooledWidth（int64_t，计算输入）",
+    "spatialScale（float，计算输入）",
+    "samplingRatio（int64_t，计算输入）",
+    "aligned（bool，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnRoiAlignV2": [
+    "self（aclTensor*，计算输入）",
+    "boxes（aclTensor*，计算输入）",
+    "pooledHeight（int64_t，计算输入）",
+    "pooledWidth（int64_t，计算输入）",
+    "spatialScale（float，计算输入）",
+    "samplingRatio（int64_t，计算输入）",
+    "aligned（bool，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnReplicationPad3dBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "padding（aclIntArray*，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnReplicationPad2dBackward": [
+    "gradOutput(aclTensor*，计算输入)",
+    "self(aclTensor*，计算输入)",
+    "padding(aclIntArray*，计算输入)",
+    "gradInput(aclTensor*，计算输出)"
+  ],
+  "aclnnRopeWithSinCosCache": [
+    "positions（aclTensor*，计算输入）",
+    "queryIn（aclTensor*，计算输入）",
+    "keyIn（aclTensor*，计算输入）",
+    "cosSinCache（aclTensor*，计算输入）",
+    "mropeSection（aclIntArray*，计算输入）",
+    "headSize（int64_t, 计算输入）",
+    "isNeoxStyle（bool, 计算输入）",
+    "queryOut（aclTensor*，计算输出）",
+    "keyOut（aclTensor*，计算输出）"
+  ],
+  "aclnnReplicationPad2d": [
+    "self(aclTensor*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "out(aclTensor *, 计算输出)"
+  ],
+  "aclnnRotaryPositionEmbedding": [
+    "x（aclTensor*，计算输入）",
+    "cos（aclTensor*，计算输入）",
+    "sin（aclTensor*，计算输入）",
+    "mode（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnRoll": [
+    "x（aclTensor*，计算输入）",
+    "shifts（aclIntArray*，计算输入）",
+    "dims（aclIntArray*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnReplicationPad1dBackward": [
+    "gradOutput(aclTensor*, 计算输入)",
+    "self(aclTensor*, 计算输入)",
+    "padding(aclIntArray*, 计算输入)",
+    "gradInput(aclTensor*, 计算输出)"
+  ],
+  "aclnnScaledMaskedSoftmax": [
+    "x (aclTensor*, 计算输入)",
+    "mask (aclTensor*, 计算输入)",
+    "scale (double, 计算输入)",
+    "fixedTriuMask (bool, 计算输入)",
+    "y (aclTensor*, 计算输出)"
+  ],
+  "aclnnScaledMaskedSoftmaxBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "y（aclTensor*，计算输入）",
+    "mask(aclTensor*，计算输入)",
+    "scale（double，计算输入）",
+    "fixTriuMask（bool，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnReplicationPad3d": [
+    "self（aclTensor*，计算输入）",
+    "padding（aclIntArray*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnSearchSorted": [
+    "sortedSequence（aclTensor*,计算输入）",
+    "self（aclTensor*,计算输入）",
+    "outInt32（bool,计算输入）",
+    "right（bool,计算输入）",
+    "sorter（aclTensor*,计算输入）",
+    "out（aclTensor*,计算输出）"
+  ],
+  "aclnnScatterNd": [
+    "data(aclTensor*,计算输入)",
+    "indices(aclTensor*,计算输入)",
+    "updates(aclTensor*,计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnScatterPaKvCache": [
+    "key(aclTensor*，计算输入)",
+    "keyCacheRef(aclTensor*，计算输入/输出)",
+    "slotMapping(aclTensor*，计算输入)",
+    "value(aclTensor*，计算输入)",
+    "valueCacheRef(aclTensor*，计算输入/输出)",
+    "compressLensOptional(aclTensor*，可选计算输入)",
+    "compressSeqOffsetOptional(aclTensor*，可选计算输入)",
+    "seqLensOptional(aclTensor*，可选计算输入)",
+    "cacheMode(char，计算输入)",
+    "scatterMode(char，计算输入)",
+    "strides(aclIntArray *, 计算输入)",
+    "offsets(aclIntArray *, 计算输入)"
+  ],
+  "aclnnRsub": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclTensor*, 计算输入)",
+    "alpha(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnScatterAdd": [
+    "self（aclTensor*，计算输入）",
+    "dim（int64_t, 计算输入）",
+    "index（aclTensor*，计算输入）",
+    "src（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnSearchSorteds": [
+    "sortedSequence（aclTensor*, 计算输入）",
+    "self（aclScalar*, 计算输入）",
+    "outInt32（bool,计算输入）",
+    "right（bool,计算输入）",
+    "sorter（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnScatterNdUpdate": [
+    "varRef(aclTensor *，计算输入)",
+    "indices(aclTensor*, 计算输入)",
+    "updates(aclTensor*,计算输入)",
+    "workspaceSize(uint64_t *，计算输入)"
+  ],
+  "aclnnShrink": [
+    "self（aclTensor*，计算输入）",
+    "lambd（aclScalar*，计算输入）",
+    "bias（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnSeluBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "result（aclTensor*，计算输入）",
+    "gradInput（aclTensor *，计算输出）"
+  ],
+  "aclnnSigmoidBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "output（aclTensor*，计算输入）",
+    "gradInput（aclTensor *，计算输出）"
+  ],
+  "aclnnScale": [
+    "x(aclTensor*, 计算输入)",
+    "scale(aclTensor*, 计算输入)",
+    "bias(aclTensor*, 计算输入)",
+    "axis(int64_t, 计算输入)",
+    "numAxes(int64_t, 计算输入)",
+    "scaleFromBlob(bool, 计算输入)",
+    "y(aclTensor*, 计算输出)"
+  ],
+  "aclnnSilentCheckV2": [
+    "val（aclTensor*, 计算输入）",
+    "max（aclTensor*, 计算输入）",
+    "avgRef（aclTensor*, 计算输入）",
+    "inputGradRef（aclTensor*, 计算输入）",
+    "stepRef（aclTensor*, 计算输入）",
+    "dstSize（aclIntArray*, 计算输入）",
+    "dstStride（aclIntArray*, 计算输入）",
+    "dstOffset（aclIntArray*, 计算输入）",
+    "cThreshL1（float, 计算输入）",
+    "cThreshL2（float, 计算输入）",
+    "beta1（float, 计算输入）",
+    "npuAsdDetect（int32_t, 计算输入）",
+    "result（aclTensor*, 计算输出）"
+  ],
+  "aclnnSinc": [
+    "self(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnInplaceSinc": [
+    "selfRef(aclTensor*,计算输入|计算输出)"
+  ],
+  "aclnnSiluBackward": [
+    "gradOutput(aclTensor*，计算输入)",
+    "self(aclTensor*，计算输入)",
+    "gradInput(aclTensor*，计算输出)"
+  ],
+  "aclnnRsubs": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "alpha(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnSignBitsPack": [
+    "self（aclTensor*，计算输入）",
+    "size（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnSignBitsUnpack": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnSignbit": [
+    "self(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnSilentCheck": [
+    "val（aclTensor*, 计算输入）",
+    "inputGradRef（aclTensor*, 计算输入）",
+    "sfdaRef（aclTensor*, 计算输入）",
+    "stepRef（aclTensor*, 计算输入）",
+    "cMinSteps（int32_t, 计算输入）",
+    "cThreshL1（float, 计算输入）",
+    "cCoeffL1（float, 计算输入）",
+    "cThreshL2（float, 计算输入）",
+    "cCoeffL2（float, 计算输入）",
+    "npuAsdDetect（int32_t, 计算输入）",
+    "result（aclTensor*, 计算输出）"
+  ],
+  "aclnnSliceV2": [
+    "self(aclTensor*, 计算输入)",
+    "starts(aclIntArray*, 计算输入)",
+    "ends(aclIntArray*, 计算输入)",
+    "axes(aclIntArray*, 计算输入)",
+    "steps(aclIntArray*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnSign": [
+    "self(const aclTensor，计算输入)",
+    "result(aclTensor，计算输出)"
+  ],
+  "aclnnSilu": [
+    "self（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输入）"
+  ],
+  "aclnnSlice": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "start(int64_t, 计算输入)",
+    "end(int64_t, 计算输入)",
+    "step(int64_t, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnSlogdet": [
+    "self(aclTensor*,计算输入)",
+    "signOut(aclTensor *，计算输出)",
+    "logOut(aclTensor *，计算输出)"
+  ],
+  "aclnnSmoothL1Loss": [
+    "self（aclTensor*，计算输入）",
+    "target（aclTensor*，计算输入）",
+    "reduction（int64_t，计算输入）",
+    "beta（float，计算输入）",
+    "result（aclTensor*，计算输出）"
+  ],
+  "aclnnSmoothL1LossBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "target（aclTensor*，计算输入）",
+    "reduction（int64_t，计算输入）",
+    "beta（float，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnSoftshrinkBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "lambda（aclScalar*，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnSoftplus": [
+    "self（aclTensor*，计算输入）",
+    "beta（aclScalar*，计算输入）",
+    "threshold（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnSoftMarginLossBackward": [
+    "gradOutput（aclTensor*, 计算输入）",
+    "self（aclTensor*, 计算输入）",
+    "target（aclTensor*, 计算输入）",
+    "reduction（int64_t，计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnSoftmax": [
+    "self（aclTensor*，计算输入）",
+    "dim（int64_t，计算输入）",
+    "out（aclTensor *，计算输出）"
+  ],
+  "aclnnSoftMarginLoss": [
+    "self（aclTensor*, 计算输入）",
+    "target（aclTensor*, 计算输入）",
+    "reduction（int64_t，计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnSquaredRelu": [
+    "input（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnStack": [
+    "tensors（aclTensorList*, 计算输入）",
+    "dim（int64_t, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnSoftshrink": [
+    "self(aclTensor*，计算输入)",
+    "lambd(aclScalar*，计算输入)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnSoftmaxBackward": [
+    "gradOutput(aclTensor*，计算输入)",
+    "output(aclTensor*，计算输入)",
+    "dim(int64_t *，计算输入)",
+    "out(aclTensor *，计算输出)"
+  ],
+  "aclnnSplitTensor": [
+    "self(aclTensor*,计算输入)",
+    "splitSections(uint64_t,计算输入)",
+    "dim(int64_t,计算输入)",
+    "out(aclTensorList*，计算输出)"
+  ],
+  "aclnnSoftplusBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "beta（aclScalar*，计算输入）",
+    "threshold（aclScalar*，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnSort": [
+    "self(aclTensor*, 计算输入)",
+    "stable(bool, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "descending(bool, 计算输入)",
+    "valuesOut(aclTensor*, 计算输出)",
+    "indicesOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnSplitWithSize": [
+    "self(aclTensor*,计算输入)",
+    "splitSize(aclIntArray*,计算输入)",
+    "dim(int64_t,计算输入)",
+    "out(aclTensorList*，计算输出)"
+  ],
+  "aclnnSum": [
+    "tensors（aclTensorList*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnStd": [
+    "self（aclTensor*，计算输入）",
+    "dim（aclIntArray*，计算输入）",
+    "correction（int64_t，计算输入）",
+    "keepdim（bool，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnStdMeanCorrection": [
+    "self（aclTensor*, 计算输入）",
+    "dim（aclIntArray*, 计算输入）",
+    "correction（int64_t, 计算输入）",
+    "keepdim（bool, 计算输入）",
+    "stdOut（aclTensor*, 计算输出）",
+    "meanOut（aclTensor*, 计算输出）"
+  ],
+  "aclnnStridedSliceAssignV2": [
+    "varRef(aclTensor*，计算输入|计算输出)",
+    "inputValue(aclTensor*,计算输入)",
+    "begin(aclIntArray*,计算输入)",
+    "end(aclIntArray*,计算输入)",
+    "strides(aclIntArray*,计算输入)",
+    "axesOptional(aclIntArray*,计算输入)"
+  ],
+  "aclnnSWhere": [
+    "condition（aclTensor*, 计算输入）",
+    "self（aclTensor*, 计算输入）",
+    "other（aclTensor*, 计算输入）",
+    "out（aclTensor *, 计算输出）"
+  ],
+  "aclnnTanhBackward": [
+    "gradOutput（aclTensor*, 计算输入）",
+    "output（aclTensor*, 计算输入）",
+    "gradInput（aclTensor*, 计算输出）"
+  ],
+  "aclnnSwiGluQuant": [
+    "x(aclTensor*，计算输入)",
+    "smoothScalesOptional(aclTensor*，计算输入)",
+    "offsetsOptional(aclTensor*，计算输入)",
+    "groupIndexOptional(aclTensor*，计算输入)",
+    "activateLeft(bool，计算输入)",
+    "quantModeOptional(char*，计算输入)",
+    "yOut(aclTensor*, 计算输出)",
+    "scaleOut(aclTensor*, 计算输出)"
+  ],
+  "aclnnSwish": [
+    "self（aclTensor*，计算输入）",
+    "betaOptional（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnSwiGluGrad": [
+    "yGrad（aclTensor*，计算输入）",
+    "x（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnSwishBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "betaOptional（aclScalar*，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnTake": [
+    "self(aclTensor*, 计算输入)",
+    "index(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnSwiGluQuantV2": [
+    "x（aclTensor*，计算输入）",
+    "smoothScalesOptional（aclTensor*，计算输入）",
+    "offsetsOptional（aclTensor*，计算输入）",
+    "groupIndexOptional（aclTensor*，计算输入）",
+    "activateLeft（bool，计算输入）",
+    "quantModeOptional（char*，计算输入）",
+    "groupListType（int64_t，计算输入）",
+    "dstType（int64_t，计算输入）",
+    "yOut（aclTensor*，计算输出）",
+    "scaleOut（aclTensor*，计算输出）"
+  ],
+  "aclnnSwiGlu": [
+    "x（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnTfScatterAdd": [
+    "varRef(aclTensor *，计算输入|计算输出)",
+    "indices(aclTensor*，计算输入)",
+    "updates(aclTensor*，计算输入)",
+    "workspaceSize(uint64_t *，计算输入)"
+  ],
+  "aclnnTransQuantParamV2": [
+    "scale（aclTensor*，计算输入）",
+    "offset（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnThresholdBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "self（aclTensor*，计算输入）",
+    "threshold（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnTransQuantParamV3": [
+    "scale（aclTensor*, 计算输入）",
+    "offset（aclTensor*, 计算可选输入）",
+    "roundMode（int64_t, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnTopk": [
+    "self（aclTensor*, 计算输入）",
+    "k（int64_t, 计算输入）",
+    "dim（int64_t, 计算输入）",
+    "largest（bool, 计算输入）",
+    "sorted（bool, 计算输入）",
+    "valuesOut（aclTensor*, 计算输出）",
+    "indicesOut（aclTensor*, 计算输出）"
+  ],
+  "aclnnTrace": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnTransformBiasRescaleQkv": [
+    "qkv（aclTensor*，计算输入）",
+    "qkvBias（aclTensor*，计算输入）",
+    "numHeads（int64_t，计算输入）",
+    "qOut（aclTensor*，计算输出）",
+    "kOut（aclTensor*，计算输出）",
+    "vOut（aclTensor*，计算输出）"
+  ],
+  "aclnnTransConvolutionWeight": [
+    "weightIn(aclTensor *, 计算输入)",
+    "transposed(bool, 计算输入)",
+    "groups(int64_t *, 计算输入)",
+    "weightOut(aclTensor *, 计算输出)"
+  ],
+  "aclnnTransMatmulWeight": [
+    "mmWeightRef(aclTensor *, 计算输入|计算输出)"
+  ],
+  "aclnnUnfoldGrad": [
+    "gradOut(aclTensor*, 计算输入)",
+    "inputSizes(aclIntArray*, 计算输入)",
+    "dim（int64_t，计算输入）",
+    "size（int64_t，计算输入）",
+    "step（int64_t，计算输入）",
+    "gradIn（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleBilinear2dBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUniqueDim": [
+    "self（aclTensor*, 计算输入）",
+    "sorted（bool, 计算输入）",
+    "returnInverse（bool, 计算输入）",
+    "dim（int64_t, 计算输入）",
+    "valueOut（aclTensor*, 计算输出）",
+    "inverseOut（aclTensor*, 计算输出）",
+    "countsOut（aclTensor*,计算输出）"
+  ],
+  "aclnnUnique": [
+    "self（aclTensor*，计算输入）",
+    "sorted（bool，计算输入）",
+    "returnInverse（bool，计算输入）",
+    "valueOut（aclTensor*，计算输出）",
+    "inverseOut（aclTensor*，计算输出）"
+  ],
+  "aclnnUnique2": [
+    "self（aclTensor*，计算输入）",
+    "sorted（bool，计算输入）",
+    "returnInverse（bool，计算输入）",
+    "returnCounts（bool，计算输入）",
+    "valueOut（aclTensor*，计算输出）",
+    "inverseOut（aclTensor*，计算输出）",
+    "countsOut（aclTensor*，计算输出）"
+  ],
+  "aclnnUniqueConsecutive": [
+    "self（aclTensor*, 计算输入）",
+    "returnInverse（bool, 计算输入）",
+    "returnCounts（bool, 计算输入）",
+    "dim（int64_t, 计算输入）",
+    "valueOut（aclTensor*，计算输出）",
+    "inverseOut（aclTensor*，计算输出）",
+    "countsOut（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleBicubic2d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleBicubic2dAA": [
+    "x（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double, 计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleBicubic2dBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleBilinear2d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleBicubic2dAAGrad": [
+    "gradOutput（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleBilinear2dAABackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleLinear1dBackward": [
+    "gradOut（aclTensor *，计算输入）",
+    "outputSize（aclIntArray *，计算输入）",
+    "inputSize（aclIntArray *，计算输入）",
+    "alignCorners（bool, 计算输入）",
+    "scales（double, 计算输入）",
+    "out（aclTensor *，计算输出）"
+  ],
+  "aclnnUpsampleLinear1d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scales（double, 计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearestExact1d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "scales（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearestExact1dBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "scales（double, 计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearestExact3d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "scalesD（double，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor、*，计算输出）"
+  ],
+  "aclnnUpsampleNearestExact3dBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "scalesD（double，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearestExact2dBackward": [
+    "gradOutput（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "scalesH（double, 计算输入）",
+    "scalesW（double, 计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearest2dV2": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*,计算输入）",
+    "scalesH（float，计算输入）",
+    "scalesW（float，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearest1dV2": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "scaleL（float，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearest1d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearest2d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*,计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearest1dBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "scales（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearestExact2d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*,计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearest2dBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleNearest3d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "scalesD（double，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor、*，计算输出）"
+  ],
+  "aclnnUpsampleNearest3dBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "scalesD（double, 计算输入）",
+    "scalesH（double, 计算输入）",
+    "scalesW（double, 计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleTrilinear3d": [
+    "self（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesD（double，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleTrilinear3dBackward": [
+    "gradOut（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesD（double，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "gradInput（aclTensor*，计算输出）"
+  ],
+  "aclnnVarMean": [
+    "self（aclTensor*, 计算输入）",
+    "meanOut（aclTensor*, 计算输出）",
+    "varOut（aclTensor*, 计算输出）"
+  ],
+  "aclnnVarCorrection": [
+    "self（aclTensor*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnWeightQuantBatchMatmul": [
+    "x1(aclTensor*, 计算输入)",
+    "x2(aclTensor*, 计算输入)",
+    "diagonalMatrix(aclTensor*, 计算输入)",
+    "deqOffset(aclTensor*, 计算输入)",
+    "deqScale(aclTensor*, 计算输入)",
+    "addOffset(aclTensor*, 计算输入)",
+    "mulScale(aclTensor*, 计算输入)",
+    "bias(aclTensor*, 计算输入)",
+    "transposeX1(bool, 计算输入)",
+    "transposeX2(bool, 计算输入)",
+    "antiquantScale(float, 计算输入)",
+    "antiquantOffset(float, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnVar": [
+    "self（aclTensor*, 计算输入）",
+    "dim（aclIntArray*，计算输入）",
+    "unbiased（bool，计算输入）",
+    "keepdim（bool，计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnXLogYScalarSelf": [
+    "self（aclScalar*, 计算输入）",
+    "other（aclTensor*, 计算输入）",
+    "out（aclTensor *, 计算输出）"
+  ],
+  "aclnnForeachAddcmulScalarV2": [
+    "x1（aclTensorList*，计算输入）",
+    "x2（aclTensorList*，计算输入）",
+    "x3（aclTensorList*，计算输入）",
+    "scalar（aclScalar*，计算输入）",
+    "out（aclTensorList*，计算输出）"
+  ],
+  "aclnnGeluBackwardV2": [
+    "gradOutput(aclTensor*,计算输入)",
+    "self(aclTensor*，计算输入)",
+    "approximate(char*, 计算输入)",
+    "gradInput(aclTensor*，计算输出)"
+  ],
+  "aclnnFatreluMul": [
+    "input（aclTensor*，计算输入）",
+    "threshold（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGeluBackward": [
+    "gradOutput(aclTensor*,计算输入)",
+    "self(aclTensor*,计算输入)",
+    "gradInput(aclTensor*,计算输出)"
+  ],
+  "aclnnGather": [
+    "self（aclTensor*，计算输入）",
+    "dim（int64_t，计算输入）",
+    "index（aclTensor*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGroupNorm": [
+    "self（aclTensor*,计算输入）",
+    "gamma（aclTensor*,计算输入）",
+    "beta（aclTensor*,计算输入）",
+    "N（int64_t,计算输入）",
+    "C（int64_t,计算输入）",
+    "HxW（int64_t,计算输入）",
+    "group（int64_t,计算输入）",
+    "eps（double,计算输入）",
+    "out（aclTensor*,计算输出）",
+    "meanOut（aclTensor*,计算输出）",
+    "rstdOut（aclTensor*,计算输出）"
+  ],
+  "aclnnIndex": [
+    "self（aclTensor*, 计算输入）",
+    "indices（aclTensorList*, 计算输入）",
+    "out（aclTensor*, 计算输出）"
+  ],
+  "aclnnNormalTensorTensor": [
+    "mean(aclTensor*,计算输入)",
+    "std(aclTensor*,计算输入)",
+    "seed(int64_t，计算输出)",
+    "offset(int64_t，计算输出)",
+    "out(aclTensor*，计算输出)"
+  ],
+  "aclnnLinalgCross": [
+    "self（aclTensor*，计算输入）",
+    "other（aclTensor*，计算输入）",
+    "dim（int64_t，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnGroupQuant": [
+    "x（aclTensor*，计算输入）",
+    "scale（aclTensor*，计算输入）",
+    "groupIndex（aclTensor*，计算输入）",
+    "offsetOptional（aclTensor*，计算输入）",
+    "dstType（int32_t，计算输入）",
+    "y（aclTensor*，计算输出）"
+  ],
+  "aclnnMatmulCompress": [
+    "x(aclTensor*, 计算输入)",
+    "weight(aclTensor*, 计算输入)",
+    "bias(aclTensor*, 计算输入)",
+    "compressIndex(aclTensor*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnIou": [
+    "bBoxes（aclTensor*，计算输入）",
+    "gtBoxes（aclTensor*，计算输入）",
+    "mode（char*，计算输入）",
+    "eps（float，计算输入）",
+    "aligned（bool，计算输入）",
+    "overlap（aclTensor*，计算输出）"
+  ],
+  "aclnnRange": [
+    "start(aclScalar, 计算输入)",
+    "end(aclScalar), 计算输入",
+    "step(aclScalar), 计算输入",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceZero": [
+    "selfRef(aclTensor*, 计算输入|计算输出)"
+  ],
+  "aclnnIndexAdd": [
+    "self（aclTensor*，计算输入）",
+    "dim（int64_t，计算输入）",
+    "index（aclTensor*，计算输入）",
+    "source（aclTensor*，计算输入）",
+    "alpha（aclScalar*，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnMatmulCompressDequant": [
+    "x1(aclTensor*, 计算输入)",
+    "x2(aclTensor*, 计算输入)",
+    "compressIndex(aclTensor*, 计算输入)",
+    "bias(aclTensor*, 计算输入)",
+    "deqScale(aclTensor*, 计算输入)",
+    "offsetW(aclTensor*, 计算输入)",
+    "offsetX(int32, 计算输入)",
+    "compressInfo(aclIntArray*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnRotaryPositionEmbeddingGrad": [
+    "dy（aclTensor*，计算输入）",
+    "cos（aclTensor*，计算输入）",
+    "sin（aclTensor*，计算输入）",
+    "xOptional（aclTensor*，可选计算输入）",
+    "mode（int64_t，计算输入）",
+    "dxOut（aclTensor*，计算输出）",
+    "dcosOut（aclTensor*，计算输出）",
+    "dsinOut（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleBilinear2dBackwardV2": [
+    "gradOut（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "inputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnUpsampleBilinear2dAA": [
+    "input（aclTensor*，计算输入）",
+    "outputSize（aclIntArray*，计算输入）",
+    "alignCorners（bool，计算输入）",
+    "scalesH（double，计算输入）",
+    "scalesW（double，计算输入）",
+    "out（aclTensor*，计算输出）"
+  ],
+  "aclnnDivs": [
+    "self(aclTensor*, 计算输入)",
+    "other(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnInplaceDivs": [
+    "selfRef(aclTensor*, 计算输入|输出)",
+    "other(aclScalar*, 计算输入)"
+  ],
+  "aclnnFusedCrossEntropyLossWithMaxSum": [
+    "logitsMax(aclTensor*，计算输入)",
+    "sumExpLogits(aclTensor*，计算输入)",
+    "predictedLogits(aclTensor*，计算输入)",
+    "labelSmoothing(float，计算输入)",
+    "inputOptional(aclTensor*，计算输入)",
+    "weightOptional(aclTensor*，计算输入)",
+    "vocabParallelLogitsOptional(aclTensor*，计算输入)",
+    "lossOut(aclTensor*，计算输出)",
+    "softMaxOutOptional(aclTensor*，计算输出)"
+  ],
+  "aclnnTriangularSolve": [
+    "self(aclTensor*, 计算输入)",
+    "A(aclTensor*, 计算输入)",
+    "upper(bool, 计算输入)",
+    "transpose(bool, 计算输入)",
+    "unitriangular(bool, 计算输入)",
+    "xOut(aclTensor *, 计算输出)",
+    "mOut(aclTensor *, 计算输出)"
+  ],
+  "aclnnCalculateConvolutionWeightSize": [
+    "tensorShape(aclIntArray*, 计算输入)",
+    "transposed(bool, 计算输入)",
+    "groups(int64_t *, 计算输入)",
+    "dataType(aclDataType *, 计算输入)",
+    "weightTensorSize(uint64_t *, 计算输出)"
+  ],
+  "aclnnCalculateMatmulWeightSize": [
+    "tensorShape(aclIntArray*, 计算输入)",
+    "weightTensorSize(uint64_t *, 计算输出)"
+  ],
+  "aclnnCalculateMatmulWeightSizeV2": [
+    "tensorShape(aclIntArray*, 计算输入)",
+    "weightDtype(aclDataType, 计算输入)",
+    "weightTensorSize(uint64_t *, 计算输出)"
+  ],
+  "aclnnInplaceNormal": [
+    "selfRef（aclTensor*, 计算输入/输出）",
+    "mean（float, 计算输入）",
+    "std（float, 计算输入）",
+    "seed（int64_t, 计算输入）",
+    "offset（int64_t, 计算输入）"
+  ],
+  "aclnnMv": [
+    "self(aclTensor*,计算输入)",
+    "vec(aclTensor*,计算输入)",
+    "out(aclTensor *，计算输出)",
+    "cubeMathType(int8，计算输入)"
+  ],
+  "aclnnTransQuantParam": [
+    "scaleArray(const float*, 计算输入)",
+    "scaleSize(uint64_t, 计算输入)",
+    "offsetArray(const float*, 计算输入)",
+    "offsetSize(uint64_t, 计算输入)",
+    "quantParam(uint64**, 计算输出)",
+    "quantParamSize(uint64_t*, 计算输出)"
+  ],
+  "aclnnGatherPaKvCache": [
+    "keyCache（aclTensor*，计算输入）",
+    "valueCache(aclTensor *,计算输入)",
+    "blockTables（aclTensor*，计算输入）",
+    "seqLens（aclTensor*，计算输入）",
+    "keyRef（aclTensor*，计算输入/输出）",
+    "valueRef（aclTensor*，计算输入/输出）",
+    "seqOffsetOptional（aclTensor*，可选计算输入）",
+    "cacheMode（char*，计算输入）",
+    "isSeqLensCumsum（bool，计算输入）"
+  ],
+  "aclnnIndexFill": [
+    "self(aclTensor*, 计算输入)",
+    "dim(int64_t, 计算输入)",
+    "index(aclIntArray*, 计算输入)",
+    "value(aclScalar*, 计算输入)",
+    "out(aclTensor*, 计算输出)"
+  ],
+  "aclnnTransposeBatchMatMul": [
+    "x1（aclTensor*，计算输入）",
+    "x2（aclTensor*，计算输入）",
+    "bias（aclTensor*，可选计算输入）",
+    "scale（aclTensor*，可选计算输入）",
+    "permX1（aclIntArray*, 计算输入）",
+    "permX2（aclIntArray*, 计算输入）",
+    "permY（aclIntArray*, 计算输入）",
+    "cubeMathType（int8_t，计算输入）",
+    "batchSplitFactor（int32_t，计算输入）",
+    "out（aclTensor *，计算输出）"
+  ]
+}
