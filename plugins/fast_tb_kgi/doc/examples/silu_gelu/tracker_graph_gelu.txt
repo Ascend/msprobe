@@ -1,0 +1,105 @@
+(%2) = Default/data-0(), task_info: 0, attrs {stream_id=0} 
+    (Int64:[]) <- ()
+    # 
+(%4) = Default/data-1(), task_info: 2, attrs {stream_id=0} 
+    (Int64:[1]) <- ()
+    # 
+(%6) = Default/data-2(), task_info: 4, attrs {stream_id=0} 
+    (Bool:[]) <- ()
+    # 
+(%8) = Default/data-3(), task_info: 6, attrs {stream_id=0} 
+    (Float32:[]) <- ()
+    # 
+(%10) = Default/data-4(), task_info: 8, attrs {stream_id=0} 
+    (Bool:[]) <- ()
+    # 
+(%12) = Default/data-5(), task_info: 10, attrs {stream_id=0} 
+    (Int64:[]) <- ()
+    # 
+(%14) = Default/data-6(), task_info: 12, attrs {stream_id=0} 
+    (Int64:[]) <- ()
+    # 
+(%16) = Default/data-7(), task_info: 14, attrs {stream_id=0} 
+    (Bool:[]) <- ()
+    # 
+(%18) = Default/data-8(), task_info: 16, attrs {stream_id=0} 
+    (Float32:[]) <- ()
+    # 
+(%20) = Default/data-9(), task_info: 18, attrs {stream_id=0} 
+    (Int64:[1]) <- ()
+    # 
+(%22) = Default/data-10(), task_info: 20, attrs {stream_id=0} 
+    (Int64:[2]) <- ()
+    # 
+(%27) = Default/_backbone-AscendNet/conv-Conv2d/Conv2D-op0(%26, %24), task_info: 28, attrs {stream_id=0} 
+    (Float32:[32, 64, 32, 32]) <- (Float32:[32, 3, 32, 32], Float32:[64, 3, 3, 3])
+    # 
+() = AclWorkspace(), task_info: 30, attrs {stream_id=0} 
+    () <- ()
+    # 
+() = AclWorkspace(), task_info: 32, attrs {stream_id=0} 
+    () <- ()
+    # 
+() = AclWorkspace(), task_info: 34, attrs {stream_id=0} 
+    () <- ()
+    # 
+(%40) = Default/_backbone-AscendNet/GeLU-op0(%27), task_info: 40, attrs {stream_id=0} 
+    (Float32:[32, 64, 32, 32]) <- (Float32:[32, 64, 32, 32])
+    # 
+(%43) = Default/_backbone-AscendNet/pool-MaxPool2d/MaxPool-op0(%40), task_info: 43, attrs {stream_id=0} 
+    (Float32:[32, 64, 16, 16]) <- (Float32:[32, 64, 32, 32])
+    # 
+() = AclWorkspace(), task_info: 45, attrs {stream_id=0} 
+    () <- ()
+    # 
+() = AclWorkspace(), task_info: 47, attrs {stream_id=0} 
+    () <- ()
+    # 
+(%43) = Default/_backbone-AscendNet/flatten-Flatten/Flatten-op0(%43), task_info: 51, attrs {stream_id=0} 
+    (Float32:[32, 16384]) <- (Float32:[32, 64, 16, 16])
+    # 
+(%53) = Default/_backbone-AscendNet/fc-Dense/MatMul-op0(%43, %25, %16, %6), task_info: 53, attrs {stream_id=0} 
+    (Float32:[32, 10]) <- (Float32:[32, 16384], Float32:[10, 16384], Bool:[], Bool:[])
+    # 
+(%56) = Default/_backbone-AscendNet/fc-Dense/BiasAdd-op0(%53, %23, %14), task_info: 56, attrs {stream_id=0} 
+    (Float32:[32, 10]) <- (Float32:[32, 10], Float32:[10], Int64:[])
+    # 
+(%56) = Default/_backbone-AscendNet/fc-Dense/Reshape-op0(%56, %22), task_info: 58, attrs {stream_id=0} 
+    (Float32:[32, 10]) <- (Float32:[32, 10], Int64:[2])
+    # 
+(%60) = Default/Reshape-op0(%28, %20), task_info: 60, attrs {stream_id=0} 
+    (Int32:[32]) <- (Int32:[32], Int64:[1])
+    # 
+(%63) = Default/_loss_fn-SoftmaxCrossEntropyWithLogits/OneHot-op0(%60, %2, %18, %8, %12), task_info: 63, attrs {stream_id=0} 
+    (Float32:[32, 10]) <- (Int32:[32], Int64:[], Float32:[], Float32:[], Int64:[])
+    # 
+(%66, %67) = Default/_loss_fn-SoftmaxCrossEntropyWithLogits/SoftmaxCrossEntropyWithLogits-op0(%56, %63), task_info: 67, attrs {stream_id=0} 
+    (Float32:[32], Float32:[32, 10]) <- (Float32:[32, 10], Float32:[32, 10])
+    # 
+() = AclWorkspace(), task_info: 69, attrs {stream_id=0} 
+    () <- ()
+    # 
+() = AclWorkspace(), task_info: 71, attrs {stream_id=0} 
+    () <- ()
+    # 
+() = AclWorkspace(), task_info: 73, attrs {stream_id=0} 
+    () <- ()
+    # 
+(%81) = Default/_loss_fn-SoftmaxCrossEntropyWithLogits/ReduceMean-op0(%66, %4, %10), task_info: 81, attrs {stream_id=0} 
+    (Float32:[]) <- (Float32:[32], Int64:[1], Bool:[])
+    # 
+() = AclWorkspace(), task_info: 83, attrs {stream_id=0} 
+    () <- ()
+    # 
+() = AclWorkspace(), task_info: 85, attrs {stream_id=0} 
+    () <- ()
+    # 
+() = AclWorkspace(), task_info: 87, attrs {stream_id=0} 
+    () <- ()
+    # 
+() = AclWorkspace(), task_info: 89, attrs {stream_id=0} 
+    () <- ()
+    # 
+() = UpdateOutputDeviceAddress(), task_info: 94, attrs {stream_id=0} 
+    () <- ()
+    # 
