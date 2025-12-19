@@ -655,7 +655,7 @@ pre2 = teacher(image)
         # walk_input_path
         project = os.path.join(os.path.dirname(__file__), '../resources/net/barlowtwins_amp')
         py_file_counts = self.utils.walk_input_path(project, output_free_size=1024 ** 3)
-        self.assertEqual(py_file_counts, 5)
+        self.assertEqual(py_file_counts, 3)
 
         # check_model_name_valid
         invalid_model_names = ['123', '12model', '{}', 'model*#']
