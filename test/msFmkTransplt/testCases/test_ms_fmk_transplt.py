@@ -173,11 +173,7 @@ def get_normal_transplant_params(input_path, output_path, standard_dir=None):
 
 def get_multi_transplant_params(input_path, output_path, standard_dir=None):
     main_file_dict = {
-        'ID0339_CarPeting_Pytorch_EAST_multi': input_path + '/ID0339_CarPeting_Pytorch_EAST_multi/train_ICDAR15.py',
-        'ID0476_CarPeting_Pytorch_3D_nested_unet_multi': input_path + '/ID0476_CarPeting_Pytorch_3D_nested_unet_multi/train.py',
-        'ID0478_CarPeting_Pytorch_3D_attentionnet_multi': input_path + '/ID0478_CarPeting_Pytorch_3D_attentionnet_multi/train.py',
-        'ID0669_CarPeting_Pytorch_GENet_multi': input_path + '/ID0669_CarPeting_Pytorch_GENet_multi/train.py',
-        'ID0338_CarPeting_Pytorch_FOTS_MS_multi': input_path + '/ID0338_CarPeting_Pytorch_FOTS_MS_multi/main.py'
+        'ID0339_CarPeting_Pytorch_EAST_multi': input_path + '/ID0339_CarPeting_Pytorch_EAST_multi/train_ICDAR15.py'
     }
     args = []
     transplt_files = []
