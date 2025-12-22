@@ -1,6 +1,6 @@
 # ms_fmk_transplt
 
-自研Pytorch GPU2Ascend脚本迁移工具
+自研Pytorch GPU2Ascend脚本迁移工具。
 
 ## License
 msfmktransplt工具的使用许可证，具体请参见[License](./LICENSE)。
