@@ -154,6 +154,7 @@ class TestPytorchDataProcessor(unittest.TestCase):
         result = self.processor.process_group_hash(process_group_element)
         expected = f"{zlib.crc32(str([0]).encode('utf-8')):08x}"
         self.assertEqual(result, expected)
+        dist.destroy_process_group()
 
     def test_analyze_torch_size(self):
         size = torch.Size([3, 4, 5])
@@ -181,6 +182,7 @@ class TestPytorchDataProcessor(unittest.TestCase):
             'group_id': f"{zlib.crc32(str([0]).encode('utf-8')):08x}"
         }
         self.assertEqual(result, expected)
+        dist.destroy_process_group()
 
     def test_analyze_reduce_op_successful(self):
         arg = dist.ReduceOp.SUM
@@ -223,6 +225,7 @@ class TestPytorchDataProcessor(unittest.TestCase):
         process_group_element = dist.group.WORLD
         result = self.processor.analyze_single_element(process_group_element, [])
         self.assertEqual(result, self.processor._analyze_process_group(process_group_element))
+        dist.destroy_process_group()
 
     def test_analyze_single_element_numpy_conversion(self):
         numpy_element = np.int32(5)

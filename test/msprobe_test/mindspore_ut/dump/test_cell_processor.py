@@ -27,8 +27,10 @@ from msprobe.core.common.exceptions import MsprobeException
 from msprobe.core.common.runtime import Runtime
 from msprobe.core.dump.data_dump.scope import ModuleRangeScope
 from msprobe.core.dump.hook_manager import HookSet
-from msprobe.mindspore.dump.cell_processor import CellProcessor, get_cell_construct
+from msprobe.mindspore.common import utils
 from msprobe.mindspore.common.log import logger
+from msprobe.mindspore.common.utils import has_kwargs_in_forward_hook, is_backward_hook_output_a_view
+from msprobe.mindspore.dump.cell_processor import CellProcessor, get_cell_construct
 
 
 class TestCellProcessor(unittest.TestCase):
@@ -110,7 +112,8 @@ class TestCellProcessor(unittest.TestCase):
         self.assertEqual(str(context.exception), '[msprobe] 无效参数：The model cannot be None, when level is "L0" or "mix"')
 
         with patch('msprobe.mindspore.dump.cell_processor.is_mindtorch') as mock_is_mindtorch, \
-             patch('msprobe.mindspore.dump.cell_processor.get_cells_and_names_with_index') as mock_get_cells_and_names, \
+             patch(
+                 'msprobe.mindspore.dump.cell_processor.get_cells_and_names_with_index') as mock_get_cells_and_names, \
              patch('msprobe.mindspore.dump.cell_processor.CellProcessor.build_cell_hook') as mock_build_cell_hook, \
              patch('msprobe.mindspore.dump.cell_processor.get_cell_construct') as mock_get_cell_construct, \
              patch('msprobe.mindspore.dump.cell_processor.is_graph_mode_cell_dump_allowed') \
@@ -123,7 +126,10 @@ class TestCellProcessor(unittest.TestCase):
             mock_get_cell_construct.return_value = '_construct'
             mock_is_graph_mode_cell_dump_allowed.return_value = False
 
+            actual_kwargs_check_result = has_kwargs_in_forward_hook()
+
             mock_is_mindtorch.return_value = False
+            utils.kwargs_exist_in_forward_hook = False
             setattr(MagicMock, '_run_construct', '_run_construct')
             self.processor.register_cell_hook(mock_cell, None, 'config')
             self.assertTrue(mock_sub_cell.__class__.msprobe_construct)
@@ -140,6 +146,20 @@ class TestCellProcessor(unittest.TestCase):
             del mock_sub_cell.__class__._run_construct
             del mock_sub_cell.__class__.msprobe_construct
 
+            utils.kwargs_exist_in_forward_hook = True
+            mock_get_cell_construct.reset_mock()
+            mock_another_sub_cell = MagicMock()
+            mock_get_cells_and_names.return_value = (
+                {'-1': [('cell', mock_cell), ('another_sub_cell', mock_another_sub_cell)]},
+                {}
+            )
+            self.processor.register_cell_hook(mock_cell, None, 'config')
+            mock_get_cell_construct.assert_not_called()
+            self.assertFalse(hasattr(mock_another_sub_cell.__class__, 'msprobe_construct'))
+            mock_another_sub_cell.register_forward_pre_hook.assert_called_with('forward_pre_hook')
+            mock_another_sub_cell.register_forward_hook.assert_not_called()
+
+            utils.kwargs_exist_in_forward_hook = False
             mock_get_cell_construct.reset_mock()
             mock_another_sub_cell = MagicMock()
             setattr(mock_another_sub_cell.__class__, 'msprobe_construct', True)
@@ -167,6 +187,7 @@ class TestCellProcessor(unittest.TestCase):
             mock_another_sub_cell.register_forward_pre_hook.assert_called_with('forward_pre_hook')
             mock_another_sub_cell.register_forward_hook.assert_not_called()
 
+            utils.kwargs_exist_in_forward_hook = actual_kwargs_check_result
             del MagicMock._call_impl
             del mock_another_sub_cell.__class__._call_impl
             del mock_another_sub_cell.__class__.msprobe_construct
@@ -205,7 +226,10 @@ class TestCellProcessor(unittest.TestCase):
             mock_CellBackwardHook.assert_called_with(full_backward_name, mock_cell,
                                                      CellProcessor.cell_backward_hook[-1])
             mock_bw.register_backward_hook.assert_called_once()
-            mock_bw.assert_called_with(*args)
+            if is_backward_hook_output_a_view():
+                mock_bw.assert_called_with(args)
+            else:
+                mock_bw.assert_called_with(*args)
             self.assertTrue((ret[0] == target_args[0]).all())
 
             backward_hook = CellProcessor.cell_backward_hook[-1][full_backward_name]
@@ -289,7 +313,10 @@ class TestCellProcessor(unittest.TestCase):
             # call testing function - forward_hook
             ret = forward_hook(mock_cell, args, output)
             self.assertEqual(mock_bw.call_count, 2)
-            self.assertEqual(mock_bw.call_args_list[0][0][0], *output)
+            if is_backward_hook_output_a_view():
+                self.assertEqual(mock_bw.call_args_list[0][0][0], output)
+            else:
+                self.assertEqual(mock_bw.call_args_list[0][0][0], *output)
             self.assertEqual(mock_bw.call_args_list[1][0][0], mock_bw.return_value)
             self.assertTrue((ret[0] == target_output[0]).all())
 
@@ -303,12 +330,16 @@ class TestCellProcessor(unittest.TestCase):
             mock_bw.return_value = (Tensor([0.5]),)
             output = (Tensor([1.0]), Tensor([2.0]))
             mock_forward_data_hook.return_value = output
-            with self.assertRaises(TypeError) as context:
-                # call testing function - forward_hook
+            if is_backward_hook_output_a_view():
                 forward_hook(mock_cell, args, output)
-            self.assertEqual(str(context.exception),
-                             'The backward pre hook return value size is 1 not equal to output size 2')
-            mock_bw.assert_called_with(*output)
+                mock_bw.assert_called_with(output)
+            else:
+                with self.assertRaises(TypeError) as context:
+                    # call testing function - forward_hook
+                    forward_hook(mock_cell, args, output)
+                self.assertEqual(str(context.exception),
+                                 'The backward pre hook return value size is 1 not equal to output size 2')
+                mock_bw.assert_called_with(*output)
 
             self.scope.reset_mock()
             backward_pre_hook = CellProcessor.cell_backward_pre_hook[-1][full_backward_name]
@@ -359,7 +390,7 @@ class TestCellProcessor(unittest.TestCase):
         self.scope.end_module.reset_mock()
         CellProcessor.cell_stack[threading.get_ident()] = ['Cell.0', 'Cell.1']
         self.processor.set_construct_info_in_hook('full_name')
-        self.assertEqual(CellProcessor.cell_stack, {threading.get_ident():['Cell.0']})
+        self.assertEqual(CellProcessor.cell_stack, {threading.get_ident(): ['Cell.0']})
         self.assertEqual(CellProcessor.api_parent_node[threading.get_ident()], 'Cell.0')
         self.scope.end_module.assert_called_with('full_name')
 

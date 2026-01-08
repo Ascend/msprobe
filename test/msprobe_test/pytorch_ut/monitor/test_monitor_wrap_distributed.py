@@ -319,11 +319,17 @@ class TestCreateHooks(unittest.TestCase):
 
         self.monitor = MockMonitor()
         self.context = self.monitor.cc_context
+        self.ori_dist_is_initialized = dist.is_initialized
+        self.ori_dist_get_rank = dist.get_rank
         self.dist_mock = MagicMock()
         self.dist_mock.get_rank.return_value = 0
         self.dist_mock.is_initialized.return_value = True
         dist.is_initialized = self.dist_mock.is_initialized
         dist.get_rank = self.dist_mock.get_rank
+
+    def tearDown(self):
+        dist.is_initialized = self.ori_dist_is_initialized
+        dist.get_rank = self.ori_dist_get_rank
 
     def test_create_hooks_without_hook(self):
         self.monitor.module_rank_list = [0]

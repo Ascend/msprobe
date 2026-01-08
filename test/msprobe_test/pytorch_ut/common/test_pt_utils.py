@@ -111,9 +111,15 @@ class TestGetRankIfInitialized(unittest.TestCase):
 class TestGetTensorRank(unittest.TestCase):
 
     def setUp(self):
+        self.ori_dist_is_initialized = dist.is_initialized
+        self.ori_dist_get_rank = dist.get_rank
         self.dist_mock = MagicMock()
         dist.is_initialized = self.dist_mock.is_initialized
         dist.get_rank = self.dist_mock.get_rank
+
+    def tearDown(self):
+        dist.is_initialized = self.ori_dist_is_initialized
+        dist.get_rank = self.ori_dist_get_rank
 
     def test_get_tensor_rank_with_initialized_dist(self):
         self.dist_mock.is_initialized.return_value = True
