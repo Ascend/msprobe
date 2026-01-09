@@ -16,7 +16,7 @@
 # --------------------------------------------------------------------------------------------#
 import setuptools
 
-VERSION = '8.2.0'
+VERSION = '8.2.0-alpha'
 INSTALL_REQUIRED = ["tensorboard >= 2.11.2"]
 
 setuptools.setup(
@@ -24,17 +24,20 @@ setuptools.setup(
     version=VERSION,
     description="Model Hierarchical Visualization TensorBoard Plugin",
     long_description="Model Hierarchical Visualization TensorBoard Plugin : \
-        https://gitcode.com/Ascend/mstt/tree/master/plugins/tensorboard-plugins/tb_graph_ascend",
-    url="https://gitcode.com/Ascend/mstt/tree/master/plugins/tensorboard-plugins/tb_graph_ascend",
+        https://gitee.com/ascend/mstt/tree/master/plugins/tensorboard-plugins/tb_graph_ascend",
+    url="https://gitee.com/ascend/mstt/tree/master/plugins/tensorboard-plugins/tb_graph_ascend",
     author="Ascend Team",
     author_email="pmail_mindstudio@huawei.com",
     packages=setuptools.find_packages(),
+    include_package_data=True,
     package_data={
-        "server": ["static/**"],
+        "graph_ascend": ["hierarchy_plugin/server/static/**"],
+        "mon_vis": ["monvis_plugin/server/static/**"],
     },
     entry_points={
         "tensorboard_plugins": [
-            "graph_ascend = server.plugin:GraphsPlugin",
+            "graph_ascend = hierarchy_plugin.server.plugin:GraphsPlugin",
+            "mon_vis = monvis_plugin.server.app:MonVis",
         ],
     },
     python_requires=">=3.7",
