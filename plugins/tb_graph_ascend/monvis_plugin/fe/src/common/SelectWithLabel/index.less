@@ -1,0 +1,59 @@
+/* -------------------------------------------------------------------------
+ Copyright (c) 2025, Huawei Technologies.
+ All rights reserved.
+
+ Licensed under the Apache License, Version 2.0  (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+--------------------------------------------------------------------------------------------*/
+
+.selector {
+    padding: 6px 2px;
+    background-color: white;
+    box-sizing: border-box;
+    color: rgb(0, 0, 0);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+
+    .label {
+        width: 36%;
+        cursor: pointer;
+        margin-bottom: 8px;
+        color: rgb(68, 68, 68);
+        font-weight: 400;
+
+        .question-icon {
+            margin-left: 6px;
+            font-size: medium;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        &:hover {
+            color: #0660e7;
+        }
+    }
+
+    .select {
+        width: 100%;
+
+        .ant-select-selector {
+            border-radius: 0px;
+            border: 1px solid #161616;
+
+        }
+
+        .ant-select-selection-item {
+            font-weight: 500;
+        }
+    }
+}
