@@ -40,7 +40,7 @@ class GraphsPlugin(base_plugin.TBPlugin):
     plugin_name = PLUGIN_NAME
 
     def __init__(self, context):
-        """Instantiates GraphsPlugin via TensorBoard core.
+        """Instantiates GraphsPlugin via TensorBoard core.·
 
         Args:
           context: A base_plugin.TBContext instance.
@@ -56,6 +56,10 @@ class GraphsPlugin(base_plugin.TBPlugin):
             '/index.js': GraphView.static_file_route,
             '/index.html': GraphView.static_file_route,
             "/load_meta_dir": GraphView.load_meta_dir,
+            "/filterNodes": GraphView.search_node,
+            '/loadConvertedGraphData': GraphView.load_converted_graph_data,
+            '/convertToGraph': GraphView.convert_to_graph,
+            '/getConvertProgress':GraphView.get_convert_progress,
             "/screen": GraphView.search_node,
             '/loadGraphData': GraphView.load_graph_data,
             '/loadGraphConfigInfo': GraphView.load_graph_config_info,
@@ -74,25 +78,7 @@ class GraphsPlugin(base_plugin.TBPlugin):
 
     def is_active(self):
         """The graphs plugin is active if any run has a graph."""
-
-        def _is_vis(path, file_name):
-            return os.path.isfile(path) and (file_name.endswith(DB_EXT) or file_name.endswith(JSON_EXT))
-        
-        _, error = GraphUtils.safe_check_load_file_path(self.logdir, True)
-        if error:
-            return False
-        for content in os.listdir(self.logdir):
-            content_path = os.path.join(self.logdir, content)
-            if _is_vis(content_path, content):
-                return True
-            if os.path.isdir(content_path):
-                _, error = GraphUtils.safe_check_load_file_path(content_path, True)
-                if error:
-                    continue
-                for file in os.listdir(content_path):
-                    if _is_vis(os.path.join(content_path, file), file):
-                        return True
-        return False
+        return True
 
     def data_plugin_names(self):
         return (

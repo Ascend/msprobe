@@ -25,7 +25,7 @@ from pathlib import Path
 from tensorboard.util import tb_logging
 from .global_state import GraphState
 from .constant import DataType, FILE_NAME_REGEX, MAX_FILE_SIZE, PERM_GROUP_WRITE, PERM_OTHER_WRITE, COLOR_PATTERN
-from .i18n import language, ZH_CN
+from .i18n import language, ZH
 # 创建一个全局锁
 _thread_local_lock = threading.Lock()
 logger = tb_logging.get_logger()
@@ -36,7 +36,7 @@ class GraphUtils:
 
     @staticmethod
     def t(key):
-        lang = GraphState.get_global_value('lang', ZH_CN)
+        lang = GraphState.get_global_value('lang', ZH)
         return language.get(lang).get(key, '')
 
     @staticmethod
@@ -366,7 +366,6 @@ class GraphUtils:
     def safe_check_save_file_path(file_path, is_dir=False):
         file_path = os.path.normpath(file_path)  # 标准化路径
         real_path = os.path.realpath(file_path)
-        safe_base_dir = GraphState.get_global_value('logdir')
         try:
             # 安全验证：路径长度检查
             if len(file_path) > FILE_PATH_MAX_LENGTH:

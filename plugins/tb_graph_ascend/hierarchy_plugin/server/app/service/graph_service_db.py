@@ -132,6 +132,12 @@ class DbGraphService(GraphServiceStrategy):
             return {'success': False, 'error': GraphUtils.t('expandNodeError'), 'data': None}
 
     def search_node_by_precision(self, meta_data, values):
+        # 实际精度指标范围在[0, 1]，因此最大值大于1以满足每个范围区间的左闭右开
+        precision_range = {
+            'pass': [0, 0.3],
+            'warning': [0.3, 0.6],
+            'error': [0.6, 1.1]
+        }
         try:
             if not self.conn:
                 return {'success': False, 'error': GraphUtils.t('dbInitError')}
@@ -153,14 +159,17 @@ class DbGraphService(GraphServiceStrategy):
                         continue 
                     matched_node_link = node_info.get('matched_node_link', None)
                     if is_filter_unmatch_nodes and (not matched_node_link):
-                        node_name_list.append(node_name)
+                        node_name_list.append({ 'name': node_name, 'status': 'unmatched' })
                         
-                    if isinstance(node_info.get("precision_index"), (int, float, complex)) and any(low <= node_info.
-                                            get("precision_index", -1) <= high for low, high in values):
-                        node_name_list.append(node_name)
+                    if not isinstance(node_info.get("precision_index"), (int, float, complex)):
+                        continue
+                    for key in values:
+                        lower, upper = precision_range.get(key, [0, 0])
+                        if lower <= node_info.get("precision_index", -1) < upper:
+                            node_name_list.append({ 'name': node_name, 'status': key })
             # 在查数据库
             else:
-                node_name_list = self.repo.query_node_list_by_precision(step, rank, micro_step, values,
+                node_name_list = self.repo.query_node_list_by_precision(meta_data, precision_range, values,
                                                                         is_filter_unmatch_nodes)
             return {'success': True, 'data': node_name_list}
         except Exception as e:

@@ -207,7 +207,7 @@ class JsonGraphService(GraphServiceStrategy):
             node_type_name = ""
             if graph_data.get(NPU):
                 node_type_name = GraphUtils.t('debug') if graph_type == NPU else GraphUtils.t('bench')
-        return {'success': False, 'error': f'{node_type_name}{GraphUtils.t('expandNodeError')}', 'data': None}
+        return {'success': False, 'error': f'{node_type_name}{GraphUtils.t("expandNodeError")}', 'data': None}
 
     def search_node_by_precision(self, meta_data, values):
         # 遍历所有的NPU节点，如果节点的精度值在values中，则返回该节点
