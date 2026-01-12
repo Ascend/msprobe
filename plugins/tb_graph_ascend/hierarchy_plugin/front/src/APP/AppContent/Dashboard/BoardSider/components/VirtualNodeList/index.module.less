@@ -1,0 +1,65 @@
+/* Copyright (c) 2025, Huawei Technologies.
+ * All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0  (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+.virtualNodeList {
+  overflow-y: auto;
+  position: relative;
+  margin-top: 8px;
+
+  .container {
+    position: absolute;
+    width: 100%;
+
+    .nodeItem,
+    .selectedItem {
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      box-sizing: border-box;
+
+      .colorBlock {
+        display: inline-block;
+        height: 16px;
+        width: 16px;
+        margin-right: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        border-radius: 4px;
+      }
+
+      .nodeName {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        .matchedStr {
+          color: red;
+        }
+      }
+    }
+
+    .nodeItem:hover {
+      background-color: var(--ant-color-list-hover);
+    }
+
+    .selectedItem {
+      background-color: var(--ant-color-list-selected);
+
+      &:hover {
+        background-color: var(--ant-color-list-selected-hover);
+      }
+    }
+  }
+}
