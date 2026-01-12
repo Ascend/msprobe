@@ -29,6 +29,8 @@ const languageDetectorOptions = {
 export const resources = {
   en: {
     translation: {
+      dir: 'Directory',
+      file: 'File',
       risk_warning: 'Please be aware of the following risks',
       risk_confirm: 'I have read and agreed',
       risk_info:
@@ -158,10 +160,28 @@ export const resources = {
         send_receive: 'data send/receive',
       },
       positionMatchNode: 'Positioning matched node',
+      noData: 'No Data',
+      comparisonDetails: 'Comparison Details',
+      nodeInfo: 'Node Information',
+      nodeInfoPanel: {
+        copySuccessful: 'Copy successful!',
+        copyFailed: 'Copy failed: ',
+        stackInfo: 'StackInfo',
+        parallelMergedInfo: 'ParallelMergedInfo',
+        debug: 'Debug: ',
+        bench: 'Bench: ',
+      },
+      nodeList: 'Node List({{count}})',
+      Unmatched: 'Unmatched',
+      noOverflowData: 'The current data was not dumped in overflow mode.',
+      searchName: 'Search by Name',
+      loading: 'Loading...',
     },
   },
   zh: {
     translation: {
+      dir: '目录',
+      file: '文件',
       risk_warning: '请知悉以下风险',
       risk_confirm: '我已知晓并同意',
       risk_info:
@@ -286,6 +306,22 @@ export const resources = {
         send_receive: '数据发送接收',
       },
       positionMatchNode: '定位对应侧节点',
+      noData: '暂无数据',
+      comparisonDetails: '比对详情',
+      nodeInfo: '节点信息',
+      nodeInfoPanel: {
+        copySuccessful: '复制成功！',
+        copyFailed: '复制失败：',
+        stackInfo: '堆栈信息',
+        parallelMergedInfo: '数据并行合并详情',
+        debug: '调试侧：',
+        bench: '标杆侧：',
+      },
+      nodeList: '节点列表（{{count}}）',
+      Unmatched: '未匹配',
+      noOverflowData: '当前数据未使用精度溢出模式采集',
+      searchName: '按名称搜索',
+      loading: '加载中...',
     },
   },
 };
