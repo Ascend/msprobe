@@ -29,13 +29,13 @@ class ServiceFactory:
 
     def create_strategy(self, data_type, run, tag):
         if not (data_type == self.data_type and run == self.run and tag == self.tag):
-            self.data_type = data_type
-            self.run = run
-            self.tag = tag
             if data_type == DataType.DB.value:
                 self.strategy = DbGraphService(run, tag)
             else:
                 self.strategy = JsonGraphService(run, tag)
+            self.data_type = data_type
+            self.run = run
+            self.tag = tag
         return self.strategy
     
     def create_strategy_without_tag(self, data_type, run):

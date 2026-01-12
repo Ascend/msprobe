@@ -54,7 +54,7 @@ class GraphRepoDB(GraphRepo):
             config_info = {
                 "microSteps": record.get('micro_steps', 1) or 1,
                 "tooltips": GraphUtils.safe_json_loads(record.get('tool_tip')),
-                "overflowCheck": bool(record.get('overflow_check', 1) or 1),
+                "overflowCheck": bool(record.get('overflow_check', 1)),
                 "isSingleGraph": not record.get('graph_type') == 'compare',
                 "colors": GraphUtils.safe_json_loads(record.get('node_colors')),
                 "matchedConfigFiles": [],
@@ -596,7 +596,7 @@ class GraphRepoDB(GraphRepo):
             conn.close()
             
     # DB: 根据精度误差查询节点信息
-    def query_node_list_by_precision(self, step, rank, micro_step, values, is_filter_unmatch_nodes):
+    def query_node_list_by_precision(self, meta_data, precision_range, values, is_filter_unmatch_nodes):
         conn = self._initialize_db_connection()
         if not conn:
             return []
@@ -604,12 +604,15 @@ class GraphRepoDB(GraphRepo):
         conditions = []
         placeholders = []
         params = []
+        rank = meta_data.get('rank')
+        step = meta_data.get('step')
+        micro_step = meta_data.get('microStep')
         conditions.append("step = ?")
         conditions.append("rank = ?")
         conditions.append("data_source = 'NPU'")
         conditions.append("(? = -1 OR micro_step_id = ?)")
         conditions.append("(sub_nodes = '' OR sub_nodes IS NULL OR sub_nodes = '[]')") 
-        for value in values:
+        for value in [precision_range.get(key, [0, 0]) for key in values]:
             placeholder = "(precision_index BETWEEN ? AND ?)"
             placeholders.append(placeholder)
             params.extend(value)
@@ -621,7 +624,7 @@ class GraphRepoDB(GraphRepo):
             conditions.append(f"({'OR'.join(placeholders)})")
         query = f"""
             SELECT 
-                node_name
+                node_name, precision_index, matched_node_link
             FROM
                 tb_nodes 
             WHERE 
@@ -633,7 +636,16 @@ class GraphRepoDB(GraphRepo):
             with conn as c:
                 cursor = c.execute(query, (step, rank, micro_step, micro_step, *params))
                 rows = cursor.fetchall()
-            node_list = [row['node_name'] for row in rows]
+            node_list = []
+            for row in rows:
+                if row['matched_node_link'] in ['', None, '[]', []]:
+                    node_list.append({ 'name': row['node_name'], 'status': 'unmatched' })
+                    continue
+                for key in values:
+                    lower, upper = precision_range.get(key, [0, 0])
+                    # 若能进下方判断，说明key一定为precision_range的一个字典名，则必为node_name_list的字典名
+                    if lower <= row['precision_index'] < upper:
+                        node_list.append({ 'name': row['node_name'], 'status': key })
             return node_list
         except Exception as e:
             logger.error(f"Failed to query node list by precision: {e}")

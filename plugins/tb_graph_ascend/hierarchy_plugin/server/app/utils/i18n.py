@@ -15,10 +15,10 @@
 # ==============================================================================
 
 # 语言切换
-ZH_CN = "zh-CN"
+ZH = "zh"
 EN = "en"
 language = {
-    ZH_CN: {
+    ZH: {
         'typeError': '文件类型错误',
         'searchTypeError': '搜索类型错误',
         'nodeInfoError': '查询参数nodeInfo及其子项必须存在且必须为字典',
@@ -82,6 +82,8 @@ language = {
         'circularReferenceError2': ' 已存在于路径中',
         'invalidTag': '无效标签: ',
         'pathMayNotInSecureDirectory': '该路径可能不在安全目录内',
+        'loadConfigFileError': '读取配置文件失败',
+        'convertParamsError': '转换参数错误,请检查参数'
 
     },
     EN: {
@@ -148,5 +150,7 @@ language = {
         'circularReferenceError2': ' already exists in the path',
         'invalidTag': 'Invalid tag: ',
         'pathMayNotInSecureDirectory': 'The path may not be within a secure directory',
+        'loadConfigFileError': 'load config file failed',
+        'convertParamsError': 'convert params error, please check the params',
     }
 }

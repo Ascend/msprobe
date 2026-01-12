@@ -67,7 +67,110 @@ class GraphView:
         result = GraphServiceStrategy.load_meta_dir()
         response = http_util.Respond(request, result, "application/json")
         return response
-
+    
+    @staticmethod
+    @wrappers.Request.application
+    def load_converted_graph_data(request):
+        logdir = GraphState.get_global_value('logdir')
+        result = GraphServiceStrategy.load_converted_graph_data(logdir)  
+        response = http_util.Respond(request, result, "application/json")
+        return response
+    
+    @staticmethod
+    @wrappers.Request.application
+    def convert_to_graph(request):
+        data = GraphUtils.safe_json_loads(request.get_data().decode('utf-8'), {})
+        npu_path = data.get('npu_path')
+        bench_path = data.get('bench_path')
+        is_print_compare_log = data.get('is_print_compare_log',False)
+        parallel_merge = data.get('parallel_merge')
+        layer_mapping = data.get('layer_mapping')
+        overflow_check = data.get('overflow_check',False)
+        fuzzy_match = data.get('fuzzy_match',False)
+        # ## 入参校验
+        result = {'success': True}
+        logdir = GraphState.get_global_value('logdir')
+        # npu_path必须存在，且必须通过安全路径校验
+        abs_npu_path = os.path.join(logdir, npu_path)
+        npu_path_success, _ = GraphUtils.safe_check_load_file_path(abs_npu_path, True)
+        if not npu_path_success:
+            result = {'success': False, 'error': f'npu_path {GraphUtils.t("convertParamsError")}'}
+        # bench_path可以为''，如果不为空，必须通过安全路径校验
+        if bench_path:
+            abs_bench_path = os.path.join(logdir, bench_path)
+            bench_path_success, _ = GraphUtils.safe_check_load_file_path(abs_bench_path, True)
+            if not bench_path_success:
+                result = {'success': False, 'error':f'bench_path {GraphUtils.t("convertParamsError")}'}
+        # is_print_compare_log必须为布尔值
+        if not isinstance(is_print_compare_log, bool):
+            result = {'success': False, 'error':f'is_print_compare_log {GraphUtils.t("convertParamsError")}'}
+        # bench_path可以为空，如果不为空，parallel_merge必须为字典
+        if parallel_merge:
+            if not isinstance(parallel_merge, dict):
+                result = {'success': False, 'error': GraphUtils.t('convertParamsError')}
+            npu_parallel_merge = parallel_merge.get('npu')
+            bench_parallel_merge = parallel_merge.get('bench') 
+            # npu_parallel_merge必须存在pp rank_size  tp vpp
+            if npu_parallel_merge:
+                if not isinstance(npu_parallel_merge, dict):
+                    result = {'success': False, 'error':f'parallel_merge {GraphUtils.t("convertParamsError")}'} 
+                required_keys = {'pp', 'rank_size', 'tp', 'vpp'}
+                missing_keys = required_keys - set(npu_parallel_merge.keys())
+                if missing_keys:
+                    result = {'success': False, 'error':f'parallel_merge {GraphUtils.t("convertParamsError")}'}
+                if npu_parallel_merge['order'] and not GraphUtils.is_safe_string(npu_parallel_merge['order']):
+                    result = {'success': False, 'error': f'parallel_merge.order {GraphUtils.t("convertParamsError")}'}
+                data['parallel_param_n'] = npu_parallel_merge
+            else: 
+                result = {'success': False, 'error': f'parallel_merge {GraphUtils.t("convertParamsError")}'}
+            
+            if bench_parallel_merge:
+                if not isinstance(bench_parallel_merge, dict):
+                    result = {'success': False, 'error':f'parallel_merge {GraphUtils.t("convertParamsError")}'} 
+                required_keys = {'pp', 'rank_size', 'tp', 'vpp'}
+                missing_keys = required_keys - set(bench_parallel_merge.keys())
+                if missing_keys:
+                    result = {'success': False, 'error':f'parallel_merge {GraphUtils.t("convertParamsError")}'}
+                if bench_parallel_merge['order'] and not GraphUtils.is_safe_string(bench_parallel_merge['order']):
+                    result = {'success': False, 'error': f'parallel_merge.order {GraphUtils.t("convertParamsError")}'}
+                data['parallel_param_b'] = bench_parallel_merge
+        # layer_mapping可以为''，如果不为空，必须通过安全路径校验
+        if layer_mapping:
+            abs_layer_mapping = os.path.join(logdir, layer_mapping)
+            layer_mapping_success, _ = GraphUtils.safe_check_load_file_path(abs_layer_mapping)
+            if not layer_mapping_success:
+                result = {'success': False, 'error': f'layer_mapping {GraphUtils.t("convertParamsError")}'}
+        # overflow_check必须为布尔值
+        if not isinstance(overflow_check, bool):
+            result = {'success': False, 'error': f'overflow_check {GraphUtils.t("convertParamsError")}'}
+        # fuzzy_match必须为布尔值
+        if not isinstance(fuzzy_match, bool):
+            result = {'success': False, 'error': f'fuzzy_match {GraphUtils.t("convertParamsError")}'}
+        if result.get('success'):
+            data['npu_path'] = abs_npu_path
+            data['bench_path'] = abs_bench_path if bench_path else ''
+            data['layer_mapping'] = abs_layer_mapping if layer_mapping else ''
+            data['output_path'] = os.path.join(logdir, data['output_path'] )
+            data['is_print_compare_log'] = is_print_compare_log
+            data['overflow_check'] = overflow_check
+            data['fuzzy_match'] = fuzzy_match
+            result = GraphServiceStrategy.convert_to_graph(data)
+      
+        response = http_util.Respond(request, result, "application/json")
+        return response
+    
+    @staticmethod
+    @wrappers.Request.application
+    def get_convert_progress(request):
+        return Response(
+            GraphServiceStrategy.get_convert_progress(),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'Connection': 'close',  # TCP链接不复用，请求结束释放资源
+                "X-Content-Type-Options": "nosniff",
+            }
+        )
     # 读取当前图数据
     @staticmethod
     @wrappers.Request.application
@@ -76,7 +179,7 @@ class GraphView:
             'run': request.args.get('run'),
             'tag': request.args.get('tag'),
             'type': request.args.get('type'),
-        }
+        }   
         lang = request.args.get('lang')
         
         GraphState.set_global_value('lang', lang)

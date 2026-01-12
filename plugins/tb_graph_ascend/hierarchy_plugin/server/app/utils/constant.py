@@ -25,7 +25,7 @@ ADD_MATCH_KEYS = [
     'MeanRelativeErr',
     'NormRelativeErr',
 ]
-MAX_FILE_SIZE = 15 * 1024 * 1024 * 1024  # 最大文件大小限制
+MAX_FILE_SIZE = 100 * 1024 * 1024 * 1024  # 最大文件大小限制
 NPU_PREFIX = 'N___'
 BENCH_PREFIX = 'B___'
 FILE_NAME_REGEX = r'^[a-zA-Z0-9_\-\.]+$'  # 文件名正则表达式

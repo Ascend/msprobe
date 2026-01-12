@@ -217,7 +217,7 @@ class MatchNodesController:
         npu_node_data = graph_data.get('NPU', {}).get('node', {}).get(npu_node_name)
         bench_node_data = graph_data.get('Bench', {}).get('node', {}).get(bench_node_name)
         if not npu_node_data or not bench_node_data:
-            return {'success': False, 'error': f'{npu_node_name, bench_node_name}{GraphUtils.t('nodeNotExist')}'}
+            return {'success': False, 'error': f'{npu_node_name, bench_node_name}{GraphUtils.t("nodeNotExist")}'}
         # 去除节点名称前缀
         npu_input_data = GraphUtils.remove_prefix(npu_node_data.get('input_data', {}), npu_node_name + '.')
         bench_input_data = GraphUtils.remove_prefix(bench_node_data.get('input_data', {}), bench_node_name + '.')
@@ -274,12 +274,12 @@ class MatchNodesController:
         if not intput_statistical_diff or not output_statistical_diff:
             return {
                 'success': False,
-                'error': f'{npu_node_name, bench_node_name}{GraphUtils.t('ioEmptyError')}',
+                'error': f'{npu_node_name, bench_node_name}{GraphUtils.t("ioEmptyError")}',
             }
         if precision_error == -1:
             return {
                 'success': False,
-                'error': f'{npu_node_name, bench_node_name}{GraphUtils.t('outputEmptyError')}',
+                'error': f'{npu_node_name, bench_node_name}{GraphUtils.t("outputEmptyError")}',
             }
         # 在原始数据上，添加匹配节点，和匹配节点信息
         # JSON：处理JSON更新

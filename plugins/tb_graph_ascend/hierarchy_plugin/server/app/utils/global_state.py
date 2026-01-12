@@ -16,7 +16,7 @@
 
 # 全局常量
 
-from .i18n import ZH_CN
+from .i18n import ZH
 
 
 class GraphState:
@@ -41,7 +41,7 @@ class GraphState:
         'runs': {},
         'update_precision_cache': {},  # {node_name{precision，...}}，方便查询精度，提高性能
         'all_node_info_cache': {},  # {rank_step_micro_step:{node_name:node_info,...}}，方便查询节点信息，提高性能
-        'lang': ZH_CN,
+        'lang': ZH,
     }
 
     @staticmethod
@@ -69,7 +69,7 @@ class GraphState:
             'runs': {},
             'update_precision_cache': {},
             'all_node_info_cache': {},
-            'lang': ZH_CN,
+            'lang': ZH,
         }
 
     @staticmethod
