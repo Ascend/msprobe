@@ -22,13 +22,14 @@ const { Text } = Typography;
 
 interface CustomSelectProps extends SelectProps {
   label: React.ReactNode;
+  testId?: string;
 }
 const CustomSelect = (props: CustomSelectProps) => {
-  const { label, ...rest } = props;
+  const { label, testId, ...rest } = props;
   return (
     <div className={styles.customSelectWrapper}>
       <Text className={styles.label}>{label}</Text>
-      <Select {...rest} className={styles.select} />
+      <Select data-testid={testId} {...rest} className={styles.select} />
     </div>
   );
 };

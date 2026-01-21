@@ -19,9 +19,9 @@ const Text = Typography.Text;
 
 const MatchSider = () => {
   return (
-    <>
+    <div data-testid="matchPanel">
       <Text> MatchSider</Text>
-    </>
+    </div>
   );
 };
 

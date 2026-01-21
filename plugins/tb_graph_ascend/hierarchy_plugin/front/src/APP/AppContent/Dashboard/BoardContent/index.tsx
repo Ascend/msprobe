@@ -37,11 +37,11 @@ const BoardContent = () => {
       {contextHolder}
       <Splitter style={stylesObject}>
         <Splitter.Panel style={{ overflow: 'hidden' }} min="20%" max="100%">
-          <Hierarchy graphType={isSingleGraph ? GRAPH_TYPE.SINGLE : GRAPH_TYPE.NPU} />
+          <Hierarchy testid="debugGraph" graphType={isSingleGraph ? GRAPH_TYPE.SINGLE : GRAPH_TYPE.NPU} />
         </Splitter.Panel>
         {!isSingleGraph && (
           <Splitter.Panel collapsible style={{ overflow: 'hidden' }}>
-            <Hierarchy graphType={GRAPH_TYPE.BENCH} />
+            <Hierarchy testid="benchGraph" graphType={GRAPH_TYPE.BENCH} />
           </Splitter.Panel>
         )}
       </Splitter>

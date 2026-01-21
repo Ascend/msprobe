@@ -50,6 +50,7 @@ const AppSider = (params: AppSiderProps) => {
       <Button
         className={styles.siderButton + ' ' + (currentTab === CURRENT_TAB.PRECISION_TAB ? styles.activeTab : '')}
         icon={<AppstoreOutlined />}
+        data-testid="precisionSiderButton"
         variant="text"
         onClick={() => {
           setCurrentTab(CURRENT_TAB.PRECISION_TAB);
@@ -59,16 +60,17 @@ const AppSider = (params: AppSiderProps) => {
       <Button
         className={styles.siderButton + ' ' + (currentTab === CURRENT_TAB.MATCH_TAB ? styles.activeTab : '')}
         icon={<NodeIndexOutlined />}
+        data-testid="matchSiderButton"
         variant="text"
         onClick={() => {
           setCurrentTab(CURRENT_TAB.MATCH_TAB);
           setCurrentPage(CURRENT_PAGE.DASHBOARD);
         }}
       />
-
       <Button
         className={styles.siderButton + ' ' + (currentTab === CURRENT_TAB.SEARCH_TAB ? styles.activeTab : '')}
         icon={<SearchOutlined />}
+        data-testid="searchSiderButton"
         variant="text"
         onClick={() => {
           setCurrentTab(CURRENT_TAB.SEARCH_TAB);
@@ -78,6 +80,7 @@ const AppSider = (params: AppSiderProps) => {
       <Button
         className={styles.siderButton + ' ' + (currentTab === CURRENT_TAB.VISUALIZED_TAB ? styles.activeTab : '')}
         icon={<ApartmentOutlined />}
+        data-testid="conversionSiderButton"
         variant="text"
         onClick={() => {
           setCurrentTab(CURRENT_TAB.VISUALIZED_TAB);
@@ -90,6 +93,7 @@ const AppSider = (params: AppSiderProps) => {
         onClick={() => {
           toggleTheme();
         }}
+        data-testid="themeSiderButton"
         variant="text"
       >
         <SunOutlined />
