@@ -64,7 +64,7 @@ const PrecisionSider = (): React.JSX.Element => {
   };
 
   return (
-    <div>
+    <div data-testid="precisionPanel">
       <Spin spinning={spinning} tip={t('loading')}>
         <FilterPanel onFilterNodes={changeFilteredNodes} />
         <NodeListPanel nodeList={nodes} />

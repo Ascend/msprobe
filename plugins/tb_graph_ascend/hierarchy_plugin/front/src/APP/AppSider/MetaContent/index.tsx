@@ -47,10 +47,11 @@ const MetaContent = () => {
   }, [currentMetaDir]);
 
   return (
-    <div className={styles.metaContent}>
+    <div className={styles.metaContent} data-testid="metaContentPanel">
       <div className={styles.metaItem}>
         <CustomSelect
-          label={t('run')}
+          label={t('dir')}
+          testId="runSelect"
           value={currentMetaDir}
           style={{ width: 368, marginBottom: 16 }}
           onChange={(value) => {
@@ -59,7 +60,8 @@ const MetaContent = () => {
           options={metaDirOptions}
         />
         <CustomSelect
-          label={t('tag')}
+          label={t('file')}
+          testId="tagSelect"
           value={currentMetaFile}
           style={{ width: 368, marginBottom: 16 }}
           onChange={(value) => {
@@ -70,6 +72,7 @@ const MetaContent = () => {
         {currentMetaFileType == 'db' && (
           <CustomSelect
             label="Step"
+            testId="stepSelect"
             value={currentMetaStep}
             style={{ width: 368, marginBottom: 16 }}
             onChange={(value) => {
@@ -81,6 +84,7 @@ const MetaContent = () => {
         {currentMetaFileType == 'db' && (
           <CustomSelect
             label="Rank"
+            testId="rankSelect"
             value={currentMetaRank}
             style={{ width: 368, marginBottom: 16 }}
             onChange={(value) => {
@@ -91,6 +95,7 @@ const MetaContent = () => {
         )}
         <CustomSelect
           label="MicroStep"
+          testId="microStepSelect"
           value={currentMetaMicroStep}
           style={{ width: 368, marginBottom: 16 }}
           onChange={(value) => {

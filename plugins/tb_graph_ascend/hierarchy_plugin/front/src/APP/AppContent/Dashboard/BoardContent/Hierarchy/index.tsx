@@ -23,10 +23,11 @@ import { Dropdown, Spin } from 'antd';
 
 interface HierarchyProps {
   graphType: GRAPH_TYPE;
+  testid: string;
 }
 
 const Hierarchy = (params: HierarchyProps) => {
-  const { graphType } = params;
+  const { graphType, testid } = params;
 
   const isShowNpuMiniMap = useGraphStore((state) => state.isShowNpuMiniMap);
   const isShowBenchMiniMap = useGraphStore((state) => state.isShowBenchMiniMap);
@@ -41,7 +42,7 @@ const Hierarchy = (params: HierarchyProps) => {
     useHierarchyGraph(graphType);
 
   return (
-    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+    <div style={{ position: 'relative', height: '100%', width: '100%' }} data-testid={testid}>
       {isShowMiniMap && (
         <div className="mini-map">
           <MiniMap
