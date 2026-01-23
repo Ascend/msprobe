@@ -48,6 +48,32 @@ export const resources = {
       risk_warning_info:
         'Proceeding with the operation will result in your own responsibility for the consequences. If you are not fully aware of the risks, please cancel the operation and contact the administrator for assistance.',
       error_title: 'error message',
+      sider: {
+        dataSelection: 'Data Selection',
+        precisionFiltering: 'Precision Error Filtering & Overflow Detection',
+        nodeMatching: 'Node Matching',
+        nodeSearch: 'Node Search',
+        dumpVisualization: 'Dump Data Visualization Conversion',
+        switchLanguage: 'Switch Language',
+      },
+
+      boardHeader: {
+        tooltips: {
+          npuMiniMap: 'Debug Side Mini Map',
+          benchMiniMap: 'Bench Side Mini Map',
+          syncExpand: 'Sync Expand Corresponding Nodes',
+          shortcuts: 'Shortcuts',
+          fitScreen: 'Fit to Screen',
+        },
+        shortcuts: {
+          zoomIn: 'Zoom In',
+          zoomOut: 'Zoom Out',
+          moveLeft: 'Move Left',
+          moveRight: 'Move Right',
+          scrollUpDown: 'Scroll Up/Down',
+          scroll: 'Mouse Wheel',
+        },
+      },
 
       build_info_desc_1: 'The graph structure file was not found in the current directory',
       build_info_desc_2: 'This tool requires the use of graph structure files for visualization',
@@ -55,19 +81,21 @@ export const resources = {
 
       build_info_main_title: 'Build a graph structure file from the model data file. ',
       build_info_sub_title: 'Supports hierarchical visual graph comparison. ',
-      build_info_sub_title_link_text: 'View Guide',
+
+      build_info_pytorch_link_text: 'Hierarchical Visual Graph Comparison for PyTorch Scenario',
+      build_info_mindspore_link_text: 'Hierarchical Visual Graph Comparison for MindSpore Scenario',
+
       step1_title: 'Step 1: Collect Model Data Files',
       step1_desc:
         'The msprobe tool primarily collects precision data by adding dump interfaces in the training script and launching training.',
-      step1_link_text: 'Data Collection Guide for PyTorch',
-
+      pytorch_link_text: 'Data Dump Guide for PyTorch',
+      mindspore_link_text: 'Data Dump Guide for MindSpore',
       step2_title: 'Step 2: Build Graph Structure File (.vis.db)',
       step2_desc:
         'If you already have model data files, you can use the build tool below to generate the graph structure file.',
 
       build_graph_file_title: 'Build Graph Structure File',
       build_graph_file_desc: 'Build graph structure files from model data files.',
-      view_guide: 'View Guide',
 
       file_param_config: 'File Parameter Configuration',
       label_npu_path: 'Debug-side Comparison Path (-tp)',
@@ -239,22 +267,50 @@ export const resources = {
       risk_warning_info: '继续操作将由您自行承担相关后果。如非明确知晓风险，请取消操作并联系管理员处理。',
       error_title: '错误信息',
 
+      sider: {
+        dataSelection: '数据选择',
+        precisionFiltering: '精度误差筛选和精度溢出检测',
+        nodeMatching: '节点匹配',
+        nodeSearch: '节点搜索',
+        dumpVisualization: 'Dump数据可视化转化',
+        switchLanguage: '语言切换',
+      },
+
+      boardHeader: {
+        tooltips: {
+          npuMiniMap: '调试侧小视图',
+          benchMiniMap: '标杆侧小视图',
+          syncExpand: '同步展开对应侧节点',
+          shortcuts: '快捷键',
+          fitScreen: '自适应屏幕',
+        },
+        shortcuts: {
+          zoomIn: '放大',
+          zoomOut: '缩小',
+          moveLeft: '左移',
+          moveRight: '右移',
+          scrollUpDown: '上下滚动',
+          scroll: '滚轮',
+        },
+      },
       build_info_desc_1: '当前目录下未找到图结构文件',
       build_info_desc_2: '本工具需要使用图结构文件进行可视化',
       build_info_desc_3: '如何开始',
       build_info_main_title: '构建图结构文件',
       build_info_sub_title: '从模型数据文件构建图结构文件。',
-      build_info_sub_title_link_text: '查看指南',
+
+      build_info_pytorch_link_text: 'PyTorch场景的分级可视化构图比对',
+      build_info_mindspore_link_text: 'MindSpore场景的分级可视化构图比对',
+
       step1_title: 'Step1: 采集模型数据文件',
       step1_desc: 'msprobe工具主要通过在训练脚本内添加dump接口、启动训练的方式采集精度数据。',
-      step1_link_text: 'pytorch场景的数据采集指南',
-
+      pytorch_link_text: 'pytorch场景的数据采集指南',
+      mindspore_link_text: 'mindspore场景的数据采集指南',
       step2_title: 'Step 2: 构建图结构文件(.vis.db)',
       step2_desc: '若您已拥有模型数据文件，可通过下方构建工具，构建图结构文件。',
 
       build_graph_file_title: '构建图结构文件',
       build_graph_file_desc: '将模型数据文件构建图结构文件。',
-      view_guide: '查看指南',
 
       file_param_config: '文件参数配置',
       label_npu_path: '调试侧比对路径 (-tp)',

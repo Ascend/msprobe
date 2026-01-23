@@ -134,7 +134,7 @@ const Dashboard = () => {
       default:
         break;
     }
-  }, [currentMetaFile, currentMetaFileType, t]); // 👈 注意：t 是 stable 的，但 ESLint 可能建议加
+  }, [currentMetaFile, currentMetaFileType]);
 
   // 监听 step/rank 变化（用于 DB 切换）
   useEffect(() => {

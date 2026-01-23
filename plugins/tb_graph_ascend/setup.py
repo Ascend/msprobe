@@ -37,7 +37,7 @@ setuptools.setup(
     entry_points={
         "tensorboard_plugins": [
             "graph_ascend = hierarchy_plugin.server.plugin:GraphsPlugin",
-            "mon_vis = monvis_plugin.server.app:MonVis",
+            "mon_vis = monvis_plugin.server.app:TrendVis",
         ],
     },
     python_requires=">=3.7",

@@ -410,7 +410,7 @@ class DbGraphService(GraphServiceStrategy):
                 return {'success': False, 'error': error}
             else:
                 return {'success': True, 'data': confilg_file_name}
-       
+        
         except Exception as e:
             logger.error('save_matched_relations error: {}'.format(e))
             return {'success': False, 'error': GraphUtils.t('saveMatchRelationshipFailed'), 'data': None}
