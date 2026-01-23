@@ -222,7 +222,7 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
     });
     set({ fileInfoList: result });
     set({
-      fileErrorList: [] as unknown as FileErrorListType,
+      fileErrorList: (result.error || []) as unknown as FileErrorListType,
     });
     set({ metaDirOptions: metaDirOptions });
     if (metaDirOptions.length > 0) {

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Button, Dropdown, type MenuProps, Typography } from 'antd';
+import { Button, Dropdown, type MenuProps, Tooltip, Typography } from 'antd';
 import styles from './index.module.less';
 import Legend from './Legend';
 import { PicLeftOutlined, PicRightOutlined, SubnodeOutlined, ReadOutlined, CompressOutlined } from '@ant-design/icons';
@@ -29,7 +29,7 @@ const BoardHeader = () => {
   const setIsShowNpuMiniMap = useGraphStore((state) => state.setIsShowNpuMiniMap);
   const setIsShowBenchMiniMap = useGraphStore((state) => state.setIsShowBenchMiniMap);
   const setIsSyncExpand = useGraphStore((state) => state.setIsSyncExpand);
-  // 使用枚举作为 key 的状态对象
+
   const [activeButtons, setActiveButtons] = useState<Record<ControlButton, boolean>>({
     [ControlButton.NPU_MAP]: true,
     [ControlButton.BENCH_MAP]: true,
@@ -42,7 +42,7 @@ const BoardHeader = () => {
     {
       label: (
         <div className={styles.shortcut}>
-          <Text>{t('zoomIn')}</Text>
+          <Text>{t('boardHeader.shortcuts.zoomIn')}</Text>
           <Text className={styles.value}>W</Text>
         </div>
       ),
@@ -51,7 +51,7 @@ const BoardHeader = () => {
     {
       label: (
         <div className={styles.shortcut}>
-          <Text>{t('zoomOut')}</Text>
+          <Text>{t('boardHeader.shortcuts.zoomOut')}</Text>
           <Text className={styles.value}>S</Text>
         </div>
       ),
@@ -60,7 +60,7 @@ const BoardHeader = () => {
     {
       label: (
         <div className={styles.shortcut}>
-          <Text>{t('moveLeft')}</Text>
+          <Text>{t('boardHeader.shortcuts.moveLeft')}</Text>
           <Text className={styles.value}>A</Text>
         </div>
       ),
@@ -69,7 +69,7 @@ const BoardHeader = () => {
     {
       label: (
         <div className={styles.shortcut}>
-          <Text>{t('moveRight')}</Text> {/* 修正：原代码写成了“左移” */}
+          <Text>{t('boardHeader.shortcuts.moveRight')}</Text>
           <Text className={styles.value}>D</Text>
         </div>
       ),
@@ -78,8 +78,8 @@ const BoardHeader = () => {
     {
       label: (
         <div className={styles.shortcut}>
-          <Text>{t('scrollUpDown')}</Text>
-          <Text className={styles.value}>{t('scroll')}</Text>
+          <Text>{t('boardHeader.shortcuts.scrollUpDown')}</Text>
+          <Text className={styles.value}>{t('boardHeader.shortcuts.scroll')}</Text>
         </div>
       ),
       key: '4',
@@ -92,27 +92,22 @@ const BoardHeader = () => {
       case ControlButton.NPU_MAP:
         setIsShowNpuMiniMap(newActive);
         break;
-
       case ControlButton.BENCH_MAP:
         setIsShowBenchMiniMap(newActive);
         break;
-
       case ControlButton.MATCH_SYNC:
         setIsSyncExpand(newActive);
         break;
-
       case ControlButton.PROFILE:
         return;
-
       case ControlButton.EXPAND:
         const changeMatchNodeExpandState = new CustomEvent('fitScreen', {
           detail: {},
-          bubbles: true, // 允许事件冒泡
-          composed: true, // 允许跨 Shadow DOM 边界
+          bubbles: true,
+          composed: true,
         });
         document.dispatchEvent(changeMatchNodeExpandState);
         return;
-
       default:
         break;
     }
@@ -128,54 +123,71 @@ const BoardHeader = () => {
         <Legend />
       </div>
       <div className={styles.controlMenu}>
-        <Button
-          key={ControlButton.NPU_MAP}
-          type="text"
-          className={`${styles.controlItem} ${activeButtons[ControlButton.NPU_MAP] ? styles.activeControlItem : ''}`}
-          icon={<PicLeftOutlined />}
-          onClick={() => toggleActive(ControlButton.NPU_MAP)}
-        />
+        <Tooltip placement="bottom" title={t('boardHeader.tooltips.npuMiniMap')}>
+          <Button
+            key={ControlButton.NPU_MAP}
+            type="text"
+            className={`${styles.controlItem} ${activeButtons[ControlButton.NPU_MAP] ? styles.activeControlItem : ''}`}
+            icon={<PicLeftOutlined />}
+            onClick={() => toggleActive(ControlButton.NPU_MAP)}
+          />
+        </Tooltip>
+
         {!isSingleGraph && (
-          <Button
-            key={ControlButton.BENCH_MAP}
-            type="text"
-            className={`${styles.controlItem} ${
-              activeButtons[ControlButton.BENCH_MAP] ? styles.activeControlItem : ''
-            }`}
-            icon={<PicRightOutlined />}
-            onClick={() => toggleActive(ControlButton.BENCH_MAP)}
-          />
+          <Tooltip placement="bottom" title={t('boardHeader.tooltips.benchMiniMap')}>
+            <Button
+              key={ControlButton.BENCH_MAP}
+              type="text"
+              className={`${styles.controlItem} ${
+                activeButtons[ControlButton.BENCH_MAP] ? styles.activeControlItem : ''
+              }`}
+              icon={<PicRightOutlined />}
+              onClick={() => toggleActive(ControlButton.BENCH_MAP)}
+            />
+          </Tooltip>
         )}
+
         {!isSingleGraph && (
-          <Button
-            key={ControlButton.MATCH_SYNC}
-            type="text"
-            className={`${styles.controlItem} ${
-              activeButtons[ControlButton.MATCH_SYNC] ? styles.activeControlItem : ''
-            }`}
-            icon={<SubnodeOutlined />}
-            onClick={() => toggleActive(ControlButton.MATCH_SYNC)}
-          />
+          <Tooltip placement="bottom" title={t('boardHeader.tooltips.syncExpand')}>
+            <Button
+              key={ControlButton.MATCH_SYNC}
+              type="text"
+              className={`${styles.controlItem} ${
+                activeButtons[ControlButton.MATCH_SYNC] ? styles.activeControlItem : ''
+              }`}
+              icon={<SubnodeOutlined />}
+              onClick={() => toggleActive(ControlButton.MATCH_SYNC)}
+            />
+          </Tooltip>
         )}
-        <Dropdown menu={{ items }} trigger={['click']}>
+
+        <Tooltip placement="bottom" title={t('boardHeader.tooltips.shortcuts')}>
+          <Dropdown menu={{ items }} trigger={['click']}>
+            <Button
+              key={ControlButton.PROFILE}
+              type="text"
+              className={`${styles.controlItem} ${
+                activeButtons[ControlButton.PROFILE] ? styles.activeControlItem : ''
+              }`}
+              icon={<ReadOutlined />}
+              onClick={() => toggleActive(ControlButton.PROFILE)}
+            />
+          </Dropdown>
+        </Tooltip>
+
+        <Tooltip placement="bottom" title={t('boardHeader.tooltips.fitScreen')}>
           <Button
-            key={ControlButton.PROFILE}
+            key={ControlButton.EXPAND}
             type="text"
-            className={`${styles.controlItem} ${activeButtons[ControlButton.PROFILE] ? styles.activeControlItem : ''}`}
-            icon={<ReadOutlined />}
-            onClick={() => toggleActive(ControlButton.PROFILE)}
+            style={{ fontSize: 14 }}
+            className={`${styles.controlItem} ${activeButtons[ControlButton.EXPAND] ? styles.activeControlItem : ''}`}
+            icon={<CompressOutlined />}
+            onClick={() => toggleActive(ControlButton.EXPAND)}
           />
-        </Dropdown>
-        <Button
-          key={ControlButton.EXPAND}
-          type="text"
-          style={{ fontSize: 14 }}
-          className={`${styles.controlItem} ${activeButtons[ControlButton.EXPAND] ? styles.activeControlItem : ''}`}
-          icon={<CompressOutlined />}
-          onClick={() => toggleActive(ControlButton.EXPAND)}
-        />
+        </Tooltip>
       </div>
     </div>
   );
 };
+
 export default BoardHeader;

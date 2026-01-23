@@ -626,6 +626,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
   }, [hierarchyObjectRef.current, colors, selectedNode, graphType, isOverflowFilter, isMatchedStatusSwitch]);
   // 高亮匹配节点
   useEffect(() => {
+    if (graphType == GRAPH_TYPE.SINGLE) return;
     const hierarchyObject = hierarchyObjectRef.current;
     const hightLightNodeName = hightLightMatchedNode[graphType];
     renderGraph(hierarchyObject, hightLightNodeName || '', transform, containerRef.current, {
@@ -633,7 +634,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
       colors,
       isOverflowFilter,
     });
-  }, [hightLightMatchedNode, graphType]);
+  }, [hightLightMatchedNode, graphType, transform]);
 
   // 切换文件或者目录等，重新加载图
   useEffect(() => {
