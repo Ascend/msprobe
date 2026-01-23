@@ -32,10 +32,15 @@ const PanelHeader = (props: IProps): React.JSX.Element => {
   // 当前选中节点
   const selectedNode = useGraphStore((state) => state.selectedNode);
   const setSelectedNode = useGraphStore((state) => state.setSelectedNode);
+  const messageApi = useGraphStore((state) => state.messageApi);
 
   const selectedUp = (): void => {
     const selectedIndex = nodes.indexOf(selectedNode.replace(prefix, ''));
-    if (selectedIndex <= 0) {
+    if (selectedIndex < 0) {
+      return;
+    }
+    if (selectedIndex === 0) {
+      messageApi.info(t('topOfList'));
       return;
     }
     setSelectedNode(`${prefix}${nodes[selectedIndex - 1]}`);
@@ -43,7 +48,11 @@ const PanelHeader = (props: IProps): React.JSX.Element => {
 
   const selectedDown = (): void => {
     const selectedIndex = nodes.indexOf(selectedNode.replace(prefix, ''));
-    if (selectedIndex < 0 || selectedIndex === nodes.length - 1) {
+    if (selectedIndex < 0) {
+      return;
+    }
+    if (selectedIndex === nodes.length - 1) {
+      messageApi.info(t('bottomOfList'));
       return;
     }
     setSelectedNode(`${prefix}${nodes[selectedIndex + 1]}`);

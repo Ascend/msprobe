@@ -29,3 +29,15 @@ export interface CurrentMetaDataType {
   step?: number;
   rank?: number;
 }
+
+export interface GraphAllNodeType {
+  npuNodeList: string[];
+  benchNodeList: string[];
+}
+
+export interface GraphMatchedRelationsType {
+  npuUnMatchNodes: string[];
+  benchUnMatchNodes: string[];
+  npuMatchNodes: Record<string, string>;
+  benchMatchNodes: Record<string, string>;
+}

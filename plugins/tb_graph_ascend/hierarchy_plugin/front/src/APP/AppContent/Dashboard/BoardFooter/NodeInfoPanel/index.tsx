@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-import { Empty, Typography, Input, Button, Card, Row, Col } from 'antd';
+import { Empty, Typography, Input, Button, Row, Col, Collapse, type CollapseProps } from 'antd';
 import styles from './index.module.less';
-import { useState } from 'react';
+import type { MouseEvent } from 'react';
 import useGraphStore from '../../../../../store/useGraphStore';
 import type { StackInfo } from '../../type';
 import { useTranslation } from 'react-i18next';
-import { t } from 'i18next';
 
 const Text = Typography.Text;
 const TextArea = Input.TextArea;
@@ -35,14 +34,55 @@ interface NodeDetailInfo {
   parallelInfo?: string;
 }
 
-const StackInfoComponent = (props: NodeDetailInfo) => {
+const StackInfoComponent = (props: NodeDetailInfo): React.JSX.Element => {
   const { name, stackTrace, parallelInfo } = props;
   const messageApi = useGraphStore((state) => state.messageApi);
   const { t } = useTranslation();
-  const [stackBtnVis, setStackBtnVis] = useState<boolean>(false);
-  const [parallelBtnVis, setParallelBtnVis] = useState<boolean>(false);
+  const items: CollapseProps['items'] = [];
 
-  const handleCopy = (text: string): void => {
+  if (stackTrace) {
+    items.push({
+      key: '1',
+      label: t('nodeInfoPanel.stackInfo'),
+      children: (
+        <TextArea
+          value={stackTrace}
+          readOnly
+          variant="borderless"
+          autoSize={{ minRows: 6, maxRows: 10 }}
+          style={{ resize: 'none' }}
+        />
+      ),
+      extra: (
+        <Button className={styles.copyBtn} onClick={(e) => handleCopy(e, stackTrace)} size="small">
+          {t('copy')}
+        </Button>
+      ),
+    });
+  }
+  if (parallelInfo) {
+    items.push({
+      key: '2',
+      label: t('nodeInfoPanel.parallelMergedInfo'),
+      children: (
+        <TextArea
+          value={parallelInfo}
+          readOnly
+          variant="borderless"
+          autoSize={{ minRows: 6, maxRows: 10 }}
+          style={{ resize: 'none' }}
+        />
+      ),
+      extra: (
+        <Button className={styles.copyBtn} onClick={(e) => handleCopy(e, parallelInfo)} size="small">
+          {t('copy')}
+        </Button>
+      ),
+    });
+  }
+
+  const handleCopy = (e: MouseEvent, text: string): void => {
+    e.stopPropagation();
     navigator.clipboard
       .writeText(text)
       .then(() => {
@@ -52,55 +92,13 @@ const StackInfoComponent = (props: NodeDetailInfo) => {
         messageApi.error(`${t('nodeInfoPanel.copyFailed')}${err}`);
       });
   };
+
   return (
     <div className={styles.content}>
-      <Text className={styles.nameLabel}>{name}</Text>
-      {stackTrace && (
-        <div className={styles.stackInfo}>
-          <Card title={t('nodeInfoPanel.stackInfo')} size="small">
-            <TextArea
-              value={stackTrace}
-              readOnly
-              variant="borderless"
-              autoSize={{ minRows: 6, maxRows: 10 }}
-              style={{ resize: 'none' }}
-              onMouseEnter={() => setStackBtnVis(true)}
-              onMouseLeave={() => setStackBtnVis(false)}
-            />
-            <Button
-              className={styles.copyBtn}
-              style={{ display: stackBtnVis ? 'unset' : 'none' }}
-              onMouseMove={() => setStackBtnVis(true)}
-              onClick={() => handleCopy(stackTrace)}
-            >
-              copy
-            </Button>
-          </Card>
-        </div>
-      )}
-      {parallelInfo && (
-        <div className={styles.parallelInfo}>
-          <Card title={t('nodeInfoPanel.parallelMergedInfo')} size="small">
-            <TextArea
-              value={parallelInfo}
-              readOnly
-              variant="borderless"
-              autoSize={{ minRows: 6, maxRows: 10 }}
-              style={{ resize: 'none' }}
-              onMouseEnter={() => setParallelBtnVis(true)}
-              onMouseLeave={() => setParallelBtnVis(false)}
-            />
-            <Button
-              className={styles.copyBtn}
-              style={{ display: parallelBtnVis ? 'unset' : 'none' }}
-              onMouseMove={() => setParallelBtnVis(true)}
-              onClick={() => handleCopy(parallelInfo)}
-            >
-              copy
-            </Button>
-          </Card>
-        </div>
-      )}
+      <Text className={styles.nameLabel} title={name}>
+        {name}
+      </Text>
+      <Collapse defaultActiveKey={['1']} items={items} />
     </div>
   );
 };

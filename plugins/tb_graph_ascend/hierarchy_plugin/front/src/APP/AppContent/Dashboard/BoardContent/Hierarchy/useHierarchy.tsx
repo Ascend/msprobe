@@ -33,12 +33,13 @@ import {
 } from '../../../../../common/constant';
 import type { GraphType, HierarchyNodeType, HierarchyObjectType } from '../../type';
 import { changeGraphPosition, getContainerTransform, parseTransform } from '../../..//../../common/utils';
-import { requestChangeNodeExpandState } from '../../..//../../api/board';
+import { requestChangeNodeExpandState, updateHierarchyData } from '../../..//../../api/board';
 import useGraphStore from '../../../../../store/useGraphStore';
 import { Button, Menu, Tag, type MenuProps } from 'antd';
 import { AimOutlined, NodeExpandOutlined, ShareAltOutlined, NodeCollapseOutlined } from '@ant-design/icons';
 import { calcColorByPrecision, renderGraph } from './useRenderGraph';
 import { resources } from '../../../../../common/i18n';
+import { useTranslation } from 'react-i18next';
 
 const DATA_COMMUNICATION_ICON = {
   send: <NodeExpandOutlined />,
@@ -54,6 +55,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
   const hierarchyObjectRef = useRef<HierarchyObjectType>({});
   const rootNameRef = useRef<string>('');
   // 从全局 store 获取必要状态
+  const { t } = useTranslation();
   const colors = useGraphStore((state) => state.colors);
   const messageApi = useGraphStore((state) => state.messageApi);
   const selectedNode = useGraphStore((state) => state.selectedNode);
@@ -65,6 +67,8 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
   const currentMetaMicroStep = useGraphStore((state) => state.currentMetaMicroStep);
   const currentMetaFileType = useGraphStore((state) => state.currentMetaFileType);
   const hightLightMatchedNode = useGraphStore((state) => state.hightLightMatchedNode);
+  const isOverflowFilter = useGraphStore((state) => state.isOverflowMode);
+  const isMatchedStatusSwitch = useGraphStore((state) => state.isMatchedStatusSwitch);
 
   const setSelectedNode = useGraphStore((state) => state.setSelectedNode);
   const setCurrentMetaRank = useGraphStore((state) => state.setCurrentMetaRank);
@@ -72,7 +76,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
   const getCurrentSelection = useGraphStore((state) => state.getCurrentMetaData);
   const setHightLightMatchedNode = useGraphStore((state) => state.setHightLightMatchedNode);
   // 局部状态
-  const [expanding, setExpanding] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [transform, setTransform] = useState(initTransform);
   const [contextMenuItems, setContextMenuItems] = useState<MenuProps['items']>([]); // 右键菜单
 
@@ -123,11 +127,12 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
       nodeInfo,
       metaData: getCurrentSelection(),
     };
-    setExpanding(true);
-    const { success, data, error } = await requestChangeNodeExpandState<HierarchyObjectType>(params);
-    setExpanding(false);
+    setLoading(true);
+    const { success, data, error } = await requestChangeNodeExpandState<HierarchyObjectType>(params).finally(() =>
+      setLoading(false),
+    );
     if (success) {
-      hierarchyObjectRef.current = data || {};
+      hierarchyObjectRef.current = data ?? {};
     } else {
       messageApi.error(error);
     }
@@ -203,6 +208,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
     const cleanSelectedNodeEvent = bindSelectedNodeEvent(container);
     const cleanBindKeyboardEvent = bindKeyboardEvent(container, graph);
     const cleanChangeNodeExpandStateEvent = bindChangeNodeExpandStateEvent(container, graph);
+    const cleanUpdateHierarchyEvent = bindUpdateHierarchyEvent();
     return () => {
       cleanDragEvent();
       cleanWheelEvent();
@@ -211,6 +217,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
       cleanSelectedNodeEvent();
       cleanBindKeyboardEvent();
       cleanChangeNodeExpandStateEvent();
+      cleanUpdateHierarchyEvent();
     };
   };
 
@@ -262,7 +269,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
         const curGraphType = event.detail.graphType;
         const originNodeExpandState = event.detail.nodeExpandState;
         const targetNodeExpandState = hierarchyObject[selectedNode]?.expand;
-        //保持展开状态同步,如果一侧展开，一侧为展开，则不触发对应测的展开或者收起的操作
+        //保持展开状态同步,如果一侧展开，一侧未展开，则不触发对应侧的展开或者收起的操作
         if (curGraphType === graphType || originNodeExpandState === targetNodeExpandState) {
           return;
         }
@@ -454,11 +461,9 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
           break;
         case 'json':
           const newMetaFile = metaFileOptions[rankId]?.value;
-          console.log('newMetaFile', newMetaFile);
           if (newMetaFile) {
             setCurrentMetaFile(String(newMetaFile));
           } else {
-            console.log('rankId', rankId);
             messageApi.error('rankId错误');
           }
           break;
@@ -553,6 +558,28 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
     };
   };
 
+  const bindUpdateHierarchyEvent = () => {
+    const onUpdateHierarchyDataEvent = async () => {
+      const params = {
+        graphType,
+        metaData: getCurrentSelection(),
+      };
+      setLoading(true);
+      const { success, data, error } = await updateHierarchyData<HierarchyObjectType>(params).finally(() =>
+        setLoading(false),
+      );
+      if (success) {
+        hierarchyObjectRef.current = data ?? {};
+      } else {
+        messageApi.error(`${t('updateHierarchyFailed')}: ${error}`);
+      }
+    };
+    document.addEventListener('updateHierarchyData', onUpdateHierarchyDataEvent);
+    return () => {
+      document.removeEventListener('updateHierarchyData', onUpdateHierarchyDataEvent);
+    };
+  };
+
   // 初始化
   const initHierarchy = async (selection: any) => {
     if (isEmpty(selection) || !graphType) return;
@@ -578,7 +605,11 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
 
   // 监听小视图更新transform，大视图同步更新
   useEffect(() => {
-    renderGraph(hierarchyObjectRef.current, selectedNode, transform, containerRef.current, graphType, colors);
+    renderGraph(hierarchyObjectRef.current, selectedNode, transform, containerRef.current, {
+      graphType,
+      colors,
+      isOverflowFilter,
+    });
   }, [transform]);
 
   // 图节点更新，自动重回
@@ -586,14 +617,22 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
     const hierarchyObject = hierarchyObjectRef.current;
     if (!isEmpty(hierarchyObject)) {
       changeSelectNode(selectedNode);
-      renderGraph(hierarchyObject, selectedNode, transform, containerRef.current, graphType, colors);
+      renderGraph(hierarchyObject, selectedNode, transform, containerRef.current, {
+        graphType,
+        colors,
+        isOverflowFilter,
+      });
     }
-  }, [hierarchyObjectRef.current, colors, selectedNode, graphType]);
+  }, [hierarchyObjectRef.current, colors, selectedNode, graphType, isOverflowFilter, isMatchedStatusSwitch]);
   // 高亮匹配节点
   useEffect(() => {
     const hierarchyObject = hierarchyObjectRef.current;
     const hightLightNodeName = hightLightMatchedNode[graphType];
-    renderGraph(hierarchyObject, hightLightNodeName || '', transform, containerRef.current, graphType, colors);
+    renderGraph(hierarchyObject, hightLightNodeName || '', transform, containerRef.current, {
+      graphType,
+      colors,
+      isOverflowFilter,
+    });
   }, [hightLightMatchedNode, graphType]);
 
   // 切换文件或者目录等，重新加载图
@@ -608,7 +647,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
 
   return {
     graphRef,
-    expanding,
+    expanding: loading,
     transform,
     containerRef,
     contextMenuItems,

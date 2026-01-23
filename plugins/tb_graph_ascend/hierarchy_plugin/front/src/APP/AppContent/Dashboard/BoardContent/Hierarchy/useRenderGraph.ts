@@ -244,13 +244,11 @@ export const renderGraph = (
   selectedNode: string,
   transform = initTransform,
   container: SVGGElement | null,
-  graphType: GRAPH_TYPE,
-  colors: PreProcessDataConfigType['colors'],
+  config: PreProcessDataConfigType,
 ) => {
   if (!container) return;
-  const prefix = PREFIX_MAP[graphType];
+  const prefix = PREFIX_MAP[config.graphType];
   const selectedNodeName = selectedNode?.startsWith(prefix) ? selectedNode : `${prefix}${selectedNode}`;
-  const config = { colors, isOverflowFilter: false, graphType };
   const renderData = preProcessData(hierarchyObject, selectedNodeName, config, transform);
   const containerD3 = d3.select(container);
   bindInnerRect(containerD3, renderData);

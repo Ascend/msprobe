@@ -43,12 +43,3 @@ export interface GraphConfigType {
   ranks: number[];
   steps: number[];
 }
-
-export interface GraphAllNodeType {
-  npuNodeList: string[];
-  benchNodeList: string[];
-  npuUnMatchNodes: string[];
-  benchUnMatchNodes: string[];
-  npuMatchNodes: string[];
-  benchMatchNodes: string[];
-}
