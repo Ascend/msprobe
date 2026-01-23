@@ -46,6 +46,11 @@ body,
   border-radius: 0 !important;
 }
 
-.ant-menu{
+.ant-menu {
   border-inline-end: none !important;
+}
+
+.ant-tabs-content,
+.ant-tabs-tabpane-active {
+  height: 100%;
 }

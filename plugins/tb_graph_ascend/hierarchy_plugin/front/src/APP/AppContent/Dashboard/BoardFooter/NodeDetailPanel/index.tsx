@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Empty, Table } from 'antd';
+import { Empty, Table, Typography } from 'antd';
 import { useMemo } from 'react';
 import type { ColumnsType } from 'antd/es/table';
 import styles from './index.module.less';
@@ -26,12 +26,14 @@ interface IProps {
   data: Array<Record<string, unknown>>;
 }
 
+const Text = Typography.Text;
+
 const ignoreDataIndex = ['data_name', 'isBench', 'isMatched', 'value'];
 const NodeDetailPanel = (props: IProps): React.JSX.Element => {
-  const { data } = props;
+  const { npuName, benchName, data } = props;
   const { t } = useTranslation();
   const getClassName = (record: any, item: string): string => {
-    const benchClass = record.isBench ? ` ${styles.benchCell}` : '';
+    const benchClass = ` ${record.isBench ? styles.benchCell : styles.debugCell}`;
     if (item === 'name') {
       const nameClass = record.isMatched ? styles.matchedName : styles.unMatchedName;
       return `${nameClass}${benchClass}`;
@@ -66,12 +68,27 @@ const NodeDetailPanel = (props: IProps): React.JSX.Element => {
   }, [data]);
 
   return (
-    <div>
+    <div className={styles.nodeDetailPanel}>
+      {(!!npuName || !!benchName) && (
+        <div className={styles.header}>
+          {!!npuName && <Text className={styles.nodeNameLabel} title={npuName}>{`${t('debugNode')}${npuName}`}</Text>}
+          {!!benchName && (
+            <Text className={styles.nodeNameLabel} title={benchName}>{`${t('benchNode')}${benchName}`}</Text>
+          )}
+          <div className={styles.legends}>
+            <div className={styles.debugColorBlock} />
+            <Text>{t('debug')}</Text>
+            <div className={styles.benchColorBlock} />
+            <Text>{t('bench')}</Text>
+            <Text className={styles.matchedName}>{t('nodeInfoPanel.matchedParams')}</Text>
+            <Text className={styles.unMatchedName}>{t('nodeInfoPanel.unmatchedParams')}</Text>
+          </div>
+        </div>
+      )}
       {data && data.length > 0 ? (
         <div className={styles.tableContainer}>
           <Table
             size="small"
-            bordered
             columns={columns}
             dataSource={data}
             style={{

@@ -81,6 +81,10 @@ const useTheme = (): ParentThemeResult => {
           colorListSelected: '#15325b',
           colorListSelectedHover: '#15417e',
           colorPanelBorder: '#ffffff',
+          colorDebugTableRowBg: '#0f0f0f',
+          colorBenchTableRowBg: '#2b2b2b',
+          colorGroupByBorder: '#7b7b7b',
+          colorBlockBorder: 'rgba(255, 255, 255, 0.25)',
         }
       : {
           colorBgContainer: '#ffffff',
@@ -89,6 +93,10 @@ const useTheme = (): ParentThemeResult => {
           colorListSelected: '#e6f4ff',
           colorListSelectedHover: '#bae0ff',
           colorPanelBorder: '#c5c3c3ff',
+          colorDebugTableRowBg: '#ffffff',
+          colorBenchTableRowBg: '#f5f5f5',
+          colorGroupByBorder: '#bfbfbf',
+          colorBlockBorder: 'rgba(0, 0, 0, 0.15)',
         };
 
   return { themeType, themeToken, toggleTheme };

@@ -76,7 +76,7 @@ const PrecisionPanel = (props: PrecisionPanelProps): React.JSX.Element => {
       <Checkbox.Group value={checkItems} className={styles.checkBoxItemGroup} onChange={onChange}>
         {props.precisionRange.map((item) => {
           return (
-            <Checkbox className={styles.checkBoxItem} value={item.value} disabled={item.disabled}>
+            <Checkbox key={item.value} className={styles.checkBoxItem} value={item.value} disabled={item.disabled}>
               <div className={styles.colorBlock} style={{ backgroundColor: item.color }}></div>
               <Text>{item.label}</Text>
             </Checkbox>

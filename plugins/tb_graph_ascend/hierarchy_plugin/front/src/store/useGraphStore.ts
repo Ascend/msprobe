@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 import { create } from 'zustand';
-import { loadGraphAllNodeList, loadGraphConfig, loadGraphFileInfoList } from '../api/board';
-
-import type { ApiResponse } from '../common/type';
-import type { GraphConfigType, FileInfoListType, FileErrorListType, GraphAllNodeType } from './types/useGraphStore';
+import { loadGraphConfig, loadGraphFileInfoList } from '../api/board';
+import type { ApiResponse, GraphAllNodeType, GraphMatchedRelationsType } from '../common/type';
+import type { GraphConfigType, FileInfoListType, FileErrorListType } from './types/useGraphStore';
 import type { DefaultOptionType } from 'antd/es/select';
 import type { CurrentMetaDataType } from '../common/type';
 import { CURRENT_PAGE, CURRENT_TAB, GRAPH_TYPE, initTransform } from '../common/constant';
@@ -53,17 +52,21 @@ export interface GraphStoreType {
   isSingleGraph: GraphConfigType['isSingleGraph'];
   task: GraphConfigType['task'];
 
-  matchedConfigFilesOptions: DefaultOptionType[];
+  matchedConfigFilesOptions: string[];
   microStepOptions: DefaultOptionType[];
   stepOptions: DefaultOptionType[];
   rankOptions: DefaultOptionType[];
 
   graphNodeList: GraphAllNodeType;
+  graphMatchedRelations: GraphMatchedRelationsType;
   transform: { x: number; y: number; scale: number };
 
   isShowNpuMiniMap: boolean;
   isShowBenchMiniMap: boolean;
   isSyncExpand: boolean;
+  isMatchedStatusSwitch: boolean;
+  metaDataCacheInSearch: string;
+  metaDataCacheInMatch: string;
 
   setMessageApi: (messageApi: any) => void;
 
@@ -85,6 +88,12 @@ export interface GraphStoreType {
   setIsShowNpuMiniMap: (isShow: boolean) => void;
   setIsShowBenchMiniMap: (isShow: boolean) => void;
   setIsSyncExpand: (isSync: boolean) => void;
+  setMatchedConfigFilesOptions: (options: string[]) => void;
+  setGraphNodeList: (graphNodes: GraphAllNodeType) => void;
+  setGraphMatchedRelations: (matchedRelations: GraphMatchedRelationsType) => void;
+  switchMatchedStatus: () => void;
+  updateMetaDataCacheInSearch: () => void;
+  updateMetaDataCacheInMatch: () => void;
 
   updateCurrentMetaFileByDir: (dir: string) => void;
 
@@ -93,8 +102,6 @@ export interface GraphStoreType {
   fetchFileInfoList: (selectMetaDir?: string) => Promise<void>;
 
   fetchGraphConfig: () => Promise<void>;
-
-  fetchAllNodeList: () => Promise<void>;
 }
 
 const useGraphStore = create<GraphStoreType>()((set, get) => ({
@@ -107,6 +114,8 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
   currentMetaMicroStep: -1,
   currentLang: 'zh',
   isOverflowMode: false,
+  metaDataCacheInSearch: '',
+  metaDataCacheInMatch: '',
 
   selectedNode: '',
   hightLightMatchedNode: {},
@@ -131,14 +140,17 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
   isShowNpuMiniMap: true,
   isShowBenchMiniMap: true,
   isSyncExpand: true,
+  isMatchedStatusSwitch: true,
 
   graphNodeList: {
     npuNodeList: [],
     benchNodeList: [],
+  },
+  graphMatchedRelations: {
     npuUnMatchNodes: [],
     benchUnMatchNodes: [],
-    npuMatchNodes: [],
-    benchMatchNodes: [],
+    npuMatchNodes: {},
+    benchMatchNodes: {},
   },
 
   getCurrentMetaData: () => {
@@ -175,7 +187,13 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
   setIsShowNpuMiniMap: (isShow: boolean) => set({ isShowNpuMiniMap: isShow }),
   setIsShowBenchMiniMap: (isShow: boolean) => set({ isShowBenchMiniMap: isShow }),
   setIsSyncExpand: (isSync: boolean) => set({ isSyncExpand: isSync }),
-
+  setMatchedConfigFilesOptions: (options: string[]) => set({ matchedConfigFilesOptions: options }),
+  setGraphNodeList: (graphNodes: GraphAllNodeType) => set({ graphNodeList: graphNodes }),
+  setGraphMatchedRelations: (matchedRelations: GraphMatchedRelationsType) =>
+    set({ graphMatchedRelations: matchedRelations }),
+  switchMatchedStatus: () => set({ isMatchedStatusSwitch: !get().isMatchedStatusSwitch }),
+  updateMetaDataCacheInSearch: () => set({ metaDataCacheInSearch: JSON.stringify(get().getCurrentMetaData()) }),
+  updateMetaDataCacheInMatch: () => set({ metaDataCacheInMatch: JSON.stringify(get().getCurrentMetaData()) }),
   updateCurrentMetaFileByDir: (dir: string) => {
     const type = get().fileInfoList?.data?.[dir]?.type as GraphStoreType['currentMetaFileType'];
     const metaFileList = get().fileInfoList?.data?.[dir]?.tags || [];
@@ -220,7 +238,6 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
   fetchGraphConfig: async () => {
     const messageApi = get().messageApi;
     const selection = get().getCurrentMetaData();
-    const currentLang = get().currentLang;
     if (!selection.run || !selection.tag) {
       return;
     }
@@ -231,22 +248,19 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
       set({ hasOverflow: data?.overflowCheck });
       set({ isSingleGraph: data?.isSingleGraph });
       set({ task: data?.task });
-      const matchedConfigFilesOptions = data?.matchedConfigFiles.map((item) => {
-        return {
-          value: item,
-          label: item,
-        };
-      });
-      matchedConfigFilesOptions?.unshift({
-        value: '',
-        label: currentLang === 'zh' ? '未选择' : 'Not selected',
-      });
-      set({ matchedConfigFilesOptions: matchedConfigFilesOptions });
+      set({ matchedConfigFilesOptions: data?.matchedConfigFiles ?? [] });
       if (Number(data?.microSteps)) {
-        const microStepOptions = Array.from({ length: Number(data?.microSteps) + 1 }, (_, index) => ({
-          label: index === 0 ? 'ALL' : String(index - 1),
-          value: index - 1,
-        }));
+        const microStepOptions: Array<{ label: number | string; value: number }> = Array.from(
+          { length: Number(data?.microSteps) + 1 },
+          (_, index) => ({
+            label: index,
+            value: index,
+          }),
+        );
+        microStepOptions.unshift({
+          label: 'ALL',
+          value: -1,
+        });
         set({ microStepOptions: microStepOptions });
       }
       if (data?.steps && data?.steps?.length > 0) {
@@ -269,19 +283,6 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
         });
         set({ rankOptions: rankOptions });
         set({ currentMetaRank: data?.ranks[0] });
-      }
-    } else {
-      messageApi.error(error);
-    }
-  },
-
-  fetchAllNodeList: async () => {
-    const messageApi = get().messageApi;
-    const selection = get().getCurrentMetaData();
-    const { success, data, error } = await loadGraphAllNodeList<GraphAllNodeType>({ metaData: selection });
-    if (success) {
-      if (data) {
-        set({ graphNodeList: data });
       }
     } else {
       messageApi.error(error);

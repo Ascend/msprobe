@@ -40,6 +40,7 @@ const BorderFooter = (): React.JSX.Element => {
   const isSingleGraph = useGraphStore((state) => state.isSingleGraph);
   const selectedNode = useGraphStore((state) => state.selectedNode);
   const messageApi = useGraphStore((state) => state.messageApi);
+  const isMatchedStatusSwitch = useGraphStore((state) => state.isMatchedStatusSwitch);
   const useNodeInfoHook: UseNodeInfoType = useNodeInfo();
   const { t } = useTranslation();
 
@@ -50,6 +51,8 @@ const BorderFooter = (): React.JSX.Element => {
 
   useEffect(() => {
     if (!selectedNode) {
+      setNpuNodeName('');
+      setBenchNodeName('');
       setIoDataset([]);
       setStackInfo({});
       return;
@@ -98,7 +101,7 @@ const BorderFooter = (): React.JSX.Element => {
       .catch((err) => {
         messageApi.error(err);
       });
-  }, [selectedNode]);
+  }, [selectedNode, isMatchedStatusSwitch]);
 
   return (
     <Tabs
