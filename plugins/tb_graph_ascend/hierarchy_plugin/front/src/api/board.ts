@@ -37,6 +37,30 @@ export interface GetNodeInfoRequestParams {
   };
 }
 
+export interface AddMatchNodesByConfigRequestParams {
+  configFile: string;
+  metaData: CurrentMetaDataType;
+}
+
+export interface AddMatchNodesRequestParams {
+  npuNodeName: string;
+  benchNodeName: string;
+  metaData: CurrentMetaDataType;
+  isMatchChildren: boolean;
+}
+
+export interface DeleteMatchNodesRequestParams {
+  npuNodeName: string;
+  benchNodeName: string;
+  metaData: CurrentMetaDataType;
+  isUnMatchChildren: boolean;
+}
+
+export interface UpdateHierarchyDataRequestParams {
+  metaData: CurrentMetaDataType;
+  graphType: GRAPH_TYPE;
+}
+
 export const loadGraphFileInfoList = <T>() => request<T>({ url: 'load_meta_dir', method: 'POST' });
 
 export const loadGraphConfig = <T>(params: RequestGraphConfigParamsType) =>
@@ -62,6 +86,14 @@ export const loadGraphAllNodeList = <T>(params: RequestGraphConfigParamsType) =>
   request<T>({ url: 'loadGraphAllNodeList', method: 'POST', data: params });
 
 /**
+ * 获取所有已匹配和未匹配节点列表
+ * @param params
+ * @returns
+ */
+export const loadGraphMatchedRelations = <T>(params: RequestGraphConfigParamsType) =>
+  request<T>({ url: 'loadGraphMatchedRelations', method: 'POST', data: params });
+
+/**
  * 获取选中节点信息
  * @param params
  * @returns
@@ -75,3 +107,43 @@ export const requestConvertToGraph = <T>(params: ConvertParamsType) =>
 
 export const loadGraphData = <T>(params: CurrentMetaDataType) =>
   request<T>({ url: 'loadGraphData', method: 'GET', params: params });
+
+/**
+ * 选择匹配关系配置文件后应用匹配关系
+ * @param params
+ * @returns
+ */
+export const addMatchNodesByConfig = <T>(params: AddMatchNodesByConfigRequestParams) =>
+  request<T>({ url: 'addMatchNodesByConfig', method: 'POST', data: params });
+
+/**
+ * 生成配置文件
+ * @param params
+ * @returns
+ */
+export const generateConfigFile = <T>(params: RequestGraphConfigParamsType) =>
+  request<T>({ url: 'saveMatchedRelations', method: 'POST', data: params });
+
+/**
+ * 手动匹配节点
+ * @param params
+ * @returns
+ */
+export const addMatchNodes = <T>(params: AddMatchNodesRequestParams) =>
+  request<T>({ url: 'addMatchNodes', method: 'POST', data: params });
+
+/**
+ * 取消节点匹配
+ * @param params
+ * @returns
+ */
+export const deleteMatchNodes = <T>(params: DeleteMatchNodesRequestParams) =>
+  request<T>({ url: 'deleteMatchNodes', method: 'POST', data: params });
+
+/**
+ * 更新图状态
+ * @param params
+ * @returns
+ */
+export const updateHierarchyData = <T>(params: UpdateHierarchyDataRequestParams) =>
+  request<T>({ url: 'updateHierarchyData', method: 'POST', data: params });

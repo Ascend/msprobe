@@ -37,9 +37,7 @@ const Dashboard = () => {
   const currentMetaRank = useGraphStore((state) => state.currentMetaRank);
   const currentMetaData = useGraphStore((state) => state.getCurrentMetaData)();
   const fetchGraphConfig = useGraphStore((state) => state.fetchGraphConfig);
-  const fetchAllNodeList = useGraphStore((state) => state.fetchAllNodeList);
   //局部变量
-  // const [contextModalHolder] = Modal.useModal();
   const [messageApi, contextHolder] = message.useMessage();
   const eventSourceRef = useRef<EventSource | null>(null);
   const [loading, setLoading] = useState(false);
@@ -141,12 +139,6 @@ const Dashboard = () => {
     if (!currentMetaFile || currentMetaStep == null || currentMetaRank == null) return;
     loadDBGraphData(false);
   }, [currentMetaStep, currentMetaRank]);
-
-  useEffect(() => {
-    if (currentMetaData.tag && currentMetaData.run) {
-      fetchAllNodeList();
-    }
-  }, [JSON.stringify(currentMetaData)]);
 
   return (
     <Spin spinning={loading} tip={loadingTip}>

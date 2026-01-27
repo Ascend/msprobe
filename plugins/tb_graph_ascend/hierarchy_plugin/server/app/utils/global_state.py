@@ -41,6 +41,7 @@ class GraphState:
         'runs': {},
         'update_precision_cache': {},  # {node_name{precision，...}}，方便查询精度，提高性能
         'all_node_info_cache': {},  # {rank_step_micro_step:{node_name:node_info,...}}，方便查询节点信息，提高性能
+        'matched_relations_cache': {},
         'lang': ZH,
     }
 
@@ -69,6 +70,7 @@ class GraphState:
             'runs': {},
             'update_precision_cache': {},
             'all_node_info_cache': {},
+            'matched_relations_cache': {},
             'lang': ZH,
         }
 

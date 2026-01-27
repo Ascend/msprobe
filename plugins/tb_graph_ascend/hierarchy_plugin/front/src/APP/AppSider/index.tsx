@@ -31,6 +31,8 @@ import styles from './index.module.less';
 import useGlobalStore from '../../store/useGlobalStore';
 import { CURRENT_PAGE, CURRENT_TAB } from '../../common/constant';
 import { useTranslation } from 'react-i18next';
+import useGraphStore from '../../store/useGraphStore';
+import { useEffect } from 'react';
 
 interface AppSiderProps {
   toggleTheme: () => void;
@@ -40,11 +42,18 @@ interface AppSiderProps {
 const AppSider = ({ toggleTheme, toggleLanguage }: AppSiderProps) => {
   const { t } = useTranslation(); // 👈 使用翻译函数
   const { currentTab, setCurrentTab, setCurrentPage } = useGlobalStore();
+  const isSingleGraph = useGraphStore((state) => state.isSingleGraph);
+  useEffect(() => {
+    if (isSingleGraph) {
+      setCurrentTab(CURRENT_TAB.PRECISION_TAB);
+      setCurrentPage(CURRENT_PAGE.DASHBOARD);
+    }
+  }, [isSingleGraph]);
 
   return (
     <div className={styles.siderContainer}>
-      <Tooltip placement="left" title={t('sider.dataSelection')}>
-        <Popover placement="left" content={MetaContent} trigger="click">
+      <Tooltip placement="right" title={t('sider.dataSelection')}>
+        <Popover placement="right" content={MetaContent} trigger="click">
           <Button
             className={`${styles.siderButton} ${currentTab === CURRENT_TAB.FILE_TAB ? styles.activeTab : ''}`}
             icon={<FileOutlined />}
@@ -53,7 +62,7 @@ const AppSider = ({ toggleTheme, toggleLanguage }: AppSiderProps) => {
         </Popover>
       </Tooltip>
 
-      <Tooltip placement="left" title={t('sider.precisionFiltering')}>
+      <Tooltip placement="right" title={t('sider.precisionFiltering')}>
         <Button
           className={`${styles.siderButton} ${currentTab === CURRENT_TAB.PRECISION_TAB ? styles.activeTab : ''}`}
           icon={<AppstoreOutlined />}
@@ -65,21 +74,22 @@ const AppSider = ({ toggleTheme, toggleLanguage }: AppSiderProps) => {
           }}
         />
       </Tooltip>
+      {!isSingleGraph && (
+        <Tooltip placement="right" title={t('sider.nodeMatching')}>
+          <Button
+            className={styles.siderButton + ' ' + (currentTab === CURRENT_TAB.MATCH_TAB ? styles.activeTab : '')}
+            icon={<NodeIndexOutlined />}
+            data-testid="matchSiderButton"
+            variant="text"
+            onClick={() => {
+              setCurrentTab(CURRENT_TAB.MATCH_TAB);
+              setCurrentPage(CURRENT_PAGE.DASHBOARD);
+            }}
+          />
+        </Tooltip>
+      )}
 
-      <Tooltip placement="left" title={t('sider.nodeMatching')}>
-        <Button
-          className={`${styles.siderButton} ${currentTab === CURRENT_TAB.MATCH_TAB ? styles.activeTab : ''}`}
-          icon={<NodeIndexOutlined />}
-          data-testid="matchSiderButton"
-          variant="text"
-          onClick={() => {
-            setCurrentTab(CURRENT_TAB.MATCH_TAB);
-            setCurrentPage(CURRENT_PAGE.DASHBOARD);
-          }}
-        />
-      </Tooltip>
-
-      <Tooltip placement="left" title={t('sider.nodeSearch')}>
+      <Tooltip placement="right" title={t('sider.nodeSearch')}>
         <Button
           className={`${styles.siderButton} ${currentTab === CURRENT_TAB.SEARCH_TAB ? styles.activeTab : ''}`}
           icon={<SearchOutlined />}
@@ -92,7 +102,7 @@ const AppSider = ({ toggleTheme, toggleLanguage }: AppSiderProps) => {
         />
       </Tooltip>
 
-      <Tooltip placement="left" title={t('sider.dumpVisualization')}>
+      <Tooltip placement="right" title={t('sider.dumpVisualization')}>
         <Button
           className={`${styles.siderButton} ${currentTab === CURRENT_TAB.VISUALIZED_TAB ? styles.activeTab : ''}`}
           icon={<ApartmentOutlined />}
@@ -104,7 +114,6 @@ const AppSider = ({ toggleTheme, toggleLanguage }: AppSiderProps) => {
           }}
         />
       </Tooltip>
-
       <Button
         className={styles.siderButton}
         data-testid="themeSiderButton"
@@ -115,7 +124,7 @@ const AppSider = ({ toggleTheme, toggleLanguage }: AppSiderProps) => {
         <SunOutlined />
       </Button>
 
-      <Tooltip placement="left" title={t('sider.switchLanguage')}>
+      <Tooltip placement="right" title={t('sider.switchLanguage')}>
         <Button className={styles.siderButton} shape="circle" onClick={toggleLanguage} variant="text">
           <TranslationOutlined />
         </Button>

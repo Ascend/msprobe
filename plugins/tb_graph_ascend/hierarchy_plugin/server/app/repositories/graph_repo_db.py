@@ -52,9 +52,9 @@ class GraphRepoDB(GraphRepo):
             record = dict(rows[0])
             # 构建最终的 data 对象
             config_info = {
-                "microSteps": record.get('micro_steps', 1) or 1,
+                "microSteps": record.get('micro_steps', 0),
                 "tooltips": GraphUtils.safe_json_loads(record.get('tool_tip')),
-                "overflowCheck": bool(record.get('overflow_check', 1)),
+                "overflowCheck": bool(record.get('overflow_check', 0)),
                 "isSingleGraph": not record.get('graph_type') == 'compare',
                 "colors": GraphUtils.safe_json_loads(record.get('node_colors')),
                 "matchedConfigFiles": [],
@@ -471,8 +471,8 @@ class GraphRepoDB(GraphRepo):
         finally:
             conn.close()
 
-    # DB: 查询已匹配节点列表，未匹配节点列表，所有的节点列表
-    def query_all_node_info_in_one(self, rank, step, micro_step):
+    # DB: 查询所有的节点列表
+    def query_all_node_info_list(self, rank, step, micro_step):
         conn = self._initialize_db_connection()
         if not conn:
             return {}
@@ -482,6 +482,66 @@ class GraphRepoDB(GraphRepo):
             cache = f'{rank}_{step}_{micro_step}'
             if all_node_info_cache.get(cache) is not None:
                 return all_node_info_cache.get(cache) 
+            # 查询数据库
+            # 单次查询：获取 node_name 和 matched_node_link
+            query = """
+                SELECT 
+                    node_name,
+                    data_source
+                FROM 
+                    tb_nodes 
+                WHERE 
+                    step = ?
+                    AND rank = ? 
+                    AND (? = -1 OR micro_step_id = ?)
+                ORDER BY
+                    node_order ASC
+            """
+            
+            with conn as conn:
+                cursor = conn.execute(query, (step, rank, micro_step, micro_step))
+                rows = cursor.fetchall()
+            # 初始化结果
+            npu_node_list = []
+            bench_node_list = []
+
+            # 一次性遍历结果，分类处理
+            for row in rows:
+                node_name = row['node_name']
+                if row['data_source'] == NPU:
+                    npu_node_list.append(node_name)
+                elif row['data_source'] == BENCH:
+                    bench_node_list.append(node_name)
+                else:
+                    logger.error(f"Invalid data source: {row['data_source']}")
+            all_node_info = {
+                'npu_node_list': npu_node_list,
+                'bench_node_list': bench_node_list,
+            }
+
+            all_node_info_cache[cache] = all_node_info
+            return all_node_info
+
+        except Exception as e:
+            logger.error(f"Failed to query all node info: {e}")
+            return {
+                'npu_node_list': [],
+                'bench_node_list': [],
+            }
+        finally:
+            conn.close()
+
+    # DB: 查询已匹配节点列表，未匹配节点列表
+    def query_all_matched_relations(self, rank, step, micro_step):
+        conn = self._initialize_db_connection()
+        if not conn:
+            return {}
+        try:
+            # 查找缓存
+            matched_relations_cache = GraphState.get_global_value('matched_relations_cache', {})
+            cache = f'{rank}_{step}_{micro_step}'
+            if matched_relations_cache.get(cache) is not None:
+                return matched_relations_cache.get(cache) 
             # 查询数据库
             # 单次查询：获取 node_name 和 matched_node_link
             query = """
@@ -503,8 +563,6 @@ class GraphRepoDB(GraphRepo):
                 cursor = conn.execute(query, (step, rank, micro_step, micro_step))
                 rows = cursor.fetchall()
             # 初始化结果
-            npu_node_list = []
-            bench_node_list = []
             npu_match_node = {}  # {node_name: last_matched_link}
             bench_match_node = {}
             npu_unmatch_node = []
@@ -515,7 +573,6 @@ class GraphRepoDB(GraphRepo):
                 node_name = row['node_name']
                 matched_link_str = row['matched_node_link']
                 if row['data_source'] == NPU:
-                    npu_node_list.append(node_name)
                     # 解析 matched_node_link
                     matched_link = GraphUtils.safe_json_loads(matched_link_str)
                     # 判断是否为有效匹配（非空列表）
@@ -524,7 +581,6 @@ class GraphRepoDB(GraphRepo):
                     else:
                         npu_unmatch_node.append(node_name)
                 elif row['data_source'] == BENCH:
-                    bench_node_list.append(node_name)
                     # 解析 matched_node_link
                     matched_link = GraphUtils.safe_json_loads(matched_link_str)
                     # 判断是否为有效匹配（非空列表）
@@ -534,30 +590,26 @@ class GraphRepoDB(GraphRepo):
                         bench_unmatch_node.append(node_name)
                 else:
                     logger.error(f"Invalid data source: {row['data_source']}")
-            all_node_info = {
-                'npu_node_list': npu_node_list,
-                'bench_node_list': bench_node_list,
+            matched_relations = {
                 'npu_match_node': npu_match_node,
                 'bench_match_node': bench_match_node,
                 'npu_unmatch_node': npu_unmatch_node,
                 'bench_unmatch_node': bench_unmatch_node
             }
-            all_node_info_cache = GraphState.get_global_value('all_node_info_cache', {})
-            all_node_info_cache[cache] = all_node_info
-            return all_node_info
+    
+            matched_relations_cache[cache] = matched_relations
+            return matched_relations
 
         except Exception as e:
-            logger.error(f"Failed to query all node info: {e}")
+            logger.error(f"Failed to query matched relations: {e}")
             return {
-                'npu_node_list': [],
-                'bench_node_list': [],
                 'npu_match_node': {},
                 'bench_match_node': {},
                 'npu_unmatch_node': [],
                 'bench_unmatch_node': []
             }
         finally:
-            conn.close()
+            conn.close()        
 
     # # DB：根据step rank modify match_node_link查询已经修改的匹配成功的节点关系
     def query_modify_matched_nodes_list(self, rank, step):

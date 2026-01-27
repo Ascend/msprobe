@@ -45,6 +45,7 @@ class DbGraphService(GraphServiceStrategy):
         if not self.conn:
             self.conn = self.repo.get_db_connection()
         GraphState.set_global_value("all_node_info_cache", {})  # 切换文件清缓存
+        GraphState.set_global_value('matched_relations_cache', {})
         return {'success': True}
 
     def load_graph_config_info(self):
@@ -80,17 +81,7 @@ class DbGraphService(GraphServiceStrategy):
                 return {'success': True, 'data': result} 
             # 双图
             else:
-                config_data = GraphState.get_global_value("config_data")
-                all_node_info = self.repo.query_all_node_info_in_one(rank, step, micro_step)
-                config_data['npuMatchNodes'] = all_node_info.get('npu_match_node')
-                config_data['benchMatchNodes'] = all_node_info.get('bench_match_node')
-                config_data['npuUnMatchNodes'] = all_node_info.get('npu_unmatch_node')
-                config_data['benchUnMatchNodes'] = all_node_info.get('bench_unmatch_node')
-        
-                result['npuMatchNodes'] = all_node_info.get('npu_match_node')
-                result['benchMatchNodes'] = all_node_info.get('bench_match_node')
-                result['npuUnMatchNodes'] = all_node_info.get('npu_unmatch_node')
-                result['benchUnMatchNodes'] = all_node_info.get('bench_unmatch_node')
+                all_node_info = self.repo.query_all_node_info_list(rank, step, micro_step)
                 result['npuNodeList'] = all_node_info.get('npu_node_list')
                 result['benchNodeList'] = all_node_info.get('bench_node_list')
                 
@@ -98,6 +89,36 @@ class DbGraphService(GraphServiceStrategy):
         except Exception as e:
             logger.error(f"load graph all node list failed, {e}")
             return {'success': False, 'error': GraphUtils.t('loadNodeError')}
+
+    def load_graph_matched_relations(self, meta_data):
+        try:
+            if not self.conn:
+                return {'success': False, 'error': GraphUtils.t('dbInitError')}
+            rank = meta_data.get('rank')
+            step = meta_data.get('step')
+            micro_step = meta_data.get('microStep')
+            if rank is None or step is None or micro_step is None:
+                return {'success': False, 'error': GraphUtils.t('rankStepNullError')}
+            result = {}
+            if not self.config_info:
+                self.config_info = self.repo.query_config_info() 
+
+            config_data = GraphState.get_global_value("config_data")
+            all_node_info = self.repo.query_all_matched_relations(rank, step, micro_step)
+            config_data['npuMatchNodes'] = all_node_info.get('npu_match_node')
+            config_data['benchMatchNodes'] = all_node_info.get('bench_match_node')
+            config_data['npuUnMatchNodes'] = all_node_info.get('npu_unmatch_node')
+            config_data['benchUnMatchNodes'] = all_node_info.get('bench_unmatch_node')
+    
+            result['npuMatchNodes'] = all_node_info.get('npu_match_node')
+            result['benchMatchNodes'] = all_node_info.get('bench_match_node')
+            result['npuUnMatchNodes'] = all_node_info.get('npu_unmatch_node')
+            result['benchUnMatchNodes'] = all_node_info.get('bench_unmatch_node')
+            
+            return {'success': True, 'data': result}
+        except Exception as e:
+            logger.error(f"load graph matched relations failed, {e}")
+            return {'success': False, 'error': GraphUtils.t('loadMatchedRelationsError')}
 
     def change_node_expand_state(self, node_info, meta_data):
         try:
@@ -273,7 +294,6 @@ class DbGraphService(GraphServiceStrategy):
                 match_result = MatchNodesController.process_task_add_child_layer_by_config(graph_data,
                                                                                            match_node_links, task)
                 result = self._generate_matched_result(match_result, rank, step)
-                result.setdefault('data', {})['matchResult'] = [item.get('success', False) for item in match_result]
                 return result
             else:
                 return {'success': False, 'error': GraphUtils.t('taskTypeError')}
@@ -417,8 +437,12 @@ class DbGraphService(GraphServiceStrategy):
 
     def _generate_matched_result(self, match_result, rank, step):
         update_data = []
+        matched_total = 0
+        matched_success = 0
         for item in match_result:
+            matched_total += 1
             if item.get('success') is True:
+                matched_success += 1
                 nodes = item.get('data', [])
                 for node in nodes:
                     update_data.append(node)
@@ -426,7 +450,7 @@ class DbGraphService(GraphServiceStrategy):
             # DB：更新数据库节点信息
             update_db_res = self.repo.update_nodes_info(update_data, rank, step)
             if not update_db_res:
-                return {'success': False, 'error': GraphUtils.t('updateDatabaseFailed')}
+                return {'success': False, 'data': {}, 'error': GraphUtils.t('updateDatabaseFailed')}
             # 视图：调用更新update_hirarchy方法，同步更新图
             LayoutHierarchyModel.update_current_hierarchy_data(update_data)
             # 返回：返回更新后的节点信息
@@ -437,10 +461,12 @@ class DbGraphService(GraphServiceStrategy):
                     'npuMatchNodes': config_data.get('npuMatchNodes', {}),
                     'benchMatchNodes': config_data.get('benchMatchNodes', {}),
                     'npuUnMatchNodes': config_data.get('npuUnMatchNodes', []),
-                    'benchUnMatchNodes': config_data.get('benchUnMatchNodes', [])
+                    'benchUnMatchNodes': config_data.get('benchUnMatchNodes', []),
+                    'matchedTotal': matched_total,
+                    'matchedSuccess': matched_success
                 }
             }
         else:
-            result = {'success': False, 'error': GraphUtils.t('selectedNodeCantMatched')}
+            result = {'success': False, 'data': {}, 'error': GraphUtils.t('selectedNodeCantMatched')}
         return result
                      

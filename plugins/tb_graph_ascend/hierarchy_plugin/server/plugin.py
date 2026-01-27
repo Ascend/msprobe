@@ -64,6 +64,7 @@ class GraphsPlugin(base_plugin.TBPlugin):
             '/loadGraphData': GraphView.load_graph_data,
             '/loadGraphConfigInfo': GraphView.load_graph_config_info,
             '/loadGraphAllNodeList': GraphView.load_graph_all_node_list,
+            '/loadGraphMatchedRelations': GraphView.load_graph_matched_relations,
             '/changeNodeExpandState': GraphView.change_node_expand_state,
             '/updateHierarchyData': GraphView.update_hierarchy_data,
             '/getNodeInfo': GraphView.get_node_info,
