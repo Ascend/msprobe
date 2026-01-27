@@ -13,22 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Radio, Input, type RadioChangeEvent } from 'antd';
-import useGraphStore from '../../../../../store/useGraphStore';
+import { Radio, Input, type RadioChangeEvent, Spin } from 'antd';
 import type { CheckboxGroupProps } from 'antd/es/checkbox';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import VirtualNodeList from '../components/VirtualNodeList';
 import PanelHeader from '../components/PanelHeader';
 import styles from './index.module.less';
 import { BENCH_PREFIX, NPU_PREFIX } from '../../../../../common/constant';
 import { lowerCaseInclude } from '../../../../../common/utils';
-import { useTranslation } from 'react-i18next';
+import useGraphStore from '../../../../../store/useGraphStore';
+import type { GraphAllNodeType } from '../../../../../common/type';
+import { loadGraphAllNodeList } from '../../../../../api/board';
 
 const { Search } = Input;
 
 const SearchSider = () => {
   const isSingleGraph = useGraphStore((state) => state.isSingleGraph);
+  const currentMetaData = useGraphStore((state) => state.getCurrentMetaData)();
+  const messageApi = useGraphStore((state) => state.messageApi);
   const { npuNodeList, benchNodeList } = useGraphStore((state) => state.graphNodeList);
+  const setGraphNodeList = useGraphStore((state) => state.setGraphNodeList);
+  const isSearchCached = useGraphStore((state) => state.isSearchCached);
+  const updateMetaDataCacheInSearch = useGraphStore((state) => state.updateMetaDataCacheInSearch);
   const { t } = useTranslation();
 
   const options: CheckboxGroupProps<string>['options'] = [
@@ -42,6 +49,7 @@ const SearchSider = () => {
   const [searchedNodes, setSearchedNodes] = useState<string[]>(nodeList);
   // 查询哪一侧节点
   const [currentSide, setCurrentSide] = useState<string>(NPU_PREFIX);
+  const [spinning, setSpinning] = useState<boolean>(false);
 
   const onRadioChange = (e: RadioChangeEvent): void => {
     setCurrentSide(e.target.value);
@@ -56,6 +64,32 @@ const SearchSider = () => {
     setSearchName(value);
   };
 
+  const fetchAllNodeList = async (): Promise<void> => {
+    setSpinning(true);
+    const { success, data, error } = await loadGraphAllNodeList<GraphAllNodeType>({
+      metaData: currentMetaData,
+    });
+    if (success) {
+      if (data) {
+        setGraphNodeList(data);
+        updateMetaDataCacheInSearch();
+      }
+    } else {
+      messageApi.error(error);
+    }
+    setSpinning(false);
+  };
+
+  useEffect(() => {
+    // 已经加载过一次后不需要再次调接口查询数据，此为防止切换侧边栏看板导致重新请求
+    if (isSearchCached()) {
+      return;
+    }
+    if (currentMetaData.tag && currentMetaData.run) {
+      fetchAllNodeList();
+    }
+  }, [JSON.stringify(currentMetaData)]);
+
   useEffect(() => {
     setSearchedNodes(nodeList.filter((node) => lowerCaseInclude(node, searchName)));
   }, [nodeList, searchName]);
@@ -68,26 +102,28 @@ const SearchSider = () => {
 
   return (
     <div className={styles.searchSider} data-testid="searchPanel">
-      <Radio.Group options={options} onChange={onRadioChange} value={currentSide} />
-      <Search
-        value={searchName}
-        className={styles.search}
-        placeholder={t('searchName')}
-        onSearch={onSearch}
-        onChange={onInputChange}
-        maxLength={200}
-        allowClear
-      />
-      <PanelHeader nodes={searchedNodes} prefix={isSingleGraph ? '' : currentSide} />
-      <VirtualNodeList
-        nodes={searchedNodes.map((node) => {
-          return { name: node };
-        })}
-        query={searchName}
-        height={'calc(100vh - 150px)'}
-        prefix={isSingleGraph ? '' : currentSide}
-        visibleItems={40}
-      />
+      <Spin spinning={spinning} tip={t('loading')}>
+        <Radio.Group options={options} onChange={onRadioChange} value={currentSide} />
+        <Search
+          value={searchName}
+          className={styles.search}
+          placeholder={t('searchName')}
+          onSearch={onSearch}
+          onChange={onInputChange}
+          maxLength={200}
+          allowClear
+        />
+        <PanelHeader nodes={searchedNodes} prefix={isSingleGraph ? '' : currentSide} />
+        <VirtualNodeList
+          nodes={searchedNodes.map((node) => {
+            return { name: node };
+          })}
+          query={searchName}
+          height={'calc(100vh - 150px)'}
+          prefix={isSingleGraph ? '' : currentSide}
+          visibleItems={40}
+        />
+      </Spin>
     </div>
   );
 };

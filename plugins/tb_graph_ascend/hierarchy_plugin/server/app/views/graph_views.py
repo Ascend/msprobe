@@ -226,6 +226,19 @@ class GraphView:
         response = http_util.Respond(request, result, "application/json")
         return response
     
+    # 获取当前图所有节点匹配关系
+    @staticmethod
+    @wrappers.Request.application
+    @check_file_type
+    def load_graph_matched_relations(request):
+        data = GraphUtils.safe_json_loads(request.get_data().decode('utf-8'), {})
+        meta_data = data.get('metaData')
+        strategy = GraphView._get_strategy(meta_data)
+        result = strategy.load_graph_matched_relations(meta_data)
+        response = http_util.Respond(request, result, "application/json")
+        return response
+
+    
     # 根据精度误差搜索节点
     @staticmethod
     @wrappers.Request.application

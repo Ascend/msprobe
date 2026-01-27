@@ -124,10 +124,19 @@ export interface ConvertedNodeInfoDetail {
 }
 
 export interface StackInfo {
-  npuName?: string;
   benchName?: string;
+  npuName?: string;
   npuStack?: string;
   benchStack?: string;
   npuParallelMergeInfo?: string;
   benchParallelMergeInfo?: string;
+}
+
+export interface MatchResultType {
+  npuMatchNodes: Record<string, string>;
+  benchMatchNodes: Record<string, string>;
+  npuUnMatchNodes: string[];
+  benchUnMatchNodes: string[];
+  matchedTotal: number;
+  matchedSuccess: number;
 }

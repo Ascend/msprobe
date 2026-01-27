@@ -102,6 +102,9 @@ export interface GraphStoreType {
   fetchFileInfoList: (selectMetaDir?: string) => Promise<void>;
 
   fetchGraphConfig: () => Promise<void>;
+
+  isSearchCached: () => boolean;
+  isMatchCached: () => boolean;
 }
 
 const useGraphStore = create<GraphStoreType>()((set, get) => ({
@@ -287,6 +290,16 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
     } else {
       messageApi.error(error);
     }
+  },
+
+  isSearchCached: (): boolean => {
+    const currentMetaDataStr = JSON.stringify(get().getCurrentMetaData());
+    return get().metaDataCacheInSearch === currentMetaDataStr;
+  },
+
+  isMatchCached: (): boolean => {
+    const currentMetaDataStr = JSON.stringify(get().getCurrentMetaData());
+    return get().metaDataCacheInMatch === currentMetaDataStr;
   },
 }));
 

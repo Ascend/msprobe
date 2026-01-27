@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 import { Checkbox, Segmented, Tooltip, Typography } from 'antd';
-import styles from './index.module.less';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import useGraphStore from '../../../../../../store/useGraphStore';
 import { useEffect, useState } from 'react';
 import { OVERFLOW_COLOR, PRECISION_ERROR_COLOR } from '../../../../../../common/constant';
 import { useTranslation } from 'react-i18next';
+import styles from './index.module.less';
 
 interface IProps {
   onFilterNodes: (value: Array<string | number>) => void;
@@ -91,8 +91,15 @@ const FilterPanel = (props: IProps): React.JSX.Element => {
   const hasOverflow = useGraphStore((state) => state.hasOverflow);
   const isOverflowMode = useGraphStore((state) => state.isOverflowMode);
   const isSingleGraph = useGraphStore((state) => state.isSingleGraph);
+  const currentDir = useGraphStore((state) => state.currentMetaDir);
+  const currentFile = useGraphStore((state) => state.currentMetaFile);
+  const currentFileType = useGraphStore((state) => state.currentMetaFileType);
+  const currentStep = useGraphStore((state) => state.currentMetaStep);
+  const currentRank = useGraphStore((state) => state.currentMetaRank);
+  const currentMicroStep = useGraphStore((state) => state.currentMetaMicroStep);
   const setOverflowMode = useGraphStore((state) => state.setOverflowMode);
   const { t } = useTranslation();
+  const [segmentedValue, setSegmentedValue] = useState<string>('1');
 
   const errorRanges: PrecisionRange[] = [
     { label: 'Pass', color: PRECISION_ERROR_COLOR.pass, value: 'pass', disabled: isSingleGraph },
@@ -107,12 +114,19 @@ const FilterPanel = (props: IProps): React.JSX.Element => {
     { label: 'Critical', color: OVERFLOW_COLOR.critical, value: 'critical' },
   ];
   const onChangeMode = (value: string): void => {
+    setSegmentedValue(value);
     setOverflowMode(value === '2');
   };
+
+  useEffect(() => {
+    onChangeMode('1');
+  }, [currentDir, currentFile, currentFileType, currentStep, currentRank, currentMicroStep]);
 
   return (
     <div className={styles.filterPanel}>
       <Segmented
+        value={segmentedValue}
+        data-testid="precisionSemented"
         options={[
           { label: t('accuracy_error'), value: '1', className: styles.segmentedLabel },
           {
