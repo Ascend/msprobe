@@ -36,12 +36,8 @@ export const resources = {
       bench: 'Bench',
       accuracy_error: 'Accuracy Error',
       overflow: 'Overflow',
-      precision_desc: {
-        summary:
-          'The relative error between the statistical output of the debug side and the benchmark side of the node, the larger the value, the greater the precision gap, the darker the color mark, the relative error indicator (RelativeErr): | (debug value - benchmark value) / benchmark value |',
-        all: 'The difference between the minimum double thousand indicator of all inputs and the minimum double thousandth indicator of all outputs of the node, reflecting the decline of the double thousand indicator, the larger the value, the greater the precision gap, the darker the color mark, the double thousandth precision indicator (One Thousandth Err Ratio): The relative error of each element in the tensor is compared with the corresponding benchmark data, the proportion of relative error less than one thousandth of the total number of elements, the closer the proportion is to 1, the better',
-        md5: 'If the md5 value of any input or output of the node is different, it will be marked red',
-      },
+      precision_desc_before: 'For detailed explanations of the indicators for each color, please refer to the ',
+      precision_desc_link: 'documentation',
       risk_warning: 'Please be aware of the following risks',
       risk_confirm: 'I have read and agreed',
       risk_info:
@@ -217,7 +213,7 @@ export const resources = {
       nodeList: 'Node List({{count}})',
       matched: 'Matched',
       unmatched: 'Unmatched',
-      noOverflowData: 'The current data was not dumped in overflow mode',
+      noOverflowData: 'The current data was not generated in overflow mode',
       searchName: 'Search by Name',
       loading: 'Loading...',
       copy: 'Copy',
@@ -254,13 +250,9 @@ export const resources = {
       debug: '调试侧',
       bench: '标杆侧',
       accuracy_error: '精度误差',
-      overflow: '精度溢出',
-      precision_desc: {
-        summary:
-          '节点中调试侧和标杆侧输出的统计量相对误差，值越大精度差距越大，颜色标记越深,相对误差指标（RelativeErr）：| (调试值 - 标杆值) / 标杆值 |',
-        all: '节点中所有输入的最小双千指标和所有输出的最小双千分之一指标的差值，反映了双千指标的下降情况，值越大精度差距越大，颜色标记越深，双千分之一精度指标（One Thousandth Err Ratio）：Tensor中的元素逐个与对应的标杆数据对比，相对误差小于千分之一的比例占总元素个数的比例，比例越接近1越好',
-        md5: '节点中任意输入输出的md5值不同则标记为红色',
-      },
+      overflow: '溢出筛选',
+      precision_desc_before: '关于各颜色指标的详细含义请参见',
+      precision_desc_link: '资料说明',
       risk_warning: '请知悉以下风险',
       risk_confirm: '我已知晓并同意',
       risk_info:
@@ -270,7 +262,7 @@ export const resources = {
 
       sider: {
         dataSelection: '数据选择',
-        precisionFiltering: '精度误差筛选和精度溢出检测',
+        precisionFiltering: '精度误差筛选和溢出检测筛选',
         nodeMatching: '节点匹配',
         nodeSearch: '节点搜索',
         dumpVisualization: 'Dump数据可视化转化',
@@ -431,7 +423,7 @@ export const resources = {
       nodeList: '节点列表（{{count}}）',
       matched: '已匹配',
       unmatched: '未匹配',
-      noOverflowData: '当前数据未使用精度溢出模式采集',
+      noOverflowData: '当前数据未使用溢出检测模式生成',
       searchName: '按名称搜索',
       loading: '加载中...',
       copy: '复制',

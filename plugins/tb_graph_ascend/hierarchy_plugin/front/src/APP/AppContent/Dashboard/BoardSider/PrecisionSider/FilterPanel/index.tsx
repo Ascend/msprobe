@@ -69,7 +69,21 @@ const PrecisionPanel = (props: PrecisionPanelProps): React.JSX.Element => {
       <Text className={styles.title}>
         {props.title}
         {!isOverflowMode && !isSingleGraph && (
-          <Tooltip title={t(`precision_desc.${task}`)} placement="right">
+          <Tooltip
+            title={
+              <Text className={styles.tooltipContent}>
+                {t('precision_desc_before')}
+                <a
+                  className={styles.tooltipLink}
+                  href="https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/accuracy_compare/pytorch_visualization_instruct.md#%E9%A2%9C%E8%89%B2%E8%AF%B4%E6%98%8E"
+                  target="_blank"
+                >
+                  {t('precision_desc_link')}
+                </a>
+              </Text>
+            }
+            placement="right"
+          >
             <QuestionCircleOutlined className={styles.icon} data-testid="precisionErrorTooltip" />
           </Tooltip>
         )}
