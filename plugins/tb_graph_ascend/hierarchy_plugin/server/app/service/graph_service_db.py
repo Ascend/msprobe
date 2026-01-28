@@ -186,7 +186,7 @@ class DbGraphService(GraphServiceStrategy):
                         lower, upper = precision_range.get(key, [0, 0])
                         if lower <= node_info.get("precision_index", -1) < upper:
                             node_name_list.append({ 'name': node_name, 'status': key })
-            # 在查数据库
+            # 再查数据库
             else:
                 node_name_list = self.repo.query_node_list_by_precision(meta_data, precision_range, values,
                                                                         is_filter_unmatch_nodes)

@@ -34,7 +34,7 @@ export interface GraphStoreType {
   currentMetaRank: number;
   currentMetaMicroStep: number;
   currentLang: 'zh' | 'en';
-  // 当前是否为精度溢出模式
+  // 当前是否为溢出筛选模式
   isOverflowMode: boolean;
 
   selectedNode: string;
@@ -48,7 +48,7 @@ export interface GraphStoreType {
   metaFileOptions: DefaultOptionType[];
   colors: GraphConfigType['colors'];
   tooltips: GraphConfigType['tooltips'];
-  // 当前数据是否有精度溢出数据
+  // 当前数据是否执行了溢出检测
   hasOverflow: GraphConfigType['hasOverflow'];
   isSingleGraph: GraphConfigType['isSingleGraph'];
   task: GraphConfigType['task'];

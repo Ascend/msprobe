@@ -718,7 +718,7 @@ class GraphRepoDB(GraphRepo):
         placeholders = ", ".join(["?"] * len(values)) 
         query = f"""
             SELECT 
-                node_name
+                node_name, overflow_level
             FROM
                 tb_nodes 
             WHERE 
@@ -735,7 +735,7 @@ class GraphRepoDB(GraphRepo):
             with conn as c:
                 cursor = c.execute(query, (step, rank, micro_step, micro_step, *values))
                 rows = cursor.fetchall()
-            node_list = [row['node_name'] for row in rows]
+            node_list = [{'name': row['node_name'], 'status': row['overflow_level'] } for row in rows]
             return node_list
         except Exception as e:
             logger.error(f"Failed to query node list by overflow: {e}")
