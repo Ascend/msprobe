@@ -88,8 +88,8 @@ const preProcessData: PreProcessDataType = (
       d.name === selectedNode
         ? SELECTED_STROKE_COLOR
         : graphType === GRAPH_TYPE.NPU || graphType === GRAPH_TYPE.SINGLE
-        ? darkenColor(precisionColor, 40)
-        : BENCH_STROKE_COLOR;
+          ? darkenColor(precisionColor, 40)
+          : BENCH_STROKE_COLOR;
 
     if (d.nodeType === NODE_TYPE.API_LIST || d.nodeType === NODE_TYPE.MULTI_COLLECTION) {
       precisionColor = 'white';
