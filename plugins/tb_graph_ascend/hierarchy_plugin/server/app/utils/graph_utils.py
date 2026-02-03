@@ -29,7 +29,6 @@ _thread_local_lock = threading.Lock()
 logger = tb_logging.get_logger()
 FILE_PATH_MAX_LENGTH = 4096
 
-
 class GraphUtils:
 
     @staticmethod

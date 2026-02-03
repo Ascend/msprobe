@@ -36,9 +36,9 @@ const BorderSafeModal = ({ fileErrorList }: { fileErrorList: FileErrorListType }
           marginTop: 10,
         }}
       >
-        {(fileErrorList || []).map((item: FileErrorListType[number]) => {
+        {(Array.isArray(fileErrorList) ? fileErrorList : []).map((item) => {
           return (
-            <div>
+            <div key={` $ {item.run}/ $ {item.tag}`}>
               <span style={{ color: 'red' }}>
                 {item.run}/{item.tag}：
               </span>

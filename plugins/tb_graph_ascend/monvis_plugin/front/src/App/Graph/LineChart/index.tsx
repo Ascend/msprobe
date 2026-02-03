@@ -140,12 +140,6 @@ const LineChart = () => {
         moveOnMouseMove: true,
       },
       {
-        type: 'inside',
-        yAxisIndex: 0,
-        zoomOnMouseWheel: true,
-        moveOnMouseMove: true,
-      },
-      {
         type: 'slider',
         show: true,
         yAxisIndex: 0,

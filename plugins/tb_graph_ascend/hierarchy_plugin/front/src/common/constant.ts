@@ -48,7 +48,7 @@ export enum ControlButton {
   EXPAND = 'EXPAND',
 }
 
-export const initTransform = { x: 36, y: 72, scale: 1.8 };
+export const INIT_TRANSFORM = { x: 36, y: 72, scale: 1.8 };
 
 export const NPU_PREFIX = 'N___';
 
@@ -122,13 +122,14 @@ export enum NODE_TYPE {
 }
 
 export const DURATION_TIME = 160; // 动画时间
-export const SELECTED_STROKE_COLOR = 'rgba(128, 150, 247, 1)'; // 选中节点颜色
+export const PRECIS_SELECTED_STROKE_COLOR = 'rgba(128, 150, 247, 1)'; // 选中节点颜色
+export const OVERFLOW_SELECTED_STROKE_COLOR = 'rgba(243, 183, 101, 1)'; // 选中节点颜色
 export const BENCH_NODE_COLOR = 'rgba(255, 255, 255, 1)'; // 基准模型节点颜色
 export const BENCH_STROKE_COLOR = 'rgb(161, 161, 161)'; // 基准模型边框颜色
 export const NO_MATCHED_NODE_COLOR = 'rgb(199, 199, 199)'; // 未匹配节点颜色
 export const BASE_NODE_COLOR = 'rgb(255, 255, 255)'; // 基准节点颜色，没有精度信息、API、FUSION的填充色
-export const STROKE_WIDTH = 1.5; // 边框宽度
-export const SELECTED_STROKE_WIDTH = 2; // 边框颜色
+export const STROKE_WIDTH = 1; // 边框宽度
+export const SELECTED_STROKE_WIDTH = 1.5; // 边框颜色
 
 export const MOVE_STEP = 40; // 移动步长
 export const SCALE_STEP = 0.2; // 缩放步长
@@ -137,17 +138,17 @@ export const MAX_SCALE = 3; // 最大缩放
 export const MIN_SCALE = 1; // 最小缩放
 
 export enum PRECISION_ERROR_COLOR {
-  pass = '#FFFCF3',
-  warning = '#FFDC7F',
-  error = '#FF704D',
+  pass = 'rgba(250,242,223,1)',
+  warning = 'rgba(248,207,141,1)',
+  error = 'rgba(243,115,112,1)',
   unmatched = '#E6E6E6',
 }
 
 export enum OVERFLOW_COLOR {
-  medium = '#B6C7FC',
-  high = '#7E96F0',
-  critical = '#4668B8',
-  default = 'rgb(199, 199, 199)',
+  medium = 'rgba(230, 243, 254, 1)',
+  high = 'rgba(141, 197, 248, 1)',
+  critical = 'rgba(22, 104, 220, 1)',
+  default = 'rgb(255, 255, 255)',
 }
 
 export const NODE_TYPE_STYLES = {

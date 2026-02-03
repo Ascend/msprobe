@@ -51,7 +51,6 @@ const PrecisionPanel = (props: PrecisionPanelProps): React.JSX.Element => {
   const currentMicroStep = useGraphStore((state) => state.currentMetaMicroStep);
   const isOverflowMode = useGraphStore((state) => state.isOverflowMode);
   const isSingleGraph = useGraphStore((state) => state.isSingleGraph);
-  const task = useGraphStore((state) => state.task);
   const { t } = useTranslation();
   const onChange = (value: Array<string | number>): void => {
     setCheckItems(value);

@@ -60,7 +60,7 @@ const Hierarchy = (params: HierarchyProps) => {
         <div className="board-content " style={{ height: '100%', width: '100%' }}>
           <Dropdown menu={{ items: contextMenuItems }} trigger={['contextMenu']} destroyOnHidden>
             <svg id="graph" ref={graphRef} style={{ height: '100%', width: '100%' }}>
-              <g id="root" ref={containerRef} transform="translate(36,72) scale(1.8)"></g>
+              <g ref={containerRef} transform="translate(36,72) scale(1.8)"></g>
             </svg>
           </Dropdown>
         </div>

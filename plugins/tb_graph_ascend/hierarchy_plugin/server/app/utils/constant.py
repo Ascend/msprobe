@@ -13,6 +13,15 @@
 # ==============================================================================
 
 from enum import Enum
+
+security_headers = {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' ; style-src 'self'; img-src 'self' data:;",
+    "X-Frame-Options": "SAMEORIGIN",
+    "X-XSS-Protection": "1; mode=block",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+}
+
 ADD_MATCH_KEYS = [
     'MaxAbsErr',
     'MinAbsErr',
