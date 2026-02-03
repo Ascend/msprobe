@@ -136,7 +136,6 @@ class GraphServiceStrategy(ABC):
                 run_list.append(str(parallel_param_n.get('order')))
             if parallel_param_b.get('order', None):
                 run_list.append(str(parallel_param_b.get('order')))
-            print(run_list)
             proc=subprocess.Popen(run_list,stdout=subprocess.PIPE, text=True)
             update_progress_info(proc,ProgressInfo)
             

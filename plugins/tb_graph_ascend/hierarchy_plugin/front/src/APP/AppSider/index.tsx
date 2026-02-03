@@ -41,7 +41,7 @@ interface AppSiderProps {
 }
 
 const AppSider = ({ toggleTheme, toggleLanguage }: AppSiderProps) => {
-  const { t } = useTranslation(); // 👈 使用翻译函数
+  const { t } = useTranslation();
   const { currentTab, setCurrentTab, setCurrentPage } = useGlobalStore();
   const isSingleGraph = useGraphStore((state) => state.isSingleGraph);
   useEffect(() => {
@@ -59,6 +59,7 @@ const AppSider = ({ toggleTheme, toggleLanguage }: AppSiderProps) => {
             className={`${styles.siderButton} ${currentTab === CURRENT_TAB.FILE_TAB ? styles.activeTab : ''}`}
             icon={<FileOutlined />}
             variant="text"
+            disabled={currentTab === CURRENT_TAB.VISUALIZED_TAB}
           />
         </Popover>
       </Tooltip>

@@ -22,6 +22,7 @@ from ..utils.file_check_wrapper import check_file_type
 from ..utils.graph_utils import GraphUtils
 from ..utils.constant import DataType
 from ..utils.global_state import GraphState
+from ..utils.constant import security_headers
 
 
 class GraphView:
@@ -56,7 +57,8 @@ class GraphView:
                 contents = infile.read()
         except IOError as e:
             raise exceptions.NotFound('404 Not Found') from e
-        return Response(contents, content_type=content_type, headers={"X-Content-Type-Options": "nosniff"})
+        return Response(contents, content_type=content_type, headers=security_headers)
+    
 
     @staticmethod
     @wrappers.Request.application

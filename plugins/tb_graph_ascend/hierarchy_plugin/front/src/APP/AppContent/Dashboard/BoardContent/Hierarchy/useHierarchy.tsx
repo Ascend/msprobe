@@ -23,7 +23,7 @@ import {
   DATA_COMMUNICATION,
   EXPAND_MATCHED_NODE,
   GRAPH_TYPE,
-  initTransform,
+  INIT_TRANSFORM,
   MAX_SCALE,
   MIN_SCALE,
   MOVE_STEP,
@@ -70,15 +70,17 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
   const hightLightMatchedNode = useGraphStore((state) => state.hightLightMatchedNode);
   const isOverflowFilter = useGraphStore((state) => state.isOverflowMode);
   const isMatchedStatusSwitch = useGraphStore((state) => state.isMatchedStatusSwitch);
+  const isInitHierarchySwitch = useGraphStore((state) => state.isInitHierarchySwitch);
 
   const setSelectedNode = useGraphStore((state) => state.setSelectedNode);
   const setCurrentMetaRank = useGraphStore((state) => state.setCurrentMetaRank);
   const setCurrentMetaFile = useGraphStore((state) => state.setCurrentMetaFile);
   const getCurrentSelection = useGraphStore((state) => state.getCurrentMetaData);
   const setHightLightMatchedNode = useGraphStore((state) => state.setHightLightMatchedNode);
+
   // 局部状态
   const [loading, setLoading] = useState(false);
-  const [transform, setTransform] = useState(initTransform);
+  const [transform, setTransform] = useState(INIT_TRANSFORM);
   const [contextMenuItems, setContextMenuItems] = useState<MenuProps['items']>([]); // 右键菜单
 
   // ======================
@@ -438,7 +440,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
   const bindContextMenuEvent = (graph: SVGSVGElement) => {
     const onExpandMatchedNode = (selectedNode: string | undefined) => {
       const { matchedNodeName } = findMatchedNodeName(selectedNode || '');
-      const matchedNodeType = graphType == GRAPH_TYPE.NPU ? GRAPH_TYPE.BENCH : GRAPH_TYPE.NPU;
+      const matchedNodeType = graphType === GRAPH_TYPE.NPU ? GRAPH_TYPE.BENCH : GRAPH_TYPE.NPU;
       const hightLightMatchedNode = {
         [graphType]: selectedNode || undefined,
         [matchedNodeType]: matchedNodeName,
@@ -583,6 +585,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
 
   // 初始化
   const initHierarchy = async (selection: any) => {
+    console.log('initHierarchy', graphType);
     if (isEmpty(selection) || !graphType) return;
     const { success, data } = await changeNodeExpandState({ nodeName: 'root', nodeType: graphType });
     if (success && !isEmpty(data)) {
@@ -596,13 +599,6 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
       }
     }
   };
-
-  // 节点卸载时，清空监听事件，避免内存泄漏
-  useEffect(() => {
-    return () => {
-      cleanEventListener.current?.();
-    };
-  }, []);
 
   // 监听小视图更新transform，大视图同步更新
   useEffect(() => {
@@ -627,7 +623,7 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
   }, [hierarchyObjectRef.current, colors, selectedNode, graphType, isOverflowFilter, isMatchedStatusSwitch]);
   // 高亮匹配节点
   useEffect(() => {
-    if (graphType == GRAPH_TYPE.SINGLE) return;
+    if (graphType === GRAPH_TYPE.SINGLE) return;
     const hierarchyObject = hierarchyObjectRef.current;
     const hightLightNodeName = hightLightMatchedNode[graphType];
     renderGraph(hierarchyObject, hightLightNodeName || '', transform, containerRef.current, {
@@ -639,13 +635,10 @@ export const useHierarchyGraph = (graphType: GRAPH_TYPE) => {
 
   // 切换文件或者目录等，重新加载图
   useEffect(() => {
-    if (!currentMetaDir || !currentMetaFile || currentMetaRank == undefined || currentMetaStep === undefined) return;
-    setTimeout(() => {
-      setTransform(initTransform);
-      initHierarchy(getCurrentSelection());
-      updateTransform(containerRef.current as unknown as HTMLElement, initTransform);
-    }, 100); // 延迟初始化，等待s数据加载完成
-  }, [currentMetaFile, currentMetaRank, currentMetaStep, currentMetaMicroStep, graphType]);
+    if (!currentMetaDir || !currentMetaFile || currentMetaRank === undefined || currentMetaStep === undefined) return;
+    initHierarchy(getCurrentSelection());
+    updateTransform(containerRef.current as unknown as HTMLElement, INIT_TRANSFORM);
+  }, [currentMetaRank, currentMetaStep, currentMetaMicroStep, isInitHierarchySwitch]);
 
   return {
     graphRef,

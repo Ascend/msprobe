@@ -3,16 +3,15 @@ import { isEmpty } from 'lodash';
 import {
   BASE_NODE_COLOR,
   BENCH_NODE_COLOR,
-  BENCH_STROKE_COLOR,
   DURATION_TIME,
-  GRAPH_TYPE,
-  initTransform,
+  INIT_TRANSFORM,
   NO_MATCHED_NODE_COLOR,
   NODE_TYPE,
   NODE_TYPE_STYLES,
   OVERFLOW_COLOR,
   PREFIX_MAP,
-  SELECTED_STROKE_COLOR,
+  PRECIS_SELECTED_STROKE_COLOR,
+  OVERFLOW_SELECTED_STROKE_COLOR,
   SELECTED_STROKE_WIDTH,
   STROKE_WIDTH,
 } from '../../../../../common/constant';
@@ -84,12 +83,8 @@ const preProcessData: PreProcessDataType = (
   const orderedNodes = [...new Set([...parentsVirtualNodes.reverse(), ...virtualNodes])];
   return orderedNodes.map((d) => {
     let precisionColor = isOverflowFilter ? getOverflowColor(d) : getPrecisionColor(d, colors, graphType);
-    let strokeColor =
-      d.name === selectedNode
-        ? SELECTED_STROKE_COLOR
-        : graphType === GRAPH_TYPE.NPU || graphType === GRAPH_TYPE.SINGLE
-          ? darkenColor(precisionColor, 40)
-          : BENCH_STROKE_COLOR;
+    const selected_stroke_color = isOverflowFilter ? OVERFLOW_SELECTED_STROKE_COLOR : PRECIS_SELECTED_STROKE_COLOR;
+    let strokeColor = d.name === selectedNode ? selected_stroke_color : darkenColor(precisionColor, 40);
 
     if (d.nodeType === NODE_TYPE.API_LIST || d.nodeType === NODE_TYPE.MULTI_COLLECTION) {
       precisionColor = 'white';
@@ -242,7 +237,7 @@ export const calcColorByPrecision = (precisionValue: number, colors: PreProcessD
 export const renderGraph = (
   hierarchyObject: HierarchyObjectType,
   selectedNode: string,
-  transform = initTransform,
+  transform = INIT_TRANSFORM,
   container: SVGGElement | null,
   config: PreProcessDataConfigType,
 ) => {

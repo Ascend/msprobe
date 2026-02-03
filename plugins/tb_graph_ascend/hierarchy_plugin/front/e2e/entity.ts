@@ -136,6 +136,10 @@ class MainPage {
   readonly npuGraph: Locator;
   readonly benchGraph: Locator;
   readonly siderButtons: Record<SIDER_TYPE, Locator>;
+  readonly syncCheckBox: Locator;
+  readonly splitter: Locator;
+  readonly npuMinimap: Locator;
+  readonly benchMinimap: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -158,6 +162,12 @@ class MainPage {
     this.mainArea = page.locator('body');
     this.npuGraph = page.getByTestId('debugGraph');
     this.benchGraph = page.getByTestId('benchGraph');
+    this.syncCheckBox = page.getByRole('button', { name: 'subnode' });
+    this.splitter = page.locator(
+      '._boardContentWrapper_uns83_17 > .ant-splitter > .ant-splitter-bar > .ant-splitter-bar-dragger',
+    );
+    this.npuMinimap = this.npuGraph.locator('#minimap');
+    this.benchMinimap = this.benchGraph.locator('#minimap');
   }
 
   async getBoundingBoxes(): Promise<{ npuArea: BoundingBox; benchArea: BoundingBox }> {

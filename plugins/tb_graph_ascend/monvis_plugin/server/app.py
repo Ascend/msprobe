@@ -41,7 +41,7 @@ class TrendVis(base_plugin.TBPlugin):
 
     def get_plugin_apps(self) -> Dict[str, Any]:
         """Return all HTTP routes for the plugin."""
-        if not hasattr(self,'monvis_controller') or not self.monvis_controller:
+        if not hasattr(self, 'monvis_controller') or not self.monvis_controller:
             return {}
         return {
             "/metrics": self.monvis_controller.request_metrics,
@@ -55,7 +55,7 @@ class TrendVis(base_plugin.TBPlugin):
 
     def is_active(self) -> bool:
         """Determine if the plugin is active."""
-        if not hasattr(self,'is_db_connected') and not self.is_db_connected:
+        if not hasattr(self, 'is_db_connected') or not self.is_db_connected:
             return False
         # 遍历logdir目录， 如果logdir目录下面存在后缀名为.trend.db文件，则认为插件是活跃的
         for file in os.listdir(self.logdir):

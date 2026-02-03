@@ -113,7 +113,7 @@ class MonvisService():
                     stat, "t.step = ?", (selected_value,), metric_id, tags
                 )
                 heatmap_data.extend(
-                    [row['rank'], (row['target_id'],
+                    [row.get('rank'), (row.get('target_id'),
                                    self.repo._get_module_name(row)), row[stat]]
                     for row in rows
                 )
@@ -123,7 +123,7 @@ class MonvisService():
                     stat, "t.rank = ?", (selected_value,), metric_id, tags
                 )
                 heatmap_data.extend(
-                    [row['step'], (row['target_id'],
+                    [row.get('step'), (row.get('target_id'),
                                    self.repo._get_module_name(row)), row[stat]]
                     for row in rows
                 )
@@ -134,7 +134,7 @@ class MonvisService():
                                               ), metric_id, tags
                 )
                 heatmap_data.extend(
-                    [row['step'], (row['rank'], row['rank']), row[stat]]
+                    [row.get('step'), (row.get('rank'), row.get('rank')), row.get(stat)]
                     for row in rows
                 )
 
@@ -168,7 +168,7 @@ class MonvisService():
                         dim_x, dim_y), metric_id
                 )
                 trend_data.extend(
-                    (int(row['step']), row[stat]) for row in rows)
+                    (int(row.get('step')), row[stat]) for row in rows)
                 if trend_data:
                     dimensions, values = zip(
                         *sorted(trend_data, key=lambda x: x[0]))
@@ -179,7 +179,7 @@ class MonvisService():
                         dim_x, dim_y), metric_id
                 )
                 trend_data.extend(
-                    (int(row['rank']), row[stat]) for row in rows)
+                    (int(row.get('rank')), row[stat]) for row in rows)
                 if trend_data:
                     dimensions, values = zip(
                         *sorted(trend_data, key=lambda x: x[0]))
@@ -190,7 +190,7 @@ class MonvisService():
                         dim_x, dim_y), metric_id, tags
                 )
                 trend_data.extend(
-                    (int(row['target_id']),
+                    (int(row.get('target_id')),
                      self.repo._get_module_name(row), row[stat])
                     for row in rows
                 )

@@ -20,7 +20,7 @@ import type { ApiResponse, GraphAllNodeType, GraphMatchedRelationsType } from '.
 import type { GraphConfigType, FileInfoListType, FileErrorListType } from './types/useGraphStore';
 import type { DefaultOptionType } from 'antd/es/select';
 import type { CurrentMetaDataType } from '../common/type';
-import { CURRENT_PAGE, CURRENT_TAB, GRAPH_TYPE, initTransform } from '../common/constant';
+import { CURRENT_PAGE, CURRENT_TAB, GRAPH_TYPE, INIT_TRANSFORM } from '../common/constant';
 import type { GraphType } from '../APP/AppContent/Dashboard/type';
 import useGlobalStore from './useGlobalStore';
 
@@ -36,6 +36,8 @@ export interface GraphStoreType {
   currentLang: 'zh' | 'en';
   // 当前是否为溢出筛选模式
   isOverflowMode: boolean;
+
+  isInitHierarchySwitch: boolean;
 
   selectedNode: string;
   hightLightMatchedNode: {
@@ -121,6 +123,8 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
   metaDataCacheInSearch: '',
   metaDataCacheInMatch: '',
 
+  isInitHierarchySwitch: false,
+
   selectedNode: '',
   hightLightMatchedNode: {},
 
@@ -139,7 +143,7 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
   stepOptions: [],
   rankOptions: [],
   microStepOptions: [],
-  transform: initTransform,
+  transform: INIT_TRANSFORM,
 
   isShowNpuMiniMap: true,
   isShowBenchMiniMap: true,
@@ -255,7 +259,7 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
       set({ matchedConfigFilesOptions: data?.matchedConfigFiles ?? [] });
       if (Number(data?.microSteps)) {
         const microStepOptions: Array<{ label: number | string; value: number }> = Array.from(
-          { length: Number(data?.microSteps) + 1 },
+          { length: Number(data?.microSteps) },
           (_, index) => ({
             label: index,
             value: index,
@@ -288,6 +292,8 @@ const useGraphStore = create<GraphStoreType>()((set, get) => ({
         set({ rankOptions: rankOptions });
         set({ currentMetaRank: data?.ranks[0] });
       }
+      //触发初始化图的状态刷新，解决单双图切换的图初始化问题
+      set({ isInitHierarchySwitch: !get().isInitHierarchySwitch });
     } else {
       messageApi.error(error);
     }

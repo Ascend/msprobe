@@ -131,30 +131,7 @@ class MonvisRepo:
             query += " WHERE " + " AND ".join(conditions)
         cursor = self.conn.execute(query, params)
         return {row["target_id"]: self._get_module_name(row) for row in cursor}
-    
-    def query_metric_id(self, metric_name: str) -> Optional[int]:
-        """Get metric ID for a given metric name."""
-        query = "SELECT metric_id FROM monitoring_metrics WHERE metric_name = ?"
-        with self.conn as c:
-            cursor = c.execute(query, (metric_name,))
-            row = cursor.fetchone()
-        return row['metric_id'] if row else None
 
-    def query_relevant_tables(self, metric_id: int) -> List[str]:
-        """Get all tables relevant to a specific metric ID."""
-        query = """
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name LIKE 'metric_%_step_%'
-        """
-        with self.conn as c:
-            cursor = c.execute(query)
-            tables = [table['name'] for table in cursor]
-        relevant_tables = []
-        for table in tables:
-            match = re.match(r'metric_(\d+)_step_(\d+)_(\d+)', table)
-            if match and int(match.group(1)) == metric_id:
-                relevant_tables.append(table)
-        return relevant_tables
     
     def query_tags(self, metric_name: str = None) -> List[Dict[str, str]]:
         """Get all available tags from database, with categories if available."""

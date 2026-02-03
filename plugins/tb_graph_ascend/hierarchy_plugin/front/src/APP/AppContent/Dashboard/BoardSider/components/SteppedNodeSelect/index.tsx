@@ -40,7 +40,12 @@ const SteppedNodeSelect = (props: IProps): React.JSX.Element => {
     setSelectedNode(`${prefix}${value}`);
   };
   const onUpClick = (): void => {
+    if (nodeList.length === 0) {
+      messageApi.warning(t('emptyNodeList'));
+      return;
+    }
     if (selectedValue === null) {
+      setSelectedNode(`${prefix}${nodeList[nodeList.length - 1]}`);
       return;
     }
     const index = nodeList.indexOf(selectedValue);
@@ -54,7 +59,12 @@ const SteppedNodeSelect = (props: IProps): React.JSX.Element => {
     setSelectedNode(`${prefix}${nodeList[index - 1]}`);
   };
   const onDownClick = (): void => {
+    if (nodeList.length === 0) {
+      messageApi.warning(t('emptyNodeList'));
+      return;
+    }
     if (selectedValue === null) {
+      setSelectedNode(`${prefix}${nodeList[0]}`);
       return;
     }
     const index = nodeList.indexOf(selectedValue);
@@ -78,6 +88,7 @@ const SteppedNodeSelect = (props: IProps): React.JSX.Element => {
           className={styles.nodeSelect}
           onSelect={onSelect}
           placeholder={t('notSelected')}
+          showSearch
         />
         <ArrowUpOutlined className={styles.iconButton} onClick={onUpClick} />
         <ArrowDownOutlined className={styles.iconButtonRight} onClick={onDownClick} />

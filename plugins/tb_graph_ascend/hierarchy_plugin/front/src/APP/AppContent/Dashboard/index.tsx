@@ -15,15 +15,14 @@
  * -------------------------------------------------------------------------
  */
 
-import { Layout, Spin, Splitter, message } from 'antd';
+import { Layout, Spin, Splitter } from 'antd';
 import BoardSider from './BoardSider';
 import BoardHeader from './BoardHeader';
 import BoardContent from './BoardContent';
 import useGraphStore from '../../../store/useGraphStore';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import styles from './index.module.less';
 import { loadGraphData } from '../../../api/board';
-import { formatBytes, safeJSONParse } from '../../../common/utils';
 import BorderFooter from './BoardFooter';
 
 import { useTranslation } from 'react-i18next';
@@ -31,7 +30,7 @@ const { Header, Sider, Content, Footer } = Layout;
 
 const Dashboard = () => {
   const { t } = useTranslation();
-
+  const currentMetaDir = useGraphStore((state) => state.currentMetaDir);
   const currentMetaFile = useGraphStore((state) => state.currentMetaFile);
   const currentMetaFileType = useGraphStore((state) => state.currentMetaFileType);
   const currentMetaStep = useGraphStore((state) => state.currentMetaStep);
@@ -39,8 +38,6 @@ const Dashboard = () => {
   const currentMetaData = useGraphStore((state) => state.getCurrentMetaData)();
   const fetchGraphConfig = useGraphStore((state) => state.fetchGraphConfig);
   //局部变量
-  const [messageApi, contextHolder] = message.useMessage();
-  const eventSourceRef = useRef<EventSource | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingTip, setLoadingTip] = useState(t('dashboard.loading.default')); // 默认提示
 
@@ -53,80 +50,14 @@ const Dashboard = () => {
       setLoadingTip(t('dashboard.loading.graphConfig'));
       await fetchGraphConfig();
     }
+
     setLoading(false);
-  };
-
-  // 加载 JSON 图数据（带进度）
-  const loadJSONGraphData = async () => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-
-    eventSourceRef.current = new EventSource(
-      `/data/plugin/graph_ascend/loadGraphData?run=${currentMetaData.run}&tag=${currentMetaData.tag}&type=${currentMetaData.type}&lang=${currentMetaData.lang}`,
-    );
-
-    eventSourceRef.current.onmessage = (e: MessageEvent) => {
-      const data = safeJSONParse(e.data);
-      if (data?.error) {
-        messageApi.error({
-          content: data.error,
-          key: 'load-error',
-        });
-        setLoading(false);
-        eventSourceRef.current?.close();
-        eventSourceRef.current = null;
-        return;
-      }
-
-      if (data?.status === 'reading') {
-        const progressValue = data.done ? 1 : data.progress / 100.0;
-        const size = formatBytes(data.size);
-        const read = formatBytes(data.read);
-        const info = t('dashboard.loading.fileProgress', {
-          size,
-          read,
-          percent: (progressValue * 100).toFixed(1),
-        });
-        setLoadingTip(info);
-      }
-
-      if (data?.status === 'loading') {
-        if (data.done) {
-          eventSourceRef.current?.close();
-          eventSourceRef.current = null;
-          setLoading(false);
-          fetchGraphConfig().catch(() => {
-            messageApi.error({
-              content: t('dashboard.error.loadGraphConfigFailed'),
-              key: 'config-error',
-            });
-          });
-        } else {
-          setLoadingTip(t('dashboard.loading.graphData'));
-        }
-      }
-    };
-
-    eventSourceRef.current.onerror = () => {
-      messageApi.error({
-        content: t('dashboard.error.loadGraphDataFailed'),
-        key: 'sse-error',
-      });
-      setLoading(false);
-      eventSourceRef.current?.close();
-      eventSourceRef.current = null;
-    };
   };
 
   // 监听文件变化
   useEffect(() => {
-    if (!currentMetaFile || !currentMetaFileType) return;
+    if (!currentMetaDir || !currentMetaFile || !currentMetaFileType) return;
     switch (currentMetaFileType) {
-      case 'json':
-        loadJSONGraphData();
-        break;
       case 'db':
         loadDBGraphData(true);
         break;
@@ -143,7 +74,6 @@ const Dashboard = () => {
 
   return (
     <Spin spinning={loading} tip={loadingTip}>
-      {contextHolder}
       <Layout className={styles.dashboardLayout}>
         <Splitter>
           <Splitter.Panel

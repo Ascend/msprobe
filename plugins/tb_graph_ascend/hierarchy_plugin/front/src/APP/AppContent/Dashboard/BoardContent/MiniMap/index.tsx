@@ -168,8 +168,6 @@ const MiniMap = (props: MiniMapProps) => {
     // 绘制视口
     ctx.fillStyle = '#268f323d';
     ctx.fillRect(vx, vy - startYRef.current, viewportWidth, viewportHeight);
-    ctx.strokeStyle = '#ff0000';
-    ctx.lineWidth = 1;
     ctx.strokeRect(vx, vy - startYRef.current, viewportWidth, viewportHeight);
   }, [hierarchyObject, graph, container, transform, colors]);
 
@@ -289,7 +287,7 @@ const MiniMap = (props: MiniMapProps) => {
   }, [transform, hierarchyObject, colors]);
 
   return (
-    <div className={styles.miniMap}>
+    <div className={styles.miniMap} id="minimap">
       <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
     </div>
   );
