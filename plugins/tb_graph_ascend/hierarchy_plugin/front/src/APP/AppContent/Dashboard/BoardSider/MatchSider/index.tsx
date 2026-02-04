@@ -106,17 +106,31 @@ const MatchBuildPanel = (props: MatchBuildProps): JSX.Element => {
         label={`${t('debug')}-${t('unmatched')}(${debugUnmatchNodes.length})`}
         nodeList={debugUnmatchNodes}
         selectedValue={debugUnmatchSelected}
+        testPrefix="debugUnmatched"
       />
       <SteppedNodeSelect
         prefix={BENCH_PREFIX}
         label={`${t('bench')}-${t('unmatched')}(${benchUnMatchNodes.length})`}
         nodeList={benchUnMatchNodes}
         selectedValue={benchUnmatchSelected}
+        testPrefix="benchUnmatched"
       />
-      <Checkbox className={styles.desCheckbox} checked={desChecked} onChange={onCheck}>
+      <Checkbox
+        className={styles.desCheckbox}
+        checked={desChecked}
+        onChange={onCheck}
+        data-testid="matchDesendantCheckbox"
+      >
         {t('manageDesendant')}
       </Checkbox>
-      <Button color="primary" variant="filled" className={styles.matchButton} iconPosition="end" onClick={onMatchBuild}>
+      <Button
+        color="primary"
+        variant="filled"
+        className={styles.matchButton}
+        iconPosition="end"
+        onClick={onMatchBuild}
+        data-testid="matchButton"
+      >
         {t('matchNodes')}
       </Button>
     </div>
@@ -172,14 +186,21 @@ const MatchCancelPanel = (props: MatchCancelProps): JSX.Element => {
         label={`${t('debug')}-${t('matched')}(${debugMatchedNodes.length})`}
         nodeList={debugMatchedNodes}
         selectedValue={debugMatchSelected}
+        testPrefix="debugMatched"
       />
       <SteppedNodeSelect
         prefix={BENCH_PREFIX}
         label={`${t('bench')}-${t('matched')}(${benchMatchedNodes.length})`}
         nodeList={benchMatchedNodes}
         selectedValue={benchMatchSelected}
+        testPrefix="benchMatched"
       />
-      <Checkbox className={styles.desCheckbox} checked={desChecked} onChange={onCheck}>
+      <Checkbox
+        className={styles.desCheckbox}
+        checked={desChecked}
+        onChange={onCheck}
+        data-testid="unmatchDesendantCheckbox"
+      >
         {t('manageDesendant')}
       </Checkbox>
       <Button
@@ -188,6 +209,7 @@ const MatchCancelPanel = (props: MatchCancelProps): JSX.Element => {
         className={styles.matchButton}
         iconPosition="end"
         onClick={onUnmatchBuild}
+        data-testid="unmatchButton"
       >
         {t('unmatchNodes')}
       </Button>

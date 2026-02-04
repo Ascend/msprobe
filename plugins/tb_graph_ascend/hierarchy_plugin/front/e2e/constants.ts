@@ -29,6 +29,7 @@ export const enum DIRS {
   SINGLE_DIR = 'Single',
   MD5_DIR = 'Md5',
   COMMUNICATION_DIR = 'Communication',
+  OVERFLOW_DIR = 'Overflow',
 }
 
 export const enum FILES {
@@ -36,6 +37,7 @@ export const enum FILES {
   SINGLE_FILE = 'build_20251227174822',
   MD5_FILE = 'compare_20260104171250',
   COMMUNICATION_FILE = 'build_collective',
+  OVERFLOW_FILE = 'build_20260110160141',
 }
 
 export const MAX_DIFF_PIXELS = 100;

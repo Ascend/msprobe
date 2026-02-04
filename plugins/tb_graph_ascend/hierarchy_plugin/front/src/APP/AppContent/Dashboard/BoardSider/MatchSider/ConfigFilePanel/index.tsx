@@ -100,7 +100,7 @@ const ConfigFilePanel = (): React.JSX.Element => {
         <Text className={styles.selectLabel}>
           {t('selectConfigFile')}
           <Tooltip title={t('selectConfigFileTooltip')} placement="right">
-            <QuestionCircleOutlined className={styles.icon} data-testid="precisionErrorTooltip" />
+            <QuestionCircleOutlined className={styles.icon} />
           </Tooltip>
         </Text>
         <Select
