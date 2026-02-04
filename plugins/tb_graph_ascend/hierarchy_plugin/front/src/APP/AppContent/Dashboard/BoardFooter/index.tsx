@@ -110,7 +110,7 @@ const BorderFooter = (): React.JSX.Element => {
       defaultActiveKey="1"
       items={[
         {
-          label: t('comparisonDetails'),
+          label: isSingleGraph ? t('singleDetails') : t('comparisonDetails'),
           key: '1',
           children: <NodeDetailPanel npuName={npuNodeName} benchName={benchNodeName} data={ioDataset} />,
         },
