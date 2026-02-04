@@ -242,6 +242,7 @@ export const resources = {
       unmatchSuccess: 'Unmatch successful, corresponding node status has been updated',
       updateHierarchyFailed: 'Failed to update graph data',
       emptyNodeList: 'The node list is empty!',
+      singleDetails: 'Input/Output Details',
     },
   },
   zh: {
@@ -450,6 +451,7 @@ export const resources = {
       unmatchSuccess: '取消匹配成功，对应节点状态已更新',
       updateHierarchyFailed: '更新图数据失败',
       emptyNodeList: '节点列表为空！',
+      singleDetails: '输入输出详情',
     },
   },
 };
