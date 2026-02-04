@@ -26,12 +26,13 @@ interface IProps {
   label: string;
   nodeList: string[];
   selectedValue: string | null;
+  testPrefix: string;
 }
 
 const Text = Typography.Text;
 
 const SteppedNodeSelect = (props: IProps): React.JSX.Element => {
-  const { prefix, label, nodeList, selectedValue } = props;
+  const { prefix, label, nodeList, selectedValue, testPrefix } = props;
   const { t } = useTranslation();
   const setSelectedNode = useGraphStore((state) => state.setSelectedNode);
   const messageApi = useGraphStore((state) => state.messageApi);
@@ -80,7 +81,9 @@ const SteppedNodeSelect = (props: IProps): React.JSX.Element => {
 
   return (
     <>
-      <Text className={styles.textLabel}>{label}</Text>
+      <Text className={styles.textLabel} data-testid={`${testPrefix}Count`}>
+        {label}
+      </Text>
       <div className={styles.selectDiv}>
         <Select
           value={selectedValue}
@@ -88,10 +91,11 @@ const SteppedNodeSelect = (props: IProps): React.JSX.Element => {
           className={styles.nodeSelect}
           onSelect={onSelect}
           placeholder={t('notSelected')}
+          data-testid={`${testPrefix}Select`}
           showSearch
         />
-        <ArrowUpOutlined className={styles.iconButton} onClick={onUpClick} />
-        <ArrowDownOutlined className={styles.iconButtonRight} onClick={onDownClick} />
+        <ArrowUpOutlined className={styles.iconButton} onClick={onUpClick} data-testid={`${testPrefix}Up`} />
+        <ArrowDownOutlined className={styles.iconButtonRight} onClick={onDownClick} data-testid={`${testPrefix}Down`} />
       </div>
     </>
   );

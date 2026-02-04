@@ -53,10 +53,10 @@ test.describe('MainGraphTest', () => {
   });
 
   test('test_node_expand_and_collapse', async ({ mainPage, page }) => {
-    const { mainArea, npuGraph, benchGraph, syncCheckBox } = mainPage;
-    const npuNode = npuGraph.getByText('Module.layer1.Sequential.forward.0Module.layer1.Sequential.forward.0');
+    const { mainArea, debugGraph, benchGraph, syncCheckBox } = mainPage;
+    const npuNode = debugGraph.getByText('Module.layer1.Sequential.forward.0Module.layer1.Sequential.forward.0');
     const benchNode = benchGraph.getByText('Module.layer1.Sequential.forward.0Module.layer1.Sequential.forward.0');
-    const npuSubNode = npuGraph.getByText('layer1.0.BasicBlock.forward.0layer1.0.BasicBlock.forward.0');
+    const npuSubNode = debugGraph.getByText('layer1.0.BasicBlock.forward.0layer1.0.BasicBlock.forward.0');
     const benchSubNode = benchGraph.getByText('layer1.0.BasicBlock.forward.0layer1.0.BasicBlock.forward.0');
     // 默认勾选同步展开对应侧节点，任意侧节点双击关联节点都会展开/收起
     await npuNode.dblclick();
