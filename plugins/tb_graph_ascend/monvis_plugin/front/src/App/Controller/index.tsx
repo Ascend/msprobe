@@ -150,6 +150,20 @@ const Controller: React.FC = (props: ControllerProps) => {
     }
   };
 
+  useEffect(() => {
+    if (!metric || !stat) {
+      return;
+    }
+    const params: ValuesRequestParamsType = {
+      metric,
+      stat,
+      dimension,
+      tags,
+    };
+    updateDimensionValueList(params);
+  }, [metric, stat]);
+
+
   const updateTagsValueList = async (params: { metric: string }) => {
     const { metric } = params;
     if (!metric) {
@@ -231,7 +245,7 @@ const Controller: React.FC = (props: ControllerProps) => {
       tags,
     };
     updateDimensionValueList(params);
-    setTags(value);
+    setTags(tags);
   };
   return (
     <div className="wrapper">

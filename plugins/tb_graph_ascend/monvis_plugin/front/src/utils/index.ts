@@ -25,3 +25,15 @@ export const formatSegmentLabel = (min, max) => {
   if (max === Infinity) return `> ${format(min)}`;
   return `${format(min)} ~ ${format(max)}`;
 };
+
+export const escapeHTML = (input: string): string => {
+  const htmlEscapeMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+  };
+  return String(input)?.replace(/[&<>"'/]/g, (match) => htmlEscapeMap[match as keyof typeof htmlEscapeMap]);
+};

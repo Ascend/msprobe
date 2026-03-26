@@ -16,7 +16,7 @@
  */
 
 import { DIMENSIONS_AXIS_MAP, CONTINUOUS } from '../../../common/constant';
-import { formatSegmentLabel } from '../../../utils';
+import { escapeHTML, formatSegmentLabel } from '../../../utils';
 import request from '../../../utils/request';
 import type { TrendRequestParams, TrendResponseData } from '../type';
 
@@ -166,45 +166,32 @@ const useHeatMap = () => {
     const option = {
       backgroundColor: '#fff',
       tooltip: {
-        position: function (point, params, dom, rect, size) {
-          let [x, y] = point;
-          const { viewSize } = size; // [容器宽, 容器高]
-
-          if (y > viewSize[1] * 0.7) {
-            y = y - 135;
-          }
-          if (y <= viewSize[1] * 0.7) {
-            y = y + 10;
-          }
-          // 示例：根据鼠标靠近右边界，自动左对齐
-          if (x > viewSize[0] * 0.7) {
-            x = x - 200;
-          }
-          if (x <= viewSize[0] * 0.7) {
-            x = x + 10;
-          }
-
-          return [x, y];
-        },
         formatter: (params) => {
           const xLabel = params.data?.[0];
           const yLabel = ModuleNameMap.get(params.data?.[1]);
+          const value = params.data?.[2];
           return `
-                  <div style="z-index=1000;">
-                    <div style="font-weight:bold;margin-bottom:5px">${yAxisName}: ${yLabel}</div>
-                    <div style="margin-bottom:5px">${xAxisName}: ${xLabel}</div>
-                    <div>Value: <b>${params.data?.[2]?.toFixed(12)}</b></div>
-                  </div>
-                    `;
+            <div style="font-size:12px; line-height:1.6;">
+              <div style="font-weight:bold; margin-bottom:6px;">${escapeHTML(yAxisName)}：${escapeHTML(yLabel)}</div>
+              <div style="margin-bottom:6px;">${escapeHTML(xAxisName)}：${escapeHTML(xLabel)}</div>
+              <div>Value：
+                  <span style="font-weight:bold">
+                    <span style="display:inline-block;width:10px;height:10px;background-color:${params.color};border-radius:2px;margin-right:6px;"></span>
+                    ${escapeHTML(String(value))}
+                  </span>
+              </div>
+            </div>
+          `;
         },
-        backgroundColor: 'rgba(50,50,50,0.7)',
-        borderColor: '#333',
+        backgroundColor: '#fff',
+        borderColor: '#ccc',
+        borderWidth: 1,
         textStyle: {
-          color: '#fff',
-          fontSize: 12,
+          color: '#333',
+          fontSize: 12
         },
-        extraCssText:
-          'box-shadow: 0 0 10px rgba(0,0,0,0.3);border-radius:4px;padding:8px;max-width: 200px; white-space: normal; word-break: break-all;',
+        extraCssText: 'border-radius:4px; padding:10px 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);max-width: 300px; white-space: normal; word-break: break-all;',
+        confine: true
       },
       grid: {
         left: 120,

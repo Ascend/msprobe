@@ -17,9 +17,10 @@
 
 import React, { memo } from 'react';
 import ReactECharts from 'echarts-for-react';
-import { isEmpty } from 'lodash';
+
 import { useGlobalStore } from '../../../store/useGlobalStore';
 import { CLEAR_ICON, DIMENSIONS_AXIS_MAP, MODULE_NAME_DIMENSION } from '../../../common/constant';
+import { escapeHTML } from '../../../utils';
 
 const LineChart = () => {
   const trendData = useGlobalStore((state) => state.trendData);
@@ -29,7 +30,6 @@ const LineChart = () => {
 
   const heatMapXAxisName = DIMENSIONS_AXIS_MAP[dimension || '']?.x;
   const heatMapYAxisName = DIMENSIONS_AXIS_MAP[dimension || '']?.y;
-  let xAxisData = trendData?.[0]?.dimensions;
   let xAxisName = dimension;
 
   const option = {
@@ -56,6 +56,34 @@ const LineChart = () => {
     },
     tooltip: {
       trigger: 'axis',
+      backgroundColor: '#fff',
+      borderColor: '#ccc',
+      borderWidth: 1,
+      textStyle: {
+        color: '#333',
+        fontSize: 12
+      },
+      padding: [8, 12],
+      formatter: (params) => {
+        if (!params || params.length === 0) return '';
+        // 取第一个点的模块信息（只显示一次）
+        const first = params[0];
+        const extra = first.data?.extra;
+        let html = `<div style="font-weight:bold;margin-bottom:6px">${escapeHTML(extra)}</div>`;
+        // 官方样式列表：每条线一个颜色标记
+        params.forEach(item => {
+          const value = item.data?.value?.[1] || 0;
+          html += `
+            <div style="display:flex;align-items:center;margin-top:3px;">
+              <span style="display:inline-block;width:10px;height:10px;background-color:${item.color};border-radius:2px;margin-right:6px;"></span>
+              <span style="flex:1">${escapeHTML(item.seriesName)}</span>
+              <span style="font-weight:bold;margin-left:8px">${escapeHTML(value)}</span>
+            </div>
+          `;
+        });
+
+        return html;
+      }
     },
     toolbox: {
       right: 20,
@@ -71,22 +99,12 @@ const LineChart = () => {
       },
     },
     xAxis: {
-      type: 'category',
-      data: xAxisData,
-
+      type: 'value',
       name: xAxisName,
       axisLabel: {
         rotate: 45,
         fontSize: 12,
         fontWeight: 'bold',
-        formatter: (value: string): string => {
-          // 标签太长，只保留targetId
-          if (dimension === MODULE_NAME_DIMENSION) {
-            return value?.split('_')[0];
-          } else {
-            return value;
-          }
-        },
       },
       nameTextStyle: {
         fontSize: 12,
@@ -156,10 +174,15 @@ const LineChart = () => {
       return {
         name: `${heatMapXAxisName}: ${trend.dimX ?? ' '} / ${heatMapYAxisName}: ${trend.dimY ?? ' '}`,
         type: 'line',
-        data: trend?.values.map((value) => {
-          if (Number(value) > 100000000) return 1000000000;
-          if (Number(value) < -100000000) return -1000000000;
-          return Number(value);
+        data: trend?.values.map((value, index) => {
+          const dimValue = dimension === MODULE_NAME_DIMENSION ? String(trend.dimensions[index])?.split('_')?.[0] || '' : String(trend.dimensions[index]);
+          if (Number(value) > 100000000) value = '100000000';
+          if (Number(value) < -100000000) value = '-100000000';
+          return {
+            value: [Number(dimValue), Number(value)],
+            extra: trend.dimensions[index], // 原始数据绑进去
+          }
+
         }),
         lineStyle: {
           width: 2,
