@@ -28,7 +28,7 @@ def _parse_parser(parser):
                         choices=['npy', 'pt'],
                         help="The file type after parse. Supported types: npy, pt (default: pt)", required=False, default='pt')
     parser.add_argument("-o", "--output_path", dest="output_path", type=str,
-                        help="<Required> The output file path after parse",
+                        help="The output file path after parse",
                         required=False, default="./output", nargs="?", const="./output")
 
 
