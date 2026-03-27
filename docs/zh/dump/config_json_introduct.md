@@ -40,9 +40,31 @@
 
 **配置样例**
 
- - [PyTorch场景](config_json_examples.md#task配置为statistics)
- - [MindSpore静态图场景](config_json_examples.md#task配置为statistics)
- - [MindSpore动态图场景](config_json_examples.md#task配置为statistics)
+```json
+{
+    "task": "statistics",
+    "dump_path": "/home/data_dump",
+    "rank": [],
+    "step": [],
+    "level": "L1",
+    "async_dump": false,
+    "extra_info": true,
+
+    "statistics": {
+        "scope": [], 
+        "list": [],
+        "tensor_list": [],
+        "data_mode": ["all"],
+        "summary_mode": "statistics"
+    }
+}
+```
+
+支持场景：
+
+ - PyTorch场景
+ - MindSpore静态图场景
+ - MindSpore动态图场景
 
 **参数说明**
 
@@ -59,9 +81,31 @@
 
 **配置样例**
 
- - [PyTorch场景](config_json_examples.md#task配置为tensor)
- - [MindSpore静态图场景](config_json_examples.md#task配置为tensor)
- - [MindSpore动态图场景](config_json_examples.md#task配置为tensor)
+```json
+{
+    "task": "tensor",
+    "dump_path": "/home/data_dump",
+    "rank": [],
+    "step": [],
+    "level": "L1",
+    "async_dump": false,
+
+    "tensor": {
+        "scope": [],
+        "list":[],
+        "data_mode": ["all"],
+        "bench_path": "/home/bench_data_dump",
+        "summary_mode": "md5",
+        "diff_nums": 5        
+    }
+}
+```
+
+支持场景：
+
+ - PyTorch场景
+ - MindSpore静态图场景
+ - MindSpore动态图场景
 
 **参数说明**
 
@@ -95,6 +139,10 @@
 }
 ```
 
+支持场景：
+
+ - PyTorch场景
+
 **参数说明**
 
 | 参数        | 可选/必选 | 解释                   |
@@ -109,7 +157,23 @@ white_list和black_list同时配置时，二者配置的API名单若无交集，
 
 **配置样例**
 
-[MindSpore静态图场景](config_json_examples.md#task配置为overflow_check)
+```json
+{
+    "task": "overflow_check",
+    "dump_path": "/home/data_dump",
+    "rank": [],
+    "step": [],
+    "level": "L2",
+
+    "overflow_check": {
+        "check_mode": "all"
+    }
+}
+```
+
+支持场景：
+
+ - MindSpore静态图场景
 
 **参数说明**
 
@@ -125,8 +189,20 @@ structure模式仅采集模型结构，无其他特殊配置。
 
 **配置样例**
 
- - [PyTorch场景](config_json_examples.md#task配置为structure)
- - [MindSpore动态图场景](config_json_examples.md#task配置为structure)
+```json
+{
+    "task": "structure",
+    "dump_path": "/home/data_dump",
+    "rank": [],
+    "step": [],
+    "level": "mix"
+}
+```
+
+支持场景：
+
+ - PyTorch场景
+ - MindSpore动态图场景
 
 ### task配置为exception_dump
 
@@ -138,8 +214,20 @@ MindSpore动态图场景下，"level"须为"L2"; MindSpore静态图场景下，"
 
 **配置样例**：
 
- - [MindSpore动态图场景](config_json_examples.md#task配置为exception_dump)
- - [MindSpore静态图场景](config_json_examples.md#task配置为exception_dump)
+```json
+{
+    "task": "exception_dump",
+    "dump_path": "/home/data_dump",
+    "rank": [],
+    "step": [],
+    "level": "L2"
+}
+```
+
+支持场景：
+
+ - MindSpore动态图场景
+ - MindSpore静态图场景
 
 ## 附录
 
@@ -150,7 +238,27 @@ MindSpore动态图场景下，"level"须为"L2"; MindSpore静态图场景下，"
 - 推荐流程：常规训练/推理阶段保持关闭；需要定位问题时改为开启采集；完成定位后再关闭，以减少对业务流程的干扰。
 - `vllm`场景下，如果有`level`切换的需要，建议先设置`level`的初始值为`L0`，这样能保证后续的`level`可以任意切换；如果`level`的初始值不是`L0`可能会导致切换`level`失败。
 
-**配置样例**：[dump_enable动态控制示例](config_json_examples.md#dump_enable动态控制示例)
+**配置样例**：
+
+```json
+{
+    "task": "statistics",
+    "dump_path": "/home/data_dump",
+    "rank": [],
+    "step": [],
+    "level": "L1",
+    "dump_enable": false,
+    "statistics": {
+        "summary_mode": "statistics"
+    }
+}
+```
+
+> 说明：`dump_enable`仅在需要动态开关dump时配置。运行中可将`dump_enable`从`false`改为`true`（或反向修改）实现动态开关，json中其他字段修改也能生效。
+
+支持场景：
+
+ - PyTorch场景
 
 ### list参数配置说明
 

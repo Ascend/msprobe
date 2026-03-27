@@ -226,7 +226,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path -fm
 
 使用msProbe工具对模型数据进行采集时，**选择仅采集模型结构（task配置为structure）**，此配置将避免采集模型训练过程的数据，从而显著减少采集所需的时间。
 
-dump配置请参考[dump配置示例](../dump/config_json_examples.md#task配置为structure)。
+dump配置请参考[dump配置介绍](../dump/config_json_introduct.md#task配置为structure)。
 
 **命令格式**
 

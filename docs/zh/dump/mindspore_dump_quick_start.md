@@ -32,7 +32,7 @@
    }
    ```
 
-   以上配置参数详细介绍和使用请参见《[配置文件介绍](./config_json_introduct.md)》和《config.json配置示例》中的“[MindSpore动态图场景](./config_json_examples.md#mindspore动态图场景)”。
+   以上配置参数详细介绍和使用请参见《[配置文件介绍](./config_json_introduct.md)》。
 
 2. 创建模型脚本。
 

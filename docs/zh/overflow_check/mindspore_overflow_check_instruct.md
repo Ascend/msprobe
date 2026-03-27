@@ -15,7 +15,7 @@ export MS_ASCEND_CHECK_OVERFLOW_MODE="INFNAN_MODE"
 
 **a**：在处理浮点数计算溢出问题时，NPU 当前支持两种溢出模式：INF/NAN 模式与饱和模式。INF/NAN 模式遵循 IEEE 754 标准，根据定义输出 INF/NAN 的计算结果。与之对应的饱和模式在计算出现溢出时，饱和为浮点数极值（+-MAX）。对于 CANN 侧配置，Atlas 训练系列产品，默认为饱和模式，且不支持使用 INF/NAN 模式；Atlas A2训练系列产品，默认为 INF/NAN 模式，且不建议使用饱和模式。对于 MindSpore 框架侧配置，仅支持对 Atlas A2 训练系列产品进行设置，默认为 INF/NAN 模式。CANN 侧 与 MindSpore 框架侧配置须一致。
 
-溢出检测任务的配置示例见[MindSpore静态图场景-task配置为overflow_check](../dump/config_json_examples.md#task配置为overflow_check)。
+溢出检测任务的配置示例见[MindSpore静态图场景-task配置为overflow_check](../dump/config_json_introduct.md#task配置为overflow_check)。
 
 ## 使用前准备
 
