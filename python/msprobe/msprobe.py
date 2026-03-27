@@ -76,8 +76,6 @@ def main():
         _no_torch_parser(api_precision_compare_cmd_parser)
     graph_service_cmd_parser = subparsers.add_parser('graph_visualize')
     _graph_service_parser(graph_service_cmd_parser)
-    graph_service_cmd_parser_deprecated = subparsers.add_parser('graph')
-    _graph_service_parser(graph_service_cmd_parser_deprecated)
     data2db_parser = subparsers.add_parser('data2db')
     _data2db_service_parser(data2db_parser)
     
@@ -122,10 +120,6 @@ def main():
             )
             sys.exit(1)
 
-    elif sys.argv[1] == "graph":
-        logger.warning('The "graph" parameter has been deprecated and will be removed in future versions. '
-                       'Please use the "graph_visualize" parameter instead.')
-        _graph_service_command(args)
     elif sys.argv[1] == "config_check":
         _run_config_checking_command(args)
     elif sys.argv[1] == "data2db":

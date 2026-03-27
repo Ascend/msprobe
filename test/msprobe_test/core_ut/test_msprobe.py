@@ -80,18 +80,6 @@ class TestMsprobeMain(TestCase):
         mock_parse_args.assert_called_once_with(["graph_visualize"])
         mock_graph_service_cmd.assert_called_once_with(args)
 
-    @patch("msprobe.msprobe.logger")
-    @patch("msprobe.msprobe._graph_service_command")
-    @patch("msprobe.msprobe.argparse.ArgumentParser.parse_args")
-    def test_main_when_graph_subcommand_then_pass(self, mock_parse_args, mock_graph_service_cmd, mock_logger):
-        args = MagicMock()
-        mock_parse_args.return_value = args
-        with patch("msprobe.msprobe.sys.argv", ["msprobe", "graph"]):
-            main()
-        mock_parse_args.assert_called_once_with(["graph"])
-        mock_graph_service_cmd.assert_called_once_with(args)
-        mock_logger.warning.assert_called_once()
-
     @patch("msprobe.pytorch.api_accuracy_checker.compare.api_precision_compare._api_precision_compare_command")
     @patch("msprobe.msprobe.argparse.ArgumentParser.parse_args")
     def test_main_when_api_precision_compare_subcommand_then_pass(self, mock_parse_args, mock_api_precision_cmd):
