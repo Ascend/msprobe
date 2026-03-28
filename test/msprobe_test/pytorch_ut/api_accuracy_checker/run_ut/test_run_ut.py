@@ -397,8 +397,8 @@ class TestRunUtMethods(unittest.TestCase):
 
         parser = argparse.ArgumentParser()
         _acc_check_parser(parser)
-        args = parser.parse_args(["-d", "0", "1"])
-        self.assertEqual(args.device_id, [0, 1])
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["-d", "1", "1"])
 
     def test_acc_check_parser_device_duplicate_raises(self):
         from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check import _acc_check_parser

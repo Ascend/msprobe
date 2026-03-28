@@ -57,9 +57,20 @@ def acc_check_cli(argv):
     1. 先解析出 -api_info
     2. 根据 dump.json 中的 framework 动态选择 PT/MS 的 parser + 命令。
     """
-    # 第一阶段：只解析 -api_info，其他参数先不管
+    # ====================== 关键：先判断 -api_info ======================
+    has_api_info = "-api_info" in argv
+
+    # 只输 -h，没带 -api_info → 打印基础帮助
+    if not has_api_info:
+        pre_parser = argparse.ArgumentParser(add_help=True, prog="msprobe acc_check")
+        pre_parser.add_argument("-api_info", required=True,
+                                help="Path to API info JSON file. Used to determine PyTorch or MindSpore pre-check.")
+        pre_parser.print_help()
+        return
+
+    # 第一阶段：只解析 -api_info，关闭自带 help
     pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("-api_info", required=True, help="Path to api_info json file.")
+    pre_parser.add_argument("-api_info", required=True)
     pre_args, _ = pre_parser.parse_known_args(argv)
 
     framework = _detect_framework_from_api_info(pre_args.api_info)
@@ -99,11 +110,26 @@ def multi_acc_check_cli(argv):
     msprobe multi_acc_check ... 的统一入口。
     同样通过 -api_info -> dump.json -> framework 做分发。
     """
+    # ====================== 第一步：先检查是否带了 -api_info ======================
+    has_api_info = "-api_info" in argv
+
+    # ====================== 情况1：只输 -h，没带 -api_info → 打印基础帮助 ======================
+    if not has_api_info:
+        pre_parser = argparse.ArgumentParser(add_help=True, prog="msprobe multi_acc_check")
+        pre_parser.add_argument("-api_info", required=True,
+                                help="Path to API info JSON file. Used to determine PyTorch or MindSpore pre-check.")
+        pre_parser.print_help()
+        return
+
+    # ====================== 情况2：带了 -api_info（无论是否带 -h）→ 走完整解析 ======================
+    # 先解析拿到 api_info
     pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("-api_info", required=True, help="Path to api_info json file.")
+    pre_parser.add_argument("-api_info", required=True)
     pre_args, _ = pre_parser.parse_known_args(argv)
 
+    # 检测框架
     framework = _detect_framework_from_api_info(pre_args.api_info)
+
 
     if framework == Const.PT_FRAMEWORK:
         # PyTorch 多进程路径：沿用原来的 prepare_config + run_parallel_ut
@@ -123,7 +149,7 @@ def multi_acc_check_cli(argv):
             default=8,
             help="Number of splits for parallel processing. Range: 1-64"
         )
-
+        
         pt_args = pt_parser.parse_args(argv)
         config = prepare_config(pt_args)
         run_parallel_ut(config)

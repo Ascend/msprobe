@@ -320,9 +320,9 @@ def initialize_save_error_data(error_data_path):
 
 def _acc_check_parser(parser):
     parser.add_argument("-api_info", "--api_info_file", dest="api_info_file", default="", type=str,
-                        help="<Optional> The api param tool result file: generate from api param tool, "
+                        help="<required> The api param tool result file: generate from api param tool, "
                              "a json file.",
-                        required=False)
+                        required=True)
     parser.add_argument("-o", "--out_path", dest="out_path", default="", type=str,
                         help="<optional> The acc_check task result out path.",
                         required=False)
