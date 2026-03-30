@@ -143,7 +143,7 @@ register_uninstall() {
     local _version_source="${_script_dir}/version.info"
  
     # 如果存在cann_uninstall.sh，则执行sed命令
-    if [ -f "${_cann_uninstall}" ]; then
+    if [ -f "${_cann_uninstall}" ] && ! grep -q "uninstall_package \"share/info/operator_cmp\"" "${_cann_uninstall}"; then
         sed -i "/^exit /i uninstall_package \"share/info/operator_cmp\"" "${_cann_uninstall}"
     fi
     
