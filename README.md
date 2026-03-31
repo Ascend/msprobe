@@ -50,7 +50,7 @@ MindStudio-probe
 
 ## 🚀 快速入门
 
-msProbe工具快速入门当前提供在PyTorch和MindSpore训练场景中，通过一个可执行样例，串联msProbe工具的训练前配置检查、精度数据采集、精度预检、训练状态监测及精度比对功能，帮助用户快速上手。详细快速入门可参见《PyTorch场景msTT工具快速入门》中的“[模型精度调试](https://gitcode.com/Ascend/mstt/blob/master/docs/zh/pytorch_mstt_quick_start.md#%E6%A8%A1%E5%9E%8B%E7%B2%BE%E5%BA%A6%E8%B0%83%E8%AF%95)”或《MindSpore场景msTT工具快速入门》中的“[模型精度调试](https://gitcode.com/Ascend/mstt/blob/master/docs/zh/mindspore_mstt_quick_start.md#%E6%A8%A1%E5%9E%8B%E7%B2%BE%E5%BA%A6%E8%B0%83%E8%AF%95)”。
+msProbe工具快速入门，通过一个可执行样例，完成msProbe工具的精度数据采集和精度比对功能的快速上手。具体请参见《[PyTorch场景精度调试工具快速入门](./docs/zh/quick_start/pytorch_quick_start.md)》或《[MindSpore场景精度调试工具快速入门](./docs/zh/quick_start/mindspore_quick_start.md)》”。
 
 ## 📖 功能介绍
 
