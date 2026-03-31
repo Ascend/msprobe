@@ -34,7 +34,7 @@ class CommonConfig:
         self.extra_info = json_config.get("extra_info", True)
         self.async_dump = json_config.get("async_dump", False)
         self.precision = json_config.get("precision", Const.DUMP_PRECISION_LOW)
-        self.risk_level = json_config.get("risk_level", Const.RISK_LEVEL_ALL)
+        self.risk_level = json_config.get("risk_level", Const.RISK_LEVEL_FOCUS)
         self._check_config()
 
     def _check_config(self):
