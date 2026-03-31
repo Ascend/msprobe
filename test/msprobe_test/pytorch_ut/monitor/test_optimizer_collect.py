@@ -248,8 +248,7 @@ class TestMegatronChainedDistributedOptimizerMon(unittest.TestCase):
             del opt.model_float16_groups
             del opt.shard_fp32_from_float16_groups
 
-        with self.assertRaises(Exception):
-            self.optimizer.fetch_mv(self.monitor, self.params2name)
+        self.optimizer.fetch_mv(self.monitor, self.params2name)
 
 
 class TestMegatronDistributedOptimizerMon(unittest.TestCase):

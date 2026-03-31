@@ -204,22 +204,27 @@ class MegatronMixPrecisionOptimizerMon(OptimizerMon):
     """
 
     def map_fp16_to_fp32_param(self, torch_opt):
-        for fp16_group, fp32_group in zip(torch_opt.float16_groups, torch_opt.fp32_from_float16_groups):
-            for fp16_param, fp32_param in zip(fp16_group, fp32_group):
-                self.fp16_to_fp32_param[fp16_param] = fp32_param
+        if not (hasattr(torch_opt, "float16_groups") and hasattr(torch_opt, "fp32_from_float16_groups")):
+            logger.warning(
+                "megatron class Float16OptimizerWithFloat16Params should have float16_groups and "
+                "fp32_from_float16_groups, please check Megatron-LM version.")
+        else:
+            for fp16_group, fp32_group in zip(torch_opt.float16_groups, torch_opt.fp32_from_float16_groups):
+                for fp16_param, fp32_param in zip(fp16_group, fp32_group):
+                    self.fp16_to_fp32_param[fp16_param] = fp32_param
 
 
 class MegatronDistributedOptimizerMon(OptimizerMon):
     def map_fp16_to_fp32_param(self, torch_opt):
-        if not (hasattr(torch_opt, "model_float16_groups") and
-                hasattr(torch_opt, "shard_fp32_from_float16_groups")):
-            raise Exception(
-                "megatron distributed optimizer should have model_float16_groups and shard_fp32_from_float16_groups, "
-                "if not, please check megatron-lm version")
-        for fp16_group, shard_fp32_group in zip(torch_opt.model_float16_groups,
-                                                torch_opt.shard_fp32_from_float16_groups):
-            for fp16_param, shard_fp32_param in zip(fp16_group, shard_fp32_group):
-                self.fp16_to_fp32_param[fp16_param] = shard_fp32_param
+        if not (hasattr(torch_opt, "model_float16_groups") and hasattr(torch_opt, "shard_fp32_from_float16_groups")):
+            logger.warning(
+                "megatron class DistributedOptimizer should have model_float16_groups and "
+                "shard_fp32_from_float16_groups, please check Megatron-LM version.")
+        else:
+            for fp16_group, shard_fp32_group in zip(torch_opt.model_float16_groups,
+                                                    torch_opt.shard_fp32_from_float16_groups):
+                for fp16_param, shard_fp32_param in zip(fp16_group, shard_fp32_group):
+                    self.fp16_to_fp32_param[fp16_param] = shard_fp32_param
 
 
 class MegatronChainedDistributedOptimizerMon(MegatronDistributedOptimizerMon):
