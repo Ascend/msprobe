@@ -47,7 +47,7 @@ MindSpore场景分级可视化构图比对：将msProbe工具dump的精度数据
 
 **约束**
 
-仅支持MindSpore框架，且mindspore>=2.4.0。
+要求mindspore>=2.4.0。
 
 ## 分级可视化操作指导
 

@@ -92,7 +92,7 @@ GPTModel:
 执行命令，指定-lm：
 
 ```bash
-msprobe graph_visualize -i ./compare.json -o ./output -lm ./mapping.yaml
+msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output -lm ./mapping.yaml
 ```
 
 可以看到，除了language_model层（NPU多的一层，GPU没有层与其匹配），其余在mapping.yaml文件配置的层均匹配上了。

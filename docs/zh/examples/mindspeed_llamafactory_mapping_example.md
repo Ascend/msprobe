@@ -12,7 +12,7 @@
 
 数据采集前需要准备一个json文件，本案例命名为config.json，其内容包含了数据采集的所需配置。
 
-本案例使用的配置内容如下，更多配置请参考[config.json配置示例](../dump/config_json_examples.md)，配置详细介绍请参考[配置文件介绍](../dump/config_json_introduct.md)。
+本案例使用的配置内容如下，更多配置及配置详细介绍请参见[配置文件介绍](../dump/config_json_introduct.md)。
 
 ```json
 {
@@ -85,7 +85,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path -lm
 
 在基于MindSpeed和LLamaFactory框架的模型比对场景中，**-lm参数是必填的**，-lm参数所需的layer_mapping.yaml如何配置将在下面的章节进行介绍。
 
-模型分级可视化比对完成后，可通过tensorboard需安装tb_graph_ascend插件启动端口，在浏览器页面查看模型结构和精度比对结果，请参考[分级可视化构图比对-启动TensorBoard](../accuracy_compare/pytorch_visualization_instruct.md#启动tensorboard)和[分级可视化构图比对-浏览器查看](../accuracy_compare/pytorch_visualization_instruct.md#浏览器查看)。
+模型分级可视化比对完成后，可通过TensorBoard启动端口，在浏览器页面查看模型结构和精度比对结果，请参考[分级可视化构图比对-启动TensorBoard](../accuracy_compare/pytorch_visualization_instruct.md#启动tensorboard)和[分级可视化构图比对-浏览器查看](../accuracy_compare/pytorch_visualization_instruct.md#浏览器查看)。
 
 ### layer_mapping映射文件配置
 
@@ -95,7 +95,7 @@ msProbe工具的比对功能会将比对双方dump名称一致的数据进行比
 
 此处提供了Qwen2.5vl和Qwen2.5模型的layer_mapping映射文件模板，可直接使用。**如果您使用其他模型，或对MindSpeed和LLamaFactory框架进行过定制开发修改过框架源码，此layer_mapping映射文件模板可能会失效，请按照后续步骤修改layer_mapping映射文件模板**。
 
-每个模型有两个layer_mapping映射文件模板，分别是NPU侧为MindSpeed Bench侧为LLamaFactory，以及NPU侧为LLamaFactory Bench侧为MindSpeed，映射内容有所不同。
+每个模型有两个layer_mapping映射文件模板，分别是NPU侧为MindSpeed，Bench侧为LLamaFactory，以及NPU侧为LLamaFactory，Bench侧为MindSpeed，映射内容有所不同。
 
 文件名格式：\*.yaml，*为文件名，可自定义。本文命名为layer_mapping.yaml。
 

@@ -16,13 +16,7 @@ msProbe精度比对工具主要用于如下场景：
 
 ## 使用前准备
 
-**环境准备**
-
 安装msProbe工具，详情请参见《[msProbe安装指南](../msprobe_install_guide.md)》。
-
-**约束**
-
-仅支持MindSpore场景。
 
 ## 精度比对功能介绍
 
