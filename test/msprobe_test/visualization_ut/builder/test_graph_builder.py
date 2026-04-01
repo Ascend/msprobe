@@ -161,3 +161,94 @@ class TestGraphBuilder(unittest.TestCase):
         }
         GraphBuilder._extract_batch_p2p_info(self.graph.root, node_data)
         self.assertEqual(self.graph.root.batch_p2p_info, [{'group_id': None, 'op': None, 'peer': None}])
+
+    def test_is_recompute_by_stack_torch(self):
+        stack_list = [
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1829, "
+            "in inner, \n result = forward_call(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1881, "
+            "in _call_impl, \n return inner()",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1775, "
+            "in _wrapped_call_impl, \n return self._call_impl(*args, **kwargs)",
+            "File /root/work/filestorage/gh/code/MOVA-feat-npu-dai/mova/diffusion/pipelines/mova_train.py, line 1105, "
+            "in _fn, \n return module(*inputs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/utils/checkpoint.py, line 1555, "
+            "in recompute_fn, \n fn(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/utils/checkpoint.py, line 1124, "
+            "in _run_fn_with_dynamo_disabled, \n return fn(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/_dynamo/eval_frame.py, line 1044, "
+            "in _fn, \n return fn(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/_compile.py, line 53, in inner, "
+            "\n return disable_fn(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/utils/checkpoint.py, line 1154, "
+            "in unpack_hook, \n _run_fn_with_dynamo_disabled(frame.recompute_fn, *args)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/utils/checkpoint.py, line 1147, "
+            "in unpack_hook, \n args = ctx.get_args(ctx.saved_tensors)"
+        ]
+        self.assertTrue(GraphBuilder._is_recompute_by_stack_torch(stack_list))
+        stack_list1 = [
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1840, "
+            "in inner, \n hook_result = hook(self, args, kwargs, result)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1881, "
+            "in _call_impl, \n return inner()",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1775, "
+            "in _wrapped_call_impl, \n return self._call_impl(*args, **kwargs)",
+            "File /root/work/filestorage/gh/code/MOVA-feat-npu-dai/mova/diffusion/models/wan_video_dit.py, line 242, "
+            "in forward, \n v = self.v(ctx)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1829, "
+            "in inner, \n result = forward_call(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1881, "
+            "in _call_impl, \n return inner()",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1775, "
+            "in _wrapped_call_impl, \n return self._call_impl(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/utils/checkpoint.py, line 1555, "
+            "in recompute_fn, \n fn(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/utils/checkpoint.py, line 1124, "
+            "in _run_fn_with_dynamo_disabled, \n return fn(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/_dynamo/eval_frame.py, line 1044, "
+            "in _fn, \n return fn(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/_compile.py, line 53, in inner, "
+            "\n return disable_fn(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/utils/checkpoint.py, line 1154, "
+            "in unpack_hook, \n _run_fn_with_dynamo_disabled(frame.recompute_fn, *args)"
+        ]
+        self.assertTrue(GraphBuilder._is_recompute_by_stack_torch(stack_list1))
+        stack_list2 = [
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1840, "
+            "in inner, \n hook_result = hook(self, args, kwargs, result)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1881, "
+            "in _call_impl, \n return inner()",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1775, "
+            "in _wrapped_call_impl, \n return self._call_impl(*args, **kwargs)",
+            "File /root/.local/lib/python3.11/site-packages/diffusers/models/autoencoders/autoencoder_kl_wan.py, "
+            "line 599, in forward, \n x = layer(x, feat_cache=feat_cache, feat_idx=feat_idx)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1829, "
+            "in inner, \n result = forward_call(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1881, "
+            "in _call_impl, \n return inner()",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1775, "
+            "in _wrapped_call_impl, \n return self._call_impl(*args, **kwargs)",
+            "File /root/.local/lib/python3.11/site-packages/diffusers/models/autoencoders/autoencoder_kl_wan.py, "
+            "line 1142, in _encode, \n out_ = self.encoder(",
+            "File /root/.local/lib/python3.11/site-packages/diffusers/models/autoencoders/autoencoder_kl_wan.py, "
+            "line 1173, in encode, \n h = self._encode(x)",
+            "File /root/.local/lib/python3.11/site-packages/diffusers/utils/accelerate_utils.py, line 46, in wrapper, "
+            "\n return method(self, *args, **kwargs)",
+            "File /root/work/filestorage/gh/code/MOVA-feat-npu-dai/mova/diffusion/pipelines/mova_train.py, line 1344, "
+            "in training_step, \n video_latents = self.video_vae.encode(video).latent_dist.mode()",
+            "File /root/work/filestorage/gh/code/MOVA-feat-npu-dai/mova/diffusion/pipelines/mova_train.py, line 1279, "
+            "in forward, \n return self.training_step(*args, cp_mesh=cp_mesh, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1829, "
+            "in inner, \n result = forward_call(*args, **kwargs)",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1881, "
+            "in _call_impl, \n return inner()",
+            "File /root/.local/conda/envs/mova/lib/python3.11/site-packages/torch/nn/modules/module.py, line 1775, "
+            "in _wrapped_call_impl, \n return self._call_impl(*args, **kwargs)",
+            "File /root/work/filestorage/gh/code/MOVA-feat-npu-dai/mova/engine/trainer/accelerate/accelerate_trainer.py"
+            ", line 414, in train, \n loss_dict = self.model(",
+            "File /root/work/filestorage/gh/code/MOVA-feat-npu-dai/scripts/training_scripts/accelerate_train.py, "
+            "line 180, in main, \n trainer.train()",
+            "File /root/work/filestorage/gh/code/MOVA-feat-npu-dai/scripts/training_scripts/accelerate_train.py, "
+            "line 184, in <module>, \n main()"
+        ]
+        self.assertFalse(GraphBuilder._is_recompute_by_stack_torch(stack_list2))

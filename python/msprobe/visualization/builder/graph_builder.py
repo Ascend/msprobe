@@ -35,6 +35,7 @@ class GraphBuilder:
     # 匹配以大写字母开头，后接任意字母，并以Template(结尾，或包含api_template(的字符串
     template_pattern = re.compile(r'\b([A-Z][a-zA-Z]*Template|api_template|api_instance)\(')
     micro_step_dict = {}
+    framework = Const.PT_FRAMEWORK
 
     @staticmethod
     def build(construct_path, data_path, stack_path, model_name='DefaultModel', pbar_info=None):
@@ -56,12 +57,13 @@ class GraphBuilder:
             raise RuntimeError
         GraphBuilder.micro_step_dict = micro_step_dict
         dump_dict = load_json(data_path)
+        GraphBuilder.framework = dump_dict.get("framework", Const.PT_FRAMEWORK)
         stack_dict = load_stack_json(stack_path)
         data_dict = dump_dict.get(GraphConst.DATA_KEY, {})
         graph = Graph(model_name, data_path=dump_dict.get('dump_data_dir', ''), dump_data=data_dict,
                       micro_step_num=micro_step_dict.get(Const.MEGATRON_MICRO_STEP_NUMBER))
         GraphBuilder._init_nodes(graph, construct_dict, data_dict, stack_dict, pbar_info=pbar_info)
-        GraphBuilder._handle_recompute(graph)
+        GraphBuilder._handle_recompute(graph, stack_dict)
         GraphBuilder._collect_apis_between_modules(graph)
         GraphBuilder._add_parameters_grad(graph, data_dict)
         return graph
@@ -300,13 +302,13 @@ class GraphBuilder:
                     graph.get_node(parameters_grad_node_id).set_input_output(input_data, output_data)
 
     @staticmethod
-    def _handle_recompute(graph):
+    def _handle_recompute(graph, stack_dict):
         """
         1. 通过_get_recompute_map获得重计算节点映射recompute_map: dict(node_id: node_id_prefix)
         2. 通过_get_no_recompute_map获得非重计算节点映射no_recompute_map: dict(node_id_prefix: list(node_id))
         3. 遍历recompute_map，通过node_id_prefix与no_recompute_map建立连接，通过非重计算节点找到自身的父节点
         """
-        recompute_map, recompute_id_map = GraphBuilder._get_recompute_map(graph.root.subnodes)
+        recompute_map, recompute_id_map = GraphBuilder._get_recompute_map(graph.root.subnodes, stack_dict)
         if not recompute_map:
             return
         id_prefixes = set(recompute_map.values())
@@ -334,11 +336,13 @@ class GraphBuilder:
             if not new_up_node:
                 continue
 
-            # 更新节点连接关系
-            recompute_node.upnode = new_up_node
-            new_up_node.subnodes.append(recompute_node)
+            # 更新节点连接关系，同时避免可能出现的父节点链接到子节点的情况
+            new_up_node_ancestors = new_up_node.get_ancestors()
+            if recompute_node.id not in new_up_node_ancestors:
+                recompute_node.upnode = new_up_node
+                new_up_node.subnodes.append(recompute_node)
 
-            del_indexes.append(recompute_id_map.get(node_id))
+                del_indexes.append(recompute_id_map.get(node_id))
 
         # 从后往前删除graph首层中已更新父节点的重计算节点
         del_indexes.sort(reverse=True)
@@ -347,7 +351,7 @@ class GraphBuilder:
                 del graph.root.subnodes[index]
 
     @staticmethod
-    def _get_recompute_map(node_list: list):
+    def _get_recompute_map(node_list: list, stack_dict: dict):
         """
         找到graph首层的重计算层
 
@@ -363,6 +367,13 @@ class GraphBuilder:
         for i, node in enumerate(node_list):
             if NodeOp.get_node_op(node.id) != NodeOp.module:
                 continue
+            if GraphBuilder.framework == Const.PT_FRAMEWORK:
+                node_id = node.id
+                # 反向节点没有堆栈，要转换为对应的前向节点id去获取
+                if GraphBuilder.backward_pattern.search(node.id):
+                    node_id = GraphBuilder.backward_pattern.sub(r".forward.\2", node.id)
+                if not GraphBuilder._is_recompute_by_stack_torch(stack_dict.get(node_id)):
+                    continue
             id_segments = node.id.split(Const.SEP)
             prefix = Const.SEP.join(id_segments[:-2])
             if node.id in node_id_cache:
@@ -381,6 +392,48 @@ class GraphBuilder:
                 # 对应节点id放入缓存避免后续重复判断
                 node_id_cache.add(relative_node_id)
         return recompute_map, recompute_id_map
+
+    @staticmethod
+    def _is_recompute_by_stack_torch(stack_list: list):
+        """
+        通过stack.json堆栈信息判断重计算情况
+        """
+        if not stack_list:
+            return False
+
+        parsed_stack = []
+        for stack_str in stack_list:
+            try:
+                stack_str = stack_str.strip().replace("File ", "")
+                file_path = stack_str.split(", line ")[0].strip()
+                func_name = stack_str.split(", in ")[1].split(",")[0].strip()
+                parsed_stack.append({"filename": file_path, "function": func_name})
+            except Exception:
+                continue
+
+        if not parsed_stack:
+            return False
+
+        # 1. 最高优先级：官方重计算函数 recompute_fn
+        for frame in parsed_stack:
+            if frame["function"] == "recompute_fn" and frame["filename"].endswith("torch/utils/checkpoint.py"):
+                return True
+
+        # 2. 匹配 Megatron/MindSpeed 自定义反向函数
+        backward_indices = []
+        for idx, frame in enumerate(parsed_stack):
+            if (frame["function"] == 'backward' or
+                    (frame["function"] == 'checkpoint_function_backward' and "megatron" in frame["filename"])):
+                backward_indices.append(idx)
+
+        # 3. 校验调用来源为 PyTorch 自动求导核心
+        for idx in backward_indices:
+            if idx + 1 < len(parsed_stack) and parsed_stack[idx + 1]["filename"].endswith("torch/autograd/function.py"):
+                return True
+            if idx + 2 < len(parsed_stack) and parsed_stack[idx + 2]["filename"].endswith("torch/autograd/function.py"):
+                return True
+
+        return False
 
     @staticmethod
     def _is_recompute_node_id(id_segments):
