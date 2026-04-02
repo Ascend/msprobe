@@ -55,7 +55,7 @@ ATB精度数据比对功能用于ATB dump数据的精度比对，包括真实数
 ### 命令格式
 
 ```bash
-msprobe compare -m atb -gp <goldenDataPath> -tp <goldenDataPath> [-o <outputPath>]
+msprobe compare -m atb -gp <goldenDataPath> -tp <targetDataPath> [-o <outputPath>]
 ```
 
 ### 参数说明

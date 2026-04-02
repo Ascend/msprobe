@@ -125,8 +125,8 @@ source $MSPROBE_HOME_PATH/msprobe/scripts/atb/unload_atb_probe.sh
 
 | 参数 | 可选/必选 | 说明 |
 | --- | --------- | --- |
-| --output=\<outputPath\> | 可选 | 指定dump数据的输出保存路径，默认为当前工作目录。 |
-| --config=\<configPath\> | 可选 | 指定dump配置文件路径，默认为`load_atb_probe.sh`加载脚本同级目录下的`config.json`文件路径。dump配置文件可在需采集数据时再创建。 |
+| --output | 可选 | 指定dump数据的输出保存路径，默认为当前工作目录。 |
+| --config | 可选 | 指定dump配置文件路径，默认为`load_atb_probe.sh`加载脚本同级目录下的`config.json`文件路径。dump配置文件可在需采集数据时再创建。 |
 
 **dump配置文件参数说明**
 
@@ -138,7 +138,7 @@ dump配置文件为JSON格式的文本文件，各配置参数介绍如下：
 | dump_enable  | 可选 | 指定是否允许dump数据，bool类型，默认为false。可选值：<br/> true：允许采集op的输入/输出Tensor的真实数据或统计量数据；<br/> false：不允许采集op的输入/输出Tensor的真实数据或统计量数据。 |
 | exec_range   | 可选 | 指定需dump数据的op执行轮次范围，str类型，默认为"0,0"。可选值：<br/> "all"：dump op所有执行轮次的精度数据；<br/> "none"：op所有执行轮次的精度数据都不dump；<br/> "\<起始轮次\>,\<终止轮次\>"： dump op从起始轮次到终止轮次间的精度数据，包括起始轮次与终止轮次。<br/> **配置示例**："exec_range": "0,2"，表示dump op第1、2、3执行时的精度数据（第N次执行的执行轮次为N-1）。|
 | ids          | 可选 | 指定需dump数据的op的ID，str类型，默认为""，表示dump所有layer级Operation的精度数据。需满足"\<ID1\>,\<ID2\>"格式，指定一个或多个ID。<br/> **配置示例**：<br/> "ids": "0"，表示dump ID为0的op的精度数据；<br/> "ids": "2_1"，表示dump ID为2的op下的ID为1的OP的精度数据；<br/> "ids": "0,2_1"，表示dump ID为0的op以及ID为2的op下的ID为1的OP的精度数据。 |
-| op_name      | 可选 | 指定需dump数据的op的名称，str类型，默认为""，表示dump所有layer级Operation的精度数据。需满足"\<opName1\>,\<opName1\>"格式，指定一个或多个op名称。<br/> **配置示例**：<br/> "op_name": "word"，表示dump名称以"word"开头的op的精度数据（不区分大小写）。 |
+| op_name      | 可选 | 指定需dump数据的op的名称，str类型，默认为""，表示dump所有layer级Operation的精度数据。需满足"\<opName1\>,\<opName2\>"格式，指定一个或多个op名称。<br/> **配置示例**：<br/> "op_name": "word"，表示dump名称以"word"开头的op的精度数据（不区分大小写）。 |
 | save_child   | 可选 | 指定是否dump op下的子op的精度数据，bool类型，默认为false。可选值：<br/> true：dump 指定op及内部子op的精度数据；<br/> false：仅dump 指定op的精度数据。 |
 | device       | 可选 | 指定需dump数据的device ID，str类型，默认为""，表示dump 所有device上的精度数据。需满足"\<deviceID1\>,\<deviceID2\>"格式，指定一个或多个device ID。<br/> **配置示例**：<br/> "device": "0"，表示dump device0上的精度数据。 |
 | filter_level | 可选 | 指定dump op的输入/输出Tensor的真实数据时的过滤等级，int类型，默认为1。该参数仅在指定layer级Operation，且"save_child"为true时生效。可选值：<br/> 0：采集op的输入/输出Tensor的真实数据时，不进行数据过滤；<br/> 1：采集op的输入/输出Tensor的真实数据时，相同Tensor仅保存一次；<br/> 2：在1基础上，过滤Kernel的输入/输出Tensor。 |
@@ -210,7 +210,7 @@ dump配置文件示例如下：
     然后，在请求终端发送推理请求，请求示例如下：
 
     ```bash
-    curl -H "Accept: application/json" -H "Content-type: application/json" -X POST -d '{"model": "QWen2.5_7B", "messages": [{"role": "system", "content":{"type": "text", "text": "You are a helpful assistant"}], "max_tokens": 20}' http://127.0.0.1:1025/v1/chat/completions
+    curl -H "Accept: application/json" -H "Content-type: application/json" -X POST -d '{"model": "QWen2.5_7B", "messages": [{"role": "system", "content":{"type": "text", "text": "You are a helpful assistant"}}], "max_tokens": 20}' http://127.0.0.1:1025/v1/chat/completions
     ```
 
     "model"参数值、IP地址与端口号需根据实际配置修改。

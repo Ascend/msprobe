@@ -36,13 +36,13 @@ msprobe compare -m offline_data -tp <target_path> -gp <golden_path> [-fr <fusion
 
 | 参数名                 | 可选/必选 | 说明                                                                                                                                             |
 |---------------------|------------------------------------------------------------------------------------------------------------------------------------------------|------|
-| -m | 是 | 比对模式，当前场景为offline_data，表示离线数据比对场景。 |
-| -tp 或 --target_path | 是 | 基于昇腾AI处理器运行生成的数据文件所在目录。由于dump数据文件是多个二进制文件，故须指定dump数据文件所在的父目录。如：$HOME/MyApp_mind/resnet50，其resnet50文件夹下直接保存dump数据文件。<br><br>训练场景下：<br><br>支持TensorFlow为原始训练网络的比对。<br>单个数据文件比对时，需指定数据文件所在的具体目录。<br>支持多个dump数据文件的批量比对，可指定固定路径为dump_path/time/，仅支持TensorFlow为原始训练网络的比对。指定的路径下可以存放多个dump数据文件，但要求每个dump数据文件拥有唯一路径，且路径命名规则为dump_path/time/device_id/model_name/model_id/dump_step/dump文件。 |
-| -gp 或 --golden_path | 是 | 基于GPU/CPU运行生成的原始网络数据文件所在目录。<br><br>由于npy文件是多个文件，故须指定npy文件所在的父目录。如：$HOME/Standard_caffe/resnet50 ，其中resnet50文件夹下直接保存npy数据文件。<br><br>当指定-cfr参数时，该参数指定的就是模型转换关闭算子融合功能下dump数据文件的目录。 |
-| -o 或 --output_path  | 否 | 比对数据结果存放路径，默认为当前路径。<br><br>不建议配置与当前用户不一致的其它用户目录，避免提权风险。<br><br>训练场景下：<br><br>单个数据文件比对时，结果文件名格式为`result_{timestamp}.csv`。<br>多个数据文件比对时，结果文件名格式为`{device_id}_{model_name}_{dump_step}_result_{timestamp}.csv`，批量比对将生成多个csv结果文件。 |
-| -fr 或 --fusion_rule_file | 否 | 全网层信息文件。<br><br>推理场景下：<br><br>通过使用ATC转换.om模型文件生成的json文件，文件包含整网算子的映射关系。<br>该参数指定的是默认开启算子融合功能情况下进行模型转换时生成的json文件；指定关闭算子融合功能情况下进行模型转换时生成的json文件使用-cfr参数。<br><br>训练场景下：<br><br>通过使用ATC转换.txt图文件生成的json文件。<br>单个数据文件比对时，该参数需指定具体的json文件；批量比对时，该参数可指定为多个json文件所在的目录。 |
-| -qfr 或 --quant_fusion_rule_file   | 否  | 量化信息文件（昇腾模型压缩输出的json文件）。<br><br>通过AMCT量化生成的量化信息文件（*.json），文件包含整网量化算子映射关系，用于精度比对时算子匹配。<br><br>Caffe非量化原始模型 vs 量化离线模型场景时，与-fr参数二选一；Caffe非量化原始模型 vs 量化原始模型场景时，仅使用本参数。<br><br>仅推理场景支持本参数。 |
-| -cfr 或 --close_fusion_rule_file  | 否 | 全网层信息文件（通过使用ATC转换.om模型文件生成的json文件，文件包含关闭算子融合功能情况下整网算子的映射关系）。<br><br> 仅推理场景支持本参数。 |
+| -m | 必选 | 比对模式，当前场景为offline_data，表示离线数据比对场景。 |
+| -tp 或 --target_path | 必选 | 基于昇腾AI处理器运行生成的数据文件所在目录。由于dump数据文件是多个二进制文件，故须指定dump数据文件所在的父目录。如：$HOME/MyApp_mind/resnet50，其resnet50文件夹下直接保存dump数据文件。<br><br>训练场景下：<br><br>支持TensorFlow为原始训练网络的比对。<br>单个数据文件比对时，需指定数据文件所在的具体目录。<br>支持多个dump数据文件的批量比对，可指定固定路径为dump_path/time/，仅支持TensorFlow为原始训练网络的比对。指定的路径下可以存放多个dump数据文件，但要求每个dump数据文件拥有唯一路径，且路径命名规则为dump_path/time/device_id/model_name/model_id/dump_step/dump文件。 |
+| -gp 或 --golden_path | 必选 | 基于GPU/CPU运行生成的原始网络数据文件所在目录。<br><br>由于npy文件是多个文件，故须指定npy文件所在的父目录。如：$HOME/Standard_caffe/resnet50 ，其中resnet50文件夹下直接保存npy数据文件。<br><br>当指定-cfr参数时，该参数指定的就是模型转换关闭算子融合功能下dump数据文件的目录。 |
+| -o 或 --output_path  | 可选 | 比对数据结果存放路径，默认为当前路径。<br><br>不建议配置与当前用户不一致的其它用户目录，避免提权风险。<br><br>训练场景下：<br><br>单个数据文件比对时，结果文件名格式为`result_{timestamp}.csv`。<br>多个数据文件比对时，结果文件名格式为`{device_id}_{model_name}_{dump_step}_result_{timestamp}.csv`，批量比对将生成多个csv结果文件。 |
+| -fr 或 --fusion_rule_file | 可选 | 全网层信息文件。<br><br>推理场景下：<br><br>通过使用ATC转换.om模型文件生成的json文件，文件包含整网算子的映射关系。<br>该参数指定的是默认开启算子融合功能情况下进行模型转换时生成的json文件；指定关闭算子融合功能情况下进行模型转换时生成的json文件使用-cfr参数。<br><br>训练场景下：<br><br>通过使用ATC转换.txt图文件生成的json文件。<br>单个数据文件比对时，该参数需指定具体的json文件；批量比对时，该参数可指定为多个json文件所在的目录。 |
+| -qfr 或 --quant_fusion_rule_file   | 可选  | 量化信息文件（昇腾模型压缩输出的json文件）。<br><br>通过AMCT量化生成的量化信息文件（*.json），文件包含整网量化算子映射关系，用于精度比对时算子匹配。<br><br>Caffe非量化原始模型 vs 量化离线模型场景时，与-fr参数二选一；Caffe非量化原始模型 vs 量化原始模型场景时，仅使用本参数。<br><br>仅推理场景支持本参数。 |
+| -cfr 或 --close_fusion_rule_file  | 可选 | 全网层信息文件（通过使用ATC转换.om模型文件生成的json文件，文件包含关闭算子融合功能情况下整网算子的映射关系）。<br><br> 仅推理场景支持本参数。 |
 
 **使用示例**
 
