@@ -138,7 +138,7 @@ dump类型如何配置见[数据采集配置文件介绍](../dump/config_json_in
 **命令格式**
 
 ```bash
-msprobe graph_visualize -tp <target_path> -gp <target_path> -o <output_path> [-lm] [-oc] [-fm] [-tensor_log] [-progress_log]
+msprobe graph_visualize -tp <target_path> -gp <golden_path> -o <output_path> [-lm] [-oc] [-fm] [-tensor_log] [-progress_log]
 ```
 
 可选字段使用[]表示，变量使用<>表示。
@@ -335,7 +335,7 @@ tensorboard --logdir out_path --bind_all
 
 ubuntu是机器地址，6008是端口号。
 
-**ubuntu需要替换为真实的服务器地址，例如真实的服务器地址为10.123.456.78，则需要在浏览器窗口输入<http://10.123.456.78:6008>**
+**ubuntu需要替换为真实的服务器地址，例如真实的服务器地址为10.123.456.78，则需要在浏览器窗口输入`http://10.123.456.78:6008`**
 
 ### 不可直连的服务器
 
@@ -351,7 +351,7 @@ ubuntu是机器地址，6008是端口号。
    tensorboard --logdir out_path --bind_all
    ```
 
-   最后，在浏览器窗口输入<http://10.123.456.78:6008>
+   最后，在浏览器窗口输入`http://10.123.456.78:6008`
 
    **如果当前服务器开启了防火墙，则此方法无效，需要关闭防火墙，或者尝试后续方法**
 

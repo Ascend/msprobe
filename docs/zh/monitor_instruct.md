@@ -75,8 +75,8 @@ model, optimizer, trainloader, evalloader, schedular = accelerator.prepare(...)
 class Trainer:
     def _inner_training_loop:
         ...
-+        monitor = TrainerMon(...)
-+        monitor.set_monitor(....optimizer=self.optimizer.optimizer)
++       monitor = TrainerMon(...)
++       monitor.set_monitor(....optimizer=self.optimizer.optimizer)
 
         for epoch in range(epochs_trained, num_train_epochs):
             ...
@@ -105,25 +105,7 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
 
 ### 注意事项
 
-- MindSpore功能在1.2.2版本后支持, <1.2.2版本不支持
-- 若框架为FSDP1，请先保证model包裹FSDP时设置use_orig_params=True
-- 上述接口使用方式为1.2.2后更新的最新接口使用方式（**其中老版接口目前仍能使用，但预计将在2026年废弃，请及时更新到最新版使用方式**）, <1.2.2版本的Pytorch旧接口使用方式为：
-
-```Python
-from msprobe.pytorch import TrainerMon
-monitor = TrainerMon(
-    config_file_path="./monitor_config.json",
-    params_have_main_grad=True,  # 权重是否使用main_grad，通常megatron为True，deepspeed为False。默认为True。
-    opt_ty=None  # 优化器类型，默认为None，具体取值参考公开接口
-) 
-monitor.set_wrapped_optimizer(optimizer)
-# 挂载监测对象
-monitor.monitor_gnorm_with_ad(
-    model,
-    grad_acc_steps=args.global_batch_size//args.data_parallel_size//args.micro_batch_size,
-    optimizer=optimizer
-) 
-```
+若框架为FSDP1，请先保证model包裹FSDP时设置use_orig_params=True。
 
 ## 训练状态监测工具功能介绍
 
@@ -548,7 +530,7 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
     tensorboard --logdir=$MONITOR_OUTPUT_DIR
     ```
 
-    之后，运行以下SSH命令来建立端口转发，可以在本地通过<http://localhost:6006访问tensorboard：>
+    之后，运行以下SSH命令来建立端口转发，可以在本地通过`http://localhost:6006`访问tensorboard：
 
     ```shell
     ssh -N -L localhost:6006:localhost:6006 your_username@remote_server_address
@@ -566,7 +548,7 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
 ### csv输出件合并
 
   提供csv输出件合并功能，在配置json文件中设置`step_count_per_record`，表示每个csv文件存储多个step的监测数据。默认值为1，表示每个csv文件记录一个step的监测数据。
-  
+
   如下图所示为梯度监测结果示例，配置`step_count_per_record`为5，连续监测10个step，每个csv文件记录了5个step的梯度数据。其中`grad_reduced_0-4.csv`为step0至step4共计5个step的聚合后梯度数据，`grad_unreduced_0-4.csv`为step0至step4共计5个step的聚合前梯度数据。
 
   ![step_count_per_record](figures/monitor/step_count_per_record.png)
@@ -576,15 +558,15 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
 - monitor工具初始化
 
 ```python
-TrainerMon.__init__(config_file_path, process_group=None, params_have_main_grad=True, opt_ty=None) -> None
+TrainerMon.__init__(config_file_path, process_group=None, params_have_main_grad=True) -> None
 ```
 
-| 参数                  | 说明                                                                                                                                                                                                                                                                                                                                                                                                                                    | 是否必选 |
-| --------------------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------|
-| config_file_path      | json配置文件路径。                                                                                                                                                                                                                                                                                                                                                                                                                           | 是    |
-| process_group         | 传入ProcessGroup对象，用以确定pipeline并行不同rank异常间时序，megatron下通过core.parallel_state.get_pipeline_model_parallel_group()获得。仅在异常时序判断功能中使用。                                                                                                                                                                                                                                                                                                        | 否    |
-| params_have_main_grad | 权重是否使用main_grad，通常megatron为True，deepspeed为False。默认为True。                                                                                                                                                                                                                                                                                                                                                                              | 否    |
-| opt_ty                | 优化器类型，默认为None。**该参数将在26年废除，只需在版本<msprobe1.2.2时传入**，值选项可为<br/>-Megatron_DistributedOptimizer：megatron分布式优化器；<br/>-Megatron_Float16OptimizerWithFloat16Params：megatron混合精度优化器；<br/>-Megatron_ChainedDistributedOptimizer：megatron分布式优化器序列；<br/>-Megatron_ChainedFloat16OptimizerWithFloat16Params：megatron混合精度优化器序列；<br/>-DeepSpeedZeroOptimizer_Stage1_or_2：DeepSpeed Zero1和Zero2；<br/>-DeepSpeedZeroOptimizer_Stage3：DeepSpeed Zero3。 | 否    |
+| 参数                  | 说明                                                         | 是否必选 |
+| --------------------- | ------------------------------------------------------------ | -------- |
+| config_file_path      | json配置文件路径。                                           | 是       |
+| process_group         | 传入ProcessGroup对象，用以确定pipeline并行不同rank异常间时序，megatron下通过core.parallel_state.get_pipeline_model_parallel_group()获得。仅在异常时序判断功能中使用。 | 否       |
+| params_have_main_grad | 权重是否使用main_grad，通常megatron为True，deepspeed为False。默认为True。 | 否       |
+| opt_ty（该参数废弃）  | 表示优化器类型。                                             | 否       |
 
 - 模型挂载monitor工具
 
@@ -665,11 +647,11 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 
 具体接口变更说明如下：
 
-| 变更        | 说明                                                                                                        |
-|-----------|-----------------------------------------------------------------------------------------------------------|
-| 初始化接口统一精简 | TrainerMon.__init__(config_file_path, process_group=None, param_have_main_grad=True), 去除了需用户手动传入的opt_ty参数 |
-| 主调接口修改    | 从monitor_gnorm_with_ad(...)改名为set_monitor(...)， 且此时optimizer从可选项改为必传项                                     |
-| 优化器包装接口废除 | set_wrapped_optimizer接口废除， optimizer传入由set_monitor主调完成                                                    |
+| 变更               | 说明                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| 初始化接口统一精简 | TrainerMon.__init__(config_file_path, process_group=None, param_have_main_grad=True) |
+| 主调接口修改       | 从monitor_gnorm_with_ad(...)改名为set_monitor(...)， 且此时optimizer从可选项改为必传项 |
+| 优化器包装接口废除 | set_wrapped_optimizer接口废除， optimizer传入由set_monitor主调完成 |
 
 ## 详细配置
 
@@ -716,19 +698,19 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 | "input"                 | 可选     | "tuple[2]:0"的意思是目标module的前向input参数为长度为2的tuple， 我们关心的是tuple第0个元素。                                                                                                                                                                                                                                                                                                                |
 | "output"                | 必选     | "tensor"的意思是目标module的前向output参数类型为tensor                                                                                                                                                                                                                                                                                                                                        |
 | "input_grad"            | 可选     | "tuple[2]:0"的意思是目标module的后向input_grad参数是长度为2的tuple， 我们关心的是tuple的第0个元素。                                                                                                                                                                                                                                                                                                          |
-| "output_grad"           | 必选     | "tuple[1]:0"的意思是目标module的后向input_grad参数是长度为1的tuple， 我们关心的是tuple的第0个元素。                                                                                                                                                                                                                                                                                                          |
+| "output_grad"           | 必选     | "tuple[1]:0"的意思是目标module的后向output_grad参数是长度为1的tuple， 我们关心的是tuple的第0个元素。                                                                                                                                                                                                                                                                                                        |
 | "dynamic_on"            | 可选     | 在动态启停时使用，true代表打开监测，false代表关闭监测，默认值为false，且达到collect_times之后会自动将该值置为false待下次改true重启。                                                                                                                                                                                                                                                                                            |
 | "collect_times"         | 可选     | 设置采集次数，达到该次数后停止监测，默认值为100000000，目的是一直采集。                                                                                                                                                                                                                                                                                                                                        |
 | "start_step"            | 可选     | 设置开始采集step，模型训练达到start_step后开始监测采集，默认值为0，表示从step0开始监测采集。注：在动态启停模式下该设置不生效，只会从下一步开始监测采集。                                                                                                                                                                                                                                                                                          |
 | "step_interval"         | 可选     | 设置采集step间隔，默认值为1，表示每个step均采集监测数据。                                                                                                                                                                                                                                                                                                                                               |
 | "print_struct"          | 可选     | 设置为true后监测工具会打印每张卡模型中module的名字和详细结构，并在第1个step后退出。不填默认为false。                                                                                                                                                                                                                                                                                                                    |
 | "module_ranks"          | 可选     | 用于在分布式训练场景中希望控制在哪些rank开启module监测。如果不填，则默认在所有rank开启。 列表内rank要求为int类型。                                                                                                                                                                                                                                                                                                            |
-| "ur_distribution"       | 可选     | 若为true则会统计adam优化器指定模块（targets中指定）参数的update和ratio向量的数值分布，并展示在heatmap里，默认为false，同时format字段必须设置为tensorboard。<br/>依赖histc算子， 需要CANN8.0.rc2以上版本， 否则会有严重的性能问题。**仅PyTorch场景支持此参数**。                                                                                                                                                                                                    |
+| "ur_distribution"       | 可选     | 若为true则会统计adam优化器指定模块（targets中指定）参数的update和ratio向量的数值分布，并展示在heatmap里，同时format字段必须设置为tensorboard。默认为false。<br/>依赖histc算子， 需要CANN8.0.rc2以上版本， 否则会有严重的性能问题。**仅PyTorch场景支持此参数**。                                                                                                                                                                                         |
 | "xy_distribution"       | 可选     | 若为true则会监测指定module（targets中指定）的输入输出张量。 默认为false。                                                                                                                                                                                                                                                                                                                                |
 | "all_xy"                | 可选     | 开启xy_distribution后生效，若为true，监测所有module。默认为false。<br/>与targets同时生效，all_xy配置为true时，若targets配置module_xx和指定对象，则module_xx按targets配置生效，其他module则监测全部对象，包含input、output、input_grad、output_grad。                                                                                                                                                                                         |
 | "forward_only"          | 可选     | 开启xy_distribution后生效，若为true，仅监测指定module的前向，targets中的input_grad、output_grad不生效。默认为false。                                                                                                                                                                                                                                                                                         |
 | "backward_only"         | 可选     | 开启xy_distribution后生效，若为true，仅监测指定module的反向，targets中的input、output不生效。默认为false。                                                                                                                                                                                                                                                                                                   |
-| "mv_distribution"       | 可选     | 若为true则会监测指定模块中的参数的优化器状态， 默认为false。版本<msprobe1.2.2时需要在TrainerMon构造函数正确指定opt_ty。                                                                                                                                                                                                                                                                                                 |
+| "mv_distribution"       | 可选     | 若为true则会监测指定模块中的参数的优化器状态， 默认为false。                                                                                                                                                                                                                                                                                                 |
 | "wg_distribution"       | 可选     | 若为true则会监测指定模块的参数梯度， 默认为false。                                                                                                                                                                                                                                                                                                                                                  |
 | "monitor_mbs_grad" | 可选     | 若为true则会监测mbs粒度梯度统计量，默认为false。                                                                                                                                                                                                                                                                                                                                                  |
 | "param_distribution"    | 可选     | 若为true则会监测指定模块的参数， 默认为false。                                                                                                                                                                                                                                                                                                                                                    |
@@ -741,4 +723,4 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 | "ndigits"               | 可选     | "format"为"csv"时，设置落盘文件中的小数位数，默认为6。                                                                                                                                                                                                                                                                                                                                              |
 | "step_count_per_record" | 可选     | "format"为"csv"时生效，每个csv记录多少个step的数据，默认为1。                                                                                                                                                                                                                                                                                                                                       |
 | "append_output"         | 可选     | 适用于断点续训场景。多卡场景下生效，指定两个时间戳，将输出续写到这两个时间戳范围间的输出件中，不在范围内的rank不被续写。时间戳应来自原有输出件目录前缀，例如["Dec03_21-34-40", "Dec03_21-34-41"]。默认为[]，不续写。**仅PyTorch场景支持此参数**。                                                                                                                                                                                                                             |
-| "squash_name"           | 可选     | 是否简化参数名/模块名，多模态场景建议关闭，默False。                                                                                                                                                                                                                                                                                                                                                   |
+| "squash_name"           | 可选     | 是否简化参数名/模块名，多模态场景建议关闭，默认为False。                                                                                                                                                                                                                                                                                                                                              |
