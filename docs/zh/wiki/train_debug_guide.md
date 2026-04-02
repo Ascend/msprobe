@@ -1002,7 +1002,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
     可视化命令为：
 
     ```bash
-    msprobe graph_visualize -tp ./target_path -o ./output_path
+    msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path
     ```
 
     在输出目录中可以看到生成的vis后缀文件，用tensorboard打开可视化界面：  
