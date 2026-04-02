@@ -29,7 +29,7 @@ export MS_ASCEND_CHECK_OVERFLOW_MODE="INFNAN_MODE"
 
 **约束**
 
-仅支持PMindSpore框架。
+仅支持MindSpore框架。
 
 ## 示例代码
 

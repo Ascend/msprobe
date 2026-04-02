@@ -392,7 +392,7 @@ pip install ./mindstudio_probe*.whl
     | -tp或--target_path | 必选 | 指定待比对数据路径，必须指定到执行轮次级目录。 |
     | -o或--output_path  | 可选 | 指定比对结果输出路径，默认为当前工作目录下的output目录（工具会自动创建）。 |
 
-详细的dump、比对功能使用介绍请参见《[ATB场景精度数据采集指南](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/dump/atb_data_dump_instruct.md)》、《[ATB场景精度数据比对指南](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/accuracy_compare/atb_data_compare_instruct.md)》。
+详细的dump、比对功能使用介绍请参见《[ATB场景精度数据采集指南](../dump/atb_data_dump_instruct.md)》、《[ATB场景精度数据比对指南](../accuracy_compare/atb_data_compare_instruct.md)》。
 
 #### 4.1.2.3 定位流程
 

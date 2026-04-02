@@ -103,7 +103,7 @@
 +            if "responses" in data.batch:
 +                responses_len = data.batch["responses"].size(1)
 +                data.batch["input_ids"] = data.batch["input_ids"][:, :-responses_len]
-+               data.batch["attention_mask"] = data.batch["attention_mask"][:, :-responses_len]
++                data.batch["attention_mask"] = data.batch["attention_mask"][:, :-responses_len]
 +                if data.batch["position_ids"].dim() == 3:
 +                    data.batch["position_ids"] = data.batch["position_ids"][:, :, :-responses_len]
 +                else:

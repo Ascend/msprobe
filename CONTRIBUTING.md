@@ -82,7 +82,7 @@
 ```bash
 # Python单元测试
 cd test/msprobe_test
-bash run_text.sh
+bash run_test.sh
 ```
 
 #### 添加测试

@@ -220,7 +220,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
     - 使用[分级可视化工具](#44-分级可视化工具)做画图比对，结合精度筛选功能（颜色深到浅）+首个精度出现差异的节点来进行排查分析。
     - 也可使用[精度比对工具](#45-精度比对工具)做表格比对，通过分析输入输出精度差异来进行排查分析。
 
-3. 若没有定界到可疑算子，建议使用[精度预检工具](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/accuracy_checker/pytorch_accuracy_checker_instruct.md)进行辅助排查。
+3. 若没有定界到可疑算子，建议使用[精度预检工具](../accuracy_checker/pytorch_accuracy_checker_instruct.md)进行辅助排查。
 
 #### 2.3.1.3 长稳训练Loss差异
 
@@ -405,7 +405,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 **数据采集：**
 
 - 对于`vLLM-Ascend`框架的推理数据采集参考[vLLM-Ascend精度数据采集](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/msprobe_guide.html)。
-- 对于`SGlang`框架的推理数据采集参考[SGlang精度数据采集](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/dump/sglang_eager_dump_instruct.md)。
+- 对于`SGlang`框架的推理数据采集参考[SGlang精度数据采集](../dump/sglang_eager_dump_instruct.md)。
 
 注意在使用[精度采集工具](#43-精度采集工具)时采集配置需指定`level`为`mix`或`L0`，即需至少包含`Module`级别数据，保证后续可做逐层比对。基础配置config.json样例如下：
 
@@ -495,7 +495,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 - 同框架训练（如`Megatron + MindSpeed` vs `Megatron`）  
     - 小规模训练，可直接参考[首Step Loss差异章节](#2312-首step-loss差异)进行数据分析。
-    - 大规模训练，如卡数较多、模型较大的，建议结合[趋势可视化工具](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/accuracy_compare/trend_visualization_instruct.md)进行分析。
+    - 大规模训练，如卡数较多、模型较大的，建议结合[趋势可视化工具](../accuracy_compare/trend_visualization_instruct.md)进行分析。
 - 跨框架训练（如`Megatron` vs `FSDP`）  
  数据采集后NPU会与标杆存在大量的层级名称/结构差异，建议优先使用[分级可视化工具](#44-分级可视化工具)结合`点点匹配`功能进行比对。
 
@@ -1211,7 +1211,7 @@ GPU上运行结果：
 
 ## 4.1 工具安装
 
-msprobe工具包安装请参考[msProbe工具安装指南](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/msprobe_install_guide.md)
+msprobe工具包安装请参考[msProbe工具安装指南](../msprobe_install_guide.md)
 
 ## 4.2 工具概述
 

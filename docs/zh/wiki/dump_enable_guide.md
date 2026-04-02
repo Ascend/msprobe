@@ -8,7 +8,7 @@
 
 ### 工具资料说明
 
-- **文档地址**: [Data Dump for PyTorch](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/dump/pytorch_data_dump_instruct.md)
+- **文档地址**: [Data Dump for PyTorch](../dump/pytorch_data_dump_instruct.md)
 
 ### 工具添加位置查找方法
 
