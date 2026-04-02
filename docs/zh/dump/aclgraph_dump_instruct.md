@@ -44,7 +44,7 @@ class ToyModel(torch.nn.Module):
         return y
 
 if __name__ == "__main__":
-    model = ToyMode()
+    model = ToyModel()
     x = torch.randn(2, 8)
     x.to("npu:4")
     out = model(x)
