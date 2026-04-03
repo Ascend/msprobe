@@ -4,8 +4,8 @@
 
 ```text
 MindStudio-probe
-├── csrc                         # C/C++源码目录
-│   ├── CMakeList.txt            # C/C++编译总入口
+├── ccsrc                         # C/C++源码目录
+│   ├── CMakeLists.txt            # C/C++编译总入口
 │   ├── aclgraph_dump            # aclgraph_dump C/C++源码
 │   ├── adump                    # adump C/C++源码
 │   └── atb_probe                # atb_probe C/C++源码

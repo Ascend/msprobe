@@ -1,11 +1,13 @@
 # 配置文件介绍
 
 - 当调用**PrecisionDebugger**接口执行dump或其他操作时，需要使用[config.json](../../../python/msprobe/config.json)文件；当未指定config.json时，将使用默认配置。
-- msProbe成功安装后，config.json一般位于如下目录：
+- msProbe成功安装后，可根据msProbe的安装路径确认config.json文件的所在路径，可通过如下命令确认msProbe的安装路径：
 
-  ```ColdFusion
-  /home/xxx/miniconda3/envs/xxx/lib/python3.xx/site-packages/msprobe/
+  ```shell
+  pip show mindstudio-probe
   ```
+
+  假如msProbe的安装路径为：`/usr/local/lib/python3.11/site-packages`，则`config.json`文件位于：`/usr/local/lib/python3.11/site-packages/msprobe`路径下。
 
 ## 参数介绍
 

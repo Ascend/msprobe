@@ -21,7 +21,7 @@
 
 ## 前置操作
 
-要保证训练 forward 和推理 prefill 的 shape 一致，需要去掉训练输入中的 response，首先需要满足如下2个前提，并修改训练脚本：
+要保证训练 forward 和推理 prefill 的 shape 一致，需要去掉训练输入中的 response，首先需要满足如下前提，并修改训练脚本：
 
 1. 保证训练中的batch size维度未被拆分。
 

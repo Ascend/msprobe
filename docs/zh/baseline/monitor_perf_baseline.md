@@ -12,7 +12,7 @@ Torch：2.1.0
 
 CANN：8.0.RC2
 
-除上述环境信息外，被监测的模块数量和结构也会影响性能，因此本次选取典型网络进行测试，并且选取耗时稳定后的步数进行测试。工具输出键小，对内存无要求。
+除上述环境信息外，被监测的模块数量和结构也会影响性能，因此本次选取典型网络进行测试，并且选取耗时稳定后的步数进行测试。工具输出占用空间小，对内存无要求。
 
 ## 模型信息和性能基线
 
@@ -29,15 +29,15 @@ CANN：8.0.RC2
 ```json
 {  
     "targets": {  
-        "language_model.encoder.layers.0": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}，
-        "language_model.encoder.layers.1": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}，
-        "language_model.encoder.layers.2": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}，
-        "language_model.encoder.layers.3": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}，
-        "language_model.encoder.layers.4": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}，
-        "language_model.encoder.layers.5": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}，
-        "language_model.encoder.layers.6": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}，
-        "language_model.encoder.layers.7": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}，
-        "language_model.encoder.layers.8": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}，
+        "language_model.encoder.layers.0": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"},
+        "language_model.encoder.layers.1": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"},
+        "language_model.encoder.layers.2": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"},
+        "language_model.encoder.layers.3": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"},
+        "language_model.encoder.layers.4": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"},
+        "language_model.encoder.layers.5": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"},
+        "language_model.encoder.layers.6": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"},
+        "language_model.encoder.layers.7": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"},
+        "language_model.encoder.layers.8": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"},
         "language_model.encoder.layers.9": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}
     },
     "module_ranks": "0"
