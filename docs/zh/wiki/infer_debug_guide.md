@@ -380,7 +380,7 @@ pip install ./mindstudio_probe*.whl
 4. msProbe工具会自动采集ATB模型运行过程中的精度数据。在得到dump数据后，即可使用msProbe工具的比对功能，对dump数据进行比对分析，比对命令如下：
 
     ```bash
-    msprobe compare -m atb -gp <goldenDataPath> -tp <goldenDataPath> [-o <outputPath>]
+    msprobe compare -m atb -gp <goldenDataPath> -tp <targetDataPath> [-o <outputPath>]
     ```
 
     **比对命令参数说明**
