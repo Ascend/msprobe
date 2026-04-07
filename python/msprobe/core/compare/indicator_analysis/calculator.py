@@ -184,5 +184,5 @@ def calculate_result(result, mode, parallel_merge=False):
     Return:
         精度比对指标（pass/warning/error）
     """
-    calculator = ApiIndicatorCalculator(mode, parallel_merge)
+    calculator = ApiIndicatorCalculator(mode, '', parallel_merge=parallel_merge)
     return calculator.calculate(result)
