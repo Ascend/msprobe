@@ -110,6 +110,12 @@ class TensorHandler:
             return torch._C._functorch.is_batchedtensor(tensor)
         return False
 
+    @staticmethod
+    def is_gradtrackingtensor(tensor):
+        if hasattr(torch._C, "_functorch") and hasattr(torch._C._functorch, "is_gradtrackingtensor"):
+            return torch._C._functorch.is_gradtrackingtensor(tensor)
+        return False
+
     def is_dtensor(self, tensor):
         return self.has_dtensor and isinstance(tensor, dist.tensor.DTensor)
 
@@ -157,6 +163,8 @@ class TensorHandler:
             return Const.NESTED_TENSOR_TYPE
         if self.is_batchedtensor(tensor):
             return Const.BATCHED_TENSOR_TYPE
+        if self.is_gradtrackingtensor(tensor):
+            return Const.GRADTRACKING_TENSOR_TYPE
         return Const.TENSOR_TYPE
 
     def get_dtensor_info(self, tensor):
@@ -182,6 +190,8 @@ class TensorHandler:
 
     def save_tensor(self, tensor, file_path):
         common_tensor = self.convert_common_tensor(tensor)
+        if self.is_gradtrackingtensor(common_tensor):
+            common_tensor = torch._C._functorch.get_unwrapped(common_tensor)
         if self.is_empty_data(common_tensor):
             logger.debug(f"Saving fake tensor or meta tensor is not supported, the current tensor is {file_path}.")
             return
@@ -189,6 +199,8 @@ class TensorHandler:
             logger.debug(f"Saving null-pointer tensor is not supported, the current tensor is {file_path}.")
             return
         saved_tensor = common_tensor.clone().contiguous().detach()
+        if self.is_gradtrackingtensor(saved_tensor):
+            saved_tensor = torch._C._functorch.get_unwrapped(saved_tensor)
         save_pt(saved_tensor, file_path)
         self.free_tensor(saved_tensor, file_path)
 
@@ -238,6 +250,8 @@ class PytorchDataProcessor(BaseDataProcessor):
 
     @staticmethod
     def get_md5_for_tensor(x):
+        if TensorHandler.is_gradtrackingtensor(x):
+            x = torch._C._functorch.get_unwrapped(x)
         if x.dtype == torch.bfloat16:
             x = x.float()
         tensor_bytes = x.cpu().detach().numpy().tobytes()
@@ -294,6 +308,9 @@ class PytorchDataProcessor(BaseDataProcessor):
         :
         - "raw": 保持 bfloat16 原始 16bit 字节（推荐，避免升精/增容）
         """
+
+        if TensorHandler.is_gradtrackingtensor(t):
+            t = torch._C._functorch.get_unwrapped(t)
 
         # 取得字节视图（含多级回退），然后做 CRC
         mv = PytorchDataProcessor.tensor_bytes_view_cpu(t)
@@ -405,7 +422,10 @@ class PytorchDataProcessor(BaseDataProcessor):
         tensor_stat = TensorStatInfo()
         if self.tensor_handler.is_empty_data(data):
             return tensor_stat
+
         data_clone = data.detach()
+        if self.tensor_handler.is_gradtrackingtensor(data_clone):
+            data_clone = torch._C._functorch.get_unwrapped(data_clone)
         if not data_clone.numel() or not data_clone.data_ptr():
             return tensor_stat
 
@@ -546,6 +566,8 @@ class PytorchDataProcessor(BaseDataProcessor):
         dump_data_name, file_path = self.get_save_file_path(suffix)
         single_arg = PytorchDataProcessor._analyze_tensor(self, tensor, suffix)
         common_tensor = self.tensor_handler.convert_common_tensor(tensor)
+        if self.tensor_handler.is_gradtrackingtensor(common_tensor):
+            common_tensor = torch._C._functorch.get_unwrapped(common_tensor)
         if self.tensor_handler.is_empty_data(common_tensor):
             logger.debug(f"Saving fake tensor or meta tensor is not supported, the current tensor is {file_path}.")
             return single_arg
