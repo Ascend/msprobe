@@ -5,7 +5,7 @@
 使用msProbe工具前，要求已存在可执行的用户AI应用，其中要求昇腾环境：
 
 - 可正常运行用户AI应用，详细设备型号请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
-- 已安装配套版本的CANN Toolkit开发套件包和算子包并配置环境变量，详情请参见《[CANN 软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=local&OS=openEuler)》。
+- 已安装配套版本的CANN Toolkit开发套件包和算子包并配置环境变量，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
 
 ## 安装说明
 

@@ -13,8 +13,7 @@
 
 **约束**
 
-- 支持Caffe、ONNX、TensorFlow和om模型的离线dump数据。
-- 仅msProbe 8.5.0及之后的版本支持本功能。
+支持Caffe、ONNX、TensorFlow和om模型的离线dump数据。
 
 ## 离线模型dump数据精度比对
 

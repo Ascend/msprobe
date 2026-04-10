@@ -34,7 +34,6 @@
 - monitor数据场景（输出格式`format`指定为`csv`）
   - 详细采集方式请参见《[Monitor训练状态轻量化监测工具](../monitor_instruct.md)》。
   
-
 **约束**
 
 - 支持PyTorch框架和MindSpore框架。
