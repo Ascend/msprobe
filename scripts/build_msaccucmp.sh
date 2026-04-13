@@ -19,7 +19,7 @@ fi
 
 function patch_makeself() {
     cd ${OPENSOURCE_DIR}
-    git clone https://gitcode.com/cann-src-third-party/makeself.git
+    git clone -b v2.5.0.x https://gitcode.com/cann-src-third-party/makeself.git
     cd ${OPENSOURCE_DIR}/makeself
     tar -zxf makeself-release-2.5.0.tar.gz
     cd makeself-release-2.5.0
