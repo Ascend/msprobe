@@ -6,6 +6,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+change_flag='n'  
 
 # 打印彩色信息
 info() {
@@ -23,7 +24,6 @@ error() {
 # 验证安装目录
 validate_install_dir() {
     local base_dir="$1"
-        
     # 检查目录是否存在
     if [[ ! -d "$base_dir" ]]; then
         error "Specified directory does not exist: $base_dir"
@@ -39,7 +39,12 @@ validate_install_dir() {
     if [[ ! -d "$INSTALL_MODULE_DIR" ]]; then
         return 2  # 返回2表示目录不存在，需要跳过
     fi
-    
+
+    if [[ ! -w "$(dirname "$INSTALL_MODULE_DIR")" ]]; then
+        chmod +w "$(dirname "$INSTALL_MODULE_DIR")"
+        change_flag='y'
+    fi
+
     return 0
 }
 
@@ -60,7 +65,14 @@ perform_uninstall() {
     info "Install path: $INSTALL_MODULE_DIR"
     
     # 删除目录
-    if rm -rf "$INSTALL_MODULE_DIR"; then
+    rm -rf "$INSTALL_MODULE_DIR"
+    rc=$?
+
+    if [ "$change_flag" = "y" ]; then
+        chmod -w "$(dirname "$INSTALL_MODULE_DIR")"
+    fi
+
+    if [ $rc -eq 0 ]; then
         info "mindstudio-accucmp has been successfully removed"
         return 0
     else
