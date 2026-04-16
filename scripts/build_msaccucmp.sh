@@ -9,14 +9,6 @@ OPENSOURCE_DIR=${TOP_DIR}/opensource
 
 THIRDPARTY_LIST="${OPENSOURCE_DIR}/makeself"
 
-if [ -n "$1" ]; then
-    if [ "$1" == "force" ]; then
-        echo "force delete origin opensource files"
-        echo ${THIRDPARTY_LIST}
-        rm -rf ${THIRDPARTY_LIST}
-    fi
-fi
-
 function patch_makeself() {
     cd ${OPENSOURCE_DIR}
     git clone -b v2.5.0.x https://gitcode.com/cann-src-third-party/makeself.git
@@ -69,14 +61,44 @@ CMP_RUN_NAME="mindstudio-accucmp"
 PKG_LIMIT_SIZE=524288000 # 500M
 
 function parse_script_args() {
+    local usage="Usage: $0 --build_version <version>  (or: --build_version=<version>)"
+    version=""
+
+    # 不传参数：保持现有逻辑不变（从version.info读取Version=）
+    if [ $# -eq 0 ]; then
+        return 0
+    fi
+
+    # 只允许传入 --build_version
     if [ $# -gt 2 ]; then
-        echo "[ERROR] Too many arguments. Only one or two arguments are allowed."
+        echo "[ERROR] Too many arguments."
+        echo "${usage}"
         exit 1
-    elif [ $# -eq 2 ]; then
-        VERSION="$1"
-        BUILD_MODE="$2"
-    elif [ $# -eq 1 ]; then
-        VERSION="$1"
+    fi
+
+    case "$1" in
+    --build_version=*)
+        version="${1#*=}"
+        ;;
+    --build_version)
+        if [ $# -ne 2 ]; then
+            echo "[ERROR] --build_version requires a value."
+            echo "${usage}"
+            exit 1
+        fi
+        version="$2"
+        ;;
+    *)
+        echo "[ERROR] Unsupported argument: $1"
+        echo "${usage}"
+        exit 1
+        ;;
+    esac
+
+    if [ -z "${version}" ]; then
+        echo "[ERROR] Invalid --build_version value."
+        echo "${usage}"
+        exit 1
     fi
 }
 
@@ -111,12 +133,27 @@ function get_package_name() {
 
     CONFIG_FILE="${CUR_DIR}/run_script/version.info"
     NAME=$(grep -E '^Name=' "$CONFIG_FILE" | cut -d'=' -f2)
-    # 如果VERSION未通过参数设置，则从配置文件读取
-    if [ -z "${VERSION}" ]; then
-        VERSION=$(grep -E '^Version=' "$CONFIG_FILE" | cut -d'=' -f2)
-    fi
+    VERSION=$(grep -E '^Version=' "$CONFIG_FILE" | cut -d'=' -f2)
     local os_arch=$(arch)
     echo "${NAME}_${VERSION}_linux_${os_arch}.run"
+}
+
+function update_version_info() {
+    # 未传入 --build_version 时不改写文件
+    if [ -z "${version}" ]; then
+        return 0
+    fi
+    local config_file="${CUR_DIR}/run_script/version.info"
+    if [ ! -f "${config_file}" ]; then
+        echo "[ERROR] version.info not found: ${config_file}"
+        exit 1
+    fi
+    # 更新 Version= 行；如果不存在则追加
+    if grep -qE '^Version=' "${config_file}"; then
+        sed -i -E "s/^Version=.*/Version=${version}/" "${config_file}"
+    else
+        echo "Version=${version}" >> "${config_file}"
+    fi
 }
 
 function create_run_package() {
@@ -174,6 +211,7 @@ function check_package() {
 }
 
 function main() {
+	update_version_info
 	create_temp_dir ${CMP_TEMP_DIR}
 	check_file_exist ${CMP_TEMP_DIR}
 	create_run_package ${CMP_RUN_NAME} ${CMP_TEMP_DIR} ${main_script}
