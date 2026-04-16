@@ -4,7 +4,7 @@
 
 **问题现象**
 
-在模型训练场景下，使用seed_all接口同时固定随机性和打开计算，通信确定性计算，能够保证模型执行两次得到的loss和gnorm结果完全一样。如果出现使能工具后loss或者gnorm出现偏差，可能是以下原因导致。
+在模型训练场景下，使用seed_all接口同时固定随机性和开启计算，通信确定性计算，能够保证模型执行两次得到的loss和gnorm结果完全一样。如果出现使能工具后loss或者gnorm出现偏差，可能是以下原因导致。
 
 **原因分析**
 
@@ -18,7 +18,7 @@ ASCEND_LAUNCH_BLOCKING是一个环境变量，用于控制在PyTorch训练或在
 
 通过Hook机制改变计算结果：
 
-PyTorch或MindSpore的hook机制会导致某些特殊场景下梯度计算的累加序产生变化，从而影响模型反向计算的gnorm结果。具体代码示例如下：
+PyTorch或MindSpore的hook机制会导致某些特殊场景下梯度计算的累加顺序产生变化，从而影响模型反向计算的gnorm结果。具体代码示例如下：
 
 ```python
 import random, os
@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
 ```
 
-执行一遍以上脚本，可以打印得到模型中各层的权重梯度，注释model.net2.register_full_backward_hook(my_backward_hook)后再执行一次，可以看出bn层的权重梯度已经发生了变化。
+执行一遍以上脚本，可以打印得到模型中各层的权重梯度，注释掉model.net2.register_full_backward_hook(my_backward_hook)后再执行一次，可以看出bn层的权重梯度已经发生了变化。
 
 **如果在L0，mix级别采集出现gnorm发生变化，可以尝试将采集级别改为L1，若L1级别gnorm不发生变化，则大概率是hook机制导致的梯度计算结果变化。**
 

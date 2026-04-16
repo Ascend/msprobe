@@ -39,4 +39,4 @@ export MS_ASCEND_CHECK_OVERFLOW_MODE="INFNAN_MODE"
 
 溢出检测结果文件目录结构与含义与数据采集任务一致，但仅保存溢出 API 或 kernel 的真实数据或统计信息。详见MindSpore场景精度数据采集中的[dump结果文件介绍](../dump/mindspore_data_dump_instruct.md#dump结果文件说明)章节。
 
-**说明**：在静态图 O2 编译等级下，若 MindSpore 版本为 2.4，或者 MindSpore 版本为 2.5，且未使用编包时添加了`--include-mod=adump`选项的 mindstudio-probe whl 包，则会产生 kernel_graph_overflow_check.json 中间文件，一般情况下无需关注。
+**说明**：在静态图 O2 编译等级下，若 MindSpore 版本为 2.4，或者 MindSpore 版本为 2.5，且msProbe安装时使用的whl包在编译时未配置`--include-mod=adump`选项，则会产生 kernel_graph_overflow_check.json 中间文件，一般情况下无需关注。

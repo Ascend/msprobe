@@ -22,10 +22,10 @@
 │   │   │                   ├-- Add.11.4.1682148323212422
 │   │   │                   ├-- ...
 │   │   │                   └-- Transpose.4.1682148327390978
-│   │   ├-- {time_stamp}
+│   │   ├-- {timestamp}
 │   │   │   ├-- output_0.bin
 │   │   │   └-- output_0.npy
-│   │   └-- {time_stamp}_summary.json
+│   │   └-- {timestamp}_summary.json
 │   └-- {onnx}        # 原模型dump数据存放路径，onnx分别对应ONNX模型
 │       ├-- Add_100.0.1682148256368588.npy
 │       ├-- input_Add_100.0.1682148256368588.npy  # 如果是ONNX模型，则会dump输入数据，并增加对应的input前缀
@@ -59,20 +59,20 @@
  - [x] [IsNpuOps]：用于过滤是否为npu独有节点。
  - [x] [IsOutputNode]：用于过滤是否为模型的整网输出节点。
  - [x] [IsPrecisionError]：用于过滤是否为精度异常的节点。
- - [x] [CosineSimilarity][RelativeEuclideanDistance]...[MeanRelativeError]：这是各类误差比对类型结果，主要需要看是否某一项超过精度阈值(即某项异常)，若超过则需要重点关注。各对比算法说明如下：
+ - [x] [CosineSimilarity][RelativeEuclideanDistance]...[MeanRelativeError]：这是各类误差比对类型结果，主要需要看是否某一项超过精度阈值（即某项异常），若超过则需要重点关注。各对比算法说明如下：
 
-  |                  误差比对类型名称 |  说明 |
-  |:------------------------|:---------|
-  |CosineSimilarity         |进行余弦相似度算法比对出来的结果。取值范围为[-1,1]，比对的结果如果越接近1，表示两者的值越相近，越接近-1意味着两者的值越相反。|
-  |MaxAbsoluteError|进行最大绝对误差算法比对出来的结果。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
-  |AccumulatedRelativeError|进行累积相对误差算法比对出来的结果。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
-  |RelativeEuclideanDistance|进行欧氏相对距离算法比对出来的结果。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
-  |KullbackLeiblerDivergence|进行KL散度算法比对出来的结果。取值范围为[0, +∞)。KL散度越小，真实分布与近似分布之间的匹配越好。|
-  |StandardDeviation|进行标准差算法比对出来的结果。取值范围为[0, +∞)。标准差越小，离散度越小，表明越接近平均值。该列显示My Output和Ground Truth两组数据的均值和标准差，第一组展示My Output模型dump数据的数值(均值;标准差)，第二组展示Ground Truth模型dump数据的数值(均值;标准差)。|
-  |MeanAbsoluteError|表示平均绝对误差。取值范围为[0, +∞)，MeanAbsoluteError趋于0，RootMeanSquareError趋于0，说明测量值与真实值越近似；MeanAbsoluteError趋于0，RootMeanSquareError越大，说明存在局部过大的异常值；MeanAbsoluteError越大，RootMeanSquareError等于或近似MeanAbsoluteError，说明整体偏差越集中；MeanAbsoluteError越大，RootMeanSquareError越大于MeanAbsoluteError，说明存在整体偏差，且整体偏差分布分散；不存在以上情况的例外情况，因为RMSE(RootMeanSquareError) ≥ MAE(MeanAbsoluteError)恒成立。|
-  |RootMeanSquareError|表示均方根误差。取值范围为[0, +∞)，MeanAbsoluteError趋于0，RootMeanSquareError趋于0，说明测量值与真实值越近似；MeanAbsoluteError趋于0，RootMeanSquareError越大，说明存在局部过大的异常值；MeanAbsoluteError越大，RootMeanSquareError等于或近似MeanAbsoluteError，说明整体偏差越集中；MeanAbsoluteError越大，RootMeanSquareError越大于MeanAbsoluteError，说明存在整体偏差，且整体偏差分布分散；不存在以上情况的例外情况，因为RMSE(RootMeanSquareError) ≥ MAE(MeanAbsoluteError)恒成立。|
-  |MaxRelativeError|表示最大相对误差。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
-  |MeanRelativeError|表示平均相对误差。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
+|                  误差比对类型名称 |  说明 |
+|:------------------------|:---------|
+|CosineSimilarity         |进行余弦相似度算法比对出来的结果。取值范围为[-1,1]，比对的结果如果越接近1，表示两者的值越相近，越接近-1意味着两者的值越相反。|
+|MaxAbsoluteError|进行最大绝对误差算法比对出来的结果。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
+|AccumulatedRelativeError|进行累积相对误差算法比对出来的结果。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
+|RelativeEuclideanDistance|进行欧氏相对距离算法比对出来的结果。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
+|KullbackLeiblerDivergence|进行KL散度算法比对出来的结果。取值范围为[0, +∞)。KL散度越小，真实分布与近似分布之间的匹配越好。|
+|StandardDeviation|进行标准差算法比对出来的结果。取值范围为[0, +∞)。标准差越小，离散度越小，表明越接近平均值。该列显示My Output和Ground Truth两组数据的均值和标准差，第一组展示My Output模型dump数据的数值（均值;标准差），第二组展示Ground Truth模型dump数据的数值（均值;标准差）。|
+|MeanAbsoluteError|表示平均绝对误差。取值范围为[0, +∞)，MeanAbsoluteError趋于0，RootMeanSquareError趋于0，说明测量值与真实值越近似；MeanAbsoluteError趋于0，RootMeanSquareError越大，说明存在局部过大的异常值；MeanAbsoluteError越大，RootMeanSquareError等于或近似MeanAbsoluteError，说明整体偏差越集中；MeanAbsoluteError越大，RootMeanSquareError越大于MeanAbsoluteError，说明存在整体偏差，且整体偏差分布分散；不存在以上情况的例外情况，因为RMSE（RootMeanSquareError） ≥ MAE（MeanAbsoluteError）恒成立。|
+|RootMeanSquareError|表示均方根误差。取值范围为[0, +∞)，MeanAbsoluteError趋于0，RootMeanSquareError趋于0，说明测量值与真实值越近似；MeanAbsoluteError趋于0，RootMeanSquareError越大，说明存在局部过大的异常值；MeanAbsoluteError越大，RootMeanSquareError等于或近似MeanAbsoluteError，说明整体偏差越集中；MeanAbsoluteError越大，RootMeanSquareError越大于MeanAbsoluteError，说明存在整体偏差，且整体偏差分布分散；不存在以上情况的例外情况，因为RMSE（RootMeanSquareError） ≥ MAE（MeanAbsoluteError）恒成立。|
+|MaxRelativeError|表示最大相对误差。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
+|MeanRelativeError|表示平均相对误差。取值范围为[0, +∞)，值越接近于0，表明越相近，值越大，表明差距越大。|
 
 ## 比对结果分析
 

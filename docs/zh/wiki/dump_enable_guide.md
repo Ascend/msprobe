@@ -12,7 +12,7 @@
 
 ### 工具添加位置查找方法
 
-想要找该在哪加工具的时候，我们可以任意打印一个API的调用栈信息出来看，从调用栈里找应该在哪加工具。
+想要找该在哪添加工具的时候，我们可以任意打印一个API的调用栈信息出来看，从调用栈里可以看出工具的添加位置。
 
 比如打印linear的调用栈代码有以下两种方式：
 
@@ -27,21 +27,21 @@ import torch
 import torch.nn.functional as F
 import traceback
 
-#  保存原始函数
+# 保存原始函数
 original_linear = F.linear
 
-#  替换functional中的linear，使用*args和**kwargs适配所有参数
+# 替换functional中的linear，使用*args和**kwargs适配所有参数
 def custom_linear(*args, **kwargs):
-    print("="*50)
-    print("调用F.linear，调用栈如下:")
-    traceback.print_stack()
-    #  将接收的参数原封不动地传给原始函数
-    return original_linear(*args, **kwargs)
+    print("="*50)
+    print("调用F.linear，调用栈如下:")
+    traceback.print_stack()
+    # 将接收的参数原封不动地传给原始函数
+    return original_linear(*args, **kwargs)
 
 F.linear = custom_linear
 ```
 
-**说明**: 有了调用栈之后就很好找工具的添加位置了。
+**说明**：有了调用栈之后就很好找工具的添加位置了。
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/0889ef2c-af39-494f-b302-c87f297eefb6/image.png 'image.png')
 
@@ -72,7 +72,7 @@ F.linear = custom_linear
 使能确定性的位置：  
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7c9eb36a-096a-42e4-8120-e44075978cb6/image.png 'image.png')
 
-generate_sequencesces  
+generate_sequences  
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a86b2a58-59f9-4abd-838d-274f4bb65653/image.png 'image.png')  
 以上使能方式只针对vllm eager模式后端或配置不同使能方式可能会变
 

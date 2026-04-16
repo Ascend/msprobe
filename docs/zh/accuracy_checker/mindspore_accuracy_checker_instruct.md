@@ -122,7 +122,7 @@ msprobe acc_check -api_info <dump_json_path> [-o <out_path>] [-csv_path <result_
 | -api_info或--api_info_file | 必选    | 指定API信息文件dump.json，str类型。对其中的Mint API以及部分Tensor API进行预检，预检支持的Tensor API列表详见[预检支持列表](../../../python/msprobe/mindspore/api_accuracy_checker/checker_support_api.yaml)。 |
 | -o或--out_path    | 可选    | 指定预检结果存盘路径，str类型，默认“./”。                                                                                                                                             |
 | -csv_path或--result_csv_path | 可选    | 指定本次运行中断时生成的`accuracy_checking_result_{timestamp}.csv`文件路径，执行acc_check中断时，若想从中断处继续执行，配置此参数即可，str类型。需要指定为上次中断的`accuracy_checking_result_{timestamp}.csv`文件。详见[断点续检](#断点续检)。 |
-| -save_error_data              | 可选    | 保存(随机数据模式)精度未达标的API输入输出数据。                                                                                                                                           |
+| -save_error_data              | 可选    | 保存（随机数据模式）精度未达标的API输入输出数据。                                                                                                                                           |
 
 **示例1：执行预检**
 
@@ -172,7 +172,7 @@ msprobe multi_acc_check -api_info <dump_json_path> [-d device_list] [-o out_path
 | -o或--out_path             | 指定预检结果存盘路径，默认“./”。                                                                                                                                            | str       | 否      |
 | -csv_path或--result_csv_path | 指定本次运行中断时生成的`accuracy_checking_result_{timestamp}.csv`文件路径，执行acc_check中断时，若想从中断处继续执行，配置此参数即可。需要指定为上次中断的`accuracy_checking_result_{timestamp}.csv`文件。详见[断点续检](#断点续检)。 | str       | 否      |
 | -d或--device               | 指定DeviceID，选择acc_check代码运行所在的卡，默认值为0，支持同时指定0~Device数量-1，例如0 1 2 3 4。                                                                                          | List[int] | 否      |
-| -save_error_data          | 保存(随机数据模式)精度未达标的API输入输出数据。                                                                                                                                    | 空         | 否      |
+| -save_error_data          | 保存（随机数据模式）精度未达标的API输入输出数据。                                                                                                                                    | 空         | 否      |
 
 在不同卡数下，使用38B语言大模型的预检耗时基线参考[multi_acc_check耗时基线](../baseline/mindspore_accuracy_checker_perf_baseline.md)。
 

@@ -10,7 +10,7 @@
 
 **环境准备**
 
-安装msProbe工具，详情请参加《[msProbe安装指南](../msprobe_install_guide.md)》。<br>
+安装msProbe工具，具体请参见《[msProbe安装指南](../msprobe_install_guide.md)》。<br>
 比对OM模型依赖aisbench包和aclruntime包，用户使用前可通过以下命令安装这两个依赖包。<br>
 
  ```sh
@@ -64,7 +64,7 @@
 
 ### 输出说明
 
-比对完成则打屏提示信息msprobe compare ends successfully.
+比对完成则打印提示信息msprobe compare ends successfully.
 在配置的输出路径中，生成dump_data文件夹、 input文件夹、model文件夹和.csv后缀的文件，csv文件名称基于时间戳自动生成，格式为：result_{timestamp}.csv。
 
 ## 输出结果文件说明
@@ -85,10 +85,10 @@
 │   │   │                   ├-- Add.11.4.1682148323212422
 │   │   │                   ├-- ...
 │   │   │                   └-- Transpose.4.1682148327390978
-│   │   ├-- {time_stamp}
+│   │   ├-- {timestamp}
 │   │   │   ├-- output_0.bin
 │   │   │   └-- output_0.npy
-│   │   └-- {time_stamp}_summary.json
+│   │   └-- {timestamp}_summary.json
 │   └-- {onnx} # 原模型dump数据存放路径，onnx对应ONNX模型
 │       ├-- Add_100.0.1682148256368588.npy
 │       ├-- input_Add_100.0.1682148256368588.npy  # 如果是ONNX模型，则会dump输入数据，并增加对应的input前缀

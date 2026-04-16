@@ -512,9 +512,9 @@ tensorboard --logdir out_path --bind_all
 
 ![vis_dump_to_vis_result.png](../figures/visualization/vis_dump_to_vis_result.png)
 
-如果转换失败，页面将展示异常日志，可以尝试基于异常日志排查问题。如果无法解决问题，请在当前代码仓库“Issues”页面提issue求助。
+如果转换失败，页面将展示异常日志，可以尝试基于异常日志排查问题。如果无法解决问题，请在当前代码仓库“Issues”页面提交Issue求助。
 
-![vis_dump_to_vis_failed.png](../figures/visualization/vis_dump_to_vis_faild.png)
+![vis_dump_to_vis_failed.png](../figures/visualization/vis_dump_to_vis_failed.png)
 
 ## 图比对说明
 

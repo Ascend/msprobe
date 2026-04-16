@@ -2,7 +2,7 @@
 
 ## 使用场景
 
-同框架跨套件比对（例如PyTorch DeepSpeed vs Megatron），或者跨框架比对（例如PyTorch vs MindSpore），**由于代码实现的差异，导致一些模型层级和层级命名有所不同无法进行匹配**，需要进行layer层名称映射，才能够比对。
+同框架跨套件比对（例如PyTorch DeepSpeed vs Megatron），或者跨框架比对（例如PyTorch vs MindSpore），**由于代码实现的差异，导致一些模型层级和层级命名有所不同，无法进行匹配**，需要进行layer层名称映射，才能够比对。
 
 ## 模块命名说明
 
@@ -55,7 +55,7 @@
 
 ### 构建layer_mapping配置文件
 
-准备一个命名为mapping.yaml文件，建立**module_name**的映射关系
+准备一个命名为mapping.yaml的文件，建立**module_name**的映射关系
 
 #### 顶层模块映射
 
@@ -105,7 +105,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output -lm ./ma
 
 ![no_mapping1.png](../figures/visualization/no_mapping1.png)
 
-按前一章过程进行分析配置，分析可知，节点匹配关系如下：
+按前一节过程进行分析配置，分析可知，节点匹配关系如下：
 
 | NPU节点名称           | GPU节点名称                                                          | 差异                                          |
 |-------------------|------------------------------------------------------------------|---------------------------------------------|

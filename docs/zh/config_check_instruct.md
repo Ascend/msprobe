@@ -83,7 +83,7 @@ msprobe config_check -d [<*.sh> <*.yaml>] [-o <output_file_path>]
 
 - 传入shell脚本和yaml配置文件
 
-  ```Python
+  ```bash
   msprobe config_check -d train.sh config.yaml -o /xx/output_file_path/config_check_pack.zip
   ```
 

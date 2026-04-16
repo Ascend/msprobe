@@ -6,7 +6,7 @@ msProbe工具通过在训练脚本中添加`PrecisionDebugger`接口并启动训
 
 **功能特点**
 
-- **多粒度数据采集**：支持L0(模块级)、L1(API级)以及mix(L0+L1)的不同粒度的数据采集
+- **多粒度数据采集**：支持L0（模块级）、L1（API级）以及mix（L0+L1）的不同粒度的数据采集
 - **多种dump模式**：提供statistics、tensor、acc_check、structure、overflow_check等多种采集模式
 - **灵活的配置选项**：通过config.json文件可以精确控制采集范围
 
@@ -769,11 +769,15 @@ debugger.start(model=None, token_range=None, rank_id=None)
 **参数说明**
 
 - model：指定需要采集Module级数据的模型，支持传入torch.nn.Module、list[torch.nn.Module]或Tuple[torch.nn.Module]类型，默认未配置。
-  level配置为"L0"、"mix"或token_range不为None时，必须在该接口中配置该参数。对于复杂模型，如果仅需要监测一部分(
-  如model.A，model.A extends torch.nn.Module)，
-  传入需要监测的部分(如model.A)即可。注意：传入的当前层不会被dump，工具只会dump传入层的子层级。如传入了model.A，A本身不会被dump，而是会dump
-  A.x, A.x.xx等。
+
+  level配置为"L0"、"mix"或token_range不为None时，必须在该接口中配置该参数。
+
+  对于复杂模型，如果仅需要监测一部分（如model.A，model.A extends torch.nn.Module），传入需要监测的部分（如model.A）即可。
+
+  注意：传入的当前层不会被dump，工具只会dump传入层的子层级。如传入了model.A，A本身不会被dump，而是会dumpA.x, A.x.xx等。
+
 - token_range：指定推理模型采集时的token循环始末范围，支持传入[int, int]类型，代表[start, end]，范围包含边界，默认未配置。
+
 - rank_id: 指定自定义的rank ID，支持传入大于等于0的整数。默认未配置，则工具基于torch.distributed.get_rank接口获取rank ID；
   配置此参数后，dump的结果中，rank文件夹名称中的{ID}将使用该参数所配置的值。
 
@@ -950,21 +954,21 @@ step：指定的起始step数。
 
 **功能说明**
 
-注册用户自定义的api到工具用于API级数据dump。
+注册用户自定义的API到工具用于API级数据dump。
 
 **函数原型**
 
 ```Python
-debugger.register_custom_api(module, api_name, api_prefix)
+debugger.register_custom_api(module, api, api_prefix)
 ```
 
 **参数说明**
 
 以torch.matmul api为例
 
-- module：必选，api所属的包，即传入torch。
-- api_name：必选，api的名称，str类型，即传入"matmul"。
-- api_prefix：可选，[dump.json](#dumpjson文件说明)中api名的前缀，默认为包名的字符串格式, 即"torch"。
+- module：必选，API所属的包，即传入torch。
+- api：必选，API的名称，str类型，即传入"matmul"。
+- api_prefix：可选，[dump.json](#dumpjson文件说明)中API名的前缀，默认为包名的字符串格式, 即"torch"。
 
 **返回值说明**
 
@@ -979,7 +983,7 @@ debugger.register_custom_api(module, api_name, api_prefix)
 +seed_all()
 +debugger = PrecisionDebugger(config_path="./config.json")
 +# 假设自定义算子的调用方式是module_a.compute(args)，注册方式如下。
-+debugger.register_custom_api(module = module_a, api_name = "compute")
++debugger.register_custom_api(module = module_a, api = "compute")
 
  # 模型、损失函数的定义及初始化等操作
  # ...
@@ -1007,20 +1011,20 @@ debugger.register_custom_api(module, api_name, api_prefix)
 
 **功能说明**
 
-恢复用户原有的自定义的api，取消该API的dump。
+恢复用户原有的自定义的API，取消该API的dump。
 
 **函数原型**
 
 ```Python
-debugger.restore_custom_api(module, api_name)
+debugger.restore_custom_api(module, api)
 ```
 
 **参数说明**
 
 以torch.matmul api为例
 
-- module:：必选，api所属的包，即传入torch。
-- api_name：必选，api的名称，str类型，即传入"matmul"。
+- module:：必选，API所属的包，即传入torch。
+- api：必选，API的名称，str类型，即传入"matmul"。
 
 **返回值说明**
 

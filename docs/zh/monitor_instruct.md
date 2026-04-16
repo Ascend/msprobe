@@ -199,7 +199,7 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
 ```
 
 `targets`中指定module包含的所有权重都会被监测。`targets`为空时，默认监测全部module。
-设置`mv_distribution`为true表示开启优化监测功能（1st moment noted as `m`, 2nd moment noted as `v`），默认值为false。[什么是mv](https://arxiv.org/pdf/1412.6980)
+设置`mv_distribution`为true表示开启优化器状态监测功能（1st moment noted as `m`, 2nd moment noted as `v`），默认值为false。[什么是mv](https://arxiv.org/pdf/1412.6980)
 
 本工具针对分布式计算框架megatron和deepspeed框架做了适配，暂不支持其他框架。
 
@@ -351,7 +351,7 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 
 ### 异常告警
 
-工具的异常告警功能旨在自动判断训练过程中的异常现象，用户可通过在配置文件中配置alert字段来指定告警规则，并在训练过程中根据该规则及时打屏对用户发出告警。
+工具的异常告警功能旨在自动判断训练过程中的异常现象，用户可通过在配置文件中配置alert字段来指定告警规则，并在训练过程中根据该规则及时打印告警信息。
 
 **异常告警规则**
 
@@ -359,7 +359,7 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 
 | 异常告警         |解释| rule_name | args是否可选                                                            |
 |--------------|----|-----------|---------------------------------------------------------------------|
-| 历史均值偏离告警    |将当前数值与历史均值比较。如果相对偏差超过阈值，会在打屏信息中提示用户指标偏离。当前仅对`norm`和`mean`指标生效。| AnomalyTurbulence | 否，必须传入threshold。当指标超过`(1+threshold)*avg`时，识别为偏离历史均值。 |
+| 历史均值偏离告警    |将当前数值与历史均值比较。如果相对偏差超过阈值，会在打印信息中提示用户指标偏离。当前仅对`norm`和`mean`指标生效。| AnomalyTurbulence | 否，必须传入threshold。当指标超过`(1+threshold)*avg`时，识别为偏离历史均值。 |
 | nan值/极大值告警   |根据是否提供threshold来判断nan值或极大值| AnomalyNan  | 是， 若未配置args或未配置threshold，则默认检测nan，若提供threshold，则检测nan值以及绝对值超过阈值的极大值 |
 
 除此之外，我们在alert中支持dump配置项，如果打开"`dump`"选项，则会将异常信息落盘到目录`monitor_output/anomaly_detected`。
@@ -396,7 +396,7 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 
 **异常提示说明**
 
-训练过程中，检测到异常后打屏提示，并将异常信息按照rank分组写入json文件，文件路径默认为`monitor_output/anomaly_detected`，异常信息示例如下：
+训练过程中，检测到异常后打印提示信息，并将异常信息按照rank分组写入json文件，文件路径默认为`monitor_output/anomaly_detected`，异常信息示例如下：
 
 ```json
 {
@@ -468,13 +468,13 @@ csv2tensorboard_by_step(
     - 首次监测：查看config.json文件中`dynamic_on`字段，若为`true`则在下一步开启监测。
     - 非首次监测：查看config.json文件时间戳，若时间戳更新且config.json文件中`dynamic_on`字段为`true`则在下一步开启监测。
 - **停止**：
-  到达`collect_times`之后自动停止并改config.json文件中`dynamic_on`字段为`false`，可再通过上述操作重启。
+  到达`collect_times`之后自动停止并修改config.json文件中`dynamic_on`字段为`false`，可再通过上述操作重启。
 
 **注意事项：**：
 
-- 默认监测启动皆统一在配置初始化或查询到更新后的下一步，即第n步挂上hook将在第n+1步启动采集，如需采集第0步数据请使用静态模式。
-- config.json中途修改出错时，若此时不在监测则不生效，若在监测则用原配置继续。
-- 达到`collect_times`之后程序会自动将该值置为`false`待下次改`true`重启。
+- 默认监测启动皆统一在配置初始化或查询到更新后的下一步，即第n步挂载hook将在第n+1步启动采集，如需采集第0步数据请使用静态模式。
+- config.json中途修改错误时，若此时不在监测则不生效，若在监测则用原配置继续。
+- 达到`collect_times`之后程序会自动将该值置为`false`，待下次修改为`true`时重启。
 
 **支持的使用场景说明如下：**
 
@@ -539,7 +539,7 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
 - **csv**
   监测结果写入csv文件中，可以通过`ndigits`字段设置小数位数。  
   表头为 vpp_stage | name | step | micro_step(optional) | *ops |。 
-  仅在激活值监测的输出文件中包含micor_step。
+  仅在激活值监测的输出文件中包含micro_step。
   激活值监测的name为`<module_name>.<input or output>`, 其他任务的name为`<param_name>`。
 
 - **api** 
@@ -699,7 +699,7 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 | "output"                | 必选     | "tensor"的意思是目标module的前向output参数类型为tensor                                                                                                                                                                                                                                                                                                                                        |
 | "input_grad"            | 可选     | "tuple[2]:0"的意思是目标module的后向input_grad参数是长度为2的tuple， 我们关心的是tuple的第0个元素。                                                                                                                                                                                                                                                                                                          |
 | "output_grad"           | 必选     | "tuple[1]:0"的意思是目标module的后向output_grad参数是长度为1的tuple， 我们关心的是tuple的第0个元素。                                                                                                                                                                                                                                                                                                        |
-| "dynamic_on"            | 可选     | 在动态启停时使用，true代表打开监测，false代表关闭监测，默认值为false，且达到collect_times之后会自动将该值置为false待下次改true重启。                                                                                                                                                                                                                                                                                            |
+| "dynamic_on"            | 可选     | 在动态启停时使用，true代表打开监测，false代表关闭监测，默认值为false，且达到collect_times之后会自动将该值置为false，待下次修改为true时重启。                                                                                                                                                                                                                                                                                       |
 | "collect_times"         | 可选     | 设置采集次数，达到该次数后停止监测，默认值为100000000，目的是一直采集。                                                                                                                                                                                                                                                                                                                                        |
 | "start_step"            | 可选     | 设置开始采集step，模型训练达到start_step后开始监测采集，默认值为0，表示从step0开始监测采集。注：在动态启停模式下该设置不生效，只会从下一步开始监测采集。                                                                                                                                                                                                                                                                                          |
 | "step_interval"         | 可选     | 设置采集step间隔，默认值为1，表示每个step均采集监测数据。                                                                                                                                                                                                                                                                                                                                               |

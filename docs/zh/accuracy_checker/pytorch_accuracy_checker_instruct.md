@@ -197,7 +197,7 @@ msprobe acc_check -api_info ./dump_path/step{step_number}/rank{rank_number}/dump
 
 Forward Test Success 和 Backward Test Success 是否通过测试是由 `accuracy_checking_details_{timestamp}.csv` 中的余弦相似度、最大绝对误差、双百双千双万指标判定结果决定的。
 
-需要注意的是 `accuracy_checking_details_{timestamp}.csv` 中可能存在一个 API 的前向（反向）有多个输出，那么每个输出记录一行，而在 `accuracy_checking_result_{timestamp}.csv` 中的结果需要该 API 的所有结果均为 pass 才能标记为 pass，只要存在一个 error 则标记 error，仅存在 warning 和 pass 且不存在 error 则标记 warning。
+需要注意的是 `accuracy_checking_details_{timestamp}.csv` 中可能存在一个 API 的前向（反向）有多个输出，那么每个输出记录一行，而在 `accuracy_checking_result_{timestamp}.csv` 中的结果需要该 API 的所有结果均为 pass 才能标记为 pass，只要存在一个 error 则标记为 error，仅存在 warning 和 pass 且不存在 error 则标记为 warning。
 
 `accuracy_checking_details_{timestamp}.csv`
 
@@ -231,16 +231,16 @@ Forward Test Success 和 Backward Test Success 是否通过测试是由 `accurac
 
 ### API预检指标
 
-   API 预检指标是通过对 `accuracy_checking_details_{timestamp}.csv` 中的余弦相似度、最大绝对误差双百、双千、双万精度指标的数值进行判断，得出该 API 是否符合精度标准的参考指标，建议在初步预检完成后在执行[预检结果比对](#预检结果比对)，获取更精确的精度结果。
+   API 预检指标是通过对 `accuracy_checking_details_{timestamp}.csv` 中的余弦相似度、最大绝对误差双百、双千、双万精度指标的数值进行判断，得出该 API 是否符合精度标准的参考指标，建议在初步预检完成后执行[预检结果比对](#预检结果比对)，获取更精确的精度结果。
 
-   API 预检通过测试，则在`accuracy_checking_details_{timestamp}.csv`文件中的 Status 列标记 pass，否则标记 error 或 warning，详细规则如下：
+   API 预检通过测试，则在`accuracy_checking_details_{timestamp}.csv`文件中的 Status 列标记为 pass，否则标记为 error 或 warning，详细规则如下：
 
-   - 余弦相似度 > 0.99：≤ 0.99 为不达标，标记 error，> 0.99 达标，进行下一步；
-   - 最大绝对误差 ＜ 0.001：＜ 0.001 达标，标记 pass，≥ 0.001 为不达标，进行下一步；
+   - 余弦相似度 > 0.99：≤ 0.99 为不达标，标记为 error，> 0.99 达标，进行下一步；
+   - 最大绝对误差 ＜ 0.001：＜ 0.001 达标，标记为 pass，≥ 0.001 为不达标，进行下一步；
    - 双百、双千、双万精度指标：
-     + 对于 float16 和 bfloat16 数据：双百指标不通过，标记 error；双百指标通过，双千指标不通过，标记 warning；双百、双千指标均通过，标记 pass。
-     + 对于 float32 和 float64 数据：双千指标不通过，标记 error；双千指标通过，双万指标不通过，标记 warning；双千、双万指标均通过，标记 pass。
-   - 在 `accuracy_checking_result_{timestamp}.csv` 中以 Forward Test Success 和 Backward Test Success 字段统计该算子前向反向输出的测试结果，对于标记 pass 的算子，则在 `accuracy_checking_result_{timestamp}.csv` 中标记 TRUE 表示测试通过，对于标记 error 或 warning 的算子，则在 `accuracy_checking_result_{timestamp}.csv` 中标记 FALSE 表示测试不通过。由于一个算子可能有多个前向或反向的输入或输出，那么该类算子的输入或输出中必须全为 pass，才能在 `accuracy_checking_result_{timestamp}.csv` 中标记 TRUE，只要有一个输入或输出标记 error 或 warning，那么在 `accuracy_checking_result_{timestamp}.csv` 中标记 FALSE。
+     + 对于 float16 和 bfloat16 数据：双百指标不通过，标记为 error；双百指标通过，双千指标不通过，标记为 warning；双百、双千指标均通过，标记为 pass。
+     + 对于 float32 和 float64 数据：双千指标不通过，标记为 error；双千指标通过，双万指标不通过，标记为 warning；双千、双万指标均通过，标记为 pass。
+   - 在 `accuracy_checking_result_{timestamp}.csv` 中以 Forward Test Success 和 Backward Test Success 字段统计该算子前向反向输出的测试结果，对于标记为 pass 的算子，则在 `accuracy_checking_result_{timestamp}.csv` 中标记为 TRUE 表示测试通过，对于标记为 error 或 warning 的算子，则在 `accuracy_checking_result_{timestamp}.csv` 中标记为 FALSE 表示测试不通过。由于一个算子可能有多个前向或反向的输入或输出，那么该类算子的输入或输出中必须全为 pass，才能在 `accuracy_checking_result_{timestamp}.csv` 中标记为 TRUE，只要有一个输入或输出标记为 error 或 warning，那么在 `accuracy_checking_result_{timestamp}.csv` 中标记为 FALSE。
 
 ### 小值域阈值
 
@@ -301,7 +301,7 @@ msprobe api_precision_compare -npu /home/xxx/npu/accuracy_checking_details_{time
 | Backward Test Success | 反向 API 是否通过测试。pass 为通过；error 为错误；如果是空白的话代表该 API 没有反向输出；SKIP 表示该 API 的数据类型不支持使用新精度标准进行比对（如 float64）。 |
 | Message               | 提示信息。                                                   |
 
-Forward Test Success 和 Backward Test Success 是否通过测试是由 `api_precision_compare_details_{timestamp}.csv` 中的各个指标判定结果决定的。需要注意的是 `api_precision_compare_details_{timestamp}.csv` 中可能存在一个 API 的前向（反向）有多个输出，那么每个输出记录一行，而在 `api_precision_compare_result_{timestamp}.csv` 中的结果需要该 API 的所有结果均为 pass 才能标记为 pass，只要存在一个 error 则标记 error，仅存在 warning 和 pass 且不存在 error 标记 warning。
+Forward Test Success 和 Backward Test Success 是否通过测试是由 `api_precision_compare_details_{timestamp}.csv` 中的各个指标判定结果决定的。需要注意的是 `api_precision_compare_details_{timestamp}.csv` 中可能存在一个 API 的前向（反向）有多个输出，那么每个输出记录一行，而在 `api_precision_compare_result_{timestamp}.csv` 中的结果需要该 API 的所有结果均为 pass 才能标记为 pass，只要存在一个 error 则标记为 error，仅存在 warning 和 pass 且不存在 error 标记为 warning。
 
 `api_precision_compare_details_{timestamp}.csv`
 
@@ -354,7 +354,7 @@ Forward Test Success 和 Backward Test Success 是否通过测试是由 `api_pre
 
 - npu_linear
 
-- npu_fusion_attention（该算子在 GPU 上预检时，需要额外安装 flash_attn，请用户自行安装，建议安装2.1以上版本。）
+- npu_fusion_attention（该算子在 GPU 上预检时，需要额外安装 flash_attn，建议安装2.1以上版本。）
 
 - npu_rms_norm
 
