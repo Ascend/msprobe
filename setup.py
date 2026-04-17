@@ -26,6 +26,10 @@ import sys
 import setuptools
 from wheel.bdist_wheel import bdist_wheel
 
+whl_version = os.getenv('WHL_VERSION')
+if whl_version is not None:
+    __version__ = whl_version
+
 # 检查操作系统，如果不是Linux则报错
 if platform.system() != "Linux":
     raise SystemError("This package only supports Linux platform. {}".format(platform.system()))
