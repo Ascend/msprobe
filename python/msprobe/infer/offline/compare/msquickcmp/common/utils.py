@@ -69,7 +69,6 @@ BATCH_SCENARIO_OP_NAME = "{0}_ascend_mbatch_batch_{1}"
 INVALID_CHARS = ['|', ';', '&', '&&', '||', '>', '>>', '<', '`', '\\', '!', '\n']
 MAX_READ_FILE_SIZE_4G = 4294967296  # 4G, 4 * 1024 * 1024 * 1024
 DYM_SHAPE_END_MAX = 1000000
-MAX_TENSOR_SHAPE_CONUT = 200
 OPTYPE_WHITWLIST = ['Data', 'TransData', 'PartitionCall']
 
 
@@ -470,20 +469,19 @@ def parse_input_shape(input_shape):
 def parse_input_shape_to_list(input_shape):
     """
     Function Description:
-        parse input shape and get a list only contains inputs shape
+        parse input shape, and get a list only contains inputs shape and a list contains inputs tensor name
     Parameter:
         input_shape:the input shape,this format like:tensor_name1:dim1,dim2;tensor_name2:dim1,dim2.
     Return Value:
-        a list only contains inputs shape, this format like [[dim1,dim2],[dim1,dim2]]
+        a list only contains inputs shape, this format like [[dim1,dim2],[dim1,dim2]] , and a list contains tensor name
     """
     input_shape_list = []
+    name_list = []
     if not input_shape:
         return input_shape_list
     _check_colon_exist(input_shape)
     tensor_list = input_shape.split(';')
-    if len(tensor_list) > MAX_TENSOR_SHAPE_CONUT:
-        raise ValueError("The input of --input_shape parameter is unreasonable, " \
-                         "because the number of tensor shape is much than 200.")
+
     for tensor in tensor_list:
         tensor_shape_list = tensor.rsplit(':', maxsplit=1)
         if len(tensor_shape_list) == 2:
@@ -505,10 +503,11 @@ def parse_input_shape_to_list(input_shape):
                     raise ValueError("The dim of --input_shape %r is too large." % (str(dim_int)))
 
             input_shape_list.append(shape_list_int)
+            name_list.append(tensor_shape_list[0])
         else:
             logger.error(get_shape_not_match_message(InputShapeError.FORMAT_NOT_MATCH, input_shape))
             raise AccuracyCompareException(ACCURACY_COMPARISON_INVALID_PARAM_ERROR)
-    return input_shape_list
+    return input_shape_list, name_list
 
 
 def dym_shape_range_interaction(prompt):

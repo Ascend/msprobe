@@ -217,6 +217,10 @@ class NpuDumpData(DumpData):
         self.data_dir = self._create_dir()
 
     @staticmethod
+    def _check_input_match(model_name_list, user_name_list):
+        return model_name_list == user_name_list
+
+    @staticmethod
     def _write_content_to_acl_json(acl_json_path, model_name, npu_data_output_dir, sub_model_name_list=None):
         load_dict = {
             "dump": {
@@ -372,23 +376,33 @@ class NpuDumpData(DumpData):
         aa = aclruntime.InferenceSession(self.target_path, int(self.device), options)
         shape_list = [ii.shape for ii in aa.get_inputs()]
         dtype_list = [ii.datatype.name for ii in aa.get_inputs()]
+        name_list = [ii.name for ii in aa.get_inputs()]
 
         aa.free_resource()
-        return shape_list, dtype_list
+        return shape_list, dtype_list, name_list
 
     def _generate_inputs_data_without_aipp(self, input_dir):
         if os.listdir(input_dir):
             return
 
-        inputs_list, data_type_list = self._get_inputs_info_from_aclruntime()
-        if self.dynamic_input.is_dynamic_shape_scenario() and not self.input_shape:
-            logger.error("Please set '--input_shape' to fix the dynamic shape.")
-            raise utils.AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PARAM_ERROR)
+        model_inputs_list, model_data_type_list, model_name_list = self._get_inputs_info_from_aclruntime()
+        if self.dynamic_input.is_dynamic_shape_scenario():
+            if not self.input_shape:
+                logger.error("Please set '--input_shape' to fix the dynamic shape.")
+                raise utils.AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PARAM_ERROR)
+            else:
+                user_inputs_list, _ = parse_input_shape_to_list(self.input_shape)
+                inputs_list = user_inputs_list
+        else:
+            if self.input_shape:
+                _, user_name_list = parse_input_shape_to_list(self.input_shape)
+                if not self._check_input_match(model_name_list, user_name_list):
+                    logger.warning(f"The input order of the om model does not match the order specified by the user. "
+                                   f"The input data will be generated using the model's input order, "
+                                   f"which is {model_name_list}.")
+            inputs_list = model_inputs_list
 
-        if self.input_shape:
-            inputs_list = parse_input_shape_to_list(self.input_shape)
-
-        for i, (input_shape, data_type) in enumerate(zip(inputs_list, data_type_list)):
+        for i, (input_shape, data_type) in enumerate(zip(inputs_list, model_data_type_list)):
             input_data = np.random.random(input_shape).astype(data_type)
             file_name = "input_" + str(i) + ".bin"
             input_data.tofile(os.path.join(input_dir, file_name))
@@ -418,7 +432,7 @@ class NpuDumpData(DumpData):
                 logger.error("atc insert_op_config file's src_image_size_h number does not equal src_image_size_w")
                 raise utils.AccuracyCompareException(utils.ACCURACY_COMPARISON_WRONG_AIPP_CONTENT)
         if self.input_shape:
-            inputs_list = parse_input_shape_to_list(self.input_shape)
+            inputs_list, _ = parse_input_shape_to_list(self.input_shape)
         else:
             inputs_list = self.om_parser.get_shape_list()
             if len(inputs_list) != len(src_image_size_h):

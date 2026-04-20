@@ -570,7 +570,7 @@ class TestNpuDumpData(unittest.TestCase):
             return_value="model.om",
         ):
             mock_rule.return_value.check.return_value = None
-            shapes, dtypes = inst._get_inputs_info_from_aclruntime()
+            shapes, dtypes, names = inst._get_inputs_info_from_aclruntime()
 
         self.assertEqual(shapes, [(1, 3, 224, 224)])
         self.assertEqual(dtypes, ["float32"])
@@ -582,7 +582,7 @@ class TestNpuDumpData(unittest.TestCase):
 
         with patch("os.listdir", return_value=[]), \
                 patch.object(
-                    inst, "_get_inputs_info_from_aclruntime", return_value=([(1, 3, 224, 224)], ["float32"])
+                    inst, "_get_inputs_info_from_aclruntime", return_value=([(1, 3, 224, 224)], ["float32"], ['aaa'])
                 ):
             with self.assertRaises(AccuracyCompareException) as cm:
                 inst._generate_inputs_data_without_aipp("/input_dir")
@@ -597,11 +597,11 @@ class TestNpuDumpData(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir, \
                 patch.object(
-                    inst, "_get_inputs_info_from_aclruntime", return_value=([(1, 3, 224, 224)], ["float32"])
+                    inst, "_get_inputs_info_from_aclruntime", return_value=([(1, 3, 224, 224)], ["float32"], ['aaa'])
                 ), \
                 patch(
                     "msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.parse_input_shape_to_list",
-                    return_value=[(1, 3, 224, 224)],
+                    return_value=([(1, 3, 224, 224)], None)
                 ), \
                 patch("numpy.random.random", return_value=np.ones((1, 3, 224, 224))), \
                 patch("os.chmod") as mock_chmod:
@@ -667,7 +667,7 @@ class TestNpuDumpData(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir, \
                 patch(
                     "msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.parse_input_shape_to_list",
-                    return_value=[[1, 3, 224, 224]],
+                    return_value=([[1, 3, 224, 224]], None)
                 ), \
                 patch("numpy.random.randint", return_value=np.ones((1, 3, 224, 224), dtype=np.uint8)), \
                 patch("os.chmod") as mock_chmod:

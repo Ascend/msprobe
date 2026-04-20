@@ -364,7 +364,7 @@ class TestParseInputShapeToList(unittest.TestCase):
     def test_valid_shape(self, mock_interact, mock_check):
         from msprobe.infer.offline.compare.msquickcmp.common.utils import parse_input_shape_to_list
         input_shape = "tensor1:1,2;tensor2:3,4"
-        result = parse_input_shape_to_list(input_shape)
+        result, _ = parse_input_shape_to_list(input_shape)
         self.assertEqual(result, [[1, 2], [3, 4]])
 
     @patch('msprobe.infer.offline.compare.msquickcmp.common.utils._check_colon_exist')
