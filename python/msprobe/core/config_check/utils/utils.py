@@ -14,10 +14,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import os
-import re
-import hashlib
-
 from msprobe.core.common.framework_adapter import FmkAdp
 from msprobe.core.common.log import logger
 from msprobe.core.common.const import Const
@@ -44,12 +40,6 @@ def compare_dict(bench_dict, cmp_dict):
 
 def config_checking_print(msg):
     logger.info(f"[config checking log] {msg}")
-
-
-def tensor_to_hash(tensor):
-    """Compute the hash value of a tensor"""
-    tensor_bytes = tensor.clone().detach().cpu().numpy().tobytes()
-    return bytes_hash(tensor_bytes)
 
 
 def get_tensor_features(tensor):
@@ -90,12 +80,6 @@ def compare_dicts(dict1, dict2, path=''):
             added.append(f"[Added]: {path + key}")
             result[key] = "[added]"
     return deleted, added, changed, result
-
-
-def bytes_hash(obj: bytes):
-    hex_dig = hashlib.sha256(obj).hexdigest()
-    short_hash = int(hex_dig, 16) % (2 ** 16)
-    return short_hash
 
 
 def update_dict(ori_dict, new_dict):
