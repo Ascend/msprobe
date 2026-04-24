@@ -36,7 +36,7 @@
 
 1. 准备一台基于昇腾NPU的训练服务器（如Atlas A2 训练系列产品），并安装NPU驱动和固件。
 
-2. 安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量，以CANN 8.5.0版本为例，具体请参见《[CANN软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=local&OS=openEuler)》。
+2. 安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量，以CANN 8.5.0版本为例，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
 
 3. 安装框架。
 
@@ -84,7 +84,7 @@
 
 3. 分别以MindSpore 2.7.2和MindSpore 2.8.0环境下的训练脚本（mindspore_main.py文件）中添加工具，如下所示。
 
-   > [!NOTE] 说明
+   > [!note]
    >
    > [MindSpore精度数据采集代码样例](#mindspore精度数据采集代码样例)中的完整代码已添加工具，下列仅为说明工具接口在脚本中添加的位置。
 
@@ -106,7 +106,7 @@
     56     print("train finish")
    ```
 
-   > [!NOTE] 说明
+   > [!note]
    >
    > 精度数据会占据一定的磁盘空间，可能存在磁盘写满导致服务器不可用的风险。精度数据所需空间跟模型的参数、采集开关配置、采集的迭代数量有较大关系，须用户自行保证落盘目录下的可用磁盘空间。
 
@@ -119,7 +119,7 @@
    日志打印出现如下示例信息表示数据采集成功，完成采集后即可查看数据。
 
    ```txt
-   The aip tensor hook function is successfully mounted to the model.
+   The api tensor hook function is successfully mounted to the model.
    msprobe: debugger.start() is set successfully
    Dump switch is turned on at step 0.
    Dump data will be saved in /home/dump/dump_data/step0.

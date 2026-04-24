@@ -16,7 +16,7 @@
  msprobe install_deps -m offline --no_check
 ```
 
-> [!NOTE] 说明
+> [!note]
 >
 > --no_check参数，会跳过检查目标网站的证书信息，有一定的安全风险，用户需要谨慎使用并自行承担后果。
 

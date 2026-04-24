@@ -337,7 +337,7 @@ dump.json is at ./dump_path/step*
   |   |   |   |    ├── Cast.Default_network-TrainOneStepCell_network-WithLossCell__backbone-Net_Cast-op0.9.10.1735011096426349.input.0.ND.FLOAT.npy
   |   |   |   |    ├── GetNext.Default_GetNext-op0.0.11.17350110964032987.output.0.ND.FLOAT.npy
   |   |   |   |    ...
-  |   |   |   |    ├── RefDAata.accum_bias1.6.10.1735011096424907.output.0.ND.FLOAT.npy
+  |   |   |   |    ├── RefData.accum_bias1.6.10.1735011096424907.output.0.ND.FLOAT.npy
   |   |   |   |    ├── Sub.Default_network-TrainOneStepCell_network-WithLossCell__backbone-Net_Sub-op0.10.10.1735011096427368.input.0.ND.BF16
   |   |   |   |    └── mapping.csv
   │   |   │   ├── step_1

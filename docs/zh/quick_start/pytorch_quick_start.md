@@ -36,7 +36,7 @@
 
 1. 准备一台基于昇腾NPU的训练服务器（如Atlas A2 训练系列产品），并安装NPU驱动和固件。
 
-2. 安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量，以CANN 8.5.0版本为例，具体请参见《[CANN软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=local&OS=openEuler)》。
+2. 安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量，以CANN 8.5.0版本为例，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
 
 3. 安装框架。
 
@@ -92,7 +92,7 @@
 
 3. 分别在GPU和昇腾NPU环境下的训练脚本（pytorch_main.py文件）中添加工具，如下所示。
 
-   > [!NOTE] 说明
+   > [!note]
    >
    > [PyTorch精度数据采集代码样例](#pytorch精度数据采集代码样例)中的完整代码已添加工具，下列仅为说明工具接口在脚本中添加的位置。
 
@@ -120,7 +120,7 @@
    362         debugger.step()    # 结束数据dump，若继续开启数据dump，采集数据将记录在下一个step中
    ```
    
-   > [!NOTE] 说明
+   > [!note]
    >
    > 精度数据会占据一定的磁盘空间，可能存在磁盘写满导致服务器不可用的风险。精度数据所需空间跟模型的参数、采集开关配置、采集的迭代数量有较大关系，须用户自行保证落盘目录下的可用磁盘空间。
    

@@ -254,13 +254,13 @@ dump.json is at <dump_path>/step<N>
 
 * `step<N>`：第N+1个step，例如step0，表示该目录存放第1个step的所有dump数据。
 
-dump数据的具体介绍请参见[dump输出件说明](#dump输出件说明)章节。
+dump数据的具体介绍请参见[dump输出文件说明](#dump输出文件说明)章节。
 
-## dump输出件说明
+## dump输出文件说明
 
-### 输出件目录结构
+### 输出文件目录结构
 
-MSAdapter场景下，dump输出件的目录结构示例如下：
+MSAdapter场景下，dump输出文件的目录结构示例如下：
 
 ```lua
 ├── dump_path

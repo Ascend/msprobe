@@ -9,7 +9,7 @@
 **环境准备**
 
 - 安装msProbe工具，详情请参见《[msProbe安装指南](../msprobe_install_guide.md)》。
-- 安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量，具体请参见《CANN软件安装指南》。
+- 安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
 
 **约束**
 

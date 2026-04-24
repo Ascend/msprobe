@@ -212,7 +212,7 @@
 
 5. 数据分析。
 
-   在`dump_path`参数指定的路径下（本例中为`./output`），会出现如下目录结构，后续精度数据分析操作可使用msProbe工具的精度预检和精度比对等功能，详细流程请参见《[MindStudio Probe](../../../README.md)》。
+   在`dump_path`参数指定的路径下（本例中为`./output`），会出现如下目录结构，后续精度数据分析操作可使用msProbe工具的精度预检和精度比对等功能。
 
    ```ColdFusion
    output/

@@ -622,7 +622,7 @@ TrainerMon.generate_xy_metrics() -> tuple[dict, dict]
 actv, actv_grad = monitor.generate_xy_metrics()
 ```
 
-- 老版接口说明， **将在26年废弃**：
+- 老版接口说明， **将在2026年废弃**：
 
 ```python 
 TrainerMon.set_wrapped_optimizer(optimizer) -> None

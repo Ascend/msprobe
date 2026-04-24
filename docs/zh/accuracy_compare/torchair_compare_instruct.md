@@ -62,7 +62,7 @@ msprobe compare --target_path ${dump_path in GE dump}/msprobe_ge_dump --golden_p
 
 ### 将dump数据转化为指定信息以压缩数据量
 
-> [!note] 说明
+> [!note]
 >
 > 本节仅针对特定用户场景使用，若不涉及该场景请忽略。
 

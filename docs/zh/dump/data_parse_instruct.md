@@ -10,7 +10,7 @@
 
 - 安装msProbe工具，详情请参考《[msProbe安装指南](../msprobe_install_guide.md)》。
 - 当指定转换格式为PyTorch tensor(.pt)时，需安装PyTorch。
-- 转换adump数据时需要确保安装配套版本的CANN Toolkit开发套件包并配置CANN环境变量，具体请参见《[CANN软件安装指南](https://www.hiascend.com/document/detail/zh/canncommercial/850/softwareinst/instg/instg_0000.html?Mode=PmIns&InstallType=netconda&OS=openEuler)》。
+- 转换adump数据时需要确保安装配套版本的CANN Toolkit开发套件包并配置CANN环境变量，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
 
 **约束**
 
