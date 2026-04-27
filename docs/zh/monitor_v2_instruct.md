@@ -74,9 +74,7 @@
 
 首先在「模型与优化器准备完成后」初始化监测器；随后在「每个训练 step 的结束处」调用一次 `mon.step()`；最后在训练结束时调用 `mon.stop()` 释放资源。关键在于保证每个 step 调用一次（通常放在 `optimizer.step()` 之后、`optimizer.zero_grad()` 之前或之后）。
 
-> [!note]
->
-> 若配置 `patch_optimizer_step=true`（或传入 optimizer 且未显式配置该项），会自动包装 `optimizer.step()` 触发采集，此时不要再手动调用 `mon.step()`；如需手动调用，请显式设置 `patch_optimizer_step=false`。
+**说明**：若配置 `patch_optimizer_step=true`（或传入 optimizer 且未显式配置该项），会自动包装 `optimizer.step()` 触发采集，此时不要再手动调用 `mon.step()`；如需手动调用，请显式设置 `patch_optimizer_step=false`。
 
 ```python
 from msprobe.core.monitor_v2.trainer import TrainerMonitorV2
@@ -334,9 +332,7 @@ mon.stop()
     cc_step0-0.csv
 ```
 
-> [!note]
->
-> 只有在 `monitors` 中启用的模块才会生成对应的 CSV 文件。
+**说明**：只有在 `monitors` 中启用的模块才会生成对应的 CSV 文件。
 
 ### CSV表头与字段说明
 
@@ -509,9 +505,7 @@ mon.stop()
 | `grad_acc_steps` | 可选 | int | 梯度累积步数，可通过`TrainerMonitorV2.start(..., grad_acc_steps=...)`传入。 |
 | `ops` / `eps` | 可选 | - | 同公共字段。 |
 
-> [!note]
->
-> `weight_grad` 会在反向阶段记录 `unreduced`，并在调用 `optimizer.step()` 前抓取并记录 `reduced`。
+**说明**：`weight_grad` 会在反向阶段记录 `unreduced`，并在调用 `optimizer.step()` 前抓取并记录 `reduced`。
 
 ### optimizer（优化器动量m/v）<a id="config-optimizer"></a>
 
@@ -527,9 +521,7 @@ mon.stop()
 | `param_distribution` | 可选      | bool | 是否采集参数分布，默认`true`。 |
 | `ops` / `eps`        | 可选      | -    | 同公共字段。                   |
 
-> [!note]
->
-> `param` 会在 `optimizer.step()` 前后采集参数分布，输出 `scope=param_origin/param_updated`。
+**说明**：`param` 会在 `optimizer.step()` 前后采集参数分布，输出 `scope=param_origin/param_updated`。
 
 ### cc（通信算子）<a id="config-cc"></a>
 
@@ -543,6 +535,4 @@ mon.stop()
 | `module_ranks` | 可选 | list[int] | 仅在指定ranks上生效（未配置时默认空列表）。 |
 | `ops` / `eps` | 可选 | - | 同公共字段。 |
 
-> [!note]
->
-> `monitors.cc` 同时兼容两种写法：直接配置上述字段或将字段嵌套在 `cc_distribution` 内（旧结构兼容）。
+**说明**：`monitors.cc` 同时兼容两种写法：直接配置上述字段或将字段嵌套在 `cc_distribution` 内（旧结构兼容）。

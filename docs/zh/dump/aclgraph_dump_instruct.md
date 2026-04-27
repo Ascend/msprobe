@@ -1,4 +1,4 @@
-﻿# aclgraph_dump 使用指南
+# aclgraph_dump 使用指南
 
 ## 简介
 
@@ -220,9 +220,9 @@ L0_dump
 
 在分布式多进程场景中，通常会按 rank 生成对应的 compare 结果文件，请结合 rank 维度查看结果。
 
-新增说明（`+ pycode` 高亮）：
+新增说明（`+ python` 高亮）：
 
-```pycode
+```python
 +# 对整网采集结果执行比对
 +msprobe compare ...
 +
