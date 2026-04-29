@@ -508,6 +508,26 @@ class TestTrainerMon(unittest.TestCase):
         mock_get_sign_matches.assert_called_once()
         self.assertTrue(torch.equal(context.param_mg_direction["p1"], mock_get_sign_matches.return_value))
 
+    def test_hook_optimizer_patches_instance_step_only(self):
+        class DummyOptimizer:
+            def step(self):
+                return "original_step"
+
+        optimizer1 = DummyOptimizer()
+        
+        self.mon.params_have_main_grad = False
+        self.mon.wg_distribution = False
+        self.mon.mv_distribution = False
+        self.mon.ur_distribution = False
+        self.mon.mg_direction = False
+        
+        original_step_method = DummyOptimizer.step
+        self.mon.hook_step_final(optimizer1)
+        
+        self.assertNotEqual(optimizer1.step, original_step_method)
+        result = optimizer1.step()
+        self.assertEqual(result, "original_step")
+
     @patch("msprobe.pytorch.monitor.module_hook.get_metrics")
     @patch("torch.distributed.fsdp._runtime_utils._post_backward_hook")
     def test_patch_fsdp_post_backward_hook(self, mock_post_hook, mock_get_metrics):

@@ -775,7 +775,7 @@ class TrainerMon:
 
             return wrapper
 
-        optimizer.__class__.step = patch_step(optimizer.__class__.step, optimizer)
+        optimizer.step = patch_step(optimizer.step, optimizer)
         return
 
     def hook_modules(self):
