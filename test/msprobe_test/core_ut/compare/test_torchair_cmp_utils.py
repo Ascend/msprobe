@@ -179,7 +179,7 @@ class TestTensorInfoAndCsv(unittest.TestCase):
             csv_path = utils.save_compare_result_to_csv(rows, output_path=tmp, rank_id=0)
 
         mock_create_dir.assert_called_once_with(tmp)
-        self.assertIn("msit_cmp_report_rank0_", csv_path)
+        self.assertIn("msprobe_cmp_report_rank0_", csv_path)
         # capture the DataFrame passed into write_df_to_csv
         df_arg = mock_write_csv.call_args[0][0]
         self.assertEqual(len(df_arg), 1)

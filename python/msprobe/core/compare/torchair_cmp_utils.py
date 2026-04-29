@@ -230,9 +230,9 @@ def save_compare_result_to_csv(gathered_row_data, output_path=".", columns=None,
     cur_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d%H%M%S")
     columns = columns or _build_csv_golden_header()
     if rank_id != -1:
-        csv_save_path = os.path.join(output_path, f"msit_cmp_report_rank{rank_id}_{cur_time}.csv")
+        csv_save_path = os.path.join(output_path, f"msprobe_cmp_report_rank{rank_id}_{cur_time}.csv")
     else:
-        csv_save_path = os.path.join(output_path, f"msit_cmp_report_{cur_time}.csv")
+        csv_save_path = os.path.join(output_path, f"msprobe_cmp_report_{cur_time}.csv")
     gathered_row_data = list(
         filter(
             lambda item: not (CMP_FAIL_REASON in item and item[CMP_FAIL_REASON] == "data shape doesn't match."),
