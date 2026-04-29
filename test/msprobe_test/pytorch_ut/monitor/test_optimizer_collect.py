@@ -1,6 +1,7 @@
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch, MagicMock
+import sys
 
 import torch
 from msprobe.core.common.const import MonitorConst
@@ -471,6 +472,63 @@ class TestDeepSpeedZeroOptimizerStage3Mon(unittest.TestCase):
         for param, name in self.torch_opt.param_names.items():
             self.assertTrue(torch.equal(result.exp_avg[name], torch.ones_like(param).flatten()))
             self.assertTrue(torch.equal(result.exp_avg_sq[name], torch.ones_like(param).flatten()))
+
+
+class TestPatchGradSyncWrapper(unittest.TestCase):
+    def setUp(self):
+        self.optimizer_mon = OptimizerMon(None)
+        self.monitor = MagicMock()
+        self.monitor.param2name = {}
+        self.monitor.name2tag = {}
+        self.monitor.params_have_main_grad = False
+        self.monitor.ops = MagicMock()
+        self.monitor.eps = 1e-8
+        self.monitor.grad_context = MagicMock()
+        self.monitor.grad_context.pre = MagicMock()
+
+    def _create_bucket_with_params(self, params_list):
+        bucket = MagicMock()
+        bucket.params = params_list
+        if hasattr(bucket, 'params_list'):
+            delattr(bucket, 'params_list')
+        return bucket
+
+    def test_wrapper_passes_args_and_kwargs(self):
+        with patch.dict('sys.modules', {
+            'megatron': MagicMock(),
+            'megatron.core': MagicMock(),
+            'megatron.core.distributed': MagicMock(),
+            'megatron.core.distributed.param_and_grad_buffer': MagicMock()
+        }):
+            param = torch.nn.Parameter(torch.randn(2, 3))
+            param.grad = torch.randn(2, 3)
+            bucket = self._create_bucket_with_params([param])
+            
+            self.monitor.param2name = {param: 'test_param'}
+            self.monitor.name2tag = {'test_param': {MonitorConst.PRE_GRAD: 'tag1'}}
+            
+            received_args = []
+            received_kwargs = []
+            
+            def original_sync(bucket, *args, **kwargs):
+                received_args.extend(args)
+                received_kwargs.extend(kwargs.items())
+                return 'sync_result'
+            
+            mock_bucket_module = sys.modules['megatron.core.distributed.param_and_grad_buffer']
+            mock_bucket_module.Bucket.start_grad_sync = original_sync
+            
+            self.optimizer_mon.patch_grad_sync(self.monitor)
+            
+            self.assertTrue(self.monitor.enable_megatron)
+            
+            result = mock_bucket_module.Bucket.start_grad_sync(
+                bucket, 'arg1', 'arg2', key1='kwarg1', key2='kwarg2'
+            )
+            
+            self.assertEqual(result, 'sync_result')
+            self.assertEqual(received_args, ['arg1', 'arg2'])
+            self.assertEqual(received_kwargs, [('key1', 'kwarg1'), ('key2', 'kwarg2')])
 
 
 class TestOptimizerMonFactory(unittest.TestCase):

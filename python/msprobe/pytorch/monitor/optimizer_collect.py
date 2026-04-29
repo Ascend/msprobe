@@ -129,7 +129,7 @@ class OptimizerMon(object):
 
     def patch_grad_sync(self, monitor):
         def patch_sync(sync_grad_func):
-            def wrapper(bucket):
+            def wrapper(bucket, *args, **kwargs):
                 grad_dict = {}
                 # Megatron between core_r0.6.0 and core_r0.8.0, this bucket is Bucket.
                 # When megatron is core_r0.9.0, this bucket is _ParamAndGradBucketGroup.
@@ -155,7 +155,7 @@ class OptimizerMon(object):
                     grad_dict[tag] = grad
                     monitor.register_param_call_id("sync_grad_func", tag)
                 get_metrics(monitor.ops, grad_dict, monitor.eps, monitor.grad_context.pre)
-                out = sync_grad_func(bucket)
+                out = sync_grad_func(bucket, *args, **kwargs)
                 return out
 
             return wrapper
