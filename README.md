@@ -52,7 +52,7 @@ MindStudio-probe
 
 ## 🚀 快速入门
 
-msProbe工具快速入门，通过一个可执行样例，完成msProbe工具的精度数据采集和精度比对功能的快速上手。具体请参见《[PyTorch场景精度调试工具快速入门](./docs/zh/quick_start/pytorch_quick_start.md)》或《[MindSpore场景精度调试工具快速入门](./docs/zh/quick_start/mindspore_quick_start.md)》”。
+msProbe工具快速入门，通过一个可执行样例，完成msProbe工具的精度数据采集和精度比对功能的快速上手。具体请参见《[PyTorch场景精度调试工具快速入门](./docs/zh/quick_start/pytorch_quick_start.md)》或《[MindSpore场景精度调试工具快速入门](./docs/zh/quick_start/mindspore_quick_start.md)》。
 
 ## 📖 功能介绍
 
@@ -70,7 +70,7 @@ msProbe工具快速入门，通过一个可执行样例，完成msProbe工具的
 |                 |             | 数据转换         | 将ATB dump的精度数据转换为numpy（.npy）或PyTorch tensor（.pt）格式文件                                          | [数据转换](docs/zh/dump/data_parse_instruct.md)                                                                                                                        |
 | **离线模型推理**      |      -      | 数据采集         | 完成msProbe精度数据采集操作                                                                             | [数据采集](docs/zh/dump/infer_offline_dump_instruct.md)                                                                                                                |
 |                 |             | 精度比对         | 提供一键式离线模型比对功能，仅需输入模型即可完成比对，无需提前采集数据，快速输出结果                                                    | [精度比对](docs/zh/accuracy_compare/infer_compare_offline_model_instruct.md)                                                                                           |
-|                 |             | 离线模型数据精度比对   | 提供离线模型数据比对功能，输入离线模型的dump数据进行精度比对                                                              | [离线模型数据精度比对](docs/zh/accuracy_compare/offlline_data_compare_instruct.md)                                                                                           |
+|                 |             | 离线模型数据精度比对   | 提供离线模型数据比对功能，输入离线模型的dump数据进行精度比对                                                              | [离线模型数据精度比对](docs/zh/accuracy_compare/offline_data_compare_instruct.md)                                                                                           |
 |                 |             | 数据转换         | 将离线模型的dump数据转换为numpy（.npy）或PyTorch tensor（.pt）格式文件                                            | [数据转换](docs/zh/dump/data_parse_instruct.md)                                                                                                                        |
 | **PyTorch训练**   |      -      | 训练前配置检查      | 训练前或精度比对前，对比两个环境下可能影响训练精度的配置差异                                                                | [训练前配置检查](docs/zh/config_check_instruct.md)                                                                                                                        |
 |                 |             | 数据采集         | 通过config.json配置，完成msProbe精度数据采集操作            | [数据采集](docs/zh/dump/pytorch_data_dump_instruct.md)   |

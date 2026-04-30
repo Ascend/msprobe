@@ -16,7 +16,7 @@
 
    2. 训练状态监测
 
-      监测训练过程中计算，通信，优化器等部分出现的异常情况。
+      监测训练过程中计算、通信、优化器等部分出现的异常情况。
 
    3. 精度数据采集
 
@@ -36,13 +36,13 @@
 
 1. 准备一台基于昇腾NPU的训练服务器（如Atlas A2 训练系列产品），并安装NPU驱动和固件。
 
-2. 安装配套版本的CANN Toolkit开发套件包和ops算子包并配置CANN环境变量，以CANN 8.5.0版本为例，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
+2. 安装昇腾NPU驱动和配套版本的CANN软件（包含Toolkit和ops包）并配置环境变量，具体请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》。
 
 3. 安装框架。
 
-   MindSpore训练场景以安装2.7.2和2.8.0版本为例，具体操作请参见《[MindSpore安装指南](https://www.mindspore.cn/install/)》。
+   MindSpore训练场景以安装2.6.0和2.7.0版本为例，具体操作请参见《[MindSpore安装指南](https://www.mindspore.cn/install/)》。
 
-4. 安装本工具，详情参考[msProbe工具安装指南](../msprobe_install_guide.md)。
+4. 安装本工具，具体请参见《[msProbe工具安装指南](../msprobe_install_guide.md)》。
 
    ```bash
    pip install mindstudio-probe --pre
@@ -82,7 +82,7 @@
    }
    ```
 
-3. 分别以MindSpore 2.7.2和MindSpore 2.8.0环境下的训练脚本（mindspore_main.py文件）中添加工具，如下所示。
+3. 分别以MindSpore 2.6.0和MindSpore 2.7.0环境下的训练脚本（mindspore_main.py文件）中添加工具，如下所示。
 
    **说明**：[MindSpore精度数据采集代码样例](#mindspore精度数据采集代码样例)中的完整代码已添加工具，下列仅为说明工具接口在脚本中添加的位置。
 
@@ -115,7 +115,7 @@
    日志打印出现如下示例信息表示数据采集成功，完成采集后即可查看数据。
 
    ```txt
-   The api tensor hook function is successfully mounted to the model.
+   The api statistics hook function is successfully mounted to the model.
    msprobe: debugger.start() is set successfully
    Dump switch is turned on at step 0.
    Dump data will be saved in /home/dump/dump_data/step0.
@@ -126,17 +126,11 @@
 dump_path参数指定的路径下会出现如下目录结构，可以根据需求选择合适的数据进行分析。
 
 ```ColdFusion
-dump_data/
+/home/dump/
 ├── step0
-    └── rank
+    └── proc1280778                  # 单卡训练中，训练进程没有rank信息，此时数据保存在proc{pid}，多卡场景下为rank{id}
         ├── construct.json           # 保存Module的层级关系信息，当前场景为空
         ├── dump.json                # 保存前反向API的输入输出的统计量信息和溢出信息等
-        ├── dump_tensor_data         # 保存前反向API的输入输出tensor的真实数据信息等
-        │   ├── Jit.Momentum.0.forward.input.1.0.npy
-        │   ├── Primitive.matmul.MatMul.1.forward.input.1.npy
-        │   ├── Mint.add.1.backward.input.0.npy
-        │   ├── Primitive.matmul.MatMul.1.forward.output.0.npy
-        ...
         └── stack.json               # 保存API的调用栈信息
 ├── step1
 ...
@@ -151,31 +145,31 @@ dump_data/
 **前提条件**
 
 - 完成[环境准备](#环境准备)。
-- 以MindSpore框架内，不同版本下的cell模块比对场景为例，参见[精度数据采集](#精度数据采集)，完成不同框架版本的cell模块dump，其中不同框架版本以MindSpore 2.7.2和MindSpore 2.8.0为例。
+- 以MindSpore框架内，不同版本下的cell模块比对场景为例，参见[精度数据采集](#精度数据采集)，完成不同框架版本的cell模块dump，其中不同框架版本以MindSpore 2.6.0和MindSpore 2.7.0为例。
 
 **执行比对**
 
 1. 数据准备。
 
-   根据**前提条件**获得两份精度数据目录，两份数据保存目录名称分别以dump_data_2.7.2和dump_data_2.8.0为例。
+   根据**前提条件**获得两份精度数据目录，两份数据保存目录名称分别以dump_data_2.6.0和dump_data_2.7.0为例。
 
-   dump_data_2.7.2目录下dump.json路径为`/home/dump/dump_data_2.7.2/step0/rank/dump.json`。
+   dump_data_2.6.0目录下dump.json路径为`/home/dump/dump_data_2.6.0/step0/proc1280778/dump.json`。
 
-   dump_data_2.8.0目录下dump.json路径为`/home/dump/dump_data_2.8.0/step0/rank/dump.json`。
+   dump_data_2.7.0目录下dump.json路径为`/home/dump/dump_data_2.7.0/step0/proc1280779/dump.json`。
 
 2. 执行比对。
 
    命令如下：
 
    ```bash
-   msprobe compare -tp /home/dump/dump_data_2.8.0/step0/rank/dump.json -gp /home/dump/dump_data_2.7.2/step0/rank/dump.json -o ./compare_result/accuracy_compare
+   msprobe compare -tp /home/dump/dump_data_2.7.0/step0/proc1280779/dump.json -gp /home/dump/dump_data_2.6.0/step0/proc1280778/dump.json -o ./compare_result/accuracy_compare
    ```
 
    出现如下打印说明比对成功：
 
    ```txt
    ...
-   Compare result is /xxx/compare_result/accuracy_compare/compare_result_{timestamp}.xlsx
+   The result excel file path is: /xxx/compare_result/accuracy_compare/compare_result_{timestamp}.xlsx
    ...
    ************************************************************************************
    *                        msprobe compare ends successfully.                        *
@@ -188,20 +182,6 @@ dump_data/
 
    compare_result_{timestamp}.xlsx：文件列出了所有执行精度比对的API详细信息和比对结果，可通过比对结果（Result）、错误信息提示（Err_Message）定位可疑算子，但鉴于每种指标都有对应的判定标准，还需要结合实际情况进行判断。
 
-   示例如下：
-
-   **图1** compare_result_1
-
-   ![img](../figures/compare_result_4.png)
-
-   **图2** compare_result_2
-
-   ![img](../figures/compare_result_5.png)
-
-   **图3** compare_result_3
-   
-   ![img](../figures/compare_result_6.png)
-   
    更多比对结果分析请参见“[输出结果文件说明](../accuracy_compare/mindspore_accuracy_compare_instruct.md#输出结果文件说明)”。
 
 ### 分级可视化构图比对
@@ -210,7 +190,7 @@ dump_data/
 
 - 完成[环境准备](#环境准备)。
 
-- 以MindSpore框架内，不同版本下的cell模块比对场景为例，参见[精度数据采集](#精度数据采集)，完成不同框架版本的cell模块dump，其中不同框架版本以MindSpore 2.7.2和MindSpore 2.8.0为例。
+- 以MindSpore框架内，不同版本下的cell模块比对场景为例，参见[精度数据采集](#精度数据采集)，完成不同框架版本的cell模块dump，其中不同框架版本以MindSpore 2.6.0和MindSpore 2.7.0为例。
   
   分级可视化构图要求dump数据时config.json配置文件的"level"参数配置为"L0"或"mix"，本样例以配置"mix"为例，重新采集精度数据。
 
@@ -218,24 +198,24 @@ dump_data/
 
 1. 数据准备。
 
-   根据**前提条件**获得两份精度数据目录，两份数据保存目录名称分别以dump_data_2.7.2和dump_data_2.8.0为例。
+   根据**前提条件**获得两份精度数据目录，两份数据保存目录名称分别以dump_data_2.6.0和dump_data_2.7.0为例。
 
-   dump_data_2.7.2目录路径为`/home/dump/dump_data_2.7.2`。
+   dump_data_2.6.0目录路径为`/home/dump/dump_data_2.6.0`。
 
-   dump_data_2.8.0目录路径为`/home/dump/dump_data_2.8.0`。
+   dump_data_2.7.0目录路径为`/home/dump/dump_data_2.7.0`。
 
 2. 执行图构建比对。
 
    ```bash
-   msprobe graph_visualize -tp /home/dump/dump_data_2.8.0 -gp /home/dump/dump_data_2.7.2 -o /home/dump/output
+   msprobe graph_visualize -tp /home/dump/dump_data_2.7.0 -gp /home/dump/dump_data_2.6.0 -o /home/dump/output
    ```
 
-   比对完成后在./output下生成vis后缀文件。
+   比对完成后在/home/dump/output下生成vis后缀文件。
 
 3. 启动TensorBoard。
 
    ```bash
-   tensorboard --logdir ./output --bind_all
+   tensorboard --logdir /home/dump/output --bind_all
    ```
 
    --logdir指定的路径即为步骤2中的/home/dump/output路径。
@@ -243,10 +223,10 @@ dump_data/
    执行以上命令后打印如下日志。
 
    ```txt
-   TensorBoard 2.19.0 at http://ubuntu:6008/ (Press CTRL+C to quit)
+   TensorBoard 2.20.0 at http://ubuntu:6006/ (Press CTRL+C to quit)
    ```
 
-   需要在Windows环境下打开浏览器，访问地址`http://ubuntu:6008/`，其中ubuntu修改为服务器的IP地址，例如`http://192.168.1.10:6008/`。
+   需要在Windows环境下打开浏览器，访问地址`http://ubuntu:6006/`，其中ubuntu修改为服务器的IP地址，例如`http://192.168.1.10:6006/`。
 
    访问地址成功后页面显示TensorBoard界面，如下所示。
 
