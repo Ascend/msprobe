@@ -1,15 +1,8 @@
 # msProbe工具安装指南
 
-## 环境和依赖
-
-使用msProbe工具前，要求已存在可执行的用户AI应用，其中要求昇腾环境：
-
-- 可正常运行用户AI应用，详细设备型号请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》。
-- 已安装配套版本的CANN Toolkit开发套件包和算子包并配置环境变量，具体请参见[CANN快速安装](https://www.hiascend.com/cann/download)。
-
 ## 安装说明
 
-本文主要介绍msProbe工具的安装。当前支持**从PyPI安装、下载whl包安装和编译安装**三种方式。
+本文主要介绍msProbe工具的安装。当前支持**pip安装**和**源码编译安装**方式。
 
 推荐使用[miniconda](https://docs.anaconda.com/miniconda/)管理环境依赖。
 
@@ -18,19 +11,18 @@ conda create -n msprobe python=3.10
 conda activate msprobe
 ```
 
-## 工具限制与注意事项
+## 环境和依赖
 
-- 工具读写的所有路径，如`config_path`、`dump_path`等，只允许包含大小写字母、数字、下划线、斜杠、点和短横线。
+使用msProbe工具前：
 
-- 出于安全性及权限最小化角度考虑，本工具不应使用root等高权限账户，建议使用普通用户权限安装执行。
+- 需确保已存在可运行的用户AI应用。
+- 请参考《[CANN 快速安装](https://www.hiascend.com/cann/download)》安装昇腾NPU驱动和配套版本的CANN软件（包含Toolkit和ops包）并配置环境变量。
 
-- 使用本工具前请确保执行用户的umask值大于等于0027，否则可能会导致工具生成的精度数据文件和目录权限过大。
+## pip安装
 
-- 用户须自行保证使用最小权限原则，如给工具输入的文件要求other用户不可写，在一些对安全要求更严格的功能场景下还需确保输入的文件group用户不可写。
+pip安装支持**PyPI远程安装**和**下载whl安装**两种方式。
 
-- msProbe建议执行用户与安装用户保持一致，如果使用root执行，请自行关注root高权限触及的安全风险。
-
-## 从PyPI安装
+### PyPI远程安装
 
 ```bash
 pip install mindstudio-probe --pre
@@ -40,31 +32,53 @@ pip install mindstudio-probe --pre
 
 打印如下信息时，表示msProbe安装成功。
 
-`Successfully installed mindstudio-probe-{version}`
-
-## 下载whl包安装
-
-请参考[版本说明](./release_notes.md)中的“版本配套说明”章节，下载msProbe的whl软件包。
-
-获取到whl软件包后执行如下命令进行安装。
-
-```bash
-sha256sum {name}.whl # 验证whl包，若校验码一致，则whl包在下载中没有受损
+```ColdFusion
+Successfully installed mindstudio-probe-{version}
 ```
 
-```bash
-pip install ./mindstudio_probe-{version}-py3-none-any.whl # 安装whl包
-```
+### 下载whl安装
 
-打印如下信息时，表示msProbe安装成功。
+1. 请参考[msProbe Release](https://gitcode.com/Ascend/msprobe/releases)下载msProbe的whl软件包和对应数字签名文件（.sha256）。
 
-`Successfully installed mindstudio-probe-{version}`
+   下载本软件即表示您同意《[华为企业业务最终用户许可协议（EULA）](https://e.huawei.com/cn/about/eula)》的条款和条件。
 
-若覆盖安装，请在命令行末尾添加 `--force-reinstall` 参数。
+2. 验证whl包的完整性。
 
-上面提供的whl包链接不包含adump、aclgraph_dump和atb_probe功能，如果需要使用这些功能，请参考[编译安装](#编译安装)下载源码编译whl包。
+   1. 在whl包所在目录执行如下命令获取whl软件包的sha256校验码。
 
-## 编译安装
+      ```bash
+      sha256sum {name}.whl
+      ```
+
+      打印如下示例信息。
+
+      ```ColdFusion
+      {sha256} {name}.whl
+      ```
+
+   2. 用记事本打开数字签名文件查看sha256校验码。
+
+   3. 比对两个文件的sha256校验码是否一致。
+
+      若两个校验码一致，则表示下载了正确的软件包；若不一致，请不要使用该软件包，需要支持与服务请在论坛求助或提交技术工单。
+
+3. 安装whl包。
+
+   ```bash
+   pip install ./mindstudio_probe-{version}-py3-none-any.whl
+   ```
+
+   打印如下信息时，表示msProbe安装成功。
+
+   ```ColdFusion
+   Successfully installed mindstudio-probe-{version}
+   ```
+
+   若覆盖安装，请在命令行末尾添加 `--force-reinstall` 参数。
+
+   以上提供的whl包链接不包含adump、aclgraph_dump和atb_probe功能，如果需要使用这些功能，请参考[源码编译安装](#源码编译安装)下载源码编译whl包。
+
+## 源码编译安装
 
 **功能说明**
 
@@ -80,12 +94,12 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 
 | 参数          | 可选/必选 | 说明                                                         |
 | ------------- | :-------: | ------------------------------------------------------------ |
-| --include-mod |   可选    | 指定可选模块，可取值：<br/>&#8226; adump：表示在编译whl包时加入adump模块。adump模块用于MindSpore静态图场景L2级别的dump。仅MindSpore 2.5.0及以上版本支持adump模块。<br/>&#8226; tb_graph_ascend：表示在编译whl包时加入模型分级可视化插件。模型分级可视化构建相关依赖和推荐版本为Node.js v20.19.3、Npm v10.8.2。模型分级可视化插件的详细依赖及功能使用说明请参见[PyTorch场景分级可视化构图比对](./accuracy_compare/pytorch_visualization_instruct.md)或[MindSpore场景分级可视化构图比对](./accuracy_compare/mindspore_visualization_instruct.md)。<br/>&#8226; trend_analyzer：表示在编译whl包时加入趋势分级可视化插件。趋势分级可视化插件的功能说明请参见[趋势可视化](./accuracy_compare/trend_visualization_instruct.md)。 <br/>&#8226; atb_probe：表示在编译whl包时加入atb_probe模块。atb_probe模块用于ATB推理场景下的数据采集。<br/>&#8226; aclgraph_dump：表示在编译whl包时加入aclgraph_dump模块，用于在aclgraph场景通过acl_save保存.pt文件。编译环境需要额外依赖`torch`和`torch_npu`。<br/>默认未配置该参数，表示编译基础工具包。<br/>指定多个模块时，模块间以","连接，例如adump,atb_probe。<br/>指定adump或atb_probe模块时，编译环境需具备git、curl、GCC 7.5或以上版本、CMake 3.19.3或以上版本等第三方依赖软件。且指定adump模块时，使能的CANN环境下需包含`libadump_server.a`文件。<br/>配置该参数生成的whl包，仅限编译时使用的Python版本和处理器架构可用。 |
+| --include-mod |   可选    | 指定可选模块，可取值：<br/>&#8226; adump：表示在编译whl包时加入adump模块。adump模块用于MindSpore静态图场景L2级别的dump。仅MindSpore 2.5.0及以上版本支持adump模块。<br/>&#8226; tb_graph_ascend：表示在编译whl包时加入模型分级可视化插件。模型分级可视化构建相关依赖和推荐版本为Node.js v20.19.3、Npm v10.8.2。模型分级可视化插件的详细依赖及功能使用说明请参见[PyTorch场景分级可视化构图比对](./accuracy_compare/pytorch_visualization_instruct.md)或[MindSpore场景分级可视化构图比对](./accuracy_compare/mindspore_visualization_instruct.md)。<br/>&#8226; trend_analyzer：表示在编译whl包时加入趋势分级可视化插件。趋势分级可视化构建相关依赖和推荐版本为Node.js v20.19.3、Npm v10.8.2。趋势分级可视化插件的功能说明请参见[趋势可视化](./accuracy_compare/trend_visualization_instruct.md)。 <br/>&#8226; atb_probe：表示在编译whl包时加入atb_probe模块。atb_probe模块用于ATB推理场景下的数据采集。<br/>&#8226; aclgraph_dump：表示在编译whl包时加入aclgraph_dump模块，用于在aclgraph场景通过acl_save保存.pt文件。编译环境需要额外依赖`torch`和`torch_npu`。<br/>默认未配置该参数，表示编译基础工具包。<br/>指定多个模块时，模块间以","连接，例如adump,atb_probe。<br/>指定adump或atb_probe模块时，编译环境需具备git、curl、GCC 7.5或以上版本、CMake 3.19.3或以上版本等第三方依赖软件。且指定adump模块时，使能的CANN环境下需包含`libadump_server.a`文件。<br/>配置该参数生成的whl包，仅限编译时使用的Python版本和处理器架构可用。 |
 | --no-check    |   可选    | 跳过证书校验。--include-mod指定可选模块后，会下载所依赖的第三方库包，下载过程会进行证书校验，配置本参数可以跳过证书校验。 |
 
 **使用示例**
 
-- 编译安装基础工具包
+- 安装基础工具包
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
@@ -98,7 +112,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   pip install ./mindstudio_probe*.whl
   ```
   
-- 编译安装基础工具包和adump模块
+- 安装基础工具包和adump模块
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
@@ -111,7 +125,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   pip install ./mindstudio_probe*.whl
   ```
   
-- 编译安装基础工具包和aclgraph_dump模块
+- 安装基础工具包和aclgraph_dump模块
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
@@ -124,7 +138,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   pip install ./mindstudio_probe*.whl
   ```
   
-- 编译安装基础工具包和分级可视化插件
+- 安装基础工具包和分级可视化插件
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
@@ -137,7 +151,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   pip install ./mindstudio_probe*.whl
   ```
 
-- 编译安装基础工具包和趋势可视化插件
+- 安装基础工具包和趋势可视化插件
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
@@ -150,7 +164,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   pip install ./mindstudio_probe*.whl
   ```
 
-- 编译安装基础工具包，同时编译安装分级可视化和趋势可视化插件
+- 安装基础工具包和分级可视化、趋势可视化插件
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
@@ -163,7 +177,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   pip install ./mindstudio_probe*.whl
   ```
 
-- 编译安装基础工具包和atb_probe模块
+- 安装基础工具包和atb_probe模块
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
@@ -202,7 +216,21 @@ Successfully uninstalled mindstudio-probe-{version}
 
 msProbe工具不支持直接升级，需要先完成[卸载](#卸载)后再重新[安装](#msprobe工具安装指南)。
 
-## 查看msProbe工具信息
+## 附录
+
+### 工具限制与注意事项
+
+- 工具读写的所有路径，如`config_path`、`dump_path`等，只允许包含大小写字母、数字、下划线、斜杠、点和短横线。
+
+- 出于安全性及权限最小化角度考虑，本工具不应使用root等高权限账户，建议使用普通用户权限安装执行。
+
+- 使用本工具前请确保执行用户的umask值大于等于0027，否则可能会导致工具生成的精度数据文件和目录权限过大。
+
+- 用户须自行遵循最小权限原则，如给工具输入的文件要求other用户不可写，在一些对安全要求更严格的功能场景下还需确保输入的文件group用户不可写。
+
+- msProbe建议执行用户与安装用户保持一致，如果使用root执行，请自行关注root高权限触及的安全风险。
+
+### 查看msProbe工具信息
 
 ```bash
 pip show mindstudio-probe
@@ -223,12 +251,12 @@ Requires: einops, matplotlib, numpy, onnx, onnxruntime, openpyxl, pandas, protob
 Required-by:
 ```
 
-## Ascend生态链接
+### Ascend生态链接
 
-### 安装PyTorch_NPU
+#### 安装PyTorch_NPU
 
 请参见[Ascend Extension for PyTorch](https://gitcode.com/Ascend/pytorch)。
 
-### 安装MindSpeed LLM
+#### 安装MindSpeed LLM
 
 请参见[MindSpeed LLM](https://gitcode.com/Ascend/MindSpeed-LLM)。
