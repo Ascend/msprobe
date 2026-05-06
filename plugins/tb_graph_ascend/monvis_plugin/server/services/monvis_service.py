@@ -14,6 +14,7 @@
 
 from tensorboard.util import tb_logging
 from ..repositories.monvis_repo import MonvisRepo
+from ..common.utils import Utils
 
 logger = tb_logging.get_logger()
 
@@ -70,7 +71,7 @@ class MonvisService:
             return {"success": True, "data": values}
 
         except Exception as e:
-            return {"success": False, "error": f"internal error: {str(e)}"}
+            return {"success": False, "error": f"internal error: {Utils.replace_paths_with_filenames(str(e))}"}
 
     def get_tags(self, metric):
         if not metric:
@@ -81,7 +82,7 @@ class MonvisService:
             return {"success": True, "data": tags}
 
         except Exception as e:
-            return {"success": False, "error": f"internal error: {str(e)}"}
+            return {"success": False, "error": f"internal error: {Utils.replace_paths_with_filenames(str(e))}"}
 
     def get_heatmap_data(self, metric, stat, dimension, value, tags):
 
@@ -121,7 +122,7 @@ class MonvisService:
             return {"success": True, "data": heatmap_data}
 
         except Exception as e:
-            return {"success": False, "error": f"internal error: {str(e)}"}
+            return {"success": False, "error": f"internal error: {Utils.replace_paths_with_filenames(str(e))}"}
 
     def get_trend_data(self, metric, stat, dimension, dim_x, dim_y, tags):
         if not all([metric, stat, dimension in ["step", "rank", "module_name"]]):
@@ -168,4 +169,4 @@ class MonvisService:
             return {"success": True, "data": {"dimensions": dimensions, "values": values}}
 
         except Exception as e:
-            return {"success": False, "error": f"internal error: {str(e)}"}
+            return {"success": False, "error": f"internal error: {Utils.replace_paths_with_filenames(str(e))}"}

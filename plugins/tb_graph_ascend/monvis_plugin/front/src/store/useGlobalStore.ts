@@ -28,6 +28,10 @@ export interface ContextStateType {
   dimensionValue: string;
   heatMapType: string;
   tags: string[];
+  
+  // 数据库文件相关
+  dbFiles: string[];
+  currentDbFile: string;
 
   dimX: string;
   dimY: string;
@@ -42,6 +46,10 @@ export interface ContextStateType {
   setDimensionValue: (dimensionValue: string) => void;
   setHeatMapType: (heatMapType: string) => void;
   setTags: (tags: string[]) => void;
+  
+  // 数据库文件相关方法
+  setDbFiles: (dbFiles: string[]) => void;
+  setCurrentDbFile: (currentDbFile: string) => void;
 
   setDimX: (dimX: string) => void;
   setDimY: (dimY: string) => void;
@@ -63,6 +71,10 @@ export const useGlobalStore = create<ContextStateType>((set, get) => ({
   loadingHeatMap: false,
   loadingLineChart: false,
   tags: [],
+  
+  // 数据库文件相关初始值
+  dbFiles: [],
+  currentDbFile: '',
 
   setHeatMapData: (heatMapData?: Array<any>) => set({ heatMapData }),
   setTrendData: (trendData: Array<TreadDataType>) => set({ trendData }),
@@ -72,6 +84,10 @@ export const useGlobalStore = create<ContextStateType>((set, get) => ({
   setDimensionValue: (dimensionValue: string) => set({ dimensionValue }),
   setHeatMapType: (heatMapType: string) => set({ heatMapType }),
   setTags: (tags: string[]) => set({ tags }),
+  
+  // 数据库文件相关方法
+  setDbFiles: (dbFiles: string[]) => set({ dbFiles }),
+  setCurrentDbFile: (currentDbFile: string) => set({ currentDbFile }),
 
   setDimX: (dimX: string) => set({ dimX }),
   setDimY: (dimY: string) => set({ dimY }),

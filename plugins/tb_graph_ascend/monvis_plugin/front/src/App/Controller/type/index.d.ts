@@ -45,3 +45,10 @@ export interface ValuesRequestParamsType {
   dimension: string;
   tags: string[];
 }
+
+export interface LoadDbFilesResponseType {
+  success: boolean;
+  data?: Array<string>;
+  error?: string;
+  current: string;
+}

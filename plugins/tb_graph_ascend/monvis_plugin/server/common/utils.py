@@ -13,6 +13,7 @@
 # ==============================================================================
 import json
 import os
+import re
 import stat
 from pathlib import Path
 from tensorboard.util import tb_logging
@@ -22,6 +23,7 @@ MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024
 FILE_PATH_MAX_LENGTH = 4096
 PERM_GROUP_WRITE = 0o020
 PERM_OTHER_WRITE = 0o002
+FILE_EXTENSION=".trend.db"
 
 
 class Utils:
@@ -75,6 +77,28 @@ class Utils:
             unit_index += 1
 
         return f"{size_bytes:.{decimal_places}f} {units[unit_index]}"
+    
+    def replace_paths_with_filenames(error_msg: str) -> str:
+        """
+        将错误信息中的所有绝对路径替换为【仅文件名】
+        例如：/a/b/c/main.py → main.py
+        """
+        if not error_msg:
+            return ""
+
+        # 匹配 Linux/mac/Windows 绝对路径（精准不误杀）
+        path_pattern = r'(?:' \
+                    r'/[^\\/\n\r]+(?:/[^\\/\n\r]+)*|' \
+                    r'[A-Za-z]:[\\/][^\\/\n\r]+(?:[\\/][^\\/\n\r]+)*' \
+                    r')'
+
+        # 匹配到路径后，替换成该路径的文件名
+        def replace_path(match):
+            path = match.group(0)
+            return os.path.basename(path)  # 只返回文件名
+
+        # 全局替换
+        return re.sub(path_pattern, replace_path, error_msg)
 
     @staticmethod
     def safe_check_load_file_path(file_path, is_dir=False):

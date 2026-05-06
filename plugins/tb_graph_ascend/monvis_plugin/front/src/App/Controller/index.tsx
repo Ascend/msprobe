@@ -23,10 +23,11 @@ import { useGlobalStore } from '../../store/useGlobalStore';
 import { DIMENSIONS_OPTIONS, HEATMAP_TYPE } from '../../common/constant';
 import SelectWithLabel from '../../components/SelectWithLabel';
 import type { SelectOptionType } from '../../common/type';
-import type { ControllerProps, ValuesResponseType, ValuesRequestParamsType, TagsResponseType } from './type';
+import type { ControllerProps, ValuesResponseType, ValuesRequestParamsType, TagsResponseType, LoadDbFilesResponseType } from './type';
 import { Typography } from 'antd';
 const { Text } = Typography;
 import useController from './useController';
+import request from '../../utils/request';
 
 // 标签选项类型
 interface TagOptionType extends Omit<SelectOptionType, 'label'> {
@@ -45,6 +46,12 @@ const Controller: React.FC = (props: ControllerProps) => {
   const heatMapType = useGlobalStore((state) => state.heatMapType); // 热力图类型
   const tags = useGlobalStore((state) => state.tags); // 标签
 
+  // 数据库文件相关状态
+  const dbFiles = useGlobalStore((state) => state.dbFiles);
+  const currentDbFile = useGlobalStore((state) => state.currentDbFile);
+  const setDbFiles = useGlobalStore((state) => state.setDbFiles);
+  const setCurrentDbFile = useGlobalStore((state) => state.setCurrentDbFile);
+
   const setDimX = useGlobalStore((state) => state.setDimX);
   const setDimY = useGlobalStore((state) => state.setDimY);
   const setStat = useGlobalStore((state) => state.setStat);
@@ -62,6 +69,59 @@ const Controller: React.FC = (props: ControllerProps) => {
   const [statNameList, setStatNameList] = useState<string[]>([]);
   const [dimensionValueList, setDimensionValueList] = useState<Array<SelectOptionType>>();
   const [tagsValueList, setTagsValueList] = useState<Array<SelectOptionType>>();
+  const [dbFileOptions, setDbFileOptions] = useState<Array<SelectOptionType>>([]);
+
+  // 加载数据库文件列表
+  const loadDbFiles = async () => {
+    try {
+      const response = await request({ url: 'db_files', method: 'GET' }) as LoadDbFilesResponseType;
+      if (response.data && response.success) {
+        const dbFilesList = response.data;
+        const currentDb = response.current;
+        setDbFiles(dbFilesList);
+        if (currentDb) {
+          setCurrentDbFile(currentDb);
+        }
+
+        // 转换为下拉框选项格式
+        const options = dbFilesList.map((file: string) => ({
+          label: file,
+          value: file,
+        }));
+        setDbFileOptions(options);
+      } else {
+        console.warn('Failed to load database files:', response);
+      }
+    } catch (error) {
+      message.error('网络异常：获取数据库文件列表失败');
+    }
+  };
+
+  // 切换数据库文件
+  const handleSwitchDbFile = async (dbFilename: string) => {
+    try {
+      const response = await request({
+        url: 'switch_db',
+        method: 'POST',
+        data: { db_filename: dbFilename },
+      }) as any;
+
+      if (response.success) {
+        setCurrentDbFile(dbFilename);
+        message.success(`已切换到 ${dbFilename}`);
+        // 刷新页面数据
+        window.location.reload();
+      } else {
+        message.error(response.error || '切换数据库失败');
+      }
+    } catch (error) {
+      message.error('网络异常：切换数据库失败');
+    }
+  };
+
+  useEffect(() => {
+    loadDbFiles();
+  }, []);
 
   useEffect(() => {
     if (metrics) {
@@ -187,7 +247,7 @@ const Controller: React.FC = (props: ControllerProps) => {
         .map(({ category, id, text }) => {
           // 防御性检查：确保必要字段存在
           if (id === undefined || id === null || !category) {
-            console.warn('Invalid tag data: missing id or category', { id, category });
+            console.warn('Invalid tag data:', { id, category, text });
             return null;
           }
 
@@ -247,9 +307,24 @@ const Controller: React.FC = (props: ControllerProps) => {
     updateDimensionValueList(params);
     setTags(tags);
   };
+
+  // 数据库文件选择
+  const onSelectDbFileChange = (value: string) => {
+    handleSwitchDbFile(value);
+  };
   return (
     <div className="wrapper">
       <div className="controller">
+        {dbFileOptions.length > 0 && (
+          <SelectWithLabel
+            className="select-with-label"
+            label="选择数据库文件"
+            text="选择要查看的数据库文件"
+            value={currentDbFile}
+            onChange={onSelectDbFileChange}
+            options={dbFileOptions}
+          />
+        )}
         <SelectWithLabel
           className="select-with-label"
           value={metric}
