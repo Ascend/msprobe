@@ -188,6 +188,10 @@ class AclGraphDumper:
     def _module_scope(self, module_name):
         return module_name if module_name else "__root__"
 
+    def _module_dump_scope(self, module_name, module_class_name):
+        scope_name = self._module_scope(module_name)
+        return f"Module.{scope_name}.{module_class_name}"
+
     def _should_collect_module(self, module_name):
         if not self.list:
             return True
@@ -329,6 +333,13 @@ class AclGraphDumper:
         return value
 
     @classmethod
+    def _normalize_l0_op_name(cls, op_name):
+        parts = op_name.split(".")
+        if len(parts) >= 4 and parts[0] == "Module" and parts[-1] == "forward" and parts[-2].isdigit():
+            return ".".join(parts[:-2] + ["forward", parts[-2]])
+        return op_name
+
+    @classmethod
     def _parse_stat_key(cls, key):
         marker = ".forward."
         marker_pos = key.find(marker)
@@ -336,6 +347,7 @@ class AclGraphDumper:
             return None
 
         op_name = key[: marker_pos + len(".forward")]
+        op_name = cls._normalize_l0_op_name(op_name)
         tail = key[marker_pos + len(marker):]
         io_candidates = ("input_kwargs", "input", "output")
         for io_name in io_candidates:
@@ -410,8 +422,17 @@ class AclGraphDumper:
             origin = module.forward
 
             @functools.wraps(origin)
-            def wrapped_forward(*args, __origin=origin, __module_name=module_name, **kwargs):
+            def wrapped_forward(
+                *args,
+                __origin=origin,
+                __module_name=module_name,
+                __module_class_name=type(module).__name__,
+                **kwargs
+            ):
                 dumper._push_scope(__module_name)
+                module_scope_name = __module_name
+                if dumper._collect_module_enabled():
+                    module_scope_name = dumper._module_dump_scope(__module_name, __module_class_name)
                 depth = dumper._dispatch_depth()
                 dumper._set_dispatch_depth(depth + 1)
                 use_dispatch = (
@@ -424,11 +445,11 @@ class AclGraphDumper:
                 started = False
                 try:
                     if dumper._running and dumper._collect_module_enabled():
-                        collected = dumper._collect(__module_name, "input", args, mark_forward_start=not started)
+                        collected = dumper._collect(module_scope_name, "input", args, mark_forward_start=not started)
                         started = started or collected
                         if kwargs:
                             collected = dumper._collect(
-                                __module_name, "input_kwargs", kwargs, mark_forward_start=not started
+                                module_scope_name, "input_kwargs", kwargs, mark_forward_start=not started
                             )
                             started = started or collected
 
@@ -436,7 +457,7 @@ class AclGraphDumper:
                         output = __origin(*args, **kwargs)
 
                     if dumper._running and dumper._collect_module_enabled():
-                        dumper._collect(__module_name, "output", output, mark_forward_start=not started)
+                        dumper._collect(module_scope_name, "output", output, mark_forward_start=not started)
                     return output
                 finally:
                     dumper._set_dispatch_depth(depth)
