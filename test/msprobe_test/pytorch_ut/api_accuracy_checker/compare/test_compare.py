@@ -136,7 +136,7 @@ class TestCompare(unittest.TestCase):
         res = self.compare._compare_core('api', tensor, tensor, False)
 
         self.assertEqual(res[0], 'pass')
-        self.assertEqual(res[2], 'Compare algorithm is not supported for int64 data. Only judged by Error Rate.\n')
+        self.assertEqual(res[2], 'Current int64 data, only perform binary comparison.\n')
 
     def test_compare_core_with_buildin(self):
         interger = 1

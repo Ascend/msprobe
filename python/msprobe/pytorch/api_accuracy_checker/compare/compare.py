@@ -346,8 +346,7 @@ class Comparator:
             return CompareConst.SKIP, compare_column, "There is not bench calculation result."
         if bench_output.dtype in [bool, np.uint8, np.int8, np.int16, np.uint16, np.uint32, np.int32,
                                   np.int64, np.uint64]:
-            message += f"Compare algorithm is not supported for {bench_output.dtype} data. " \
-                       f"Only judged by Error Rate."
+            message += f"Current {bench_output.dtype} data, only perform binary comparison."                      
             err_rate, status, msg = compare_bool_tensor(bench_output, device_output)
             message += msg + "\n"
             compare_column.error_rate = err_rate

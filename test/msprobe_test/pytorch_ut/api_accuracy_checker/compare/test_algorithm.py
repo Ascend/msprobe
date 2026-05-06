@@ -208,3 +208,118 @@ class TestAlgorithmMethods(unittest.TestCase):
         ulp_err = alg.calc_ulp_err(self.bench_data, self.device_data, eb, exponent_num, data_type)
         expected_ulp_err = (self.device_data.astype(data_type) - self.bench_data).astype(data_type) * np.exp2(-eb + exponent_num)
         self.assertTrue(np.allclose(ulp_err, expected_ulp_err))
+
+    # ========== compare_bool_tensor Int8类型测试用例 ==========
+    def test_compare_bool_tensor_int8_all_match(self):
+        """测试int8类型数据完全匹配的情况"""
+        bench_output = np.array([1, 2, 3, 4, 5], dtype=np.int8)
+        device_output = np.array([1, 2, 3, 4, 5], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 0.0)
+        self.assertEqual(result, CompareConst.PASS)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_all_different(self):
+        """测试int8类型数据完全不匹配的情况"""
+        bench_output = np.array([1, 2, 3, 4, 5], dtype=np.int8)
+        device_output = np.array([6, 7, 8, 9, 10], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 1.0)
+        self.assertEqual(result, CompareConst.ERROR)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_partial_match(self):
+        """测试int8类型数据部分匹配的情况"""
+        bench_output = np.array([1, 2, 3, 4, 5], dtype=np.int8)
+        device_output = np.array([1, 2, 0, 4, 6], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 0.4)  # 2/5 = 0.4
+        self.assertEqual(result, CompareConst.ERROR)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_with_negative_values(self):
+        """测试int8类型包含负值的情况"""
+        bench_output = np.array([-5, -10, 0, 10, 5], dtype=np.int8)
+        device_output = np.array([-5, -10, 0, 10, 5], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 0.0)
+        self.assertEqual(result, CompareConst.PASS)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_boundary_values(self):
+        """测试int8类型边界值的情况"""
+        bench_output = np.array([127, -128, 0], dtype=np.int8)
+        device_output = np.array([127, -128, 0], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 0.0)
+        self.assertEqual(result, CompareConst.PASS)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_boundary_values_mismatch(self):
+        """测试int8类型边界值不匹配的情况"""
+        bench_output = np.array([127, -128, 0], dtype=np.int8)
+        device_output = np.array([126, -127, 1], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 1.0)
+        self.assertEqual(result, CompareConst.ERROR)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_single_element_match(self):
+        """测试int8类型单个元素匹配的情况"""
+        bench_output = np.array([42], dtype=np.int8)
+        device_output = np.array([42], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 0.0)
+        self.assertEqual(result, CompareConst.PASS)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_single_element_mismatch(self):
+        """测试int8类型单个元素不匹配的情况"""
+        bench_output = np.array([42], dtype=np.int8)
+        device_output = np.array([43], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 1.0)
+        self.assertEqual(result, CompareConst.ERROR)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_large_array(self):
+        """测试int8类型大数组的情况"""
+        bench_output = np.array([i for i in range(-50, 50)], dtype=np.int8)
+        device_output = np.array([i for i in range(-50, 50)], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 0.0)
+        self.assertEqual(result, CompareConst.PASS)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_large_array_partial_mismatch(self):
+        """测试int8类型大数组部分不匹配的情况"""
+        bench_output = np.array([i for i in range(-50, 50)], dtype=np.int8)
+        device_output = np.array([i for i in range(-50, 50)], dtype=np.int8)
+        # 修改几个元素 (确保修改后的值与原值不同)
+        device_output[0] = 99  # 原值是-50
+        device_output[50] = 99  # 原值是0
+        device_output[99] = 99  # 原值是49
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 3.0 / 100.0)
+        self.assertEqual(result, CompareConst.ERROR)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_all_zeros(self):
+        """测试int8类型全零的情况"""
+        bench_output = np.array([0, 0, 0, 0, 0], dtype=np.int8)
+        device_output = np.array([0, 0, 0, 0, 0], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 0.0)
+        self.assertEqual(result, CompareConst.PASS)
+        self.assertEqual(msg, "")
+
+    def test_compare_bool_tensor_int8_repeated_values(self):
+        """测试int8类型重复值的情况"""
+        bench_output = np.array([1, 1, 1, 1, 1], dtype=np.int8)
+        device_output = np.array([1, 1, 1, 1, 1], dtype=np.int8)
+        error_rate, result, msg = alg.compare_bool_tensor(bench_output, device_output)
+        self.assertEqual(error_rate, 0.0)
+        self.assertEqual(result, CompareConst.PASS)
+        self.assertEqual(msg, "")
+
+    # ========== int8 类型测试用例 ==========
