@@ -678,6 +678,9 @@ def _compare_parser(parser):
     parser.add_argument("-o", "--output_path", dest="output_path", type=str,
                         help="<Required> The compare task result out path. Default path: ./output",
                         required=False, default="./output", nargs="?", const="./output")
+    parser.add_argument("--xlsx", dest="xlsx", action="store_true",
+                        help="<optional> Save compare results in xlsx format. Default output format is csv.",
+                        required=False)
     parser.add_argument("-fm", "--fuzzy_match", dest="fuzzy_match", action="store_true",
                         help="<optional> Whether to perform a fuzzy match on the api name.", required=False)
     parser.add_argument("-cm", "--cell_mapping", dest="cell_mapping", type=str, nargs='?', const=True,

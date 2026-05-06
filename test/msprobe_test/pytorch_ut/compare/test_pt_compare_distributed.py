@@ -41,4 +41,4 @@ class TestUtilsMethods(unittest.TestCase):
         bench_dump_dir = base_dir_parent
         compare_distributed(npu_dump_dir, bench_dump_dir, output_path)
         output_files = os.listdir(output_path)
-        self.assertTrue(any(f.endswith(".xlsx") for f in output_files))
+        self.assertTrue(any(f.endswith(".csv") for f in output_files))

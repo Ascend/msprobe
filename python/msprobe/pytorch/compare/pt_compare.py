@@ -89,6 +89,7 @@ def pt_compare(input_param, output_path, **kwargs):
     config_dict = {
         'stack_mode': config.stack_mode,
         'fuzzy_match': config.fuzzy_match,
+        'xlsx': config.xlsx,
         'dump_mode': config.dump_mode,
         'first_diff_analyze': config.first_diff_analyze,
         'compared_file_type': config.compared_file_type,

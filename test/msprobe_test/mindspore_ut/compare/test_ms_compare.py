@@ -253,7 +253,7 @@ class TestUtilsMethods(unittest.TestCase):
 
         ms_compare(input_param, output_path)
         output_files = os.listdir(output_path)
-        self.assertTrue(any(f.endswith(".xlsx") for f in output_files))
+        self.assertTrue(any(f.endswith(".csv") for f in output_files))
 
         input_param2 = {
             'npu_path': '',

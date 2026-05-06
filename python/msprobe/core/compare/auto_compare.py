@@ -39,6 +39,7 @@ def compare_auto_mode(args, depth=1):
         "data_mapping": args.data_mapping,
         "diff_analyze": args.diff_analyze,
         "is_print_compare_log": args.is_print_compare_log,
+        "xlsx": args.xlsx,
         "cell_mapping": args.cell_mapping,
         "layer_mapping": args.layer_mapping,
         "consistent_check": args.consistent_check,

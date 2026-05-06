@@ -25,10 +25,12 @@ from tqdm import tqdm
 
 from msprobe.core.common.const import CompareConst, Const
 from msprobe.core.common.exceptions import FileCheckException
-from msprobe.core.common.file_utils import load_json, remove_path, create_directory, save_excel, save_json
+from msprobe.core.common.file_utils import load_json, remove_path, create_directory, save_excel, save_json, \
+    write_df_to_csv
 from msprobe.core.common.log import logger
-from msprobe.core.common.utils import CompareException, add_time_with_xlsx, check_op_str_pattern_valid, \
-    set_dump_path, get_dump_mode, check_compare_param, load_stack_json, get_file_type, add_time_with_json
+from msprobe.core.common.utils import CompareException, add_time_with_csv, add_time_with_xlsx, \
+    check_op_str_pattern_valid, set_dump_path, get_dump_mode, check_compare_param, load_stack_json, \
+    get_file_type, add_time_with_json
 from msprobe.core.compare.check import check_dump_json_str, check_stack_json_str, cross_dtype_mapping, \
     check_configuration_param, check_consistent_param
 from msprobe.core.compare.utils import print_compare_ends_info, read_op, set_stack_json_path, reorder_index
@@ -50,6 +52,7 @@ class ComparisonConfig:
     cell_mapping: dict
     api_mapping: dict
     layer_mapping: dict
+    xlsx: bool
     compared_file_type: str
     first_diff_analyze: bool
     is_print_compare_log: bool
@@ -103,8 +106,10 @@ class Comparator:
         file_name_prefix = file_name_prefix_mapping.get(compared_file_type, "compare_result")
         if self.mode_config.first_diff_analyze:
             file_name = add_time_with_json("compare_result" + suffix)
-        else:
+        elif self.mode_config.xlsx:
             file_name = add_time_with_xlsx(file_name_prefix + suffix)
+        else:
+            file_name = add_time_with_csv(file_name_prefix + suffix)
         file_path = os.path.join(os.path.realpath(output_path), file_name)
         if os.path.exists(file_path):
             logger.warning(f"{file_path} will be deleted.")
@@ -133,7 +138,6 @@ class Comparator:
         # get kwargs or set default value
         suffix = kwargs.get('suffix', '')
         rank = suffix[1:]
-
         # process output file
         file_path = self.process_output_file(output_path, suffix, self.mode_config.compared_file_type)
 
@@ -179,10 +183,15 @@ class Comparator:
         result_df.drop(columns=['state', 'api_origin_name'], inplace=True)  # 删除中间数据，两列不落盘
         logger.info("Comparison indicators calculation done.")
 
-        # save result excel file
-        logger.info("Saving result excel file in progress...")
-        logger.info(f"The result excel file path is: {file_path}.")
-        save_excel(file_path, result_df)
+        # save result file
+        logger.info("Saving result file in progress...")
+        logger.info(f"The result file path is: {file_path}.")
+        if self.mode_config.xlsx:
+            save_excel(file_path, result_df)
+        else:
+            # float类型的inf转成空格+inf的字符串，解决excel打开csv，inf不被识别显示#NAME?的问题
+            result_df = result_df.replace({np.inf: " inf", -np.inf: " -inf"})
+            write_df_to_csv(result_df, file_path)
 
         print_compare_ends_info()
 
@@ -1011,7 +1020,10 @@ class Match:
             # 初始化聚合字典，默认所有列用 'first'  聚合
             agg_dict = {col: 'first' for col in agg_rows.columns}
             # 对 op_name_x 使用自定义聚合方法
-            agg_dict['op_name_x'] = lambda x: ';\n'.join(x)
+            if self.mode_config.xlsx:
+                agg_dict['op_name_x'] = lambda x: ';\n'.join(x)
+            else:
+                agg_dict['op_name_x'] = lambda x: ';  '.join(x)
             agg_dict['dtype_x'] = lambda x: ';'.join(x)
             agg_dict['shape_x'] = lambda x: ';'.join(x)
             agg_dict['summary_x'] = lambda x: ';'.join(x)  # 统计量先按字符串聚合，后续再拆提取
@@ -1027,7 +1039,10 @@ class Match:
             # 初始化聚合字典，默认所有列用 'first'  聚合
             agg_dict = {col: 'first' for col in agg_rows.columns}
             # 对 op_name_x 使用自定义聚合方法
-            agg_dict['op_name_y'] = lambda x: ';\n'.join(x)
+            if self.mode_config.xlsx:
+                agg_dict['op_name_y'] = lambda x: ';\n'.join(x)
+            else:
+                agg_dict['op_name_y'] = lambda x: ';  '.join(x)
             agg_dict['dtype_y'] = lambda x: ';'.join(x)
             agg_dict['shape_y'] = lambda x: ';'.join(x)
             agg_dict['summary_y'] = lambda x: ';'.join(x)  # 统计量先按字符串聚合，后续再拆提取
@@ -1538,6 +1553,7 @@ def setup_comparison(input_param, output_path, **kwargs) -> ComparisonConfig:
             cell_mapping=kwargs.get('cell_mapping', {}),
             api_mapping=kwargs.get('api_mapping', {}),
             layer_mapping=kwargs.get('layer_mapping', {}),
+            xlsx=kwargs.get('xlsx', False),
             first_diff_analyze=kwargs.get('first_diff_analyze', False),
             compared_file_type='',
             is_print_compare_log=kwargs.get('is_print_compare_log', False),

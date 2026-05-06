@@ -66,6 +66,7 @@ class TestMsGraphCompare(unittest.TestCase):
             target_path=self.npu_data_path,
             golden_path=self.bench_data_path,
             output_path=self.output_path,
+            xlsx=False,
             rank=[],
             step=[]
         )
@@ -96,6 +97,7 @@ class TestMsGraphCompare(unittest.TestCase):
             target_path=self.npu_data_path,
             golden_path=self.bench_data_path,
             output_path=self.output_path,
+            xlsx=False,
             rank=[],
             step=[]
         )

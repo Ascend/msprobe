@@ -739,37 +739,64 @@ def read_csv(filepath, as_pd=True, header='infer'):
 
 
 def write_df_to_csv(data, filepath, mode="w", header=True, malicious_check=False):
-    def csv_value_is_valid(value: str) -> bool:
+    def check_value_is_valid(value: str) -> bool:
         if not isinstance(value, str):
             return True
-        try:
-            # -1.00 or +1.00 should be considered as digit numbers
-            float(value)
-        except ValueError:
-            # otherwise, they will be considered as formular injections
-            return not bool(re.compile(FileCheckConst.CSV_BLACK_LIST).search(value))
+        parts = value.split(';')
+        for p in parts:
+            try:
+                # -1.00 or +1.00 should be considered as digit numbers
+                float(p)
+            except ValueError:
+                # otherwise, they will be considered as formular injections
+                return not bool(re.compile(FileCheckConst.CSV_BLACK_LIST).search(value))
         return True
+    
+    def check_malicious(df):
+        for row_name in df.index:
+            if not check_value_is_valid(row_name):
+                raise RuntimeError(f"Malicious value [{row_name}] not allowed to be written into the excel: {filepath}.")
+
+        for col_name in df.columns:
+            if not check_value_is_valid(col_name):
+                raise RuntimeError(f"Malicious value [{col_name}] not allowed to be written into the excel: {filepath}.")
+
+        for _, row in df.iterrows():
+            for _, value in row.items():
+                if not check_value_is_valid(value):
+                    raise RuntimeError(f"Malicious value [{value}] not allowed to be written into the excel: {filepath}.")
 
     if not isinstance(data, pd.DataFrame):
         raise ValueError("The data type of data is not supported. Only support pd.DataFrame.")
 
     if malicious_check:
-        for i in range(len(data)):
-            for j in range(len(data.columns)):
-                cell = data.iloc[i, j]
-                if not csv_value_is_valid(cell):
-                    raise RuntimeError(f"Malicious value [{cell}] is not allowed "
-                                       f"to be written into the csv: {filepath}.")
+        check_malicious(data)
 
     check_path_before_create(filepath)
     file_path = os.path.realpath(filepath)
-    try:
-        data.to_csv(filepath, mode=mode, header=header, index=False)
-    except Exception as e:
-        logger.error(f'Save csv file "{os.path.basename(file_path)}" failed')
-        raise RuntimeError(f"Save csv file {file_path} failed.") from e
-    change_mode(filepath, FileCheckConst.DATA_FILE_AUTHORITY)
 
+    total_rows = len(data)
+    max_rows = FileCheckConst.MAX_ROWS_PER_CSV_FILE
+    nums_file = max(1, (total_rows + max_rows - 1) // max_rows)
+
+    base_path, filename = os.path.split(file_path)
+    name, ext = os.path.splitext(filename)
+    output_file = file_path
+    try:
+        for i in range(nums_file):
+            start_row = i * max_rows
+            end_row = min((i + 1) * max_rows, total_rows)
+            data_slice = data.iloc[start_row:end_row]
+
+            suffix = "" if nums_file == 1 else f"_part_{i + 1}"
+            output_file = os.path.join(base_path, f"{name}{suffix}{ext}")
+
+            data_slice.to_csv(output_file, mode=mode, header=header, index=False)
+            change_mode(output_file, FileCheckConst.DATA_FILE_AUTHORITY)
+
+    except Exception as e:
+        logger.error(f'Save csv file "{output_file}" failed: {e}')
+        raise RuntimeError(f"Save csv file {output_file} failed.") from e
 
 def remove_path(path):
     if not os.path.exists(path):

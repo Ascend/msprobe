@@ -22,9 +22,9 @@ import re
 import numpy as np
 import pandas as pd
 from msprobe.core.common.const import CompareConst, GraphMode, Const
-from msprobe.core.common.file_utils import load_npy, read_csv, save_excel
+from msprobe.core.common.file_utils import load_npy, read_csv, save_excel, write_df_to_csv
 from msprobe.core.common.log import logger
-from msprobe.core.common.utils import add_time_with_xlsx, CompareException
+from msprobe.core.common.utils import add_time_with_csv, add_time_with_xlsx, CompareException
 from msprobe.core.compare.multiprocessing_compute import _ms_graph_handle_multi_process, check_accuracy
 from msprobe.core.compare.npy_compare import npy_data_check, statistics_data_check, compare_ops_apply
 from msprobe.mindspore.common.utils import convert_to_int, list_lowest_level_directories
@@ -172,6 +172,7 @@ class GraphMSComparator:
         self.output_path = args.output_path
         self.base_npu_path = args.target_path
         self.base_bench_path = args.golden_path
+        self.xlsx = args.xlsx
         if args.rank:
             rank_id_list = args.rank.split(',')
             rank_id_list = [item.strip() for item in rank_id_list]
@@ -306,9 +307,27 @@ class GraphMSComparator:
             if is_empty or not mode:
                 continue
             compare_result_df = self.do_multi_process(compare_result_df, mode)
-            compare_result_name = add_time_with_xlsx(f"compare_result_{str(rank_id)}_{str(step_id)}")
+            if self.xlsx:
+                compare_result_name = add_time_with_xlsx(f"compare_result_{str(rank_id)}_{str(step_id)}")
+            else:
+                compare_result_name = add_time_with_csv(f"compare_result_{str(rank_id)}_{str(step_id)}")
             compare_result_path = os.path.join(os.path.realpath(self.output_path), f"{compare_result_name}")
-            save_excel(compare_result_path, compare_result_df)
+
+            # ()换成[]，避免excel打开csv将()当成会计模式的-号
+            cols = [CompareConst.NPU_SHAPE, CompareConst.BENCH_SHAPE]
+            for col in cols:
+                compare_result_df[col] = (
+                    compare_result_df[col]
+                    .astype(str)
+                    .str.replace("(", "[", regex=False)
+                    .str.replace(")", "]", regex=False)
+                )
+            if self.xlsx:
+                save_excel(compare_result_path, compare_result_df)
+            else:
+                # float类型的inf转成空格+inf的字符串，解决excel打开csv，inf不被识别显示#NAME?的问题
+                compare_result_df = compare_result_df.replace({np.inf: " inf", -np.inf: " -inf"})
+                write_df_to_csv(compare_result_df, compare_result_path)
             logger.info(f"Compare rank: {rank_id} step: {step_id} finish. Compare result: {compare_result_path}.")
 
     def compare_process(self, rank_id, step_id):

@@ -35,6 +35,7 @@ MODE_DISPATCHER = {
 VALID_ARGS_MAP = {
     'auto': [
         '--mode', '-m', '--target_path', '-tp', '--golden_path', '-gp', '--output_path', '-o', 
+        '--xlsx',
         '--fuzzy_match', '-fm', '--cell_mapping', '-cm', '--api_mapping', '-am', '--data_mapping',
         '-dm', '--layer_mapping', '-lm', '--diff_analyze', '-da', '--rank', '--step',
         '--is_print_compare_log', '-tensor_log', '--consistent_check', '--backend'

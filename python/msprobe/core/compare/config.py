@@ -24,6 +24,7 @@ class ModeConfig:
     def __init__(self, **kwargs):
         self.stack_mode = kwargs.get('stack_mode', False)
         self.fuzzy_match = kwargs.get('fuzzy_match', False)
+        self.xlsx = kwargs.get('xlsx', False)
         self.dump_mode = kwargs.get('dump_mode', Const.SUMMARY)
         self.first_diff_analyze = kwargs.get('first_diff_analyze', False)
         self.diff_analyze = kwargs.get('diff_analyze', False)
