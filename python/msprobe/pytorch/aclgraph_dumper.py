@@ -25,6 +25,7 @@ import torch
 from msprobe.pytorch.aclgraph_dump import acl_stat, get_acl_stat_dict
 from msprobe.core.common.const import Const, FileCheckConst
 from msprobe.core.common.file_utils import create_directory, check_and_get_real_path, save_json, load_json
+from msprobe.core.common.utils import get_real_step_or_rank
 
 try:
     import torch_npu
@@ -109,10 +110,11 @@ if TorchDispatchMode is not None:
 
 class AclGraphDumper:
     def __init__(self, config_path=None):
-        config_dump_path, config_list, config_level = self._load_msprobe_config(config_path)
+        config_dump_path, config_list, config_level, config_rank = self._load_msprobe_config(config_path)
         self.dump_path = self._validate_dump_path(config_dump_path)
         self.list = self._validate_list(config_list)
         self.level = self._validate_level(config_level)
+        self.rank = get_real_step_or_rank(config_rank, Const.RANK)
         self.rank_id = self._resolve_rank_id()
         self.model = None
         self.step_id = 0
@@ -139,7 +141,7 @@ class AclGraphDumper:
         if not isinstance(task_config, dict):
             raise TypeError(f"task config for {task} must be a dict")
         level = task_config.get("level", json_config.get("level", Const.LEVEL_L0))
-        return json_config.get("dump_path"), task_config.get("list", []), level
+        return json_config.get("dump_path"), task_config.get("list", []), level, json_config.get(Const.RANK)
 
     @staticmethod
     def _validate_dump_path(dump_path):
@@ -197,6 +199,11 @@ class AclGraphDumper:
             return True
         module_name = module_name.casefold()
         return any(keyword.casefold() in module_name for keyword in self.list)
+
+    def _should_dump_current_rank(self):
+        if not self.rank or self.rank_id is None:
+            return True
+        return self.rank_id in self.rank
 
     def _collect_module_enabled(self):
         return self.level in (Const.LEVEL_L0, Const.LEVEL_MIX)
@@ -478,6 +485,9 @@ class AclGraphDumper:
 
     def start(self, model):
         self.rank_id = self._resolve_rank_id()
+        if not self._should_dump_current_rank():
+            self._running = False
+            return
         self._patch(model)
         self._running = True
 

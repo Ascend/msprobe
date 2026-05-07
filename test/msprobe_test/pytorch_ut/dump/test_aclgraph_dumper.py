@@ -60,7 +60,7 @@ class TestAclGraphDumper(unittest.TestCase):
 
     def test_start_and_step_return_none(self):
         with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
-                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "mix")), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "mix", [])), \
                 patch.object(AclGraphDumper, "_resolve_rank_id", return_value=0), \
                 patch.object(AclGraphDumper, "_patch"), \
                 patch.object(AclGraphDumper, "_synchronize"), \
@@ -95,7 +95,7 @@ class TestAclGraphDumper(unittest.TestCase):
         }
 
         with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
-                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "mix")), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "mix", [])), \
                 patch.object(AclGraphDumper, "_resolve_rank_id", return_value=0), \
                 patch.object(AclGraphDumper, "_synchronize"), \
                 patch.object(AclGraphDumper, "_step_rank_dir", return_value="./dump/step0/rank0"), \
@@ -115,7 +115,7 @@ class TestAclGraphDumper(unittest.TestCase):
 
     def test_collect_acl_stat_called_after_start(self):
         with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
-                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "mix")), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "mix", [])), \
                 patch.object(aclgraph_dumper_module, "acl_stat") as mock_acl_stat:
             model = ToyModel()
             dumper = AclGraphDumper(config_path="./config.json")
@@ -135,15 +135,16 @@ class TestAclGraphDumper(unittest.TestCase):
         }
         with patch.object(aclgraph_dumper_module, "check_and_get_real_path", return_value="/tmp/config.json"), \
                 patch.object(aclgraph_dumper_module, "load_json", return_value=mock_config):
-            dump_path, module_list, level = AclGraphDumper._load_msprobe_config("./config.json")
+            dump_path, module_list, level, rank = AclGraphDumper._load_msprobe_config("./config.json")
 
         self.assertEqual(dump_path, "./cfg_dump")
         self.assertEqual(module_list, ["linear", "mlp"])
         self.assertEqual(level, "L1")
+        self.assertIsNone(rank)
 
     def test_collect_with_list_filter(self):
         with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
-                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", ["linear"], "mix")), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", ["linear"], "mix", [])), \
                 patch.object(aclgraph_dumper_module, "acl_stat") as mock_acl_stat:
             model = ToyModel()
             dumper = AclGraphDumper(config_path="./config.json")
@@ -156,7 +157,7 @@ class TestAclGraphDumper(unittest.TestCase):
 
     def test_collect_with_list_filter_ignore_case(self):
         with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
-                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", ["Linear"], "mix")), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", ["Linear"], "mix", [])), \
                 patch.object(aclgraph_dumper_module, "acl_stat") as mock_acl_stat:
             model = ToyModel()
             dumper = AclGraphDumper(config_path="./config.json")
@@ -169,7 +170,7 @@ class TestAclGraphDumper(unittest.TestCase):
 
     def test_collect_l1_api_stat_through_dispatch(self):
         with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
-                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "L1")), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "L1", [])), \
                 patch.object(aclgraph_dumper_module, "acl_stat") as mock_acl_stat:
             model = ToyModel()
             dumper = AclGraphDumper(config_path="./config.json")
@@ -178,3 +179,19 @@ class TestAclGraphDumper(unittest.TestCase):
 
         api_tags = [call.args[1] for call in mock_acl_stat.call_args_list if ".api." in call.args[1]]
         self.assertGreater(len(api_tags), 0)
+
+    def test_start_skips_non_target_rank(self):
+        with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "mix", [1])), \
+                patch.object(AclGraphDumper, "_resolve_rank_id", return_value=0), \
+                patch.object(AclGraphDumper, "_patch") as mock_patch, \
+                patch.object(aclgraph_dumper_module, "get_acl_stat_dict") as mock_get_stats, \
+                patch.object(aclgraph_dumper_module, "save_json") as mock_save_json:
+            dumper = AclGraphDumper(config_path="./config.json")
+            dumper.start(MagicMock())
+            dumper.step()
+
+        self.assertFalse(dumper._running)
+        mock_patch.assert_not_called()
+        mock_get_stats.assert_not_called()
+        mock_save_json.assert_not_called()

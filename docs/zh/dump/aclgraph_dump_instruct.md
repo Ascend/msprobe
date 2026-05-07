@@ -30,16 +30,39 @@
 ### 1. 整网采集（`AclGraphDumper`）
 
 ```diff
-+ from msprobe.pytorch import AclGraphDumper
+import torch
+import torch_npu
++from msprobe.pytorch import AclGraphDumper
 
-+ dumper = AclGraphDumper(config_path="./config.json")
-+ dumper.start(model)
+N,D_in, H, D_out = 640, 4096, 2048, 1024
+# 模型初始化
+model = torch.nn.Sequential(
+    torch.nn.Linear(D_in, H),
+    torch.nn.ReLU(),
+    torch.nn.Linear(H, D_out)
+).npu()
++ # 初始化配置
++dumper = AclGraphDumper('./acl_config.json')
++ # 在编图前配置采集任务
++dumper.start(model)
+static_input = torch.randn(N, D_in).npu()
+static_target = torch.randn(N, D_out).npu()
 
-# 正常执行前向
-_ = model(*inputs, **kwargs)
+g = torch.npu.NPUGraph()
+# 编图
+with torch.npu.graph(g):
+    static_target = model(static_input)
 
-+ # 落盘
-+ dumper.step()
+real_inputs = [torch.rand_like(static_input) for _ in range(10)]
+real_targets = [torch.rand_like(static_target) for _ in range(10)]
+
+for data, target in zip(real_inputs, real_targets):
+    static_input.copy_(data)
+    static_target.copy_(target)
+    # 图replay
+    g.replay()
++   # 数据落盘
++   dumper.step()
 ```
 
 ### 2. 单点采集（`acl_save`）
@@ -75,7 +98,7 @@ _ = model(*inputs, **kwargs)
 
 ### 功能说明
 
-`AclGraphDumper` 用于采集整网中间数据，当前仅支持 module 级别统计值采集，结果包括张量形状、数据类型、统计值等信息。  
+`AclGraphDumper` 用于采集整网中间数据，当前支持 module 级别、API 级别以及 module+API 混合级别的统计值采集，结果包括张量形状、数据类型、统计值等信息。  
 `AclGraphDumper` 的初始化与 `start` 调用需在 `torch.compile` 之前完成。
 
 `acl_save` 用于保存张量数据，调用后会生成 `.pt` 文件。
@@ -94,7 +117,7 @@ AclGraphDumper(config_path: str | None = None)
 
 | 参数名 | 类型 | 说明 | 是否必选 |
 | --- | --- | --- | --- |
-| config_path | str | 配置文件路径。若不传，默认读取 msprobe 包内置 `config.json`。`dump_path` 与 `list` 从该配置文件中读取。 | 否 |
+| config_path | str | 配置文件路径。若不传，默认读取 msprobe 包内置 `config.json`。`dump_path`、`task`、`rank`、`level` 与 `list` 从该配置文件中读取。 | 否 |
 
 **函数原型**
 
@@ -147,27 +170,31 @@ acl_save(x: torch.Tensor, path: str) -> torch.Tensor
 {
   "task": "statistics",
   "dump_path": "./L0_dump",
+  "rank": [],
+  "level": "L0",
   "statistics": {
     "list": ["linear", "attention"]
   }
 }
 ```
 
-说明：
+**参考说明**
 
+- `task`：采集任务类型。整网 aclgraph dump 当前仅支持 `statistics`，未配置时默认使用 `statistics`。
 - `dump_path`：采集结果输出目录。
-- `list`：模块名关键词列表；仅采集包含任一关键词的模块（不区分大小写）。为空时采集整网模块。
+- `rank`：指定采集的 rank 列表。为空时采集所有 rank；支持整数和范围字符串，例如 `[0, 1, "4-7"]`。非目标 rank 不开启整网采集。
+- `level`：采集级别，支持 `L0`、`L1`、`mix`。`L0` 采集 module 输入/输出统计值；`L1` 采集 API 输入/输出统计值；`mix` 同时采集 module 和 API 统计值。未配置时默认使用 `L0`。
+- `list`：模块名关键词列表；仅对模块名包含任一关键词的模块进行采集（不区分大小写）。为空时采集整网模块。`L1` 和 `mix` 级别下，API 采集范围跟随被采集模块的 forward 作用域。
 
-```python
-from msprobe.pytorch import AclGraphDumper
+整网 aclgraph dump 当前支持的配置项如下：
 
-dumper = AclGraphDumper(config_path="./config.json")
-dumper.start(model)
-
-for _ in range(3):
-    _ = model(*inputs, **kwargs)
-    dumper.step()
-```
+| 配置项 | 类型 | 是否必选 | 默认值 | 说明 |
+| --- | --- | --- | --- | --- |
+| `task` | str | 否 | `statistics` | 采集任务类型。整网 aclgraph dump 当前仅支持 `statistics`。 |
+| `dump_path` | str | 是 | 无 | dump 结果输出目录。工具会检查并创建该目录。 |
+| `rank` | list[int \| str] | 否 | `[]` | 指定采集的 rank。为空表示采集所有 rank；字符串仅支持 `"start-end"` 范围格式。 |
+| `level` | str | 否 | `L0` | 根级采集级别，支持 `L0`、`L1`、`mix`。 |
+| `list` | list[str] | 否 | `[]` | 模块名关键词过滤列表。为空表示采集所有模块。 |
 
 #### 2. 推理过程中的单点保存
 
@@ -220,9 +247,9 @@ L0_dump
 
 在分布式多进程场景中，通常会按 rank 生成对应的 compare 结果文件，请结合 rank 维度查看结果。
 
-新增说明（`+ python` 高亮）：
+新增说明：
 
-```python
+```diff
 +# 对整网采集结果执行比对
 +msprobe compare ...
 +
