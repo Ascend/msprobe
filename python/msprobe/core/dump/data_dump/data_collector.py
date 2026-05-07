@@ -101,13 +101,8 @@ class DataCollector:
             elif self.config.risk_level == Const.RISK_LEVEL_FOCUS:
                 return api_risk != Const.RISK_LEVEL_LOW
             return True
-        
-        return True
 
-    @staticmethod
-    def set_is_recomputable(data_info, is_recompute):
-        if data_info and len(data_info) == 1 and is_recompute is not None:  # 正常情况下data_info的长度应改为1
-            data_info[list(data_info.keys())[0]]["is_recompute"] = is_recompute
+        return True
 
     def reset_status(self):
         self.optimizer_status = ""
@@ -130,12 +125,11 @@ class DataCollector:
         logger.debug(f"msprobe is collecting data on {name}.")
         self.data_writer.update_data(data_info)
 
-    def call_stack_collect(self, data_info, name):
+    def call_stack_collect(self, name):
         if not self._collect_extra_info:
             return
-        stack_info, is_recompute = self.data_processor.analyze_api_call_stack(name)
+        stack_info = self.data_processor.analyze_api_call_stack(name)
         self.data_writer.update_stack(name, stack_info)
-        self.set_is_recomputable(data_info, is_recompute)
 
     def forward_input_data_collect(self, name, module, pid, module_input_output):
         try:
@@ -147,7 +141,7 @@ class DataCollector:
                 data_info = self.data_processor.analyze_forward_input(name, module, module_input_output)
             if self.config.level == Const.LEVEL_L2:
                 return
-            self.call_stack_collect(data_info, name)
+            self.call_stack_collect(name)
             self.handle_data(name, data_info, flush=self.data_processor.is_terminated)
 
         except Exception as e:
@@ -167,8 +161,6 @@ class DataCollector:
         data_info = {}
         if self.config.task != Const.STRUCTURE:
             data_info = self.data_processor.analyze_forward_output(name, module, module_input_output)
-        is_recompute = self.data_processor.is_recompute()
-        self.set_is_recomputable(data_info, is_recompute)
         if self.config.level == Const.LEVEL_L2:
             return
         self.handle_data(name, data_info, flush=self.data_processor.is_terminated)
@@ -185,7 +177,7 @@ class DataCollector:
         data_info = {}
         if self.config.task != Const.STRUCTURE:
             data_info = self.data_processor.analyze_forward(name, module, module_input_output)
-        self.call_stack_collect(data_info, name)
+        self.call_stack_collect(name)
         self.handle_data(name, data_info, flush=self.data_processor.is_terminated)
 
     def backward_data_collect_only_tensor(self, name, module, pid, module_input_output):

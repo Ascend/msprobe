@@ -15,8 +15,9 @@
 # -------------------------------------------------------------------------
 
 import copy
+import linecache
 import os
-import inspect
+import sys
 from dataclasses import dataclass, is_dataclass
 from functools import partial
 from typing import Tuple, Dict, Optional, Any, Union
@@ -166,36 +167,37 @@ class BaseDataProcessor:
         return getattr(module, "op_is_distributed", False)
 
     @staticmethod
-    def is_recompute(call_stack=None):
-        return None
-
-    @staticmethod
     def analyze_api_call_stack(name):
+        if name.startswith("Primitive"):
+            skip_frames = 4
+        else:
+            skip_frames = 5
+        stack_info = []
         try:
-            call_stack = inspect.stack()
-            if name.startswith("Primitive"):
-                api_stack = call_stack[4:]
-            else:
-                api_stack = call_stack[5:]
+            frame = sys._getframe(0)
+            index = 0
+            while frame is not None:
+                if index >= skip_frames:
+                    filename = frame.f_code.co_filename
+                    lineno = frame.f_lineno
+                    funcname = frame.f_code.co_name
+                    stack_info.append((filename, lineno, funcname))
+                frame = frame.f_back
+                index += 1
+
+            stack_str = []
+            for path, line, func in stack_info:
+                source_line = linecache.getline(path, line).strip()
+                if source_line:
+                    if any(filter_path in path for filter_path in Const.STACK_FILTER_KEYWORDS) or Const.CALL_STACK_FLAG in path:
+                        continue
+                    stack_line = f"File {path}, line {str(line)}, in {func}, \n {source_line}"
+                    stack_str.append(stack_line)
+            result = tuple(stack_str)
+            return result
         except Exception as e:
             logger.warning(f"The call stack of <{name}> failed to retrieve, {e}.")
-            api_stack = None
-            call_stack = None
-
-        stack_str = []
-        if api_stack:
-            for (_, path, line, func, code, _) in api_stack:
-                if not code:
-                    continue
-                if any(filter_path in path for filter_path in Const.STACK_FILTER_KEYWORDS) and \
-                        Const.CALL_STACK_FLAG not in path:
-                    continue
-                stack_line = f"File {path}, line {str(line)}, in {func}, \n {code[0].strip()}"
-                stack_str.append(stack_line)
-        else:
-            stack_str.append(Const.WITHOUT_CALL_STACK)
-        del call_stack
-        return tuple(stack_str), None
+            return (Const.WITHOUT_CALL_STACK,)
 
     @staticmethod
     def _analyze_builtin(arg):

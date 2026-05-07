@@ -84,38 +84,6 @@ class TestDataCollector(unittest.TestCase):
         result = self.data_collector.check_scope_and_pid(None, mock_name, fake_pid)
         self.assertFalse(result)
 
-    def test_normal_case(self):
-        data_info = {"key1": {"other_field": "value"}}
-        self.data_collector.set_is_recomputable(data_info, True)
-        self.assertTrue(data_info["key1"]["is_recompute"])
-
-        self.data_collector.set_is_recomputable(data_info, False)
-        self.assertFalse(data_info["key1"]["is_recompute"])
-
-    def test_empty_data_info(self):
-        data_info = {}
-        original_data = data_info.copy()
-        self.data_collector.set_is_recomputable(data_info, True)
-        self.assertEqual(data_info, original_data)
-
-    def test_data_info_length_not_one(self):
-        data_info = {"key1": {}, "key2": {}}
-        original_data = data_info.copy()
-        self.data_collector.set_is_recomputable(data_info, True)
-        self.assertEqual(data_info, original_data)
-
-    def test_is_recompute_none(self):
-        data_info = {"key1": {}}
-        original_data = data_info.copy()
-        self.data_collector.set_is_recomputable(data_info, None)
-        self.assertEqual(data_info, original_data)
-
-    def test_nested_structure(self):
-        data_info = {"layer1": {"sub_layer": {"value": 1}}}
-        self.data_collector.set_is_recomputable(data_info, True)
-        self.assertTrue(data_info["layer1"]["is_recompute"])
-        self.assertEqual(data_info["layer1"]["sub_layer"]["value"], 1)
-
     def test_reset_status(self):
         self.data_collector.optimizer_status = "test_optimizer_status"
         self.data_collector.reset_status()
@@ -171,20 +139,6 @@ class TestDataCollector(unittest.TestCase):
 
         self.data_collector.data_processor.dump_async_data.assert_not_called()
         self.data_collector.data_writer.write_json.assert_called_once()
-
-    def test_call_stack_collect(self):
-        self.data_collector.data_processor = MagicMock()
-        self.data_collector.data_writer = MagicMock()
-
-        test_name = "test_api"
-        mock_stack = "stack_info", False
-        data_info = {}
-        self.data_collector.data_processor.analyze_api_call_stack.return_value = mock_stack
-
-        self.data_collector.call_stack_collect(data_info, test_name)
-
-        self.data_collector.data_processor.analyze_api_call_stack.assert_called_once()
-        self.data_collector.data_writer.update_stack.assert_called_once_with(test_name, "stack_info")
 
     def test_update_construct_without_construct(self):
         self.data_collector.data_writer = MagicMock()
@@ -268,9 +222,7 @@ class TestForwardDataCollect(unittest.TestCase):
         self.data_collector.scope = "test_scope"
         self.data_collector.check_scope_and_pid = MagicMock()
         self.data_collector._should_collect_by_risk_level = MagicMock()
-        self.data_collector.set_is_recomputable = MagicMock()
         self.data_collector.handle_data = MagicMock()
-        self.data_collector.call_stack_collect = MagicMock()
 
         self.Const = MagicMock()
         self.Const.FREE_BENCHMARK = "free_benchmark"
@@ -290,17 +242,6 @@ class TestForwardDataCollect(unittest.TestCase):
 
         self.data_collector.data_processor.analyze_forward_input.assert_not_called()
 
-    def test_forward_input_with_structure_task(self):
-        self.data_collector.config.task = self.Const.STRUCTURE
-        self.data_collector.check_scope_and_pid.return_value = True
-
-        self.data_collector.forward_input_data_collect(
-            "test", "module1", 123, "input_output"
-        )
-
-        self.data_collector.data_processor.analyze_forward_input.assert_not_called()
-        self.data_collector.call_stack_collect.assert_called_once_with({}, "test")
-
     def test_forward_input_with_level_l2(self):
         self.data_collector.config.task = self.Const.TENSOR
         self.data_collector.config.level = self.Const.LEVEL_L2
@@ -311,22 +252,6 @@ class TestForwardDataCollect(unittest.TestCase):
         )
 
         self.data_collector.handle_data.assert_not_called()
-
-    def test_forward_input_with_recompute(self):
-        self.data_collector.config.task = self.Const.TENSOR
-        self.data_collector.config.level = "L1"
-        self.data_collector.check_scope_and_pid.return_value = True
-        mock_data = {"key": "value"}
-        self.data_collector.data_processor.analyze_forward_input.return_value = mock_data
-        self.data_collector.data_processor.is_recompute.return_value = True
-        self.data_collector.forward_input_data_collect(
-            "test", "module1", 123, "input_output"
-        )
-
-        self.data_collector.call_stack_collect.assert_called_once_with(mock_data, "test")
-        self.data_collector.handle_data.assert_called_once_with(
-            "test", mock_data, flush=self.data_collector.data_processor.is_terminated
-        )
 
     def test_forward_output_with_scope_check_fail(self):
         self.data_collector.check_scope_and_pid.return_value = False
@@ -369,7 +294,6 @@ class TestForwardDataCollect(unittest.TestCase):
         mock_data = {"key": "value"}
         self.data_collector.data_processor.analyze_forward.return_value = mock_data
         self.data_collector.forward_data_collect("test", "module", 123, "data")
-        self.data_collector.call_stack_collect.assert_called_once_with(mock_data, "test")
         self.data_collector.handle_data.assert_called_once_with(
             "test",
             mock_data,
@@ -392,7 +316,6 @@ class TestBackwardDataCollector(unittest.TestCase):
         self.data_collector.scope = "test_scope"
         self.data_collector.check_scope_and_pid = MagicMock(return_value=True)
         self.data_collector._should_collect_by_risk_level = MagicMock(return_value=True)
-        self.data_collector.set_is_recomputable = MagicMock()
         self.data_collector.handle_data = MagicMock()
         self.data_collector.update_construct = MagicMock()
         self.data_collector.backward_module_names = {}
@@ -449,7 +372,7 @@ class TestBackwardDataCollector(unittest.TestCase):
 
 class TestShouldCollectByRiskLevel(unittest.TestCase):
     """测试 _should_collect_by_risk_level 方法"""
-    
+
     def setUp(self):
         mock_json_data = {
             "dump_path": "./test_risk_dump",

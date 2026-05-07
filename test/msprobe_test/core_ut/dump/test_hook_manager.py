@@ -26,10 +26,6 @@ from msprobe.core.dump.hook_manager import BaseHookManager
 
 class TestBaseHookManager(unittest.TestCase):
     class MockBaseHookManager(BaseHookManager):
-        @property
-        def _is_recompute(self):
-            return False
-
         @staticmethod
         def _no_grad_context():
             return MagicMock()

@@ -15,11 +15,9 @@
 # -------------------------------------------------------------------------
 
 import ctypes
-import inspect
 import os
-import zlib
-import json
 import re
+import zlib
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 
@@ -28,10 +26,10 @@ import torch
 from torch import distributed as dist
 from torch.distributed.distributed_c10d import _get_default_group
 
-from msprobe.core.common.file_utils import FileOpen, load_json, load_yaml
 from msprobe.core.common.const import Const
 from msprobe.core.common.decorator import recursion_depth_decorator
 from msprobe.core.common.exceptions import MsprobeException
+from msprobe.core.common.file_utils import load_json, load_yaml
 from msprobe.core.common.log import logger
 from msprobe.core.common.utils import convert_tuple, is_int
 from msprobe.core.dump.data_dump.data_processor.base import (
@@ -42,12 +40,10 @@ from msprobe.core.dump.data_dump.data_processor.base import (
 )
 from msprobe.pytorch.common.utils import (
     Const as PtConst,
-    save_pt,
-    is_recomputation,
+    is_float8_tensor,
     is_hifloat8_tensor,
-    is_float8_tensor
+    save_pt
 )
-
 
 is_gpu = False
 try:
@@ -88,8 +84,8 @@ class TensorHandler:
         self.has_async_collective_tensor = hasattr(dist, "_functional_collectives") and \
                                            hasattr(dist._functional_collectives, "AsyncCollectiveTensor")
         self.has_nested_tensor = hasattr(torch, "nested") and hasattr(torch.nested, "_internal") and \
-            hasattr(torch.nested._internal, "nested_tensor") and \
-            hasattr(torch.nested._internal.nested_tensor, "NestedTensor")
+                                 hasattr(torch.nested._internal, "nested_tensor") and \
+                                 hasattr(torch.nested._internal.nested_tensor, "NestedTensor")
 
     @staticmethod
     def free_tensor(tensor, tensor_name):
@@ -125,7 +121,7 @@ class TensorHandler:
     def is_async_collective_tensor(self, tensor):
         return self.has_async_collective_tensor and \
             isinstance(tensor, dist._functional_collectives.AsyncCollectiveTensor)
-    
+
     def is_nested_tensor(self, tensor):
         return self.has_nested_tensor and \
             isinstance(tensor, torch.nested._internal.nested_tensor.NestedTensor)
@@ -140,12 +136,12 @@ class TensorHandler:
             logger.debug("FakeTensor cannot be converted to torch.Tensor type.")
             return tensor
         if self.is_nested_tensor(tensor):
-            logger.debug(f"For NestedTensor, collecting information from the tensor returned by .values().")
+            logger.debug("For NestedTensor, collecting information from the tensor returned by .values().")
             return tensor.values()
         if is_float8_tensor(tensor):
             logger.debug(
-                f"The fp8/hifp8 tensor analyzing/saving is unsupported in dump function."
-                f"Casting to float for processing."
+                "The fp8/hifp8 tensor analyzing/saving is unsupported in dump function."
+                "Casting to float for processing."
             )
             tensor = tensor.detach().float()
         if self.is_batchedtensor(tensor):
@@ -323,7 +319,7 @@ class PytorchDataProcessor(BaseDataProcessor):
     @staticmethod
     def analyze_device_in_kwargs(element):
         single_arg = {}
-        single_arg.update({'type': "torch.device"})
+        single_arg.update({"type": "torch.device"})
         if isinstance(element, (int, str)):
             single_arg.update({"value": element})
         elif isinstance(element, torch.device):
@@ -343,46 +339,13 @@ class PytorchDataProcessor(BaseDataProcessor):
     @staticmethod
     def process_group_hash(arg):
         group_ranks = dist.get_process_group_ranks(arg)
-        group_ranks_hash = zlib.crc32(str(group_ranks).encode('utf-8'))
+        group_ranks_hash = zlib.crc32(str(group_ranks).encode("utf-8"))
         return f"{group_ranks_hash:08x}"
 
     @staticmethod
     def is_hookable_element(element):
         return (hasattr(element, "register_hook") and callable(element.register_hook)) and \
             (hasattr(element, "requires_grad") and element.requires_grad)
-
-    @staticmethod
-    def is_recompute(call_stack=None):
-        return is_recomputation(call_stack)
-
-    @staticmethod
-    def analyze_api_call_stack(name):
-        try:
-            call_stack = inspect.stack()
-            if name.startswith("Primitive"):
-                api_stack = call_stack[4:]
-            else:
-                api_stack = call_stack[5:]
-        except Exception as e:
-            logger.warning(f"The call stack of <{name}> failed to retrieve, {e}.")
-            api_stack = None
-            call_stack = None
-
-        stack_str = []
-        if api_stack:
-            for (_, path, line, func, code, _) in api_stack:
-                if not code:
-                    continue
-                if any(filter_path in path for filter_path in Const.STACK_FILTER_KEYWORDS) and \
-                        Const.CALL_STACK_FLAG not in path:
-                    continue
-                stack_line = f"File {path}, line {str(line)}, in {func}, \n {code[0].strip()}"
-                stack_str.append(stack_line)
-        else:
-            stack_str.append(Const.WITHOUT_CALL_STACK)
-        is_recompute = PytorchDataProcessor.is_recompute(call_stack)
-        del call_stack
-        return tuple(stack_str), is_recompute
 
     @staticmethod
     def _analyze_torch_size(arg):
@@ -507,8 +470,8 @@ class PytorchDataProcessor(BaseDataProcessor):
         common_tensor = self.tensor_handler.convert_common_tensor(tensor)
         tensor_stat = self.get_stat_info(common_tensor, self.config.async_dump, self.config.precision)
         tensor_json = {}
-        tensor_json.update({'type': self.tensor_handler.get_tensor_type(tensor)})
-        tensor_json.update({'dtype': self.tensor_handler.get_tensor_dtype(tensor)})
+        tensor_json.update({"type": self.tensor_handler.get_tensor_type(tensor)})
+        tensor_json.update({"dtype": self.tensor_handler.get_tensor_dtype(tensor)})
         tensor_json.update({"shape": common_tensor.shape})
 
         stat_values = [
@@ -722,15 +685,14 @@ class DiffCheckDataProcessor(PytorchDataProcessor):
 
         self.cached_tensors_and_file_paths = {}
 
-
     def _analyze_maybe_diff_flag(self):
         try:
             self.has_diff = torch_npu.npu.utils.get_npu_diff_flag()
             if self.has_diff:
                 torch_npu.npu.utils.clear_npu_diff_flag()
         except Exception as e:
-            logger.error(f"Diff check failed, the current environment may be abnormal.")
-            raise RuntimeError(f"diff check failed") from e
+            logger.error("Diff check failed, the current environment may be abnormal.")
+            raise RuntimeError("diff check failed") from e
 
     def _bench_expected_counts_for_api(self, api: str):
         """统计某 API 在 bench_map 里有多少个 Tensor 输入/输出"""
@@ -1019,7 +981,7 @@ class KernelDumpDataProcessor(PytorchDataProcessor):
             if is_float8_tensor(input_params):
                 raise MsprobeException(
                     MsprobeException.UNSUPPORTED_TYPE_ERROR,
-                    f"L2 backward dump does not support float8 type."
+                    "L2 backward dump does not support float8 type."
                 )
             if input_params.requires_grad:
                 return input_params.clone().detach().requires_grad_()
