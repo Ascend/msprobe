@@ -170,7 +170,7 @@ msprobe compare -tp <target_path> -gp <golden_path> [options]
 
 verl训推一致性比对场景：verl强化学习prefill阶段训练和推理数据的比对。
 
-> [!NOTE]说明
+> [!NOTE]
 >
 > - 目前支持fsdp后端和megatron后端的dump采集的训推L0级别tensor数据的比对。支持的模型为Qwen3-30B，Qwen3-32B，Qwen3-4B，Qwen2.5-0.5B。
 > - verl训推一致性场景dump需要保存训练和推理两份数据，注意需保证两次dump的路径不同，否则会导致dump数据覆盖。比对时，-tp参数需指定为训练数据，-gp参数需指定为推理数据。

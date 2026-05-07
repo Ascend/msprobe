@@ -92,7 +92,7 @@
 
 3. 分别在GPU和昇腾NPU环境下的训练脚本（pytorch_main.py文件）中添加工具，如下所示。
 
-   > [!note]
+   > [!NOTE]
    >
    > [PyTorch精度数据采集代码样例](#pytorch精度数据采集代码样例)中的完整代码已添加工具，下列仅为说明工具接口在脚本中添加的位置。
 
@@ -120,7 +120,7 @@
    362         debugger.step()    # 结束数据dump，若继续开启数据dump，采集数据将记录在下一个step中
    ```
    
-   > [!note]
+   > [!NOTE]
    >
    > 精度数据会占据一定的磁盘空间，可能存在磁盘写满导致服务器不可用的风险。精度数据所需空间跟模型的参数、采集开关配置、采集的迭代数量有较大关系，须用户自行保证落盘目录下的可用磁盘空间。
    
@@ -641,7 +641,7 @@ def validate(val_loader, model, criterion, args):
                 i = base_progress + i
                 if use_accel:
                     if args.gpu is not None and device.type=='cuda':
-                        torch.accelerator.set_device_index(argps.gpu)
+                        torch.accelerator.set_device_index(args.gpu)
                         images = images.cuda(args.gpu, non_blocking=True)
                         target = target.cuda(args.gpu, non_blocking=True)
                     else:
