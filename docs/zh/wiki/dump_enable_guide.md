@@ -86,3 +86,69 @@ compute_ref_log_prob
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/ce7f7a79-3f7a-425b-9172-6ac41d716954/image.png 'image.png')
 
 **注意**: 以上使能方式只针对vllm eager模式后端，不同配置或使能方式可能会变化。
+
+#### VERL (sglang后端)
+
+##### 示例版本说明
+
+| 组件          | 版本                 |
+|-------------|--------------------|
+| CANN        | 8.5.0              |
+| python      | 3.11               |
+| torch       | 2.7.1              |
+| torch_npu   | 2.7.1.post2        |
+| verl        | 0.7.1              |
+| sglang      | 0.5.8              |
+| MindSpeed   | 2.3.0_core_r0.12.1 |
+| Megatron-LM | core_v0.12.1       |
+
+##### 1. 创建config.json文件，用于配置dump参数
+
+config.json配置文件详细介绍请参见[配置文件介绍](../dump/config_json_introduct.md)。
+
+##### 2. SGLang框架中使能msProbe工具
+
+找到SGLang框架`ModelRunner`类所属文件：sglang/srt/model_executor/model_runner.py
+
+- `ModelRunner`类的`__init__`方法中添加`PrecisionDebugger`接口，传入`config.json`文件真实路径。
+
+    ```python
+        from msprobe.pytorch import PrecisionDebugger, seed_all
+        seed_all(mode=True)
+        self.debugger = PrecisionDebugger(config_path="/home/config.json")
+    ```
+    
+    ![image.png](https://raw.gitcode.com/user-images/assets/9721900/6569931a-8993-4761-8e27-6b96353723c9/image.png 'image.png')
+
+- `ModelRunner`类的`forward`方法中添加`start`、`stop`和`step`接口。
+
+  - `forward`方法开始处
+
+    ```python
+        if hasattr(self, 'debugger'):
+            self.debugger.start(model=self.model, rank_id=self.gpu_id)
+    ```
+    
+    ![image.png](https://raw.gitcode.com/user-images/assets/9721900/7f813099-9254-4198-9511-d0c880c2a7fe/image.png 'image.png')
+
+  - `forward`方法结束处
+
+    ```python
+        if hasattr(self, 'debugger'):
+            self.debugger.stop()
+            self.debugger.step()
+    ```
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/9721900/c6625e1c-e8ff-4131-8c0b-de81bfa2dd83/image.png 'image.png')
+    
+##### 3. 注意
+
+1. 使能方式只针对eager模式后端，使能方式和位置可能会随版本变化，verl启动训推脚本需要添加
+
+    ```bash
+        actor_rollout_ref.rollout.enforce_eager=True
+        +actor_rollout_ref.rollout.engine_kwargs.sglang.attention_backend="ascend"
+        +actor_rollout_ref.rollout.engine_kwargs.sglang.disable_cuda_graph=True
+    ```
+
+2. verl中使用ray自动纳管npu会导致卡不可见，需要设置环境变量`export RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES=1`
