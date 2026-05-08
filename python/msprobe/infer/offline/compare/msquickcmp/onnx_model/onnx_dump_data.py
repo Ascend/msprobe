@@ -55,7 +55,7 @@ NODE_TYPE_TO_DTYPE_MAP = {
     "tensor(double)": np.double,
     "tensor(bool)": np.bool_,
     "tensor(complex64)": np.complex64,
-    "tensor(complex128)": np.complex_,
+    "tensor(complex128)": np.complex128,
 }
 MAX_PROTOBUF = 2000000000
 ONNX_DTYPE = {1: np.float32, 2: np.float64}
