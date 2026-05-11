@@ -848,16 +848,33 @@ def os_walk_for_files(path, depth):
     return res
 
 
-def check_zip_file(zip_file_path):
+def check_zip_file(zip_file_path, extract_dir=None):
     with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
         total_size = 0
         if len(zip_file.infolist()) > FileCheckConst.MAX_FILE_IN_ZIP_SIZE:
             raise ValueError(f"Too many files in {os.path.basename(zip_file_path)}")
-        for file_info in zip_file.infolist():
-            if file_info.file_size > FileCheckConst.MAX_FILE_SIZE:
-                raise ValueError(f"File {file_info.filename} is too large to extract")
+        if extract_dir:
+            extract_dir = os.path.realpath(extract_dir)
+        
+        for member in zip_file.infolist():
+            if extract_dir:
+                # 安全校验：验证每个条目的最终路径
+                member_path = os.path.realpath(os.path.join(extract_dir, member.filename))
 
-            total_size += file_info.file_size
+                # 确保最终路径在指定的解压目录内
+                if not member_path.startswith(extract_dir + os.sep):
+                    raise ValueError(f"Path traversal detected: {member.filename} attempts to "
+                                     f"write outside of the extraction directory.")
+
+
+            # 检查绝对路径（防止路径穿越攻击，如 /etc/passwd）
+            if os.path.isabs(member.filename):
+                raise ValueError(f"Absolute path {member.filename} is not allowed in zip file")
+
+            if member.file_size > FileCheckConst.MAX_FILE_SIZE:
+                raise ValueError(f"File {member.filename} is too large to extract")
+
+            total_size += member.file_size
             if total_size > FileCheckConst.MAX_ZIP_SIZE:
                 raise ValueError(f"Total extracted size exceeds the limit of {FileCheckConst.MAX_ZIP_SIZE} bytes")
 
@@ -976,6 +993,9 @@ def extract_zip(zip_file_path, extract_dir):
     """
     check_file_suffix(zip_file_path, FileCheckConst.ZIP_SUFFIX)
     check_file_or_directory_path(zip_file_path)
+
+    # 规范化目标目录路径
+    extract_dir = os.path.realpath(extract_dir)
     create_directory(extract_dir)
     try:
         proc_lock.acquire()
