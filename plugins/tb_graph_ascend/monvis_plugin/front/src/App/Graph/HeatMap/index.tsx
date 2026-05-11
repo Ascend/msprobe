@@ -110,6 +110,8 @@ const HeatMap = () => {
       }
     }
 
+    const tagsValue = tags.map((item) => item.split('::')[0]);
+
     const params: TrendRequestParams = {
       metric,
       stat,
@@ -117,7 +119,7 @@ const HeatMap = () => {
       value: dimensionValue,
       dimX,
       dimYIdx: dimY,
-      tags,
+      tags: tagsValue,
     } as TrendRequestParams;
 
     setLoadingLineChart(true);

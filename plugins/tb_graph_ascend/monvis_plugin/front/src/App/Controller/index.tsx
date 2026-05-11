@@ -164,12 +164,13 @@ const Controller: React.FC = (props: ControllerProps) => {
     if (!metric || !stat || !dimension || !dimensionValue) {
       return;
     }
+    const tagsValue = tags.map((item) => item.split('::')[0]);
     const params = {
       metric,
       stat,
       dimension,
       value: dimensionValue,
-      tags,
+      tags:tagsValue,
     };
     const loadGraphData = async (params) => {
       setLoadingHeatMap(true);
@@ -305,7 +306,7 @@ const Controller: React.FC = (props: ControllerProps) => {
       tags,
     };
     updateDimensionValueList(params);
-    setTags(tags);
+    setTags(value); // 此处要设置为value,目的是为了保持Select组件的选中状态，因为value是唯一的，不要设置为tags，tags不唯一
   };
 
   // 数据库文件选择
