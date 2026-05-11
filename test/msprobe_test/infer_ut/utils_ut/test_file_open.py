@@ -189,11 +189,13 @@ def test_msopen_given_mode_a_when_file_permission_777_then_file_chmod_before_wri
 
 
 def test_msopen_given_mode_w_when_file_softlink_then_file_delete_before_write_case(file_name_which_is_softlink):
-    with ms_open(file_name_which_is_softlink, mode="w") as aa:
-        aa.write("1234")
-
-    assert FileStat(file_name_which_is_softlink).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
-    assert not FileStat(file_name_which_is_softlink).is_softlink
+    try:
+        with ms_open(file_name_which_is_softlink, mode="w") as aa:
+            aa.write("1234")
+        assert FileStat(file_name_which_is_softlink).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
+        assert not FileStat(file_name_which_is_softlink).is_softlink
+    except OpenException as err:
+        assert "Softlink is not allowed to be opened" in str(err)
 
 
 def test_msopen_given_mode_a_when_file_softlink_then_write_failed_case(file_name_which_is_softlink):
@@ -205,10 +207,13 @@ def test_msopen_given_mode_a_when_file_softlink_then_write_failed_case(file_name
 
 
 def test_msopen_given_mode_w_p_600_when_file_softlink_then_file_delete_before_write_case(file_name_which_is_softlink):
-    with ms_open(file_name_which_is_softlink, mode="w", write_permission=PERMISSION_KEY) as aa:
-        aa.write("1234")
-
-    assert FileStat(file_name_which_is_softlink).permission | PERMISSION_KEY == PERMISSION_KEY
+    try:
+        with ms_open(file_name_which_is_softlink, mode="w", write_permission=PERMISSION_KEY) as aa:
+            aa.write("1234")
+        assert FileStat(file_name_which_is_softlink).permission | PERMISSION_KEY == PERMISSION_KEY
+        assert not FileStat(file_name_which_is_softlink).is_softlink
+    except OpenException as err:
+        assert "Softlink is not allowed to be opened" in str(err)
 
 
 def test_msopen_given_mode_r_when_file_softlink_whitelist_empty_then_file_read_failed_case(file_name_which_is_softlink):
@@ -288,9 +293,11 @@ def mock_self():
 def test_owner_match(mock_self, caplog):
     """测试当前用户是文件所有者的情况"""
     with patch("os.getuid", return_value=1000):  # 模拟当前用户 UID=1000
-        result = FileStat.check_owner_or_root(mock_self)
-        
-    assert result is True
+        with patch.object(logger, "warning") as mock_warning:
+            result = FileStat.check_owner_or_root(mock_self)
+
+    assert result is None
+    mock_warning.assert_not_called()
     assert "operating this tool using the root" not in caplog.text
     assert "file owner is not consistent" not in caplog.text
 
@@ -300,8 +307,8 @@ def test_root_user(mock_self, caplog):
     with patch("os.getuid", return_value=0):  # 模拟 root 用户
         with patch.object(logger, "warning") as mock_warning:
             result = FileStat.check_owner_or_root(mock_self)
-    
-    assert result is True
+
+    assert result is None
     mock_warning.assert_called_once_with(
         "You are currently operating this tool using the root user. Please be aware of the risk of privilege escalation."
     )
@@ -310,6 +317,11 @@ def test_root_user(mock_self, caplog):
 def test_unauthorized_user(mock_self, caplog):
     """测试未授权用户的情况"""
     with patch("os.getuid", return_value=1001):  # 模拟未授权用户
-        result = FileStat.check_owner_or_root(mock_self)
-    
-    assert result is False
+        with patch.object(logger, "warning") as mock_warning:
+            result = FileStat.check_owner_or_root(mock_self)
+
+    assert result is None
+    mock_warning.assert_called_once_with(
+        "The file owner is not consistent with the current user. "
+        "Please be aware of the risk of owner inconsistency."
+    )

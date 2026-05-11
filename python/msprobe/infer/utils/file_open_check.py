@@ -181,14 +181,13 @@ class FileStat:
 
     def check_owner_or_root(self):
         if os.getuid() == self.file_stat.st_uid:
-            return True
+            pass
         elif os.getuid() == 0:
             logger.warning("You are currently operating this tool using the root user. "
                            "Please be aware of the risk of privilege escalation.")
-            return True
         else:
-            logging.error("The file owner is not consistent with the current user.")
-            return False
+            logger.warning("The file owner is not consistent with the current user. "
+                           "Please be aware of the risk of owner inconsistency.")
 
     def is_basically_legal(self, perm='none', strict_permission=True):
         if sys.platform.startswith("win"):
@@ -235,8 +234,8 @@ class FileStat:
         if not self.is_user_or_group_owner and self.is_exists:
             logger.error(f"current user isn't path: {self.file}'s owner or ownergroup")
             return False
-        if self.is_exists and not self.check_owner_or_root():
-            return False
+        if self.is_exists:
+            self.check_owner_or_root()
         if perm == 'read':
             if strict_permission and self.permission & READ_FILE_NOT_PERMITTED_STAT > 0:
                 logger.error(f"The file {self.file} is group writable, or is others writable, "
@@ -290,8 +289,11 @@ def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, softlink=False,
     if file_stat.is_exists and file_stat.is_dir:
         raise OpenException(f"Expecting a file, but it's a folder. {file}")
 
-    if file_stat.is_exists and not file_stat.check_owner_or_root():
-        raise OpenException(f"There is a problem with the owner of the file. Please check it.")
+    if file_stat.is_exists:
+        file_stat.check_owner_or_root()
+
+    if not softlink and file_stat.is_softlink:
+        raise OpenException(f"Softlink is not allowed to be opened. {file}")
 
     if "r" in mode:
         if not file_stat.is_exists:
@@ -307,9 +309,6 @@ def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, softlink=False,
                 f"The file owner is inconsistent with the current process user and is not allowed to write. {file}"
             )
         os.remove(file)
-
-    if not softlink and file_stat.is_softlink:
-        raise OpenException(f"Softlink is not allowed to be opened. {file}")
 
     if "a" in mode and file_stat.is_exists:
         if not file_stat.is_owner:
