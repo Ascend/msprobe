@@ -1233,9 +1233,11 @@ torch_npu:
   - npu_group_norm_silu
   - npu_format_cast
   - npu_moe_finalize_routing
+  - npu_moe_finalize_routing_v2
   - npu_moe_gating_top_k_softmax
   - npu_trans_quant_param
   - npu_gelu
+  - npu_geglu
   - npu_ffn
   - npu_quant_matmul
   - npu_format_cast_
@@ -1247,12 +1249,14 @@ torch_npu:
   - npu_quant_scatter_
   - npu_group_quant
   - npu_fused_infer_attention_score
+  - npu_fused_infer_attention_score_v2
   - npu_quantize
   - npu_fast_gelu
-  - npu_weight_quant_batchmatmul
   - scatter_update
   - scatter_update_
+  - npu_dequant_swiglu_quant
   - npu_moe_init_routing
+  - npu_moe_init_routing_v2
   - npu_scatter_nd_update_
   - npu_scatter_nd_update
   - npu_prefetch
@@ -1280,6 +1284,7 @@ torch_npu:
   - npu_quant_reduce_scatter
   - npu_quant_all_reduce
   - npu_grouped_matmul_add_
+  - npu_grouped_matmul_finalize_routing
   - npu_grouped_matmul_swiglu_quant_v2
   - npu_kronecker_quant
   - npu_quant_fusion_attention
@@ -1287,20 +1292,28 @@ torch_npu:
   - npu_grouped_dynamic_block_quant
   - npu_all_to_all_matmul
   - npu_matmul_all_to_all
+  - npu_mla_prolog_v3
   - npu_quant_matmul_all_to_all
   - npu_dynamic_dual_level_mx_quant
   - npu_transpose_quant_batchmatmul
+  - npu_transpose_batchmatmul
   - npu_dual_level_quant_matmul
   - npu_add_quant_matmul_
   - npu_all_to_all_quant_matmul
   - npu_quant_gmm_alltoallv
+  - npu_alltoallv_gmm
   - npu_alltoallv_quant_gmm
+  - npu_gmm_alltoallv
   - npu_mhc_pre
   - npu_mhc_post
   - npu_mhc_sinkhorn
   - npu_dynamic_block_mx_quant
+  - npu_moe_distribute_dispatch
+  - npu_moe_distribute_dispatch_v2
   - npu_moe_distribute_dispatch_setup
   - npu_moe_distribute_dispatch_teardown
+  - npu_moe_distribute_combine
+  - npu_moe_distribute_combine_v2
   - npu_moe_distribute_combine_setup
   - npu_moe_distribute_combine_teardown
   - npu_rms_norm_dynamic_mx_quant
