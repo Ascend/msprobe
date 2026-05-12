@@ -134,12 +134,16 @@ AclGraphDumper.start(model: torch.nn.Module) -> None
 **函数原型**
 
 ```python
-AclGraphDumper.step() -> None
+AclGraphDumper.step(dump: bool = True) -> None
 ```
 
 **参数说明**
 
-落盘当前 step 的 `dump.json`；若未启动采集则直接返回。
+| 参数名 | 类型 | 说明 | 是否必选 |
+| --- | --- | --- | --- |
+| dump | bool | 是否将当前统计结果落盘到 `dump.json`。`True`：清理统计并落盘，`step_id` 增加 1；`False`：仅清理统计不落盘，`step_id` 不增加（可用于 `dummy_run` 预热阶段）。 | 否 |
+
+若未启动采集则直接返回。
 
 #### acl_save
 

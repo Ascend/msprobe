@@ -113,6 +113,33 @@ class TestAclGraphDumper(unittest.TestCase):
         self.assertIn("toy.forward", dump_json["data"])
         self.assertEqual(mock_save_json.call_args.kwargs["indent"], 2)
 
+    def test_step_clear_only_without_dump(self):
+        stats = {
+            "toy.forward.input.0": {
+                "dtype": "Float",
+                "shape": [2, 8],
+                "max": 1.0,
+                "min": -1.0,
+                "mean": 0.0,
+                "norm": 2.0,
+            }
+        }
+
+        with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "mix", [])), \
+                patch.object(AclGraphDumper, "_resolve_rank_id", return_value=0), \
+                patch.object(AclGraphDumper, "_synchronize"), \
+                patch.object(aclgraph_dumper_module, "get_acl_stat_dict", return_value=stats) as mock_get_stats, \
+                patch.object(aclgraph_dumper_module, "save_json") as mock_save_json:
+            dumper = AclGraphDumper(config_path="./config.json")
+            dumper._running = True
+            step_before = dumper.step_id
+            dumper.step(dump=False)
+
+        mock_get_stats.assert_called_once_with(clear=True)
+        mock_save_json.assert_not_called()
+        self.assertEqual(dumper.step_id, step_before)
+
     def test_collect_acl_stat_called_after_start(self):
         with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
                 patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "mix", [])), \

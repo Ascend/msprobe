@@ -491,12 +491,15 @@ class AclGraphDumper:
         self._patch(model)
         self._running = True
 
-    def step(self):
+    def step(self, dump=True):
         if not self._running:
             return
 
         self._synchronize()
         stats = dict(get_acl_stat_dict(clear=True))
+        if not dump:
+            return
+
         dump_json = {
             "task": Const.STATISTICS,
             "level": self.level,
