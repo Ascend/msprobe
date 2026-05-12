@@ -121,6 +121,16 @@ python train.py \
 
 - 避免多次调用重复使用相同数据的问题
 
+### 使用方式
+
+代码修改完成后，使用方式与基础功能相同，无需额外参数，索引自动递增：
+
+```bash
+python train.py \
+  actor_rollout_ref.rollout.skip_rollout=True \
+  actor_rollout_ref.rollout.skip_dump_dir="/tmp/rollout_dump"
+```
+
 ---
 
 ## 三、交叉验证功能
@@ -292,10 +302,10 @@ def after_update_policy(share_data, load_func, dump_func):
             try:
                 load_func(share_data.curr_path_ckpt)
                 succ = True
+                print(f"\033[32m{share_data.print_mark} Successfully load ckpt from {share_data.curr_path_ckpt}\033[0m", flush=True)
             except Exception as e:
                 print(f"\033[31m{share_data.print_mark} Load ckpt failed from {share_data.curr_path_ckpt} because of {e} \033[0m", flush=True)
                 time.sleep(20)
-            print(f"\033[32m{share_data.print_mark} Successfully load ckpt from {share_data.curr_path_ckpt}\033[0m", flush=True)
     # 如果需要存ckpt
     if share_data.share_flag == "rollout":
         try:
@@ -340,30 +350,6 @@ def after_update_policy(share_data, load_func, dump_func):
 
 ### 使用步骤
 
-#### 1. 同时运行训练过程A (ckpt模式)和训练过程B (rollout模式)
-
-**训练过程A：**
-
-```bash
-python train.py \
-  ++trainer.share_data="ckpt" \
-  ++trainer.share_data_dir="/root/autodl-tmp/share_data"
-```
-
-- 推理阶段：执行推理并保存推理数据
-- 训练阶段：执行训练并加载检查点
-
-**训练过程B：**
-
-```bash
-python train.py \
-  ++trainer.share_data="rollout" \
-  ++trainer.share_data_dir="/root/autodl-tmp/share_data"
-```
-
-- 推理阶段：加载训练过程A的推理数据，跳过推理
-- 训练阶段：执行训练并保存检查点
-
 #### 结果分析
 
 交叉验证的定界思路：
@@ -374,20 +360,56 @@ python train.py \
 
 | 场景 | 训练过程A | 训练过程B | 结果判断 |
 |------|----------|----------|----------|
-| **场景1** | 只做推理 | 只做训练 | 如果训练A崩溃，说明**A的推理阶段**有问题 |
-| **场景2** | 只做训练 | 只做推理 | 如果训练A崩溃，说明**A的训练阶段**有问题 |
+| **场景1** | 自身推理 + 加载ckpt | 加载rollout + 自身训练 | 如果训练A崩溃，说明**A的推理阶段**有问题 |
+| **场景2** | 加载rollout + 自身训练 | 自身推理 + 加载ckpt | 如果训练A崩溃，说明**A的训练阶段**有问题 |
 
-**操作步骤**：
+**场景1测试**（定界推理阶段）：
 
-1. **场景1测试**：
-   - 训练过程A配置为 `ckpt` 模式（只做推理，保存推理数据）
-   - 训练过程B配置为 `rollout` 模式（只做训练，加载推理数据）
-   - 观察训练过程A是否崩溃
+训练过程A（`ckpt` 模式）：
 
-2. **场景2测试**：
-   - 训练过程A配置为 `rollout` 模式（只做训练，保存检查点）
-   - 训练过程B配置为 `ckpt` 模式（只做推理，加载检查点）
-   - 观察训练过程A是否崩溃
+```bash
+python train.py \
+  ++trainer.share_data="ckpt" \
+  ++trainer.share_data_dir="/root/autodl-tmp/share_data"
+```
+
+- 推理阶段：执行推理并保存rollout数据
+- 训练阶段：加载训练过程B的检查点
+
+训练过程B（`rollout` 模式）：
+
+```bash
+python train.py \
+  ++trainer.share_data="rollout" \
+  ++trainer.share_data_dir="/root/autodl-tmp/share_data"
+```
+
+- 推理阶段：加载训练过程A的rollout数据
+- 训练阶段：执行训练并保存检查点
+
+**场景2测试**（定界训练阶段）：
+
+训练过程A（`rollout` 模式）：
+
+```bash
+python train.py \
+  ++trainer.share_data="rollout" \
+  ++trainer.share_data_dir="/root/autodl-tmp/share_data"
+```
+
+- 推理阶段：加载训练过程B的rollout数据
+- 训练阶段：执行训练并保存检查点
+
+训练过程B（`ckpt` 模式）：
+
+```bash
+python train.py \
+  ++trainer.share_data="ckpt" \
+  ++trainer.share_data_dir="/root/autodl-tmp/share_data"
+```
+
+- 推理阶段：执行推理并保存rollout数据
+- 训练阶段：加载训练过程A的检查点
 
 通过这种方式，可以快速定位问题发生在训练过程A的哪个阶段。
 
@@ -416,6 +438,6 @@ python train.py \
 共享数据目录下的文件命名格式：
 
 - **推理数据**：`rollout_{index}`，index 从 0 开始递增
-- **检查点数据**：`ckpt_{index}_rank{rank}`，index 从 0 开始递增
+- **检查点数据**：`ckpt_{index}`，index 从 0 开始递增
 
 两个训练过程通过相同的 index 保持数据同步。
