@@ -21,7 +21,14 @@ import torch
 from msprobe.core.common.utils import logger, CompareException
 from msprobe.core.common.file_utils import FileChecker, FileCheckConst
 from msprobe.pytorch.common.utils import load_pt
+from msprobe.pytorch.common.utils import is_float8_tensor, load_pt
 
+
+def _prepare_tensor_for_numpy(tensor):
+    # here not concerned about float4 tensor
+    if tensor.dtype == torch.bfloat16 or is_float8_tensor(tensor):
+        return tensor.to(torch.float32)
+    return tensor
 
 def read_pt_data(dir_path, file_name):
     if not file_name:
@@ -42,7 +49,6 @@ def read_pt_data(dir_path, file_name):
         # 这里捕获 detach 方法抛出的异常
         logger.error(f"Failed to detach the loaded tensor.")
         raise CompareException(CompareException.DETACH_ERROR) from e
-    if data_value.dtype == torch.bfloat16:
-        data_value = data_value.to(torch.float32)
+    data_value = _prepare_tensor_for_numpy(data_value)
     data_value = data_value.numpy()
     return data_value
