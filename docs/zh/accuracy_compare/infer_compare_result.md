@@ -59,7 +59,7 @@
  - [x] [IsNpuOps]：用于过滤是否为npu独有节点。
  - [x] [IsOutputNode]：用于过滤是否为模型的整网输出节点。
  - [x] [IsPrecisionError]：用于过滤是否为精度异常的节点。
- - [x] [CosineSimilarity][RelativeEuclideanDistance]...[MeanRelativeError]：这是各类误差比对类型结果，主要需要看是否某一项超过精度阈值（即某项异常），若超过则需要重点关注。各对比算法说明如下：
+ - [x] [CosineSimilarity]...[MeanRelativeError]：这是各类误差比对类型结果，主要需要看是否某一项超过精度阈值（即某项异常），若超过则需要重点关注。各对比算法说明如下：
 
 |                  误差比对类型名称 |  说明 |
 |:------------------------|:---------|
@@ -87,3 +87,5 @@
   | MeanRelativeError         | < 1.0   |
 
 - **模型精度达标与否**首要的是看整网的输出结果是否精度达标，如果输出精度达标，则即使中间节点精度存在异常（**包括算子溢出**），也无需处理，否则需要逐个排查问题节点。
+
+[RelativeEuclideanDistance]: 

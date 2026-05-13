@@ -24,8 +24,6 @@ msProbe精度比对工具主要用于如下场景：
 
 使用命令行工具对精度数据进行比对，输出比对结果。
 
-### 注意事项
-
 ### 命令格式
 
 ```shell
@@ -34,21 +32,21 @@ msprobe compare -tp <target_path> -gp <golden_path> [options]
 
 ### 参数说明
 
-| 参数名               | 说明                                                                                                                                                                                                                                            | 是否必选 |
-| ----------------- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| -------- |
-| -tp或--target_path | NPU环境下的dump.json路径（单卡场景）或dump目录（多卡场景），str类型。                                                                                                                                                                                                  | 是       |
-| -gp或--golden_path | CPU、GPU或NPU环境下的dump.json路径（单卡场景）或dump目录（多卡场景），str类型。                                                                                                                                                                                          | 是       |
-| -o或--output_path  | 配置比对结果文件存盘目录，默认会在当前目录创建output目录，str类型。默认输出csv文件，文件名称基于时间戳自动生成，格式为：<br>        `compare_result_{timestamp}.csv`<br/>        `compare_result_{rank_id}_{step_id}_{timestamp}.csv`（仅[不同版本下的全量kernel比对](#不同版本下的全量kernel比对)场景支持）。传入`--xlsx`时输出xlsx文件。<br>提示：output目录下与结果文件的同名文件将被删除覆盖。 | 否       |
-| --xlsx | 配置比对结果输出为xlsx格式。默认不配置，表示输出csv格式。 | 否       |
-| -fm或--fuzzy_match | 模糊匹配。开启后，对于网络中同一层级且命名相同仅调用次数不同的API，可匹配并进行比对。通过直接配置该参数开启，默认未配置，表示关闭。                                                                                                                                                                           | 否       |
-| -am或--api_mapping | 跨框架比对。配置该参数时表示开启跨框架API比对功能，可以指定自定义映射文件*.yaml，不指定映射文件时按照msProbe定义的默认映射关系进行比对。自定义映射文件的格式请参见[自定义映射文件（api_mapping）](#自定义映射文件api_mapping)。仅[跨框架的API比对](#跨框架的api比对)场景需要配置。                                                                          | 否       |
-| -cm或--cell_mapping | 跨框架比对。配置该参数时表示开启跨框架cell模块比对功能，可以指定自定义映射文件*.yaml，不指定映射文件时按照msProbe定义的默认映射关系进行比对。自定义映射文件的格式请参见[自定义映射文件（cell_mapping）](#自定义映射文件cell_mapping)。仅[跨框架的cell模块比对](#跨框架的cell模块比对)场景需要配置。                                                               | 否       |
-| -dm或--data_mapping | 同框架或跨框架比对。通过映射文件指定两个具体参数的对应关系，可以在L0、L1或mix采集场景下使用。配置该参数的同时需要指定自定义映射文件*.yaml。自定义映射文件的格式请参见[自定义映射文件（data_mapping）](#自定义映射文件data_mapping)。                                                                                                       | 否       |
-| -lm或--layer_mapping | 跨框架比对。配置该参数时表示开启跨框架Layer层的比对功能，指定模型代码中的Layer层后，可以识别对应dump数据中的模块或API。需要指定自定义映射文件*.yaml。自定义映射文件的格式请参见[自定义映射文件（Layer_mapping）](#自定义映射文件layer_mapping)。仅[跨框架的Layer层比对](#跨框架的layer层比对)场景需要配置。                                                      | 否       |
-| -da或--diff_analyze | 自动识别网络中首差异节点，支持md5、统计量等dump数据。支持单卡/多卡场景。通过直接配置该参数开启，默认未配置，表示关闭。                                                                                                                                                                               | 否       |
-| --rank            | 配置比对的Rank ID，仅用于kernel比对，int类型。target_path和golden_path目录下的dump文件需要存在对应Rank的数据。默认为空，表示比对所有Rank。可配置一个或多个Rank，多个Rank ID用逗号隔开，例如：1,2,3                                                                                                     | 否       |
-| --step            | 配置比对的Step ID，仅用于kernel比对，int类型。target_path和golden_path目录下的dump文件需要存在对应Step的数据。默认为空，表示比对所有Step。可配置一个或多个Step，多个Step ID用逗号隔开，例如：1,2,3                                                                                                     | 否       |
-| -tensor_log或--is_print_compare_log | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。通过直接配置该参数开启，默认未配置，表示关闭。 | 否 |
+| 参数名               | 可选/必选 | 说明                                                                                                                                                                                                                                            |
+| ----------------- | -------- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -tp或--target_path | 必选     | NPU环境下的dump.json路径（单卡场景）或dump目录（多卡场景），str类型。                                                                                                                                                                                                  |
+| -gp或--golden_path | 必选     | CPU、GPU或NPU环境下的dump.json路径（单卡场景）或dump目录（多卡场景），str类型。                                                                                                                                                                                          |
+| -o或--output_path  | 可选     | 配置比对结果文件存盘目录，默认会在当前目录创建output目录，str类型。默认输出csv文件，文件名称基于时间戳自动生成，格式为：<br>&#8226; `compare_result_{timestamp}.csv`<br/>&#8226; `compare_result_{rank_id}_{step_id}_{timestamp}.csv`（仅[不同版本下的全量kernel比对](#不同版本下的全量kernel比对)场景支持）。传入`--xlsx`时输出xlsx文件。<br>提示：output目录下与结果文件的同名文件将被删除覆盖。 |
+| --xlsx | 可选     | 配置比对结果输出为xlsx格式。默认不配置，表示输出csv格式。 |
+| -fm或--fuzzy_match | 可选     | 模糊匹配。开启后，对于网络中同一层级且命名相同仅调用次数不同的API，可匹配并进行比对。通过直接配置该参数开启，默认未配置，表示关闭。                                                                                                                                                                           |
+| -am或--api_mapping | 可选     | 跨框架比对。配置该参数时表示开启跨框架API比对功能，可以指定自定义映射文件*.yaml，不指定映射文件时按照msProbe定义的默认映射关系进行比对。自定义映射文件的格式请参见[自定义映射文件（api_mapping）](#自定义映射文件api_mapping)。仅[跨框架的API比对](#跨框架的api比对)场景需要配置。                                                                          |
+| -cm或--cell_mapping | 可选     | 跨框架比对。配置该参数时表示开启跨框架cell模块比对功能，可以指定自定义映射文件*.yaml，不指定映射文件时按照msProbe定义的默认映射关系进行比对。自定义映射文件的格式请参见[自定义映射文件（cell_mapping）](#自定义映射文件cell_mapping)。仅[跨框架的cell模块比对](#跨框架的cell模块比对)场景需要配置。                                                               |
+| -dm或--data_mapping | 可选     | 同框架或跨框架比对。通过映射文件指定两个具体参数的对应关系，可以在L0、L1或mix采集场景下使用。配置该参数的同时需要指定自定义映射文件*.yaml。自定义映射文件的格式请参见[自定义映射文件（data_mapping）](#自定义映射文件data_mapping)。                                                                                                       |
+| -lm或--layer_mapping | 可选     | 跨框架比对。配置该参数时表示开启跨框架Layer层的比对功能，指定模型代码中的Layer层后，可以识别对应dump数据中的模块或API。需要指定自定义映射文件*.yaml。自定义映射文件的格式请参见[自定义映射文件（Layer_mapping）](#自定义映射文件layer_mapping)。仅[跨框架的Layer层比对](#跨框架的layer层比对)场景需要配置。                                                      |
+| -da或--diff_analyze | 可选     | 自动识别网络中首差异节点，支持md5、统计量等dump数据。支持单卡/多卡场景。通过直接配置该参数开启，默认未配置，表示关闭。                                                                                                                                                                               |
+| --rank            | 可选     | 配置比对的Rank ID，仅用于kernel比对，int类型。target_path和golden_path目录下的dump文件需要存在对应Rank的数据。默认为空，表示比对所有Rank。可配置一个或多个Rank，多个Rank ID用逗号隔开，例如：1,2,3                                                                                                     |
+| --step            | 可选     | 配置比对的Step ID，仅用于kernel比对，int类型。target_path和golden_path目录下的dump文件需要存在对应Step的数据。默认为空，表示比对所有Step。可配置一个或多个Step，多个Step ID用逗号隔开，例如：1,2,3                                                                                                     |
+| -tensor_log或--is_print_compare_log | 可选 | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。通过直接配置该参数开启，默认未配置，表示关闭。 |
 
 动态图模式没有填写任何mapping时，按照同框架比对的方式进行比对，比对数据和标杆数据的Cell或API名称需要完全相同才能匹配得上。
 
@@ -213,7 +211,7 @@ layer_mapping可以从Layer层识别整网的API和Cell，简化配置。
    ```
 
     - /target_dump表示待比对侧dump文件目录，上面示例中的/target_dump是待比对侧动静态图dump后graph和pynative目录的父目录。
-    - /golden_dump表示标杆侧dump文件目录，上面示例中的/golden_dump/target_dump是标杆侧动静态图dump后graph和pynative目录的父目录。
+    - /golden_dump表示标杆侧dump文件目录，上面示例中的/golden_dump是标杆侧动静态图dump后graph和pynative目录的父目录。
 
 3. 动静态图场景L0混合dump数据比对结果，默认输出csv文件；配置`--xlsx`时输出xlsx文件。示例如下：
 
@@ -296,11 +294,11 @@ msprobe merge_result -i <input_dir> -o <output_dir> -config <config-path>
 
 ### 参数说明
 
-| 参数名                 | 说明                                                         | 是否必选 |
-| ---------------------- | ------------------------------------------------------------ | -------- |
-| -i或--input_dir        | 多卡比对结果存盘目录，即使用compare比对的结果输出目录，str类型。所有比对结果应全部为真实数据比对结果或统计数据比对结果，否则可能导致汇总数据不完整。 | 是       |
-| -o或--output_dir       | 数据提取汇总结果存盘目录，str类型。文件名称基于时间戳自动生成，格式为：`multi_ranks_compare_merge_{timestamp}.xlsx`。<br>提示：output目录下与结果文件的同名文件将被删除覆盖。 | 是       |
-| -config或--config-path | 指定需要汇总数据的API和比对指标的yaml文件路径，str类型。<br>yaml文件详细介绍见下文“**yaml文件说明**”。 | 是       |
+| 参数名                 | 可选/必选 | 说明                                                         |
+| ---------------------- | --------- | ------------------------------------------------------------ |
+| -i或--input_dir        | 必选      | 多卡比对结果存盘目录，即使用compare比对的结果输出目录，str类型。所有比对结果应全部为真实数据比对结果或统计数据比对结果，否则可能导致汇总数据不完整。 |
+| -o或--output_dir       | 必选      | 数据提取汇总结果存盘目录，str类型。文件名称基于时间戳自动生成，格式为：`multi_ranks_compare_merge_{timestamp}.xlsx`。<br>提示：output目录下与结果文件的同名文件将被删除覆盖。 |
+| -config或--config-path | 必选      | 指定需要汇总数据的API和比对指标的yaml文件路径，str类型。<br>yaml文件详细介绍见下文“**yaml文件说明**”。 |
 
 **yaml文件说明**
 
@@ -341,7 +339,7 @@ msprobe merge_result -i ./input_dir -o ./output_dir -config ./config.yaml
 2. rank*列为多卡数据。
 3. 不同比对指标的数据通过不同sheet页呈现。
 4. 如果一个API或module在某张卡上找不到数据，汇总结果中将空白呈现。
-5. 如果比对指标值为N/A，unsupported，Nan，表示无法计算该比对指标值，汇总结果将以”NPU:’NPU max值‘  Bench:’Bench max值‘“呈现。
+5. 如果比对指标值为N/A，unsupported，Nan，表示无法计算该比对指标值，汇总结果将以`NPU:‘NPU max值’  Bench:‘Bench max值’`呈现。
 6. 针对图示案例，此处NPU:N/A  Bench:N/A表示output为None。
 
 <br>
@@ -638,16 +636,17 @@ Cell.network.module.NetworkWithLoss.forward.0.input.1
 ```
 
 第0项后面直接是`Tensor`，命名结束
-第1项后面是`dict`，key包括`y`、`y_mask`、`x_mask`和`data_info`，命名为：
+第1项后面是`dict`，key包括`y`、`y_mask`、`x_mask`、`loss_mask`和`data_info`，命名为：
 
 ```ColdFusion
 Cell.network.module.NetworkWithLoss.forward.0.input.1.y
 Cell.network.module.NetworkWithLoss.forward.0.input.1.y_mask
 Cell.network.module.NetworkWithLoss.forward.0.input.1.x_mask
+Cell.network.module.NetworkWithLoss.forward.0.input.1.loss_mask
 Cell.network.module.NetworkWithLoss.forward.0.input.1.data_info
 ```
 
-`y`后面是`Tensor`，命名结束；`y_mask`后面是`Tensor`，命名结束；`x_mask`后面是`Tensor`，命名结束；`data_info`后面是`dict`，key是`img_hw`，命名为：
+`y`后面是`Tensor`，命名结束；`y_mask`后面是`Tensor`，命名结束；`x_mask`后面是`Tensor`，命名结束；`loss_mask`后面是`Tensor`，命名结束；`data_info`后面是`dict`，key是`img_hw`，命名为：
 
 ```ColdFusion
 Cell.network.module.NetworkWithLoss.forward.0.input.1.data_info.img_hw
@@ -670,6 +669,7 @@ Cell.network.module.NetworkWithLoss.forward.0.input.0
 Cell.network.module.NetworkWithLoss.forward.0.input.1.y
 Cell.network.module.NetworkWithLoss.forward.0.input.1.y_mask
 Cell.network.module.NetworkWithLoss.forward.0.input.1.x_mask
+Cell.network.module.NetworkWithLoss.forward.0.input.1.loss_mask
 Cell.network.module.NetworkWithLoss.forward.0.input.1.data_info.img_hw
 Cell.network.module.NetworkWithLoss.forward.0.output.0
 ```

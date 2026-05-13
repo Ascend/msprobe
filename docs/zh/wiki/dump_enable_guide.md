@@ -74,7 +74,8 @@ F.linear = custom_linear
 
 generate_sequences  
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a86b2a58-59f9-4abd-838d-274f4bb65653/image.png 'image.png')  
-以上使能方式只针对vllm eager模式后端或配置不同使能方式可能会变
+
+以上使能方式只针对vllm eager模式后端，不同配置或使能方式可能会变化。
 
 update_actor  
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7edade77-bd4b-4d0b-ae08-3c72c6e81078/image.png 'image.png')
@@ -84,8 +85,6 @@ compute_log_prob
 
 compute_ref_log_prob  
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/ce7f7a79-3f7a-425b-9172-6ac41d716954/image.png 'image.png')
-
-**注意**: 以上使能方式只针对vllm eager模式后端，不同配置或使能方式可能会变化。
 
 #### VERL (sglang后端)
 
@@ -145,10 +144,10 @@ config.json配置文件详细介绍请参见[配置文件介绍](../dump/config_
 
 1. 使能方式只针对eager模式后端，使能方式和位置可能会随版本变化，verl启动训推脚本需要添加
 
-    ```bash
+    ```diff
         actor_rollout_ref.rollout.enforce_eager=True
-        +actor_rollout_ref.rollout.engine_kwargs.sglang.attention_backend="ascend"
-        +actor_rollout_ref.rollout.engine_kwargs.sglang.disable_cuda_graph=True
+    +   actor_rollout_ref.rollout.engine_kwargs.sglang.attention_backend="ascend"
+    +   actor_rollout_ref.rollout.engine_kwargs.sglang.disable_cuda_graph=True
     ```
 
 2. verl中使用ray自动纳管npu会导致卡不可见，需要设置环境变量`export RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES=1`

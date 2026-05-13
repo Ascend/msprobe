@@ -71,7 +71,7 @@ msprobe graph_visualize -tp <target_path> -o <output_path> [-oc] [-tensor_log] [
 
 | 参数名                                 | 可选/必选 | 说明                                                         |
 | -------------------------------------- | --------- | ------------------------------------------------------------ |
-| -tp或--target_path                     | 必选      | 指定待调试侧比对路径，str类型。工具根据路径格式自动进行单rank构建、多rank批量构建或多step批量比构建，str 类型。 |
+| -tp或--target_path                     | 必选      | 指定待调试侧比对路径，str类型。工具根据路径格式自动进行单rank构建、多rank批量构建或多step批量构建，str 类型。 |
 | -o或--output_path                      | 必选      | 配置构图结果文件存盘目录，str类型。文件名称基于时间戳自动生成，格式为：`build_{timestamp}.vis.db`。 |
 | -oc或--overflow_check                  | 可选      | 是否开启溢出检测模式，开启后会在输出db文件中（`build_{timestamp}.vis.db`）对每个溢出节点进行标记溢出等级。配置该参数表示开启，默认未配置表示关闭。 |
 | -tensor_log或--is_print_compare_log    | 可选      | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。配置该参数表示开启，默认未配置表示关闭。 |
@@ -270,7 +270,7 @@ msprobe graph_visualize -tp <target_path> [-gp <golden_path>] -o <output_path> [
 | -tp或--target_path           | 必选  | 指定待调试侧比对路径，str类型。工具根据路径格式自动进行单rank比对、多rank批量比对或多step批量比对，str类型。 |
 | -gp或--golden_path           | 可选  | 指定标杆侧比对路径，str类型。如果不配置此项则进行单图构建。 |
 | -o或--output_path            | 必选  | 配置构图结果文件存盘目录，str类型。文件名称基于时间戳自动生成，格式为：`compare_{timestamp}.vis.db`。                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| -lm或--layer_mapping  | 可选     | 跨套件比对，例如同一个模型分别使用了DeepSpeed和Megatron套件的比对场景。配置该参数时表示开启跨套件Layer层的比对功能，指定模型代码中的Layer层后，可以识别对应dump数据中的模块或API。需要指定自定义映射文件*.yaml。自定义映射文件的格式请参见[自定义映射文件（Layer）](#自定义映射文件layer)，如何配置自定义映射文件请参考[模型分级可视化如何配置layer mapping映射文件](../examples/layer_mapping_example.md)。配置该参数后，将仅按节点名称进行比对，忽略节点的type和shape。<br/><br/>模块节点命名格式：**{Module}.{module_name}.{class_name}.{forward/backward}.{调用次数}**。<br/>&#738226;若module_name不同，则-lm参数需要指定自定义映射文件，例如`-lm mapping.yaml`。<br/>&#738226;若module_name相同，class_name不同，则直接配置-lm参数即可，例如`-lm`。<br/>&#738226;若cell_name和class_name均相同，则无需配置-lm参数。<br/><br/>可参考的实际案例：[MindSpeed&LLamaFactory数据采集和自动比对](../examples/mindspeed_llamafactory_mapping_example.md)。 |
+| -lm或--layer_mapping  | 可选     | 跨套件比对，例如同一个模型分别使用了DeepSpeed和Megatron套件的比对场景。配置该参数时表示开启跨套件Layer层的比对功能，指定模型代码中的Layer层后，可以识别对应dump数据中的模块或API。需要指定自定义映射文件*.yaml。自定义映射文件的格式请参见[自定义映射文件（Layer）](#自定义映射文件layer)，如何配置自定义映射文件请参考[模型分级可视化如何配置layer mapping映射文件](../examples/layer_mapping_example.md)。配置该参数后，将仅按节点名称进行比对，忽略节点的type和shape。<br/><br/>模块节点命名格式：**{Module}.{module_name}.{class_name}.{forward/backward}.{调用次数}**。<br/>&#8226; 若module_name不同，则-lm参数需要指定自定义映射文件，例如`-lm mapping.yaml`。<br/>&#8226; 若module_name相同，class_name不同，则直接配置-lm参数即可，例如`-lm`。<br/>&#8226; 若module_name和class_name均相同，则无需配置-lm参数。<br/><br/>可参考的实际案例：[MindSpeed&LLamaFactory数据采集和自动比对](../examples/mindspeed_llamafactory_mapping_example.md)。 |
 | -oc或--overflow_check        | 可选  | 是否开启溢出检测模式，开启后会在输出db文件中（`compare_{timestamp}.vis.db`）对每个溢出节点进行标记溢出等级。配置该参数表示开启，默认未配置表示关闭。                                                                                                                                                                                                                                                                                                                                                                     |
 | -fm或--fuzzy_match           | 可选  | 是否开启模糊匹配。配置该参数表示开启，默认未配置表示关闭。模糊匹配与默认匹配的区别详见[匹配说明](#匹配说明)。                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | -tensor_log或--is_print_compare_log    | 可选                   | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。配置该参数表示开启，默认未配置表示关闭。 |
@@ -315,7 +315,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path --r
 msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path --rank_size 8 8 --tp 1 8 --pp 8 1
 ```
 
-以上所有示例中，npu_path和bench_path格式必须满足[分级可视化构图所需dump文件落盘格式](#分级可视化构图所需dump文件落盘格式)的多rank格式或多step格式
+以上所有示例中，target_path和golden_path格式必须满足[分级可视化构图所需dump文件落盘格式](#分级可视化构图所需dump文件落盘格式)的多rank格式或多step格式
 
 ## 启动TensorBoard
 

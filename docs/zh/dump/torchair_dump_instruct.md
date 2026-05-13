@@ -48,14 +48,14 @@ set_ge_dump_config(
 
 **参数说明**
 
-| 参数名             | 是否必选                                                                          | 参数描述                               |
-| ------------------ | --------------------------------------------------------------------------------- | -------------------------------------- |
-| dump_path          | 否 | dump数据的存放路径。默认为"./"。                                                                |
-| dump_mode          | 否 | data dump模式，用于指定dump算子输入还是输出数据。可选值有"input", "output", "all"。默认为"all"，dump输入与输出数据。 |
-| fusion_switch_file | 否 | 是否关闭融合dump功能。默认为None，开启融合。                                                              |
-| dump_token         | 否 | 指定token进行dump。格式：[1,2,5] 代表dump第1、2、5个token数据。默认为None，dump全量数据。           |
-| dump_layer         | 否 | 指定layer进行dump。格式：["Add", "Conv_1"] 代表dump Add和Conv_1两层数据。默认为None，dump全量数据。           |
-| compiler_config    | 否 | 图编译配置（CompilerConfig对象）。默认为None，返回新创建的图编译配置。                     |
+| 参数名             | 可选/必选 | 参数描述                                                     |
+| ------------------ | --------- | ------------------------------------------------------------ |
+| dump_path          | 可选      | dump数据的存放路径。默认为"./"。                             |
+| dump_mode          | 可选      | data dump模式，用于指定dump算子输入还是输出数据。可选值有"input", "output", "all"。默认为"all"，dump输入与输出数据。 |
+| fusion_switch_file | 可选      | 是否关闭融合dump功能。默认为None，开启融合。                 |
+| dump_token         | 可选      | 指定token进行dump。格式：[1,2,5] 代表dump第1、2、5个token数据。默认为None，dump全量数据。 |
+| dump_layer         | 可选      | 指定layer进行dump。格式：["Add", "Conv_1"] 代表dump Add和Conv_1两层数据。默认为None，dump全量数据。 |
+| compiler_config    | 可选      | 图编译配置（CompilerConfig对象）。默认为None，返回新创建的图编译配置。 |
 
 **使用示例（已创建CompilerConfig对象）**
 
@@ -137,11 +137,11 @@ set_fx_dump_config(dump_path='', op_list=None, compiler_config=None)
 
 **参数说明**
 
-| 参数名          | 是否必选                                             |  参数描述                      |
+| 参数名          | 可选/必选                                        |  参数描述                      |
 | --------------- | ---------------------------------------------------- | -------------------------------------- |
-| dump_path       | 否 | dump数据的存放路径。仅在使用Ascend Extension for PyTorch 7.0.0及以上版本时生效。默认为"./"。 |
-| op_list         | 否 | 指定算子进行dump。格式：["Add", "Conv_1"] 代表dump Add和Conv_1两层数据。默认为None，dump全量数据。 |
-| compiler_config | 否 | 图编译配置（CompilerConfig对象）。默认为None，返回新创建的图编译配置。                     |
+| dump_path       | 可选 | dump数据的存放路径。仅在使用Ascend Extension for PyTorch 7.0.0及以上版本时生效。默认为"./"。 |
+| op_list         | 可选 | 指定算子进行dump。格式：["Add", "Conv_1"] 代表dump Add和Conv_1两层数据。默认为None，dump全量数据。 |
+| compiler_config | 可选 | 图编译配置（CompilerConfig对象）。默认为None，返回新创建的图编译配置。                     |
 
 **使用示例（已创建CompilerConfig对象）**
 

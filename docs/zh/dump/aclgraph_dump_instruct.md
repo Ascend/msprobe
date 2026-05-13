@@ -115,9 +115,9 @@ AclGraphDumper(config_path: str | None = None)
 
 **参数说明**
 
-| 参数名 | 类型 | 说明 | 是否必选 |
-| --- | --- | --- | --- |
-| config_path | str | 配置文件路径。若不传，默认读取 msprobe 包内置 `config.json`。`dump_path`、`task`、`rank`、`level` 与 `list` 从该配置文件中读取。 | 否 |
+| 参数名 | 可选/必选 | 说明 |
+| --- | --- | --- |
+| config_path | 可选 | 配置文件路径，str类型。若不传，默认读取 msprobe 包内置 `config.json`。`dump_path`、`task`、`rank`、`level` 与 `list` 从该配置文件中读取。 |
 
 **函数原型**
 
@@ -127,9 +127,9 @@ AclGraphDumper.start(model: torch.nn.Module) -> None
 
 **参数说明**
 
-| 参数名 | 类型 | 说明 | 是否必选 |
-| --- | --- | --- | --- |
-| model | torch.nn.Module | 待采集模型 | 必选 |
+| 参数名 | 可选/必选 | 说明 |
+| --- | --- | --- |
+| model | 必选 | 待采集模型，torch.nn.Module类型。 |
 
 **函数原型**
 
@@ -155,10 +155,10 @@ acl_save(x: torch.Tensor, path: str) -> torch.Tensor
 
 **参数说明**
 
-| 参数名 | 类型 | 说明 | 是否必选 |
-| --- | --- | --- | --- |
-| x | torch.Tensor | 待保存张量 | 必选 |
-| path | str | 保存路径（支持相对/绝对路径）。实际落盘文件名会在该路径文件名基础上追加序号，格式为 `{base}_{seq}.pt`。例如传入 `./dump/act.pt`，实际落盘为 `./dump/act_0.pt`、`./dump/act_1.pt`。 | 必选 |
+| 参数名 | 可选/必选 | 说明 |
+| --- | --- | --- |
+| x | 必选 | 待保存张量，torch.Tensor类型。 |
+| path | 必选 | 保存路径（支持相对/绝对路径），str类型。实际落盘文件名会在该路径文件名基础上追加序号，格式为 `{base}_{seq}.pt`。例如传入 `./dump/act.pt`，实际落盘为 `./dump/act_0.pt`、`./dump/act_1.pt`。 |
 
 **返回值**
 
@@ -192,13 +192,13 @@ acl_save(x: torch.Tensor, path: str) -> torch.Tensor
 
 整网 aclgraph dump 当前支持的配置项如下：
 
-| 配置项 | 类型 | 是否必选 | 默认值 | 说明 |
-| --- | --- | --- | --- | --- |
-| `task` | str | 否 | `statistics` | 采集任务类型。整网 aclgraph dump 当前仅支持 `statistics`。 |
-| `dump_path` | str | 是 | 无 | dump 结果输出目录。工具会检查并创建该目录。 |
-| `rank` | list[int \| str] | 否 | `[]` | 指定采集的 rank。为空表示采集所有 rank；字符串仅支持 `"start-end"` 范围格式。 |
-| `level` | str | 否 | `L0` | 根级采集级别，支持 `L0`、`L1`、`mix`。 |
-| `list` | list[str] | 否 | `[]` | 模块名关键词过滤列表。为空表示采集所有模块。 |
+| 配置项 | 可选/必选 | 说明 |
+| --- | --- | --- |
+| `task` | 可选 | 采集任务类型，str类型。默认值为`statistics`，整网 aclgraph dump 当前仅支持 `statistics`。 |
+| `dump_path` | 必选 | dump 结果输出目录，str类型。工具会检查并创建该目录。 |
+| `rank` | 可选 | 指定采集的 rank，list[int \|str]类型。默认值为空，表示采集所有 rank；字符串仅支持 `"start-end"` 范围格式。 |
+| `level` | 可选 | 根级采集级别，str类型。支持 `L0`、`L1`、`mix`，默认值为`L0`。 |
+| `list` | 可选 | 模块名关键词过滤列表，list[str]类型。默认值为空，表示采集所有模块。 |
 
 #### 2. 推理过程中的单点保存
 
