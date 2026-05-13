@@ -155,6 +155,10 @@
 
 white_list和black_list同时配置时，二者配置的API名单若无交集，则白名单生效，若API名单存在交集，则白名单排除的部分以及交集的API不进行dump。
 
+> [!NOTE]
+>
+> white_list和black_list同时配置时，实际生效的API为白名单中排除黑名单后的剩余部分。
+
 ### task配置为overflow_check
 
 **配置样例**

@@ -34,20 +34,20 @@ L0、L1、mix级别的dump能力存在盲区，网络中的非API或module的输
 
 通用配置 （细节详见[通用配置说明](./config_json_introduct.md#通用配置) ）：
 
-| 参数       | 解释                                                                                                    | 是否必选 |
-| ---------- | ------------------------------------------------------------------------------------------------------- | -------- |
-| task       | dump 的任务类型，str 类型。 单点保存场景仅支持传入"statistics", "tensor"。                              | 是       |
-| level      | dump 级别，str 类型，根据不同级别采集不同数据。单点保存场景传入"debug"。                                | 是       |
-| dump_path  | 设置 dump 数据目录路径，str 类型。                                                                      | 是       |
-| rank       | 指定对某张卡上的数据进行采集，list[Union[int, str]] 类型。                                              | 否       |
-| step       | 指定采集某个 Step 的数据，list[Union[int, str]] 类型。                                                  | 否       |
-| async_dump | 异步 dump 开关，bool 类型。该模式下，summary_mode 不支持 md5 值，也不支持复数类型 tensor 的统计量计算。 | 否       |
+| 参数       | 可选/必选 | 解释                                                         |
+| ---------- | --------- | ------------------------------------------------------------ |
+| task       | 必选      | dump 的任务类型，str 类型。 单点保存场景仅支持传入"statistics", "tensor"。 |
+| level      | 必选      | dump 级别，str 类型，根据不同级别采集不同数据。单点保存场景传入"debug"。 |
+| dump_path  | 必选      | 设置 dump 数据目录路径，str 类型。                           |
+| rank       | 可选      | 指定对某张卡上的数据进行采集，list[Union[int, str]] 类型。   |
+| step       | 可选      | 指定采集某个 Step 的数据，list[Union[int, str]] 类型。       |
+| async_dump | 可选      | 异步 dump 开关，bool 类型。该模式下，summary_mode 不支持 md5 值，也不支持复数类型 tensor 的统计量计算。 |
 
 "statistics" 任务子配置项：
 
-| 参数         | 解释                                                         | 是否必选 |
-| ------------ | ------------------------------------------------------------ | -------- |
-| summary_mode | 控制 dump 文件输出的模式，str 类型。支持传入"statistics", "md5"。 详细介绍请参见[statistics任务子配置项说明](./config_json_introduct.md#task配置为statistics)。 | 否       |
+| 参数         | 可选/必选 | 解释                                                         |
+| ------------ | --------- | ------------------------------------------------------------ |
+| summary_mode | 可选      | 控制 dump 文件输出的模式，str 类型。支持传入"statistics", "md5"。 详细介绍请参见[statistics任务子配置项说明](./config_json_introduct.md#task配置为statistics)。 |
 
 "tensor" 任务无子配置项。
 

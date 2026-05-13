@@ -74,7 +74,8 @@ F.linear = custom_linear
 
 generate_sequences  
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a86b2a58-59f9-4abd-838d-274f4bb65653/image.png 'image.png')  
-以上使能方式只针对vllm eager模式后端或配置不同使能方式可能会变
+
+以上使能方式只针对vllm eager模式后端，不同配置或使能方式可能会变化。
 
 update_actor  
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7edade77-bd4b-4d0b-ae08-3c72c6e81078/image.png 'image.png')
@@ -84,5 +85,3 @@ compute_log_prob
 
 compute_ref_log_prob  
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/ce7f7a79-3f7a-425b-9172-6ac41d716954/image.png 'image.png')
-
-**注意**: 以上使能方式只针对vllm eager模式后端，不同配置或使能方式可能会变化。

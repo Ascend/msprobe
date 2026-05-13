@@ -156,12 +156,12 @@ seed_all(seed=1234, mode=True, rm_dropout=True, is_enhanced=False)
 
 参数说明：
 
-| 参数名 | 说明 |  是否必选|
+| 参数名 | 可选/必选 | 说明 |
 |--|--|--|
-|seed  |随机数种子。默认值为1234。  |    否  |
-|mode  |确定性计算模式。可配置True或False，默认值为False。该模式同时包含算子计算确定性和通信确定性。  |    否  |
-|rm_dropout |控制dropout失效的开关，开启后会自动将dropout概率设置为0。可配置 True 或 False，默认值为True。  |     否  |
-|is_enhanced|增强随机性固定的开关。可配置True或False，默认为False，非必选。参数示例：is_enhanced=True。开启该功能后，将进一步固定PyTorch、NumPy以及Python内置随机数生成器的状态。在同一个进程或不同进程中多次执行相同的随机性API，每次生成的随机值都完全相同。这有助于在更复杂的随机场景下实现严格的可复现性。|否|
+|seed  |  可选  |随机数种子。默认值为1234。  |
+|mode  |  可选  |确定性计算模式。可配置True或False，默认值为False。该模式同时包含算子计算确定性和通信确定性。  |
+|rm_dropout |   可选  |控制dropout失效的开关，开启后会自动将dropout概率设置为0。可配置 True 或 False，默认值为True。  |
+|is_enhanced|可选|增强随机性固定的开关。可配置True或False，默认为False，非必选。参数示例：is_enhanced=True。开启该功能后，将进一步固定PyTorch、NumPy以及Python内置随机数生成器的状态。在同一个进程或不同进程中多次执行相同的随机性API，每次生成的随机值都完全相同。这有助于在更复杂的随机场景下实现严格的可复现性。|
 
 ## 3.3 挑选badcase
 

@@ -317,11 +317,11 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 }
 ```
 
-| 配置项 | 类型 | 说明 | 是否必选 |
-|--------|------|------|--------|
-| **l2_targets** | Dict[str, List[str]] | 指定需要监测的模型层配置<br>**支持的hook类型**：<br> • `attention_hook`：监测注意力层<br>&nbsp;&nbsp;▪️ 采集指标：`entropy` `softmax_max`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `linear_hook`：监测线性层<br>&nbsp;&nbsp;▪️ 采集指标：`sr`, `kernel_norm`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名, 不配置表示不采集<br>&nbsp;&nbsp;▪️ 配置空列表会自动识别符合条件的层（包含`weight`或`wg`2D参数属性的层） | 是 |
-| **recording_l2_features** | bool | 是否开启L2层特征数据采集，默认为false表示不采集 | 否 |
-| **sa_order** | str | 计算`attention_hook`内指标时，指定Attention输入(Q，K)的张量维度排列顺序，支持"s,b,h,d"和"b,s,h,d", 默认为"s,b,h,d"表示输入维度顺序为**s**equence_len​->**b**atch_size​->num_**h**eads​->head_**d**im  | 否 |
+| 配置项 | 可选/必选 | 类型 | 说明 |
+|--------|--------|------|------|
+| **l2_targets** | 必选 | Dict[str, List[str]] | 指定需要监测的模型层配置<br>**支持的hook类型**：<br> • `attention_hook`：监测注意力层<br>&nbsp;&nbsp;▪️ 采集指标：`entropy` `softmax_max`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `linear_hook`：监测线性层<br>&nbsp;&nbsp;▪️ 采集指标：`sr`, `kernel_norm`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名, 不配置表示不采集<br>&nbsp;&nbsp;▪️ 配置空列表会自动识别符合条件的层（包含`weight`或`wg`2D参数属性的层） |
+| **recording_l2_features** | 可选 | bool | 是否开启L2层特征数据采集，默认为false表示不采集 |
+| **sa_order** | 可选 | str | 计算`attention_hook`内指标时，指定Attention输入(Q，K)的张量维度排列顺序，支持"s,b,h,d"和"b,s,h,d", 默认为"s,b,h,d"表示输入维度顺序为**s**equence_len​->**b**atch_size​->num_**h**eads​->head_**d**im  |
 
 #### L2可解释特征监测指标说明
 
@@ -427,12 +427,12 @@ python3 -m msprobe.core.monitor.anomaly_processor -d $MONITOR_OUTPUT_DIR/anomaly
 
 异常事件分析结束，将topk事件写入文件`anomaly_detected/anomaly_analyse.json`。异常分析支持以下参数配置：
 
-| 字段名            | 解释                                                        | 是否必选 |
-| ----------------- | --------------------------------------------------------- | -------- |
-| -d 或 --data_path | 指定异常落盘文件夹，监测功能输出，一般为$MONITOR_OUTPUT_DIR/anomaly_detected。 | 是       |
-| -o 或 --out_path  | 排序后的异常落盘文件地址，默认在--data_path路径下落盘一个anomaly_analyse.json文件。 | 否       |
-| -k 或 --topk      | 指定保留前topk个异常，默认为8。                              | 否       |
-| -s 或 --step_list | 指定分析的step范围，默认为[]。                               | 否       |
+| 参数名称          | 可选/必选 | 说明                                                         |
+| ----------------- | --------- | ------------------------------------------------------------ |
+| -d 或 --data_path | 必选      | 指定异常落盘文件夹，监测功能输出，一般为$MONITOR_OUTPUT_DIR/anomaly_detected。 |
+| -o 或 --out_path  | 可选      | 排序后的异常落盘文件地址，默认在--data_path路径下落盘一个anomaly_analyse.json文件。 |
+| -k 或 --topk      | 可选      | 指定保留前topk个异常，默认为8。                              |
+| -s 或 --step_list | 可选      | 指定分析的step范围，默认为[]。                               |
 
 ### csv格式数据转tensorboard可视化显示
 
@@ -561,12 +561,12 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
 TrainerMon.__init__(config_file_path, process_group=None, params_have_main_grad=True) -> None
 ```
 
-| 参数                  | 说明                                                         | 是否必选 |
-| --------------------- | ------------------------------------------------------------ | -------- |
-| config_file_path      | json配置文件路径。                                           | 是       |
-| process_group         | 传入ProcessGroup对象，用以确定pipeline并行不同rank异常间时序，megatron下通过core.parallel_state.get_pipeline_model_parallel_group()获得。仅在异常时序判断功能中使用。 | 否       |
-| params_have_main_grad | 权重是否使用main_grad，通常megatron为True，deepspeed为False。默认为True。 | 否       |
-| opt_ty（该参数废弃）  | 表示优化器类型。                                             | 否       |
+| 参数                  | 可选/必选 | 说明                                                         |
+| --------------------- | --------- | ------------------------------------------------------------ |
+| config_file_path      | 必选      | json配置文件路径。                                           |
+| process_group         | 可选      | 传入ProcessGroup对象，用以确定pipeline并行不同rank异常间时序，megatron下通过core.parallel_state.get_pipeline_model_parallel_group()获得。仅在异常时序判断功能中使用。 |
+| params_have_main_grad | 可选      | 权重是否使用main_grad，通常megatron为True，deepspeed为False。默认为True。 |
+| opt_ty（该参数废弃）  | 可选      | 表示优化器类型。                                             |
 
 - 模型挂载monitor工具
 
@@ -574,14 +574,14 @@ TrainerMon.__init__(config_file_path, process_group=None, params_have_main_grad=
 TrainerMon.set_monitor(model, grad_acc_steps, optimizer, dp_group=None, tp_group=None, start_iteration=0) -> None
 ```
 
-| 参数            | 说明                                                         | 是否必选 |
-| --------------- | ------------------------------------------------------------ | -------- |
-| model           | 需要监测的模型，需要是一个torch.nn.Module或者mindspore.nn.Cell。 | 是       |
-| grad_acc_steps  | 梯度累积步数。                                               | 是       |
-| optimizer       | 需要patch的优化器。                                          | 是       |
-| dp_group        | 数据并行的通信组。<br>dp域通信后，且没有使用分布式优化器时，group内所有rank的梯度相同，落盘数据冗余。<br>提供dp_group后，工具仅保留每个dp_group的第一个rank的梯度。 | 否       |
-| tp_group        | 张量并行的通信组。<br/>tp域通信后，group内部分参数所有rank的梯度相同，落盘数据冗余。<br/>提供tp_group后，工具仅保留每个tp_group中冗余参数在第一个rank的梯度。<br/>当前适配Megatron core_r0.6.0, 通过权重属性"tensor_model_parallel"判断是否冗余。 | 否       |
-| start_iteration | 训练的起始iteration，影响工具计数。**仅PyTorch场景支持此参数**。 | 否       |
+| 参数            | 可选/必选 | 说明                                                         |
+| --------------- | --------- | ------------------------------------------------------------ |
+| model           | 必选      | 需要监测的模型，需要是一个torch.nn.Module或者mindspore.nn.Cell。 |
+| grad_acc_steps  | 必选      | 梯度累积步数。                                               |
+| optimizer       | 必选      | 需要patch的优化器。                                          |
+| dp_group        | 可选      | 数据并行的通信组。<br>dp域通信后，且没有使用分布式优化器时，group内所有rank的梯度相同，落盘数据冗余。<br>提供dp_group后，工具仅保留每个dp_group的第一个rank的梯度。 |
+| tp_group        | 可选      | 张量并行的通信组。<br/>tp域通信后，group内部分参数所有rank的梯度相同，落盘数据冗余。<br/>提供tp_group后，工具仅保留每个tp_group中冗余参数在第一个rank的梯度。<br/>当前适配Megatron core_r0.6.0, 通过权重属性"tensor_model_parallel"判断是否冗余。 |
+| start_iteration | 可选      | 训练的起始iteration，影响工具计数。**仅PyTorch场景支持此参数**。 |
 
 - csv输出件转tensorboard输出件
 
@@ -589,14 +589,14 @@ TrainerMon.set_monitor(model, grad_acc_steps, optimizer, dp_group=None, tp_group
 csv2tensorboard_by_step(monitor_path, time_start, time_end, process_num=1, data_type_list=None) -> None
 ```
 
-| 参数           | 说明                                                         | 是否必选 |
-| -------------- | ------------------------------------------------------------ | -------- |
-| monitor_path   | 待转换的csv存盘目录。                                        | 是       |
-| time_start     | 起始时间戳。搭配time_end一起使用。指定一个时间范围，会对这个范围内的文件进行转换。左闭右闭的区间。 | 是       |
-| time_end       | 结束时间戳。搭配time_start一起使用。指定一个时间范围，会对这个范围内的文件进行转换。左闭右闭的区间。 | 是       |
-| process_num    | 指定拉起的进程个数，默认为1，更多的进程个数可以加速转换。    | 否       |
-| data_type_list | 指定需要转换的数据类型, 数据类型应来自输出件文件前缀，所有类型数据：<br/> ["actv", "actv_grad", "exp_avg", "exp_avg_sq", "grad_unreduced", "grad_reduced", "param_origin", "param_updated"]。<br/>不指定就转换全部数据。 | 否       |
-| output_dirpath | 指定转换后的输出路径，默认输出到"{curtime}_csv2tensorboard_by_step"文件夹，其中curtime为自动获取的当前时间戳。 | 否       |
+| 参数           | 可选/必选 | 说明                                                         |
+| -------------- | --------- | ------------------------------------------------------------ |
+| monitor_path   | 必选      | 待转换的csv存盘目录。                                        |
+| time_start     | 必选      | 起始时间戳。搭配time_end一起使用。指定一个时间范围，会对这个范围内的文件进行转换。左闭右闭的区间。 |
+| time_end       | 必选      | 结束时间戳。搭配time_start一起使用。指定一个时间范围，会对这个范围内的文件进行转换。左闭右闭的区间。 |
+| process_num    | 可选      | 指定拉起的进程个数，默认为1，更多的进程个数可以加速转换。    |
+| data_type_list | 可选      | 指定需要转换的数据类型, 数据类型应来自输出件文件前缀，所有类型数据：<br/> ["actv", "actv_grad", "exp_avg", "exp_avg_sq", "grad_unreduced", "grad_reduced", "param_origin", "param_updated"]。<br/>不指定就转换全部数据。 |
+| output_dirpath | 可选      | 指定转换后的输出路径，默认输出到"{curtime}_csv2tensorboard_by_step"文件夹，其中curtime为自动获取的当前时间戳。 |
 
 - 在模型任意位置获取当前参数**梯度**统计量
 
@@ -628,22 +628,22 @@ actv, actv_grad = monitor.generate_xy_metrics()
 TrainerMon.set_wrapped_optimizer(optimizer) -> None
 ```
 
-| 参数        | 说明                            | 是否必选 |
-|-----------|-------------------------------|------|
-| optimizer | megatron、deepspeed创建好的混合精度优化器 | 是    |
+| 参数      | 可选/必选 | 说明                                      |
+| --------- | --------- | ----------------------------------------- |
+| optimizer | 必选      | megatron、deepspeed创建好的混合精度优化器 |
 
 ```python 
 TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_group, start_iteration) -> None
 ```
 
-| 参数            | 说明                                                         | 是否必选 |
-| --------------- | ------------------------------------------------------------ | -------- |
-| model           | 需要监测的模型，需要是一个torch.nn.Module或者mindspore.nn.Cell。 | 是       |
-| grad_acc_steps  | 梯度累积步数。                                               | 是       |
-| optimizer       | 需要patch的优化器。                                          | 否       |
-| dp_group        | 数据并行的通信组。<br>dp域通信后，且没有使用分布式优化器时，group内所有rank的梯度相同，落盘数据冗余。<br>提供dp_group后，工具仅保留每个dp_group的第一个rank的梯度。 | 否       |
-| tp_group        | 张量并行的通信组。<br/>tp域通信后，group内部分参数所有rank的梯度相同，落盘数据冗余。<br/>提供tp_group后，工具仅保留每个tp_group中冗余参数在第一个rank的梯度。<br/>当前适配Megatron core_r0.6.0, 通过权重属性"tensor_model_parallel"判断是否冗余。 | 否       |
-| start_iteration | 训练的起始iteration，影响工具计数。**仅PyTorch场景支持此参数**。 | 否       |
+| 参数            | 可选/必选 | 说明                                                         |
+| --------------- | --------- | ------------------------------------------------------------ |
+| model           | 必选      | 需要监测的模型，需要是一个torch.nn.Module或者mindspore.nn.Cell。 |
+| grad_acc_steps  | 必选      | 梯度累积步数。                                               |
+| optimizer       | 可选      | 需要patch的优化器。                                          |
+| dp_group        | 可选      | 数据并行的通信组。<br>dp域通信后，且没有使用分布式优化器时，group内所有rank的梯度相同，落盘数据冗余。<br>提供dp_group后，工具仅保留每个dp_group的第一个rank的梯度。 |
+| tp_group        | 可选      | 张量并行的通信组。<br/>tp域通信后，group内部分参数所有rank的梯度相同，落盘数据冗余。<br/>提供tp_group后，工具仅保留每个tp_group中冗余参数在第一个rank的梯度。<br/>当前适配Megatron core_r0.6.0, 通过权重属性"tensor_model_parallel"判断是否冗余。 |
+| start_iteration | 可选      | 训练的起始iteration，影响工具计数。**仅PyTorch场景支持此参数**。 |
 
 具体接口变更说明如下：
 
@@ -692,7 +692,7 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 
 下面详细解释各个字段：
 
-| 字段名字                | 是否必选 | 解释                                                                                                                                                                                                                                                                                                                                                                              |
+| 字段名字                | 可选/必选 | 解释                                                                                                                                                                                                                                                                                                                                                                              |
 | ----------------------- | -------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | "targets"               | 可选     | 指定需要监测的模型层和监测对象， 例如transformer的第0层language_model.encoder.layers.0，可选择监测input、output、input_grad、output_grad。如果不清楚模型结构， 可以将 "print_struct" 字段设置为 true， 监测工具会打印模型中torch module的名字和详细结构，并在第1个step后退出。未配置时默认为全量监测。                                                                                                                                                                   |
 | "input"                 | 可选     | "tuple[2]:0"的意思是目标module的前向input参数为长度为2的tuple， 我们关心的是tuple第0个元素。                                                                                                                                                                                                                                                                                                                |
