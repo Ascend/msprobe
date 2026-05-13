@@ -40,6 +40,7 @@ from msprobe.core.dump.data_dump.data_processor.base import (
 )
 from msprobe.pytorch.common.utils import (
     Const as PtConst,
+    is_float4_tensor,
     is_float8_tensor,
     is_hifloat8_tensor,
     save_pt
@@ -138,12 +139,6 @@ class TensorHandler:
         if self.is_nested_tensor(tensor):
             logger.debug("For NestedTensor, collecting information from the tensor returned by .values().")
             return tensor.values()
-        if is_float8_tensor(tensor):
-            logger.debug(
-                "The fp8/hifp8 tensor analyzing/saving is unsupported in dump function."
-                "Casting to float for processing."
-            )
-            tensor = tensor.detach().float()
         if self.is_batchedtensor(tensor):
             return torch._C._functorch.get_unwrapped(tensor)
         return tensor
@@ -194,9 +189,12 @@ class TensorHandler:
         if common_tensor.untyped_storage().data_ptr() == 0:
             logger.debug(f"Saving null-pointer tensor is not supported, the current tensor is {file_path}.")
             return
-        saved_tensor = common_tensor.clone().contiguous().detach()
-        if self.is_gradtrackingtensor(saved_tensor):
-            saved_tensor = torch._C._functorch.get_unwrapped(saved_tensor)
+        if is_float8_tensor(common_tensor) or is_float4_tensor(common_tensor):
+            saved_tensor = common_tensor.detach().to("cpu")
+        else:
+            saved_tensor = common_tensor.clone().contiguous().detach()
+            if self.is_gradtrackingtensor(saved_tensor):
+                saved_tensor = torch._C._functorch.get_unwrapped(saved_tensor)
         save_pt(saved_tensor, file_path)
         self.free_tensor(saved_tensor, file_path)
 
@@ -392,6 +390,11 @@ class PytorchDataProcessor(BaseDataProcessor):
             data_clone = torch._C._functorch.get_unwrapped(data_clone)
         if not data_clone.numel() or not data_clone.data_ptr():
             return tensor_stat
+        if is_float8_tensor(data_clone) or is_float4_tensor(data_clone):
+            logger.debug(
+                "Skip stat calculation for float8/float4 tensor."
+            )
+            return tensor_stat
 
         if self.config.summary_mode == Const.XOR_CHECKSUM:
             try:
@@ -541,7 +544,10 @@ class PytorchDataProcessor(BaseDataProcessor):
 
         single_arg.update({"data_name": dump_data_name})
         if self.config.async_dump:
-            self._async_dump_cache[file_path] = common_tensor.clone().detach()
+            if is_float8_tensor(common_tensor) or is_float4_tensor(common_tensor):
+                self._async_dump_cache[file_path] = common_tensor.detach().to("cpu")
+            else:
+                self._async_dump_cache[file_path] = common_tensor.clone().detach()
         else:
             self.tensor_handler.save_tensor(common_tensor, file_path)
         return single_arg

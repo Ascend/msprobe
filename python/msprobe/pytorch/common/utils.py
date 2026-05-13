@@ -455,3 +455,10 @@ def is_hifloat8_tensor(tensor):
 def is_float8_tensor(tensor):
     return (str(tensor.dtype) in [Const.FLOAT8_E5M2_TYPE, Const.FLOAT8_E4M3FN_TYPE, Const.FLOAT8_E8M0FNU_TYPE] 
             or is_hifloat8_tensor(tensor))
+
+
+def is_float4_tensor(tensor):
+    dtype = getattr(tensor, "dtype", None)
+    if dtype is None:
+        return False
+    return "float4" in str(dtype).lower()
