@@ -1,0 +1,57 @@
+# 可选：处理函数配置。
+# - 默认已为当前内置规则 API 预置 handler；如需新增规则，直接在对应侧追加 API -> handler 映射即可。
+# - 处理函数脚本需放在本 yaml 文件同级目录 output_postprocess/ 下。
+# - 支持相对路径（相对 output_postprocess 目录）或绝对路径，格式统一为 `python文件路径:函数名`。
+acc_check_handlers:
+  target:
+    npu_dequant_swiglu_quant: "builtin_handlers.py:postprocess_by_group_index"
+    npu_grouped_matmul: "builtin_handlers.py:postprocess_by_group_list"
+  golden: {}
+
+compare_handlers:
+  target:
+    npu_dequant_swiglu_quant: "builtin_handlers.py:extract_valid_len_by_group_index"
+    npu_grouped_matmul: "builtin_handlers.py:extract_valid_len_by_group_list"
+  golden: {}
+
+
+# 预检场景（acc_check_handlers）:
+# - 用于预检输出后处理。
+# - 函数签名: handler(api_name, output, args, kwargs) -> new_output
+# - 入参:
+#   - api_name: 当前 API 名称（str）
+#   - output: 当前输出（Tensor/list/tuple 等）
+#   - args: API 调用位置参数
+#   - kwargs: API 调用关键字参数
+# - 返回值:
+#   - new_output: 后处理后的输出
+#
+# 比对场景（compare_handlers）:
+# - 用于比对阶段的处理。
+# - 函数签名: handler(api_name, args, kwargs) -> valid_len
+# - 入参:
+#   - api_name: 当前 API 名称（str）
+#   - args: API 调用位置参数
+#   - kwargs: API 调用关键字参数
+# - 返回值:
+#   - valid_len: 有效长度
+#
+# 空配置示例:
+# acc_check_handlers:
+#   target: {}
+#   golden: {}
+# compare_handlers:
+#   target: {}
+#   golden: {}
+#
+# 启用配置示例:
+# acc_check_handlers:
+#   target:
+#     npu_other_api: "custom_postprocess.py:handle_api"
+#     npu_another_api: "/home/xxx/msprobe/core/common/output_postprocess/custom_postprocess.py:handle_another_api"
+#   golden: {}
+# compare_handlers:
+#   target:
+#     npu_other_api: "custom_postprocess.py:extract_len"
+#     npu_another_api: "/home/xxx/msprobe/core/common/output_postprocess/custom_postprocess.py:extract_len_target"
+#   golden: {}

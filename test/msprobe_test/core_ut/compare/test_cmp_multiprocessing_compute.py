@@ -10,7 +10,7 @@ import pandas as pd
 from msprobe.core.common.const import Const, CompareConst
 from msprobe.core.common.utils import CompareException
 from msprobe.core.compare.acc_compare import ModeConfig
-from msprobe.core.compare.multiprocessing_compute import check_accuracy, CompareRealData, ComparisonResult
+from msprobe.core.compare.multiprocessing_compute import check_accuracy, CompareRealData, ComparisonResult, CompareInfo
 from msprobe.pytorch.compare.pt_compare import read_real_data
 from .test_acc_compare import generate_dump_json, generate_pt, generate_stack_json
 
@@ -18,13 +18,15 @@ data = [['Functional.linear.0.forward.input.0', 'Functional.linear.0.forward.inp
          'torch.float32', 'torch.float32', [2, 2], [2, 2], True, True,
          '', '', '', '', '', '',
          1, 1, 1, 1, 1, 1, 1, 1,
-         True, 'None', '', ['-1', '-1']]]
+         True, 'None', '', ['-1', '-1'],
+         [-1, -1]]]
 o_data = [['Functional.linear.0.forward.input.0', 'Functional.linear.0.forward.input.0',
            'torch.float32', 'torch.float32', [2, 2], [2, 2], True, True,
            'unsupported', 'unsupported', 'unsupported', 'unsupported', 'unsupported', 'unsupported',
            1, 1, 1, 1, 1, 1, 1, 1,
-           True, 'None', 'NPU does not have data file.', ['-1', '-1']]]
-columns = CompareConst.COMPARE_RESULT_HEADER + ['Data_name']
+           True, 'None', 'NPU does not have data file.', ['-1', '-1'],
+           [-1, -1]]]
+columns = CompareConst.COMPARE_RESULT_HEADER + [CompareConst.DATA_NAME, CompareConst.DIRTY_VALID_LEN]
 result_df = pd.DataFrame(data, columns=columns)
 o_result = pd.DataFrame(o_data, columns=columns)
 base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'test_cmp_multiprocessing_compute')
@@ -156,35 +158,37 @@ class TestCompareRealData(unittest.TestCase):
         compare_real_data = CompareRealData(file_reader, mode_config, cross_frame)
 
         pt_name = '-1'
-        op_name_mapping_dict = {'Functional.linear.0.forward.input.0Functional.linear.0.forward.input.0': [pt_name, pt_name]}
+        npu_info = CompareInfo(npu_op_name, pt_name, -1)
+        bench_info = CompareInfo(bench_op_name, pt_name, -1)
         input_param = {'npu_dump_data_dir': base_dir, 'bench_dump_data_dir': base_dir}
-        result = compare_real_data.compare_by_op(npu_op_name, bench_op_name, op_name_mapping_dict, input_param)
+        result = compare_real_data.compare_by_op(npu_info, bench_info, input_param)
         self.assertEqual(result, ['unsupported', 'unsupported', 'unsupported', 'unsupported', 'unsupported',
                                   'unsupported', 'NPU does not have data file.'])
 
         pt_name = 'Functional.linear.0.forward.input.0.pt'
-        op_name_mapping_dict = {'Functional.linear.0.forward.input.0Functional.linear.0.forward.input.0': [pt_name, pt_name]}
+        npu_info = CompareInfo(npu_op_name, pt_name, -1)
+        bench_info = CompareInfo(bench_op_name, pt_name, -1)
         input_param = {'npu_dump_data_dir': base_dir, 'bench_dump_data_dir': base_dir}
-        result = compare_real_data.compare_by_op(npu_op_name, bench_op_name, op_name_mapping_dict, input_param)
+        result = compare_real_data.compare_by_op(npu_info, bench_info, input_param)
         self.assertEqual(result, ['unsupported', 'unsupported', 'unsupported', 'unsupported', 'unsupported',
                                   'unsupported', "Dump file: Functional.linear.0.forward.input.0.pt or Functional.linear.0.forward.input.0.pt not found or read failed."])
 
         generate_pt(base_dir)
-        result = compare_real_data.compare_by_op(npu_op_name, bench_op_name, op_name_mapping_dict, input_param)
+        result = compare_real_data.compare_by_op(npu_info, bench_info, input_param)
         self.assertEqual(result, [1.0, 0.0, 0.0, 0.0, 1.0, 1.0, ''])
 
     def test_compare_by_op_bench_no_npu_real_data(self):
         npu_op_name = 'Functional.linear.0.forward.input.0'
         bench_op_name = 'N/A'
-        op_name_mapping_dict = {'Functional.linear.0.forward.input.0N/A': [-1, -1]}
         input_param = {}
 
         file_reader = read_real_data
         mode_config = ModeConfig(dump_mode=Const.ALL)
         cross_frame = False
         compare_real_data = CompareRealData(file_reader, mode_config, cross_frame)
-
-        result = compare_real_data.compare_by_op(npu_op_name, bench_op_name, op_name_mapping_dict, input_param)
+        npu_info = CompareInfo(npu_op_name, -1, -1)
+        bench_info = CompareInfo(bench_op_name, -1, -1)
+        result = compare_real_data.compare_by_op(npu_info, bench_info, input_param)
         self.assertEqual(result, ['unsupported', 'unsupported', 'unsupported', 'unsupported', 'unsupported',
                                   'unsupported', 'NPU does not have data file.'])
 
@@ -196,13 +200,13 @@ class TestCompareRealData(unittest.TestCase):
         stack_path = os.path.join(base_dir3, 'stack.json')
         input_param = {'npu_json_path': dump_path, 'bench_json_path': dump_path, 'stack_json_path': stack_path,
                        'is_print_compare_log': True, 'npu_dump_data_dir': pt_dir, 'bench_dump_data_dir': pt_dir}
-        dump_path_dict = {'Functional.linear.0.forward.input.0Functional.linear.0.forward.input.0': ['Functional.linear.0.forward.input.0.pt',
-                                                                  'Functional.linear.0.forward.input.0.pt']}
-        result_df = pd.DataFrame({
-            'NPU Name': ['Functional.linear.0.forward.input.0'],
-            'Bench Name': ['Functional.linear.0.forward.input.0'],
-            'Err_message': ''
-        })
+        dump_path_dict = {'Functional.linear.0.forward.input.0Functional.linear.0.forward.input.0':
+                              ['Functional.linear.0.forward.input.0.pt',
+                               'Functional.linear.0.forward.input.0.pt']}
+        result_df = pd.DataFrame(
+            [['Functional.linear.0.forward.input.0', 'Functional.linear.0.forward.input.0', '', [21, 21]]],
+            columns=[CompareConst.NPU_NAME, CompareConst.BENCH_NAME, CompareConst.ERROR_MESSAGE, CompareConst.DIRTY_VALID_LEN]
+        )
 
         file_reader = read_real_data
         mode_config = ModeConfig(dump_mode=Const.ALL)
@@ -218,12 +222,16 @@ class TestCompareRealData(unittest.TestCase):
     def test_do_multi_process(self):
         data = [['Functional.linear.0.forward.input.0', 'Functional.linear.0.forward.input.0',
                  'torch.float32', 'torch.float32', [2, 2], [2, 2], True, True,
-                 '', '', '', '', '', '', 1, 1, 1, 1, 1, 1, 1, 1, True, 'None', '', ['-1', '-1']]]
+                 '', '', '', '', '', '', 1, 1, 1, 1, 1, 1, 1, 1, True, 'None', '', ['-1', '-1'],
+                 [21, 21]
+                 ]]
         o_data = [['Functional.linear.0.forward.input.0', 'Functional.linear.0.forward.input.0',
                    'torch.float32', 'torch.float32', [2, 2], [2, 2], True, True,
                    'unsupported', 'unsupported', 'unsupported', 'unsupported', 'unsupported', 'unsupported',
-                   1, 1, 1, 1, 1, 1, 1, 1, True, 'None', 'NPU does not have data file.', ['-1', '-1']]]
-        columns = CompareConst.COMPARE_RESULT_HEADER + ['Data_name']
+                   1, 1, 1, 1, 1, 1, 1, 1, True, 'None', 'NPU does not have data file.', ['-1', '-1'],
+                   [21, 21]
+                   ]]
+        columns = CompareConst.COMPARE_RESULT_HEADER + [CompareConst.DATA_NAME, CompareConst.DIRTY_VALID_LEN]
         result_df = pd.DataFrame(data, columns=columns)
         o_result = pd.DataFrame(o_data, columns=columns)
         generate_dump_json(base_dir)

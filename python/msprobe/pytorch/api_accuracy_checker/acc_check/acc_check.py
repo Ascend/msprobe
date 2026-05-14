@@ -51,6 +51,7 @@ from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.dump.pt_config import parse_json_config
 from msprobe.core.common.const import Const, FileCheckConst, CompareConst
 from msprobe.core.common.utils import safe_get_value, CompareException, is_int, check_op_str_pattern_valid
+from msprobe.core.common.output_postprocess.processor import postprocess_output, should_postprocess_output
 from msprobe.pytorch.common.utils import seed_all
 from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check_utils import generate_cpu_params,\
     generate_device_params, \
@@ -222,9 +223,14 @@ def run_torch_api(api_full_name, real_data_path, backward_content, api_info_dict
     bench_grad_out, device_grad_out = None, None
     cpu_exec_params = ExecParams(api_type, api_name, Const.CPU_LOWERCASE, cpu_args, cpu_kwargs, False, autocast_dtype)
     out = exec_api(cpu_exec_params)
+    if should_postprocess_output(api_name, "golden"):
+        out = postprocess_output(api_name, out, cpu_args, cpu_kwargs, "golden")
     device_exec_params = ExecParams(api_type, api_name, current_device, device_args, device_kwargs, is_autocast,
                                      autocast_dtype)
     device_out = exec_api(device_exec_params)
+    if should_postprocess_output(api_name, "target"):
+        device_out = postprocess_output(api_name, device_out, device_args, device_kwargs, "target")
+
     if is_fp8 and isinstance(device_out, torch.Tensor) and device_out.dtype == torch.float32:
         device_out = device_out.to(torch.float16)
     current_path = os.path.dirname(os.path.realpath(__file__))

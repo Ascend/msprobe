@@ -17,6 +17,7 @@
 import multiprocessing
 from dataclasses import dataclass
 from functools import partial
+from typing import Any
 
 import pandas as pd
 from tqdm import tqdm
@@ -25,6 +26,7 @@ from msprobe.core.common.log import logger
 from msprobe.core.common.utils import CompareException
 from msprobe.core.common.const import CompareConst
 from msprobe.core.common.exceptions import FileCheckException
+from msprobe.core.common.output_postprocess import clean_single_tensor
 from msprobe.core.compare.npy_compare import CompareResult, ValidateTensor, compare_ops_apply
 from msprobe.core.compare.config import ModeConfig
 
@@ -38,6 +40,13 @@ class ComparisonResult:
     one_thousand_err_ratio_result: list
     five_thousand_err_ratio_result: list
     err_msgs: list
+
+
+@dataclass
+class CompareInfo:
+    op_name: str
+    data_name: Any
+    dirty_valid_len: int
 
 
 def _ms_graph_handle_multi_process(func, result_df, mode):
@@ -117,6 +126,13 @@ class CompareRealData:
             raise CompareException(CompareException.INVALID_KEY_ERROR) from e
 
     @staticmethod
+    def clean_dirty_data(tensor, compare_info: CompareInfo):
+        if compare_info.dirty_valid_len == -1 or "output" not in compare_info.op_name:
+            return tensor
+
+        return clean_single_tensor(tensor, compare_info.dirty_valid_len)
+
+    @staticmethod
     def _save_cmp_result(offset, result: ComparisonResult, result_df, lock):
         """
             Save comparison results into the result DataFrame with thread safety.
@@ -153,7 +169,7 @@ class CompareRealData:
         finally:
             lock.release()
 
-    def compare_by_op(self, npu_op_name, bench_op_name, op_name_mapping_dict, input_param):
+    def compare_by_op(self, npu_info, bench_info, input_param):
         """
         按算子进行数据对比的主流程函数
 
@@ -163,36 +179,42 @@ class CompareRealData:
             3. 校验 tensor 数据合法性
 
         参数:
-            npu_op_name (str): NPU 侧算子名称
-            bench_op_name (str): Bench 侧算子名称
-            op_name_mapping_dict (dict): 算子名称到 dump 文件名的映射关系
+            npu_info (NPUInfo): NPU 侧算子信息
+            bench_info (BenchInfo): Bench 侧算子信息
             input_param: npu_path/bench_path等参数
         返回:
             list:
                 对比结果列表，包含：余弦相似度、欧式距离、最大绝对误差、最大相对误差、千分之一误差率、千分之五误差率、错误信息
         """
-        dump_result = self.locate_dump_file(npu_op_name, bench_op_name, op_name_mapping_dict)
+
+        # 1. 根据算子名定位 dump 文件
+        dump_result = self.locate_dump_file(npu_info, bench_info)
         if dump_result.err_msg:
-            return self.build_result(dump_result, npu_op_name, bench_op_name)
+            return self.build_result(dump_result, npu_info, bench_info)
 
-        read_result = self.read_tensor(dump_result, input_param)
+        # 2. 读取 tensor 数据
+        read_result = self.read_tensor(dump_result, input_param, npu_info, bench_info)
         if read_result.err_msg:
-            return self.build_result(read_result, npu_op_name, bench_op_name)
+            return self.build_result(read_result, npu_info, bench_info)
 
+        # 3. 校验 tensor 数据合法性
         validate_tensor = ValidateTensor()
         validate_result = validate_tensor.check_tensor(read_result)
-        return self.build_result(validate_result, npu_op_name, bench_op_name)
+        return self.build_result(validate_result, npu_info, bench_info)
 
     @staticmethod
-    def locate_dump_file(npu_op_name, bench_op_name, mapping_dict):
+    def locate_dump_file(npu_info, bench_info):
         """
         根据算子名称查找对应的 dump 文件名
 
+        参数:
+            npu_info (NPUInfo): NPU 侧算子信息
+            bench_info (BenchInfo): Bench 侧算子信息
         返回:
             CompareResult: 包含 dump 文件名或错误信息的结果对象
         """
-        data_name_pair = mapping_dict.get(str(npu_op_name) + str(bench_op_name))
-        npu_data_name, bench_data_name = data_name_pair
+        npu_data_name = npu_info.data_name
+        bench_data_name = bench_info.data_name
 
         if str(npu_data_name) == CompareConst.NO_REAL_DATA_FLAG:
             return CompareResult(
@@ -220,7 +242,7 @@ class CompareRealData:
 
         return CompareResult(npu_data_name, bench_data_name, False, "")
 
-    def read_tensor(self, dump_result, input_param):
+    def read_tensor(self, dump_result, input_param, npu_info, bench_info):
         """
         从 dump 文件中读取 tensor 数据
 
@@ -238,6 +260,8 @@ class CompareRealData:
 
         try:
             n_value, b_value = self.file_reader(data_path_dict, self.cross_frame, self.mode_config.backend)
+            n_value = self.clean_dirty_data(n_value, npu_info)
+            b_value = self.clean_dirty_data(b_value, bench_info)
             return CompareResult(n_value, b_value, False, "")
 
         except IOError as error:
@@ -256,7 +280,7 @@ class CompareRealData:
                 f"Dump file: {dump_result.n_value} or {dump_result.b_value} not found or read failed."
             )
 
-    def build_result(self, result, npu_op_name, bench_op_name):
+    def build_result(self, result, npu_info, bench_info):
         """
         构建最终的对比结果
         负责调用指标计算函数，并补充模糊匹配提示信息。
@@ -267,6 +291,8 @@ class CompareRealData:
             result.error_flag,
             result.err_msg
         )
+        npu_op_name = npu_info.op_name
+        bench_op_name = bench_info.op_name
         if self.mode_config.fuzzy_match and npu_op_name != bench_op_name and bench_op_name != CompareConst.N_A:
             err_msg += " Fuzzy matching data, the comparison accuracy may be affected."
         result_list.append(err_msg)
@@ -284,13 +310,21 @@ class CompareRealData:
         is_print_compare_log = input_param.get("is_print_compare_log")
 
         for i in range(len(result_df)):
-            npu_op_name = result_df.iloc[i, 0]
-            bench_op_name = result_df.iloc[i, 1]
+            npu_op_name = result_df.loc[i, CompareConst.NPU_NAME]
+            bench_op_name = result_df.loc[i, CompareConst.BENCH_NAME]
+            data_name_pair = dump_path_dict.get(str(npu_op_name) + str(bench_op_name))
+            npu_data_name, bench_data_name = data_name_pair
+            dirty_valid_len_pair = result_df.loc[i, CompareConst.DIRTY_VALID_LEN]
+            npu_dirty_valid_len, bench_dirty_valid_len = dirty_valid_len_pair  # 固定结构为 [npu len, bench len]
+
+            npu_info = CompareInfo(npu_op_name, npu_data_name, npu_dirty_valid_len)
+            bench_info = CompareInfo(bench_op_name, bench_data_name, bench_dirty_valid_len)
+
             if is_print_compare_log:
                 logger.info("start compare: {}".format(npu_op_name))
 
             cos_sim, euc_dist, max_abs_err, max_relative_err, one_thousand_err_ratio, five_thousand_err_ratio, err_msg \
-                = self.compare_by_op(npu_op_name, bench_op_name, dump_path_dict, input_param)
+                = self.compare_by_op(npu_info, bench_info, input_param)
 
             if is_print_compare_log:
                 if "does not have data file" in err_msg:

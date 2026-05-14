@@ -28,6 +28,7 @@ from msprobe.core.common.const import Const, CompareConst, FileCheckConst
 from msprobe.core.common.utils import CompareException, check_regex_prefix_format_valid, logger, \
     safe_get_value, is_module_available
 from msprobe.core.common.file_utils import check_file_or_directory_path, load_json, find_proc_dir
+from msprobe.core.common.output_postprocess.load_pt_helper import load_pt_file
 
 json_file_mapping = {
     Const.DUMP_JSON_FILE: "dump.json",
@@ -960,3 +961,82 @@ def check_input_param_path_and_framework(args, target_framework):
 def split_tensors(data_name):
     tensor_list = data_name.split(';')
     return tensor_list
+
+
+def parse_op_data(obj):
+    """
+    更通用/健壮的递归解析：
+    - torch.Tensor → data_name
+    - {"type": x, "value": y} → y（可选规则）
+    - 支持 dict / list / tuple 任意嵌套
+    - tuple 保持 tuple 类型
+    """
+
+    # 1. dict
+    if isinstance(obj, dict):
+        # 更严格判断 tensor
+        if obj.get("type") == "torch.Tensor" and "data_name" in obj:
+            return obj["data_name"]
+
+        # 简化 value 类型（可按需关闭）
+        if "type" in obj and "value" in obj and len(obj) == 2:
+            return parse_op_data(obj["value"])
+
+        # 递归处理 key 和 value（key 很少需要，但更完整）
+        return {
+            parse_op_data(k): parse_op_data(v)
+            for k, v in obj.items()
+        }
+
+    # 2. list
+    elif isinstance(obj, list):
+        return [parse_op_data(item) for item in obj]
+
+    # 3. tuple（保持类型）
+    elif isinstance(obj, tuple):
+        return tuple(parse_op_data(item) for item in obj)
+
+    # 4. 其他（int/str/None/bool 等）
+    else:
+        return obj
+
+
+def load_pt_in_structure(obj, data_dirs, device):
+    """
+    递归遍历结构：
+    - 如果是 .pt 字符串 ——> 加载 tensor
+    - 其他保持不变
+    - 保持原有结构
+    """
+
+    data_dir = data_dirs.get(device)
+    if data_dir is None:
+        return obj  # 没有对应设备的数据目录，返回原对象
+    
+    def _load(obj):
+        # 1. .pt 文件
+        if isinstance(obj, str) and obj.endswith(FileCheckConst.PT_SUFFIX):
+            full_path = os.path.join(data_dir, obj)
+            try:
+                return load_pt_file(full_path, to_cpu=True)
+            except Exception as e:
+                logger.error(f"Failed to load .pt file: {full_path} when extract dirty data valid length, error: {e}")
+                return None
+        
+        # 2. dict
+        elif isinstance(obj, dict):
+            return {k: _load(v) for k, v in obj.items()}
+        
+        # 3. list
+        elif isinstance(obj, list):
+            return [_load(item) for item in obj]
+        
+        # 4. tuple
+        elif isinstance(obj, tuple):
+            return tuple(_load(item) for item in obj)
+        
+        # 5. 其他
+        else:
+            return obj
+        
+    return _load(obj)

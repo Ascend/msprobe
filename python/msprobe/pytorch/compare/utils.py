@@ -16,6 +16,7 @@
 
 import os
 
+import numpy as np
 import torch
 
 from msprobe.core.common.utils import logger, CompareException
@@ -51,4 +52,5 @@ def read_pt_data(dir_path, file_name):
         raise CompareException(CompareException.DETACH_ERROR) from e
     data_value = _prepare_tensor_for_numpy(data_value)
     data_value = data_value.numpy()
+    data_value = np.squeeze(data_value)
     return data_value

@@ -257,6 +257,7 @@ class Const:
     MEAN = 'Mean'
     NORM = 'Norm'
     DATA_NAME = 'data_name'
+    DIRTY_VALID_LEN = 'dirty_valid_len'
     STATE = 'state'
     REQ_GRAD = 'requires_grad'
     API_ORIGIN_NAME = 'api_origin_name'
@@ -498,6 +499,8 @@ class CompareConst:
     """
     SPACE = " "
     NAME = "Name"
+    DEVICE_NPU = "NPU"
+    DEVICE_BENCH = "Bench"
     # compare result column name
     NPU_NAME = "NPU Name"
     BENCH_NAME = "Bench Name"
@@ -536,6 +539,7 @@ class CompareConst:
     ACCURACY = "Accuracy Reached or Not"
     STACK = "NPU_Stack_Info"
     DATA_NAME = "Data_name"
+    DIRTY_VALID_LEN = "Dirty Valid Len"
     ERROR_MESSAGE = "Err_message"
     ONE_THOUSANDTH_ERR_RATIO = "One Thousandth Err Ratio"
     FIVE_THOUSANDTHS_ERR_RATIO = "Five Thousandths Err Ratio"
@@ -790,6 +794,13 @@ class CompareConst:
     BENCH_PARSE_ORDER = "bench_parse_order"
     COMPARE_ORDER = "compare_order"
 
+    # 调用预检设计接口需要将device转成backend
+    DEVICE_TO_BACKEND = {
+        DEVICE_NPU: "target",
+        DEVICE_BENCH: "golden"
+    }
+    ALL_MODE_DROP_COLUMNS = [DIRTY_VALID_LEN]
+
 
 class FileCheckConst:
     """
@@ -831,6 +842,7 @@ class FileCheckConst:
     ONNX_SUFFIX = '.onnx'
     OM_SUFFIX = '.om'
     BIN_SUFFIX = '.bin'
+    PY_SUFFIX = '.py'
     MAX_BIN_SIZE = 10737418240          # 10G
     MAX_COMMON_FILE_SIZE = 10737418240  # 10G
     MAX_PKL_SIZE = 1073741824  # 1 * 1024 * 1024 * 1024

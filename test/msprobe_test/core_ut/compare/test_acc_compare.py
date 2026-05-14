@@ -342,7 +342,6 @@ class TestUtilsMethods(unittest.TestCase):
                 }
             ]
         }
-        json_data = {'data': {'Functional.linear.0.forward': op_data}}
         op_name = 'Functional.linear.0.forward'
         stack_json_data = {'Functional.linear.0.forward': ['File']}
         target_merge_list = [
@@ -373,8 +372,7 @@ class TestUtilsMethods(unittest.TestCase):
             'dump_mode': Const.SUMMARY,
         }
         mode_config = ModeConfig(**config_dict)
-
-        result = ParseData(mode_config, 'rank0').gen_merge_list(json_data, op_name, stack_json_data)
+        result = ParseData(mode_config, 'rank0', {}).gen_merge_list(op_data, op_name, stack_json_data)
         self.assertEqual(result, target_merge_list)
 
     def test_check_op_item_fuzzy(self):
@@ -408,7 +406,7 @@ class TestUtilsMethods(unittest.TestCase):
 
         from msprobe.pytorch.compare.pt_compare import read_real_data
         comparator = Comparator(read_real_data, mode_config, mapping_config)
-        parse_data = ParseData(mode_config, '')
+        parse_data = ParseData(mode_config, '', {})
         npu_df, bench_df = parse_data.parse(file_list)
         result = comparator.compare_statistics(npu_df, bench_df)
         o_data = [
@@ -438,13 +436,13 @@ class TestParseData(unittest.TestCase):
         self.lock = threading.Lock()
 
         mode_config = ModeConfig(stack_mode=True)
-        self.parser = ParseData(mode_config, "rank0")
+        self.parser = ParseData(mode_config, "rank0", {})
 
         # consistent_check相关parse实例
         self.mock_mode_config = MagicMock()
         self.mock_mode_config.consistent_check = True
         self.mock_mode_config.backend = Const.FSDP
-        self.parser_consistent_check = ParseData(mode_config=self.mock_mode_config, rank=0)
+        self.parser_consistent_check = ParseData(mode_config=self.mock_mode_config, rank=0, data_dirs={})
 
     def tearDown(self):
         if os.path.exists(base_dir):
@@ -456,7 +454,7 @@ class TestParseData(unittest.TestCase):
 
         stack_mode = True
         mode_config = ModeConfig(stack_mode=stack_mode)
-        parse_data = ParseData(mode_config, 'rank0')
+        parse_data = ParseData(mode_config, 'rank0', {})
         npu_df, bench_df = parse_data.parse(file_list)
 
         target_df = pd.DataFrame(
@@ -482,7 +480,7 @@ class TestParseData(unittest.TestCase):
 
         stack_mode = True
         mode_config = ModeConfig(stack_mode=stack_mode)
-        parse_data = ParseData(mode_config, 'rank0')
+        parse_data = ParseData(mode_config, 'rank0', {})
         npu_df = parse_data.gen_data_df(npu_json_data, stack_json_data, 'NPU')
 
         target_df = pd.DataFrame(
@@ -507,7 +505,7 @@ class TestParseData(unittest.TestCase):
 
         stack_mode = True
         mode_config = ModeConfig(stack_mode=stack_mode, dump_mode=Const.ALL)
-        parse_data = ParseData(mode_config, 'rank0')
+        parse_data = ParseData(mode_config, 'rank0', {})
         npu_df = parse_data.gen_data_df(npu_json_data, stack_json_data, 'NPU')
 
         target_df = pd.DataFrame(
@@ -515,13 +513,13 @@ class TestParseData(unittest.TestCase):
                 ['Functional.linear.0.forward.input.0', 'torch.float32', [2, 2], [2, 0, 1, 1], ['File'], 'input',
                  'Functional.linear.0.forward', 'False',
                  'forward', '0.forward', 'Functional.linear', 0, 0, '.input.0',
-                 'Functional.linear.0.forward.input.0.pt']
+                 'Functional.linear.0.forward.input.0.pt', -1]
             ],
             columns=[
                 'op_name', 'dtype', 'shape', 'summary', 'stack_info', 'state',
                 'api_origin_name', 'requires_grad',
                 'direction', 'call_direction', 'op_no_number', 'forward_call_order', 'backward_call_order', 'suffix',
-                'data_name'
+                'data_name', 'dirty_valid_len'
             ]
         )
         self.assertTrue(npu_df.equals(target_df))
@@ -534,7 +532,7 @@ class TestParseData(unittest.TestCase):
 
         stack_mode = True
         mode_config = ModeConfig(stack_mode=stack_mode, dump_mode=Const.MD5)
-        parse_data = ParseData(mode_config, 'rank0')
+        parse_data = ParseData(mode_config, 'rank0', {})
         npu_df = parse_data.gen_data_df(npu_json_data, stack_json_data, 'NPU')
 
         target_df = pd.DataFrame(
@@ -561,8 +559,9 @@ class TestParseData(unittest.TestCase):
 
         stack_mode = True
         mode_config = ModeConfig(stack_mode=stack_mode)
-        parse_data = ParseData(mode_config, 'rank0')
-        merge_list = parse_data.gen_merge_list(npu_json_data, 'Functional.linear.0.forward', stack_json_data)
+        parse_data = ParseData(mode_config, 'rank0', {})
+        op_data = npu_json_data.get('data').get('Functional.linear.0.forward')
+        merge_list = parse_data.gen_merge_list(op_data, 'Functional.linear.0.forward', stack_json_data)
 
         target_merge_list = [
             {
@@ -640,7 +639,7 @@ class TestParseData(unittest.TestCase):
         """
         self.mock_mode_config.consistent_check = False
 
-        result = self.parser_consistent_check.should_parse_op(parse_flag=False, data_name="any.name", device="Npu")
+        result = self.parser_consistent_check.should_parse_op(parse_flag=False, op_name="any.name", device="Npu")
 
         self.assertTrue(result)
         mock_logger.error.assert_not_called()
@@ -653,7 +652,7 @@ class TestParseData(unittest.TestCase):
         """
         self.mock_mode_config.consistent_check = True
 
-        result = self.parser_consistent_check.should_parse_op(parse_flag=False, data_name="any.name", device="Bench")
+        result = self.parser_consistent_check.should_parse_op(parse_flag=False, op_name="any.name", device="Bench")
 
         self.assertTrue(result)
         mock_logger.error.assert_not_called()
@@ -669,7 +668,7 @@ class TestParseData(unittest.TestCase):
         # 构造只有 2 段的数据
         invalid_data_name = f"part1.part2"
 
-        result = self.parser_consistent_check.should_parse_op(parse_flag=True, data_name=invalid_data_name, device="Npu")
+        result = self.parser_consistent_check.should_parse_op(parse_flag=True, op_name=invalid_data_name, device="Npu")
 
         self.assertFalse(result)
         mock_logger.error.assert_called_once()
@@ -692,7 +691,7 @@ class TestParseData(unittest.TestCase):
         # [-3] = Qwen3Model, [-2] = backward
         data_name = f"prefix1.Qwen3Model.backward.suffix"
 
-        result = self.parser_consistent_check.should_parse_op(parse_flag=True, data_name=data_name, device="Npu")
+        result = self.parser_consistent_check.should_parse_op(parse_flag=True, op_name=data_name, device="Npu")
 
         self.assertFalse(result)
         mock_logger.error.assert_not_called()
@@ -709,7 +708,7 @@ class TestParseData(unittest.TestCase):
         # 构造：third_last='Embedding', second_last='forward'
         data_name = f"prefix1.Embedding.forward.suffix"
 
-        result = self.parser_consistent_check.should_parse_op(parse_flag=False, data_name=data_name, device="Npu")
+        result = self.parser_consistent_check.should_parse_op(parse_flag=False, op_name=data_name, device="Npu")
 
         self.assertTrue(result)
         mock_logger.error.assert_not_called()
@@ -727,11 +726,11 @@ class TestParseData(unittest.TestCase):
         data_name = f"prefix1.MatMul.forward.suffix"
 
         # 测试输入 True
-        result_true = self.parser_consistent_check.should_parse_op(parse_flag=True, data_name=data_name, device="Npu")
+        result_true = self.parser_consistent_check.should_parse_op(parse_flag=True, op_name=data_name, device="Npu")
         self.assertTrue(result_true)
 
         # 测试输入 False
-        result_false = self.parser_consistent_check.should_parse_op(parse_flag=False, data_name=data_name, device="Npu")
+        result_false = self.parser_consistent_check.should_parse_op(parse_flag=False, op_name=data_name, device="Npu")
         self.assertFalse(result_false)
 
         mock_logger.error.assert_not_called()
@@ -1546,13 +1545,17 @@ class TestCreateTable(unittest.TestCase):
 
         data = {
             'data_name_x': ['A', 'B', 'C'],
-            'data_name_y': ['X', 'Y', 'Z']
+            'data_name_y': ['X', 'Y', 'Z'],
+            'dirty_valid_len_x': [21, -1, 21],
+            'dirty_valid_len_y': [-1, -1, 21]
         }
         result_o = pd.DataFrame(data)
-        result = create_table.process_data_name(result_o)
+        result = create_table.process_all_mode_addition_header(result_o)
         target_data = {
             'data_name_x': [['A', 'X'], ['B', 'Y'], ['C', 'Z']],
-            'data_name_y': ['X', 'Y', 'Z']
+            'data_name_y': ['X', 'Y', 'Z'],
+            'dirty_valid_len_x': [[21, -1], [-1, -1], [21, 21]],
+            'dirty_valid_len_y': [-1, -1, 21]
         }
         target_result = pd.DataFrame(target_data)
         self.assertTrue(result.equals(target_result))

@@ -19,7 +19,7 @@ import os
 from typing import List
 
 from msprobe.core.compare.acc_compare import ModeConfig
-from msprobe.core.compare.multiprocessing_compute import CompareRealData
+from msprobe.core.compare.multiprocessing_compute import CompareRealData, CompareInfo
 from msprobe.core.compare.utils import read_op, merge_tensor, get_accuracy, make_result_table, \
     get_rela_diff_summary_mode
 from msprobe.core.common.utils import set_dump_path, get_dump_mode
@@ -526,18 +526,20 @@ class MatchedNodeCalculator:
             'dump_mode': Const.ALL
         }
         mode_config = ModeConfig(**config_dict)
+        data_name_pair = op_name_mapping_dict.get(str(npu_op_name) + str(bench_op_name))
+        npu_data_name, bench_data_name = data_name_pair
+        npu_info = CompareInfo(npu_op_name, npu_data_name, -1)
+        bench_info = CompareInfo(bench_op_name, bench_data_name, -1)
 
         if self.framework == Const.PT_FRAMEWORK:
             from msprobe.pytorch.compare.pt_compare import read_real_data
-            return CompareRealData(read_real_data, mode_config, self.is_cross_frame).compare_by_op(npu_op_name,
-                                                                                                   bench_op_name,
-                                                                                                   op_name_mapping_dict,
+            return CompareRealData(read_real_data, mode_config, self.is_cross_frame).compare_by_op(npu_info,
+                                                                                                   bench_info,
                                                                                                    input_param)
         else:
             from msprobe.mindspore.compare.ms_compare import read_real_data
-            return CompareRealData(read_real_data, mode_config, self.is_cross_frame).compare_by_op(npu_op_name,
-                                                                                                   bench_op_name,
-                                                                                                   op_name_mapping_dict,
+            return CompareRealData(read_real_data, mode_config, self.is_cross_frame).compare_by_op(npu_info,
+                                                                                                   bench_info,
                                                                                                    input_param)
 
     def _compare_db_tensor_node(self, npu_data: dict, bench_data: dict, npu_data_dir, bench_data_dir):

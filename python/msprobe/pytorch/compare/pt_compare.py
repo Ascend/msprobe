@@ -48,37 +48,31 @@ def read_real_data(data_path_dict: dict, cross_frame, backend) -> tuple:
             npu_tensors_list = split_tensors(npu_data_name)
             if '.input.' in npu_data_name:
                 npu_value = read_pt_data(npu_dir, npu_tensors_list[0])
-                npu_value = np.squeeze(npu_value)
             elif '.parameters.' in npu_data_name:
-                npu_tensors = [np.squeeze(read_pt_data(npu_dir, t)) for t in npu_tensors_list]
+                npu_tensors = [read_pt_data(npu_dir, t) for t in npu_tensors_list]
                 npu_value = np.concatenate(npu_tensors, axis=0)
             else:
-                npu_tensors = [np.squeeze(read_pt_data(npu_dir, t)) for t in npu_tensors_list]
+                npu_tensors = [read_pt_data(npu_dir, t) for t in npu_tensors_list]
                 npu_value = np.concatenate(npu_tensors, axis=1)
         else:
             npu_value = read_pt_data(npu_dir, npu_data_name)
-            npu_value = np.squeeze(npu_value)
 
         bench_value = read_pt_data(bench_dir, bench_data_name)
-        bench_value = np.squeeze(bench_value)
     else:
         if need_cat(backend, bench_data_name):
             bench_tensors_list = split_tensors(bench_data_name)
             if '.input.' in bench_data_name:
                 bench_value = read_pt_data(bench_dir, bench_tensors_list[0])
-                bench_value = np.squeeze(bench_value)
             elif '.parameters.' in bench_data_name:
-                bench_tensors = [np.squeeze(read_pt_data(bench_dir, t)) for t in bench_tensors_list]
+                bench_tensors = [read_pt_data(bench_dir, t) for t in bench_tensors_list]
                 bench_value = np.concatenate(bench_tensors, axis=0)
             else:
-                bench_tensors = [np.squeeze(read_pt_data(bench_dir, t)) for t in bench_tensors_list]
+                bench_tensors = [read_pt_data(bench_dir, t) for t in bench_tensors_list]
                 bench_value = np.concatenate(bench_tensors, axis=1)
         else:
             bench_value = read_pt_data(bench_dir, bench_data_name)
-            bench_value = np.squeeze(bench_value)
 
         npu_value = read_pt_data(npu_dir, npu_data_name)
-        npu_value = np.squeeze(npu_value)
 
     return npu_value, bench_value
 

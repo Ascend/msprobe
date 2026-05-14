@@ -16,6 +16,8 @@
 
 import os
 
+import numpy as np
+
 from msprobe.core.common.const import Const
 from msprobe.core.common.file_utils import load_npy, FileChecker, FileCheckConst
 from msprobe.core.common.utils import detect_framework_by_dump_json, CompareException, check_op_str_pattern_valid
@@ -31,6 +33,7 @@ def read_npy_data(dir_path, file_name):
                                FileCheckConst.NUMPY_SUFFIX)
     data_path = path_checker.common_check()
     data_value = load_npy(data_path)
+    data_value = np.squeeze(data_value)
     return data_value
 
 

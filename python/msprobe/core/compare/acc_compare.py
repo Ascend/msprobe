@@ -33,13 +33,15 @@ from msprobe.core.common.utils import CompareException, add_time_with_csv, add_t
     get_file_type, add_time_with_json
 from msprobe.core.compare.check import check_dump_json_str, check_stack_json_str, cross_dtype_mapping, \
     check_configuration_param, check_consistent_param
-from msprobe.core.compare.utils import print_compare_ends_info, read_op, set_stack_json_path, reorder_index
+from msprobe.core.compare.utils import print_compare_ends_info, read_op, set_stack_json_path, reorder_index, \
+    parse_op_data, load_pt_in_structure
 from msprobe.core.compare.config import ModeConfig, MappingConfig, MappingDict
 from msprobe.core.compare.multiprocessing_compute import CompareRealData
 from msprobe.core.compare.diff_analyze.first_diff_analyze import FirstDiffAnalyze
 from msprobe.core.compare.indicator_analysis.calculator import calculate_excel_result_df
 from msprobe.core.compare.stats_diff_calc import ValType, ALL_TYPES
 from msprobe.core.compare.verl.mapping import FSDP_MODULE_MAP, MEGATRON_MODULE_MAP
+from msprobe.core.common.output_postprocess.processor import should_postprocess_output_for_compare, extract_valid_len
 
 
 @dataclass
@@ -145,7 +147,11 @@ class Comparator:
         npu_json = input_param.get("npu_path")
         bench_json = input_param.get("bench_path")
         stack_json = input_param.get("stack_path")
-        parse_data = ParseData(self.mode_config, rank)  # load and parse json data
+        data_dirs = {
+            CompareConst.DEVICE_NPU: input_param.get(CompareConst.NPU_DUMP_DATA_DIR),
+            CompareConst.DEVICE_BENCH: input_param.get(CompareConst.BENCH_DUMP_DATA_DIR)
+        }
+        parse_data = ParseData(self.mode_config, rank, data_dirs)  # load and parse json data
         npu_df, bench_df = parse_data.parse([npu_json, bench_json, stack_json])
 
         logger.info("Matching APIs/Modules in progress...")
@@ -174,6 +180,7 @@ class Comparator:
             compare_real_data = CompareRealData(self.file_reader, self.mode_config, self.cross_frame)
             result_df = result_df.reset_index(drop=True)
             result_df = compare_real_data.do_multi_process(input_param, result_df)
+            result_df.drop(columns=CompareConst.ALL_MODE_DROP_COLUMNS, inplace=True, errors='ignore')
             logger.info("Compare real data done.")
 
         # calculate Indicators
@@ -250,9 +257,10 @@ class Comparator:
 
 
 class ParseData:
-    def __init__(self, mode_config: ModeConfig, rank):
+    def __init__(self, mode_config: ModeConfig, rank, data_dirs: dict):
         self.mode_config = mode_config
         self.rank = rank
+        self.data_dirs = data_dirs  # {"NPU": npu_dump_data_dir, "Bench": bench_dump_data_dir}
 
     def split_data_name_components(self, data_name):
         """
@@ -302,8 +310,8 @@ class ParseData:
         stack_json_data = load_stack_json(stack_json_path) if self.mode_config.stack_mode else None
 
         # parse json data and generate df
-        npu_df = self.gen_data_df(npu_json_data, stack_json_data, 'NPU')
-        bench_df = self.gen_data_df(bench_json_data, stack_json_data, 'Bench')
+        npu_df = self.gen_data_df(npu_json_data, stack_json_data, CompareConst.DEVICE_NPU)
+        bench_df = self.gen_data_df(bench_json_data, stack_json_data, CompareConst.DEVICE_BENCH)
 
         return npu_df, bench_df
 
@@ -326,6 +334,7 @@ class ParseData:
         }
         if self.mode_config.dump_mode == Const.ALL:
             result[Const.DATA_NAME] = []
+            result[Const.DIRTY_VALID_LEN] = []
         elif self.mode_config.dump_mode == Const.MD5:
             result[Const.MD5] = []
         return result
@@ -351,21 +360,22 @@ class ParseData:
         parse_flag = True  # 使用布尔值，默认为 True，表示解析开启
 
         # 从json中循环解析API数据，遍历所有API
-        for data_name in apis_data:
-            check_op_str_pattern_valid(data_name)
+        for op_name in apis_data:
+            check_op_str_pattern_valid(op_name)
 
-            parse_flag = self.should_parse_op(parse_flag, data_name, device)
+            parse_flag = self.should_parse_op(parse_flag, op_name, device)
             # 如果 parse_flag 为 False，则跳过当前数据项
             if not parse_flag:
                 progress_bar.update(1)
                 continue
 
-            op_parsed_list = self.gen_merge_list(data_json, data_name, stack_json_data)
+            op_data = apis_data.get(op_name)
+            op_parsed_list = self.gen_merge_list(op_data, op_name, stack_json_data)
             if not op_parsed_list:
                 progress_bar.update(1)
                 continue
 
-            op_no_number, call_direction, direction = self.split_data_name_components(data_name)
+            op_no_number, call_direction, direction = self.split_data_name_components(op_name)
             if not op_no_number:
                 progress_bar.update(1)
                 continue
@@ -377,9 +387,13 @@ class ParseData:
             if direction == Const.BACKWARD:
                 op_backward_count[op_no_number] += 1
 
+            stack_info = op_parsed_list[-1].get('full_info') if self.mode_config.stack_mode else None
+
             reordered_index_list = reorder_index(op_parsed_list)
 
-            stack_info = op_parsed_list[-1].get('full_info') if self.mode_config.stack_mode else None
+            if self.mode_config.dump_mode == Const.ALL:
+                valid_len = self.get_valid_len_with_postprocess(op_name, op_data, device)
+                result[Const.DIRTY_VALID_LEN].extend([valid_len] * len(reordered_index_list))
 
             for i, index in enumerate(reordered_index_list):
                 op_item = op_parsed_list[index]
@@ -388,7 +402,7 @@ class ParseData:
                     for key in Const.SUMMARY_METRICS_LIST
                 ]
                 full_op_name = op_item.get(Const.FULL_OP_NAME)
-                suffix = full_op_name.replace(data_name, '')
+                suffix = full_op_name.replace(op_name, '')
 
                 # common key
                 result[CompareConst.OP_NAME].append(full_op_name)
@@ -396,7 +410,7 @@ class ParseData:
                 result[Const.SHAPE].append(op_item.get(Const.SHAPE))
                 result[Const.STATE].append(op_item.get(Const.STATE))
                 result[Const.REQ_GRAD].append(op_item.get(Const.REQ_GRAD))
-                result[Const.API_ORIGIN_NAME].append(data_name)
+                result[Const.API_ORIGIN_NAME].append(op_name)
                 result[Const.SUMMARY].append(summary_data)
                 result[Const.DIRECTION].append(direction)
                 result[Const.CALL_DIRECTION].append(call_direction)
@@ -423,8 +437,7 @@ class ParseData:
         progress_bar.close()
         return pd.DataFrame(result)
 
-    def gen_merge_list(self, json_data, op_name, stack_json_data):
-        op_data = json_data['data'][op_name]
+    def gen_merge_list(self, op_data, op_name, stack_json_data):
         if self.mode_config.compared_file_type == Const.DUMP_JSON_FILE:
             check_dump_json_str(op_data, op_name)
         op_parsed_list = read_op(op_data, op_name)
@@ -442,26 +455,26 @@ class ParseData:
         })
         return op_parsed_list
 
-    def should_parse_op(self, parse_flag, data_name, device: str):
+    def should_parse_op(self, parse_flag, op_name, device: str):
         """
         根据操作名判断是否应解析。
 
         :param parse_flag: 原是否解析标识
-        :param data_name: 操作名字符串
+        :param op_name: 操作名字符串
         :param device: Npu/Bench
         :return: 返回解析标志，True表示解析开启，False表示解析关闭
         """
         if not self.mode_config.consistent_check:  # 非训推一致性比对均解析数据
             return True
 
-        if device == 'Bench':
+        if device == CompareConst.DEVICE_BENCH:
             return True
 
-        op_name_splits = data_name.split(Const.SEP)
+        op_name_splits = op_name.split(Const.SEP)
         # 确保分割后列表长度符合预期
         if len(op_name_splits) < 3:
             logger.error(f"Length of op name in dump.json is not as expected. "
-                         f"The division should be no less than 3. Op_name is {data_name}. Please check.")
+                         f"The division should be no less than 3. Op_name is {op_name}. Please check.")
             return False  # 确保在长度不符合时返回 False
 
         # 提取操作名的相关部分
@@ -479,6 +492,26 @@ class ParseData:
             return True
 
         return parse_flag
+
+    def get_valid_len_with_postprocess(self, op_name, op_data, device):
+        backend = CompareConst.DEVICE_TO_BACKEND.get(device)  # 调用预检设计接口需要将device转成backend
+
+        valid_len = -1  # 默认值，表示未成功提取到有效长度
+        should_postprocess, matched_api_name = should_postprocess_output_for_compare(op_name, backend)
+
+        if should_postprocess:
+            parsed_op_info = parse_op_data(op_data)
+            loaded_op_info = load_pt_in_structure(parsed_op_info, self.data_dirs, device)
+            if parsed_op_info == loaded_op_info:
+                logger.warning(f"Failed to get dirty clean info for output of {op_name}.")
+            else:
+                op_args = loaded_op_info.get("input_args", [])
+                op_kwargs = loaded_op_info.get("input_kwargs", {})
+                valid_len = extract_valid_len(matched_api_name, op_args, op_kwargs, backend)
+                if valid_len is None:
+                    valid_len = -1  # 如果提取失败，设置为 -1
+        
+        return valid_len
 
 
 class ProcessDf:
@@ -1161,8 +1194,10 @@ class CreateTable:
         self.mode_config = mode_config
 
     @staticmethod
-    def process_data_name(result):
+    def process_all_mode_addition_header(result):
         result['data_name_x'] = result.apply(lambda row: [row['data_name_x'], row['data_name_y']], axis=1)
+        result['dirty_valid_len_x'] = result.apply(lambda row: [row['dirty_valid_len_x'], row['dirty_valid_len_y']], 
+                                                   axis=1)
         return result
 
     @staticmethod
@@ -1281,7 +1316,8 @@ class CreateTable:
             header.append(CompareConst.STACK)
         if self.mode_config.dump_mode == Const.ALL:
             header.append(CompareConst.DATA_NAME)
-            result = self.process_data_name(result)
+            header.append(CompareConst.DIRTY_VALID_LEN)
+            result = self.process_all_mode_addition_header(result)
 
         if self.mode_config.consistent_check:
             result = self.fill_state_api_origin_name(result)
@@ -1300,7 +1336,8 @@ class CreateTable:
                                'state_x': Const.STATE,
                                'api_origin_name_x': Const.API_ORIGIN_NAME,
                                'requires_grad_x': CompareConst.NPU_REQ_GRAD,
-                               'requires_grad_y': CompareConst.BENCH_REQ_GRAD
+                               'requires_grad_y': CompareConst.BENCH_REQ_GRAD,
+                               'dirty_valid_len_x': CompareConst.DIRTY_VALID_LEN
                                },
                       inplace=True)
 
