@@ -28,7 +28,7 @@ import time
 import pandas as pd
 
 from msprobe.core.common.log import logger
-from msprobe.core.common.file_utils import create_directory
+from msprobe.core.common.file_utils import create_directory, write_df_to_csv
 from msprobe.infer.offline.compare.msquickcmp.adapter_cli.args_adapter import CmpArgsAdapter
 from msprobe.infer.offline.compare.msquickcmp.atc import atc_utils
 from msprobe.infer.offline.compare.msquickcmp.common import utils
@@ -38,7 +38,7 @@ from msprobe.infer.offline.compare.msquickcmp.common.utils import AccuracyCompar
 from msprobe.infer.offline.compare.msquickcmp.net_compare.net_compare import NetCompare
 from msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data import NpuDumpData
 from msprobe.infer.offline.compare.msquickcmp.npu.om_parser import OmParser
-from msprobe.infer.utils.file_open_check import ms_open, sanitize_csv_value
+from msprobe.infer.utils.file_open_check import ms_open
 from msprobe.infer.utils.check.rule import Rule
 from msprobe.infer.utils.constants import TENSOR_MAX_SIZE
 
@@ -117,15 +117,6 @@ def _read_and_process_csv(csv_path, process_func, node_output_show_list):
     return rows
 
 
-def _write_csv(csv_path, rows):
-    with ms_open(csv_path, mode='w') as f:
-        writer = csv.writer(f)
-        for line in rows:
-            for ele in line:
-                _ = sanitize_csv_value(ele)
-        writer.writerows(rows)
-
-
 def _process_is_npu_and_is_precision_error_ops(header, rows, node_output_name_list):
     ground_truth_col = header.index("GroundTruth")
     optype_col = header.index("OpType")
@@ -192,7 +183,9 @@ def _append_column_to_csv(csv_path, node_output_show_list=None):
         node_output_show_list = []
     csv_path = _get_single_csv_in_folder(csv_path)
     rows = _read_and_process_csv(csv_path, _process_is_npu_and_is_precision_error_ops, node_output_show_list)
-    _write_csv(csv_path, rows)
+
+    rows_pd = pd.DataFrame(rows[1:], columns=rows[0])  # _read_and_process_csv 内已校验rows非空
+    write_df_to_csv(rows_pd, csv_path, malicious_check=True)
 
 
 def cmp_process(args: CmpArgsAdapter):

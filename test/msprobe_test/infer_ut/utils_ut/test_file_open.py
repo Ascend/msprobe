@@ -21,7 +21,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from msprobe.infer.utils.file_open_check import ms_open, FileStat, OpenException, SanitizeErrorType, sanitize_csv_value
+from msprobe.infer.utils.file_open_check import ms_open, FileStat, OpenException, SanitizeErrorType
 from msprobe.infer.utils.file_open_check import PERMISSION_NORMAL, PERMISSION_KEY, RAW_INPUT_PATH
 from msprobe.core.common.log import logger
 
@@ -250,36 +250,6 @@ def test_msopen_given_other_w_parent_dir_then_file_read_failed_case():
                 aa.write("no way")
     except OpenException as ignore:
         assert True
-
-
-@pytest.mark.parametrize("value, errors, expected", [
-    # 非字符串类型直接返回
-    (123, SanitizeErrorType.strict.value, 123),
-    (45.67, SanitizeErrorType.replace.value, 45.67),
-    (None, SanitizeErrorType.ignore.value, None),
-    
-    # 可转数值的字符串
-    ("123", SanitizeErrorType.strict.value, "123"),
-    ("-45.67", SanitizeErrorType.strict.value, "-45.67"),
-    ("+3.14", SanitizeErrorType.strict.value, "+3.14"),
-    
-    # 安全字符串
-    ("hello", SanitizeErrorType.strict.value, "hello"),
-    ("123abc", SanitizeErrorType.strict.value, "123abc"),
-])
-def test_sanitize_csv_value_normal(value, errors, expected):
-    assert sanitize_csv_value(value, errors) == expected
-
-
-@pytest.mark.parametrize("value", [
-    "=;+exploit",
-    "+;=injection",
-    "-;-dangerous",
-    "@;@malicious"
-])
-def test_sanitize_csv_value_strict_raises(value):
-    with pytest.raises(ValueError):
-        sanitize_csv_value(value, SanitizeErrorType.strict.value)
 
 
 @pytest.fixture

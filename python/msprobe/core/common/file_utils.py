@@ -553,19 +553,6 @@ def save_excel(path, data):
                 return "list"
         raise ValueError("Data must be a DataFrame or a list of (DataFrame, sheet_name) pairs.")
 
-    def check_value_is_valid(value: str) -> bool:
-        if not isinstance(value, str):
-            return True
-        parts = value.split(';')
-        for p in parts:
-            try:
-                # -1.00 or +1.00 should be considered as digit numbers
-                float(p)
-            except ValueError:
-                # otherwise, they will be considered as formular injections
-                return not bool(re.compile(FileCheckConst.CSV_BLACK_LIST).search(value))
-        return True
-
     def malicious_check(df):
         for row_name in df.index:
             if not check_value_is_valid(row_name):
@@ -739,32 +726,19 @@ def read_csv(filepath, as_pd=True, header='infer'):
 
 
 def write_df_to_csv(data, filepath, mode="w", header=True, malicious_check=False):
-    def check_value_is_valid(value: str) -> bool:
-        if not isinstance(value, str):
-            return True
-        parts = value.split(';')
-        for p in parts:
-            try:
-                # -1.00 or +1.00 should be considered as digit numbers
-                float(p)
-            except ValueError:
-                # otherwise, they will be considered as formular injections
-                return not bool(re.compile(FileCheckConst.CSV_BLACK_LIST).search(value))
-        return True
-    
     def check_malicious(df):
         for row_name in df.index:
             if not check_value_is_valid(row_name):
-                raise RuntimeError(f"Malicious value [{row_name}] not allowed to be written into the excel: {filepath}.")
+                raise RuntimeError(f"Malicious value [{row_name}] not allowed to be written into the csv: {filepath}.")
 
         for col_name in df.columns:
             if not check_value_is_valid(col_name):
-                raise RuntimeError(f"Malicious value [{col_name}] not allowed to be written into the excel: {filepath}.")
+                raise RuntimeError(f"Malicious value [{col_name}] not allowed to be written into the csv: {filepath}.")
 
         for _, row in df.iterrows():
             for _, value in row.items():
                 if not check_value_is_valid(value):
-                    raise RuntimeError(f"Malicious value [{value}] not allowed to be written into the excel: {filepath}.")
+                    raise RuntimeError(f"Malicious value [{value}] not allowed to be written into the csv: {filepath}.")
 
     if not isinstance(data, pd.DataFrame):
         raise ValueError("The data type of data is not supported. Only support pd.DataFrame.")
@@ -797,6 +771,7 @@ def write_df_to_csv(data, filepath, mode="w", header=True, malicious_check=False
     except Exception as e:
         logger.error(f'Save csv file "{output_file}" failed: {e}')
         raise RuntimeError(f"Save csv file {output_file} failed.") from e
+
 
 def remove_path(path):
     if not os.path.exists(path):
@@ -1060,6 +1035,20 @@ def find_proc_dir(base_dir):
             f"No or multiple {Const.PROC} directories were found in the <{base_dir}>. "
             "Expected exactly one."
         )
+
+
+def check_value_is_valid(value: str) -> bool:
+    if not isinstance(value, str):
+        return True
+    parts = value.split(';')
+    for p in parts:
+        try:
+            # -1.00 or +1.00 should be considered as digit numbers
+            float(p)
+        except ValueError:
+            # otherwise, they will be considered as formular injections
+            return not bool(re.compile(FileCheckConst.CSV_BLACK_LIST).search(value))
+    return True
 
 
 class DeserializationScanner:

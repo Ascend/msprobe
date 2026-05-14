@@ -171,33 +171,3 @@ class TestProcessResultOneLine(unittest.TestCase):
         # 调用
         instance._process_result_one_line(mock_fp_write, mock_fp_read, 'npu_file.npy', 'golden_file.npy', ['1','2'])
         self.assertTrue(mock_csv_writer.return_value.writerow.called)
-
-
-class TestProcessResultToCsv(unittest.TestCase):
-    @patch('msprobe.infer.offline.compare.msquickcmp.net_compare.net_compare.csv.writer')
-    def test_process_result_to_csv_with_header(self, mock_writer):
-        mock_fp_write = MagicMock()
-        mock_fp_write.readlines.return_value = ['line1', 'line2', 'line3']
-        mock_fp_write.seek = MagicMock()
-        csv_info = MagicMock()
-        csv_info.header = ['Cosine', 'Error']
-        csv_info.npu_file_name = 'npu.npy'
-        csv_info.golden_file_name = 'golden.npy'
-        csv_info.result = ['0.1', '0.2']
-        instance = NetCompare.__new__(NetCompare)
-        instance._process_result_to_csv(mock_fp_write, csv_info)
-        self.assertTrue(mock_writer.return_value.writerow.called)
-
-    @patch('msprobe.infer.offline.compare.msquickcmp.net_compare.net_compare.csv.writer')
-    def test_process_result_to_csv_no_header(self, mock_writer):
-        mock_fp_write = MagicMock()
-        mock_fp_write.readlines.return_value = ['line1', 'line2', 'line3']
-        mock_fp_write.seek = MagicMock()
-        csv_info = MagicMock()
-        csv_info.header = []
-        csv_info.npu_file_name = 'npu.npy'
-        csv_info.golden_file_name = 'golden.npy'
-        csv_info.result = ['0.1', '0.2']
-        instance = NetCompare.__new__(NetCompare)
-        instance._process_result_to_csv(mock_fp_write, csv_info)
-        self.assertTrue(mock_writer.return_value.writerow.called)

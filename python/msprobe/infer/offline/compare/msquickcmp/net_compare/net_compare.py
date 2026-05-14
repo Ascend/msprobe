@@ -29,9 +29,9 @@ import subprocess
 import numpy as np
 
 from msprobe.core.common.log import logger
+from msprobe.core.common.file_utils import check_value_is_valid
 from msprobe.infer.offline.compare.msquickcmp.common.utils import check_file_size_valid, AccuracyCompareException, \
     ACCURACY_COMPARISON_NET_OUTPUT_ERROR, ACCURACY_COMPARISON_INVALID_DATA_ERROR, MAX_READ_FILE_SIZE_4G
-from msprobe.infer.utils.file_open_check import sanitize_csv_value
 from msprobe.infer.utils.file_open_check import ms_open
 from msprobe.infer.utils.check.rule import Rule
 from msprobe.infer.utils.util import load_file_to_read_common_check, filter_cmd
@@ -111,7 +111,8 @@ class NetCompare(object):
                 continue
             if line[npu_dump_index] != "Node_Output":
                 for ele in line:
-                    sanitize_csv_value(ele)
+                    if not check_value_is_valid(ele):
+                        raise RuntimeError(f"Malicious value [{ele}] not allowed to be written into the csv.")
                 writer.writerow(line)
             else:
                 new_content = [
@@ -122,25 +123,6 @@ class NetCompare(object):
                 new_content.extend([""])
                 if line[ground_truth_index] != "*":
                     writer.writerow(line)
-        writer.writerow(new_content)
-
-    @staticmethod
-    def _process_result_to_csv(fp_write, csv_info):
-        writer = csv.writer(fp_write)
-        if csv_info.header:
-            header_base_info = [
-                'Index', 'OpType', 'NPUDump', 'DataType', 'Address',
-                'GroundTruth', 'DataType', 'TensorIndex', 'Shape'
-            ]
-            header_base_info.extend(csv_info.header)
-            writer.writerow(header_base_info)
-        fp_write.seek(0, 0)
-        index = len(fp_write.readlines()) - 1
-        new_content = [
-            str(index), "NaN", "Node_Output", "NaN", "NaN",
-            csv_info.npu_file_name, "NaN", csv_info.golden_file_name, "[]"
-        ]
-        new_content.extend(csv_info.result)
         writer.writerow(new_content)
 
     def accuracy_network_compare(self):

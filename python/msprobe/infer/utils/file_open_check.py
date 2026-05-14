@@ -45,8 +45,6 @@ logging.addLevelName(SOLUTION_LEVEL_WIN, "SOLUTION_WIN")
 
 RAW_INPUT_PATH = "RAW_INPUT_PATH"
 
-MALICIOUS_CSV_PATTERN = re.compile(r'^[＝＋－+-=%@];[＝＋－+-=%@]')
-
 
 def is_legal_path_length(path):
     if len(path) > 4096 and not sys.platform.startswith("win"):  # linux total path length limit
@@ -93,26 +91,6 @@ class SanitizeErrorType(Enum):
     strict = "strict"
     ignore = "ignore"
     replace = "replace"
-
-
-def sanitize_csv_value(value: str, errors=SanitizeErrorType.strict.value):
-    if errors == SanitizeErrorType.ignore.value or not isinstance(value, str):
-        return value
-
-    sanitized_value = value
-    try:
-        float(value)  # in case value is a digit but in str format
-    except ValueError as e:  # not digit
-        if not MALICIOUS_CSV_PATTERN.search(value):
-            pass
-        elif errors == SanitizeErrorType.replace.value:
-            sanitized_value = ' ' + value
-        else:
-            msg = f'Malicious value is not allowed to be written to the csv {value}'
-            logger.error("Please check the value written to the csv")
-            raise ValueError(msg) from e
-
-    return sanitized_value
 
 
 class OpenException(Exception):

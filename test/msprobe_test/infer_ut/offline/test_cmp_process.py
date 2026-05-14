@@ -27,7 +27,7 @@ import pytest
 
 from msprobe.infer.offline.compare.msquickcmp.cmp_process import _generate_golden_data_model, \
     _correct_the_wrong_order, _check_output_node_name_mapping, _get_single_csv_in_folder, _read_and_process_csv, \
-    _write_csv, _append_column_to_csv, cmp_process, run_om_model_compare, csv_sum, _get_model_output_node_name_list, \
+    _append_column_to_csv, cmp_process, run_om_model_compare, csv_sum, _get_model_output_node_name_list, \
     _find_previous_node
 from msprobe.infer.offline.compare.msquickcmp.common.utils import AccuracyCompareException
 from msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data import NpuDumpData
@@ -115,18 +115,6 @@ class TestReadAndProcessCSV(unittest.TestCase):
         result = _read_and_process_csv('fake.csv', process_func, ['node'])
         self.assertTrue(isinstance(result, list))
         self.assertEqual(result[0], ['header1', 'header2'])
-
-
-class TestWriteCsv(unittest.TestCase):
-    @patch('msprobe.infer.offline.compare.msquickcmp.cmp_process.ms_open', new_callable=mock_open)
-    @patch('msprobe.infer.offline.compare.msquickcmp.cmp_process.csv.writer')
-    @patch('msprobe.infer.offline.compare.msquickcmp.cmp_process.sanitize_csv_value', side_effect=lambda x: x)
-    def test_write_csv(self, mock_sanitize, mock_csv_writer, mock_file):
-        writer = MagicMock()
-        mock_csv_writer.return_value = writer
-
-        _write_csv('path.csv', [['a', 'b'], ['1', '2']])
-        self.assertEqual(writer.writerows.call_count, 1)
 
 
 @pytest.fixture(scope="function")
@@ -260,7 +248,7 @@ class TestDumpCmpFunctions(unittest.TestCase):
 
 class TestAppendColumnToCSV(unittest.TestCase):
 
-    @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process._write_csv")
+    @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process.write_df_to_csv")
     @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process._read_and_process_csv")
     @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process._get_single_csv_in_folder")
     @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process._process_is_npu_and_is_precision_error_ops")
@@ -271,9 +259,9 @@ class TestAppendColumnToCSV(unittest.TestCase):
         _append_column_to_csv("/some/path", node_output_show_list)
         mock_get_csv.assert_called_once_with("/some/path")
         mock_read_process.assert_called_once_with("/fake/path/file.csv", mock_process_func, node_output_show_list)
-        mock_write.assert_called_once_with("/fake/path/file.csv", [["row1"], ["row2"]])
+        mock_write.assert_called()
 
-    @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process._write_csv")
+    @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process.write_df_to_csv")
     @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process._read_and_process_csv")
     @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process._get_single_csv_in_folder")
     @patch("msprobe.infer.offline.compare.msquickcmp.cmp_process._process_is_npu_and_is_precision_error_ops")
@@ -283,7 +271,7 @@ class TestAppendColumnToCSV(unittest.TestCase):
         _append_column_to_csv("/some/path", None)
         mock_get_csv.assert_called_once_with("/some/path")
         mock_read_process.assert_called_once_with("/fake/path/file.csv", mock_process_func, [])
-        mock_write.assert_called_once_with("/fake/path/file.csv", [["row1"]])
+        mock_write.assert_called()
 
 
 class TestRunOmModelCompare(unittest.TestCase):
