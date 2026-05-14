@@ -344,11 +344,15 @@ class Comparator:
         message = ""
         if bench_output.size == 0:
             return CompareConst.SKIP, compare_column, "There is not bench calculation result."
-        if bench_output.dtype in [bool, np.uint8, np.int8, np.int16, np.uint16, np.uint32, np.int32,
-                                  np.int64, np.uint64]:
-            message += f"Current {bench_output.dtype} data, only perform binary comparison."                      
-            err_rate, status, msg = compare_bool_tensor(bench_output, device_output)
-            message += msg + "\n"
+        if bench_output.dtype in [bool, np.uint8, np.int8, np.int16, np.uint16, np.uint32, np.int32, np.int64, np.uint64]:
+            # 输出为整型且为配置的量化算子，使用量化比较逻辑：最大绝对误差<=1的判定标准
+            # 获取输入为浮点型且输出为整形的量化算子清单：配置在config.yaml里面
+            quantization_api_list = msCheckerConfig.quantization_api_list
+            if api_name in quantization_api_list:
+                status, compare_column, message = self._compare_quantization_tensor(bench_output, device_output,                                                                 compare_column, npu_dtype)
+                return status, compare_column, message
+            err_rate, status, msg = compare_bool_tensor(bench_output, device_output)           
+            message += f"Current {bench_output.dtype} data, only perform binary comparison."
             compare_column.error_rate = err_rate
             return status, compare_column, message
         else:
@@ -359,6 +363,23 @@ class Comparator:
             status, compare_column, message = self._compare_float_tensor(api_name, bench_output, device_output,
                                                                          compare_column, in_and_out_dtype)
             return status, compare_column, message
+
+            
+    def _compare_quantization_tensor(self, bench_output, device_output, compare_column, dtype):
+        """处理量化算子的比较逻辑，使用最大绝对误差<=1的判定标准"""
+        message = ""
+        # 使用最大绝对误差<=1的判定逻辑
+        abs_err = get_abs_err(bench_output, device_output)
+        max_abs_res, max_abs_status = get_max_abs_err(abs_err)
+
+        compare_column.max_abs_err = max_abs_res
+
+        if max_abs_res <= 1:
+            message += f"Quantization type: Max abs error is {max_abs_res:.2f}, less than or equal to 1, consider as pass.\n"
+            return CompareConst.PASS, compare_column, message
+        else:
+            message += f"Quantization type: Max abs error is {max_abs_res:.2f}, greater than 1, consider as error.\n"
+            return CompareConst.ERROR, compare_column, message
 
     def _perform_comparison(self, api_name, input_data, dtype, in_dtype):
         comparison_func = self.registry.get_comparison_function(api_name, dtype, in_dtype)

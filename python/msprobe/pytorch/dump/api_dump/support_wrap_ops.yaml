@@ -1321,6 +1321,9 @@ torch_npu:
   - npu_sparse_lightning_indexer_grad_kl_loss
   - npu_swiglu_mx_quant
   - npu_fused_causal_conv1d
+  - npu_quant_lightning_indexer
+  - npu_rms_norm_dynamic_quant
+  - npu_dynamic_quant
 
 aten:
   - signbit

@@ -2,4 +2,5 @@ white_list: []
 black_list: []
 error_data_path: './'
 precision: 14
+quantization_api_list: ["npu_rms_norm_dynamic_quant", "npu_dynamic_quant", "npu_quant_lightning_indexer"]
 

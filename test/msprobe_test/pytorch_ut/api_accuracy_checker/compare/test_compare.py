@@ -136,7 +136,7 @@ class TestCompare(unittest.TestCase):
         res = self.compare._compare_core('api', tensor, tensor, False)
 
         self.assertEqual(res[0], 'pass')
-        self.assertEqual(res[2], 'Current int64 data, only perform binary comparison.\n')
+        self.assertEqual(res[2], 'Current int64 data, only perform binary comparison.')
 
     def test_compare_core_with_buildin(self):
         interger = 1
@@ -481,6 +481,109 @@ class TestCompare(unittest.TestCase):
         mock_get_path.assert_called_once()
         mock_write_csv.assert_called_once()
 
+    def test_compare_torch_tensor_dtype_not_comparable(self):
+        """测试数据类型不可比较的情况"""
+        # Arrange
+        import torch
+        import numpy as np
+        
+        bench_output = torch.tensor([1, 2, 3], dtype=torch.float32)
+        device_output = torch.tensor([1, 2, 3], dtype=torch.int32)  # 浮点vs整型，不可比较
+        compare_column = CompareColumn()
+        api_name = 'test_api'
+        
+        # Act
+        status, result_column, message = self.compare._compare_torch_tensor(
+            api_name, bench_output, device_output, compare_column, False
+        )
+        
+        # Assert
+        self.assertEqual(status, 'error')
+        self.assertIn('cannot compare', message)
 
+    def test_compare_torch_tensor_empty_output(self):
+        """测试空输出的情况"""
+        # Arrange
+        import torch
+        import numpy as np
+        
+        bench_output = torch.tensor([], dtype=torch.float32)
+        device_output = torch.tensor([], dtype=torch.float32)
+        compare_column = CompareColumn()
+        api_name = 'test_api'
+        
+        # Act
+        status, result_column, message = self.compare._compare_torch_tensor(
+            api_name, bench_output, device_output, compare_column, False
+        )
+        
+        # Assert
+        self.assertEqual(status, 'SKIP')
+        self.assertIn('There is not bench calculation result', message)
+
+    def test_compare_torch_tensor_quantization_api_pass(self):
+        """测试量化算子通过的情况"""
+        # Arrange
+        from unittest.mock import patch
+        import torch
+        import numpy as np
+        
+        from msprobe.pytorch.api_accuracy_checker.common.config import msCheckerConfig
+        
+        bench_output = torch.tensor([100, 200, 300], dtype=torch.int32)
+        device_output = torch.tensor([100, 200, 300], dtype=torch.int32)  # 完全匹配
+        compare_column = CompareColumn()
+        api_name = 'npu_rms_norm_dynamic_quant'
+        
+        with patch.object(msCheckerConfig, 'quantization_api_list',
+                        ['npu_rms_norm_dynamic_quant', 'npu_dynamic_quant']):
+            # Act
+            status, result_column, message = self.compare._compare_torch_tensor(
+                api_name, bench_output, device_output, compare_column, False
+            )
+            
+            # Assert
+            self.assertEqual(status, 'pass')
+            self.assertIn('less than or equal to 1, consider as pass', message)
+
+    def test_compare_torch_tensor_integer_non_quantization(self):
+        """测试整型输出但非量化算子的情况"""
+        # Arrange
+        import torch
+        import numpy as np
+        
+        bench_output = torch.tensor([100, 200, 300], dtype=torch.int32)
+        device_output = torch.tensor([100, 200, 300], dtype=torch.int32)
+        compare_column = CompareColumn()
+        api_name = 'regular_api'  # 不在量化列表中
+        
+        # Act
+        status, result_column, message = self.compare._compare_torch_tensor(
+            api_name, bench_output, device_output, compare_column, False
+        )
+        
+        # Assert - 应该执行布尔比较，对于完全匹配的结果应该是pass
+        self.assertEqual(status, 'pass')
+
+    def test_compare_torch_tensor_float_comparision(self):
+        """测试浮点数比较的情况"""
+        # Arrange
+        import torch
+        import numpy as np
+        
+        bench_output = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float32)
+        device_output = torch.tensor([1.00001, 2.00001, 3.00001], dtype=torch.float32)  # 小误差
+        compare_column = CompareColumn()
+        api_name = 'float_api'
+        
+        # Act
+        status, result_column, message = self.compare._compare_torch_tensor(
+            api_name, bench_output, device_output, compare_column, False
+        )
+        
+        # Assert - 应该执行浮点数比较
+        self.assertEqual(status, 'pass')
+
+        
 if __name__ == '__main__':
     unittest.main()

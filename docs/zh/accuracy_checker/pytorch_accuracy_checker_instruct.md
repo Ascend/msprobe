@@ -101,6 +101,7 @@ msprobe acc_check -api_info ./dump_path/step{step_number}/rank{rank_number}/dump
       black_list: []
       error_data_path: './'
       precision: 14
+      quantization_api_list: []
       ```
 
       | 参数        | 可选/必选 | 说明 |
@@ -109,6 +110,7 @@ msprobe acc_check -api_info ./dump_path/step{step_number}/rank{rank_number}/dump
       | black_list      | 可选     | API dump 黑名单，被指定的 API 不进行 dump。<br>**配置示例**：black_list=["conv1d", "conv2d"]。默认未配置黑名单，即 dump 全量 API 数据。 |
       | error_data_path | 可选     | 配置保存精度未达标的 API 输入输出数据路径。<br>**配置示例**："error_data_path": "./"。默认为当前路径。 |
       | precision       | 可选     | 浮点数表示位数，默认取小数点后14位。                         |
+      | quantization_api_list       | 可选     | 浮点输入且整型输出的量化算子API列表，配置后表示该类型API只需满足绝对误差 ≤ 1即为PASS                         |
 
       **说明**：white_list 和 black_list 同时配置时，二者配置的 API 名单若无交集，则白名单生效，若 API 名单存在交集，则白名单排除的部分以及交集的 API 不进行 dump。
 

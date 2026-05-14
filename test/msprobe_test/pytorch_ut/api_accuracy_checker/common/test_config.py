@@ -48,6 +48,13 @@ class TestConfig(unittest.TestCase):
 
         with self.assertRaises(Exception):
             self.cfg.validate('white_list', ['invalid_api1', 'invalid_api2'])
+            
+    def test_validate_quantization_api_list(self):
+        validate_quantization_api_list = ['npu_rms_norm_dynamic_quant', 'npu_dynamic_quant', 'npu_quant_lightning_indexer']
+        self.assertEqual(self.cfg.validate('quantization_api_list', validate_quantization_api_list), validate_quantization_api_list)
+
+        with self.assertRaises(Exception):
+            self.cfg.validate('quantization_api_list', ['invalid_api1', 'invalid_api2'])
 
     def test_CheckerConfig_init_with_defaults(self):
         checker_config = CheckerConfig()

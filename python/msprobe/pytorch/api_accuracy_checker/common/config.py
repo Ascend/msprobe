@@ -47,7 +47,8 @@ class Config:
             'white_list': list,
             'black_list': list,
             'error_data_path': str,
-            'precision': int
+            'precision': int,
+            'quantization_api_list': list
         }
         if key not in validators:
             raise ValueError(f"{key} must be one of {validators.keys()}")
@@ -63,6 +64,8 @@ class Config:
             ACCCheckConfig.check_filter_list_config(key, value)
         if key == 'error_data_path':
             ACCCheckConfig.check_error_data_path_config(value)
+        if key == 'quantization_api_list':
+            ACCCheckConfig.check_filter_list_config(key, value)
         return value
 
 
