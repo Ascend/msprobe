@@ -13,3 +13,24 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+"""msprobe 导入补丁 - 在导入 msprobe 前加载此模块"""
+
+import sys
+
+try:
+    # pylint: disable=R0402
+    import tensorboard.compat.tensorflow_stub as tensorflow_stub
+
+
+    class _PlaceholderTensor:
+        pass
+
+    class _PlaceholderVariable:
+        pass
+
+    tensorflow_stub.Tensor = _PlaceholderTensor
+    tensorflow_stub.Variable = _PlaceholderVariable
+    sys.modules['tensorflow'] = tensorflow_stub
+    sys.modules['tensorflow.python'] = tensorflow_stub
+except ImportError:
+    pass
