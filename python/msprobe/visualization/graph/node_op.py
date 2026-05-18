@@ -37,5 +37,5 @@ class NodeOp(Enum):
             pattern = op_patterns[index]
             if re.match(pattern, node_name):
                 return op
-        logger.warning(f"Cannot parse node_name {node_name} into NodeOp, default parsing as module.")
+        logger.debug(f"Cannot parse node_name {node_name} into NodeOp, default parsing as module.")
         return NodeOp.module

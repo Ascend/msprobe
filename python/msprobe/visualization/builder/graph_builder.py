@@ -14,13 +14,13 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+import ast
 import os
 import re
-import copy
 from dataclasses import dataclass
 
 from msprobe.core.common.const import Const
-from msprobe.core.common.file_utils import load_json, load_construct_json
+from msprobe.core.common.file_utils import load_json, load_construct_json, save_json, make_dir
 from msprobe.core.common.utils import load_stack_json
 from msprobe.core.common.log import logger
 from msprobe.visualization.builder.msprobe_adapter import get_input_output
@@ -52,9 +52,11 @@ class GraphBuilder:
         """
         construct_dict, micro_step_dict = load_construct_json(construct_path)
         if not construct_dict:
-            logger.error("The content of 'construct.json' is empty, failed to build graph. "
-                         "When dumping data, it is necessary to select level L0 or mix in order to "
-                         "collect model structure data, that is, the content of 'construct.json' is not empty.")
+            logger.error(
+                "The content of 'construct.json' is empty, failed to build graph. "
+                "When dumping data, it is necessary to select level L0 or mix in order to "
+                "collect model structure data, that is, the content of 'construct.json' is not empty."
+            )
             raise RuntimeError
         GraphBuilder.micro_step_dict = micro_step_dict
         dump_dict = load_json(data_path)
@@ -66,8 +68,15 @@ class GraphBuilder:
             base_path = os.path.dirname(construct_path)
             if base_path != os.path.dirname(tensor_path):
                 tensor_path = os.path.join(base_path, Const.DUMP_TENSOR_DATA)
-        graph = Graph(model_name, tensor_path, dump_data=data_dict,
-                      micro_step_num=micro_step_dict.get(Const.MEGATRON_MICRO_STEP_NUMBER))
+        graph = Graph(
+            model_name,
+            tensor_path,
+            dump_data=data_dict,
+            micro_step_num=micro_step_dict.get(Const.MEGATRON_MICRO_STEP_NUMBER),
+        )
+
+        graph.dump_task = dump_dict.get('task', '')
+        graph.dump_level = dump_dict.get('level', '')
         GraphBuilder._init_nodes(graph, construct_dict, data_dict, stack_dict, pbar_info=pbar_info)
         GraphBuilder._handle_recompute(graph, stack_dict)
         GraphBuilder._collect_apis_between_modules(graph)
@@ -87,6 +96,11 @@ class GraphBuilder:
             config.graph_b.compare_mode = config.compare_mode
             node_to_db(config.graph_b, filename, pbar_info)
         config_to_db(config, filename)
+
+    @staticmethod
+    def to_json(output_path, graph, rank, step=0, pbar_info=None):
+        """将图导出为JSON文件，委托给GraphJsonExporter。"""
+        GraphJsonExporter.to_json(output_path, graph, rank, step, pbar_info=pbar_info)
 
     @staticmethod
     def _handle_backward_upnode_missing(construct_dict, subnode_id, upnode_id):
@@ -150,8 +164,11 @@ class GraphBuilder:
         if pbar_info:
             update_shared_dict(pbar_info.current_stage_dict, pbar_info.task_id, 1)
         for i, (subnode_id, upnode_id) in enumerate(construct_dict.items()):
-            upnode_id = GraphBuilder._handle_backward_inplace(construct_dict, subnode_id, upnode_id) if upnode_id \
+            upnode_id = (
+                GraphBuilder._handle_backward_inplace(construct_dict, subnode_id, upnode_id)
+                if upnode_id
                 else GraphBuilder._handle_backward_upnode_missing(construct_dict, subnode_id, upnode_id)
+            )
             if upnode_id:
                 upnode_op = NodeOp.get_node_op(upnode_id)
                 upnode = GraphBuilder._create_or_get_node(graph, [data_dict, stack_dict], upnode_op, upnode_id)
@@ -180,15 +197,22 @@ class GraphBuilder:
                 GraphBuilder._extract_batch_p2p_info(node, node_data)
             # 反向节点使用对应前向节点的堆栈信息
             # 模块命名举例：Module.module.module.GPTModel.backward.0; API命名举例：Tensor.permute.1.backward
-            if (not node_stack_info and
-                    (GraphBuilder.backward_pattern.search(name) or name.endswith(f'{Const.SEP}{Const.BACKWARD}'))):
-                forward_node = graph.get_node(
-                    # 同名模块全局唯一，无论调用几次堆栈信息都一致，直接使用编号0的同名模块堆栈信息，避免遗漏
-                    GraphBuilder.backward_pattern.sub(f'{Const.SEP}{Const.FORWARD}{Const.SEP}0', name)) \
-                    if GraphBuilder.backward_pattern.search(name) \
+            if not node_stack_info and (
+                GraphBuilder.backward_pattern.search(name) or name.endswith(f'{Const.SEP}{Const.BACKWARD}')
+            ):
+                forward_node = (
+                    graph.get_node(
+                        # 同名模块全局唯一，无论调用几次堆栈信息都一致，直接使用编号0的同名模块堆栈信息，避免遗漏
+                        GraphBuilder.backward_pattern.sub(f'{Const.SEP}{Const.FORWARD}{Const.SEP}0', name)
+                    )
+                    if GraphBuilder.backward_pattern.search(name)
                     else graph.get_node(name.replace(Const.BACKWARD, Const.FORWARD))
-                node_stack_info = forward_node.stack_info if forward_node \
+                )
+                node_stack_info = (
+                    forward_node.stack_info
+                    if forward_node
                     else ['This backward node cannot find the forward node and cannot retrieve stack information.']
+                )
             node.stack_info = node_stack_info
             if GraphBuilder.micro_step_dict:
                 node.micro_step_id = GraphBuilder.micro_step_dict.get(node.id, 0)
@@ -212,8 +236,11 @@ class GraphBuilder:
             for param in param_list[0]:
                 if not isinstance(param, dict):
                     continue
-                info = {GraphConst.OP: param.get(GraphConst.OP), GraphConst.PEER: param.get(GraphConst.PEER),
-                        GraphConst.GROUP_ID: param.get(GraphConst.GROUP_ID)}
+                info = {
+                    GraphConst.OP: param.get(GraphConst.OP),
+                    GraphConst.PEER: param.get(GraphConst.PEER),
+                    GraphConst.GROUP_ID: param.get(GraphConst.GROUP_ID),
+                }
                 node.batch_p2p_info.append(info)
 
     @staticmethod
@@ -242,8 +269,9 @@ class GraphBuilder:
                 # 检查api节点是否大于等于2个
                 if len(temp_nodes) >= 2:
                     # 创建新节点，将这些api节点放入新节点的subnodes属性
-                    node_id = graph.add_node(NodeOp.api_collection, GraphConst.APIS_BETWEEN_MODULES,
-                                             id_accumulation=True)
+                    node_id = graph.add_node(
+                        NodeOp.api_collection, GraphConst.APIS_BETWEEN_MODULES, id_accumulation=True
+                    )
                     api_collection_node = graph.get_node(node_id)
                     api_collection_node.subnodes = temp_nodes
                     # 重新确立父子关系
@@ -280,8 +308,8 @@ class GraphBuilder:
                 m = pattern.search(node_id)
                 if not m:
                     continue
-                prefix = node_id[:m.start()]
-                suffix = node_id[m.start():]
+                prefix = node_id[: m.start()]
+                suffix = node_id[m.start() :]
                 prefix_suffix_map.setdefault(prefix, []).append(suffix)
 
         max_info = {prefix: 0 for prefix in prefix_suffix_map}
@@ -328,8 +356,11 @@ class GraphBuilder:
         for node_id, id_prefix in recompute_map.items():
             if id_prefix not in no_recompute_map:
                 continue
-            node_list = no_recompute_map.get(id_prefix) if GraphBuilder.forward_pattern.search(node_id) else \
-                no_recompute_ids_b.get(id_prefix)
+            node_list = (
+                no_recompute_map.get(id_prefix)
+                if GraphBuilder.forward_pattern.search(node_id)
+                else no_recompute_ids_b.get(id_prefix)
+            )
             if not node_list:
                 continue
             no_recompute_node = node_list.pop()
@@ -338,7 +369,8 @@ class GraphBuilder:
                 continue
             # 通过非重计算forward节点的父节点，找到对应的backward父节点
             new_up_node = graph.node_map.get(
-                GraphBuilder.forward_pattern.sub(r".backward.\2", no_recompute_node.upnode.id))
+                GraphBuilder.forward_pattern.sub(r".backward.\2", no_recompute_node.upnode.id)
+            )
             if not new_up_node:
                 continue
 
@@ -368,7 +400,7 @@ class GraphBuilder:
         """
         recompute_map = {}
         recompute_id_map = {}
-        node_id_set = set([node.id for node in node_list])
+        node_id_set = {node.id for node in node_list}
         node_id_cache = set()
         for i, node in enumerate(node_list):
             if NodeOp.get_node_op(node.id) != NodeOp.module:
@@ -428,8 +460,9 @@ class GraphBuilder:
         # 2. 匹配 Megatron/MindSpeed 自定义反向函数
         backward_indices = []
         for idx, frame in enumerate(parsed_stack):
-            if (frame["function"] == 'backward' or
-                    (frame["function"] == 'checkpoint_function_backward' and "megatron" in frame["filename"])):
+            if frame["function"] == 'backward' or (
+                frame["function"] == 'checkpoint_function_backward' and "megatron" in frame["filename"]
+            ):
                 backward_indices.append(idx)
 
         # 3. 校验调用来源为 PyTorch 自动求导核心
@@ -477,9 +510,288 @@ class GraphBuilder:
         return no_recompute_map
 
 
+class GraphJsonExporter:
+    """将图导出为JSON文件（construct.json、dump.json、stack.json）的导出器，格式与输入保持一致。"""
+
+    @staticmethod
+    def to_json(output_path, graph, rank, step=0, pbar_info=None):
+        """
+        将图导出为JSON文件。
+
+        Args:
+            output_path: 输出根目录路径。
+            graph: 待导出的Graph对象。
+            rank: rank编号。
+            step: step编号。
+            pbar_info: 进度条对象。
+        """
+        step_dir = os.path.join(output_path, f'{Const.STEP}{step}')
+        rank_dir = os.path.join(step_dir, f'{Const.RANK}{rank}')
+        make_dir(step_dir)
+        make_dir(rank_dir)
+
+        construct_dict = GraphJsonExporter._build_construct_dict(graph)
+        dump_dict = GraphJsonExporter._build_dump_dict(graph)
+        stack_dict = GraphJsonExporter._build_stack_dict(graph)
+
+        save_json(os.path.join(rank_dir, GraphConst.CONSTRUCT_FILE), construct_dict, indent=2)
+        save_json(os.path.join(rank_dir, GraphConst.DUMP_FILE), dump_dict, indent=2)
+        save_json(os.path.join(rank_dir, GraphConst.STACK_FILE), stack_dict, indent=2)
+
+        logger.info(f'JSON files exported to {rank_dir}')
+
+    @staticmethod
+    def _build_construct_dict(graph):
+        """
+        构建construct.json内容：{子节点id: 父节点id}
+        """
+        construct_dict = {}
+        for node in graph.get_sorted_nodes():
+            if node.upnode:
+                construct_dict[node.id] = node.upnode.id
+        return construct_dict
+
+    @staticmethod
+    def _build_dump_dict(graph):
+        """
+        构建dump.json内容：
+        - metadata（task, level, framework, dump_data_dir）
+        - data部分：每个节点合并统计信息后的输入输出数据
+        - 合并场景下补充parallel_merge_info
+        """
+        raw_data_dict = graph.dump_data or {}
+
+        # 构建全量op_name到合并后数据的查找表(keyed by node_id + full_op_name)
+        merged_lookup = {}
+        for node in graph.node_map.values():
+            for key, item in node.input_data.items():
+                fname = item.get('full_op_name', key) if isinstance(item, dict) else key
+                merged_lookup[(node.id, fname)] = item
+            for key, item in node.output_data.items():
+                fname = item.get('full_op_name', key) if isinstance(item, dict) else key
+                merged_lookup[(node.id, fname)] = item
+
+        def _update_stats(orig_item, fname, nid):
+            """浅拷贝orig_item并覆盖合并后的张量统计信息。"""
+            if not isinstance(orig_item, dict):
+                return orig_item
+            result = dict(orig_item)
+            merged = merged_lookup.get((nid, fname))
+            if merged:
+                for stat in Const.SUMMARY_METRICS_LIST:
+                    if stat in merged:
+                        result[stat] = merged[stat]
+            return result
+
+        out_data_dict = {}
+        for node in graph.get_sorted_nodes():
+            node_id = node.id
+            if node_id == graph.root.id:
+                continue
+            if not node.input_data and not node.output_data:
+                continue
+
+            raw_node = raw_data_dict.get(node_id)
+            if raw_node and isinstance(raw_node, dict):
+                out_node = GraphJsonExporter._reconstruct_node_from_raw(raw_node, node_id, _update_stats)
+                out_data_dict[node_id] = out_node
+            else:
+                # 节点不在原始dump_data中（如PP重命名后的节点），从合并后的items重建
+                reconstructed = GraphJsonExporter._reconstruct_node_entry(node, node_id)
+                if reconstructed:
+                    out_data_dict[node_id] = reconstructed
+
+        # 合并场景下补充parallel_merge_info
+        for node_id, entry in out_data_dict.items():
+            node = graph.node_map.get(node_id)
+            if node and node.parallel_merge_info:
+                entry['parallel_merge_info'] = list(node.parallel_merge_info)
+
+        # 过滤md5字段（graph构建阶段gen_op_item会添加CRC32 md5，原始dump.json无此字段）
+        for node_entry in out_data_dict.values():
+            for field in (Const.INPUT_ARGS, Const.OUTPUT, Const.PARAMS):
+                for item in node_entry.get(field, []):
+                    if isinstance(item, dict):
+                        item.pop(Const.MD5, None)
+            for item in node_entry.get(Const.INPUT_KWARGS, {}).values():
+                if isinstance(item, dict):
+                    item.pop(Const.MD5, None)
+
+        return {
+            'task': getattr(graph, 'dump_task', ''),
+            'level': getattr(graph, 'dump_level', ''),
+            'framework': GraphBuilder.framework,
+            'dump_data_dir': graph.data_path,
+            'is_merged': True,
+            GraphConst.DATA_KEY: out_data_dict,
+        }
+
+    @staticmethod
+    def _reconstruct_node_from_raw(raw_node, node_id, update_stats_fn):
+        """
+        从原始dump_data条目重建节点数据，同时叠加合并后的统计信息。
+
+        Args:
+            raw_node: 原始dump_data中的节点条目。
+            node_id: 节点id。
+            update_stats_fn: 用于更新统计信息的函数。
+        """
+        out_node = {}
+        for field_name, field_value in raw_node.items():
+            if field_name == Const.INPUT_ARGS and isinstance(field_value, list):
+                out_node[Const.INPUT_ARGS] = [
+                    update_stats_fn(item, f"{node_id}.input.{i}", node_id) for i, item in enumerate(field_value)
+                ]
+            elif field_name == Const.INPUT_KWARGS and isinstance(field_value, dict):
+                out_node[Const.INPUT_KWARGS] = {}
+                for key, item in field_value.items():
+                    if isinstance(item, dict) and 'type' in item:
+                        out_node[Const.INPUT_KWARGS][key] = update_stats_fn(item, f"{node_id}.input.{key}", node_id)
+                    else:
+                        out_node[Const.INPUT_KWARGS][key] = item
+            elif field_name == Const.OUTPUT and isinstance(field_value, list):
+                out_node[Const.OUTPUT] = [
+                    update_stats_fn(item, f"{node_id}.output.{i}", node_id) for i, item in enumerate(field_value)
+                ]
+            elif field_name == Const.PARAMS and isinstance(field_value, list):
+                out_node[Const.PARAMS] = [
+                    update_stats_fn(item, f"{node_id}.parameters.{i}", node_id) for i, item in enumerate(field_value)
+                ]
+            else:
+                out_node[field_name] = field_value
+        return out_node
+
+    @staticmethod
+    def _build_stack_dict(graph):
+        """
+        构建stack.json内容，格式与输入保持一致：
+        {idx: [[node_id列表], [stack_trace列表]]}
+        共享相同stack_info的节点会被分到同一组。
+        """
+        stack_groups = []
+        seen = {}
+        for node in graph.get_sorted_nodes():
+            if not node.stack_info:
+                continue
+            key = tuple(node.stack_info)
+            if key in seen:
+                stack_groups[seen[key]][0].append(node.id)
+            else:
+                seen[key] = len(stack_groups)
+                stack_groups.append([[node.id], list(node.stack_info)])
+        return {str(i): nodes_and_traces for i, nodes_and_traces in enumerate(stack_groups)}
+
+    @staticmethod
+    def _convert_entry(item):
+        """
+        复制item并转换字段类型以匹配原始dump.json格式：
+        移除内部字段(data_name, full_op_name, state)，
+        将requires_grad从字符串转为bool，
+        将shape从Python表示字符串转为list，
+        若所有字段均为null则返回None。
+        """
+        entry = dict(item)
+        for field in (Const.DATA_NAME, 'full_op_name', Const.STATE):
+            entry.pop(field, None)
+        req_grad = entry.get(Const.REQ_GRAD)
+        if req_grad is None:
+            entry.pop(Const.REQ_GRAD, None)
+        elif isinstance(req_grad, str):
+            entry[Const.REQ_GRAD] = req_grad == 'True'
+        shape = entry.get(Const.SHAPE)
+        if isinstance(shape, str):
+            try:
+                parsed = ast.literal_eval(shape)
+                if isinstance(parsed, (list, tuple)):
+                    entry[Const.SHAPE] = list(parsed)
+            except (ValueError, SyntaxError):
+                entry[Const.SHAPE] = []
+        if all(v is None for v in entry.values()):
+            return None
+        return entry
+
+    @staticmethod
+    def _reconstruct_node_entry(node, node_id):
+        """从合并后的input_data/output_data为不在原始dump.json中的节点（如PP重命名节点）重建dump条目。"""
+        out_node = {}
+
+        # 通过full_op_name后缀模式将输入项按原始字段分组
+        input_args = []
+        input_kwargs = {}
+        output = []
+        params = []
+
+        seen_input_args = set()
+        seen_input_kwargs = {}
+        seen_output = {}
+        seen_params = set()
+
+        for key, item in node.input_data.items():
+            fname = item.get('full_op_name', key)
+            suffix = fname[len(node_id) + 1 :] if fname.startswith(node_id) else fname
+            parts = suffix.split(Const.SEP, 1)
+            if len(parts) != 2:
+                continue
+            field_marker, idx = parts[0], parts[1]
+
+            if field_marker == 'input':
+                if idx.isdigit():
+                    pos = int(idx)
+                    if pos not in seen_input_args:
+                        seen_input_args.add(pos)
+                        input_args.append((pos, GraphJsonExporter._convert_entry(item)))
+                else:
+                    if idx not in seen_input_kwargs:
+                        seen_input_kwargs[idx] = True
+                        input_kwargs[idx] = GraphJsonExporter._convert_entry(item)
+            elif field_marker == 'parameters':
+                if idx.isdigit() and idx not in seen_params:
+                    seen_params.add(idx)
+                    params.append(GraphJsonExporter._convert_entry(item))
+
+        for key, item in node.output_data.items():
+            fname = item.get('full_op_name', key)
+            suffix = fname[len(node_id) + 1 :] if fname.startswith(node_id) else fname
+            parts = suffix.split(Const.SEP, 1)
+            if len(parts) != 2:
+                continue
+            field_marker, idx = parts[0], parts[1]
+            if field_marker == 'output' and idx.isdigit():
+                pos = int(idx)
+                if pos not in seen_output:
+                    seen_output[pos] = True
+                    output.append((pos, GraphJsonExporter._convert_entry(item)))
+
+        if input_args:
+            input_args.sort(key=lambda x: x[0])
+            out_node[Const.INPUT_ARGS] = [v for _, v in input_args]
+        if input_kwargs:
+            out_node[Const.INPUT_KWARGS] = input_kwargs
+        if output:
+            output.sort(key=lambda x: x[0])
+            out_node[Const.OUTPUT] = [v for _, v in output]
+        if params:
+            out_node[Const.PARAMS] = params
+
+        return out_node
+
+
 class GraphExportConfig:
-    def __init__(self, graph_n, graph_b=None, tool_tip=None, node_colors=None, micro_steps=None, task='',
-                 overflow_check=False, compare_mode=None, step=0, rank=0, step_list=None, rank_list=None):
+    def __init__(
+        self,
+        graph_n,
+        graph_b=None,
+        tool_tip=None,
+        node_colors=None,
+        micro_steps=None,
+        task='',
+        overflow_check=False,
+        compare_mode=None,
+        step=0,
+        rank=0,
+        step_list=None,
+        rank_list=None,
+    ):
         self.graph_n = graph_n
         self.graph_b = graph_b
         self.tool_tip = tool_tip

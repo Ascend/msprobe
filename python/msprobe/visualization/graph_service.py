@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 # -------------------------------------------------------------------------
 #  This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
@@ -23,14 +24,30 @@ from multiprocessing import cpu_count, Pool, Manager
 from typing import Callable, Optional
 
 from tqdm import tqdm
-from msprobe.core.common.file_utils import (check_file_type, create_directory, FileChecker,
-                                            check_file_or_directory_path, find_proc_dir)
+from msprobe.core.common.file_utils import (
+    check_file_type,
+    create_directory,
+    FileChecker,
+    check_file_or_directory_path,
+    find_proc_dir,
+)
 from msprobe.core.common.const import FileCheckConst, Const
 from msprobe.core.common.utils import CompareException, get_dump_mode
 from msprobe.visualization.compare.graph_comparator import GraphComparator
-from msprobe.visualization.utils import GraphConst, check_directory_content, SerializableArgs, load_parallel_param, \
-    sort_rank_number_strings, validate_parallel_param, get_step_or_rank_int, \
-    monitor_progress, ProgressInfo, calculate_list, get_log_msg_wrapper
+from msprobe.visualization.utils import (
+    GraphConst,
+    check_directory_content,
+    SerializableArgs,
+    load_parallel_param,
+    sort_rank_number_strings,
+    validate_parallel_param,
+    get_step_or_rank_int,
+    monitor_progress,
+    ProgressInfo,
+    calculate_list,
+    get_log_msg_wrapper,
+    post_process_db_pbar,
+)
 from msprobe.visualization.builder.graph_builder import GraphBuilder, GraphExportConfig, GraphInfo, BuildGraphTaskInfo
 from msprobe.core.common.log import logger, BaseLogger
 from msprobe.visualization.graph.node_colors import NodeColors
@@ -51,24 +68,34 @@ def _compare_graph(graph_n: GraphInfo, graph_b: GraphInfo, input_param, args, pb
         'npu_path': graph_n.data_path,
         'bench_path': graph_b.data_path,
         'stack_path': graph_n.stack_path,
-        'is_print_compare_log': input_param.get("is_print_compare_log", False)
+        'is_print_compare_log': input_param.get("is_print_compare_log", False),
     }
     mapping_dict = {}
     if args.layer_mapping:
         try:
-            mapping_dict = generate_api_mapping_by_layer_mapping(graph_n.data_path, graph_b.data_path,
-                                                                 args.layer_mapping)
+            mapping_dict = generate_api_mapping_by_layer_mapping(
+                graph_n.data_path, graph_b.data_path, args.layer_mapping
+            )
         except Exception:
             logger.warning('The layer mapping file parsing failed, please check file format, mapping is not effective.')
-    is_cross_framework = detect_framework_by_dump_json(graph_n.data_path) != \
-                         detect_framework_by_dump_json(graph_b.data_path)
+    is_cross_framework = detect_framework_by_dump_json(graph_n.data_path) != detect_framework_by_dump_json(
+        graph_b.data_path
+    )
     if is_cross_framework and not args.layer_mapping:
-        logger.error('The cross_frame graph comparison failed. '
-                     'Please specify -lm or --layer_mapping when performing cross_frame graph comparison.')
+        logger.error(
+            'The cross_frame graph comparison failed. '
+            'Please specify -lm or --layer_mapping when performing cross_frame graph comparison.'
+        )
         raise CompareException(CompareException.CROSS_FRAME_ERROR)
 
-    graph_comparator = GraphComparator([graph_n.graph, graph_b.graph], dump_path_param, args, is_cross_framework,
-                                       mapping_dict=mapping_dict, pbar_info=pbar_info)
+    graph_comparator = GraphComparator(
+        [graph_n.graph, graph_b.graph],
+        dump_path_param,
+        args,
+        is_cross_framework,
+        mapping_dict=mapping_dict,
+        pbar_info=pbar_info,
+    )
     graph_comparator.compare()
     return graph_comparator
 
@@ -98,11 +125,20 @@ def _export_compare_graph_result(args, result, pbar_info=None):
     logger.info(f'Start exporting compare graph result, file name: {compare_output_db_name}...')
     output_db_path = os.path.join(args.output_path, compare_output_db_name)
     task = GraphConst.GRAPHCOMPARE_MODE_TO_DUMP_MODE_TO_MAPPING.get(graph_comparator.ma.compare_mode)
-    export_config = GraphExportConfig(graphs[0], graphs[1], graph_comparator.ma.get_tool_tip(),
-                                      NodeColors.get_node_colors(graph_comparator.ma.compare_mode), micro_steps, task,
-                                      args.overflow_check, graph_comparator.ma.compare_mode, result.step, result.rank,
-                                      args.step_list if hasattr(args, 'step_list') else [0],
-                                      args.rank_list if hasattr(args, 'rank_list') else [0])
+    export_config = GraphExportConfig(
+        graphs[0],
+        graphs[1],
+        graph_comparator.ma.get_tool_tip(),
+        NodeColors.get_node_colors(graph_comparator.ma.compare_mode),
+        micro_steps,
+        task,
+        args.overflow_check,
+        graph_comparator.ma.compare_mode,
+        result.step,
+        result.rank,
+        args.step_list if hasattr(args, 'step_list') else [0],
+        args.rank_list if hasattr(args, 'rank_list') else [0],
+    )
     try:
         GraphBuilder.to_db(output_db_path, export_config, pbar_info=pbar_info)
         logger.info(f'Exporting compare graph result successfully, the result file is saved in {output_db_path}')
@@ -113,12 +149,15 @@ def _export_compare_graph_result(args, result, pbar_info=None):
 
 
 def _build_graph_info(dump_path, args, graph=None, pbar_info=None):
-    construct_path = FileChecker(os.path.join(dump_path, GraphConst.CONSTRUCT_FILE), FileCheckConst.FILE,
-                                 FileCheckConst.READ_ABLE).common_check()
-    data_path = FileChecker(os.path.join(dump_path, GraphConst.DUMP_FILE), FileCheckConst.FILE,
-                            FileCheckConst.READ_ABLE).common_check()
-    stack_path = FileChecker(os.path.join(dump_path, GraphConst.STACK_FILE), FileCheckConst.FILE,
-                             FileCheckConst.READ_ABLE).common_check()
+    construct_path = FileChecker(
+        os.path.join(dump_path, GraphConst.CONSTRUCT_FILE), FileCheckConst.FILE, FileCheckConst.READ_ABLE
+    ).common_check()
+    data_path = FileChecker(
+        os.path.join(dump_path, GraphConst.DUMP_FILE), FileCheckConst.FILE, FileCheckConst.READ_ABLE
+    ).common_check()
+    stack_path = FileChecker(
+        os.path.join(dump_path, GraphConst.STACK_FILE), FileCheckConst.FILE, FileCheckConst.READ_ABLE
+    ).common_check()
     if not graph:
         graph = GraphBuilder.build(construct_path, data_path, stack_path, pbar_info=pbar_info)
     return GraphInfo(graph, construct_path, data_path, stack_path)
@@ -185,11 +224,28 @@ def _export_build_graph_result(args, result, pbar_info=None):
     graph = result.graph
     micro_steps = result.micro_steps
     overflow_check = args.overflow_check
+
+    if getattr(args, 'file_type', 'db') == 'json':
+        logger.info('Start exporting graph to JSON files...')
+        try:
+            GraphBuilder.to_json(out_path, graph, result.rank, result.step, pbar_info=pbar_info)
+            logger.info(f'Model graph exported successfully as JSON files to {out_path}')
+            return None
+        except (RuntimeError, OSError) as e:
+            logger.error(f'Failed to export model graph as JSON, error: {e}')
+            return 'json_export_error'
+
     logger.info(f'Start exporting graph for {build_output_db_name}...')
     output_db_path = os.path.join(out_path, build_output_db_name)
-    config = GraphExportConfig(graph, micro_steps=micro_steps, overflow_check=overflow_check, rank=result.rank,
-                               step=result.step, rank_list=args.rank_list if hasattr(args, 'rank_list') else [0],
-                               step_list=args.step_list if hasattr(args, 'step_list') else [0])
+    config = GraphExportConfig(
+        graph,
+        micro_steps=micro_steps,
+        overflow_check=overflow_check,
+        rank=result.rank,
+        step=result.step,
+        rank_list=args.rank_list if hasattr(args, 'rank_list') else [0],
+        step_list=args.step_list if hasattr(args, 'step_list') else [0],
+    )
     try:
         GraphBuilder.to_db(output_db_path, config, pbar_info=pbar_info)
         logger.info(f'Model graph exported successfully, the result file is saved in {output_db_path}')
@@ -205,10 +261,12 @@ def is_real_data_compare(input_param, npu_ranks, bench_ranks):
     has_real_data = False
     for nr, br in zip(npu_ranks, bench_ranks):
         dump_path_param = {
-            'npu_path': FileChecker(os.path.join(dump_rank_n, nr, GraphConst.DUMP_FILE), FileCheckConst.FILE,
-                                    FileCheckConst.READ_ABLE).common_check(),
-            'bench_path': FileChecker(os.path.join(dump_rank_b, br, GraphConst.DUMP_FILE), FileCheckConst.FILE,
-                                      FileCheckConst.READ_ABLE).common_check()
+            'npu_path': FileChecker(
+                os.path.join(dump_rank_n, nr, GraphConst.DUMP_FILE), FileCheckConst.FILE, FileCheckConst.READ_ABLE
+            ).common_check(),
+            'bench_path': FileChecker(
+                os.path.join(dump_rank_b, br, GraphConst.DUMP_FILE), FileCheckConst.FILE, FileCheckConst.READ_ABLE
+            ).common_check(),
         }
         has_real_data |= get_dump_mode(dump_path_param) == Const.ALL
     return has_real_data
@@ -247,6 +305,7 @@ def _compare_graph_ranks(input_param, args, step=None, pbar_info=None):
     serializable_args = SerializableArgs(args)
 
     with Pool(processes=max(int((cpu_count() + 1) // 4), 1)) as pool:
+
         def err_call(err):
             logger.error(f'Error occurred while comparing graph ranks: {err}')
 
@@ -260,10 +319,11 @@ def _compare_graph_ranks(input_param, args, step=None, pbar_info=None):
                 build_key = f'{step}_{nr}' if step else f'{nr}'
                 input_param_copy = deepcopy(input_param)
                 pbar_info_copy = PbarInfo.update_task_id(pbar_info, nr)
-                mp_task_dict[build_key] = pool.apply_async(_run_build_graph_compare,
-                                                           args=(input_param_copy, serializable_args, nr, br,
-                                                                 pbar_info_copy),
-                                                           error_callback=err_call)
+                mp_task_dict[build_key] = pool.apply_async(
+                    _run_build_graph_compare,
+                    args=(input_param_copy, serializable_args, nr, br, pbar_info_copy),
+                    error_callback=err_call,
+                )
             mp_res_dict = {k: v.get() for k, v in mp_task_dict.items()}
             for build_key, mp_res in mp_res_dict.items():
                 if pbar_info:
@@ -278,9 +338,13 @@ def _compare_graph_ranks(input_param, args, step=None, pbar_info=None):
             export_res_task_list = []
             create_directory(args.output_path)
             for result in compare_graph_results:
-                export_res_task_list.append(pool.apply_async(_export_compare_graph_result,
-                                                             args=(serializable_args, result),
-                                                             error_callback=err_call))
+                export_res_task_list.append(
+                    pool.apply_async(
+                        _export_compare_graph_result,
+                        args=(serializable_args, result),
+                        error_callback=err_call,
+                    )
+                )
             export_res_list = [res.get() for res in export_res_task_list]
         else:
             compare_graph_tasks = []
@@ -289,10 +353,13 @@ def _compare_graph_ranks(input_param, args, step=None, pbar_info=None):
                 input_param['bench_path'] = os.path.join(dump_rank_b, br)
                 input_param_copy = deepcopy(input_param)
                 pbar_info_copy = PbarInfo.update_task_id(pbar_info, nr)
-                compare_graph_tasks.append(pool.apply_async(_mp_compare_and_export,
-                                                            args=(input_param_copy, serializable_args, nr, step,
-                                                                  pbar_info_copy),
-                                                            error_callback=err_call))
+                compare_graph_tasks.append(
+                    pool.apply_async(
+                        _mp_compare_and_export,
+                        args=(input_param_copy, serializable_args, nr, step, pbar_info_copy),
+                        error_callback=err_call,
+                    )
+                )
             export_res_list = [res.get() for res in compare_graph_tasks]
         if any(export_res_list):
             failed_names = list(filter(lambda x: x, export_res_list))
@@ -317,17 +384,24 @@ def _compare_graph_steps(input_param, args, pbar_info=None):
         if pbar_info:
             pbar_info.step = i
 
-        _compare_graph_ranks(input_param, args, step=folder_step, pbar_info=pbar_info) if not args.parallel_merge \
-            else _compare_graph_ranks_parallel(input_param, args, step=folder_step, pbar_info=pbar_info)
+        if not args.parallel_merge:
+            _compare_graph_ranks(input_param, args, step=folder_step, pbar_info=pbar_info)
+        else:
+            _compare_graph_ranks_parallel(input_param, args, step=folder_step, pbar_info=pbar_info)
 
 
 def _build_graph_ranks_parallel(args, step=None, pbar_info=None):
     dump_ranks_path = os.path.join(args.target_path, step) if step is not None else args.target_path
+    if step is None:
+        base_name = os.path.basename(os.path.normpath(args.target_path))
+        if base_name.startswith(Const.STEP) and base_name[len(Const.STEP) :].isdigit():
+            step = base_name
     ranks = sort_rank_number_strings(check_and_return_dir_contents(dump_ranks_path, Const.RANK, skip_wrong_dir=True))
     if not ranks:
         ranks = [os.path.basename(find_proc_dir(dump_ranks_path))]
     serializable_args = SerializableArgs(args)
     with Pool(processes=max(int((cpu_count() + 1) // 4), 1)) as pool:
+
         def err_call(err):
             logger.error(f'Error occurred while comparing graph ranks: {err}')
             try:
@@ -340,9 +414,13 @@ def _build_graph_ranks_parallel(args, step=None, pbar_info=None):
             PbarInfo.reset_progress_and_current_stage(pbar_info, ranks)
         for rank in ranks:
             pbar_info_copy = PbarInfo.update_task_id(pbar_info, rank)
-            build_graph_tasks.append(pool.apply_async(_run_build_graph_single,
-                                                      args=(dump_ranks_path, rank, step, serializable_args,
-                                                            pbar_info_copy), error_callback=err_call))
+            build_graph_tasks.append(
+                pool.apply_async(
+                    _run_build_graph_single,
+                    args=(dump_ranks_path, rank, step, serializable_args, pbar_info_copy),
+                    error_callback=err_call,
+                )
+            )
         build_graph_results = [task.get() for task in build_graph_tasks]
 
         if step is not None:
@@ -351,26 +429,32 @@ def _build_graph_ranks_parallel(args, step=None, pbar_info=None):
 
         if args.parallel_params:
             validate_parallel_param(args.parallel_params[0], dump_ranks_path)
-            build_graph_results = GraphMerger(build_graph_results, args.parallel_params[0],
-                                              pbar_info=pbar_info).merge_graph()
+            build_graph_results = GraphMerger(
+                build_graph_results, args.parallel_params[0], pbar_info=pbar_info
+            ).merge_graph()
             if pbar_info:
-                PbarInfo.del_progress_dict_item(pbar_info, ranks,
-                                                [f'{Const.RANK}{result.rank}' for result in build_graph_results])
+                PbarInfo.del_progress_dict_item(
+                    pbar_info, ranks, [f'{Const.RANK}{result.rank}' for result in build_graph_results]
+                )
 
         create_directory(args.output_path)
         export_build_graph_tasks = []
         serializable_args.rank_list = [result.rank for result in build_graph_results]
         for result in build_graph_results:
             pbar_info_copy = PbarInfo.update_task_id(pbar_info, f'{Const.RANK}{result.rank}')
-            export_build_graph_tasks.append(pool.apply_async(_export_build_graph_result,
-                                                             args=(serializable_args, result, pbar_info_copy),
-                                                             error_callback=err_call))
+            export_build_graph_tasks.append(
+                pool.apply_async(
+                    _export_build_graph_result,
+                    args=(serializable_args, result, pbar_info_copy),
+                    error_callback=err_call,
+                )
+            )
         export_build_graph_result = [task.get() for task in export_build_graph_tasks]
         if any(export_build_graph_result):
             failed_names = list(filter(lambda x: x, export_build_graph_result))
             logger.error(f'Unable to export build graph results: {failed_names}.')
         else:
-            logger.info(f'Successfully exported build graph results.')
+            logger.info('Successfully exported build graph results.')
 
 
 def _build_graph_ranks(args, step=None, pbar_info=None):
@@ -381,21 +465,26 @@ def _build_graph_ranks(args, step=None, pbar_info=None):
     args.rank_list = [get_step_or_rank_int(rank, True) for rank in ranks]
     serializable_args = SerializableArgs(args)
     with Pool(processes=max(int((cpu_count() + 1) // 4), 1)) as pool:
+
         def err_call(err):
             logger.error(f'Error occurred while comparing graph ranks: {err}')
 
         tasks = []
         for rank in ranks:
             pbar_info_copy = PbarInfo.update_task_id(pbar_info, rank)
-            tasks.append(pool.apply_async(_run_build_graph_and_export,
-                                          args=(dump_ranks_path, rank, step, serializable_args, pbar_info_copy),
-                                          error_callback=err_call))
+            tasks.append(
+                pool.apply_async(
+                    _run_build_graph_and_export,
+                    args=(dump_ranks_path, rank, step, serializable_args, pbar_info_copy),
+                    error_callback=err_call,
+                )
+            )
         results = [task.get() for task in tasks]
         if any(results):
             failed_names = list(filter(lambda x: x, results))
             logger.error(f'Unable to export build graph results: {failed_names}.')
         else:
-            logger.info(f'Successfully exported build graph results.')
+            logger.info('Successfully exported build graph results.')
 
 
 def _build_graph_steps(args, pbar_info=None):
@@ -406,8 +495,10 @@ def _build_graph_steps(args, pbar_info=None):
         logger.info(f'Start processing data for {step}...')
         if pbar_info:
             pbar_info.step = i
-        _build_graph_ranks(args, step, pbar_info=pbar_info) if not args.parallel_merge \
-            else _build_graph_ranks_parallel(args, step, pbar_info=pbar_info)
+        if not args.parallel_merge:
+            _build_graph_ranks(args, step, pbar_info=pbar_info)
+        else:
+            _build_graph_ranks_parallel(args, step, pbar_info=pbar_info)
 
 
 def _compare_and_export_graph(graph_task_info, input_param, args, step=None, pbar_info=None):
@@ -434,6 +525,7 @@ def _compare_graph_ranks_parallel(input_param, args, step=None, pbar_info=None):
     serializable_args = SerializableArgs(args)
 
     with Pool(processes=max(int((cpu_count() + 1) // 4), 1)) as pool:
+
         def err_call(err):
             logger.error(f'Error occurred while comparing graph ranks: {err}')
             try:
@@ -448,29 +540,43 @@ def _compare_graph_ranks_parallel(input_param, args, step=None, pbar_info=None):
             PbarInfo.reset_progress_and_current_stage(pbar_info, list(set(ranks_n) | set(ranks_b)))
         for rank in ranks_n:
             pbar_info_copy = PbarInfo.update_task_id(pbar_info, rank)
-            build_graph_tasks_n.append(pool.apply_async(_run_build_graph_single,
-                                                        args=(npu_path, rank, step, serializable_args, pbar_info_copy),
-                                                        error_callback=err_call))
+            build_graph_tasks_n.append(
+                pool.apply_async(
+                    _run_build_graph_single,
+                    args=(npu_path, rank, step, serializable_args, pbar_info_copy),
+                    error_callback=err_call,
+                )
+            )
         for rank in ranks_b:
             pbar_info_copy = PbarInfo.update_task_id(pbar_info, rank)
-            build_graph_tasks_b.append(pool.apply_async(_run_build_graph_single,
-                                                        args=(bench_path, rank, step, serializable_args,
-                                                              pbar_info_copy), error_callback=err_call))
+            build_graph_tasks_b.append(
+                pool.apply_async(
+                    _run_build_graph_single,
+                    args=(bench_path, rank, step, serializable_args, pbar_info_copy),
+                    error_callback=err_call,
+                )
+            )
         graph_results_n = [task.get() for task in build_graph_tasks_n]
         graph_results_b = [task.get() for task in build_graph_tasks_b]
 
         # 2.图合并
         build_graph_results_n = GraphMerger(graph_results_n, parallel_params[0], pbar_info=pbar_info).merge_graph()
-        build_graph_results_b = GraphMerger(graph_results_b, parallel_params[1], True,
-                                            pbar_info=pbar_info).merge_graph()
+        build_graph_results_b = GraphMerger(
+            graph_results_b, parallel_params[1], True, pbar_info=pbar_info
+        ).merge_graph()
 
         if len(build_graph_results_n) != len(build_graph_results_b):
-            raise RuntimeError(f'Parallel merge failed because the dp of npu: {len(build_graph_results_n)} '
-                               f'is inconsistent with that of bench: {len(build_graph_results_b)}!')
+            raise RuntimeError(
+                f'Parallel merge failed because the dp of npu: {len(build_graph_results_n)} '
+                f'is inconsistent with that of bench: {len(build_graph_results_b)}!'
+            )
         serializable_args.rank_list = [result.rank for result in build_graph_results_n]
         if pbar_info:
-            PbarInfo.del_progress_dict_item(pbar_info, list(set(ranks_n) | set(ranks_b)),
-                                            [f'{Const.RANK}{result.rank}' for result in build_graph_results_n])
+            PbarInfo.del_progress_dict_item(
+                pbar_info,
+                list(set(ranks_n) | set(ranks_b)),
+                [f'{Const.RANK}{result.rank}' for result in build_graph_results_n],
+            )
         # 3.并行图比对和输出
         export_res_task_list = []
         create_directory(args.output_path)
@@ -480,11 +586,18 @@ def _compare_graph_ranks_parallel(input_param, args, step=None, pbar_info=None):
             graph_task_info = BuildGraphTaskInfo(
                 _build_graph_info(os.path.join(npu_path, f'rank{graph_n.root.rank}'), args, graph_n),
                 _build_graph_info(os.path.join(bench_path, f'rank{graph_b.root.rank}'), args, graph_b),
-                f'rank{graph_n.root.rank}', f'rank{graph_b.root.rank}', current_time)
+                f'rank{graph_n.root.rank}',
+                f'rank{graph_b.root.rank}',
+                current_time,
+            )
             pbar_info_copy = PbarInfo.update_task_id(pbar_info, f'{Const.RANK}{result_n.rank}')
-            export_res_task_list.append(pool.apply_async(_compare_and_export_graph,
-                                                         args=(graph_task_info, input_param, serializable_args, step,
-                                                               pbar_info_copy), error_callback=err_call))
+            export_res_task_list.append(
+                pool.apply_async(
+                    _compare_and_export_graph,
+                    args=(graph_task_info, input_param, serializable_args, step, pbar_info_copy),
+                    error_callback=err_call,
+                )
+            )
         export_res_list = [res.get() for res in export_res_task_list]
         if any(export_res_list):
             failed_names = list(filter(lambda x: x, export_res_list))
@@ -495,40 +608,108 @@ def _compare_graph_ranks_parallel(input_param, args, step=None, pbar_info=None):
 
 def _graph_service_parser(parser):
     # -------------------------- 基础必填参数 --------------------------
-    parser.add_argument("-tp", "--target_path", dest="target_path", type=str,
-                        help="<Required> The target path.", required=True)
-    parser.add_argument("-o", "--output_path", dest="output_path", type=str,
-                        help="<Required> The visualization task result out path.", required=True)
+    parser.add_argument(
+        "-tp", "--target_path", dest="target_path", type=str, help="<Required> The target path.", required=True
+    )
+    parser.add_argument(
+        "-o",
+        "--output_path",
+        dest="output_path",
+        type=str,
+        help="<Required> The visualization task result out path.",
+        required=True,
+    )
     # -------------------------- 基础可选参数 --------------------------
-    parser.add_argument("-gp", "--golden_path", dest="golden_path", type=str,
-                        help="<Optional> The golden path.", required=False)
-    parser.add_argument("-lm", "--layer_mapping", dest="layer_mapping", type=str, nargs='?', const=True,
-                        help="<Optional> The layer mapping file path.", required=False)
-    parser.add_argument("-oc", "--overflow_check", dest="overflow_check", action="store_true",
-                        help="<Optional> whether open overflow_check for graph.", required=False)
-    parser.add_argument("-fm", "--fuzzy_match", dest="fuzzy_match", action="store_true",
-                        help="<Optional> whether to perform a fuzzy match on the api name.", required=False)
-    parser.add_argument("-tensor_log", "--is_print_compare_log", dest="is_print_compare_log", action="store_true",
-                        help="<Optional> whether print tensor compare log for visualization task.", required=False)
-    parser.add_argument("-progress_log", "--is_print_progress_log", dest="is_print_progress_log", action="store_true",
-                        help="<Optional> whether print progress log for visualization task.", required=False)
+    parser.add_argument(
+        "-gp", "--golden_path", dest="golden_path", type=str, help="<Optional> The golden path.", required=False
+    )
+    parser.add_argument(
+        "-lm",
+        "--layer_mapping",
+        dest="layer_mapping",
+        type=str,
+        nargs='?',
+        const=True,
+        help="<Optional> The layer mapping file path.",
+        required=False,
+    )
+    parser.add_argument(
+        "-oc",
+        "--overflow_check",
+        dest="overflow_check",
+        action="store_true",
+        help="<Optional> whether open overflow_check for graph.",
+        required=False,
+    )
+    parser.add_argument(
+        "-fm",
+        "--fuzzy_match",
+        dest="fuzzy_match",
+        action="store_true",
+        help="<Optional> whether to perform a fuzzy match on the api name.",
+        required=False,
+    )
+    parser.add_argument(
+        "-tensor_log",
+        "--is_print_compare_log",
+        dest="is_print_compare_log",
+        action="store_true",
+        help="<Optional> whether print tensor compare log for visualization task.",
+        required=False,
+    )
+    parser.add_argument(
+        "-progress_log",
+        "--is_print_progress_log",
+        dest="is_print_progress_log",
+        action="store_true",
+        help="<Optional> whether print progress log for visualization task.",
+        required=False,
+    )
 
     # -------------------------- 不同并行切分策略合并可选参数 --------------------------
-    group_n = parser.add_argument_group("Parallel Parameters, "
-                                        "used for graph merging under different parallel partitioning strategies")
+    group_n = parser.add_argument_group(
+        "Parallel Parameters, used for graph merging under different parallel partitioning strategies"
+    )
 
-    group_n.add_argument("--rank_size", type=int, nargs='+', help="<Optional> The rank size of dump path.",
-                         required=False)
-    group_n.add_argument("--tp", type=int, nargs='+',
-                         help="<Optional, but required if rank_size is not empty> The tp size of dump path.",
-                         required=False)
-    group_n.add_argument("--pp", type=int, nargs='+',
-                         help="<Optional, but required if rank_size is not empty> The pp size of dump path.",
-                         required=False)
-    group_n.add_argument("--vpp", type=int, nargs='+', default=[1], help="<Optional> The vpp size of dump path.",
-                         required=False)
-    group_n.add_argument("--order", type=str, nargs='+', default=['tp-cp-ep-dp-pp'],
-                         help="<Optional> The order of dump path.", required=False)
+    group_n.add_argument(
+        "--rank_size", type=int, nargs='+', help="<Optional> The rank size of dump path.", required=False
+    )
+    group_n.add_argument(
+        "--tp",
+        type=int,
+        nargs='+',
+        help="<Optional, but required if rank_size is not empty> The tp size of dump path.",
+        required=False,
+    )
+    group_n.add_argument(
+        "--pp",
+        type=int,
+        nargs='+',
+        help="<Optional, but required if rank_size is not empty> The pp size of dump path.",
+        required=False,
+    )
+    group_n.add_argument(
+        "--vpp", type=int, nargs='+', default=[1], help="<Optional> The vpp size of dump path.", required=False
+    )
+    group_n.add_argument(
+        "--order",
+        type=str,
+        nargs='+',
+        default=['tp-cp-ep-dp-pp'],
+        help="<Optional> The order of dump path.",
+        required=False,
+    )
+
+    # -------------------------- 输出文件类型可选参数 --------------------------
+    parser.add_argument(
+        "--file_type",
+        dest="file_type",
+        type=str,
+        default="db",
+        choices=["db", "json"],
+        help="<Optional> Output file type, default is db, can be json. Only supported in graph merge build scenarios.",
+        required=False,
+    )
 
 
 def _graph_service_command(args):
@@ -539,8 +720,20 @@ def _graph_service_command(args):
         npu_path = args.target_path
         bench_path = args.golden_path
         ProgressInfo.print_progress_log = args.is_print_progress_log
-        args.parallel_merge = True if args.rank_size else False
+        args.parallel_merge = bool(args.rank_size)
         args.parallel_params = load_parallel_param(args) if args.parallel_merge else None
+        if args.file_type == 'json' and bench_path:
+            logger.error(
+                'The --file_type json parameter is not supported in graph comparison mode. '
+                'Please remove the -gp/--golden_path parameter or use --file_type db.'
+            )
+            raise CompareException(CompareException.INVALID_COMPARE_MODE)
+        if args.file_type == 'json' and not args.parallel_merge:
+            logger.warning(
+                'The --file_type json parameter is only supported in graph merge build scenarios. '
+                'Falling back to default db output.'
+            )
+            args.file_type = 'db'
         check_file_or_directory_path(npu_path, isdir=True)
         if bench_path:
             check_file_or_directory_path(bench_path, isdir=True)
@@ -551,6 +744,12 @@ def _graph_service_command(args):
             elif content == GraphConst.STEPS:
                 _build_graph_steps_with_pbar(args)
             else:
+                if args.parallel_merge and args.file_type == 'json':
+                    logger.error(
+                        'You have specified the "--rank_size" parameter for data merging, '
+                        'so the "-tp" parameter must pass in multiple rank data.'
+                    )
+                    raise CompareException(CompareException.INVALID_PARAM_ERROR)
                 _build_graph_with_pbar(npu_path, args)
         elif check_file_type(npu_path) == FileCheckConst.DIR and check_file_type(bench_path) == FileCheckConst.DIR:
             content_n = check_directory_content(npu_path)
@@ -560,7 +759,7 @@ def _graph_service_command(args):
             input_param = {
                 'npu_path': args.target_path,
                 'bench_path': args.golden_path,
-                'is_print_compare_log': args.is_print_compare_log
+                'is_print_compare_log': args.is_print_compare_log,
             }
             if content_n == GraphConst.RANKS:
                 _compare_graph_ranks_with_pbar(input_param, args)
@@ -609,14 +808,15 @@ def _run_with_progress(param, args, config: ProgressConfig):
         tqdm_args = {
             "desc": GraphConst.PBAR_DESC_PREFIX,
             "total": config.tqdm_total if config.tqdm_total is not None else pbar_info.total,
-            "bar_format": GraphConst.BAR_FORMAT
+            "bar_format": GraphConst.BAR_FORMAT,
         }
 
         with tqdm(**tqdm_args) as pbar:
             # 单进程场景直接更新pbar，多进程场景需要通过monitor thread从共享dict中获取进度更新pbar
             if config.use_monitor_thread:
-                monitor_thread = threading.Thread(target=monitor_progress,
-                                                  args=(pbar_info, pbar, ranks, args.parallel_merge))
+                monitor_thread = threading.Thread(
+                    target=monitor_progress, args=(pbar_info, pbar, ranks, args.parallel_merge)
+                )
                 monitor_thread.start()
             else:
                 pbar_info.pbar = pbar
@@ -626,11 +826,15 @@ def _run_with_progress(param, args, config: ProgressConfig):
             else:
                 config.core_func(args, pbar_info=pbar_info)
 
-            db_path = os.path.join(args.output_path, config.db_name)
-            post_process_db(db_path, pbar_info=pbar_info, is_parallel_merge=args.parallel_merge)
+            if getattr(args, 'file_type', 'db') != 'json':
+                db_path = os.path.join(args.output_path, config.db_name)
+                post_process_db(db_path, pbar_info=pbar_info, is_parallel_merge=args.parallel_merge)
 
-            if not args.parallel_merge and config.use_monitor_thread:
-                distributed_analyse(db_path, args.overflow_check, pbar_info=pbar_info)
+                if not args.parallel_merge and config.use_monitor_thread:
+                    distributed_analyse(db_path, args.overflow_check, pbar_info=pbar_info)
+            elif config.use_monitor_thread and pbar_info:
+                # For JSON output, signal completion to the monitor thread directly
+                post_process_db_pbar(pbar_info, is_parallel_merge=args.parallel_merge)
 
             if config.use_monitor_thread and monitor_thread:
                 monitor_thread.join(timeout=5)
@@ -669,7 +873,7 @@ def _build_graph_ranks_with_pbar(args):
             get_ranks=get_ranks,
             pbar_info_kwargs={"stage_total": stage_total},
             db_name=build_output_db_name,
-        )
+        ),
     )
 
 
@@ -692,7 +896,7 @@ def _build_graph_steps_with_pbar(args):
             get_ranks=get_ranks,
             pbar_info_kwargs={"step_total": len(steps), "stage_total": stage_total},
             db_name=build_output_db_name,
-        )
+        ),
     )
 
 
@@ -713,8 +917,8 @@ def _build_graph_with_pbar(npu_path, args):
             pbar_info_kwargs={},
             db_name=build_output_db_name,
             use_monitor_thread=False,
-            tqdm_total=GraphConst.PBAR_TOTAL
-        )
+            tqdm_total=GraphConst.PBAR_TOTAL,
+        ),
     )
 
 
@@ -730,8 +934,9 @@ def _compare_graph_ranks_with_pbar(input_param, args):
             return calculate_list(args.target_path, args.golden_path, mode=GraphConst.UNION)
         return calculate_list(args.target_path, args.golden_path)
 
-    stage_total = _get_parallel_stage_total(args, is_compare=True) if args.parallel_merge \
-        else GraphConst.COMPARE_STAGES_TOTAL
+    stage_total = (
+        _get_parallel_stage_total(args, is_compare=True) if args.parallel_merge else GraphConst.COMPARE_STAGES_TOTAL
+    )
 
     _run_with_progress(
         param=input_param,
@@ -740,8 +945,8 @@ def _compare_graph_ranks_with_pbar(input_param, args):
             core_func=core_func,
             get_ranks=get_ranks,
             pbar_info_kwargs={"stage_total": stage_total},
-            db_name=compare_output_db_name
-        )
+            db_name=compare_output_db_name,
+        ),
     )
 
 
@@ -755,8 +960,11 @@ def _compare_graph_steps_with_pbar(input_param, args):
             return calculate_list(rank_path_t, rank_path_g, mode=GraphConst.UNION)
         return calculate_list(rank_path_t, rank_path_g)
 
-    stage_total = _get_parallel_stage_total(args, steps, is_compare=True) if args.parallel_merge \
+    stage_total = (
+        _get_parallel_stage_total(args, steps, is_compare=True)
+        if args.parallel_merge
         else GraphConst.COMPARE_STAGES_TOTAL
+    )
 
     _run_with_progress(
         param=input_param,
@@ -765,8 +973,8 @@ def _compare_graph_steps_with_pbar(input_param, args):
             core_func=_compare_graph_steps,
             get_ranks=get_ranks,
             pbar_info_kwargs={"stage_total": stage_total, "step_total": len(steps)},
-            db_name=compare_output_db_name
-        )
+            db_name=compare_output_db_name,
+        ),
     )
 
 
@@ -787,8 +995,8 @@ def _compare_graph_with_pbar(input_param, args):
             pbar_info_kwargs={"pbar": None, "stage_total": GraphConst.COMPARE_STAGES_TOTAL},
             db_name=compare_output_db_name,
             use_monitor_thread=False,
-            tqdm_total=GraphConst.PBAR_TOTAL
-        )
+            tqdm_total=GraphConst.PBAR_TOTAL,
+        ),
     )
 
 
@@ -814,7 +1022,7 @@ def _get_parallel_stage_total(args, steps=None, is_compare=False):
         "VPPMerger": lambda param: param.rank_size // param.pp,
         "TPPPMerger": lambda param: param.rank_size // param.pp + param.rank_size // param.pp // param.tp,
         "FullMerger": lambda param: param.rank_size // param.pp + param.rank_size // param.pp // param.tp,
-        "NoParallelMerger": 0
+        "NoParallelMerger": 0,
     }
 
     def _get_stage_count(parallel_param, merger_name: str) -> int:
@@ -851,8 +1059,15 @@ class BuildGraphResult:
 
 
 class PbarInfo:
-    def __init__(self, pbar=None, progress_dict=None, task_id=None, step=0, step_total=1,
-                 stage_total=GraphConst.BUILD_STAGES_TOTAL):
+    def __init__(
+        self,
+        pbar=None,
+        progress_dict=None,
+        task_id=None,
+        step=0,
+        step_total=1,
+        stage_total=GraphConst.BUILD_STAGES_TOTAL,
+    ):
         self.pbar = pbar
         self.progress_dict = progress_dict
         self.task_id = task_id
