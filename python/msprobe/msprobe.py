@@ -31,9 +31,12 @@ from msprobe.core.compare.data2db import _data2db_service_parser, _data2db_comma
 from msprobe.infer.offline.compare.msquickcmp.main import _offline_dump_parser, offline_dump_cli
 from msprobe.core.install_deps.install_deps import _install_deps_parser, install_deps_cli
 from msprobe.core.parse.parse_cli import _parse_parser, parse_cli
+from msprobe.core.common.logo import CliLogo
 
 
 def main():
+    CliLogo().print_logo()
+
     # 安全声明
     print(
         "[security statement] MindStudio Probe is a development-phase tool.\n"
@@ -41,12 +44,12 @@ def main():
         "Users are responsible for assigning appropriate ownership and permissions based on their usage scenarios, "
         "and must ensure that the content of the files handled by the tool is secure and trustworthy.\n"
     )
-    
+
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="msprobe(mindstudio probe), [Powered by MindStudio].\n"
-                    "A full-process, all-scenario precision tool base on Ascend products.\n"
-                    "For any issue, refer README.md first",
+        "A full-process, all-scenario precision tool base on Ascend products.\n"
+        "For any issue, refer README.md first",
     )
 
     parser.set_defaults(print_help=parser.print_help)
@@ -54,8 +57,8 @@ def main():
 
     compare_parser = subparsers.add_parser('compare')
     _compare_parser(compare_parser)
-    acc_check_cmd_parser = subparsers.add_parser('acc_check')
-    multi_acc_check_cmd_parser = subparsers.add_parser('multi_acc_check')
+    subparsers.add_parser('acc_check')
+    subparsers.add_parser('multi_acc_check')
     merge_result_parser = subparsers.add_parser('merge_result')
     _merge_result_parser(merge_result_parser)
     overflow_check_parse = subparsers.add_parser('overflow_check')
@@ -65,28 +68,27 @@ def main():
     # api_precision_compare 是 PyTorch 相关能力，延迟加载
     api_precision_compare_cmd_parser = subparsers.add_parser('api_precision_compare')
     try:
-        from msprobe.pytorch.api_accuracy_checker.compare.api_precision_compare import (
-            _api_precision_compare_parser
-        )
+        from msprobe.pytorch.api_accuracy_checker.compare.api_precision_compare import _api_precision_compare_parser
+
         _api_precision_compare_parser(api_precision_compare_cmd_parser)
-    except ImportError as e:
+    except ImportError:
         # torch 不存在时，parser 仍然存在，但给提示
         def _no_torch_parser(_):
             api_precision_compare_cmd_parser.set_defaults(
                 func=lambda *_: (
                     logger.error(
-                        "api_precision_compare requires PyTorch environment. "
-                        "Please install torch / torch_npu first."
+                        "api_precision_compare requires PyTorch environment. Please install torch / torch_npu first."
                     ),
-                    sys.exit(1)
+                    sys.exit(1),
                 )
             )
+
         _no_torch_parser(api_precision_compare_cmd_parser)
     graph_service_cmd_parser = subparsers.add_parser('graph_visualize')
     _graph_service_parser(graph_service_cmd_parser)
     data2db_parser = subparsers.add_parser('data2db')
     _data2db_service_parser(data2db_parser)
-    
+
     parse_parser = subparsers.add_parser('parse')
     _parse_parser(parse_parser)
 
@@ -118,14 +120,12 @@ def main():
     elif sys.argv[1] == "api_precision_compare":
         try:
             from msprobe.pytorch.api_accuracy_checker.compare.api_precision_compare import (
-                _api_precision_compare_command
+                _api_precision_compare_command,
             )
+
             _api_precision_compare_command(args)
         except ImportError:
-            logger.error(
-                "api_precision_compare requires PyTorch environment. "
-                "Please install torch / torch_npu first."
-            )
+            logger.error("api_precision_compare requires PyTorch environment. Please install torch / torch_npu first.")
             sys.exit(1)
 
     elif sys.argv[1] == "config_check":
