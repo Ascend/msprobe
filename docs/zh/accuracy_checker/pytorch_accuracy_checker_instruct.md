@@ -122,6 +122,65 @@ acc_check过程支持 API 预检黑名单和白名单，通过如下文件配置
 
    - config.json 文件的优先级高于 config.yaml 文件，即执行 config.json 文件时，config.yaml 文件的配置不生效。
 
+#### API输出后处理配置说明
+
+为适配部分 API 在真实场景中的变长输出（例如尾部 padding 区域携带无效值），acc_check 在比对前支持按规则对 cpu 侧和 device 侧输出分别做后处理。后处理配置文件为 [api_output_postprocess.yaml](../../../python/msprobe/core/common/output_postprocess/api_output_postprocess.yaml)。
+
+执行时，框架会在统一后处理入口中通过 `backend`（`cpu` 或 `device`）选择对应侧规则；未命中配置的 API 会直接跳过对应侧后处理逻辑。
+
+**配置结构**
+
+```yaml
+acc_check_handlers:
+   target:
+      npu_dequant_swiglu_quant: "builtin_handlers.py:postprocess_by_group_index"
+      npu_grouped_matmul: "builtin_handlers.py:postprocess_by_group_list"
+   golden: {}
+```
+
+**字段说明**
+
+| 字段 | 说明 |
+| --- | --- |
+| acc_check_handlers.target | 按 API 名称配置 target 侧后处理函数，值格式为 `python文件路径:函数名`。支持相对路径（相对于 `output_postprocess` 目录）或绝对路径。未配置可写为 `{}`。 |
+| acc_check_handlers.golden | 按 API 名称配置 golden 侧后处理函数，值格式为 `python文件路径:函数名`。支持相对路径（相对于 `output_postprocess` 目录）或绝对路径。未配置可写为 `{}`。 |
+
+当前默认已预置 handler 的 API 如下：
+
+- `npu_dequant_swiglu_quant`：使用 `group_index` 作为有效长度依据。
+- `npu_grouped_matmul`：使用 `group_list` 作为有效长度依据。
+
+新增处理规则时，直接在对应侧继续追加 `API -> handler` 映射即可；默认 handler 和用户扩展 handler 共用同一套加载与执行逻辑。
+
+**acc_check_handlers 配置示例**
+
+```yaml
+acc_check_handlers:
+   target:
+      npu_dequant_swiglu_quant: "builtin_handlers.py:postprocess_by_group_index"
+      npu_other_api: "custom_postprocess.py:handle_api"
+      npu_another_api: "/home/xxx/msprobe/core/common/output_postprocess/custom_postprocess.py:handle_another_api"
+   golden: {}
+```
+
+说明：
+
+- 当前配置语义是“一个 API 对应一个 handler”。
+- 如果同一个 API 需要多个处理步骤，建议在该 API 对应的 handler 内部自行串联这些逻辑。
+- 不同 API 可以复用同一个 handler，也可以分别配置不同 handler。
+
+函数签名要求：
+
+```python
+def handle_api(api_name, output, args, kwargs):
+   return new_output
+```
+
+约束说明：
+
+- 处理函数脚本需放在 [output_postprocess](../../../python/msprobe/core/common/output_postprocess/) 目录路径下。
+- 处理函数执行失败或返回 `None` 时，框架会自动回退为原始 `output`。
+
 ### 使用multi_acc_check执行多线程预检
 
 **功能说明**
