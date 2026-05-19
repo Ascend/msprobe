@@ -20,11 +20,11 @@ __version__ = '26.0.0-alpha.3'
 import os
 import platform
 import shutil
-import subprocess
+import subprocess  # nosec
 import sys
 
 import setuptools
-from wheel.bdist_wheel import bdist_wheel
+from wheel.bdist_wheel import bdist_wheel  # noqa: F401
 
 whl_version = os.getenv('WHL_VERSION')
 if whl_version is not None:
@@ -54,19 +54,15 @@ def build_frontend(plugin_name):
             raise RuntimeError(f"{failed_message} file 'package.json' is not exist!")
 
         # 安装依赖
-        install_result = subprocess.run(
-            ["npm", "install", "--force"],
-            capture_output=True,
-            text=True
+        install_result = subprocess.run(  # nosec
+            ["npm", "install", "--force"], capture_output=True, text=True, check=False
         )
         if install_result.returncode != 0:
             raise RuntimeError(f"{failed_message} run 'npm install --force' failed!")
 
         # 执行构建
-        build_result = subprocess.run(
-            ["npm", "run", "build"],
-            capture_output=True,
-            text=True
+        build_result = subprocess.run(  # nosec
+            ["npm", "run", "build"], capture_output=True, text=True, check=False
         )
         if build_result.returncode != 0:
             raise RuntimeError(f"{failed_message} run 'npm run build' failed!")
@@ -124,7 +120,7 @@ INSTALL_REQUIRED = [
     "skl2onnx >= 1.14.1",
     "setuptools <= 81.0.0",
     "pytz",
-    "psutil"
+    "psutil",
 ]
 
 if "--plat-name" in sys.argv or "--python-tag" in sys.argv:
@@ -134,7 +130,7 @@ if platform.system() != "Linux":
     raise SystemError("MindStudio-Probe is only supported on Linux platforms.")
 
 # 扩展模块范围，包括adump和tb_graph_ascend
-mod_list_range = {"adump", "tb_graph_ascend", "trend_analyzer", "atb_probe", "aclgraph_dump"}
+mod_list_range = {"adump", "tb_graph_ascend", "trend_analyzer", "atb_probe", "aclgraph_dump", "nan_check"}
 mod_list = []
 for i, arg in enumerate(sys.argv):
     if arg.startswith("--include-mod"):
@@ -142,7 +138,7 @@ for i, arg in enumerate(sys.argv):
             os.environ["INSTALL_WITHOUT_CHECK"] = "1"
             sys.argv.remove("--no-check")
         if arg.startswith("--include-mod="):
-            mod_list = arg[len("--include-mod="):].split(',')
+            mod_list = arg[len("--include-mod=") :].split(',')
             sys.argv.remove(arg)
         elif i + 1 < len(sys.argv) and not sys.argv[i + 1].startswith("--"):
             mod_list = sys.argv[i + 1].split(',')
@@ -185,16 +181,18 @@ if mod_list:
         # 可选：raise BuildError(f"清理失败: {e}")
         with_trend_analyzer = False
 
-    # 如果包含adump/atb_probe/aclgraph_dump，则进行C++相关的构建
-    if "adump" in mod_list or "atb_probe" in mod_list or "aclgraph_dump" in mod_list:
+    # 如果包含adump/atb_probe/aclgraph_dump/nan_check，则进行C++相关的构建
+    if "adump" in mod_list or "atb_probe" in mod_list or "aclgraph_dump" in mod_list or "nan_check" in mod_list:
         arch = platform.machine()
         sys.argv.append("--plat-name")
         sys.argv.append(f"linux_{arch}")
         sys.argv.append("--python-tag")
         sys.argv.append(f"cp{sys.version_info.major}{sys.version_info.minor}")
-        build_cmd = (f"bash ./build.sh -j16 -a {arch} -v {sys.version_info.major}.{sys.version_info.minor}"
-                     f" -m {str(mod_list).replace(' ', '')}")
-        p = subprocess.run(build_cmd.split(), shell=False)
+        build_cmd = (
+            f"bash ./build.sh -j16 -a {arch} -v {sys.version_info.major}.{sys.version_info.minor}"
+            f" -m {str(mod_list).replace(' ', '')}"
+        )
+        p = subprocess.run(build_cmd.split(), shell=False, check=False)  # nosec
         if p.returncode != 0:
             raise RuntimeError(f"Failed to build source({p.returncode})")
 else:
@@ -212,7 +210,7 @@ if not os.path.isdir(dst_path):
     shutil.copytree(src_path, dst_path)
 else:
     for root, dirs, files in os.walk(src_path):
-        target_root = os.path.join(dst_path, root[len(src_path) + 1:])
+        target_root = os.path.join(dst_path, root[len(src_path) + 1 :])
         for dir_name in dirs:
             os.makedirs(os.path.join(target_root, dir_name), mode=0o750, exist_ok=True)
         for file in files:
@@ -235,13 +233,9 @@ entry_points_dict = {
 
 tensorboard_plugins = []
 if with_tb_graph_ascend:
-    tensorboard_plugins.append(
-        'graph_ascend = hierarchy_plugin.server.plugin:GraphsPlugin'
-    )
+    tensorboard_plugins.append('graph_ascend = hierarchy_plugin.server.plugin:GraphsPlugin')
 if with_trend_analyzer:
-    tensorboard_plugins.append(
-        'TrendVis = trend_analyzer.server.app:TrendVis'
-    )
+    tensorboard_plugins.append('TrendVis = trend_analyzer.server.app:TrendVis')
 # 只有在包含tensorboard插件时才注册
 if tensorboard_plugins:
     entry_points_dict['tensorboard_plugins'] = tensorboard_plugins
@@ -251,15 +245,15 @@ package_dir_config = {"": "python"}
 package_data_config = {}
 
 if with_tb_graph_ascend:
-    package_dir_config.update({
-        'hierarchy_plugin': 'plugins/tb_graph_ascend/hierarchy_plugin'
-    })
+    package_dir_config.update({'hierarchy_plugin': 'plugins/tb_graph_ascend/hierarchy_plugin'})
     package_data_config['hierarchy_plugin'] = ['server/**/*.py', 'server/**/*.js', 'server/**/*.html']
 
 if with_trend_analyzer:
-    package_dir_config.update({
-        'trend_analyzer': 'plugins/tb_graph_ascend/monvis_plugin',
-    })
+    package_dir_config.update(
+        {
+            'trend_analyzer': 'plugins/tb_graph_ascend/monvis_plugin',
+        }
+    )
     package_data_config['trend_analyzer'] = ['server/**/*.py', 'server/**/*.js', 'server/**/*.html']
 
 setuptools.setup(

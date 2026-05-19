@@ -12,3 +12,7 @@ endif()
 if ($ENV{MSPROBE_INCLUDE_MOD} STREQUAL "aclgraph_dump")
     add_subdirectory(aclgraph_dump)
 endif()
+
+if ($ENV{MSPROBE_INCLUDE_MOD} STREQUAL "nan_check")
+    add_subdirectory(nan_check)
+endif()
