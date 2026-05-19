@@ -88,8 +88,7 @@ conda activate msprobe
 
 ```bash
 git clone https://gitcode.com/Ascend/msprobe.git
-cd MindStudio-Probe
-pip install -e .
+cd msprobe
 ```
 
 ### 4.2 编译安装基础工具包
