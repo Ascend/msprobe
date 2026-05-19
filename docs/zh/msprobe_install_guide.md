@@ -71,7 +71,11 @@ Successfully installed mindstudio-probe-{version}
 **命令格式**
 
 ```bash
+# 方式1：使用默认版本编译
 python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
+
+# 方式2：指定自定义版本编译（前置设置环境变量WHL_VERSION）
+WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 ```
 
 **参数说明**
@@ -94,6 +98,20 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   python3 setup.py bdist_wheel
   cd ./dist
   pip install ./mindstudio_probe*.whl
+  ```
+
+- 安装基础工具包（指定自定义版本）
+
+  ```bash
+  git clone https://gitcode.com/Ascend/msprobe.git
+  cd msprobe
+  
+  pip install setuptools wheel
+  
+  # 设置环境变量WHL_VERSION=2.1.0，自定义包版本为2.1.0
+  WHL_VERSION=2.1.0 python3 setup.py bdist_wheel
+  cd ./dist
+  pip install ./mindstudio_probe-2.1.0*.whl
   ```
   
 - 安装基础工具包和adump模块
