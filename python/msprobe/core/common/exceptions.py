@@ -14,29 +14,34 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+
 class CodedException(Exception):
-    def __init__(self, code, error_info=''):
+    err_strs = {}
+
+    def __init__(self, code, error_info=""):
         super().__init__()
         self.code = code
         self.error_info = self.err_strs.get(code) + error_info
 
     def __str__(self):
         return self.error_info
-    
-    
+
+
 class MsprobeException(CodedException):
     INVALID_PARAM_ERROR = 0
     OVERFLOW_NUMS_ERROR = 1
     RECURSION_LIMIT_ERROR = 2
     INTERFACE_USAGE_ERROR = 3
     UNSUPPORTED_TYPE_ERROR = 4
+    INVALID_CHAR_ERROR = 5
 
     err_strs = {
         INVALID_PARAM_ERROR: "[msprobe] 无效参数：",
         OVERFLOW_NUMS_ERROR: "[msprobe] 超过预设溢出次数 当前溢出次数：",
         RECURSION_LIMIT_ERROR: "[msprobe] 递归调用超过限制：",
         INTERFACE_USAGE_ERROR: "[msprobe] Invalid interface usage: ",
-        UNSUPPORTED_TYPE_ERROR: "[msprobe] Unsupported type: "
+        UNSUPPORTED_TYPE_ERROR: "[msprobe] Unsupported type: ",
+        INVALID_CHAR_ERROR: "[msprobe] 存在非法字符：",
     }
 
 
@@ -54,7 +59,7 @@ class FileCheckException(CodedException):
         INVALID_FILE_ERROR: "[msprobe] 无效文件： ",
         ILLEGAL_PATH_ERROR: "[msprobe] 非法文件路径： ",
         ILLEGAL_PARAM_ERROR: "[msprobe] 非法打开方式： ",
-        FILE_TOO_LARGE_ERROR: "[msprobe] 文件过大： "
+        FILE_TOO_LARGE_ERROR: "[msprobe] 文件过大： ",
     }
 
 
@@ -80,9 +85,7 @@ class ScopeException(CodedException):
 
 class RepairException(CodedException):
     InvalidRepairType = 0
-    err_strs = {
-        InvalidRepairType: "[msprobe] Invalid repair_type: "
-    }
+    err_strs = {InvalidRepairType: "[msprobe] Invalid repair_type: "}
 
 
 class StepException(CodedException):

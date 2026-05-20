@@ -23,7 +23,7 @@ import stat
 import numpy as np
 
 
-class Const:
+class Const:  # pylint: disable=too-many-lines
     """
     Class for const
     """
@@ -36,23 +36,27 @@ class Const:
     SEP = "."
     REGEX_PREFIX_MAX_LENGTH = 20
     REGEX_PREFIX_PATTERN = r"^[a-zA-Z0-9_-]+$"
-    REGEX_FORWARD_BACKWARD = r'\.(forward|backward)\.'
-    FILE_PATTERN = r'^[a-zA-Z0-9_./-]+$'
+    PY_MODULE_PATH_PATTERN = r"^[a-zA-Z_]\w*(\.[a-zA-Z_]\w*)*$"
+    PY_IDENTIFIER_PATTERN = r"^[a-zA-Z_]\w*$"
+    MAX_MODULE_PATH_LEN = 4096
+    MAX_API_NAME_LEN = 255
+    REGEX_FORWARD_BACKWARD = r"\.(forward|backward)\."
+    FILE_PATTERN = r"^[a-zA-Z0-9_./-]+$"
     STRING_BLACKLIST = r"^[＋－＝％＠\+\-=%@]|;[＋－＝％＠\+\-=%@]"
     COMMA = ","
     FLOAT_EPSILON = np.finfo(float).eps
-    OFF = 'OFF'
-    BACKWARD = 'backward'
-    FORWARD = 'forward'
+    OFF = "OFF"
+    BACKWARD = "backward"
+    FORWARD = "forward"
     PROGRESS_TIMEOUT = 3000
     EXCEPTION_NONE = None
-    JIT = 'Jit'
-    PRIMITIVE_PREFIX = 'Primitive'
+    JIT = "Jit"
+    PRIMITIVE_PREFIX = "Primitive"
     DEFAULT_LIST = []
-    DEFAULT_PATH = './'
-    WHITE_LIST = 'white_list'
-    BLACK_LIST = 'black_list'
-    DUMP_TENSOR_DATA = 'dump_tensor_data'
+    DEFAULT_PATH = "./"
+    WHITE_LIST = "white_list"
+    BLACK_LIST = "black_list"
+    DUMP_TENSOR_DATA = "dump_tensor_data"
     NONE = None
     THREE_SEGMENT = 3
     FOUR_SEGMENT = 4
@@ -97,19 +101,19 @@ class Const:
     ONE_GB = 1073741824  # 1 * 1024 * 1024 * 1024
     TEN_GB = 10737418240  # 10 * 1024 * 1024 * 1024
     ONE_MB = 1048576  # 1 * 1024 * 1024
-    FILE_PATTERN = r'^[a-zA-Z0-9_./-]+$'
+    FILE_PATTERN = r"^[a-zA-Z0-9_./-]+$"
     DISTRIBUTED_PREFIX_LENGTH = 60
     # env dump path
-    KWARGS = 'kwargs'
-    INPUT = 'input'
-    OUTPUT = 'output'
-    INPUT_ARGS = 'input_args'
-    INPUT_KWARGS = 'input_kwargs'
-    GRAD_INPUT = 'grad_input'
-    GRAD_OUTPUT = 'grad_output'
-    PARAMS = 'parameters'
-    PARAMS_GRAD = 'parameters_grad'
-    DEBUG = 'debug'
+    KWARGS = "kwargs"
+    INPUT = "input"
+    OUTPUT = "output"
+    INPUT_ARGS = "input_args"
+    INPUT_KWARGS = "input_kwargs"
+    GRAD_INPUT = "grad_input"
+    GRAD_OUTPUT = "grad_output"
+    PARAMS = "parameters"
+    PARAMS_GRAD = "parameters_grad"
+    DEBUG = "debug"
     START = "start"
     STOP = "stop"
     ENV_ENABLE = "1"
@@ -125,7 +129,15 @@ class Const:
     EXCEPTION_DUMP = "exception_dump"
     DUMP_PRECISION_HIGH = "high"
     DUMP_PRECISION_LOW = "low"
-    TASK_LIST = [TENSOR, STATISTICS, ACC_CHECK, STRUCTURE, OVERFLOW_CHECK, DIFF_CHECK, EXCEPTION_DUMP]
+    TASK_LIST = [
+        TENSOR,
+        STATISTICS,
+        ACC_CHECK,
+        STRUCTURE,
+        OVERFLOW_CHECK,
+        DIFF_CHECK,
+        EXCEPTION_DUMP,
+    ]
     TORCH_TASK_LIST = [TENSOR, STATISTICS, ACC_CHECK, STRUCTURE, DIFF_CHECK]
     DUMP_DATA_COLLECTION_LIST = [STATISTICS, TENSOR, STRUCTURE]
     DUMP_DATA_MODE_LIST = [ALL, INPUT, OUTPUT, FORWARD, BACKWARD]
@@ -151,7 +163,16 @@ class Const:
     UNKNOWN_FRAMEWORK = "unknown"
     DIRECTORY_LENGTH = 4096
     FILE_NAME_LENGTH = 255
-    FLOAT_TYPE = [np.half, np.single, float, np.double, np.float64, np.longdouble, np.float32, np.float16]
+    FLOAT_TYPE = [
+        np.half,
+        np.single,
+        float,
+        np.double,
+        np.float64,
+        np.longdouble,
+        np.float32,
+        np.float16,
+    ]
     BOOL_TYPE = [bool, np.uint8]
     INT_TYPE = [np.int8, np.int32, np.int64]
     NPU = 'NPU'
@@ -216,7 +237,12 @@ class Const:
     PYNATIVE_MODE = "pynative"
     PYNATIVE_GRAPH_MODE = "pynative_graph"
 
-    FRAME_FILE_LIST = ["site-packages/torch", "package/torch", "site-packages/mindspore", "package/mindspore"]
+    FRAME_FILE_LIST = [
+        "site-packages/torch",
+        "package/torch",
+        "site-packages/mindspore",
+        "package/mindspore",
+    ]
     INPLACE_LIST = [
         "broadcast",
         "all_reduce",
@@ -260,7 +286,12 @@ class Const:
 
     # data type const
     TORCH_INT_DTYPE = ["torch.int8", "torch.int32", "torch.int64"]
-    TORCH_FLOAT_DTYPE = ["torch.bfloat16", "torch.float16", "torch.float32", "torch.float64"]
+    TORCH_FLOAT_DTYPE = [
+        "torch.bfloat16",
+        "torch.float16",
+        "torch.float32",
+        "torch.float64",
+    ]
     FLOAT16 = "Float16"
     FLOAT32 = "Float32"
     BFLOAT16 = "BFloat16"
@@ -286,13 +317,13 @@ class Const:
     TENSOR_STAT_INDEX = 'tensor_stat_index'
     SUMMARY_METRICS_LIST = [MAX, MIN, MEAN, NORM]
 
-    CODE_STACK = 'Code Stack'
-    OP_NAME = 'Op Name'
-    SCOPE_NAME = 'Scope Name'
-    CODE_STACKS = 'Code Stacks'
-    FILE_PATH = 'File Path'
-    NEW_LINE = '\n'
-    CSV_NEWLINE_SEPARATOR = ',\n'
+    CODE_STACK = "Code Stack"
+    OP_NAME = "Op Name"
+    SCOPE_NAME = "Scope Name"
+    CODE_STACKS = "Code Stacks"
+    FILE_PATH = "File Path"
+    NEW_LINE = "\n"
+    CSV_NEWLINE_SEPARATOR = ",\n"
     # 分隔符常量
     SCOPE_SEPARATOR = "/"
     REPLACEMENT_CHARACTER = "_"
@@ -445,12 +476,12 @@ class Const:
     CONFIG_CHECK_WARNING = "warning"
     CONFIG_CHECK_ERROR = "error"
 
-    MIX_DUMP_NAMES = {'graph', 'pynative'}
+    MIX_DUMP_NAMES = {"graph", "pynative"}
 
-    MEGATRON_MICRO_STEP_NUMBER = 'megatron_micro_step_number'
+    MEGATRON_MICRO_STEP_NUMBER = "megatron_micro_step_number"
 
-    TORCHAIR_FX_DATA_DIRECTORY = 'msprobe_fx_dump'
-    TORCHAIR_GE_DATA_DIRECTORY = 'msprobe_ge_dump'
+    TORCHAIR_FX_DATA_DIRECTORY = "msprobe_fx_dump"
+    TORCHAIR_GE_DATA_DIRECTORY = "msprobe_ge_dump"
 
     FULL_OP_NAME = "full_op_name"
     DIRECTION = "direction"
@@ -608,7 +639,7 @@ class CompareConst:
     COMPARE_ENDS_SUCCESSFULLY = "msprobe compare ends successfully."
     DEFAULT_RATIO_VALUE = 10000
     THOUSANDTH_PASS_VALUE = 0.999
-    ZERO_SHAPE = '(0,)'
+    ZERO_SHAPE = "(0,)"
 
     BENCHMARK_COMPARE_ALGORITHM_NAME = "标杆比对法"
     ULP_COMPARE_ALGORITHM_NAME = "ULP误差比对法"
@@ -617,12 +648,12 @@ class CompareConst:
     THOUSANDTH_STANDARD_ALGORITHM_NAME = "双千指标法"
     ACCUMULATIVE_ERROR_COMPARE_ALGORITHM_NAME = "累积误差比对法"
 
-    ABSOLUTE_THRESHOLD = 'absolute_threshold'
-    BINARY_CONSISTENCY = 'binary_consistency'
-    ULP_COMPARE = 'ulp_compare'
-    THOUSANDTH_STANDARD = 'thousandth_threshold'
-    BENCHMARK = 'benchmark'
-    ACCUMULATIVE_ERROR_COMPARE = 'accumulative_error_compare'
+    ABSOLUTE_THRESHOLD = "absolute_threshold"
+    BINARY_CONSISTENCY = "binary_consistency"
+    ULP_COMPARE = "ulp_compare"
+    THOUSANDTH_STANDARD = "thousandth_threshold"
+    BENCHMARK = "benchmark"
+    ACCUMULATIVE_ERROR_COMPARE = "accumulative_error_compare"
 
     SMALL_VALUE_ERR_RATIO = "small_value_err_ratio"
     RMSE_RATIO = "rmse_ratio"
@@ -669,8 +700,26 @@ class CompareConst:
     MD5_COMPARE_INDEX = [RESULT]
     EXTRACT_INDEX = [REQ_GRAD_CONSIST, RESULT, ERROR_MESSAGE]
 
-    BASIC_INFO = [NPU_NAME, BENCH_NAME, NPU_DTYPE, BENCH_DTYPE, NPU_SHAPE, BENCH_SHAPE, NPU_REQ_GRAD, BENCH_REQ_GRAD]
-    SUMMARY_INFO = [NPU_MAX, NPU_MIN, NPU_MEAN, NPU_NORM, BENCH_MAX, BENCH_MIN, BENCH_MEAN, BENCH_NORM]
+    BASIC_INFO = [
+        NPU_NAME,
+        BENCH_NAME,
+        NPU_DTYPE,
+        BENCH_DTYPE,
+        NPU_SHAPE,
+        BENCH_SHAPE,
+        NPU_REQ_GRAD,
+        BENCH_REQ_GRAD,
+    ]
+    SUMMARY_INFO = [
+        NPU_MAX,
+        NPU_MIN,
+        NPU_MEAN,
+        NPU_NORM,
+        BENCH_MAX,
+        BENCH_MIN,
+        BENCH_MEAN,
+        BENCH_NORM,
+    ]
 
     COMPARE_RESULT_HEADER = BASIC_INFO + ALL_COMPARE_INDEX + SUMMARY_INFO + EXTRACT_INDEX
 
@@ -768,7 +817,7 @@ class CompareConst:
     MAX_TOKENS = 65536
     SPECIAL_SPARSE_MOED = 4
 
-    OVERFLOW_LIST = ['nan\t', 'inf\t', '-inf\t', 'nan', 'inf', '-inf']
+    OVERFLOW_LIST = ["nan\t", "inf\t", "-inf\t", "nan", "inf", "-inf"]
 
     MS_GRAPH_BASE = {
         NPU_NAME: None,
@@ -821,8 +870,8 @@ class CompareConst:
     PARAMS_PATTERN = Const.SEP + Const.PARAMS + Const.SEP
     PARAMS_GRAD_PATTERN = Const.SEP + Const.PARAMS_GRAD + Const.SEP
 
-    CMP_KEY = 'compare_key'
-    CMP_SHAPE = 'compare_shape'
+    CMP_KEY = "compare_key"
+    CMP_SHAPE = "compare_shape"
 
     OP_NAME_X = 'op_name_x'
     FUZZY_NPU_COLUMNS = [
@@ -848,21 +897,21 @@ class CompareConst:
         'data_name_y',
     ]
 
-    INTERNAL_API_MAPPING_FILE = 'ms_to_pt_api.yaml'
-    UNREADABLE = 'unreadable data'
-    NPU_DUMP_DATA_DIR = 'npu_dump_data_dir'
-    BENCH_DUMP_DATA_DIR = 'bench_dump_data_dir'
-    NO_REAL_DATA_FLAG = '-1'
+    INTERNAL_API_MAPPING_FILE = "ms_to_pt_api.yaml"
+    UNREADABLE = "unreadable data"
+    NPU_DUMP_DATA_DIR = "npu_dump_data_dir"
+    BENCH_DUMP_DATA_DIR = "bench_dump_data_dir"
+    NO_REAL_DATA_FLAG = "-1"
 
     # ATB data comparison
-    STATS_COMPARISION_MODE = 'stats'
-    TENSOR_COMPARISION_MODE = 'tensor'
+    STATS_COMPARISION_MODE = "stats"
+    TENSOR_COMPARISION_MODE = "tensor"
     UNKNOWN_COMPARISION_MODE = "unknown"
-    ATB_DATA_NAME = 'Data Name'
-    DEVICE_AND_PID = 'Device and PID'
-    EXECUTION_COUNT = 'Execution Count'
-    DATA_TYPE = 'Data Type'
-    DATA_SHAPE = 'Data Shape'
+    ATB_DATA_NAME = "Data Name"
+    DEVICE_AND_PID = "Device and PID"
+    EXECUTION_COUNT = "Execution Count"
+    DATA_TYPE = "Data Type"
+    DATA_SHAPE = "Data Shape"
     TENSOR_PATH = "tensor_path"
 
     VERL_STOP_PARSE_RULES = {'fsdp': ['Qwen2Model', 'Qwen3Model', 'Qwen3MoeModel'], 'megatron': ['GPTModel']}
@@ -909,7 +958,7 @@ class FileCheckConst:
     DIRECTORY_LENGTH = 4096
     FILE_NAME_LENGTH = 255
     FILE_VALID_PATTERN = r"^[a-zA-Z0-9_.:/-]+$"
-    FILE_PATTERN = r'^[a-zA-Z0-9_./-]+$'
+    FILE_PATTERN = r"^[a-zA-Z0-9_./-]+$"
     PKL_SUFFIX = ".pkl"
     NUMPY_SUFFIX = ".npy"
     JSON_SUFFIX = ".json"
@@ -965,7 +1014,7 @@ class FileCheckConst:
         OM_SUFFIX: MAX_OM_SIZE,
         BIN_SUFFIX: MAX_BIN_SIZE,
     }
-    CSV_BLACK_LIST = r'^[＋－＝％＠\+\-=%@]|;[＋－＝％＠\+\-=%@]'
+    CSV_BLACK_LIST = r"^[＋－＝％＠\+\-=%@]|;[＋－＝％＠\+\-=%@]"
 
 
 class OverflowConst:
@@ -1028,14 +1077,17 @@ class MonitorConst:
     DEFAULT_MONITOR_OUTPUT_DIR = "./monitor_output"
     DATABASE = "database"
     EMAIL = "email"
-    OPT_TY = ['Megatron_DistributedOptimizer', 'Megatron_Float16OptimizerWithFloat16Params']
+    OPT_TY = [
+        "Megatron_DistributedOptimizer",
+        "Megatron_Float16OptimizerWithFloat16Params",
+    ]
     DEEPSPEED_OPT_TY = (
         "DeepSpeedZeroOptimizer_Stage0",
         "DeepSpeedZeroOptimizer_Stage1_or_2",
         "DeepSpeedZeroOptimizer_Stage3",
     )
     DEEPSPEED_ZERO_OPT_FILTER = "DeepSpeedZeroOptimizer"
-    RULE_NAME = ['AnomalyTurbulence', 'AnomalyNan']
+    RULE_NAME = ["AnomalyTurbulence", "AnomalyNan"]
     L2_HOOKS = ["linear_hook", "attention_hook"]
     SA_ORDERS = ["s,b,h,d", "b,s,h,d"]
 
@@ -1071,7 +1123,7 @@ class MonitorConst:
     TENSORBOARD = "tensorboard"
     CSV = "csv"
     API = "api"
-    HEADER_NAME = 'name'
+    HEADER_NAME = "name"
     MAX_NDIGITS = 20
 
     DEFAULT_STAGE = -1

@@ -15,15 +15,19 @@
 # -------------------------------------------------------------------------
 
 import os
+import re
 import time
+import importlib
+import sys
 
 from msprobe.core.dump.debugger.precision_debugger import BasePrecisionDebugger
+from msprobe.core.common.file_utils import load_yaml, FileChecker
 from msprobe.pytorch.dump.debugger.debugger_config import DebuggerConfig
 from msprobe.pytorch.dump.pt_config import parse_task_config
 from msprobe.pytorch.dump.pytorch_service import PytorchService
 
-from msprobe.core.common.const import Const
-from msprobe.core.common.exceptions import MsprobeException
+from msprobe.core.common.const import Const, FileCheckConst
+from msprobe.core.common.exceptions import MsprobeException, FileCheckException
 from msprobe.core.common.utils import check_token_range, ThreadSafe, check_rank_id, get_real_step_or_rank
 from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.common.utils import check_save_param, is_torch_nn_module
@@ -34,14 +38,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
     _CONFIG_CHECK_INTERVAL_ENABLED_S = 0.5
     _CONFIG_CHECK_INTERVAL_DISABLED_S = 3.0
 
-    def __init__(
-        self,
-        config_path=None,
-        task=None,
-        dump_path=None,
-        level=None,
-        step=None
-    ):
+    def __init__(self, config_path=None, task=None, dump_path=None, level=None, step=None):
         if self.initialized:
             return
         super().__init__(config_path, task, dump_path, level, step)
@@ -61,6 +58,9 @@ class PrecisionDebugger(BasePrecisionDebugger):
         self.service = PytorchService(self.config)
         self.module_dumper = ModuleDumper(self.service)
         self.ori_customer_func = {}
+        self._custom_api_auto_registered = set()
+        self._custom_api_pending = []
+        self._auto_register_custom_api(force_retry=True)
 
     @staticmethod
     def _get_task_config(task, json_config):
@@ -75,6 +75,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
         check_rank_id(rank_id)
         instance.config.check_model(model, token_range)
         instance.service.start(model, token_range, rank_id)
+        instance._auto_register_custom_api(force_retry=True)
 
     @classmethod
     @ThreadSafe.synchronized
@@ -152,18 +153,13 @@ class PrecisionDebugger(BasePrecisionDebugger):
 
     def _create_debugger_config(self, common_config, task_config):
         return DebuggerConfig(
-            common_config,
-            task_config,
-            self._overrides["task"],
-            self._overrides["dump_path"],
-            self._overrides["level"]
+            common_config, task_config, self._overrides["task"], self._overrides["dump_path"], self._overrides["level"]
         )
 
     def _reload_config(self, pending_signature):
         try:
             common_config, task_config = self._parse_config_path(
-                self._overrides["config_path"],
-                self._overrides["task"]
+                self._overrides["config_path"], self._overrides["task"]
             )
             if self._overrides["step"] is not None:
                 common_config.step = get_real_step_or_rank(self._overrides["step"], Const.STEP)
@@ -177,6 +173,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
         logger.info("PrecisionDebugger detected config change and reloaded runtime settings.")
         return True
 
+    # pylint: disable=attribute-defined-outside-init
     def _apply_reloaded_config(self, common_config, task_config, new_config, signature):
         previous_dump_enable = getattr(self.config, "dump_enable", None)
         # In dynamic mode, deleting dump_enable keeps the previous state.
@@ -207,6 +204,108 @@ class PrecisionDebugger(BasePrecisionDebugger):
     def _is_dump_enabled(dump_enable):
         return True if dump_enable is None else dump_enable
 
+    def _auto_register_custom_api(self, force_retry):
+        custom_api_list = self._load_custom_api_from_yaml()
+        if not custom_api_list and not (force_retry and self._custom_api_pending):
+            return
+
+        pending = []
+        for item in custom_api_list:
+            module_path = item.get("module")
+            api_name = item.get("api")
+            api_prefix = item.get("prefix", None)
+            key = (module_path, api_name)
+            if key in self._custom_api_auto_registered:
+                continue
+
+            try:
+                module_obj = self._resolve_module_path(module_path)
+                if not hasattr(module_obj, api_name):
+                    raise AttributeError(f"{module_path} does not have attribute {api_name}")
+                self.__class__.register_custom_api(module_obj, api_name, api_prefix)
+                self._custom_api_auto_registered.add(key)
+                logger.info(f"Auto-registered custom api from yaml: {module_path}.{api_name}")
+            except Exception as ex:
+                pending.append(item)
+                logger.warning(f"Auto-register custom api from yaml skipped: {item}, reason: {ex}")
+
+        if force_retry:
+            for item in self._custom_api_pending:
+                if item not in pending:
+                    pending.append(item)
+        self._custom_api_pending = pending
+
+    def _load_custom_api_from_yaml(self):
+        api_dump_dir = os.path.realpath(
+            os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "api_dump")
+        )
+        try:
+            path_checker = FileChecker(api_dump_dir, FileCheckConst.DIR, FileCheckConst.READ_ABLE)
+            api_dump_dir = path_checker.common_check()
+        except FileCheckException:
+            return []
+
+        yaml_path = os.path.join(api_dump_dir, "custom_wrap_ops.yaml")
+
+        try:
+            content = load_yaml(yaml_path)
+        except Exception as ex:
+            logger.warning(f"Failed to load custom api yaml: {yaml_path}, reason: {ex}")
+            return []
+
+        if not isinstance(content, dict):
+            logger.warning(f"Invalid custom api yaml format: {yaml_path}, expected dict")
+            return []
+
+        items = []
+        for module_path, api_list in content.items():
+            if not isinstance(module_path, str) or not module_path:
+                continue
+            if len(module_path) > Const.MAX_MODULE_PATH_LEN or not re.match(Const.PY_MODULE_PATH_PATTERN, module_path):
+                continue
+            if isinstance(api_list, str):
+                api_list = [api_list]
+            if not isinstance(api_list, list):
+                continue
+
+            default_prefix = module_path
+
+            for api_name in api_list:
+                if not isinstance(api_name, str) or not api_name:
+                    continue
+                if len(api_name) > Const.MAX_API_NAME_LEN or not re.match(Const.PY_IDENTIFIER_PATTERN, api_name):
+                    continue
+                items.append(
+                    {
+                        "module": module_path,
+                        "api": api_name,
+                        "prefix": default_prefix,
+                    }
+                )
+        return items
+
+    @staticmethod
+    def _resolve_module_path(module_path: str):
+        if (
+            not isinstance(module_path, str)
+            or not module_path
+            or len(module_path) > Const.MAX_MODULE_PATH_LEN
+            or not re.match(Const.PY_MODULE_PATH_PATTERN, module_path)
+        ):
+            raise MsprobeException(MsprobeException.INVALID_CHAR_ERROR, f"Invalid module path: {module_path}")
+        if module_path in sys.modules and sys.modules[module_path] is not None:
+            return sys.modules[module_path]
+        parts = module_path.split(".")
+        obj = importlib.import_module(parts[0])
+        for i in range(1, len(parts)):
+            part = parts[i]
+            if hasattr(obj, part):
+                obj = getattr(obj, part)
+                continue
+            candidate_module = ".".join(parts[: i + 1])
+            obj = importlib.import_module(candidate_module)
+        return obj
+
 
 @ThreadSafe.synchronized
 def module_dump(module, dump_name):
@@ -214,12 +313,11 @@ def module_dump(module, dump_name):
         raise MsprobeException(
             MsprobeException.INVALID_PARAM_ERROR,
             f"the module argument in module_dump must be a torch.nn.Module type, "
-            f"but currently there is an unsupported {type(module)} type."
+            f"but currently there is an unsupported {type(module)} type.",
         )
     if not isinstance(dump_name, str):
         raise MsprobeException(
-            MsprobeException.INVALID_PARAM_ERROR,
-            f"the dump_name argument in module_dump must be a str type"
+            MsprobeException.INVALID_PARAM_ERROR, "the dump_name argument in module_dump must be a str type"
         )
     instance = _get_debugger_instance()
     instance.module_dumper.start_module_dump(module, dump_name)
@@ -237,5 +335,5 @@ def _get_debugger_instance():
         return instance
     raise MsprobeException(
         MsprobeException.INTERFACE_USAGE_ERROR,
-        "PrecisionDebugger must be instantiated before using module_dump interfaces"
+        "PrecisionDebugger must be instantiated before using module_dump interfaces",
     )
