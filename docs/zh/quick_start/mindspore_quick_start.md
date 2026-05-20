@@ -82,7 +82,7 @@
    }
    ```
 
-3. 分别以MindSpore 2.6.0和MindSpore 2.7.0环境下的训练脚本（mindspore_main.py文件）中添加工具，如下所示。
+3. 分别在MindSpore 2.6.0和MindSpore 2.7.0环境下的训练脚本（mindspore_main.py文件）中添加工具，如下所示。
 
    **说明**：[MindSpore精度数据采集代码样例](#mindspore精度数据采集代码样例)中的完整代码已添加工具，下列仅为说明工具接口在脚本中添加的位置。
 
