@@ -33,6 +33,16 @@ from msprobe.core.common.exceptions import MsprobeException
 from msprobe.core.common.file_utils import (FileOpen, check_file_or_directory_path, load_json, load_construct_json)
 from msprobe.core.common.log import logger
 
+_has_torchrec = False
+try:
+    from torchrec.sparse.jagged_tensor import JaggedTensor, KeyedJaggedTensor, KeyedTensor
+    _has_torchrec = True
+except Exception as e:
+    logger.warning(
+        f"torchrec is not available or incompatible: {e}, skip dump JaggedTensor, KeyedJaggedTensor, KeyedTensor."
+    )
+    _has_torchrec = False
+
 device = collections.namedtuple('device', ['type', 'index'])
 prefixes = ['api_stack', 'list', 'range', 'acl']
 file_suffix_to_file_type = {
@@ -734,3 +744,15 @@ def check_rank_id(rank_id):
 def is_np2():
     np_version = tuple(map(int, np.__version__.split('.')[:2]))
     return np_version >= (2, 0)
+
+def is_torchrec_available():
+    return _has_torchrec
+
+def is_jagged_tensor(data):
+    return is_torchrec_available() and isinstance(data, JaggedTensor)
+
+def is_keyed_jagged_tensor(data):
+    return is_torchrec_available() and isinstance(data, KeyedJaggedTensor)
+
+def is_keyed_tensor(data):
+    return is_torchrec_available() and isinstance(data, KeyedTensor)

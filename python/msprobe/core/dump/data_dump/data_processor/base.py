@@ -27,7 +27,8 @@ import numpy as np
 from msprobe.core.common.const import Const
 from msprobe.core.common.file_utils import save_npy
 from msprobe.core.common.log import logger
-from msprobe.core.common.utils import convert_tuple, CompareException, is_np2
+from msprobe.core.common.utils import (convert_tuple, CompareException, is_np2,
+                                       is_jagged_tensor, is_keyed_jagged_tensor, is_keyed_tensor)
 
 
 @dataclass
@@ -433,6 +434,16 @@ class BaseDataProcessor:
             return result_list
         elif isinstance(args, dict):
             return cls.apply_transform_dict(args, transform, depth, key_stack)
+        elif is_jagged_tensor(args):
+            # JaggedTensor to list
+            return cls.apply_transform_list(args.to_dense(), transform, depth, key_stack)
+        elif is_keyed_jagged_tensor(args):
+            # KeyedJaggedTensor to dict
+            args_dict = {key: args[key].to_dense() for key in args.keys()}
+            return cls.apply_transform_dict(args_dict, transform, depth, key_stack)
+        elif is_keyed_tensor(args):
+            # KeyedTensor to dict
+            return cls.apply_transform_dict(args.to_dict(), transform, depth, key_stack)
         elif args is not None:
             logger.debug(f"Data type {type(args)} is not supported.")
             return None
