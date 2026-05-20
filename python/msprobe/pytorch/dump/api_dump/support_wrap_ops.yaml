@@ -1324,6 +1324,30 @@ torch_npu:
   - npu_quant_lightning_indexer
   - npu_rms_norm_dynamic_quant
   - npu_dynamic_quant
+  - npu_advance_step_flashattn
+  - npu_clear_float_status
+  - npu_convert_weight_to_int4pack
+  - npu_cross_entropy_loss
+  - npu_gather_sparse_index
+  - npu_gelu_mul
+  - npu_get_float_status
+  - npu_group_norm_swish
+  - npu_interleave_rope
+  - npu_kv_quant_sparse_flash_attention
+  - npu_kv_rmsnorm_rope_cache
+  - npu_lightning_indexer
+  - npu_mla_prolog
+  - npu_mla_prolog_v2
+  - npu_moe_distribute_combine_add_rms_norm
+  - npu_moe_re_routing
+  - npu_moe_update_expert
+  - npu_quant_matmul_reduce_sum
+  - npu_recurrent_gated_delta_rule
+  - npu_sim_exponential_
+  - npu_sparse_flash_attention
+  - npu_swiglu_quant
+  - npu_top_k_top_p
+  - npu_top_k_top_p_sample
 
 aten:
   - signbit
@@ -1641,7 +1665,7 @@ aten:
   - _scaled_dot_product_efficient_attention
   - _reshape_alias
   - _linalg_det
-  - constant_pad_nd
+  - constant_pad_nd 
   - _linalg_svd
   - sinh_
   - view
