@@ -1,0 +1,39 @@
+
+# 全局
+window_size: 128
+stride: 64
+topk: null  # 为None时，按实际数据取到的topk数
+
+# rare-character 生僻字
+rare_character:
+  explogp_sum_thresh: 0.4  # 单token topk的logprob exp总和，当小于阈值时，则可能为生僻字
+  category_thresh: 2  # 单token的topk的类别统计，与explogp_sum_thresh综合判定
+
+# garbled 乱码
+garbled:
+  top1_logp_thresh: -5 # 当window_ratio比例符合，但加上类别检测后其比例不符合时，如果其logprob超过该阈值，也可考虑为乱码
+  window_ratio: 0.2 # 满足条件的字符占序列长度的比例
+  window_thresh: 2 # 满足条件的窗口数
+
+# repetition 重复
+repetition:
+  trajectory:   # 轨迹检测 N-gram
+    n: 3
+    distinct_n_thresh: 0.2  # n-gram阈值
+    logp_thresh: -0.2  # top1的logprob阈值
+
+  acf:   
+    w_std_threshold: 1e-12  # logp的方差阈值, 无需修改
+    acf_threshold: 0.65
+    acf_harmonic_threshold: 0.325  # 2倍/3倍处的谐波阈值，acf_threshold//2
+    logp_thresh: -0.2  # top1的logprob阈值
+    min_period: 3
+    max_period: null
+    linalg_logp_thresh: 0.9  # 
+  
+  single_window_thresh: 14  # 单个方法检出时，满足条件的窗口数
+  multi_window_thresh: 2 # 两个方法同时检出时，满足条件的窗口数
+
+  
+
+

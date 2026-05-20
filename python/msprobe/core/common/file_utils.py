@@ -378,6 +378,16 @@ def find_existing_path(path, depth=16):
         return find_existing_path(parent_path, depth - 1)
     else:
         raise ValueError("Output path was not valid.")
+    
+
+def listdir_path(path):
+    check_path_exists(path)
+    return os.listdir(path)
+
+def check_file_exist(path):
+    if os.path.isfile(path):
+        return True
+    return False
 
 
 def check_and_get_real_path(path, ability, file_type=None, must_exist=True, is_strict=False):
