@@ -41,6 +41,11 @@ class ToyModel(torch.nn.Module):
         return self.linear(x)
 
 
+class AddOnlyModel(torch.nn.Module):
+    def forward(self, x):
+        return x + 1
+
+
 @unittest.skipUnless(IMPORT_OK, "aclgraph_dump_ext or aclgraph_dumper import failed, skip tests")
 class TestAclGraphDumper(unittest.TestCase):
     def test_aclgraph_dump_ext_import_ok(self):
@@ -204,8 +209,68 @@ class TestAclGraphDumper(unittest.TestCase):
             dumper.start(model)
             _ = model(torch.randn(2, 8))
 
-        api_tags = [call.args[1] for call in mock_acl_stat.call_args_list if ".api." in call.args[1]]
+        api_tags = [call.args[1] for call in mock_acl_stat.call_args_list if ".Aten." in call.args[1]]
         self.assertGreater(len(api_tags), 0)
+        self.assertTrue(any(tag.startswith("Module.linear.Linear.Aten.") for tag in api_tags))
+
+    def test_collect_mix_api_stat_with_api_only_filter(self):
+        with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", ["add"], "mix", [])), \
+                patch.object(aclgraph_dumper_module, "acl_stat") as mock_acl_stat:
+            model = AddOnlyModel()
+            dumper = AclGraphDumper(config_path="./config.json")
+            dumper.start(model)
+            _ = model(torch.randn(2, 8))
+
+        api_tags = [call.args[1] for call in mock_acl_stat.call_args_list if ".Aten.add." in call.args[1]]
+        self.assertGreater(len(api_tags), 0)
+        self.assertTrue(all("add" in tag for tag in api_tags))
+
+    def test_collect_with_dump_style_module_name_filter(self):
+        with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", ["Module.linear"], "mix", [])), \
+                patch.object(aclgraph_dumper_module, "acl_stat") as mock_acl_stat:
+            model = ToyModel()
+            dumper = AclGraphDumper(config_path="./config.json")
+            dumper.start(model)
+            _ = model(torch.randn(2, 8))
+
+        tags = [call.args[1] for call in mock_acl_stat.call_args_list]
+        self.assertGreater(len(tags), 0)
+        self.assertTrue(any(tag.startswith("Module.linear.Linear.") for tag in tags))
+        self.assertTrue(any(tag.startswith("Module.linear.Linear.Aten.") for tag in tags))
+
+    def test_dispatch_collect_guard_only_applies_to_acl_stat(self):
+        with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \
+                patch.object(AclGraphDumper, "_load_msprobe_config", return_value=("./dump", [], "L1", [])):
+            dumper = AclGraphDumper(config_path="./config.json")
+            dumper._push_scope("linear")
+            mode = aclgraph_dumper_module._AclTorchDispatchMode(dumper)
+            collect_states = []
+            func_states = []
+
+            def fake_collect(*args, **kwargs):
+                collect_states.append(dumper._is_dispatch_collecting())
+                return True
+
+            class FakeFunc:
+                overloadname = "default"
+
+                def __str__(self):
+                    return "aten.add.Tensor"
+
+                def __call__(self, *args, **kwargs):
+                    func_states.append(dumper._is_dispatch_collecting())
+                    return args[0]
+
+            with patch.object(dumper, "_collect", side_effect=fake_collect):
+                out = mode.__torch_dispatch__(FakeFunc(), (), args=(torch.randn(2, 8),), kwargs={})
+
+        self.assertIsInstance(out, torch.Tensor)
+        self.assertTrue(collect_states)
+        self.assertTrue(all(collect_states))
+        self.assertTrue(func_states)
+        self.assertTrue(all(not state for state in func_states))
 
     def test_start_skips_non_target_rank(self):
         with patch.object(AclGraphDumper, "_validate_dump_path", return_value="./dump"), \

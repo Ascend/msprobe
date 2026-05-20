@@ -92,20 +92,23 @@ if TorchDispatchMode is not None:
             if self._dumper._is_dispatch_collecting():
                 return func(*args, **kwargs)
 
-            self._dumper._set_dispatch_collecting(True)
-            try:
-                op_scope = self._dumper._next_api_scope(func)
-                started = False
-                collected = self._dumper._collect(op_scope, "input", args, mark_forward_start=not started)
+            op_scope = self._dumper._next_api_scope(func)
+            should_collect = self._dumper._should_collect_api(self._dumper._current_scope(), func)
+            started = False
+            if should_collect:
+                collected = self._dumper._dc(self._dumper._collect, op_scope, "input", args,
+                                             mark_forward_start=not started)
                 started = started or collected
                 if kwargs:
-                    collected = self._dumper._collect(op_scope, "input_kwargs", kwargs, mark_forward_start=not started)
+                    collected = self._dumper._dc(self._dumper._collect, op_scope, "input_kwargs", kwargs,
+                                                 mark_forward_start=not started)
                     started = started or collected
-                output = func(*args, **kwargs)
-                self._dumper._collect(op_scope, "output", output, mark_forward_start=not started)
-                return output
-            finally:
-                self._dumper._set_dispatch_collecting(False)
+
+            output = func(*args, **kwargs)
+
+            if should_collect:
+                self._dumper._dc(self._dumper._collect, op_scope, "output", output, mark_forward_start=not started)
+            return output
 
 
 class AclGraphDumper:
@@ -116,7 +119,6 @@ class AclGraphDumper:
         self.level = self._validate_level(config_level)
         self.rank = get_real_step_or_rank(config_rank, Const.RANK)
         self.rank_id = self._resolve_rank_id()
-        self.model = None
         self.step_id = 0
         self._running = False
         self._tls = threading.local()
@@ -190,15 +192,26 @@ class AclGraphDumper:
     def _module_scope(self, module_name):
         return module_name if module_name else "__root__"
 
-    def _module_dump_scope(self, module_name, module_class_name):
+    def _module_scope_name(self, module_name, module_class_name=None):
         scope_name = self._module_scope(module_name)
-        return f"Module.{scope_name}.{module_class_name}"
+        if module_class_name:
+            return f"Module.{scope_name}.{module_class_name}"
+        return f"Module.{scope_name}"
 
-    def _should_collect_module(self, module_name):
+    def _match_list_keywords(self, *candidates):
         if not self.list:
             return True
-        module_name = module_name.casefold()
-        return any(keyword.casefold() in module_name for keyword in self.list)
+        normalized = [candidate.casefold() for candidate in candidates if isinstance(candidate, str)]
+        return any(keyword.casefold() in candidate for keyword in self.list for candidate in normalized)
+
+    def _should_collect_module(self, module_name, module_class_name):
+        module_scope = self._module_scope(module_name)
+        return self._match_list_keywords(
+            module_name,
+            module_scope,
+            f"Module.{module_scope}",
+            self._module_scope_name(module_name, module_class_name),
+        )
 
     def _should_dump_current_rank(self):
         if not self.rank or self.rank_id is None:
@@ -260,8 +273,14 @@ class AclGraphDumper:
     def _is_dispatch_collecting(self):
         return self._tls_get("dispatch_collecting", False)
 
-    def _set_dispatch_collecting(self, value):
-        setattr(self._tls, "dispatch_collecting", bool(value))
+    def _dc(self, fn, *args, **kwargs):
+        # Mark host-side collection so acl_stat-triggered dispatch does not recurse back into collection.
+        previous = self._is_dispatch_collecting()
+        setattr(self._tls, "dispatch_collecting", True)
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            setattr(self._tls, "dispatch_collecting", previous)
 
     def _scope_stack(self):
         return self._tls_get("scope_stack", [])
@@ -283,6 +302,21 @@ class AclGraphDumper:
         op_name = self._op_name_from_dispatch_func(func)
         scope = self._module_scope(self._current_scope())
         return f"{scope}.{op_name}"
+
+    def _should_collect_api(self, module_name, func):
+        if not self.list:
+            return True
+        scope = self._module_scope(module_name)
+        op_name = self._op_name_from_dispatch_func(func)
+        api_scope_prefix = self._module_scope_name(module_name)
+        return self._match_list_keywords(
+            module_name,
+            scope,
+            api_scope_prefix,
+            op_name,
+            f"{scope}.{op_name}",
+            f"{api_scope_prefix}.{op_name}",
+        )
 
     @staticmethod
     def _normalize_dtype(dtype):
@@ -418,13 +452,15 @@ class AclGraphDumper:
         return has_collected
 
     def _patch(self, model):
-        self.model = model
         dumper = self
 
         for module_name, module in model.named_modules():
-            if not self._should_collect_module(module_name):
-                continue
             if hasattr(module, "_msprobe_aclgraph_origin_forward"):
+                continue
+            module_class_name = type(module).__name__
+            should_collect_module = self._should_collect_module(module_name, module_class_name)
+            should_wrap = self._collect_api_enabled() or should_collect_module
+            if not should_wrap:
                 continue
             origin = module.forward
 
@@ -433,13 +469,14 @@ class AclGraphDumper:
                 *args,
                 __origin=origin,
                 __module_name=module_name,
-                __module_class_name=type(module).__name__,
+                __module_class_name=module_class_name,
+                __should_collect_module=should_collect_module,
                 **kwargs
             ):
-                dumper._push_scope(__module_name)
-                module_scope_name = __module_name
-                if dumper._collect_module_enabled():
-                    module_scope_name = dumper._module_dump_scope(__module_name, __module_class_name)
+                api_scope_name = dumper._module_scope_name(__module_name, __module_class_name)
+                collect_module_data = dumper._running and dumper._collect_module_enabled() and __should_collect_module
+                module_scope_name = api_scope_name if collect_module_data else __module_name
+                dumper._push_scope(api_scope_name)
                 depth = dumper._dispatch_depth()
                 dumper._set_dispatch_depth(depth + 1)
                 use_dispatch = (
@@ -451,7 +488,7 @@ class AclGraphDumper:
                 dispatch_mode = _AclTorchDispatchMode(dumper) if use_dispatch else nullcontext()
                 started = False
                 try:
-                    if dumper._running and dumper._collect_module_enabled():
+                    if collect_module_data:
                         collected = dumper._collect(module_scope_name, "input", args, mark_forward_start=not started)
                         started = started or collected
                         if kwargs:
@@ -463,7 +500,7 @@ class AclGraphDumper:
                     with dispatch_mode:
                         output = __origin(*args, **kwargs)
 
-                    if dumper._running and dumper._collect_module_enabled():
+                    if collect_module_data:
                         dumper._collect(module_scope_name, "output", output, mark_forward_start=not started)
                     return output
                 finally:
