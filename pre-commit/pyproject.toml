@@ -60,6 +60,7 @@ disable = [
   "trailing-whitespace",
 
   # 所有复杂度检查（函数太长、分支太多、参数太多等）
+  "too-many-lines",
   "too-many-arguments",
   "too-many-positional-arguments",
   "too-many-branches",

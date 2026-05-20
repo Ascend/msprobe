@@ -30,7 +30,7 @@ from msprobe.pytorch.common.utils import (
     torch_version_above_or_equal_2,
     register_forward_hook,
     Const as PtConst,
-    get_rank_if_initialized
+    get_rank_if_initialized,
 )
 from msprobe.pytorch.dump.api_dump.hook_module import HOOKModule
 from msprobe.pytorch.dump.module_dump.module_processor import ModuleProcessor
@@ -67,18 +67,23 @@ class PytorchHookManager(BaseHookManager):
         if hook_type == Const.API:
             hook_set = HookSet(
                 forward_pre_hook=self._build_forward_pre_hook(hook_type, name),
-                distributed_forward_hook=self._build_distributed_forward_hook()
+                distributed_forward_hook=self._build_distributed_forward_hook(),
             )
         else:
             full_backward_name = replace_last_occurrence(name, Const.FORWARD, Const.BACKWARD)
             hook_set = HookSet(
                 forward_hook=self._build_forward_hook(hook_type, name),
-                backward_hook=self._build_backward_hook(hook_type, full_backward_name)
+                backward_hook=self._build_backward_hook(hook_type, full_backward_name),
             )
         return hook_set
 
     def _init_specific_components(self):
         self.logger = logger
+
+    def _on_forward_pre_hook(self):
+        if self.config.task == Const.NAN_CHECK:
+            device = torch.device(f"npu:{torch.npu.current_device()}")
+            torch.ops.my_ns.npu_clear_over_flow(device)
 
     def _register_forward_hook(self, module, api_name):
         if not hasattr(module, 'msprobe_forward_hook'):
@@ -116,6 +121,14 @@ class PytorchHookManager(BaseHookManager):
 
         grad_fn = var.grad_fn
         if grad_fn is not None:
+            if hasattr(grad_fn, 'register_prehook') and self.config.task == Const.NAN_CHECK:
+
+                def _nan_check_backward_prehook(_grad_outputs):
+                    device = torch.device(f"npu:{torch.npu.current_device()}")
+                    torch.ops.my_ns.npu_clear_over_flow(device)
+
+                grad_fn.register_prehook(_nan_check_backward_prehook)
+
             backward_hook = self._build_backward_hook(Const.API, full_backward_name)
             wrapper = functools.partial(backward_hook, module)
             functools.update_wrapper(wrapper, backward_hook)
@@ -129,10 +142,7 @@ class PytorchHookManager(BaseHookManager):
     def _get_params_dict(self, module):
         params_dict = {}
         if self.config.task != Const.STRUCTURE:
-            params_dict = {
-                key.split(Const.SEP)[-1]: value
-                for key, value in module.named_parameters(recurse=False)
-            }
+            params_dict = {key.split(Const.SEP)[-1]: value for key, value in module.named_parameters(recurse=False)}
         return params_dict
 
     def _build_distributed_forward_hook(self):
@@ -146,12 +156,7 @@ class PytorchHookManager(BaseHookManager):
                 self.data_collector.update_api_or_module_name(full_name)
                 module_input_output = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=output)
                 with self._no_grad_context():
-                    self.data_collector.forward_output_data_collect(
-                        full_name,
-                        module,
-                        self._pid,
-                        module_input_output
-                    )
+                    self.data_collector.forward_output_data_collect(full_name, module, self._pid, module_input_output)
                 BaseHookManager.inner_switch[tid] = False
 
         return distributed_forward_hook

@@ -69,6 +69,7 @@ class Const:  # pylint: disable=too-many-lines
 
     EXTERN_INPUT_LIST_MAX_LEN = 100
     MAX_PROCESS_NUM = 128
+    LARGER_FLUSH_SIZE = 20000
 
     # dump mode
     ALL = "all"
@@ -129,6 +130,8 @@ class Const:  # pylint: disable=too-many-lines
     EXCEPTION_DUMP = "exception_dump"
     DUMP_PRECISION_HIGH = "high"
     DUMP_PRECISION_LOW = "low"
+    NAN_CHECK = "nan_check"
+    IS_NAN = "is_nan"
     TASK_LIST = [
         TENSOR,
         STATISTICS,
@@ -137,8 +140,9 @@ class Const:  # pylint: disable=too-many-lines
         OVERFLOW_CHECK,
         DIFF_CHECK,
         EXCEPTION_DUMP,
+        NAN_CHECK,
     ]
-    TORCH_TASK_LIST = [TENSOR, STATISTICS, ACC_CHECK, STRUCTURE, DIFF_CHECK]
+    TORCH_TASK_LIST = [TENSOR, STATISTICS, ACC_CHECK, STRUCTURE, DIFF_CHECK, NAN_CHECK]
     DUMP_DATA_COLLECTION_LIST = [STATISTICS, TENSOR, STRUCTURE]
     DUMP_DATA_MODE_LIST = [ALL, INPUT, OUTPUT, FORWARD, BACKWARD]
     DUMP_PRECISION_LIST = [DUMP_PRECISION_LOW, DUMP_PRECISION_HIGH]
@@ -315,6 +319,7 @@ class Const:  # pylint: disable=too-many-lines
     REQ_GRAD = 'requires_grad'
     API_ORIGIN_NAME = 'api_origin_name'
     TENSOR_STAT_INDEX = 'tensor_stat_index'
+    IS_NAN_INDEX = 'is_nan_index'
     SUMMARY_METRICS_LIST = [MAX, MIN, MEAN, NORM]
 
     CODE_STACK = "Code Stack"

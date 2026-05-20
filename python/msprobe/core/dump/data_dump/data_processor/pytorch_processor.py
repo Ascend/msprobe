@@ -36,14 +36,14 @@ from msprobe.core.dump.data_dump.data_processor.base import (
     BaseDataProcessor,
     ModuleBackwardInputsOutputs,
     ModuleForwardInputsOutputs,
-    TensorStatInfo
+    TensorStatInfo,
 )
 from msprobe.pytorch.common.utils import (
     Const as PtConst,
     is_float4_tensor,
     is_float8_tensor,
     is_hifloat8_tensor,
-    save_pt
+    save_pt,
 )
 
 is_gpu = False
@@ -82,11 +82,15 @@ class TensorHandler:
     def __init__(self):
         self.has_dtensor = hasattr(dist, "tensor") and hasattr(dist.tensor, "DTensor")
         self.has_fake_tensor = hasattr(torch, "_subclasses") and hasattr(torch._subclasses, "fake_tensor")
-        self.has_async_collective_tensor = hasattr(dist, "_functional_collectives") and \
-                                           hasattr(dist._functional_collectives, "AsyncCollectiveTensor")
-        self.has_nested_tensor = hasattr(torch, "nested") and hasattr(torch.nested, "_internal") and \
-                                 hasattr(torch.nested._internal, "nested_tensor") and \
-                                 hasattr(torch.nested._internal.nested_tensor, "NestedTensor")
+        self.has_async_collective_tensor = hasattr(dist, "_functional_collectives") and hasattr(
+            dist._functional_collectives, "AsyncCollectiveTensor"
+        )
+        self.has_nested_tensor = (
+            hasattr(torch, "nested")
+            and hasattr(torch.nested, "_internal")
+            and hasattr(torch.nested._internal, "nested_tensor")
+            and hasattr(torch.nested._internal.nested_tensor, "NestedTensor")
+        )
 
     @staticmethod
     def free_tensor(tensor, tensor_name):
@@ -120,12 +124,12 @@ class TensorHandler:
         return self.has_fake_tensor and isinstance(tensor, torch._subclasses.fake_tensor.FakeTensor)
 
     def is_async_collective_tensor(self, tensor):
-        return self.has_async_collective_tensor and \
-            isinstance(tensor, dist._functional_collectives.AsyncCollectiveTensor)
+        return self.has_async_collective_tensor and isinstance(
+            tensor, dist._functional_collectives.AsyncCollectiveTensor
+        )
 
     def is_nested_tensor(self, tensor):
-        return self.has_nested_tensor and \
-            isinstance(tensor, torch.nested._internal.nested_tensor.NestedTensor)
+        return self.has_nested_tensor and isinstance(tensor, torch.nested._internal.nested_tensor.NestedTensor)
 
     def is_empty_data(self, tensor):
         return tensor.is_meta or self.is_fake_tensor(tensor) or self.is_async_collective_tensor(tensor)
@@ -208,13 +212,13 @@ class PytorchDataProcessor(BaseDataProcessor):
         torch.memory_format,
         dist.ProcessGroup,
         dist.P2POp,
-        dist.ReduceOp
+        dist.ReduceOp,
     )
     memory_format = {
         torch.contiguous_format: "contiguous_format",
         torch.channels_last: "channels_last",
         torch.channels_last_3d: "channels_last_3d",
-        torch.preserve_format: "preserve_format"
+        torch.preserve_format: "preserve_format",
     }
 
     def __init__(self, config, data_writer):
@@ -222,7 +226,7 @@ class PytorchDataProcessor(BaseDataProcessor):
         self.torch_object_key = {
             "device": self.analyze_device_in_kwargs,
             "dtype": self.analyze_dtype_in_kwargs,
-            "output_dtype": self.analyze_dtype_in_kwargs
+            "output_dtype": self.analyze_dtype_in_kwargs,
         }
         self._async_dump_cache = {}
         self.tensor_handler = TensorHandler()
@@ -238,7 +242,7 @@ class PytorchDataProcessor(BaseDataProcessor):
             "pytorch",
             "dump",
             "api_dump",
-            Const.BUILTIN_IGNORE_API_FILE_NAME
+            Const.BUILTIN_IGNORE_API_FILE_NAME,
         )
         raw_rules = load_yaml(os.path.realpath(yaml_path)) or {}
         return self._normalize_ignore_rules({Const.FORWARD: raw_rules})
@@ -342,8 +346,9 @@ class PytorchDataProcessor(BaseDataProcessor):
 
     @staticmethod
     def is_hookable_element(element):
-        return (hasattr(element, "register_hook") and callable(element.register_hook)) and \
-            (hasattr(element, "requires_grad") and element.requires_grad)
+        return (hasattr(element, "register_hook") and callable(element.register_hook)) and (
+            hasattr(element, "requires_grad") and element.requires_grad
+        )
 
     @staticmethod
     def _analyze_torch_size(arg):
@@ -391,9 +396,7 @@ class PytorchDataProcessor(BaseDataProcessor):
         if not data_clone.numel() or not data_clone.data_ptr():
             return tensor_stat
         if is_float8_tensor(data_clone) or is_float4_tensor(data_clone):
-            logger.debug(
-                "Skip stat calculation for float8/float4 tensor."
-            )
+            logger.debug("Skip stat calculation for float8/float4 tensor.")
             return tensor_stat
 
         if self.config.summary_mode == Const.XOR_CHECKSUM:
@@ -419,8 +422,11 @@ class PytorchDataProcessor(BaseDataProcessor):
         elif not data_clone.shape:
             tensor_stat.max = tensor_stat.min = tensor_stat.mean = tensor_stat.norm = data_clone.clone()
         else:
-            if (precision == Const.DUMP_PRECISION_HIGH or data_clone.dtype == torch.float64
-                    or not data_clone.is_floating_point()):
+            if (
+                precision == Const.DUMP_PRECISION_HIGH
+                or data_clone.dtype == torch.float64
+                or not data_clone.is_floating_point()
+            ):
                 data_clone = data_clone.float()
             tensor_stat.max = torch.max(data_clone)
             tensor_stat.min = torch.min(data_clone)
@@ -462,8 +468,11 @@ class PytorchDataProcessor(BaseDataProcessor):
             p2pop_info.update({"op": arg.op.__name__})
             p2pop_info.update({"peer": arg.peer})
             p2pop_info.update({"tag": arg.tag})
-            group_id = PytorchDataProcessor.process_group_hash(
-                arg.group) if arg.group else PytorchDataProcessor.process_group_hash(_get_default_group())
+            group_id = (
+                PytorchDataProcessor.process_group_hash(arg.group)
+                if arg.group
+                else PytorchDataProcessor.process_group_hash(_get_default_group())
+            )
             p2pop_info.update({"group_id": group_id})
         except Exception as e:
             logger.warning(f"Failed to parse the P2POp content with error info: {e}.")
@@ -477,13 +486,7 @@ class PytorchDataProcessor(BaseDataProcessor):
         tensor_json.update({"dtype": self.tensor_handler.get_tensor_dtype(tensor)})
         tensor_json.update({"shape": common_tensor.shape})
 
-        stat_values = [
-            tensor_stat.max,
-            tensor_stat.min,
-            tensor_stat.mean,
-            tensor_stat.norm,
-            tensor_stat.check_sum
-        ]
+        stat_values = [tensor_stat.max, tensor_stat.min, tensor_stat.mean, tensor_stat.norm, tensor_stat.check_sum]
         placeholder_index = self.data_writer.append_stat_to_buffer(stat_values)
 
         tensor_json.update({Const.TENSOR_STAT_INDEX: placeholder_index})
@@ -514,10 +517,7 @@ class PytorchDataProcessor(BaseDataProcessor):
                     if not t_cpu.is_contiguous():
                         t_cpu = t_cpu.contiguous()
 
-                    future = self._crc_executor.submit(
-                        PytorchDataProcessor.compute_crc32_from_tensor,
-                        t_cpu
-                    )
+                    future = self._crc_executor.submit(PytorchDataProcessor.compute_crc32_from_tensor, t_cpu)
 
                     crc_placeholder = self.data_writer.append_crc32_to_buffer(future)
                     tensor_json[Const.MD5_INDEX] = crc_placeholder
@@ -567,6 +567,7 @@ class StatisticsDataProcessor(PytorchDataProcessor):
         else:
             return super()._analyze_tensor(tensor, suffix)
 
+    # pylint: disable-next=arguments-differ
     def _analyze_ndarray(self, ndarray, suffix):
         if any(item in self.current_api_or_module_name for item in self.config.tensor_list):
             return self._analyze_and_save_ndarray(ndarray, suffix)
@@ -578,6 +579,7 @@ class TensorDataProcessor(PytorchDataProcessor):
     def _analyze_tensor(self, tensor, suffix):
         return self._analyze_and_save_tensor(tensor, suffix)
 
+    # pylint: disable-next=arguments-differ
     def _analyze_ndarray(self, ndarray, suffix):
         return self._analyze_and_save_ndarray(ndarray, suffix)
 
@@ -629,10 +631,7 @@ class DiffCheckDataProcessor(PytorchDataProcessor):
             data_name = data_name.split(":", 1)[1]
 
         # api 名本身可能包含若干个 '.'，所以用正则从右侧提取 io/idx/扩展名
-        m = re.match(
-            r"^(?=.{1,1024}$)(?P<api>.+)\.(?P<io>input|output)\.(?P<idx>\d+)\.\w+$",
-            data_name
-        )
+        m = re.match(r"^(?=.{1,1024}$)(?P<api>.+)\.(?P<io>input|output)\.(?P<idx>\d+)\.\w+$", data_name)
         if not m:
             return None
         api = m.group("api")
@@ -644,10 +643,8 @@ class DiffCheckDataProcessor(PytorchDataProcessor):
         self.has_diff = False
 
         self.cached_api_info = super().analyze_forward_input(name, module, module_input_output)
-        return None
 
     def analyze_forward_output(self, name, module, module_input_output: ModuleForwardInputsOutputs):
-
         api_info_struct = super().analyze_forward_output(name, module, module_input_output)
         if name in self.cached_api_info and name in api_info_struct:
             self.cached_api_info[name].update(api_info_struct[name])
@@ -683,8 +680,9 @@ class DiffCheckDataProcessor(PytorchDataProcessor):
                 self.tensor_handler.save_tensor(tensor, file_path)
             self.real_diff_nums += 1
             if self.diff_nums != -1 and self.real_diff_nums >= self.diff_nums:
-                logger.info(f"[{Const.TOOL_NAME}] Reached the preset diff times, "
-                            f"current diff times: {self.real_diff_nums}.")
+                logger.info(
+                    f"[{Const.TOOL_NAME}] Reached the preset diff times, current diff times: {self.real_diff_nums}."
+                )
         api = getattr(self, "current_api_or_module_name", None)
         if api and api in self._bench_state:
             self._bench_state.pop(api, None)
@@ -703,7 +701,7 @@ class DiffCheckDataProcessor(PytorchDataProcessor):
     def _bench_expected_counts_for_api(self, api: str):
         """统计某 API 在 bench_map 里有多少个 Tensor 输入/输出"""
         n_in = n_out = 0
-        for (a, io, _) in self._bench_map.keys():
+        for a, io, _ in self._bench_map:
             if a == api:
                 if io == "input":
                     n_in += 1
@@ -727,7 +725,7 @@ class DiffCheckDataProcessor(PytorchDataProcessor):
             return False
         try:
             mtime = os.path.getmtime(path)
-        except Exception as e:
+        except Exception:
             return False
 
         need_reload = (path != self._bench_ref_path) or (mtime != self._bench_ref_mtime)
@@ -817,7 +815,7 @@ class DiffCheckDataProcessor(PytorchDataProcessor):
         try:
             cur_shape = list(cur_shape)
         except Exception as e:
-            logger.warning("[BENCH]", "shape to list failed:", repr(e), "-> skip")
+            logger.warning(f"[BENCH] shape to list failed: {e!r} -> skip")
             return
 
         # 6) 输入与输出分别处理
@@ -874,9 +872,7 @@ class DiffCheckDataProcessor(PytorchDataProcessor):
 
             # 只有当“输入全部一致且已校验完所有输入”时，才允许判定输出不一致
             inputs_ok = (
-                    st["inputs_equal"]
-                    and (st["checked_in"] == st["expected_in"])
-                    and (not st["seen_input_not_in_ref"])
+                st["inputs_equal"] and (st["checked_in"] == st["expected_in"]) and (not st["seen_input_not_in_ref"])
             )
 
             if inputs_ok and (str(cur_md5) != str(ref_md5)):
@@ -979,15 +975,13 @@ class KernelDumpDataProcessor(PytorchDataProcessor):
         logger.info(f"The kernel data of {name} is dumped successfully.")
 
     @recursion_depth_decorator(
-        "KernelDump: KernelDumpDataProcessor.clone_and_detach_tensor",
-        max_depth=Const.DUMP_MAX_DEPTH
+        "KernelDump: KernelDumpDataProcessor.clone_and_detach_tensor", max_depth=Const.DUMP_MAX_DEPTH
     )
     def clone_and_detach_tensor(self, input_params):
         if isinstance(input_params, torch.Tensor):
             if is_float8_tensor(input_params):
                 raise MsprobeException(
-                    MsprobeException.UNSUPPORTED_TYPE_ERROR,
-                    "L2 backward dump does not support float8 type."
+                    MsprobeException.UNSUPPORTED_TYPE_ERROR, "L2 backward dump does not support float8 type."
                 )
             if input_params.requires_grad:
                 return input_params.clone().detach().requires_grad_()
@@ -1023,3 +1017,101 @@ class KernelDumpDataProcessor(PytorchDataProcessor):
         self.forward_kwargs = None
         self.forward_output_tensor = None
         self.grad_input_tensor = None
+
+
+class NanCheckDataProcessor(PytorchDataProcessor):
+    @staticmethod
+    def _nan_overflow_ops_available():
+        if is_gpu:
+            return False
+        try:
+            from msprobe.lib import nan_check_ext   # pylint: disable=no-name-in-module
+            ns = getattr(torch.ops, "my_ns", None)
+            if ns is None:
+                return False
+            overflow = getattr(ns, "npu_over_flow", None)
+            clear = getattr(ns, "npu_clear_over_flow", None)
+            return callable(overflow) and callable(clear)
+        except Exception:
+            return False
+
+    def __init__(self, config, data_writer):
+        super().__init__(config, data_writer)
+        self._nan_overflow_runtime_warned = False
+        if not self._nan_overflow_ops_available():
+            raise MsprobeException(
+                MsprobeException.INTERFACE_USAGE_ERROR,
+                "Nan check requires torch.ops.my_ns.npu_over_flow and npu_clear_over_flow. "
+                "Please compile with nan_check support enabled.",
+            )
+        self._nan_buffer_size = Const.LARGER_FLUSH_SIZE
+        self._nan_buffer = None
+        self._nan_buffer_offset = 0
+        self.data_writer.register_pre_flush_callback(self._flush_nan_buffer)
+
+    def _ensure_nan_buffer(self):
+        if self._nan_buffer is not None:
+            return
+        self._nan_buffer = torch.empty(
+            self._nan_buffer_size, 8, dtype=torch.int64, device=torch.device("npu", torch.npu.current_device())
+        )
+
+    def _check_overflow(self):
+        self._ensure_nan_buffer()
+        if self._nan_buffer_offset >= self._nan_buffer_size:
+            self.data_writer.write_json()
+        idx = self._nan_buffer_offset
+        slot = self._nan_buffer[idx]
+        out_ptr = torch.tensor([slot.data_ptr()], dtype=torch.uint64, device=slot.device)
+        try:
+            torch.ops.my_ns.npu_over_flow(out_ptr)
+            self._nan_buffer_offset += 1
+            return idx
+        except Exception as e:
+            if not self._nan_overflow_runtime_warned:
+                logger.warning(f"Nan check npu_over_flow failed ({e}); is_nan will be null.")
+                self._nan_overflow_runtime_warned = True
+            else:
+                logger.debug(f"Nan check npu_over_flow failed ({e}).")
+            return None
+
+    def _flush_nan_buffer(self):
+        if self._nan_buffer_offset == 0:
+            return
+        cpu_vals = self._nan_buffer[: self._nan_buffer_offset, 0].cpu().tolist()
+        self.data_writer._replace_nan_placeholders(self.data_writer.cache_data, cpu_vals)
+        if self.data_writer.cache_debug:
+            self.data_writer._replace_nan_placeholders(self.data_writer.cache_debug, cpu_vals)
+        self._nan_buffer_offset = 0
+        self.data_writer.data_updated = True
+
+    def _analyze_tensor(self, tensor, suffix):
+        common_tensor = self.tensor_handler.convert_common_tensor(tensor)
+        tensor_json = {}
+        tensor_json.update({"type": self.tensor_handler.get_tensor_type(tensor)})
+        tensor_json.update({"dtype": self.tensor_handler.get_tensor_dtype(tensor)})
+        tensor_json.update({"shape": common_tensor.shape})
+        tensor_json.update({"requires_grad": tensor.requires_grad})
+        if self.tensor_handler.is_dtensor(tensor):
+            dtensor_info = self.tensor_handler.get_dtensor_info(tensor)
+            tensor_json.update(dtensor_info)
+        return tensor_json
+
+    def _store_nan_result(self, api_info_struct, name):
+        slot_idx = self._check_overflow()
+        if slot_idx is not None:
+            api_info_struct[name][Const.IS_NAN_INDEX] = slot_idx
+        else:
+            api_info_struct[name][Const.IS_NAN] = None
+
+    def analyze_forward_output(self, name, module, module_input_output):
+        api_info_struct = super().analyze_forward_output(name, module, module_input_output)
+        if name in api_info_struct:
+            self._store_nan_result(api_info_struct, name)
+        return api_info_struct
+
+    def analyze_backward(self, name, module, module_input_output):
+        api_info_struct = super().analyze_backward(name, module, module_input_output)
+        if name in api_info_struct:
+            self._store_nan_result(api_info_struct, name)
+        return api_info_struct

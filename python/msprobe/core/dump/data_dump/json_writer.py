@@ -30,7 +30,6 @@ lock = threading.Lock()
 
 
 class DataWriter:
-
     def __init__(self) -> None:
         self.bench_dump_file_path = None
         self.dump_file_path = None
@@ -41,7 +40,7 @@ class DataWriter:
         self.dump_error_info_path = None
         self.flush_size = 1000
         self.md5_flush_size = 5000
-        self.larger_flush_size = 20000
+        self.larger_flush_size = Const.LARGER_FLUSH_SIZE
         self.cache_data = {}
         self.cache_stack = {}
         self.cache_construct = {}
@@ -51,6 +50,7 @@ class DataWriter:
         self._cache_logged_error_types = set()
         self.crc32_stack_list = []
         self.data_updated = False
+        self._pre_flush_callbacks = []
 
     def _is_extra_info_enabled(self):
         return getattr(getattr(self, "config", None), "extra_info", True)
@@ -98,12 +98,14 @@ class DataWriter:
                     if summary_mode == Const.XOR_CHECKSUM:
                         new_entries[Const.MD5] = check_sum
                     else:
-                        new_entries.update({
-                            Const.MAX: stat_values[0],
-                            Const.MIN: stat_values[1],
-                            Const.MEAN: stat_values[2],
-                            Const.NORM: stat_values[3],
-                        })
+                        new_entries.update(
+                            {
+                                Const.MAX: stat_values[0],
+                                Const.MIN: stat_values[1],
+                                Const.MEAN: stat_values[2],
+                                Const.NORM: stat_values[3],
+                            }
+                        )
                     if Const.MS_FRAMEWORK in data["type"]:
                         layout = data.get("layout", None)
                         if layout:
@@ -135,6 +137,27 @@ class DataWriter:
         self.cache_construct = {}
         self.cache_debug = {}
         self._cache_logged_error_types = set()
+
+    def register_pre_flush_callback(self, callback):
+        if callback not in self._pre_flush_callbacks:
+            self._pre_flush_callbacks.append(callback)
+
+    @recursion_depth_decorator("JsonWriter: DataWriter._replace_nan_placeholders")
+    def _replace_nan_placeholders(self, data, nan_results):
+        if isinstance(data, dict):
+            keys = list(data.keys())
+            for key in keys:
+                value = data[key]
+                if key == Const.IS_NAN_INDEX and isinstance(value, int):
+                    idx = value
+                    nan_val = nan_results[idx] if 0 <= idx < len(nan_results) else None
+                    del data[key]
+                    data[Const.IS_NAN] = nan_val
+                else:
+                    self._replace_nan_placeholders(value, nan_results)
+        elif isinstance(data, (list, tuple)):
+            for item in data:
+                self._replace_nan_placeholders(item, nan_results)
 
     def append_crc32_to_buffer(self, future: concurrent.futures.Future) -> int:
         """
@@ -187,7 +210,7 @@ class DataWriter:
             "construct_file_path",
             "dump_tensor_data_dir",
             "debug_file_path",
-            "dump_error_info_path"
+            "dump_error_info_path",
         ]
 
         for attr in path_attrs:
@@ -318,16 +341,18 @@ class DataWriter:
         if 0 <= index < len(self.stat_stack_list) and len(self.stat_stack_list[index]) >= 1:
             return self.stat_stack_list[index][0]
         else:
-            logger.warning(f"stat_stack_list[{index}] The internal data is incomplete,"
-                           f" and the maximum value cannot be obtained.")
+            logger.warning(
+                f"stat_stack_list[{index}] The internal data is incomplete, and the maximum value cannot be obtained."
+            )
             return None
 
     def get_buffer_values_min(self, index):
         if 0 <= index < len(self.stat_stack_list) and len(self.stat_stack_list[index]) >= 1:
             return self.stat_stack_list[index][1]
         else:
-            logger.warning(f"stat_stack_list[{index}] Internal data is incomplete"
-                           f" and minimum values cannot be obtained.")
+            logger.warning(
+                f"stat_stack_list[{index}] Internal data is incomplete and minimum values cannot be obtained."
+            )
             return None
 
     def flush_stat_stack(self):
@@ -337,6 +362,7 @@ class DataWriter:
         """
         if not self.stat_stack_list:
             return []
+
         def _resolve_stat_value(x, pos):
             if isinstance(x, concurrent.futures.Future):
                 try:
@@ -349,12 +375,16 @@ class DataWriter:
                 return f"0x{(x & ((1 << 64) - 1)):016x}"
             return x
 
-        result = [[_resolve_stat_value(x, i) for i, x in enumerate(stat_values)] for stat_values in self.stat_stack_list]
+        result = [
+            [_resolve_stat_value(x, i) for i, x in enumerate(stat_values)] for stat_values in self.stat_stack_list
+        ]
         self.stat_stack_list = []
         return result
 
     def write_json(self):
         with lock:
+            for cb in self._pre_flush_callbacks:
+                cb()
             # 在写 JSON 前，统一获取统计值
             stat_result = self.flush_stat_stack()
             # 遍历 cache_data，将占位符替换为最终统计值

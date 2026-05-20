@@ -20,21 +20,20 @@ import re
 import threading
 from abc import ABC, abstractmethod
 from collections import defaultdict
-
 from msprobe.core.common.exceptions import DistributedNotInitializedError
 from msprobe.core.common.runtime import Runtime
 from msprobe.core.common.utils import Const, ThreadSafe
-from msprobe.core.dump.data_dump.data_processor.base import (ModuleBackwardInputsOutputs, ModuleForwardInputsOutputs)
+from msprobe.core.dump.data_dump.data_processor.base import ModuleBackwardInputsOutputs, ModuleForwardInputsOutputs
 
 
 class HookSet:
     def __init__(
-            self,
-            forward_pre_hook=None,
-            forward_hook=None,
-            backward_pre_hook=None,
-            backward_hook=None,
-            distributed_forward_hook=None
+        self,
+        forward_pre_hook=None,
+        forward_hook=None,
+        backward_pre_hook=None,
+        backward_hook=None,
+        distributed_forward_hook=None,
     ):
         self.forward_pre_hook = forward_pre_hook
         self.forward_hook = forward_hook
@@ -151,6 +150,10 @@ class BaseHookManager(ABC):
         """初始化框架特定组件"""
         pass
 
+    def _on_forward_pre_hook(self):
+        """子类可重写此方法，在forward_pre_hook入口处执行框架特定操作"""
+        pass
+
     def is_child_process(self):
         return self.current_pid != self._pid
 
@@ -201,8 +204,8 @@ class BaseHookManager(ABC):
             tid = threading.get_ident()
             if not self._should_execute_hook(hook_type, tid):
                 return None
-
             with ThreadSafe():
+                self._on_forward_pre_hook()
                 self._maybe_update_dump_dir()
                 original_state = self.ensure_gc_enabled()
                 self._register_forward_hook(module, api_name)
@@ -217,15 +220,12 @@ class BaseHookManager(ABC):
                     kwargs = module.msprobe_input_kwargs.get(tid, {}) if hasattr(module, 'msprobe_input_kwargs') else {}
                 BaseHookManager.inner_switch[tid] = True
                 module_input_output = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=None)
-                
+
                 args = self._register_backward_hook(module, full_backward_name, args)
                 with self._no_grad_context():
                     self.data_collector.update_api_or_module_name(full_forward_name)
                     self.data_collector.forward_input_data_collect(
-                        full_forward_name,
-                        module,
-                        self._pid,
-                        module_input_output
+                        full_forward_name, module, self._pid, module_input_output
                     )
                 BaseHookManager.inner_switch[tid] = False
                 self.restore_gc_state(original_state)
@@ -251,14 +251,11 @@ class BaseHookManager(ABC):
                         return None
 
                 kwargs, output = self._process_kwargs_and_output(
-                    module,
-                    tid,
-                    hook_type,
-                    kwargs_or_output,
-                    output_or_kwargs
+                    module, tid, hook_type, kwargs_or_output, output_or_kwargs
                 )
                 BaseHookManager.inner_switch[tid] = True
                 module_input_output = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=output)
+                full_forward_name = None
                 if hook_type == Const.API:
                     full_forward_name = api_name + str(self._get_count(api_name)) + Const.SEP + Const.FORWARD
                     full_backward_name = api_name + str(self._get_count(api_name)) + Const.SEP + Const.BACKWARD
@@ -271,19 +268,11 @@ class BaseHookManager(ABC):
                         if params_dict:
                             self._register_param_hook(api_name, module, params_dict)
                         self.data_collector.update_api_or_module_name(api_name)
-                        self.data_collector.forward_data_collect(
-                            api_name,
-                            module,
-                            self._pid,
-                            module_input_output
-                        )
+                        self.data_collector.forward_data_collect(api_name, module, self._pid, module_input_output)
                     else:
                         self.data_collector.update_api_or_module_name(full_forward_name)
                         self.data_collector.forward_output_data_collect(
-                            full_forward_name,
-                            module,
-                            self._pid,
-                            module_input_output
+                            full_forward_name, module, self._pid, module_input_output
                         )
                         self._add_count(api_name)
                         BaseHookManager.inner_api_count[tid] -= 1
@@ -311,12 +300,7 @@ class BaseHookManager(ABC):
                     module_input_output = ModuleBackwardInputsOutputs(grad_input=grad_output, grad_output=grad_input)
                 else:
                     module_input_output = ModuleBackwardInputsOutputs(grad_input=grad_input, grad_output=grad_output)
-                self.data_collector.backward_data_collect(
-                    full_name,
-                    module,
-                    self._pid,
-                    module_input_output
-                )
+                self.data_collector.backward_data_collect(full_name, module, self._pid, module_input_output)
                 BaseHookManager.inner_switch[tid] = False
                 self.restore_gc_state(original_state)
 

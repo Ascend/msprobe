@@ -47,9 +47,11 @@ class DataProcessorFactory:
         task = Const.KERNEL_DUMP if config.level == "L2" else config.task
         key = (config.framework, task)
         bench_path = getattr(config, "bench_path", None)
+        processor_class = None
         if config.task == Const.TENSOR and bench_path is not None and not isinstance(bench_path, str):
-            logger.error_log_with_exp("bench_path is invalid, it should be a string",
-                                      MsprobeException(MsprobeException.INVALID_PARAM_ERROR))
+            logger.error_log_with_exp(
+                "bench_path is invalid, it should be a string", MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
+            )
         elif config.task == Const.TENSOR and bench_path is not None and isinstance(bench_path, str):
             check_file_or_directory_path(bench_path, True)
             processor_class = cls._data_processor.get(("pytorch", Const.DIFF_CHECK))
@@ -66,22 +68,26 @@ class DataProcessorFactory:
                 StatisticsDataProcessor as PytorchStatisticsDataProcessor,
                 TensorDataProcessor as PytorchTensorDataProcessor,
                 DiffCheckDataProcessor as PytorchDiffCheckDataProcessor,
-                KernelDumpDataProcessor as PytorchKernelDumpDataProcessor
+                KernelDumpDataProcessor as PytorchKernelDumpDataProcessor,
+                NanCheckDataProcessor as PytorchNanCheckDataProcessor,
             )
             from msprobe.pytorch.dump.module_dump.module_processor import ModuleProcessor
+
             cls.register_processor(Const.PT_FRAMEWORK, Const.STATISTICS, PytorchStatisticsDataProcessor)
             cls.register_processor(Const.PT_FRAMEWORK, Const.TENSOR, PytorchTensorDataProcessor)
             cls.register_processor(Const.PT_FRAMEWORK, Const.KERNEL_DUMP, PytorchKernelDumpDataProcessor)
             cls.register_processor(Const.PT_FRAMEWORK, Const.DIFF_CHECK, PytorchDiffCheckDataProcessor)
+            cls.register_processor(Const.PT_FRAMEWORK, Const.NAN_CHECK, PytorchNanCheckDataProcessor)
             cls.register_processor(Const.PT_FRAMEWORK, Const.STRUCTURE, BaseDataProcessor)
             cls.register_module_processor(Const.PT_FRAMEWORK, ModuleProcessor)
         elif framework == Const.MS_FRAMEWORK:
             from msprobe.core.dump.data_dump.data_processor.mindspore_processor import (
                 StatisticsDataProcessor as MindsporeStatisticsDataProcessor,
                 TensorDataProcessor as MindsporeTensorDataProcessor,
-                KernelDumpDataProcessor as MindsporeKernelDumpDataProcessor
+                KernelDumpDataProcessor as MindsporeKernelDumpDataProcessor,
             )
             from msprobe.mindspore.dump.cell_processor import CellProcessor
+
             cls.register_processor(Const.MS_FRAMEWORK, Const.STATISTICS, MindsporeStatisticsDataProcessor)
             cls.register_processor(Const.MS_FRAMEWORK, Const.TENSOR, MindsporeTensorDataProcessor)
             cls.register_processor(Const.MS_FRAMEWORK, Const.KERNEL_DUMP, MindsporeKernelDumpDataProcessor)

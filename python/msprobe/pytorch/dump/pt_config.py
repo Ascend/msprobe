@@ -98,13 +98,19 @@ class StructureConfig(BaseConfig):
     def __init__(self, json_config):
         super().__init__(json_config)
 
+class NanCheckConfig(BaseConfig):
+    def __init__(self, json_config):
+        super().__init__(json_config)
+        self.check_config()
+
 
 TaskDict = {
     Const.TENSOR: TensorConfig,
     Const.STATISTICS: StatisticsConfig,
     Const.DIFF_CHECK: DiffCheckConfig,
     Const.STRUCTURE: StructureConfig,
-    Const.ACC_CHECK: ACCCheckConfig
+    Const.ACC_CHECK: ACCCheckConfig,
+    Const.NAN_CHECK: NanCheckConfig,
 }
 
 
