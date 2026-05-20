@@ -174,107 +174,182 @@ def get_current_service():
     return _service_ref() if _service_ref else None
 
 def patch_triton_jitfunction_run():
-    try:
-        from triton.runtime import JITFunction
-    except Exception as e:
-        logger.warning(f"[msprobe] Triton not available, skip patch JITFunction.run: {e}")
-        return
-
-    original_run = getattr(JITFunction, "run", None)
-    if original_run is None:
-        logger.warning("[msprobe] triton.runtime.JITFunction has no attribute 'run', skip patch.")
-        return
-
-    if getattr(original_run, "__msprobe_patched__", False):
-        return
-
-    @functools.wraps(original_run)
-    def wrapped_run(self, *args, **kwargs):
-        # ===== 0) 开关 + 防递归 =====
-        tid = threading.get_ident()
-
-        # 不在运行态，不采集
-        if not Runtime.is_running:
-            return original_run(self, *args, **kwargs)
-
-        # 防止 hook 内部再次触发 hook
-        if BaseHookManager.inner_switch.get(tid, False):
-            return original_run(self, *args, **kwargs)
-
-        service = get_current_service()
-
-        if service is None:
-            return original_run(self, *args, **kwargs)
-
-        data_collector = service.data_collector
-
-        # stop/step 会更新 is_running，但这里再加一道 should_stop_service 判断更稳
-        if getattr(service, "should_stop_service", False):
-            return original_run(self, *args, **kwargs)
-
-        data_collector = service.data_collector
-        pid = os.getpid()
-
-        # ===== 1) 生成 api_name + per-step 计数 =====
+    def iter_triton_run_targets():
         try:
-            api_name = f"Triton.{self.fn.__name__}"
+            import triton
+        except Exception as e:
+            logger.warning(f"[msprobe] Triton not available, skip patch Triton.run: {e}")
+            return
+        logger.info(f"[msprobe] Triton detected, version={getattr(triton, '__version__', 'unknown')}")
+
+        candidates = []
+        try:
+            from triton.runtime import JITFunction as RuntimeJITFunction
+            candidates.append(RuntimeJITFunction)
         except Exception:
-            api_name = str(getattr(self, "fn", "unknown_triton_fn"))
+            pass
 
-        # ✅ 复用 HOOKModule.module_count（每 step 已经 reset）
-        count = HOOKModule.get_module_count(api_name)
-        HOOKModule.add_module_count(api_name)
+        try:
+            from triton.runtime.jit import JITFunction as JitJITFunction
+            candidates.append(JitJITFunction)
+        except Exception:
+            pass
 
-        # 命名风格尽量对齐：API + count + forward
-        full_name = f"{api_name}{Const.SEP}{count}{Const.SEP}{Const.FORWARD}"
+        try:
+            from triton.runtime.autotuner import Autotuner
+            candidates.append(Autotuner)
+        except Exception:
+            pass
 
-        # ===== 2) forward_pre: 输入采集（线程安全 + inner_switch）=====
-        with ThreadSafe():
-            BaseHookManager.inner_switch[tid] = True
+        try:
+            from triton.runtime.heuristics import Heuristics
+            candidates.append(Heuristics)
+        except Exception:
+            pass
+
+        seen = set()
+        for cls in candidates:
+            if cls in seen:
+                continue
+            seen.add(cls)
+            yield cls
+
+    def get_triton_api_name(obj):
+        fn = getattr(obj, "fn", None)
+        fn_name = getattr(fn, "__name__", None)
+        if isinstance(fn_name, str) and fn_name:
+            return f"Triton.{fn_name}"
+        obj_name = getattr(obj, "__name__", None)
+        if isinstance(obj_name, str) and obj_name:
+            return f"Triton.{obj_name}"
+        return f"Triton.{type(obj).__name__}"
+
+    def wrap_run_for_class(cls, suppress_nested):
+        original_run = getattr(cls, "run", None)
+        if original_run is None:
+            return False
+        if getattr(original_run, "__msprobe_patched__", False):
+            return False
+
+        @functools.wraps(original_run)
+        def wrapped_run(self, *args, **kwargs):
+            tid = threading.get_ident()
+            if not Runtime.is_running:
+                return original_run(self, *args, **kwargs)
+            if BaseHookManager.inner_switch.get(tid, False):
+                return original_run(self, *args, **kwargs)
+
+            service = get_current_service()
+            if service is None:
+                return original_run(self, *args, **kwargs)
+            if getattr(service, "should_stop_service", False):
+                return original_run(self, *args, **kwargs)
+
+            data_collector = service.data_collector
+            pid = os.getpid()
+
+            api_name = get_triton_api_name(self)
+            count = HOOKModule.get_module_count(api_name)
+            HOOKModule.add_module_count(api_name)
+            full_name = f"{api_name}{Const.SEP}{count}{Const.SEP}{Const.FORWARD}"
+
+            with ThreadSafe():
+                BaseHookManager.inner_switch[tid] = True
+                try:
+                    data_collector.update_api_or_module_name(full_name)
+                    module_io = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=None)
+                    data_collector.forward_input_data_collect(full_name, self, pid, module_io)
+                except Exception as e:
+                    logger.warning(f"[msprobe] Triton forward_input_data_collect failed: {e}")
+                finally:
+                    BaseHookManager.inner_switch[tid] = False
+
+            if suppress_nested:
+                BaseHookManager.inner_switch[tid] = True
             try:
-                data_collector.update_api_or_module_name(full_name)
-                module_io = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=None)
-                data_collector.forward_input_data_collect(full_name, self, pid, module_io)
-            except Exception as e:
-                logger.warning(f"[msprobe] Triton forward_input_data_collect failed: {e}")
+                out = original_run(self, *args, **kwargs)
             finally:
-                BaseHookManager.inner_switch[tid] = False
+                if suppress_nested:
+                    BaseHookManager.inner_switch[tid] = False
 
-        # ===== 3) 执行原始 triton run =====
-        out = original_run(self, *args, **kwargs)
+            with ThreadSafe():
+                BaseHookManager.inner_switch[tid] = True
+                try:
+                    data_collector.update_api_or_module_name(full_name)
+                    module_io = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=args)
+                    data_collector.forward_output_data_collect(full_name, self, pid, module_io)
+                except Exception as e:
+                    logger.warning(f"[msprobe] Triton forward_output_data_collect failed: {e}")
+                finally:
+                    BaseHookManager.inner_switch[tid] = False
 
-        # ===== 4) forward_hook: 输出采集 =====
-        with ThreadSafe():
-            BaseHookManager.inner_switch[tid] = True
-            try:
-                data_collector.update_api_or_module_name(full_name)
-                module_io = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=args)
-                data_collector.forward_output_data_collect(full_name, self, pid, module_io)
-            except Exception as e:
-                logger.warning(f"[msprobe] Triton forward_output_data_collect failed: {e}")
-            finally:
-                BaseHookManager.inner_switch[tid] = False
+            return out
 
-        return out
+        wrapped_run.__msprobe_patched__ = True
+        wrapped_run.__msprobe_original__ = original_run
+        setattr(cls, "run", wrapped_run)
+        return True
 
-    wrapped_run.__msprobe_patched__ = True
-    wrapped_run.__msprobe_original__ = original_run
-    setattr(JITFunction, "run", wrapped_run)
-    logger.info("[msprobe] Patched triton.runtime.JITFunction.run successfully.")
+    patched = False
+    patched_targets = []
+    skipped_targets = []
+    for cls in iter_triton_run_targets():
+        cls_name = getattr(cls, "__module__", "") + "." + getattr(cls, "__name__", str(cls))
+        suppress_nested = cls_name.endswith(".Autotuner") or cls_name.endswith(".Heuristics")
+        try:
+            if getattr(getattr(cls, "run", None), "__msprobe_patched__", False):
+                skipped_targets.append(f"{cls_name}.run(already_patched)")
+                continue
+            if wrap_run_for_class(cls, suppress_nested=suppress_nested):
+                patched = True
+                patched_targets.append(f"{cls_name}.run")
+                logger.info(f"[msprobe] Patched {cls_name}.run successfully.")
+        except Exception as e:
+            logger.warning(f"[msprobe] Patch {cls_name}.run failed: {e}")
+
+    if not patched:
+        logger.warning("[msprobe] No Triton run target patched. Triton may be unavailable or API changed.")
+    else:
+        logger.info(f"[msprobe] Triton patch summary, patched={patched_targets}, skipped={skipped_targets}")
 
 def unpatch_triton_jitfunction_run() -> bool:
+    restored = False
+    candidates = []
     try:
-        from triton.runtime import JITFunction
+        from triton.runtime import JITFunction as RuntimeJITFunction
+        candidates.append(RuntimeJITFunction)
     except Exception:
-        return False
-    current = getattr(JITFunction, "run", None)
-    if current is None:
-        return False
-    original = getattr(current, "__msprobe_original__", None)
-    if original is None:
-        return False
-    setattr(JITFunction, "run", original)
-    return True
+        pass
+    try:
+        from triton.runtime.jit import JITFunction as JitJITFunction
+        candidates.append(JitJITFunction)
+    except Exception:
+        pass
+    try:
+        from triton.runtime.autotuner import Autotuner
+        candidates.append(Autotuner)
+    except Exception:
+        pass
+    try:
+        from triton.runtime.heuristics import Heuristics
+        candidates.append(Heuristics)
+    except Exception:
+        pass
+
+    seen = set()
+    for cls in candidates:
+        if cls in seen:
+            continue
+        seen.add(cls)
+        current = getattr(cls, "run", None)
+        if current is None:
+            continue
+        original = getattr(current, "__msprobe_original__", None)
+        if original is None:
+            continue
+        setattr(cls, "run", original)
+        restored = True
+    return restored
 
 
 def adapt_megatron_distributed_mappings():
