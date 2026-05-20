@@ -46,6 +46,7 @@ static std::atomic<uint64_t> serial_num{0};
 static constexpr const char* kForwardStartMarker = "__msprobe_fwd_start__";
 static constexpr const char* kAclRuntimeInitError =
     "ACL runtime not initialized (no current context). Ensure NPU backend is initialized before calling acl_save.";
+static constexpr const char* kAclSaveLogPrefix = "[acl_save_debug]";
 
 struct SaveTaskPayload
 {
@@ -56,6 +57,7 @@ struct SaveTaskPayload
 
     at::Tensor tensor;
     std::string save_path;
+    std::atomic<bool> executed{false};
 };
 
 struct StatTaskPayload
@@ -97,13 +99,12 @@ static void check_acl(aclError err, const char* msg)
     }
 }
 
-static std::string build_final_path(const std::string& path)
+static std::string build_final_path(const std::string& path, uint64_t seq)
 {
     size_t last_slash = path.find_last_of("/\\");
     std::string filename = (last_slash == std::string::npos) ? path : path.substr(last_slash + 1);
     size_t dot_pos = filename.find_last_of('.');
     std::string base = (dot_pos == std::string::npos) ? filename : filename.substr(0, dot_pos);
-    const uint64_t seq = serial_num.fetch_add(1, std::memory_order_relaxed);
     std::ostringstream oss_name;
     oss_name << base << "_" << seq << ".pt";
     if (last_slash == std::string::npos)
@@ -208,6 +209,7 @@ static void ensure_acl_runtime_initialized()
     aclError err = aclrtGetCurrentContext(&ctx);
     if (err != ACL_ERROR_NONE || ctx == nullptr)
     {
+        ASCEND_LOGE("%s ACL runtime unavailable, err=%d, ctx=%p", kAclSaveLogPrefix, static_cast<int>(err), ctx);
         throw std::runtime_error(kAclRuntimeInitError);
     }
 }
@@ -217,6 +219,7 @@ static void write_pt_or_throw(const at::Tensor& tensor, const std::string& path)
     std::ofstream ofs(path, std::ios::out | std::ios::binary | std::ios::trunc);
     if (!ofs.is_open())
     {
+        ASCEND_LOGE("%s failed to open output file, path=%s", kAclSaveLogPrefix, path.c_str());
         std::ostringstream oss;
         oss << "Failed to open tensor save file: " << path;
         throw std::runtime_error(oss.str());
@@ -227,6 +230,8 @@ static void write_pt_or_throw(const at::Tensor& tensor, const std::string& path)
     ofs.write(data.data(), data.size());
     if (!ofs.good())
     {
+        ASCEND_LOGE("%s failed while writing file, path=%s, bytes=%llu", kAclSaveLogPrefix, path.c_str(),
+                    static_cast<unsigned long long>(data.size()));
         std::ostringstream oss;
         oss << "Failed to save tensor to: " << path;
         throw std::runtime_error(oss.str());
@@ -235,10 +240,12 @@ static void write_pt_or_throw(const at::Tensor& tensor, const std::string& path)
     ofs.close();
     if (!ofs)
     {
+        ASCEND_LOGE("%s failed while closing file, path=%s", kAclSaveLogPrefix, path.c_str());
         std::ostringstream oss;
         oss << "Failed to close file after write: " << path;
         throw std::runtime_error(oss.str());
     }
+    ASCEND_LOGI("%s file saved successfully, path=%s", kAclSaveLogPrefix, path.c_str());
 }
 
 static std::vector<int64_t> shape_to_vector(const at::Tensor& x)
@@ -279,7 +286,8 @@ static void acl_save_callback(const at::Tensor& x_dev_c, const std::string& path
     aclmdlRICaptureThreadExchangeMode(&mode);
     if (memcpy_status != ACL_ERROR_NONE)
     {
-        std::cout << "Memcpy failed with error: " << static_cast<int>(memcpy_status) << std::endl;
+        ASCEND_LOGE("%s device_to_host memcpy failed, path=%s, status=%d", kAclSaveLogPrefix, path.c_str(),
+                    static_cast<int>(memcpy_status));
         return;
     }
     write_pt_or_throw(out, path);
@@ -351,9 +359,18 @@ static void acl_save_host_func(void* user_data)
     auto* payload = static_cast<SaveTaskPayload*>(user_data);
     if (payload == nullptr)
     {
+        std::cout << kAclSaveLogPrefix << " acl_save_host_func received null payload" << std::endl;
         return;
     }
-    acl_save_callback(payload->tensor, payload->save_path);
+    if (payload->executed.exchange(true, std::memory_order_acq_rel))
+    {
+        std::cout << kAclSaveLogPrefix << " skip replayed host callback, path=" << payload->save_path << std::endl;
+        return;
+    }
+
+    const uint64_t file_seq = serial_num.fetch_add(1, std::memory_order_relaxed);
+    const std::string final_path = build_final_path(payload->save_path, file_seq);
+    acl_save_callback(payload->tensor, final_path);
 }
 
 static void acl_stat_callback(const at::Tensor& stats_dev, const std::string& tag, const std::string& dtype,
@@ -387,7 +404,7 @@ static void acl_stat_callback(const at::Tensor& stats_dev, const std::string& ta
     aclmdlRICaptureThreadExchangeMode(&mode);
     if (memcpy_status != ACL_ERROR_NONE)
     {
-        std::cout << "Memcpy failed with error: " << static_cast<int>(memcpy_status) << std::endl;
+        ASCEND_LOGE("acl_stat device_to_host memcpy failed, tag=%s, status=%d", tag.c_str(), static_cast<int>(memcpy_status));
         return;
     }
 
@@ -411,9 +428,10 @@ static void acl_stat_host_func(void* user_data)
 static at::Tensor acl_save_impl(const at::Tensor& x, const std::string& path)
 {
     const auto dev_type = x.device().type();
-    const std::string final_path = build_final_path(path);
     if (dev_type != at::DeviceType::PrivateUse1)
     {
+        const uint64_t file_seq = serial_num.fetch_add(1, std::memory_order_relaxed);
+        const std::string final_path = build_final_path(path, file_seq);
         at::Tensor out = copy_to_cpu(x);
         write_pt_or_throw(out, final_path);
         return out;
@@ -421,10 +439,12 @@ static at::Tensor acl_save_impl(const at::Tensor& x, const std::string& path)
 
     ensure_acl_runtime_initialized();
     auto stream = c10_npu::getCurrentNPUStream().stream();
-    auto* payload = new SaveTaskPayload(x, final_path);
+    auto* payload = new SaveTaskPayload(x, path);
     auto cb_status = aclrtLaunchHostFunc(stream, acl_save_host_func, payload);
     if (cb_status != ACL_ERROR_NONE)
     {
+        ASCEND_LOGE("%s failed to schedule host callback, path=%s, status=%d", kAclSaveLogPrefix, path.c_str(),
+                    static_cast<int>(cb_status));
         delete payload;
         check_acl(cb_status, "aclrtLaunchHostFunc failed");
     }
