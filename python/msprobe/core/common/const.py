@@ -14,6 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=too-many-lines
+
 
 import os
 import stat
@@ -25,11 +27,12 @@ class Const:
     """
     Class for const
     """
+
     TOOL_NAME = "msprobe"
     MD5_INDEX = "md5_index"
     MD5 = "md5"
 
-    ipv4_pattern = "([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])(\.([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])){3}$"
+    ipv4_pattern = r"([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])(\.([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])){3}$"
     SEP = "."
     REGEX_PREFIX_MAX_LENGTH = 20
     REGEX_PREFIX_PATTERN = r"^[a-zA-Z0-9_-]+$"
@@ -158,8 +161,19 @@ class Const:
     CUDA_LOWERCASE = 'cuda'
     DEVICE = 'device'
     DISTRIBUTED = 'Distributed'
-    DUMP_PREFIX = ["Distributed", "Functional", "Torch", "Tensor", "Mint", "MintFunctional", "Primitive",
-                   "Aten", "VF", "NPU", "Jit"]
+    DUMP_PREFIX = [
+        "Distributed",
+        "Functional",
+        "Torch",
+        "Tensor",
+        "Mint",
+        "MintFunctional",
+        "Primitive",
+        "Aten",
+        "VF",
+        "NPU",
+        "Jit",
+    ]
     MODULE_PREFIX = ["Module", "Cell"]
     FORWARD_NAME_SUFFIX = ".forward"
 
@@ -204,20 +218,28 @@ class Const:
 
     FRAME_FILE_LIST = ["site-packages/torch", "package/torch", "site-packages/mindspore", "package/mindspore"]
     INPLACE_LIST = [
-        "broadcast", "all_reduce", "reduce", "all_gather", "gather", "scatter", "reduce_scatter",
-        "_reduce_scatter_base", "_all_gather_base", "send", "recv", "irecv", "isend", "all_to_all_single", "all_to_all",
-        "all_gather_into_tensor", "reduce_scatter_tensor"
+        "broadcast",
+        "all_reduce",
+        "reduce",
+        "all_gather",
+        "gather",
+        "scatter",
+        "reduce_scatter",
+        "_reduce_scatter_base",
+        "_all_gather_base",
+        "send",
+        "recv",
+        "irecv",
+        "isend",
+        "all_to_all_single",
+        "all_to_all",
+        "all_gather_into_tensor",
+        "reduce_scatter_tensor",
     ]
 
-    CONVERT = {
-        "int32_to_int64": ["torch.int32", "torch.int64"],
-        "int64_to_fp32": ["torch.int64", "torch.float32"]
-    }
+    CONVERT = {"int32_to_int64": ["torch.int32", "torch.int64"], "int64_to_fp32": ["torch.int64", "torch.float32"]}
 
-    CONVERT_API = {
-        "int32_to_int64": ["cross_entropy"],
-        "int64_to_fp32": ["histc"]
-    }
+    CONVERT_API = {"int32_to_int64": ["cross_entropy"], "int64_to_fp32": ["histc"]}
 
     FA_SPECIAL_SPARSE_MODE = [2, 3, 4]
 
@@ -342,7 +364,7 @@ class Const:
             PT_API_TYPE_DIST: PT_API_TYPE_DIST,
             PT_API_TYPE_DIST_C10D: PT_API_TYPE_DIST,
             PT_API_TYPE_NPU_DIST: PT_API_TYPE_NPU_DIST,
-            PT_API_TYPE_MINDSPEED: PT_API_TYPE_MINDSPEED
+            PT_API_TYPE_MINDSPEED: PT_API_TYPE_MINDSPEED,
         },
         MS_FRAMEWORK: {
             MS_API_TYPE_OPS: MS_API_TYPE_OPS,
@@ -351,15 +373,15 @@ class Const:
             MS_API_TYPE_MINT: MS_API_TYPE_MINT,
             MS_API_TYPE_MINT_FUNC: MS_API_TYPE_MINT_FUNC,
             MS_API_TYPE_COM: MS_API_TYPE_COM,
-            MS_API_TYPE_MINT_DIST: MS_API_TYPE_MINT_DIST
+            MS_API_TYPE_MINT_DIST: MS_API_TYPE_MINT_DIST,
         },
         MT_FRAMEWORK: {
             PT_API_TYPE_FUNCTIONAL: PT_API_TYPE_FUNCTIONAL,
             PT_API_TYPE_TENSOR: PT_API_TYPE_TENSOR,
             PT_API_TYPE_TORCH: PT_API_TYPE_TORCH,
             PT_API_TYPE_NPU: PT_API_TYPE_NPU,
-            PT_API_TYPE_DIST: PT_API_TYPE_DIST
-        }
+            PT_API_TYPE_DIST: PT_API_TYPE_DIST,
+        },
     }
 
     API_DATA_PREFIX = {
@@ -373,7 +395,7 @@ class Const:
             PT_API_TYPE_DIST: DIST_API_TYPE_PREFIX,
             PT_API_TYPE_DIST_C10D: DIST_API_TYPE_PREFIX,
             PT_API_TYPE_NPU_DIST: DIST_API_TYPE_PREFIX,
-            PT_API_TYPE_MINDSPEED: MINDSPEED_API_TYPE_PREFIX
+            PT_API_TYPE_MINDSPEED: MINDSPEED_API_TYPE_PREFIX,
         },
         MS_FRAMEWORK: {
             MS_API_TYPE_OPS: FUNCTIONAL_API_TYPE_PREFIX,
@@ -382,46 +404,44 @@ class Const:
             MS_API_TYPE_MINT: MINT_API_TYPE_PREFIX,
             MS_API_TYPE_MINT_FUNC: MINT_FUNC_API_TYPE_PREFIX,
             MS_API_TYPE_COM: DIST_API_TYPE_PREFIX,
-            MS_API_TYPE_MINT_DIST: MINT_DIST_API_TYPE_PREFIX
+            MS_API_TYPE_MINT_DIST: MINT_DIST_API_TYPE_PREFIX,
         },
         MT_FRAMEWORK: {
             PT_API_TYPE_FUNCTIONAL: FUNCTIONAL_API_TYPE_PREFIX,
             PT_API_TYPE_TENSOR: TENSOR_API_TYPE_PREFIX,
             PT_API_TYPE_TORCH: TORCH_API_TYPE_PREFIX,
             PT_API_TYPE_NPU: NPU_API_TYPE_PREFIX,
-            PT_API_TYPE_DIST: DIST_API_TYPE_PREFIX
-        }
+            PT_API_TYPE_DIST: DIST_API_TYPE_PREFIX,
+        },
     }
 
     def _fused_adamw_(
-            self,
-            grads,
-            exp_avgs,
-            exp_avg_sqs,
-            max_exp_avg_sqs,
-            state_steps,
-            *,
-            lr,
-            beta1,
-            beta2,
-            weight_decay,
-            eps,
-            amsgrad,
-            maximize,
-            grad_scale=None,
-            found_inf=None
+        self,
+        grads,
+        exp_avgs,
+        exp_avg_sqs,
+        max_exp_avg_sqs,
+        state_steps,
+        *,
+        lr,
+        beta1,
+        beta2,
+        weight_decay,
+        eps,
+        amsgrad,
+        maximize,
+        grad_scale=None,
+        found_inf=None,
     ):
         pass
 
-    API_WITH_SELF_ARG = {
-        'Torch._fused_adamw_': _fused_adamw_
-    }
+    API_WITH_SELF_ARG = {'Torch._fused_adamw_': _fused_adamw_}
 
     ASCEND = "ASCEND"
     MATCH_MODE_NAME = "pure name"
     MATCH_MODE_MAPPING = "mapping"
     MATCH_MODE_SIMILARITY = "similarity"
-    CONFIG_CHECK_PASS = "pass"
+    CONFIG_CHECK_PASS = "pass"  # nosec B105
     CONFIG_CHECK_WARNING = "warning"
     CONFIG_CHECK_ERROR = "error"
 
@@ -468,25 +488,45 @@ class Data2DBConst:
     TAG_MODULE = "module"
     TAG_FUNCTION = "function"
     SUPPORT_TYPE = ["torch.Tensor", "mindspore.Tensor", "mindtorch.Tensor"]
-    SUPPORT_DTYPE = [Const.FLOAT16,
-                     Const.FLOAT32,
-                     Const.BFLOAT16,
-                     Const.TORCH_FLOAT16,
-                     Const.TORCH_FLOAT32,
-                     Const.TORCH_BFLOAT16]
+    SUPPORT_DTYPE = [
+        Const.FLOAT16,
+        Const.FLOAT32,
+        Const.BFLOAT16,
+        Const.TORCH_FLOAT16,
+        Const.TORCH_FLOAT32,
+        Const.TORCH_BFLOAT16,
+    ]
     DB_DUMP = "dump_data.trend.db"
     DB_MONITOR = "monitor_data.trend.db"
     # csv2db
     DEFAULT_INT_VALUE = 0
     MAX_PROCESS_NUM = 128
     OP_TRENDVIS_SUPPORTED = [
-        "norm", "min", "max", "zeros", "nans", "mean",
-        "entropy", "softmax_max", "sr", "kernel_norm", "std_x", "jacobian",
-        "proxy", "token_similarity"
+        "norm",
+        "min",
+        "max",
+        "zeros",
+        "nans",
+        "mean",
+        "entropy",
+        "softmax_max",
+        "sr",
+        "kernel_norm",
+        "std_x",
+        "jacobian",
+        "proxy",
+        "token_similarity",
     ]
     METRICS_TRENDVIS_SUPPORTED = [
-        "actv", "actv_grad", "exp_avg", "exp_avg_sq",
-        "grad_unreduced", "grad_reduced", "param_origin", "param_updated", "other"
+        "actv",
+        "actv_grad",
+        "exp_avg",
+        "exp_avg_sq",
+        "grad_unreduced",
+        "grad_reduced",
+        "param_origin",
+        "param_updated",
+        "other",
     ]
     FILE_BATCH_SIZE = 100
     MAX_FLOAT_VALUE = 1e9
@@ -497,6 +537,7 @@ class CompareConst:
     """
     Class for compare module const
     """
+
     SPACE = " "
     NAME = "Name"
     DEVICE_NPU = "NPU"
@@ -607,10 +648,24 @@ class CompareConst:
 
     ULP_ERR_STATUS = "ulp_err_status"
 
-    ALL_COMPARE_INDEX = [COSINE, EUC_DIST, MAX_ABS_ERR, MAX_RELATIVE_ERR,
-                         ONE_THOUSANDTH_ERR_RATIO, FIVE_THOUSANDTHS_ERR_RATIO]
-    SUMMARY_COMPARE_INDEX = [MAX_DIFF, MIN_DIFF, MEAN_DIFF, NORM_DIFF,
-                             MAX_RELATIVE_ERR, MIN_RELATIVE_ERR, MEAN_RELATIVE_ERR, NORM_RELATIVE_ERR]
+    ALL_COMPARE_INDEX = [
+        COSINE,
+        EUC_DIST,
+        MAX_ABS_ERR,
+        MAX_RELATIVE_ERR,
+        ONE_THOUSANDTH_ERR_RATIO,
+        FIVE_THOUSANDTHS_ERR_RATIO,
+    ]
+    SUMMARY_COMPARE_INDEX = [
+        MAX_DIFF,
+        MIN_DIFF,
+        MEAN_DIFF,
+        NORM_DIFF,
+        MAX_RELATIVE_ERR,
+        MIN_RELATIVE_ERR,
+        MEAN_RELATIVE_ERR,
+        NORM_RELATIVE_ERR,
+    ]
     MD5_COMPARE_INDEX = [RESULT]
     EXTRACT_INDEX = [REQ_GRAD_CONSIST, RESULT, ERROR_MESSAGE]
 
@@ -632,14 +687,14 @@ class CompareConst:
     HEAD_OF_COMPARE_MODE = {
         Const.ALL: COMPARE_RESULT_HEADER,
         Const.SUMMARY: SUMMARY_COMPARE_RESULT_HEADER,
-        Const.MD5: MD5_COMPARE_RESULT_HEADER
+        Const.MD5: MD5_COMPARE_RESULT_HEADER,
     }
 
     # dtype match
 
     DTYPE_MATCH_GROUPS = [
         {Const.FLOAT16, Const.FLOAT32, Const.BFLOAT16},
-        {Const.TORCH_FLOAT16, Const.TORCH_FLOAT32, Const.TORCH_BFLOAT16}
+        {Const.TORCH_FLOAT16, Const.TORCH_FLOAT32, Const.TORCH_BFLOAT16},
     ]
 
     # read_op
@@ -648,7 +703,7 @@ class CompareConst:
         Const.INPUT_KWARGS: '.input',
         Const.INPUT: '.input',
         Const.OUTPUT: '.output',
-        Const.PARAMS: '.parameters'
+        Const.PARAMS: '.parameters',
     }
 
     # state to struct mapping
@@ -658,7 +713,7 @@ class CompareConst:
         Const.OUTPUT: OUTPUT_STRUCT,
         Const.PARAMS: PARAMS_STRUCT,
         Const.PARAMS_GRAD: PARAMS_GRAD_STRUCT,
-        Const.DEBUG: DEBUG_STRUCT
+        Const.DEBUG: DEBUG_STRUCT,
     }
 
     # compare standard
@@ -680,7 +735,7 @@ class CompareConst:
     DIFF_FLAG = 'Diff'
     UNSUPPORTED = 'unsupported'
     NAN = 'Nan'
-    PASS = 'pass'
+    PASS = 'pass'  # nosec B105
     WARNING = 'warning'
     ERROR = 'error'
     TRUE = 'TRUE'
@@ -689,8 +744,8 @@ class CompareConst:
     N_A = 'N/A'
     INF = 'inf'
     NEG_INF = '-inf'
-    BFLOAT16_MIN = -3.3895313892515355e+38
-    BFLOAT16_MAX = 3.3895313892515355e+38
+    BFLOAT16_MIN = -3.3895313892515355e38
+    BFLOAT16_MAX = 3.3895313892515355e38
     BFLOAT16_EPS = 3.90625e-3  # 2 ** -8
 
     # accuracy standards
@@ -716,27 +771,48 @@ class CompareConst:
     OVERFLOW_LIST = ['nan\t', 'inf\t', '-inf\t', 'nan', 'inf', '-inf']
 
     MS_GRAPH_BASE = {
-        NPU_NAME: None, BENCH_NAME: None, NPU_DTYPE: None, BENCH_DTYPE: None, NPU_SHAPE: None, BENCH_SHAPE: None,
-        NPU_MAX: None, NPU_MIN: None, NPU_MEAN: None, NPU_NORM: None, BENCH_MAX: None, BENCH_MIN: None,
-        BENCH_MEAN: None, BENCH_NORM: None, ACCURACY: '', ERROR_MESSAGE: ''
+        NPU_NAME: None,
+        BENCH_NAME: None,
+        NPU_DTYPE: None,
+        BENCH_DTYPE: None,
+        NPU_SHAPE: None,
+        BENCH_SHAPE: None,
+        NPU_MAX: None,
+        NPU_MIN: None,
+        NPU_MEAN: None,
+        NPU_NORM: None,
+        BENCH_MAX: None,
+        BENCH_MIN: None,
+        BENCH_MEAN: None,
+        BENCH_NORM: None,
+        ACCURACY: '',
+        ERROR_MESSAGE: '',
     }
     MS_GRAPH_NPY = {
-        COSINE: None, EUC_DIST: None, MAX_ABS_ERR: None, MAX_RELATIVE_ERR: None, ONE_THOUSANDTH_ERR_RATIO: None,
-        FIVE_THOUSANDTHS_ERR_RATIO: None
+        COSINE: None,
+        EUC_DIST: None,
+        MAX_ABS_ERR: None,
+        MAX_RELATIVE_ERR: None,
+        ONE_THOUSANDTH_ERR_RATIO: None,
+        FIVE_THOUSANDTHS_ERR_RATIO: None,
     }
     MS_GRAPH_STATISTIC = {
-        MAX_DIFF: None, MIN_DIFF: None, MEAN_DIFF: None, NORM_DIFF: None, MAX_RELATIVE_ERR: None,
-        MIN_RELATIVE_ERR: None, MEAN_RELATIVE_ERR: None, NORM_RELATIVE_ERR: None
+        MAX_DIFF: None,
+        MIN_DIFF: None,
+        MEAN_DIFF: None,
+        NORM_DIFF: None,
+        MAX_RELATIVE_ERR: None,
+        MIN_RELATIVE_ERR: None,
+        MEAN_RELATIVE_ERR: None,
+        NORM_RELATIVE_ERR: None,
     }
-    MS_GRAPH_CSV = {
-        NPU_CSV_FILE: None, BENCH_CSV_FILE: None
-    }
+    MS_GRAPH_CSV = {NPU_CSV_FILE: None, BENCH_CSV_FILE: None}
 
     API_MAPPING_KEYS_TO_COMPARE = [
         ('ms_args', 'pt_args'),
         ('ms_outputs', 'pt_outputs'),
         ('ms_parameters', 'pt_parameters'),
-        ('ms_parameters_grad', 'pt_parameters_grad')
+        ('ms_parameters_grad', 'pt_parameters_grad'),
     ]
 
     INPUT_PATTERN = Const.SEP + Const.INPUT + Const.SEP
@@ -749,12 +825,27 @@ class CompareConst:
     CMP_SHAPE = 'compare_shape'
 
     OP_NAME_X = 'op_name_x'
-    MATCH_RESULT_COLUMNS = [
-        OP_NAME_X, 'dtype_x', 'shape_x', 'summary_x', 'stack_info_x', 'state_x', 'api_origin_name_x',
-        'requires_grad_x', 'data_name_x',
-        CMP_KEY, CMP_SHAPE,
-        'op_name_y', 'dtype_y', 'shape_y', 'summary_y', 'stack_info_y', 'state_y', 'api_origin_name_y',
-        'requires_grad_y', 'data_name_y'
+    FUZZY_NPU_COLUMNS = [
+        OP_NAME_X,
+        'dtype_x',
+        'shape_x',
+        'summary_x',
+        'stack_info_x',
+        'state_x',
+        'api_origin_name_x',
+        'requires_grad_x',
+        'data_name_x',
+    ]
+    FUZZY_BENCH_COLUMNS = [
+        'op_name_y',
+        'dtype_y',
+        'shape_y',
+        'summary_y',
+        'stack_info_y',
+        'state_y',
+        'api_origin_name_y',
+        'requires_grad_y',
+        'data_name_y',
     ]
 
     INTERNAL_API_MAPPING_FILE = 'ms_to_pt_api.yaml'
@@ -774,19 +865,13 @@ class CompareConst:
     DATA_SHAPE = 'Data Shape'
     TENSOR_PATH = "tensor_path"
 
-    VERL_STOP_PARSE_RULES = {
-        'fsdp': ['Qwen2Model', 'Qwen3Model', 'Qwen3MoeModel'],
-        'megatron': ['GPTModel']
-    }
+    VERL_STOP_PARSE_RULES = {'fsdp': ['Qwen2Model', 'Qwen3Model', 'Qwen3MoeModel'], 'megatron': ['GPTModel']}
 
-    VERL_BEGIN_PARSE_RULES = {
-        'fsdp': 'Embedding',
-        'megatron': 'VocabParallelEmbedding'
-    }
+    VERL_BEGIN_PARSE_RULES = {'fsdp': 'Embedding', 'megatron': 'VocabParallelEmbedding'}
 
     BACKEND_CAT_RULES = {
         'fsdp': lambda op_name: '.q_proj.' in op_name or '.gate_proj.' in op_name,
-        'megatron': lambda op_name: '.gate_up_proj.' in op_name
+        'megatron': lambda op_name: '.gate_up_proj.' in op_name,
     }
 
     # 因pandas版本特性导致乱序加的排序列
@@ -795,10 +880,7 @@ class CompareConst:
     COMPARE_ORDER = "compare_order"
 
     # 调用预检设计接口需要将device转成backend
-    DEVICE_TO_BACKEND = {
-        DEVICE_NPU: "target",
-        DEVICE_BENCH: "golden"
-    }
+    DEVICE_TO_BACKEND = {DEVICE_NPU: "target", DEVICE_BENCH: "golden"}
     ALL_MODE_DROP_COLUMNS = [DIRTY_VALID_LEN]
 
 
@@ -806,6 +888,7 @@ class FileCheckConst:
     """
     Class for file check const
     """
+
     READ_ABLE = "r"
     WRITE_ABLE = "w"
     EXECUTE_ABLE = "x"
@@ -820,7 +903,7 @@ class FileCheckConst:
         READ_WRITE_ABLE,
         READ_EXECUTE_ABLE,
         WRITE_EXECUTE_ABLE,
-        READ_WRITE_EXECUTE_ABLE
+        READ_WRITE_EXECUTE_ABLE,
     ]
 
     DIRECTORY_LENGTH = 4096
@@ -843,7 +926,7 @@ class FileCheckConst:
     OM_SUFFIX = '.om'
     BIN_SUFFIX = '.bin'
     PY_SUFFIX = '.py'
-    MAX_BIN_SIZE = 10737418240          # 10G
+    MAX_BIN_SIZE = 10737418240  # 10G
     MAX_COMMON_FILE_SIZE = 10737418240  # 10G
     MAX_PKL_SIZE = 1073741824  # 1 * 1024 * 1024 * 1024
     MAX_NUMPY_SIZE = 10737418240  # 10 * 1024 * 1024 * 1024
@@ -880,7 +963,7 @@ class FileCheckConst:
         DB_SUFFIX: MAX_DB_SIZE,
         ONNX_SUFFIX: MAX_ONNX_SIZE,
         OM_SUFFIX: MAX_OM_SIZE,
-        BIN_SUFFIX: MAX_BIN_SIZE
+        BIN_SUFFIX: MAX_BIN_SIZE,
     }
     CSV_BLACK_LIST = r'^[＋－＝％＠\+\-=%@]|;[＋－＝％＠\+\-=%@]'
 
@@ -889,6 +972,7 @@ class OverflowConst:
     """
     Class for Overflow
     """
+
     OVERFLOW_ORIGINAL_MODE = 0
     OVERFLOW_DEBUG_MODE = 1
 
@@ -897,6 +981,7 @@ class MsgConst:
     """
     Class for log messages const
     """
+
     MSPROBE_LOG_LEVEL = "MSPROBE_LOG_LEVEL"
     LOG_LEVEL_ENUM = ["0", "1", "2", "3", "4"]
     LOG_LEVEL = ["DEBUG", "INFO", "WARNING", "ERROR"]
@@ -914,7 +999,7 @@ class MsgConst:
         class ERROR:
             value = 3
 
-    SPECIAL_CHAR = ["\n", "\r", "\u007F", "\b", "\f", "\t", "\u000B", "%08", "%0a", "%0b", "%0c", "%0d", "%7f"]
+    SPECIAL_CHAR = ["\n", "\r", "\u007f", "\b", "\f", "\t", "\u000b", "%08", "%0a", "%0b", "%0c", "%0d", "%7f"]
 
     NOT_CREATED_INSTANCE = "PrecisionDebugger instance is not created."
 
@@ -947,7 +1032,7 @@ class MonitorConst:
     DEEPSPEED_OPT_TY = (
         "DeepSpeedZeroOptimizer_Stage0",
         "DeepSpeedZeroOptimizer_Stage1_or_2",
-        "DeepSpeedZeroOptimizer_Stage3"
+        "DeepSpeedZeroOptimizer_Stage3",
     )
     DEEPSPEED_ZERO_OPT_FILTER = "DeepSpeedZeroOptimizer"
     RULE_NAME = ['AnomalyTurbulence', 'AnomalyNan']

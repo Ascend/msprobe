@@ -20,8 +20,13 @@ from typing import List
 
 from msprobe.core.compare.acc_compare import ModeConfig
 from msprobe.core.compare.multiprocessing_compute import CompareRealData, CompareInfo
-from msprobe.core.compare.utils import read_op, merge_tensor, get_accuracy, make_result_table, \
-    get_rela_diff_summary_mode
+from msprobe.core.compare.utils import (
+    read_op,
+    merge_tensor,
+    get_accuracy,
+    make_result_table,
+    get_rela_diff_summary_mode,
+)
 from msprobe.core.common.utils import set_dump_path, get_dump_mode
 from msprobe.visualization.utils import GraphConst
 from msprobe.core.common.const import Const, CompareConst
@@ -34,7 +39,7 @@ op_patterns = [
     # NodeOp.module
     r'^(Module.|Cell.|optimizer|clip_grad|DefaultModel)',
     # NodeOp.function_api
-    r'^(Tensor.|Torch.|Functional.|NPU.|VF.|Distributed.|Aten.|Mint.|Primitive.|Jit.|MintFunctional.|MindSpeed.)'
+    r'^(Tensor.|Torch.|Functional.|NPU.|VF.|Distributed.|Aten.|Mint.|Primitive.|Jit.|MintFunctional.|MindSpeed.)',
 ]
 
 
@@ -51,29 +56,27 @@ def get_compare_mode(dump_path_param):
     return compare_mode
 
 
-def run_real_data(dump_path_param, csv_path, framework, is_cross_frame=False):
+def run_real_data(dump_path_param, df, framework, is_cross_frame=False):
     """
     多进程运行生成真实数据
     Args:
         dump_path_param: 调用acc_compare接口所依赖的参数
-        csv_path: 生成文件路径
+        df: 生成文件中间件
         framework: 框架类型, pytorch或mindspore
         is_cross_frame: 是否进行跨框架比对，仅支持mindspore比pytorch, 其中pytorch为标杆
     """
-    config_dict = {
-        'stack_mode': False,
-        'auto_analyze': True,
-        'fuzzy_match': False,
-        'dump_mode': Const.ALL
-    }
+    config_dict = {'stack_mode': False, 'auto_analyze': True, 'fuzzy_match': False, 'dump_mode': Const.ALL}
     mode_config = ModeConfig(**config_dict)
+    df[CompareConst.DIRTY_VALID_LEN] = [[-1, -1] for _ in range(len(df))]  # 适配比对新字段
 
     if framework == Const.PT_FRAMEWORK:
         from msprobe.pytorch.compare.pt_compare import read_real_data
-        return CompareRealData(read_real_data, mode_config, is_cross_frame).do_multi_process(dump_path_param, csv_path)
+
+        return CompareRealData(read_real_data, mode_config, is_cross_frame).do_multi_process(dump_path_param, df)
     else:
         from msprobe.mindspore.compare.ms_compare import read_real_data
-        return CompareRealData(read_real_data, mode_config, is_cross_frame).do_multi_process(dump_path_param, csv_path)
+
+        return CompareRealData(read_real_data, mode_config, is_cross_frame).do_multi_process(dump_path_param, df)
 
 
 def get_input_output(node_data, node_id):
@@ -236,6 +239,7 @@ class MatchedNodeCalculator:
     """
     功能：用户在前端选择NPU和Bench节点匹配，前端会查询db数据打包发送到此类，此类进行精度指标的计算，最终返回结果给前端
     """
+
     TENSOR_COMPARE_INDEX = CompareConst.ALL_COMPARE_INDEX + CompareConst.EXTRACT_INDEX
     STATISTICS_COMPARE_INDEX = CompareConst.SUMMARY_COMPARE_INDEX + CompareConst.EXTRACT_INDEX
 
@@ -260,13 +264,13 @@ class MatchedNodeCalculator:
             Const.MAX: (CompareConst.NPU_MAX, CompareConst.BENCH_MAX),
             Const.MIN: (CompareConst.NPU_MIN, CompareConst.BENCH_MIN),
             Const.MEAN: (CompareConst.NPU_MEAN, CompareConst.BENCH_MEAN),
-            Const.NORM: (CompareConst.NPU_NORM, CompareConst.BENCH_NORM)
+            Const.NORM: (CompareConst.NPU_NORM, CompareConst.BENCH_NORM),
         }
         self.md5_public_indicators_mapping = {
             Const.DTYPE: (CompareConst.NPU_DTYPE, CompareConst.BENCH_DTYPE),
             Const.SHAPE: (CompareConst.NPU_SHAPE, CompareConst.BENCH_SHAPE),
             Const.REQ_GRAD: (CompareConst.NPU_REQ_GRAD, CompareConst.BENCH_REQ_GRAD),
-            Const.MD5: (CompareConst.NPU_MD5, CompareConst.BENCH_MD5)
+            Const.MD5: (CompareConst.NPU_MD5, CompareConst.BENCH_MD5),
         }
         self.tensor_indicators_index = {
             CompareConst.COSINE: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.COSINE),
@@ -274,52 +278,65 @@ class MatchedNodeCalculator:
             CompareConst.MAX_ABS_ERR: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.MAX_ABS_ERR),
             CompareConst.MAX_RELATIVE_ERR: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.MAX_RELATIVE_ERR),
             CompareConst.ONE_THOUSANDTH_ERR_RATIO: CompareConst.COMPARE_RESULT_HEADER.index(
-                CompareConst.ONE_THOUSANDTH_ERR_RATIO),
+                CompareConst.ONE_THOUSANDTH_ERR_RATIO
+            ),
             CompareConst.FIVE_THOUSANDTHS_ERR_RATIO: CompareConst.COMPARE_RESULT_HEADER.index(
-                CompareConst.FIVE_THOUSANDTHS_ERR_RATIO)
+                CompareConst.FIVE_THOUSANDTHS_ERR_RATIO
+            ),
         }
         self.extra_tensor_indicators_index = {
             CompareConst.REQ_GRAD_CONSIST: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.REQ_GRAD_CONSIST),
             CompareConst.RESULT: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.RESULT),
-            CompareConst.ERROR_MESSAGE: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.ERROR_MESSAGE)
+            CompareConst.ERROR_MESSAGE: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.ERROR_MESSAGE),
         }
         self.all_tensor_indicators_index = {**self.tensor_indicators_index, **self.extra_tensor_indicators_index}
 
-        self.npu_summary_index = [CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.NPU_MAX),
-                                  CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.NPU_MIN),
-                                  CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.NPU_MEAN),
-                                  CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.NPU_NORM)]
-        self.bench_summary_index = [CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.BENCH_MAX),
-                                    CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.BENCH_MIN),
-                                    CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.BENCH_MEAN),
-                                    CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.BENCH_NORM)]
+        self.npu_summary_index = [
+            CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.NPU_MAX),
+            CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.NPU_MIN),
+            CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.NPU_MEAN),
+            CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.NPU_NORM),
+        ]
+        self.bench_summary_index = [
+            CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.BENCH_MAX),
+            CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.BENCH_MIN),
+            CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.BENCH_MEAN),
+            CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.BENCH_NORM),
+        ]
         self.statistics_indicators_index = {
             CompareConst.MAX_DIFF: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.MAX_DIFF),
             CompareConst.MIN_DIFF: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.MIN_DIFF),
             CompareConst.MEAN_DIFF: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.MEAN_DIFF),
             CompareConst.NORM_DIFF: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.NORM_DIFF),
             CompareConst.MAX_RELATIVE_ERR: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(
-                CompareConst.MAX_RELATIVE_ERR),
+                CompareConst.MAX_RELATIVE_ERR
+            ),
             CompareConst.MIN_RELATIVE_ERR: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(
-                CompareConst.MIN_RELATIVE_ERR),
+                CompareConst.MIN_RELATIVE_ERR
+            ),
             CompareConst.MEAN_RELATIVE_ERR: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(
-                CompareConst.MEAN_RELATIVE_ERR),
+                CompareConst.MEAN_RELATIVE_ERR
+            ),
             CompareConst.NORM_RELATIVE_ERR: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(
-                CompareConst.NORM_RELATIVE_ERR)
+                CompareConst.NORM_RELATIVE_ERR
+            ),
         }
         self.extra_statistics_indicators_index = {
             CompareConst.REQ_GRAD_CONSIST: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(
-                CompareConst.REQ_GRAD_CONSIST),
+                CompareConst.REQ_GRAD_CONSIST
+            ),
             CompareConst.RESULT: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.RESULT),
-            CompareConst.ERROR_MESSAGE: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.ERROR_MESSAGE)
+            CompareConst.ERROR_MESSAGE: CompareConst.SUMMARY_COMPARE_RESULT_HEADER.index(CompareConst.ERROR_MESSAGE),
         }
-        self.all_statistics_indicators_index = {**self.statistics_indicators_index,
-                                                **self.extra_statistics_indicators_index}
+        self.all_statistics_indicators_index = {
+            **self.statistics_indicators_index,
+            **self.extra_statistics_indicators_index,
+        }
 
         self.extra_md5_indicators_index = {
             CompareConst.REQ_GRAD_CONSIST: CompareConst.MD5_COMPARE_RESULT_HEADER.index(CompareConst.REQ_GRAD_CONSIST),
             CompareConst.RESULT: CompareConst.MD5_COMPARE_RESULT_HEADER.index(CompareConst.RESULT),
-            CompareConst.ERROR_MESSAGE: CompareConst.MD5_COMPARE_RESULT_HEADER.index(CompareConst.ERROR_MESSAGE)
+            CompareConst.ERROR_MESSAGE: CompareConst.MD5_COMPARE_RESULT_HEADER.index(CompareConst.ERROR_MESSAGE),
         }
         self.error_list = []
         # 记录error日志，用于前端展示
@@ -368,23 +385,19 @@ class MatchedNodeCalculator:
                 self.npu_db_data.get('input_data'),
                 self.bench_db_data.get('input_data'),
                 self.npu_db_data.get('dump_data_dir'),
-                self.bench_db_data.get('dump_data_dir')
+                self.bench_db_data.get('dump_data_dir'),
             )
             data_lists_in = self._convert_db_data2data_lists(
-                self.npu_db_data.get('input_data'),
-                self.bench_db_data.get('input_data'),
-                result_lists_in
+                self.npu_db_data.get('input_data'), self.bench_db_data.get('input_data'), result_lists_in
             )
             result_lists_out = self._compare_db_tensor_node(
                 self.npu_db_data.get('output_data'),
                 self.bench_db_data.get('output_data'),
                 self.npu_db_data.get('dump_data_dir'),
-                self.bench_db_data.get('dump_data_dir')
+                self.bench_db_data.get('dump_data_dir'),
             )
             data_lists_out = self._convert_db_data2data_lists(
-                self.npu_db_data.get('output_data'),
-                self.bench_db_data.get('output_data'),
-                result_lists_out
+                self.npu_db_data.get('output_data'), self.bench_db_data.get('output_data'), result_lists_out
             )
             all_data_lists = data_lists_in + data_lists_out
             result = calculate_result(all_data_lists, Const.ALL)
@@ -395,11 +408,14 @@ class MatchedNodeCalculator:
             data = {
                 GraphConst.JSON_INDEX_KEY: GraphConst.COMPARE_INDICATOR_TO_PRECISION_INDEX_MAPPING.get(result, 0),
                 self._INPUT_INFO: input_info,
-                self._OUTPUT_INFO: output_info
+                self._OUTPUT_INFO: output_info,
             }
 
-            return self._build_response(success=True, data=data) if not self.error_list else self._build_response(
-                success=False, error=self.error_list, data=data)
+            return (
+                self._build_response(success=True, data=data)
+                if not self.error_list
+                else self._build_response(success=False, error=self.error_list, data=data)
+            )
 
         except Exception as e:
             self.error_list.append(str(e))
@@ -412,14 +428,10 @@ class MatchedNodeCalculator:
         self.error_list.clear()
         try:
             data_lists_in = self._convert_db_data2data_lists(
-                self.npu_db_data.get('input_data'),
-                self.bench_db_data.get('input_data'),
-                compare_mode=Const.SUMMARY
+                self.npu_db_data.get('input_data'), self.bench_db_data.get('input_data'), compare_mode=Const.SUMMARY
             )
             data_lists_out = self._convert_db_data2data_lists(
-                self.npu_db_data.get('output_data'),
-                self.bench_db_data.get('output_data'),
-                compare_mode=Const.SUMMARY
+                self.npu_db_data.get('output_data'), self.bench_db_data.get('output_data'), compare_mode=Const.SUMMARY
             )
 
             data_lists_in = self._compare_statistics(data_lists_in)
@@ -434,11 +446,14 @@ class MatchedNodeCalculator:
             data = {
                 GraphConst.JSON_INDEX_KEY: GraphConst.COMPARE_INDICATOR_TO_PRECISION_INDEX_MAPPING.get(result, 0),
                 self._INPUT_INFO: input_info,
-                self._OUTPUT_INFO: output_info
+                self._OUTPUT_INFO: output_info,
             }
 
-            return self._build_response(success=True, data=data) if not self.error_list else self._build_response(
-                success=False, error=self.error_list, data=data)
+            return (
+                self._build_response(success=True, data=data)
+                if not self.error_list
+                else self._build_response(success=False, error=self.error_list, data=data)
+            )
 
         except Exception as e:
             self.error_list.append(str(e))
@@ -451,14 +466,10 @@ class MatchedNodeCalculator:
         self.error_list.clear()
         try:
             data_lists_in = self._convert_db_data2data_lists(
-                self.npu_db_data.get('input_data'),
-                self.bench_db_data.get('input_data'),
-                compare_mode=Const.MD5
+                self.npu_db_data.get('input_data'), self.bench_db_data.get('input_data'), compare_mode=Const.MD5
             )
             data_lists_out = self._convert_db_data2data_lists(
-                self.npu_db_data.get('output_data'),
-                self.bench_db_data.get('output_data'),
-                compare_mode=Const.MD5
+                self.npu_db_data.get('output_data'), self.bench_db_data.get('output_data'), compare_mode=Const.MD5
             )
 
             all_data_lists = data_lists_in + data_lists_out
@@ -470,11 +481,14 @@ class MatchedNodeCalculator:
             data = {
                 GraphConst.JSON_INDEX_KEY: GraphConst.COMPARE_INDICATOR_TO_PRECISION_INDEX_MAPPING.get(result, 0),
                 self._INPUT_INFO: input_info,
-                self._OUTPUT_INFO: output_info
+                self._OUTPUT_INFO: output_info,
             }
 
-            return self._build_response(success=True, data=data) if not self.error_list else self._build_response(
-                success=False, error=self.error_list, data=data)
+            return (
+                self._build_response(success=True, data=data)
+                if not self.error_list
+                else self._build_response(success=False, error=self.error_list, data=data)
+            )
 
         except Exception as e:
             self.error_list.append(str(e))
@@ -519,12 +533,7 @@ class MatchedNodeCalculator:
         """
         进行一对tensor数据的比对，得到Cosine、EucDist等精度比对指标，区分框架
         """
-        config_dict = {
-            'stack_mode': False,
-            'auto_analyze': True,
-            'fuzzy_match': False,
-            'dump_mode': Const.ALL
-        }
+        config_dict = {'stack_mode': False, 'auto_analyze': True, 'fuzzy_match': False, 'dump_mode': Const.ALL}
         mode_config = ModeConfig(**config_dict)
         data_name_pair = op_name_mapping_dict.get(str(npu_op_name) + str(bench_op_name))
         npu_data_name, bench_data_name = data_name_pair
@@ -533,14 +542,16 @@ class MatchedNodeCalculator:
 
         if self.framework == Const.PT_FRAMEWORK:
             from msprobe.pytorch.compare.pt_compare import read_real_data
-            return CompareRealData(read_real_data, mode_config, self.is_cross_frame).compare_by_op(npu_info,
-                                                                                                   bench_info,
-                                                                                                   input_param)
+
+            return CompareRealData(read_real_data, mode_config, self.is_cross_frame).compare_by_op(
+                npu_info, bench_info, input_param
+            )
         else:
             from msprobe.mindspore.compare.ms_compare import read_real_data
-            return CompareRealData(read_real_data, mode_config, self.is_cross_frame).compare_by_op(npu_info,
-                                                                                                   bench_info,
-                                                                                                   input_param)
+
+            return CompareRealData(read_real_data, mode_config, self.is_cross_frame).compare_by_op(
+                npu_info, bench_info, input_param
+            )
 
     def _compare_db_tensor_node(self, npu_data: dict, bench_data: dict, npu_data_dir, bench_data_dir):
         """
@@ -555,7 +566,7 @@ class MatchedNodeCalculator:
             else:
                 input_param = {
                     CompareConst.NPU_DUMP_DATA_DIR: npu_data_dir,
-                    CompareConst.BENCH_DUMP_DATA_DIR: bench_data_dir
+                    CompareConst.BENCH_DUMP_DATA_DIR: bench_data_dir,
                 }
                 op_name_mapping_dict = {
                     npu_op_name + bench_op_name: [npu_value.get('data_name'), bench_value.get('data_name')]
@@ -565,16 +576,18 @@ class MatchedNodeCalculator:
                 result_lists.append(result)
         return result_lists
 
-    def _convert_db_data2data_lists(self, npu_dict: dict, bench_dict: dict, compare_results: list = None,
-                                    compare_mode: str = Const.ALL) -> List[List]:
+    def _convert_db_data2data_lists(
+        self, npu_dict: dict, bench_dict: dict, compare_results: list = None, compare_mode: str = Const.ALL
+    ) -> List[List]:
         """
         将db里的node数据转换为指标计算需要的List[List]格式
         并且插入比对结果
         :return: 最终结果 [ [行1数据], [行2数据], ... ]
         """
         header = CompareConst.HEAD_OF_COMPARE_MODE.get(compare_mode)
-        indicators_mapping = self.md5_public_indicators_mapping if compare_mode == Const.MD5 \
-            else self.public_indicators_mapping
+        indicators_mapping = (
+            self.md5_public_indicators_mapping if compare_mode == Const.MD5 else self.public_indicators_mapping
+        )
         data_lists = []
         npu_keys = list(npu_dict.keys())
         bench_keys = list(bench_dict.keys())
@@ -662,8 +675,4 @@ class MatchedNodeCalculator:
 
     def _build_response(self, success: bool, error: list = None, data: dict = None):
         data = data or {}
-        return {
-            self._RESP_SUCCESS: success,
-            self._RESP_ERROR: error,
-            self._RESP_DATA: data
-        }
+        return {self._RESP_SUCCESS: success, self._RESP_ERROR: error, self._RESP_DATA: data}

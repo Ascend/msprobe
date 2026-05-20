@@ -46,16 +46,17 @@ class ComparisonResult:
 class CompareInfo:
     op_name: str
     data_name: Any
-    dirty_valid_len: int
+    dirty_valid_len: Any
 
 
+# pylint: disable=consider-using-with
 def _ms_graph_handle_multi_process(func, result_df, mode):
     process_num = max(int((multiprocessing.cpu_count() + 1) // 4), 1)
     df_chunk_size = len(result_df) // process_num
     if df_chunk_size > 0:
-        df_chunks = [result_df.iloc[i:i + df_chunk_size] for i in range(0, len(result_df), df_chunk_size)]
+        df_chunks = [result_df.iloc[i : i + df_chunk_size].copy() for i in range(0, len(result_df), df_chunk_size)]
     else:
-        df_chunks = [result_df]
+        df_chunks = [result_df.copy()]
 
     results = []
     pool = multiprocessing.Pool(process_num)
@@ -83,7 +84,7 @@ def _ms_graph_handle_multi_process(func, result_df, mode):
 def check_accuracy(cos, max_abs_err):
     if cos == CompareConst.SHAPE_UNMATCH:
         return CompareConst.ACCURACY_CHECK_UNMATCH
-    if cos == CompareConst.NONE or max_abs_err == CompareConst.NONE:
+    if CompareConst.NONE in (cos, max_abs_err):
         return CompareConst.NONE
     if cos == "N/A" or max_abs_err == "N/A":
         return CompareConst.ACCURACY_CHECK_NO
@@ -116,7 +117,7 @@ class CompareRealData:
             dump_tensor_pair_list = result_df.loc[0:, CompareConst.DATA_NAME].tolist()
             op_name_mapping_dict = {}
             for npu_name, bench_name, dump_tensor_pair in zip(npu_name_list, bench_name_list, dump_tensor_pair_list):
-                op_name_mapping_dict[str(npu_name)+str(bench_name)] = dump_tensor_pair
+                op_name_mapping_dict[str(npu_name) + str(bench_name)] = dump_tensor_pair
             return op_name_mapping_dict
         except ValueError as e:
             logger.error('result dataframe is not found.')
@@ -155,9 +156,11 @@ class CompareRealData:
                 result_df.loc[process_index, CompareConst.MAX_ABS_ERR] = result.max_err_result[i]
                 result_df.loc[process_index, CompareConst.MAX_RELATIVE_ERR] = result.max_relative_err_result[i]
                 result_df.loc[process_index, CompareConst.ONE_THOUSANDTH_ERR_RATIO] = (
-                    result.one_thousand_err_ratio_result)[i]
+                    result.one_thousand_err_ratio_result
+                )[i]
                 result_df.loc[process_index, CompareConst.FIVE_THOUSANDTHS_ERR_RATIO] = (
-                    result.five_thousand_err_ratio_result)[i]
+                    result.five_thousand_err_ratio_result
+                )[i]
                 result_df.loc[process_index, CompareConst.ERROR_MESSAGE] += result.err_msgs[i]
             return result_df
         except ValueError as e:
@@ -218,26 +221,17 @@ class CompareRealData:
 
         if str(npu_data_name) == CompareConst.NO_REAL_DATA_FLAG:
             return CompareResult(
-                CompareConst.NO_REAL_DATA,
-                CompareConst.NO_REAL_DATA,
-                True,
-                "NPU does not have data file."
+                CompareConst.NO_REAL_DATA, CompareConst.NO_REAL_DATA, True, "NPU does not have data file."
             )
 
         if str(bench_data_name) == CompareConst.NO_REAL_DATA_FLAG:
             return CompareResult(
-                CompareConst.NO_REAL_DATA,
-                CompareConst.NO_REAL_DATA,
-                True,
-                "Bench does not have data file."
+                CompareConst.NO_REAL_DATA, CompareConst.NO_REAL_DATA, True, "Bench does not have data file."
             )
 
         if (str(npu_data_name) == CompareConst.N_A) ^ (str(bench_data_name) == CompareConst.N_A):
             return CompareResult(
-                CompareConst.API_UNMATCH,
-                CompareConst.API_UNMATCH,
-                True,
-                "Bench api/module unmatched."
+                CompareConst.API_UNMATCH, CompareConst.API_UNMATCH, True, "Bench api/module unmatched."
             )
 
         return CompareResult(npu_data_name, bench_data_name, False, "")
@@ -255,13 +249,14 @@ class CompareRealData:
             "npu_dir": input_param.get(CompareConst.NPU_DUMP_DATA_DIR),
             "npu_data_name": dump_result.n_value,
             "bench_dir": input_param.get(CompareConst.BENCH_DUMP_DATA_DIR),
-            "bench_data_name": dump_result.b_value
+            "bench_data_name": dump_result.b_value,
         }
 
         try:
             n_value, b_value = self.file_reader(data_path_dict, self.cross_frame, self.mode_config.backend)
-            n_value = self.clean_dirty_data(n_value, npu_info)
-            b_value = self.clean_dirty_data(b_value, bench_info)
+            if not self.mode_config.consistent_check:
+                n_value = self.clean_dirty_data(n_value, npu_info)
+                b_value = self.clean_dirty_data(b_value, bench_info)
             return CompareResult(n_value, b_value, False, "")
 
         except IOError as error:
@@ -269,7 +264,7 @@ class CompareRealData:
                 CompareConst.READ_NONE,
                 CompareConst.READ_NONE,
                 True,
-                f"Dump file: {error.filename} not found or read failed."
+                f"Dump file: {error.filename} not found or read failed.",
             )
 
         except (FileCheckException, CompareException):
@@ -277,7 +272,7 @@ class CompareRealData:
                 CompareConst.READ_NONE,
                 CompareConst.READ_NONE,
                 True,
-                f"Dump file: {dump_result.n_value} or {dump_result.b_value} not found or read failed."
+                f"Dump file: {dump_result.n_value} or {dump_result.b_value} not found or read failed.",
             )
 
     def build_result(self, result, npu_info, bench_info):
@@ -285,12 +280,7 @@ class CompareRealData:
         构建最终的对比结果
         负责调用指标计算函数，并补充模糊匹配提示信息。
         """
-        result_list, err_msg = compare_ops_apply(
-            result.n_value,
-            result.b_value,
-            result.error_flag,
-            result.err_msg
-        )
+        result_list, err_msg = compare_ops_apply(result.n_value, result.b_value, result.error_flag, result.err_msg)
         npu_op_name = npu_info.op_name
         bench_op_name = bench_info.op_name
         if self.mode_config.fuzzy_match and npu_op_name != bench_op_name and bench_op_name != CompareConst.N_A:
@@ -310,12 +300,17 @@ class CompareRealData:
         is_print_compare_log = input_param.get("is_print_compare_log")
 
         for i in range(len(result_df)):
-            npu_op_name = result_df.loc[i, CompareConst.NPU_NAME]
-            bench_op_name = result_df.loc[i, CompareConst.BENCH_NAME]
+            current_row = result_df.iloc[i]
+            npu_op_name = current_row[CompareConst.NPU_NAME]
+            bench_op_name = current_row[CompareConst.BENCH_NAME]
             data_name_pair = dump_path_dict.get(str(npu_op_name) + str(bench_op_name))
             npu_data_name, bench_data_name = data_name_pair
-            dirty_valid_len_pair = result_df.loc[i, CompareConst.DIRTY_VALID_LEN]
-            npu_dirty_valid_len, bench_dirty_valid_len = dirty_valid_len_pair  # 固定结构为 [npu len, bench len]
+
+            npu_dirty_valid_len = -1
+            bench_dirty_valid_len = -1
+            if not self.mode_config.consistent_check:
+                dirty_valid_len_pair = current_row[CompareConst.DIRTY_VALID_LEN]
+                npu_dirty_valid_len, bench_dirty_valid_len = dirty_valid_len_pair  # 固定结构为 [npu len, bench len]
 
             npu_info = CompareInfo(npu_op_name, npu_data_name, npu_dirty_valid_len)
             bench_info = CompareInfo(bench_op_name, bench_data_name, bench_dirty_valid_len)
@@ -323,8 +318,15 @@ class CompareRealData:
             if is_print_compare_log:
                 logger.info("start compare: {}".format(npu_op_name))
 
-            cos_sim, euc_dist, max_abs_err, max_relative_err, one_thousand_err_ratio, five_thousand_err_ratio, err_msg \
-                = self.compare_by_op(npu_info, bench_info, input_param)
+            (
+                cos_sim,
+                euc_dist,
+                max_abs_err,
+                max_relative_err,
+                one_thousand_err_ratio,
+                five_thousand_err_ratio,
+                err_msg,
+            ) = self.compare_by_op(npu_info, bench_info, input_param)
 
             if is_print_compare_log:
                 if "does not have data file" in err_msg:
@@ -353,15 +355,16 @@ class CompareRealData:
             max_relative_err_result=max_relative_err_result,
             one_thousand_err_ratio_result=one_thousand_err_ratio_result,
             five_thousand_err_ratio_result=five_thousand_err_ratio_result,
-            err_msgs=err_mess
+            err_msgs=err_mess,
         )
 
         return self._save_cmp_result(idx, cr, result_df, lock)
 
     def do_multi_process(self, input_param, result_df):
         try:
-            result_df = self._handle_multi_process(self.compare_ops, input_param, result_df,
-                                                   multiprocessing.Manager().RLock())
+            result_df = self._handle_multi_process(
+                self.compare_ops, input_param, result_df, multiprocessing.Manager().RLock()
+            )
             return result_df
         except ValueError as e:
             logger.error('result dataframe is not found.')
@@ -373,30 +376,31 @@ class CompareRealData:
 
         df_chunk_size = len(result_df) // process_num
         if df_chunk_size > 0:
-            df_chunks = [result_df.iloc[i:i + df_chunk_size] for i in range(0, len(result_df), df_chunk_size)]
+            df_chunks = [result_df.iloc[i : i + df_chunk_size].copy() for i in range(0, len(result_df), df_chunk_size)]
         else:
-            df_chunks = [result_df]
+            df_chunks = [result_df.copy()]
 
         results = []
-        pool = multiprocessing.Pool(process_num)
-
-        def err_call(args):
-            logger.error('multiprocess compare failed! Reason: {}'.format(args))
-
         progress_bar = tqdm(total=len(result_df), desc="API/Module Item Compare Process", unit="row", ncols=100)
 
         def update_progress(size, progress_lock, extra_param=None):
             with progress_lock:
                 progress_bar.update(size)
 
+        pool = multiprocessing.Pool(process_num)
+
+        def err_call(args):
+            logger.error('multiprocess compare failed! Reason: {}'.format(args))
+
         for process_idx, df_chunk in enumerate(df_chunks):
             idx = df_chunk_size * process_idx
             chunk_size = len(df_chunk)
-            result = pool.apply_async(func,
-                                      args=(idx, op_name_mapping_dict, df_chunk, lock, input_param),
-                                      error_callback=err_call,
-                                      callback=partial(update_progress, chunk_size, lock)
-                                      )
+            result = pool.apply_async(
+                func,
+                args=(idx, op_name_mapping_dict, df_chunk, lock, input_param),
+                error_callback=err_call,
+                callback=partial(update_progress, chunk_size, lock),
+            )
             results.append(result)
 
         pool.close()

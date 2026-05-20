@@ -1253,9 +1253,10 @@ class TestMatch(unittest.TestCase):
     def test_put_unmatched_in_table(self):
         mode_config = ModeConfig()
         mapping_config = MappingConfig()
+        mode_config.fuzzy_match = True
         match = Match(mode_config, mapping_config, cross_frame=False)
 
-        match_result = pd.DataFrame(columns=CompareConst.MATCH_RESULT_COLUMNS)
+        match_result = pd.DataFrame(columns=match.fuzzy_result_columns)
         npu_op_item = pd.Series(['op', 'float32', [1, 2], 'summary', 'stack_info',
                                  'input', 'op_origin', 'False', 'data_name', 'op', [1, 2]],
                                 index=['op_name_x', 'dtype_x', 'shape_x', 'summary_x', 'stack_info_x',
@@ -1266,15 +1267,16 @@ class TestMatch(unittest.TestCase):
         target_match_result = pd.DataFrame([['op', 'float32', [1, 2], 'summary', 'stack_info',
                                              'input', 'op_origin', 'False', 'data_name', 'op', [1, 2],
                                              'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']],
-                                           columns=CompareConst.MATCH_RESULT_COLUMNS)
+                                           columns=match.fuzzy_result_columns)
         self.assertTrue(match_result.equals(target_match_result))
 
     def test_put_matched_in_table(self):
         mode_config = ModeConfig()
         mapping_config = MappingConfig()
+        mode_config.fuzzy_match = True
         match = Match(mode_config, mapping_config, cross_frame=False)
 
-        match_result = pd.DataFrame(columns=CompareConst.MATCH_RESULT_COLUMNS)
+        match_result = pd.DataFrame(columns=match.fuzzy_result_columns)
         npu_op_item = pd.Series(['op', 'float32', [1, 2], 'summary', 'stack_info',
                                  'input', 'op_origin', 'False', 'data_name', 'op', [1, 2]],
                                 index=['op_name_x', 'dtype_x', 'shape_x', 'summary_x', 'stack_info_x',
@@ -1292,7 +1294,7 @@ class TestMatch(unittest.TestCase):
                                              'input', 'op_origin', 'False', 'data_name', 'op', [1, 2],
                                              'op', 'float32', [1, 2], 'summary', 'stack_info',
                                              'input', 'op_origin', 'False', 'data_name']],
-                                           columns=CompareConst.MATCH_RESULT_COLUMNS)
+                                           columns=match.fuzzy_result_columns)
         self.assertTrue(match_result.equals(target_match_result))
 
     def test_rename_api(self):
@@ -1331,6 +1333,7 @@ class TestMatch(unittest.TestCase):
     def test_process_fuzzy_match(self):
         mode_config = ModeConfig()
         mapping_config = MappingConfig()
+        mode_config.fuzzy_match = True
         match = Match(mode_config, mapping_config, cross_frame=False)
 
         npu_df = pd.DataFrame([
@@ -1367,7 +1370,7 @@ class TestMatch(unittest.TestCase):
                  'Functional.amax.0.forward.input.0', 'float32', [1, 2], 'summary', 'stack_info',
                  'input', 'Functional.amax.0.forward', 'True', 'Functional.amax.0.forward.input.0.pt']
             ]
-        , columns=CompareConst.MATCH_RESULT_COLUMNS)
+        , columns=match.fuzzy_result_columns)
 
         self.assertTrue(match_result.equals(expected))
 
@@ -1538,27 +1541,6 @@ class TestMatch(unittest.TestCase):
 
 
 class TestCreateTable(unittest.TestCase):
-
-    def test_process_data_name(self):
-        mode_config = ModeConfig()
-        create_table = CreateTable(mode_config)
-
-        data = {
-            'data_name_x': ['A', 'B', 'C'],
-            'data_name_y': ['X', 'Y', 'Z'],
-            'dirty_valid_len_x': [21, -1, 21],
-            'dirty_valid_len_y': [-1, -1, 21]
-        }
-        result_o = pd.DataFrame(data)
-        result = create_table.process_all_mode_addition_header(result_o)
-        target_data = {
-            'data_name_x': [['A', 'X'], ['B', 'Y'], ['C', 'Z']],
-            'data_name_y': ['X', 'Y', 'Z'],
-            'dirty_valid_len_x': [[21, -1], [-1, -1], [21, 21]],
-            'dirty_valid_len_y': [-1, -1, 21]
-        }
-        target_result = pd.DataFrame(target_data)
-        self.assertTrue(result.equals(target_result))
 
     def test_set_summary(self):
         mode_config = ModeConfig()

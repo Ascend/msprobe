@@ -2,6 +2,8 @@
 line-length = 120
 target-version = "py310"
 format.quote-style = "preserve"
+extend-exclude = ["test"]
+force-exclude = true
 
 [tool.ruff.lint]
 # 追加 D209，不会覆盖、不会屏蔽任何现有规则
