@@ -82,7 +82,7 @@
    }
    ```
 
-3. 分别以MindSpore 2.6.0和MindSpore 2.7.0环境下的训练脚本（mindspore_main.py文件）中添加工具，如下所示。
+3. 分别在MindSpore 2.6.0和MindSpore 2.7.0环境下的训练脚本（mindspore_main.py文件）中添加工具，如下所示。
 
    > [!NOTE]
    >
