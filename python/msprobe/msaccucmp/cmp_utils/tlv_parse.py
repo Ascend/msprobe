@@ -114,7 +114,7 @@ class TLV:
 
         if not isinstance(ele_type, list):
             ele_size = _UNPACK_FORMAT.get(ele_type).get('SIZE')
-            if length < ele_size:
+            if length < ele_size and length!=0:
                 log.print_error_log(
                     'Failed to parse of tag: %s. length:%d < single ele_size:%d' % (tag_in_cfg, length, ele_size))
                 raise CompareError(CompareError.MSACCUCMP_PARSE_NANO_DUMP_FILE_ERROR)
