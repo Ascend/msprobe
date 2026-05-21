@@ -17,7 +17,7 @@
 
 | 参数                | 可选/必选 | 解释                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 |-------------------| -------- |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| task              | 可选     | dump的任务类型，str类型。可选参数：<br/>&#8226; "statistics"：仅采集统计信息。<br/>&#8226; "tensor"：采集统计信息和完全复刻整网的真实数据。<br/>&#8226; "acc_check"：精度预检，仅PyTorch场景支持，采集数据时勿选。<br/>&#8226; "overflow_check"：溢出检测。<br/>&#8226; "structure"：仅采集模型结构以及调用栈信息，不采集具体数据。<br/>默认值为"statistics"。<br/>根据task参数取值的不同，可以配置不同场景参数，详细介绍请参见：<br/>&#8226; [task配置为statistics](#task配置为statistics)<br/>&#8226; [task配置为tensor](#task配置为tensor)<br/>&#8226; [task配置为acc_check](#task配置为acc_check)<br/>&#8226; [task配置为overflow_check](#task配置为overflow_check)<br/>&#8226; [task配置为structure](#task配置为structure)<br/>&#8226; [task配置为exception_dump](#task配置为exception_dump)<br/>配置示例："task": "tensor"。                                            |
+| task              | 可选     | dump的任务类型，str类型。可选参数：<br/>&#8226; "statistics"：仅采集统计信息。<br/>&#8226; "tensor"：采集统计信息和完全复刻整网的真实数据。<br/>&#8226; "acc_check"：精度预检，仅PyTorch场景支持，采集数据时勿选。<br/>&#8226; "overflow_check"：溢出检测。<br/>&#8226; "nan_check"：NaN/Inf检测（检测寄存器状态是否为NaN或Inf），仅PyTorch场景支持。<br/>&#8226; "structure"：仅采集模型结构以及调用栈信息，不采集具体数据。<br/>默认值为"statistics"。<br/>根据task参数取值的不同，可以配置不同场景参数，详细介绍请参见：<br/>&#8226; [task配置为statistics](#task配置为statistics)<br/>&#8226; [task配置为tensor](#task配置为tensor)<br/>&#8226; [task配置为acc_check](#task配置为acc_check)<br/>&#8226; [task配置为overflow_check](#task配置为overflow_check)<br/>&#8226; [task配置为nan_check](#task配置为nan_check)<br/>&#8226; [task配置为structure](#task配置为structure)<br/>&#8226; [task配置为exception_dump](#task配置为exception_dump)<br/>配置示例："task": "tensor"。                                            |
 | dump_path         | 必选     | 设置dump数据目录路径，str类型。<br/>配置示例："dump_path": "./dump_path"。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | rank              | 可选     | 指定对某张卡上的数据进行采集，list[Union[int, str]]类型，默认未配置（表示采集所有卡的数据），应配置元素为≥ 0的整数或类似"4-6"的字符串，且须配置实际可用的Rank ID。<br/>&#8226; PyTorch场景：Rank ID从0开始计数，最大取值为所有节点可用卡总数-1，若所配置的值大于实际训练所运行的卡的Rank ID，则dump数据为空，比如当前环境Rank ID为0到7，实际训练运行0到3卡，此时若配置Rank ID为4或不存在的10等其他值，dump数据为空。<br/>&#8226; MindSpore场景：所有节点的Rank ID均从0开始计数，最大取值为每个节点可用卡总数-1，config.json配置一次rank参数对所有节点同时生效。静态图L0级别dump暂不支持指定rank。<br/>单卡训练时，rank必须为[]，即空列表，不能指定rank。<br/>配置示例："rank": [1, "4-6"]。                                                                                                                                                                                                                                                     |
 | step              | 可选     | 指定采集某个step的数据，list[Union[int, str]]类型。默认未配置，表示采集所有step数据。采集特定step时，须指定为训练脚本中存在的step，可逐个配置，也可以指定范围。<br/>配置示例："step": [0, 1 , 2, "4-6"]。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -186,6 +186,40 @@ MindSpore静态图场景下，"level"须为"L2"，且模型编译优化等级（
 | 参数        | 可选/必选 | 解释                 |
 | ------------- | -------- | ---------------------- |
 | check_mode    | 可选     | 溢出类型，str类型，仅MindSpore v2.3.0以下版本的静态图场景支持，可选参数：<br/>&#8226; "aicore"：开启AI Core的溢出检测。<br/>&#8226; "atomic"：开启Atomic的溢出检测。<br/>&#8226; "all"：开启算子的溢出检测。<br/>默认值为all。<br/>配置示例："check_mode": "all"。 |
+
+### task配置为nan_check
+
+**配置样例**
+
+```json
+{
+    "task": "nan_check",
+    "dump_path": "/home/data_dump",
+    "rank": [],
+    "step": [],
+    "level": "L1",
+
+    "nan_check": {
+      "list": [],
+      "scope": [],
+      "data_mode": ["all"] 
+    }
+}
+```
+
+支持场景：
+
+ - PyTorch场景
+
+**参数说明**
+
+nan_check模式通过读取NPU寄存器状态，检测模型中的API运行时是否存在NaN或Inf的情况。该任务类型在昇腾NPU设备上运行，level须配置为"L1"。使用前请确保使用编译时带有`--include-mod=nan_check`参数的msprobe工具包。由于检测结果通过读取寄存器状态获得，因此可能出现结果正常但检测结果为溢出的情况，说明该API存在过程溢出（过程溢出为正常情况）。
+
+| 参数 | 可选/必选 | 解释 |
+| ---- | --------- | ---- |
+| scope | 可选 | PyTorch场景dump范围，list[str]类型，默认未配置（list也未配置时表示dump所有API的数据）。详细配置方法请参见[scope参数配置说明](#scope参数配置说明)。 |
+| list  | 可选 | 自定义采集的算子列表，list[str]类型，默认未配置（scope也未配置时表示dump所有API的数据）。详细配置方法请参见[list参数配置说明](#list参数配置说明)。 |
+| data_mode | 可选 | dump数据过滤，list[str]类型。详细配置方法请参见[data_mode参数配置说明](#data_mode参数配置说明)。 |
 
 ### task配置为structure
 

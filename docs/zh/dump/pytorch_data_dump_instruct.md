@@ -7,7 +7,7 @@ msProbe工具通过在训练脚本中添加`PrecisionDebugger`接口并启动训
 **功能特点**
 
 - **多粒度数据采集**：支持L0（模块级）、L1（API级）以及mix（L0+L1）的不同粒度的数据采集
-- **多种dump模式**：提供statistics、tensor、acc_check、structure、overflow_check等多种采集模式
+- **多种dump模式**：提供statistics、tensor、acc_check、structure、overflow_check、nan_check等多种采集模式
 - **灵活的配置选项**：通过config.json文件可以精确控制采集范围
 
 ## 使用前准备
@@ -97,6 +97,7 @@ msProbe工具通过在训练脚本中添加`PrecisionDebugger`接口并启动训
 | 初步精度分析 | task="statistics"      | 资源占用低，快速获取统计信息  |
 | 深度精度分析 | task="tensor"          | 采集完整数据，支持详细分析   |
 | 确定性问题分析 | task="statistics"<br>summary_mode="md5"          | 采集统计信息和tensor的CRC-32校验值，快速分析确定性问题   |
+| NaN/Inf检测 | task="nan_check"      | 通过寄存器状态检测API运行中的NaN/Inf  |
 
 ### 使用示例
 
@@ -366,7 +367,9 @@ dump.json is at ./dump_path/step*
 * `dump_tensor_data`：保存采集到的张量数据。
 * `dump.json`：保存API或Module前反向数据的统计量信息。包含dump数据的API名称或Module名称，各数据的dtype、
   shape、max、min、mean、L2norm（L2范数，平方根）统计信息，以及根据`summary_mode`
-  配置输出的校验值（`md5`对应CRC-32字段`md5`，`xor`对应XOR校验字段`md5`）。具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
+  配置输出的校验值（`md5`对应CRC-32字段`md5`，`xor`对应XOR校验字段`md5`）。
+  具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
+  当task配置为"nan_check"时，dump.json中各API数据将包含`is_nan`字段，取值为0或1，0代表无溢出状态，1代表有溢出状态（该模式下不保存API中数据的统计值）。
 * `dump_error_info.log`：仅在dump工具报错时生成此记录日志，用于记录dump错误日志。
 * `stack.json`：API/Module的调用栈信息。
 * `construct.json`：分层分级结构，level为L1时，construct.json内容为空。
@@ -659,7 +662,7 @@ dump.json文件如下：
           "Min": -0.00012117840378778055,
           "Mean": 2.0098118724831693e-08,
           "Norm": 0.006532244384288788,
-          "requires_grad": false,
+          "requires_grad": false, 
           "data_name": "Functional.relu.0.backward.output.0.pt"
         }
       ]
@@ -817,9 +820,9 @@ csv结果文件内容介绍如下：
   - <API名称1>
   - <API名称2>
 ```
-
+ 
 **字段说明**
-
+ 
 | 字段 | 说明 |
 | --- | --- |
 | 模块路径 | API所属的Python模块路径，支持多级子模块，例如`torch.nn.functional`、`module_a.submodule`。必须是有效的Python模块路径（由字母、数字、下划线和点号组成，首字符为字母或下划线），长度不超过4096字符。 |
