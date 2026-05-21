@@ -67,6 +67,10 @@ if [[ "${extension}" == "gz" || "${extension}" == "zip" ]]; then
         unzip -n ${fullname} -d ./ > /dev/null
     fi
 elif [[ "${extension}" == "git" ]]; then
+    if [[ -z "${sha256_value}" ]]; then
+        echo "Missing commit id for ${url}"
+        exit 1
+    fi
     if [[ -d ${fullname%\.*} ]]; then
         cd ${fullname%\.*}
         is_clean=$(git status | grep 'nothing to commit, working tree clean' |wc -l)
@@ -90,7 +94,16 @@ elif [[ "${extension}" == "git" ]]; then
             git clone ${url} -b "${tag}"
         fi
         if [ $? -eq 0 ]; then
-            echo "Download successful: ${url}"
+            cd "${fullname%\.*}"
+            git checkout --detach "${sha256_value}"
+            if [[ "$(git rev-parse HEAD)" == "${sha256_value}" ]]; then
+                cd "${path}"
+                echo "Download successful: ${url}"
+            else
+                cd "${path}"
+                echo "Download failed: ${url}"
+                exit 1
+            fi
         else
             echo "Download failed: ${url}"
             exit 1
