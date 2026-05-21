@@ -18,6 +18,7 @@
 #ifndef CONST_H
 #define CONST_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <map>
