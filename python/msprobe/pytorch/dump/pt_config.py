@@ -102,6 +102,8 @@ class NanCheckConfig(BaseConfig):
     def __init__(self, json_config):
         super().__init__(json_config)
         self.check_config()
+        self.tensor_list = json_config.get("tensor_list", [])
+        self._check_str_list_config(self.tensor_list, "tensor_list")
 
 
 TaskDict = {

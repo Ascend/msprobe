@@ -160,7 +160,7 @@ class DebuggerConfig:
             self.list.append(api_forward_name)
 
     def _check_statistics_config(self, task_config):
-        if self.task != Const.STATISTICS:
+        if self.task not in {Const.STATISTICS, Const.NAN_CHECK}:
             return
         self.tensor_list = []
         if not hasattr(task_config, "tensor_list"):
