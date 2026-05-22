@@ -1,0 +1,41 @@
+[
+    {
+        "op": "NanTest",
+        "language": "cpp",
+        "input_desc": [
+            {
+                "name": "in",
+                "param_type": "required",
+                "format": [
+                    "ND"
+                ],
+                "type": [
+                    "int64"
+                ]
+            },
+            {
+                "name": "tensorlist",
+                "param_type": "dynamic",
+                "format": [
+                    "ND"
+                ],
+                "type": [
+                    "int64"
+                ]
+            }
+        ],
+        "output_desc": [
+            {
+                "name": "out",
+                "param_type": "required",
+                "format": [
+                    "ND"
+                ],
+                "type": [
+                    "int64"
+                ]
+            }
+        ],
+        "attr":[]
+    }
+]

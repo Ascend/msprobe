@@ -135,6 +135,7 @@ if [[ "${INCLUDE_MOD}" == *"${ACLGRAPH_DUMP_MOD}"* ]]; then
 fi
 
 if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
+    bash ${BUILD_PATH}/ccsrc/nan_check/build_nan_test.sh
     export MSPROBE_INCLUDE_MOD="nan_check"
     cd ${BUILD_PATH}
     cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \

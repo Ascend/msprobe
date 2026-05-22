@@ -15,15 +15,24 @@
 # -------------------------------------------------------------------------
 
 
+import os
 import torch
 import torch_npu  # noqa: F401
+from pathlib import Path
 from typing import List
+
+
+def _load_nan_check_runtime_env():
+    customize_root = Path(__file__).resolve().parents[4] / "vendors" / "customize"
+    os.environ["ASCEND_CUSTOM_OPP_PATH"] = f"{customize_root}:{os.environ.get('ASCEND_CUSTOM_OPP_PATH', '')}"
 
 # Import the C++ extension to register TORCH_LIBRARY implementations.
 try:
     from msprobe.lib import nan_check_ext  # noqa: F401  # pylint: disable=no-name-in-module
 except Exception as exc:
     raise RuntimeError(f"Failed to import msprobe.lib.nan_check_ext: {exc}")
+
+_load_nan_check_runtime_env()
 
 
 def npu_over_flow(x: torch.Tensor) -> torch.Tensor:

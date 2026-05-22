@@ -87,7 +87,7 @@ at::Tensor npu_nan_test(const at::Tensor& in_tensor, const std::vector<at::Tenso
     return out_tensor;
 }
 
-TORCH_LIBRARY(my_ns, m)
+TORCH_LIBRARY_FRAGMENT(my_ns, m)
 {
     m.def("npu_over_flow(Tensor out_tensor) -> Tensor");
     m.def("npu_clear_over_flow(Device device) -> ()");

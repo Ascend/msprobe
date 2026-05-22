@@ -58,6 +58,9 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 target_compile_definitions(nan_check_ext PRIVATE TORCH_EXTENSION_NAME=nan_check_ext)
+target_compile_definitions(nan_check_ext PRIVATE
+    MSPROBE_CUST_OPAPI_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../../vendors/customize/op_api/lib/libcust_opapi.so"
+)
 
 target_include_directories(nan_check_ext PRIVATE
     ${TORCH_INCLUDE_DIRS}
@@ -70,7 +73,9 @@ target_link_directories(nan_check_ext PRIVATE
     ${TORCH_NPU_LIB_DIR}
 )
 
-file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+set(SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/nan_check.cpp
+)
 target_sources(nan_check_ext PRIVATE ${SOURCES})
 
 target_link_libraries(nan_check_ext PRIVATE

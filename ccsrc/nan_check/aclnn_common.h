@@ -22,6 +22,7 @@
 #include <acl/acl_base.h>
 #include <acl/acl_rt.h>
 #include <c10/util/Exception.h>
+#include <cstring>
 #include <dlfcn.h>
 #include <torch_npu/csrc/framework/utils/OpAdapter.h>
 
@@ -121,9 +122,30 @@ inline void *GetOpApiFuncAddrInLib(void *handler, const char *libName, const cha
     return funcAddr;
 }
 
+inline void *TryGetCustOpApiLibHandler(void)
+{
+#ifdef MSPROBE_CUST_OPAPI_PATH
+    auto handler = dlopen(MSPROBE_CUST_OPAPI_PATH, RTLD_LAZY);
+    if (handler != nullptr)
+    {
+        return handler;
+    }
+    ASCEND_LOGW("dlopen %s failed, error:%s.", MSPROBE_CUST_OPAPI_PATH, dlerror());
+#endif
+    return dlopen(GetCustOpApiLibName(), RTLD_LAZY);
+}
+
 inline void *GetOpApiLibHandler(const char *libName)
 {
-    auto handler = dlopen(libName, RTLD_LAZY);
+    void *handler = nullptr;
+    if (strcmp(libName, GetCustOpApiLibName()) == 0)
+    {
+        handler = TryGetCustOpApiLibHandler();
+    }
+    else
+    {
+        handler = dlopen(libName, RTLD_LAZY);
+    }
     if (handler == nullptr)
     {
         ASCEND_LOGW("dlopen %s failed, error:%s.", libName, dlerror());
