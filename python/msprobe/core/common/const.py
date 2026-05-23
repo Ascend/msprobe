@@ -69,7 +69,7 @@ class Const:  # pylint: disable=too-many-lines
 
     EXTERN_INPUT_LIST_MAX_LEN = 100
     MAX_PROCESS_NUM = 128
-    LARGER_FLUSH_SIZE = 20000
+    NAN_CHECK_BUFFER_SIZE = 200000
 
     # dump mode
     ALL = "all"

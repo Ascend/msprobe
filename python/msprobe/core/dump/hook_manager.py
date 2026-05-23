@@ -20,7 +20,7 @@ import re
 import threading
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from msprobe.core.common.exceptions import DistributedNotInitializedError
+from msprobe.core.common.exceptions import DistributedNotInitializedError, MsprobeException
 from msprobe.core.common.runtime import Runtime
 from msprobe.core.common.utils import Const, ThreadSafe
 from msprobe.core.dump.data_dump.data_processor.base import ModuleBackwardInputsOutputs, ModuleForwardInputsOutputs
@@ -171,6 +171,14 @@ class BaseHookManager(ABC):
         else:
             Runtime.current_rank = current_rank
         if is_proc_dir and current_rank is not None:
+            if getattr(self.config, 'task', None) == Const.NAN_CHECK:
+                raise MsprobeException(
+                    MsprobeException.INTERFACE_USAGE_ERROR,
+                    "Distributed rank became available after debugger.start(), "
+                    "indicating start() was called before distributed initialization. "
+                    "Please move debugger.start() after distributed initialization "
+                    "to ensure the nan check buffer is allocated on the correct device.",
+                )
             new_rank_dir = os.path.join(os.path.dirname(parent_dir), f"{Const.RANK}{current_rank}")
             os.rename(parent_dir, new_rank_dir)
             self.data_collector.replace_proc_with_rank(new_rank_dir)

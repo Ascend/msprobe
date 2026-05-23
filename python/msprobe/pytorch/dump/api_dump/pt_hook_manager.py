@@ -82,7 +82,7 @@ class PytorchHookManager(BaseHookManager):
 
     def _on_forward_pre_hook(self):
         if self.config.task == Const.NAN_CHECK:
-            device = torch.device(f"npu:{torch.npu.current_device()}")
+            device = torch.device(torch.npu.current_device())
             torch.ops.my_ns.npu_clear_over_flow(device)
 
     def _register_forward_hook(self, module, api_name):
@@ -124,7 +124,7 @@ class PytorchHookManager(BaseHookManager):
             if hasattr(grad_fn, 'register_prehook') and self.config.task == Const.NAN_CHECK:
 
                 def _nan_check_backward_prehook(_grad_outputs):
-                    device = torch.device(f"npu:{torch.npu.current_device()}")
+                    device = torch.device(torch.npu.current_device())
                     torch.ops.my_ns.npu_clear_over_flow(device)
 
                 grad_fn.register_prehook(_nan_check_backward_prehook)

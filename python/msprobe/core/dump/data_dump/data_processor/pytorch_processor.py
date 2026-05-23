@@ -1033,22 +1033,26 @@ class NanCheckDataProcessor(PytorchDataProcessor):
     def __init__(self, config, data_writer):
         super().__init__(config, data_writer)
         self._nan_overflow_runtime_warned = False
+        self._nan_buffer_full_warned = False
         if not self._nan_overflow_ops_available():
             raise MsprobeException(
                 MsprobeException.INTERFACE_USAGE_ERROR,
                 "Nan check requires torch.ops.my_ns.npu_over_flow, npu_clear_over_flow and npu_nan_test. "
                 "Please compile with nan_check support enabled.",
             )
-        self._nan_buffer_size = Const.LARGER_FLUSH_SIZE
+        self._nan_buffer_size = Const.NAN_CHECK_BUFFER_SIZE
         self._nan_buffer = None
         self._nan_buffer_offset = 0
         self.data_writer.register_pre_flush_callback(self._flush_nan_buffer)
 
+    def prepare_nan_buffer(self):
+        self._ensure_nan_buffer()
+    
     def _ensure_nan_buffer(self):
         if self._nan_buffer is not None:
             return
         self._nan_buffer = torch.empty(
-            self._nan_buffer_size, 8, dtype=torch.int64, device=torch.device("npu", torch.npu.current_device())
+            self._nan_buffer_size, 8, dtype=torch.int64, device=torch.device(torch.npu.current_device())
         )
 
     @staticmethod
@@ -1106,6 +1110,13 @@ class NanCheckDataProcessor(PytorchDataProcessor):
     def _check_overflow(self, module_input_output=None):
         self._ensure_nan_buffer()
         if self._nan_buffer_offset >= self._nan_buffer_size:
+            if not self._nan_buffer_full_warned:
+                logger.warning(
+                    f"Nan check buffer is full ({self._nan_buffer_size} entries). "
+                    f"Data has been flushed to disk mid-step, which may introduce "
+                    f"synchronization overhead. Consider increasing NAN_CHECK_BUFFER_SIZE. ",
+                )
+                self._nan_buffer_full_warned = True
             self.data_writer.write_json()
         idx = self._nan_buffer_offset
         slot = self._nan_buffer[idx]
@@ -1132,6 +1143,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
         if self.data_writer.cache_debug:
             self.data_writer._replace_nan_placeholders(self.data_writer.cache_debug, cpu_vals)
         self._nan_buffer_offset = 0
+        self._nan_buffer_full_warned = False
         self.data_writer.data_updated = True
 
     def _analyze_tensor(self, tensor, suffix):

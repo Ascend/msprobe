@@ -146,6 +146,8 @@ class BaseService(ABC):
                 Runtime.is_running = False
                 return
             self._register_hook()
+            if hasattr(self.data_collector.data_processor, 'prepare_nan_buffer'):
+                self.data_collector.data_processor.prepare_nan_buffer()
             self.first_start = False
 
             if token_range:

@@ -245,6 +245,8 @@ class DataCollector:
             self.update_data(name, data_info)
         if self.config.async_dump:
             return
+        if self.config.task == Const.NAN_CHECK:
+            return
         if not flush:
             self.data_writer.flush_data_periodically()
         else:

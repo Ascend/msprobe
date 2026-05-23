@@ -40,7 +40,7 @@ class DataWriter:
         self.dump_error_info_path = None
         self.flush_size = 1000
         self.md5_flush_size = 5000
-        self.larger_flush_size = Const.LARGER_FLUSH_SIZE
+        self.larger_flush_size = 20000
         self.cache_data = {}
         self.cache_stack = {}
         self.cache_construct = {}
