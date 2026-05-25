@@ -30,6 +30,8 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -57,7 +59,6 @@ struct SaveTaskPayload
 
     at::Tensor tensor;
     std::string save_path;
-    std::atomic<bool> executed{false};
 };
 
 struct StatTaskPayload
@@ -214,6 +215,76 @@ static void ensure_acl_runtime_initialized()
     }
 }
 
+static void validate_save_path(const std::string& path)
+{
+    static constexpr size_t kMaxPathLength = 4096;
+    static constexpr size_t kMaxFileNameLength = 255;
+
+    if (path.empty())
+    {
+        throw std::runtime_error("Save path is empty");
+    }
+
+    if (path.length() > kMaxPathLength)
+    {
+        throw std::runtime_error("Save path exceeds maximum length: " + path);
+    }
+
+    size_t last_sep = path.find_last_of("/\\");
+    std::string filename = (last_sep == std::string::npos) ? path : path.substr(last_sep + 1);
+    if (filename.empty() || filename.length() > kMaxFileNameLength)
+    {
+        throw std::runtime_error("Save filename length invalid: " + filename);
+    }
+
+    // Single pass: character whitelist + .. traversal detection
+    static auto is_valid = [](char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+               c == '_' || c == '.' || c == ':' || c == '/' || c == '\\' || c == '-';
+    };
+
+    size_t comp_start = 0;
+    for (size_t i = 0; i <= path.size(); i++) {
+        if (i == path.size() || path[i] == '/' || path[i] == '\\') {
+            if (i - comp_start == 2 && path[comp_start] == '.' && path[comp_start + 1] == '.') {
+                throw std::runtime_error("Save path contains path traversal '..': " + path);
+            }
+            comp_start = i + 1;
+            if (i == path.size()) break;
+        }
+        if (!is_valid(path[i])) {
+            throw std::runtime_error(
+                std::string("Save path contains invalid character '") + path[i] + "': " + path);
+        }
+    }
+
+    if (last_sep != std::string::npos && last_sep > 0)
+    {
+        std::string parent_dir = path.substr(0, last_sep);
+
+        struct stat parent_stat;
+        if (lstat(parent_dir.c_str(), &parent_stat) != 0)
+        {
+            throw std::runtime_error("Parent directory does not exist: " + parent_dir);
+        }
+
+        if (S_ISLNK(parent_stat.st_mode))
+        {
+            throw std::runtime_error("Parent directory is a symbolic link: " + parent_dir);
+        }
+
+        if (!S_ISDIR(parent_stat.st_mode))
+        {
+            throw std::runtime_error("Parent path is not a directory: " + parent_dir);
+        }
+
+        if (access(parent_dir.c_str(), W_OK) != 0)
+        {
+            throw std::runtime_error("Parent directory is not writable: " + parent_dir);
+        }
+    }
+}
+
 static void write_pt_or_throw(const at::Tensor& tensor, const std::string& path)
 {
     std::ofstream ofs(path, std::ios::out | std::ios::binary | std::ios::trunc);
@@ -355,21 +426,18 @@ static void update_stats_map(const std::string& tag, const std::string& dtype,
 static void acl_save_host_func(void* user_data)
 {
     // aclgraph replay may execute the same callback payload repeatedly, so we
-    // intentionally do not reclaim the payload here.
+    // intentionally do not reclaim the payload here. Each replay should still
+    // execute the callback so replay-time tensor values can be dumped.
     auto* payload = static_cast<SaveTaskPayload*>(user_data);
     if (payload == nullptr)
     {
         std::cout << kAclSaveLogPrefix << " acl_save_host_func received null payload" << std::endl;
         return;
     }
-    if (payload->executed.exchange(true, std::memory_order_acq_rel))
-    {
-        std::cout << kAclSaveLogPrefix << " skip replayed host callback, path=" << payload->save_path << std::endl;
-        return;
-    }
 
     const uint64_t file_seq = serial_num.fetch_add(1, std::memory_order_relaxed);
     const std::string final_path = build_final_path(payload->save_path, file_seq);
+    validate_save_path(final_path);
     acl_save_callback(payload->tensor, final_path);
 }
 
@@ -432,6 +500,7 @@ static at::Tensor acl_save_impl(const at::Tensor& x, const std::string& path)
     {
         const uint64_t file_seq = serial_num.fetch_add(1, std::memory_order_relaxed);
         const std::string final_path = build_final_path(path, file_seq);
+        validate_save_path(final_path);
         at::Tensor out = copy_to_cpu(x);
         write_pt_or_throw(out, final_path);
         return out;
