@@ -59,12 +59,15 @@ class TestUtilsMethods(unittest.TestCase):
         json_dir_path = '/home/more_json'
         json_file_array = ['bert_qa_layernorm_71.json']
         with mock.patch("os.listdir", return_value=json_file_array):
-            with mock.patch("os.path.getsize", return_value=100):
-                with mock.patch("builtins.open", mock.mock_open(read_data=None)):
-                    with mock.patch("json.load", return_value=self._make_json_object()):
-                        batch_compare_test = BatchCompare()
-                        batch_compare_test._make_model_name_to_json_map(json_dir_path)
-                        test_map = batch_compare_test.model_name_to_json_map
+            with mock.patch("cmp_utils.file_utils.check_link", return_value=None):
+                with mock.patch("cmp_utils.file_utils.check_path_valid",
+                                return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                    with mock.patch("os.path.getsize", return_value=100):
+                        with mock.patch("builtins.open", mock.mock_open(read_data=None)):
+                            with mock.patch("json.load", return_value=self._make_json_object()):
+                                batch_compare_test = BatchCompare()
+                                batch_compare_test._make_model_name_to_json_map(json_dir_path)
+                                test_map = batch_compare_test.model_name_to_json_map
         self.assertEqual(len(test_map), 1)
         self.assertEqual(test_map.get("ge_default_20210420113943_71"), "/home/more_json/bert_qa_layernorm_71.json")
 

@@ -36,12 +36,11 @@ class Const:  # pylint: disable=too-many-lines
     SEP = "."
     REGEX_PREFIX_MAX_LENGTH = 20
     REGEX_PREFIX_PATTERN = r"^[a-zA-Z0-9_-]+$"
+    REGEX_FORWARD_BACKWARD = r"\.(forward|backward)\."
     PY_MODULE_PATH_PATTERN = r"^[a-zA-Z_]\w*(\.[a-zA-Z_]\w*)*$"
     PY_IDENTIFIER_PATTERN = r"^[a-zA-Z_]\w*$"
     MAX_MODULE_PATH_LEN = 4096
     MAX_API_NAME_LEN = 255
-    REGEX_FORWARD_BACKWARD = r"\.(forward|backward)\."
-    FILE_PATTERN = r"^[a-zA-Z0-9_./-]+$"
     STRING_BLACKLIST = r"^[＋－＝％＠\+\-=%@]|;[＋－＝％＠\+\-=%@]"
     COMMA = ","
     FLOAT_EPSILON = np.finfo(float).eps
@@ -102,7 +101,6 @@ class Const:  # pylint: disable=too-many-lines
     ONE_GB = 1073741824  # 1 * 1024 * 1024 * 1024
     TEN_GB = 10737418240  # 10 * 1024 * 1024 * 1024
     ONE_MB = 1048576  # 1 * 1024 * 1024
-    FILE_PATTERN = r"^[a-zA-Z0-9_./-]+$"
     DISTRIBUTED_PREFIX_LENGTH = 60
     # env dump path
     KWARGS = "kwargs"
@@ -963,7 +961,6 @@ class FileCheckConst:
     DIRECTORY_LENGTH = 4096
     FILE_NAME_LENGTH = 255
     FILE_VALID_PATTERN = r"^[a-zA-Z0-9_.:/-]+$"
-    FILE_PATTERN = r"^[a-zA-Z0-9_./-]+$"
     PKL_SUFFIX = ".pkl"
     NUMPY_SUFFIX = ".npy"
     JSON_SUFFIX = ".json"

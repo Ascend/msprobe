@@ -33,6 +33,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from msprobe.core.common.file_utils import create_directory
+
 
 # 数据结构
 
@@ -381,7 +383,7 @@ def _gd_write(dump_dir, prefix, graph_name, src):
 def _graph_dump_ctx(dump_dir: str):
     global _gd_counter
     _gd_counter = 0
-    os.makedirs(dump_dir, exist_ok=True)
+    create_directory(dump_dir)
 
     import torch._dynamo.utils as du
     orig_fn   = du.lazy_format_graph_code

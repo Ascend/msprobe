@@ -51,10 +51,6 @@ def is_legal_path_length(path):
         logger.error(f"file total path {path} length out of range (4096), please check the file(or directory) path")
         return False
 
-    if len(path) > 260 and sys.platform.startswith("win"):  # windows total path length limit
-        logger.error(f"file total path {path} length out of range (260), please check the file(or directory) path")
-        return False
-
     dirnames = path.split("/")
     for dirname in dirnames:
         if len(dirname) > 255:  # linux single file path length limit
@@ -260,7 +256,7 @@ class FileStat:
         return False
 
 
-def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, softlink=False,
+def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE,
             write_permission=PERMISSION_NORMAL, **kwargs):
     file_stat = FileStat(file)
 
@@ -270,7 +266,7 @@ def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, softlink=False,
     if file_stat.is_exists:
         file_stat.check_owner_or_root()
 
-    if not softlink and file_stat.is_softlink:
+    if file_stat.is_softlink:
         raise OpenException(f"Softlink is not allowed to be opened. {file}")
 
     if "r" in mode:

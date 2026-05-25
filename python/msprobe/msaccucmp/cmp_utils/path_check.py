@@ -79,6 +79,18 @@ def get_path_list_for_str(path_str: str) -> list:
     return input_path_list
 
 
+def check_link(path: str):
+    path = os.path.abspath(path)
+    current = ""
+    for part in path.split(os.sep):
+        if not part:
+            continue
+        current = os.path.join(current, part)
+        if os.path.islink(current):
+            log.print_error_log(f'The path component {current} is a soft link.')
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+
+
 def check_output_path_valid(path: str, exist: bool, path_type: PathType = PathType.Directory) -> int:
     """
     Check output path valid
@@ -87,9 +99,7 @@ def check_output_path_valid(path: str, exist: bool, path_type: PathType = PathTy
     :param path_type: the path type
     :return: VectorComparisonErrorCode
     """
-    if os.path.islink(os.path.abspath(path)):
-        log.print_error_log('The path "%r" is a softlink, not permitted.' % path)
-        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+    check_link(path)
     output_path = os.path.realpath(path)
     if path_type == PathType.File:
         output_path = os.path.dirname(output_path)
@@ -210,6 +220,21 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
     exist_path = os.path.realpath(path)
+    if len(exist_path) >= ConstManager.LINUX_PATH_MAX_LEN:
+        log.print_error_log(
+            "The path length exceeds the maximum limit, "
+            f"the maximum limit is {ConstManager.LINUX_PATH_MAX_LEN}."
+        )
+        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
+    for path_part in exist_path.split(os.sep):
+        if path_part and len(path_part) >= ConstManager.LINUX_FILE_NAME_MAX_LEN:
+            log.print_error_log(
+                "The file name length exceeds the maximum limit, "
+                f"the maximum limit is {ConstManager.LINUX_FILE_NAME_MAX_LEN}."
+            )
+            return CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
     if not exist:
         exist_path = os.path.dirname(exist_path)
 

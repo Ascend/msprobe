@@ -82,7 +82,7 @@ class DBImporter:
     def _validate_parameters(self) -> None:
         """验证所有输入参数"""
         # Validate data path
-        check_file_or_directory_path(self.data_path, isdir=True, is_strict=True)
+        check_file_or_directory_path(self.data_path, isdir=True)
         create_directory(self.db_path)
 
         # Validate flags
@@ -167,7 +167,6 @@ class DBImporter:
             converters[self.format]()
         else:
             raise ValueError(f"Unsupported format: {self.format}")
-
 
 
 def _data2db_service_parser(parser):

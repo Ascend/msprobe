@@ -371,7 +371,7 @@ class TestCSVOperations:
         # Test malicious check
         df_with_formula = pd.DataFrame({'col1': ['=1+1']})
         with pytest.raises(RuntimeError):
-            write_df_to_csv(df_with_formula, self.csv_file, malicious_check=True)
+            write_df_to_csv(df_with_formula, self.csv_file)
 
 
 class TestPathOperations:
@@ -399,19 +399,6 @@ class TestPathOperations:
                 pytest.raises(FileCheckException) as exc_info:
             check_path_type(self.test_dir, FileCheckConst.DIR)
         assert exc_info.value.code == FileCheckException.INVALID_FILE_ERROR
-
-    def test_check_others_writable(self):
-        mock_stat = MagicMock()
-
-        # Test others writable
-        mock_stat.st_mode = stat.S_IWOTH
-        with patch('os.stat', return_value=mock_stat):
-            assert check_others_writable(self.test_path) is True
-
-        # Test not writable by others
-        mock_stat.st_mode = stat.S_IRUSR | stat.S_IWUSR
-        with patch('os.stat', return_value=mock_stat):
-            assert check_others_writable(self.test_path) is False
 
     def test_create_directory(self):
         with patch('os.path.isdir', return_value=True), \
@@ -460,18 +447,6 @@ class TestUtilityOperations:
                 patch('numpy.savetxt') as mock_savetxt:
             save_npy_to_txt(test_data, self.txt_file, align=3)
             mock_savetxt.assert_called_once()
-
-    def test_save_workbook(self):
-        mock_workbook = MagicMock()
-        with patch('os.chmod') as mock_chmod:
-            save_workbook(mock_workbook, self.workbook_file)
-            mock_workbook.save.assert_called_once_with(str(self.workbook_file))
-
-        # Test save error
-        mock_workbook = MagicMock()
-        mock_workbook.save.side_effect = Exception
-        with pytest.raises(RuntimeError):
-            save_workbook(mock_workbook, self.workbook_file)
 
     def test_remove_path(self):
         # Test remove file

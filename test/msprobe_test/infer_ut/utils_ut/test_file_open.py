@@ -216,28 +216,20 @@ def test_msopen_given_mode_w_p_600_when_file_softlink_then_file_delete_before_wr
         assert "Softlink is not allowed to be opened" in str(err)
 
 
-def test_msopen_given_mode_r_when_file_softlink_whitelist_empty_then_file_read_failed_case(file_name_which_is_softlink):
-    with ms_open(file_name_which_is_softlink, mode="r", max_size=100, softlink=True) as aa:
-        content = aa.read()
-    os.environ[RAW_INPUT_PATH] = ""
-
-    assert not FileStat(file_name_which_is_softlink).check_basic_permission()
+def test_filestat_given_file_softlink_whitelist_empty_then_basic_permission_failed_case(file_name_which_is_softlink):
+    with patch.dict(os.environ, {RAW_INPUT_PATH: ""}, clear=False):
+        assert not FileStat(file_name_which_is_softlink).check_basic_permission()
 
 
-def test_msopen_given_mode_r_when_file_softlink_target_right_then_file_read_succeed_case(file_name_which_is_softlink):
-    with ms_open(file_name_which_is_softlink, mode="r", max_size=100, softlink=True) as aa:
-        content = aa.read()
-    os.environ[RAW_INPUT_PATH] = os.path.abspath(os.path.dirname(os.readlink(file_name_which_is_softlink)))
-
-    assert FileStat(file_name_which_is_softlink).check_basic_permission()
+def test_filestat_given_file_softlink_target_right_then_basic_permission_succeed_case(file_name_which_is_softlink):
+    whitelist_path = os.path.abspath(os.path.dirname(os.readlink(file_name_which_is_softlink)))
+    with patch.dict(os.environ, {RAW_INPUT_PATH: whitelist_path}, clear=False):
+        assert FileStat(file_name_which_is_softlink).check_basic_permission()
 
 
-def test_msopen_given_mode_r_when_file_softlink_target_wrong_then_file_read_failed_case(file_name_which_is_softlink):
-    with ms_open(file_name_which_is_softlink, mode="r", max_size=100, softlink=True) as aa:
-        content = aa.read()
-    os.environ[RAW_INPUT_PATH] = "1234"
-
-    assert not FileStat(file_name_which_is_softlink).check_basic_permission()
+def test_filestat_given_file_softlink_target_wrong_then_basic_permission_failed_case(file_name_which_is_softlink):
+    with patch.dict(os.environ, {RAW_INPUT_PATH: "1234"}, clear=False):
+        assert not FileStat(file_name_which_is_softlink).check_basic_permission()
 
 
 def test_msopen_given_other_w_parent_dir_then_file_read_failed_case():

@@ -185,7 +185,7 @@ def _append_column_to_csv(csv_path, node_output_show_list=None):
     rows = _read_and_process_csv(csv_path, _process_is_npu_and_is_precision_error_ops, node_output_show_list)
 
     rows_pd = pd.DataFrame(rows[1:], columns=rows[0])  # _read_and_process_csv 内已校验rows非空
-    write_df_to_csv(rows_pd, csv_path, malicious_check=True)
+    write_df_to_csv(rows_pd, csv_path)
 
 
 def cmp_process(args: CmpArgsAdapter):

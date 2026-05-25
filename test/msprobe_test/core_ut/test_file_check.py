@@ -41,12 +41,14 @@ from msprobe.core.common.file_utils import (check_link,
 class TestFileCheckUtil(TestCase):
     @patch.object(logger, "error")
     def test_check_link(self, mock_logger_error):
-        with patch("msprobe.core.common.file_utils.os.path.islink", return_value=True):
+        with patch("msprobe.core.common.file_utils.os.path.abspath", return_value="link_path"), \
+             patch("msprobe.core.common.file_utils.os.path.islink", return_value=True):
             with self.assertRaises(FileCheckException) as context:
                 check_link("link_path")
-            self.assertEqual(str(context.exception),
-                             FileCheckException.err_strs.get(FileCheckException.SOFT_LINK_ERROR))
-            mock_logger_error.assert_called_with("The file path link_path is a soft link.")
+        self.assertEqual(str(context.exception),
+                         FileCheckException.err_strs.get(FileCheckException.SOFT_LINK_ERROR))
+        mock_logger_error.assert_called_once()
+        self.assertIn("link_path is a soft link.", mock_logger_error.call_args.args[0])
 
     @patch.object(logger, "error")
     def test_check_path_length(self, mock_logger_error):

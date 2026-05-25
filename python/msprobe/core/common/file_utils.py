@@ -14,20 +14,16 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import atexit
 import csv
 import fcntl
-import io
 import json
 import multiprocessing
 import os
-import pickle
 import re
 import shutil
 import stat
 import sys
 import zipfile
-from multiprocessing import shared_memory
 
 import numpy as np
 import pandas as pd
@@ -36,7 +32,6 @@ import yaml
 from msprobe.core.common.const import FileCheckConst, CompareConst, Const
 from msprobe.core.common.decorator import recursion_depth_decorator
 from msprobe.core.common.exceptions import FileCheckException
-from msprobe.core.common.global_lock import global_lock, is_main_process
 from msprobe.core.common.log import logger
 
 proc_lock = multiprocessing.Lock()
@@ -146,12 +141,12 @@ class FileOpen:
         check_link(self.file_path)
         self.file_path = os.path.realpath(self.file_path)
         check_path_length(self.file_path)
-        self.check_ability_and_owner()
+        self.check_ability()
         check_path_pattern_valid(self.file_path)
         if os.path.exists(self.file_path):
             check_common_file_size(self.file_path)
 
-    def check_ability_and_owner(self):
+    def check_ability(self):
         if self.mode in self.SUPPORT_READ_MODE:
             check_path_exists(self.file_path)
             check_path_readability(self.file_path)
@@ -163,10 +158,15 @@ class FileOpen:
 
 
 def check_link(path):
-    abs_path = os.path.abspath(path)
-    if os.path.islink(abs_path):
-        logger.error('The file path {} is a soft link.'.format(path))
-        raise FileCheckException(FileCheckException.SOFT_LINK_ERROR)
+    path = os.path.abspath(path)
+    current = ""
+    for part in path.split(os.sep):
+        if not part:
+            continue
+        current = os.path.join(current, part)
+        if os.path.islink(current):
+            logger.error(f'The path component {current} is a soft link.')
+            raise FileCheckException(FileCheckException.SOFT_LINK_ERROR)
 
 
 def check_path_length(path, name_length=None):
@@ -274,12 +274,6 @@ def check_group_writable(file_path):
     return is_writable
 
 
-def check_others_writable(file_path):
-    path_stat = os.stat(file_path)
-    is_writable = bool(path_stat.st_mode & stat.S_IWOTH)
-    return is_writable
-
-
 def make_dir(dir_path):
     check_path_before_create(dir_path)
     dir_path = os.path.abspath(os.path.expanduser(dir_path))
@@ -321,10 +315,7 @@ def check_path_before_create(path):
     path = os.path.realpath(os.path.expanduser(path))
     if path_len_exceeds_limit(path):
         raise FileCheckException(FileCheckException.ILLEGAL_PATH_ERROR, 'The file path length exceeds limit.')
-
-    if not re.match(FileCheckConst.FILE_PATTERN, path):
-        raise FileCheckException(FileCheckException.ILLEGAL_PATH_ERROR,
-                                 'The file path {} contains special characters.'.format(path))
+    check_path_pattern_valid(path)
 
 
 def check_file_or_directory_path(path, isdir=False, is_strict=False, file_suffix=None):
@@ -352,14 +343,6 @@ def check_file_or_directory_path(path, isdir=False, is_strict=False, file_suffix
             )
 
 
-def check_path_no_group_others_write(file_path):
-    if check_group_writable(file_path) or check_others_writable(file_path):
-        raise FileCheckException(
-            FileCheckException.FILE_PERMISSION_ERROR,
-            f"The directory/file must not allow write access to group or others. Directory/File path: {file_path}"
-        )
-
-
 def check_if_valid_dir_pattern_path(path):
     if os.path.isfile(path):
         logger.error(f'The path {path} should be a directory path, but got a file')
@@ -383,6 +366,7 @@ def find_existing_path(path, depth=16):
 def listdir_path(path):
     check_path_exists(path)
     return os.listdir(path)
+
 
 def check_file_exist(path):
     if os.path.isfile(path):
@@ -426,11 +410,24 @@ def change_mode(path, mode):
 @recursion_depth_decorator('msprobe.core.common.file_utils.recursive_chmod')
 def recursive_chmod(path):
     """
-    递归地修改目录及其子目录和文件的权限，文件修改为640，路径修改为750
+    递归地修改目录及其子目录和文件的权限，文件修改为640，目录修改为750。
+    遍历过程中会跳过软链接路径，并打印 warning 提示。
 
     :param path: 要修改权限的目录路径
     """
-    for _, dirs, files in os.walk(path):
+    if os.path.islink(path):
+        logger.warning(f"Skip chmod for symbolic link path: {path}")
+        return
+
+    for _, dirs, files in os.walk(path, followlinks=False):
+        safe_dirs = []
+        for dir_name in dirs:
+            dir_path = os.path.join(path, dir_name)
+            if os.path.islink(dir_path):
+                logger.warning(f"Skip chmod for symbolic link directory: {dir_path}")
+                continue
+            safe_dirs.append(dir_name)
+        dirs[:] = safe_dirs
         for file_name in files:
             file_path = os.path.join(path, file_name)
             change_mode(file_path, FileCheckConst.DATA_FILE_AUTHORITY)
@@ -438,6 +435,7 @@ def recursive_chmod(path):
             dir_path = os.path.join(path, dir_name)
             change_mode(dir_path, FileCheckConst.DATA_DIR_AUTHORITY)
             recursive_chmod(dir_path)
+        break
 
 
 def path_len_exceeds_limit(file_path):
@@ -461,14 +459,6 @@ def check_file_type(path):
     else:
         logger.error(f'path does not exist, please check!')
         raise FileCheckException(FileCheckException.INVALID_FILE_ERROR)
-
-
-def root_privilege_warning():
-    if os.getuid() == 0:
-        logger.warning(
-            "msprobe is being run as root. "
-            "To avoid security risks, it is recommended to switch to a regular user to run it."
-        )
 
 
 def load_yaml(yaml_path):
@@ -553,6 +543,25 @@ def save_yaml(yaml_path, data):
     change_mode(yaml_path, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
+def check_df_malicious(df, file_path, file_type):
+    """
+    检查DataFrame的行名、列名、内容是否包含恶意内容。
+    :param df: pandas.DataFrame
+    :param file_path: 文件路径
+    :param file_type: 文件类型字符串（如 'csv', 'excel'）
+    """
+    for row_name in df.index:
+        if not check_value_is_valid(row_name):
+            raise RuntimeError(f"Malicious value [{row_name}] not allowed to be written into the {file_type}: {file_path}.")
+    for col_name in df.columns:
+        if not check_value_is_valid(col_name):
+            raise RuntimeError(f"Malicious value [{col_name}] not allowed to be written into the {file_type}: {file_path}.")
+    for _, row in df.iterrows():
+        for _, value in row.items():
+            if not check_value_is_valid(value):
+                raise RuntimeError(f"Malicious value [{value}] not allowed to be written into the {file_type}: {file_path}.")
+
+
 def save_excel(path, data):
     def validate_data(data):
         """Validate that the data is a DataFrame or a list of (DataFrame, sheet_name) pairs."""
@@ -563,22 +572,8 @@ def save_excel(path, data):
                 return "list"
         raise ValueError("Data must be a DataFrame or a list of (DataFrame, sheet_name) pairs.")
 
-    def malicious_check(df):
-        for row_name in df.index:
-            if not check_value_is_valid(row_name):
-                raise RuntimeError(f"Malicious value [{row_name}] not allowed to be written into the excel: {path}.")
-
-        for col_name in df.columns:
-            if not check_value_is_valid(col_name):
-                raise RuntimeError(f"Malicious value [{col_name}] not allowed to be written into the excel: {path}.")
-
-        for _, row in df.iterrows():
-            for _, value in row.items():
-                if not check_value_is_valid(value):
-                    raise RuntimeError(f"Malicious value [{value}] not allowed to be written into the excel: {path}.")
-
     def save_in_slice(df, base_name):
-        malicious_check(df)
+        check_df_malicious(df, path, "excel")
         df_length = len(df)
         if df_length < CompareConst.MAX_EXCEL_LENGTH:
             df.to_excel(writer, sheet_name=base_name if base_name else 'Sheet1', index=False)
@@ -664,22 +659,6 @@ def save_npy_to_txt(data, dst_file='', align=0):
     change_mode(dst_file, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
-def save_workbook(workbook, file_path):
-    """
-    保存工作簿到指定的文件路径
-    workbook: 要保存的工作簿对象
-    file_path: 文件保存路径
-    """
-    check_path_before_create(file_path)
-    file_path = os.path.realpath(file_path)
-    try:
-        workbook.save(file_path)
-    except Exception as e:
-        logger.error(f'Save result file "{os.path.basename(file_path)}" failed')
-        raise RuntimeError(f"Save result file {file_path} failed.") from e
-    change_mode(file_path, FileCheckConst.DATA_FILE_AUTHORITY)
-
-
 def write_csv(data, filepath, mode="a+", malicious_check=False):
     def csv_value_is_valid(value: str) -> bool:
         if not isinstance(value, str):
@@ -735,26 +714,11 @@ def read_csv(filepath, as_pd=True, header='infer'):
     return csv_data
 
 
-def write_df_to_csv(data, filepath, mode="w", header=True, malicious_check=False):
-    def check_malicious(df):
-        for row_name in df.index:
-            if not check_value_is_valid(row_name):
-                raise RuntimeError(f"Malicious value [{row_name}] not allowed to be written into the csv: {filepath}.")
-
-        for col_name in df.columns:
-            if not check_value_is_valid(col_name):
-                raise RuntimeError(f"Malicious value [{col_name}] not allowed to be written into the csv: {filepath}.")
-
-        for _, row in df.iterrows():
-            for _, value in row.items():
-                if not check_value_is_valid(value):
-                    raise RuntimeError(f"Malicious value [{value}] not allowed to be written into the csv: {filepath}.")
-
+def write_df_to_csv(data, filepath, mode="w", header=True):
     if not isinstance(data, pd.DataFrame):
         raise ValueError("The data type of data is not supported. Only support pd.DataFrame.")
 
-    if malicious_check:
-        check_malicious(data)
+    check_df_malicious(data, filepath, "csv")
 
     check_path_before_create(filepath)
     file_path = os.path.realpath(filepath)
@@ -850,7 +814,6 @@ def check_zip_file(zip_file_path, extract_dir=None):
                 if not member_path.startswith(extract_dir + os.sep):
                     raise ValueError(f"Path traversal detected: {member.filename} attempts to "
                                      f"write outside of the extraction directory.")
-
 
             # 检查绝对路径（防止路径穿越攻击，如 /etc/passwd）
             if os.path.isabs(member.filename):

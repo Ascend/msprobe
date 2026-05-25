@@ -33,6 +33,19 @@ from cmp_utils.constant.compare_error import CompareError
 
 class TestUtilsMethods(unittest.TestCase):
 
+    def setUp(self):
+        self._check_link_patcher = mock.patch("cmp_utils.file_utils.check_link", return_value=None)
+        self._check_path_valid_patcher = mock.patch(
+            "cmp_utils.file_utils.check_path_valid",
+            return_value=CompareError.MSACCUCMP_NONE_ERROR,
+        )
+        self._check_link_patcher.start()
+        self._check_path_valid_patcher.start()
+
+    def tearDown(self):
+        self._check_path_valid_patcher.stop()
+        self._check_link_patcher.stop()
+
     def test_check_arguments_valid1(self):
         fusion_json_file_path = "/home/demo/1.json"
         quant_fusion_rule_file_path = "/home/demo/2.json"
