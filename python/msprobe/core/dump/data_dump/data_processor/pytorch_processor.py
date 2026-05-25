@@ -427,6 +427,12 @@ class PytorchDataProcessor(BaseDataProcessor):
                 or data_clone.dtype == torch.float64
                 or not data_clone.is_floating_point()
             ):
+                if not is_gpu and data_clone.dtype == torch.int8:
+                    try:
+                        if torch_npu.get_npu_format(data_clone) == torch_npu.Format.FRACTAL_NZ:
+                            return tensor_stat
+                    except (AttributeError, RuntimeError):
+                        return tensor_stat
                 data_clone = data_clone.float()
             tensor_stat.max = torch.max(data_clone)
             tensor_stat.min = torch.min(data_clone)
