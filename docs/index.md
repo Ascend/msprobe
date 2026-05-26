@@ -56,10 +56,9 @@ msProbe工具快速入门，通过一个可执行样例，完成msProbe工具的
 
 | 使用场景            |  子模式/细分场景   | 功能项          | 功能说明                                                                                          | 参考文档                                                                                                                                                               |
 |-----------------|:-----------:|--------------|-----------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **vLLM推理**      |   eager模式   | 数据采集         | 完成msProbe精度数据采集操作                                                                             | [数据采集](./zh/dump/vllm_dump_instruct.md)                                                 |
+| **vLLM推理**      |  Eager/图模式   | 数据采集         | 完成msProbe精度数据采集操作                                                  | [数据采集](./zh/dump/vllm_dump_instruct.md)                                                 |
 |                 |             | 数据比对         | 将msProbe工具dump的精度数据进行精度比对，进而定位精度问题<br/>请参考分级可视化构图比对或精度比对                                      | [分级可视化构图比对](./zh/accuracy_compare/pytorch_visualization_instruct.md)<br>[精度比对](./zh/accuracy_compare/pytorch_accuracy_compare_instruct.md)                   |
-|                 | aclgraph图模式 | 数据采集         | 通过acl_save接口完成精度数据采集操作                                                                        | [数据采集](./zh/dump/aclgraph_dump_instruct.md)                                                                                                                     |
-|                 | torchair图模式 | 数据采集         | 通过set_ge_dump_config接口完成精度数据采集操作                                                              | [数据采集](./zh/dump/torchair_dump_instruct.md)                                                                                                                     |
+|                 | torchair | 数据采集         | 通过set_ge_dump_config接口完成精度数据采集操作                                                              | [数据采集](./zh/dump/torchair_dump_instruct.md)                                                                                                                     |
 |                 |             | 精度比对         | 将msProbe工具dump的精度数据进行精度比对，进而定位精度问题                                                            | [精度比对](./zh/accuracy_compare/torchair_compare_instruct.md)                                                                                                      |
 | **SGLang推理**    |   eager模式   | 数据采集         | 完成msProbe精度数据采集操作                                                                             | [数据采集](./zh/dump/sglang_eager_dump_instruct_new.md)                                                                                        |
 |                 |             | 数据比对         | 将msProbe工具dump的精度数据进行精度比对，进而定位精度问题                                                            | [分级可视化构图比对](./zh/accuracy_compare/pytorch_visualization_instruct.md)<br>[精度比对](./zh/accuracy_compare/pytorch_accuracy_compare_instruct.md)                   |
@@ -161,9 +160,8 @@ msProbe由华为公司的下列部门联合贡献：
 :hidden:
 
 # vLLM推理
-vLLM eager模式数据采集 <zh/dump/vllm_dump_instruct>
-vLLM aclgraph图模式数据采集 <zh/dump/aclgraph_dump_instruct>
-vLLM torchair图模式数据采集 <zh/dump/torchair_dump_instruct>
+vLLM 数据采集（Eager/图模式） <zh/dump/vllm_dump_instruct>
+vLLM torchair数据采集 <zh/dump/torchair_dump_instruct>
 
 # SGLang推理
 SGLang eager模式数据采集 <zh/dump/sglang_eager_dump_instruct>
