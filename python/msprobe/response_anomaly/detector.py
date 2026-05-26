@@ -85,11 +85,10 @@ class ILLDetector():
         check_path_exists(tk2cat_path)  # 检查路径是否存在, 如果不存在, 报错!
         self._init_tk2cat(tk2cat_path)
 
-
         # 检测算法配置参数 
         self.window_size: int = config_data["window_size"]
         self.stride: int = config_data["stride"]
-        self.topk: Optional[int] = config_data["topk"]
+        self.topk: Optional[int] = None
 
         _rare = config_data["rare_character"]
         self.rare_explogp_sum_thresh: int = _rare["explogp_sum_thresh"]
@@ -107,13 +106,13 @@ class ILLDetector():
         self.repet_logp_thresh: float =  _traj["logp_thresh"]
 
         _acf = _repet["acf"]
-        self.w_std_threshold: float = _acf["w_std_threshold"]
+        self.w_std_threshold: float = 1e-12 # w_std_threshold: 1e-12  
         self.acf_threshold: float =  _acf["acf_threshold"]
-        self.acf_harmonic_threshold: float =  _acf["acf_harmonic_threshold"]
+        self.acf_harmonic_threshold: float =  self.acf_threshold // 2  # 2倍/3倍处的谐波阈值，acf_threshold//2
         self.acf_logp_thresh: float =  _acf["logp_thresh"]
-        self.acf_min_period: int =  _acf["min_period"]
-        self.acf_max_period: int =  _acf["max_period"] or self.window_size // 3
-        self.linalg_logp_thresh: float =  _acf["linalg_logp_thresh"]
+        self.acf_min_period: int =  3
+        self.acf_max_period: int =  self.window_size // 3
+        self.linalg_logp_thresh: float =  0.9
 
         self.single_window_thresh: int = _repet["single_window_thresh"]
         self.multi_window_thresh: int = _repet["multi_window_thresh"]
@@ -330,7 +329,7 @@ class ILLDetector():
         
         tk2cat, vocab_size = self.get_tk2cat(tokens[-1], model_config) # 获取token ids to cagetory
 
-        self.topk = len(topk_logprobs[0]) if self.topk is None else self.topk
+        self.topk = min([len(logp) for logp in topk_logprobs]) if self.topk is None else self.topk
         logprobs = np.array([max(item.values()) for item in topk_logprobs])
 
         if len(tokens) < self.stride and tk2cat is not None:  # 只检测生僻字
