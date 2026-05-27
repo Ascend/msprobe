@@ -1,0 +1,21 @@
+# Public Network Addresses
+
+| Type  | Open-Source Code Address| File Name                             | Public IP Address/Public URL/Domain Name/Email Address                                                                 | Description                |
+|------|--------|----------------------------------|-----------------------------------------------------------------------------------------|----------------------|
+| Open-source software| -      | All files                            | <http://license.coscl.org.cn/MulanPSL2>                                                   | License information in the file header    |
+| Open-source software| -      | setup.py                         | <pmail_mindstudio@huawei.com>                                                             | author-email information of the software package|
+| Open-source software| -      | setup.py                         | <https://gitcode.com/Ascend/MindStudio-Probe>                                             | home-page information of the software package   |
+| Open-source software| -      | cmake/config.ini                 | <https://gitee.com/mirrors/googletest/repository/archive/release-1.12.1.tar.gz>           | Open-source software download              |
+| Open-source software| -      | cmake/config.ini                 | <https://gitee.com/sinojelly/mockcpp/repository/archive/v2.7.zip>                         | Open-source software download              |
+| Open-source software| -      | cmake/config.ini                 | <https://gitee.com/mirrors/JSON-for-Modern-CPP/repository/archive/v3.10.1.zip>            | Open-source software download              |
+| Open-source software| -      | cmake/config.ini                 | <https://gitee.com/mirrors/openssl/repository/archive/OpenSSL_1_1_1k.tar.gz>              | Open-source software download              |
+| Open-source software| -      | cmake/config.ini                 | <https://gitee.com/mirrors/protobuf_source/repository/archive/v3.15.0.tar.gz>             | Open-source software download              |
+| Open-source software| -      | cmake/config.ini                 | <https://gitee.com/mirrors/re2/repository/archive/2019-12-01.tar.gz>                      | Open-source software download              |
+| Open-source software| -      | plugins/tb_graph_ascend/setup.py | <pmail_mindstudio@huawei.com>                                                             | Official email address of MindStudio      |
+| Open-source software| -      | plugins/tb_graph_ascend/setup.py | <https://gitcode.com/Ascend/mstt/tree/master/plugins/tensorboard-plugins/tb_graph_ascend> | Code repository address               |
+| Open-source software| -      | Not introduced from the source code, but included in the build output                | <https://npms.io>                                                                         | Introduced during build; commented out             |
+| Open-source software| -      | Not introduced from the source code, but included in the build output                | <https://github.com/webcomponents/shadycss/issues/193>                                    | Introduced during build; commented out             |
+| Open-source software| -      | Not introduced from the source code, but included in the build output                | <http://jsbin.com/temexa/4>                                                               | Introduced during build; commented out             |
+| Open-source software| -      | Not introduced from the source code, but included in the build output                | <https://developer.mozilla.org/>                                                          | Introduced during build; commented out             |
+| Open-source software| -      | Not introduced from the source code, but included in the build output                | <https://github.com/vaadin/vaadin-time-picker/issues/145>                                 | Introduced during build; commented out             |
+| Open-source software| -      | Not introduced from the source code, but included in the build output                | <http://codepen.io/shyndman/pen/>                                                         | Introduced during build; commented out             |
