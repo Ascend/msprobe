@@ -252,7 +252,9 @@ class PrecisionDebugger(BasePrecisionDebugger):
         except Exception as ex:
             logger.warning(f"Failed to load custom api yaml: {yaml_path}, reason: {ex}")
             return []
-
+        if not content:
+            logger.info(f"Custom api yaml is empty: {yaml_path}, yaml-based custom op registration is disabled.")
+            return []
         if not isinstance(content, dict):
             logger.warning(f"Invalid custom api yaml format: {yaml_path}, expected dict")
             return []

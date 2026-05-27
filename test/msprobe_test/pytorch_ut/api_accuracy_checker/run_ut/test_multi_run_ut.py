@@ -154,14 +154,14 @@ class TestMultiRunUT(unittest.TestCase):
         self.original_sigint = signal.getsignal(signal.SIGINT)
         self.original_sigterm = signal.getsignal(signal.SIGTERM)
 
+
     @patch('os.remove')
     @patch('os.path.realpath', side_effect=lambda x: x)
     @patch('msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check.check_link')
-    @patch('msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check.check_file_suffix')
     @patch('msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check.FileChecker')
     @patch('msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check.split_json_file',
            return_value=(['forward_split1.json', 'forward_split2.json'], 2))
-    def test_prepare_config(self, mock_split_json_file, mock_FileChecker, mock_check_file_suffix, mock_check_link,
+    def test_prepare_config(self, mock_split_json_file, mock_FileChecker, mock_check_link,
                             mock_realpath, mock_remove):
         mock_FileChecker_instance = MagicMock()
         mock_FileChecker_instance.common_check.return_value = './'

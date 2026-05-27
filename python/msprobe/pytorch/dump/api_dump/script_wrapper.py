@@ -60,9 +60,9 @@ def wrap_compile_script_func():
         调用完之后再重新注册所有 API。
         """
         # 拿到原来 inner 版的 _convert_frame
-        inner_convert = _orig_convert_frame(compiler_fn, hooks)
+        inner_convert = _orig_convert_frame(compiler_fn, hooks)  # pylint: disable=possibly-used-before-assignment
 
-        def _wrapped(frame: types.FrameType, cache_size: int, hooks: Hooks, frame_state):
+        def _wrapped(frame: types.FrameType, cache_size: int, hooks: Hooks, frame_state):  # pylint: disable=possibly-used-before-assignment
             reg = get_api_register()
             # 进入前 restore
             reg.restore_all_api()
@@ -79,19 +79,19 @@ def wrap_compile_script_func():
         # 保留原属性以兼容
         _wrapped._torchdynamo_orig_callable = compiler_fn  # type: ignore[attr-defined]
 
-        _wrapped._clone_with_backend =\
-            lambda backend: _patched_convert_frame(backend, hooks)  # type: ignore[attr-defined]
+        _wrapped._clone_with_backend = lambda backend: _patched_convert_frame(backend, hooks)  # type: ignore[attr-defined]
 
         return _wrapped
 
     import torch._dynamo.convert_frame as _cf_mod
+
     _cf_mod.convert_frame = _patched_convert_frame
 
 
 def patch_dynamo_compile():
     cf = importlib.import_module("torch._dynamo.convert_frame")
     if not hasattr(cf, "_compile"):
-        logger.warning("No found torch._dynamo.convert_frame._compile")
+        logger.info("No found torch._dynamo.convert_frame._compile")
 
     original = cf._compile
     if getattr(original, "__msprobe_patched__", False):
@@ -104,7 +104,7 @@ def patch_dynamo_compile():
             reg = get_api_register()
             reg.restore_all_api()
         except Exception as e:
-            logger.warning(f"[msprobe] Pre restore_all_api failed: {e}")
+            logger.info(f"[msprobe] Pre restore_all_api failed: {e}")
             return result
 
         try:
@@ -135,6 +135,7 @@ def patch_dynamo_compile():
             except Exception as e:
                 logger.warning(f"[msprobe] Post register_all_api failed: {e}")
         return result
+
     wrapped.__msprobe_patched__ = True
     wrapped.__msprobe_original__ = original
     cf._compile = wrapped
@@ -156,6 +157,7 @@ def unpatch_dynamo_compile() -> bool:
 def preprocess_func():
     try:
         from torch.utils._device import _device_constructors
+
         _device_constructors()
     except ImportError:
         pass
@@ -165,46 +167,53 @@ def preprocess_func():
 
 _service_ref = None
 
+
 def set_current_service(service):
     """由 PytorchService 在初始化时注入，避免 script_wrapper 反向 import。"""
     global _service_ref
     _service_ref = weakref.ref(service)
 
+
 def get_current_service():
     return _service_ref() if _service_ref else None
+
 
 def patch_triton_jitfunction_run():
     def iter_triton_run_targets():
         try:
             import triton
         except Exception as e:
-            logger.warning(f"[msprobe] Triton not available, skip patch Triton.run: {e}")
+            logger.info(f"[msprobe] Triton not available, skip patch Triton.run: {e}")
             return
         logger.info(f"[msprobe] Triton detected, version={getattr(triton, '__version__', 'unknown')}")
 
         candidates = []
         try:
             from triton.runtime import JITFunction as RuntimeJITFunction
+
             candidates.append(RuntimeJITFunction)
-        except Exception:
+        except Exception:  # nosec
             pass
 
         try:
             from triton.runtime.jit import JITFunction as JitJITFunction
+
             candidates.append(JitJITFunction)
-        except Exception:
+        except Exception:  # nosec
             pass
 
         try:
             from triton.runtime.autotuner import Autotuner
+
             candidates.append(Autotuner)
-        except Exception:
+        except Exception:  # nosec
             pass
 
         try:
             from triton.runtime.heuristics import Heuristics
+
             candidates.append(Heuristics)
-        except Exception:
+        except Exception:  # nosec
             pass
 
         seen = set()
@@ -260,7 +269,7 @@ def patch_triton_jitfunction_run():
                     module_io = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=None)
                     data_collector.forward_input_data_collect(full_name, self, pid, module_io)
                 except Exception as e:
-                    logger.warning(f"[msprobe] Triton forward_input_data_collect failed: {e}")
+                    logger.info(f"[msprobe] Triton forward_input_data_collect failed: {e}")
                 finally:
                     BaseHookManager.inner_switch[tid] = False
 
@@ -279,7 +288,7 @@ def patch_triton_jitfunction_run():
                     module_io = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=args)
                     data_collector.forward_output_data_collect(full_name, self, pid, module_io)
                 except Exception as e:
-                    logger.warning(f"[msprobe] Triton forward_output_data_collect failed: {e}")
+                    logger.info(f"[msprobe] Triton forward_output_data_collect failed: {e}")
                 finally:
                     BaseHookManager.inner_switch[tid] = False
 
@@ -305,35 +314,40 @@ def patch_triton_jitfunction_run():
                 patched_targets.append(f"{cls_name}.run")
                 logger.info(f"[msprobe] Patched {cls_name}.run successfully.")
         except Exception as e:
-            logger.warning(f"[msprobe] Patch {cls_name}.run failed: {e}")
+            logger.info(f"[msprobe] Patch {cls_name}.run failed: {e}")
 
     if not patched:
-        logger.warning("[msprobe] No Triton run target patched. Triton may be unavailable or API changed.")
+        logger.info("[msprobe] No Triton run target patched. Triton may be unavailable or API changed.")
     else:
         logger.info(f"[msprobe] Triton patch summary, patched={patched_targets}, skipped={skipped_targets}")
+
 
 def unpatch_triton_jitfunction_run() -> bool:
     restored = False
     candidates = []
     try:
         from triton.runtime import JITFunction as RuntimeJITFunction
+
         candidates.append(RuntimeJITFunction)
-    except Exception:
+    except Exception:  # nosec
         pass
     try:
         from triton.runtime.jit import JITFunction as JitJITFunction
+
         candidates.append(JitJITFunction)
-    except Exception:
+    except Exception:  # nosec
         pass
     try:
         from triton.runtime.autotuner import Autotuner
+
         candidates.append(Autotuner)
-    except Exception:
+    except Exception:  # nosec
         pass
     try:
         from triton.runtime.heuristics import Heuristics
+
         candidates.append(Heuristics)
-    except Exception:
+    except Exception:  # nosec
         pass
 
     seen = set()
@@ -406,9 +420,7 @@ def adapt_megatron_distributed_mappings():
             elif str(reduce_scatter_func).startswith('<function _reduce_scatter_base'):
                 module.dist_reduce_scatter_func = torch.distributed._reduce_scatter_base
 
-    try:
-        import megatron
-    except ImportError:
+    if importlib.util.find_spec("megatron") is None:
         return
 
     for module_path in megatron_module_path:
@@ -416,12 +428,14 @@ def adapt_megatron_distributed_mappings():
             megatron_module = importlib.import_module(module_path)
             adapt_single_module(megatron_module)
         except ImportError:
-            logger.warning(f'Import {module_path} failed, skip mapping.')
+            logger.info(f'Import {module_path} failed, skip mapping.')
             continue
         except Exception as e:
-            logger.warning(f'An unexpected error occurred in the function "adapt_megatron_distributed_mappings", '
-                           f'skip mapping: {e}')
+            logger.info(
+                f'An unexpected error occurred in the function "adapt_megatron_distributed_mappings", skip mapping: {e}'
+            )
             continue
+
 
 def wrap_script_func():
     wrap_jit_script_func()

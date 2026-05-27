@@ -811,7 +811,7 @@ csv结果文件内容介绍如下：
 
 **注意事项**
 
-在msprobe工具安装目录下的`python/msprobe/pytorch/dump/api_dump/`目录中修改`custom_wrap_ops.yaml`文件，请勿修改文件名。修改该文件后需重新启动训练或推理进程，使配置重新加载。
+在msprobe工具安装目录下的`pytorch/dump/api_dump/`目录中修改`custom_wrap_ops.yaml`文件，请勿修改文件名。修改该文件后需重新启动训练或推理进程，使配置重新加载。
 
 **配置格式**
 
@@ -825,9 +825,8 @@ csv结果文件内容介绍如下：
  
 | 字段 | 说明 |
 | --- | --- |
-| 模块路径 | API所属的Python模块路径，支持多级子模块，例如`torch.nn.functional`、`module_a.submodule`。必须是有效的Python模块路径（由字母、数字、下划线和点号组成，首字符为字母或下划线），长度不超过4096字符。 |
+| 模块路径 | API所属的Python模块路径，支持多级子模块，例如`torch.nn.functional`、`module_a.submodule`。必须是有效的Python模块路径（由字母、数字、下划线和点号组成，首字符为字母或下划线）。默认为[dump.json](#dumpjson文件说明)中API名的前缀 |
 | API名称 | 模块中需要注册的API属性名，例如`relu`、`compute`。必须是有效的Python标识符（由字母、数字和下划线组成，首字符为字母或下划线），长度不超过255字符。 |
-| 前缀 | 默认使用模块路径作为`api_prefix`，用于[dump.json](#dumpjson文件说明)中API名的前缀。 |
 
 **配置示例**
 
@@ -847,7 +846,22 @@ module_a:
 transformers.models.bert.modeling_bert:
   - BertLayer
   - BertAttention
+
+# 注册主函数中的API
+__main__:
+  - add_and_mul
 ```
+
+> 例如：
+>
+> ```python
+> import torch
+> 
+> def add_and_mul(a, b, c):
+>     """计算 (a + b) * c"""
+>     return (a + b) * c
+> # 在此使能工具后，默认 dump 已经注册 add_and_mul
+> ```
 
 ## 接口介绍
 

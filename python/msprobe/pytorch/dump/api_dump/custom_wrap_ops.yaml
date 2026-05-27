@@ -3,7 +3,7 @@
 #   - add
 #   - sub
 #   - mul
-#   - add_relu
+#   - add_and_mul
 # operator:
 #   - floordiv
 # torch.nn.functional:
