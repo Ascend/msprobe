@@ -20,7 +20,7 @@
 此外，当前场景下还需做以下调整：
 
 - 在当前异步rollout模式下，要使能vllm的dump功能，需要在vllm的`additional_config`中添加`dump_config_path`参数，指向msprobe的推理侧配置文件。
-- 训练侧需关闭 `val_before_train` ，避免训练前验证调用`generate_squence`接口，对 dump 结果造成干扰。
+- 训练侧需关闭 `val_before_train` ，避免训练前验证调用`generate_sequence`接口，对 dump 结果造成干扰。
 
 ```diff
 export DUMP_ON=1              # 启用训练侧 msprobe 采集
@@ -488,4 +488,4 @@ vLLM Server (request_id)
 | `step`          | micro_batch step 序号                         |
 | `rank`          | 分布式 rank                                   |
 | `request_ids[]` | 该 micro_batch 包含的 request_id              |
-| `num_requests`  | request 数量 （mirco_batch中数据数量，应为1） |
+| `num_requests`  | request 数量 （micro_batch中数据数量，应为1） |

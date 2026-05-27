@@ -6,7 +6,7 @@
 
 **基本概念**
 
-- 新精度标准比对法：依据新精度标准，对不同的API采取不同的比对算法（包括绝对阈值法，标杆比对法、二进制一致法、ULP误差比对法和双千指标法），最终给定预检判定结果。
+- 新精度标准比对法：依据新精度标准，对不同的API采取不同的比对算法（包括绝对阈值法、标杆比对法、二进制一致法、ULP误差比对法和双千指标法），最终给定预检判定结果。
 - 随机生成模式和真实数据模式：在预检 dump 时可以选择由工具构造随机数获得 dump 数据或选择真实输入的数据进行预检 dump 操作。随机生成模式（对应 task: "statistics"）执行效率高，可以快速获得结果，但数据精度低，只能大致判断精度问题；真实数据模式（对应 task: "tensor"）执行效率略低于随机生成模式，但是数据精度高，可以准确判断精度问题。
 
 **离线预检流程**
@@ -190,7 +190,7 @@ def handle_api(api_name, output, args, kwargs):
 **命令格式**
 
 ```bash
-msprobe multi_acc_check -api_info <dump_json_path> [-save_error_data] [-o <out_path>] [-j] [-n <num_splits>] [-d <device_id>] [-csv_path <result_csv_path>] [-f]
+msprobe multi_acc_check -api_info <dump_json_path> [-save_error_data] [-o <out_path>] [-j] [-n <num_splits>] [-d <device_id>] [-csv_path <result_csv_path>] [-f] [-config <config_path>]
 ```
 
 **参数说明**
@@ -254,7 +254,7 @@ msprobe acc_check -api_info ./dump_path/step{step_number}/rank{rank_number}/dump
 
 该结果为中间结果，仅作为参考，建议完成[预检结果比对](#预检结果比对)后查看比对结果。该结果后续将会删除。
 
-Forward Test Success 和 Backward Test Success 是否通过测试是由 `accuracy_checking_details_{timestamp}.csv` 中的余弦相似度、最大绝对误差、双百双千双万指标判定结果决定的。
+Forward Test Success 和 Backward Test Success 是否通过测试是由 `accuracy_checking_details_{timestamp}.csv` 中的余弦相似度、最大绝对误差、双百、双千、双万指标判定结果决定的。
 
 需要注意的是 `accuracy_checking_details_{timestamp}.csv` 中可能存在一个 API 的前向（反向）有多个输出，那么每个输出记录一行，而在 `accuracy_checking_result_{timestamp}.csv` 中的结果需要该 API 的所有结果均为 pass 才能标记为 pass，只要存在一个 error 则标记为 error，仅存在 warning 和 pass 且不存在 error 则标记为 warning。
 
@@ -324,7 +324,7 @@ Forward Test Success 和 Backward Test Success 是否通过测试是由 `accurac
 **命令格式**
 
 ```bash
-msprobe api_precision_compare -npu <npu_csv_path> -gpu <gpu_csv_path> [-o out_path]
+msprobe api_precision_compare -npu <npu_csv_path> -gpu <gpu_csv_path> [-o <out_path>]
 ```
 
 可选字段使用 [] 表示，变量使用 < > 表示。
@@ -387,9 +387,9 @@ Forward Test Success 和 Backward Test Success 是否通过测试是由 `api_pre
 | 绝对误差判定结果         | 绝对误差错误率判定结果，等于 0 标记为 pass，其余情况标记为 error。                                                                                                                                                                                                                                                                                                                                               |
 | 二进制一致错误率         | NPU 或 GPU 数据中每个 Tensor 精度不一致的数值的数量与 Tensor 中数值数量的比值。只有数据是 builtin 类型（bool、int、float、str）、torch.bool 和 torch 的 int 类型或者在新精度标准中使用二进制一致算法进行比对的 API 才会展示。二进制一致法指标。                                                                                                                                                                                                                         |
 | 二进制一致错误率判定结果 | 二进制一致错误率判定结果，等于 0 标记为 pass，其余情况标记为 error。                                                                                                                                                                                                                                                                                                                                              |
-| ULP 误差平均值<sup>a</sup>  | NPU 数据与标杆数据 ULP 误差的平均值（取绝对值后）。                                                                                                                                                                                                                                                                                                                                                         |
-| ULP 误差大于阈值占比<sup>a</sup>      | NPU 数据与标杆数据的 ULP 误差（取绝对值后）大于阈值（当 NPU 数据类型为 float16 或 bfloat16 时，阈值为 1；当 NPU 数据类型为 float32 时，阈值为 32）的元素个数占总元素的个数比例。                                                                                                                                                                                                                                                                     |
-| ULP 误差大于阈值占比比值<sup>a</sup>  | NPU 与 CPU 的 ULP 误差大于阈值占比 / GPU 与 CPU 的 ULP 误差大于阈值占比。                                                                                                                                                                                                                                                                                                                                   |
+| ULP 误差平均值  | NPU 数据与标杆数据 ULP 误差的平均值（取绝对值后）。                                                                                                                                                                                                                                                                                                                                                         |
+| ULP 误差大于阈值占比      | NPU 数据与标杆数据的 ULP 误差（取绝对值后）大于阈值（当 NPU 数据类型为 float16 或 bfloat16 时，阈值为 1；当 NPU 数据类型为 float32 时，阈值为 32）的元素个数占总元素的个数比例。                                                                                                                                                                                                                                                                     |
+| ULP 误差大于阈值占比比值  | NPU 与 CPU 的 ULP 误差大于阈值占比 / GPU 与 CPU 的 ULP 误差大于阈值占比。                                                                                                                                                                                                                                                                                                                                   |
 | ULP 误差判定结果          | ULP 误差判定结果。<br/>     当 NPU 或 GPU 数据类型是 float16 或 bfloat16 时，以下两条标准满足其一标记为 pass，否则标记为 error：<br>          NPU ULP 误差大于阈值占比小于 0.001；<br/>          NPU ULP 误差大于阈值占比小于 GPU ULP 误差大于阈值占比。<br/>     当 NPU 或 GPU 数据类型是 float32 时，以下三条标准满足其一标记为 pass，否则标记为 error：<br/>          NPU ULP 误差平均值小于 64；<br/>          NPU ULP 误差大于阈值占比小于 0.05；<br/>          NPU ULP 误差大于阈值占比小于 GPU ULP 误差大于阈值占比。 |
 | 双千指标                 | 双千精度指标。是指 NPU 的 Tensor 中的元素逐个与对应的标杆数据对比，相对误差小于千分之一的个数占总元素个数的比例。测试通过标准为相对误差大于千分之一的个数占总元素个数的比例小于千分之一。仅 conv1d 和 conv2d 使用该指标。双千指标法指标。                                                                                                                                                                                                                                                    |
 | 双千指标判定结果         | 双千指标判定结果。双千指标大于 0.999 标记为 pass，否则标记为 error。                                                                                                                                                                                                                                                                                                                                            |
