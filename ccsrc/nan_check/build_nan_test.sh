@@ -25,6 +25,11 @@ secure_nan_check_dir() {
     trap restore_nan_check_mode EXIT
 }
 
+secure_json_file() {
+    # msopgen rejects overly permissive input json permissions.
+    chmod 640 "${JSON_PATH}"
+}
+
 detect_soc_version() {
     if [[ -n "${SOC_VERSION:-}" ]]; then
         echo "${SOC_VERSION}"
@@ -72,6 +77,7 @@ ensure_cmd() {
 
 gen_project() {
     secure_nan_check_dir
+    secure_json_file
     local soc_version
     soc_version=$(detect_soc_version)
     log "Using msopgen args: -f ${FRAMEWORK} -c ai_core-${soc_version}"
