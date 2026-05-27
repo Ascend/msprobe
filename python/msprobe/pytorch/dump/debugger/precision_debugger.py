@@ -17,6 +17,7 @@
 import os
 import re
 import time
+import torch
 import importlib
 import sys
 
@@ -58,6 +59,8 @@ class PrecisionDebugger(BasePrecisionDebugger):
         self.service = PytorchService(self.config)
         self.module_dumper = ModuleDumper(self.service)
         self.ori_customer_func = {}
+        # 自动注册自定义算子（支持 torch.ops 下的第三方扩展算子）
+        self._auto_register_custom_ops()
         self._custom_api_auto_registered = set()
         self._custom_api_pending = []
         self._auto_register_custom_api(force_retry=True)
@@ -70,6 +73,10 @@ class PrecisionDebugger(BasePrecisionDebugger):
     @ThreadSafe.synchronized
     def start(cls, model=None, token_range=None, rank_id=None):
         instance = cls._instance_with_reload()
+
+        # 延迟注册：在 start() 时再次扫描自定义算子
+        # 这样即使用户先创建 debugger 再 enable_custom_op() 也能正常工作
+        instance._auto_register_custom_ops()
 
         check_token_range(token_range)
         check_rank_id(rank_id)
@@ -203,6 +210,97 @@ class PrecisionDebugger(BasePrecisionDebugger):
     @staticmethod
     def _is_dump_enabled(dump_enable):
         return True if dump_enable is None else dump_enable
+
+    def _auto_register_custom_ops(self):
+        """
+        自动扫描并注册 torch.ops 下的自定义算子
+        支持华为昇腾扩展算子（npu, _C_ascend, atb等）
+        """
+
+        # 内置命名空间（不需要注册）
+        builtin_namespaces = {
+            'aten', 'prim', 'quantized', '_quantized', 'profiler',
+            'functional', 'autograd', 'onnx', 'onnx_symbolic',
+            'mkldnn', 'onednn', 'c10d', 'c10d_functional',
+            '_c10d_functional', '_c10d_functional_autograd',
+            'inductor', 'fsdp', 'static_runtime', 'debugprims',
+            'rngprims', 'export', 'flex_lib', 'sparse', 'symm_mem',
+            'dtensor', '_inductor_test', '_test', 'mkldnn_prepacked', 'npu', 'atb'
+        }
+
+        # 优先检查的自定义算子命名空间
+        priority_namespaces = ['_C_ascend']
+
+        registered_count = 0
+
+        # 首先处理优先命名空间
+        for ns_name in priority_namespaces:
+            try:
+                ns_module = getattr(torch.ops, ns_name, None)
+                if ns_module is None:
+                    continue
+
+                ops = self._get_custom_ops_from_schema(ns_name)
+                for op_name in ops:
+                    if not hasattr(ns_module, op_name):
+                        continue
+                    try:
+                        self.service.register_custom_api(
+                            ns_module, op_name, ns_name
+                        )
+                        registered_count += 1
+                    except Exception as ex:
+                        logger.debug(f"Failed to auto register custom op {ns_name}.{op_name}: {ex}")
+            except Exception as ex:
+                logger.debug(f"Failed to scan custom ops namespace {ns_name}: {ex}")
+
+        # 然后扫描其他非内置命名空间
+        for ns_name in dir(torch.ops):
+            if ns_name.startswith('_') or ns_name in builtin_namespaces or ns_name in priority_namespaces:
+                continue
+
+            try:
+                ns_module = getattr(torch.ops, ns_name, None)
+                if ns_module is None:
+                    continue
+
+                ops = self._get_custom_ops_from_schema(ns_name)
+                for op_name in ops:
+                    if not hasattr(ns_module, op_name):
+                        continue
+                    try:
+                        self.service.register_custom_api(
+                            ns_module, op_name, ns_name
+                        )
+                        registered_count += 1
+                    except Exception as ex:
+                        logger.debug(f"Failed to auto register custom op {ns_name}.{op_name}: {ex}")
+            except Exception as ex:
+                logger.debug(f"Failed to scan custom ops namespace {ns_name}: {ex}")
+
+        if registered_count > 0:
+            logger.info(f"Auto registered {registered_count} custom ops for dump.")
+
+    def _get_custom_ops_from_schema(self, namespace):
+        """从 JIT schema 获取指定命名空间的所有算子"""
+        try:
+            schemas = torch._C._jit_get_all_schemas()
+            ops = set()
+
+            for s in schemas:
+                schema_str = str(s)
+                if '::' not in schema_str:
+                    continue
+
+                ns, rest = schema_str.split('::', 1)
+                if ns == namespace:
+                    op_name = rest.split('(')[0] if '(' in rest else rest
+                    ops.add(op_name)
+
+            return sorted(list(ops))
+        except Exception as ex:
+            logger.debug(f"Failed to get custom ops from JIT schema for namespace {namespace}: {ex}")
+            return []
 
     def _auto_register_custom_api(self, force_retry):
         custom_api_list = self._load_custom_api_from_yaml()
