@@ -84,6 +84,7 @@ class SanitizeErrorType(Enum):
     """
     The errors parameter Enum of the function sanitize_csv_value
     """
+
     strict = "strict"
     ignore = "ignore"
     replace = "replace"
@@ -157,11 +158,15 @@ class FileStat:
         if os.getuid() == self.file_stat.st_uid:
             pass
         elif os.getuid() == 0:
-            logger.warning("You are currently operating this tool using the root user. "
-                           "Please be aware of the risk of privilege escalation.")
+            logger.warning(
+                "You are currently operating this tool using the root user. "
+                "Please be aware of the risk of privilege escalation."
+            )
         else:
-            logger.warning("The file owner is not consistent with the current user. "
-                           "Please be aware of the risk of owner inconsistency.")
+            logger.warning(
+                "The file owner is not consistent with the current user. "
+                "Please be aware of the risk of owner inconsistency."
+            )
 
     def is_basically_legal(self, perm='none', strict_permission=True):
         if sys.platform.startswith("win"):
@@ -176,8 +181,9 @@ class FileStat:
         if self.is_softlink:
             whitelist_path = os.environ.get(RAW_INPUT_PATH, "")
             if whitelist_path == "":
-                logger.error(f"path : {self.file} is a soft link, not supported, "
-                             f"please import file(or directory) directly")
+                logger.error(
+                    f"path : {self.file} is a soft link, not supported, please import file(or directory) directly"
+                )
                 return False
             target = os.readlink(self.file)
             target_path = os.path.abspath(os.path.normpath(target))  # normpath更加规范
@@ -197,8 +203,9 @@ class FileStat:
                     illegal_softlink = False
                     break  # 已找到合法路径，退出循环
             if illegal_softlink:
-                logger.error(f"path : {self.file} is a soft link, not supported, "
-                             f"please import file(or directory) directly")
+                logger.error(
+                    f"path : {self.file} is a soft link, not supported, please import file(or directory) directly"
+                )
                 return False
         return True
 
@@ -212,21 +219,29 @@ class FileStat:
             self.check_owner_or_root()
         if perm == 'read':
             if strict_permission and self.permission & READ_FILE_NOT_PERMITTED_STAT > 0:
-                logger.error(f"The file {self.file} is group writable, or is others writable, "
-                             "as import file(or directory) permission should not be over 0o755(rwxr-xr-x)")
+                logger.error(
+                    f"The file {self.file} is group writable, or is others writable, "
+                    "as import file(or directory) permission should not be over 0o755(rwxr-xr-x)"
+                )
                 return False
             if not os.access(self.realpath, os.R_OK) or self.permission & stat.S_IRUSR == 0:
-                logger.error(f"Current user doesn't have read permission to the file {self.file}, "
-                             "as import file(or directory) permission should be at least 0o400(r--------)")
+                logger.error(
+                    f"Current user doesn't have read permission to the file {self.file}, "
+                    "as import file(or directory) permission should be at least 0o400(r--------)"
+                )
                 return False
         elif perm == 'write' and self.is_exists:
             if (strict_permission or self.is_file) and self.permission & WRITE_FILE_NOT_PERMITTED_STAT > 0:
-                logger.error(f"The file {self.file} is group writable, or is others writable, "
-                             "as export file(or directory) permission should not be over 0o755(rwxr-xr-x)")
+                logger.error(
+                    f"The file {self.file} is group writable, or is others writable, "
+                    "as export file(or directory) permission should not be over 0o755(rwxr-xr-x)"
+                )
                 return False
             if not os.access(self.realpath, os.W_OK):
-                logger.error(f"Current user doesn't have write permission to the file {self.file}, "
-                             "as export file(or directory) permission should be at least 0o200(-w-------)")
+                logger.error(
+                    f"Current user doesn't have write permission to the file {self.file}, "
+                    "as export file(or directory) permission should be at least 0o200(-w-------)"
+                )
                 return False
         return True
 
@@ -256,8 +271,7 @@ class FileStat:
         return False
 
 
-def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE,
-            write_permission=PERMISSION_NORMAL, **kwargs):
+def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, write_permission=PERMISSION_NORMAL, **kwargs):
     file_stat = FileStat(file)
 
     if file_stat.is_exists and file_stat.is_dir:
@@ -278,17 +292,9 @@ def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE,
             raise OpenException(f"The file size has exceeded the specifications and cannot be read. {file}")
 
     if "w" in mode and file_stat.is_exists:
-        if not file_stat.is_owner:
-            raise OpenException(
-                f"The file owner is inconsistent with the current process user and is not allowed to write. {file}"
-            )
         os.remove(file)
 
     if "a" in mode and file_stat.is_exists:
-        if not file_stat.is_owner:
-            raise OpenException(
-                f"The file owner is inconsistent with the current process user and is not allowed to write. {file}"
-            )
         if file_stat.permission != (file_stat.permission & write_permission):
             os.chmod(file, file_stat.permission & write_permission)
 

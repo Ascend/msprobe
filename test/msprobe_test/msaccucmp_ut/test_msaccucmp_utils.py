@@ -151,52 +151,6 @@ class TestUtilsMethods(unittest.TestCase):
         with self.assertRaises(ZeroDivisionError):
             utils.ceiling_divide(10, 0)
     
-    @patch('os.stat')
-    @patch('os.getuid', return_value=100)
-    @patch("cmp_utils.log.print_error_log")
-    def test_check_exec_file_valid_when_not_owner(self, mock_error, mock_getuid, mock_os_stat):
-        exist_path = "path"
-        mock_os_stat.return_value = MagicMock(st_uid=1000)
-        ret = path_check.check_exec_file_valid(exist_path)
-        mock_error.assert_called_once_with('You are not the owner of the path "%r".' % exist_path)
-        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-    
-    @patch('os.stat')
-    @patch('os.getuid', return_value=1000)
-    @patch('os.getgroups', return_value=[100, 200])
-    @patch("cmp_utils.log.print_error_log")
-    def test_check_exec_file_valid_when_not_in_group(self, mock_error, mock_getgroups, mock_getuid, mock_os_stat):
-        exist_path = "path"
-        mock_os_stat.return_value = MagicMock(st_uid=1000)
-        ret = path_check.check_exec_file_valid(exist_path)
-        mock_error.assert_called_once_with('You are not in the group of the path "%r".' % exist_path)
-        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-    
-    @patch('os.stat')
-    @patch('os.getuid', return_value=1000)
-    @patch('os.getgroups', return_value=[1000, 2000])
-    @patch('cmp_utils.path_check.check_others_permission', return_value=9)
-    def test_check_exec_file_valid_when_not_none_error(self, mock_check_others_permission, 
-                                                            mock_getgroups, mock_getuid, mock_os_stat):
-        exist_path = "path"
-        mock_os_stat.return_value = MagicMock(st_uid=0, st_gid=0)
-
-        with self.assertRaises(CompareError) as context:
-            ret = path_check.check_exec_file_valid(exist_path)
-        assert context.exception.args[0] == CompareError.MSACCUCMP_OPEN_DIR_ERROR
-
-    @patch('os.stat')
-    @patch('os.getuid', return_value=1000)
-    @patch('os.getgroups', return_value=[1000, 2000])
-    @patch('cmp_utils.path_check.check_others_permission', return_value=0)
-    @patch('cmp_utils.path_check.check_path_valid', return_value="hhh")
-    def test_check_exec_file_valid_when_correct_input(self, mock_check_path_valid, 
-                                        mock_check_others_permission, mock_getgroups, mock_getuid, mock_os_stat):
-        exist_path = "path"
-        mock_os_stat.return_value = MagicMock(st_uid=0, st_gid=0)
-        ret = path_check.check_exec_file_valid(exist_path)
-        self.assertEqual(ret, "hhh")
-    
     @patch('os.walk', return_value=[["z/z"*60, 1, 1]])
     def test_check_path_all_file_exec_valid_when_input_too_deep_path(self, mock_os_walk):
         custom_path = "path"
@@ -204,30 +158,28 @@ class TestUtilsMethods(unittest.TestCase):
             ret = path_check.check_path_all_file_exec_valid(custom_path)
         assert context.exception.args[0] == f"custom path is deep then {ConstManager.MAX_WALK_DIR_DEEP_NUM}"
     
-    @patch('os.walk', return_value=[["z/z"*10, 1, ['1']]])
-    @patch('cmp_utils.path_check.check_exec_file_valid', return_value=9)
+    @patch('os.walk', return_value=[["z/z"*10, [], ['1']]])
+    @patch('cmp_utils.path_check.check_path_valid', return_value=CompareError.MSACCUCMP_OPEN_DIR_ERROR)
     def test_check_path_all_file_exec_valid_when_raise_raise_compare_error_ret(self, 
-                                                                        mock_check_exec_file_valid, mock_os_walk):
+                                                                        mock_check_path_valid, mock_os_walk):
         custom_path = "path"
         with self.assertRaises(CompareError) as context:
             ret = path_check.check_path_all_file_exec_valid(custom_path)
         assert context.exception.args[0] == CompareError.MSACCUCMP_OPEN_DIR_ERROR
     
-    @patch('os.walk', return_value=[["z/z"*10, 1, ['1']*2000]])
-    @patch('cmp_utils.path_check.check_exec_file_valid', return_value=0)
+    @patch('os.walk', return_value=[["z/z"*10, [], ['1']*2000]])
+    @patch('cmp_utils.path_check.check_path_valid', return_value=CompareError.MSACCUCMP_NONE_ERROR)
     @patch('cmp_utils.utils.check_file_size', return_value=True)
     def test_check_path_all_file_exec_valid_when_input_too_much_files(self, mock_check_file_size, 
-                                                                            mock_check_exec_file_valid, mock_os_walk):
+                                                                            mock_check_path_valid, mock_os_walk):
         custom_path = "path"
         with self.assertRaises(CompareError) as context:
             ret = path_check.check_path_all_file_exec_valid(custom_path)
         assert context.exception.args[0] == f"file count in custom path is more then {ConstManager.MAX_WALK_FILE_NUM}"
 
     @patch('os.walk', return_value=[["z/z"*10, ["1"], []]])
-    @patch('cmp_utils.path_check.check_exec_file_valid', return_value=1)
-    @patch('cmp_utils.path_check.check_path_valid', return_value=9)
-    def test_check_path_all_file_exec_valid_when_input_dir_not_valid(self, mock_check_path_valid, 
-                                                                            mock_check_exec_file_valid, mock_os_walk):
+    @patch('cmp_utils.path_check.check_path_valid', return_value=CompareError.MSACCUCMP_OPEN_DIR_ERROR)
+    def test_check_path_all_file_exec_valid_when_input_dir_not_valid(self, mock_check_path_valid, mock_os_walk):
         custom_path = "path"
         with self.assertRaises(CompareError) as context:
             ret = path_check.check_path_all_file_exec_valid(custom_path)
@@ -272,33 +224,17 @@ class TestUtilsMethods(unittest.TestCase):
                                                         mock_is_group_and_others_writable, mock_is_same_owner):
         path = "path"
         self.assertFalse(path_check.is_parent_dir_has_right_permission(path))
-    
-    @patch('os.stat')
-    @patch("cmp_utils.log.print_error_log")
-    def test_check_others_permission_when_groups_have_write_premission(self, mock_error, mock_os_stat):
-        exist_path = "path"
-        mock_os_stat.return_value = MagicMock(st_gid=1, st_mode=stat.S_IWGRP)
-        ret = path_check.check_others_permission(exist_path)
-        mock_error.assert_called_once_with(f"File {exist_path} is not safe. "
-                                                "Groups have writing permission to this file.")
-        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-    
-    @patch('os.stat')
-    @patch("cmp_utils.log.print_error_log")
-    def test_check_others_permission_when_others_have_write_premission(self, mock_error, mock_os_stat):
-        exist_path = "path"
-        mock_os_stat.return_value = MagicMock(st_gid=0, st_mode=stat.S_IWOTH)
-        ret = path_check.check_others_permission(exist_path)
-        mock_error.assert_called_once_with("File %r is dangerous. Others have writing "
-                            "permission to this file. Please use chmod to dismiss the writing permission." % exist_path)
-        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-    
-    @patch('os.stat')
-    @patch("cmp_utils.log.print_error_log")
-    def test_check_others_permission_when_premission_right(self, mock_error, mock_os_stat):
-        exist_path = "path"
-        mock_os_stat.return_value = MagicMock(st_gid=0, st_mode=0)
-        ret = path_check.check_others_permission(exist_path)
+
+    @patch("cmp_utils.log.print_warn_log")
+    @patch("cmp_utils.path_check.is_parent_dir_has_right_permission", return_value=False)
+    @patch('os.access', return_value=True)
+    @patch('os.path.exists', return_value=True)
+    @patch('os.path.islink', return_value=False)
+    def test_check_path_valid_when_parent_dir_permission_invalid_warns(
+            self, mock_islink, mock_exists, mock_access,
+            mock_is_parent_dir_has_right_permission, mock_warn):
+        ret = path_check.check_path_valid('/home/result.txt', True)
+        mock_warn.assert_called_once_with('The permissions of the parent directory of the current file are incorrect.')
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_check_name_valid1(self):

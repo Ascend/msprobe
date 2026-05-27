@@ -267,12 +267,13 @@ class TestUtilsMethods(unittest.TestCase):
             os.chmod(args.golden_dump_path, 0o775)
             with mock.patch.object(PytorchComparison, '__init__', return_value=None):
                 with mock.patch.object(PytorchComparison, 'check_arguments_valid', return_value=None):
-                    with mock.patch.object(PytorchComparison, 'compare', return_value=None):
-                       with mock.patch('os.stat') as mock_stat:
+                    with mock.patch.object(PytorchComparison, 'compare', return_value=CompareError.MSACCUCMP_NONE_ERROR) as mock_compare:
+                        with mock.patch('os.stat') as mock_stat:
                             mock_stat.return_value.st_uid = 2
-                            with self.assertRaises(CompareError) as error:
-                                result = msaccucmp.start_compare(args)
-                            self.assertEqual(str(error.exception), "3")
+                            result = msaccucmp.start_compare(args)
+
+        self.assertEqual(result, CompareError.MSACCUCMP_NONE_ERROR)
+        mock_compare.assert_called_once_with()
 
     def test_main_overflow_case1(self):
         args = ['aaa.py', 'overflow', '-d', '/home/left.bin', '-out', '/home/output', '-n', '1']

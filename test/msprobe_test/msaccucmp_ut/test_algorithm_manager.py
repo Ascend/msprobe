@@ -160,23 +160,6 @@ def test_custom_script_path_given_invalid_when_valid_custom_script_file_then_err
             _mock_algorithm_manager(custom_script_path="/tmp", select_algorithm="cc", algorithm_options="")
 
 
-def test_custom_script_path_given_not_match_group_when_valid_custom_script_path_then_error():
-    with pytest.raises(CompareError, match=str(CompareError.MSACCUCMP_DANGER_FILE_ERROR)):
-        with mock.patch('os.listdir', return_value=['alg_xxx.py']), mock.patch('os.stat') as mock_stat:
-            with mock.patch.object(os, "getuid", return_value=1):
-                mock_stat.return_value.st_mode = 0o640
-                mock_stat.return_value.st_uid = 2
-                _mock_algorithm_manager(custom_script_path="/tmp", select_algorithm="cc", algorithm_options="")
-
-
-def test_check_file_permission_when_others_have_write_permission_then_raise_error():
-    with pytest.raises(CompareError, match=str(CompareError.MSACCUCMP_DANGER_FILE_ERROR)):
-        with mock.patch('os.listdir', return_value=['alg_xxx.py']), mock.patch('os.stat') as mock_stat:
-            mock_stat.return_value.st_mode = 0o666
-            mock_stat.return_value.st_uid = os.getuid()
-            _mock_algorithm_manager(custom_script_path="/tmp", select_algorithm="cc", algorithm_options="")
-
-
 def test_algorithm_manager_main_given_any_when_unknown_error_then_error(fake_arguments):
     with pytest.raises(CompareError, match=str(CompareError.MSACCUCMP_UNKNOWN_ERROR)):
         with mock.patch('cmp_utils.path_check.check_path_valid', side_effect=[0, 1]):

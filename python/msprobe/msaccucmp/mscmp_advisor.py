@@ -25,10 +25,12 @@ import sys
 import argparse
 import re
 from cmp_utils import log, path_check, file_utils
+from cmp_utils.path_check import PathType
 from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
 from advisor.compare_advisor import CompareAdvisor
+
 MAX_STRING_LENGTH = 1024
 NODE_WHITE_LIST_REGEX = re.compile(r"[^_A-Za-z0-9/.,;-]")
 
@@ -47,15 +49,32 @@ def parse_input_nodes(input_nodes):
 
 
 def _compare_advisor_parser(parser):
-    parser.add_argument("-i", "--input_file", dest="input_file", default="", type=safe_path_string,
-                        help="<Required> The compare result file: generate from msaccucmp compare command, a csv file.",
-                        required=True)
-    parser.add_argument('-input_nodes', dest="input_nodes", default="",
-                        help="<optional> Input nodes designated by user. Separate multiple nodes with semicolons(;)."
-                             " E.g: \"node_name1;node_name2;node_name3\"", required=False)
-    parser.add_argument("-o", "--out_path", dest="out_path", default="", type=safe_path_string,
-                        help="<optional> The compare advice out path.",
-                        required=False)
+    parser.add_argument(
+        "-i",
+        "--input_file",
+        dest="input_file",
+        default="",
+        type=safe_path_string,
+        help="<Required> The compare result file: generate from msaccucmp compare command, a csv file.",
+        required=True,
+    )
+    parser.add_argument(
+        '-input_nodes',
+        dest="input_nodes",
+        default="",
+        help="<optional> Input nodes designated by user. Separate multiple nodes with semicolons(;)."
+        " E.g: \"node_name1;node_name2;node_name3\"",
+        required=False,
+    )
+    parser.add_argument(
+        "-o",
+        "--out_path",
+        dest="out_path",
+        default="",
+        type=safe_path_string,
+        help="<optional> The compare advice out path.",
+        required=False,
+    )
 
 
 def _do_advisor():
@@ -70,7 +89,7 @@ def _do_advisor():
         if os.path.islink(os.path.abspath(args.out_path)):
             log.print_error_log('The path "%r" is a softlink, not permitted.' % args.out_path)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-        out_path = os.path.realpath(args.out_path) 
+        out_path = os.path.realpath(args.out_path)
     else:
         out_path = ""
     compare_advisor = CompareAdvisor(input_file, input_nodes, out_path)
@@ -109,7 +128,7 @@ def _check_input_file(input_file: str, file_type: str) -> None:
     if not input_file.endswith(file_type):
         log.print_error_log("[file_compare] The file %r is invalid.Only support %r file." % (input_file, file_type))
         raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
-    ret = path_check.check_exec_file_valid(input_file)
+    ret = path_check.check_path_valid(input_file, True, False, PathType.File)
     if ret != CompareError.MSACCUCMP_NONE_ERROR:
         raise CompareError(ret)
 

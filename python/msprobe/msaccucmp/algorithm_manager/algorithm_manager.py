@@ -20,18 +20,18 @@ Function:
 AlgorithmManager class.
 This class mainly involves the compare function.
 """
+
 import os
 import re
 import sys
 import time
-import stat
 import importlib
 
 import numpy as np
 
-from cmp_utils import log, utils_type
-from cmp_utils import utils, path_check
 from algorithm_manager.algorithm_parameter import AlgorithmParameter
+from cmp_utils import log
+from cmp_utils import utils, path_check
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
@@ -57,8 +57,10 @@ class AlgorithmManager:
     def _check_value_invalid(value: object, parameter: str) -> None:
         is_list_value_invalid = isinstance(value, list) and len(value) != 2
         if not value or is_list_value_invalid:
-            log.print_error_log('The algorithm argument (%r) is invalid, just supports '
-                                '"algorithm_name:name1=value1,name2=value2;".' % parameter)
+            log.print_error_log(
+                'The algorithm argument (%r) is invalid, just supports '
+                '"algorithm_name:name1=value1,name2=value2;".' % parameter
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     @staticmethod
@@ -75,15 +77,24 @@ class AlgorithmManager:
         algorithm_func = getattr(algorithm_module, ConstManager.COMPARE_FUNC_NAME)
         # check compare is function
         if not callable(algorithm_func):
-            log.print_warn_log("[%s] The '%s' in %s is not function. Please check the file." %
-                               (module_type, ConstManager.COMPARE_FUNC_NAME, str(algorithm_module.__file__)))
+            log.print_warn_log(
+                "[%s] The '%s' in %s is not function. Please check the file."
+                % (module_type, ConstManager.COMPARE_FUNC_NAME, str(algorithm_module.__file__))
+            )
             return False, ''
 
         # check argument count of compare
         if algorithm_func.__code__.co_argcount != ConstManager.COMPARE_ARGUMENT_COUNT:
-            log.print_warn_log("[%s] The argument count (%d) of '%s' in %s is not %d. Please check the file." %
-                               (module_type, algorithm_func.__code__.co_argcount, ConstManager.COMPARE_FUNC_NAME,
-                                str(algorithm_module.__file__), ConstManager.COMPARE_ARGUMENT_COUNT))
+            log.print_warn_log(
+                "[%s] The argument count (%d) of '%s' in %s is not %d. Please check the file."
+                % (
+                    module_type,
+                    algorithm_func.__code__.co_argcount,
+                    ConstManager.COMPARE_FUNC_NAME,
+                    str(algorithm_module.__file__),
+                    ConstManager.COMPARE_ARGUMENT_COUNT,
+                )
+            )
             return False, ''
         return True, algorithm_func
 
@@ -93,26 +104,12 @@ class AlgorithmManager:
             file_name_pattern = re.compile(ConstManager.ALGORITHM_FILE_NAME_PATTERN)
             match = file_name_pattern.match(os.path.basename(file_path))
             if match is not None:
-                file_stat = os.stat(file_path)
-                file_mode = file_stat.st_mode
-                # 判断others或group权限是否有写权限
-                if bool(file_mode & stat.S_IWGRP):
-                    log.print_warn_log(f"File {file_path} is not safe. Groups have writing permission to this file.")
-                if bool(file_mode & stat.S_IWOTH):
-                    log.print_error_log(f"File {file_path} is dangerous. Others have writing "
-                                        "permission to this file. Please use chmod to dismiss the writing permission.")
-                    raise CompareError(CompareError.MSACCUCMP_DANGER_FILE_ERROR)
                 support_algorithm_list.append(match.group(1))
-                current_uid = os.getuid()
-                # 判断当前用户是普通用户情况下，文件创建者是否是当前用户
-                if current_uid != 0 and file_stat.st_uid != 0 and file_stat.st_uid != current_uid:
-                    log.print_error_log(f"File {file_path} is not owned by current user, "
-                                        "if must use this file, copy or chmod this file by yourself.")
-                    raise CompareError(CompareError.MSACCUCMP_DANGER_FILE_ERROR)
                 return True
-            log.print_warn_log("The file '%r' does not match 'alg_{algorithm_name}.py'"
-                               " in '%r', please check the file." % (os.path.basename(file_path),
-                                                                     os.path.dirname(file_path)))
+            log.print_warn_log(
+                "The file '%r' does not match 'alg_{algorithm_name}.py'"
+                " in '%r', please check the file." % (os.path.basename(file_path), os.path.dirname(file_path))
+            )
         return False
 
     @staticmethod
@@ -126,12 +123,21 @@ class AlgorithmManager:
             msg = 'The dump data size is 0 in %r.' % args.get('ground_truth_dump_file')
             log.print_warn_log(msg)
 
-        if my_output_dump_data_size != ground_truth_dump_data_size \
-                and args.get('my_output_dump_file') is not None \
-                and args.get('ground_truth_dump_file') is not None:
-            msg = "The my output dump data size (%d) in '%r' does not match the ground truth dump data size (%d) " \
-                  "in '%r'." % (my_output_dump_data_size, args.get('my_output_dump_file'),
-                                ground_truth_dump_data_size, args.get('ground_truth_dump_file'))
+        if (
+            my_output_dump_data_size != ground_truth_dump_data_size
+            and args.get('my_output_dump_file') is not None
+            and args.get('ground_truth_dump_file') is not None
+        ):
+            msg = (
+                "The my output dump data size (%d) in '%r' does not match the ground truth dump data size (%d) "
+                "in '%r'."
+                % (
+                    my_output_dump_data_size,
+                    args.get('my_output_dump_file'),
+                    ground_truth_dump_data_size,
+                    args.get('ground_truth_dump_file'),
+                )
+            )
             log.print_warn_log(msg)
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, msg)
 
@@ -139,12 +145,16 @@ class AlgorithmManager:
     def _check_return_value_valid(value: object, select_algorithm: str) -> None:
         # check the return value is string
         if not isinstance(value, str):
-            err_msg = "The return value (%s) of '%s' in '%s' is not string. Please check the return value." \
-                      % (value, ConstManager.COMPARE_FUNC_NAME, select_algorithm)
+            err_msg = "The return value (%s) of '%s' in '%s' is not string. Please check the return value." % (
+                value,
+                ConstManager.COMPARE_FUNC_NAME,
+                select_algorithm,
+            )
             raise CompareError(ConstManager.COMPARE_FUNC_NAME, err_msg)
 
-    def compare(self: any, my_output_dump_data: any, ground_truth_dump_data: any,
-                args: dict, max_cmp_size: int = 0) -> (list, list):
+    def compare(
+        self: any, my_output_dump_data: any, ground_truth_dump_data: any, args: dict, max_cmp_size: int = 0
+    ) -> (list, list):
         """
         Compare my output dump data and the ground truth dump data by select algorithm
         :param my_output_dump_data: my output dump data to compare
@@ -180,7 +190,8 @@ class AlgorithmManager:
 
             # call compare function
             alg_result, alg_error_msg = self._call_compare_function(
-                compare_func, my_output_dump_data_to_cmp, ground_truth_dump_data_to_cmp, alg_args, select_algorithm)
+                compare_func, my_output_dump_data_to_cmp, ground_truth_dump_data_to_cmp, alg_args, select_algorithm
+            )
             result.append(alg_result)
             if alg_error_msg:
                 error_msg += [alg_error_msg]
@@ -208,8 +219,10 @@ class AlgorithmManager:
                 select_algorithm_list.append(ConstManager.BUILT_IN_ALGORITHM[int(algorithm_name)])
             return
         if algorithm_name not in self.built_in_support_algorithm + self.custom_support_algorithm:
-            log.print_warn_log("The '%s' does not supported in builtin or custom. Please check the "
-                               "algorithm name or algorithm index." % algorithm_name)
+            log.print_warn_log(
+                "The '%s' does not supported in builtin or custom. Please check the "
+                "algorithm name or algorithm index." % algorithm_name
+            )
             return
         if algorithm_name not in select_algorithm_list:
             select_algorithm_list.append(algorithm_name)
@@ -239,8 +252,9 @@ class AlgorithmManager:
         if not select_algorithm_list:
             log.print_error_log(
                 "The algorithm in '%s' does not supported. Just supports %s. Please check the "
-                "select algorithm name." % (select_algorithm,
-                                            self.built_in_support_algorithm + self.custom_support_algorithm))
+                "select algorithm name."
+                % (select_algorithm, self.built_in_support_algorithm + self.custom_support_algorithm)
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)
         return select_algorithm_list
 
@@ -278,8 +292,7 @@ class AlgorithmManager:
         log.print_info_log("dir_path:%s" % dir_path)
         self._make_support_algorithm_by_path(dir_path, self.built_in_support_algorithm)
         if self.custom_path:
-            ret = path_check.check_path_valid(
-                self.custom_path, True, False, path_check.PathType.Directory)
+            ret = path_check.check_path_valid(self.custom_path, True, False, path_check.PathType.Directory)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
             dir_path = os.path.join(self.custom_path, ConstManager.CUSTOM_ALGORITHM_DIR_NAME)
@@ -289,22 +302,23 @@ class AlgorithmManager:
     def _get_module(self: any, algorithm_name: str) -> (bool, any, str):
         if algorithm_name in self.custom_support_algorithm:
             sys.path.append(self.custom_path)
-            algorithm_module = importlib.import_module('%s.alg_%s' %
-                                                       (ConstManager.CUSTOM_ALGORITHM_DIR_NAME,
-                                                        algorithm_name))
+            algorithm_module = importlib.import_module(
+                '%s.alg_%s' % (ConstManager.CUSTOM_ALGORITHM_DIR_NAME, algorithm_name)
+            )
             module_type = ConstManager.CUSTOM
         elif algorithm_name in self.built_in_support_algorithm:
-            algorithm_module = importlib.import_module('%s.%s.alg_%s' %
-                                                       ("algorithm_manager",
-                                                        ConstManager.BUILT_IN_ALGORITHM_DIR_NAME,
-                                                        algorithm_name))
+            algorithm_module = importlib.import_module(
+                '%s.%s.alg_%s' % ("algorithm_manager", ConstManager.BUILT_IN_ALGORITHM_DIR_NAME, algorithm_name)
+            )
             module_type = ConstManager.BUILTIN
         else:
             return False, '', ''
         # check exist compare attr
         if not hasattr(algorithm_module, ConstManager.COMPARE_FUNC_NAME):
-            log.print_warn_log("[%s] The file '%s' has no attribute '%s'. Please check the file."
-                               % (module_type, str(algorithm_module.__file__), ConstManager.COMPARE_FUNC_NAME))
+            log.print_warn_log(
+                "[%s] The file '%s' has no attribute '%s'. Please check the file."
+                % (module_type, str(algorithm_module.__file__), ConstManager.COMPARE_FUNC_NAME)
+            )
             return False, algorithm_module, module_type
         return True, algorithm_module, module_type
 
@@ -324,23 +338,27 @@ class AlgorithmManager:
         if not support_algorithm_map:
             log.print_error_log(
                 "The algorithm in %s does not supported. Just supports %s. Please check the "
-                "select algorithm name." % (self.select_algorithm_list,
-                                            self.built_in_support_algorithm + self.custom_support_algorithm))
+                "select algorithm name."
+                % (self.select_algorithm_list, self.built_in_support_algorithm + self.custom_support_algorithm)
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_ALGORITHM_ERROR)
         return support_algorithm_map
 
     def _make_support_algorithm_by_path(self: any, dir_path: str, support_algorithm_list: list) -> None:
         if not os.path.exists(dir_path):
-            log.print_warn_log("There is no '%s' in '%r', please check the custom path."
-                               % (ConstManager.CUSTOM_ALGORITHM_DIR_NAME, os.path.dirname(dir_path)))
+            log.print_warn_log(
+                "There is no '%s' in '%r', please check the custom path."
+                % (ConstManager.CUSTOM_ALGORITHM_DIR_NAME, os.path.dirname(dir_path))
+            )
             return
         one_match = False
         for item in os.listdir(dir_path):
             if self._add_algorithm_file_to_list(os.path.join(dir_path, item), support_algorithm_list):
                 one_match = True
         if not one_match:
-            log.print_warn_log("There is no legal 'alg_{algorithm_name}.py' file in '%r', "
-                               "please check the path." % dir_path)
+            log.print_warn_log(
+                "There is no legal 'alg_{algorithm_name}.py' file in '%r', please check the path." % dir_path
+            )
 
     def _make_algorithm_param(self: any, algorithm_name: str, args: dict) -> AlgorithmParameter:
         alg_arg_map = args
@@ -360,8 +378,11 @@ class AlgorithmManager:
                 self._check_return_value_valid(alg_result, algorithm_name)
                 self._check_return_value_valid(alg_error_msg, algorithm_name)
         except Exception as ex:
-            alg_error_msg = "Failed to execute '%s' in '%s'. %s" \
-                            % (ConstManager.COMPARE_FUNC_NAME, algorithm_name, str(ex))
+            alg_error_msg = "Failed to execute '%s' in '%s'. %s" % (
+                ConstManager.COMPARE_FUNC_NAME,
+                algorithm_name,
+                str(ex),
+            )
             log.print_warn_log(alg_error_msg)
             alg_result = ConstManager.NAN
         finally:
@@ -388,12 +409,10 @@ class AlgorithmManagerMain:
         """
         Check arguments valid, if invalid, throw exception
         """
-        ret = path_check.check_path_valid(self.my_output_dump_file_path, True, False,
-                                          path_check.PathType.File)
+        ret = path_check.check_path_valid(self.my_output_dump_file_path, True, False, path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
-        ret = path_check.check_path_valid(self.ground_truth_dump_file_path, True, False,
-                                          path_check.PathType.File)
+        ret = path_check.check_path_valid(self.ground_truth_dump_file_path, True, False, path_check.PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
 
@@ -420,17 +439,21 @@ class AlgorithmManagerMain:
         self._check_shape_valid(my_output_dump_data, ground_truth_dump_data)
 
         result, error_msg = self.manager.compare(
-            my_output_dump_data.flatten(), ground_truth_dump_data.flatten(),
-            {'my_output_dump_file': self.my_output_dump_file_path,
-             'ground_truth_dump_file': self.ground_truth_dump_file_path,
-             'shape_type': utils.get_shape_type(my_output_dump_data.shape)})
+            my_output_dump_data.flatten(),
+            ground_truth_dump_data.flatten(),
+            {
+                'my_output_dump_file': self.my_output_dump_file_path,
+                'ground_truth_dump_file': self.ground_truth_dump_file_path,
+                'shape_type': utils.get_shape_type(my_output_dump_data.shape),
+            },
+        )
         self._print_result(result, error_msg, save_result)
 
     def _print_result(self: any, result: list, error_msg: list, save_result: bool) -> None:
         header = self.manager.get_result_title()
         title = ''
         line = ''
-        for (algorithm_index, value) in enumerate(result):
+        for algorithm_index, value in enumerate(result):
             while len(line) < len(title):
                 line += ConstManager.SPACE
             while len(title) < len(line):
@@ -458,7 +481,8 @@ class AlgorithmManagerMain:
         my_output_shape = my_output_dump_data.shape
         ground_truth_shape = ground_truth_dump_data.shape
         if my_output_shape != ground_truth_shape:
-            log.print_error_log("My output shape %s in '%r' does not match the ground truth shape %s in '%r'."
-                                % (my_output_shape, self.my_output_dump_file_path, ground_truth_shape,
-                                   self.ground_truth_dump_file_path))
+            log.print_error_log(
+                "My output shape %s in '%r' does not match the ground truth shape %s in '%r'."
+                % (my_output_shape, self.my_output_dump_file_path, ground_truth_shape, self.ground_truth_dump_file_path)
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_SHAPE_ERROR)

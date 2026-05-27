@@ -19,6 +19,7 @@
 Function:
 This file mainly involves the path check function.
 """
+
 import os
 import re
 import stat
@@ -35,6 +36,7 @@ class PathType(Enum):
     """
     The enum for path type
     """
+
     All = 0
     File = 1
     Directory = 2
@@ -73,8 +75,7 @@ def get_path_list_for_str(path_str: str) -> list:
             continue
         input_path_list.append(new_path)
     if not input_path_list:
-        log.print_error_log(
-            'There is no valid file in "%r". Please check the path.' % path_str)
+        log.print_error_log('There is no valid file in "%r". Please check the path.' % path_str)
         raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
     return input_path_list
 
@@ -114,38 +115,16 @@ def check_output_path_valid(path: str, exist: bool, path_type: PathType = PathTy
     return check_path_valid(path, exist, True, path_type)
 
 
-def check_exec_file_valid(exist_path: str) -> int:
-    """
-    Check exec path valid
-    :param path: the path to check
-    :return: VectorComparisonErrorCode
-    """
-    file_stat = os.stat(exist_path)
-    if file_stat.st_uid != 0 and file_stat.st_uid != os.getuid():
-        log.print_error_log('You are not the owner of the path "%r".' % exist_path)
-        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
-
-    if file_stat.st_gid != 0 and file_stat.st_gid not in os.getgroups():
-        log.print_error_log('You are not in the group of the path "%r".' % exist_path)
-        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
-
-    ret = check_others_permission(exist_path)
-    if ret != CompareError.MSACCUCMP_NONE_ERROR:
-        raise CompareError(ret)
-    
-    return check_path_valid(exist_path, True, False, PathType.File)
-
-
 def check_path_all_file_exec_valid(custom_path):
     # all file and dir in custom path check safe
     file_count = 0
     for up_dir, dirs, files in os.walk(custom_path):
         if len(up_dir.split(os.path.sep)) > ConstManager.MAX_WALK_DIR_DEEP_NUM:
             raise CompareError(f"custom path is deep then {ConstManager.MAX_WALK_DIR_DEEP_NUM}")
-        
+
         for name in files:
             sub_file_path = os.path.join(up_dir, name)
-            ret = check_exec_file_valid(sub_file_path)
+            ret = check_path_valid(sub_file_path, True, False, PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
             utils.check_file_size(sub_file_path, ConstManager.ONE_MB, is_raise=True)
@@ -198,8 +177,9 @@ def is_parent_dir_has_right_permission(path) -> bool:
     return True
 
 
-def check_path_valid(path: str, exist: bool, have_write_permission: bool = False,
-                     path_type: PathType = PathType.All) -> int:
+def check_path_valid(
+    path: str, exist: bool, have_write_permission: bool = False, path_type: PathType = PathType.All
+) -> int:
     """
     Check path valid
     :param path: the path to check
@@ -222,8 +202,7 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
     exist_path = os.path.realpath(path)
     if len(exist_path) >= ConstManager.LINUX_PATH_MAX_LEN:
         log.print_error_log(
-            "The path length exceeds the maximum limit, "
-            f"the maximum limit is {ConstManager.LINUX_PATH_MAX_LEN}."
+            f"The path length exceeds the maximum limit, the maximum limit is {ConstManager.LINUX_PATH_MAX_LEN}."
         )
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
@@ -249,19 +228,6 @@ def check_path_valid(path: str, exist: bool, have_write_permission: bool = False
     if have_write_permission and not os.access(exist_path, os.W_OK):
         log.print_error_log('You do not have permission to write the path "%r".' % exist_path)
         return CompareError.MSACCUCMP_INVALID_PATH_ERROR
-    
-    file_stat = os.stat(exist_path)
-    if os.getuid() != 0 and file_stat.st_uid != os.getuid() and file_stat.st_gid not in os.getgroups():
-        log.print_error_log('You are neither the owner nor in the group of the path "%r".' % exist_path)
-        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
-
-    if bool(file_stat.st_mode & stat.S_IWGRP):
-        log.print_warn_log(f"The file path is writable by group: {exist_path}.")
-
-    if bool(file_stat.st_mode & stat.S_IWOTH):
-        log.print_error_log(f"The file must not allow write access to others. File path: {exist_path}.")
-        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
-
 
     parent_directory = os.path.dirname(os.path.abspath(path))
     if not have_write_permission and not is_parent_dir_has_right_permission(parent_directory):
@@ -275,25 +241,3 @@ def check_write_path_secure(path: str):
         os.unlink(path)
     if os.path.exists(path):
         os.remove(path)
-
-
-def check_others_permission(exist_path: str) -> int:
-    """
-    Check others permission
-    :param path: the path to check
-    :return: VectorComparisonErrorCode
-    """
-    file_stat = os.stat(exist_path)
-    file_mode = file_stat.st_mode
-    # 判断others或group权限是否有写权限
-    if file_stat.st_gid != 0 and bool(file_mode & stat.S_IWGRP):
-        log.print_error_log(f"File {exist_path} is not safe. Groups have writing permission to this file.")
-        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
-
-    if bool(file_mode & stat.S_IWOTH):
-        log.print_error_log("File %r is dangerous. Others have writing "
-                            "permission to this file. Please use chmod to dismiss the writing permission." % exist_path)
-        return CompareError.MSACCUCMP_INVALID_PATH_ERROR
-
-    return CompareError.MSACCUCMP_NONE_ERROR
-

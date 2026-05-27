@@ -19,6 +19,7 @@
 Function:
 This class mainly involves generate npu dump data function.
 """
+
 import json
 import sys
 import os
@@ -68,7 +69,7 @@ DTYPE_MAP = {
 }
 
 
-class DynamicInput(object):
+class DynamicInput:
     def __init__(self, om_parser, input_shape):
         self.input_shape = input_shape
         self.om_parser = om_parser
@@ -114,7 +115,7 @@ class DynamicInput(object):
         atc_input_shape_dict = utils.parse_input_shape(atc_input_shape)
         quickcmp_input_shape_dict = utils.parse_input_shape(input_shape)
         batch_size_set = set()
-        for op_name in atc_input_shape_dict.keys():
+        for op_name in atc_input_shape_dict:
             DynamicInput.get_dynamic_dim_values(
                 atc_input_shape_dict.get(op_name), quickcmp_input_shape_dict.get(op_name), batch_size_set
             )
@@ -181,7 +182,7 @@ class DynamicInput(object):
             atc_input_shape_dict = utils.parse_input_shape(atc_input_shape)
             quickcmp_input_shape_dict = utils.parse_input_shape(self.dynamic_arg_value)
             dym_dims = []
-            for op_name in atc_input_shape_dict.keys():
+            for op_name in atc_input_shape_dict:
                 DynamicInput.get_dynamic_dim_values(
                     atc_input_shape_dict.get(op_name), quickcmp_input_shape_dict.get(op_name), dym_dims
                 )
@@ -233,11 +234,7 @@ class NpuDumpData(DumpData):
         load_dict["dump"]["dump_list"].extend([{"model_name": ii} for ii in sub_model_name_list])
 
         if os.access(acl_json_path, os.W_OK):
-            json_stat = os.stat(acl_json_path)
-            if json_stat.st_uid == os.getuid():
-                os.remove(acl_json_path)
-            else:
-                raise AccuracyCompareException(utils.ACCURACY_COMPARISON_PARSER_JSON_FILE_ERROR)
+            os.remove(acl_json_path)  # 有写权限就直接删，不需要额外属主校验
             try:
                 with ms_open(acl_json_path, "w") as write_json:
                     try:
@@ -249,8 +246,9 @@ class NpuDumpData(DumpData):
                 logger.error('Failed to open"' + acl_json_path + '", ' + str(acl_json_file_except))
                 raise AccuracyCompareException(utils.ACCURACY_COMPARISON_OPEN_FILE_ERROR) from acl_json_file_except
         else:
-            logger.error(f"The path {acl_json_path} does not have permission to write. "
-                         f"Please check the path permission")
+            logger.error(
+                f"The path {acl_json_path} does not have permission to write. Please check the path permission"
+            )
             raise AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PATH_ERROR)
 
     def generate_inputs_data(self, npu_dump_data_path=None, use_aipp=False):
@@ -299,14 +297,13 @@ class NpuDumpData(DumpData):
             when invalid npu dump data path throw exception
         """
         try:
-            import ais_bench
+            import ais_bench  # noqa: F401
         except ModuleNotFoundError as err:
             raise err
 
         self._compare_shape_vs_file()
         npu_data_output_dir = os.path.join(
-            self.output_path,
-            NPU_DUMP_DATA_GOLDEN_PATH if self.is_golden else NPU_DUMP_DATA_BASE_PATH
+            self.output_path, NPU_DUMP_DATA_GOLDEN_PATH if self.is_golden else NPU_DUMP_DATA_BASE_PATH
         )
         create_directory(npu_data_output_dir)
         model_name, extension = utils.get_model_name_and_extension(self.target_path)
@@ -396,9 +393,11 @@ class NpuDumpData(DumpData):
             if self.input_shape:
                 _, user_name_list = parse_input_shape_to_list(self.input_shape)
                 if not self._check_input_match(model_name_list, user_name_list):
-                    logger.warning(f"The input order of the om model does not match the order specified by the user. "
-                                   f"The input data will be generated using the model's input order, "
-                                   f"which is {model_name_list}.")
+                    logger.warning(
+                        f"The input order of the om model does not match the order specified by the user. "
+                        f"The input data will be generated using the model's input order, "
+                        f"which is {model_name_list}."
+                    )
             inputs_list = model_inputs_list
 
         for i, (input_shape, data_type) in enumerate(zip(inputs_list, model_data_type_list)):
@@ -467,7 +466,8 @@ class NpuDumpData(DumpData):
             if len(output_size_list) != count:
                 logger.error(
                     f"The output size ({len(output_size_list)}) is not equal {count} in model."
-                    f" Please check the '--output-size' argument.")
+                    f" Please check the '--output-size' argument."
+                )
                 raise AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PARAM_ERROR)
             for item in output_size_list:
                 item = item.strip()
@@ -476,8 +476,9 @@ class NpuDumpData(DumpData):
                     logger.error(f"The size ({self.output_size}) is invalid. Please check the output size.")
                     raise AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PARAM_ERROR)
                 if int(item) <= 0:
-                    logger.error(f"The size ({self.output_size}) must be large than zero. "
-                                 f"Please check the output size.")
+                    logger.error(
+                        f"The size ({self.output_size}) must be large than zero. Please check the output size."
+                    )
                     raise AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PARAM_ERROR)
             benchmark_cmd.append(OUTPUT_SIZE)
             benchmark_cmd.append(self.output_size)
@@ -494,11 +495,11 @@ class NpuDumpData(DumpData):
                 if Rule.input_file().check(each_file_path, will_raise=True):
                     original_net_output_data = np.fromfile(each_file_path, data_type, data_len)
                 try:
-                    net_output_data = original_net_output_data.reshape(shape)
+                    net_output_data = original_net_output_data.reshape(shape)  # pylint: disable=possibly-used-before-assignment
                 except ValueError:
                     logger.warning(f"The shape of net_output data from file {each_file} is {shape}.")
                     net_output_data = original_net_output_data
-                    
+
                 each_file_index = each_file.split('_')[-1]
                 new_each_file = "output_" + each_file_index
                 file_name = os.path.basename(new_each_file).split('.')[0]

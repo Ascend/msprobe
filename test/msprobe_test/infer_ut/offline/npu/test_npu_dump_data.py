@@ -438,17 +438,6 @@ class TestNpuDumpData(unittest.TestCase):
             cm.exception.error_info, utils.ACCURACY_COMPARISON_INVALID_PATH_ERROR
         )
 
-    @patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.os.access", return_value=True)
-    @patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.os.stat")
-    def test_write_content_to_acl_json_wrong_owner(self, mock_stat, mock_access):
-        mock_stat.return_value.st_uid = 2000
-        with patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.os.getuid", return_value=1000):
-            with self.assertRaises(AccuracyCompareException) as cm:
-                NpuDumpData._write_content_to_acl_json("acl.json", "model", "/dump_dir", [])
-        self.assertEqual(
-            cm.exception.error_info, utils.ACCURACY_COMPARISON_PARSER_JSON_FILE_ERROR
-        )
-
     @patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.ms_open")
     @patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.os.remove")
     @patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.os.stat")
@@ -676,3 +665,7 @@ class TestNpuDumpData(unittest.TestCase):
             inst._generate_inputs_data_for_aipp(tmpdir)
 
         mock_chmod.assert_called_once()
+
+
+if __name__ == '__main__':
+    unittest.main()
