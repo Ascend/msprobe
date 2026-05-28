@@ -55,19 +55,6 @@ class TestPathChecker(unittest.TestCase):
     def test_not_softlink(self):
         self.assertRegex(str(self.pc.is_softlink().check(self.fp.name)), "Not a soft link")
 
-    def test_is_uid_matched(self):
-        self.assertEqual(str(self.pc.is_uid_matched(os.getuid()).check(self.fp.name)), "pass")
-
-    def test_is_owner(self):
-        self.assertEqual(str(self.pc.is_owner(os.getuid()).check(self.fp.name)), "pass")
-
-    @unittest.skipIf(os.getuid() == 0, "root can be skipped")
-    def test_uid_not_matched(self):
-        self.assertRegex(str(self.pc.is_uid_matched(0).check(self.fp.name)), "User ID not matched")
-
-    def test_is_gid_matched(self):
-        self.assertEqual(str(self.pc.is_gid_matched(os.getgid()).check(self.fp.name)), "pass")
-
     @unittest.skipIf(os.getuid() == 0, "any file is readable to root")
     def test_is_readable(self):
         with tempfile.NamedTemporaryFile() as fp:
@@ -85,30 +72,6 @@ class TestPathChecker(unittest.TestCase):
         with tempfile.NamedTemporaryFile() as fp:
             os.chmod(fp.name, 0o500)
             self.assertEqual(str(self.pc.is_executable().check(fp.name)), "pass")
-
-    def test_readable_to_others(self):
-        with tempfile.NamedTemporaryFile() as fp:
-            os.chmod(fp.name, 0o777)
-            self.assertIn("is readable to others", str(self.pc.is_not_readable_to_others().check(fp.name)))
-
-    def test_not_readable_to_others(self):
-        self.assertEqual(str(self.pc.is_not_readable_to_others().check(self.fp.name)), "pass")
-
-    def test_writable_to_others(self):
-        with tempfile.NamedTemporaryFile() as fp:
-            os.chmod(fp.name, 0o777)
-            self.assertIn("is writable to others", str(self.pc.is_not_writable_to_others().check(fp.name)))
-
-    def test_not_writable_to_others(self):
-        self.assertEqual(str(self.pc.is_not_writable_to_others().check(self.fp.name)), "pass")
-
-    def test_executable_to_others(self):
-        with tempfile.NamedTemporaryFile() as fp:
-            os.chmod(fp.name, 0o777)
-            self.assertIn("is executable to others", str(self.pc.is_not_executable_to_others().check(fp.name)))
-
-    def test_not_executable_to_others(self):
-        self.assertEqual(str(self.pc.is_not_executable_to_others().check(self.fp.name)), "pass")
 
     def test_higher_perm(self):
         self.assertEqual(str(self.pc.max_perm(0o777).check(self.fp.name)), "pass")
@@ -150,18 +113,18 @@ class TestPathChecker(unittest.TestCase):
         self.assertRegex(str(cm.exception), "No such file or directory")
 
     @unittest.skipIf(os.getuid() == 0, "root can be skipped")
-    def test_is_safe_parent_dir_when_other_has_w_then_failed(self):
+    def test_is_safe_parent_dir_when_other_has_w_then_pass(self):
         with tempfile.TemporaryDirectory() as dp:
             os.chmod(dp, 0o702)
             fp = os.path.join(dp, "test_file")
-            self.assertFalse(bool(path_checker.PathChecker().is_safe_parent_dir().check(fp)))
+            self.assertTrue(bool(path_checker.PathChecker().is_safe_parent_dir().check(fp)))
 
     @unittest.skipIf(os.getuid() == 0, "root can be skipped")
-    def test_is_safe_parent_dir_when_group_has_w_then_failed(self):
+    def test_is_safe_parent_dir_when_group_has_w_then_pass(self):
         with tempfile.TemporaryDirectory() as dp:
             os.chmod(dp, 0o720)
             fp = os.path.join(dp, "test_file")
-            self.assertFalse(bool(path_checker.PathChecker().is_safe_parent_dir().check(fp)))
+            self.assertTrue(bool(path_checker.PathChecker().is_safe_parent_dir().check(fp)))
 
     @unittest.skipIf(os.getuid() == 0, "root can be skipped")
     def test_is_safe_parent_dir_when_all_good_then_pass(self):

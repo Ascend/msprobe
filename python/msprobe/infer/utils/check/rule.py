@@ -30,9 +30,9 @@ class NumConverter:
 
     def convert(self, value: str):
         try:
-            if self.convert_type == int:
+            if self.convert_type == int:  # noqa: E721
                 return int(value), True, ""
-            elif self.convert_type == float:
+            elif self.convert_type == float:  # noqa: E721
                 return float(value), True, ""
             else:
                 return value, True, ""
@@ -71,27 +71,20 @@ class Rule:
 
     @staticmethod
     def config_file() -> PathChecker:
+        # pylint: disable=no-member
         return (
-            PathChecker()
-            .exists()
-            .is_file()
-            .is_readable()
-            .is_not_writable_to_others()
-            .is_safe_parent_dir()
-            .max_size(10 * 1000 * 1000)
-            .as_default()
+            PathChecker().exists().is_file().is_readable().is_safe_parent_dir().max_size(10 * 1000 * 1000).as_default()
         )
 
     @staticmethod
     def input_file() -> PathChecker:
+        # pylint: disable=no-member
         return (
             PathChecker()
             .exists()
             .forbidden_softlink()
             .is_file()
             .is_readable()
-            .is_owner()
-            .is_not_writable_to_others()
             .is_safe_parent_dir()
             .max_size(INPUT_FILE_MAX_SIZE)
             .as_default()
@@ -99,15 +92,13 @@ class Rule:
 
     @staticmethod
     def input_dir() -> PathChecker:
-        return PathChecker().exists().is_dir().is_readable().is_uid_matched().is_not_writable_to_others().as_default()
+        # pylint: disable=no-member
+        return PathChecker().exists().is_dir().is_readable().as_default()
 
     @staticmethod
     def output_dir() -> PathChecker:
-        return (
-            Rule.path()
-            .any(Rule.anti(PathChecker().exists()), PathChecker().is_dir().is_writeable().is_not_writable_to_others())
-            .as_default()
-        )
+        # pylint: disable=no-member
+        return Rule.path().any(Rule.anti(PathChecker().exists()), PathChecker().is_dir().is_writeable()).as_default()
 
     @staticmethod
     def any(*rules: Checker) -> Checker:

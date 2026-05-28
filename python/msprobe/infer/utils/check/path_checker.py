@@ -32,7 +32,7 @@ class FileType(Enum):
     SOCKET = auto()
 
 
-class FileStatus(object):
+class FileStatus:
     def __init__(self, file_name: str) -> None:
         file_status = os.lstat(file_name)
         self._file_name = file_name
@@ -141,36 +141,6 @@ class PathChecker(Checker):
             return True, "Soft link check passed."
 
     @rule()
-    def is_uid_matched(self, *uids: int) -> Union["PathChecker", CheckResult]:
-        if not self.f_state:
-            return False, self.status_err_msg
-        else:
-            return (
-                self.f_status.uid in uids,
-                f"User ID not matched: {self.instance}[{self.f_status.uid} ∉ {str(uids)}]. ",
-            )
-
-    @rule()
-    def is_owner(self, *uids: int) -> Union["PathChecker", CheckResult]:
-        if not self.f_state:
-            return False, self.status_err_msg
-        else:
-            return (
-                os.getuid() == 0 or self.f_status.uid == os.getuid(),
-                f"User ID not matched: {self.instance}[{self.f_status.uid} ∉ {str(uids)}]. ",
-            )
-
-    @rule()
-    def is_gid_matched(self, *gids: int) -> Union["PathChecker", CheckResult]:
-        if not self.f_state:
-            return False, self.status_err_msg
-        else:
-            return (
-                self.f_status.gid in gids,
-                f"Group ID not matched: {self.instance}[{self.f_status.gid} ∉ {str(gids)}]. ",
-            )
-
-    @rule()
     def is_readable(self) -> Union["PathChecker", CheckResult]:
         return os.access(self.instance, os.R_OK), self.instance + " is not readable"
 
@@ -181,26 +151,6 @@ class PathChecker(Checker):
     @rule()
     def is_executable(self) -> Union["PathChecker", CheckResult]:
         return os.access(self.instance, os.X_OK), self.instance + " is not executable"
-
-    @rule()
-    def is_not_readable_to_others(self) -> Union["PathChecker", CheckResult]:
-        ins = self.instance + " is readable to others"
-        return CheckResult(not bool(self.f_status.status_mode & os.st.S_IROTH), ins)
-
-    @rule()
-    def is_not_writable_to_group(self) -> Union["PathChecker", CheckResult]:
-        ins = self.instance + " is writable to groups"
-        return CheckResult(not bool(self.f_status.status_mode & os.st.S_IWGRP), ins)
-
-    @rule()
-    def is_not_writable_to_others(self) -> Union["PathChecker", CheckResult]:
-        ins = self.instance + " is writable to others"
-        return CheckResult(not bool(self.f_status.status_mode & os.st.S_IWOTH), ins)
-
-    @rule()
-    def is_not_executable_to_others(self) -> Union["PathChecker", CheckResult]:
-        ins = self.instance + " is executable to others"
-        return CheckResult(not bool(self.f_status.status_mode & os.st.S_IXOTH), ins)
 
     @rule()
     def max_perm(self, perm_bits: int) -> Union["PathChecker", CheckResult]:
@@ -216,9 +166,7 @@ class PathChecker(Checker):
 
             if (self.f_status.perm_bits & mask) and not (perm_bits & mask):
                 err_msg = (
-                    f"{part_mapping[count // 3]} "
-                    f"should not have {perm_mapping[count % 3]} "
-                    f"permissions: {self.instance}"
+                    f"{part_mapping[count // 3]} should not have {perm_mapping[count % 3]} permissions: {self.instance}"
                 )
 
                 return CheckResult(False, err_msg)
@@ -232,7 +180,7 @@ class PathChecker(Checker):
 
     @rule("Wrong file suffix")
     def check_extensions(self, extensions) -> Union["PathChecker", CheckResult]:
-        return self.f_status.extension == extensions or self.f_status.extension == '.' + extensions
+        return self.f_status.extension in (extensions, '.' + extensions)
 
     @rule()
     def is_safe_parent_dir(self) -> Union["PathChecker", CheckResult]:
@@ -243,7 +191,6 @@ class PathChecker(Checker):
 
         dir_checker = PathChecker().any(
             PathChecker().anti(PathChecker().exists()),
-            PathChecker().is_dir().is_owner(os.getuid()).is_not_writable_to_others().is_not_writable_to_group(),
+            PathChecker().is_dir(),
         )
         return dir_checker.check(dirpath)
-
