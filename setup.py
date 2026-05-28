@@ -129,6 +129,7 @@ if "--plat-name" in sys.argv or "--python-tag" in sys.argv:
 if platform.system() != "Linux":
     raise SystemError("MindStudio-Probe is only supported on Linux platforms.")
 
+
 # 扩展模块范围，包括adump和tb_graph_ascend
 mod_list_range = {"adump", "tb_graph_ascend", "trend_analyzer", "atb_probe", "aclgraph_dump", "nan_check"}
 mod_list = []
@@ -202,6 +203,10 @@ else:
         raise RuntimeError("警告: 前端构建产物清理不完整")
     with_tb_graph_ascend = False
 
+python_nan_check_vendor_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "python", "msprobe", "vendors")
+if "nan_check" not in mod_list and os.path.isdir(python_nan_check_vendor_dir):
+    shutil.rmtree(python_nan_check_vendor_dir)
+
 # 添加scripts脚本
 current_dir = os.path.dirname(os.path.realpath(__file__))
 src_path = os.path.join(current_dir, 'scripts')
@@ -243,6 +248,9 @@ if tensorboard_plugins:
 # 构建package_dir和package_data
 package_dir_config = {"": "python"}
 package_data_config = {}
+
+if "nan_check" in mod_list:
+    package_data_config["msprobe"] = ["vendors/**/*"]
 
 if with_tb_graph_ascend:
     package_dir_config.update({'hierarchy_plugin': 'plugins/tb_graph_ascend/hierarchy_plugin'})

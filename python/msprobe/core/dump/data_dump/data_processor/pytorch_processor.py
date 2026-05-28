@@ -15,6 +15,7 @@
 # -------------------------------------------------------------------------
 
 import ctypes
+import importlib
 import os
 import re
 import zlib
@@ -1031,7 +1032,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
         if is_gpu:
             return False
         try:
-            from msprobe.pytorch import nan_check
+            importlib.import_module("msprobe.pytorch.nan_check")
             return True
         except Exception:
             return False
@@ -1039,6 +1040,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
     def __init__(self, config, data_writer):
         super().__init__(config, data_writer)
         self._nan_overflow_runtime_warned = False
+        self._nan_collect_runtime_warned = False
         self._nan_buffer_full_warned = False
         if not self._nan_overflow_ops_available():
             raise MsprobeException(
@@ -1053,7 +1055,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
 
     def prepare_nan_buffer(self):
         self._ensure_nan_buffer()
-    
+
     def _ensure_nan_buffer(self):
         if self._nan_buffer is not None:
             return
@@ -1062,9 +1064,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
         )
 
     @staticmethod
-    @recursion_depth_decorator(
-        "NanCheck: NanCheckDataProcessor._collect_tensors", max_depth=Const.DUMP_MAX_DEPTH
-    )
+    @recursion_depth_decorator("NanCheck: NanCheckDataProcessor._collect_tensors", max_depth=Const.DUMP_MAX_DEPTH)
     def _collect_tensors(element, tensor_list):
         if isinstance(element, torch.Tensor):
             tensor_list.append(element)
@@ -1080,7 +1080,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
     def _should_collect_nan_tensors(self):
         if not getattr(self.config, "tensor_list", None):
             return False
-        api_name = getattr(self, "current_api_or_module_name", "")
+        api_name = str(getattr(self, "current_api_or_module_name", "") or "")
         return any(item in api_name for item in self.config.tensor_list)
 
     def _build_nan_tensor_list(self, module_input_output):
@@ -1106,9 +1106,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
             torch.ops.my_ns.npu_nan_test(slot, tensor_list)
         except Exception as e:
             if not self._nan_collect_runtime_warned:
-                logger.warning(
-                    f"Nan check overflow tensor collection failed ({e}); tensor collection will be skipped."
-                )
+                logger.warning(f"Nan check overflow tensor collection failed ({e}); tensor collection will be skipped.")
                 self._nan_collect_runtime_warned = True
             else:
                 logger.debug(f"Nan check overflow tensor collection failed ({e}).")
@@ -1128,7 +1126,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
         slot = self._nan_buffer[idx]
         out_ptr = torch.tensor([slot.data_ptr()], dtype=torch.uint64, device=slot.device)
         try:
-            overflow_result = torch.ops.my_ns.npu_over_flow(out_ptr)
+            torch.ops.my_ns.npu_over_flow(out_ptr)
             self._nan_buffer_offset += 1
             if module_input_output is not None:
                 self._maybe_collect_overflow_tensors(slot, module_input_output)

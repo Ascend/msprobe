@@ -20,6 +20,7 @@ ADUMP_MOD="'adump'"
 ATB_PROBE_MOD="'atb_probe'"
 ACLGRAPH_DUMP_MOD="'aclgraph_dump'"
 NAN_CHECK_MOD="'nan_check'"
+PYTHON_NAN_CHECK_VENDOR_DIR="${BUILD_PATH}/python/msprobe/vendors"
 
 HELP_DOC=$(cat << EOF
 Usage: build.sh [OPTION]...\n
@@ -135,6 +136,7 @@ if [[ "${INCLUDE_MOD}" == *"${ACLGRAPH_DUMP_MOD}"* ]]; then
 fi
 
 if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
+    cd ${BUILD_PATH}
     bash ${BUILD_PATH}/ccsrc/nan_check/build_nan_test.sh
     export MSPROBE_INCLUDE_MOD="nan_check"
     cd ${BUILD_PATH}
@@ -169,4 +171,14 @@ fi
 
 if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
     cp -f ${BUILD_OUTPUT_PATH}/ccsrc/nan_check/nan_check_ext.so ${BUILD_PATH}/python/msprobe/lib/nan_check_ext.so
+    rm -rf "${PYTHON_NAN_CHECK_VENDOR_DIR}"
+    if [[ -d "${BUILD_PATH}/vendors" ]]; then
+        cp -a "${BUILD_PATH}/vendors" "${PYTHON_NAN_CHECK_VENDOR_DIR}"
+    fi
+    if [[ ! -f "${PYTHON_NAN_CHECK_VENDOR_DIR}/customize/op_api/lib/libcust_opapi.so" ]]; then
+        echo "Failed to prepare nan_check runtime assets under ${PYTHON_NAN_CHECK_VENDOR_DIR}." >&2
+        exit 1
+    fi
+elif [[ -d "${PYTHON_NAN_CHECK_VENDOR_DIR}" ]]; then
+    rm -rf "${PYTHON_NAN_CHECK_VENDOR_DIR}"
 fi

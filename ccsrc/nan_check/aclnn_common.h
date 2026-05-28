@@ -22,11 +22,13 @@
 #include <acl/acl_base.h>
 #include <acl/acl_rt.h>
 #include <c10/util/Exception.h>
-#include <cstring>
 #include <dlfcn.h>
 #include <torch_npu/csrc/framework/utils/OpAdapter.h>
 
+#include <cstdlib>
+#include <cstring>
 #include <functional>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -124,14 +126,49 @@ inline void *GetOpApiFuncAddrInLib(void *handler, const char *libName, const cha
 
 inline void *TryGetCustOpApiLibHandler(void)
 {
+    void *handler = nullptr;
 #ifdef MSPROBE_CUST_OPAPI_PATH
-    auto handler = dlopen(MSPROBE_CUST_OPAPI_PATH, RTLD_LAZY);
+    handler = dlopen(MSPROBE_CUST_OPAPI_PATH, RTLD_LAZY);
     if (handler != nullptr)
     {
         return handler;
     }
     ASCEND_LOGW("dlopen %s failed, error:%s.", MSPROBE_CUST_OPAPI_PATH, dlerror());
 #endif
+    const char *customOppPath = std::getenv("ASCEND_CUSTOM_OPP_PATH");
+    if (customOppPath != nullptr && customOppPath[0] != '\0')
+    {
+        std::string searchPaths(customOppPath);
+        size_t start = 0;
+        while (start <= searchPaths.size())
+        {
+            size_t end = searchPaths.find(':', start);
+            std::string basePath =
+                searchPaths.substr(start, end == std::string::npos ? std::string::npos : end - start);
+            if (!basePath.empty())
+            {
+                std::string candidatePath = basePath + "/op_api/lib/" + GetCustOpApiLibName();
+                handler = dlopen(candidatePath.c_str(), RTLD_LAZY);
+                if (handler != nullptr)
+                {
+                    return handler;
+                }
+
+                candidatePath = basePath + "/" + GetCustOpApiLibName();
+                handler = dlopen(candidatePath.c_str(), RTLD_LAZY);
+                if (handler != nullptr)
+                {
+                    return handler;
+                }
+            }
+
+            if (end == std::string::npos)
+            {
+                break;
+            }
+            start = end + 1;
+        }
+    }
     return dlopen(GetCustOpApiLibName(), RTLD_LAZY);
 }
 

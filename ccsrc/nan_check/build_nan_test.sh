@@ -44,9 +44,26 @@ detect_soc_version() {
     local smi_out
     smi_out=$(npu-smi info 2>/dev/null || true)
 
-    if echo "${smi_out}" | grep -Eq '910[_-]?93|910[Cc]'; then
+    if echo "${smi_out}" | grep -Eq '910[_-]?93|910[Cc]|Ascend910([^[:alnum:]_]|$)'; then
         echo "Ascend910_93"
         return 0
+    fi
+
+    if echo "${smi_out}" | grep -Eq 'Ascend950|[^[:digit:]]950([^[:digit:]]|$)'; then
+        local board_out
+        board_out=$(npu-smi info -t board -i 0 2>/dev/null || true)
+
+        local chip_name
+        chip_name=$(echo "${board_out}" | grep -iE '^[[:space:]]*Chip Name[[:space:]]*:' \
+            | sed -E 's/^[^:]*:[[:space:]]*//' | head -n 1 || true)
+        local npu_name
+        npu_name=$(echo "${board_out}" | grep -iE '^[[:space:]]*NPU Name[[:space:]]*:' \
+            | sed -E 's/^[^:]*:[[:space:]]*//' | head -n 1 || true)
+
+        if [[ -n "${chip_name}" && -n "${npu_name}" ]]; then
+            echo "${chip_name}_${npu_name}"
+            return 0
+        fi
     fi
 
     local tag
