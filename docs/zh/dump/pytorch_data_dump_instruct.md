@@ -826,27 +826,11 @@ csv结果文件内容介绍如下：
 | 字段 | 说明 |
 | --- | --- |
 | 模块路径 | API所属的Python模块路径，支持多级子模块，例如`torch.nn.functional`、`module_a.submodule`。必须是有效的Python模块路径（由字母、数字、下划线和点号组成，首字符为字母或下划线）。默认为[dump.json](#dumpjson文件说明)中API名的前缀 |
-| API名称 | 模块中需要注册的API属性名，例如`relu`、`compute`。必须是有效的Python标识符（由字母、数字和下划线组成，首字符为字母或下划线），长度不超过255字符。 |
+| API名称 | 模块中需要注册的API属性名，例如`relu`、`compute`。必须是有效的Python标识符（由字母、数字和下划线组成，首字符为字母或下划线）。 |
 
 **配置示例**
 
 ```yaml
-# 注册 torch.nn.functional 模块下的 relu 和 gelu
-torch.nn.functional:
-  - relu
-  - gelu
-
-# 注册自定义模块的多个API
-module_a:
-  - compute
-  - forward
-  - backward
-
-# 注册多级子模块的API
-transformers.models.bert.modeling_bert:
-  - BertLayer
-  - BertAttention
-
 # 注册主函数中的API
 __main__:
   - add_and_mul
