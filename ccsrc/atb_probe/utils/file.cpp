@@ -139,11 +139,6 @@ bool IsFileReadable(const std::string& path) { return access(path.c_str(), R_OK)
 
 bool IsFileWritable(const std::string& path) { return access(path.c_str(), W_OK) == 0; }
 
-bool IsOtherWritable(const std::string& path)
-{
-    return ((GetPathPermissions(path) & MsConst::READ_FILE_NOT_PERMITTED) > 0);
-}
-
 bool IsPathExist(const std::string& path)
 {
     struct stat buffer;
@@ -293,6 +288,18 @@ bool CheckFileSuffixAndSize(const std::string& path, SUFFIX type, const size_t m
     return true;
 }
 
+bool IsSoftLink(const std::string& path)
+{
+    std::string absPath = GetAbsPath(path);
+    struct stat fileStat;
+    if (lstat(absPath.c_str(), &fileStat) != 0)
+    {
+        AIT_LOG_ERROR("the file lstat failed");
+        return false;
+    }
+    return S_ISLNK(fileStat.st_mode);
+}
+
 /****************** 文件操作函数库，会对入参做基本检查 ************************/
 
 static bool CreateDirAux(const std::string& path, bool recursion, mode_t mode)
@@ -371,23 +378,6 @@ bool CreateDir(const std::string& path, bool recursion, mode_t mode)
 }
 
 /****************************** 通用检查函数 ********************************/
-bool CheckOwner(const std::string& path)
-{
-    std::string absPath = GetAbsPath(path);
-    struct stat buf;
-    if (stat(absPath.c_str(), &buf))
-    {
-        AIT_LOG_ERROR("get file stat failed");
-        return false;
-    }
-    if (buf.st_uid != getuid())
-    {
-        AIT_LOG_ERROR("file owner is not process usr");
-        return false;
-    }
-    return true;
-}
-
 bool CheckDir(const std::string& path)
 {
     std::string absPath = GetAbsPath(path);
@@ -416,18 +406,14 @@ bool CheckDir(const std::string& path)
         AIT_LOG_ERROR("path is not exist");
         return false;
     }
-    if (!CheckOwner(absPath))
+    if (IsSoftLink(absPath))
     {
+        AIT_LOG_ERROR("path is soft link");
         return false;
     }
     if (!IsDir(absPath))
     {
         AIT_LOG_ERROR("path is not a dir");
-        return false;
-    }
-    if (IsOtherWritable(absPath))
-    {
-        AIT_LOG_ERROR("dir permission should not be over 0o755(rwxr-xr-x)");
         return false;
     }
     return true;
@@ -461,13 +447,9 @@ bool CheckFileBeforeRead(const std::string& path, SUFFIX type, const size_t maxS
         AIT_LOG_ERROR("path is not regular file");
         return false;
     }
-    if (!CheckOwner(absPath))
+    if (IsSoftLink(absPath))
     {
-        return false;
-    }
-    if (IsOtherWritable(absPath))
-    {
-        AIT_LOG_ERROR("file permission should not be over 0o755(rwxr-xr-x)");
+        AIT_LOG_ERROR("path is a soft link");
         return false;
     }
     if (!IsFileReadable(absPath) || (GetPathPermissions(absPath) & S_IRUSR) == 0)
@@ -519,15 +501,20 @@ bool CheckFileBeforeCreateOrWrite(const std::string& path, bool overwrite)
             AIT_LOG_ERROR("path is not regular file");
             return false;
         }
+        if (IsSoftLink(absPath))
+        {
+            AIT_LOG_ERROR("path is soft link");
+            return false;
+        }
         if ((GetPathPermissions(absPath) & MsConst::WRITE_FILE_NOT_PERMITTED) > 0)
         {
             AIT_LOG_ERROR("path permission should not be over 0o750(rwxr-x---)");
             return false;
         }
-        /* 默认不允许覆盖其他用户创建的文件，若有特殊需求（如多用户通信管道等）由业务自行校验 */
-        if (!IsFileWritable(absPath) || !CheckOwner(absPath))
+        /* 默认仅允许覆盖当前进程有写权限的文件 */
+        if (!IsFileWritable(absPath))
         {
-            AIT_LOG_ERROR("path already create by other owner");
+            AIT_LOG_ERROR("path is not writable");
             return false;
         }
     }
@@ -537,12 +524,12 @@ bool CheckFileBeforeCreateOrWrite(const std::string& path, bool overwrite)
 bool CheckConfigFile(const std::string& absPath, const size_t maxSize)
 {
     struct stat fileStat;
-    if (stat(absPath.c_str(), &fileStat) != 0)
+    if (lstat(absPath.c_str(), &fileStat) != 0)
     {
         return false;
     }
 
-    if (!S_ISREG(fileStat.st_mode))
+    if (!S_ISREG(fileStat.st_mode) || S_ISLNK(fileStat.st_mode))
     {
         AIT_LOG_DEBUG("path is not regular file");
         return false;
