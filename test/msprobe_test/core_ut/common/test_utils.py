@@ -22,9 +22,9 @@ import tempfile
 import unittest
 from unittest import TestCase
 from unittest.mock import MagicMock, mock_open, patch
-
 import numpy as np
 from pathlib import Path
+import torch
 
 from msprobe.core.common.const import Const
 from msprobe.core.common.file_utils import (
@@ -56,8 +56,13 @@ from msprobe.core.common.utils import (CompareException,
                                        detect_framework_by_dump_json,
                                        is_save_variable_valid,
                                        get_file_type,
-                                       check_dump_json_key)
+                                       check_dump_json_key,
+                                       is_torchrec_available,
+                                       is_jagged_tensor,
+                                       is_keyed_jagged_tensor,
+                                       is_keyed_tensor)
 from msprobe.core.common.decorator import recursion_depth_decorator
+from torchrec.sparse.jagged_tensor import JaggedTensor, KeyedJaggedTensor, KeyedTensor
 
 
 class TestUtils(TestCase):
@@ -201,7 +206,8 @@ class TestUtils(TestCase):
         with self.assertRaises(CompareException) as context:
             set_dump_path(input_param)
         self.assertEqual(context.exception.code, CompareException.INVALID_PATH_ERROR)
-        mock_error.assert_called_with("Please check the json path is valid and ensure that neither npu_path nor bench_path is None.")
+        mock_error.assert_called_with(
+            "Please check the json path is valid and ensure that neither npu_path nor bench_path is None.")
 
     @patch.object(logger, "error")
     def test_get_dump_mode(self, mock_error):
@@ -283,7 +289,6 @@ class TestUtils(TestCase):
         self.assertEqual(get_file_content_bytes('test.txt'), b"Hello, World!")
         os.remove('test.txt')
 
-
     def test_get_real_step_or_rank(self):
         with self.assertRaises(MsprobeException) as context:
             get_real_step_or_rank([], "invalid_obj")
@@ -364,11 +369,13 @@ class TestUtils(TestCase):
             temp_list = temp_list[0]
         temp_list.append(0)
         call_record = []
+
         @recursion_depth_decorator("test func_info")
         def recursion_func(test_list, call_record):
             call_record.append(1)
             if isinstance(test_list, list):
                 recursion_func(test_list[0], call_record)
+
         with self.assertRaises(MsprobeException) as context:
             recursion_func(recursion_list, call_record)
         # 执行超过限制的递归函数会触发异常、且函数成功调用次数等于限制次数
@@ -584,3 +591,62 @@ class TestCheckDumpJsonKey(unittest.TestCase):
             "Invalid type for 'data': expected a dict. Please check dump.json of npu."
         )
 
+
+class TestTorchrecUtils(unittest.TestCase):
+    """Tests for torchrec related utility functions."""
+
+    def test_is_torchrec_available(self):
+        result = is_torchrec_available()
+        self.assertIsInstance(result, bool)
+
+    def test_is_jagged_tensor_with_non_tensor_data(self):
+        non_tensor_data = {"key": "value"}
+        result = is_jagged_tensor(non_tensor_data)
+        self.assertFalse(result)
+
+    def test_is_keyed_jagged_tensor_with_non_tensor_data(self):
+        non_tensor_data = [1, 2, 3]
+        result = is_keyed_jagged_tensor(non_tensor_data)
+        self.assertFalse(result)
+
+    def test_is_keyed_tensor_with_non_tensor_data(self):
+        non_tensor_data = "string_data"
+        result = is_keyed_tensor(non_tensor_data)
+        self.assertFalse(result)
+
+    def test_is_jagged_tensor_with_valid_jagged_tensor(self):
+        values = torch.tensor([1, 2, 3, 4, 5])
+        lengths = torch.tensor([2, 3])
+        jt = JaggedTensor(values=values, lengths=lengths)
+        result = is_jagged_tensor(jt)
+        self.assertTrue(result)
+
+    def test_is_keyed_jagged_tensor_with_valid_keyed_jagged_tensor(self):
+        kjt = KeyedJaggedTensor(
+            keys=["featA", "featB"],
+            values=torch.tensor([1, 2, 3, 4, 5]),
+            lengths=torch.tensor([2, 3]),
+            stride=1
+        )
+        result = is_keyed_jagged_tensor(kjt)
+        self.assertTrue(result)
+
+    def test_is_keyed_tensor_with_valid_keyed_tensor(self):
+        user_dim = 2
+        item_dim = 5
+        combined_tensor = torch.randn([3, user_dim + item_dim])
+        kt = KeyedTensor(
+            keys=["user", "item"],
+            values=combined_tensor,
+            length_per_key=[user_dim, item_dim]
+        )
+        result = is_keyed_tensor(kt)
+        self.assertTrue(result)
+
+    @patch("msprobe.core.common.utils._has_torchrec", False)
+    def test_is_jagged_tensor_when_torchrec_unavailable(self):
+        values = torch.tensor([1, 2, 3, 4, 5])
+        lengths = torch.tensor([3, 2])
+        jt = JaggedTensor(values=values, lengths=lengths)
+        result = is_jagged_tensor(jt)
+        self.assertFalse(result)

@@ -35,6 +35,16 @@ if not hasattr(ops, 'DumpGradient'):
     DumpGradient = MagicMock()
     setattr(ops, 'DumpGradient', DumpGradient)
 
+import sys
+try:
+    from torchrec.sparse.jagged_tensor import JaggedTensor, KeyedJaggedTensor, KeyedTensor
+except Exception:
+    fake_module = MagicMock()
+    sys.modules["torchrec.sparse.jagged_tensor"] = fake_module
+    fake_module.JaggedTensor = MagicMock
+    fake_module.KeyedJaggedTensor = MagicMock
+    fake_module.KeyedTensor = MagicMock
+
 # ensure not to import torch_npu
 from msprobe.mindspore.dump import mindspore_service
 from msprobe.mindspore.monitor import common_func

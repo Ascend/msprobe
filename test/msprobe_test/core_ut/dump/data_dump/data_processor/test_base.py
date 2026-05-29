@@ -187,6 +187,51 @@ class TestBaseDataProcessor(unittest.TestCase):
         BaseDataProcessor.recursive_apply_transform({1, 2, 3}, transform)
         mock_logger.assert_called_with(f"Data type {type({1, 2, 3})} is not supported.")
 
+    @patch("msprobe.core.dump.data_dump.data_processor.base.is_jagged_tensor", return_value=True)
+    @patch("msprobe.core.dump.data_dump.data_processor.base.is_keyed_jagged_tensor", return_value=False)
+    @patch("msprobe.core.dump.data_dump.data_processor.base.is_keyed_tensor", return_value=False)
+    def test_recursive_apply_transform_with_jagged_tensor(self, mock_is_keyed, mock_is_keyed_jagged, mock_is_jagged):
+        transform = lambda x, _: x * 2 if isinstance(x, int) else x
+        
+        jagged_tensor_mock = MagicMock()
+        jagged_tensor_mock.to_dense.return_value = [1, 2, 3]
+        
+        result = BaseDataProcessor.recursive_apply_transform(jagged_tensor_mock, transform)
+        
+        jagged_tensor_mock.to_dense.assert_called_once()
+        self.assertEqual(result, [2, 4, 6])
+
+    @patch("msprobe.core.dump.data_dump.data_processor.base.is_jagged_tensor", return_value=False)
+    @patch("msprobe.core.dump.data_dump.data_processor.base.is_keyed_jagged_tensor", return_value=True)
+    @patch("msprobe.core.dump.data_dump.data_processor.base.is_keyed_tensor", return_value=False)
+    def test_recursive_apply_transform_with_keyed_jagged_tensor(self, mock_is_keyed, mock_is_keyed_jagged, mock_is_jagged):
+        transform = lambda x, _: x * 2 if isinstance(x, int) else x
+        
+        keyed_jagged_mock = MagicMock()
+        keyed_jagged_mock.keys.return_value = ["key1", "key2"]
+        jagged_tensor_mock = MagicMock()
+        jagged_tensor_mock.to_dense.return_value = [1, 2]
+        keyed_jagged_mock.__getitem__.side_effect = lambda k: jagged_tensor_mock
+        
+        result = BaseDataProcessor.recursive_apply_transform(keyed_jagged_mock, transform)
+        
+        self.assertEqual(result, {"key1": [2, 4], "key2": [2, 4]})
+        self.assertEqual(keyed_jagged_mock.__getitem__.call_count, 2)
+
+    @patch("msprobe.core.dump.data_dump.data_processor.base.is_jagged_tensor", return_value=False)
+    @patch("msprobe.core.dump.data_dump.data_processor.base.is_keyed_jagged_tensor", return_value=False)
+    @patch("msprobe.core.dump.data_dump.data_processor.base.is_keyed_tensor", return_value=True)
+    def test_recursive_apply_transform_with_keyed_tensor(self, mock_is_keyed, mock_is_keyed_jagged, mock_is_jagged):
+        transform = lambda x, _: x * 2 if isinstance(x, int) else x
+        
+        keyed_tensor_mock = MagicMock()
+        keyed_tensor_mock.to_dict.return_value = {"key1": 1, "key2": 2}
+        
+        result = BaseDataProcessor.recursive_apply_transform(keyed_tensor_mock, transform)
+        
+        keyed_tensor_mock.to_dict.assert_called_once()
+        self.assertEqual(result, {"key1": 2, "key2": 4})
+
     def test_if_return_forward_new_output(self):
         self.processor._return_forward_new_output = True
         self.assertTrue(self.processor.if_return_forward_new_output())
