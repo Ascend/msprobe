@@ -16,6 +16,7 @@
 # -------------------------------------------------------------------------
 
 import os
+import signal
 import time
 import threading
 from copy import deepcopy
@@ -61,6 +62,17 @@ from msprobe.visualization.db_utils import post_process_db
 current_time = time.strftime("%Y%m%d%H%M%S")
 build_output_db_name = f'build_{current_time}.vis.db'
 compare_output_db_name = f'compare_{current_time}.vis.db'
+
+
+def _pool_initializer():
+    """Reset SIGTERM handler to default in worker processes.
+
+    When mindspeed/torch_npu is installed, the NPU runtime may register a SIGTERM
+    handler in worker processes (via fork inheritance). This handler can deadlock
+    during pool.terminate() because cleanup operations on the forked NPU context
+    hang indefinitely. Resetting to SIG_DFL ensures workers exit immediately.
+    """
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
 
 
 def _compare_graph(graph_n: GraphInfo, graph_b: GraphInfo, input_param, args, pbar_info=None):
@@ -304,7 +316,7 @@ def _compare_graph_ranks(input_param, args, step=None, pbar_info=None):
     args.rank_list = [get_step_or_rank_int(rank, True) for rank in npu_ranks]
     serializable_args = SerializableArgs(args)
 
-    with Pool(processes=max(int((cpu_count() + 1) // 4), 1)) as pool:
+    with Pool(processes=max(int((cpu_count() + 1) // 4), 1), initializer=_pool_initializer) as pool:
 
         def err_call(err):
             logger.error(f'Error occurred while comparing graph ranks: {err}')
@@ -400,7 +412,7 @@ def _build_graph_ranks_parallel(args, step=None, pbar_info=None):
     if not ranks:
         ranks = [os.path.basename(find_proc_dir(dump_ranks_path))]
     serializable_args = SerializableArgs(args)
-    with Pool(processes=max(int((cpu_count() + 1) // 4), 1)) as pool:
+    with Pool(processes=max(int((cpu_count() + 1) // 4), 1), initializer=_pool_initializer) as pool:
 
         def err_call(err):
             logger.error(f'Error occurred while comparing graph ranks: {err}')
@@ -464,7 +476,7 @@ def _build_graph_ranks(args, step=None, pbar_info=None):
         ranks = [os.path.basename(find_proc_dir(dump_ranks_path))]
     args.rank_list = [get_step_or_rank_int(rank, True) for rank in ranks]
     serializable_args = SerializableArgs(args)
-    with Pool(processes=max(int((cpu_count() + 1) // 4), 1)) as pool:
+    with Pool(processes=max(int((cpu_count() + 1) // 4), 1), initializer=_pool_initializer) as pool:
 
         def err_call(err):
             logger.error(f'Error occurred while comparing graph ranks: {err}')
@@ -524,7 +536,7 @@ def _compare_graph_ranks_parallel(input_param, args, step=None, pbar_info=None):
     validate_parallel_param(parallel_params[1], bench_path, '[Bench]')
     serializable_args = SerializableArgs(args)
 
-    with Pool(processes=max(int((cpu_count() + 1) // 4), 1)) as pool:
+    with Pool(processes=max(int((cpu_count() + 1) // 4), 1), initializer=_pool_initializer) as pool:
 
         def err_call(err):
             logger.error(f'Error occurred while comparing graph ranks: {err}')
