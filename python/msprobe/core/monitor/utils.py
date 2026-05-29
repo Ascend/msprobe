@@ -14,17 +14,17 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-from collections import namedtuple
-from datetime import timezone, timedelta
-from functools import wraps
-from datetime import datetime
 import os
 import re
 
+from collections import namedtuple
+from datetime import datetime, timedelta, timezone
+from functools import wraps
+
 from msprobe.core.common.const import MonitorConst
+from msprobe.core.common.file_utils import check_file_or_directory_path
 from msprobe.core.common.log import logger
 from msprobe.core.common.utils import is_int
-from msprobe.core.common.file_utils import check_file_or_directory_path, recursive_chmod
 
 beijing_tz = timezone(timedelta(hours=8))
 MVResult = namedtuple('MVResult', ("exp_avg", "exp_avg_sq", "update", "ratio"))
@@ -34,7 +34,8 @@ class MsgConst:
     """
     Class for log messages const
     """
-    SPECIAL_CHAR = ["\n", "\r", "\u007F", "\b", "\f", "\t", "\u000B", "%08", "%0a", "%0b", "%0c", "%0d", "%7f"]
+
+    SPECIAL_CHAR = ["\n", "\r", "\u007f", "\b", "\f", "\t", "\u000b", "%08", "%0a", "%0b", "%0c", "%0d", "%7f"]
 
 
 def get_output_base_dir():
@@ -278,13 +279,21 @@ def validate_config(config):
     step_count_per_record = config.get('step_count_per_record', 1)
     validate_step_count_per_record(step_count_per_record)
 
-    config["start_step"] = validate_int_arg(config.get("start_step"), "start_step",
-                                            MonitorConst.DEFAULT_START_STEP, MonitorConst.DEFAULT_START_STEP)
-    config["collect_times"] = validate_int_arg(config.get("collect_times"), "collect_times",
-                                               MonitorConst.DEFAULT_MIN_COLLECT_TIMES,
-                                               MonitorConst.DEFAULT_MAX_COLLECT_TIMES)
-    config["step_interval"] = validate_int_arg(config.get("step_interval"), "step_interval",
-                                               MonitorConst.DEFAULT_STEP_INTERVAL, MonitorConst.DEFAULT_STEP_INTERVAL)
+    config["start_step"] = validate_int_arg(
+        config.get("start_step"), "start_step", MonitorConst.DEFAULT_START_STEP, MonitorConst.DEFAULT_START_STEP
+    )
+    config["collect_times"] = validate_int_arg(
+        config.get("collect_times"),
+        "collect_times",
+        MonitorConst.DEFAULT_MIN_COLLECT_TIMES,
+        MonitorConst.DEFAULT_MAX_COLLECT_TIMES,
+    )
+    config["step_interval"] = validate_int_arg(
+        config.get("step_interval"),
+        "step_interval",
+        MonitorConst.DEFAULT_STEP_INTERVAL,
+        MonitorConst.DEFAULT_STEP_INTERVAL,
+    )
 
     squash_name = config.get('squash_name', False)
     validate_squash_name(squash_name)
@@ -310,8 +319,10 @@ def time_str2time_digit(time_str):
     try:
         time_digit = datetime.strptime(time_str, time_format)
     except Exception as e:
-        raise RuntimeError(f"illegal timestamp: {time_str}, timestamp should be prefix \
-                           of existing output dirpath, like 'Dec03_21-34-40'.") from e
+        raise RuntimeError(
+            f"illegal timestamp: {time_str}, timestamp should be prefix \
+                           of existing output dirpath, like 'Dec03_21-34-40'."
+        ) from e
     return time_digit
 
 
@@ -336,25 +347,17 @@ def get_target_output_dir(monitor_path, time_start, time_end):
     return result
 
 
-def chmod_tensorboard_dir(path):
-    """
-        format配置为tensorboard时，需要补充文件权限设置
-    """
-    try:
-        recursive_chmod(path)
-    except Exception as e:
-        logger.warning(f"chmod tensorboard dir wrong because {e}, not updated, please check!!!")
-
-
 def validate_set_monitor(grad_acc_steps, start_iteration):
     """
     validate parameters of set_monitor.
     """
-    grad_acc_steps = validate_int_arg(grad_acc_steps, "grad_acc_steps",
-                                      MonitorConst.DEFAULT_GRAD_ACC_STEPS, MonitorConst.DEFAULT_GRAD_ACC_STEPS)
+    grad_acc_steps = validate_int_arg(
+        grad_acc_steps, "grad_acc_steps", MonitorConst.DEFAULT_GRAD_ACC_STEPS, MonitorConst.DEFAULT_GRAD_ACC_STEPS
+    )
 
-    start_iteration = validate_int_arg(start_iteration, "start_iteration",
-                                       MonitorConst.DEFAULT_START_ITERATION, MonitorConst.DEFAULT_START_ITERATION)
+    start_iteration = validate_int_arg(
+        start_iteration, "start_iteration", MonitorConst.DEFAULT_START_ITERATION, MonitorConst.DEFAULT_START_ITERATION
+    )
     return grad_acc_steps, start_iteration
 
 

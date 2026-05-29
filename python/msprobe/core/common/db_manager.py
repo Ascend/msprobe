@@ -20,8 +20,7 @@ from typing import List, Tuple, Dict, Any
 from functools import wraps
 
 from msprobe.core.common.log import logger
-from msprobe.core.common.file_utils import check_path_before_create, change_mode
-from msprobe.core.common.const import FileCheckConst
+from msprobe.core.common.file_utils import check_path_before_create
 
 SAFE_SQL_PATTERN = re.compile(r'^[a-zA-Z0-9_]+$')
 
@@ -34,6 +33,7 @@ def check_identifier_safety(name):
 
 def _db_operation(operation_name: str = ""):
     """数据库操作装饰器，自动管理连接，并记录 SQL 上下文"""
+
     def decorator(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -43,7 +43,7 @@ def _db_operation(operation_name: str = ""):
                 delattr(self, '_last_sql')
             if hasattr(self, '_last_params'):
                 delattr(self, '_last_params')
-                
+
             try:
                 conn, curs = self._get_connection()
                 result = func(self, conn, curs, *args, **kwargs)
@@ -53,7 +53,7 @@ def _db_operation(operation_name: str = ""):
                 # 获取 SQL 上下文（如果存在）
                 sql_info = getattr(self, '_last_sql', 'N/A')
                 params_info = getattr(self, '_last_params', 'N/A')
-                
+
                 logger.error(
                     f"Database operation failed | operation={op} | "
                     f"db_path={getattr(self, 'db_path', 'unknown')} | "
@@ -64,7 +64,9 @@ def _db_operation(operation_name: str = ""):
                 return None
             finally:
                 self._release_connection(conn, curs)
+
         return wrapper
+
     return decorator
 
 
@@ -81,14 +83,17 @@ class DBManager:
         """
         初始化DBManager
         :param db_path: 数据库文件路径
-        :param table_config: 表配置对象
         """
         self.db_path = db_path
+        self._last_sql = ""
+        self._last_params = ""
 
     @staticmethod
     def _get_where_sql(where_list):
+        where_sql = ""
+
         if not where_list:
-            return "", tuple()
+            return where_sql, tuple()
 
         where_clauses = []
         where_values = []
@@ -102,8 +107,14 @@ class DBManager:
         return where_sql, tuple(where_values)
 
     @_db_operation("insert_data")
-    def insert_data(self, conn: sqlite3.Connection, curs: sqlite3.Cursor,
-                    table_name: str, data: List[Tuple], key_list: List[str] = None) -> int:
+    def insert_data(
+        self,
+        conn: sqlite3.Connection,
+        curs: sqlite3.Cursor,
+        table_name: str,
+        data: List[Tuple],
+        key_list: List[str] = None,
+    ) -> int:
         """
         批量插入数据
         :param table_name: 表名
@@ -118,13 +129,12 @@ class DBManager:
         columns = len(data[0])
         if key_list:
             if not isinstance(key_list, list):
-                raise TypeError(
-                    f"key_list must be a list, got {type(key_list)}"
-                )
+                raise TypeError(f"key_list must be a list, got {type(key_list)}")
             if columns != len(key_list):
                 raise ValueError(
                     f"When inserting into table {table_name}, the length of key list ({key_list})"
-                    f"does not match the data({columns}).")
+                    f"does not match the data({columns})."
+                )
             for key in key_list:
                 check_identifier_safety(key)
 
@@ -139,7 +149,7 @@ class DBManager:
         self._last_params = f"batch_count={len(data)}, first_row_sample={data[0] if data else None}"
         inserted_rows = 0
         for i in range(0, len(data), batch_size):
-            batch = data[i:i + batch_size]
+            batch = data[i : i + batch_size]
             curs.executemany(sql, batch)
             inserted_rows += curs.rowcount
 
@@ -147,10 +157,14 @@ class DBManager:
         return inserted_rows
 
     @_db_operation("select_data")
-    def select_data(self, conn: sqlite3.Connection, curs: sqlite3.Cursor,
-                    table_name: str,
-                    columns: List[str] = None,
-                    where: dict = None) -> List[Dict]:
+    def select_data(
+        self,
+        conn: sqlite3.Connection,
+        curs: sqlite3.Cursor,
+        table_name: str,
+        columns: List[str] = None,
+        where: dict = None,
+    ) -> List[Dict]:
         """
         查询数据
         :param table_name: 表名
@@ -164,12 +178,17 @@ class DBManager:
             raise ValueError("columns parameter cannot be empty, specify columns to select (e.g. ['id', 'name'])")
         if not isinstance(columns, list) or not all(isinstance(col, str) for col in columns):
             raise TypeError("columns must be a list of strings (e.g. ['id', 'name'])")
-        
+
         for col in columns:
             check_identifier_safety(col)
-        
+
+        # 新增：校验 table_name
+        check_identifier_safety(table_name)
+
         cols = ", ".join(columns)
-        sql = f"SELECT {cols} FROM {table_name}"
+
+        # 修改：增加 Bandit 抑制说明
+        sql = f"SELECT {cols} FROM {table_name}"  # nosec B608
 
         where_sql, where_params = self._get_where_sql(where)
         # 设置 SQL 上下文
@@ -180,9 +199,14 @@ class DBManager:
         return [dict(row) for row in curs.fetchall()]
 
     @_db_operation("update_data")
-    def update_data(self, conn: sqlite3.Connection, curs: sqlite3.Cursor,
-                    table_name: str, updates: Dict[str, Any],
-                    where: dict = None) -> int:
+    def update_data(
+        self,
+        conn: sqlite3.Connection,
+        curs: sqlite3.Cursor,
+        table_name: str,
+        updates: Dict[str, Any],
+        where: dict = None,
+    ) -> int:
         """
         更新数据
         :param table_name: 表名
@@ -200,7 +224,8 @@ class DBManager:
             check_identifier_safety(key)
 
         set_clause = ", ".join([f"{k} = ?" for k in updates.keys()])
-        sql = f"UPDATE {table_name} SET {set_clause}"
+        # table_name 和 column 已经过安全校验
+        sql = f"UPDATE {table_name} SET {set_clause}"  # nosec B608
 
         params = tuple(updates.values())
 
@@ -212,8 +237,7 @@ class DBManager:
         return curs.rowcount
 
     @_db_operation("execute_sql")
-    def execute_sql(self, conn: sqlite3.Connection, curs: sqlite3.Cursor,
-                    sql: str, params: Tuple = None) -> List[Dict]:
+    def execute_sql(self, conn: sqlite3.Connection, curs: sqlite3.Cursor, sql: str, params: Tuple = None) -> List[Dict]:
         """
         执行自定义SQL查询
         :param sql: SQL语句
@@ -232,16 +256,18 @@ class DBManager:
         :param table_name: 表名
         :return: 查询结果
         """
-        result = self.select_data(
-            table_name="sqlite_master",
-            columns=["name"],
-            where={"type": "table", "name": table_name}
+        result = self.select_data(  # pylint: disable=no-value-for-parameter
+            table_name="sqlite_master", columns=["name"], where={"type": "table", "name": table_name}
         )
         return len(result) > 0
 
     @_db_operation("execute_multi_sql")
-    def execute_multi_sql(self, conn: sqlite3.Connection, curs: sqlite3.Cursor,
-                          sql_commands: List[str]) -> List[List[Dict]]:
+    def execute_multi_sql(
+        self,
+        conn: sqlite3.Connection,
+        curs: sqlite3.Cursor,
+        sql_commands: List[str],
+    ) -> List[List[Dict]]:
         """
         批量执行多个SQL语句
         :param sql_commands: [sql1, sql2, ...]
@@ -278,7 +304,6 @@ class DBManager:
                 conn.close()
         except sqlite3.Error as err:
             logger.error(f"Failed to release database connection: {err}")
-        change_mode(self.db_path, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 class TrendSql:
@@ -293,7 +318,7 @@ class TrendSql:
             target_name TEXT NOT NULL,
             vpp_stage INTEGER NOT NULL,
             micro_step INTEGER NOT NULL DEFAULT 0,
-            UNIQUE(target_name, vpp_stage, micro_step) 
+            UNIQUE(target_name, vpp_stage, micro_step)
         )"""
 
     @staticmethod
@@ -317,8 +342,8 @@ class TrendSql:
     def get_global_stats_sql():
         """从global_stats表获取最新的统计配置"""
         return """
-        SELECT * FROM global_stats 
-        ORDER BY ROWID DESC 
+        SELECT * FROM global_stats
+        ORDER BY ROWID DESC
         LIMIT 1
         """
 
@@ -332,7 +357,7 @@ class TrendSql:
                 column_definitions.append(f"{column_name} TEXT DEFAULT NULL")
             elif isinstance(column_value, (int, float)):
                 column_definitions.append(f"{column_name} INTEGER DEFAULT 0")
-        
+
         create_sql = f"""
         CREATE TABLE IF NOT EXISTS global_stats (
             {', '.join(column_definitions)}
@@ -378,7 +403,7 @@ class TrendSql:
             FOREIGN KEY (metric_id) REFERENCES monitoring_metrics(metric_id)
         ) WITHOUT ROWID"""
         return create_sql
-    
+
     @classmethod
     def get_table_definition(cls, table_name=""):
         """

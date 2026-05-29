@@ -22,7 +22,6 @@ from msprobe.core.common.file_utils import (
     create_directory,
     load_json,
     remove_path,
-    recursive_chmod
 )
 from msprobe.core.common.log import logger
 from msprobe.core.common.utils import is_int
@@ -34,8 +33,7 @@ from msprobe.core.monitor.utils import get_target_output_dir
 
 
 def validate_micro_step(micro_step) -> bool:
-    """转换micro_step参数为布尔值
-    """
+    """转换micro_step参数为布尔值"""
     # 命令行已限制只能输入'(T)true'或'(F)false'，直接转换
     return micro_step.lower() == 'true'
 
@@ -45,9 +43,7 @@ def validate_process_num(process_num: int) -> None:
     if not is_int(process_num) or process_num <= 0:
         raise ValueError("process_num must be a positive integer")
     if process_num > Data2DBConst.MAX_PROCESS_NUM:
-        raise ValueError(
-            f"Maximum supported process_num is {Data2DBConst.MAX_PROCESS_NUM}"
-        )
+        raise ValueError(f"Maximum supported process_num is {Data2DBConst.MAX_PROCESS_NUM}")
 
 
 def load_mapping(mapping_path: Optional[str]) -> dict:
@@ -63,10 +59,10 @@ class DBImporter:
         self,
         db_path: str,
         data_path: str,
-        format: str = 'auto',
+        format: str = 'auto',  # pylint: disable=redefined-builtin
         mapping_path: Optional[str] = None,
         micro_step: bool = True,
-        process_num: int = 1
+        process_num: int = 1,
     ):
         self.db_path = db_path
         self.data_path = data_path
@@ -92,8 +88,7 @@ class DBImporter:
         # Validate format
         supported_formats = {'auto', 'dump', 'monitor'}
         if self.format not in supported_formats:
-            raise ValueError(f"Unsupported format: {self.format}. "
-                             f"Supported: {supported_formats}")
+            raise ValueError(f"Unsupported format: {self.format}. Supported: {supported_formats}")
 
     def _ensure_db_file_clean(self, db_file: str) -> None:
         """确保目标数据库文件不存在（若存在则删除）"""
@@ -107,20 +102,13 @@ class DBImporter:
 
         valid_ranks = dump_scan_files(self.data_path)
         if not valid_ranks:
-            logger.warning(
-                f"No valid 'step*' directories found in: {self.data_path}"
-            )
+            logger.warning(f"No valid 'step*' directories found in: {self.data_path}")
             return
         dump_db_file = os.path.join(self.db_path, Data2DBConst.DB_DUMP)
         self._ensure_db_file_clean(dump_db_file)
-        
+
         db = DumpDB(dump_db_file)
-        builder = DumpRecordBuilder(
-            db=db,
-            data_dir=self.data_path,
-            mapping=self.mapping,
-            micro_step=self.micro_step
-        )
+        builder = DumpRecordBuilder(db=db, data_dir=self.data_path, mapping=self.mapping, micro_step=self.micro_step)
 
         builder.import_data(valid_ranks)
         logger.info(f"Dump data import completed. DB: {dump_db_file}")
@@ -142,7 +130,7 @@ class DBImporter:
             process_num=self.process_num,
             db_file=monitor_db_file,
             mapping=self.mapping,
-            micro_step=self.micro_step
+            micro_step=self.micro_step,
         )
 
         success = monitor_import_data(config=config)
@@ -151,10 +139,7 @@ class DBImporter:
 
     def import_data(self) -> None:
         """主导入方法"""
-        converters: Dict[str, Callable[[], None]] = {
-            "dump": self.import_dump_data,
-            "monitor": self.import_monitor_data
-        }
+        converters: Dict[str, Callable[[], None]] = {"dump": self.import_dump_data, "monitor": self.import_monitor_data}
 
         if self.format == "auto":
             logger.info("Auto-detect mode: attempting both dump and monitor imports")
@@ -170,29 +155,21 @@ class DBImporter:
 
 
 def _data2db_service_parser(parser):
+    parser.add_argument('--db', type=str, required=True, help='Path to SQLite database output directory')
+    parser.add_argument('--data', type=str, required=True, help='Path to input data directory')
     parser.add_argument(
-        '--db', type=str, required=True,
-        help='Path to SQLite database output directory'
+        '--format', type=str, choices=['auto', 'dump', 'monitor'], default='auto', help='Data format (default: auto)'
+    )
+    parser.add_argument('--mapping', type=str, default=None, help='Path to optional JSON mapping file')
+    parser.add_argument(
+        '--micro_step',
+        type=str,
+        choices=['true', 'false', 'True', 'False'],
+        default='true',
+        help='Use micro-step counting (default: true)',
     )
     parser.add_argument(
-        '--data', type=str, required=True,
-        help='Path to input data directory'
-    )
-    parser.add_argument(
-        '--format', type=str, choices=['auto', 'dump', 'monitor'], default='auto',
-        help='Data format (default: auto)'
-    )
-    parser.add_argument(
-        '--mapping', type=str, default=None,
-        help='Path to optional JSON mapping file'
-    )
-    parser.add_argument(
-        '--micro_step', type=str, choices=['true', 'false', 'True', 'False'], default='true',
-        help='Use micro-step counting (default: true)'
-    )
-    parser.add_argument(
-        '--process_num', type=int, default=1,
-        help='Number of parallel processes for monitor data (default: 1)'
+        '--process_num', type=int, default=1, help='Number of parallel processes for monitor data (default: 1)'
     )
 
 
@@ -203,7 +180,6 @@ def _data2db_command(args):
         format=args.format,
         mapping_path=args.mapping,
         micro_step=args.micro_step,
-        process_num=args.process_num
+        process_num=args.process_num,
     )
     importer.import_data()
-    recursive_chmod(args.db)

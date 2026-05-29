@@ -24,12 +24,7 @@ import torch
 import torch.distributed as dist
 
 from msprobe.core.common.exceptions import DistributedNotInitializedError
-from msprobe.core.common.file_utils import (
-    FileCheckConst,
-    change_mode,
-    check_file_or_directory_path,
-    check_path_before_create
-)
+from msprobe.core.common.file_utils import check_file_or_directory_path, check_path_before_create
 from msprobe.core.common.log import logger
 from msprobe.core.common.utils import check_seed_all, is_save_variable_valid
 from msprobe.pytorch.reproducibility.random_reproducibility import set_reproducibility
@@ -53,13 +48,13 @@ npu_distributed_api = ['isend', 'irecv']
 # 解决 PyTorch 2.6+ 安全反序列化问题
 # =========================
 
+
 def enable_torch_npu_pickle_compat():
     try:
-        torch.serialization.add_safe_globals([
-            torch_npu.utils.storage._rebuild_npu_tensor
-        ])
+        torch.serialization.add_safe_globals([torch_npu.utils.storage._rebuild_npu_tensor])
     except Exception as e:
         logger.warning(f"Enable torch_npu pickle compatibility failed: {e}")
+
 
 #  在 torch.load 之前执行
 if not is_gpu:
@@ -109,7 +104,7 @@ def torch_device_guard(func):
         return func
 
     # Parse args/kwargs matched torch.device objects
-    @torch_npu_device_guard
+    @torch_npu_device_guard  # pylint: disable=possibly-used-before-assignment
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
 
@@ -118,7 +113,7 @@ def torch_device_guard(func):
 
 def get_rank_if_initialized():
     """
-        return rank id if it is initialized or raise Exception: DistributedNotInitializedError
+    return rank id if it is initialized or raise Exception: DistributedNotInitializedError
     """
     if torch.distributed.is_initialized():
         return torch.distributed.get_rank()
@@ -133,34 +128,46 @@ def remove_dropout():
         from torch import _VF
         from torch.overrides import has_torch_function_unary, handle_torch_function
 
-        def function_dropout(input_tensor: torch.Tensor, p: float = 0.5, training: bool = True,
-                             inplace: bool = False) -> torch.Tensor:
+        def function_dropout(
+            input_tensor: torch.Tensor, p: float = 0.5, training: bool = True, inplace: bool = False
+        ) -> torch.Tensor:
             if has_torch_function_unary(input_tensor):
                 return handle_torch_function(
-                    function_dropout, (input_tensor,), input_tensor, p=0., training=training, inplace=inplace)
+                    function_dropout, (input_tensor,), input_tensor, p=0.0, training=training, inplace=inplace
+                )
             if p < 0.0 or p > 1.0:
-                raise ValueError("dropout probability has to be between 0 and 1, " "but got {}".format(p))
-            return _VF.dropout_(input_tensor, 0., training) if inplace else _VF.dropout(input_tensor, 0., training)
+                raise ValueError("dropout probability has to be between 0 and 1, but got {}".format(p))
+            return _VF.dropout_(input_tensor, 0.0, training) if inplace else _VF.dropout(input_tensor, 0.0, training)
 
-        def function_dropout2d(input_tensor: torch.Tensor, p: float = 0.5, training: bool = True,
-                               inplace: bool = False) -> torch.Tensor:
+        def function_dropout2d(
+            input_tensor: torch.Tensor, p: float = 0.5, training: bool = True, inplace: bool = False
+        ) -> torch.Tensor:
             if has_torch_function_unary(input_tensor):
                 return handle_torch_function(
-                    function_dropout2d, (input_tensor,), input_tensor, p=0., training=training, inplace=inplace)
+                    function_dropout2d, (input_tensor,), input_tensor, p=0.0, training=training, inplace=inplace
+                )
             if p < 0.0 or p > 1.0:
-                raise ValueError("dropout probability has to be between 0 and 1, " "but got {}".format(p))
-            return _VF.feature_dropout_(input_tensor, 0., training) if inplace else _VF.feature_dropout(input_tensor,
-                                                                                                        0., training)
+                raise ValueError("dropout probability has to be between 0 and 1, but got {}".format(p))
+            return (
+                _VF.feature_dropout_(input_tensor, 0.0, training)
+                if inplace
+                else _VF.feature_dropout(input_tensor, 0.0, training)
+            )
 
-        def function_dropout3d(input_tensor: torch.Tensor, p: float = 0.5, training: bool = True,
-                               inplace: bool = False) -> torch.Tensor:
+        def function_dropout3d(
+            input_tensor: torch.Tensor, p: float = 0.5, training: bool = True, inplace: bool = False
+        ) -> torch.Tensor:
             if has_torch_function_unary(input_tensor):
                 return handle_torch_function(
-                    function_dropout3d, (input_tensor,), input_tensor, p=0., training=training, inplace=inplace)
+                    function_dropout3d, (input_tensor,), input_tensor, p=0.0, training=training, inplace=inplace
+                )
             if p < 0.0 or p > 1.0:
-                raise ValueError("dropout probability has to be between 0 and 1, " "but got {}".format(p))
-            return _VF.feature_dropout_(input_tensor, 0., training) if inplace else _VF.feature_dropout(input_tensor,
-                                                                                                        0., training)
+                raise ValueError("dropout probability has to be between 0 and 1, but got {}".format(p))
+            return (
+                _VF.feature_dropout_(input_tensor, 0.0, training)
+                if inplace
+                else _VF.feature_dropout(input_tensor, 0.0, training)
+            )
 
         F.dropout = function_dropout
         F.dropout2d = function_dropout2d
@@ -178,6 +185,7 @@ class Const:
     """
     Class for const
     """
+
     SEP = "."
     MODEL_TYPE = ['.onnx', '.pb', '.om']
     DIM_PATTERN = r"^(-?[0-9]+)(,-?[0-9]+)*"
@@ -207,21 +215,6 @@ class Const:
     MAX = 'Max'
     MIN = 'Min'
 
-    # dump mode
-    ALL = "all"
-    LIST = "list"
-    RANGE = "range"
-    STACK = "stack"
-    ACL = "acl"
-    API_LIST = "api_list"
-    API_STACK = "api_stack"
-    DUMP_MODE = [ALL, LIST, RANGE, STACK, ACL, API_LIST, API_STACK]
-    AUTO = "auto"
-    ONLINE_DUMP_MODE = [ALL, LIST, AUTO, OFF]
-    SUMMARY = "summary"
-    MD5 = "md5"
-    SUMMARY_MODE = [ALL, SUMMARY, MD5]
-
     WRITE_FLAGS = os.O_WRONLY | os.O_CREAT
     OVERWRITE_FLAGS = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
     WRITE_MODES = stat.S_IWUSR | stat.S_IRUSR
@@ -244,7 +237,7 @@ class Const:
     ENV_ENABLE = "1"
     ENV_DISABLE = "0"
 
-    MAX_SEED_VALUE = 2 ** 32 - 1
+    MAX_SEED_VALUE = 2**32 - 1
 
     TASK_LIST = ["tensor", "statistics", "overflow_check", "free_benchmark"]
     LEVEL_LIST = ["L0", "L1", "L2", "mix"]
@@ -266,18 +259,12 @@ class Const:
     FLOAT8_E4M3FN_TYPE = "torch.float8_e4m3fn"
     FLOAT8_E8M0FNU_TYPE = "torch.float8_e8m0fnu"
 
-    RAISE_PRECISION = {
-        torch.float16: torch.float32,
-        torch.bfloat16: torch.float32,
-        torch.float32: torch.float64
-    }
+    RAISE_PRECISION = {torch.float16: torch.float32, torch.bfloat16: torch.float32, torch.float32: torch.float64}
     CONVERT = {
         "int32_to_int64": ["torch.int32", "torch.int64"],
     }
 
-    CONVERT_API = {
-        "int32_to_int64": ["cross_entropy"]
-    }
+    CONVERT_API = {"int32_to_int64": ["cross_entropy"]}
 
     DROPOUT_API_LIST = [
         "Functional.dropout.",
@@ -294,7 +281,7 @@ class Const:
         "Torch.feature_alpha_dropout_.",
         "Torch.feature_dropout.",
         "Torch.feature_dropout_.",
-        "NPU._npu_dropout."
+        "NPU._npu_dropout.",
     ]
 
 
@@ -332,14 +319,14 @@ def print_rank_0(message):
         logger.info(message)
 
 
-def load_pt(pt_path, to_cpu=False, weights_only=True):
+def load_pt(pt_path, to_cpu=False):
     pt_path = os.path.realpath(pt_path)
     check_file_or_directory_path(pt_path)
     try:
         if to_cpu:
-            pt = torch.load(pt_path, map_location=torch.device("cpu"), weights_only=weights_only)
+            pt = torch.load(pt_path, map_location=torch.device("cpu"), weights_only=True)
         else:
-            pt = torch.load(pt_path, weights_only=weights_only)
+            pt = torch.load(pt_path, weights_only=True)
     except Exception as e:
         raise RuntimeError(f"load pt file {pt_path} failed") from e
     return pt
@@ -351,11 +338,12 @@ def save_pt(tensor, filepath):
     try:
         torch.save(tensor, filepath)
     except Exception as e:
-        logger.error("Save pt file failed, please check according possible error causes: "
-                     "1. out of disk space or disk error, "
-                     "2. no permission to write files, etc.")
+        logger.error(
+            "Save pt file failed, please check according possible error causes: "
+            "1. out of disk space or disk error, "
+            "2. no permission to write files, etc."
+        )
         raise RuntimeError(f"save pt file {filepath} failed") from e
-    change_mode(filepath, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def is_recomputation(call_stack=None):
@@ -376,7 +364,8 @@ def is_recomputation(call_stack=None):
             call_stack = inspect.stack()
         except Exception as e:
             logger.warning(
-                f"Failed to capture stack trace, recomputation validation may be incorrect, error info: {e}.")
+                f"Failed to capture stack trace, recomputation validation may be incorrect, error info: {e}."
+            )
             return False
     backward_function_indices = []
 
@@ -388,8 +377,11 @@ def is_recomputation(call_stack=None):
 
     # Identify indices in the call stack where the specific function is being executed
     for idx, frame_info in enumerate(call_stack):
-        if (frame_info.function == Const.BACKWARD or frame_info.function == 'checkpoint_function_backward' and
-                "megatron" in frame_info.filename):
+        if (
+            frame_info.function == Const.BACKWARD
+            or frame_info.function == 'checkpoint_function_backward'
+            and "megatron" in frame_info.filename
+        ):
             backward_function_indices.append(idx)
 
     # Check if the execution is within 'torch/autograd/function.py' file
@@ -412,19 +404,17 @@ def check_save_param(variable, name, save_backward):
     valid_data_types = (torch.Tensor, int, float, str)
     if not is_save_variable_valid(variable, valid_data_types):
         valid_data_types_with_nested_types = valid_data_types + (dict, tuple, list)
-        logger.warning("PrecisionDebugger.save variable type not valid, "
-                       f"should be one of {valid_data_types_with_nested_types}"
-                       "Skip current save process.")
+        logger.warning(
+            "PrecisionDebugger.save variable type not valid, "
+            f"should be one of {valid_data_types_with_nested_types}"
+            "Skip current save process."
+        )
         raise ValueError
     if not isinstance(name, str):
-        logger.warning("PrecisionDebugger.save name not valid, "
-                       "should be string. "
-                       "skip current save process.")
+        logger.warning("PrecisionDebugger.save name not valid, should be string. skip current save process.")
         raise ValueError
     if not isinstance(save_backward, bool):
-        logger.warning("PrecisionDebugger.save_backward name not valid, "
-                       "should be bool. "
-                       "Skip current save process.")
+        logger.warning("PrecisionDebugger.save_backward name not valid, should be bool. Skip current save process.")
         raise ValueError
 
 
@@ -453,8 +443,11 @@ def is_hifloat8_tensor(tensor):
 
 
 def is_float8_tensor(tensor):
-    return (str(tensor.dtype) in [Const.FLOAT8_E5M2_TYPE, Const.FLOAT8_E4M3FN_TYPE, Const.FLOAT8_E8M0FNU_TYPE] 
-            or is_hifloat8_tensor(tensor))
+    return str(tensor.dtype) in [
+        Const.FLOAT8_E5M2_TYPE,
+        Const.FLOAT8_E4M3FN_TYPE,
+        Const.FLOAT8_E8M0FNU_TYPE,
+    ] or is_hifloat8_tensor(tensor)
 
 
 def is_float4_tensor(tensor):

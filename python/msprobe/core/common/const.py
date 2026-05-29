@@ -998,8 +998,6 @@ class FileCheckConst:
     MAX_ROWS_PER_CSV_FILE = 1000000
     DIR = "dir"
     FILE = "file"
-    DATA_DIR_AUTHORITY = 0o750
-    DATA_FILE_AUTHORITY = 0o640
     FILE_SIZE_DICT = {
         PKL_SUFFIX: MAX_PKL_SIZE,
         NUMPY_SUFFIX: MAX_NUMPY_SIZE,

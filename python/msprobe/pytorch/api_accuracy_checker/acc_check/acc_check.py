@@ -18,14 +18,12 @@
 
 import argparse
 import os
-import re
 import sys
 import time
 import gc
-from collections import namedtuple
 
 try:
-    import torch_npu
+    import torch_npu  # noqa: F401
 except ImportError:
     is_gpu = True
     current_device = "cuda"
@@ -36,26 +34,38 @@ else:
 import torch
 from tqdm import tqdm
 
-from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check_utils import BackwardMessage, UtDataInfo, \
-    get_validated_result_csv_path, get_validated_details_csv_path, exec_api, record_skip_info, is_unsupported_api
+from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check_utils import (
+    BackwardMessage,
+    UtDataInfo,
+    get_validated_result_csv_path,
+    get_validated_details_csv_path,
+    exec_api,
+    record_skip_info,
+    is_unsupported_api,
+)
 from msprobe.pytorch.api_accuracy_checker.acc_check.data_generate import gen_api_params, gen_args
-from msprobe.pytorch.api_accuracy_checker.common.utils import api_info_preprocess, \
-    initialize_save_path, UtDataProcessor, extract_basic_api_segments, ApiData
+from msprobe.pytorch.api_accuracy_checker.common.utils import (
+    api_info_preprocess,
+    initialize_save_path,
+    UtDataProcessor,
+    extract_basic_api_segments,
+)
 from msprobe.pytorch.api_accuracy_checker.compare.compare import Comparator
 from msprobe.pytorch.api_accuracy_checker.compare.compare_column import CompareColumn
 from msprobe.pytorch.api_accuracy_checker.common.config import CheckerConfig
 from msprobe.pytorch.common.parse_json import parse_json_info_forward_backward
-from msprobe.core.common.file_utils import FileChecker, change_mode, \
-    create_directory, get_json_contents, read_csv, check_file_or_directory_path
+from msprobe.core.common.file_utils import FileChecker, create_directory, get_json_contents, read_csv
 from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.dump.pt_config import parse_json_config
 from msprobe.core.common.const import Const, FileCheckConst, CompareConst
 from msprobe.core.common.utils import safe_get_value, CompareException, is_int, check_op_str_pattern_valid
 from msprobe.core.common.output_postprocess.processor import postprocess_output, should_postprocess_output
 from msprobe.pytorch.common.utils import seed_all
-from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check_utils import generate_cpu_params,\
-    generate_device_params, \
-    ExecParams
+from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check_utils import (
+    generate_cpu_params,
+    generate_device_params,
+    ExecParams,
+)
 
 
 current_time = time.strftime("%Y%m%d%H%M%S")
@@ -66,8 +76,15 @@ DETAILS_FILE_NAME = "accuracy_checking_details_" + current_time + ".csv"
 
 not_backward_list = ['repeat_interleave']
 unsupported_backward_list = ['masked_select']
-unsupported_api_list = ["to", "empty", "empty_like", "empty_strided", "new_empty", "new_empty_strided", 
-                        "empty_with_format"]
+unsupported_api_list = [
+    "to",
+    "empty",
+    "empty_like",
+    "empty_strided",
+    "new_empty",
+    "new_empty_strided",
+    "empty_with_format",
+]
 
 
 tqdm_params = {
@@ -82,7 +99,7 @@ tqdm_params = {
     'unit': 'it',  # 迭代单位
     'unit_scale': True,  # 自动根据单位缩放
     'dynamic_ncols': True,  # 动态调整进度条宽度以适应控制台
-    'bar_format': '{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'  # 自定义进度条输出格式
+    'bar_format': '{l_bar}{bar}| {n}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]',  # 自定义进度条输出格式
 }
 
 
@@ -99,7 +116,6 @@ def acc_check(config):
         logger.info(f"acc_check task error_data will be saved in {config.error_data_path}")
     compare = Comparator(config.result_csv_path, config.details_csv_path, config.is_continue_acc_check, config=config)
 
-
     csv_df = read_csv(config.result_csv_path)
     try:
         api_name_set = {row[0] for row in csv_df.itertuples(index=False, name=None)}
@@ -108,8 +124,6 @@ def acc_check(config):
         api_name_set = set()
     run_api_offline(config, compare, api_name_set)
     for result_csv_path, details_csv_path in zip(compare.save_path_list, compare.detail_save_path_list):
-        change_mode(result_csv_path, FileCheckConst.DATA_FILE_AUTHORITY)
-        change_mode(details_csv_path, FileCheckConst.DATA_FILE_AUTHORITY)
         logger.info(f"acc_check task result csv is saved in {result_csv_path}")
         logger.info(f"acc_check task details csv is saved in {details_csv_path}")
     compare.print_pretest_result()
@@ -146,8 +160,10 @@ def run_api_offline(config, compare, api_name_set):
                 do_save_error_data(api_full_name, data_info, config.error_data_path, is_fwd_success, is_bwd_success)
         except Exception as err:
             if "expected scalar type Long" in str(err):
-                logger.warning(f"API {api_name} not support int32 tensor in CPU, please add {api_name} to CONVERT_API "
-                               "'int32_to_int64' list in accuracy_tools/msprobe/core/common/const.py file.")
+                logger.warning(
+                    f"API {api_name} not support int32 tensor in CPU, please add {api_name} to CONVERT_API "
+                    "'int32_to_int64' list in accuracy_tools/msprobe/core/common/const.py file."
+                )
             else:
                 logger.error(f"Run {api_full_name} acc_check Error: %s" % str(err))
             compare_alg_results = err_column.to_column_value(CompareConst.SKIP, str(err))
@@ -207,7 +223,7 @@ def run_torch_api(api_full_name, real_data_path, backward_content, api_info_dict
         logger.info("%s %s" % (api_full_name, BackwardMessage.UNSUPPORT_API_MESSAGE))
         backward_message += BackwardMessage.UNSUPPORT_API_MESSAGE
     need_backward = need_backward and need_grad
-    
+
     device_info_kwargs = kwargs.get(Const.DEVICE)
     if device_info_kwargs and device_info_kwargs.get(Const.VALUE):
         kwargs[Const.DEVICE] = current_device
@@ -225,8 +241,9 @@ def run_torch_api(api_full_name, real_data_path, backward_content, api_info_dict
     out = exec_api(cpu_exec_params)
     if should_postprocess_output(api_name, "golden"):
         out = postprocess_output(api_name, out, cpu_args, cpu_kwargs, "golden")
-    device_exec_params = ExecParams(api_type, api_name, current_device, device_args, device_kwargs, is_autocast,
-                                     autocast_dtype)
+    device_exec_params = ExecParams(
+        api_type, api_name, current_device, device_args, device_kwargs, is_autocast, autocast_dtype
+    )
     device_out = exec_api(device_exec_params)
     if should_postprocess_output(api_name, "target"):
         device_out = postprocess_output(api_name, device_out, device_args, device_kwargs, "target")
@@ -245,9 +262,7 @@ def run_torch_api(api_full_name, real_data_path, backward_content, api_info_dict
     if need_backward and out is not None:
         if need_to_backward(grad_index, out):
             backward_args = backward_content[api_full_name].get("input")
-            func_options = {
-                'real_data_path': real_data_path
-            }
+            func_options = {'real_data_path': real_data_path}
             grad = gen_args(backward_args, api_name, func_options)
             grad = safe_get_value(grad, 0, "grad")
             grad_params = generate_cpu_params(grad, {}, False, api_name)
@@ -261,8 +276,17 @@ def run_torch_api(api_full_name, real_data_path, backward_content, api_info_dict
         out = safe_get_value(out, 0, "out")
         device_out = safe_get_value(device_out, 0, "device_out")
 
-    return UtDataInfo(bench_grad_out, device_grad_out, device_out, out, bench_grad, in_fwd_data_list, backward_message,
-                      rank=0, is_fp8=is_fp8)
+    return UtDataInfo(
+        bench_grad_out,
+        device_grad_out,
+        device_out,
+        out,
+        bench_grad,
+        in_fwd_data_list,
+        backward_message,
+        rank=0,
+        is_fp8=is_fp8,
+    )
 
 
 def check_need_grad(api_info_dict):
@@ -317,25 +341,46 @@ def extract_tensors_grad(args, depth=0):
 
 def initialize_save_error_data(error_data_path):
     create_directory(error_data_path)
-    error_data_path_checker = FileChecker(error_data_path, FileCheckConst.DIR,
-                                          ability=FileCheckConst.WRITE_ABLE)
+    error_data_path_checker = FileChecker(error_data_path, FileCheckConst.DIR, ability=FileCheckConst.WRITE_ABLE)
     error_data_path = error_data_path_checker.common_check()
     error_data_path = initialize_save_path(error_data_path, UT_ERROR_DATA_DIR)
     return error_data_path
 
 
 def _acc_check_parser(parser):
-    parser.add_argument("-api_info", "--api_info_file", dest="api_info_file", default="", type=str,
-                        help="<required> The api param tool result file: generate from api param tool, "
-                             "a json file.",
-                        required=True)
-    parser.add_argument("-o", "--out_path", dest="out_path", default="", type=str,
-                        help="<optional> The acc_check task result out path.",
-                        required=False)
-    parser.add_argument('-save_error_data', dest="save_error_data", action="store_true",
-                        help="<optional> Save compare failed api output.", required=False)
-    parser.add_argument("-j", "--jit_compile", dest="jit_compile", action="store_true",
-                        help="<optional> whether to turn on jit compile", required=False)
+    parser.add_argument(
+        "-api_info",
+        "--api_info_file",
+        dest="api_info_file",
+        default="",
+        type=str,
+        help="<required> The api param tool result file: generate from api param tool, a json file.",
+        required=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--out_path",
+        dest="out_path",
+        default="",
+        type=str,
+        help="<optional> The acc_check task result out path.",
+        required=False,
+    )
+    parser.add_argument(
+        '-save_error_data',
+        dest="save_error_data",
+        action="store_true",
+        help="<optional> Save compare failed api output.",
+        required=False,
+    )
+    parser.add_argument(
+        "-j",
+        "--jit_compile",
+        dest="jit_compile",
+        action="store_true",
+        help="<optional> whether to turn on jit compile",
+        required=False,
+    )
 
     class UniqueDeviceAction(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
@@ -347,17 +392,44 @@ def _acc_check_parser(parser):
                     parser.error("device id must be greater than or equal to 0")
             setattr(namespace, self.dest, values)
 
-    parser.add_argument("-d", "--device", dest="device_id", nargs='+', type=int,
-                        help="<optional> set device id to acc_check, must be unique and in range 0-7",
-                        default=[0], required=False, action=UniqueDeviceAction)
-    parser.add_argument("-csv_path", "--result_csv_path", dest="result_csv_path", default="", type=str,
-                        help="<optional> The path of accuracy_checking_result_{timestamp}.csv, "
-                             "when acc_check is interrupted, enter the file path to continue acc_check.",
-                        required=False)
-    parser.add_argument("-f", "--filter_api", dest="filter_api", action="store_true",
-                        help="<optional> Whether to filter the api in the api_info_file.", required=False)
-    parser.add_argument("-config", "--config_path", dest="config_path", default="", type=str,
-                        help="<optional> The path of config.json", required=False)
+    parser.add_argument(
+        "-d",
+        "--device",
+        dest="device_id",
+        nargs='+',
+        type=int,
+        help="<optional> set device id to acc_check, must be unique and in range 0-7",
+        default=[0],
+        required=False,
+        action=UniqueDeviceAction,
+    )
+    parser.add_argument(
+        "-csv_path",
+        "--result_csv_path",
+        dest="result_csv_path",
+        default="",
+        type=str,
+        help="<optional> The path of accuracy_checking_result_{timestamp}.csv, "
+        "when acc_check is interrupted, enter the file path to continue acc_check.",
+        required=False,
+    )
+    parser.add_argument(
+        "-f",
+        "--filter_api",
+        dest="filter_api",
+        action="store_true",
+        help="<optional> Whether to filter the api in the api_info_file.",
+        required=False,
+    )
+    parser.add_argument(
+        "-config",
+        "--config_path",
+        dest="config_path",
+        default="",
+        type=str,
+        help="<optional> The path of config.json",
+        required=False,
+    )
 
 
 def preprocess_forward_content(forward_content):
@@ -410,17 +482,18 @@ def _acc_check(parser=None):
 
 def acc_check_command(args):
     if args.config_path:
-        config_path_checker = FileChecker(args.config_path, FileCheckConst.FILE, 
-                                          FileCheckConst.READ_ABLE, FileCheckConst.JSON_SUFFIX)
+        config_path_checker = FileChecker(
+            args.config_path, FileCheckConst.FILE, FileCheckConst.READ_ABLE, FileCheckConst.JSON_SUFFIX
+        )
         checked_config_path = config_path_checker.common_check()
         _, task_config = parse_json_config(checked_config_path, Const.ACC_CHECK)
         checker_config = CheckerConfig(task_config)
     else:
         checker_config = CheckerConfig()
-    
+
     if not args.api_info_file:
         logger.error("Please provide api_info_file for offline acc_check.")
-        raise Exception("Please provide api_info_file for offline acc_check.")
+        raise Exception("Please provide api_info_file for offline acc_check.")  # pylint: disable=broad-exception-raised
 
     if not is_gpu:
         torch.npu.set_compile_mode(jit_compile=args.jit_compile)
@@ -442,8 +515,12 @@ def acc_check_command(args):
     # 离线场景下，forward_content, backward_content, real_data_path从api_info_file中解析
     forward_content, backward_content, real_data_path = None, None, None
     if args.api_info_file:
-        api_info_file_checker = FileChecker(file_path=args.api_info_file, path_type=FileCheckConst.FILE, 
-                                            ability=FileCheckConst.READ_ABLE, file_type=FileCheckConst.JSON_SUFFIX)
+        api_info_file_checker = FileChecker(
+            file_path=args.api_info_file,
+            path_type=FileCheckConst.FILE,
+            ability=FileCheckConst.READ_ABLE,
+            file_type=FileCheckConst.JSON_SUFFIX,
+        )
         checked_api_info = api_info_file_checker.common_check()
         forward_content, backward_content, real_data_path = parse_json_info_forward_backward(checked_api_info)
         if real_data_path:
@@ -489,7 +566,7 @@ def acc_check_command(args):
         'save_error_data': save_error_data,
         'is_continue_acc_check': args.result_csv_path,
         'real_data_path': real_data_path,
-        'error_data_path': error_data_path
+        'error_data_path': error_data_path,
     }
     acc_check_config = checker_config.get_acc_check_config(**config_params)
     acc_check(acc_check_config)

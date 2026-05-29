@@ -14,6 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code
+
 import itertools
 import os
 from dataclasses import dataclass
@@ -25,9 +27,9 @@ from mindspore import Tensor
 from mindspore import _no_grad
 
 from msprobe.core.common.log import logger
-from msprobe.core.common.file_utils import change_mode, create_directory, write_df_to_csv
+from msprobe.core.common.file_utils import create_directory, write_df_to_csv
 from msprobe.core.monitor.anomaly_processor import AnomalyDataFactory, AnomalyTurbulence, AnomalyScanner
-from msprobe.core.common.const import FileCheckConst, MonitorConst
+from msprobe.core.common.const import MonitorConst
 
 
 class BCOLORS:
@@ -97,8 +99,7 @@ class BaseWriterWithAD:
         return result
 
     def get_anomalies(self):
-        """返回已检测到的异常列表
-        """
+        """返回已检测到的异常列表"""
         return self.anomalies
 
     def clear_anomalies(self):
@@ -122,8 +123,10 @@ class BaseWriterWithAD:
         if detected:
             if rule_name == AnomalyTurbulence.name and tag[-1] not in ["norm", "mean"]:
                 return
-            exception_message = (f"Rule {rule_name} reports anomaly signal in {tag} at step {global_step}, "
-                                 f"current value {scalar_value}, history mean {avg}.")
+            exception_message = (
+                f"Rule {rule_name} reports anomaly signal in {tag} at step {global_step}, "
+                f"current value {scalar_value}, history mean {avg}."
+            )
             logger.info(f"{BCOLORS.WARNING}> {exception_message}{BCOLORS.ENDC}")
             # append to self.anomalies for dump
             if self.anomaly_factory:
@@ -177,7 +180,6 @@ class CSVWriterWithAD(BaseWriterWithAD):
         path = writer_input.path
         self.log_dir = path
         create_directory(path)
-        change_mode(path, FileCheckConst.DATA_DIR_AUTHORITY)
         self.context_dict = defaultdict(list)
         self.header = []
         self.step_count_per_record = writer_input.step_count_per_record
@@ -210,7 +212,7 @@ class CSVWriterWithAD(BaseWriterWithAD):
         write_df_to_csv(new_data, filepath, mode='a+', header=False)
         self.context_dict = defaultdict(list)
 
-    def add_scalar(self, tag, scalar_value, global_step, need_explain=False):
+    def add_scalar(self, tag, scalar_value, global_step=None, need_explain=False):
         """
         ('0:1.post_attention_norm.weight/rank0/pre_grad', 'min')
         """

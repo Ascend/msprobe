@@ -14,6 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code
+
 import datetime
 import os
 import re
@@ -24,7 +26,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from msprobe.core.common.const import MonitorConst
-from msprobe.core.common.file_utils import read_csv, create_directory, remove_path, recursive_chmod
+from msprobe.core.common.file_utils import read_csv, create_directory, remove_path
 from msprobe.core.common.utils import check_process_num
 from msprobe.core.common.decorator import recursion_depth_decorator
 from msprobe.core.monitor.utils import get_target_output_dir
@@ -32,8 +34,14 @@ from msprobe.pytorch.common.log import logger
 
 
 all_data_type_list = [
-    "actv", "actv_grad", "exp_avg", "exp_avg_sq",
-    "grad_unreduced", "grad_reduced", "param_origin", "param_updated"
+    "actv",
+    "actv_grad",
+    "exp_avg",
+    "exp_avg_sq",
+    "grad_unreduced",
+    "grad_reduced",
+    "param_origin",
+    "param_updated",
 ]
 CSV_FILE_SUFFIX = r"_\d+-\d+\.csv"
 
@@ -61,7 +69,7 @@ def parse_step_fn(filepath):
         if vpp_name not in parse_step_result:
             parse_step_result[vpp_name] = {}
         if step in parse_step_result[vpp_name]:
-            raise Exception(f"duplicated step({step})")
+            raise Exception(f"duplicated step({step})")  # pylint: disable=broad-exception-raised
         parse_step_result[vpp_name][step] = ops_result
     return parse_step_result
 
@@ -73,7 +81,7 @@ def write_step(output_dirpath, parse_step_result, rank, data_type):
         logger.warning(f"existing path {tb_output_path} will be recovered")
     writer = SummaryWriter(tb_output_path)
     for vpp_name, step_data_dict in parse_step_result.items():
-        step_data_list = [(step, ops) for step, ops in step_data_dict.items()]
+        step_data_list = list(step_data_dict.items())
         step_data_list.sort(key=lambda x: x[0])
         for step_data in step_data_list:
             step = step_data[0]
@@ -92,9 +100,9 @@ def update_dict(dict1, dict2):
                 try:
                     update_dict(dict1[key], value)
                 except Exception as e:
-                    raise Exception(f"Error updating nested dict failed at key '{key}': {e}") from e
+                    raise Exception(f"Error updating nested dict failed at key '{key}': {e}") from e  # pylint: disable=broad-exception-raised
             else:
-                raise Exception(f"duplicate key: {key}")
+                raise Exception(f"duplicate key: {key}")  # pylint: disable=broad-exception-raised
         else:
             dict1[key] = value
     return dict1
@@ -133,12 +141,7 @@ def check_data_type_list(data_type_list):
 
 
 def csv2tensorboard_by_step(
-        monitor_path,
-        time_start=None,
-        time_end=None,
-        process_num=1,
-        data_type_list=None,
-        output_dirpath=None
+    monitor_path, time_start=None, time_end=None, process_num=1, data_type_list=None, output_dirpath=None
 ):
     check_process_num(process_num)
     check_data_type_list(data_type_list)
@@ -158,12 +161,11 @@ def csv2tensorboard_by_step(
     for pro_id in range(process_num):
         task_start_id = pro_id * task_num_per_pro
         task_end_id = (pro_id + 1) * task_num_per_pro if pro_id != process_num - 1 else task_num
-        task_dirs = target_output_dirs[task_start_id: task_end_id]
+        task_dirs = target_output_dirs[task_start_id:task_end_id]
 
         p = Process(target=csv2tb_by_step_work, args=(task_dirs, output_dirpath, target_data_type))
         processes.append(p)
         p.start()
     for p in processes:
         p.join()
-    recursive_chmod(output_dirpath)
     logger.info(f"output has been saved to: {output_dirpath}")

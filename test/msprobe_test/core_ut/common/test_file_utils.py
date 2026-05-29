@@ -193,7 +193,6 @@ class TestFileOperations:
             make_dir(self.test_dir)
             mock_makedirs.assert_called_once_with(
                 str(self.test_dir),
-                mode=FileCheckConst.DATA_DIR_AUTHORITY,
                 exist_ok=True
             )
 

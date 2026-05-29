@@ -207,6 +207,7 @@ class TestLoadPt(unittest.TestCase):
         if os.path.isfile(self.temp_file.name):
             os.remove(self.temp_file.name)
 
+
 class TestSavePT(unittest.TestCase):
 
     def setUp(self):
@@ -222,16 +223,18 @@ class TestSavePT(unittest.TestCase):
     @patch('msprobe.pytorch.common.utils.save_pt')
     @patch('os.path.realpath', return_value='temp_tensor.pt')
     @patch('msprobe.core.common.file_utils.check_path_before_create')
-    @patch('msprobe.core.common.file_utils.change_mode')
-    def test_save_pt_success(self, mock_change_mode, mock_check_path, mock_realpath, mock_torch_save):
+    def test_save_pt_success(self, mock_check_path, mock_realpath, mock_torch_save):
         mock_torch_save(self.tensor, self.filepath)
         mock_torch_save.assert_called_once_with(self.tensor, self.filepath)
 
     @patch('torch.save', side_effect=Exception("Save failed"))
     @patch('os.path.realpath', return_value='temp_tensor.pt')
     @patch('msprobe.core.common.file_utils.check_path_before_create')
-    @patch('msprobe.core.common.file_utils.change_mode')
-    def test_save_pt_failure(self, mock_change_mode, mock_check_path, mock_realpath, mock_torch_save):
+    def test_save_pt_failure(self, mock_check_path, mock_realpath, mock_torch_save):
         with self.assertRaises(RuntimeError) as context:
             save_pt(self.tensor, self.filepath)
         self.assertIn("save pt file temp_tensor.pt failed", str(context.exception))
+
+
+if __name__ == "__main__":
+    unittest.main()

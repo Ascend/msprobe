@@ -23,8 +23,8 @@ import pandas as pd
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from msprobe.core.common.const import FileCheckConst, MonitorConst
-from msprobe.core.common.file_utils import change_mode, create_directory, write_df_to_csv
+from msprobe.core.common.const import MonitorConst
+from msprobe.core.common.file_utils import create_directory, write_df_to_csv
 from msprobe.core.monitor.anomaly_processor import AnomalyDataFactory, AnomalyTurbulence, AnomalyScanner
 from msprobe.pytorch.common.log import logger
 
@@ -96,8 +96,7 @@ class BaseWriterWithAD:
         return result
 
     def get_anomalies(self):
-        """返回已检测到的异常列表
-        """
+        """返回已检测到的异常列表"""
         return self.anomalies
 
     def clear_anomalies(self):
@@ -121,8 +120,10 @@ class BaseWriterWithAD:
         if detected:
             if rule_name == AnomalyTurbulence.name and tag[-1] not in ["norm", "mean"]:
                 return
-            exception_message = (f"Rule {rule_name} reports anomaly signal in {tag} at step {global_step}, "
-                                 f"current value {scalar_value}, history mean {avg}.")
+            exception_message = (
+                f"Rule {rule_name} reports anomaly signal in {tag} at step {global_step}, "
+                f"current value {scalar_value}, history mean {avg}."
+            )
             logger.info(f"{BCOLORS.WARNING}> {exception_message}{BCOLORS.ENDC}")
             # append to self.anomalies for dump
             if self.anomaly_factory:
@@ -181,7 +182,6 @@ class CSVWriterWithAD(BaseWriterWithAD):
         path = writer_input.path
         self.log_dir = path
         create_directory(path)
-        change_mode(path, FileCheckConst.DATA_DIR_AUTHORITY)
         self.context_dict = defaultdict(list)
         self.header = []
         self.step_count_per_record = writer_input.step_count_per_record
@@ -214,7 +214,7 @@ class CSVWriterWithAD(BaseWriterWithAD):
         write_df_to_csv(new_data, filepath, mode='a+', header=False)
         self.context_dict = defaultdict(list)
 
-    def add_scalar(self, tag, scalar_value, global_step):
+    def add_scalar(self, tag, scalar_value, global_step=None):
         """
         ('0:1.post_attention_norm.weight/rank0/pre_grad', 'min')
         """
@@ -244,18 +244,17 @@ class CSVWriterWithAD(BaseWriterWithAD):
 
 class SummaryWriterWithAD(SummaryWriter, BaseWriterWithAD):
     def __init__(self, writer_input: WriterInput):
-
         path = writer_input.path
         if not os.path.exists(path):
             create_directory(path)
         try:
-            super(SummaryWriter, self).__init__(writer_input)
+            super(SummaryWriter, self).__init__(writer_input)  # pylint: disable=bad-super-call
             super().__init__(path)
         except Exception as e:
             logger.error(f'error when init summary writer at {path}: {e}')
             raise ValueError("Init summary writer error.") from e
 
-    def add_scalar(self, tag, scalar_value, global_step):
-        super(SummaryWriter, self).add_scalar(tag, scalar_value, global_step)
+    def add_scalar(self, tag, scalar_value, global_step=None):
+        super(SummaryWriter, self).add_scalar(tag, scalar_value, global_step)  # pylint: disable=bad-super-call
         tag = f'{tag[0]}_{tag[1]}'
         super().add_scalar(tag, scalar_value, global_step)

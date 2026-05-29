@@ -306,6 +306,7 @@ class NpuDumpData(DumpData):
             self.output_path, NPU_DUMP_DATA_GOLDEN_PATH if self.is_golden else NPU_DUMP_DATA_BASE_PATH
         )
         create_directory(npu_data_output_dir)
+        os.chmod(npu_data_output_dir, 0o750)  # nosec B103: required permission for ais_bench data dir is 750
         model_name, extension = utils.get_model_name_and_extension(self.target_path)
         acl_json_path = os.path.join(npu_data_output_dir, ACL_JSON_PATH)
         if not os.path.exists(acl_json_path):

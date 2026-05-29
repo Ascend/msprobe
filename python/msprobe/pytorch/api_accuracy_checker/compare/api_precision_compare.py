@@ -17,20 +17,21 @@
 # -------------------------------------------------------------------------
 
 import argparse
-import math
 import os
 import sys
 from collections import namedtuple
 
-import torch
-import pandas as pd
 
 from msprobe.core.common.file_utils import write_csv, read_csv
 from msprobe.pytorch.api_accuracy_checker.common.config import msCheckerConfig
-from msprobe.pytorch.api_accuracy_checker.compare.compare_utils import API_PRECISION_COMPARE_RESULT_FILE_NAME, \
-    API_PRECISION_COMPARE_DETAILS_FILE_NAME, BENCHMARK_COMPARE_SUPPORT_LIST, API_PRECISION_COMPARE_UNSUPPORT_LIST, \
-    ApiPrecisionCompareColumn, absolute_standard_api, binary_standard_api, ulp_standard_api, thousandth_standard_api, \
-    BINARY_COMPARE_UNSUPPORT_LIST, ULP_COMPARE_SUPPORT_LIST, convert_str_to_float, CompareMessage
+from msprobe.pytorch.api_accuracy_checker.compare.compare_utils import (
+    API_PRECISION_COMPARE_RESULT_FILE_NAME,
+    API_PRECISION_COMPARE_DETAILS_FILE_NAME,
+    API_PRECISION_COMPARE_UNSUPPORT_LIST,
+    ApiPrecisionCompareColumn,
+    convert_str_to_float,
+    CompareMessage,
+)
 from msprobe.pytorch.api_accuracy_checker.compare.compare_input import PrecisionCompareInput
 from msprobe.pytorch.api_accuracy_checker.precision_standard.standard_register import StandardRegistry
 from msprobe.pytorch.api_accuracy_checker.precision_standard.ulp_compare import UlpPrecisionCompare
@@ -39,44 +40,50 @@ from msprobe.pytorch.api_accuracy_checker.precision_standard.standard_config imp
 from msprobe.pytorch.api_accuracy_checker.compare.compare_column import ApiPrecisionOutputColumn
 from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check_utils import get_validated_result_csv_path
 from msprobe.pytorch.api_accuracy_checker.common.utils import extract_detailed_api_segments, extract_basic_api_segments
-from msprobe.core.common.file_utils import FileChecker, change_mode, create_directory
+from msprobe.core.common.file_utils import FileChecker, create_directory
 from msprobe.pytorch.common.log import logger
 from msprobe.core.common.utils import CompareException, check_op_str_pattern_valid
 from msprobe.core.common.const import Const, CompareConst, FileCheckConst
 
 CompareConfig = namedtuple('CompareConfig', ['npu_csv_path', 'gpu_csv_path', 'result_csv_path', 'details_csv_path'])
-BenchmarkInfNanConsistency = namedtuple('BenchmarkInfNanConsistency', ['small_value_inf_nan_consistency', 
-                                                                           'rmse_inf_nan_consistency', 
-                                                                           'max_rel_inf_nan_consistency', 
-                                                                           'mean_rel_inf_nan_consistency', 
-                                                                           'eb_inf_nan_consistency'])
+BenchmarkInfNanConsistency = namedtuple(
+    'BenchmarkInfNanConsistency',
+    [
+        'small_value_inf_nan_consistency',
+        'rmse_inf_nan_consistency',
+        'max_rel_inf_nan_consistency',
+        'mean_rel_inf_nan_consistency',
+        'eb_inf_nan_consistency',
+    ],
+)
 UNSUPPORTED_MESSAGE = 'This data type does not support benchmark compare.'
 
 
 benchmark_message = {
     "small_value_err_status": {
         CompareConst.ERROR: "ERROR: 小值域错误比值超过阈值\n",
-        CompareConst.WARNING: "WARNING: 小值域错误比值超过阈值\n"
+        CompareConst.WARNING: "WARNING: 小值域错误比值超过阈值\n",
     },
     "rmse_status": {
         CompareConst.ERROR: "ERROR: 均方根误差比值超过阈值\n",
-        CompareConst.WARNING: "WARNING: 均方根误差比值超过阈值\n"
+        CompareConst.WARNING: "WARNING: 均方根误差比值超过阈值\n",
     },
     "max_rel_err_status": {
         CompareConst.ERROR: "ERROR: 相对误差最大值比值超过阈值\n",
-        CompareConst.WARNING: "WARNING: 相对误差最大值比值超过阈值\n"
+        CompareConst.WARNING: "WARNING: 相对误差最大值比值超过阈值\n",
     },
     "mean_rel_err_status": {
         CompareConst.ERROR: "ERROR: 相对误差平均值比值超过阈值\n",
-        CompareConst.WARNING: "WARNING: 相对误差平均值比值超过阈值\n"
-    }
+        CompareConst.WARNING: "WARNING: 相对误差平均值比值超过阈值\n",
+    },
 }
 
 
 def write_detail_csv(content, save_path):
     rows = []
-    content = ["{:.{}f}".format(item, msCheckerConfig.precision) \
-                   if isinstance(item, float) else item for item in content]
+    content = [
+        "{:.{}f}".format(item, msCheckerConfig.precision) if isinstance(item, float) else item for item in content
+    ]
     rows.append(content)
     write_csv(rows, save_path)
 
@@ -99,12 +106,12 @@ def api_precision_compare(config):
     try:
         npu_data = read_csv(config.npu_csv_path)
     except Exception as err:
-        logger.error(f"Open npu csv Error: %s" % str(err))
+        logger.error("Open npu csv Error: %s" % str(err))
     check_csv_columns(npu_data.columns, "npu_csv")
     try:
         gpu_data = read_csv(config.gpu_csv_path)
     except Exception as err:
-        logger.error(f"Open gpu csv Error: %s" % str(err))
+        logger.error("Open gpu csv Error: %s" % str(err))
     check_csv_columns(gpu_data.columns, "gpu_csv")
     detail_csv_title = [ApiPrecisionCompareColumn.get_detail_csv_title()]
     result_csv_title = [ApiPrecisionCompareColumn.get_result_csv_title()]
@@ -113,17 +120,15 @@ def api_precision_compare(config):
     try:
         analyse_csv(npu_data, gpu_data, config)
     except Exception as err:
-        logger.error(f"Analyse csv Error: %s" % str(err))
-    change_mode(config.result_csv_path, FileCheckConst.DATA_FILE_AUTHORITY)
-    change_mode(config.details_csv_path, FileCheckConst.DATA_FILE_AUTHORITY)
+        logger.error("Analyse csv Error: %s" % str(err))
 
 
 def analyse_csv(npu_data, gpu_data, config):
     forward_status, backward_status = [], []
-    last_api_name, last_api_dtype, last_api_full_name = None, None, None
+    last_api_name, last_api_dtype = None, None
     last_api_skip_message = ''
     registry = register_compare_func()
-    
+
     for _, row_npu in npu_data.iterrows():
         message = ''
         compare_column = ApiPrecisionOutputColumn()
@@ -138,8 +143,10 @@ def analyse_csv(npu_data, gpu_data, config):
             compare_column.compare_result = CompareConst.SKIP
             compare_column.compare_message = err_message
             write_detail_csv(compare_column.to_column_value(), config.details_csv_path)
-            write_csv([[full_api_name_with_direction_status, CompareConst.SKIP, CompareConst.SKIP, err_message]], 
-                      config.result_csv_path)
+            write_csv(
+                [[full_api_name_with_direction_status, CompareConst.SKIP, CompareConst.SKIP, err_message]],
+                config.result_csv_path,
+            )
             continue
         if row_gpu.empty:
             logger.warning(f'This API : {full_api_name_with_direction_status} does not exist in the GPU data.')
@@ -157,10 +164,12 @@ def analyse_csv(npu_data, gpu_data, config):
             compare_column.compare_result = CompareConst.SKIP
             compare_column.compare_message = str(err)
             write_detail_csv(compare_column.to_column_value(), config.details_csv_path)
-            write_csv([[full_api_name_with_direction_status, CompareConst.SKIP, CompareConst.SKIP, str(err)]], 
-                      config.result_csv_path)
+            write_csv(
+                [[full_api_name_with_direction_status, CompareConst.SKIP, CompareConst.SKIP, str(err)]],
+                config.result_csv_path,
+            )
             continue
-        
+
         write_detail_csv(compare_column.to_column_value(), config.details_csv_path)
 
         if last_api_name is not None and api_full_name != last_api_name:
@@ -189,8 +198,9 @@ def analyse_csv(npu_data, gpu_data, config):
 
         if direction_status == 'forward':
             forward_status.append(new_status)
-            last_api_skip_message = str(row_npu[ApiPrecisionCompareColumn.MESSAGE]) if new_status == CompareConst.SKIP \
-                                    else ''
+            last_api_skip_message = (
+                str(row_npu[ApiPrecisionCompareColumn.MESSAGE]) if new_status == CompareConst.SKIP else ''
+            )
         elif direction_status == 'backward':
             backward_status.append(new_status)
         else:
@@ -215,9 +225,11 @@ def analyse_csv(npu_data, gpu_data, config):
 def get_api_status(row_npu, row_gpu, api_name, compare_column, registry):
     full_api_name_with_direction_status = row_npu[ApiPrecisionCompareColumn.API_NAME]
     # 当前API的输出为空（例如反向过程中requires_grad=False）,跳过比对
-    if row_npu[ApiPrecisionCompareColumn.DEVICE_DTYPE].isspace() or \
-        row_npu[ApiPrecisionCompareColumn.DEVICE_DTYPE] in API_PRECISION_COMPARE_UNSUPPORT_LIST or \
-        row_npu[ApiPrecisionCompareColumn.SHAPE] == CompareConst.ZERO_SHAPE:
+    if (
+        row_npu[ApiPrecisionCompareColumn.DEVICE_DTYPE].isspace()
+        or row_npu[ApiPrecisionCompareColumn.DEVICE_DTYPE] in API_PRECISION_COMPARE_UNSUPPORT_LIST
+        or row_npu[ApiPrecisionCompareColumn.SHAPE] == CompareConst.ZERO_SHAPE
+    ):
         compare_column.api_name = full_api_name_with_direction_status
         compare_column.compare_result = CompareConst.SKIP
         compare_column.compare_message = row_npu[ApiPrecisionCompareColumn.MESSAGE]
@@ -240,11 +252,13 @@ def get_in_dtype(row_npu):
 
 
 def print_test_success(api_full_name, forward_result, backward_result):
-    is_fwd_success = (forward_result == CompareConst.PASS)
-    is_bwd_success = (backward_result == CompareConst.PASS or backward_result == CompareConst.SPACE)
-    logger.info(f"running api_full_name {api_full_name} compare, "
-                f"is_fwd_success: {is_fwd_success}, "
-                f"is_bwd_success: {is_bwd_success}")
+    is_fwd_success = forward_result == CompareConst.PASS
+    is_bwd_success = backward_result in (CompareConst.PASS, CompareConst.SPACE)
+    logger.info(
+        f"running api_full_name {api_full_name} compare, "
+        f"is_fwd_success: {is_fwd_success}, "
+        f"is_bwd_success: {is_bwd_success}"
+    )
 
 
 def check_error_rate(npu_error_rate):
@@ -358,7 +372,7 @@ def record_accumulative_error_compare_result(input_data):
     accumulative_error_compare_result = CompareConst.PASS
     if CompareConst.ERROR in [threshold_result, eb_result]:
         accumulative_error_compare_result = CompareConst.ERROR
-    
+
     compare_column.inf_nan_error_ratio = absolute_threshold_result.get("inf_nan_error_ratio")
     compare_column.inf_nan_error_ratio_status = absolute_threshold_result.get("inf_nan_result")
     compare_column.rel_err_ratio = absolute_threshold_result.get("rel_err_ratio")
@@ -391,8 +405,11 @@ def check_eb(row_npu):
 
 
 def check_thousandth_rate(thousandth_rate):
-    return CompareConst.PASS if convert_str_to_float(thousandth_rate) >= CompareConst.THOUSANDTH_PASS_VALUE \
+    return (
+        CompareConst.PASS
+        if convert_str_to_float(thousandth_rate) >= CompareConst.THOUSANDTH_PASS_VALUE
         else CompareConst.ERROR
+    )
 
 
 def record_thousandth_threshold_result(input_data):
@@ -432,15 +449,32 @@ def _api_precision_compare_command(args):
     api_precision_compare(compare_config)
 
 
+# pylint: disable=duplicate-code
 def _api_precision_compare_parser(parser):
-    parser.add_argument("-npu", "--npu_csv_path", dest="npu_csv_path", default="", type=str,
-                        help="<Required> , Accuracy_checking_details.csv generated on the NPU by using the "
-                             "api_accuracy_checker tool.",
-                        required=True)
-    parser.add_argument("-gpu", "--gpu_csv_path", dest="gpu_csv_path", default="", type=str,
-                        help="<Required> Accuracy_checking_details.csv generated on the GPU by using the "
-                             "api_accuracy_checker tool.",
-                        required=True)
-    parser.add_argument("-o", "--out_path", dest="out_path", default="", type=str,
-                        help="<optional> The api precision compare task result out path.",
-                        required=False)
+    parser.add_argument(
+        "-npu",
+        "--npu_csv_path",
+        dest="npu_csv_path",
+        default="",
+        type=str,
+        help="<Required> , Accuracy_checking_details.csv generated on the NPU by using the api_accuracy_checker tool.",
+        required=True,
+    )
+    parser.add_argument(
+        "-gpu",
+        "--gpu_csv_path",
+        dest="gpu_csv_path",
+        default="",
+        type=str,
+        help="<Required> Accuracy_checking_details.csv generated on the GPU by using the api_accuracy_checker tool.",
+        required=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--out_path",
+        dest="out_path",
+        default="",
+        type=str,
+        help="<optional> The api precision compare task result out path.",
+        required=False,
+    )

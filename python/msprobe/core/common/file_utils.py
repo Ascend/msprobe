@@ -48,13 +48,7 @@ class FileChecker:
         file_type(str): The correct file type for file
     """
 
-    def __init__(
-        self,
-        file_path,
-        path_type,
-        ability=None,
-        file_type=None
-    ):
+    def __init__(self, file_path, path_type, ability=None, file_type=None):
         self.file_path = file_path
         self.path_type = self._check_path_type(path_type)
         self.ability = self._check_ability_type(ability)
@@ -110,6 +104,7 @@ class FileOpen:
         file_path: The file or dictionary path to be opened.
         mode(str): The file open mode
     """
+
     SUPPORT_READ_MODE = ["r", "rb"]
     SUPPORT_WRITE_MODE = ["w", "wb", "a", "ab"]
     SUPPORT_READ_WRITE_MODE = ["r+", "rb+", "w+", "wb+", "a+", "ab+"]
@@ -126,7 +121,7 @@ class FileOpen:
         if binary_mode not in self.mode:
             self._handle = open(self.file_path, self.mode, encoding=self.encoding)
         else:
-            self._handle = open(self.file_path, self.mode)
+            self._handle = open(self.file_path, self.mode)  # pylint: disable=unspecified-encoding
         return self._handle
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -171,8 +166,7 @@ def check_link(path):
 
 def check_path_length(path, name_length=None):
     file_max_name_length = name_length if name_length else FileCheckConst.FILE_NAME_LENGTH
-    if len(path) > FileCheckConst.DIRECTORY_LENGTH or \
-            len(os.path.basename(path)) > file_max_name_length:
+    if len(path) > FileCheckConst.DIRECTORY_LENGTH or len(os.path.basename(path)) > file_max_name_length:
         logger.error('The file path length exceeds limit.')
         raise FileCheckException(FileCheckException.ILLEGAL_PATH_ERROR)
 
@@ -284,11 +278,12 @@ def make_dir(dir_path):
     try:
         parent_dir_checker = FileChecker(os.path.dirname(dir_path), FileCheckConst.DIR)
         parent_dir_checker.common_check()
-        os.makedirs(dir_path, mode=FileCheckConst.DATA_DIR_AUTHORITY, exist_ok=True)
+        os.makedirs(dir_path, exist_ok=True)
     except OSError as ex:
-        raise FileCheckException(FileCheckException.ILLEGAL_PATH_ERROR,
-                                 f"Failed to create {dir_path}. "
-                                 f"Please check the path permission or disk space. {str(ex)}") from ex
+        raise FileCheckException(
+            FileCheckException.ILLEGAL_PATH_ERROR,
+            f"Failed to create {dir_path}. Please check the path permission or disk space. {str(ex)}",
+        ) from ex
     dir_checker.common_check()
 
 
@@ -339,7 +334,7 @@ def check_file_or_directory_path(path, isdir=False, is_strict=False, file_suffix
         if check_group_writable(path):
             raise FileCheckException(
                 FileCheckException.FILE_PERMISSION_ERROR,
-                f"The directory/file must not allow write access to group. Directory/File path: {path}"
+                f"The directory/file must not allow write access to group. Directory/File path: {path}",
             )
 
 
@@ -361,7 +356,7 @@ def find_existing_path(path, depth=16):
         return find_existing_path(parent_path, depth - 1)
     else:
         raise ValueError("Output path was not valid.")
-    
+
 
 def listdir_path(path):
     check_path_exists(path)
@@ -376,7 +371,7 @@ def check_file_exist(path):
 
 def check_and_get_real_path(path, ability, file_type=None, must_exist=True, is_strict=False):
     ori_path = path
-    if ability == FileCheckConst.READ_ABLE or ability == FileCheckConst.EXECUTE_ABLE:
+    if ability in (FileCheckConst.READ_ABLE, FileCheckConst.EXECUTE_ABLE):
         must_exist = True
     if not must_exist:
         path = find_existing_path(path)
@@ -391,56 +386,17 @@ def check_and_get_real_path(path, ability, file_type=None, must_exist=True, is_s
     if is_strict and check_group_writable(file_check.file_path):
         raise FileCheckException(
             FileCheckException.FILE_PERMISSION_ERROR,
-            f"The directory must not allow write access to group. Directory path: {path}"
+            f"The directory must not allow write access to group. Directory path: {path}",
         )
 
     return os.path.realpath(os.path.expanduser(ori_path))
 
 
-def change_mode(path, mode):
-    if not os.path.exists(path) or os.path.islink(path):
-        return
-    try:
-        os.chmod(path, mode)
-    except PermissionError as ex:
-        raise FileCheckException(FileCheckException.FILE_PERMISSION_ERROR,
-                                 'Failed to change {} authority. {}'.format(path, str(ex))) from ex
-
-
-@recursion_depth_decorator('msprobe.core.common.file_utils.recursive_chmod')
-def recursive_chmod(path):
-    """
-    递归地修改目录及其子目录和文件的权限，文件修改为640，目录修改为750。
-    遍历过程中会跳过软链接路径，并打印 warning 提示。
-
-    :param path: 要修改权限的目录路径
-    """
-    if os.path.islink(path):
-        logger.warning(f"Skip chmod for symbolic link path: {path}")
-        return
-
-    for _, dirs, files in os.walk(path, followlinks=False):
-        safe_dirs = []
-        for dir_name in dirs:
-            dir_path = os.path.join(path, dir_name)
-            if os.path.islink(dir_path):
-                logger.warning(f"Skip chmod for symbolic link directory: {dir_path}")
-                continue
-            safe_dirs.append(dir_name)
-        dirs[:] = safe_dirs
-        for file_name in files:
-            file_path = os.path.join(path, file_name)
-            change_mode(file_path, FileCheckConst.DATA_FILE_AUTHORITY)
-        for dir_name in dirs:
-            dir_path = os.path.join(path, dir_name)
-            change_mode(dir_path, FileCheckConst.DATA_DIR_AUTHORITY)
-            recursive_chmod(dir_path)
-        break
-
-
 def path_len_exceeds_limit(file_path):
-    return len(os.path.realpath(file_path)) > FileCheckConst.DIRECTORY_LENGTH or \
-        len(os.path.basename(file_path)) > FileCheckConst.FILE_NAME_LENGTH
+    return (
+        len(os.path.realpath(file_path)) > FileCheckConst.DIRECTORY_LENGTH
+        or len(os.path.basename(file_path)) > FileCheckConst.FILE_NAME_LENGTH
+    )
 
 
 def check_file_type(path):
@@ -457,7 +413,7 @@ def check_file_type(path):
     elif os.path.isfile(path):
         return FileCheckConst.FILE
     else:
-        logger.error(f'path does not exist, please check!')
+        logger.error('path does not exist, please check!')
         raise FileCheckException(FileCheckException.INVALID_FILE_ERROR)
 
 
@@ -526,7 +482,6 @@ def save_json(json_path, data, indent=None, mode="w"):
     except Exception as e:
         logger.error(f'Save json file "{os.path.basename(json_path)}" failed.')
         raise RuntimeError(f"Save json file {json_path} failed.") from e
-    change_mode(json_path, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def save_yaml(yaml_path, data):
@@ -540,7 +495,6 @@ def save_yaml(yaml_path, data):
     except Exception as e:
         logger.error(f'Save yaml file "{os.path.basename(yaml_path)}" failed.')
         raise RuntimeError(f"Save yaml file {yaml_path} failed.") from e
-    change_mode(yaml_path, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def check_df_malicious(df, file_path, file_type):
@@ -552,14 +506,20 @@ def check_df_malicious(df, file_path, file_type):
     """
     for row_name in df.index:
         if not check_value_is_valid(row_name):
-            raise RuntimeError(f"Malicious value [{row_name}] not allowed to be written into the {file_type}: {file_path}.")
+            raise RuntimeError(
+                f"Malicious value [{row_name}] not allowed to be written into the {file_type}: {file_path}."
+            )
     for col_name in df.columns:
         if not check_value_is_valid(col_name):
-            raise RuntimeError(f"Malicious value [{col_name}] not allowed to be written into the {file_type}: {file_path}.")
+            raise RuntimeError(
+                f"Malicious value [{col_name}] not allowed to be written into the {file_type}: {file_path}."
+            )
     for _, row in df.iterrows():
         for _, value in row.items():
             if not check_value_is_valid(value):
-                raise RuntimeError(f"Malicious value [{value}] not allowed to be written into the {file_type}: {file_path}.")
+                raise RuntimeError(
+                    f"Malicious value [{value}] not allowed to be written into the {file_type}: {file_path}."
+                )
 
 
 def save_excel(path, data):
@@ -581,8 +541,9 @@ def save_excel(path, data):
             slice_num = (df_length + CompareConst.MAX_EXCEL_LENGTH - 1) // CompareConst.MAX_EXCEL_LENGTH
             slice_size = (df_length + slice_num - 1) // slice_num
             for i in range(slice_num):
-                df.iloc[i * slice_size: min((i + 1) * slice_size, df_length)] \
-                    .to_excel(writer, sheet_name=f'{base_name}_part_{i}' if base_name else f'part_{i}', index=False)
+                df.iloc[i * slice_size : min((i + 1) * slice_size, df_length)].to_excel(
+                    writer, sheet_name=f'{base_name}_part_{i}' if base_name else f'part_{i}', index=False
+                )
 
     check_path_before_create(path)
     path = os.path.realpath(path)
@@ -600,7 +561,6 @@ def save_excel(path, data):
     except Exception as e:
         logger.error(f'Save excel file "{os.path.basename(path)}" failed.')
         raise RuntimeError(f"Save excel file {path} failed.") from e
-    change_mode(path, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def move_directory(src_path, dst_path):
@@ -614,7 +574,6 @@ def move_directory(src_path, dst_path):
     except Exception as e:
         logger.error(f"move directory {src_path} to {dst_path} failed")
         raise RuntimeError(f"move directory {src_path} to {dst_path} failed") from e
-    change_mode(dst_path, FileCheckConst.DATA_DIR_AUTHORITY)
 
 
 def move_file(src_path, dst_path):
@@ -625,7 +584,6 @@ def move_file(src_path, dst_path):
     except Exception as e:
         logger.error(f"move file {src_path} to {dst_path} failed")
         raise RuntimeError(f"move file {src_path} to {dst_path} failed") from e
-    change_mode(dst_path, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def save_npy(data, filepath):
@@ -636,7 +594,6 @@ def save_npy(data, filepath):
     except Exception as e:
         logger.error(f"The numpy file failed to save. Please check the path: {filepath}.")
         raise RuntimeError(f"Save numpy file {filepath} failed.") from e
-    change_mode(filepath, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def save_npy_to_txt(data, dst_file='', align=0):
@@ -656,7 +613,6 @@ def save_npy_to_txt(data, dst_file='', align=0):
         np.savetxt(dst_file, data.reshape((-1, align)), delimiter=' ', fmt='%g')
     except Exception as e:
         logger.error("An unexpected error occurred: %s when savetxt to %s" % (str(e), dst_file))
-    change_mode(dst_file, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def write_csv(data, filepath, mode="a+", malicious_check=False):
@@ -675,8 +631,9 @@ def write_csv(data, filepath, mode="a+", malicious_check=False):
         for row in data:
             for cell in row:
                 if not csv_value_is_valid(cell):
-                    raise RuntimeError(f"Malicious value [{cell}] is not allowed "
-                                       f"to be written into the csv: {filepath}.")
+                    raise RuntimeError(
+                        f"Malicious value [{cell}] is not allowed to be written into the csv: {filepath}."
+                    )
 
     check_path_before_create(filepath)
     file_path = os.path.realpath(filepath)
@@ -687,7 +644,6 @@ def write_csv(data, filepath, mode="a+", malicious_check=False):
     except Exception as e:
         logger.error(f'Save csv file "{os.path.basename(file_path)}" failed')
         raise RuntimeError(f"Save csv file {file_path} failed.") from e
-    change_mode(filepath, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def save_numpy_to_bin(numpy_data, saved_path):
@@ -696,7 +652,6 @@ def save_numpy_to_bin(numpy_data, saved_path):
     except Exception as e:
         logger.error(f"Save numpy data to {saved_path} failed")
         raise RuntimeError from e
-    change_mode(saved_path, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def read_csv(filepath, as_pd=True, header='infer'):
@@ -740,7 +695,6 @@ def write_df_to_csv(data, filepath, mode="w", header=True):
             output_file = os.path.join(base_path, f"{name}{suffix}{ext}")
 
             data_slice.to_csv(output_file, mode=mode, header=header, index=False)
-            change_mode(output_file, FileCheckConst.DATA_FILE_AUTHORITY)
 
     except Exception as e:
         logger.error(f'Save csv file "{output_file}" failed: {e}')
@@ -804,7 +758,7 @@ def check_zip_file(zip_file_path, extract_dir=None):
             raise ValueError(f"Too many files in {os.path.basename(zip_file_path)}")
         if extract_dir:
             extract_dir = os.path.realpath(extract_dir)
-        
+
         for member in zip_file.infolist():
             if extract_dir:
                 # 安全校验：验证每个条目的最终路径
@@ -812,8 +766,10 @@ def check_zip_file(zip_file_path, extract_dir=None):
 
                 # 确保最终路径在指定的解压目录内
                 if not member_path.startswith(extract_dir + os.sep):
-                    raise ValueError(f"Path traversal detected: {member.filename} attempts to "
-                                     f"write outside of the extraction directory.")
+                    raise ValueError(
+                        f"Path traversal detected: {member.filename} attempts to "
+                        f"write outside of the extraction directory."
+                    )
 
             # 检查绝对路径（防止路径穿越攻击，如 /etc/passwd）
             if os.path.isabs(member.filename):
@@ -853,7 +809,6 @@ def create_file_with_list(result_list, filepath):
     except Exception as e:
         logger.error(f'Save list to file "{os.path.basename(filepath)}" failed.')
         raise RuntimeError(f"Save list to file {os.path.basename(filepath)} failed.") from e
-    change_mode(filepath, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def create_file_with_content(data, filepath):
@@ -867,7 +822,6 @@ def create_file_with_content(data, filepath):
     except Exception as e:
         logger.error(f'Save content to file "{os.path.basename(filepath)}" failed.')
         raise RuntimeError(f"Save content to file {os.path.basename(filepath)} failed.") from e
-    change_mode(filepath, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def check_file_whether_exist_or_not(filepath):
@@ -901,7 +855,6 @@ def add_file_to_zip(zip_file_path, file_path, arc_path=None):
         raise RuntimeError(f"add file to zip {os.path.basename(zip_file_path)} failed.") from e
     finally:
         proc_lock.release()
-    change_mode(zip_file_path, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def create_file_in_zip(zip_file_path, file_name, content):
@@ -918,7 +871,7 @@ def create_file_in_zip(zip_file_path, file_name, content):
     if zip_size + sys.getsizeof(content) > FileCheckConst.MAX_ZIP_SIZE:
         raise RuntimeError(f"ZIP file size exceeds the limit of {FileCheckConst.MAX_ZIP_SIZE} bytes")
     try:
-        with open(zip_file_path, 'a+') as f:  # 必须用 'a+' 模式才能 flock
+        with open(zip_file_path, 'ab+') as f:  # 必须用 'a+' 模式才能 flock; zip 本身是二进制文件, 加b用于屏蔽pylint
             # 2. 获取排他锁（阻塞直到成功）
             fcntl.flock(f, fcntl.LOCK_EX)  # LOCK_EX: 独占锁
             with zipfile.ZipFile(zip_file_path, 'a') as zip_file:
@@ -929,7 +882,6 @@ def create_file_in_zip(zip_file_path, file_name, content):
     except Exception as e:
         logger.error(f'Save content to file "{os.path.basename(zip_file_path)}" failed.')
         raise RuntimeError(f"Save content to file {os.path.basename(zip_file_path)} failed.") from e
-    change_mode(zip_file_path, FileCheckConst.DATA_FILE_AUTHORITY)
 
 
 def extract_zip(zip_file_path, extract_dir):
@@ -958,7 +910,6 @@ def extract_zip(zip_file_path, extract_dir):
             zip_file.extractall(extract_dir)
     except Exception as e:
         raise RuntimeError(f"extract zip file {os.path.basename(zip_file_path)} failed") from e
-    recursive_chmod(extract_dir)
 
 
 def split_zip_file_path(zip_file_path):
@@ -1000,13 +951,9 @@ def find_proc_dir(base_dir):
     if len(proc_dirs) == 1:
         return proc_dirs[0]
     else:
-        logger.error(
-            f"No or multiple {Const.PROC} directories were found in the <{base_dir}>. "
-            "Expected exactly one."
-        )
+        logger.error(f"No or multiple {Const.PROC} directories were found in the <{base_dir}>. Expected exactly one.")
         raise ValueError(
-            f"No or multiple {Const.PROC} directories were found in the <{base_dir}>. "
-            "Expected exactly one."
+            f"No or multiple {Const.PROC} directories were found in the <{base_dir}>. Expected exactly one."
         )
 
 
@@ -1028,16 +975,37 @@ class DeserializationScanner:
     """反序列化风险扫描器"""
 
     DANGEROUS_METHODS = {
-        '__reduce__', '__reduce_ex__', '__setstate__', '__getstate__',
-        '__new__', '__init__', '__del__',
-        '__call__', '__enter__', '__exit__',
-        'eval', 'exec', 'compile', '__import__', 'open'
-        'os.system', 'os.popen', 'subprocess.call', 'subprocess.Popen',
+        '__reduce__',
+        '__reduce_ex__',
+        '__setstate__',
+        '__getstate__',
+        '__new__',
+        '__init__',
+        '__del__',
+        '__call__',
+        '__enter__',
+        '__exit__',
+        'eval',
+        'exec',
+        'compile',
+        '__import__',
+        'open',
+        'os.system',
+        'os.popen',
+        'subprocess.call',
+        'subprocess.Popen',
     }
 
     DANGEROUS_MODULES = {
-        'os', 'sys', 'subprocess', 'shutil', 'socket',
-        'requests', 'urllib', 'ftplib', 'smtplib',
+        'os',
+        'sys',
+        'subprocess',
+        'shutil',
+        'socket',
+        'requests',
+        'urllib',
+        'ftplib',
+        'smtplib',
     }
 
     @classmethod
@@ -1047,7 +1015,7 @@ class DeserializationScanner:
 
         try:
             text_content = content.decode('latin-1')
-        except Exception as e:
+        except Exception:
             text_content = str(content)
 
         for method in cls.DANGEROUS_METHODS:

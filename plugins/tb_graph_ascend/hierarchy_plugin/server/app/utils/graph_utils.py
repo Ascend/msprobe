@@ -91,8 +91,7 @@ class GraphUtils:
             # 检测循环引用（防止死循环）
             if current_node in node_list:
                 raise ValueError(
-                    f"{GraphUtils.t('circularReferenceError1')}"
-                    f"{current_node}{GraphUtils.t('circularReferenceError2')}"
+                    f"{GraphUtils.t('circularReferenceError1')}{current_node}{GraphUtils.t('circularReferenceError2')}"
                 )
 
         return list(reversed(node_list))  # 返回结果列表
@@ -317,7 +316,6 @@ class GraphUtils:
                     json.dump(data, f, ensure_ascii=False, indent=4)
                     f.flush()  # 强制将缓冲区内容写入操作系统
                     os.fsync(f.fileno())  # 强制将缓冲区内容写入磁盘
-                os.chmod(file_path, 0o640)
             # 最终校验（防御TOCTOU攻击）
             if os.path.islink(file_path):
                 raise RuntimeError("The file has been replaced with a symbolic link")
@@ -334,10 +332,10 @@ class GraphUtils:
 
     @staticmethod
     def safe_load_data(run_name, tag, only_check=False):
+        """Load a single .vis file from a given directory based on the tag."""
         runs = GraphState.get_global_value("runs", {})
         run_dir = runs.get(str(run_name)) or run_name
         safe_base_dir = GraphState.get_global_value("logdir")
-        """Load a single .vis file from a given directory based on the tag."""
         if run_dir is None or tag is None:
             error_message = 'The query parameters "run" and "tag" are required'
             return None, error_message
@@ -375,7 +373,7 @@ class GraphUtils:
         try:
             # 安全验证：路径长度检查
             if len(file_path) > FILE_PATH_MAX_LENGTH:
-                raise PermissionError(f"Path length exceeds limit")
+                raise PermissionError("Path length exceeds limit")
             if not is_dir and not os.path.exists(file_path):
                 return True, None
             st = os.stat(file_path)
@@ -385,28 +383,27 @@ class GraphUtils:
             # 安全验证：检查目录是否存在，如果不存在则创建
             if is_dir and not os.path.exists(real_path):
                 os.makedirs(real_path, exist_ok=True)
-                os.chmod(file_path, 0o640)
             # 权限校验：检查是否有写权限
             if not os.stat(file_path).st_mode & stat.S_IWUSR:
-                raise PermissionError(f"No write permission for directory\n")
+                raise PermissionError("No write permission for directory\n")
             # 安全验证： 非windows系统下，属主检查
             if os.name != "nt":
                 current_uid = os.getuid()
                 # 如果是root用户，跳过后续权限检查
                 if current_uid == 0:
                     logger.warning(
-                        """Security Warning: Do not run this tool as root. 
-                                   Running with elevated privileges may compromise system security. 
+                        """Security Warning: Do not run this tool as root.
+                                   Running with elevated privileges may compromise system security.
                                    Use a regular user account."""
                     )
                     return True, None
                 # 属主检查
                 if st.st_uid != current_uid:
-                    raise PermissionError(f"Directory is not owned by the current user")
+                    raise PermissionError("Directory is not owned by the current user")
                 # group和其他用户不可写检查
                 if st.st_mode & PERM_GROUP_WRITE or st.st_mode & PERM_OTHER_WRITE:
                     raise PermissionError(
-                        f"Directory has group or other write permission, there may be a risk of data tampering."
+                        "Directory has group or other write permission, there may be a risk of data tampering."
                     )
             return True, None
         except Exception as e:
@@ -427,27 +424,26 @@ class GraphUtils:
                 )
             # 安全检查：文件存在性验证
             if not os.path.exists(real_path):
-                raise FileNotFoundError(f"File or directory does not exist,please check the path and ensure it exists.")
+                raise FileNotFoundError("File or directory does not exist,please check the path and ensure it exists.")
             # 安全验证：禁止符号链接文件
             if os.path.islink(file_path):
-                raise PermissionError(f"Symbolic links are not allowed,Use a real file path instead.")
+                raise PermissionError("Symbolic links are not allowed,Use a real file path instead.")
             # 安全验证：文件类型检查（防御TOCTOU攻击）
             # 文件类型
             if not is_dir and not os.path.isfile(real_path):
                 raise PermissionError(
-                    f"Path is not a regular file."
-                    "make sure the path points to a valid file (not a directory or device)."
+                    "Path is not a regular file.make sure the path points to a valid file (not a directory or device)."
                 )
             # 目录类型
             if is_dir and not Path(real_path).is_dir():
                 raise PermissionError(
-                    f"Expected a directory, but it does not exist or is not a directory."
+                    "Expected a directory, but it does not exist or is not a directory."
                     "Please check the path and ensure it is a valid directory."
                 )
             # 可读性检查
             if not st.st_mode & stat.S_IRUSR:
                 raise PermissionError(
-                    f"Current user lacks read permission on file or directory"
+                    "Current user lacks read permission on file or directory"
                     "Run 'chmod u+r \"<path>\"' to grant read access"
                 )
             # 文件大小校验
@@ -464,21 +460,20 @@ class GraphUtils:
                 # 如果是root用户，跳过后续权限检查
                 if current_uid == 0:
                     logger.warning(
-                        """Security Warning: Do not run this tool as root. 
-                                   Running with elevated privileges may compromise system security. 
+                        """Security Warning: Do not run this tool as root.
+                                   Running with elevated privileges may compromise system security.
                                    Use a regular user account."""
                     )
                     return True, None
                 # 属主检查
                 if st.st_uid != current_uid:
                     raise PermissionError(
-                        f"File or directory is not owned by current user,"
-                        "Run 'chown <user> \"<path>\"' to fix ownership."
+                        "File or directory is not owned by current user,Run 'chown <user> \"<path>\"' to fix ownership."
                     )
                 # group和其他用户不可写检查
                 if st.st_mode & PERM_GROUP_WRITE or st.st_mode & PERM_OTHER_WRITE:
                     raise PermissionError(
-                        f"File has insecure permissions: group or others have write access. "
+                        "File has insecure permissions: group or others have write access. "
                         "Run 'chmod go-w \"<path>\"' to remove write permissions for group and others."
                     )
             return True, None

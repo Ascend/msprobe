@@ -20,8 +20,6 @@ import sys
 import numpy as np
 
 from msprobe.core.common.log import logger
-from msprobe.core.common.file_utils import change_mode
-from msprobe.core.common.const import FileCheckConst
 from msprobe.infer.offline.compare.msquickcmp.common.utils import execute_command
 from msprobe.infer.utils.util import load_file_to_read_common_check, filter_cmd
 
@@ -38,7 +36,7 @@ def convert_bin_file_to_npy(bin_file_path, npy_dir_path, cann_path):
         npy_dir_path: the dest dir to save the converted npy file
         cann_path: user or system cann_path for using msaccucmp.py
     """
-    python_version = sys.executable.split('/')[-1]
+    python_version = sys.executable.rsplit('/', maxsplit=1)[-1]
     msaccucmp_command_file_path = os.path.join(cann_path, MSACCUCMP_FILE_PATH)
     logger.info(f"convert dump data: {bin_file_path} to npy file")
     bin2npy_cmd = [python_version, msaccucmp_command_file_path, "convert", "-d", bin_file_path, "-out", npy_dir_path]
@@ -67,7 +65,7 @@ def convert_npy_to_bin(npy_input_path):
             if os.path.exists(bin_path):
                 os.remove(bin_path)
             npy_data.tofile(bin_path)
-            change_mode(bin_path, FileCheckConst.DATA_FILE_AUTHORITY)
+            os.chmod(bin_path, 0o640)
             outputs.append(bin_item)
         else:
             outputs.append(input_item)

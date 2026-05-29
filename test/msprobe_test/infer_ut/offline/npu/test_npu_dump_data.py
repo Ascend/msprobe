@@ -498,7 +498,6 @@ class TestNpuDumpData(unittest.TestCase):
 
         # 两个 input 文件各 copy 一次
         self.assertEqual(mock_copy.call_count, 2)
-        self.assertEqual(mock_chmod.call_count, 2)
 
     def test_check_input_path_param_from_generated_input_dir(self):
         inst = self._build_npu_dump_instance()
@@ -592,11 +591,8 @@ class TestNpuDumpData(unittest.TestCase):
                     "msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.parse_input_shape_to_list",
                     return_value=([(1, 3, 224, 224)], None)
                 ), \
-                patch("numpy.random.random", return_value=np.ones((1, 3, 224, 224))), \
-                patch("os.chmod") as mock_chmod:
+                patch("numpy.random.random", return_value=np.ones((1, 3, 224, 224))):
             inst._generate_inputs_data_without_aipp(tmpdir)
-
-        mock_chmod.assert_called_once()
 
     def test_generate_inputs_data_for_aipp_invalid_src_size(self):
         inst = self._build_npu_dump_instance()
@@ -658,13 +654,10 @@ class TestNpuDumpData(unittest.TestCase):
                     "msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.parse_input_shape_to_list",
                     return_value=([[1, 3, 224, 224]], None)
                 ), \
-                patch("numpy.random.randint", return_value=np.ones((1, 3, 224, 224), dtype=np.uint8)), \
-                patch("os.chmod") as mock_chmod:
+                patch("numpy.random.randint", return_value=np.ones((1, 3, 224, 224), dtype=np.uint8)):
             inst.output_path = tmpdir
             os.makedirs(os.path.join(tmpdir, "input"), exist_ok=True)
             inst._generate_inputs_data_for_aipp(tmpdir)
-
-        mock_chmod.assert_called_once()
 
 
 if __name__ == '__main__':

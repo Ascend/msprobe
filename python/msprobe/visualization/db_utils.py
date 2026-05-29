@@ -21,7 +21,7 @@ import re
 import time
 from typing import Dict
 from msprobe.core.common.log import logger
-from msprobe.core.common.file_utils import change_mode, check_path_before_create, FileChecker
+from msprobe.core.common.file_utils import check_path_before_create, FileChecker
 from msprobe.core.common.const import FileCheckConst, Const
 from msprobe.visualization.utils import GraphConst, update_shared_dict, update_pbar_info, post_process_db_pbar
 from msprobe.visualization.builder.msprobe_adapter import format_node_data
@@ -55,7 +55,7 @@ node_columns = {
     'dump_data_dir': TEXT,
     'step': INTEGER_NOT_NULL,
     'rank': INTEGER_NOT_NULL,
-    'is_distributed': INTEGER
+    'is_distributed': INTEGER,
 }
 
 config_columns = {
@@ -67,13 +67,10 @@ config_columns = {
     'overflow_check': INTEGER,
     'node_colors': TEXT_NOT_NULL,
     'rank_list': TEXT_NOT_NULL,
-    'step_list': TEXT_NOT_NULL
+    'step_list': TEXT_NOT_NULL,
 }
 
-stack_columns = {
-    'id': TEXT_PRIMARY_KEY,
-    'stack_info': TEXT
-}
+stack_columns = {'id': TEXT_PRIMARY_KEY, 'stack_info': TEXT}
 
 indexes = {
     "index1": ["step", "rank", "data_source", "up_node", "node_order"],
@@ -82,7 +79,7 @@ indexes = {
     "index4": ["step", "rank", "node_order"],
     "index5": ["step", "rank", "micro_step_id", "node_order"],
     "index6": ["step", "rank", "modified", "matched_node_link"],
-    "index7": ["is_distributed"]
+    "index7": ["is_distributed"],
 }
 
 SAFE_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_]+$')
@@ -144,8 +141,9 @@ def to_db(db_path, create_table_sql, insert_sql, data, pbar_info=None):
     if not os.path.exists(db_path):
         check_path_before_create(db_path)
     else:
-        FileChecker(db_path, FileCheckConst.FILE, FileCheckConst.READ_WRITE_ABLE,
-                    FileCheckConst.DB_SUFFIX).common_check()
+        FileChecker(
+            db_path, FileCheckConst.FILE, FileCheckConst.READ_WRITE_ABLE, FileCheckConst.DB_SUFFIX
+        ).common_check()
 
     retry_count = 0
     current_delay = initial_delay
@@ -165,7 +163,7 @@ def to_db(db_path, create_table_sql, insert_sql, data, pbar_info=None):
             cursor.execute("PRAGMA synchronous=NORMAL")
             cursor.execute(create_table_sql)
             for i in range(0, total_data, DB_INSERT_SIZE):
-                batch = data[i:i + DB_INSERT_SIZE]
+                batch = data[i : i + DB_INSERT_SIZE]
                 cursor.executemany(insert_sql, batch)
 
                 if pbar_info:
@@ -180,9 +178,7 @@ def to_db(db_path, create_table_sql, insert_sql, data, pbar_info=None):
                     logger.error(f"Database lock conflict retry attempts exhausted ({max_retries}): {e}")
                     raise RuntimeError(f"DB lock retry exhausted: {e}") from e
 
-                logger.warning(
-                    f"DB lock conflict (retry {retry_count}/{max_retries}), wait {current_delay:.2f}s : {e}"
-                )
+                logger.warning(f"DB lock conflict (retry {retry_count}/{max_retries}), wait {current_delay:.2f}s : {e}")
                 time.sleep(current_delay)
                 current_delay *= 2
                 continue
@@ -234,7 +230,6 @@ def add_table_index(db_path):
 def post_process_db(db_path, pbar_info=None, is_parallel_merge=False):
     logger.info('Start adding index to db file, please wait...')
     add_table_index(db_path)
-    change_mode(db_path, FileCheckConst.DATA_FILE_AUTHORITY)
     if pbar_info:
         post_process_db_pbar(pbar_info, is_parallel_merge)
     logger.info('Adding index to db file completed.')
@@ -249,18 +244,32 @@ def node_to_db(graph, db_name, pbar_info=None):
         stack_info_text = json.dumps(node.stack_info)
         if stack_info_text not in stack_dict:
             stack_dict[stack_info_text] = get_stack_unique_id(graph, stack_dict)
-        data.append((get_node_unique_id(graph, node), get_graph_unique_id(graph), i, node.id, node.op.value,
-                     node.upnode.id if node.upnode else '',
-                     json.dumps([node.id for node in node.subnodes]) if node.subnodes else '',
-                     node.data.get(GraphConst.JSON_INDEX_KEY), node.data.get(GraphConst.OVERFLOW_LEVEL),
-                     node.micro_step_id if node.micro_step_id is not None else 0, json.dumps(node.matched_node_link),
-                     stack_dict.get(stack_info_text),
-                     json.dumps(node.parallel_merge_info) if node.parallel_merge_info else '',
-                     json.dumps(node.matched_distributed), 0,
-                     json.dumps(format_node_data(node.input_data, node.id, graph.compare_mode)),
-                     json.dumps(format_node_data(node.output_data, node.id, graph.compare_mode)),
-                     graph.data_source, graph.data_path, graph.step, graph.rank,
-                     1 if node.id.startswith(Const.DISTRIBUTED) else 0))
+        data.append(
+            (
+                get_node_unique_id(graph, node),
+                get_graph_unique_id(graph),
+                i,
+                node.id,
+                node.op.value,
+                node.upnode.id if node.upnode else '',
+                json.dumps([node.id for node in node.subnodes]) if node.subnodes else '',
+                node.data.get(GraphConst.JSON_INDEX_KEY),
+                node.data.get(GraphConst.OVERFLOW_LEVEL),
+                node.micro_step_id if node.micro_step_id is not None else 0,
+                json.dumps(node.matched_node_link),
+                stack_dict.get(stack_info_text),
+                json.dumps(node.parallel_merge_info) if node.parallel_merge_info else '',
+                json.dumps(node.matched_distributed),
+                0,
+                json.dumps(format_node_data(node.input_data, node.id, graph.compare_mode)),
+                json.dumps(format_node_data(node.output_data, node.id, graph.compare_mode)),
+                graph.data_source,
+                graph.data_path,
+                graph.step,
+                graph.rank,
+                1 if node.id.startswith(Const.DISTRIBUTED) else 0,
+            )
+        )
     to_db(db_name, create_table_sql, insert_sql, data, pbar_info=pbar_info)
     stack_to_db(stack_dict, db_name)
 
@@ -268,9 +277,19 @@ def node_to_db(graph, db_name, pbar_info=None):
 def config_to_db(config, db_name):
     create_table_sql = create_table_sql_from_dict('tb_config', config_columns)
     insert_sql = create_insert_sql_from_dict('tb_config', config_columns, ignore_insert=True)
-    data = [("1", "compare" if config.graph_b else "build", config.task, config.tool_tip, config.micro_steps,
-             config.overflow_check, json.dumps(config.node_colors), json.dumps(config.rank_list),
-             json.dumps(config.step_list))]
+    data = [
+        (
+            "1",
+            "compare" if config.graph_b else "build",
+            config.task,
+            config.tool_tip,
+            config.micro_steps,
+            config.overflow_check,
+            json.dumps(config.node_colors),
+            json.dumps(config.rank_list),
+            json.dumps(config.step_list),
+        )
+    ]
     to_db(db_name, create_table_sql, insert_sql, data)
 
 
@@ -341,12 +360,13 @@ class DBActuator:
             logger.error(f'Failed to query distributed nodes: {e}')
             return []
 
-    def update_matched_distributed(self, distributed_info: Dict[int, dict], step=0,
-                                   data_source=GraphConst.JSON_NPU_KEY, batch_size=1000):
+    def update_matched_distributed(
+        self, distributed_info: Dict[int, dict], step=0, data_source=GraphConst.JSON_NPU_KEY, batch_size=1000
+    ):
         update_data_list = []
         update_sql = """
-     	         UPDATE tb_nodes 
-     	         SET matched_distributed = ? 
+     	         UPDATE tb_nodes
+     	         SET matched_distributed = ?
      	         WHERE step = ? AND rank = ? AND data_source = ? AND node_name = ?;
 
      	         """
@@ -358,7 +378,6 @@ class DBActuator:
                 if not node.matched_distributed:
                     continue
                 try:
-
                     matched_distributed = json.dumps(node.matched_distributed)
                 except Exception as e:
                     logger.warning(f"Failed to serialize matched_distributed for node {node.id}: {e}")
@@ -369,7 +388,7 @@ class DBActuator:
             with self.conn as conn:
                 cursor = conn.cursor()
                 for i in range(0, len(update_data_list), batch_size):
-                    batch_data = update_data_list[i:i + batch_size]
+                    batch_data = update_data_list[i : i + batch_size]
                     cursor.executemany(update_sql, batch_data)
                 cursor.close()
 
@@ -378,8 +397,9 @@ class DBActuator:
             raise
 
     def _init_connection(self):
-        FileChecker(self.db_path, FileCheckConst.FILE, FileCheckConst.READ_WRITE_ABLE,
-                    FileCheckConst.DB_SUFFIX).common_check()
+        FileChecker(
+            self.db_path, FileCheckConst.FILE, FileCheckConst.READ_WRITE_ABLE, FileCheckConst.DB_SUFFIX
+        ).common_check()
         try:
             self.conn = sqlite3.connect(self.db_path)
         except sqlite3.Error as e:

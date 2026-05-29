@@ -96,8 +96,7 @@ class TestBaseWriterWithAD(TestCase):
 
 class TestCsvWriterWithAD(TestCase):
     def setUp(self) -> None:
-        with mock.patch("msprobe.pytorch.monitor.data_writers.create_directory"), \
-                mock.patch("msprobe.pytorch.monitor.data_writers.change_mode"):
+        with mock.patch("msprobe.pytorch.monitor.data_writers.create_directory"):
             self.writer = CSVWriterWithAD(WriterInput('', None, None, step_count_per_record=1))
 
     def test_get_step_interval(self):
