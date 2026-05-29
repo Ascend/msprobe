@@ -16,7 +16,7 @@ from msprobe.pytorch.reproducibility.common import (
     npu_available,
     create_csv,
     get_rank_id,
-    rename_csv
+    rename_csv,
 )
 
 
@@ -25,6 +25,7 @@ class GlobalRandomApiProcessor:
     _has_fixed = False
     _has_saved = False
     _has_patched = False
+    _initialized = False
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -32,7 +33,7 @@ class GlobalRandomApiProcessor:
         return cls._instance
 
     def __init__(self):
-        if hasattr(self, '_initialized') and self._initialized:
+        if self._initialized:
             return
 
         self.yaml_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "random_api_list.yaml")
@@ -43,15 +44,12 @@ class GlobalRandomApiProcessor:
         self.rank = None
         self.csv_path = None
         self.api_count = defaultdict(int)
+        self._original_funcs = {}
         self._initialized = True
 
     @staticmethod
     def _get_state() -> Any:
-        state = {
-            'python': random.getstate(),
-            'numpy': np.random.get_state(),
-            'torch_cpu': torch.get_rng_state()
-        }
+        state = {'python': random.getstate(), 'numpy': np.random.get_state(), 'torch_cpu': torch.get_rng_state()}
         if gpu_available:
             state['torch_gpu'] = torch.cuda.get_rng_state_all()
         if npu_available:
@@ -83,7 +81,7 @@ class GlobalRandomApiProcessor:
             api_stack = None
 
         if api_stack:
-            for (_, path, line, func, code, _) in api_stack:
+            for _, path, line, func, code, _ in api_stack:
                 if not code:
                     continue
                 stack_line = f"File {path}, line {str(line)}, in {func}, \n {code[0].strip()} \n"
@@ -108,6 +106,7 @@ class GlobalRandomApiProcessor:
     def _create_wrapper(self, api_name: str, library: str, origin_func: Callable) -> Callable:
         is_method = library in Const.METHOD_LIST
         if is_method:
+
             @functools.wraps(origin_func)
             def wrapper(obj, *args, **kwargs):
                 if self.reset_state:
@@ -119,6 +118,7 @@ class GlobalRandomApiProcessor:
                     self._write_stack(api_name, library)
                 return result
         else:
+
             @functools.wraps(origin_func)
             def wrapper(*args, **kwargs):
                 if self.reset_state:
@@ -135,11 +135,9 @@ class GlobalRandomApiProcessor:
     def _patch_functions(self, library: str, func_names: List[str], module) -> None:
         for name in func_names:
             if hasattr(module, name):
-                wrapped_func = self._create_wrapper(
-                    api_name=name,
-                    library=library,
-                    origin_func=getattr(module, name)
-                )
+                origin_func = getattr(module, name)
+                self._original_funcs[(library, name)] = origin_func
+                wrapped_func = self._create_wrapper(api_name=name, library=library, origin_func=origin_func)
                 setattr(module, name, wrapped_func)
 
     def _patch(self) -> None:
@@ -165,3 +163,44 @@ class GlobalRandomApiProcessor:
         self.csv_path = create_csv(output_path, self.rank)
         self._patch()
         GlobalRandomApiProcessor._has_saved = True
+
+    def _unpatch_functions(self, library: str, func_names: List[str], module) -> None:
+        for name in func_names:
+            key = (library, name)
+            if key in self._original_funcs:
+                setattr(module, name, self._original_funcs[key])
+                del self._original_funcs[key]
+
+    def _unpatch(self) -> None:
+        if not GlobalRandomApiProcessor._has_patched:
+            return
+        for library_name, func_names in self.api_dict.items():
+            self._unpatch_functions(library_name, func_names, Const.API_MAPPING[library_name])
+        GlobalRandomApiProcessor._has_patched = False
+
+    def unfix_random_state(self) -> None:
+        self.reset_state = False
+        self.state = None
+        GlobalRandomApiProcessor._has_fixed = False
+        if not GlobalRandomApiProcessor._has_saved:
+            self._unpatch()
+
+    def unsave_random_api(self) -> None:
+        self.enable_dump = False
+        self.rank = None
+        self.csv_path = None
+        self.api_count = defaultdict(int)
+        GlobalRandomApiProcessor._has_saved = False
+        if not GlobalRandomApiProcessor._has_fixed:
+            self._unpatch()
+
+    def unpatch(self) -> None:
+        self.reset_state = False
+        self.state = None
+        self.enable_dump = False
+        self.rank = None
+        self.csv_path = None
+        self.api_count = defaultdict(int)
+        GlobalRandomApiProcessor._has_fixed = False
+        GlobalRandomApiProcessor._has_saved = False
+        self._unpatch()
