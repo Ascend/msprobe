@@ -35,11 +35,24 @@ from msprobe.pytorch.common.utils import (
 from msprobe.pytorch.dump.api_dump.hook_module import HOOKModule
 from msprobe.pytorch.dump.module_dump.module_processor import ModuleProcessor
 
+try:
+    from torch.utils._python_dispatch import _disable_current_modes
+
+    logger.info("Successfully imported _disable_current_modes")
+except Exception:
+    _disable_current_modes = None
+
 
 class PytorchHookManager(BaseHookManager):
+    def __init__(self, data_collector, config):
+        super().__init__(data_collector, config)
+        self.logger = logger
+
     @staticmethod
     def _no_grad_context():
-        return nullcontext()
+        if _disable_current_modes is None:
+            return nullcontext()
+        return _disable_current_modes()
 
     @staticmethod
     def _add_count(name):
@@ -78,7 +91,7 @@ class PytorchHookManager(BaseHookManager):
         return hook_set
 
     def _init_specific_components(self):
-        self.logger = logger
+        pass
 
     def _on_forward_pre_hook(self):
         if self.config.task == Const.NAN_CHECK:

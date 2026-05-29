@@ -23,7 +23,6 @@ from msprobe.pytorch.dump.api_dump.pt_hook_manager import PytorchHookManager
 from msprobe.core.common.const import Const
 from msprobe.core.dump.hook_manager import HookSet, BaseHookManager
 
-
 class TestPytorchHookManager(unittest.TestCase):
     def setUp(self):
         self.mock_data_collector = MagicMock()
@@ -37,7 +36,30 @@ class TestPytorchHookManager(unittest.TestCase):
         BaseHookManager.inner_switch[threading.get_ident()] = False
 
     def test_no_grad_context(self):
-        self.assertIsInstance(self.manager._no_grad_context(), nullcontext)
+        """当 _disable_current_modes 不可用时应回退到 nullcontext"""
+        with patch('msprobe.pytorch.dump.api_dump.pt_hook_manager._disable_current_modes', None):
+            ctx = self.manager._no_grad_context()
+            self.assertIsInstance(ctx, nullcontext)
+
+    def test_no_grad_context_disable_modes(self):
+        """当 _disable_current_modes 可用时应调用它"""
+        mock_ctx = MagicMock()
+        with patch('msprobe.pytorch.dump.api_dump.pt_hook_manager._disable_current_modes',
+                   MagicMock(return_value=mock_ctx)) as mock_disable:
+            result = self.manager._no_grad_context()
+            mock_disable.assert_called_once()
+            self.assertIs(result, mock_ctx)
+
+    def test_init_sets_logger(self):
+        """__init__ 应设置 self.logger（从 _init_specific_components 移入）"""
+        self.assertIsNotNone(self.manager.logger)
+        from msprobe.pytorch.dump.api_dump.pt_hook_manager import logger
+        self.assertIs(self.manager.logger, logger)
+
+    def test_init_specific_components_is_noop(self):
+        """_init_specific_components 应为空操作"""
+        result = self.manager._init_specific_components()
+        self.assertIsNone(result)
 
     def test_add_count(self):
         with patch('msprobe.pytorch.dump.api_dump.pt_hook_manager.HOOKModule.add_module_count') as mock_add:
