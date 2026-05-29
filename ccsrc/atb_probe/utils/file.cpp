@@ -27,7 +27,6 @@
 #include <unordered_map>
 
 #include "const.h"
-#include "umask_wrapper.h"
 
 using MsConst::SUFFIX;
 using MsConst::SUFFIX_TYPE_TABLE;
@@ -566,7 +565,6 @@ bool CheckConfigFile(const std::string& absPath, const size_t maxSize)
 
 bool WriteTextToFile(const std::string& filePath, const std::string& textContent)
 {
-    ms::UmaskWrapper uw;
     std::ofstream file(filePath, std::ios::out | std::ios::binary);
     if (!file.is_open())
     {

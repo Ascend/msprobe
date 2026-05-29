@@ -14,20 +14,21 @@
  * See the Mulan PSL v2 for more details.
  * ------------------------------------------------------------------------- */
 
-
 #include "bin_file.h"
-#include "securec.h"
-#include "umask_wrapper.h"
-#include "ait_logger.h"
 
-namespace FileSystem {
+#include "ait_logger.h"
+#include "securec.h"
+
+namespace FileSystem
+{
 
 BinFile::BinFile() {}
 BinFile::~BinFile() {}
 
 bool BinFile::AddAttr(const std::string &name, const std::string &value)
 {
-    if (attrNames_.find(name) != attrNames_.end()) {
+    if (attrNames_.find(name) != attrNames_.end())
+    {
         AIT_LOG_ERROR("Attr: " + name + " already exists");
         return false;
     }
@@ -37,10 +38,7 @@ bool BinFile::AddAttr(const std::string &name, const std::string &value)
     return true;
 }
 
-bool BinFile::HasAttr(const std::string &name)
-{
-    return attrNames_.find(name) != attrNames_.end();
-}
+bool BinFile::HasAttr(const std::string &name) { return attrNames_.find(name) != attrNames_.end(); }
 
 bool BinFile::Write(const std::string &filePath, const mode_t mode)
 {
@@ -49,9 +47,9 @@ bool BinFile::Write(const std::string &filePath, const mode_t mode)
     // 写format dtype dims
     // 再写data
     // 再写end
-    ms::UmaskWrapper um;
     std::ofstream outputFile(filePath, std::ios::app);
-    if (!outputFile.is_open()) {
+    if (!outputFile.is_open())
+    {
         AIT_LOG_ERROR("File to write can't open : " + filePath);
         return false;
     }
@@ -60,33 +58,38 @@ bool BinFile::Write(const std::string &filePath, const mode_t mode)
     WriteAttr(outputFile, ATTR_OBJECT_COUNT, std::to_string(binaries_.size()));
     WriteAttr(outputFile, ATTR_OBJECT_LENGTH, std::to_string(binariesBuffer_.size()));
 
-    for (const auto &attrIt : attrs_) {
+    for (const auto &attrIt : attrs_)
+    {
         WriteAttr(outputFile, attrIt.first, attrIt.second);
     }
 
-    for (const auto &objIt : binaries_) {
+    for (const auto &objIt : binaries_)
+    {
         WriteAttr(outputFile, ATTR_OBJECT_PREFIX + objIt.first,
                   std::to_string(objIt.second.offset) + "," + std::to_string(objIt.second.length));
     }
 
     WriteAttr(outputFile, ATTR_END, END_VALUE);
 
-    if (binariesBuffer_.size() > 0U) {
+    if (binariesBuffer_.size() > 0U)
+    {
         outputFile.write(binariesBuffer_.data(), binariesBuffer_.size());
     }
     outputFile.close();
     return true;
 }
 
-bool BinFile::AddObject(const std::string &name, const void* binaryBuffer, uint64_t binaryLen)
+bool BinFile::AddObject(const std::string &name, const void *binaryBuffer, uint64_t binaryLen)
 {
-    if (binaryBuffer == nullptr) {
+    if (binaryBuffer == nullptr)
+    {
         AIT_LOG_ERROR("binary buffer size is none");
         return false;
     }
     size_t needLen = binariesBuffer_.size() + binaryLen;
 
-    if (binaryNames_.find(name) != binaryNames_.end()) {
+    if (binaryNames_.find(name) != binaryNames_.end())
+    {
         return false;
     }
 
@@ -101,11 +104,13 @@ bool BinFile::AddObject(const std::string &name, const void* binaryBuffer, uint6
 
     uint64_t offset = 0;
     uint64_t copyLen = binaryLen;
-    while (copyLen > 0) {
+    while (copyLen > 0)
+    {
         uint64_t curCopySize = copyLen > MAX_SINGLE_MEMCPY_SIZE ? MAX_SINGLE_MEMCPY_SIZE : copyLen;
         auto err = memcpy_s(binariesBuffer_.data() + currentLen + offset, curCopySize,
-                            static_cast<const uint8_t*>(binaryBuffer) + offset, curCopySize);
-        if (err != EOK) {
+                            static_cast<const uint8_t *>(binaryBuffer) + offset, curCopySize);
+        if (err != EOK)
+        {
             AIT_LOG_ERROR("memcpy_s failed, err = " + std::to_string(static_cast<int>(err)));
             return false;
         }
@@ -119,10 +124,11 @@ bool BinFile::WriteAttr(std::ofstream &outputFile, const std::string &name, cons
 {
     std::string line = name + "=" + value + "\n";
     outputFile << line;
-    if (!outputFile.good()) {
+    if (!outputFile.good())
+    {
         AIT_LOG_WARNING("Failed to write " + name + " attribute");
         return false;
     }
     return true;
 }
-} // end of namespace FileSystem
+}  // end of namespace FileSystem

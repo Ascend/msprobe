@@ -46,7 +46,6 @@
 #include "file.h"
 #include "nlohmann/json.hpp"
 #include "safety_guard.h"
-#include "umask_wrapper.h"
 #include "utils.h"
 
 using ordered_json = nlohmann::ordered_json;
@@ -901,7 +900,6 @@ static std::string GenLineStrforStatsCsv(const BinFileInfo &fileInfo, const std:
 static void ReportTensorStats(std::string &statsFilePath, const std::string &statsInfo)
 {
     statsFilePath = GetRealPath(statsFilePath);
-    ms::UmaskWrapper uw;
 
     std::ifstream f(statsFilePath, std::ios::in);
     if (!f.is_open())
