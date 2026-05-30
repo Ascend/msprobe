@@ -9,7 +9,7 @@
 | **Hybrid AgentLoop**（默认） | 推理和训练共享同一组 NPU（`hybrid_engine`）    | `LLMServerClient` + `GlobalRequestLoadBalancer`，通过 `AgentLoopManager` 同步调度      |
 | **Fully Async**              | Rollouter 和 Trainer 各自独立 NPU 池，完全解耦 | `FullyAsyncRollouter` + `MessageQueue` + `FullyAsyncTrainer` + `ParameterSynchronizer` |
 
-本文针对verl的上述异步架构，介绍训推一致性比对数据采集的适配方案。
+本文针对verl的上述异步架构（测试版本 verl v0.8.0.dev0, commit b7dabd83），介绍训推一致性比对数据采集的适配方案。
 
 ## 前置操作
 
@@ -56,6 +56,53 @@ export TORCHDYNAMO_DISABLE=1  # 关闭torchdynamo
 +    algorithm.rollout_correction=null \
 +    '+actor_rollout_ref.rollout.engine_kwargs.vllm.additional_config={dump_config_path:"/home/config_generate.json"}' \
 +    trainer.val_before_train=False \
+```
+
+## msprobe 配置文件
+
+训推两侧需要分别提供 msprobe 配置文件，参考[config_json_introduct.md](./config_json_introduct.md)，通过以下方式指定：
+
+- **推理侧**：通过 `additional_config` 中的 `dump_config_path` 传递给 vLLM worker。
+- **训练侧**：在 `transformer_impl.py` 的 `_ensure_debugger()` 中硬编码 `config_path`。
+
+### 推理侧配置 (`config_generate.json`)
+
+```json
+{
+  "task": "statistics",
+  "dump_path": "/dump_data/generate_sequence",
+  "rank": [],
+  "step": [],
+  "level": "L0",
+  "async_dump": false,
+  "statistics": {
+    "scope": [],
+    "list": [],
+    "tensor_list": [],
+    "data_mode": ["all"],
+    "summary_mode": "statistics"
+  }
+}
+```
+
+### 训练侧配置 (`config_actor.json`)
+
+```json
+{
+  "task": "statistics",
+  "dump_path": "/dump_data/update_actor",
+  "rank": [],
+  "step": [],
+  "level": "L0",
+  "async_dump": false,
+  "statistics": {
+    "scope": [],
+    "list": [],
+    "tensor_list": [],
+    "data_mode": ["all"],
+    "summary_mode": "statistics"
+  }
+}
 ```
 
 ## 代码改动
@@ -428,7 +475,7 @@ vLLM Server (request_id)
     │   └── rank_0/dump.json
     ├── step_1/
     │   └── rank_0/dump.json
-    └── dispatch_log.json
+    └── dispatch_log.jsonl
 
 {dump_actor_path}/
 ├── step_0/
