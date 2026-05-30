@@ -90,7 +90,7 @@ unsigned long long g_minDiskSpaceFreeSize = 2147483648;  // 2G
 static const int POOLNUM = 12;
 constexpr size_t FREE_SIZE_MULTIPLE_OF_DATA_SIZE = 2;  // free size至少两倍data size大小
 constexpr uint32_t MAX_RECUR_DEPTH = 1000;
-constexpr uint16_t MAX_PATH_LENGTH = 2048;
+constexpr uint32_t MAX_PATH_LENGTH = MsConst::FULL_PATH_LENGTH_MAX;
 constexpr const char *LIBASCENDCL_SO = "libascendcl.so";
 constexpr const char *ASCEND_TOOLKIT_HOME = "ASCEND_TOOLKIT_HOME";
 
@@ -188,6 +188,12 @@ static int32_t GetCurrentDeviceId()
         return deviceId;
     }
     std::string ascendclPath = std::string(ascendToolkitHome) + "/lib64/" + LIBASCENDCL_SO;
+    if (ascendclPath.length() > MAX_PATH_LENGTH)
+    {
+        AIT_LOG_ERROR("The path length of ascendclPath must not be greater than " + std::to_string(MAX_PATH_LENGTH) +
+                      " characters, but got " + std::to_string(ascendclPath.length()));
+        return deviceId;
+    }
     struct stat fileStat;
     if (stat(ascendclPath.c_str(), &fileStat) != 0)
     {
@@ -241,18 +247,18 @@ static const std::string &GetOutDir()
         const char *outputDir = std::getenv("ATB_OUTPUT_DIR");
         outDir = (outputDir != nullptr ? outputDir : "./");
         outDir = GetRealPath(outDir);
-        if (outDir.length() > MAX_PATH_LENGTH)
-        {
-            AIT_LOG_ERROR("The path length of ATB_OUTPUT_DIR must not be greater than " +
-                          std::to_string(MAX_PATH_LENGTH) + " characters, but got " + std::to_string(outDir.length()));
-            outDir = "";
-            return outDir;
-        }
         while (!outDir.empty() && outDir.back() == '/')
         {
             outDir.pop_back();
         }
         outDir = outDir + "/atb_dump_data/";
+        if (outDir.length() > MAX_PATH_LENGTH)
+        {
+            AIT_LOG_ERROR("The path length of outDir must not be greater than " + std::to_string(MAX_PATH_LENGTH) +
+                          " characters, but got " + std::to_string(outDir.length()));
+            outDir = "";
+            return outDir;
+        }
         bool ret = Utils::CheckDirectory(outDir);
         if (!ret)
         {
@@ -899,7 +905,14 @@ static std::string GenLineStrforStatsCsv(const BinFileInfo &fileInfo, const std:
 
 static void ReportTensorStats(std::string &statsFilePath, const std::string &statsInfo)
 {
-    statsFilePath = GetRealPath(statsFilePath);
+    std::string resolvedPath = GetRealPath(statsFilePath);
+    if (resolvedPath.length() > MAX_PATH_LENGTH)
+    {
+        AIT_LOG_ERROR("The path length of statsFilePath must not be greater than " + std::to_string(MAX_PATH_LENGTH) +
+                      " characters, but got " + std::to_string(resolvedPath.length()));
+        return;
+    }
+    statsFilePath = resolvedPath;
 
     std::ifstream f(statsFilePath, std::ios::in);
     if (!f.is_open())
@@ -1152,6 +1165,12 @@ void SetConfigParameters(const nlohmann::json &config)
         if (!dataDir.empty())
         {
             dataDir.append(TENSOR_AND_STATS_DATA_DIR);
+            if (dataDir.length() > MAX_PATH_LENGTH)
+            {
+                AIT_LOG_ERROR("The path length of dataDir must not be greater than " + std::to_string(MAX_PATH_LENGTH) +
+                              " characters, but got " + std::to_string(dataDir.length()));
+                return;
+            }
             bool ret = Utils::CheckDirectory(dataDir);
             if (!ret)
             {
@@ -1169,7 +1188,18 @@ bool atb::Probe::IsTensorNeedSave(const std::vector<int64_t> &ids, const std::st
         g_isAtbRunning = true;
         IsDiskSpaceValid(GetOutDir(), g_minDiskSpaceFreeSize / FREE_SIZE_MULTIPLE_OF_DATA_SIZE);
         const char *configPath = std::getenv("ATB_DUMP_CONFIG");
-        g_configPath = configPath == nullptr ? "" : File::GetAbsPath(std::string(configPath));
+        g_configPath = configPath == nullptr ? "" : std::string(configPath);
+        if (g_configPath.length() > MAX_PATH_LENGTH)
+        {
+            AIT_LOG_ERROR("The path length of ATB_DUMP_CONFIG must not be greater than " +
+                          std::to_string(MAX_PATH_LENGTH) + " characters, but got " +
+                          std::to_string(g_configPath.length()));
+            g_configPath = "";
+        }
+        else
+        {
+            g_configPath = File::GetAbsPath(g_configPath);
+        }
     }
     return !g_configPath.empty();
 }
@@ -1511,6 +1541,12 @@ static bool IsSaveTensorValid(const BinFileInfo &fileInfo, std::string &filePath
         return false;
     }
     filePath.append(TENSOR_AND_STATS_DATA_DIR).append(fileInfo.filePath);
+    if (filePath.length() > MAX_PATH_LENGTH)
+    {
+        AIT_LOG_ERROR("The path length of filePath must not be greater than " + std::to_string(MAX_PATH_LENGTH) +
+                      " characters, but got " + std::to_string(filePath.length()));
+        return false;
+    }
     size_t found = filePath.rfind('/');
     std::string directory = filePath.substr(0, found);
 
@@ -1666,6 +1702,12 @@ void atb::Probe::SaveTensor(const std::string &format, const std::string &dtype,
 
     std::string statsPath = GetOutDir();
     statsPath.append(TENSOR_AND_STATS_DATA_DIR).append(splitPath.at(0)).append("/").append(splitPath.at(1));
+    if (statsPath.length() > MAX_PATH_LENGTH)
+    {
+        AIT_LOG_ERROR("The path length of statsPath must not be greater than " + std::to_string(MAX_PATH_LENGTH) +
+                      " characters, but got " + std::to_string(statsPath.length()));
+        return;
+    }
     if (!Utils::CheckDirectory(statsPath))
     {
         return;
@@ -1865,6 +1907,13 @@ void atb::Probe::ReportOperationGraph(const std::string &opName, const std::stri
     }
 
     layerArchFilePath.append("/").append(opName).append(".json");
+    if (layerArchFilePath.length() > MAX_PATH_LENGTH)
+    {
+        AIT_LOG_ERROR("The path length of layerArchFilePath must not be greater than " +
+                      std::to_string(MAX_PATH_LENGTH) + " characters, but got " +
+                      std::to_string(layerArchFilePath.length()));
+        return;
+    }
     if (File::WriteTextToFile(layerArchFilePath, graphNodeJsonToSave.dump()))
     {
         AIT_LOG_INFO("layer topo info written to file successfully! File name:" + layerArchFilePath);
@@ -1954,9 +2003,21 @@ void atb::Probe::SaveParam(const std::string &param, const std::string &filePath
         return;
     }
     fullFilePath.append(TENSOR_AND_STATS_DATA_DIR).append(filePath);
+    if (fullFilePath.length() > MAX_PATH_LENGTH)
+    {
+        AIT_LOG_ERROR("The path length of fullFilePath must not be greater than " + std::to_string(MAX_PATH_LENGTH) +
+                      " characters, but got " + std::to_string(fullFilePath.length()));
+        return;
+    }
     size_t found = fullFilePath.rfind('/');
     std::string fileName = fullFilePath.substr(found);
     fullFilePath = GetRealPath(fullFilePath.substr(0, found));
+    if (fullFilePath.length() > MAX_PATH_LENGTH)
+    {
+        AIT_LOG_ERROR("The path length of fullFilePath must not be greater than " + std::to_string(MAX_PATH_LENGTH) +
+                      " characters, but got " + std::to_string(fullFilePath.length()));
+        return;
+    }
     if (!Utils::CheckDirectory(fullFilePath))
     {
         AIT_LOG_WARNING("Create directory failed: " + fullFilePath);
@@ -2070,6 +2131,13 @@ void atb_speed::SpeedProbe::ReportModelTopoInfo(const std::string &modelName, co
     }
 
     modelArchFilePath.append("/").append(modelName).append(".json");
+    if (modelArchFilePath.length() > MAX_PATH_LENGTH)
+    {
+        AIT_LOG_ERROR("The path length of modelArchFilePath must not be greater than " +
+                      std::to_string(MAX_PATH_LENGTH) + " characters, but got " +
+                      std::to_string(modelArchFilePath.length()));
+        return;
+    }
     if (File::WriteTextToFile(modelArchFilePath, modelJson.dump()))
     {
         AIT_LOG_INFO("model topo info written to file successfully! File name: " + modelArchFilePath);
