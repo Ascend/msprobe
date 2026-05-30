@@ -14,6 +14,23 @@
 
 from enum import Enum
 
+# 允许执行的命令白名单
+ALLOWED_COMMANDS = {"msprobe"}
+# 禁止的参数模式（注入攻击特征）
+FORBIDDEN_ARG_PATTERNS = [
+    r"\|",  # 管道符
+    r";",  # 命令分隔符
+    r"&&",  # 逻辑与
+    r"\|\|",  # 逻辑或
+    r"`",  # 反引号命令替换
+    r"\$\(",  # 命令替换
+    r"\n",  # 换行符注入
+    r"\r",  # 回车符注入
+    r">>",  # 追加重定向
+    r"[<>]",  # 重定向
+    r"\\x",  # 十六进制转义
+]
+
 security_headers = {
     "Content-Security-Policy": (
         "default-src 'self'; connect-src 'self'; script-src 'unsafe-inline'; "

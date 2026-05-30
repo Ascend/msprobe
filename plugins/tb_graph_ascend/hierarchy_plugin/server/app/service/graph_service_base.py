@@ -16,7 +16,7 @@ import os
 import json
 import time
 import threading
-import subprocess
+import subprocess  # nosec B404
 from abc import ABC, abstractmethod
 from tensorboard.util import tb_logging
 from ..utils.graph_utils import GraphUtils
@@ -133,7 +133,13 @@ class GraphServiceStrategy(ABC):
                     run_list.extend([param, str(value_n)])
                 if value_b:
                     run_list.append(str(value_b))
-            proc = subprocess.Popen(run_list, stdout=subprocess.PIPE, text=True)
+            success, result = GraphUtils.safe_run_command(run_list, stdout=subprocess.PIPE, text=True)
+            if not success:
+                logger.error(f"Failed to run command: {result}")
+                ProgressInfo.error_msg = result
+                ProgressInfo.process_running = False
+                return
+            proc = result
             update_progress_info(proc, ProgressInfo)
 
         thread = threading.Thread(target=call_path_api)

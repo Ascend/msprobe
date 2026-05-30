@@ -17,12 +17,15 @@ import os
 import json
 import re
 import stat
+import shutil
+import subprocess  # nosec B404
 import threading
 from functools import cmp_to_key
 from pathlib import Path
 from tensorboard.util import tb_logging
 from .global_state import GraphState
-from .constant import DataType, FILE_NAME_REGEX, MAX_FILE_SIZE, PERM_GROUP_WRITE, PERM_OTHER_WRITE, COLOR_PATTERN
+from .constant import DataType, FILE_NAME_REGEX, MAX_FILE_SIZE, PERM_GROUP_WRITE, PERM_OTHER_WRITE
+from .constant import COLOR_PATTERN, ALLOWED_COMMANDS, FORBIDDEN_ARG_PATTERNS
 from .i18n import language, ZH
 
 # 创建一个全局锁
@@ -179,6 +182,73 @@ class GraphUtils:
         except Exception as e:
             logger.error(f"An error occurred while parsing the nodeInfo parameter: {str(e)}")
             return default_value
+
+    @staticmethod
+    def safe_validate_command(cmd_list):
+        """
+        安全校验外部传入的命令列表，防止命令注入攻击。
+
+        :param cmd_list: 命令列表，如 ["msprobe", "graph_visualize", "-tp", "/path/to/file"]
+        :return: (success, error_message) 元组，校验通过返回 (True, None)
+        """
+        if not isinstance(cmd_list, (list, tuple)):
+            return False, "Command must be a list or tuple"
+
+        if len(cmd_list) == 0:
+            return False, "Command list cannot be empty"
+        FORBIDDEN_ARG_REGEX = re.compile("|".join(FORBIDDEN_ARG_PATTERNS))
+        # 1. 校验命令名（白名单）
+        cmd_name = cmd_list[0]
+        if isinstance(cmd_name, str) and "/" in cmd_name:
+            cmd_name = os.path.basename(cmd_name)
+        if cmd_name not in ALLOWED_COMMANDS:
+            return False, f"Command '{cmd_name}' is not in the allowed whitelist"
+
+        # 2. 校验命令可执行
+        if not shutil.which(cmd_list[0]):
+            return False, f"Command '{cmd_list[0]}' not found in PATH"
+
+        # 3. 校验每个参数
+        for i, arg in enumerate(cmd_list):
+            if not isinstance(arg, str):
+                return False, f"Command argument at index {i} is not a string"
+
+            # 长度限制
+            if len(arg) > FILE_PATH_MAX_LENGTH:
+                return False, f"Command argument at index {i} exceeds length limit"
+
+            # 禁止注入字符
+            if FORBIDDEN_ARG_REGEX.search(arg):
+                return False, f"Command argument at index {i} contains forbidden characters"
+
+            # 禁止 shell 特殊字符组合
+            if any(ch in arg for ch in ["$", "`", "\\", "\n", "\r"]):
+                return False, f"Command argument at index {i} contains unsafe characters"
+
+        return True, None
+
+    @staticmethod
+    def safe_run_command(cmd_list, **kwargs):
+        """
+        安全执行命令，先进行注入校验，再以非 shell 方式执行。
+
+        :param cmd_list: 命令列表
+        :param kwargs: 传递给 subprocess.Popen 的额外参数（如 stdout, stderr, text 等）
+        :return: (success, process_or_error) 校验失败返回 (False, error_msg)；
+                 校验成功返回 (True, Popen 实例)
+        """
+        success, error = GraphUtils.safe_validate_command(cmd_list)
+        if not success:
+            logger.error(f"Command validation failed: {error}, cmd: {cmd_list}")
+            return False, error
+
+        try:
+            # The process must remain alive for the caller to monitor via update_progress_info
+            proc = subprocess.Popen(cmd_list, **kwargs)  # pylint: disable=consider-using-with  # nosec B603
+            return True, proc
+        except Exception as e:
+            logger.error(f"Failed to execute command: {e}, cmd: {cmd_list}")
+            return False, str(e)
 
     @staticmethod
     def safe_get_meta_data(data, default_value=None):

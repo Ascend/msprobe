@@ -54,11 +54,14 @@ def build_frontend(plugin_name):
             raise RuntimeError(f"{failed_message} file 'package.json' is not exist!")
 
         # 安装依赖
-        install_result = subprocess.run(  # nosec
-            ["npm", "install", "--force"], capture_output=True, text=True, check=False
+        install_result = subprocess.run(  # nosec B603, B607
+            ["npm", "ci"],
+            capture_output=True,
+            text=True,
+            check=False,
         )
         if install_result.returncode != 0:
-            raise RuntimeError(f"{failed_message} run 'npm install --force' failed!")
+            raise RuntimeError(f"{failed_message} run 'npm ci' failed!")
 
         # 执行构建
         build_result = subprocess.run(  # nosec
