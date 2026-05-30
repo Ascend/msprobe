@@ -59,16 +59,21 @@ class DebuggerConfig:
     def check(self):
         if self.task and self.task not in Const.TORCH_TASK_LIST:
             raise MsprobeException(
-                MsprobeException.INVALID_PARAM_ERROR, f"The task <{self.task}> is not in the {Const.TORCH_TASK_LIST}."
+                MsprobeException.INVALID_PARAM_ERROR,
+                f"The task <{self.task}> is not in the {Const.TORCH_TASK_LIST}.",
             )
         if self.level and self.level not in Const.LEVEL_LIST:
             raise MsprobeException(
-                MsprobeException.INVALID_PARAM_ERROR, f"The level <{self.level}> is not in the {Const.LEVEL_LIST}."
+                MsprobeException.INVALID_PARAM_ERROR,
+                f"The level <{self.level}> is not in the {Const.LEVEL_LIST}.",
             )
         if not self.dump_path:
             raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "The dump_path not found.")
         if not isinstance(self.async_dump, bool):
-            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "The parameters async_dump should be bool.")
+            raise MsprobeException(
+                MsprobeException.INVALID_PARAM_ERROR,
+                "The parameters async_dump should be bool.",
+            )
         if self.task == Const.NAN_CHECK and not _is_torch_npu_importable():
             raise MsprobeException(
                 MsprobeException.INVALID_PARAM_ERROR,
@@ -79,7 +84,22 @@ class DebuggerConfig:
                 MsprobeException.INVALID_PARAM_ERROR,
                 f"When the task is set to nan_check, the level must be {Const.LEVEL_L1}, but got {self.level}.",
             )
-        if self.task == Const.STRUCTURE and self.level not in [Const.LEVEL_L0, Const.LEVEL_MIX]:
+        if (
+            self.task == Const.NAN_CHECK
+            and Const.INPUT in self.data_mode
+            and Const.OUTPUT not in self.data_mode
+            and Const.ALL not in self.data_mode
+        ):
+            raise MsprobeException(
+                MsprobeException.INVALID_PARAM_ERROR,
+                "task nan_check is designed for output scenarios, "
+                "specifying 'input' in data_mode without 'output' is not supported. "
+                "Please use 'output', 'all', or remove 'input' from data_mode.",
+            )
+        if self.task == Const.STRUCTURE and self.level not in [
+            Const.LEVEL_L0,
+            Const.LEVEL_MIX,
+        ]:
             logger.warning_on_rank_0(
                 f"When the task is set to structure, the level should be one of {[Const.LEVEL_L0, Const.LEVEL_MIX]}. "
                 f"If not, the default level is {Const.LEVEL_MIX}."
@@ -141,7 +161,8 @@ class DebuggerConfig:
     def _check_and_adjust_config_with_l2(self):
         if self.scope:
             raise MsprobeException(
-                MsprobeException.INVALID_PARAM_ERROR, "When level is set to L2, the scope cannot be configured."
+                MsprobeException.INVALID_PARAM_ERROR,
+                "When level is set to L2, the scope cannot be configured.",
             )
         if not self.list or len(self.list) != 1:
             raise MsprobeException(
@@ -150,7 +171,8 @@ class DebuggerConfig:
             )
         if self.task != Const.TENSOR:
             raise MsprobeException(
-                MsprobeException.INVALID_PARAM_ERROR, "When level is set to L2, the task must be set to tensor."
+                MsprobeException.INVALID_PARAM_ERROR,
+                "When level is set to L2, the task must be set to tensor.",
             )
 
         api_name = self.list[0]
