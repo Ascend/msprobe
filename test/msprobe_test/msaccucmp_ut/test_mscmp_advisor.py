@@ -117,25 +117,5 @@ class TestUtilsMethods(unittest.TestCase):
         self.assertEqual(advisor_result.advisor_message, AdvisorConst.INPUT_SUGGEST)
 
 
-class TestMscmpAdvisorFuncs(unittest.TestCase):
-
-    @mock.patch("advisor.compare_advisor.CompareAdvisor.advisor")
-    @mock.patch("mscmp_advisor._check_input_file", return_value=None)
-    @mock.patch("mscmp_advisor.check_file_size", return_value=None)
-    def test_output_path_when_is_softlink_then_rasie_error(self, mock1, mock2, mock3):
-        def mock_print_advisor_log():
-            return ['TEST']
-        args = ['aaa.py', '-i', '', '-o', '/home/output']
-        mock_advisor = mock.Mock()
-        mock_advisor.print_advisor_log = mock_print_advisor_log
-        mock3.return_value = mock_advisor
-        with mock.patch('sys.argv', args):
-            with self.assertRaises(CompareError) as error:
-                with mock.patch.object(CompareAdvisor, "__init__", return_value=None):
-                    with mock.patch("os.path.islink", return_value=True):
-                        mscmp_advisor._do_advisor()
-            self.assertEqual(str(error.exception), "3")
-        
-
 if __name__ == '__main__':
     unittest.main()

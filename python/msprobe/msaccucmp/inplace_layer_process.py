@@ -27,7 +27,7 @@ import argparse
 import os
 
 import google.protobuf.text_format
-import caffe.proto.caffe_pb2 as caffe_pb2
+import caffe.proto.caffe_pb2 as caffe_pb2  # pylint: disable=consider-using-from-import
 
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils import log, file_utils
@@ -47,20 +47,18 @@ class RemoveInplaceLayerProcess:
 
     def __init__(self: any) -> None:
         parse = argparse.ArgumentParser()
-        parse.add_argument("-i", dest="input_file_path", help="<Required> the prototxt file path",
-                           type=safe_path_string, required=True)
+        parse.add_argument(
+            "-i", dest="input_file_path", help="<Required> the prototxt file path", type=safe_path_string, required=True
+        )
         parse.add_argument("-o", dest="output_file_path", help="<Optional> the output file path", type=safe_path_string)
         args, _ = parse.parse_known_args(sys.argv[1:])
         self.input_file_path = os.path.realpath(args.input_file_path)
         if args.output_file_path:
-            if os.path.islink(os.path.abspath(args.output_file_path)):
-                log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_file_path)
-                raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
             self.output_file_path = os.path.realpath(args.output_file_path)
         else:
             output_file_path = os.path.join(
-                os.path.dirname(self.input_file_path),
-                "new_" + os.path.basename(self.input_file_path))
+                os.path.dirname(self.input_file_path), "new_" + os.path.basename(self.input_file_path)
+            )
             self.output_file_path = os.path.realpath(output_file_path)
         self.net_param = None
         self.cur_layer_idx = -1
@@ -123,7 +121,7 @@ class RemoveInplaceLayerProcess:
             self._parse_name(old_name, new_name)
 
         # remove Dropout type
-        for (_, layer_item) in enumerate(self.net_param.layer):
+        for _, layer_item in enumerate(self.net_param.layer):
             if layer_item.type == 'Dropout':
                 self.net_param.layer.remove(layer_item)
 
@@ -135,7 +133,7 @@ class RemoveInplaceLayerProcess:
         log.print_info_log('The new prototxt file has been saved to "%r".' % self.output_file_path)
 
     def _handle_top(self: any, layer_item: any, layer_idx: int) -> (bool, str, str):
-        for (top_index, top_item) in enumerate(layer_item.top):
+        for top_index, top_item in enumerate(layer_item.top):
             if layer_item.type == 'Dropout':
                 if len(layer_item.bottom) != 1:
                     return True, '', ''
@@ -147,8 +145,11 @@ class RemoveInplaceLayerProcess:
                     self.cur_layer_idx = layer_idx
                     return True, old_name, new_name
             elif top_item != layer_item.name:
-                if len(layer_item.top) == 1 and len(layer_item.bottom) == 1 \
-                        and layer_item.top[0] == layer_item.bottom[0]:
+                if (
+                    len(layer_item.top) == 1
+                    and len(layer_item.bottom) == 1
+                    and layer_item.top[0] == layer_item.bottom[0]
+                ):
                     layer_item.top[top_index] = layer_item.name
                     old_name = top_item
                     new_name = layer_item.name
@@ -157,7 +158,7 @@ class RemoveInplaceLayerProcess:
         return False, '', ''
 
     def _find_name(self: any) -> (str, str):
-        for (layer_idx, layer_item) in enumerate(self.net_param.layer):
+        for layer_idx, layer_item in enumerate(self.net_param.layer):
             if layer_idx <= self.cur_layer_idx:
                 continue
             ok, old_name, new_name = self._handle_top(layer_item, layer_idx)
@@ -166,13 +167,13 @@ class RemoveInplaceLayerProcess:
         return '', ''
 
     def _parse_name(self: any, old_name: str, new_name: str) -> None:
-        for (layer_idx, layer_item) in enumerate(self.net_param.layer):
+        for layer_idx, layer_item in enumerate(self.net_param.layer):
             if layer_idx <= self.cur_layer_idx:
                 continue
-            for (bottom_index, bottom_item) in enumerate(layer_item.bottom):
+            for bottom_index, bottom_item in enumerate(layer_item.bottom):
                 if bottom_item == old_name:
                     layer_item.bottom[bottom_index] = new_name
-            for (top_index, top_item) in enumerate(layer_item.top):
+            for top_index, top_item in enumerate(layer_item.top):
                 if top_item == old_name:
                     layer_item.top[top_index] = new_name
 

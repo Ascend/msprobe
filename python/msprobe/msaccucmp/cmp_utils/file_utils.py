@@ -37,7 +37,7 @@ from cmp_utils import utils
 from cmp_utils import common
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
-from cmp_utils.path_check import PathType, check_link, check_path_valid
+from cmp_utils.path_check import PathType, check_path_valid
 from dump_parse import dump_utils
 
 OP_TYPE = 1
@@ -63,7 +63,6 @@ class FileUtils:
         :path: csv file path
         """
         content = []
-        check_link(path)
         path = os.path.realpath(path)  # 标准化文件路径
         if not str(path).endswith(FileUtils.CSV_SUFFIX):
             log.print_warn_log('read csv failed, file path [{}] is invalid'.format(path))
@@ -217,7 +216,6 @@ class FileUtils:
         load json file
         :json_file: the json file
         """
-        check_link(json_file)
         json_file = os.path.realpath(json_file)
         ret = check_path_valid(json_file, True, False, PathType.File)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:

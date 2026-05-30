@@ -19,6 +19,7 @@
 Function:
 This file mainly involves xxxx function.
 """
+
 import os
 import re
 import time
@@ -36,6 +37,7 @@ class BatchCompare:
     """
     The class for batch compare
     """
+
     DUMP_FILE_PATH_FORMAT = "dump_path/time/device_id/model_name/model_id/dump_step/dump_file"
 
     def __init__(self: any) -> None:
@@ -67,7 +69,9 @@ class BatchCompare:
         if arguments.op_name:
             log.print_error_log(
                 "the {} single operator comparison is not supported for batch network comparison.".format(
-                    arguments.op_name))
+                    arguments.op_name
+                )
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
         npu_dump_path = os.path.realpath(arguments.my_dump_path)
@@ -109,8 +113,9 @@ class BatchCompare:
             model_name = graph[ConstManager.NAME_OBJECT]
             self.model_name_to_json_map[model_name] = json_file_path
 
-    def _make_map_for_inconsistent_timestamp(self: any, graph_name: str, dump_file_path_map: dict,
-                                             npu_dump_dir: str) -> None:
+    def _make_map_for_inconsistent_timestamp(
+        self: any, graph_name: str, dump_file_path_map: dict, npu_dump_dir: str
+    ) -> None:
         # 1.get the number list from graph name.
         # graph_name:'ge_default_20210420113943_73',graph_name_number_list:['20210420113943', '73'].
         graph_name_number_list = re.findall(r"\d+", graph_name)
@@ -126,7 +131,8 @@ class BatchCompare:
                 dump_file_path = dump_file_path_map.get(model_name)
                 log.print_warn_log(
                     "The {0} and in {1} dump data are not generated at the same time. "
-                    "The result may be incorrect.".format(graph_name, ",".join(dump_file_path)))
+                    "The result may be incorrect.".format(graph_name, ",".join(dump_file_path))
+                )
                 self.json_path_to_dump_path_map[self.model_name_to_json_map.get(graph_name)] = dump_file_path
 
     def _make_json_path_to_dump_path_map(self: any, npu_dump_dir: str) -> None:
@@ -144,9 +150,6 @@ class BatchCompare:
             raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def _execute_batch_compare(self: any, arguments: any) -> int:
-        if os.path.islink(os.path.abspath(arguments.output_path)):
-            log.print_error_log('The path "%r" is a softlink, not permitted.' % arguments.output_path)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         output_path = os.path.realpath(arguments.output_path)
         my_dump_path = os.path.realpath(arguments.my_dump_path)
         ret = CompareError.MSACCUCMP_NONE_ERROR

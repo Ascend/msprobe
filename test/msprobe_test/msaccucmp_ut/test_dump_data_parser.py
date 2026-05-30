@@ -129,13 +129,6 @@ class TestUtilsMethods(unittest.TestCase):
                     DP.DumpDataParser(arguments).check_arguments_valid()
         self.assertEqual(error.value.args[0], 1)
 
-    def test_output_path_argument_when_is_softlink_then_raise_error(self):
-        arguments = self._fake_arguments()
-        with self.assertRaises(CompareError) as error:
-            with mock.patch("os.path.islink", return_value=True):
-                DP.DumpDataParser(arguments)
-        self.assertEqual(str(error.exception), "3")
-
     def test_parse_dump_data_uint8_pass(self):
         arguments = self._fake_arguments()
         dump_data = self._fake_uint8_dump_data()

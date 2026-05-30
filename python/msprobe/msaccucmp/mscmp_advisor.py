@@ -86,9 +86,6 @@ def _do_advisor():
     _check_input_file(input_file, ConstManager.CSV_SUFFIX)
     input_nodes = parse_input_nodes(args.input_nodes)
     if args.out_path:
-        if os.path.islink(os.path.abspath(args.out_path)):
-            log.print_error_log('The path "%r" is a softlink, not permitted.' % args.out_path)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         out_path = os.path.realpath(args.out_path)
     else:
         out_path = ""

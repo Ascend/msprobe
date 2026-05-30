@@ -233,15 +233,6 @@ class TestAlgorithmManagerMain(unittest.TestCase):
         self.args.algorithm_options = ""
         self.args.output_path = "path"
 
-    @patch('os.path.realpath', return_value=True)
-    @patch('os.path.islink', return_value=True)
-    @patch("cmp_utils.log.print_error_log")
-    def test_init_when_init_raise_error(self, mock_error_log, mock_islink, mock_realpath):
-        with self.assertRaises(CompareError) as context:
-            ret = AlgorithmManagerMain(self.args)
-        mock_error_log.assert_called_once_with('The path "%r" is a softlink, not permitted.' % self.args.output_path)
-        assert context.exception.args[0] == CompareError.MSACCUCMP_INVALID_PATH_ERROR
-    
     @patch("cmp_utils.path_check.check_output_path_valid", return_value=9)
     def test_print_result_save_result_invalid(self, mock_check_output_path_valid):
         with self.assertRaises(CompareError) as context:

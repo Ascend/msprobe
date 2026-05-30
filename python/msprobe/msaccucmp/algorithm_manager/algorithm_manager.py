@@ -400,9 +400,6 @@ class AlgorithmManagerMain:
         self.ground_truth_dump_file_path = os.path.realpath(args.golden_dump_path)
         self.manager = AlgorithmManager(args.custom_script_path, args.algorithm, args.algorithm_options)
         if args.output_path:
-            if os.path.islink(os.path.abspath(args.output_path)):
-                log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_path)
-                raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
             self.output_path = os.path.realpath(args.output_path)
 
     def check_arguments_valid(self: any) -> None:

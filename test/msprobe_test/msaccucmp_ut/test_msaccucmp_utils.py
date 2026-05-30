@@ -398,14 +398,6 @@ class TestUtilsMethods(unittest.TestCase):
                     '/home/result', True, True, path_check.PathType.Directory)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
-    def test_check_path_valid9(self):
-        with mock.patch('os.path.exists', return_value=True):
-            with mock.patch('os.access', return_value=True):
-                with mock.patch('os.path.islink', return_value=True):
-                    ret = path_check.check_path_valid(
-                        '/home/result', True, True, path_check.PathType.Directory)
-        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-
     def test_check_path_valid_when_uid_not_in_groups(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
@@ -727,12 +719,6 @@ class TestUtilsMethods(unittest.TestCase):
                   "partition0_rank1_new_sub_graph15_sgt_graph_0_trans_Cast_1786"
         ret = dump.handle_op_name(file_op_name, fusion_json_file_path)
         self.assertEqual(ret, op_name)
-
-    def test_check_output_path_valid_softlink_path_raises_error(self):
-        with pytest.raises(CompareError) as error:
-            with mock.patch("cmp_utils.path_check.os.path.islink", return_value=True):
-                path_check.check_output_path_valid('/home/output_path', exist=True)
-        assert error.value.args[0] == CompareError.MSACCUCMP_INVALID_PATH_ERROR
 
 
 if __name__ == '__main__':

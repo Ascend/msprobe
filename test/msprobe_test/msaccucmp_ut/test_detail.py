@@ -29,17 +29,14 @@ from cmp_utils.constant.const_manager import ConstManager, DD
 class TestUtilsMethods(unittest.TestCase):
 
     def setUp(self):
-        self._check_link_patcher = mock.patch("cmp_utils.file_utils.check_link", return_value=None)
         self._check_path_valid_patcher = mock.patch(
             "cmp_utils.file_utils.check_path_valid",
             return_value=CompareError.MSACCUCMP_NONE_ERROR,
         )
-        self._check_link_patcher.start()
         self._check_path_valid_patcher.start()
 
     def tearDown(self):
         self._check_path_valid_patcher.stop()
-        self._check_link_patcher.stop()
 
     def test_tensor_id(self):
         with pytest.raises(CompareError) as error:

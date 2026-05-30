@@ -34,9 +34,8 @@ class TestUtilsMethods(unittest.TestCase):
     def test_load_json_file_case2(self):
         file_util = file_utils.FileUtils()
         with pytest.raises(CompareError) as err:
-            with mock.patch("cmp_utils.file_utils.check_link", return_value=None), \
-                    mock.patch("cmp_utils.file_utils.check_path_valid",
-                               return_value=CompareError.MSACCUCMP_NONE_ERROR), \
+            with mock.patch("cmp_utils.file_utils.check_path_valid",
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR), \
                     mock.patch("os.path.realpath", return_value="/test"), \
                     mock.patch("os.path.getsize", return_value=1024), \
                     mock.patch('builtins.open', mock.mock_open()), \

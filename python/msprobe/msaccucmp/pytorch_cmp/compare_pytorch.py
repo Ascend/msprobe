@@ -19,46 +19,41 @@
 Function:
 This file mainly involves the compare_npu_vs_npu function.
 """
+
 import argparse
+import csv
 import multiprocessing
 import os
-import csv
 import time
+
 import numpy as np
 
-from cmp_utils import utils, utils_type, path_check, log
-from pytorch_cmp import pytorch_dump_data as pytorch_dump
 from algorithm_manager.algorithm_manager import AlgorithmManager
-from cmp_utils.constant.const_manager import ConstManager
-from vector_cmp.fusion_manager import compare_result
+from cmp_utils import log, path_check, utils
 from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.utils import sanitize_csv_value
+from pytorch_cmp import pytorch_dump_data as pytorch_dump
+from vector_cmp.fusion_manager import compare_result
 
 
 class PytorchComparison:
     """
     The class for comparing PyTorch dump data.
     """
+
     OP_HEADER = ["NPUDump", "NPUDumpPath", "GroundTruthPath", "DataType"]
 
     def __init__(self: any, args: argparse.Namespace) -> None:
         self.compare_data = pytorch_dump.CompareData(
-            os.path.realpath(args.my_dump_path),
-            os.path.realpath(args.golden_dump_path))
-        file_name = 'result_%s.csv' \
-                    % time.strftime("%Y%m%d%H%M%S",
-                                    time.localtime(time.time()))
+            os.path.realpath(args.my_dump_path), os.path.realpath(args.golden_dump_path)
+        )
+        file_name = 'result_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
         ret = path_check.check_output_path_valid(args.output_path, True)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
-        if os.path.islink(os.path.abspath(args.output_path)):
-            log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_path)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-        self.output_path = os.path.join(
-            os.path.realpath(args.output_path), file_name)
-        self.algorithm_manager = AlgorithmManager(args.custom_script_path,
-                                                  args.algorithm,
-                                                  args.algorithm_options)
+        self.output_path = os.path.join(os.path.realpath(args.output_path), file_name)
+        self.algorithm_manager = AlgorithmManager(args.custom_script_path, args.algorithm, args.algorithm_options)
         self.is_open_advisor = args.advisor
         self.filter_flag = args.post_process
 
@@ -73,7 +68,7 @@ class PytorchComparison:
         cos_index = 0
         my_dump_index = 0
         golden_index = 0
-        for (index, item) in enumerate(row):
+        for index, item in enumerate(row):
             if item == "CosineSimilarity":
                 cos_index = index
             elif item == "MyDumpDataPath":
@@ -89,10 +84,10 @@ class PytorchComparison:
         """
         not_matched_result = []
         fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
-        for order, op_name, golden_dataset, message in \
-                self.compare_data.get_not_matched_golden_datasets():
+        for order, op_name, golden_dataset, message in self.compare_data.get_not_matched_golden_datasets():
             not_matched_result += fusion_op_result.get_pytorch_result(
-                compare_result.PytorchOpInfo(order, op_name, ConstManager.NAN, golden_dataset), None, [message])
+                compare_result.PytorchOpInfo(order, op_name, ConstManager.NAN, golden_dataset), None, [message]
+            )
         self._save_cmp_result(not_matched_result)
 
     def compare(self: any) -> int:
@@ -122,19 +117,20 @@ class PytorchComparison:
         Check arguments valid, if invalid, throw exception
         """
         check_pass = True
-        if len(args.fusion_rule_file) != 0 \
-                or len(args.quant_fusion_rule_file) != 0 \
-                or len(args.custom_script_path) != 0:
+        if (
+            len(args.fusion_rule_file) != 0
+            or len(args.quant_fusion_rule_file) != 0
+            or len(args.custom_script_path) != 0
+        ):
             check_pass = False
 
-        if args.op_name is not None \
-                or args.dump_version != ConstManager.BINARY_DUMP_TYPE \
-                or args.mapping:
+        if args.op_name is not None or args.dump_version != ConstManager.BINARY_DUMP_TYPE or args.mapping:
             check_pass = False
 
         if not check_pass:
-            log.print_error_log('The argument [-f|-q|-c|-op|-map|-v] is not supported'
-                                ' in pytorch precision comparison scenarios.')
+            log.print_error_log(
+                'The argument [-f|-q|-c|-op|-map|-v] is not supported in pytorch precision comparison scenarios.'
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
         path_type = path_check.PathType.File
@@ -147,8 +143,9 @@ class PytorchComparison:
         Write the result file header into the file.
         """
         try:
-            with os.fdopen(os.open(self.output_path, ConstManager.WRITE_FLAGS,
-                                   ConstManager.WRITE_MODES), 'a+', newline='') as output_file:
+            with os.fdopen(
+                os.open(self.output_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'a+', newline=''
+            ) as output_file:
                 compare_result_header = compare_result.get_result_title(self.algorithm_manager, self.OP_HEADER)
                 writer = csv.writer(output_file)
                 if writer is not None:
@@ -162,8 +159,9 @@ class PytorchComparison:
             pass
 
     def _save_cmp_result_exec(self: any, result: list) -> None:
-        with os.fdopen(os.open(self.output_path, ConstManager.WRITE_FLAGS,
-                               ConstManager.WRITE_MODES), 'a+', newline='') as output_file:
+        with os.fdopen(
+            os.open(self.output_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'a+', newline=''
+        ) as output_file:
             writer = csv.writer(output_file)
             for item in result:
                 sanitized_row = [sanitize_csv_value(cell) for cell in item]
@@ -187,22 +185,26 @@ class PytorchComparison:
         """
         Get compare data and check it
         """
-        my_dump_data, golden_dump_data, _ = self.compare_data.get_dump_data(
-            my_dump_dataset, golden_dataset)
+        my_dump_data, golden_dump_data, _ = self.compare_data.get_dump_data(my_dump_dataset, golden_dataset)
         if my_dump_data.size != golden_dump_data.size:
             message = log.print_cannot_compare_warning(
-                op_name, '(%d)' % my_dump_data.size, '(%d)' % golden_dump_data.size)
+                op_name, '(%d)' % my_dump_data.size, '(%d)' % golden_dump_data.size
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_SHAPE_ERROR, message)
         return my_dump_data.flatten(), golden_dump_data.flatten(), my_dump_data.shape
 
     def _do_compare_tensor(self: any, op_name: str, my_dump_dataset: str, golden_dataset: str) -> any:
-        my_dump_data, golden_dump_data, shape = self._get_compare_dump_data(
-            op_name, my_dump_dataset, golden_dataset)
+        my_dump_data, golden_dump_data, shape = self._get_compare_dump_data(op_name, my_dump_dataset, golden_dataset)
         my_dump_data_type = str(my_dump_data.dtype)
         algorithm_result, fail_reason = self.algorithm_manager.compare(
-            my_dump_data, golden_dump_data,
-            {'my_output_dump_file': my_dump_dataset, 'ground_truth_dump_file': golden_dataset,
-             'shape_type': utils.get_shape_type(shape)})
+            my_dump_data,
+            golden_dump_data,
+            {
+                'my_output_dump_file': my_dump_dataset,
+                'ground_truth_dump_file': golden_dataset,
+                'shape_type': utils.get_shape_type(shape),
+            },
+        )
         return [my_dump_data_type, shape], algorithm_result, fail_reason
 
     def _compare_tensor(self: any, order: int, op_name: str, ext_opname: str, my_dump_dataset: str) -> any:
@@ -218,32 +220,30 @@ class PytorchComparison:
 
         if not match:
             return match, fusion_op_result.get_pytorch_result(
-                compare_result.PytorchOpInfo(order, op_name, my_dump_dataset, ConstManager.NAN), None, [fail_reason])
+                compare_result.PytorchOpInfo(order, op_name, my_dump_dataset, ConstManager.NAN), None, [fail_reason]
+            )
         op_info = compare_result.PytorchOpInfo(order, op_name, my_dump_dataset, golden_dataset)
         try:
-            return match, self._do_compare_and_get_result([my_dump_dataset, golden_dataset],
-                                                          fusion_op_result, op_info)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                CompareError) as err:
+            return match, self._do_compare_and_get_result([my_dump_dataset, golden_dataset], fusion_op_result, op_info)
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, CompareError) as err:
             error_msg = [err.message] if isinstance(err, CompareError) else [str(err)]
             return match, fusion_op_result.get_pytorch_result(op_info, None, error_msg)
         finally:
             pass
 
-    def _do_compare_and_get_result(self: any, dataset_list: list,
-                                   fusion_op_result: compare_result.FusionOpComResult,
-                                   op_info: compare_result.PytorchOpInfo) -> list:
-        type_shape_list, algorithm_result, fail_reason = self._do_compare_tensor(op_info.op_name, dataset_list[0],
-                                                                                 dataset_list[1])
-        tensor_info = {
-            "tensor_id": None,
-            "shape": type_shape_list[1],
-            "my_output_dtype": type_shape_list[0]
-        }
+    def _do_compare_and_get_result(
+        self: any,
+        dataset_list: list,
+        fusion_op_result: compare_result.FusionOpComResult,
+        op_info: compare_result.PytorchOpInfo,
+    ) -> list:
+        type_shape_list, algorithm_result, fail_reason = self._do_compare_tensor(
+            op_info.op_name, dataset_list[0], dataset_list[1]
+        )
+        tensor_info = {"tensor_id": None, "shape": type_shape_list[1], "my_output_dtype": type_shape_list[0]}
         return fusion_op_result.get_pytorch_result(
-                op_info,
-                [compare_result.TensorResult(tensor_info, [algorithm_result, ''], fail_reason, False)],
-                fail_reason)
+            op_info, [compare_result.TensorResult(tensor_info, [algorithm_result, ''], fail_reason, False)], fail_reason
+        )
 
     def _compare_one_op(self: any, order: int, ext_opname: str, lock: any) -> None:
         """
@@ -266,7 +266,8 @@ class PytorchComparison:
             op_cmp_result.clear()
             fail_reason = 'No data match with op:{} in golden dump data.'.format(op_name)
             op_cmp_result = compare_result.FusionOpComResult(self.algorithm_manager).get_pytorch_result(
-                compare_result.PytorchOpInfo(order, op_name, ConstManager.NAN, ConstManager.NAN), None, [fail_reason])
+                compare_result.PytorchOpInfo(order, op_name, ConstManager.NAN, ConstManager.NAN), None, [fail_reason]
+            )
         self._save_cmp_result(op_cmp_result, lock)
 
     def _compare_in_one_process(self: any, order_group: list, lock: any) -> None:
@@ -280,8 +281,7 @@ class PytorchComparison:
             for order in order_group:
                 for ext_opname in self.compare_data.get_ext_opname_by_order(order):
                     self._compare_one_op(order, ext_opname, lock)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                CompareError) as ex:
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, CompareError) as ex:
             log.print_warn_log("Failed to compare with except: " + str(ex))
         finally:
             self.compare_data.close_file()
@@ -295,7 +295,7 @@ class PytorchComparison:
         orders_groups = (all_orders[i::process_num] for i in range(process_num))
 
         # start multiple processes for parallel comparison.
-        pool = multiprocessing.Pool(process_num)
+        pool = multiprocessing.Pool(process_num)  # pylint: disable=consider-using-with
         lock = multiprocessing.Manager().RLock()
         for order_group in orders_groups:
             pool.apply_async(self._compare_in_one_process, args=(order_group, lock))
@@ -320,10 +320,9 @@ class PytorchComparison:
                 dump_data_path = os.path.join(result_path, "gold_dump" + row[golden_index])
                 self._save_numpy_data(dump_data_path, tensor_data)
 
-    def _filter_result_process(self: any,
-                               result_file_handle: any,
-                               filtered_file_handle: any,
-                               filtered_result_path: str) -> None:
+    def _filter_result_process(
+        self: any, result_file_handle: any, filtered_file_handle: any, filtered_result_path: str
+    ) -> None:
         csv_reader = csv.reader(result_file_handle)
         csv_writer = csv.writer(filtered_file_handle)
         line_num = 0
@@ -347,9 +346,10 @@ class PytorchComparison:
         filtered_result_file = os.path.join(filtered_result_folder_path, "filtered_result.csv")
         self.compare_data.open_file('r')
         try:
-            with open(self.output_path, 'r') as result_file:
-                with os.fdopen(os.open(filtered_result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
-                               'w+') as filtered_file:
+            with open(self.output_path, 'r', encoding='utf-8') as result_file:
+                with os.fdopen(
+                    os.open(filtered_result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w+'
+                ) as filtered_file:
                     self._filter_result_process(result_file, filtered_file, filtered_result_folder_path)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
             log.print_error_log('Failed to filtering pytorch compare result!, {}'.format(str(error)))
@@ -386,4 +386,3 @@ class PytorchComparison:
             advisor_result = compare_advisor.advisor()
             message_list = advisor_result.print_advisor_log()
             advisor_result.gen_summary_file(out_path, message_list)
-

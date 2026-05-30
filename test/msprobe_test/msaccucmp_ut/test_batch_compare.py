@@ -59,15 +59,14 @@ class TestUtilsMethods(unittest.TestCase):
         json_dir_path = '/home/more_json'
         json_file_array = ['bert_qa_layernorm_71.json']
         with mock.patch("os.listdir", return_value=json_file_array):
-            with mock.patch("cmp_utils.file_utils.check_link", return_value=None):
-                with mock.patch("cmp_utils.file_utils.check_path_valid",
-                                return_value=CompareError.MSACCUCMP_NONE_ERROR):
-                    with mock.patch("os.path.getsize", return_value=100):
-                        with mock.patch("builtins.open", mock.mock_open(read_data=None)):
-                            with mock.patch("json.load", return_value=self._make_json_object()):
-                                batch_compare_test = BatchCompare()
-                                batch_compare_test._make_model_name_to_json_map(json_dir_path)
-                                test_map = batch_compare_test.model_name_to_json_map
+            with mock.patch("cmp_utils.file_utils.check_path_valid",
+                            return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                with mock.patch("os.path.getsize", return_value=100):
+                    with mock.patch("builtins.open", mock.mock_open(read_data=None)):
+                        with mock.patch("json.load", return_value=self._make_json_object()):
+                            batch_compare_test = BatchCompare()
+                            batch_compare_test._make_model_name_to_json_map(json_dir_path)
+                            test_map = batch_compare_test.model_name_to_json_map
         self.assertEqual(len(test_map), 1)
         self.assertEqual(test_map.get("ge_default_20210420113943_71"), "/home/more_json/bert_qa_layernorm_71.json")
 
@@ -125,15 +124,6 @@ class TestUtilsMethods(unittest.TestCase):
         with pytest.raises(CompareError) as error:
             batch_compare_test._execute_batch_compare(arguments)
         self.assertEqual(error.value.args[0], 3)
-
-    def test_execute_batch_compare_when_out_path_is_link(self):
-        batch_compare_test = BatchCompare()
-        arguments = mock.Mock()
-        arguments.output_path = '/home/result'
-        with self.assertRaises(CompareError) as error:
-            with mock.patch("os.path.islink", return_value=True):
-                batch_compare_test._execute_batch_compare(arguments)
-        self.assertEqual(str(error.exception), "3")
 
     def test_compare(self):
         arguments = mock.Mock()

@@ -19,17 +19,18 @@
 Function:
 This file mainly involves the overflow analyse function.
 """
+
 import argparse
 import os
 import time
 
 import numpy as np
 
-from cmp_utils import log, utils_type, path_check
+from cmp_utils import log, path_check
+from cmp_utils.file_utils import DumpFileDesc, OverflowFileUtils
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.constant.const_manager import ConstManager
 from dump_parse.dump_data_parser import DumpDataParser
-from cmp_utils.file_utils import OverflowFileUtils, DumpFileDesc
 
 
 class OverflowAnalyse:
@@ -37,17 +38,10 @@ class OverflowAnalyse:
     The class for parse the overflow info
     """
 
-    OVER_FLOW_TYPE = [
-        'AI Core',
-        'DHA Atomic Add',
-        'L2 Atomic Add'
-    ]
+    OVER_FLOW_TYPE = ['AI Core', 'DHA Atomic Add', 'L2 Atomic Add']
 
     def __init__(self: any, args: any = None) -> None:
         self.dump_path = os.path.realpath(args.dump_path)
-        if os.path.islink(os.path.abspath(args.output_path)):
-            log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_path)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(args.output_path)
         self.top_n = args.top_num
         self.debug_files = None
@@ -59,16 +53,13 @@ class OverflowAnalyse:
         check the arguments of overflow
         :arguments: input args
         """
-        ret = path_check.check_path_valid(arguments.dump_path, exist=True,
-                                     path_type=path_check.PathType.Directory)
+        ret = path_check.check_path_valid(arguments.dump_path, exist=True, path_type=path_check.PathType.Directory)
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
-            log.print_error_log('[Overflow] the -d parameter: "%r"'
-                                ' is invalid!' % arguments.dump_path)
+            log.print_error_log('[Overflow] the -d parameter: "%r" is invalid!' % arguments.dump_path)
         else:
             ret = path_check.check_output_path_valid(arguments.output_path, exist=True)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
-                log.print_error_log('[Overflow] the -out parameter: "%r"'
-                                    ' is invalid!' % arguments.output_path)
+                log.print_error_log('[Overflow] the -out parameter: "%r" is invalid!' % arguments.output_path)
         return ret
 
     @staticmethod
@@ -79,19 +70,21 @@ class OverflowAnalyse:
         """
         if isinstance(source_data, str):
             if not str(source_data).endswith('.npy'):
-                raise CompareError(
-                    CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
+                raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
             data = np.load(source_data)
         elif isinstance(source_data, np.ndarray):
             data = source_data
         else:
-            raise CompareError(
-                CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_TYPE_ERROR)
         if np.size(data) == 0:
-            raise CompareError(
-                CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
-        return '[Shape: %s] [Dtype: %s] [Max: %s] [Min: %s] [Mean: %s]' \
-               % (data.shape, data.dtype, np.max(data), np.min(data), data.mean())
+            raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+        return '[Shape: %s] [Dtype: %s] [Max: %s] [Min: %s] [Mean: %s]' % (
+            data.shape,
+            data.dtype,
+            np.max(data),
+            np.min(data),
+            data.mean(),
+        )
 
     @staticmethod
     def _get_overflow_info_new_version(res: list, json_txt: any) -> any:
@@ -121,15 +114,18 @@ class OverflowAnalyse:
     def _gen_overflow_info(res: list, overflow_type: str, detail: any) -> any:
         status = detail.get('status')
         if status and status != 0:
-            overflow_info = ' [%s][TaskId:%s][StreamId:%s][Status:%s]' \
-                            % (overflow_type, detail.get('task_id'),
-                               detail.get('stream_id'), status)
+            overflow_info = ' [%s][TaskId:%s][StreamId:%s][Status:%s]' % (
+                overflow_type,
+                detail.get('task_id'),
+                detail.get('stream_id'),
+                status,
+            )
             res.append(overflow_info)
             task_info = (
                 detail.get('task_id'),
                 detail.get('stream_id'),
                 detail.setdefault('context_id', ConstManager.INVALID_ID),
-                detail.setdefault('thread_id', ConstManager.INVALID_ID)
+                detail.setdefault('thread_id', ConstManager.INVALID_ID),
             )
             return task_info
         log.print_error_log("[Overflow] The OpDebug file exists, but the value of status is {}!".format(status))
@@ -141,8 +137,11 @@ class OverflowAnalyse:
         insert delimiter for every overflow result
         :over_index: the overflow index
         """
-        res.insert(0, '=================================================[%d]'
-                      '==================================================' % over_index)
+        res.insert(
+            0,
+            '=================================================[%d]'
+            '==================================================' % over_index,
+        )
         return res
 
     @staticmethod
@@ -152,10 +151,7 @@ class OverflowAnalyse:
         :file_path: the path of dump/debug file
         :output_path: store the result file
         """
-        args = argparse.Namespace(dump_path=file_path,
-                                  output_path=output_path,
-                                  dump_version=2,
-                                  output_file_type='npy')
+        args = argparse.Namespace(dump_path=file_path, output_path=output_path, dump_version=2, output_file_type='npy')
         return DumpDataParser(args).parse_dump_data()
 
     @staticmethod
@@ -180,8 +176,9 @@ class OverflowAnalyse:
             max_num = len(self.debug_files)
             if self.top_n < len(self.debug_files):
                 max_num = self.top_n
-            log.print_info_log('[Overflow] Find [{}] overflow ops. Will show the top {}.'
-                               .format(len(self.debug_files), max_num))
+            log.print_info_log(
+                '[Overflow] Find [{}] overflow ops. Will show the top {}.'.format(len(self.debug_files), max_num)
+            )
 
             overflow_result = ''
             for i, debug_file in enumerate(self.debug_files):
@@ -190,17 +187,15 @@ class OverflowAnalyse:
                 parsed_debug_file = self._get_parsed_debug_file(debug_file)
                 overflow_json = self.overflow_file_utils.load_json_file(parsed_debug_file.file_path)
                 if not isinstance(overflow_json, dict):
-                    log.print_warn_log("[Overflow] overflow summary file {} contents is not dict"
-                                       .format(parsed_debug_file.file_path))
+                    log.print_warn_log(
+                        "[Overflow] overflow summary file {} contents is not dict".format(parsed_debug_file.file_path)
+                    )
                     continue
-                overflow_result = '{}{}\n'.format(overflow_result,
-                                                  self._json_summary(i + 1, overflow_json, debug_file))
+                overflow_result = '{}{}\n'.format(overflow_result, self._json_summary(i + 1, overflow_json, debug_file))
 
             log.print_info_log("[Overflow] The overflow analyse result:\n %s" % overflow_result)
-            result_file_name = 'overflow_summary_%s.txt' \
-                               % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-            self.overflow_file_utils.save_file(os.path.join(self.output_path, result_file_name),
-                                               overflow_result)
+            result_file_name = 'overflow_summary_%s.txt' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
+            self.overflow_file_utils.save_file(os.path.join(self.output_path, result_file_name), overflow_result)
 
         return CompareError.MSACCUCMP_NONE_ERROR
 
@@ -208,8 +203,9 @@ class OverflowAnalyse:
         """
         find debug_files and sort it
         """
-        debug_files = self.overflow_file_utils.list_dump_files(self.dump_path,
-                                                               self.overflow_file_utils.DEBUG_FILE_PATTERN)
+        debug_files = self.overflow_file_utils.list_dump_files(
+            self.dump_path, self.overflow_file_utils.DEBUG_FILE_PATTERN
+        )
         # sort by timestamp
         self.debug_files = sorted(debug_files, key=lambda x: x.timestamp)
         if len(self.debug_files) == 0:
@@ -231,11 +227,12 @@ class OverflowAnalyse:
             task_info = self._get_overflow_info_old_version(res, json_txt)
         res.append(' [timestamp:%s]' % debug_file.timestamp)
         try:
-            dump_file_desc = self._find_dump_files_by_task_id(os.path.dirname(debug_file.file_path),
-                                                              task_info)
+            dump_file_desc = self._find_dump_files_by_task_id(os.path.dirname(debug_file.file_path), task_info)
         except CompareError:
-            log.print_warn_log("[Overflow] Can't find the dump file corresponding to the"
-                               " debug file: %s" % os.path.basename(debug_file.file_path))
+            log.print_warn_log(
+                "[Overflow] Can't find the dump file corresponding to the"
+                " debug file: %s" % os.path.basename(debug_file.file_path)
+            )
             res = self._insert_delimiter(res, overflow_index)
             return '\n'.join(res)
         finally:
@@ -248,8 +245,9 @@ class OverflowAnalyse:
                 if parsed_dump_file.type != anchor_type:
                     continue
                 res.append(' %s' % os.path.basename(parsed_dump_file.file_path))
-                res.append(' -[Format: %s] %s' % (parsed_dump_file.format,
-                                                  self.npy_data_summary(parsed_dump_file.file_path)))
+                res.append(
+                    ' -[Format: %s] %s' % (parsed_dump_file.format, self.npy_data_summary(parsed_dump_file.file_path))
+                )
 
         res.insert(0, '[%s] %s' % (dump_file_desc.op_type, dump_file_desc.op_name))
         res = self._insert_delimiter(res, overflow_index)
@@ -281,8 +279,9 @@ class OverflowAnalyse:
         self._parse_overflow_file(dump_file_desc.file_path, self.output_path)
         parsed_dump_files = self.overflow_file_utils.list_parsed_dump_files(self.output_path, dump_file_desc)
         if len(parsed_dump_files) == 0:
-            log.print_warn_log("[Overflow] Parsed overflow dump file: %s failed."
-                               % os.path.basename(dump_file_desc.file_path))
+            log.print_warn_log(
+                "[Overflow] Parsed overflow dump file: %s failed." % os.path.basename(dump_file_desc.file_path)
+            )
             raise CompareError(CompareError.MSACCUCMP_UNKNOWN_ERROR)
         return sorted(parsed_dump_files.values(), key=lambda x: x.idx)
 
@@ -296,8 +295,7 @@ class OverflowAnalyse:
         dump_files = self.overflow_file_utils.list_dump_files(dump_path, self.overflow_file_utils.DUMP_FILE_PATTERN)
         dump_file_list = []
         for item in dump_files:
-            if item.op_type != 'Opdebug' \
-                    and self._is_dump_file_match(item, task_info):
+            if item.op_type != 'Opdebug' and self._is_dump_file_match(item, task_info):
                 dump_file_list.append(item)
         if dump_file_list:
             dump_file_list.sort(key=lambda x: x.timestamp)

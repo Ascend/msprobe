@@ -1,4 +1,5 @@
 # coding=utf-8
+# pylint: disable=duplicate-code
 # -------------------------------------------------------------------------
 #  This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
@@ -19,37 +20,38 @@
 Function:
 This file mainly involves vector comparison class definition.
 """
+
 import copy
-import os
-import sys
-import multiprocessing
 import argparse
 import csv
+import multiprocessing
+import os
 import time
+import sys
+
 try:
     import psutil
 except ImportError:
     psutil = None
 
-from dump_parse import dump, mapping
-from vector_cmp.compare_detail import detail
-from algorithm_manager.algorithm_manager import AlgorithmManager
-from vector_cmp.fusion_manager import compare_result
-from vector_cmp.fusion_manager.compare_rule import CompareRule
+from cmp_utils import log, path_check, utils
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.utils import safe_path_string, sanitize_csv_value
+from dump_parse import dump
+from dump_parse.dump import DumpType
 from format_manager.format_manager import FormatManager
-from vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
+from algorithm_manager.algorithm_manager import AlgorithmManager
+from overflow.overflow_detection import OverflowDetection
+from vector_cmp.compare_detail import detail
 from vector_cmp.compare_detail.compare_detail import DetailComparison
 from vector_cmp.compare_detail.compare_detail import DumpDetailComparison
-from dump_parse.dump import DumpType
-from cmp_utils import log, utils, utils_type, path_check
-from cmp_utils.utils import safe_path_string
-from cmp_utils.constant.const_manager import ConstManager
+from vector_cmp.fusion_manager import compare_result
+from vector_cmp.fusion_manager.compare_rule import CompareRule
+from vector_cmp.fusion_manager.compare_fusion_op import FusionOpComparison
 from vector_cmp.range_manager.range_manager import RangeManager
 from vector_cmp.range_manager.range_mode import RangeMode
 from vector_cmp.range_manager.select_mode import SelectMode
-from overflow.overflow_detection import OverflowDetection
-from cmp_utils.constant.compare_error import CompareError
-from cmp_utils.utils import sanitize_csv_value
 
 
 class VectorComparison:
@@ -68,6 +70,7 @@ class VectorComparison:
         self.compare_data = None
         self.detail_info = None
         self.format_manager = None
+        self.output_path = ""
         self.args = {}
         if arguments:
             self._init_by_input_arguments(arguments)
@@ -76,35 +79,85 @@ class VectorComparison:
 
     @staticmethod
     def _parser_cmd(parse: any) -> None:
-        parse.add_argument("-l", dest="left_dump_path", type=safe_path_string,
-                           help="<Required> the left dump path, the data compared with golden data", required=True)
-        parse.add_argument("-r", dest="right_dump_path", type=safe_path_string,
-                           help="<Required> the right dump path, the golden data", required=True)
-        parse.add_argument("-o", dest="output_path", help="<Required> output file path", type=safe_path_string,
-                           required=True)
-        parse.add_argument("-f", dest="fusion_json_file_path", default="", type=safe_path_string,
-                           help="<Optional> fusion json file path")
-        parse.add_argument("-q", dest="quant_fusion_rule_file_path", type=safe_path_string,
-                           default="", help="<Optional> quant fusion rule file path")
+        parse.add_argument(
+            "-l",
+            dest="left_dump_path",
+            type=safe_path_string,
+            help="<Required> the left dump path, the data compared with golden data",
+            required=True,
+        )
+        parse.add_argument(
+            "-r",
+            dest="right_dump_path",
+            type=safe_path_string,
+            help="<Required> the right dump path, the golden data",
+            required=True,
+        )
+        parse.add_argument(
+            "-o", dest="output_path", help="<Required> output file path", type=safe_path_string, required=True
+        )
+        parse.add_argument(
+            "-f",
+            dest="fusion_json_file_path",
+            default="",
+            type=safe_path_string,
+            help="<Optional> fusion json file path",
+        )
+        parse.add_argument(
+            "-q",
+            dest="quant_fusion_rule_file_path",
+            type=safe_path_string,
+            default="",
+            help="<Optional> quant fusion rule file path",
+        )
         parse.add_argument("-d", dest="op_name", default="", help="<Optional> detail operator name", required=False)
-        parse.add_argument("-t", dest="detail_type", default="output", required=False,
-                           help="<Optional> detail type for operator, input or output, the default is output")
-        parse.add_argument("-i", dest="detail_index", default="0",
-                           help="<Optional> detail index for input or output, the default is 0", required=False)
-        parse.add_argument("-csv", dest="csv", action="store_true",
-                           default=False, help="<Optional> save file as csv format", required=False)
-        parse.add_argument("-custom", dest="custom_path", default="", type=safe_path_string,
-                           help="<Optional> user-defined path, including format conversion", required=False)
-        parse.add_argument("-ffts", dest="ffts", action="store_true",
-                           help="<optional> Enable the comparison between ffts+ and ffts+. "
-                                "Direct comparison is performed without data combination. ")
+        parse.add_argument(
+            "-t",
+            dest="detail_type",
+            default="output",
+            required=False,
+            help="<Optional> detail type for operator, input or output, the default is output",
+        )
+        parse.add_argument(
+            "-i",
+            dest="detail_index",
+            default="0",
+            help="<Optional> detail index for input or output, the default is 0",
+            required=False,
+        )
+        parse.add_argument(
+            "-csv",
+            dest="csv",
+            action="store_true",
+            default=False,
+            help="<Optional> save file as csv format",
+            required=False,
+        )
+        parse.add_argument(
+            "-custom",
+            dest="custom_path",
+            default="",
+            type=safe_path_string,
+            help="<Optional> user-defined path, including format conversion",
+            required=False,
+        )
+        parse.add_argument(
+            "-ffts",
+            dest="ffts",
+            action="store_true",
+            help="<optional> Enable the comparison between ffts+ and ffts+. "
+            "Direct comparison is performed without data combination. ",
+        )
 
     @staticmethod
     def _process_single_op_max_line_parameters(max_line: int) -> None:
         if max_line < ConstManager.DETAIL_LINE_COUNT_RANGE_MIN or max_line > ConstManager.DETAIL_LINE_COUNT_RANGE_MAX:
-            log.print_out_of_range_error(None, '--max_line argument', max_line, '{} - {}'
-                                         .format(ConstManager.DETAIL_LINE_COUNT_RANGE_MIN,
-                                                 ConstManager.DETAIL_LINE_COUNT_RANGE_MAX))
+            log.print_out_of_range_error(
+                None,
+                '--max_line argument',
+                max_line,
+                '{} - {}'.format(ConstManager.DETAIL_LINE_COUNT_RANGE_MIN, ConstManager.DETAIL_LINE_COUNT_RANGE_MAX),
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     def set_output_path(self: any, output_path: str) -> None:
@@ -112,9 +165,6 @@ class VectorComparison:
         Set output path
         :param output_path: the output path
         """
-        if os.path.islink(os.path.abspath(output_path)):
-            log.print_error_log('The path "%r" is a softlink, not permitted.' % output_path)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(output_path)
 
     def check_arguments_valid(self: any) -> None:
@@ -136,9 +186,11 @@ class VectorComparison:
         # delete old result
         if os.path.exists(self.output_path) and not self.detail_info:
             os.remove(self.output_path)
-        self.compare_data.check_arguments_valid(self.compare_rule.fusion_json_file_path,
-                                                self.compare_rule.quant_fusion_rule_file_path,
-                                                self.compare_rule.close_fusion_rule_file_path)
+        self.compare_data.check_arguments_valid(
+            self.compare_rule.fusion_json_file_path,
+            self.compare_rule.quant_fusion_rule_file_path,
+            self.compare_rule.close_fusion_rule_file_path,
+        )
         self._filter_left_dump_is_npy_overflow()
         self.format_manager.check_arguments_valid()
 
@@ -152,7 +204,8 @@ class VectorComparison:
         self.compare_rule.parse_fusion_rule(self.compare_data)
         if ConstManager.RANGE_MANAGER_KEY in self.args:
             self.args.get(ConstManager.RANGE_MANAGER_KEY).check_input_valid(
-                self.compare_rule.fusion_info.op_list[-1].attr.get_op_sequence())
+                self.compare_rule.fusion_info.op_list[-1].attr.get_op_sequence()
+            )
         self.args["input_nodes"] = self.compare_rule.fusion_info.input_nodes
         # 3. do compare detail
         if self.detail_info:
@@ -164,23 +217,25 @@ class VectorComparison:
         return self._compare_vector()
 
     def _init_by_input_arguments(self, arguments) -> None:
-        self.compare_rule = CompareRule(arguments.fusion_rule_file,
-                                        arguments.quant_fusion_rule_file,
-                                        arguments.close_fusion_rule_file)
+        self.compare_rule = CompareRule(
+            arguments.fusion_rule_file, arguments.quant_fusion_rule_file, arguments.close_fusion_rule_file
+        )
         self.compare_data = dump.CompareData(
             os.path.realpath(arguments.my_dump_path),
             os.path.realpath(arguments.golden_dump_path),
             arguments.dump_version,
             arguments.ffts,
-            arguments.fusion_rule_file)
+            arguments.fusion_rule_file,
+        )
         if arguments.op_name:
             self._process_single_op_parameters(arguments)
         else:
             self._process_output_path_parameter(arguments)
         self.args["csv"] = True
         self.format_manager = FormatManager(arguments.custom_script_path)
-        self.args["algorithm_manager"] = AlgorithmManager(arguments.custom_script_path,
-                                                          arguments.algorithm, arguments.algorithm_options)
+        self.args["algorithm_manager"] = AlgorithmManager(
+            arguments.custom_script_path, arguments.algorithm, arguments.algorithm_options
+        )
         self.args["mapping"] = arguments.mapping
         self.args["overflow_detection"] = arguments.overflow_detection
         self.args["advisor"] = arguments.advisor
@@ -200,22 +255,24 @@ class VectorComparison:
         self._parser_cmd(parse)
         args, _ = parse.parse_known_args(sys.argv[1:])
 
-        self.compare_rule = CompareRule(args.fusion_json_file_path,
-                                        args.quant_fusion_rule_file_path)
+        self.compare_rule = CompareRule(args.fusion_json_file_path, args.quant_fusion_rule_file_path)
 
-        self.compare_data = dump.CompareData(os.path.realpath(args.left_dump_path),
-                                             os.path.realpath(args.right_dump_path), ConstManager.OLD_DUMP_TYPE,
-                                             args.ffts,
-                                             args.fusion_json_file_path
-                                             )
-        if os.path.islink(os.path.abspath(args.output_path)):
-            log.print_error_log('The path "%r" is a softlink, not permitted.' % args.output_path)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+        self.compare_data = dump.CompareData(
+            os.path.realpath(args.left_dump_path),
+            os.path.realpath(args.right_dump_path),
+            ConstManager.OLD_DUMP_TYPE,
+            args.ffts,
+            args.fusion_json_file_path,
+        )
         self.output_path = os.path.realpath(args.output_path)
         if args.op_name:
             tensor_id = detail.TensorId(args.op_name, args.detail_type, args.detail_index)
-            self.detail_info = detail.DetailInfo(tensor_id, ConstManager.DEFAULT_TOP_N, ignore_result=False,
-                                                 max_line=ConstManager.MAX_DETAIL_INFO_LINE_COUNT)
+            self.detail_info = detail.DetailInfo(
+                tensor_id,
+                ConstManager.DEFAULT_TOP_N,
+                ignore_result=False,
+                max_line=ConstManager.MAX_DETAIL_INFO_LINE_COUNT,
+            )
         self.args["csv"] = args.csv
         self.format_manager = FormatManager(args.custom_path)
         self.args["algorithm_manager"] = AlgorithmManager('', 'all', '')
@@ -225,8 +282,10 @@ class VectorComparison:
 
     def _check_both_dump_data(self: any) -> bool:
         both_dump_data = False
-        if DumpType.Offline == self.compare_data.left_dump_info.type \
-                and DumpType.Offline == self.compare_data.right_dump_info.type:
+        if (
+            DumpType.Offline == self.compare_data.left_dump_info.type
+            and DumpType.Offline == self.compare_data.right_dump_info.type
+        ):
             both_dump_data = True
             if self.args.get("overflow_detection"):
                 log.print_warn_log('Both compare data are NPU dump data, not support overflow detection.')
@@ -237,9 +296,6 @@ class VectorComparison:
             file_name = 'mapping_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
         else:
             file_name = 'result_%s.csv' % time.strftime("%Y%m%d%H%M%S", time.localtime(time.time()))
-        if os.path.islink(os.path.abspath(arguments.output_path)):
-            log.print_error_log('The path "%r" is a softlink, not permitted.' % arguments.output_path)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.join(os.path.realpath(arguments.output_path), file_name)
 
     def _process_single_op_parameters(self: any, arguments: any) -> None:
@@ -255,9 +311,6 @@ class VectorComparison:
         if arguments.output:
             tensor_type = ConstManager.OUTPUT
             tensor_index = arguments.output
-        if os.path.islink(os.path.abspath(arguments.output_path)):
-            log.print_error_log('The path "%r" is a softlink, not permitted.' % arguments.output_path)
-            raise CompareError(CompareError.MSACCUCMP_INVALID_PATH_ERROR)
         self.output_path = os.path.realpath(arguments.output_path)
         tensor_id = detail.TensorId(arguments.op_name, tensor_type, tensor_index)
         self.detail_info = detail.DetailInfo(tensor_id, arguments.topn, arguments.ignore_single_op_result, max_line)
@@ -321,8 +374,9 @@ class VectorComparison:
     def _save_cmp_result(self: any, result: list, lock: any) -> None:
         lock.acquire()
         try:
-            with os.fdopen(os.open(self.output_path, ConstManager.WRITE_FLAGS,
-                                   ConstManager.WRITE_MODES), 'a+', newline='') as output_file:
+            with os.fdopen(
+                os.open(self.output_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'a+', newline=''
+            ) as output_file:
                 self._write_result_to_writer(result, output_file)
         except IOError as io_error:
             log.print_open_file_error(self.output_path, io_error)
@@ -330,8 +384,9 @@ class VectorComparison:
             lock.release()
 
     def _compare_by_fusion_op(self: any, fusion_op_name: str) -> (int, bool, list):
-        comparison = FusionOpComparison(fusion_op_name, self.compare_rule, self.compare_data, self.format_manager,
-                                        self.args)
+        comparison = FusionOpComparison(
+            fusion_op_name, self.compare_rule, self.compare_data, self.format_manager, self.args
+        )
         return comparison.compare()
 
     def _get_max_process_num(self) -> int:
@@ -369,7 +424,7 @@ class VectorComparison:
             op_names[i % process_num].append(op_name)
         # 4 start multi processes, then waiting subprocess end of running
         all_task = []
-        pool = multiprocessing.Pool(process_num)
+        pool = multiprocessing.Pool(process_num)  # pylint: disable=consider-using-with
         for fusion_op_names in op_names:
             if lock:
                 task = pool.apply_async(func, args=(fusion_op_names, lock))
@@ -427,11 +482,13 @@ class VectorComparison:
             if self.args.get("range"):
                 log.print_warn_log('The model in [%s] range does not match the dump data.' % self.args.get('range'))
             elif self.args.get("select"):
-                log.print_warn_log('The model in index list [%s] does not match '
-                                   'the dump data.' % self.args.get('select'))
+                log.print_warn_log(
+                    'The model in index list [%s] does not match the dump data.' % self.args.get('select')
+                )
             else:
-                log.print_error_log('The model does not match the dump data, '
-                                    'please check the model and the dump data again.')
+                log.print_error_log(
+                    'The model does not match the dump data, please check the model and the dump data again.'
+                )
         else:
             if os.path.exists(self.output_path):
                 log.print_write_result_info('comparison result', self.output_path)
@@ -458,9 +515,11 @@ class VectorComparison:
         :return VectorComparisonErrorCode
         """
         if self.compare_rule.fusion_json_file_path == "" and self.compare_rule.quant_fusion_rule_file_path == "":
-            log.print_warn_log('Both the offline fusion rule file path and '
-                               'the quant fusion rule file path cannot be empty. '
-                               'Please ensure that the data is reasonable.')
+            log.print_warn_log(
+                'Both the offline fusion rule file path and '
+                'the quant fusion rule file path cannot be empty. '
+                'Please ensure that the data is reasonable.'
+            )
             if self.args.get("overflow_detection"):
                 log.print_warn_log('Both compare data are NPU dump data, not support overflow detection.')
             comparison = DumpDetailComparison(self.detail_info, self.compare_data, self.output_path)
@@ -472,19 +531,23 @@ class VectorComparison:
             overflow_detection = OverflowDetection(self.compare_data, self.detail_info.tensor_id.op_name)
             overflow_detection.process_op_overflow_detection()
         fusion_op_name = self.compare_rule.fusion_info.op_name_to_fusion_op_name_map.get(
-            self.detail_info.tensor_id.op_name)
-        fusion_op_comparison = FusionOpComparison(fusion_op_name, self.compare_rule, self.compare_data,
-                                                  self.format_manager, self.args)
+            self.detail_info.tensor_id.op_name
+        )
+        fusion_op_comparison = FusionOpComparison(
+            fusion_op_name, self.compare_rule, self.compare_data, self.format_manager, self.args
+        )
         comparison = DetailComparison(self.detail_info, fusion_op_comparison, self.output_path)
         return comparison.compare()
 
     def _write_header_to_file(self: any) -> bool:
         cur_op_header = self._pre_handle_header()
         try:
-            with os.fdopen(os.open(self.output_path, ConstManager.WRITE_FLAGS,
-                                   ConstManager.WRITE_MODES), 'a+', newline='') as output_file:
-                header = compare_result.get_result_title(self.args.get('algorithm_manager'), cur_op_header,
-                                                         self.args.get('overflow_detection'))
+            with os.fdopen(
+                os.open(self.output_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'a+', newline=''
+            ) as output_file:
+                header = compare_result.get_result_title(
+                    self.args.get('algorithm_manager'), cur_op_header, self.args.get('overflow_detection')
+                )
                 if self.args.get("csv"):
                     writer = csv.writer(output_file)
                     sanitized_header = [sanitize_csv_value(cell) for cell in header]
@@ -499,8 +562,9 @@ class VectorComparison:
     def _make_mapping_table_by_op_name(self: any, fusion_op_names: list) -> list:
         all_cmp_res = []
         for op_name in fusion_op_names:
-            res = FusionOpComparison(op_name, self.compare_rule, self.compare_data, self.format_manager,
-                                     self.args).make_gpu_and_npu_mapping_table()
+            res = FusionOpComparison(
+                op_name, self.compare_rule, self.compare_data, self.format_manager, self.args
+            ).make_gpu_and_npu_mapping_table()
             all_cmp_res += res
         return all_cmp_res
 
@@ -511,8 +575,9 @@ class VectorComparison:
             origin_list += task.get()
         origin_list.sort(key=lambda xx: int(xx[0]))
         try:
-            with os.fdopen(os.open(self.output_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'a+',
-                           newline='') as out_file:
+            with os.fdopen(
+                os.open(self.output_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'a+', newline=''
+            ) as out_file:
                 writer = csv.writer(out_file)
                 header = ConstManager.MAPPING_FILE_HEADER
                 RangeManager.adjust_header(header)
@@ -538,4 +603,3 @@ class VectorComparison:
         if utils.dump_path_contains_npy(my_dump_path) and len(address_index) > 0:
             op_header.pop(address_index[0])
         return op_header
-
