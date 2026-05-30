@@ -2,10 +2,10 @@
 function(download_opensource_pkg pkg_name)
     message("start to download ${pkg_name}...")
     set(options)
-    set(oneValueArgs SHA256 GIT_TAG DOWNLOAD_PATH DIR_NAME BUILD_CMD)
+    set(oneValueArgs SHA256 GIT_TAG DOWNLOAD_PATH)
     set(multiValueArgs PATCHES)
     cmake_parse_arguments(PKG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-    
+
     if (NOT PKG_DOWNLOAD_PATH)
         set(PKG_DOWNLOAD_PATH "${CMAKE_SOURCE_DIR}/../third_party")
     endif()
@@ -18,9 +18,6 @@ function(download_opensource_pkg pkg_name)
     )
     if (NOT RESULT EQUAL 0)
         message(FATAL_ERROR "Failed to download ${pkg_name}(${RESULT}).")
-    endif()
-    if (PKG_BUILD_CMD)
-        execute_process(COMMAND bash -c "cd ${PKG_DOWNLOAD_PATH}/${DIR_NAME};${PKG_BUILD_CMD}")
     endif()
 endfunction()
 
