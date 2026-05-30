@@ -32,7 +32,10 @@ secure_json_file() {
 
 detect_soc_version() {
     if [[ -n "${SOC_VERSION:-}" ]]; then
-        echo "${SOC_VERSION}"
+        case "${SOC_VERSION}" in
+            Ascend950|Ascend950PR|Ascend950DT) echo "Ascend950" ;;
+            *) echo "${SOC_VERSION}" ;;
+        esac
         return 0
     fi
 
@@ -50,20 +53,8 @@ detect_soc_version() {
     fi
 
     if echo "${smi_out}" | grep -Eq 'Ascend950|[^[:digit:]]950([^[:digit:]]|$)'; then
-        local board_out
-        board_out=$(npu-smi info -t board -i 0 2>/dev/null || true)
-
-        local chip_name
-        chip_name=$(echo "${board_out}" | grep -iE '^[[:space:]]*Chip Name[[:space:]]*:' \
-            | sed -E 's/^[^:]*:[[:space:]]*//' | head -n 1 || true)
-        local npu_name
-        npu_name=$(echo "${board_out}" | grep -iE '^[[:space:]]*NPU Name[[:space:]]*:' \
-            | sed -E 's/^[^:]*:[[:space:]]*//' | head -n 1 || true)
-
-        if [[ -n "${chip_name}" && -n "${npu_name}" ]]; then
-            echo "${chip_name}_${npu_name}"
-            return 0
-        fi
+        echo "Ascend950"
+        return 0
     fi
 
     local tag

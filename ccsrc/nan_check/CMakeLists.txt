@@ -5,7 +5,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_SKIP_RPATH TRUE)
 
-find_package(cpython MODULE REQUIRED)
+if (PYTHON_VERSION)
+    find_package(Python3 ${PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter)
+else()
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+endif()
 
 if (NOT Python3_EXECUTABLE)
     message(FATAL_ERROR "Python3_EXECUTABLE not found.")
