@@ -43,6 +43,8 @@ def main():
         "It does not restrict the ownership or permissions of files it processes.\n"
         "Users are responsible for assigning appropriate ownership and permissions based on their usage scenarios, "
         "and must ensure that the content of the files handled by the tool is secure and trustworthy.\n"
+        "When providing input to the tool, users should avoid using symbolic links, "
+        "and convert all files to real paths before providing them as input to the tool.\n"
     )
 
     parser = argparse.ArgumentParser(

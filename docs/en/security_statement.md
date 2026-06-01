@@ -14,9 +14,11 @@ All tools in this repository are designed to run with minimal permissions. For s
 
 ## File Permission Control
 
-1. When providing input files to the tool, it is recommended that the file owner matches the process owner of the tool and that file permissions restrict write access for `group` and `others`. By default, tool files written to the drive are not writable by others. You can manually control the permissions for the generated files as needed.
+1. This tool is a development-phase tool and does not restrict the ownership or permissions of the files it processes. Users need to assign appropriate ownership and permissions based on their usage scenarios and ensure that the content of the files handled by the tool is secure and trustworthy.
 
-2. Maintain strict permission control during installation and use. For details about the recommended file permission settings, see the following table.
+2. When providing input files to the tool, it is recommended that the file owner matches the process owner of the tool and that file permissions restrict write access for `group` and `others`. The permissions of files written to the drive are managed by users and system administrators.
+
+3. Maintain strict permission control during installation and use. For details about the recommended file permission settings, see the following table.
 
 **File Permission Reference**
 
@@ -39,6 +41,10 @@ All tools in this repository are designed to run with minimal permissions. For s
 | Key components, private keys, certificates, and ciphertext file directory| 700 (rwx------)|
 | Key components, private keys, certificates, and ciphertext files  | 600 (rw-------)|
 | APIs and scripts for encryption and decryption      | 500 (r-x------)|
+
+## Input Path Security Statement
+
+When providing input to the tool, users should ensure that the content is safe and trustworthy, avoid using symbolic links, and convert all files to real paths before providing them as input to the tool.
 
 ## Vulnerability Security Statement
 
