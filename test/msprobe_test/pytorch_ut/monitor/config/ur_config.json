@@ -3,6 +3,7 @@
         "": {}
     },
     "ur_distribution": true,
-    "format": "tensorboard",
+    "xy_distribution": true,
+    "format": "csv",
     "ops": ["norm"]
 }

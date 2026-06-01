@@ -45,7 +45,7 @@ from msprobe.core.monitor.utils import (
 from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.common.utils import is_recomputation
 from msprobe.pytorch.monitor.utils import get_param_struct
-from msprobe.pytorch.monitor.data_writers import SummaryWriterWithAD, CSVWriterWithAD, BaseWriterWithAD, WriterInput
+from msprobe.pytorch.monitor.data_writers import CSVWriterWithAD, WriterInput
 from msprobe.pytorch.monitor.distributed.wrap_distributed import (
     api_register,
     create_hooks,
@@ -69,9 +69,7 @@ if not torch_version_above_or_equal_2:
     raise ValueError("monitor require torch>=2.0")
 
 FORMAT_MAPPING = {
-    MonitorConst.TENSORBOARD: SummaryWriterWithAD,
     MonitorConst.CSV: CSVWriterWithAD,
-    MonitorConst.API: BaseWriterWithAD,
 }
 start_step = 0
 
@@ -367,8 +365,8 @@ class TrainerMon:
             logger.warning(f"Unsupported format: {self.format}, use default format: {MonitorConst.CSV}")
             self.format = MonitorConst.CSV
 
-        if self.ur_distribution and self.format != 'tensorboard':
-            logger.warning("can only set ur_distribution when format is 'tensorboard', cancel ur_distribution")
+        if self.ur_distribution:
+            logger.warning("ur_distribution is not supported in CSV format, cancel ur_distribution")
             self.ur_distribution = False
 
         writer = FORMAT_MAPPING[self.format]

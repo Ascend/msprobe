@@ -519,22 +519,7 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
 
 ### 输出格式 
 
-通过可选配置项`format`指定，当前支持`csv`， `tensorboard`， `api`。其中`csv`为默认缺省值。
-
-- **tensorboard** 
-      监测结果写入tensorboard的event文件，启动tensorboard查看。  
-      激活值监测任务的tag为{vpp_stage}:{module_name}.{input or output}:{micro_step}/{rank}/{task}\_{ops}
-      其他监测任务的tag为{vpp_stage}:{param_name}/{rank}/{task}\_{ops} 
-
-    ```shell
-    tensorboard --logdir=$MONITOR_OUTPUT_DIR
-    ```
-
-    之后，运行以下SSH命令来建立端口转发，可以在本地通过`http://localhost:6006`访问tensorboard：
-
-    ```shell
-    ssh -N -L localhost:6006:localhost:6006 your_username@remote_server_address
-    ```
+通过可选配置项`format`指定，当前仅支持`csv`（默认值）。
 
 - **csv**
   监测结果写入csv文件中，可以通过`ndigits`字段设置小数位数。  
@@ -542,8 +527,7 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
   仅在激活值监测的输出文件中包含micro_step。
   激活值监测的name为`<module_name>.<input or output>`, 其他任务的name为`<param_name>`。
 
-- **api** 
-  监测结果不落盘，在训练过程中可以通过`generate_wgrad_metrics`、`generate_xy_metrics`等接口获取，使用方式参考[公开接口](#公开接口) 。
+如需将csv转为tensorboard格式进行可视化，可使用[csv格式数据转tensorboard可视化显示](#csv格式数据转tensorboard可视化显示)功能。
 
 ### csv输出件合并
 
@@ -705,7 +689,7 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 | "step_interval"         | 可选     | 设置采集step间隔，默认值为1，表示每个step均采集监测数据。                                                                                                                                                                                                                                                                                                                                               |
 | "print_struct"          | 可选     | 设置为true后监测工具会打印每张卡模型中module的名字和详细结构，并在第1个step后退出。不填默认为false。                                                                                                                                                                                                                                                                                                                    |
 | "module_ranks"          | 可选     | 用于在分布式训练场景中希望控制在哪些rank开启module监测。如果不填，则默认在所有rank开启。 列表内rank要求为int类型。                                                                                                                                                                                                                                                                                                            |
-| "ur_distribution"       | 可选     | 若为true则会统计adam优化器指定模块（targets中指定）参数的update和ratio向量的数值分布，并展示在heatmap里，同时format字段必须设置为tensorboard。默认为false。<br/>依赖histc算子， 需要CANN8.0.rc2以上版本， 否则会有严重的性能问题。**仅PyTorch场景支持此参数**。                                                                                                                                                                                         |
+| "ur_distribution"       | 可选     | 若为true则会统计adam优化器指定模块（targets中指定）参数的update和ratio向量的数值分布，并展示在heatmap里。默认为false。<br/>依赖histc算子， 需要CANN8.0.rc2以上版本， 否则会有严重的性能问题。**仅PyTorch场景支持此参数**。                                                                                                                                                                                         |
 | "xy_distribution"       | 可选     | 若为true则会监测指定module（targets中指定）的输入输出张量。 默认为false。                                                                                                                                                                                                                                                                                                                                |
 | "all_xy"                | 可选     | 开启xy_distribution后生效，若为true，监测所有module。默认为false。<br/>与targets同时生效，all_xy配置为true时，若targets配置module_xx和指定对象，则module_xx按targets配置生效，其他module则监测全部对象，包含input、output、input_grad、output_grad。                                                                                                                                                                                         |
 | "forward_only"          | 可选     | 开启xy_distribution后生效，若为true，仅监测指定module的前向，targets中的input_grad、output_grad不生效。默认为false。                                                                                                                                                                                                                                                                                         |
@@ -717,7 +701,7 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 | "alert"                 | 可选     | "rules": 指定自动报警的异常检测机制及其相应的阈值。目前实现的异常检测是AnomalyTurbulence， 如果统计标量超出历史均值的指定浮动范围（threshold 0.5意味着上浮或者下浮50%）则在控制台打印报警信息。当"dump"字段配置为true表示异常事件写入文件，默认为false。**仅PyTorch场景支持此参数**。                                                                                                                                                                                                   |
 | "cc_distribution"       | 可选     | 其中"enable"字段控制通信监测模块的开关，仅支持在多卡训练时开启；需要监测通信算子时，务必尽量早地实例化`TrainerMon`, 因为监测通过劫持原始func后挂hook实现，部分加速库初始化时会保存原始function，避免监测失效。"cc_codeline"字段指定监测的代码行，如:`train.py\\[23\\]`，默认为空列表，不特别指定；"cc_pre_hook"字段控制是否监测通输入； 模块会在第二个optimize.step之前打印通信日志，包括通信api的调用栈、输入dtype、通信group。 "cc_log_only"为true时，仅打印日志，不监测通信的输入输出，并在打印后中断训练。可以根据通信日志设置"cc_codeline"，规避与训练过程不相关的通信，比如一些时间、metrics的同步。 |
 | "mg_direction"         | 可选 | 若为true则会计算权重梯度和动量方向一致的比例，默认为false。                                                                                                                                                                                                                                                                                                                                              |
-| "format"                | 可选     | 数据落盘格式，默认值为"csv"，可选 \["csv", "tensorboard", "api"\]。仅PyThon和MindSpore动态图场景支持此参数，且MindSpore动态图场景仅支持\["csv"\]。                                                                                                                                                                                                                                                                    |
+| "format"                | 可选     | 数据落盘格式，仅支持"csv"（默认值）。                                                                                                                                                                                                                                                                    |
 | "ops"                   | 可选     | 类型为list，与ur_distribution、xy_distribution、mv_distribution、wg_distribution、mg_direction、cc_distribution配合，监测所选张量的统计指标，目前支持"min"、"max"、"norm"、"mean"、"zeros"、"nans"。其中，zeros代表监测所选张量的元素小于eps的比例，nans代表张量中nan的数量。当ops中无有效指标时，默认监测norm指标。                                                                                                                                            |
 | "eps"                   | 可选     | 若ops里包含"zeros"则需要配置，默认为1e-8。                                                                                                                                                                                                                                                                                                                                                    |
 | "ndigits"               | 可选     | "format"为"csv"时，设置落盘文件中的小数位数，默认为6。                                                                                                                                                                                                                                                                                                                                              |

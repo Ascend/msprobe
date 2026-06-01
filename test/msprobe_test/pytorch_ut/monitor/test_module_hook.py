@@ -800,12 +800,11 @@ class TestModuleHook(unittest.TestCase):
         os.environ[MonitorConst.MONITOR_OUTPUT_DIR] = ur_monitor_output
         ur_config = os.path.join(base_dir, "config/ur_config.json")
         monitor_demo(ur_config)
-        # validate output file
+        # ur_distribution is cancelled with CSV format, validate CSV output from xy_distribution instead
         output_dir_list = os.listdir(ur_monitor_output)
         self.assertEqual(len(output_dir_list), 1)
-        tb_dir = os.listdir(os.path.join(ur_monitor_output, output_dir_list[0]))
-        self.assertEqual(len(tb_dir), 1)
-        self.assertTrue(tb_dir[0].startswith("events.out.tfevents."))
+        actv_0_csv = os.path.join(ur_monitor_output, output_dir_list[0], "actv_0-0.csv")
+        self.assertTrue(os.path.exists(actv_0_csv))
 
     def test_cc_distribution(self):
         cc_config = os.path.join(base_dir, "config/cc_config.json")
