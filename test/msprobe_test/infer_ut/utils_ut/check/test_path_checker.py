@@ -28,9 +28,6 @@ class TestPathChecker(unittest.TestCase):
         self.fp = tempfile.NamedTemporaryFile()
         self.dp = tempfile.TemporaryDirectory()
 
-        self.sl = "softlink"
-        os.symlink(self.fp.name, self.sl)
-
         self.pc = path_checker.PathChecker()
 
     def test_exists(self):
@@ -51,9 +48,6 @@ class TestPathChecker(unittest.TestCase):
 
     def test_not_dir(self):
         self.assertRegex(str(self.pc.is_dir().check(self.fp.name)), "Not a directory")
-
-    def test_not_softlink(self):
-        self.assertRegex(str(self.pc.is_softlink().check(self.fp.name)), "Not a soft link")
 
     @unittest.skipIf(os.getuid() == 0, "any file is readable to root")
     def test_is_readable(self):
@@ -158,6 +152,5 @@ class TestPathChecker(unittest.TestCase):
             self.pc.exists().check(2, True)
 
     def tearDown(self) -> None:
-        os.unlink(self.sl)
         self.fp.close()
         self.dp.cleanup()

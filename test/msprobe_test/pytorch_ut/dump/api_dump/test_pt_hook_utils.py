@@ -34,8 +34,7 @@ class TestUtils(unittest.TestCase):
             'torch_npu': ['npu_op1']
         }
 
-        self.mock_listdir = patch('os.listdir').start()
-        self.mock_check_link = patch('msprobe.pytorch.dump.api_dump.utils.check_link').start()
+        self.mock_listdir = patch('msprobe.pytorch.dump.api_dump.utils.os.listdir').start()
 
     def tearDown(self):
         patch.stopall()

@@ -18,7 +18,7 @@ import os
 import importlib
 import inspect
 
-from msprobe.core.common.file_utils import load_yaml, check_link
+from msprobe.core.common.file_utils import load_yaml
 from msprobe.core.common.log import logger
 
 
@@ -37,14 +37,13 @@ def dynamic_import_op(package, white_list):
     package_name = package.__name__
     ops = {}
     ops_dir, _ = os.path.split(package.__file__)
-    check_link(ops_dir)
     for file_name in os.listdir(ops_dir):
         if file_name in white_list:
             sub_module_name = file_name[:-3]
             module_name = f"{package_name}.{sub_module_name}"
             try:
                 module = importlib.import_module(module_name)
-            except Exception as e:
+            except Exception:
                 logger.warning(f"import {module_name} failed!")
                 continue
 

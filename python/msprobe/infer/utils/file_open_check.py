@@ -178,35 +178,6 @@ class FileStat:
         if not self.is_exists and perm != 'write':
             logger.error(f"path: {self.file} not exist, please check if file or dir is exist")
             return False
-        if self.is_softlink:
-            whitelist_path = os.environ.get(RAW_INPUT_PATH, "")
-            if whitelist_path == "":
-                logger.error(
-                    f"path : {self.file} is a soft link, not supported, please import file(or directory) directly"
-                )
-                return False
-            target = os.readlink(self.file)
-            target_path = os.path.abspath(os.path.normpath(target))  # normpath更加规范
-            file_path = os.path.abspath(os.path.normpath(self.file))
-            sub_paths = whitelist_path.split("|")
-            illegal_softlink = True
-            for sub_path in sub_paths:
-                sub_path_abs = os.path.abspath(os.path.normpath(sub_path))
-                # 检查子路径本身是否是软链接
-                if os.path.islink(sub_path_abs):
-                    continue
-                # 使用 os.path.commonpath 来比较路径
-                common_path_target = os.path.commonpath([sub_path_abs, target_path])
-                common_path_file = os.path.commonpath([sub_path_abs, file_path])
-                # 确保公共路径与子路径相同，表示目标路径和文件路径都在子路径内
-                if common_path_target == sub_path_abs and common_path_file == sub_path_abs:
-                    illegal_softlink = False
-                    break  # 已找到合法路径，退出循环
-            if illegal_softlink:
-                logger.error(
-                    f"path : {self.file} is a soft link, not supported, please import file(or directory) directly"
-                )
-                return False
         return True
 
     def check_linux_permission(self, perm='none', strict_permission=True):
@@ -279,9 +250,6 @@ def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, write_permission=PERM
 
     if file_stat.is_exists:
         file_stat.check_owner_or_root()
-
-    if file_stat.is_softlink:
-        raise OpenException(f"Softlink is not allowed to be opened. {file}")
 
     if "r" in mode:
         if not file_stat.is_exists:

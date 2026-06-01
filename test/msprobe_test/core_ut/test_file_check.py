@@ -30,7 +30,6 @@ from msprobe.core.common.file_utils import (check_link,
                                             check_path_readability,
                                             check_path_writability,
                                             check_path_executable,
-                                            check_other_user_writable,
                                             check_path_pattern_valid,
                                             check_file_size,
                                             check_common_file_size,
@@ -129,22 +128,6 @@ class TestFileCheckUtil(TestCase):
         with patch("msprobe.core.common.file_utils.os.access", new=mock_access):
             check_path_executable(path)
         self.assertEqual(mock_access.call_args[0], (path, os.X_OK))
-
-    @patch.object(logger, "error")
-    def test_check_other_user_writable(self, mock_logger_error):
-        class TestStat:
-            def __init__(self, mode):
-                self.st_mode = mode
-
-        path = "file_path"
-        mock_stat = TestStat(0o002)
-        with patch("msprobe.core.common.file_utils.os.stat", return_value=mock_stat):
-            with self.assertRaises(FileCheckException) as context:
-                check_other_user_writable(path)
-            self.assertEqual(str(context.exception),
-                             FileCheckException.err_strs.get(FileCheckException.FILE_PERMISSION_ERROR))
-            mock_logger_error.assert_called_with(f"The file path {path} may be insecure "
-                                                 "because other users have write permissions. ")
 
     @patch.object(logger, "error")
     def test_check_path_pattern_valid(self, mock_logger_error):

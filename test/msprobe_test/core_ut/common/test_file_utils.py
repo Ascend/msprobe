@@ -92,17 +92,6 @@ class TestFileChecks:
         with patch('os.access', return_value=True):
             check_path_executable(self.test_file)
 
-    def test_check_other_user_writable(self):
-        self.mock_stat.st_mode = 0o777  # Others writable
-        with patch('os.stat', return_value=self.mock_stat), \
-                pytest.raises(FileCheckException) as exc_info:
-            check_other_user_writable(self.test_file)
-        assert exc_info.value.code == FileCheckException.FILE_PERMISSION_ERROR
-
-        self.mock_stat.st_mode = 0o755  # Others not writable
-        with patch('os.stat', return_value=self.mock_stat):
-            check_other_user_writable(self.test_file)
-
     def test_check_path_pattern_valid(self):
         valid_paths = [
             self.test_dir / "file.txt",
@@ -730,16 +719,14 @@ class TestCheckOutputDirPath:
         """Test check_output_dir_path with existing directory"""
         existing_dir = str(self.test_dir)
         
-        with patch('msprobe.core.common.file_utils.check_link') as mock_check_link, \
-                patch('msprobe.core.common.file_utils.check_path_length') as mock_check_length, \
+        with patch('msprobe.core.common.file_utils.check_path_length') as mock_check_length, \
                 patch('msprobe.core.common.file_utils.check_path_pattern_valid') as mock_check_pattern, \
                 patch('msprobe.core.common.file_utils.check_path_writability') as mock_check_writability, \
                 patch('os.path.exists', return_value=True):
             
             check_output_dir_path(existing_dir)
             
-            # Should call all checks for existing path
-            mock_check_link.assert_called_once()
+            # Should call all current checks for existing path
             mock_check_length.assert_called_once()
             mock_check_pattern.assert_called_once()
             mock_check_writability.assert_called_once()

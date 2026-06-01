@@ -70,11 +70,10 @@ class FileChecker:
 
     def common_check(self):
         """
-        功能：基本文件权限校验，包括文件存在性、软连接、文件长度、文件类型、文件读写权限、文件属组、文件路径特殊字符、文件后缀名等
+        功能：基本文件权限校验，包括文件存在性、文件长度、文件类型、文件读写权限、文件属组、文件路径特殊字符、文件后缀名等
         注意：文件后缀的合法性，非通用操作，可使用其他独立接口实现
         """
         check_path_exists(self.file_path)
-        check_link(self.file_path)
         self.file_path = os.path.realpath(os.path.expanduser(self.file_path))
         check_path_length(self.file_path)
         check_path_type(self.file_path, self.path_type)
@@ -133,7 +132,6 @@ class FileOpen:
         if self.mode not in support_mode:
             logger.error("File open not support %s mode" % self.mode)
             raise FileCheckException(FileCheckException.ILLEGAL_PARAM_ERROR)
-        check_link(self.file_path)
         self.file_path = os.path.realpath(self.file_path)
         check_path_length(self.file_path)
         self.check_ability()
@@ -198,13 +196,6 @@ def check_path_writability(path):
 def check_path_executable(path):
     if not os.access(path, os.X_OK):
         logger.error('The file path %s is not executable.' % path)
-        raise FileCheckException(FileCheckException.FILE_PERMISSION_ERROR)
-
-
-def check_other_user_writable(path):
-    st = os.stat(path)
-    if st.st_mode & 0o002:
-        logger.error('The file path %s may be insecure because other users have write permissions. ' % path)
         raise FileCheckException(FileCheckException.FILE_PERMISSION_ERROR)
 
 
@@ -306,7 +297,6 @@ def create_directory(dir_path):
 
 
 def check_path_before_create(path):
-    check_link(path)
     path = os.path.realpath(os.path.expanduser(path))
     if path_len_exceeds_limit(path):
         raise FileCheckException(FileCheckException.ILLEGAL_PATH_ERROR, 'The file path length exceeds limit.')
@@ -704,9 +694,6 @@ def write_df_to_csv(data, filepath, mode="w", header=True):
 def remove_path(path):
     if not os.path.exists(path):
         return
-    if os.path.islink(path):
-        logger.error(f"Failed to delete {path}, it is a symbolic link.")
-        raise RuntimeError("Delete file or directory failed.")
     try:
         if os.path.isfile(path):
             os.remove(path)
@@ -920,7 +907,6 @@ def split_zip_file_path(zip_file_path):
 
 def check_output_dir_path(path):
     path = os.path.realpath(path)
-    check_link(path)
     check_path_length(path)
     check_path_pattern_valid(path)
     if os.path.exists(path):

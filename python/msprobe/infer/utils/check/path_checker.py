@@ -125,22 +125,6 @@ class PathChecker(Checker):
             return self.f_status.ftype is FileType.DIRECTORY, f"Not a directory: {self.instance}"
 
     @rule()
-    def is_softlink(self) -> Union["PathChecker", CheckResult]:
-        if not self.f_state:
-            return False, self.status_err_msg
-        else:
-            return self.f_status.ftype is FileType.SYMLINK, f"Not a soft link: {self.instance}"
-
-    @rule()
-    def forbidden_softlink(self, flag=True) -> Union["PathChecker", CheckResult]:
-        if not self.f_state:
-            return False, self.status_err_msg
-        if flag:
-            return self.f_status.ftype is not FileType.SYMLINK, f"Soft link: {self.instance}"
-        else:
-            return True, "Soft link check passed."
-
-    @rule()
     def is_readable(self) -> Union["PathChecker", CheckResult]:
         return os.access(self.instance, os.R_OK), self.instance + " is not readable"
 

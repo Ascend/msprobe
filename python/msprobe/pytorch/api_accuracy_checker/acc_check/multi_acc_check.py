@@ -34,7 +34,7 @@ from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check_utils import (
 from msprobe.pytorch.api_accuracy_checker.compare.compare import Comparator
 from msprobe.pytorch.common import parse_json_info_forward_backward
 from msprobe.pytorch.common.log import logger
-from msprobe.core.common.file_utils import FileChecker, check_link, create_directory, load_json, save_json, read_csv
+from msprobe.core.common.file_utils import FileChecker, create_directory, load_json, save_json, read_csv
 from msprobe.core.common.file_utils import remove_path
 from msprobe.core.common.const import FileCheckConst, Const
 from msprobe.core.common.utils import CompareException
@@ -172,7 +172,6 @@ def run_parallel_ut(config):
             except subprocess.TimeoutExpired:
                 process.kill()
         for file in config.api_files:
-            check_link(file)
             try:
                 remove_path(file)
             except FileNotFoundError:

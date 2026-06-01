@@ -155,21 +155,19 @@ class TestMultiRunUT(unittest.TestCase):
         self.original_sigterm = signal.getsignal(signal.SIGTERM)
 
 
-    @patch('os.remove')
-    @patch('os.path.realpath', side_effect=lambda x: x)
-    @patch('msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check.check_link')
+    @patch('msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check.Comparator')
     @patch('msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check.FileChecker')
     @patch('msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check.split_json_file',
            return_value=(['forward_split1.json', 'forward_split2.json'], 2))
-    def test_prepare_config(self, mock_split_json_file, mock_FileChecker, mock_check_link,
-                            mock_realpath, mock_remove):
+    def test_prepare_config(self, mock_split_json_file, mock_FileChecker, mock_comparator):
         mock_FileChecker_instance = MagicMock()
         mock_FileChecker_instance.common_check.return_value = './'
         mock_FileChecker.return_value = mock_FileChecker_instance
         args = MagicMock()
-        args.api_info = 'forward.json'
+        args.api_info_file = 'forward.json'
         args.out_path = './'
         args.num_splits = 2
+        args.filter_api = False
         args.save_error_data = True
         args.jit_compile = False
         args.device_id = [0, 1]
