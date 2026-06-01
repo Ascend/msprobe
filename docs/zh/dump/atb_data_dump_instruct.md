@@ -141,7 +141,7 @@ dump配置文件为JSON格式的文本文件，各配置参数介绍如下：
 | op_name      | 可选 | 指定需dump数据的op的名称，str类型，默认为""，表示dump所有layer级Operation的精度数据。需满足"\<opName1\>,\<opName2\>"格式，指定一个或多个op名称。<br/> **配置示例**：<br/> "op_name": "word"，表示dump名称以"word"开头的op的精度数据（不区分大小写）。 |
 | save_child   | 可选 | 指定是否dump op下的子op的精度数据，bool类型，默认为false。可选值：<br/> true：dump 指定op及内部子op的精度数据；<br/> false：仅dump 指定op的精度数据。 |
 | device       | 可选 | 指定需dump数据的device ID，str类型，默认为""，表示dump 所有device上的精度数据。需满足"\<deviceID1\>,\<deviceID2\>"格式，指定一个或多个device ID。<br/> **配置示例**：<br/> "device": "0"，表示dump device0上的精度数据。 |
-| filter_level | 可选 | 指定dump op的输入/输出Tensor的真实数据时的过滤等级，int类型，默认为1。该参数仅在指定layer级Operation，且"save_child"为true时生效。可选值：<br/> 0：采集op的输入/输出Tensor的真实数据时，不进行数据过滤；<br/> 1：采集op的输入/输出Tensor的真实数据时，相同Tensor仅保存一次；<br/> 2：在1基础上，过滤Kernel的输入/输出Tensor。 |
+| filter_level | 可选 | 指定dump op的输入/输出Tensor的真实数据时的过滤等级，int类型，默认为1。该参数仅在指定layer级Operation，且"save_child"为true时生效。可选值：<br/> 0：采集op的输入/输出Tensor的真实数据时，不进行数据过滤；<br/> 1：采集op的输入/输出Tensor的真实数据时，相同Tensor仅保存一次；<br/> 2：在1基础上，过滤Kernel的输入/输出Tensor。<br/> **注意**：若Tensor文件名中包含参数名称，无论是否存在相同Tensor，均会保存完整数据。 |
 
 dump配置文件示例如下：
 
@@ -265,9 +265,10 @@ ATB dump输出文件的目录结构示例如下：
 |   |   |   |    |   |   |   |   |   |── intensor0.bin
 |   |   |   |    |   |   |   |   |   |── intensor1.bin
 |   |   |   |    |   |   |   ├── after
-|   |   |   |    |   |   |   └── ...
+|   |   |   |    |   |   |   |   |── outtensor0_output.bin  # 根据使用的CANN版本不同，也有可能为outtensor0.bin
 |   |   |   |    |   |   |   ├── before
-|   |   |   |    |   |   |   └── ...
+|   |   |   |    |   |   |   |   |── intensor0_x.bin  # 根据使用的CANN版本不同，也有可能为intensor0.bin
+|   |   |   |    |   |   |   |   |── intensor1_indices.bin  # 根据使用的CANN版本不同，也有可能为intensor1.bin
 |   |   |   |    |   |   |   ├── op_param.json  # Operation参数数据
 |   |   |   |    |   |   |...
 |   |   |   |    |   ...
@@ -304,7 +305,7 @@ ATB dump输出文件的目录结构示例如下：
 | Op Type         | op类型。 |
 | Op Id           | op ID号，由父op ID和本身ID组成。例如2_0。 |
 | Input/Output    | 输入Tensor还是输出Tensor。 |
-| Index           | Tensor索引。 |
+| Index           | Tensor索引（可能包含参数名）。例如0，2_value。 |
 | Dtype           | Tensor的数据类型。例如bf16。 |
 | Format          | Tensor的数据格式。例如nd。 |
 | Shape           | Tensor形状。例如36x128。 |
