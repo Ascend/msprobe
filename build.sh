@@ -3,6 +3,7 @@
 set -e
 
 BUILD_PATH=$(pwd)
+PYTHON_BIN=${PYTHON_BIN:-python3}
 
 BUILD_ARGS=$(getopt -o ha:v:m:j:ft --long \
     help,release,debug,arch:,python-version:,include-mod:,CANN-path:,jobs:,force-rebuild,local,test-cases -- "$@")
@@ -21,6 +22,7 @@ ATB_PROBE_MOD="'atb_probe'"
 ACLGRAPH_DUMP_MOD="'aclgraph_dump'"
 NAN_CHECK_MOD="'nan_check'"
 PYTHON_NAN_CHECK_VENDOR_DIR="${BUILD_PATH}/python/msprobe/vendors"
+XOR_CHECKSUM_MOD="'xor_checksum'"
 
 HELP_DOC=$(cat << EOF
 Usage: build.sh [OPTION]...\n
@@ -64,7 +66,9 @@ while true; do
             USE_LOCAL_FIRST=True ; shift ;;
         -f | --force-rebuild)
             rm -rf "${BUILD_PATH}/build_dependency" "${BUILD_PATH}/lib" "${BUILD_PATH}/output" "${BUILD_PATH}/third_party" \
-                   "${BUILD_PATH}/python/msprobe/lib/*"
+                   "${BUILD_PATH}/python/msprobe/lib/*" "${BUILD_PATH}/ccsrc/xor_checksum/build" \
+                   "${BUILD_PATH}/ccsrc/xor_checksum/dist" "${BUILD_PATH}/ccsrc/xor_checksum"/*.egg-info \
+                   "${BUILD_PATH}/python/msprobe/lib/xor_checksum_ext.so"
             shift ;;
         -t | --test-cases)
             BUILD_TEST_CASE=True ; shift ;;
@@ -152,6 +156,21 @@ if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
     fi
 fi
 
+if [[ "${INCLUDE_MOD}" == *"${XOR_CHECKSUM_MOD}"* ]]; then
+    export MSPROBE_INCLUDE_MOD="xor_checksum"
+    XOR_CHECKSUM_OUTPUT_PATH=${BUILD_OUTPUT_PATH}/xor_checksum
+    cd ${BUILD_PATH}
+    cmake -B ${XOR_CHECKSUM_OUTPUT_PATH} -S ${BUILD_PATH}/ccsrc/xor_checksum \
+          -DPython3_EXECUTABLE=${PYTHON_BIN}
+    cd ${XOR_CHECKSUM_OUTPUT_PATH}
+    make -j${CONCURRENT_JOBS}
+
+    if [[ ! -e ${XOR_CHECKSUM_OUTPUT_PATH}/xor_checksum_ext.so ]]; then
+        echo "Failed to build xor_checksum_ext.so."
+        exit 1
+    fi
+fi
+
 if [ ! -d ${BUILD_PATH}/python/msprobe/lib ]; then
     mkdir ${BUILD_PATH}/python/msprobe/lib
 fi
@@ -181,4 +200,8 @@ if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
     fi
 elif [[ -d "${PYTHON_NAN_CHECK_VENDOR_DIR}" ]]; then
     rm -rf "${PYTHON_NAN_CHECK_VENDOR_DIR}"
+fi
+
+if [[ "${INCLUDE_MOD}" == *"${XOR_CHECKSUM_MOD}"* ]]; then
+    cp -f ${BUILD_OUTPUT_PATH}/xor_checksum/xor_checksum_ext.so ${BUILD_PATH}/python/msprobe/lib/xor_checksum_ext.so
 fi

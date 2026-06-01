@@ -39,6 +39,7 @@ from msprobe.core.dump.data_dump.data_processor.base import (
     ModuleForwardInputsOutputs,
     TensorStatInfo,
 )
+from msprobe.pytorch.xor_checksum import xor_checksum
 from msprobe.pytorch.common.utils import (
     Const as PtConst,
     is_float4_tensor,
@@ -52,31 +53,6 @@ try:
     import torch_npu
 except ImportError:
     is_gpu = True
-
-
-def xor_checksum(a: torch.Tensor) -> torch.Tensor:
-    if a.dim() == 0:
-        return a.clone()
-    bytes_tensor = a.view(torch.uint8).flatten()
-    numel = bytes_tensor.numel()
-    if numel == 0:
-        return torch.zeros((), dtype=torch.int64, device=a.device)
-
-    if numel % 8 != 0:
-        bytes_tensor = torch.nn.functional.pad(bytes_tensor, (0, 8 - numel % 8), "constant", 0)
-    # Zero-copy fast path; only realign via copy when int64 view alignment is invalid.
-    if bytes_tensor.storage_offset() % 8 != 0:
-        bytes_tensor = bytes_tensor.clone()
-    words = bytes_tensor.view(torch.int64)
-    numel = words.numel()
-
-    while numel > 1:
-        if numel % 2 != 0:
-            words = torch.nn.functional.pad(words, (0, 1), "constant", 0)
-        words = words.view(2, -1)
-        words = torch.bitwise_xor(words[0, :], words[1, :])
-        numel = words.numel()
-    return words[0]
 
 
 class TensorHandler:
