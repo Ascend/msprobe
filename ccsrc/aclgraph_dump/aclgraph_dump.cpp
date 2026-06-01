@@ -16,9 +16,11 @@
 
 #include <ATen/ATen.h>
 #include <pybind11/pybind11.h>
+#include <sys/stat.h>
 #include <torch/csrc/jit/serialization/pickle.h>
 #include <torch/extension.h>
 #include <torch/torch.h>
+#include <unistd.h>
 
 #include <atomic>
 #include <cmath>
@@ -30,8 +32,6 @@
 #include <mutex>
 #include <sstream>
 #include <string>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -238,23 +238,27 @@ static void validate_save_path(const std::string& path)
     }
 
     // Single pass: character whitelist + .. traversal detection
-    static auto is_valid = [](char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-               c == '_' || c == '.' || c == ':' || c == '/' || c == '\\' || c == '-';
+    static auto is_valid = [](char c)
+    {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '.' ||
+               c == ':' || c == '/' || c == '\\' || c == '-';
     };
 
     size_t comp_start = 0;
-    for (size_t i = 0; i <= path.size(); i++) {
-        if (i == path.size() || path[i] == '/' || path[i] == '\\') {
-            if (i - comp_start == 2 && path[comp_start] == '.' && path[comp_start + 1] == '.') {
+    for (size_t i = 0; i <= path.size(); i++)
+    {
+        if (i == path.size() || path[i] == '/' || path[i] == '\\')
+        {
+            if (i - comp_start == 2 && path[comp_start] == '.' && path[comp_start + 1] == '.')
+            {
                 throw std::runtime_error("Save path contains path traversal '..': " + path);
             }
             comp_start = i + 1;
             if (i == path.size()) break;
         }
-        if (!is_valid(path[i])) {
-            throw std::runtime_error(
-                std::string("Save path contains invalid character '") + path[i] + "': " + path);
+        if (!is_valid(path[i]))
+        {
+            throw std::runtime_error(std::string("Save path contains invalid character '") + path[i] + "': " + path);
         }
     }
 
@@ -266,11 +270,6 @@ static void validate_save_path(const std::string& path)
         if (lstat(parent_dir.c_str(), &parent_stat) != 0)
         {
             throw std::runtime_error("Parent directory does not exist: " + parent_dir);
-        }
-
-        if (S_ISLNK(parent_stat.st_mode))
-        {
-            throw std::runtime_error("Parent directory is a symbolic link: " + parent_dir);
         }
 
         if (!S_ISDIR(parent_stat.st_mode))
@@ -335,12 +334,8 @@ static std::string dtype_to_string(const at::Tensor& x) { return std::string(c10
 static void acl_save_callback(const at::Tensor& x_dev_c, const std::string& path)
 {
     at::Tensor xc = x_dev_c.is_contiguous() ? x_dev_c : x_dev_c.contiguous();
-    auto out = at::empty_like(
-        xc,
-        xc.options().device(at::kCPU),
-        at::MemoryFormat::Contiguous);
-    const size_t nbytes =
-        static_cast<size_t>(out.numel()) * static_cast<size_t>(out.element_size());
+    auto out = at::empty_like(xc, xc.options().device(at::kCPU), at::MemoryFormat::Contiguous);
+    const size_t nbytes = static_cast<size_t>(out.numel()) * static_cast<size_t>(out.element_size());
     if (nbytes == 0)
     {
         write_pt_or_throw(out, path);
@@ -348,12 +343,7 @@ static void acl_save_callback(const at::Tensor& x_dev_c, const std::string& path
     }
     aclmdlRICaptureMode mode = ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
     aclmdlRICaptureThreadExchangeMode(&mode);
-    auto memcpy_status = aclrtMemcpy(
-        out.data_ptr(),
-        nbytes,
-        xc.data_ptr(),
-        nbytes,
-        ACL_MEMCPY_DEVICE_TO_HOST);
+    auto memcpy_status = aclrtMemcpy(out.data_ptr(), nbytes, xc.data_ptr(), nbytes, ACL_MEMCPY_DEVICE_TO_HOST);
     aclmdlRICaptureThreadExchangeMode(&mode);
     if (memcpy_status != ACL_ERROR_NONE)
     {
@@ -366,13 +356,9 @@ static void acl_save_callback(const at::Tensor& x_dev_c, const std::string& path
 
 static at::Tensor copy_to_cpu(const at::Tensor& x)
 {
-    auto out = at::empty_like(
-        x,
-        x.options().device(at::kCPU),
-        at::MemoryFormat::Contiguous);
+    auto out = at::empty_like(x, x.options().device(at::kCPU), at::MemoryFormat::Contiguous);
 
-    const size_t nbytes =
-        static_cast<size_t>(x.numel()) * static_cast<size_t>(x.element_size());
+    const size_t nbytes = static_cast<size_t>(x.numel()) * static_cast<size_t>(x.element_size());
     if (nbytes == 0)
     {
         return out;
@@ -409,9 +395,8 @@ static at::Tensor compute_stats_tensor(const at::Tensor& x)
     return at::stack({min_t, max_t, mean_t, norm_t});
 }
 
-static void update_stats_map(const std::string& tag, const std::string& dtype,
-                             const std::vector<int64_t>& shape, double min_v, double max_v, double mean_v,
-                             double norm_v)
+static void update_stats_map(const std::string& tag, const std::string& dtype, const std::vector<int64_t>& shape,
+                             double min_v, double max_v, double mean_v, double norm_v)
 {
     std::lock_guard<std::mutex> lock(g_stats_mutex);
     const std::string key = build_stat_key(tag);
@@ -450,12 +435,8 @@ static void acl_stat_callback(const at::Tensor& stats_dev, const std::string& ta
     }
 
     at::Tensor stats_c = stats_dev.is_contiguous() ? stats_dev : stats_dev.contiguous();
-    auto out = at::empty_like(
-        stats_c,
-        stats_c.options().device(at::kCPU),
-        at::MemoryFormat::Contiguous);
-    const size_t nbytes =
-        static_cast<size_t>(out.numel()) * static_cast<size_t>(out.element_size());
+    auto out = at::empty_like(stats_c, stats_c.options().device(at::kCPU), at::MemoryFormat::Contiguous);
+    const size_t nbytes = static_cast<size_t>(out.numel()) * static_cast<size_t>(out.element_size());
     if (nbytes == 0 || out.scalar_type() != at::kFloat || out.numel() < 4)
     {
         return;
@@ -463,16 +444,12 @@ static void acl_stat_callback(const at::Tensor& stats_dev, const std::string& ta
 
     aclmdlRICaptureMode mode = ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
     aclmdlRICaptureThreadExchangeMode(&mode);
-    auto memcpy_status = aclrtMemcpy(
-        out.data_ptr(),
-        nbytes,
-        stats_c.data_ptr(),
-        nbytes,
-        ACL_MEMCPY_DEVICE_TO_HOST);
+    auto memcpy_status = aclrtMemcpy(out.data_ptr(), nbytes, stats_c.data_ptr(), nbytes, ACL_MEMCPY_DEVICE_TO_HOST);
     aclmdlRICaptureThreadExchangeMode(&mode);
     if (memcpy_status != ACL_ERROR_NONE)
     {
-        ASCEND_LOGE("acl_stat device_to_host memcpy failed, tag=%s, status=%d", tag.c_str(), static_cast<int>(memcpy_status));
+        ASCEND_LOGE("acl_stat device_to_host memcpy failed, tag=%s, status=%d", tag.c_str(),
+                    static_cast<int>(memcpy_status));
         return;
     }
 

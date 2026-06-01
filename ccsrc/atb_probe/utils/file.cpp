@@ -287,18 +287,6 @@ bool CheckFileSuffixAndSize(const std::string& path, SUFFIX type, const size_t m
     return true;
 }
 
-bool IsSoftLink(const std::string& path)
-{
-    std::string absPath = GetAbsPath(path);
-    struct stat fileStat;
-    if (lstat(absPath.c_str(), &fileStat) != 0)
-    {
-        AIT_LOG_ERROR("the file lstat failed");
-        return false;
-    }
-    return S_ISLNK(fileStat.st_mode);
-}
-
 /****************** 文件操作函数库，会对入参做基本检查 ************************/
 
 static bool CreateDirAux(const std::string& path, bool recursion, mode_t mode)
@@ -405,11 +393,6 @@ bool CheckDir(const std::string& path)
         AIT_LOG_ERROR("path is not exist");
         return false;
     }
-    if (IsSoftLink(absPath))
-    {
-        AIT_LOG_ERROR("path is soft link");
-        return false;
-    }
     if (!IsDir(absPath))
     {
         AIT_LOG_ERROR("path is not a dir");
@@ -444,11 +427,6 @@ bool CheckFileBeforeRead(const std::string& path, SUFFIX type, const size_t maxS
     if (!IsRegularFile(absPath))
     {
         AIT_LOG_ERROR("path is not regular file");
-        return false;
-    }
-    if (IsSoftLink(absPath))
-    {
-        AIT_LOG_ERROR("path is a soft link");
         return false;
     }
     if (!IsFileReadable(absPath) || (GetPathPermissions(absPath) & S_IRUSR) == 0)
@@ -500,11 +478,6 @@ bool CheckFileBeforeCreateOrWrite(const std::string& path, bool overwrite)
             AIT_LOG_ERROR("path is not regular file");
             return false;
         }
-        if (IsSoftLink(absPath))
-        {
-            AIT_LOG_ERROR("path is soft link");
-            return false;
-        }
         if ((GetPathPermissions(absPath) & MsConst::WRITE_FILE_NOT_PERMITTED) > 0)
         {
             AIT_LOG_ERROR("path permission should not be over 0o750(rwxr-x---)");
@@ -528,7 +501,7 @@ bool CheckConfigFile(const std::string& absPath, const size_t maxSize)
         return false;
     }
 
-    if (!S_ISREG(fileStat.st_mode) || S_ISLNK(fileStat.st_mode))
+    if (!S_ISREG(fileStat.st_mode))
     {
         AIT_LOG_DEBUG("path is not regular file");
         return false;
