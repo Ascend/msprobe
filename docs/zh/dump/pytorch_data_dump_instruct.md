@@ -97,6 +97,7 @@ msProbe工具通过在训练脚本中添加`PrecisionDebugger`接口并启动训
 | 初步精度分析 | task="statistics"      | 资源占用低，快速获取统计信息                                      |
 | 深度精度分析 | task="tensor"          | 采集完整数据，支持详细分析                                       |
 | 确定性问题分析 | task="statistics"<br>summary_mode="md5"          | 采集统计信息和tensor的CRC-32校验值，快速分析确定性问题                   |
+| 轻量确定性差异定位 | task="statistics"<br>summary_mode="xor"          | 仅采集XOR校验值；如需加速采集，可安装编译时包含`--include-mod=xor_checksum`的工具包，安装方法请参见[安装基础工具包和xor_checksum加速算子](../msprobe_install_guide.md#install-xor-checksum)，优先使用C++加速算子执行，可带来数倍性能提升 |
 | NaN/Inf检测 | task="nan_check"      | 通过寄存器状态检测API运行中的NaN/Inf |
 
 ### 使用示例
@@ -369,6 +370,8 @@ dump.json is at ./dump_path/step*
   shape、max、min、mean、L2norm（L2范数，平方根）统计信息，以及根据`summary_mode`
   配置输出的校验值（`md5`对应CRC-32字段`md5`，`xor`对应XOR校验字段`md5`）。
   具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
+
+  当`summary_mode`配置为`xor`时，dump.json仅输出XOR校验值，不输出max、min、mean、L2norm统计信息。若安装的工具包编译时包含`--include-mod=xor_checksum`，PyTorch NPU场景会优先使用C++加速算子计算校验值，可带来数倍性能提升；安装方法请参见[安装基础工具包和xor_checksum加速算子](../msprobe_install_guide.md#install-xor-checksum)。加速算子不可用时自动回退到通用实现。
   当task配置为"nan_check"时，dump.json中各API数据将包含`is_nan`字段，取值为0或1，0代表无溢出状态，1代表有溢出状态（该模式下不保存API中数据的统计值）。
 * `dump_error_info.log`：仅在dump工具报错时生成此记录日志，用于记录dump错误日志。
 * `stack.json`：API/Module的调用栈信息。
