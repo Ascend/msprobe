@@ -30,13 +30,14 @@ import google.protobuf.text_format
 import caffe.proto.caffe_pb2 as caffe_pb2  # pylint: disable=consider-using-from-import
 
 from cmp_utils.constant.compare_error import CompareError
-from cmp_utils import log, file_utils
+from cmp_utils import log
 from cmp_utils import path_check
 from cmp_utils.utils import safe_path_string
 
 MAX_SIZE = 10 * 1024 * 1024 * 1024
 
 
+# pylint: disable=R0801
 class RemoveInplaceLayerProcess:
     """
     The class for remove inplace layer for caffe prototxt
@@ -179,9 +180,8 @@ class RemoveInplaceLayerProcess:
 
 
 if __name__ == "__main__":
-    with file_utils.UmaskWrapper():
-        try:
-            RemoveInplaceLayerProcess().remove_inplace_layer()
-        except Exception as base_err:
-            log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
-            sys.exit(1)
+    try:
+        RemoveInplaceLayerProcess().remove_inplace_layer()
+    except Exception as base_err:
+        log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
+        sys.exit(1)

@@ -26,7 +26,7 @@ import sys
 import argparse
 import time
 
-from cmp_utils import log, path_check, file_utils
+from cmp_utils import log, path_check
 from cmp_utils.utils import safe_path_string, check_file_size
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
@@ -43,6 +43,7 @@ from vector_cmp.batch_compare import BatchCompare
 MIND_STUDIO_LOGO = "[Powered by MindStudio]"
 
 
+# pylint: disable=R0801
 def _get_algorithm_help_info() -> str:
     """
     get algorithm help info
@@ -674,15 +675,14 @@ def main() -> None:
     :return:
     """
     start = time.time()
-    with file_utils.UmaskWrapper():
-        try:
-            _root_privilege_warning()
-            ret = _do_cmd()
-        except CompareError as err:
-            ret = err.code
-        except Exception as base_err:
-            log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
-            sys.exit(1)
+    try:
+        _root_privilege_warning()
+        ret = _do_cmd()
+    except CompareError as err:
+        ret = err.code
+    except Exception as base_err:
+        log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
+        sys.exit(1)
     end = time.time()
     log.print_info_log('The command was completed and took %d seconds.' % (end - start))
     sys.exit(ret)

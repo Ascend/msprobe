@@ -24,7 +24,7 @@ import os
 import sys
 import argparse
 import re
-from cmp_utils import log, path_check, file_utils
+from cmp_utils import log, path_check
 from cmp_utils.path_check import PathType
 from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.compare_error import CompareError
@@ -131,14 +131,13 @@ def _check_input_file(input_file: str, file_type: str) -> None:
 
 
 if __name__ == '__main__':
-    with file_utils.UmaskWrapper():
-        try:
-            _do_advisor()
-        except CompareError as err:
-            sys.exit(err.code)
-        except Exception as base_err:
-            log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
-            sys.exit(1)
+    try:
+        _do_advisor()
+    except CompareError as err:
+        sys.exit(err.code)
+    except Exception as base_err:
+        log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
+        sys.exit(1)
 
     log.print_info_log("Advisor completed.")
     sys.exit(CompareError.MSACCUCMP_NONE_ERROR)

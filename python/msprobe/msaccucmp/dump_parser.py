@@ -24,19 +24,26 @@ import argparse
 import sys
 import time
 
-from cmp_utils import log, file_utils
+from cmp_utils import log
 from cmp_utils.utils import safe_path_string
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse.dump_data_parser import DumpDataParser
 
 
+# pylint: disable=R0801
 def _save_log_parser(save_log_parser: argparse.ArgumentParser) -> None:
     save_log_parser.add_argument(
-        '-d', '--dump_file', dest='dump_path', default='', type=safe_path_string,
+        '-d',
+        '--dump_file',
+        dest='dump_path',
+        default='',
+        type=safe_path_string,
         help='<Required> the dump file path, supports one AICPU custom operator dump file.',
-        required=True)
-    save_log_parser.add_argument('-out', '--output', dest='output_path', default='', type=safe_path_string,
-                                 help='<Optional> the output path')
+        required=True,
+    )
+    save_log_parser.add_argument(
+        '-out', '--output', dest='output_path', default='', type=safe_path_string, help='<Optional> the output path'
+    )
 
 
 def _do_cmd() -> int:
@@ -71,19 +78,17 @@ def main() -> None:
     :return:
     """
     start = time.time()
-    with file_utils.UmaskWrapper():
-        try:
-            ret = _do_cmd()
-        except CompareError as err:
-            ret = err.code
-        except Exception as base_err:
-            log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
-            sys.exit(1)
+    try:
+        ret = _do_cmd()
+    except CompareError as err:
+        ret = err.code
+    except Exception as base_err:
+        log.print_error_log(f'Basic error running {sys.argv[0]}: {base_err}')
+        sys.exit(1)
     end = time.time()
     if ret != 0:
         log.print_error_log("Failed to parse dump log.")
-    log.print_info_log(
-        'The command was completed and took %d seconds.' % (end - start))
+    log.print_info_log('The command was completed and took %d seconds.' % (end - start))
 
 
 if __name__ == '__main__':
