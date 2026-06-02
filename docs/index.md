@@ -150,7 +150,7 @@ msProbe由华为公司的下列部门联合贡献：
 数据采集 <zh/dump/pytorch_data_dump_instruct>
 分级可视化构图比对 <zh/accuracy_compare/pytorch_visualization_instruct>
 精度比对 <zh/accuracy_compare/pytorch_accuracy_compare_instruct>
-训练状态检测 <zh/monitor_instruct.md>
+训练状态监测 <zh/monitor_instruct.md>
 精度预检 <zh/accuracy_checker/pytorch_accuracy_checker_instruct>
 ```
 
