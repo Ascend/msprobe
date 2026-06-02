@@ -404,7 +404,7 @@ class PytorchDataProcessor(BaseDataProcessor):
                 or data_clone.dtype == torch.float64
                 or not data_clone.is_floating_point()
             ):
-                if not is_gpu and data_clone.dtype == torch.int8:
+                if data_clone.device.type == "npu" and data_clone.dtype == torch.int8:
                     try:
                         if torch_npu.get_npu_format(data_clone) == torch_npu.Format.FRACTAL_NZ:
                             return tensor_stat
