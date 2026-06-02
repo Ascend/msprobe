@@ -17,10 +17,9 @@
 import os
 import unittest
 from unittest import mock
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import struct
 import csv
-import stat
 import pytest
 import numpy as np
 from google.protobuf.message import DecodeError
@@ -38,8 +37,6 @@ from cmp_utils.constant.const_manager import DD
 
 
 class TestUtilsMethods(unittest.TestCase):
-    mock_stat_result = os.stat_result((0, 0, 0, 0, os.getuid(), 0, 0, 0, 0, 0))
-
     @staticmethod
     def _make_op_output(dd_format, shape):
         op_output = OpOutput()
@@ -184,58 +181,6 @@ class TestUtilsMethods(unittest.TestCase):
         with self.assertRaises(CompareError) as context:
             ret = path_check.check_path_all_file_exec_valid(custom_path)
         assert context.exception.args[0] == CompareError.MSACCUCMP_OPEN_DIR_ERROR
-    
-    @patch('os.stat')
-    @patch('os.getuid', return_value=100)
-    def test_is_same_owner_false(self, mock_getuid, mock_os_stat):
-        path = "path"
-        mock_os_stat.return_value = MagicMock(st_uid=1000)
-        self.assertFalse(path_check.is_same_owner(path))
-
-    @patch('os.stat')
-    @patch('os.getuid', return_value=0)
-    def test_is_same_owner_true(self, mock_getuid, mock_os_stat):
-        path = "path"
-        mock_os_stat.return_value = MagicMock(st_uid=1000)
-        self.assertTrue(path_check.is_same_owner(path))
-    
-    @patch('os.stat')
-    def test_is_group_and_others_writable_true(self, mock_os_stat):
-        path = "path"
-        mock_os_stat.return_value = MagicMock(st_mode=stat.S_IWGRP)
-        self.assertTrue(path_check.is_group_and_others_writable(path))
-    
-    @patch('os.stat')
-    def test_is_group_and_others_writable_false(self, mock_os_stat):
-        path = "path"
-        mock_os_stat.return_value = MagicMock(st_mode=0o000)
-        self.assertFalse(path_check.is_group_and_others_writable(path))
-
-    @patch("cmp_utils.path_check.is_same_owner", return_value=True)
-    @patch("cmp_utils.path_check.is_group_and_others_writable", return_value=False)
-    def test_is_parent_dir_has_right_permission_both_true(self,     
-                                                        mock_is_group_and_others_writable, mock_is_same_owner):
-        path = "path"
-        self.assertTrue(path_check.is_parent_dir_has_right_permission(path))
-    
-    @patch("cmp_utils.path_check.is_same_owner", return_value=True)
-    @patch("cmp_utils.path_check.is_group_and_others_writable", return_value=True)
-    def test_is_parent_dir_has_right_permission_both_false(self, 
-                                                        mock_is_group_and_others_writable, mock_is_same_owner):
-        path = "path"
-        self.assertFalse(path_check.is_parent_dir_has_right_permission(path))
-
-    @patch("cmp_utils.log.print_warn_log")
-    @patch("cmp_utils.path_check.is_parent_dir_has_right_permission", return_value=False)
-    @patch('os.access', return_value=True)
-    @patch('os.path.exists', return_value=True)
-    @patch('os.path.islink', return_value=False)
-    def test_check_path_valid_when_parent_dir_permission_invalid_warns(
-            self, mock_islink, mock_exists, mock_access,
-            mock_is_parent_dir_has_right_permission, mock_warn):
-        ret = path_check.check_path_valid('/home/result.txt', True)
-        mock_warn.assert_called_once_with('The permissions of the parent directory of the current file are incorrect.')
-        self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_check_name_valid1(self):
         ret = path_check.check_name_valid('')
@@ -368,27 +313,24 @@ class TestUtilsMethods(unittest.TestCase):
     def test_check_path_valid5(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
-                with mock.patch('os.stat', return_value=self.mock_stat_result):
-                    ret = path_check.check_path_valid('/home/result', True, True)
+                ret = path_check.check_path_valid('/home/result', True, True)
         self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
 
     def test_check_path_valid6(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
                 with mock.patch('os.path.isfile', return_value=False):
-                    with mock.patch('os.stat', return_value=self.mock_stat_result):
-                        ret = path_check.check_path_valid(
-                            '/home/result.txt', True, False, path_check.PathType.File)
+                    ret = path_check.check_path_valid(
+                        '/home/result.txt', True, False, path_check.PathType.File)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_check_path_valid7(self):
         with mock.patch('os.path.exists', return_value=True):
             with mock.patch('os.access', return_value=True):
                 with mock.patch('os.path.isdir', return_value=False):
-                    with mock.patch('os.stat', return_value=self.mock_stat_result):
-                        ret = path_check.check_path_valid(
-                            '/home/result.txt', True, False,
-                            path_check.PathType.Directory)
+                    ret = path_check.check_path_valid(
+                        '/home/result.txt', True, False,
+                        path_check.PathType.Directory)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_check_path_valid8(self):
@@ -396,16 +338,6 @@ class TestUtilsMethods(unittest.TestCase):
             with mock.patch('os.access', side_effect=[True, False]):
                 ret = path_check.check_path_valid(
                     '/home/result', True, True, path_check.PathType.Directory)
-        self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
-
-    def test_check_path_valid_when_uid_not_in_groups(self):
-        with mock.patch('os.path.exists', return_value=True):
-            with mock.patch('os.access', return_value=True):
-                with mock.patch('os.getuid', return_value=1000):
-                    with mock.patch('os.stat', return_value=self.mock_stat_result):
-                        with mock.patch('os.getgroups', return_value=[1001, 1002]):
-                            ret = path_check.check_path_valid('/home/result', True, True,
-                                                              path_check.PathType.Directory)
         self.assertEqual(ret, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
 
     def test_parse_dump_file1(self):

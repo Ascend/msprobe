@@ -102,8 +102,7 @@ class TestUtil(unittest.TestCase):
     @patch('os.path.realpath')
     @patch('os.stat')
     @patch('re.search')
-    @patch('os.geteuid', return_value=1000)
-    def test_load_file_to_read_common_check(self, mock_geteuid, mock_re_search, mock_os_stat,
+    def test_load_file_to_read_common_check(self, mock_re_search, mock_os_stat,
                                             mock_realpath, mock_check_file_size_based_on_ext,
                                             mock_is_legal_path_length, mock_check_file_ext):
 
@@ -115,8 +114,6 @@ class TestUtil(unittest.TestCase):
 
         mock_stat_result = MagicMock()
         mock_stat_result.st_mode = 0o100644  # Regular file mode
-        mock_stat_result.st_uid = 1000
-        mock_stat_result.st_gid = 1000
         mock_os_stat.return_value = mock_stat_result
 
         mock_re_search.return_value = None
@@ -148,8 +145,7 @@ class TestUtil(unittest.TestCase):
         # 6. Test file with other-writeable permission (should raise PermissionError)
         mock_stat_result.st_mode = 0o666  # Other-writeable mode
         mock_re_search.return_value = False
-        with patch('os.stat', return_value=mock_stat_result), patch('os.st.S_ISREG', return_value=True), patch(
-                'os.geteuid', return_value=1000):
+        with patch('os.stat', return_value=mock_stat_result), patch('os.st.S_ISREG', return_value=True):
             with self.assertRaises(PermissionError):
                 load_file_to_read_common_check('/mock/path/to/writeable/file.txt', exts=['.txt'])
 

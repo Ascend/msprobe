@@ -37,8 +37,6 @@ class FileStatus:
         file_status = os.lstat(file_name)
         self._file_name = file_name
         self.status_mode = file_status.st_mode
-        self._file_uid = file_status.st_uid
-        self._file_gid = file_status.st_gid
         self._file_size = file_status.st_size
         self._file_extension = os.path.splitext(file_name)[1]
 
@@ -53,14 +51,6 @@ class FileStatus:
     @property
     def perm_bits(self) -> int:
         return os.st.S_IMODE(self.status_mode)
-
-    @property
-    def uid(self) -> int:
-        return self._file_uid
-
-    @property
-    def gid(self) -> int:
-        return self._file_gid
 
     @property
     def extension(self) -> str:
@@ -165,16 +155,3 @@ class PathChecker(Checker):
     @rule("Wrong file suffix")
     def check_extensions(self, extensions) -> Union["PathChecker", CheckResult]:
         return self.f_status.extension in (extensions, '.' + extensions)
-
-    @rule()
-    def is_safe_parent_dir(self) -> Union["PathChecker", CheckResult]:
-        path = os.path.realpath(self.instance)
-        dirpath = os.path.dirname(path)
-        if os.getuid() == 0:
-            return True
-
-        dir_checker = PathChecker().any(
-            PathChecker().anti(PathChecker().exists()),
-            PathChecker().is_dir(),
-        )
-        return dir_checker.check(dirpath)

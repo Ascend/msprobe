@@ -19,10 +19,11 @@
 Function:
 This file mainly involves the nano dump function.
 """
+
 import os
 import struct
 import warnings
-from typing.io import BinaryIO
+from typing import BinaryIO
 from enum import Enum
 
 from cmp_utils import path_check
@@ -32,7 +33,7 @@ from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.tlv_parse import TLV
 
 
-NANO_DUMP_DATA_MAGIC_NUM = 0x5a5a5a5a
+NANO_DUMP_DATA_MAGIC_NUM = 0x5A5A5A5A
 TLV_TYPE_INPUT_DESC = 4
 TLV_TYPE_OUTPUT_DESC = 5
 
@@ -51,17 +52,18 @@ INPUT_INFO_CONFIG_TAB = [
     {'Name': 'offset', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT64'},
     {'Name': 'size', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT64'},
     {'Name': 'tlv_list_len', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT32'},
-    {'Name': 'shape_dims', 'TLV_Type': 'TLNV', 'Ele_Type': 'UINT64',
-     'Tag': INPUT_DESC_TLV_TYPE_SHAPE_DIMS
-     },
-    {'Name': 'original_shape_dims', 'TLV_Type': 'TLNV', 'Ele_Type': 'UINT64',
-     'Tag': INPUT_DESC_TLV_TYPE_ORI_SHAPE_DIMS
-     }
+    {'Name': 'shape_dims', 'TLV_Type': 'TLNV', 'Ele_Type': 'UINT64', 'Tag': INPUT_DESC_TLV_TYPE_SHAPE_DIMS},
+    {
+        'Name': 'original_shape_dims',
+        'TLV_Type': 'TLNV',
+        'Ele_Type': 'UINT64',
+        'Tag': INPUT_DESC_TLV_TYPE_ORI_SHAPE_DIMS,
+    },
 ]
 
 INPUTS_LIST_CONFIG_TAB = [
     {'Name': 'inputs_num', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT32'},
-    {'Name': 'inputs', 'TLV_Type': 'NV', 'Ele_Type': INPUT_INFO_CONFIG_TAB, 'N': 'inputs_num'}
+    {'Name': 'inputs', 'TLV_Type': 'NV', 'Ele_Type': INPUT_INFO_CONFIG_TAB, 'N': 'inputs_num'},
 ]
 
 INPUTS_CONFIG_TAB = [
@@ -79,20 +81,19 @@ OUTPUT_INFO_CONFIG_TAB = [
     {'Name': 'offset', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT64'},
     {'Name': 'size', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT64'},
     {'Name': 'tlv_list_len', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT32'},
-    {'Name': 'shape_dims', 'TLV_Type': 'TLNV', 'Ele_Type': 'UINT64',
-     'Tag': OUTPUT_DESC_L3_TLV_TYPE_SHAPE_DIMS
-     },
-    {'Name': 'original_shape_dims', 'TLV_Type': 'TLNV', 'Ele_Type': 'UINT64',
-     'Tag': OUTPUT_DESC_L3_TLV_TYPE_ORI_SHAPE_DIMS
-     },
-    {'Name': 'origin_name', 'TLV_Type': 'TLNV', 'Ele_Type': 'CHAR',
-     'Tag': OUTPUT_DESC_L3_TLV_TYPE_ORI_NAME
-     }
+    {'Name': 'shape_dims', 'TLV_Type': 'TLNV', 'Ele_Type': 'UINT64', 'Tag': OUTPUT_DESC_L3_TLV_TYPE_SHAPE_DIMS},
+    {
+        'Name': 'original_shape_dims',
+        'TLV_Type': 'TLNV',
+        'Ele_Type': 'UINT64',
+        'Tag': OUTPUT_DESC_L3_TLV_TYPE_ORI_SHAPE_DIMS,
+    },
+    {'Name': 'origin_name', 'TLV_Type': 'TLNV', 'Ele_Type': 'CHAR', 'Tag': OUTPUT_DESC_L3_TLV_TYPE_ORI_NAME},
 ]
 
 OUTPUTS_LIST_CONFIG_TAB = [
     {'Name': 'outputs_num', 'TLV_Type': 'ATOM', 'Ele_Type': 'UINT32'},
-    {'Name': 'outputs', 'TLV_Type': 'NV', 'Ele_Type': OUTPUT_INFO_CONFIG_TAB, 'N': 'outputs_num'}
+    {'Name': 'outputs', 'TLV_Type': 'NV', 'Ele_Type': OUTPUT_INFO_CONFIG_TAB, 'N': 'outputs_num'},
 ]
 
 OUTPUTS_CONFIG_TAB = [
@@ -122,7 +123,7 @@ class NanoDataType(Enum):
     DT_QINT16 = 19
     DT_QINT32 = 20
     DT_QUINT8 = 21
-    DT_QUINT16 = 22,
+    DT_QUINT16 = (22,)
     DT_RESOURCE = 23
     DT_STRING_REF = 24
     DT_DUAL = 25
@@ -236,6 +237,7 @@ class NanoDumpDataParser:
     """
     The class for big dump data parser
     """
+
     warnings.filterwarnings("ignore")
 
     def __init__(self: any, dump_file_path: str) -> None:
@@ -280,14 +282,13 @@ class NanoDumpDataParser:
         for item in self.nano_dump_data.outputs:
             output_data_size += item.size
 
-        if self.tlv_header_length + input_data_size + output_data_size + \
-                ConstManager.UINT64_SIZE != self.file_size:
+        if self.tlv_header_length + input_data_size + output_data_size + ConstManager.UINT64_SIZE != self.file_size:
             log.print_error_log(
                 'The file size (%d) of %r is not equal to %d (tlv_header_length)'
                 '+ %d(the sum of input data) + %d(the sum of output data) '
                 '. Please check the dump file.'
-                % (self.file_size, self.dump_file_path,
-                   self.tlv_header_length, input_data_size, output_data_size))
+                % (self.file_size, self.dump_file_path, self.tlv_header_length, input_data_size, output_data_size)
+            )
             raise CompareError(CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE)
 
     def _read_header_length(self: any, dump_file: BinaryIO) -> None:
@@ -300,7 +301,8 @@ class NanoDumpDataParser:
                 'The header content size (%d) of %r must be less than or'
                 ' equal to %d (file size) - %d (tlv header length).'
                 ' Please check the dump file.'
-                % (self.tlv_header_length, self.dump_file_path, self.file_size, ConstManager.UINT64_SIZE))
+                % (self.tlv_header_length, self.dump_file_path, self.file_size, ConstManager.UINT64_SIZE)
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
 
     def _read_tlv_head_data(self: any, dump_file: BinaryIO) -> None:
@@ -310,8 +312,8 @@ class NanoDumpDataParser:
         except CompareError as de_error:
             log.print_warn_log(
                 'Failed to parse the serialized header content of %r. '
-                'Please check the dump file. %s '
-                % (self.dump_file_path, str(de_error)))
+                'Please check the dump file. %s ' % (self.dump_file_path, str(de_error))
+            )
             raise CompareError(CompareError.MSACCUCMP_PARSE_NANO_DUMP_FILE_ERROR) from de_error
 
     def _read_input_data(self: any, dump_file: BinaryIO) -> None:
@@ -347,7 +349,7 @@ class NanoDumpDataHandler:
                 # read magicnum
                 magicnum = dump_file.read(ConstManager.UINT32_SIZE)
                 magicnum = struct.unpack(ConstManager.UINT32_FMT, magicnum)[0]
-                return True if magicnum == NANO_DUMP_DATA_MAGIC_NUM else False
+                return magicnum == NANO_DUMP_DATA_MAGIC_NUM
         return False
 
     def check_argument_valid(self: any) -> None:
@@ -367,13 +369,16 @@ class NanoDumpDataHandler:
         if self.file_size < head_len:
             log.print_error_log(
                 'The file size (%d) of %r must to bigger than%d (head_len).'
-                'Please check the dump file.'
-                % (self.file_size, self.dump_file_path, head_len))
+                'Please check the dump file.' % (self.file_size, self.dump_file_path, head_len)
+            )
 
+        # pylint: disable=duplicate-code
         if self.file_size > ConstManager.ONE_GB:
             log.print_warn_log(
                 'The size (%d) of %r exceeds 1GB, it may task more time to run, please wait.'
-                % (self.file_size, self.dump_file_path))
+                % (self.file_size, self.dump_file_path)
+            )
+        # pylint: enable=duplicate-code
 
     def parse_dump_data(self: any) -> NanoDumpData:
         """
@@ -386,7 +391,9 @@ class NanoDumpDataHandler:
             nano_dump_parser = NanoDumpDataParser(self.dump_file_path)
             return nano_dump_parser.parse()
         except CompareError as error:
-            message = 'Failed to parse the dump file %r, type is nano dump format. Please check the dump file. %s' \
-                      % (self.dump_file_path, str(error))
+            message = 'Failed to parse the dump file %r, type is nano dump format. Please check the dump file. %s' % (
+                self.dump_file_path,
+                str(error),
+            )
             log.print_error_log(message)
             raise error

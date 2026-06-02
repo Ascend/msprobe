@@ -19,6 +19,7 @@
 Function:
 This file mainly involves the dump function.
 """
+
 import os
 import time
 import struct
@@ -26,7 +27,7 @@ import warnings
 import ctypes
 import tempfile
 import json
-from typing.io import BinaryIO
+from typing import BinaryIO
 
 import numpy as np
 from google.protobuf.message import DecodeError
@@ -43,6 +44,7 @@ class BigDumpDataParser:
     """
     The class for big dump data parser
     """
+
     warnings.filterwarnings("ignore")
 
     def __init__(self: any, dump_file_path: str) -> None:
@@ -78,9 +80,7 @@ class BigDumpDataParser:
         if os.path.exists(candidate):
             return candidate
 
-        raise OSError(
-            f"Shared library {lib_name} not found."
-        )
+        raise OSError(f"Shared library {lib_name} not found.")
 
     def parse(self: any):
         """
@@ -97,8 +97,7 @@ class BigDumpDataParser:
                 self._parse_binary_to_json_data(dump_file)
                 return self.dump_data.from_dict(self.dump_json_data)
         except (OSError, IOError) as io_error:
-            log.print_error_log('Failed to read the dump file %r. %s'
-                                % (self.dump_file_path, str(io_error)))
+            log.print_error_log('Failed to read the dump file %r. %s' % (self.dump_file_path, str(io_error)))
             raise CompareError(CompareError.MSACCUCMP_OPEN_FILE_ERROR) from io_error
         finally:
             pass
@@ -115,8 +114,7 @@ class BigDumpDataParser:
         try:
             self.file_size = os.path.getsize(self.dump_file_path)
         except (OSError, IOError) as error:
-            log.print_error_log('get the size of dump file %r failed. %s'
-                                % (self.dump_file_path, str(error)))
+            log.print_error_log('get the size of dump file %r failed. %s' % (self.dump_file_path, str(error)))
             raise CompareError(CompareError.MSACCUCMP_DUMP_FILE_ERROR) from error
         finally:
             pass
@@ -124,13 +122,16 @@ class BigDumpDataParser:
         if self.file_size <= ConstManager.UINT64_SIZE:
             log.print_error_log(
                 'The size of %r must be greater than %d, but the file size'
-                ' is %d. Please check the dump file.'
-                % (self.dump_file_path, ConstManager.UINT64_SIZE, self.file_size))
+                ' is %d. Please check the dump file.' % (self.dump_file_path, ConstManager.UINT64_SIZE, self.file_size)
+            )
             raise CompareError(CompareError.MSACCUCMP_UNMATCH_STANDARD_DUMP_SIZE)
+        # pylint: disable=duplicate-code
         if self.file_size > ConstManager.ONE_GB:
             log.print_warn_log(
                 'The size (%d) of %r exceeds 1GB, it may task more time to run, please wait.'
-                % (self.file_size, self.dump_file_path))
+                % (self.file_size, self.dump_file_path)
+            )
+        # pylint: enable=duplicate-code
 
     def _read_header_length(self: any, dump_file: BinaryIO) -> None:
         # read header length
@@ -142,7 +143,8 @@ class BigDumpDataParser:
                 'The header content size (%d) of %r must be less than or'
                 ' equal to %d (file size) - %d (header length).'
                 ' Please check the dump file.'
-                % (self.header_length, self.dump_file_path, self.file_size, ConstManager.UINT64_SIZE))
+                % (self.header_length, self.dump_file_path, self.file_size, ConstManager.UINT64_SIZE)
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
         dump_file.read(self.header_length)
 
@@ -156,9 +158,6 @@ class BigDumpDataParser:
             ret = path_check.check_path_valid(self.parse_dump_so, True, False)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
-            if path_check.is_group_and_others_writable(self.parse_dump_so):
-                log.print_error_log(f"Failed to load {self.parse_dump_so}, this file is not safe. Please check.")
-                raise CompareError(CompareError.MSACCUCMP_INVALID_FILE_ERROR)
             dump_parse_cdll = ctypes.CDLL(self.parse_dump_so)
         except (OSError, IOError) as e:
             log.print_error_log(f"Failed to load {self.parse_dump_so}:{e}")
@@ -171,13 +170,14 @@ class BigDumpDataParser:
         os.close(fd)
         try:
             res = dump_parse_cdll.ParseDumpProtoToJson(
-                data_ptr, ctypes.c_size_t(len(binary_data)), tmp_json_path.encode('utf-8'))
+                data_ptr, ctypes.c_size_t(len(binary_data)), tmp_json_path.encode('utf-8')
+            )
 
             if res != 0 or not os.path.isfile(tmp_json_path):
-                log.print_error_log(f"Parse dump file to json failed.")
+                log.print_error_log("Parse dump file to json failed.")
                 raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
             # 从临时文件加载 JSON
-            with open(tmp_json_path, 'r') as load_f:
+            with open(tmp_json_path, 'r', encoding='utf-8') as load_f:
                 self.dump_json_data = json.load(load_f)
         finally:
             # 删除临时文件，避免落盘
@@ -217,20 +217,21 @@ class DumpDataHandler:
         try:
             self.file_size = os.path.getsize(self.dump_file_path)
         except (OSError, IOError) as error:
-            log.print_error_log('get the size of dump file %r failed. %s'
-                                % (self.dump_file_path, str(error)))
+            log.print_error_log('get the size of dump file %r failed. %s' % (self.dump_file_path, str(error)))
             raise CompareError(CompareError.MSACCUCMP_DUMP_FILE_ERROR) from error
         finally:
             pass
         if self.file_size == 0:
-            message = 'Failed to parse dump file %r. The file size is zero. Please check the dump file.' \
-                      % self.dump_file_path
+            message = (
+                'Failed to parse dump file %r. The file size is zero. Please check the dump file.' % self.dump_file_path
+            )
             log.print_error_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message)
         if self.file_size > ConstManager.ONE_GB:
             log.print_warn_log(
                 'The size (%d) of %r exceeds 1GB, it may task more time to run, please wait.'
-                % (self.file_size, self.dump_file_path))
+                % (self.file_size, self.dump_file_path)
+            )
 
     def read_numpy_file(self: any) -> np.ndarray:
         """
@@ -244,8 +245,10 @@ class DumpDataHandler:
             else:
                 numpy_data = np.load(self.dump_file_path)
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, DecodeError) as error:
-            log.print_error_log('Failed to parse dump file "%r". Only data of the numpy format is supported. %s'
-                                % (self.dump_file_path, str(error)))
+            log.print_error_log(
+                'Failed to parse dump file "%r". Only data of the numpy format is supported. %s'
+                % (self.dump_file_path, str(error))
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR) from error
         finally:
             pass
@@ -264,10 +267,9 @@ class DumpDataHandler:
             return dump_data
         try:
             with open(self.dump_file_path, 'rb') as dump_file:
-                file_content = dump_file.read()
+                dump_file.read()
         except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
-            message = 'Failed to open dump file %r. Please check the dump file. %s' \
-                      % (self.dump_file_path, str(error))
+            message = 'Failed to open dump file %r. Please check the dump file. %s' % (self.dump_file_path, str(error))
             log.print_error_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message) from error
         finally:
@@ -307,8 +309,9 @@ def write_dump_data(numpy_data: np.ndarray, output_dump_path: str) -> None:
     dump_data_ser = dump_data.SerializeToString()
     try:
         path_check.check_write_path_secure(output_dump_path)
-        with os.fdopen(os.open(output_dump_path, ConstManager.WRITE_FLAGS,
-                               ConstManager.WRITE_MODES), 'wb') as dump_file:
+        with os.fdopen(
+            os.open(output_dump_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'wb'
+        ) as dump_file:
             # write the header length
             dump_file.write(struct.pack(ConstManager.UINT64_FMT, len(dump_data_ser)))
             # write the header content
@@ -316,8 +319,7 @@ def write_dump_data(numpy_data: np.ndarray, output_dump_path: str) -> None:
             # write output data
             dump_file.write(data)
     except IOError as io_error:
-        log.print_error_log('Failed to write dump file %r. %s'
-                            % (output_dump_path, str(io_error)))
+        log.print_error_log('Failed to write dump file %r. %s' % (output_dump_path, str(io_error)))
         raise CompareError(CompareError.MSACCUCMP_WRITE_FILE_ERROR) from io_error
     finally:
         pass

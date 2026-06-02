@@ -17,13 +17,11 @@
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 
 from msprobe.infer.utils.file_open_check import ms_open, FileStat, OpenException, SanitizeErrorType
-from msprobe.infer.utils.file_open_check import PERMISSION_NORMAL, PERMISSION_KEY, RAW_INPUT_PATH
-from msprobe.core.common.log import logger
+from msprobe.infer.utils.file_open_check import PERMISSION_NORMAL, PERMISSION_KEY
 
 
 @pytest.fixture(scope="function")
@@ -82,7 +80,6 @@ def test_msopen_given_mode_w_plus_when_write_4_lettle_then_file_writed_and_read_
         content = aa.read()
     assert content == "1234"
     assert FileStat(not_exists_file_name).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
-    assert FileStat(not_exists_file_name).is_owner
 
 
 def test_msopen_given_mode_w_when_write_4_lettle_then_file_writed_case(not_exists_file_name):
@@ -91,7 +88,6 @@ def test_msopen_given_mode_w_when_write_4_lettle_then_file_writed_case(not_exist
 
     assert FileStat(not_exists_file_name).file_size == 4
     assert FileStat(not_exists_file_name).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
-    assert FileStat(not_exists_file_name).is_owner
 
 
 def test_msopen_given_mode_w_when_exists_file_and_write_4_lettle_then_file_writed_and_read_case(
@@ -103,7 +99,6 @@ def test_msopen_given_mode_w_when_exists_file_and_write_4_lettle_then_file_write
         content = aa.read()
     assert content == "1234"
     assert FileStat(file_name_which_content_is_abcd).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
-    assert FileStat(file_name_which_content_is_abcd).is_owner
 
 
 def test_msopen_given_mode_x_when_write_4_lettle_then_file_writed_case(not_exists_file_name):
@@ -112,7 +107,6 @@ def test_msopen_given_mode_x_when_write_4_lettle_then_file_writed_case(not_exist
 
     assert FileStat(not_exists_file_name).file_size == 4
     assert FileStat(not_exists_file_name).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
-    assert FileStat(not_exists_file_name).is_owner
 
 
 def test_msopen_given_mode_x_when_exists_file_then_file_writed_case(file_name_which_content_is_abcd):
@@ -138,7 +132,6 @@ def test_msopen_given_mode_a_when_none_then_file_writed_case(file_name_which_con
         aa.write("1234")
 
     assert FileStat(file_name_which_content_is_abcd).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
-    assert FileStat(file_name_which_content_is_abcd).is_owner
 
     with ms_open(file_name_which_content_is_abcd, "r", max_size=100) as aa:
         content = aa.read()
@@ -152,7 +145,6 @@ def test_msopen_given_mode_a_plus_when_none_then_file_write_and_read_out_case(fi
         content = aa.read()
     assert content == "abcd1234"
     assert FileStat(file_name_which_content_is_abcd).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
-    assert FileStat(file_name_which_content_is_abcd).is_owner
 
 
 def test_msopen_given_mode_r_when_file_not_exits_then_file_read_failed_case(not_exists_file_name):
@@ -188,50 +180,6 @@ def test_msopen_given_mode_a_when_file_permission_777_then_file_chmod_before_wri
     assert FileStat(file_name_which_permission_777).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
 
 
-def test_msopen_given_mode_w_when_file_softlink_then_file_delete_before_write_case(file_name_which_is_softlink):
-    try:
-        with ms_open(file_name_which_is_softlink, mode="w") as aa:
-            aa.write("1234")
-        assert FileStat(file_name_which_is_softlink).permission | PERMISSION_NORMAL == PERMISSION_NORMAL
-        assert not FileStat(file_name_which_is_softlink).is_softlink
-    except OpenException as err:
-        assert "Softlink is not allowed to be opened" in str(err)
-
-
-def test_msopen_given_mode_a_when_file_softlink_then_write_failed_case(file_name_which_is_softlink):
-    try:
-        with ms_open(file_name_which_is_softlink, mode="a") as aa:
-            aa.write("1234")
-    except OpenException as ignore:
-        assert True
-
-
-def test_msopen_given_mode_w_p_600_when_file_softlink_then_file_delete_before_write_case(file_name_which_is_softlink):
-    try:
-        with ms_open(file_name_which_is_softlink, mode="w", write_permission=PERMISSION_KEY) as aa:
-            aa.write("1234")
-        assert FileStat(file_name_which_is_softlink).permission | PERMISSION_KEY == PERMISSION_KEY
-        assert not FileStat(file_name_which_is_softlink).is_softlink
-    except OpenException as err:
-        assert "Softlink is not allowed to be opened" in str(err)
-
-
-def test_filestat_given_file_softlink_whitelist_empty_then_basic_permission_failed_case(file_name_which_is_softlink):
-    with patch.dict(os.environ, {RAW_INPUT_PATH: ""}, clear=False):
-        assert FileStat(file_name_which_is_softlink).check_basic_permission()
-
-
-def test_filestat_given_file_softlink_target_right_then_basic_permission_succeed_case(file_name_which_is_softlink):
-    whitelist_path = os.path.abspath(os.path.dirname(os.readlink(file_name_which_is_softlink)))
-    with patch.dict(os.environ, {RAW_INPUT_PATH: whitelist_path}, clear=False):
-        assert FileStat(file_name_which_is_softlink).check_basic_permission()
-
-
-def test_filestat_given_file_softlink_target_wrong_then_basic_permission_failed_case(file_name_which_is_softlink):
-    with patch.dict(os.environ, {RAW_INPUT_PATH: "1234"}, clear=False):
-        assert FileStat(file_name_which_is_softlink).check_basic_permission()
-
-
 def test_msopen_given_other_w_parent_dir_then_file_read_failed_case():
     try:
         with tempfile.TemporaryDirectory() as dp:
@@ -242,48 +190,3 @@ def test_msopen_given_other_w_parent_dir_then_file_read_failed_case():
                 aa.write("no way")
     except OpenException as ignore:
         assert True
-
-
-@pytest.fixture
-def mock_self():
-    """模拟包含 file_stat 的 self 对象"""
-    obj = MagicMock()
-    obj.file_stat = MagicMock(st_uid=1000)  # 默认文件所有者 UID=1000
-    return obj
-
-
-def test_owner_match(mock_self, caplog):
-    """测试当前用户是文件所有者的情况"""
-    with patch("os.getuid", return_value=1000):  # 模拟当前用户 UID=1000
-        with patch.object(logger, "warning") as mock_warning:
-            result = FileStat.check_owner_or_root(mock_self)
-
-    assert result is None
-    mock_warning.assert_not_called()
-    assert "operating this tool using the root" not in caplog.text
-    assert "file owner is not consistent" not in caplog.text
-
-
-def test_root_user(mock_self, caplog):
-    """测试 root 用户操作的情况"""
-    with patch("os.getuid", return_value=0):  # 模拟 root 用户
-        with patch.object(logger, "warning") as mock_warning:
-            result = FileStat.check_owner_or_root(mock_self)
-
-    assert result is None
-    mock_warning.assert_called_once_with(
-        "You are currently operating this tool using the root user. Please be aware of the risk of privilege escalation."
-    )
-
-
-def test_unauthorized_user(mock_self, caplog):
-    """测试未授权用户的情况"""
-    with patch("os.getuid", return_value=1001):  # 模拟未授权用户
-        with patch.object(logger, "warning") as mock_warning:
-            result = FileStat.check_owner_or_root(mock_self)
-
-    assert result is None
-    mock_warning.assert_called_once_with(
-        "The file owner is not consistent with the current user. "
-        "Please be aware of the risk of owner inconsistency."
-    )

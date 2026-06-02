@@ -23,7 +23,6 @@ from enum import Enum
 
 from msprobe.core.common.log import logger
 from msprobe.infer.utils.constants import PATH_WHITE_LIST_REGEX
-from msprobe.infer.utils.check import Rule
 from msprobe.infer.utils.constants import CONFIG_FILE_MAX_SIZE
 
 MAX_SIZE_UNLIMITE = -1  # 不限制，必须显式表示不限制，读取必须传入
@@ -35,15 +34,11 @@ PATH_WHITE_LIST_REGEX_WIN = re.compile(r"[^_:\\A-Za-z0-9/.-]")
 
 PERMISSION_NORMAL = 0o640  # 普通文件
 PERMISSION_KEY = 0o600  # 密钥文件
-READ_FILE_NOT_PERMITTED_STAT = stat.S_IWGRP | stat.S_IWOTH
-WRITE_FILE_NOT_PERMITTED_STAT = stat.S_IWGRP | stat.S_IWOTH
 
 SOLUTION_LEVEL = 35
 SOLUTION_LEVEL_WIN = 45
 logging.addLevelName(SOLUTION_LEVEL, "\033[1;32m" + "SOLUTION" + "\033[0m")  # green [SOLUTION]
 logging.addLevelName(SOLUTION_LEVEL_WIN, "SOLUTION_WIN")
-
-RAW_INPUT_PATH = "RAW_INPUT_PATH"
 
 
 def is_legal_path_length(path):
@@ -111,10 +106,6 @@ class FileStat:
         return self.is_file_exist
 
     @property
-    def is_softlink(self):
-        return os.path.islink(self.file) if self.file_stat else False
-
-    @property
     def is_file(self):
         return stat.S_ISREG(self.file_stat.st_mode) if self.file_stat else False
 
@@ -129,44 +120,6 @@ class FileStat:
     @property
     def permission(self):
         return stat.S_IMODE(self.file_stat.st_mode) if self.file_stat else 0o777
-
-    @property
-    def owner(self):
-        return self.file_stat.st_uid if self.file_stat else -1
-
-    @property
-    def group_owner(self):
-        return self.file_stat.st_gid if self.file_stat else -1
-
-    @property
-    def is_owner(self):
-        return self.owner == (os.geteuid() if hasattr(os, "geteuid") else 0)
-
-    @property
-    def is_group_owner(self):
-        return self.group_owner in (os.getgroups() if hasattr(os, "getgroups") else [0])
-
-    @property
-    def is_user_or_group_owner(self):
-        return self.is_owner or self.is_group_owner
-
-    @property
-    def is_user_and_group_owner(self):
-        return self.is_owner and self.is_group_owner
-
-    def check_owner_or_root(self):
-        if os.getuid() == self.file_stat.st_uid:
-            pass
-        elif os.getuid() == 0:
-            logger.warning(
-                "You are currently operating this tool using the root user. "
-                "Please be aware of the risk of privilege escalation."
-            )
-        else:
-            logger.warning(
-                "The file owner is not consistent with the current user. "
-                "Please be aware of the risk of owner inconsistency."
-            )
 
     def is_basically_legal(self, perm='none', strict_permission=True):
         if sys.platform.startswith("win"):
@@ -183,18 +136,7 @@ class FileStat:
     def check_linux_permission(self, perm='none', strict_permission=True):
         if not self.check_basic_permission(perm=perm):
             return False
-        if not self.is_user_or_group_owner and self.is_exists:
-            logger.error(f"current user isn't path: {self.file}'s owner or ownergroup")
-            return False
-        if self.is_exists:
-            self.check_owner_or_root()
         if perm == 'read':
-            if strict_permission and self.permission & READ_FILE_NOT_PERMITTED_STAT > 0:
-                logger.error(
-                    f"The file {self.file} is group writable, or is others writable, "
-                    "as import file(or directory) permission should not be over 0o755(rwxr-xr-x)"
-                )
-                return False
             if not os.access(self.realpath, os.R_OK) or self.permission & stat.S_IRUSR == 0:
                 logger.error(
                     f"Current user doesn't have read permission to the file {self.file}, "
@@ -202,12 +144,6 @@ class FileStat:
                 )
                 return False
         elif perm == 'write' and self.is_exists:
-            if (strict_permission or self.is_file) and self.permission & WRITE_FILE_NOT_PERMITTED_STAT > 0:
-                logger.error(
-                    f"The file {self.file} is group writable, or is others writable, "
-                    "as export file(or directory) permission should not be over 0o755(rwxr-xr-x)"
-                )
-                return False
             if not os.access(self.realpath, os.W_OK):
                 logger.error(
                     f"Current user doesn't have write permission to the file {self.file}, "
@@ -248,9 +184,6 @@ def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, write_permission=PERM
     if file_stat.is_exists and file_stat.is_dir:
         raise OpenException(f"Expecting a file, but it's a folder. {file}")
 
-    if file_stat.is_exists:
-        file_stat.check_owner_or_root()
-
     if "r" in mode:
         if not file_stat.is_exists:
             raise OpenException(f"No such file or directory {file}")
@@ -265,10 +198,6 @@ def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, write_permission=PERM
     if "a" in mode and file_stat.is_exists:
         if file_stat.permission != (file_stat.permission & write_permission):
             os.chmod(file, file_stat.permission & write_permission)
-
-    safe_parent_msg = Rule.path().is_safe_parent_dir().check(file)
-    if not safe_parent_msg:
-        logger.warning(f"parent dir of {os.path.realpath(file)} is not safe. {str(safe_parent_msg)}")
 
     if "+" in mode:
         flags = os.O_RDONLY | os.O_RDWR

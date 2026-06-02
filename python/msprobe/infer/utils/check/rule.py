@@ -72,22 +72,12 @@ class Rule:
     @staticmethod
     def config_file() -> PathChecker:
         # pylint: disable=no-member
-        return (
-            PathChecker().exists().is_file().is_readable().is_safe_parent_dir().max_size(10 * 1000 * 1000).as_default()
-        )
+        return PathChecker().exists().is_file().is_readable().max_size(10 * 1000 * 1000).as_default()
 
     @staticmethod
     def input_file() -> PathChecker:
         # pylint: disable=no-member
-        return (
-            PathChecker()
-            .exists()
-            .is_file()
-            .is_readable()
-            .is_safe_parent_dir()
-            .max_size(INPUT_FILE_MAX_SIZE)
-            .as_default()
-        )
+        return PathChecker().exists().is_file().is_readable().max_size(INPUT_FILE_MAX_SIZE).as_default()
 
     @staticmethod
     def input_dir() -> PathChecker:

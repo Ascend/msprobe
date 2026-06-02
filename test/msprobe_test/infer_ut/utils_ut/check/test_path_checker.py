@@ -17,7 +17,6 @@
 import unittest
 import os
 import tempfile
-from unittest import mock
 
 from msprobe.infer.utils.check import path_checker
 
@@ -105,36 +104,6 @@ class TestPathChecker(unittest.TestCase):
             self.pc.exists().check("s" * 240, True)
 
         self.assertRegex(str(cm.exception), "No such file or directory")
-
-    @unittest.skipIf(os.getuid() == 0, "root can be skipped")
-    def test_is_safe_parent_dir_when_other_has_w_then_pass(self):
-        with tempfile.TemporaryDirectory() as dp:
-            os.chmod(dp, 0o702)
-            fp = os.path.join(dp, "test_file")
-            self.assertTrue(bool(path_checker.PathChecker().is_safe_parent_dir().check(fp)))
-
-    @unittest.skipIf(os.getuid() == 0, "root can be skipped")
-    def test_is_safe_parent_dir_when_group_has_w_then_pass(self):
-        with tempfile.TemporaryDirectory() as dp:
-            os.chmod(dp, 0o720)
-            fp = os.path.join(dp, "test_file")
-            self.assertTrue(bool(path_checker.PathChecker().is_safe_parent_dir().check(fp)))
-
-    @unittest.skipIf(os.getuid() == 0, "root can be skipped")
-    def test_is_safe_parent_dir_when_all_good_then_pass(self):
-        with tempfile.TemporaryDirectory() as dp:
-            os.chmod(dp, 0o750)
-            fp = os.path.join(dp, "test_file")
-            self.assertTrue(bool(path_checker.PathChecker().is_safe_parent_dir().check(fp)))
-
-    @unittest.skipIf(os.getuid() == 0, "root can be skipped")
-    def test_is_safe_parent_dir_when_user_is_root_then_pass(self):
-        ret_root = mock.Mock(return_value=0)
-        with mock.patch('os.getuid', ret_root):
-            with tempfile.TemporaryDirectory() as dp:
-                os.chmod(dp, 0o702)
-                fp = os.path.join(dp, "test_file")
-                self.assertTrue(bool(path_checker.PathChecker().is_safe_parent_dir().check(fp)))
 
     @unittest.skipIf(os.getuid() == 0, "root can be skipped")
     def test_no_perm(self):
