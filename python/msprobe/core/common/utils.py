@@ -30,12 +30,13 @@ import numpy as np
 from msprobe.core.common.const import Const, CompareConst
 from msprobe.core.common.decorator import recursion_depth_decorator
 from msprobe.core.common.exceptions import MsprobeException
-from msprobe.core.common.file_utils import (FileOpen, check_file_or_directory_path, load_json, load_construct_json)
+from msprobe.core.common.file_utils import FileOpen, check_file_or_directory_path, load_json, load_construct_json
 from msprobe.core.common.log import logger
 
 _has_torchrec = False
 try:
     from torchrec.sparse.jagged_tensor import JaggedTensor, KeyedJaggedTensor, KeyedTensor
+
     _has_torchrec = True
 except Exception as e:
     logger.warning(
@@ -55,6 +56,7 @@ class MsprobeBaseException(Exception):
     """
     Base class for all custom exceptions.
     """
+
     # 所有的错误代码
     NONE_ERROR = 0
     INVALID_PATH_ERROR = 1
@@ -99,7 +101,7 @@ class MsprobeBaseException(Exception):
     MULTIPROCESS_ERROR = 40
 
     def __init__(self, code, error_info: str = ""):
-        super(MsprobeBaseException, self).__init__()
+        super().__init__()
         self.code = code
         self.error_info = error_info
 
@@ -112,8 +114,8 @@ class CompareException(MsprobeBaseException):
     Class for Accuracy Compare Exception
     """
 
-    def __init__(self, code, error_info: str = ""):
-        super(CompareException, self).__init__(code, error_info)
+    def __init__(self, code, error_info: str = ""):  # pylint: disable=W0246
+        super().__init__(code, error_info)
 
 
 class DumpException(MsprobeBaseException):
@@ -121,8 +123,8 @@ class DumpException(MsprobeBaseException):
     Class for Dump Exception
     """
 
-    def __init__(self, code, error_info: str = ""):
-        super(DumpException, self).__init__(code, error_info)
+    def __init__(self, code, error_info: str = ""):  # pylint: disable=W0246
+        super().__init__(code, error_info)
 
     def __str__(self):
         return f"Dump Error Code {self.code}: {self.error_info}"
@@ -135,6 +137,7 @@ class ThreadSafe:
     2.主动加锁与释放锁：ThreadSafe.acquire()/ThreadSafe.release()
     3.方法装饰器：@ThreadSafe.synchronized
     """
+
     _lock = threading.RLock()
 
     def __enter__(self):
@@ -145,7 +148,7 @@ class ThreadSafe:
 
     @classmethod
     def acquire(cls):
-        cls._lock.acquire()
+        cls._lock.acquire()  # pylint: disable=R1732
 
     @classmethod
     def release(cls):
@@ -205,10 +208,7 @@ class ModuleQueue:
 
 
 def is_json_file(file_path):
-    if isinstance(file_path, str) and file_path.lower().endswith('.json'):
-        return True
-    else:
-        return False
+    return bool(isinstance(file_path, str) and file_path.lower().endswith('.json'))
 
 
 def check_compare_param(input_param, output_path, dump_mode, stack_mode):
@@ -237,8 +237,10 @@ def check_compare_param(input_param, output_path, dump_mode, stack_mode):
         check_file_or_directory_path(input_param.get("bench_dump_data_dir"), True)
     check_file_or_directory_path(output_path, True)
 
-    with FileOpen(input_param.get("npu_path"), "r") as npu_json, \
-            FileOpen(input_param.get("bench_path"), "r") as bench_json:
+    with (
+        FileOpen(input_param.get("npu_path"), "r") as npu_json,
+        FileOpen(input_param.get("bench_path"), "r") as bench_json,
+    ):
         _check_json(npu_json, input_param.get("npu_path"))
         _check_json(bench_json, input_param.get("bench_path"))
     if stack_mode:
@@ -275,8 +277,9 @@ def check_regex_prefix_format_valid(prefix):
         the given pattern Const.REGEX_PREFIX_PATTERN
     """
     if len(prefix) > Const.REGEX_PREFIX_MAX_LENGTH:
-        raise ValueError(f"Maximum length of prefix is {Const.REGEX_PREFIX_MAX_LENGTH}, while current length "
-                         f"is {len(prefix)}")
+        raise ValueError(
+            f"Maximum length of prefix is {Const.REGEX_PREFIX_MAX_LENGTH}, while current length is {len(prefix)}"
+        )
     if not re.match(Const.REGEX_PREFIX_PATTERN, prefix):
         raise ValueError(f"prefix contains invalid characters, prefix pattern {Const.REGEX_PREFIX_PATTERN}")
 
@@ -311,7 +314,7 @@ def format_value(value):
 
 @recursion_depth_decorator('msprobe.core.common.utils.md5_find', max_depth=Const.DUMP_MAX_DEPTH)
 def md5_find(data, json_type=Const.DUMP_JSON_FILE):
-    if json_type == Const.DUMP_JSON_FILE:
+    if json_type == Const.DUMP_JSON_FILE:  # pylint: disable=R1702
         for key_op in data:
             for api_info in data[key_op]:
                 if isinstance(data[key_op][api_info], list):
@@ -320,7 +323,7 @@ def md5_find(data, json_type=Const.DUMP_JSON_FILE):
                             return True
                 if isinstance(data[key_op][api_info], bool):
                     continue
-                elif data[key_op][api_info] and Const.MD5 in data[key_op][api_info]:
+                if data[key_op][api_info] and Const.MD5 in data[key_op][api_info]:
                     return True
     elif json_type == Const.DEBUG_JSON_FILE:
         if isinstance(data, dict):
@@ -383,12 +386,23 @@ def get_stack_construct_by_dump_json_path(dump_json_path):
 def set_dump_path(input_param):
     npu_path = input_param.get("npu_path", None)
     bench_path = input_param.get("bench_path", None)
-    dump_json_path_valid = npu_path is not None and npu_path.endswith("dump.json") and \
-                           bench_path is not None and bench_path.endswith("dump.json")
-    debug_json_path_valid = npu_path is not None and npu_path.endswith("debug.json") and \
-                            bench_path is not None and bench_path.endswith("debug.json")
+    dump_json_path_valid = (
+        npu_path is not None
+        and npu_path.endswith("dump.json")
+        and bench_path is not None
+        and bench_path.endswith("dump.json")
+    )
+    debug_json_path_valid = (
+        npu_path is not None
+        and npu_path.endswith("debug.json")
+        and bench_path is not None
+        and bench_path.endswith("debug.json")
+    )
     if not dump_json_path_valid and not debug_json_path_valid:
-        logger.error(f"Please check the json path is valid and ensure that neither npu_path nor bench_path is None.")
+        logger.error(
+            f"npu_path and bench_path must both end with dump.json or debug.json. "
+            f"npu_path: {npu_path}, bench_path: {bench_path}"
+        )
         raise CompareException(CompareException.INVALID_PATH_ERROR)
     input_param[CompareConst.NPU_DUMP_DATA_DIR] = os.path.join(os.path.dirname(npu_path), Const.DUMP_TENSOR_DATA)
     input_param[CompareConst.BENCH_DUMP_DATA_DIR] = os.path.join(os.path.dirname(bench_path), Const.DUMP_TENSOR_DATA)
@@ -431,7 +445,7 @@ def get_dump_mode(input_param):
     bench_task, bench_api_data = check_dump_json_key(bench_json_data, 'bench')
 
     if npu_task != bench_task:
-        logger.error(f"Please check the dump task is consistent.")
+        logger.error("Please check the dump task is consistent.")
         raise CompareException(CompareException.INVALID_TASK_ERROR)
 
     if npu_task == Const.TENSOR:
@@ -446,11 +460,12 @@ def get_dump_mode(input_param):
         if npu_md5_compare == bench_md5_compare:
             return Const.MD5 if npu_md5_compare else Const.SUMMARY
         else:
-            logger.error(f"Please check the dump task is consistent, "
-                         f"dump mode of npu and bench should both be statistics or md5.")
+            logger.error(
+                "Please check the dump task is consistent, dump mode of npu and bench should both be statistics or md5."
+            )
             raise CompareException(CompareException.INVALID_TASK_ERROR)
 
-    logger.error(f"Compare applies only to task is tensor or statistics")
+    logger.error("Compare applies only to task is tensor or statistics")
     raise CompareException(CompareException.INVALID_TASK_ERROR)
 
 
@@ -474,7 +489,7 @@ def check_op_str_pattern_valid(string, op_name=None, stack=False):
         if stack:
             message = f"stack info of {op_name} contains special characters, please check!"
         elif not op_name:
-            message = f"api name contains special characters, please check!"
+            message = "api name contains special characters, please check!"
         else:
             message = f"data info of {op_name} contains special characters, please check!"
         logger.error(message)
@@ -503,49 +518,61 @@ def get_step_or_rank_from_string(step_or_rank, obj):
         try:
             borderlines = int(splited[0]), int(splited[1])
         except (ValueError, IndexError) as e:
-            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                                   "The hyphen(-) must start and end with decimal numbers.") from e
+            raise MsprobeException(
+                MsprobeException.INVALID_PARAM_ERROR, "The hyphen(-) must start and end with decimal numbers."
+            ) from e
     else:
-        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                               f'The string parameter for {obj} only supports formats like "3-5". '
-                               f'Now string parameter for {obj} is "{step_or_rank}".')
+        raise MsprobeException(
+            MsprobeException.INVALID_PARAM_ERROR,
+            f'The string parameter for {obj} only supports formats like "3-5". '
+            f'Now string parameter for {obj} is "{step_or_rank}".',
+        )
     if all(Const.STEP_RANK_MINIMUM_VALUE <= b <= Const.STEP_RANK_MAXIMUM_VALUE for b in borderlines):
         if borderlines[0] <= borderlines[1]:
             continual_step_or_rank = list(range(borderlines[0], borderlines[1] + 1))
         else:
-            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                                   f'For the hyphen(-) in {obj}, the left boundary ({borderlines[0]}) cannot be '
-                                   f'greater than the right boundary ({borderlines[1]}).')
+            raise MsprobeException(
+                MsprobeException.INVALID_PARAM_ERROR,
+                f'For the hyphen(-) in {obj}, the left boundary ({borderlines[0]}) cannot be '
+                f'greater than the right boundary ({borderlines[1]}).',
+            )
     else:
-        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                               f"The boundaries must fall within the range of "
-                               f"[{Const.STEP_RANK_MINIMUM_VALUE}, {Const.STEP_RANK_MAXIMUM_VALUE}].")
+        raise MsprobeException(
+            MsprobeException.INVALID_PARAM_ERROR,
+            f"The boundaries must fall within the range of "
+            f"[{Const.STEP_RANK_MINIMUM_VALUE}, {Const.STEP_RANK_MAXIMUM_VALUE}].",
+        )
     return continual_step_or_rank
 
 
 def get_real_step_or_rank(step_or_rank_input, obj):
     if obj not in [Const.STEP, Const.RANK]:
-        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                               f"Only support parsing {[Const.STEP, Const.RANK]}, the current parsing object is {obj}.")
+        raise MsprobeException(
+            MsprobeException.INVALID_PARAM_ERROR,
+            f"Only support parsing {[Const.STEP, Const.RANK]}, the current parsing object is {obj}.",
+        )
     if step_or_rank_input is None:
         return []
     if not isinstance(step_or_rank_input, list):
         raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, f"{obj} is invalid, it should be a list")
     if len(step_or_rank_input) > Const.STEP_RANK_MAXIMUM_VALUE:
-        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                               f"{obj} is invalid, its length cannot exceed {Const.STEP_RANK_MAXIMUM_VALUE}")
+        raise MsprobeException(
+            MsprobeException.INVALID_PARAM_ERROR,
+            f"{obj} is invalid, its length cannot exceed {Const.STEP_RANK_MAXIMUM_VALUE}",
+        )
 
     real_step_or_rank = []
     for element in step_or_rank_input:
         if not is_int(element) and not isinstance(element, str):
-            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                                   f"{obj} element {element} must be an integer or string.")
+            raise MsprobeException(
+                MsprobeException.INVALID_PARAM_ERROR, f"{obj} element {element} must be an integer or string."
+            )
         if is_int(element):
             if not Const.STEP_RANK_MINIMUM_VALUE <= element <= Const.STEP_RANK_MAXIMUM_VALUE:
                 raise MsprobeException(
                     MsprobeException.INVALID_PARAM_ERROR,
                     f"Each element of {obj} must be between {Const.STEP_RANK_MINIMUM_VALUE} and "
-                    f"{Const.STEP_RANK_MAXIMUM_VALUE}, currently it is {element}."
+                    f"{Const.STEP_RANK_MAXIMUM_VALUE}, currently it is {element}.",
                 )
             real_step_or_rank.append(element)
             continue
@@ -558,11 +585,9 @@ def get_real_step_or_rank(step_or_rank_input, obj):
 
 def check_init_step(step):
     if not is_int(step):
-        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                               f"{step} must be an integer")
+        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, f"{step} must be an integer")
     if not step >= 0:
-        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                               f"{step} must be greater than or equal to 0")
+        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, f"{step} must be greater than or equal to 0")
 
 
 def check_token_range(token_range):
@@ -616,16 +641,11 @@ def safe_get_value(container, index, container_name, key=None):
             logger.error(err_msg)
             raise MsprobeBaseException(MsprobeBaseException.INVALID_OBJECT_TYPE_ERROR)
     except IndexError as e:
-        err_msg = "index out of bounds error occurs, please check!\n" \
-                  f"{container_name} is {container}\n" \
-                  f"index is {index}"
+        err_msg = f"index out of bounds error occurs, please check!\n{container_name} is {container}\nindex is {index}"
         logger.error(err_msg)
         raise MsprobeBaseException(MsprobeBaseException.INDEX_OUT_OF_BOUNDS_ERROR) from e
     except TypeError as e:
-        err_msg = "wrong type, please check!\n" \
-                  f"{container_name} is {container}\n" \
-                  f"index is {index}\n" \
-                  f"key is {key}"
+        err_msg = f"wrong type, please check!\n{container_name} is {container}\nindex is {index}\nkey is {key}"
         logger.error(err_msg)
         raise MsprobeBaseException(MsprobeBaseException.INVALID_OBJECT_TYPE_ERROR) from e
 
@@ -652,8 +672,10 @@ def is_save_variable_valid(variable, valid_special_types, depth=0):
     elif isinstance(variable, (list, tuple)):
         return all(is_save_variable_valid(item, valid_special_types, depth + 1) for item in variable)
     elif isinstance(variable, dict):
-        return all(isinstance(key, str) and is_save_variable_valid(value, valid_special_types, depth + 1)
-                   for key, value in variable.items())
+        return all(
+            isinstance(key, str) and is_save_variable_valid(value, valid_special_types, depth + 1)
+            for key, value in variable.items()
+        )
     else:
         return False
 
@@ -673,7 +695,7 @@ def load_stack_json(stack_path):
     if not isinstance(stack_dict, dict):
         raise MsprobeException(
             MsprobeException.INVALID_PARAM_ERROR,
-            "The format of the stack.json is incorrect, the outermost layer of stack.json should be a dict type."
+            "The format of the stack.json is incorrect, the outermost layer of stack.json should be a dict type.",
         )
 
     if not stack_dict.get(Const.NEW_STACK_FLAG):
@@ -701,7 +723,7 @@ def analyze_api_call_stack(name):
         api_stack = None
     stack_str = []
     if api_stack:
-        for (_, path, line, func, code, _) in api_stack:
+        for _, path, line, func, code, _ in api_stack:
             if not code:
                 continue
             stack_line = f"File {path}, line {str(line)}, in {func}, \n {code[0].strip()} \n"
@@ -713,9 +735,9 @@ def analyze_api_call_stack(name):
 
 def check_extern_input_list(input_list):
     if not isinstance(input_list, list):
-        raise Exception("input is not a list")
+        raise Exception("input is not a list")  # pylint: disable=W0719
     if len(input_list) > Const.EXTERN_INPUT_LIST_MAX_LEN:
-        raise Exception(f"input list exceed max length {Const.EXTERN_INPUT_LIST_MAX_LEN}")
+        raise Exception(f"input list exceed max length {Const.EXTERN_INPUT_LIST_MAX_LEN}")  # pylint: disable=W0719
 
 
 def check_process_num(process_num):
@@ -734,25 +756,27 @@ def check_rank_id(rank_id):
     if rank_id is None:
         return
     if not is_int(rank_id):
-        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                               f"{rank_id} must be an integer.")
+        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, f"{rank_id} must be an integer.")
     if not rank_id >= 0:
-        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                               f"{rank_id} must be greater than or equal to 0.")
+        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, f"{rank_id} must be greater than or equal to 0.")
 
 
 def is_np2():
     np_version = tuple(map(int, np.__version__.split('.')[:2]))
     return np_version >= (2, 0)
 
+
 def is_torchrec_available():
     return _has_torchrec
+
 
 def is_jagged_tensor(data):
     return is_torchrec_available() and isinstance(data, JaggedTensor)
 
+
 def is_keyed_jagged_tensor(data):
     return is_torchrec_available() and isinstance(data, KeyedJaggedTensor)
+
 
 def is_keyed_tensor(data):
     return is_torchrec_available() and isinstance(data, KeyedTensor)

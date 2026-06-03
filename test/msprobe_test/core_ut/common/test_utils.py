@@ -199,15 +199,16 @@ class TestUtils(TestCase):
     @patch.object(logger, "error")
     def test_set_dump_path(self, mock_error):
         input_param = {
-            "npu_json_path": None,
-            "bench_json_path": "bench_path"
+            "npu_path": None,
+            "bench_path": "bench_path"
         }
 
         with self.assertRaises(CompareException) as context:
             set_dump_path(input_param)
         self.assertEqual(context.exception.code, CompareException.INVALID_PATH_ERROR)
         mock_error.assert_called_with(
-            "Please check the json path is valid and ensure that neither npu_path nor bench_path is None.")
+            "npu_path and bench_path must both end with dump.json or debug.json. "
+            "npu_path: None, bench_path: bench_path")
 
     @patch.object(logger, "error")
     def test_get_dump_mode(self, mock_error):
