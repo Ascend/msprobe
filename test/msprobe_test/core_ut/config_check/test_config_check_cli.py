@@ -61,6 +61,14 @@ class TestConfigCheckCli(unittest.TestCase):
         self.assertEqual(args.verl_compare, ['NPU_log', 'bench_log'])
         self.assertEqual(args.output, 'verl_compare_result')
 
+        args = parser.parse_args(['-vv', 'bench_config', 'tgt_config', '-o', 'verl_verify_result'])
+        self.assertEqual(args.verl_verify, ['bench_config', 'tgt_config'])
+        self.assertEqual(args.output, 'verl_verify_result')
+
+        args = parser.parse_args(['-vv', 'tgt_config', '-o', 'verl_verify_result'])
+        self.assertEqual(args.verl_verify, ['tgt_config'])
+        self.assertEqual(args.output, 'verl_verify_result')
+
     @patch('msprobe.core.config_check.config_check_cli.pack')
     def test_run_config_checking_command_dump(self, mock_pack):
         """Test _run_config_checking_command with dump parameter"""
@@ -69,6 +77,7 @@ class TestConfigCheckCli(unittest.TestCase):
         args.output = 'output.zip'
         args.compare = None
         args.verl_compare = None
+        args.verl_verify = None
         
         _run_config_checking_command(args)
         
@@ -87,6 +96,7 @@ class TestConfigCheckCli(unittest.TestCase):
         args = argparse.Namespace()
         args.dump = None
         args.verl_compare = None
+        args.verl_verify = None
         args.compare = ['file1.zip', 'file2.zip']
         args.output = 'result_dir'
         
@@ -108,6 +118,7 @@ class TestConfigCheckCli(unittest.TestCase):
         args = argparse.Namespace()
         args.dump = None
         args.verl_compare = None
+        args.verl_verify = None
         args.compare = ['file1.ckpt', 'file2.ckpt']
         args.output = 'result.json'
         
@@ -152,6 +163,32 @@ class TestConfigCheckCli(unittest.TestCase):
         mock_verl_compare_hyper_params.assert_called_with('./verl_param_compare_result/NPU_config.json',
             './verl_param_compare_result/bench_config.json', './verl_param_compare_result')
 
+    @patch('msprobe.core.config_check.config_check_cli.verl_filter_config_info')
+    @patch('msprobe.core.config_check.config_check_cli.verl_verify_hyper_params')  
+    def test_run_config_checking_command_verl_hyper_params_verify(self, mock_verl_verify_hyper_params,
+                                                                mock_verl_filter_config_info):
+        """Test _run_config_checking_command with verl hyper params verify"""
+        args = argparse.Namespace()
+        args.dump = None
+        args.compare = None
+        args.verl_compare = None
+        args.verl_verify = ['bench_config.yaml', 'tgt_config.log']
+        args.output = 'verl_verify_result'
+   
+        _run_config_checking_command(args)
+
+        mock_verl_filter_config_info.assert_any_call('tgt_config.log', 'verl_verify_result/tgt_config.json')
+        mock_verl_verify_hyper_params.assert_called_once_with('bench_config.yaml',
+            'verl_verify_result/tgt_config.json', 'verl_verify_result')
+        
+        # Test with default output path
+        args.output = None
+
+        _run_config_checking_command(args)
+        
+        mock_verl_verify_hyper_params.assert_called_with('bench_config.yaml',
+            './verl_param_verify_result/tgt_config.json', './verl_param_verify_result')
+
     @patch('msprobe.core.config_check.config_check_cli.verl_compare_hyper_params')  
     @patch('msprobe.core.config_check.config_check_cli.verl_filter_config_info')
     @patch('msprobe.core.config_check.config_check_cli.verl_get_config_file_path')
@@ -178,6 +215,27 @@ class TestConfigCheckCli(unittest.TestCase):
         mock_verl_filter_config_info.assert_not_called()
         mock_verl_compare_hyper_params.assert_not_called()
 
+    @patch('msprobe.core.config_check.config_check_cli.verl_verify_hyper_params')
+    @patch('msprobe.core.config_check.config_check_cli.logger')
+    def test_run_config_checking_command_verl_hyper_params_verify_invalid_param(
+        self, mock_logger, mock_verl_verify_hyper_params
+    ):
+        """Test _run_config_checking_command with verl hyper params verify invalid param"""
+        args = argparse.Namespace()
+        args.dump = None
+        args.compare = None
+        args.verl_compare = None
+        args.verl_verify = ['bench_config.txt', 'tgt_config.json']
+        args.output = None
+        with self.assertRaises(Exception) as context:
+            _run_config_checking_command(args)
+
+        err_msg = ("verl-verify requires a mandatory log file "
+                    "in either log or txt format, and an optional YAML configuration file")
+        mock_logger.error.assert_called_once_with(err_msg)
+        self.assertEqual(str(context.exception), err_msg)
+        mock_verl_verify_hyper_params.assert_not_called()
+
     @patch('msprobe.core.config_check.config_check_cli.logger')
     def test_run_config_checking_command_invalid_param(self, mock_logger):
         """Test _run_config_checking_command with invalid parameter"""
@@ -185,12 +243,13 @@ class TestConfigCheckCli(unittest.TestCase):
         args.dump = None
         args.compare = None
         args.verl_compare = None
+        args.verl_verify = None
         args.output = None
         
         with self.assertRaises(Exception) as context:
             _run_config_checking_command(args)
         
         self.assertEqual(str(context.exception), "The param is not correct, you need to give '-d' for dump or '-c' for compare \
-                    or '-vc' for verl compare.")
+                    or '-vc' for verl compare or '-vv' for verl verify.")
         mock_logger.error.assert_called_once_with("The param is not correct, you need to give '-d' for dump or '-c' for compare \
-                    or '-vc' for verl compare.")
+                    or '-vc' for verl compare or '-vv' for verl verify.")

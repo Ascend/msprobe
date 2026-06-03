@@ -13,7 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
-
+import os
 from msprobe.core.config_check.config_checker import ConfigChecker
 from msprobe.core.config_check.ckpt_compare.ckpt_comparator import compare_checkpoints
 from msprobe.core.config_check.verl_param_compare.verl_log_filter import (
@@ -21,7 +21,10 @@ from msprobe.core.config_check.verl_param_compare.verl_log_filter import (
     verl_get_config_file_path,
     check_log_extension,
 )
+from msprobe.core.config_check.verl_param_compare.utils import check_yaml_extension
+from msprobe.core.common.file_utils import create_directory
 from msprobe.core.config_check.verl_param_compare.verl_hyper_params_cmp import verl_compare_hyper_params
+from msprobe.core.config_check.verl_param_compare.verl_hyper_params_verify import verl_verify_hyper_params
 from msprobe.core.common.log import logger
 
 
@@ -43,11 +46,18 @@ def _config_checking_parser(parser):
         help='Compare the parameter info in the configuration file filtered from the verl train logs for NPU and bench',
     )
     parser.add_argument(
+        '-vv',
+        '--verl-verify',
+        nargs='+',
+        help='Verify the parameter info in the configuration file for target and bench',
+    )
+    parser.add_argument(
         '-o',
         '--output',
         help='output path, default is ./config_check_pack.zip for dump mode and'
         ' ./config_check_result for compare mode and'
-        ' ./verl_param_compare_result a folder for verl compare mode.',
+        ' ./verl_param_compare_result a folder for verl compare mode.'
+        ' ./verl_param_verify_result for verl verify mode',
     )
 
 
@@ -76,14 +86,42 @@ def _run_config_checking_command(args):
                             and the file format just support '.log' or '.txt'."
             logger.error(ext_err_msg)
             raise Exception(ext_err_msg)  # pylint: disable=broad-exception-raised
-
+    elif args.verl_verify:
+        if (len(args.verl_verify) == 1 and check_log_extension(args.verl_verify[0])) or (
+            len(args.verl_verify) == 2
+            and check_yaml_extension(args.verl_verify[0])
+            and check_log_extension(args.verl_verify[1])
+        ):
+            output_dirpath = args.output if args.output else "./verl_param_verify_result"
+            real_file_folder = os.path.realpath(output_dirpath)
+            if not os.path.isdir(real_file_folder):
+                create_directory(real_file_folder)
+            tgt_config = os.path.join(output_dirpath, "tgt_config.json")
+            verl_filter_config_info(args.verl_verify[-1], tgt_config)
+            core_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            default_yaml_path = os.path.join(
+                core_dir, "config_check", "verl_param_compare", "verl_hyper_params_verify.yaml"
+            )
+            bench_config = default_yaml_path if len(args.verl_verify) == 1 else args.verl_verify[0]
+            verl_verify_hyper_params(bench_config, tgt_config, output_dirpath)
+        elif len(args.verl_verify) > 2:
+            msg = f"verl-verify supports up to two files, but received {len(args.verl_verify)} files"
+            logger.error(msg)
+            raise Exception(msg)  # pylint: disable=broad-exception-raised
+        else:
+            msg = (
+                "verl-verify requires a mandatory log file "
+                "in either log or txt format, and an optional YAML configuration file"
+            )
+            logger.error(msg)
+            raise Exception(msg)  # pylint: disable=broad-exception-raised
     else:
         logger.error(
             "The param is not correct, you need to give '-d' for dump or '-c' for compare \
-                    or '-vc' for verl compare."
+                    or '-vc' for verl compare or '-vv' for verl verify."
         )
         # pylint: disable=broad-exception-raised
         raise Exception(
             "The param is not correct, you need to give '-d' for dump or '-c' for compare \
-                    or '-vc' for verl compare."
+                    or '-vc' for verl compare or '-vv' for verl verify."
         )

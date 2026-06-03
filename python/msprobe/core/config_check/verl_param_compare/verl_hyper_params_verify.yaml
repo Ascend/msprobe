@@ -1,0 +1,36 @@
+trainer:
+  balance_batch: false
+
+critic:
+  shuffle: false
+  use_dynamic_bsz: false
+  model:
+    use_remove_padding: true
+
+data:
+  shuffle: false
+
+actor_rollout_ref:
+  actor:
+    shuffle: false
+    load_weight: true
+    use_dynamic_bsz: false
+    use_remove_padding: true
+    megatron:
+      override_transformer_config:
+        use_ascend_mc2: false
+    override_transformer_config:
+      calculate_per_token_loss: false
+  ref:
+    load_weight: true
+    log_prob_use_dynamic_bsz: false
+  rollout:
+    log_prob_use_dynamic_bsz: false
+  model:
+    use_remove_padding: true
+
+algorithm:
+  filter_groups:
+    enable: false
+
+VLLM_ASCEND_ENABLE_NZ: 0

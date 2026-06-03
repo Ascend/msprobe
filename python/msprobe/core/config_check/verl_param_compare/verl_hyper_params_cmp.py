@@ -15,49 +15,15 @@
 # -------------------------------------------------------------------------
 
 import os
-from collections import OrderedDict
 import pandas as pd
 
 from msprobe.core.common.file_utils import load_json, check_file_or_directory_path, write_df_to_csv, create_directory
 from msprobe.core.common.log import logger
 from msprobe.core.common.const import CompareConst
+from msprobe.core.config_check.verl_param_compare.utils import flatten_dict, compare_values, value_to_str
 
 
 EXCLUDE_KEYWORDS = ['profiler/', 'ray_']
-
-
-def flatten_dict(obj, prefix=''):
-    """
-    Recursively flatten a JSON object, returning a dictionary that maps each path to its value.
-    --If the value is a non‑empty dictionary, recursively process its child keys and do not record the intermediate path.
-    --If the value is an empty dictionary, treat it as a leaf node and record it as {}.
-    --For all other types (list, string, number, boolean, null), record the value directly.
-    """
-    items = OrderedDict()
-    if isinstance(obj, dict):
-        if not obj:  # 空字典作为叶子
-            items[prefix] = obj
-        else:
-            for key, value in obj.items():
-                new_prefix = f"{prefix}/{key}" if prefix else key
-                items.update(flatten_dict(value, new_prefix))
-    elif isinstance(obj, list):
-        items[prefix] = obj
-    else:  # 标量: str, int, float, bool, None
-        items[prefix] = obj
-    return items
-
-
-def compare_values(v1, v2, missing_marker=None):
-    if v1 is missing_marker or v2 is missing_marker:
-        return '否'
-    return '是' if v1 == v2 else '否'
-
-
-def value_to_str(v, missing_marker=None):
-    if v is missing_marker:
-        return 'NA'
-    return repr(v)
 
 
 def verl_compare_hyper_params(npu_config, bench_config, output_dirpath):
