@@ -9,6 +9,7 @@ JSON_PATH="${NAN_CHECK_DIR}/nan_test.json"
 GEN_DIR="${NAN_CHECK_DIR}/NanTest"
 SAFE_GEN_BASE="${NAN_CHECK_DIR}/.msopgen_build"
 FRAMEWORK="${MSOPGEN_FRAMEWORK:-pytorch}"
+TARGET_SOC_VERSION=""
 
 ORIG_NAN_CHECK_MODE=""
 
@@ -71,6 +72,16 @@ detect_soc_version() {
     fi
 }
 
+target_op_host_soc_config() {
+    case "${1}" in
+        Ascend910_93) echo "ascend910_93" ;;
+        Ascend950) echo "ascend950" ;;
+        Ascend910A) echo "ascend910a" ;;
+        Ascend910B*) echo "ascend910b" ;;
+        *) echo "ascend910b" ;;
+    esac
+}
+
 log() {
     echo "[nan_test_build] $*"
 }
@@ -86,9 +97,8 @@ ensure_cmd() {
 gen_project() {
     secure_nan_check_dir
     secure_json_file
-    local soc_version
-    soc_version=$(detect_soc_version)
-    log "Using msopgen args: -f ${FRAMEWORK} -c ai_core-${soc_version}"
+    TARGET_SOC_VERSION=$(detect_soc_version)
+    log "Using msopgen args: -f ${FRAMEWORK} -c ai_core-${TARGET_SOC_VERSION}"
 
     mkdir -p "${SAFE_GEN_BASE}"
     chmod 700 "${SAFE_GEN_BASE}"
@@ -97,8 +107,8 @@ gen_project() {
     tmp_out=$(mktemp -d "${SAFE_GEN_BASE}/nan_test_gen.XXXXXX")
 
     local -a try_cmds=(
-        "msopgen gen -i \"${JSON_PATH}\" -f \"${FRAMEWORK}\" -c ai_core-\"${soc_version}\" -lan cpp -out \"${tmp_out}\""
-        "msopgen gen -i \"${JSON_PATH}\" -f \"${FRAMEWORK}\" -c ai_core-\"${soc_version}\" -out \"${tmp_out}\""
+        "msopgen gen -i \"${JSON_PATH}\" -f \"${FRAMEWORK}\" -c ai_core-\"${TARGET_SOC_VERSION}\" -lan cpp -out \"${tmp_out}\""
+        "msopgen gen -i \"${JSON_PATH}\" -f \"${FRAMEWORK}\" -c ai_core-\"${TARGET_SOC_VERSION}\" -out \"${tmp_out}\""
     )
 
     for raw_cmd in "${try_cmds[@]}"; do
@@ -127,6 +137,11 @@ replace_sources() {
         "${GEN_DIR}/op_device"/*.cpp
 
     cp -a "${SRC_TEMPLATE_DIR}/op_host"/. "${GEN_DIR}/op_host"/
+    local host_soc_config
+    host_soc_config=$(target_op_host_soc_config "${TARGET_SOC_VERSION}")
+    sed -i "s/@NAN_TEST_SOC_CONFIG@/${host_soc_config}/g" "${GEN_DIR}/op_host/nan_test.cpp"
+    log "Restricted NanTest host config to ${host_soc_config} for ${TARGET_SOC_VERSION}."
+
     if [[ -d "${SRC_TEMPLATE_DIR}/op_device" ]]; then
         cp -a "${SRC_TEMPLATE_DIR}/op_device"/. "${GEN_DIR}/op_device"/
     elif [[ -d "${SRC_TEMPLATE_DIR}/op_kernel" ]]; then
