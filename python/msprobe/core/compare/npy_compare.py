@@ -32,6 +32,7 @@ class CompareResult:
     对比流程中的中间结果对象
     用于在不同阶段之间传递数据与状态。
     """
+
     n_value: Any
     b_value: Any
     error_flag: bool = False
@@ -39,6 +40,8 @@ class CompareResult:
 
 
 def handle_inf_nan(n_value, b_value):
+    """处理inf和nan的数据"""
+
     def convert_to_float(value):
         try:
             if isinstance(value, np.ndarray):
@@ -50,7 +53,7 @@ def handle_inf_nan(n_value, b_value):
             raise CompareException(CompareException.INVALID_DATA_ERROR) from e
 
     n_value_convert, b_value_convert = convert_to_float(n_value), convert_to_float(b_value)
-    """处理inf和nan的数据"""
+
     n_inf = np.isinf(n_value_convert)
     b_inf = np.isinf(b_value_convert)
     n_nan = np.isnan(n_value_convert)
@@ -153,7 +156,7 @@ def get_relative_err(n_value, b_value):
 
         n_value_copy = n_value.copy()
         b_value_copy = b_value.copy()
-        zero_mask = (b_value_copy == 0)
+        zero_mask = b_value_copy == 0
         b_value_copy[zero_mask] += Const.FLOAT_EPSILON
         n_value_copy[zero_mask] += Const.FLOAT_EPSILON
         relative_err = np.divide((n_value_copy - b_value_copy), b_value_copy)
@@ -256,13 +259,18 @@ class CompareOps:
         "max_abs_error": GetMaxAbsErr(),
         "max_relative_error": GetMaxRelativeErr(),
         "one_thousand_err_ratio": GetErrRatio(CompareConst.THOUSAND_RATIO_THRESHOLD),
-        "five_thousand_err_ratio": GetErrRatio(CompareConst.FIVE_THOUSAND_RATIO_THRESHOLD)
+        "five_thousand_err_ratio": GetErrRatio(CompareConst.FIVE_THOUSAND_RATIO_THRESHOLD),
     }
 
 
 def error_value_process(n_value):
-    if n_value in [CompareConst.READ_NONE, CompareConst.UNREADABLE, CompareConst.NONE,
-                   CompareConst.NO_REAL_DATA, CompareConst.API_UNMATCH]:
+    if n_value in [
+        CompareConst.READ_NONE,
+        CompareConst.UNREADABLE,
+        CompareConst.NONE,
+        CompareConst.NO_REAL_DATA,
+        CompareConst.API_UNMATCH,
+    ]:
         return CompareConst.UNSUPPORTED, ""
     if n_value == CompareConst.SHAPE_UNMATCH:
         return CompareConst.SHAPE_UNMATCH, ""
@@ -301,12 +309,7 @@ class ValidateTensor:
         n_value = result.n_value
 
         if n_value.size == 0:
-            return CompareResult(
-                CompareConst.NONE,
-                CompareConst.NONE,
-                True,
-                "This is empty data, can not compare."
-            )
+            return CompareResult(CompareConst.NONE, CompareConst.NONE, True, "This is empty data, can not compare.")
 
         return result
 
@@ -325,6 +328,7 @@ class ValidateTensor:
                 f"'{CompareConst.ONE_THOUSANDTH_ERR_RATIO}' and "
                 f"'{CompareConst.FIVE_THOUSANDTHS_ERR_RATIO}'. "
             )
+            # 0-d tensor 最大绝对误差、最大相对误差仍然支持计算，因此error_flag设置为False，不做统一处理
             return CompareResult(n_value, b_value, False, msg)
 
         return result
@@ -342,7 +346,7 @@ class ValidateTensor:
                 CompareConst.SHAPE_UNMATCH,
                 CompareConst.SHAPE_UNMATCH,
                 True,
-                "Shape of NPU and bench tensor do not match. Skipped."
+                "Shape of NPU and bench tensor do not match. Skipped.",
             )
 
         return result
@@ -360,19 +364,14 @@ class ValidateTensor:
         except CompareException:
             logger.error("Numpy data is unreadable.")
 
-            return CompareResult(
-                CompareConst.UNREADABLE,
-                CompareConst.UNREADABLE,
-                True,
-                "Data is unreadable."
-            )
+            return CompareResult(CompareConst.UNREADABLE, CompareConst.UNREADABLE, True, "Data is unreadable.")
 
         if n_value is CompareConst.NAN or b_value is CompareConst.NAN:
             return CompareResult(
                 CompareConst.NAN,
                 CompareConst.NAN,
                 True,
-                "The position of inf or nan in NPU and bench Tensor do not match."
+                "The position of inf or nan in NPU and bench Tensor do not match.",
             )
 
         return result
@@ -386,12 +385,7 @@ class ValidateTensor:
         b_value = result.b_value
 
         if n_value.dtype != b_value.dtype:
-            return CompareResult(
-                n_value,
-                b_value,
-                False,
-                "Dtype of NPU and bench tensor do not match."
-            )
+            return CompareResult(n_value, b_value, False, "Dtype of NPU and bench tensor do not match.")
 
         return result
 
@@ -406,13 +400,7 @@ class ValidateTensor:
         返回:
             CompareResult: 校验后的结果
         """
-        validators = [
-            self._check_empty,
-            self._check_scalar,
-            self._check_shape,
-            self._check_nan_inf,
-            self._check_dtype
-        ]
+        validators = [self._check_empty, self._check_shape, self._check_scalar, self._check_nan_inf, self._check_dtype]
 
         for validator in validators:
             result = validator(result)
