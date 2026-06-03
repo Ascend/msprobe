@@ -43,6 +43,28 @@ Arguments:\n
 EOF
 )
 
+detect_xor_checksum_npu_arch() {
+    if ! command -v npu-smi >/dev/null 2>&1; then
+        echo "dav-2201"
+        return 0
+    fi
+
+    local smi_out
+    smi_out=$(npu-smi info 2>/dev/null || true)
+
+    if echo "${smi_out}" | grep -Eq 'Ascend950|(^|[^[:digit:]])950([[:alnum:]_-]*)([^[:alnum:]_]|$)'; then
+        echo "dav-3510"
+        return 0
+    fi
+
+    if echo "${smi_out}" | grep -Eq 'Ascend910B|(^|[^[:digit:]])910B([[:alnum:]_-]*)([^[:alnum:]_]|$)|Ascend910([^[:alnum:]_]|$)|(^|[^[:digit:]])910([^[:alnum:]_]|$)'; then
+        echo "dav-2201"
+        return 0
+    fi
+
+    echo "dav-2201"
+}
+
 while true; do
     case "$1" in
         -h | --help)
@@ -159,9 +181,12 @@ fi
 if [[ "${INCLUDE_MOD}" == *"${XOR_CHECKSUM_MOD}"* ]]; then
     export MSPROBE_INCLUDE_MOD="xor_checksum"
     XOR_CHECKSUM_OUTPUT_PATH=${BUILD_OUTPUT_PATH}/xor_checksum
+    XOR_CHECKSUM_NPU_ARCH=$(detect_xor_checksum_npu_arch)
+    echo "[xor_checksum_build] Using NPU_ARCH=${XOR_CHECKSUM_NPU_ARCH}"
     cd ${BUILD_PATH}
     cmake -B ${XOR_CHECKSUM_OUTPUT_PATH} -S ${BUILD_PATH}/ccsrc/xor_checksum \
-          -DPython3_EXECUTABLE=${PYTHON_BIN}
+          -DPython3_EXECUTABLE=${PYTHON_BIN} \
+          -DNPU_ARCH=${XOR_CHECKSUM_NPU_ARCH}
     cd ${XOR_CHECKSUM_OUTPUT_PATH}
     make -j${CONCURRENT_JOBS}
 
