@@ -38,10 +38,7 @@ try:
     from torchrec.sparse.jagged_tensor import JaggedTensor, KeyedJaggedTensor, KeyedTensor
 
     _has_torchrec = True
-except Exception as e:
-    logger.warning(
-        f"torchrec is not available or incompatible: {e}, skip dump JaggedTensor, KeyedJaggedTensor, KeyedTensor."
-    )
+except Exception as _:
     _has_torchrec = False
 
 device = collections.namedtuple('device', ['type', 'index'])
@@ -312,6 +309,7 @@ def format_value(value):
     return float('{:.12f}'.format(value))
 
 
+# pylint: disable=too-many-nested-blocks
 @recursion_depth_decorator('msprobe.core.common.utils.md5_find', max_depth=Const.DUMP_MAX_DEPTH)
 def md5_find(data, json_type=Const.DUMP_JSON_FILE):
     if json_type == Const.DUMP_JSON_FILE:  # pylint: disable=R1702

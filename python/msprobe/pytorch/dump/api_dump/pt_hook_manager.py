@@ -37,8 +37,6 @@ from msprobe.pytorch.dump.module_dump.module_processor import ModuleProcessor
 
 try:
     from torch.utils._python_dispatch import _disable_current_modes
-
-    logger.info("Successfully imported _disable_current_modes")
 except Exception:
     _disable_current_modes = None
 
