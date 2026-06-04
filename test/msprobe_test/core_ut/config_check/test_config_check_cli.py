@@ -207,8 +207,8 @@ class TestConfigCheckCli(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             _run_config_checking_command(args)
 
-        err_msg = "The param of verl-compare require two log files, \
-                            and the file format just support '.log' or '.txt'."
+        err_msg = ("The param of verl-compare require two log files, "
+                    "and the file format just support '.log' or '.txt'.")
         mock_logger.error.assert_called_once_with(err_msg)
         self.assertEqual(str(context.exception), err_msg)
         mock_verl_get_config_file_path.assert_not_called()
@@ -249,7 +249,7 @@ class TestConfigCheckCli(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             _run_config_checking_command(args)
         
-        self.assertEqual(str(context.exception), "The param is not correct, you need to give '-d' for dump or '-c' for compare \
-                    or '-vc' for verl compare or '-vv' for verl verify.")
-        mock_logger.error.assert_called_once_with("The param is not correct, you need to give '-d' for dump or '-c' for compare \
-                    or '-vc' for verl compare or '-vv' for verl verify.")
+        self.assertEqual(str(context.exception), "The param is not correct, you need to give '-d' for dump or '-c' for compare "
+                    "or '-vc' for verl compare or '-vv' for verl verify.")
+        mock_logger.error.assert_called_once_with("The param is not correct, you need to give '-d' for dump or '-c' for compare "
+                    "or '-vc' for verl compare or '-vv' for verl verify.")

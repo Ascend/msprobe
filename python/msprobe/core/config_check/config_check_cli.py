@@ -82,8 +82,9 @@ def _run_config_checking_command(args):
             verl_filter_config_info(args.verl_compare[1], bench_config_file)
             verl_compare_hyper_params(npu_config_file, bench_config_file, output_dirpath)
         else:
-            ext_err_msg = "The param of verl-compare require two log files, \
-                            and the file format just support '.log' or '.txt'."
+            ext_err_msg = (
+                "The param of verl-compare require two log files, and the file format just support '.log' or '.txt'."
+            )
             logger.error(ext_err_msg)
             raise Exception(ext_err_msg)  # pylint: disable=broad-exception-raised
     elif args.verl_verify:
@@ -117,11 +118,11 @@ def _run_config_checking_command(args):
             raise Exception(msg)  # pylint: disable=broad-exception-raised
     else:
         logger.error(
-            "The param is not correct, you need to give '-d' for dump or '-c' for compare \
-                    or '-vc' for verl compare or '-vv' for verl verify."
+            "The param is not correct, you need to give '-d' for dump or '-c' for compare "
+            "or '-vc' for verl compare or '-vv' for verl verify."
         )
         # pylint: disable=broad-exception-raised
         raise Exception(
-            "The param is not correct, you need to give '-d' for dump or '-c' for compare \
-                    or '-vc' for verl compare or '-vv' for verl verify."
+            "The param is not correct, you need to give '-d' for dump or '-c' for compare "
+            "or '-vc' for verl compare or '-vv' for verl verify."
         )
