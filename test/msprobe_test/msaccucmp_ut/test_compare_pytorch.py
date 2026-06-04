@@ -385,3 +385,186 @@ class TestUtilsMethods(unittest.TestCase):
                 fusion_op_result = compare_result.FusionOpComResult(pytorch_compare.algorithm_manager)
                 result_list = pytorch_compare.do_compare_and_get_result(dataset_list, fusion_op_result, op_info)
                 self.assertEqual(result_list[0], actual)
+
+    def test_save_numpy_data_dir_not_exist(self):
+        with mock.patch('os.path.exists', return_value=False), \
+                mock.patch('os.makedirs') as makedirs_mock, \
+                mock.patch('numpy.save') as save_mock:
+            PytorchComparison._save_numpy_data('/home/test_not_exist/data.npy', np.array([1, 2, 3]))
+            makedirs_mock.assert_called_once_with('/home/test_not_exist', mode=0o700)
+            save_mock.assert_called_once()
+
+    def test_check_arguments_valid_invalid_params(self):
+        parser = self._construct_args()
+        invalid_args_list = [
+                ['aaa.py', 'compare', '-m', '/home/left.h5', '-g', '/home/right.h5', '-p', '0', '-f', '/home/rule.json'],
+                ['aaa.py', 'compare', '-m', '/home/left.h5', '-g', '/home/right.h5', '-p', '0', '-q', '/home/quant.json'],
+                ['aaa.py', 'compare', '-m', '/home/left.h5', '-g', '/home/right.h5', '-p', '0', '-map'],
+                ['aaa.py', 'compare', '-m', '/home/left.h5', '-g', '/home/right.h5', '-p', '0', '-v', '1'],
+            ]
+        for invalid_args in invalid_args_list:
+            with pytest.raises(CompareError) as err:
+                with mock.patch('sys.argv', invalid_args), \
+                        mock.patch('cmp_utils.path_check.check_output_path_valid',
+                                   return_value=CompareError.MSACCUCMP_NONE_ERROR):
+                    args = parser.parse_args(invalid_args[1:])
+                    compare = compare_pytorch.PytorchComparison(args)
+                    compare.check_arguments_valid(args)
+            self.assertEqual(err.value.code, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+
+    def test_write_header_to_file_io_error(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
+        with mock.patch('sys.argv', args), \
+                mock.patch('cmp_utils.path_check.check_output_path_valid',
+                           return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            args = parser.parse_args(sys.argv[1:])
+            pytorch_compare = compare_pytorch.PytorchComparison(args)
+        with mock.patch('os.open', side_effect=IOError("mock io error")), \
+                mock.patch('cmp_utils.log.print_open_file_error'):
+            result = pytorch_compare._write_header_to_file()
+            self.assertFalse(result)
+
+    def test_save_cmp_result_with_lock(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
+        lock = mock.Mock()
+        with mock.patch('sys.argv', args), \
+                mock.patch('cmp_utils.path_check.check_output_path_valid',
+                           return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            args = parser.parse_args(sys.argv[1:])
+            pytorch_compare = compare_pytorch.PytorchComparison(args)
+        with mock.patch.object(pytorch_compare, '_save_cmp_result_exec') as exec_mock:
+            pytorch_compare._save_cmp_result([["row1"]], lock)
+            lock.acquire.assert_called_once()
+            lock.release.assert_called_once()
+            exec_mock.assert_called_once_with([["row1"]])
+
+    def test_get_compare_dump_data_size_mismatch(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
+        with mock.patch('sys.argv', args), \
+                mock.patch('cmp_utils.path_check.check_output_path_valid',
+                           return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            args = parser.parse_args(sys.argv[1:])
+            pytorch_compare = compare_pytorch.PytorchComparison(args)
+        my_data = np.ones([3, 3], dtype='f')
+        golden_data = np.ones([2, 2], dtype='f')
+        with mock.patch.object(pytorch_compare.compare_data, 'get_dump_data',
+                               return_value=(my_data, golden_data, None)), \
+                mock.patch('cmp_utils.log.print_cannot_compare_warning',
+                           return_value="size mismatch"):
+            with pytest.raises(CompareError) as err:
+                pytorch_compare._get_compare_dump_data('test_op', '/my/dump', '/golden/dump')
+            self.assertEqual(err.value.code, CompareError.MSACCUCMP_INVALID_SHAPE_ERROR)
+
+    def test_compare_tensor_no_match(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
+        with mock.patch('sys.argv', args), \
+                mock.patch('cmp_utils.path_check.check_output_path_valid',
+                           return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            args = parser.parse_args(sys.argv[1:])
+            pytorch_compare = compare_pytorch.PytorchComparison(args)
+        with mock.patch.object(pytorch_compare.compare_data, 'get_golden_dataset',
+                               return_value=(False, '', 'no match reason')):
+            match, result = pytorch_compare._compare_tensor(1, 'test_op', 'ext_op', '/my/dump')
+            self.assertFalse(match)
+            self.assertIsInstance(result, list)
+
+    def test_compare_tensor_value_error(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
+        with mock.patch('sys.argv', args), \
+                mock.patch('cmp_utils.path_check.check_output_path_valid',
+                           return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            args = parser.parse_args(sys.argv[1:])
+            pytorch_compare = compare_pytorch.PytorchComparison(args)
+        with mock.patch.object(pytorch_compare.compare_data, 'get_golden_dataset',
+                               return_value=(True, '/golden/dump', '')), \
+                mock.patch.object(pytorch_compare, '_do_compare_and_get_result',
+                               side_effect=ValueError("mock value error")):
+            match, result = pytorch_compare._compare_tensor(1, 'test_op', 'ext_op', '/my/dump')
+            self.assertTrue(match)
+            self.assertIsInstance(result, list)
+
+    def test_compare_one_op_all_not_match(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
+        with mock.patch('sys.argv', args), \
+                mock.patch('cmp_utils.path_check.check_output_path_valid',
+                           return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            args = parser.parse_args(sys.argv[1:])
+            pytorch_compare = compare_pytorch.PytorchComparison(args)
+        with mock.patch.object(pytorch_compare.compare_data, 'get_my_dump_datasets',
+                               return_value=['/my/dump1']), \
+                mock.patch.object(pytorch_compare.compare_data, 'get_original_opname',
+                               return_value='TestOp'), \
+                mock.patch.object(pytorch_compare, '_compare_tensor',
+                               return_value=(False, [['row1']])), \
+                mock.patch.object(pytorch_compare, '_save_cmp_result') as save_mock:
+            pytorch_compare._compare_one_op(1, 'TestOp:1', None)
+            save_mock.assert_called_once()
+            saved_result = save_mock.call_args[0][0]
+            self.assertTrue(len(saved_result) > 0)
+
+    def test_compare_net_with_filter_flag(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
+                '/home/right.h5', '-p', '1', '-out', '/home/demo']
+        with mock.patch('sys.argv', args), \
+                mock.patch('cmp_utils.path_check.check_output_path_valid',
+                           return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            args = parser.parse_args(sys.argv[1:])
+            pytorch_compare = compare_pytorch.PytorchComparison(args)
+        with mock.patch.object(pytorch_compare, '_compare_by_multi_process'), \
+                mock.patch.object(pytorch_compare, 'record_not_matched'), \
+                mock.patch('cmp_utils.utils.sort_result_file_by_index'), \
+                mock.patch('os.path.exists', return_value=True), \
+                mock.patch.object(pytorch_compare, '_filter_compare_result') as filter_mock, \
+                mock.patch('cmp_utils.log.print_write_result_info'):
+            ret = pytorch_compare._compare_net()
+            self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+            filter_mock.assert_called_once()
+
+    def test_record_not_matched(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
+        with mock.patch('sys.argv', args), \
+                mock.patch('cmp_utils.path_check.check_output_path_valid',
+                           return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            args = parser.parse_args(sys.argv[1:])
+            pytorch_compare = compare_pytorch.PytorchComparison(args)
+        with mock.patch.object(pytorch_compare.compare_data, 'get_not_matched_golden_datasets',
+                               return_value=[(1, 'UnmatchedOp', '/golden/path', 'not found')]), \
+                mock.patch.object(pytorch_compare, '_save_cmp_result') as save_mock:
+            pytorch_compare.record_not_matched()
+            save_mock.assert_called_once()
+            self.assertTrue(len(save_mock.call_args[0][0]) > 0)
+
+    def test_filter_one_line_nan_cosine(self):
+        parser = self._construct_args()
+        args = ['aaa.py', 'compare', '-m', '/home/left.h5', '-g',
+                '/home/right.h5', '-p', '0', '-out', '/home/demo']
+        with mock.patch('sys.argv', args), \
+                mock.patch('cmp_utils.path_check.check_output_path_valid',
+                           return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            args = parser.parse_args(sys.argv[1:])
+            pytorch_compare = compare_pytorch.PytorchComparison(args)
+        from cmp_utils.constant.const_manager import ConstManager
+        row = [ConstManager.NAN, "/my/dump", "/golden/dump"]
+        writer_mock = mock.Mock()
+        with mock.patch.object(pytorch_compare, '_save_numpy_data'), \
+                mock.patch.object(pytorch_compare.compare_data.my_dump, 'get_dump_data',
+                                  return_value=np.array([1, 2, 3])), \
+                mock.patch.object(pytorch_compare.compare_data.golden_dump, 'get_dump_data',
+                                  return_value=np.array([1, 2, 3])):
+            pytorch_compare._filter_one_line("/home/test", row, writer_mock, [0, 1, 2])
+            writer_mock.writerow.assert_called_once()
