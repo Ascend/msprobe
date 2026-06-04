@@ -19,7 +19,7 @@ from unittest import mock
 import pytest
 import numpy as np
 
-from cmp_utils import utils_type, path_check
+from cmp_utils import utils_type
 from cmp_utils.constant.compare_error import CompareError
 from pytorch_cmp import pytorch_dump_data
 
@@ -413,3 +413,257 @@ class TestUtilsMethods(unittest.TestCase):
     def test_close_file(self):
         compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
         compare_data.close_file()
+
+    def test_data_type_get_name(self):
+        self.assertEqual(pytorch_dump_data.DataType.get_name(1), "Float")
+        self.assertEqual(pytorch_dump_data.DataType.get_name(6), "Int")
+        self.assertEqual(pytorch_dump_data.DataType.get_name(7), "Long")
+        self.assertEqual(pytorch_dump_data.DataType.get_name(10), "Half")
+
+    def test_data_type_get_value(self):
+        self.assertEqual(pytorch_dump_data.DataType.get_value("Float"), 1)
+        self.assertEqual(pytorch_dump_data.DataType.get_value("Int"), 6)
+        self.assertEqual(pytorch_dump_data.DataType.get_value("Long"), 7)
+        self.assertEqual(pytorch_dump_data.DataType.get_value("Half"), 10)
+        self.assertIsNone(pytorch_dump_data.DataType.get_value("Unknown"))
+
+    def test_compare_map_get_mapping_opname(self):
+        cmp_map = pytorch_dump_data.CompareMap()
+        result = cmp_map.get_mapping_opname("CudnnConvolutionBackward")
+        self.assertEqual(result, ["NpuConvolutionBackward"])
+        result = cmp_map.get_mapping_opname("NpuConvolutionBackward")
+        self.assertEqual(result, ["CudnnConvolutionBackward", "ThnnConvDepthwise2DBackward"])
+        result = cmp_map.get_mapping_opname("UnknownOp")
+        self.assertEqual(result, [])
+
+    def test_compare_map_get_mapping_param(self):
+        cmp_map = pytorch_dump_data.CompareMap()
+        result = cmp_map.get_mapping_param("CudnnBatchNormBackward", "epsilon")
+        self.assertEqual(result, "eps")
+        result = cmp_map.get_mapping_param("NativeBatchNormBackward", "eps")
+        self.assertEqual(result, "epsilon")
+        result = cmp_map.get_mapping_param("CudnnConvolutionBackward", "self")
+        self.assertEqual(result, "input")
+        result = cmp_map.get_mapping_param("UnknownOp", "param")
+        self.assertEqual(result, "")
+        result = cmp_map.get_mapping_param("CudnnBatchNormBackward", "unknown_param")
+        self.assertEqual(result, "")
+
+    def test_compare_map_get_mapping_opname_all(self):
+        cmp_map = pytorch_dump_data.CompareMap()
+        result = cmp_map.get_mapping_opname_all()
+        self.assertIn(["NativeBatchNormBackward"], result)
+        self.assertIn(["CudnnBatchNormBackward"], result)
+        self.assertIn(["NpuConvolutionBackward"], result)
+
+    def test_is_equivalent_type(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        result = compare_data._is_equivalent_type(6, 7, "test_info")
+        self.assertEqual(result, True)
+        result = compare_data._is_equivalent_type(1, 10, "test_info")
+        self.assertEqual(result, True)
+        result = compare_data._is_equivalent_type(1, 6, "test_info")
+        self.assertEqual(result, False)
+        result = compare_data._is_equivalent_type(2, 3, "test_info")
+        self.assertEqual(result, False)
+
+    def test_opname_map_by_map_table(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.ext_opname_dataset_map = {
+            "NpuConvolutionBackward:0": ["/NpuConvolutionBackward/3/input/input0"],
+        }
+        result = compare_data._opname_map_by_map_table(
+            "CudnnConvolutionBackward:0", utils_type.DeviceType.NPU.value)
+        self.assertEqual(result, "NpuConvolutionBackward:0")
+        result = compare_data._opname_map_by_map_table(
+            "UnknownOp:0", utils_type.DeviceType.NPU.value)
+        self.assertEqual(result, "")
+
+    def test_opname_map_by_map_table_golden(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.golden_dump.ext_opname_dataset_map = {
+            "CudnnConvolutionBackward:0": ["/CudnnConvolutionBackward/3/input/input0"],
+        }
+        result = compare_data._opname_map_by_map_table(
+            "NpuConvolutionBackward:0", utils_type.DeviceType.GPU.value)
+        self.assertEqual(result, "CudnnConvolutionBackward:0")
+
+    def test_set_compare_input_flag(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.need_compare_input = True
+        compare_data.golden_dump.need_compare_input = False
+        compare_data.set_compare_input_flag()
+        self.assertEqual(compare_data.golden_dump.need_compare_input, True)
+
+    def test_set_compare_input_flag_false(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.need_compare_input = False
+        compare_data.golden_dump.need_compare_input = False
+        compare_data.set_compare_input_flag()
+        self.assertEqual(compare_data.golden_dump.need_compare_input, False)
+
+    def test_get_original_opname_error(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        with pytest.raises(CompareError) as err:
+            compare_data.get_original_opname("NoDelimiterOpName")
+        self.assertEqual(err.value.code, CompareError.MSACCUCMP_NAME_ERROR)
+
+    def test_construct_dataset_path_with_param_mapping(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.need_compare_input = True
+        compare_data.golden_dump.need_compare_input = True
+        compare_data.my_dump.file_handle = {
+            "CudnnBatchNormBackward": {'3': "input/epsilon"},
+        }
+        compare_data.golden_dump.file_handle = {
+            "NativeBatchNormBackward": {'5': "input/eps"},
+        }
+        compare_data.my_dump._generate_order_ext_opname_map()
+        compare_data.golden_dump._generate_order_ext_opname_map()
+        compare_data.my_dump.ext_opname_dataset_map = {
+            'CudnnBatchNormBackward:0': ['/CudnnBatchNormBackward/3/input/epsilon'],
+        }
+        compare_data.golden_dump.ext_opname_dataset_map = {
+            'NativeBatchNormBackward:0': ['/NativeBatchNormBackward/5/input/eps'],
+        }
+        expect_dataset = compare_data._construct_dataset_path(
+            "CudnnBatchNormBackward:0", '/CudnnBatchNormBackward/3/input/epsilon',
+            compare_data.golden_dump, "NativeBatchNormBackward:0")
+        self.assertEqual(expect_dataset, '/NativeBatchNormBackward/5/input/eps')
+
+    def test_get_golden_dataset_not_found(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.need_compare_input = True
+        compare_data.golden_dump.need_compare_input = True
+        compare_data.my_dump.file_handle = {
+            "Admm1": {'3': "input/input0"},
+        }
+        compare_data.golden_dump.file_handle = {
+            "Admm1": {'5': "input/input0"},
+        }
+        compare_data.my_dump._generate_order_ext_opname_map()
+        compare_data.golden_dump._generate_order_ext_opname_map()
+        compare_data.my_dump.ext_opname_dataset_map = {
+            'Admm1:0': ['/Admm1/3/input/input0'],
+        }
+        compare_data.golden_dump.ext_opname_dataset_map = {
+            'Admm1:0': ['/Admm1/5/input/input0'],
+        }
+        compare_data.golden_dump.device_type = utils_type.DeviceType.NPU.value
+        found, _, message = compare_data.get_golden_dataset(
+            "NonExistent:0", '/Admm1/3/input/input0')
+        self.assertEqual(found, False)
+        self.assertIn("No data match", message)
+
+    def test_converted_stride_npu_device(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        with mock.patch('pytorch_cmp.hdf5_parser.Hdf5Parser.get_dump_data_attr',
+                        side_effect=[(True, utils_type.DeviceType.NPU.value)]):
+            dump_data = np.array(np.arange(9)).reshape(3, 3)
+            converted_dump_data = compare_data._converted_stride(
+                dump_data, '/cat/9/output/result')
+        self.assertEqual((dump_data == converted_dump_data).all(), True)
+
+    def test_reverse_match_non_load_mode(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.need_compare_input = True
+        compare_data.my_dump.file_handle = {
+            "Admm1": {'3': "input/input0"},
+        }
+        compare_data.my_dump._generate_order_ext_opname_map()
+        compare_data.my_dump.ext_opname_dataset_map = {
+            'Admm1:0': ['/Admm1/3/input/input0'],
+        }
+        failed_info = []
+        result = compare_data._reverse_match_non_load_mode(
+            "NonExistent:0", "/NonExistent/3/input/input0", failed_info)
+        self.assertEqual(result, False)
+        self.assertTrue(len(failed_info) > 0)
+
+    def test_reverse_match_non_load_mode_load(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.need_compare_input = False
+        failed_info = []
+        result = compare_data._reverse_match_non_load_mode(
+            "NonExistent:0", "/NonExistent/3/input/input0", failed_info)
+        self.assertEqual(result, True)
+
+    def test_reverse_match_process(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.need_compare_input = True
+        compare_data.my_dump.file_handle = {
+            "Admm1": {'3': "input/input0"},
+        }
+        compare_data.golden_dump.file_handle = {
+            "Admm1": {'5': "input/input0"},
+        }
+        compare_data.my_dump._generate_order_ext_opname_map()
+        compare_data.golden_dump._generate_order_ext_opname_map()
+        compare_data.my_dump.ext_opname_dataset_map = {
+            'Admm1:0': ['/Admm1/3/input/input0'],
+        }
+        compare_data.golden_dump.ext_opname_dataset_map = {
+            'Admm1:0': ['/Admm1/5/input/input0'],
+        }
+        failed_info = []
+        result = compare_data._reverse_match_process(
+            "Admm1:0", "Admm1:0", "/Admm1/5/input/input0", failed_info)
+        self.assertEqual(result, True)
+
+    def test_reverse_match_process_not_found(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.need_compare_input = True
+        compare_data.my_dump.file_handle = {
+            "Admm1": {'3': "input/input0"},
+        }
+        compare_data.golden_dump.file_handle = {
+            "Admm1": {'5': "input/input0"},
+        }
+        compare_data.my_dump._generate_order_ext_opname_map()
+        compare_data.golden_dump._generate_order_ext_opname_map()
+        compare_data.my_dump.ext_opname_dataset_map = {
+            'Admm1:0': ['/Admm1/3/input/input0'],
+        }
+        compare_data.golden_dump.ext_opname_dataset_map = {
+            'Admm1:0': ['/Admm1/5/input/input0'],
+        }
+        failed_info = []
+        result = compare_data._reverse_match_process(
+            "Admm1:0", "Admm1:0", "/Admm1/5/input/nonexistent", failed_info)
+        self.assertEqual(result, False)
+        self.assertTrue(len(failed_info) > 0)
+
+    def test_get_dump_data_type_mismatch(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.need_compare_input = True
+        with mock.patch('pytorch_cmp.pytorch_dump_data.CompareData._check_data_type',
+                        return_value=[False, "type mismatch"]):
+            with pytest.raises(CompareError) as err:
+                compare_data.get_dump_data('/Admm1/3/input0', '/Admm1/5/input0')
+        self.assertEqual(err.value.code, CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
+
+    def test_check_stride_different_length(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        result = compare_data._check_stride('/cat/9/output/result', [218, 3, 32, 32], [3072, 1024, 1])
+        self.assertEqual(result, False)
+
+    def test_check_stride_exceed_data_num(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        result = compare_data._check_stride('/cat/9/output/result', [2, 3], [10, 1])
+        self.assertEqual(result, False)
+
+    def test_get_my_dump_datasets_not_found(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.ext_opname_dataset_map = {
+            'Admm1:0': ['/Admm1/3/input0'],
+        }
+        result = compare_data.get_my_dump_datasets("NonExistent:0")
+        self.assertEqual(result, [])
+
+    def test_parse_dump_file_my_dump_error(self):
+        compare_data = pytorch_dump_data.CompareData("/home/my_dump.h5", "/home/golden_dump.h5")
+        compare_data.my_dump.file_handle = None
+        with mock.patch('pytorch_cmp.hdf5_parser.Hdf5Parser.parse_dump_file',
+                        return_value=CompareError.MSACCUCMP_PARSE_DUMP_FILE_ERROR):
+            parse_result = compare_data.parse_dump_file()
+        self.assertEqual(parse_result, CompareError.MSACCUCMP_PARSE_DUMP_FILE_ERROR)
