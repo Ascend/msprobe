@@ -244,6 +244,196 @@ class TestUtilsMethods(unittest.TestCase):
         expect_result = {3: ['CudnnAdmm1:0'], 4: ['CudnnAdmm1:1'], 5: ['ThnnAdmm1:2'], 6: ['ThnnAdmm1:3']}
         self.assertEqual(result, expect_result)
 
+    def test_dataset_path_valid_true(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        self.assertTrue(parser._dataset_path_valid("/Admm1/6/input"))
+
+    def test_dataset_path_valid_false(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        self.assertFalse(parser._dataset_path_valid("invalid_path"))
+
+    def test_data_path_is_input_true(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        self.assertTrue(parser._data_path_is_input("/Admm1/6/input"))
+
+    def test_data_path_is_input_false(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        self.assertFalse(parser._data_path_is_input("/Admm1/6/output"))
+
+    def test_data_path_is_input_invalid(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        self.assertFalse(parser._data_path_is_input("invalid"))
+
+    def test_get_mapping_set_found(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        result = parser._get_mapping_set("CudnnConvolutionBackward")
+        self.assertEqual(result, ['CudnnConvolutionBackward', 'ThnnConvDepthwise2DBackward'])
+
+    def test_get_mapping_set_not_found(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        result = parser._get_mapping_set("UnknownOp")
+        self.assertEqual(result, [])
+
+    def test_get_mapping_set_single_element(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        result = parser._get_mapping_set("NativeBatchNormBackward")
+        self.assertEqual(result, [])
+
+    def test_is_multimap_true(self):
+        self.assertTrue(hdf5_parser.Hdf5Parser._is_multimap("CudnnConvolutionBackward",
+                                                            ['CudnnConvolutionBackward', 'ThnnConvDepthwise2DBackward']))
+
+    def test_is_multimap_false(self):
+        self.assertFalse(hdf5_parser.Hdf5Parser._is_multimap("UnknownOp",
+                                                              ['CudnnConvolutionBackward', 'ThnnConvDepthwise2DBackward']))
+
+    def test_need_compare_output_path(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        self.assertTrue(parser._need_compare("/Admm1/6/output"))
+
+    def test_need_compare_my_dump_input(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.MY_DUMP_FILE, self.mapping_list)
+        self.assertTrue(parser._need_compare("/Admm1/6/input"))
+        self.assertTrue(parser.need_compare_input)
+
+    def test_need_compare_golden_dump_input_first_time(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.need_compare_input = False
+        self.assertFalse(parser._need_compare("/Admm1/6/input"))
+
+    def test_need_compare_golden_dump_input_second_time(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.need_compare_input = True
+        self.assertTrue(parser._need_compare("/Admm1/6/input"))
+
+    def test_parse_one_dataset_tensor(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.file_handle = {"dummy": "handle"}
+        with mock.patch.object(parser, 'get_dump_data_attr', return_value=(False, None)):
+            parser._parse_one_dataset(hdf5_parser.DataSetType.TENSOR.value, "Admm1:0", "/Admm1/3/output0")
+        self.assertEqual(parser.ext_opname_dataset_map["Admm1:0"], ["/Admm1/3/output0"])
+
+    def test_parse_one_dataset_non_tensor(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser._parse_one_dataset(hdf5_parser.DataSetType.VEC_TENSOR.value, "Admm1:0", "/Admm1/3/output0")
+        self.assertEqual(parser.ext_opname_dataset_map.get("Admm1:0", []), [])
+
+    def test_parse_one_dataset_with_device_type(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        with mock.patch.object(parser, 'get_dump_data_attr', return_value=(True, 10)):
+            parser._parse_one_dataset(hdf5_parser.DataSetType.TENSOR.value, "Admm1:0", "/Admm1/3/output0")
+        self.assertEqual(parser.device_type, 10)
+
+    def test_parse_dataset_recursively_with_attr(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        with mock.patch.object(parser, 'get_dump_data_attr', return_value=(True, hdf5_parser.DataSetType.TENSOR.value)):
+            with mock.patch.object(parser, '_parse_one_dataset') as mock_parse:
+                parser._parse_dataset_recursively("Admm1:0", "/Admm1/3/output0")
+                mock_parse.assert_called_once_with(hdf5_parser.DataSetType.TENSOR.value, "Admm1:0", "/Admm1/3/output0")
+
+    def test_parse_dataset_recursively_without_attr(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.file_handle = {
+            "/Admm1/3": {"output0": 1}
+        }
+        call_count = [0]
+
+        def side_effect(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] > 1:
+                return None
+            return parser._parse_dataset_recursively(*args, **kwargs)
+
+        with mock.patch.object(parser, 'get_dump_data_attr', return_value=(False, None)):
+            with mock.patch.object(parser, '_parse_dataset_recursively', side_effect=side_effect):
+                parser._parse_dataset_recursively("Admm1:0", "/Admm1/3")
+
+    def test_parse_dataset_recursively_file_handle_none(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.file_handle = None
+        parser.ext_opname_dataset_map = {"Admm1:0": ["/Admm1/3/output0"]}
+        with pytest.raises(CompareError) as error:
+            parser._parse_dataset_recursively("Admm1:0", "/Admm1/3")
+        self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
+
+    def test_get_dump_data_valid_path(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.file_handle = {"Admm1/6/input1": mock.MagicMock()}
+        parser.file_handle["Admm1/6/input1"].__getitem__ = mock.MagicMock(return_value=[1, 2, 3])
+        with mock.patch.object(parser, '_dataset_path_valid', return_value=True):
+            result = parser.get_dump_data("Admm1/6/input1")
+            self.assertEqual(result, [1, 2, 3])
+
+    def test_get_dump_data_invalid_path(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.file_handle = "testhandle"
+        with mock.patch.object(parser, '_dataset_path_valid', return_value=False):
+            result = parser.get_dump_data("invalid_path")
+            self.assertEqual(result, [])
+
+    def test_get_order_by_ext_opname_empty(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        order = parser.get_order_by_ext_opname("Admm1:0")
+        self.assertEqual(order, 0)
+
+    def test_have_dataset_invalid_ext_opname(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        with pytest.raises(CompareError) as error:
+            parser.have_dataset("Admm1", "/Admm1/3/output0")
+        self.assertEqual(error.value.args[0], CompareError.MSACCUCMP_NAME_ERROR)
+
+    def test_parse_dump_file_success(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        with mock.patch.object(parser, 'open_file', return_value=CompareError.MSACCUCMP_NONE_ERROR):
+            with mock.patch.object(parser, '_generate_order_ext_opname_map'):
+                with mock.patch.object(parser, '_parse_all_dataset'):
+                    ret = parser.parse_dump_file()
+                    self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+
+    def test_parse_dump_file_fail(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        with mock.patch.object(parser, 'open_file', return_value=CompareError.MSACCUCMP_OPEN_FILE_ERROR):
+            ret = parser.parse_dump_file()
+            self.assertEqual(ret, CompareError.MSACCUCMP_OPEN_FILE_ERROR)
+
+    def test_close_file_success(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        mock_handle = mock.MagicMock()
+        parser.file_handle = mock_handle
+        parser.close_file()
+        mock_handle.close.assert_called_once()
+        self.assertIsNone(parser.file_handle)
+
+    def test_file_is_empty_with_handle(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.file_handle = {"Admm1": {}}
+        ret = parser.file_is_empty()
+        self.assertTrue(ret)
+
+    def test_is_load_mode_false(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.need_compare_input = True
+        ret = parser.is_load_mode()
+        self.assertFalse(ret)
+
+    def test_gen_single_order_ext_opname_map_file_none(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.file_handle = None
+        result = parser._gen_single_order_ext_opname_map("Admm1")
+        self.assertEqual(result, {})
+
+    def test_gen_ext_opname_map_special_already_parsed(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.order_ext_opname_map = {3: ["Admm1:0"]}
+        result = parser._gen_ext_opname_map_special("Admm1", ["Admm1"])
+        self.assertEqual(result, {})
+
+    def test_generate_order_ext_opname_map_file_none(self):
+        parser = hdf5_parser.Hdf5Parser("/home/test.h5", hdf5_parser.Hdf5Parser.GOLDEN_DUMP_FILE, self.mapping_list)
+        parser.file_handle = None
+        parser._generate_order_ext_opname_map()
+        self.assertEqual(parser.order_ext_opname_map, {})
+
 
 if __name__ == '__main__':
     unittest.main()
