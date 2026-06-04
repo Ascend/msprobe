@@ -30,6 +30,8 @@ def _is_torch_npu_importable():
 
 
 class DebuggerConfig:
+    DEFAULT_CUSTOM_OP_NAMESPACES = ['_C_ascend']
+
     def __init__(self, common_config, task_config, task, dump_path, level):
         self.dump_path = dump_path if dump_path else common_config.dump_path
         self.task = task or common_config.task or Const.STATISTICS
@@ -49,12 +51,19 @@ class DebuggerConfig:
         self.diff_nums = task_config.diff_nums if task_config.diff_nums else 1
         self.bench_path = getattr(task_config, "bench_path", None)
         self.risk_level = common_config.risk_level if common_config.risk_level else Const.RISK_LEVEL_ALL
+        self.custom_op_namespaces = self._get_custom_op_namespaces(common_config)
         self.check()
         self._check_statistics_config(task_config)
 
         if self.level == Const.LEVEL_L2:
             self.is_backward_kernel_dump = False
             self._check_and_adjust_config_with_l2()
+
+    def _get_custom_op_namespaces(self, common_config):
+        custom_op_namespaces = vars(common_config).get("custom_op_namespaces", None)
+        if custom_op_namespaces is None:
+            return self.DEFAULT_CUSTOM_OP_NAMESPACES
+        return custom_op_namespaces
 
     def check(self):
         if self.task and self.task not in Const.TORCH_TASK_LIST:

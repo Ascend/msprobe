@@ -23,6 +23,12 @@ class TestDebuggerConfig(unittest.TestCase):
         self.assertEqual(debugger.dump_path, "./dump_path")
         self.assertEqual(debugger.task, Const.STATISTICS)
         self.assertEqual(debugger.level, "L1")
+        self.assertEqual(debugger.custom_op_namespaces, ["_C_ascend"])
+
+    def test_custom_op_namespaces_from_config(self):
+        self.common_config.custom_op_namespaces = ["_C_ascend", "my_ns"]
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.custom_op_namespaces, ["_C_ascend", "my_ns"])
 
     def test_check_kwargs_with_invalid_task(self):
         self.common_config.task = "invalid_task"

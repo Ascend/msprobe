@@ -59,8 +59,12 @@ class PrecisionDebugger(BasePrecisionDebugger):
         self.service = PytorchService(self.config)
         self.module_dumper = ModuleDumper(self.service)
         self.ori_customer_func = {}
+        self._custom_op_schema_cache = None
+        self._custom_op_schema_dirty = True
+        self._custom_op_auto_registered = set()
         # 自动注册自定义算子（支持 torch.ops 下的第三方扩展算子）
         self._auto_register_custom_ops()
+        self._custom_op_schema_dirty = True
         self._custom_api_auto_registered = set()
         self._custom_api_pending = []
         self._auto_register_custom_api(force_retry=True)
@@ -76,7 +80,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
 
         # 延迟注册：在 start() 时再次扫描自定义算子
         # 这样即使用户先创建 debugger 再 enable_custom_op() 也能正常工作
-        instance._auto_register_custom_ops()
+        instance._auto_register_custom_ops(refresh_schema=instance._custom_op_schema_dirty)
 
         check_token_range(token_range)
         check_rank_id(rank_id)
@@ -183,6 +187,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
     # pylint: disable=attribute-defined-outside-init
     def _apply_reloaded_config(self, common_config, task_config, new_config, signature):
         previous_dump_enable = getattr(self.config, "dump_enable", None)
+        previous_custom_op_namespaces = getattr(self.config, "custom_op_namespaces", None)
         # In dynamic mode, deleting dump_enable keeps the previous state.
         if self._dynamic_dump_enable_active and new_config.dump_enable is None:
             new_config.dump_enable = previous_dump_enable
@@ -196,6 +201,8 @@ class PrecisionDebugger(BasePrecisionDebugger):
         self.task_config = task_config
         self.task = common_config.task
         self.config = new_config
+        if previous_custom_op_namespaces != getattr(new_config, "custom_op_namespaces", None):
+            self._custom_op_schema_dirty = True
         self.service.apply_runtime_config(new_config)
         self._reload_state["signature"] = signature
 
@@ -211,26 +218,19 @@ class PrecisionDebugger(BasePrecisionDebugger):
     def _is_dump_enabled(dump_enable):
         return True if dump_enable is None else dump_enable
 
-    def _auto_register_custom_ops(self):
+    def _auto_register_custom_ops(self, refresh_schema=False):
         """
         自动扫描并注册 torch.ops 下的自定义算子
         支持华为昇腾扩展算子（npu, _C_ascend, atb等）
         """
 
-        # 内置命名空间（不需要注册）
-        builtin_namespaces = {
-            'aten', 'prim', 'quantized', '_quantized', 'profiler',
-            'functional', 'autograd', 'onnx', 'onnx_symbolic',
-            'mkldnn', 'onednn', 'c10d', 'c10d_functional',
-            '_c10d_functional', '_c10d_functional_autograd',
-            'inductor', 'fsdp', 'static_runtime', 'debugprims',
-            'rngprims', 'export', 'flex_lib', 'sparse', 'symm_mem',
-            'dtensor', '_inductor_test', '_test', 'mkldnn_prepacked', 'npu', 'atb'
-        }
+        if refresh_schema:
+            self._custom_op_schema_cache = None
+
+        # Only configured namespaces are auto-registered to avoid scanning all torch.ops namespaces.
+        priority_namespaces = getattr(self.config, "custom_op_namespaces", ['_C_ascend'])
 
         # 优先检查的自定义算子命名空间
-        priority_namespaces = ['_C_ascend']
-
         registered_count = 0
 
         # 首先处理优先命名空间
@@ -242,37 +242,9 @@ class PrecisionDebugger(BasePrecisionDebugger):
 
                 ops = self._get_custom_ops_from_schema(ns_name)
                 for op_name in ops:
-                    if not hasattr(ns_module, op_name):
-                        continue
                     try:
-                        self.service.register_custom_api(
-                            ns_module, op_name, ns_name
-                        )
-                        registered_count += 1
-                    except Exception as ex:
-                        logger.debug(f"Failed to auto register custom op {ns_name}.{op_name}: {ex}")
-            except Exception as ex:
-                logger.debug(f"Failed to scan custom ops namespace {ns_name}: {ex}")
-
-        # 然后扫描其他非内置命名空间
-        for ns_name in dir(torch.ops):
-            if ns_name.startswith('_') or ns_name in builtin_namespaces or ns_name in priority_namespaces:
-                continue
-
-            try:
-                ns_module = getattr(torch.ops, ns_name, None)
-                if ns_module is None:
-                    continue
-
-                ops = self._get_custom_ops_from_schema(ns_name)
-                for op_name in ops:
-                    if not hasattr(ns_module, op_name):
-                        continue
-                    try:
-                        self.service.register_custom_api(
-                            ns_module, op_name, ns_name
-                        )
-                        registered_count += 1
+                        if self._register_single_op(ns_name, op_name, ns_module):
+                            registered_count += 1
                     except Exception as ex:
                         logger.debug(f"Failed to auto register custom op {ns_name}.{op_name}: {ex}")
             except Exception as ex:
@@ -281,11 +253,30 @@ class PrecisionDebugger(BasePrecisionDebugger):
         if registered_count > 0:
             logger.info(f"Auto registered {registered_count} custom ops for dump.")
 
+    def _register_single_op(self, ns_name, op_name, ns_module):
+        op_key = (ns_name, op_name)
+        if op_key in self._custom_op_auto_registered:
+            return False
+        if not hasattr(ns_module, op_name):
+            return False
+
+        self.service.register_custom_api(ns_module, op_name, ns_name)
+        self._custom_op_auto_registered.add(op_key)
+        return True
+
     def _get_custom_ops_from_schema(self, namespace):
         """从 JIT schema 获取指定命名空间的所有算子"""
+        return sorted(self._get_custom_ops_schema_cache().get(namespace, set()))
+
+    def _get_custom_ops_schema_cache(self):
+        """Cache JIT schemas by namespace to avoid repeated full-schema scans."""
+        if self._custom_op_schema_cache is not None:
+            return self._custom_op_schema_cache
+
+        ops_by_namespace = {}
         try:
+            target_namespaces = set(getattr(self.config, "custom_op_namespaces", ['_C_ascend']))
             schemas = torch._C._jit_get_all_schemas()
-            ops = set()
 
             for s in schemas:
                 schema_str = str(s)
@@ -293,14 +284,20 @@ class PrecisionDebugger(BasePrecisionDebugger):
                     continue
 
                 ns, rest = schema_str.split('::', 1)
-                if ns == namespace:
-                    op_name = rest.split('(')[0] if '(' in rest else rest
-                    ops.add(op_name)
-
-            return sorted(list(ops))
+                if ns not in target_namespaces:
+                    continue
+                op_name = rest.split('(')[0] if '(' in rest else rest
+                ops_by_namespace.setdefault(ns, set()).add(op_name)
         except Exception as ex:
-            logger.debug(f"Failed to get custom ops from JIT schema for namespace {namespace}: {ex}")
-            return []
+            logger.debug(f"Failed to get custom ops from JIT schema: {ex}")
+            self._custom_op_schema_dirty = True
+            if self._custom_op_schema_cache is None:
+                self._custom_op_schema_cache = {}
+            return self._custom_op_schema_cache
+
+        self._custom_op_schema_cache = ops_by_namespace
+        self._custom_op_schema_dirty = False
+        return self._custom_op_schema_cache
 
     def _auto_register_custom_api(self, force_retry):
         custom_api_list = self._load_custom_api_from_yaml()

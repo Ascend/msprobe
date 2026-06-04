@@ -35,6 +35,7 @@ class CommonConfig:
         self.async_dump = json_config.get("async_dump", False)
         self.precision = json_config.get("precision", Const.DUMP_PRECISION_LOW)
         self.risk_level = json_config.get("risk_level", Const.RISK_LEVEL_FOCUS)
+        self.custom_op_namespaces = json_config.get("custom_op_namespaces")
         self._check_config()
 
     def _check_config(self):
@@ -65,6 +66,14 @@ class CommonConfig:
         if self.risk_level and self.risk_level not in Const.RISK_LEVEL_LIST:
             logger.error_log_with_exp("risk_level is invalid, it should be one of {}".format(Const.RISK_LEVEL_LIST),
                                       MsprobeException(MsprobeException.INVALID_PARAM_ERROR))
+        if self.custom_op_namespaces is not None:
+            if not isinstance(self.custom_op_namespaces, list):
+                logger.error_log_with_exp("custom_op_namespaces is invalid, it should be a list[str]",
+                                          MsprobeException(MsprobeException.INVALID_PARAM_ERROR))
+            for namespace in self.custom_op_namespaces:
+                if not isinstance(namespace, str):
+                    logger.error_log_with_exp("custom_op_namespaces is invalid, it should be a list[str]",
+                                              MsprobeException(MsprobeException.INVALID_PARAM_ERROR))
 
 
 class BaseConfig:
