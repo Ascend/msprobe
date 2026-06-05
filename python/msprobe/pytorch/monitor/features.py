@@ -54,7 +54,7 @@ def get_zeros(x: torch.tensor, eps: float):
 @torch.no_grad()
 def get_sign_matches(x: torch.tensor, y: torch.tensor):
     if y.numel() == 0:
-        return torch.tensor(1.)
+        return torch.tensor(1.0)
     xs = x.sign()
     ys = y.sign()
 
@@ -62,7 +62,7 @@ def get_sign_matches(x: torch.tensor, y: torch.tensor):
         same_direction_ratio = ((xs * ys).sum() / ys.numel() + 1) / 2
     except RuntimeError as e:
         logger.info(f"RuntimeError: {e}")
-        same_direction_ratio = torch.tensor(0.)
+        same_direction_ratio = torch.tensor(0.0)
     return same_direction_ratio
 
 
@@ -115,18 +115,15 @@ def get_nans(t):
 
 
 def check_tensor_dim(tensor, n):
-    """检查张量维度是否大于n
-    """
+    """检查张量维度是否大于n"""
     if not isinstance(tensor, torch.Tensor):
         raise TypeError(
-            f"Input must be a PyTorch tensor. Got {type(tensor)} instead. "
-            f"Consider using torch.tensor() for conversion."
+            f"Input must be a PyTorch tensor. Got {type(tensor)} instead. Consider using torch.tensor() for conversion."
         )
 
     if tensor.dim() < n:
         raise ValueError(
-            f"Tensor must have at least {n} dimensions. "
-            f"Got shape: {tuple(tensor.shape)} with {tensor.dim()} dims."
+            f"Tensor must have at least {n} dimensions. Got shape: {tuple(tensor.shape)} with {tensor.dim()} dims."
         )
 
 
@@ -165,15 +162,15 @@ def cal_entropy(qk_tensor, mask=None):
         logger.warning(f"Calculate max eigenvalue failed: {e}")
         return torch.tensor(0), torch.tensor(0)
     if mask is None:
-        mask = torch.tril(torch.ones(qk_tensor.shape[1], qk_tensor.shape[1])).to(
-            qk_tensor.device)
+        mask = torch.tril(torch.ones(qk_tensor.shape[1], qk_tensor.shape[1])).to(qk_tensor.device)
     qk_tensor = qk_tensor - torch.amax(qk_tensor, dim=1, keepdim=True)
     qk_tensor = qk_tensor.masked_fill(mask == 0, float('-inf'))
     softmax_qkt = torch.nn.functional.softmax(qk_tensor.float(), dim=1)
     # softmax取QK矩阵最大值
     softmax_max = torch.mean(torch.amax(softmax_qkt, dim=1))
-    entropy = torch.mean(-torch.nansum(softmax_qkt *
-                         torch.log(softmax_qkt), dim=1))
+    # 只对 p > 0 的位置算 log，p=0 时贡献为 0, nansum 可能在部分设备不支持，用小算子替换
+    log_p = torch.where(softmax_qkt > 0, torch.log(softmax_qkt), torch.tensor(0.0, device=softmax_qkt.device))
+    entropy = torch.mean(-(softmax_qkt * log_p).sum(dim=1))
     return entropy, softmax_max
 
 
@@ -188,11 +185,9 @@ def cal_qkt(q_h, k_h, order="s,b,h,d"):
         return torch.tensor(0)
 
     if order == "s,b,h,d":
-        qkt = torch.matmul(
-            q_h[:, 0, 0, :], k_h[:, 0, 0, :].t()) / q_h.shape[-1] ** 0.5
+        qkt = torch.matmul(q_h[:, 0, 0, :], k_h[:, 0, 0, :].t()) / q_h.shape[-1] ** 0.5
     elif order == "b,s,h,d":
-        qkt = torch.matmul(
-            q_h[0, :, 0, :], k_h[0, :, 0, :].t()) / q_h.shape[-1] ** 0.5
+        qkt = torch.matmul(q_h[0, :, 0, :], k_h[0, :, 0, :].t()) / q_h.shape[-1] ** 0.5
     else:
         logger.warning("Calculate qk tensor failed: Order unsupported.")
         qkt = torch.tensor(0)
