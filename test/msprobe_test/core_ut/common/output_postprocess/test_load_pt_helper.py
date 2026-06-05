@@ -24,7 +24,7 @@ class TestLoadPtHelper(unittest.TestCase):
         second_module.load_pt = second_loader
 
         with mock.patch.dict(sys.modules, {"msprobe.pytorch.common.utils": first_module}):
-            first = load_pt_helper.load_pt_file("first.pt", to_cpu=True, weights_only=False)
+            first = load_pt_helper.load_pt_file("first.pt", to_cpu=True)
 
         with mock.patch.dict(sys.modules, {"msprobe.pytorch.common.utils": second_module}):
             second = load_pt_helper.load_pt_file("second.pt")
@@ -32,8 +32,8 @@ class TestLoadPtHelper(unittest.TestCase):
         self.assertEqual(first, "first")
         self.assertEqual(second, "second")
         first_loader.assert_has_calls([
-            mock.call("first.pt", to_cpu=True, weights_only=False),
-            mock.call("second.pt", to_cpu=False, weights_only=True),
+            mock.call("first.pt", to_cpu=True),
+            mock.call("second.pt", to_cpu=False),
         ])
         second_loader.assert_not_called()
 
@@ -44,7 +44,7 @@ class TestLoadPtHelper(unittest.TestCase):
         result = load_pt_helper.load_pt_file("demo.pt")
 
         self.assertEqual(result, "ok")
-        cached_loader.assert_called_once_with("demo.pt", to_cpu=False, weights_only=True)
+        cached_loader.assert_called_once_with("demo.pt", to_cpu=False)
 
 
 if __name__ == "__main__":

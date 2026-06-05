@@ -19,12 +19,13 @@
 _loader = None  # 缓存 load_pt 函数
 
 
-def load_pt_file(pt_path: str, to_cpu=False, weights_only=True):
+def load_pt_file(pt_path: str, to_cpu=False):
     """延迟 import load_pt 函数，避免循环依赖。"""
     global _loader
 
     if _loader is None:
         from msprobe.pytorch.common.utils import load_pt
+
         _loader = load_pt
-    
-    return _loader(pt_path, to_cpu=to_cpu, weights_only=weights_only)
+
+    return _loader(pt_path, to_cpu=to_cpu)
