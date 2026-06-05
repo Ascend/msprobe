@@ -1,9 +1,65 @@
+
+"""data2db_utils 单元测试 — 测试 process_tensor_value 函数。"""
 import unittest
+from unittest.mock import patch
+
+
 from msprobe.core.common.data2db_utils import process_tensor_value
 from msprobe.core.common.const import Data2DBConst
 
 
 class TestProcessTensorValue(unittest.TestCase):
+
+    def test_float_value_within_range(self):
+        result = process_tensor_value(3.14)
+        self.assertEqual(result, 3.14)
+
+    def test_int_value(self):
+        result = process_tensor_value(42)
+        self.assertEqual(result, 42.0)
+
+    def test_positive_infinity(self):
+        result = process_tensor_value(float("inf"))
+        self.assertEqual(result, Data2DBConst.MAX_FLOAT_VALUE + 1)
+
+    def test_negative_infinity(self):
+        result = process_tensor_value(float("-inf"))
+        self.assertEqual(result, Data2DBConst.MIN_FLOAT_VALUE - 1)
+
+    def test_value_exceeds_max_float(self):
+        huge = Data2DBConst.MAX_FLOAT_VALUE + 1000
+        result = process_tensor_value(huge)
+        self.assertEqual(result, Data2DBConst.MAX_FLOAT_VALUE)
+
+    def test_value_below_min_float(self):
+        tiny = Data2DBConst.MIN_FLOAT_VALUE - 1000
+        result = process_tensor_value(tiny)
+        self.assertEqual(result, Data2DBConst.MIN_FLOAT_VALUE)
+
+    def test_string_numeric(self):
+        result = process_tensor_value("  3.14  ")
+        self.assertEqual(result, 3.14)
+
+    def test_string_non_numeric_returns_none(self):
+        result = process_tensor_value("not_a_number")
+        self.assertIsNone(result)
+
+    def test_none_returns_none(self):
+        result = process_tensor_value(None)
+        self.assertIsNone(result)
+
+    def test_list_returns_none(self):
+        result = process_tensor_value([1, 2, 3])
+        self.assertIsNone(result)
+
+    def test_zero(self):
+        result = process_tensor_value(0)
+        self.assertEqual(result, 0.0)
+
+    def test_negative_value(self):
+        result = process_tensor_value(-5.5)
+        self.assertEqual(result, -5.5)
+
     """测试process_tensor_value函数"""
 
     def test_process_valid_float_string(self):
@@ -47,3 +103,7 @@ class TestProcessTensorValue(unittest.TestCase):
         tiny_value = Data2DBConst.MIN_FLOAT_VALUE - 1000
         result = process_tensor_value(tiny_value)
         self.assertEqual(result, Data2DBConst.MIN_FLOAT_VALUE)
+
+
+if __name__ == "__main__":
+    unittest.main()
