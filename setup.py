@@ -295,7 +295,7 @@ setuptools.setup(
     package_data=package_data_config,
     platforms=["Linux"],
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=INSTALL_REQUIRED,
     classifiers=[
         'Intended Audience :: Developers',
