@@ -282,9 +282,11 @@ msprobe graph_visualize -tp <target_path> [-gp <golden_path>] -o <output_path> [
 | --pp                          | 可选，仅图合并场景必选 | 流水线并行的阶段数，int类型。实际训练脚本中需指定`--pipeline-model-parallel-size P`，其中`P`表示流水线并行的阶段数，即**图合并所需的参数pp**，`pp=P`。                                                                                            |
 | --vpp                         | 可选 | 虚拟流水线并行阶段数，int类型。虚拟流水线并行依赖流水线并行，实际训练脚本中需指定`--num-layers-per-virtual-pipeline-stage V`，其中`V`表示每个虚拟流水线阶段的层数；指定`--num-layers L`，其中`L`表示模型总层数，**图合并所需的参数vpp**=`L/V/P`。vpp参数可以不配置，默认vpp=1代表未开启虚拟流水线并行。 |
 | --order                       | 可选 | 模型并行维度的排序顺序，str类型。Megatron默认为`tp-cp-ep-dp-pp`。如果使用msProbe工具dump数据指定level为L0并且实际训练脚本中的order非默认值（例如实际训练脚本中指定`--use-tp-pp-dp-mapping`），请传入修改后的order。dump数据指定level为mix则无需修改。                         |
-| --file_type                   | 可选 | 输出文件格式，str类型。可选`db`和`json`，默认值为`db`。若选择`json`，则仅支持“不同切分策略下的图合并构建”，请参考示例5和示例6。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| --file_type                   | 可选 | 输出文件格式，str类型。可选`db`和`json`，默认值为`db`。<br>1. 单图构建、双图比对、图合并比对场景：**仅支持db格式**，不支持json格式；<br>2. 图合并构建场景：**支持db和json两种格式**，选择json可输出合并后的json结构文件，用于精度比对或分级可视化。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 **使用示例**
+
+**一、图合并比对（含`-gp`参数）**
 
 **示例1：不同tp切分下的图合并比对**
 
@@ -318,7 +320,9 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path --r
 msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path --rank_size 8 8 --tp 1 8 --pp 8 1
 ```
 
-**示例5：不同tp切分下的图合并构建**
+**二、图合并构建（不含`-gp`参数）**
+
+**示例1：不同tp切分下的图合并构建（默认db格式）**
 
 当前示例比对场景为：target_path侧8卡，tp=8，不指定golden_path
 
@@ -326,7 +330,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path --r
 msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 8 --pp 1
 ```
 
-**示例6：不同tp切分下的图合并构建，输出合并后的json文件**
+**示例2：不同tp切分下的图合并构建（输出json格式）**
 
 当前示例比对场景为：target_path侧8卡，tp=8
 
@@ -334,6 +338,14 @@ msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 8 
 
 ```bash
 msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 8 --pp 1 --file_type json
+```
+
+**示例3：不同vpp切分下的图合并构建（默认db格式）**
+
+当前示例场景为：target_path侧8卡，pp=8，vpp=2，不指定golden_path
+
+```bash
+msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 1 --pp 8 --vpp 2
 ```
 
 > 以上所有示例中，target_path和golden_path格式必须满足[分级可视化构图所需dump文件落盘格式](#分级可视化构图所需dump文件落盘格式)的多rank格式或多step格式
