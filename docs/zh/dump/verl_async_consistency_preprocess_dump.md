@@ -116,7 +116,8 @@ python3 -m verl.experimental.fully_async_policy.fully_async_main \
 | `vllm_ascend/worker/model_runner_v1.py`                | 修改     | 增加 DispatchLogger 初始化 + 4 处 log_step 调用                   | [推理侧：vLLM 模型执行采集](#推理侧vllm-模型执行采集)   |
 | `verl/workers/engine/fsdp/transformer_impl.py`                | 修改     | FSDP 后端：增加训练侧 debugger + micro_batch request_id 日志      | [训练侧：FSDP 后端](#fsdp-后端)                         |
 | `verl/workers/engine/megatron/transformer_impl.py`            | 修改     | Megatron 后端：增加训练侧 debugger + forward_step request_id 日志 | [训练侧：Megatron 后端](#megatron-后端)                 |
-| `verl/workers/rollout/llm_server.py`                          | 修改     | request_id 注入 extra_fields（贯穿链路关键）                      | [Request ID 贯穿链路](#request-id-贯穿链路)             |
+| `verl/workers/rollout/llm_server.py`                          | 修改     | `LLMServerClient` 中 request_id 注入 extra_fields                 | [Request ID 贯穿链路](#request-id-贯穿链路)             |
+| `verl/experimental/fully_async_policy/fully_async_rollouter.py` | 修改   | `FullyAsyncLLMServerClient` 继承父类 extra_fields 透传 request_id | [Request ID 贯穿链路](#request-id-贯穿链路)             |
 | `verl/trainer/ppo/ray_trainer.py`                             | 修改     | PROMPTS_ONLY 模式（Hybrid AgentLoop）                             | [训练侧：仅计算 Prompt 部分](#训练侧仅计算-prompt-部分) |
 | `verl/experimental/fully_async_policy/fully_async_trainer.py` | 修改     | PROMPTS_ONLY 模式（Fully Async）                                  | [训练侧：仅计算 Prompt 部分](#训练侧仅计算-prompt-部分) |
 
@@ -552,11 +553,18 @@ class FullyAsyncTrainer:
 
 ### Request ID 贯穿链路
 
-**文件**：`verl/workers/rollout/llm_server.py`
+**涉及文件**：
+
+| 文件 | 说明 |
+| ---- | ---- |
+| `verl/workers/rollout/llm_server.py` | `LLMServerClient` 中注入 `request_id` 到 extra_fields |
+| `verl/experimental/fully_async_policy/fully_async_rollouter.py` | `FullyAsyncLLMServerClient` 继承父类 extra_fields，确保 `request_id` 透传 |
 
 **功能**：将 vLLM 内部使用的 `request_id` 注入 `TokenOutput.extra_fields`，使其自动随 verl 数据流贯穿至训练侧 micro_batch，实现推理调度记录（`dispatch_log.jsonl`）与训练 micro_batch 记录（`update_actor_log.jsonl`）通过 `request_id` 精确关联。
 
-在 `LLMServerClient.generate()` 中注入 `request_id` 到 `extra_fields`：
+#### 1. LLMServerClient：注入 request_id
+
+`LLMServerClient.generate()` 生成 `vllm_request_id`，将其同时作为 vLLM 的 `request_id` 和 `extra_fields` 中的 `request_id` 字段：
 
 ```diff
 class LLMServerClient:
@@ -573,6 +581,23 @@ class LLMServerClient:
                 ...
             )
 +            output.extra_fields["request_id"] = vllm_request_id
+```
+
+#### 2. FullyAsyncLLMServerClient：透传 extra_fields
+
+Fully Async 模式下，`FullyAsyncLLMServerClient` 继承自 `LLMServerClient`，通过 `super().generate()` 调用父类获取已注入 `request_id` 的 `TokenOutput`。由于 `FullyAsyncLLMServerClient` 支持 **partial rollout**（多轮 resume），需要创建新的 `final_output` 来累积多次 `super().generate()` 的结果。在新的 `final_output` 中需继承父类返回的完整 `extra_fields`，确保 `request_id` 等字段继续向下传递：
+
+```diff
+class FullyAsyncLLMServerClient(LLMServerClient):
+    ...
+    @rollout_trace_op
+    async def generate(self, ...):
+        ...
++        final_output.extra_fields.update(output.extra_fields)  # 继承父类全部 extra_fields（含 request_id）
+        final_output.extra_fields["global_steps"] = global_steps
+        final_output.extra_fields["min_global_steps"] = min_global_steps
+        final_output.extra_fields["max_global_steps"] = max_global_steps
+        return final_output
 ```
 
 `request_id` 自动贯穿以下链路：
