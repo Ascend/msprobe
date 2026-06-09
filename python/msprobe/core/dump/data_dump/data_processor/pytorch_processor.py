@@ -120,8 +120,11 @@ class TensorHandler:
         if self.is_nested_tensor(tensor):
             logger.debug("For NestedTensor, collecting information from the tensor returned by .values().")
             return tensor.values()
-        if self.is_batchedtensor(tensor):
-            return torch._C._functorch.get_unwrapped(tensor)
+        for _ in range(Const.MAX_DEPTH):
+            if self.is_batchedtensor(tensor):
+                tensor = torch._C._functorch.get_unwrapped(tensor)
+            else:
+                return tensor
         return tensor
 
     def get_tensor_type(self, tensor):
@@ -162,6 +165,9 @@ class TensorHandler:
 
     def save_tensor(self, tensor, file_path):
         common_tensor = self.convert_common_tensor(tensor)
+        if self.is_batchedtensor(common_tensor):
+            logger.warning(f"Saving batched tensor is not supported, the current tensor is {file_path}.")
+            return
         if self.is_gradtrackingtensor(common_tensor):
             common_tensor = torch._C._functorch.get_unwrapped(common_tensor)
         if self.is_empty_data(common_tensor):
@@ -364,7 +370,7 @@ class PytorchDataProcessor(BaseDataProcessor):
 
     def get_stat_info(self, data, async_dump=False, precision=Const.DUMP_PRECISION_LOW):
         tensor_stat = TensorStatInfo()
-        if self.tensor_handler.is_empty_data(data):
+        if self.tensor_handler.is_empty_data(data) or self.tensor_handler.is_batchedtensor(data):
             return tensor_stat
 
         data_clone = data.detach()
@@ -518,6 +524,9 @@ class PytorchDataProcessor(BaseDataProcessor):
         common_tensor = self.tensor_handler.convert_common_tensor(tensor)
         if self.tensor_handler.is_gradtrackingtensor(common_tensor):
             common_tensor = torch._C._functorch.get_unwrapped(common_tensor)
+        if self.tensor_handler.is_batchedtensor(common_tensor):
+            logger.warning(f"Saving batched tensor is not supported, the current tensor is {file_path}.")
+            return single_arg
         if self.tensor_handler.is_empty_data(common_tensor):
             logger.debug(f"Saving fake tensor or meta tensor is not supported, the current tensor is {file_path}.")
             return single_arg
