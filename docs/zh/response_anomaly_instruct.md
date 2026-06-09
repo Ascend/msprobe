@@ -31,6 +31,7 @@ Response Anomaly使用以下配置文件：
    rare_character:
      explogp_sum_thresh: 0.4  # 单token topk的logprob exp总和，当小于阈值时，则可能为生僻字
      category_thresh: 2  # 单token的topk的类别统计，与explogp_sum_thresh综合判定
+     top1_logp_thresh: -6 # 当没有词表信息时，使用top1 的logp进行判定
    
    # garbled 乱码
    garbled:
@@ -64,7 +65,7 @@ Response Anomaly使用以下配置文件：
 
    ```bash
    # 进入工具所在路径
-   cd /{msprobe_install_path}/python/msprobe/response_anomaly
+   cd /{msprobe_install_path}/msprobe/response_anomaly
    # 执行如下脚本
    python ./tools/gen_model_config.py --model-path /home/Qwen3-30B-A3B --model-name Qwen3-30B-A3B
    ```

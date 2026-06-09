@@ -18,16 +18,17 @@
 import os
 from msprobe.response_anomaly.detector import ILLDetector
 
+
 def analyze_output_anomaly(topk_logprobs, tokens, model_configs):
     path = os.path.dirname(os.path.realpath(__file__))
     # 检测算法各阈值配置, 用户可修改配置文件
     config_path = os.path.join(path, "configs/config.yaml")
 
     # model对应的model_name和eos、bos的token_id, 如果当前文件里没有用户提供的模型，用户可手动添加上去，以达到更优检测效果
-    mtype_path = os.path.join(path, "configs/mtype_config.yaml")
+    mtype_path = os.path.join(path, "configs/mtype_config.json")
 
     # 提前存储的token to category文件，用于生僻字和乱码的检测, 如果当前文件里没有用户提供的模型，用户可手动添加上去，以达到更优检测效果
-    tk2cat_path = os.path.join(path,"token2category/")
+    tk2cat_path = os.path.join(path, "token2category/")
 
     # 初始化检测类
     detector = ILLDetector(config_path, mtype_path, tk2cat_path)

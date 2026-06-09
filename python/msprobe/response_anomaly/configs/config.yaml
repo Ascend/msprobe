@@ -7,6 +7,7 @@ stride: 64
 rare_character:
   explogp_sum_thresh: 0.4  # 单token topk的logprob exp总和，当小于阈值时，则可能为生僻字
   category_thresh: 2  # 单token的topk的类别统计，与explogp_sum_thresh综合判定
+  top1_logp_thresh: -6 # 当没有词表信息时，使用top1 的logp进行判定
 
 # garbled 乱码
 garbled:
@@ -21,13 +22,9 @@ repetition:
     distinct_n_thresh: 0.2  # n-gram阈值
     logp_thresh: -0.2  # top1的logprob阈值
 
-  acf:   
+  acf:
     acf_threshold: 0.65  # 自相关阈值
     logp_thresh: -0.2  # top1的logprob阈值
-  
+
   single_window_thresh: 14  # 当只有一个方法检出时，检出重复的窗口数需要达到该阈值才会退出
   multi_window_thresh: 2 # 当acf和trajectory两个方法同时检出时，检出重复的窗口数需达到该阈值才会退出
-
-  
-
-
