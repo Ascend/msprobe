@@ -181,6 +181,9 @@ class Comparator:
         }
         parse_data = ParseData(self.mode_config, rank, data_dirs)  # load and parse json data
         npu_df, bench_df = parse_data.parse([npu_json, bench_json, stack_json])
+        if npu_df.empty or bench_df.empty:
+            logger.warning("No valid data found. No compare result file generated. Please check input json.")
+            return
 
         logger.info("Matching APIs/Modules in progress...")
         result_df = self.compare_statistics(npu_df, bench_df)
@@ -560,6 +563,8 @@ class ProcessDf:
 
     @staticmethod
     def update_forward_call(cmp_df):
+        if cmp_df.empty:
+            return cmp_df
         # ===============================
         # Step 1: 拆 call_direction 的两部分
         # ===============================
@@ -589,6 +594,8 @@ class ProcessDf:
 
     @staticmethod
     def update_backward_call(cmp_df):
+        if cmp_df.empty:
+            return cmp_df
         # ===============================
         # Step 1: 拆 call_direction 的两部分
         # ===============================
