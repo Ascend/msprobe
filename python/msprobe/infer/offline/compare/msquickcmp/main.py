@@ -16,7 +16,8 @@
 # -------------------------------------------------------------------------
 
 import os
-import subprocess
+import subprocess  # nosec
+import sys
 
 from msprobe.core.common.log import logger
 from msprobe.core.compare.utils import print_compare_ends_info
@@ -30,7 +31,7 @@ from msprobe.infer.offline.compare.msquickcmp.common.args_check import (
     check_number_list,
     check_dym_range_string,
     str2bool,
-    check_input_data_path
+    check_input_data_path,
 )
 from msprobe.infer.offline.compare.msquickcmp.dump.args_adapter import DumpArgsAdapter
 from msprobe.infer.offline.compare.msquickcmp.dump.dump_process import dump_process
@@ -45,15 +46,14 @@ def _offline_dump_parser(parser):
         required=True,
         dest="model_path",
         type=check_model_path_legality,
-        help='The original model .onnx or .om file path'
+        help='The original model .onnx or .om file path',
     )
     parser.add_argument(
         '--input_data',
         default='',
         dest="input_data",
         type=check_input_data_path,
-        help='The input data path of the model. Separate multiple inputs with commas(,).'
-             ' E.g: input_0.bin,input_1.bin'
+        help='The input data path of the model. Separate multiple inputs with commas(,). E.g: input_0.bin,input_1.bin',
     )
     parser.add_argument(
         '-o',
@@ -61,7 +61,7 @@ def _offline_dump_parser(parser):
         dest="output_path",
         default='./output',
         type=check_output_path_legality,
-        help='The output path'
+        help='The output path',
     )
     parser.add_argument(
         '--input_shape',
@@ -69,29 +69,23 @@ def _offline_dump_parser(parser):
         dest="input_shape",
         default='',
         help="Shape of input shape. Separate multiple nodes with semicolons(;)."
-             " E.g: \"input_name1:1,224,224,3;input_name2:3,300\""
+        " E.g: \"input_name1:1,224,224,3;input_name2:3,300\"",
     )
-    parser.add_argument(
-        '--rank',
-        type=check_rank_range_valid,
-        dest="rank",
-        default='0',
-        help='Input rank ID [0, 255].'
-    )
+    parser.add_argument('--rank', type=check_rank_range_valid, dest="rank", default='0', help='Input rank ID [0, 255].')
     parser.add_argument(
         '--dym_shape_range',
         type=check_dym_range_string,
         dest="dym_shape_range",
         default='',
         help="Dynamic shape range using in dynamic model, "
-             "using this means ignore input_shape"
-             " E.g: \"input_name1:1,3,200~224,224-230;input_name2:1,300\""
+        "using this means ignore input_shape"
+        " E.g: \"input_name1:1,3,200~224,224-230;input_name2:1,300\"",
     )
     parser.add_argument(
         '--output_size',
         dest="output_size",
         default='',
-        help='The size of output. Separate multiple sizes with commas(,). E.g: 10200,34000'
+        help='The size of output. Separate multiple sizes with commas(,). E.g: 10200,34000',
     )
     parser.add_argument(
         '--onnx_fusion_switch',
@@ -99,7 +93,7 @@ def _offline_dump_parser(parser):
         default=True,
         type=str2bool,
         help='Onnxruntime fusion switch, set False for dump complete onnx data when '
-             'necessary.Usage: --onnx_fusion_switch False'
+        'necessary.Usage: --onnx_fusion_switch False',
     )
 
 
@@ -109,10 +103,11 @@ def offline_dump_cli(args):
         input_data=args.input_data,
         cann_path=CANN_PATH,
         output_path=args.output_path,
-        input_shape=args.input_shape, rank=args.rank,
+        input_shape=args.input_shape,
+        rank=args.rank,
         dym_shape_range=args.dym_shape_range,
         onnx_fusion_switch=args.onnx_fusion_switch,
-        output_size=args.output_size
+        output_size=args.output_size,
     )
     dump_process(dump_args)
 
@@ -134,7 +129,7 @@ def compare_offline_model_mode(args):
         args.rank,
         args.output_size,
         args.dym_shape_range,
-        args.onnx_fusion_switch
+        args.onnx_fusion_switch,
     )
     cmp_process(cmp_args)
     print_compare_ends_info()
@@ -183,17 +178,20 @@ def _install_offline_deps_parser(parser):
         dest="no_check",
         action="store_true",
         help="<optional> Whether to skip checking the target website's certificate information "
-             "when installing aclruntime and ais_bench poses a certain security risk. "
-             "This poses a certain security risk, "
-             "and users should use it with caution and bear the consequences themselves.",
-        required=False
+        "when installing aclruntime and ais_bench poses a certain security risk. "
+        "This poses a certain security risk, "
+        "and users should use it with caution and bear the consequences themselves.",
+        required=False,
     )
 
 
 def install_offline_deps_cli(args):
+    pip_install_onnx_cmd = [sys.executable, "-m", "pip", "install", "onnx>=1.14.0", "onnxruntime>=1.14.1,!=1.16.0"]
+    subprocess.run(pip_install_onnx_cmd, shell=False, check=False)  # nosec
+
     offline_extra_install_cmd = [
         "/bin/bash",
         os.path.abspath(os.path.join(os.path.dirname(__file__), "install_aclruntime_aisbench.sh")),
-        str(args.no_check)
+        str(args.no_check),
     ]
-    subprocess.run(offline_extra_install_cmd, shell=False)
+    subprocess.run(offline_extra_install_cmd, shell=False, check=False)  # nosec

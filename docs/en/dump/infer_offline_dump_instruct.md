@@ -10,15 +10,15 @@ Tensor dumping is supported in traditional small model scenarios to obtain preci
 
 Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).
 
-The collection of OM model data depends on the aisbench and aclruntime packages. You can run the following command to install the two packages:
+The collection of ONNX model data depends on the onnx and onnxruntime packages, and the collection of OM model data depends on the aisbench and aclruntime packages. You can run the following command to install these packages. If the dependency packages are already installed, you can skip this step.
 
 ```bash
- msprobe install_deps -m offline --no_check
+ msprobe install_deps -m offline [--no_check]
 ```
 
 > [!NOTE]NOTE
 >
-> --The **no_check** parameter skips the check of the certificate information of the target website, which poses security risks. Exercise caution when using this parameter and you shall bear the consequences.
+> The **no_check** parameter skips the check of the certificate information of the target website for the aisbench and aclruntime packages, which poses security risks. Exercise caution when using this parameter and you shall bear the consequences.
 
 **Constraints**
 

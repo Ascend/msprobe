@@ -134,10 +134,18 @@ class TestInstallOfflineDepsCli(unittest.TestCase):
 
         install_offline_deps_cli(args)
 
-        mock_run.assert_called_once()
-        call_args = mock_run.call_args[0][0]  # 取命令列表
+        self.assertEqual(mock_run.call_count, 2)
 
-        self.assertEqual(call_args[-1], "True")  # no_check 转为字符串
+        pip_call_args = mock_run.call_args_list[0][0][0]
+        self.assertEqual(pip_call_args[1], "-m")
+        self.assertEqual(pip_call_args[2], "pip")
+        self.assertEqual(pip_call_args[3], "install")
+        self.assertIn("onnx>=1.14.0", pip_call_args)
+        self.assertIn("onnxruntime>=1.14.1,!=1.16.0", pip_call_args)
+
+        shell_call_args = mock_run.call_args_list[1][0][0]
+        self.assertEqual(shell_call_args[0], "/bin/bash")
+        self.assertEqual(shell_call_args[-1], "True")
 
 
 if __name__ == "__main__":

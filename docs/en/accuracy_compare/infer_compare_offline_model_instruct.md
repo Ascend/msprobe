@@ -10,14 +10,15 @@ Additionally, precision comparison of dynamic-shape models and the Artificial In
 
 **Environment Setup**
 
-Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).<br>
-The aisbench and aclruntime packages are required for comparing OM models. You can run the following command to install them:<br>
+Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).
 
- ```sh
+The collection of ONNX model data depends on the onnx and onnxruntime packages, and the collection of OM model data depends on the aisbench and aclruntime packages. You can run the following command to install these packages. If the dependency packages are already installed, you can skip this step.
+
+ ```bash
   msprobe install_deps -m offline [--no_check]
  ```
 
-Note that the `--no_check` parameter skips the certificate information check of the target website, which poses security risks. Use this command with caution, as you assume full responsibility for any consequences.
+Note that the `--no_check` parameter skips the certificate information check of the target website for the aisbench and aclruntime packages, which poses security risks. Use this command with caution, as you assume full responsibility for any consequences.
 
 **Constraints**
 

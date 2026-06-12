@@ -10,13 +10,13 @@
 
 安装msProbe工具，详情请参见《[msProbe安装指南](../msprobe_install_guide.md)》。
 
-采集OM模型数据依赖aisbench包和aclruntime包，用户使用前可通过以下命令安装这两个依赖包。
+采集ONNX模型数据依赖onnx包和onnxruntime包，采集OM模型数据依赖aisbench包和aclruntime包，用户使用前可通过以下命令安装依赖包。如果依赖包已安装，可忽略本步骤。
 
 ```bash
- msprobe install_deps -m offline --no_check
+ msprobe install_deps -m offline [--no_check]
 ```
 
-**说明**：--no_check参数，会跳过检查目标网站的证书信息，有一定的安全风险，用户需要谨慎使用并自行承担后果。
+**说明**：--no_check参数，会跳过检查aisbench包和aclruntime包的目标网站的证书信息，有一定的安全风险，用户需要谨慎使用并自行承担后果。
 
 **约束**
 
