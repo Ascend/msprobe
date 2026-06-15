@@ -251,6 +251,52 @@ class NpuDumpData(DumpData):
             )
             raise AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PATH_ERROR)
 
+    @staticmethod
+    def _collect_path_permissions(path, original_modes):
+        if not path or not os.path.exists(path):
+            return
+        if path in original_modes:
+            return
+        original_modes[path] = stat.S_IMODE(os.stat(path).st_mode)
+        if not os.path.isdir(path):
+            return
+        for root, dir_names, file_names in os.walk(path):
+            for dir_name in dir_names:
+                dir_path = os.path.join(root, dir_name)
+                if dir_path not in original_modes:
+                    original_modes[dir_path] = stat.S_IMODE(os.stat(dir_path).st_mode)
+            for file_name in file_names:
+                file_path = os.path.join(root, file_name)
+                if file_path not in original_modes:
+                    original_modes[file_path] = stat.S_IMODE(os.stat(file_path).st_mode)
+
+    def _change_path_permissions(self, path_list, is_restore=False, original_modes=None):
+        if is_restore:
+            if not original_modes:
+                return None
+            for path in sorted(original_modes.keys(), key=len, reverse=True):
+                if os.path.exists(path):
+                    os.chmod(path, original_modes[path])
+            return None
+
+        original_modes = {}
+        for raw_path in path_list:
+            if not raw_path:
+                continue
+            for path in raw_path.split(","):
+                self._collect_path_permissions(path.strip(), original_modes)
+        changed_paths = []
+        try:
+            for path in sorted(original_modes.keys(), key=len):
+                os.chmod(path, 0o750 if os.path.isdir(path) else 0o640)
+                changed_paths.append(path)
+        except Exception:
+            for path in sorted(changed_paths, key=len, reverse=True):
+                if os.path.exists(path):
+                    os.chmod(path, original_modes[path])
+            raise
+        return original_modes
+
     def generate_inputs_data(self, npu_dump_data_path=None, use_aipp=False):
         if self.input_data:
             input_path = self.input_data.split(",")
@@ -261,7 +307,6 @@ class NpuDumpData(DumpData):
                 file_name = "input_" + str(i) + ".bin"
                 dest_file = os.path.join(self.output_path, "input", file_name)
                 shutil.copy(input_file, dest_file)
-                os.chmod(dest_file, 0o640)
             return
         if use_aipp:
             self._generate_inputs_data_for_aipp(self.data_dir)
@@ -306,7 +351,6 @@ class NpuDumpData(DumpData):
             self.output_path, NPU_DUMP_DATA_GOLDEN_PATH if self.is_golden else NPU_DUMP_DATA_BASE_PATH
         )
         create_directory(npu_data_output_dir)
-        os.chmod(npu_data_output_dir, 0o750)  # nosec B103: required permission for ais_bench data dir is 750
         model_name, extension = utils.get_model_name_and_extension(self.target_path)
         acl_json_path = os.path.join(npu_data_output_dir, ACL_JSON_PATH)
         if not os.path.exists(acl_json_path):
@@ -339,7 +383,12 @@ class NpuDumpData(DumpData):
 
         # do benchmark command
         benchmark_cmd = filter_cmd(benchmark_cmd)
-        utils.execute_command(benchmark_cmd, False)
+        permission_paths = [self.target_path, self.benchmark_input_path, npu_data_output_dir]
+        original_modes = self._change_path_permissions(permission_paths)
+        try:
+            utils.execute_command(benchmark_cmd, False)
+        finally:
+            self._change_path_permissions(permission_paths, is_restore=True, original_modes=original_modes)
 
         npu_dump_data_path = ""
         if self.dump:
@@ -405,7 +454,6 @@ class NpuDumpData(DumpData):
             input_data = np.random.random(input_shape).astype(data_type)
             file_name = "input_" + str(i) + ".bin"
             input_data.tofile(os.path.join(input_dir, file_name))
-            os.chmod(os.path.join(input_dir, file_name), 0o640)
 
     def _generate_inputs_data_for_aipp(self, input_dir):
         aipp_contents = self.om_parser.get_aipp_config_content()
@@ -451,7 +499,6 @@ class NpuDumpData(DumpData):
             input_data = np.random.randint(0, 256, int(np.prod(item) / div_input_format)).astype(np.uint8)
             file_name = "input_" + str(i) + ".bin"
             input_data.tofile(os.path.join(input_dir, file_name))
-            os.chmod(os.path.join(input_dir, file_name), 0o640)
 
     def _make_benchmark_cmd_for_shape_range(self, benchmark_cmd):
         pattern = re.compile(r'^[0-9]+$')

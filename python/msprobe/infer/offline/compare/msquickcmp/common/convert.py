@@ -65,7 +65,6 @@ def convert_npy_to_bin(npy_input_path):
             if os.path.exists(bin_path):
                 os.remove(bin_path)
             npy_data.tofile(bin_path)
-            os.chmod(bin_path, 0o640)
             outputs.append(bin_item)
         else:
             outputs.append(input_item)

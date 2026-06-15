@@ -158,8 +158,12 @@ def check_link(path):
             continue
         current = os.path.join(current, part)
         if os.path.islink(current):
-            logger.error(f'The path component {current} is a soft link.')
-            raise FileCheckException(FileCheckException.SOFT_LINK_ERROR)
+            logger.warning(
+                f"The path component [{current}] is a soft link. Please check.\n"
+                "MindStudio Probe is a development-phase tool.\n"
+                "Users are responsible for ensuring the security and trustworthiness "
+                "of the files processed by the tool.\n"
+            )
 
 
 def check_path_length(path, name_length=None):
@@ -253,10 +257,15 @@ def check_path_type(file_path, file_type):
             raise FileCheckException(FileCheckException.INVALID_FILE_ERROR)
 
 
-def check_group_writable(file_path):
+def check_group_or_other_writable(file_path):
     path_stat = os.stat(file_path)
-    is_writable = bool(path_stat.st_mode & stat.S_IWGRP)
-    return is_writable
+    is_writable = bool(path_stat.st_mode & (stat.S_IWGRP | stat.S_IWOTH))
+    if is_writable:
+        logger.warning(
+            f"The path [{file_path}] is writable by group or others. Please check."
+            "MindStudio Probe is a development-phase tool.\n"
+            "Users are responsible for ensuring the security and trustworthiness of the files processed by the tool.\n"
+        )
 
 
 def make_dir(dir_path):
@@ -321,11 +330,7 @@ def check_file_or_directory_path(path, isdir=False, is_strict=False, file_suffix
     path_checker.common_check()
 
     if is_strict:
-        if check_group_writable(path):
-            raise FileCheckException(
-                FileCheckException.FILE_PERMISSION_ERROR,
-                f"The directory/file must not allow write access to group. Directory/File path: {path}",
-            )
+        check_group_or_other_writable(path)
 
 
 def check_if_valid_dir_pattern_path(path):
@@ -373,11 +378,8 @@ def check_and_get_real_path(path, ability, file_type=None, must_exist=True, is_s
     file_check = FileChecker(path, path_type, ability=ability, file_type=file_type)
     file_check.common_check()
 
-    if is_strict and check_group_writable(file_check.file_path):
-        raise FileCheckException(
-            FileCheckException.FILE_PERMISSION_ERROR,
-            f"The directory must not allow write access to group. Directory path: {path}",
-        )
+    if is_strict:
+        check_group_or_other_writable(file_check.file_path)
 
     return os.path.realpath(os.path.expanduser(ori_path))
 

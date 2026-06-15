@@ -19,7 +19,6 @@ import sys
 import stat
 import re
 import logging
-from enum import Enum
 
 from msprobe.core.common.log import logger
 from msprobe.infer.utils.constants import PATH_WHITE_LIST_REGEX
@@ -31,9 +30,6 @@ MAX_SIZE_LIMITE_NORMAL_FILE = 4 * 1024 * 1024 * 1024  # 4G 普通模型文件，
 MAX_SIZE_LIMITE_MODEL_FILE = 100 * 1024 * 1024 * 1024  # 100G 超大模型文件，需要确定能处理大文件，可以根据实际要求变更
 
 PATH_WHITE_LIST_REGEX_WIN = re.compile(r"[^_:\\A-Za-z0-9/.-]")
-
-PERMISSION_NORMAL = 0o640  # 普通文件
-PERMISSION_KEY = 0o600  # 密钥文件
 
 SOLUTION_LEVEL = 35
 SOLUTION_LEVEL_WIN = 45
@@ -73,16 +69,6 @@ def is_legal_args_path_string(path):
     if not is_match_path_white_list(path):
         return False
     return True
-
-
-class SanitizeErrorType(Enum):
-    """
-    The errors parameter Enum of the function sanitize_csv_value
-    """
-
-    strict = "strict"
-    ignore = "ignore"
-    replace = "replace"
 
 
 class OpenException(Exception):
@@ -178,7 +164,7 @@ class FileStat:
         return False
 
 
-def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, write_permission=PERMISSION_NORMAL, **kwargs):
+def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, **kwargs):
     file_stat = FileStat(file)
 
     if file_stat.is_exists and file_stat.is_dir:
@@ -195,10 +181,6 @@ def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, write_permission=PERM
     if "w" in mode and file_stat.is_exists:
         os.remove(file)
 
-    if "a" in mode and file_stat.is_exists:
-        if file_stat.permission != (file_stat.permission & write_permission):
-            os.chmod(file, file_stat.permission & write_permission)
-
     if "+" in mode:
         flags = os.O_RDONLY | os.O_RDWR
     elif "w" in mode or "a" in mode or "x" in mode:
@@ -210,4 +192,4 @@ def ms_open(file, mode="r", max_size=CONFIG_FILE_MAX_SIZE, write_permission=PERM
         flags = flags | os.O_TRUNC | os.O_CREAT
     if "a" in mode:
         flags = flags | os.O_APPEND | os.O_CREAT
-    return os.fdopen(os.open(file, flags, mode=write_permission), mode, **kwargs)
+    return os.fdopen(os.open(file, flags), mode, **kwargs)
