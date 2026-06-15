@@ -1048,6 +1048,14 @@ class NanCheckDataProcessor(PytorchDataProcessor):
             self._nan_buffer_size, 8, dtype=torch.int64, device=torch.device(torch.npu.current_device())
         )
 
+    def _normalize_nan_tensor(self, tensor):
+        common_tensor = self.tensor_handler.convert_common_tensor(tensor)
+        if self.tensor_handler.is_gradtrackingtensor(common_tensor):
+            common_tensor = torch._C._functorch.get_unwrapped(common_tensor)
+        if not isinstance(common_tensor, torch.Tensor) or self.tensor_handler.is_empty_data(common_tensor):
+            return None
+        return common_tensor
+
     @staticmethod
     @recursion_depth_decorator("NanCheck: NanCheckDataProcessor._collect_tensors", max_depth=Const.DUMP_MAX_DEPTH)
     def _collect_tensors(element, tensor_list):
@@ -1079,7 +1087,12 @@ class NanCheckDataProcessor(PytorchDataProcessor):
             self._collect_tensors(module_input_output.grad_input_tuple, tensor_list)
         if hasattr(module_input_output, "grad_output"):
             self._collect_tensors(module_input_output.grad_output_tuple, tensor_list)
-        return tensor_list
+        normalized_tensor_list = []
+        for tensor in tensor_list:
+            common_tensor = self._normalize_nan_tensor(tensor)
+            if common_tensor is not None:
+                normalized_tensor_list.append(common_tensor)
+        return normalized_tensor_list
 
     def _maybe_collect_overflow_tensors(self, slot, module_input_output):
         if not self._should_collect_nan_tensors():
@@ -1108,8 +1121,14 @@ class NanCheckDataProcessor(PytorchDataProcessor):
                 self._nan_buffer_full_warned = True
             self.data_writer.write_json()
         idx = self._nan_buffer_offset
-        slot = self._nan_buffer[idx]
+        slot = self._normalize_nan_tensor(self._nan_buffer[idx])
+        if slot is None:
+            logger.debug("Nan check is skipped because the overflow buffer tensor is fake or meta.")
+            return None
         out_ptr = torch.tensor([slot.data_ptr()], dtype=torch.uint64, device=slot.device)
+        if self.tensor_handler.is_empty_data(out_ptr):
+            logger.debug("Nan check is skipped because the overflow pointer tensor is fake or meta.")
+            return None
         try:
             torch.ops.my_ns.npu_over_flow(out_ptr)
             self._nan_buffer_offset += 1
