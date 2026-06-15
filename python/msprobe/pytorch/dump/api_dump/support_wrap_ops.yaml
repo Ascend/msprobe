@@ -1371,6 +1371,9 @@ torch_npu:
   - save_npugraph_tensor
   - set_device_limit
   - set_stream_limit
+  - npu_moe_token_permute_with_routing_map
+  - npu_moe_token_permute
+  - npu_moe_token_unpermute
 
 aten:
   - signbit
