@@ -147,8 +147,8 @@ class TestPytorchDataProcessor(unittest.TestCase):
 
         self.assertEqual(result.max, 3)
         self.assertEqual(result.min, 1)
-        self.assertEqual(result.mean, 2)
-        self.assertEqual(result.norm, torch.norm(tensor.float()).item())
+        self.assertIsNone(result.mean)
+        self.assertIsNone(result.norm)
 
     def test_get_stat_info_empty(self):
         tensor = torch.tensor([])

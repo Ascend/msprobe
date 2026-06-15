@@ -173,6 +173,13 @@ class TensorHandler:
         if self.is_empty_data(common_tensor):
             logger.debug(f"Saving fake tensor or meta tensor is not supported, the current tensor is {file_path}.")
             return
+        if (
+            common_tensor.device.type == "npu"
+            and hasattr(torch_npu, "get_npu_format")
+            and torch_npu.get_npu_format(common_tensor) == torch_npu.Format.FRACTAL_NZ
+        ):
+            logger.debug(f"Saving tensors with NZ format is not supported, the current tensor is {file_path}.")
+            return
         if common_tensor.untyped_storage().data_ptr() == 0:
             logger.debug(f"Saving null-pointer tensor is not supported, the current tensor is {file_path}.")
             return
@@ -372,6 +379,12 @@ class PytorchDataProcessor(BaseDataProcessor):
         tensor_stat = TensorStatInfo()
         if self.tensor_handler.is_empty_data(data) or self.tensor_handler.is_batchedtensor(data):
             return tensor_stat
+        if (
+            data.device.type == "npu"
+            and hasattr(torch_npu, "get_npu_format")
+            and torch_npu.get_npu_format(data) == torch_npu.Format.FRACTAL_NZ
+        ):
+            return tensor_stat
 
         data_clone = data.detach()
         if self.tensor_handler.is_gradtrackingtensor(data_clone):
@@ -405,22 +418,15 @@ class PytorchDataProcessor(BaseDataProcessor):
         elif not data_clone.shape:
             tensor_stat.max = tensor_stat.min = tensor_stat.mean = tensor_stat.norm = data_clone.clone()
         else:
-            if (
-                precision == Const.DUMP_PRECISION_HIGH
-                or data_clone.dtype == torch.float64
-                or not data_clone.is_floating_point()
-            ):
-                if data_clone.device.type == "npu" and data_clone.dtype == torch.int8:
-                    try:
-                        if torch_npu.get_npu_format(data_clone) == torch_npu.Format.FRACTAL_NZ:
-                            return tensor_stat
-                    except (AttributeError, RuntimeError):
-                        return tensor_stat
-                data_clone = data_clone.float()
             tensor_stat.max = torch.max(data_clone)
             tensor_stat.min = torch.min(data_clone)
-            tensor_stat.mean = torch.mean(data_clone)
-            tensor_stat.norm = torch.norm(data_clone)
+            if (
+                precision != Const.DUMP_PRECISION_HIGH
+                and data_clone.dtype != torch.float64
+                and data_clone.is_floating_point()
+            ):
+                tensor_stat.mean = torch.mean(data_clone)
+                tensor_stat.norm = torch.norm(data_clone)
         return tensor_stat
 
     def dump_async_data(self):

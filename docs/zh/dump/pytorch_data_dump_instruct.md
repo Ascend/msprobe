@@ -366,12 +366,12 @@ dump.json is at ./dump_path/step*
   * ①在非分布式场景下，如单进程训练或单卡训练中，训练进程没有`rank`信息，此时数据保存在`proc{pid}`，比对、分级可视化和溢出检测功能支持该目录下的数据解析。
   * ②在大模型训练过程中，可能既存在`rank`目录又存在`proc`目录，原因是一些进程可能仅在CPU上完成一些数据预处理操作，没有`rank`信息，此时目录名称为`proc{pid}`，这部分数据一般不存在精度问题，比对、分级可视化和溢出检测等功能将不会支持该目录下的数据解析。
 * `dump_tensor_data`：保存采集到的张量数据。
-* `dump.json`：保存API或Module前反向数据的统计量信息。包含dump数据的API名称或Module名称，各数据的dtype、
-  shape、max、min、mean、L2norm（L2范数，平方根）统计信息，以及根据`summary_mode`
-  配置输出的校验值（`md5`对应CRC-32字段`md5`，`xor`对应XOR校验字段`md5`）。
-  具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
+* `dump.json`：保存API或Module前反向数据的统计量信息。包含dump数据的API名称或Module名称，各数据的dtype、shape、max、min、mean、L2norm（L2范数，平方根）统计信息，以及根据`summary_mode`配置输出的校验值（`md5`对应CRC-32字段`md5`，`xor`对应XOR校验字段`md5`）。具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
+
+  当Tensor的数据格式为NZ格式时，dump.json中max、min、mean、L2norm（L2范数，平方根）统计信息均为`null`。且仅当Tensor的数据类型为torch.float32、torch.float16、torch.bfloat16中的一种时，才会计算mean、L2norm统计信息，其它数据类型仅计算max、min统计信息。
 
   当`summary_mode`配置为`xor`时，dump.json仅输出XOR校验值，不输出max、min、mean、L2norm统计信息。若安装的工具包编译时包含`--include-mod=xor_checksum`，PyTorch NPU场景会优先使用C++加速算子计算校验值，可带来数倍性能提升；安装方法请参见[安装基础工具包和xor_checksum加速算子](../msprobe_install_guide.md#install-xor-checksum)。加速算子不可用时自动回退到通用实现。
+
   当task配置为"nan_check"时，dump.json中各API数据将包含`is_nan`字段，取值为0或1，0代表无溢出状态，1代表有溢出状态（该模式下不保存API中数据的统计值）。
 * `dump_error_info.log`：仅在dump工具报错时生成此记录日志，用于记录dump错误日志。
 * `stack.json`：API/Module的调用栈信息。
