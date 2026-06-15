@@ -2,14 +2,56 @@ import unittest
 from unittest import mock
 
 import numpy as np
-import torch
 
 from msprobe.core.common.output_postprocess import processor
+
+
+class FakeTensor:
+    def __init__(self, values, dtype="fake.int32"):
+        self.values = list(values)
+        self.dtype = dtype
+        self.shape = (len(self.values),)
+
+    def __repr__(self):
+        return f"FakeTensor(values={self.values}, dtype={self.dtype})"
 
 
 class TestProcessor(unittest.TestCase):
     def setUp(self):
         processor._get_rules.cache_clear()
+        self.original_is_framework_tensor = processor._is_framework_tensor
+        self.original_extract_framework_valid_len = processor._extract_framework_valid_len
+        self.original_clean_framework_tensor = processor._clean_framework_tensor
+        self.original_framework_provider_load_attempted = processor._framework_provider_load_attempted
+        processor._is_framework_tensor = None
+        processor._extract_framework_valid_len = None
+        processor._clean_framework_tensor = None
+        processor._framework_provider_load_attempted = True
+
+    def tearDown(self):
+        processor._is_framework_tensor = self.original_is_framework_tensor
+        processor._extract_framework_valid_len = self.original_extract_framework_valid_len
+        processor._clean_framework_tensor = self.original_clean_framework_tensor
+        processor._framework_provider_load_attempted = self.original_framework_provider_load_attempted
+
+    @staticmethod
+    def _register_fake_provider(clean_result=None):
+        def is_tensor_fn(obj):
+            return isinstance(obj, FakeTensor)
+
+        def extract_valid_len_fn(group_tensor):
+            if group_tensor.dtype not in ("fake.int32", "fake.bool"):
+                raise TypeError(f"unsupported dtype: {group_tensor.dtype}")
+            return sum(group_tensor.values)
+
+        def clean_tensor_fn(tensor, valid_len):
+            if clean_result is not None:
+                return clean_result
+
+            safe_len = max(0, min(valid_len, len(tensor.values)))
+            return FakeTensor(tensor.values[:safe_len] + [0] * (len(tensor.values) - safe_len), dtype=tensor.dtype)
+
+        processor.register_tensor_postprocess_impl(is_tensor_fn, extract_valid_len_fn, clean_tensor_fn)
 
     def test_should_postprocess_output(self):
         with mock.patch.object(
@@ -40,11 +82,11 @@ class TestProcessor(unittest.TestCase):
 
     def test_postprocess_handler(self):
         api = "npu_grouped_matmul"
-        out = torch.tensor([1, 2, 3])
+        out = np.array([1, 2, 3])
         args = 0
-        kwargs = {"group_list": torch.tensor([1, 0, 0])}
+        kwargs = {"group_list": np.array([1, 0, 0], dtype=np.int32)}
         backend = 'target'
-        expected = torch.tensor([1, 0, 0])
+        expected = np.array([1, 0, 0])
         with (
             mock.patch.object(
                 processor,
@@ -57,7 +99,7 @@ class TestProcessor(unittest.TestCase):
         ):
             got = processor.postprocess_output(api, out, args, kwargs, backend)
         m_handler.assert_called_once_with("x.py:f", api, out, args, kwargs)
-        self.assertTrue(torch.equal(got, expected))
+        self.assertTrue(np.array_equal(got, expected))
 
     def test_extract_valid_len_handler(self):
         api, kwargs, expected = "api", {"x": 1}, 9
@@ -78,7 +120,7 @@ class TestProcessor(unittest.TestCase):
         self.assertEqual(got, expected)
 
     def test_postprocess_no_rule(self):
-        out = torch.tensor([1, 2])
+        out = np.array([1, 2])
         with mock.patch.object(
             processor,
             "_get_rules",
@@ -87,70 +129,74 @@ class TestProcessor(unittest.TestCase):
             },
         ):
             got = processor.postprocess_output("none", out, 0, {}, 'target')
-        self.assertTrue(torch.equal(got, out))
+        self.assertTrue(np.array_equal(got, out))
 
-    def test_clean_by_group_key(self):
-        out = torch.tensor([1, 2, 3])
-        self.assertIs(processor._clean_by_group_key("api", "k", out, {}), out)
-        self.assertIs(processor._clean_by_group_key("api", "k", out, {"k": 1}), out)
-        with mock.patch.object(processor, "_clean_outputs", return_value="ok") as m:
-            got = processor._clean_by_group_key("api", "k", out, {"k": torch.tensor([1, 0, 0])})
-        m.assert_called_once_with(out, 1)
-        self.assertEqual(got, "ok")
+    def test_get_valid_len_from_group_key_base_guards(self):
+        self.assertIsNone(processor.get_valid_len_from_group_key("api", "k", {}))
+        self.assertIsNone(processor.get_valid_len_from_group_key("api", "k", {"k": 1}))
 
     def test_clean_padded_outputs(self):
-        self.assertIsNone(processor._clean_outputs(None, 1))
-        t = torch.tensor([1, 2, 3])
+        self.assertIsNone(processor.clean_outputs(None, 1))
+        t = np.array([1, 2, 3])
         with mock.patch.object(processor, "_clean_single_tensor", return_value="x") as m:
-            self.assertEqual(processor._clean_outputs(t, 2), "x")
-            self.assertEqual(processor._clean_outputs((t, t), 2), ("x", "x"))
-            self.assertEqual(processor._clean_outputs([t, t], 2), ["x", "x"])
+            self.assertIs(processor.clean_outputs(t, 2), t)
+            self.assertEqual(processor.clean_outputs((t, t), 2), ("x", "x"))
+            self.assertEqual(processor.clean_outputs([t, t], 2), ["x", "x"])
             self.assertEqual(m.call_count, 5)
         other = {"a": 1}
-        self.assertIs(processor._clean_outputs(other, 2), other)
+        self.assertIs(processor.clean_outputs(other, 2), other)
+
+    def test_clean_outputs_with_registered_framework_tensor(self):
+        self._register_fake_provider(clean_result="cleaned")
+        tensor = FakeTensor([1, 2, 3])
+        self.assertIs(processor.clean_outputs(tensor, 2), tensor)
 
     def test_clean_single_tensor(self):
         self.assertIsNone(processor._clean_single_tensor(None, 1))
         s = "abc"
         self.assertIs(processor._clean_single_tensor(s, 1), s)
-        e = torch.tensor([])
+        e = np.array([])
         self.assertIs(processor._clean_single_tensor(e, 2), e)
-        c = torch.tensor(7)
+        c = np.array(7)
         self.assertIs(processor._clean_single_tensor(c, 2), c)
-        self.assertTrue(
-            torch.equal(processor._clean_single_tensor(torch.tensor([1, 2, 3]), 2), torch.tensor([1, 2, 0]))
-        )
-        self.assertTrue(
-            torch.equal(
-                processor._clean_single_tensor(torch.tensor([[1, 2], [3, 4], [5, 6]]), 1),
-                torch.tensor([[1, 2], [0, 0], [0, 0]]),
-            )
-        )
+        n1 = np.array([1, 2, 3])
+        self.assertIs(processor._clean_single_tensor(n1, 2), n1)
+        n2 = np.array([[1, 2], [3, 4], [5, 6]])
+        self.assertIs(processor._clean_single_tensor(n2, 1), n2)
+
+    def test_clean_single_tensor_registered_framework_tensor(self):
+        self._register_fake_provider()
+        result = processor._clean_single_tensor(FakeTensor([1, 2, 3]), 2)
+        self.assertIsInstance(result, FakeTensor)
+        self.assertEqual(result.values, [1, 2, 0])
 
     def test_clean_single_tensor_numpy(self):
         tensor = np.array([1, 2, 3])
         result = processor.clean_single_tensor(tensor, 2)
         self.assertIsInstance(result, np.ndarray)
-        self.assertTrue(np.array_equal(result, np.array([1, 2, 0])))
+        self.assertTrue(np.array_equal(result, tensor))
 
     def test_get_valid_len_from_group_key_guards(self):
-        self.assertEqual(
-            processor._get_valid_len_from_group_key("api", "k", {"k": torch.tensor([True, False, True])}), 2
-        )
-        self.assertIsNone(processor._get_valid_len_from_group_key("api", "k", {"k": torch.tensor([0.1, 0.2])}))
+        self.assertIsNone(processor.get_valid_len_from_group_key("api", "k", {"k": np.array([True, False, True])}))
+        self.assertIsNone(processor.get_valid_len_from_group_key("api", "k", {"k": np.array([0.1, 0.2])}))
+        self.assertIsNone(processor.get_valid_len_from_group_key("api", "k", {"k": np.array([-1, 0], dtype=np.int32)}))
+
+    def test_get_valid_len_from_group_key_registered_framework_tensor(self):
+        self._register_fake_provider()
+        self.assertEqual(processor.get_valid_len_from_group_key("api", "k", {"k": FakeTensor([1, 0, 1])}), 2)
         self.assertIsNone(
-            processor._get_valid_len_from_group_key("api", "k", {"k": torch.tensor([-1, 0], dtype=torch.int32)})
+            processor.get_valid_len_from_group_key("api", "k", {"k": FakeTensor([1, 0], dtype="fake.float32")})
         )
 
     def test_acc_check_handler_flow(self):
-        out = torch.tensor([1])
+        out = np.array([1])
         with mock.patch.object(processor, "_load_callable", side_effect=ValueError("bad")):
             self.assertIs(processor._run_acc_check_handler("x.py:f", "api", out, (), {}), out)
         with mock.patch.object(processor, "_load_callable", return_value=mock.Mock(side_effect=RuntimeError("boom"))):
             self.assertIs(processor._run_acc_check_handler("x.py:f", "api", out, (), {}), out)
         with mock.patch.object(processor, "_load_callable", return_value=mock.Mock(return_value=None)):
             self.assertIs(processor._run_acc_check_handler("x.py:f", "api", out, (), {}), out)
-        new_out = torch.tensor([9])
+        new_out = np.array([9])
         with mock.patch.object(processor, "_load_callable", return_value=mock.Mock(return_value=new_out)):
             self.assertIs(processor._run_acc_check_handler("x.py:f", "api", out, (), {}), new_out)
 

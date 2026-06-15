@@ -23,16 +23,57 @@ from functools import lru_cache
 from typing import Any, Callable, Dict
 
 import numpy as np
-import torch
 
 from msprobe.core.common.const import Const
 from msprobe.core.common.file_utils import load_yaml, FileChecker, FileCheckConst
-from msprobe.pytorch.common.log import logger
+from msprobe.core.common.log import logger
 
 
 _DEFAULT_YAML_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "api_output_postprocess.yaml")
 _DEFAULT_TRUSTED_HANDLER_DIRS = os.path.dirname(os.path.realpath(__file__))
 _BACKENDS = ("golden", "target")
+_is_framework_tensor = None
+_extract_framework_valid_len = None
+_clean_framework_tensor = None
+_framework_provider_load_attempted = False
+
+
+def register_tensor_postprocess_impl(is_tensor_fn: Callable, extract_valid_len_fn: Callable, clean_tensor_fn: Callable):
+    """注册框架侧 tensor 处理实现，避免 core 直接依赖 torch。"""
+    global _is_framework_tensor
+    global _extract_framework_valid_len
+    global _clean_framework_tensor
+
+    if callable(is_tensor_fn):
+        _is_framework_tensor = is_tensor_fn
+    if callable(extract_valid_len_fn):
+        _extract_framework_valid_len = extract_valid_len_fn
+    if callable(clean_tensor_fn):
+        _clean_framework_tensor = clean_tensor_fn
+
+
+def _ensure_framework_provider_registered():
+    global _framework_provider_load_attempted
+
+    if _framework_provider_load_attempted:
+        return
+
+    _framework_provider_load_attempted = True
+    try:
+        importlib.import_module("msprobe.pytorch.common.output_postprocess_provider")
+    except Exception:
+        return
+
+
+def _is_supported_framework_tensor(obj):
+    _ensure_framework_provider_registered()
+    if _is_framework_tensor is None:
+        return False
+
+    try:
+        return bool(_is_framework_tensor(obj))
+    except Exception:
+        return False
 
 
 def should_postprocess_output(api_name: str, backend: str):
@@ -48,7 +89,7 @@ def should_postprocess_output_for_compare(op_name: str, backend: str):
     for name in backend_enabled_api_names:
         if name in op_name:
             return True, name
-        
+
     return False, None
 
 
@@ -85,24 +126,25 @@ def extract_valid_len(api_name: str, args, kwargs: Dict[str, Any], backend: str)
     return None
 
 
-def _extract_valid_len_by_group_key(api_name: str, group_key: str, kwargs: Dict[str, Any]):
-    return _get_valid_len_from_group_key(api_name, group_key, kwargs)
-
-
 def clean_single_tensor(tensor, valid_len: int):
     """
     对外暴露的单 tensor 清理函数。
 
     参数:
-        tensor: 待清理数据，支持 torch.Tensor 和 numpy.ndarray。
+        tensor: 待清理数据，支持框架 tensor 和 numpy.ndarray。
         valid_len (int): 有效长度。
 
     返回值:
         与输入类型保持一致的清理结果；输入不符合条件时返回原值。
     """
     if isinstance(tensor, np.ndarray):
-        clean_tensor = _clean_single_tensor(torch.from_numpy(tensor), valid_len)
-        return clean_tensor.numpy()
+        import torch
+
+        torch_tensor = torch.from_numpy(tensor)
+        result = _clean_single_tensor(torch_tensor, valid_len)
+        if isinstance(result, torch.Tensor):
+            return result.cpu().numpy()
+        return result
 
     return _clean_single_tensor(tensor, valid_len)
 
@@ -119,37 +161,23 @@ def _get_backend_handlers(backend: str, handlers_key: str):
     return handlers.get(backend, {})
 
 
-def _clean_by_group_key(api_name: str, group_key: str, output, kwargs: Dict[str, Any]):
-    """
-    通过 group_key 对应张量计算有效长度，并清理输出中的 dirty 区域。
-
-    参数:
-        api_name (str): 当前 API 名称。
-        group_key (str): 计算有效长度使用的键名，如 group_index/group_list。
-        output: 当前侧输出。
-        kwargs (dict): 当前侧关键字参数。
-
-    返回值:
-        清理后的输出；若条件不满足则返回原输出。
-    """
-    valid_len = _get_valid_len_from_group_key(api_name, group_key, kwargs)
-    if valid_len is None:
-        return output
-
-    return _clean_outputs(output, valid_len)
-
-
-def _get_valid_len_from_group_key(api_name: str, group_key: str, kwargs: Dict[str, Any]):
+def get_valid_len_from_group_key(api_name: str, group_key: str, kwargs: Dict[str, Any]):
     group_tensor = kwargs.get(group_key) if isinstance(kwargs, dict) else None
-    if group_tensor is None or not isinstance(group_tensor, torch.Tensor):
+    if group_tensor is None:
         return None
 
-    if group_tensor.dtype not in (torch.int8, torch.int16, torch.int32, torch.int64, torch.uint8, torch.bool):
-        logger.warning(f"[{api_name}] '{group_key}' tensor dtype {group_tensor.dtype} "
-                       f"is not supported for valid_len extraction.")
+    if not _is_supported_framework_tensor(group_tensor):
         return None
 
-    valid_len = int(group_tensor.sum().item())
+    if _extract_framework_valid_len is None:
+        return None
+
+    try:
+        valid_len = _extract_framework_valid_len(group_tensor)
+    except Exception as error:
+        logger.warning(f"[{api_name}] Extract valid_len from '{group_key}' failed: {error}")
+        return None
+
     if valid_len < 0:
         logger.warning(f"[{api_name}] Extracted valid_len {valid_len} from '{group_key}' is invalid.")
         return None
@@ -158,7 +186,7 @@ def _get_valid_len_from_group_key(api_name: str, group_key: str, kwargs: Dict[st
     return valid_len
 
 
-def _clean_outputs(outputs, valid_len: int):
+def clean_outputs(outputs, valid_len: int):
     """
     清理输出中的脏数据，保持容器类型不变。
 
@@ -172,14 +200,13 @@ def _clean_outputs(outputs, valid_len: int):
     if outputs is None:
         return None
 
-    if isinstance(outputs, torch.Tensor):
-        return _clean_single_tensor(outputs, valid_len)
-
     if isinstance(outputs, tuple):
         return tuple(_clean_single_tensor(t, valid_len) for t in outputs)
 
     if isinstance(outputs, list):
         return [_clean_single_tensor(t, valid_len) for t in outputs]
+
+    _clean_single_tensor(outputs, valid_len)
 
     return outputs
 
@@ -189,25 +216,26 @@ def _clean_single_tensor(tensor, valid_len: int):
     清理单个张量：保留 [0, valid_len) 范围，其他位置置零。
 
     参数:
-        tensor (torch.Tensor): 待清理张量。
+        tensor: 待清理张量。
         valid_len (int): 有效长度。
 
     返回值:
         清理后的张量；输入不符合条件时返回原值。
     """
-    if tensor is None or not isinstance(tensor, torch.Tensor) or tensor.numel() == 0:
+    if tensor is None:
         return tensor
 
-    clean_tensor = torch.zeros_like(tensor)
-    if tensor.dim() == 0:
+    if not _is_supported_framework_tensor(tensor):
         return tensor
 
-    safe_len = max(0, min(valid_len, tensor.shape[0]))
-    if tensor.dim() == 1:
-        clean_tensor[:safe_len] = tensor[:safe_len]
-    else:
-        clean_tensor[:safe_len, ...] = tensor[:safe_len, ...]
-    return clean_tensor
+    if _clean_framework_tensor is None:
+        return tensor
+
+    try:
+        return _clean_framework_tensor(tensor, valid_len)
+    except Exception as error:
+        logger.warning(f"Clean tensor by framework handler failed: {error}")
+        return tensor
 
 
 def _run_acc_check_handler(handler_spec: str, api_name: str, output, args, kwargs: Dict[str, Any]):
@@ -372,7 +400,7 @@ def _ensure_path_in_trusted_dirs(py_path: str):
     raise PermissionError
 
 
-def _parse_handlers(handlers: Dict[str, Any]):
+def _parse_handlers(handlers: Any):
     parsed_handlers = {backend: {} for backend in _BACKENDS}
     if not isinstance(handlers, dict):
         logger.warning("postprocess handlers must be a dict in postprocess yaml, ignore handler config.")
@@ -407,11 +435,7 @@ def _get_rules():
         "acc_check_handlers": acc_check_handlers,
         "compare_handlers": compare_handlers,
         "enabled_postprocess_api_names": {
-            backend: set(acc_check_handlers.get(backend, {}).keys())
-            for backend in _BACKENDS
+            backend: set(acc_check_handlers.get(backend, {}).keys()) for backend in _BACKENDS
         },
-        "enabled_compare_api_names": {
-            backend: set(compare_handlers.get(backend, {}).keys())
-            for backend in _BACKENDS
-        },
+        "enabled_compare_api_names": {backend: set(compare_handlers.get(backend, {}).keys()) for backend in _BACKENDS},
     }
