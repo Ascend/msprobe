@@ -39,7 +39,7 @@
 
 必须设置以下参数，否则 vLLM 不会返回 `rollout_log_probs`，diff 无法计算：
 
-```
+```bash
 actor_rollout_ref.rollout.calculate_log_probs=True
 ```
 
@@ -193,7 +193,7 @@ python3 -m verl.trainer.main_ppo \
 
 当 `enable_token_level_prob_diff=True` 时，每步训练日志中会输出以下格式的指标：
 
-```
+```ColdFusion
 training/rollout_probs_diff/s0_p0000    0.0012
 training/rollout_probs_diff/s0_p0001    0.0008
 training/rollout_probs_diff/s0_p0002    0.0023
@@ -208,7 +208,7 @@ training/rollout_probs_diff/s1_p0001    0.0009
 
 同时，原有的聚合指标继续输出：
 
-```
+```ColdFusion
 training/rollout_probs_diff_max            0.0234
 training/rollout_probs_diff_mean           0.0012
 training/rollout_probs_diff_std            0.0031

@@ -212,9 +212,9 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
   cd msprobe
-
+  
   pip install setuptools wheel
-
+  
   python3 setup.py bdist_wheel --include-mod=xor_checksum
   cd ./dist
   pip install ./mindstudio_probe*.whl

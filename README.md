@@ -44,8 +44,8 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 | | | 精度比对 | 提供一键式离线模型比对功能，仅需输入模型即可完成比对，无需提前采集数据，快速输出结果 | [精度比对](docs/zh/accuracy_compare/infer_compare_offline_model_instruct.md) |
 | | | 离线模型数据精度比对 | 提供离线模型数据比对功能，输入离线模型的dump数据进行精度比对 | [离线模型数据精度比对](docs/zh/accuracy_compare/offline_data_compare_instruct.md) |
 | | | 数据转换 | 将离线模型的dump数据转换为numpy（.npy）或PyTorch tensor（.pt）格式文件 | [数据转换](docs/zh/dump/data_parse_instruct.md) |
-| **PyTorch训练** | - | 训练前配置检查 | 训练前或精度比对前，对比两个环境下可能影响训练精度的配置差异 | [训练前配置检查](docs/zh/config_check_instruct.md) |
-| | | verl超参比对与关键超参校验 | verl训练过程中或结束后，比对两台不同服务器上训练日志中采集到的真实超参配置，或者校验配置是否与关键超参取值相同，辅助用户高效比对真实超参值配置，加速定位因配置差异所引发的训练精度问题 | [verl超参比对与关键超参校验](docs/zh/verl_param_compare_or_verify_instruct.md) |
+| **PyTorch** | 训练场景 | 训练前配置检查 | 训练前或精度比对前，对比两个环境下可能影响训练精度的配置差异 | [训练前配置检查](docs/zh/config_check_instruct.md) |
+| | |                                             |                                                              |                                                              |
 | | | 数据采集 | 通过config.json配置，完成msProbe精度数据采集操作 | [数据采集](docs/zh/dump/pytorch_data_dump_instruct.md) |
 | | | 精度预检 | 在昇腾NPU上扫描训练模型中的所有API，给出精度情况的诊断和分析 | [精度预检](docs/zh/accuracy_checker/pytorch_accuracy_checker_instruct.md) |
 | | | 分级可视化构图比对 | 将msProbe工具dump的精度数据进行解析，还原模型图结构，实现模型各个层级的精度数据比对 | [分级可视化构图比对](docs/zh/accuracy_compare/pytorch_visualization_instruct.md) |
@@ -54,6 +54,12 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 | | | checkpoint比对 | 训练过程中或结束后，比较两个不同的checkpoint，评估模型相似度 | [checkpoint比对](docs/zh/checkpoint_compare_instruct.md) |
 | | | 整网首个溢出节点分析 | 多rank场景下通过dump数据找到首个出现Nan或Inf的节点 | [整网首个溢出节点分析](docs/zh/overflow_check/overflow_check_instruct.md) |
 | | | 趋势可视化 | 将msProbe工具数据采集或训练状态监测的统计量数据从迭代步数、节点rank和张量目标三个维度进行趋势可视化 | [趋势可视化](docs/zh/accuracy_compare/trend_visualization_instruct.md) |
+| | verl场景 | verl超参比对与关键超参校验 | verl训练过程中或结束后，比对两台不同服务器上训练日志中采集到的真实超参配置，或者校验配置是否与关键超参取值相同，辅助用户高效比对真实超参值配置，加速定位因配置差异所引发的训练精度问题 | [verl超参比对与关键超参校验](docs/zh/verl_param_compare_or_verify_instruct.md) |
+| | | 异步架构verl训推一致性比对数据采集 | verl ≥ v0.7.0，保证verl训推一致性比对时的输入shape一致的比对数据采集 | [异步架构verl训推一致性比对数据采集](https://gitcode.com/Ascend/msprobe/blob/8b32b58236f921852d2ffb795ab66b504bc86b74/docs/zh/dump/verl_async_consistency_preprocess_dump.md) |
+| | | fsdp训练后端verl训推一致性比对数据采集 | verl < v0.7.0，fsdp训练后端，保证verl训推一致性比对时的输入shape一致的比对数据采集 | [fsdp训练后端verl训推一致性比对数据采集](https://gitcode.com/Ascend/msprobe/blob/8b32b58236f921852d2ffb795ab66b504bc86b74/docs/zh/dump/verl_fsdp_consistency_preprocess_dump.md) |
+| | | megatron训练后端verl训推一致性比对数据采集 | verl < v0.7.0，megatron训练后端，保证verl训推一致性比对时的输入shape一致的比对数据采集 | [megatron训练后端verl训推一致性比对数据采集](https://gitcode.com/Ascend/msprobe/blob/8b32b58236f921852d2ffb795ab66b504bc86b74/docs/zh/dump/verl_megatron_consistency_preprocess_dump.md) |
+| | | 训推一致性监控：逐Token级别的probs_diff监控 | 训推一致性监控，逐Token级别监控probs_diff | [训推一致性监控：逐Token级别的probs_diff监控](https://gitcode.com/Ascend/msprobe/blob/8b32b58236f921852d2ffb795ab66b504bc86b74/docs/zh/dump/verl_token_level_probs_diff_monitoring.md) |
+| | | 精度比对 | 将msProbe工具dump的精度数据进行精度比对，进而定位精度问题 | [精度比对](https://gitcode.com/Ascend/msprobe/blob/8b32b58236f921852d2ffb795ab66b504bc86b74/docs/zh/accuracy_compare/pytorch_accuracy_compare_instruct.md#verl训推一致性比对场景) |
 | **MindSpore训练** | - | 训练前配置检查 | 训练前或精度比对前，对比两个环境下可能影响训练精度的配置差异 | [训练前配置检查](docs/zh/config_check_instruct.md) |
 | | | 数据采集 | 通过config.json配置，完成msProbe精度数据采集操作 | [数据采集](docs/zh/dump/mindspore_data_dump_instruct.md) |
 | | | 精度预检 | 在昇腾NPU上扫描训练模型中的所有API，给出精度情况的诊断和分析 | [精度预检](docs/zh/accuracy_checker/mindspore_accuracy_checker_instruct.md) |

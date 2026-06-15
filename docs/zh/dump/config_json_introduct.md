@@ -215,11 +215,11 @@ MindSpore静态图场景下，"level"须为"L2"，且模型编译优化等级（
 **注意事项**
 
  - 使用前请确保使用编译时带有`--include-mod=nan_check`参数的msProbe工具包。
- - 该任务类型在昇腾NPU设备上运行，适配的CANN版本要求8.5.0及以上
- - 采集config中level须配置为"L1"
- - 使用前需设置环境变量：INF_NAN_MODE_FORCE_DISABLE=1
- - 由于检测结果通过读取寄存器状态获得，因此可能出现结果正常但检测结果为溢出的情况，说明该API存在过程溢出（过程溢出为正常情况）
- - 由于硬件底层不支持int64类型（通过软件实现），因此本接口获取的硬件寄存器状态无法保证在int64类型上的结果准确性
+ - 该任务类型在昇腾NPU设备上运行，适配的CANN版本要求8.5.0及以上。
+ - 采集config中level须配置为"L1"。
+ - 使用前需设置环境变量：INF_NAN_MODE_FORCE_DISABLE=1。
+ - 由于检测结果通过读取寄存器状态获得，因此可能出现tensor输出正常，但nan_check模式检测结果为溢出的情况，说明该API存在过程溢出（过程溢出为正常情况）。
+ - 由于硬件底层不支持int64类型（通过软件实现），因此本接口获取的硬件寄存器状态无法保证在int64类型上的结果准确性。
 
 **参数说明**
 
@@ -339,25 +339,18 @@ MindSpore动态图场景下，"level"须为"L2"; MindSpore静态图场景下，"
 
 ### tensor_list参数配置说明
 
-**通用行为**
+- 通用行为
 
-PyTorch、MSAdapter以及MindSpore动态图场景指定某一类API或模块，即会dump这一类API或模块输入输出的统计量信息和完整的tensor数据。
+  - PyTorch、MSAdapter以及MindSpore动态图场景指定某一类API或模块，即会dump这一类API或模块输入输出的统计量信息和完整的tensor数据。
 
-配置示例："tensor_list": ["relu"]。
+  - 配置示例："tensor_list": ["relu"]。
 
-**nan_check 任务下的特殊说明**
+- nan_check 任务下的特殊说明：`nan_check` 任务默认检测所有 API 是否存在 NaN/Inf 溢出。当需要进一步定位某个 API 内部的具体溢出位置时，可通过 `tensor_list` 指定需要深入分析的 API，当发生溢出时，工具会触发`Exception`，对这些 API 生成额外的详细数据文件，并落盘至当前目录下的 `extra-info` 子目录中，供 [Tensor 解析工具](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0532.html) 进行逐元素级分析。
+  - 匹配方式：匹配方式为子串匹配，不区分大小写。例如配置 `["truediv"]` 时，所有名称中包含 "truediv" 的 API（如 `truediv`、`__truediv__`）均会被命中。
 
-`nan_check` 任务默认检测所有 API 是否存在 NaN/Inf 溢出。当需要进一步定位某个 API 内部的具体溢出位置时，可通过 `tensor_list` 指定需要深入分析的 API，当发生溢出时，工具会触发`Exception`，对这些 API 生成额外的详细数据文件，并落盘至当前目录下的 `extra-info` 子目录中，供 [Tensor 解析工具](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0532.html) 进行逐元素级分析。
-
-**匹配方式**
-
-匹配方式为子串匹配，不区分大小写。例如配置 `["truediv"]` 时，所有名称中包含 "truediv" 的 API（如 `truediv`、`__truediv__`）均会被命中。
-
-**使用建议：**
-
-- `nan_check` 默认已覆盖全量 API 的基础溢出检测，仅在需要深入定位特定 API 的溢出根因时才建议配置 `tensor_list`，以控制额外开销。
-
-- 配置时建议使用较具体的关键字（如 `truediv`、`softmax`），避免过短字符串导致误匹配。需要缩小范围时，可配合 `scope` 或 `list` 共同限制。
+  - 使用建议
+    - `nan_check` 默认已覆盖全量 API 的基础溢出检测，仅在需要深入定位特定 API 的溢出根因时才建议配置 `tensor_list`，以控制额外开销。
+    - 配置时建议使用较具体的关键字（如 `truediv`、`softmax`），避免过短字符串导致误匹配。需要缩小范围时，可配合 `scope` 或 `list` 共同限制。
 
 ### data_mode参数配置说明
 
