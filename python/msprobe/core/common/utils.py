@@ -234,12 +234,10 @@ def check_compare_param(input_param, output_path, dump_mode, stack_mode):
         check_file_or_directory_path(input_param.get("bench_dump_data_dir"), True)
     check_file_or_directory_path(output_path, True)
 
-    with (
-        FileOpen(input_param.get("npu_path"), "r") as npu_json,
-        FileOpen(input_param.get("bench_path"), "r") as bench_json,
-    ):
-        _check_json(npu_json, input_param.get("npu_path"))
-        _check_json(bench_json, input_param.get("bench_path"))
+    with FileOpen(input_param.get("npu_path"), "r") as npu_json:
+        with FileOpen(input_param.get("bench_path"), "r") as bench_json:
+            _check_json(npu_json, input_param.get("npu_path"))
+            _check_json(bench_json, input_param.get("bench_path"))
     if stack_mode:
         with FileOpen(input_param.get("stack_path"), "r") as stack_json:
             _check_json(stack_json, input_param.get("stack_path"))
