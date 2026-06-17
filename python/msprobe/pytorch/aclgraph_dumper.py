@@ -37,6 +37,11 @@ try:
 except Exception:
     TorchDispatchMode = None
 
+try:
+    from torch._guards import detect_fake_mode as _detect_fake_mode
+except Exception:
+    _detect_fake_mode = None
+
 
 FORWARD_START_MARKER = "__msprobe_fwd_start__"
 
@@ -66,6 +71,15 @@ def _iter_tensors(value, prefix=""):
             yield from _iter_tensors(sub, next_prefix)
 
 
+def _in_fake_mode(inputs):
+    if _detect_fake_mode is None:
+        return False
+    try:
+        return _detect_fake_mode(inputs) is not None
+    except Exception:
+        return False
+
+
 def _is_collectable_tensor(tensor):
     if not isinstance(tensor, torch.Tensor):
         return False
@@ -79,6 +93,7 @@ def _is_collectable_tensor(tensor):
 
 
 if TorchDispatchMode is not None:
+
     class _AclTorchDispatchMode(TorchDispatchMode):
         def __init__(self, dumper):
             super().__init__()
@@ -86,6 +101,8 @@ if TorchDispatchMode is not None:
 
         def __torch_dispatch__(self, func, types, args=(), kwargs=None):
             kwargs = kwargs if kwargs is not None else {}
+            if _in_fake_mode((args, kwargs)):
+                return func(*args, **kwargs)
             if self._dumper._should_skip_dispatch_func(func):
                 return func(*args, **kwargs)
 
@@ -96,12 +113,14 @@ if TorchDispatchMode is not None:
             should_collect = self._dumper._should_collect_api(self._dumper._current_scope(), func)
             started = False
             if should_collect:
-                collected = self._dumper._dc(self._dumper._collect, op_scope, "input", args,
-                                             mark_forward_start=not started)
+                collected = self._dumper._dc(
+                    self._dumper._collect, op_scope, "input", args, mark_forward_start=not started
+                )
                 started = started or collected
                 if kwargs:
-                    collected = self._dumper._dc(self._dumper._collect, op_scope, "input_kwargs", kwargs,
-                                                 mark_forward_start=not started)
+                    collected = self._dumper._dc(
+                        self._dumper._collect, op_scope, "input_kwargs", kwargs, mark_forward_start=not started
+                    )
                     started = started or collected
 
             output = func(*args, **kwargs)
@@ -389,14 +408,14 @@ class AclGraphDumper:
 
         op_name = key[: marker_pos + len(".forward")]
         op_name = cls._normalize_l0_op_name(op_name)
-        tail = key[marker_pos + len(marker):]
+        tail = key[marker_pos + len(marker) :]
         io_candidates = ("input_kwargs", "input", "output")
         for io_name in io_candidates:
             if tail == io_name:
                 return op_name, io_name, []
             prefix = io_name + "."
             if tail.startswith(prefix):
-                suffix = tail[len(prefix):]
+                suffix = tail[len(prefix) :]
                 return op_name, io_name, suffix.split(".") if suffix else []
         return None
 
@@ -441,9 +460,7 @@ class AclGraphDumper:
             tag = f"{self._module_scope(module_name)}.{io_name}"
             effective_suffix = suffix
             if mark_forward_start and not has_marked:
-                effective_suffix = (
-                    FORWARD_START_MARKER if not suffix else f"{FORWARD_START_MARKER}.{suffix}"
-                )
+                effective_suffix = FORWARD_START_MARKER if not suffix else f"{FORWARD_START_MARKER}.{suffix}"
                 has_marked = True
             if effective_suffix:
                 tag = f"{tag}.{effective_suffix}"
@@ -464,14 +481,14 @@ class AclGraphDumper:
                 continue
             origin = module.forward
 
-            @functools.wraps(origin)
+            @functools.wraps(origin)  # pylint: disable=cell-var-from-loop
             def wrapped_forward(
                 *args,
                 __origin=origin,
                 __module_name=module_name,
                 __module_class_name=module_class_name,
                 __should_collect_module=should_collect_module,
-                **kwargs
+                **kwargs,
             ):
                 api_scope_name = dumper._module_scope_name(__module_name, __module_class_name)
                 collect_module_data = dumper._running and dumper._collect_module_enabled() and __should_collect_module
@@ -480,12 +497,9 @@ class AclGraphDumper:
                 depth = dumper._dispatch_depth()
                 dumper._set_dispatch_depth(depth + 1)
                 use_dispatch = (
-                    dumper._running and
-                    dumper._collect_api_enabled() and
-                    TorchDispatchMode is not None and
-                    depth == 0
+                    dumper._running and dumper._collect_api_enabled() and TorchDispatchMode is not None and depth == 0
                 )
-                dispatch_mode = _AclTorchDispatchMode(dumper) if use_dispatch else nullcontext()
+                dispatch_mode = _AclTorchDispatchMode(dumper) if use_dispatch else nullcontext()  # pylint: disable=possibly-used-before-assignment
                 started = False
                 try:
                     if collect_module_data:
@@ -515,7 +529,7 @@ class AclGraphDumper:
             try:
                 torch_npu.npu.synchronize()
                 return
-            except Exception:
+            except Exception:  # nosec B110 - fall through to CUDA sync on NPU failure
                 pass
         if torch.cuda.is_available():
             torch.cuda.synchronize()
