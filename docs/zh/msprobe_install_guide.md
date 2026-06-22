@@ -86,7 +86,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 - 安装基础工具包
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
   
   pip install setuptools wheel
@@ -99,7 +99,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 - 安装基础工具包和adump模块
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
   
   pip install setuptools wheel
@@ -112,7 +112,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 - 安装基础工具包和aclgraph_dump模块
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
   
   pip install setuptools wheel
@@ -125,7 +125,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 - 安装基础工具包和分级可视化插件
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
   
   pip install setuptools wheel
@@ -138,7 +138,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 - 安装基础工具包和趋势可视化插件
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
   
   pip install setuptools wheel
@@ -151,7 +151,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 - 安装基础工具包和分级可视化、趋势可视化插件
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
   
   pip install setuptools wheel
@@ -164,7 +164,7 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 - 安装基础工具包和atb_probe模块
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
   
   pip install setuptools wheel
@@ -182,7 +182,19 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
 Successfully installed mindstudio-probe-{version}
 ```
 
-## 3. 卸载
+## 3. 验证安装
+
+安装完成后，执行以下命令验证工具是否安装成功：
+
+```bash
+pip show mindstudio-probe
+```
+
+若输出不报错，且能显示工具信息，则表明安装成功。
+
+若 `pip show mindstudio-probe` 提示命令不存在，请确认当前终端使用的是安装 `msProbe` 的 Python 环境。
+
+## 4. 卸载
 
 执行如下命令卸载msProbe工具。
 
@@ -196,13 +208,15 @@ pip uninstall mindstudio-probe
 Successfully uninstalled mindstudio-probe-{version}
 ```
 
-## 4. 升级
+## 5. 升级
 
-msProbe工具不支持直接升级，需要先完成[卸载](#3-卸载)后再重新[安装](#2-安装方式)。
+msProbe工具不支持直接升级，需要先完成[卸载](#4-卸载)后再重新[安装](#2-安装方式)。
 
-## 5. 附录
+可通过`pip show mindstudio-probe`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.0.0/release_notes.md)》。
 
-### 5.1 工具限制与注意事项
+## 6. 附录
+
+### 6.1 工具限制与注意事项
 
 - 工具读写的所有路径，如`config_path`、`dump_path`等，只允许包含大小写字母、数字、下划线、斜杠、点和短横线。
 
@@ -214,7 +228,7 @@ msProbe工具不支持直接升级，需要先完成[卸载](#3-卸载)后再重
 
 - msProbe建议执行用户与安装用户保持一致，如果使用root执行，请自行关注root高权限触及的安全风险。
 
-### 5.2 查看msProbe工具信息
+### 6.2 查看msProbe工具信息
 
 ```bash
 pip show mindstudio-probe
@@ -235,12 +249,12 @@ Requires: einops, matplotlib, numpy, onnx, onnxruntime, openpyxl, pandas, protob
 Required-by:
 ```
 
-### 5.3 Ascend生态链接
+### 6.3 Ascend生态链接
 
-#### 5.3.1 安装PyTorch_NPU
+#### 6.3.1 安装PyTorch_NPU
 
 请参见[Ascend Extension for PyTorch](https://gitcode.com/Ascend/pytorch)。
 
-#### 5.3.2 安装MindSpeed LLM
+#### 6.3.2 安装MindSpeed LLM
 
 请参见[MindSpeed LLM](https://gitcode.com/Ascend/MindSpeed-LLM)。
