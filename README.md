@@ -70,6 +70,7 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 | | | 趋势可视化 | 将msProbe工具数据采集或训练状态监测的统计量数据从迭代步数、节点rank和张量目标三个维度进行趋势可视化 | [趋势可视化](docs/zh/accuracy_compare/trend_visualization_instruct.md) |
 | **MSAdapter场景** | - | 数据采集 | 通过config.json配置，完成msProbe精度数据采集操作 | [数据采集](docs/zh/dump/msadapter_data_dump_instruct.md) |
 | | | checkpoint比对 | 训练过程中或结束后，比较两个不同的checkpoint，评估模型相似度 | [checkpoint比对](docs/zh/checkpoint_compare_instruct.md) |
+| **Slime场景** |-| 数据采集         | 训推阶段完成msProbe精度数据采集操作            | [数据采集](docs/zh/dump/slime_train_rollout_dump_instruct.md) |
 
 ## 🚀 快速入门
 
