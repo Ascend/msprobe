@@ -145,7 +145,11 @@ class TestAclGraphDumper(unittest.TestCase):
         self._modules_patcher.stop()
 
     def make_dumper(self, dump_path="./dump", keywords=None, level="mix", rank=None, rank_id=0):
-        with patch.object(self.AclGraphDumper, "_load_msprobe_config", return_value=(dump_path, keywords or [], level, rank)), \
+        with patch.object(
+            self.AclGraphDumper,
+            "_load_msprobe_config",
+            return_value=(dump_path, keywords or [], level, rank, 0),
+        ), \
                 patch.object(self.AclGraphDumper, "_validate_dump_path", return_value=dump_path), \
                 patch.object(self.AclGraphDumper, "_resolve_rank_id", return_value=rank_id):
             return self.AclGraphDumper(config_path="./config.json")
@@ -190,9 +194,9 @@ class TestAclGraphDumper(unittest.TestCase):
         with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json") as mock_real_path, \
                 patch.object(self.module, "load_json", return_value=config):
-            dump_path, module_list, level, rank = self.AclGraphDumper._load_msprobe_config(None)
+            dump_path, module_list, level, rank, seq_len = self.AclGraphDumper._load_msprobe_config(None)
 
-        self.assertEqual((dump_path, module_list, level, rank), ("./dump_dir", ["linear"], "mix", [0]))
+        self.assertEqual((dump_path, module_list, level, rank, seq_len), ("./dump_dir", ["linear"], "mix", [0], 0))
         mock_real_path.assert_called_once()
 
         with self.assertRaises(TypeError):
@@ -210,8 +214,8 @@ class TestAclGraphDumper(unittest.TestCase):
 
         with patch.object(self.module, "check_and_get_real_path", return_value="/tmp/config.json"), \
                 patch.object(self.module, "load_json", return_value={"task": 1, "dump_path": "./x", "level": "L0"}):
-            dump_path, module_list, level, rank = self.AclGraphDumper._load_msprobe_config("./config.json")
-        self.assertEqual((dump_path, module_list, level, rank), ("./x", [], "L0", None))
+            dump_path, module_list, level, rank, seq_len = self.AclGraphDumper._load_msprobe_config("./config.json")
+        self.assertEqual((dump_path, module_list, level, rank, seq_len), ("./x", [], "L0", None, 0))
 
         with self.assertRaises(TypeError):
             self.AclGraphDumper._validate_dump_path(1)

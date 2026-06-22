@@ -38,7 +38,8 @@
     "rank": [],
     "level": "L0",
     "statistics": {
-        "list": ["linear", "attention"]
+        "list": ["linear", "attention"],
+        "seq_len": 1024
     }
     }
     ```
@@ -54,6 +55,7 @@
     | `rank` | 可选 | 指定采集的 rank，list[int \|str]类型。默认值为空，表示采集所有 rank；字符串仅支持 `"start-end"` 范围格式。非目标 rank 不开启整网采集。|
     | `level` | 可选 | 根级采集级别，str类型。支持 `L0`、`L1`、`mix`，默认值为`L0`。<br>`L0` 采集 module 输入/输出统计值；`L1` 采集 API 输入/输出统计值；`mix` 同时采集 module 和 API 统计值。 |
     | `list` | 可选 | 模块名关键词过滤列表，list[str]类型。默认值为空，表示采集所有模块。 |
+    | `seq_len` | 可选 | 仅对 `statistics` 生效，int类型。默认值为 `0`，表示按完整 Tensor 统计；当 `seq_len > 0` 且 Tensor 足够大时，仅对前导 `seq_len` 切片做统计，可用于跳过图模式下 pad 尾部数据。 |
 
 2. 完成文件（`config.json`）配置后，下面示例展示如何使用整网采集功能：
 
@@ -112,7 +114,7 @@ AclGraphDumper(config_path: str | None = None)
 
 | 参数名 | 可选/必选 | 说明 |
 | --- | --- | --- |
-| config_path | 可选 | 配置文件路径，str类型。若不传，默认读取 msprobe 包内置 `config.json`。`dump_path`、`task`、`rank`、`level` 与 `list` 从该配置文件中读取。 |
+| config_path | 可选 | 配置文件路径，str类型。若不传，默认读取 msprobe 包内置 `config.json`。`dump_path`、`task`、`rank`、`level`、`list` 与 `seq_len` 从该配置文件中读取。 |
 
 **函数原型**
 
