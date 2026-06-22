@@ -133,6 +133,10 @@ class ILLDetector:
         # 符合乱码条件的窗口计数
         self._garbled_count: int = 0
 
+        # 生僻字检测时需要过滤和删掉的类别
+        self._FILTER_CATEGORIES = {"english_latin_space", "english_latin"}
+        self._REMOVE_CATEGORIES = {"punctuation", "whitespace"}
+
     def _validate_config(self, config_data: Dict):
         """
         验证配置参数的合法性
@@ -338,7 +342,10 @@ class ILLDetector:
             categories = set(
                 tk2cat[str(item)] for item in list(window_topk_logprobs[dim].keys()) if item <= vocab_size
             )  # 统计topk的token-id对应的类别
-
+            # 剔除一些类别
+            if len(categories.intersection(self._FILTER_CATEGORIES)) == 2:
+                categories.discard("english_latin")
+            categories -= self._REMOVE_CATEGORIES
             if len(categories) > self.rare_cat_thresh:
                 cat_hit_count += 1
         return cat_hit_count > 0, cat_hit_count
@@ -438,9 +445,9 @@ class ILLDetector:
         # 包含排序后 topk logprobs数据
         logprobs = np.array([list(item.values()) for item in topk_logprobs])
 
-        # 如果logp为nan，则输出为!,输出重复
-        if np.isnan(logprobs).any():
-            return DetectionResult(is_ill=True, ill_type=3)
+        # 如果logp为 nan/inf 时，直接返回 NaN Value
+        if np.isnan(logprobs).any() or np.isinf(logprobs).any():
+            return DetectionResult(is_ill=True, ill_type=4)
 
         if len(tokens) < self.stride:  # 只检测生僻字
             rare_flag, _ = self._detect_rare_character(topk_logprobs, logprobs, tk2cat, vocab_size)

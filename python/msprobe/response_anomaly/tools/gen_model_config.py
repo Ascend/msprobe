@@ -93,7 +93,7 @@ def _classify_char(ch):
             return "symbol"
         return "other"
     name_upper = name.upper()
-    if "PLANCK CONSTANT" in name_upper or "NATHEMATICAL" in name_upper or "DUBLE-STRUCK CAPITAL" in name_upper:
+    if "PLANCK CONSTANT" in name_upper or "MATHEMATICAL" in name_upper or "DOUBLE-STRUCK CAPITAL" in name_upper:
         return "math_letter"
     if "MODIFIER LETTER" in name_upper:
         return "modifier_letter"

@@ -44,6 +44,10 @@ class DetectorForTest(ILLDetector):
 
         self._garbled_count = 0
 
+        # 生僻字检测时需要过滤和删掉的类别
+        self._FILTER_CATEGORIES = {"english_latin_space", "english_latin"}
+        self._REMOVE_CATEGORIES = {"punctuation", "whitespace"}
+
 
 class TestResolveModelName(unittest.TestCase):
     """测试 _resolve_model_name 函数"""

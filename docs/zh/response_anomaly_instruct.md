@@ -7,6 +7,10 @@
 - 生僻字：偶发性输出无意义字符，且不符合上下文语境。
 - 乱码：模型持续输出生僻字，明显胡言乱语，文本无意义，无法正常对话。
 - 重复：重复输出相同内容。
+- NaN Value：logprobs 出现 nan/inf 值
+
+> [!NOTE]
+> 当 logprobs 出现 nan/inf 值时，会直接返回 NaN Value，表明此时模型推理已经出现异常，不再做生僻字、乱码、重复的异常检测。
 
 ## 2 使用前准备
 
@@ -153,7 +157,7 @@ analyze_output_anomaly(topk_logprobs, tokens, model_configs)
 每个请求会返回下述两个参数：
 
 - is_ill：bool类型，是否异常，True为异常，False为正常。
-- ill_type：int类型，异常类型，0表示正常，1表示生僻字，2表示乱码，3表示重复。
+- ill_type：int类型，异常类型，0表示正常，1表示生僻字，2表示乱码，3表示重复，4表示NaN Value。
 
 **调用示例**
 
