@@ -27,10 +27,8 @@ SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 CONFIG_FILE="$SCRIPT_DIR/config.ini"
 WHL_BASE_URL=$(grep 'whl_base_url' "$CONFIG_FILE" | sed 's/whl_base_url=//')
 ACLRUNTIME_SHA_BASE_URL=$(grep 'aclruntime_sha_base_url' "$CONFIG_FILE" | sed 's/aclruntime_sha_base_url=//')
-TOOLS_BAS_URL_SUFFIX=$(grep 'tools_base_url' "$CONFIG_FILE" | sed 's/tools_base_url=//')
-AIS_BENCH_WHL_DOWNLOAD_URL=$(grep 'ais_bench_whl_download_url' "$CONFIG_FILE" | sed 's/ais_bench_whl_download_url=//')
 AIS_BENCH_SHA_BASE_URL=$(grep 'ais_bench_sha_base_url' "$CONFIG_FILE" | sed 's/ais_bench_sha_base_url=//')
-TOOLS_BAS_URL="git+$TOOLS_BAS_URL_SUFFIX"
+AIS_BENCH_WHL_DOWNLOAD_URL=$(grep 'ais_bench_whl_download_url' "$CONFIG_FILE" | sed 's/ais_bench_whl_download_url=//')
 
 
 download_and_install_aclruntime() {

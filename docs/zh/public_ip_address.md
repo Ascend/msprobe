@@ -12,6 +12,10 @@
 | 开源软件 | -            | cmake/config.ini                 | <https://gitee.com/mirrors/protobuf_source/repository/archive/v3.15.0.tar.gz> | 开源软件下载                 |
 | 开源软件 | -            | cmake/config.ini                 | <https://gitee.com/mirrors/re2/repository/archive/2019-12-01.tar.gz> | 开源软件下载                 |
 | 开源软件 | -            | cmake/config.ini                 | <https://gitcode.com/openeuler/libboundscheck.git>           | 开源软件下载                 |
+| 开源软件 | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://aisbench.obs.myhuaweicloud.com/packet/ais_bench_infer/0.0.2/ait/>  | 下载 aclruntime/ais_bench 的 whl 包 |
+| 开源软件 | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://aisbench.obs.myhuaweicloud.com/packet/ais_bench_infer/0.0.2/ait/hash_info/>  | 下载 aclruntime 的 sha256 校验文件 |
+| 开源软件 | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://aisbench.obs.myhuaweicloud.com/packet/ais_bench_infer/0.0.2/ait/hash_info/>  | 下载 ais_bench 的 sha256 校验文件 |
+| 开源软件 | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://gitee.com/ascend/tools/tree/master/ais-bench_workload/tool/ais_bench>  | whl 安装失败时提示用户手工下载 aclruntime/ais_bench |
 | 开源软件 | -            | plugins/tb_graph_ascend/setup.py | <pmail_mindstudio@huawei.com>                                | MindStudio官方邮箱           |
 | 开源软件 | -            | plugins/tb_graph_ascend/setup.py | <https://gitcode.com/Ascend/msprobe/tree/master/plugins/tb_graph_ascend> | 代码仓地址                   |
 | 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://npms.io>                                            | 构建引入，注释               |
