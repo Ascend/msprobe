@@ -1,0 +1,37 @@
+# =============================================================================
+# Tensor 后处理配置 - 右乘校准模式 (right_matmul)
+#
+# 功能说明:
+#   在精度比对流程中，读取 tensor 数据后、校验前，对 target 和 golden 两侧的
+#   tensor 右乘指定的校准 tensor（即 n_value * mat, b_value * mat）。
+#   用于量化场景下对量化前后的 tensor 进行对齐校准。
+#
+# 配置方式:
+#   mode: right_matmul                          # 后处理模式，固定为 right_matmul
+#   target_tensor_map:                            # target 侧 data_name 到校准 tensor 路径的映射
+#     "<target_data_name>": "<path/to/calibration_tensor>"
+#   golden_tensor_map:                            # golden 侧 data_name 到校准 tensor 路径的映射
+#     "<golden_data_name>": "<path/to/calibration_tensor>"
+#
+# 支持的校准 tensor 文件格式:
+#   - .pt: PyTorch 格式
+#   - .npy: numpy 格式
+#
+# 注意事项:
+#   - data_name 即 dump.json 中记录的算子 data_name 字段对应的名称（如 "Tensor.to.0.forward.input.0.pt"）
+#   - target 和 golden 的 data_name 可能不同，分别用 target_tensor_map / golden_tensor_map 配置
+#   - 校准 tensor 路径要求使用绝对路径
+#   - 未在对应 tensor_map 中配置的 data_name 不会被处理，直接返回原 tensor
+#   - 被处理的 tensor 会通过 logger.info 打印提示信息
+#
+# 示例:
+#   mode: right_matmul
+#   target_tensor_map:
+#     "Tensor.to.0.forward.input.0.pt": "/home/user/calib/to_scale.pt"
+#   golden_tensor_map:
+#     "Tensor.to.0.forward.input.0.pt": "/home/user/calib/to_scale.npy"
+# =============================================================================
+
+mode: right_matmul
+target_tensor_map: {}
+golden_tensor_map: {}

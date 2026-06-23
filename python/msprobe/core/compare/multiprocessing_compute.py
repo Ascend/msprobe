@@ -29,6 +29,7 @@ from msprobe.core.common.exceptions import FileCheckException
 from msprobe.core.common.output_postprocess import clean_single_tensor
 from msprobe.core.compare.npy_compare import CompareResult, ValidateTensor, compare_ops_apply
 from msprobe.core.compare.config import ModeConfig
+from msprobe.core.compare.tensor_postprocess.processor import TensorPostprocessManager
 
 
 @dataclass
@@ -105,6 +106,7 @@ class CompareRealData:
         self.file_reader = file_reader
         self.mode_config = mode_config
         self.cross_frame = cross_frame
+        self._tensor_postprocess_manager = TensorPostprocessManager()
 
     @staticmethod
     def read_dump_data(result_df):
@@ -179,6 +181,7 @@ class CompareRealData:
         整体流程：
             1. 根据算子名定位 dump 文件
             2. 读取 tensor 数据
+            2.5 tensor 后处理（如右乘校准 tensor）
             3. 校验 tensor 数据合法性
 
         参数:
@@ -199,6 +202,11 @@ class CompareRealData:
         read_result = self.read_tensor(dump_result, input_param, npu_info, bench_info)
         if read_result.err_msg:
             return self.build_result(read_result, npu_info, bench_info)
+
+        # 2.5 tensor 后处理
+        read_result.n_value, read_result.b_value = self._tensor_postprocess_manager.process(
+            read_result.n_value, read_result.b_value, npu_info.data_name, bench_info.data_name
+        )
 
         # 3. 校验 tensor 数据合法性
         validate_tensor = ValidateTensor()
