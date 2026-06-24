@@ -4,6 +4,7 @@ build/
 dist/
 *.egg-info/
 test_output/
+artifacts/
 python/msprobe/scripts/
 .coverage
 .coverage.*
