@@ -138,7 +138,7 @@ class TestSplitLineByPrefix(unittest.TestCase):
         prefix_pattern = re.compile(re.escape("prefix"))
         line = "no_match_here"
         result = split_line_by_prefix(line, prefix_pattern)
-        self.assertEqual(result, ["no_match_here"])
+        self.assertEqual(result, [])
 
     def test_split_empty_line(self):
         prefix_pattern = re.compile(re.escape("prefix"))

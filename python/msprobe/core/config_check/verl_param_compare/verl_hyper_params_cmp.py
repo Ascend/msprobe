@@ -69,6 +69,6 @@ def verl_compare_hyper_params(npu_config, bench_config, output_dirpath):
 
     output_file = os.path.join(real_output_dirpath, "hyper_params_compare.csv")
     df = pd.DataFrame(rows, columns=CompareConst.VERL_HYPER_PARAM_COMPARE_COLUM)
-    write_df_to_csv(df, output_file)
+    write_df_to_csv(df, output_file, encoding='utf-8-sig')
 
     logger.info(f"Saving verl compare file to disk: {output_file}")

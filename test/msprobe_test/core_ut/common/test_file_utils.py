@@ -349,7 +349,8 @@ class TestCSVOperations:
                 str(self.csv_file),
                 mode='w',
                 header=True,
-                index=False
+                index=False,
+                encoding='utf-8'
             )
 
         # Test invalid data type
