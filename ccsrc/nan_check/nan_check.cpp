@@ -29,6 +29,7 @@ extern "C"
     extern aclError aclrtNpuClearFloatOverFlowStatus(uint32_t checkMode, aclrtStream stream);
     extern aclError aclrtGetFloatOverflowStatus(void* outputAddr, uint64_t outputSize, aclrtStream stream);
     extern aclError aclrtResetFloatOverflowStatus(aclrtStream stream);
+    extern aclError aclrtSetStreamOverflowSwitch(aclrtStream stream, uint32_t flag);
 }
 
 /**
@@ -52,6 +53,12 @@ at::Tensor npu_over_flow(const at::Tensor& out_tensor)
         std::cout << "aclrtNpuGetFloatOverFlowStatus ret is not ACL_SUCCESS" << std::endl;
     }
 
+    ret = aclrtSetStreamOverflowSwitch(stream, 0U);
+    if (ret != ACL_SUCCESS)
+    {
+        std::cout << "aclrtSetStreamOverflowSwitch ret is not ACL_SUCCESS" << std::endl;
+    }
+
     return out_tensor;
 }
 
@@ -63,8 +70,14 @@ void npu_clear_over_flow(const at::Device& device)
     c10::DeviceGuard guard(device);
     auto stream = c10_npu::getCurrentNPUStream();
 
+    auto ret = aclrtSetStreamOverflowSwitch(stream, 1U);
+    if (ret != ACL_SUCCESS)
+    {
+        std::cout << "aclrtSetStreamOverflowSwitch ret is not ACL_SUCCESS" << std::endl;
+    }
+
     uint32_t checkMode = 0;
-    auto ret = aclrtNpuClearFloatOverFlowStatus(checkMode, stream);
+    ret = aclrtNpuClearFloatOverFlowStatus(checkMode, stream);
     if (ret != ACL_SUCCESS)
     {
         std::cout << "aclrtNpuClearFloatOverFlowStatus ret is not ACL_SUCCESS" << std::endl;
