@@ -37,19 +37,23 @@ def compare(bench_zip_path, cmp_zip_path, output_path):
 
 
 def _config_checking_parser(parser):
-    parser.add_argument('-d', '--dump', nargs='*', help='Collect the train config into a zip file')
-    parser.add_argument('-c', '--compare', nargs=2, help='Compare two zip files or checkpoints')
-    parser.add_argument(
+    group = parser.add_argument_group('Select one of the following operations, multiple selections are not permitted.')
+    mutex = group.add_mutually_exclusive_group(required=False)
+    mutex.add_argument('-d', '--dump', nargs='*', help='Collect the train config into a zip file')
+    mutex.add_argument('-c', '--compare', nargs=2, help='Compare two zip files or checkpoints')
+    mutex.add_argument(
         '-vc',
         '--verl-compare',
         nargs=2,
-        help='Compare the parameter info in the configuration file filtered from the verl train logs for NPU and bench',
+        help='Compare the parameter info in the configuration file filtered from the verl train logs for NPU and bench,'
+        'the first argument is the log to be compared(eg:NPU_log), and the second argument is the bench log(eg:bench_log).',
     )
-    parser.add_argument(
+    mutex.add_argument(
         '-vv',
         '--verl-verify',
         nargs='+',
-        help='Verify the parameter info in the configuration file for target and bench',
+        help='Verify the parameter info in the configuration file for target and bench, the first argument is an optional '
+        'benchmark configuration file(eg:bench_yaml), and the second argument is a mandatory target log that must be passed in(eg:target_log)',
     )
     parser.add_argument(
         '-o',

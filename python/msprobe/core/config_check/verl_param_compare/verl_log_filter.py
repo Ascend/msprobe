@@ -23,6 +23,9 @@ from msprobe.core.common.file_utils import FileOpen, save_json, check_file_or_di
 from msprobe.core.common.log import logger
 
 
+PRE_LINE_REDUCE_VALUE_PATTERN = re.compile(r"^(?:'[^']*'|-?\d+(?:\.\d+)?|None|True|False|\[\]|\{\})(?:[}\]\]]+,?|,)$")
+
+
 def check_is_end_of_list(s, stack, pre_stack) -> bool:
     pattern = r"^('[^']*'|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\]+}*,$"
     if not bool(re.fullmatch(pattern, s)):
@@ -50,10 +53,10 @@ def detect_prefix(log_lines, target_key: str = "{'actor_rollout_ref':") -> re.Pa
     return pattern
 
 
-def split_line_by_prefix(log_line, prefix_pattern: re.Pattern) -> str:
+def split_line_by_prefix(log_line, prefix_pattern: re.Pattern) -> list:
     matches = list(prefix_pattern.finditer(log_line))
     if not matches:
-        return [log_line.strip()] if log_line.strip() else []
+        return []
     parts = []
     for i, m in enumerate(matches):
         start = m.end()  # end of predix
@@ -116,6 +119,138 @@ def update_depth_square_bracket(in_string, ch, depth, square_bracket_stack):
     return depth, square_bracket_stack
 
 
+def handle_closing_bracket(line: str, pos: int, ch: str, stack: list, blocks: list):
+    if not stack:
+        return
+
+    left_char, left_start = stack.pop()
+    if (left_char == '{' and ch == '}') or (left_char == '[' and ch == ']'):
+        content = line[left_start + 1 : pos]
+        if left_char == '{':
+            test_str = '{' + content + '}'
+        else:
+            test_str = '[' + content + ']'
+        try:
+            ast.parse(test_str, mode='eval')
+            is_valid = True
+        except SyntaxError:
+            is_valid = False
+        blocks.append((left_start, pos, left_char, is_valid))
+    else:
+        stack.append((left_char, left_start))
+
+
+def update_quote_state(ch, in_single, in_double):
+    if ch == "'" and not in_double:
+        in_single = not in_single
+    elif ch == '"' and not in_single:
+        in_double = not in_double
+    return in_single, in_double
+
+
+def get_list_dict_blocks(line):
+    """
+    Scan and record all matching brace/bracket blocks and determine their validity
+    """
+    in_single = False
+    in_double = False
+    stack = []
+    blocks = []
+
+    i = 0
+    while i < len(line):
+        ch = line[i]
+        in_single, in_double = update_quote_state(ch, in_single, in_double)
+        if in_single or in_double:
+            i += 1
+            continue
+
+        # If not inside quotes, process brackets, braces
+        if ch in '{[':
+            stack.append((ch, i))
+        elif ch in '}]':
+            handle_closing_bracket(line, i, ch, stack, blocks)
+        i += 1
+    return blocks
+
+
+def find_cleaned_line_end_comma(line: str) -> int:
+    if line.count(',') == 1 and line.endswith(','):
+        return -1  # default all line is valid
+
+    blocks = get_list_dict_blocks(line)
+    # Valid block ranges (inside only, excluding brackets) indicate whether a comma is ignored.
+    valid_ranges = []
+    for start, end, _, valid in blocks:
+        if valid:
+            valid_ranges.append((start + 1, end))
+
+    # Scan from left to right, to find the first comma not in effective as the end comma
+    in_single = False
+    in_double = False
+
+    for idx, ch in enumerate(line):
+        in_single, in_double = update_quote_state(ch, in_single, in_double)
+        if in_single or in_double:
+            continue
+
+        if ch == ',':
+            # check the comma is in any effective blocks
+            inside_valid = False
+            for start, end in valid_ranges:
+                if start <= idx < end:
+                    inside_valid = True
+                    break
+            if not inside_valid:
+                return idx
+
+    return -1
+
+
+def delete_invalid_info(line):
+    end_indx = find_cleaned_line_end_comma(line)
+    if end_indx != -1 and end_indx + 1 <= len(line):
+        return line[: end_indx + 1]
+
+    return line
+
+
+def is_pre_line_reduce_value(s, depth):
+    if depth != 0 and not s.endswith(","):
+        return False
+    return bool(PRE_LINE_REDUCE_VALUE_PATTERN.fullmatch(s))
+
+
+def check_is_valid_cleaned_line(cleaned, square_bracket_stack, config_lines, depth):
+    if '\':' in cleaned:
+        return True
+    if '[' in square_bracket_stack and is_generic_format(cleaned):
+        return True
+    # subsequent judgment is based on the case where a key-value pair is separated,
+    # and requires that config_lines has at least one line of data.
+    if not config_lines:
+        return False
+    # handle cases where keys and values are printed separately in logs
+    if config_lines[-1].endswith(": ") and is_pre_line_reduce_value(cleaned, depth):
+        return True
+    if config_lines[-1].endswith(":") and is_pre_line_reduce_value(cleaned, depth):
+        config_lines[-1] = config_lines[-1] + ' '
+        return True
+    # handle comma is printed separately in logs
+    if not config_lines[-1].endswith(",") and cleaned.endswith(","):
+        return True
+    # handle cases where keys and values are printed separately in logs, where value with ":"
+    if bool(re.fullmatch(r'^(["\'])([^"\']+)\1$', cleaned)):
+        return True
+    if config_lines[-1].endswith("'") and cleaned.startswith(":"):
+        # after 2 chars ": "
+        if len(cleaned) > 2 and is_pre_line_reduce_value(cleaned[2:], depth):
+            return True
+        config_lines.pop()
+
+    return False
+
+
 def extract_dict(text: str) -> list:
     lines = text.splitlines()
     target_key = "{'actor_rollout_ref':"
@@ -136,15 +271,18 @@ def extract_dict(text: str) -> list:
         for cleaned in cleaned_lines:
             pre_square_bracket_stack = square_bracket_stack.copy()
             pre_depth = depth
-            for ch in cleaned:
+            cleaned = delete_invalid_info(cleaned)
+            for i, ch in enumerate(cleaned):
                 if ch in ('"', "'"):
                     in_string, quote_char = get_in_string_value(ch, in_string, quote_char)
                     continue
 
                 # Only count brace depth when not inside a string
                 depth, square_bracket_stack = update_depth_square_bracket(in_string, ch, depth, square_bracket_stack)
-
-            if ('\':' in cleaned) or ('[' in square_bracket_stack and is_generic_format(cleaned)):
+                if depth == 0:
+                    cleaned = cleaned[: i + 1]
+                    break
+            if check_is_valid_cleaned_line(cleaned, square_bracket_stack, config_lines, depth):
                 config_lines.append(cleaned)
             elif square_bracket_stack != pre_square_bracket_stack:
                 if check_is_end_of_list(cleaned, square_bracket_stack, pre_square_bracket_stack):

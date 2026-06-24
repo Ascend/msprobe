@@ -661,7 +661,7 @@ def read_csv(filepath, as_pd=True, header='infer'):
     return csv_data
 
 
-def write_df_to_csv(data, filepath, mode="w", header=True):
+def write_df_to_csv(data, filepath, mode="w", header=True, encoding='utf-8'):
     if not isinstance(data, pd.DataFrame):
         raise ValueError("The data type of data is not supported. Only support pd.DataFrame.")
 
@@ -686,7 +686,7 @@ def write_df_to_csv(data, filepath, mode="w", header=True):
             suffix = "" if nums_file == 1 else f"_part_{i + 1}"
             output_file = os.path.join(base_path, f"{name}{suffix}{ext}")
 
-            data_slice.to_csv(output_file, mode=mode, header=header, index=False)
+            data_slice.to_csv(output_file, encoding=encoding, mode=mode, header=header, index=False)
 
     except Exception as e:
         logger.error(f'Save csv file "{output_file}" failed: {e}')
