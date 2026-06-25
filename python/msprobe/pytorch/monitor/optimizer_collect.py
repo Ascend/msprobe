@@ -24,7 +24,7 @@ from msprobe.pytorch.monitor.module_metric import get_metrics
 from msprobe.core.common.const import MonitorConst
 
 
-class OptimizerMon(object):
+class OptimizerMon:
     def __init__(self, torch_opt) -> None:
         self.fp16_to_fp32_param = {}
         self.torch_opt = torch_opt
@@ -131,6 +131,7 @@ class OptimizerMon(object):
         def patch_sync(sync_grad_func):
             def wrapper(bucket, *args, **kwargs):
                 grad_dict = {}
+                param_source = "params"
                 # Megatron between core_r0.6.0 and core_r0.8.0, this bucket is Bucket.
                 # When megatron is core_r0.9.0, this bucket is _ParamAndGradBucketGroup.
                 # In megatron version core_r0.9.0, func start_grad_sync from Bucket moved to _ParamAndGradBucketGroup.
@@ -138,9 +139,16 @@ class OptimizerMon(object):
                     param_attr = bucket.params
                 elif hasattr(bucket, "params_list"):
                     param_attr = bucket.params_list
+                    param_source = "params_list"
                 else:
                     raise AttributeError(
-                        f"class {bucket.__class__.__name__} has no attribute 'params' or 'params_list', please check!")
+                        f"class {bucket.__class__.__name__} has no attribute 'params' or 'params_list', please check!"
+                    )
+                logger.debug(
+                    f"megatron sync_grad_func enter: bucket_type={bucket.__class__.__name__}, "
+                    f"param_source={param_source}, bucket_param_count={len(param_attr)}, "
+                    f"target_param_count={len(monitor.param2name)}"
+                )
                 bucket_params_id_list = [id(params) for params in param_attr]
                 for param, name in monitor.param2name.items():
                     if id(param) not in bucket_params_id_list:
@@ -151,10 +159,13 @@ class OptimizerMon(object):
                         continue
                     tag = monitor.name2tag.get(name, {}).get(MonitorConst.PRE_GRAD)
                     if tag is None:
+                        logger.debug(f"megatron sync_grad_func skip param without tag: name={name}")
                         continue
                     grad_dict[tag] = grad
                     monitor.register_param_call_id("sync_grad_func", tag)
+                logger.debug(f"megatron sync_grad_func collected grad_count={len(grad_dict)}")
                 get_metrics(monitor.ops, grad_dict, monitor.eps, monitor.grad_context.pre)
+                logger.debug(f"megatron sync_grad_func pre_metric_count={len(monitor.grad_context.pre)}")
                 out = sync_grad_func(bucket, *args, **kwargs)
                 return out
 
@@ -162,6 +173,7 @@ class OptimizerMon(object):
 
         try:
             from megatron.core.distributed.param_and_grad_buffer import Bucket
+
             self.origin_funcs.append(Bucket.start_grad_sync)
             self.bucket_class = Bucket
             Bucket.start_grad_sync = patch_sync(Bucket.start_grad_sync)
@@ -172,6 +184,7 @@ class OptimizerMon(object):
 
         try:
             from megatron.core.distributed.param_and_grad_buffer import _ParamAndGradBucketGroup
+
             self.origin_funcs.append(_ParamAndGradBucketGroup.start_grad_sync)
             self.bucket_class = _ParamAndGradBucketGroup
             _ParamAndGradBucketGroup.start_grad_sync = patch_sync(_ParamAndGradBucketGroup.start_grad_sync)
@@ -207,7 +220,8 @@ class MegatronMixPrecisionOptimizerMon(OptimizerMon):
         if not (hasattr(torch_opt, "float16_groups") and hasattr(torch_opt, "fp32_from_float16_groups")):
             logger.warning(
                 "megatron class Float16OptimizerWithFloat16Params should have float16_groups and "
-                "fp32_from_float16_groups, please check Megatron-LM version.")
+                "fp32_from_float16_groups, please check Megatron-LM version."
+            )
         else:
             for fp16_group, fp32_group in zip(torch_opt.float16_groups, torch_opt.fp32_from_float16_groups):
                 for fp16_param, fp32_param in zip(fp16_group, fp32_group):
@@ -219,10 +233,12 @@ class MegatronDistributedOptimizerMon(OptimizerMon):
         if not (hasattr(torch_opt, "model_float16_groups") and hasattr(torch_opt, "shard_fp32_from_float16_groups")):
             logger.warning(
                 "megatron class DistributedOptimizer should have model_float16_groups and "
-                "shard_fp32_from_float16_groups, please check Megatron-LM version.")
+                "shard_fp32_from_float16_groups, please check Megatron-LM version."
+            )
         else:
-            for fp16_group, shard_fp32_group in zip(torch_opt.model_float16_groups,
-                                                    torch_opt.shard_fp32_from_float16_groups):
+            for fp16_group, shard_fp32_group in zip(
+                torch_opt.model_float16_groups, torch_opt.shard_fp32_from_float16_groups
+            ):
                 for fp16_param, shard_fp32_param in zip(fp16_group, shard_fp32_group):
                     self.fp16_to_fp32_param[fp16_param] = shard_fp32_param
 
@@ -373,14 +389,23 @@ class DeepSpeedZeroOptimizerStage1or2Mon(DeepSpeedZeroOptimizerMon):
         def patch_sync(reduce_func):
             def wrapper(zero_optimizer, *args, **kwargs):
                 grad_dict = {}
+                logger.debug(
+                    f"deepspeed sync_grad_func enter: bucket_count={len(zero_optimizer.params_in_ipg_bucket)}, "
+                    f"target_param_count={len(monitor.param2name)}"
+                )
                 for i, param, _ in zero_optimizer.params_in_ipg_bucket:
                     if isinstance(param, int):  # for ds >= 0.17.0
                         param = zero_optimizer.bit16_groups[i][param]
                     name = monitor.param2name[param]
                     tag = monitor.name2tag.get(name, {}).get(MonitorConst.PRE_GRAD)
+                    if tag is None:
+                        logger.debug(f"deepspeed sync_grad_func skip param without tag: name={name}")
+                        continue
                     grad_dict[tag] = zero_optimizer.get_gradient_for_reduction(param)
                     monitor.register_param_call_id("sync_grad_func", tag)
+                logger.debug(f"deepspeed sync_grad_func collected grad_count={len(grad_dict)}")
                 get_metrics(monitor.ops, grad_dict, monitor.eps, monitor.grad_context.pre)
+                logger.debug(f"deepspeed sync_grad_func pre_metric_count={len(monitor.grad_context.pre)}")
                 out = reduce_func(zero_optimizer, *args, **kwargs)
                 return out
 
@@ -388,16 +413,15 @@ class DeepSpeedZeroOptimizerStage1or2Mon(DeepSpeedZeroOptimizerMon):
 
         try:
             from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
-            self.origin_funcs = [
-                DeepSpeedZeroOptimizer.average_tensor,
-                DeepSpeedZeroOptimizer.buffered_reduce_fallback
-            ]
+
+            self.origin_funcs = [DeepSpeedZeroOptimizer.average_tensor, DeepSpeedZeroOptimizer.buffered_reduce_fallback]
             DeepSpeedZeroOptimizer.average_tensor = patch_sync(DeepSpeedZeroOptimizer.average_tensor)
-            DeepSpeedZeroOptimizer.buffered_reduce_fallback = \
-                patch_sync(DeepSpeedZeroOptimizer.buffered_reduce_fallback)
+            DeepSpeedZeroOptimizer.buffered_reduce_fallback = patch_sync(
+                DeepSpeedZeroOptimizer.buffered_reduce_fallback
+            )
             monitor.enable_deepspeed = True
             logger.info('deepspeed enabled')
-        except Exception as e:
+        except Exception:
             monitor.enable_deepspeed = False | monitor.enable_deepspeed
             logger.warning('Seems using deepspeed zero 1 or 2. But patch average tensor failed')
 
@@ -406,6 +430,7 @@ class DeepSpeedZeroOptimizerStage1or2Mon(DeepSpeedZeroOptimizerMon):
             return
 
         from deepspeed.runtime.zero.stage_1_and_2 import DeepSpeedZeroOptimizer
+
         DeepSpeedZeroOptimizer.average_tensor = self.origin_funcs[0]
         DeepSpeedZeroOptimizer.buffered_reduce_fallback = self.origin_funcs[1]
 
@@ -442,7 +467,7 @@ class OptimizerMonFactory:
         "BF16_Optimizer": DeepSpeedZeroOptimizerStage0Mon,
         "DeepSpeedZeroOptimizer": DeepSpeedZeroOptimizerStage1or2Mon,
         "DeepSpeedZeroOptimizer_Stage3": DeepSpeedZeroOptimizerStage3Mon,
-        "Adam": OptimizerMon
+        "Adam": OptimizerMon,
     }
 
     @staticmethod

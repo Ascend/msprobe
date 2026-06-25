@@ -17,6 +17,7 @@
 import os.path
 import shutil
 import unittest
+from collections import defaultdict
 from unittest.mock import patch, MagicMock
 
 import pandas as pd
@@ -223,6 +224,71 @@ class TestTrainerMon(unittest.TestCase):
         self.mon.optimizer_context[optimizer] = OptimizerContext()
         self.mon.dynamic_monitor(optimizer)
         self.assertEqual(self.mon.config_timestamp, 123456)
+
+    @patch("msprobe.pytorch.monitor.module_hook.logger.debug")
+    def test_set_config_logs_normalized_summary(self, mock_debug):
+        self.mon.set_config()
+        logged_messages = [call.args[0] for call in mock_debug.call_args_list]
+        self.assertTrue(any("set_config normalized" in msg for msg in logged_messages))
+        self.assertTrue(any("set_config writer setup" in msg for msg in logged_messages))
+
+    @patch("msprobe.pytorch.monitor.module_hook.logger.debug")
+    def test_generate_wgrad_metrics_logs_counts(self, mock_debug):
+        self.mon.wg_distribution = True
+        self.mon.ops = []
+        self.mon.eps = 1e-8
+        post_grad_dict = {"tag": torch.tensor([1.0])}
+
+        with patch("msprobe.pytorch.monitor.module_hook.get_metrics") as mock_get_metrics:
+            self.mon.generate_wgrad_metrics(post_grad_dict)
+
+        mock_get_metrics.assert_called_once()
+        logged_messages = [call.args[0] for call in mock_debug.call_args_list]
+        self.assertTrue(any("generate_wgrad_metrics start" in msg for msg in logged_messages))
+        self.assertTrue(any("generate_wgrad_metrics finish" in msg for msg in logged_messages))
+
+    @patch("msprobe.pytorch.monitor.module_hook.logger.debug")
+    def test_write_grad_tb_logs_counts(self, mock_debug):
+        self.mon.wg_distribution = True
+        self.mon.monitor_mbs_grad = True
+        self.mon.ops = []
+        self.mon.grad_context.pre = {"pre": torch.tensor([1.0])}
+        self.mon.grad_context.post = {"post": torch.tensor([2.0])}
+        self.mon.summary_writer = MagicMock()
+
+        self.mon.write_grad_tb(step=3)
+
+        self.mon.summary_writer.write_metrics.assert_any_call(
+            self.mon.ops, self.mon.grad_context.pre, 3, 'grad_unreduced', use_micro_step=True
+        )
+        self.mon.summary_writer.write_metrics.assert_any_call(
+            self.mon.ops, self.mon.grad_context.post, 3, 'grad_reduced'
+        )
+        logged_messages = [call.args[0] for call in mock_debug.call_args_list]
+        self.assertTrue(any("write_grad_tb start" in msg for msg in logged_messages))
+
+    @patch("msprobe.pytorch.monitor.module_hook.logger.debug")
+    def test_register_chunk_logs_mapping(self, mock_debug):
+        self.mon.config["targets"] = {"layer": {}}
+        self.mon.param2name = defaultdict(str)
+        self.mon.name2param = {}
+        self.mon.origin2squash = {}
+        self.mon.duplicate_param = {}
+        self.mon.name2tag = {}
+        self.mon.rank = 0
+
+        class DummyModule(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layer = torch.nn.Linear(2, 2)
+
+        module = DummyModule()
+        self.mon._register_chunk(module, "0:")
+
+        logged_messages = [call.args[0] for call in mock_debug.call_args_list]
+        self.assertTrue(any("_register_chunk start" in msg for msg in logged_messages))
+        self.assertTrue(any("_register_chunk mapped param" in msg for msg in logged_messages))
+        self.assertTrue(any("_register_chunk finish" in msg for msg in logged_messages))
 
     @patch("msprobe.pytorch.monitor.module_hook.is_recomputation", return_value=False)
     @patch("msprobe.pytorch.monitor.module_hook.get_entropy_metric")
@@ -459,9 +525,10 @@ class TestTrainerMon(unittest.TestCase):
         mock_save_json.assert_not_called()
         mock_getmtime.assert_not_called()
 
+    @patch("msprobe.pytorch.monitor.module_hook.logger.debug")
     @patch("msprobe.pytorch.monitor.module_hook.get_sign_matches")
     @patch("msprobe.pytorch.monitor.module_hook.get_metrics")
-    def test_hook_optimizer_mg_direction_branch(self, mock_get_metrics, mock_get_sign_matches):
+    def test_hook_optimizer_mg_direction_branch(self, mock_get_metrics, mock_get_sign_matches, mock_debug):
         class DummyOptimizer:
             def step(self):
                 return None
@@ -507,6 +574,9 @@ class TestTrainerMon(unittest.TestCase):
         pre_hook(optimizer, (), {})
         mock_get_sign_matches.assert_called_once()
         self.assertTrue(torch.equal(context.param_mg_direction["p1"], mock_get_sign_matches.return_value))
+        logged_messages = [call.args[0] for call in mock_debug.call_args_list]
+        self.assertTrue(any("optimizer_pre_step_hook enter" in msg for msg in logged_messages))
+        self.assertTrue(any("optimizer_pre_step_hook metrics prepared" in msg for msg in logged_messages))
 
     def test_hook_optimizer_patches_instance_step_only(self):
         class DummyOptimizer:
@@ -528,9 +598,10 @@ class TestTrainerMon(unittest.TestCase):
         result = optimizer1.step()
         self.assertEqual(result, "original_step")
 
+    @patch("msprobe.pytorch.monitor.module_hook.logger.debug")
     @patch("msprobe.pytorch.monitor.module_hook.get_metrics")
     @patch("torch.distributed.fsdp._runtime_utils._post_backward_hook")
-    def test_patch_fsdp_post_backward_hook(self, mock_post_hook, mock_get_metrics):
+    def test_patch_fsdp_post_backward_hook(self, mock_post_hook, mock_get_metrics, mock_debug):
         from msprobe.core.common.const import MonitorConst as MC
 
         class DummyFlatParam:
@@ -573,10 +644,14 @@ class TestTrainerMon(unittest.TestCase):
         args, _ = mock_get_metrics.call_args
         grad_dict = args[1]
         self.assertIn("pre_grad_tag", grad_dict)
+        logged_messages = [call.args[0] for call in mock_debug.call_args_list]
+        self.assertTrue(any("_post_backward_hook enter" in msg for msg in logged_messages))
+        self.assertTrue(any("_post_backward_hook collected pre_grad metrics" in msg for msg in logged_messages))
 
+    @patch("msprobe.pytorch.monitor.module_hook.logger.debug")
     @patch("msprobe.pytorch.monitor.module_hook.importlib.reload")
     @patch("msprobe.pytorch.monitor.module_hook.get_metrics")
-    def test_patch_fsdp2_foreach_reduce(self, mock_get_metrics, mock_reload):
+    def test_patch_fsdp2_foreach_reduce(self, mock_get_metrics, mock_reload, mock_debug):
         from msprobe.core.common.const import MonitorConst as MC
 
         # 构造假的 fully_shard 子模块，放入 sys.modules，避免环境缺少该模块时报错
@@ -620,6 +695,9 @@ class TestTrainerMon(unittest.TestCase):
         grad_dict = args[1]
         self.assertIn("pre_grad_tag", grad_dict)
         self.assertTrue(original_called["flag"])
+        logged_messages = [call.args[0] for call in mock_debug.call_args_list]
+        self.assertTrue(any("foreach_reduce enter" in msg for msg in logged_messages))
+        self.assertTrue(any("foreach_reduce collected pre_grad metrics" in msg for msg in logged_messages))
 
     def test_is_recording_module(self):
         # 1. 初始化核心属性

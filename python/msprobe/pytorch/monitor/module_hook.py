@@ -352,6 +352,16 @@ class TrainerMon:
             self.cc_pre_hook = self.cc_distribution.get('cc_pre_hook', False)
 
         self.common_info()
+        logger.debug(
+            "set_config normalized: "
+            f"start_step={self.start_step}, collect_times={self.collect_times}, "
+            f"step_interval={self.step_interval}, format={self.format}, ops_count={len(self.ops)}, "
+            f"module_ranks={self.module_rank_list}, xy_distribution={self.xy_distribution}, "
+            f"wg_distribution={self.wg_distribution}, mv_distribution={self.mv_distribution}, "
+            f"param_distribution={self.param_distribution}, cc_enabled={self.cc_distribution.get('enable', False)}, "
+            f"monitor_mbs_grad={self.monitor_mbs_grad}, print_struct={self.print_struct}, "
+            f"stack_info={self.stack_info}, recording_l2_features={self.recording_l2_features}"
+        )
 
         # 初始化AnomalyData工厂
         alert_setting = self.config.get('alert', {"rules": []})
@@ -371,8 +381,14 @@ class TrainerMon:
 
         writer = FORMAT_MAPPING[self.format]
         self.step_count_per_record = self.config.get('step_count_per_record', 1)
+        should_init_writer = (self.rank in self.module_rank_list) or len(self.module_rank_list) == 0
+        logger.debug(
+            f"set_config writer setup: writer={writer.__name__}, should_init_writer={should_init_writer}, "
+            f"tensorboard_dir={self.tensorboard_dir}, step_count_per_record={self.step_count_per_record}, "
+            f"anomaly_dump={self.anomaly_data_factory is not None}"
+        )
 
-        if (self.rank in self.module_rank_list) or len(self.module_rank_list) == 0:
+        if should_init_writer:
             self.summary_writer = writer(
                 WriterInput(
                     self.tensorboard_dir,
@@ -516,9 +532,18 @@ class TrainerMon:
 
     def generate_wgrad_metrics(self, post_grad_dict):
         if not self.wg_distribution:
+            logger.debug("generate_wgrad_metrics skipped because wg_distribution is disabled")
             return {}, {}
 
+        logger.debug(
+            f"generate_wgrad_metrics start: post_grad_count={len(post_grad_dict)}, "
+            f"existing_post_metric_count={len(self.grad_context.post)}"
+        )
         get_metrics(self.ops, post_grad_dict, self.eps, self.grad_context.post)
+        logger.debug(
+            f"generate_wgrad_metrics finish: post_metric_count={len(self.grad_context.post)}, "
+            f"pre_metric_count={len(self.grad_context.pre)}"
+        )
         return self.grad_context.post, self.grad_context.pre
 
     def generate_xy_metrics(self):
@@ -604,8 +629,13 @@ class TrainerMon:
 
     def write_grad_tb(self, step):
         if not self.wg_distribution:
+            logger.debug(f"write_grad_tb skipped at step={step} because wg_distribution is disabled")
             return
 
+        logger.debug(
+            f"write_grad_tb start: step={step}, monitor_mbs_grad={self.monitor_mbs_grad}, "
+            f"pre_metric_count={len(self.grad_context.pre)}, post_metric_count={len(self.grad_context.post)}"
+        )
         self.summary_writer.write_metrics(
             self.ops, self.grad_context.pre, step, 'grad_unreduced', use_micro_step=self.monitor_mbs_grad
         )
@@ -615,6 +645,12 @@ class TrainerMon:
         # in DDP by default use params_have_main_grad
         def optimizer_pre_step_hook(optimizer, args, kwargs):
             context = self.optimizer_context[optimizer]
+            logger.debug(
+                f"optimizer_pre_step_hook enter: step={context.step}, start_step={self.start_step}, "
+                f"step_interval={self.step_interval}, optimizer_type={optimizer.__class__.__name__}, "
+                f"wg_distribution={self.wg_distribution}, mv_distribution={self.mv_distribution}, "
+                f"ur_distribution={self.ur_distribution}, mg_direction={self.mg_direction}"
+            )
 
             if (
                 self.print_struct
@@ -633,11 +669,19 @@ class TrainerMon:
 
             # skip generate metrics
             if context.step < self.start_step or (context.step - self.start_step) % self.step_interval != 0:
+                logger.debug(
+                    f"optimizer_pre_step_hook skip: step={context.step}, start_step={self.start_step}, "
+                    f"step_interval={self.step_interval}"
+                )
                 return
 
             grad_dict = {}
             if self.wg_distribution:
                 grad_dict = self.optimizer_mon.fetch_grad(self, self.param2name)
+                logger.debug(
+                    f"optimizer_pre_step_hook fetched grads: grad_count={len(grad_dict)}, "
+                    f"target_param_count={len(self.param2name)}"
+                )
 
             mv_result = None
             if self.mv_distribution or self.ur_distribution or self.mg_direction:
@@ -647,10 +691,21 @@ class TrainerMon:
                 context.param_exp_avg_sq = mv_result.exp_avg_sq
                 context.param_adam_update = mv_result.update
                 context.param_adam_ratio = mv_result.ratio
+                logger.debug(
+                    f"optimizer_pre_step_hook fetched mv: exp_avg_count={len(mv_result.exp_avg)}, "
+                    f"exp_avg_sq_count={len(mv_result.exp_avg_sq)}, update_count={len(mv_result.update)}, "
+                    f"ratio_count={len(mv_result.ratio)}"
+                )
 
             _, _ = self.generate_wgrad_metrics(grad_dict)
             self.generate_mv_metrics(context)
             self.generate_param_metrics(context, MonitorConst.PRE_PARAM)
+            logger.debug(
+                f"optimizer_pre_step_hook metrics prepared: post_grad_metric_count={len(self.grad_context.post)}, "
+                f"pre_grad_metric_count={len(self.grad_context.pre)}, param_metric_count={len(context.param_metric)}, "
+                f"exp_avg_metric_count={len(context.exp_avg_metric)}, "
+                f"exp_avg_sq_metric_count={len(context.exp_avg_sq_metric)}"
+            )
 
             tbtag_tensor_map = {}
             if self.mg_direction:
@@ -673,7 +728,12 @@ class TrainerMon:
                 metric_dict.update(cc.data)
                 cc.reset()
 
+            logger.debug(
+                f"optimizer_pre_step_hook metric aggregation: mg_direction_metric_count={len(tbtag_tensor_map)}, "
+                f"other_metric_count={len(metric_dict)}"
+            )
             if not metric_dict:
+                logger.debug(f"optimizer_pre_step_hook no extra metrics generated at step={context.step}")
                 return
             context.metric_dict = metric_dict
             return
@@ -683,8 +743,10 @@ class TrainerMon:
             self.generate_param_metrics(context, MonitorConst.POST_PARAM)
 
         if self.optimizer_hooked:
+            logger.debug("hook_optimizer skipped because optimizer hooks are already registered")
             return
 
+        logger.debug(f"hook_optimizer register hooks for optimizer_type={optimizer.__class__.__name__}")
         self.pre_step_hooks.append(optimizer_pre_step_hook)
         self.post_step_hooks.append(optimizer_post_step_hook)
 
@@ -740,8 +802,18 @@ class TrainerMon:
                 step_condition = (
                     context.step >= self.start_step and (context.step - self.start_step) % self.step_interval == 0
                 )
+                logger.debug(
+                    f"step_final_hook enter: step={context.step}, monitoring={self.monitoring}, rank={rank}, "
+                    f"module_rank_valid={module_rank_valid}, step_condition={step_condition}, "
+                    f"has_collect_times={self.has_collect_times}, collect_times={self.collect_times}"
+                )
                 if module_rank_valid and step_condition:
                     self.has_collect_times += 1
+                    logger.debug(
+                        f"step_final_hook write path: step={context.step}, collect_progress="
+                        f"{self.has_collect_times}/{self.collect_times}, pre_grad_metric_count={len(self.grad_context.pre)}, "
+                        f"post_grad_metric_count={len(self.grad_context.post)}, other_metric_count={len(context.metric_dict)}"
+                    )
 
                     if self.anomaly_data_factory:
                         self.anomaly_data_factory.set_call_id(self.param_name_call_id)
@@ -784,9 +856,13 @@ class TrainerMon:
                     self.param_name_call_id.clear()
 
                     if self.has_collect_times >= self.collect_times:
+                        logger.debug(
+                            f"step_final_hook reached collect limit at step={context.step}, removing all hooks"
+                        )
                         self._remove_all_hooks_final(optimizer)
 
             context.step += 1
+            logger.debug(f"step_final_hook finish: next_step={context.step}")
             self.dynamic_monitor(optimizer)
 
         def patch_step(func, optimizer):
@@ -959,15 +1035,22 @@ class TrainerMon:
         return False
 
     def _register_chunk(self, model_chunk, prefix):
+        logger.debug(
+            f"_register_chunk start: prefix={prefix}, model_chunk_type={model_chunk.__class__.__name__}, "
+            f"fsdp_wrapped_module={self.fsdp_wrapped_module}, fsdp2_wrapped_module={self.fsdp2_wrapped_module}"
+        )
         if isinstance(model_chunk, FSDP):
             if not model_chunk._use_orig_params:
                 raise ValueError("Only Support fsdp1 with use_orig_params=True")
             self.fsdp_wrapped_module = True
+            logger.debug(f"_register_chunk detected fsdp1 wrapper for prefix={prefix}")
+        registered_count = 0
         for param_name, param in model_chunk.named_parameters():
             if not param.requires_grad:
                 continue
             if not self.fsdp2_wrapped_module and param.__class__.__name__ == "DTensor":
                 self.fsdp2_wrapped_module = True
+                logger.debug(f"_register_chunk detected fsdp2 dtensor param: param_name={param_name}, prefix={prefix}")
             if self.fsdp_wrapped_module:  # FSDP1需要记录完整的不被target限制的flat权重名，以供后续对flat解包
                 self.fsdp_param_name_map[id(param)] = param_name
 
@@ -991,6 +1074,16 @@ class TrainerMon:
                     MonitorConst.POST_PARAM,
                 ]
                 self.name2tag[name] = {k: get_summary_writer_tag_name(name, k, self.rank) for k in keywords}
+                registered_count += 1
+                logger.debug(
+                    f"_register_chunk mapped param: origin_name={param_name}, mapped_name={name}, "
+                    f"duplicate={self.duplicate_param.get(name, False)}, fsdp_flat_mapped={id(param) in self.fsdp_param_name_map}"
+                )
+
+        logger.debug(
+            f"_register_chunk finish: prefix={prefix}, registered_count={registered_count}, "
+            f"name2param_count={len(self.name2param)}, origin2squash_count={len(self.origin2squash)}"
+        )
 
     def _register_param_name(self):
         for vpp_stage, model_chunk in enumerate(self.model):
@@ -1223,28 +1316,38 @@ class TrainerMon:
 
     def _patch_grad_sync(self):
         if not self.wg_distribution:
+            logger.debug("_patch_grad_sync skipped because wg_distribution is disabled")
             return
 
         if self.fsdp_wrapped_module:
+            logger.debug("_patch_grad_sync select fsdp1 post backward hook path")
             # patch fsdp _runtime_utils._post_backward_hook
             self._patch_fsdp_post_backward_hook()
             return
 
         if self.fsdp2_wrapped_module:
+            logger.debug("_patch_grad_sync select fsdp2 foreach_reduce path")
             # patch fsdp2 _fully_shard._fsdp_collectives.foreach_reduce
             self._patch_fsdp2_foreach_reduce()
             return
 
         if self.monitor_mbs_grad:
+            logger.debug("_patch_grad_sync select param_hook path because monitor_mbs_grad is enabled")
             self._hook_weights()
             return
 
+        logger.debug("_patch_grad_sync delegate to optimizer patch path")
         self.optimizer_mon.patch_grad_sync(self)
 
         if self.enable_megatron or self.enable_deepspeed:
+            logger.debug(
+                f"_patch_grad_sync using distributed optimizer path: enable_megatron={self.enable_megatron}, "
+                f"enable_deepspeed={self.enable_deepspeed}"
+            )
             return
 
         # default hook weights
+        logger.debug("_patch_grad_sync fallback to default param_hook path")
         self._hook_weights()
 
     def _patch_fsdp_post_backward_hook(self):
@@ -1270,10 +1373,18 @@ class TrainerMon:
                     offsets = handle._get_flat_param_offsets()
                     shapes = handle.flat_param._shapes
                     params = handle.flat_param._params
+                    logger.debug(
+                        f"_post_backward_hook enter: micro_step={handle.flat_param.micro_step}, "
+                        f"param_count={len(params)}, offsets_count={len(offsets)}, shape_count={len(shapes)}"
+                    )
                     for param, (start, end), local_shape in zip(params, offsets, shapes):
                         param_name = self.fsdp_param_name_map.get(id(param), "")
                         tag = self.name2tag.get(self.origin2squash.get(param_name, ""), {}).get(MonitorConst.PRE_GRAD)
                         if tag is None:
+                            logger.debug(
+                                f"_post_backward_hook skip param without tag: param_name={param_name}, "
+                                f"micro_step={handle.flat_param.micro_step}"
+                            )
                             continue
                         grad = handle.flat_param.grad[start : end + 1].reshape(local_shape)
                         if self.monitor_mbs_grad:
@@ -1281,6 +1392,10 @@ class TrainerMon:
                         grad_dict[tag] = grad
                         self.register_param_call_id("_post_backward_hook", tag)
                     get_metrics(self.ops, grad_dict, self.eps, self.grad_context.pre)
+                    logger.debug(
+                        f"_post_backward_hook collected pre_grad metrics: grad_count={len(grad_dict)}, "
+                        f"pre_metric_count={len(self.grad_context.pre)}"
+                    )
                 handle.flat_param.micro_step = (handle.flat_param.micro_step + 1) % self.micro_batch_number
                 out = _post_backward_hook(state, handle, *unused)
                 return out
@@ -1301,17 +1416,29 @@ class TrainerMon:
 
                 if self.monitor_mbs_grad or (fsdp_params[0].micro_step + 1 == self.micro_batch_number):
                     grad_dict = {}
+                    logger.debug(
+                        f"foreach_reduce enter: micro_step={fsdp_params[0].micro_step}, "
+                        f"param_count={len(fsdp_params)}, grad_count={len(unsharded_grads)}"
+                    )
                     for param, grad in zip(fsdp_params, unsharded_grads):
                         tag = self.name2tag.get(self.origin2squash.get(param._param_fqn, ""), {}).get(
                             MonitorConst.PRE_GRAD
                         )
                         if tag is None:
+                            logger.debug(
+                                f"foreach_reduce skip param without tag: param_fqn={param._param_fqn}, "
+                                f"micro_step={fsdp_params[0].micro_step}"
+                            )
                             continue
                         if self.monitor_mbs_grad:
                             tag = tag.replace('/', f'{MonitorConst.NAME_SEP}{fsdp_params[0].micro_step}/', 1)
                         grad_dict[tag] = grad
                         self.register_param_call_id("foreach_reduce", tag)
                     get_metrics(self.ops, grad_dict, self.eps, self.grad_context.pre)
+                    logger.debug(
+                        f"foreach_reduce collected pre_grad metrics: grad_count={len(grad_dict)}, "
+                        f"pre_metric_count={len(self.grad_context.pre)}"
+                    )
                 fsdp_params[0].micro_step = (fsdp_params[0].micro_step + 1) % self.micro_batch_number
                 out = foreach_reduce(fsdp_params, unsharded_grads, *unused)
                 return out
@@ -1338,6 +1465,10 @@ class TrainerMon:
                 key += f'{MonitorConst.NAME_SEP}{param.micro_step}'
 
             key = get_summary_writer_tag_name(key, 'acc_grad', self.rank)
+            logger.debug(
+                f"param_hook enter: name={name}, key={key}, micro_step={param.micro_step}, "
+                f"use_main_grad={self.params_have_main_grad}"
+            )
             self.register_param_call_id("param_hook", key)
             if self.monitor_mbs_grad or (param.micro_step + 1 == self.micro_batch_number):
                 if self.params_have_main_grad:
@@ -1345,9 +1476,11 @@ class TrainerMon:
                 else:
                     grad = param.grad
                 get_metrics(self.ops, {key: grad.clone()}, self.eps, self.grad_context.pre)
+                logger.debug(f"param_hook collected metric: key={key}, pre_metric_count={len(self.grad_context.pre)}")
             param.micro_step = (param.micro_step + 1) % self.micro_batch_number
 
         logger.info("hooking weight grads.")
+        logger.debug(f"_hook_weights register start: param_count={len(self.param2name)}")
         for param, name in self.param2name.items():
             setattr(param, 'micro_step', 0)
             param_tmp = param.expand_as(param)

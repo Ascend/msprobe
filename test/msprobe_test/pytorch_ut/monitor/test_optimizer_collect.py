@@ -1,4 +1,5 @@
 import unittest
+from collections import defaultdict
 from types import SimpleNamespace
 from unittest.mock import Mock, patch, MagicMock
 import sys
@@ -493,7 +494,8 @@ class TestPatchGradSyncWrapper(unittest.TestCase):
             delattr(bucket, 'params_list')
         return bucket
 
-    def test_wrapper_passes_args_and_kwargs(self):
+    @patch("msprobe.pytorch.monitor.optimizer_collect.logger.debug")
+    def test_wrapper_passes_args_and_kwargs(self, mock_debug):
         with patch.dict('sys.modules', {
             'megatron': MagicMock(),
             'megatron.core': MagicMock(),
@@ -525,10 +527,55 @@ class TestPatchGradSyncWrapper(unittest.TestCase):
             result = mock_bucket_module.Bucket.start_grad_sync(
                 bucket, 'arg1', 'arg2', key1='kwarg1', key2='kwarg2'
             )
-            
+
             self.assertEqual(result, 'sync_result')
             self.assertEqual(received_args, ['arg1', 'arg2'])
             self.assertEqual(received_kwargs, [('key1', 'kwarg1'), ('key2', 'kwarg2')])
+            logged_messages = [call.args[0] for call in mock_debug.call_args_list]
+            self.assertTrue(any("megatron sync_grad_func enter" in msg for msg in logged_messages))
+            self.assertTrue(any("megatron sync_grad_func collected grad_count" in msg for msg in logged_messages))
+
+
+class TestDeepSpeedPatchGradSync(unittest.TestCase):
+    @patch("msprobe.pytorch.monitor.optimizer_collect.logger.debug")
+    @patch("msprobe.pytorch.monitor.optimizer_collect.get_metrics")
+    def test_patch_grad_sync_logs_bucket_info(self, mock_get_metrics, mock_debug):
+        optimizer = DeepSpeedZeroOptimizerStage1or2Mon(MagicMock())
+        monitor = MagicMock()
+        param = torch.nn.Parameter(torch.randn(2, 3))
+        monitor.param2name = defaultdict(str, {param: "test_param"})
+        monitor.name2tag = {"test_param": {MonitorConst.PRE_GRAD: "tag1"}}
+        monitor.ops = []
+        monitor.eps = 1e-8
+        monitor.grad_context = SimpleNamespace(pre={})
+        monitor.register_param_call_id = MagicMock()
+
+        with patch.dict('sys.modules', {
+            'deepspeed': MagicMock(),
+            'deepspeed.runtime': MagicMock(),
+            'deepspeed.runtime.zero': MagicMock(),
+            'deepspeed.runtime.zero.stage_1_and_2': MagicMock(),
+        }):
+            stage_module = sys.modules['deepspeed.runtime.zero.stage_1_and_2']
+
+            class DummyZeroOptimizer:
+                average_tensor = staticmethod(lambda zero_optimizer, *args, **kwargs: "avg")
+                buffered_reduce_fallback = staticmethod(lambda zero_optimizer, *args, **kwargs: "fallback")
+
+            stage_module.DeepSpeedZeroOptimizer = DummyZeroOptimizer
+            optimizer.patch_grad_sync(monitor)
+            zero_optimizer = MagicMock()
+            zero_optimizer.params_in_ipg_bucket = [(0, param, None)]
+            zero_optimizer.bit16_groups = [[param]]
+            zero_optimizer.get_gradient_for_reduction.return_value = torch.ones_like(param)
+
+            result = stage_module.DeepSpeedZeroOptimizer.average_tensor(zero_optimizer)
+
+        self.assertEqual(result, "avg")
+        mock_get_metrics.assert_called_once()
+        logged_messages = [call.args[0] for call in mock_debug.call_args_list]
+        self.assertTrue(any("deepspeed sync_grad_func enter" in msg for msg in logged_messages))
+        self.assertTrue(any("deepspeed sync_grad_func collected grad_count" in msg for msg in logged_messages))
 
 
 class TestOptimizerMonFactory(unittest.TestCase):
