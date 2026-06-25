@@ -50,6 +50,7 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 | | | 精度预检 | 在昇腾NPU上扫描训练模型中的所有API，给出精度情况的诊断和分析 | [精度预检](./zh/accuracy_checker/pytorch_accuracy_checker_instruct.md) |
 | | | 分级可视化构图比对 | 将msProbe工具dump的精度数据进行解析，还原模型图结构，实现模型各个层级的精度数据比对 | [分级可视化构图比对](./zh/accuracy_compare/pytorch_visualization_instruct.md) |
 | | | 精度比对 | 将msProbe工具dump的精度数据进行精度比对，进而定位精度问题 | [精度比对](./zh/accuracy_compare/pytorch_accuracy_compare_instruct.md) |
+| | | 编译精度比对 | 对启用torch.compile的模型进行eager与compile逐模块精度对比，定位编译引入的前向、反向或loss差异 | [编译精度比对](./zh/accuracy_compare/pytorch_compile_accuracy_compare_instruct.md) |
 | | | 训练状态监测 | 收集和聚合模型训练过程中的网络层，优化器，通信算子的中间值，帮助诊断模型训练过程中计算，通信，优化器各部分出现的异常情况 | [训练状态监测](./zh/monitor_instruct.md) |
 | | | checkpoint比对 | 训练过程中或结束后，比较两个不同的checkpoint，评估模型相似度 | [checkpoint比对](./zh/checkpoint_compare_instruct.md) |
 | | | 整网首个溢出节点分析 | 多rank场景下通过dump数据找到首个出现Nan或Inf的节点 | [整网首个溢出节点分析](./zh/overflow_check/overflow_check_instruct.md) |
@@ -149,6 +150,7 @@ msProbe 的功能覆盖训练和推理等多种场景。请根据您的实际使
 数据采集 <zh/dump/pytorch_data_dump_instruct>
 分级可视化构图比对 <zh/accuracy_compare/pytorch_visualization_instruct>
 精度比对 <zh/accuracy_compare/pytorch_accuracy_compare_instruct>
+编译精度比对 <zh/accuracy_compare/pytorch_compile_accuracy_compare_instruct>
 训练状态监测 <zh/monitor_instruct.md>
 精度预检 <zh/accuracy_checker/pytorch_accuracy_checker_instruct>
 ```
