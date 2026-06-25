@@ -53,8 +53,24 @@ def _load_tensor_as_numpy(file_path):
 
 class RightMatmulPostprocessor(BaseTensorPostprocessor):
     def __init__(self, config):
-        self._npu_tensor_map = config.get("target_tensor_map") or {}
-        self._bench_tensor_map = config.get("golden_tensor_map") or {}
+        self._npu_tensor_map = self._build_reverse_map(config.get("target_tensor_map"))
+        self._bench_tensor_map = self._build_reverse_map(config.get("golden_tensor_map"))
+
+    @staticmethod
+    def _build_reverse_map(tensor_map):
+        if not tensor_map:
+            return {}
+        reverse_map = {}
+        for tensor_path, data_names in tensor_map.items():
+            if not isinstance(data_names, (list, tuple)):
+                logger.warning(
+                    f"Invalid data_names for tensor path '{tensor_path}': "
+                    f"expected a list, got {type(data_names).__name__}. Skipped."
+                )
+                continue
+            for data_name in data_names:
+                reverse_map[data_name] = tensor_path
+        return reverse_map
 
     def is_effective(self):
         return bool(self._npu_tensor_map or self._bench_tensor_map)

@@ -8,10 +8,14 @@
 #
 # 配置方式:
 #   mode: right_matmul                          # 后处理模式，固定为 right_matmul
-#   target_tensor_map:                            # target 侧 data_name 到校准 tensor 路径的映射
-#     "<target_data_name>": "<path/to/calibration_tensor>"
-#   golden_tensor_map:                            # golden 侧 data_name 到校准 tensor 路径的映射
-#     "<golden_data_name>": "<path/to/calibration_tensor>"
+#   target_tensor_map:                            # target 侧校准 tensor 路径到 data_name 列表的映射
+#     "<path/to/calibration_tensor>":
+#       - "<target_data_name_1>"
+#       - "<target_data_name_2>"
+#   golden_tensor_map:                            # golden 侧校准 tensor 路径到 data_name 列表的映射
+#     "<path/to/calibration_tensor>":
+#       - "<golden_data_name_1>"
+#       - "<golden_data_name_2>"
 #
 # 支持的校准 tensor 文件格式:
 #   - .pt: PyTorch 格式
@@ -19,17 +23,25 @@
 #
 # 注意事项:
 #   - data_name 即 dump.json 中记录的算子 data_name 字段对应的名称（如 "Tensor.to.0.forward.input.0.pt"）
-#   - target 和 golden 的 data_name 可能不同，分别用 target_tensor_map / golden_tensor_map 配置
+#   - target（target_path的dump.json） 和 golden（golden_path的dump.json）中的 data_name 可能不同，分别用 target_tensor_map / golden_tensor_map 配置
 #   - 校准 tensor 路径要求使用绝对路径
+#   - 同一个校准 tensor 可以对应多个 data_name，以列表形式配置，非列表形式的条目会被跳过并打印 warning
 #   - 未在对应 tensor_map 中配置的 data_name 不会被处理，直接返回原 tensor
 #   - 被处理的 tensor 会通过 logger.info 打印提示信息
 #
 # 示例:
 #   mode: right_matmul
 #   target_tensor_map:
-#     "Tensor.to.0.forward.input.0.pt": "/home/user/calib/to_scale.pt"
+#     "/home/user/calib/to_scale.pt":
+#       - "Tensor.to.0.forward.input.0.pt"
+#       - "Tensor.to.1.forward.input.0.pt"
+#     "/home/user/calib/to_offset.pt":
+#       - "Add.0.forward.output.0.pt"
 #   golden_tensor_map:
-#     "Tensor.to.0.forward.input.0.pt": "/home/user/calib/to_scale.npy"
+#     "/home/user/calib/to_scale.npy":
+#       - "Tensor.to.0.forward.input.0.pt"
+#     "/home/user/calib/to_offset.npy":
+#       - "Add.0.forward.output.0.pt"
 # =============================================================================
 
 mode: right_matmul

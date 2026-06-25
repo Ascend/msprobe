@@ -92,7 +92,7 @@ class TestLoadTensorAsNumpy(TestCase):
 class TestRightMatmulPostprocessor(TestCase):
 
     def test_no_match_returns_original(self):
-        processor = RightMatmulPostprocessor({"target_tensor_map": {"op_a": "/path/to/mat.npy"}})
+        processor = RightMatmulPostprocessor({"target_tensor_map": {"/path/to/mat.npy": ["op_a"]}})
         n_value = np.array([1.0, 2.0])
         b_value = np.array([3.0, 4.0])
         n_out, b_out = processor.process(n_value, b_value, "op_b", "op_c")
@@ -122,8 +122,8 @@ class TestRightMatmulPostprocessor(TestCase):
             return_value=mat,
         ) as mock_load:
             processor = RightMatmulPostprocessor({
-                "target_tensor_map": {"op_a": "/path/to/mat.npy"},
-                "golden_tensor_map": {"op_a": "/path/to/mat.npy"},
+                "target_tensor_map": {"/path/to/mat.npy": ["op_a"]},
+                "golden_tensor_map": {"/path/to/mat.npy": ["op_a"]},
             })
             n_value = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
             b_value = np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32)
@@ -139,7 +139,7 @@ class TestRightMatmulPostprocessor(TestCase):
             "msprobe.core.compare.tensor_postprocess.processor._load_tensor_as_numpy",
             return_value=npu_mat,
         ) as mock_load:
-            processor = RightMatmulPostprocessor({"target_tensor_map": {"npu_op": "/path/to/npu_mat.npy"}})
+            processor = RightMatmulPostprocessor({"target_tensor_map": {"/path/to/npu_mat.npy": ["npu_op"]}})
             n_value = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
             b_value = np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32)
             n_out, b_out = processor.process(n_value, b_value, "npu_op", "bench_op")
@@ -154,7 +154,7 @@ class TestRightMatmulPostprocessor(TestCase):
             "msprobe.core.compare.tensor_postprocess.processor._load_tensor_as_numpy",
             return_value=bench_mat,
         ) as mock_load:
-            processor = RightMatmulPostprocessor({"golden_tensor_map": {"bench_op": "/path/to/bench_mat.npy"}})
+            processor = RightMatmulPostprocessor({"golden_tensor_map": {"/path/to/bench_mat.npy": ["bench_op"]}})
             n_value = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
             b_value = np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32)
             n_out, b_out = processor.process(n_value, b_value, "npu_op", "bench_op")
@@ -179,8 +179,8 @@ class TestRightMatmulPostprocessor(TestCase):
             side_effect=load_side_effect,
         ) as mock_load:
             processor = RightMatmulPostprocessor({
-                "target_tensor_map": {"npu_op": "/path/to/npu.npy"},
-                "golden_tensor_map": {"bench_op": "/path/to/bench.npy"},
+                "target_tensor_map": {"/path/to/npu.npy": ["npu_op"]},
+                "golden_tensor_map": {"/path/to/bench.npy": ["bench_op"]},
             })
             n_value = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
             b_value = np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32)
@@ -197,8 +197,8 @@ class TestRightMatmulPostprocessor(TestCase):
             return_value=mat,
         ):
             processor = RightMatmulPostprocessor({
-                "target_tensor_map": {"op_a": "/path/to/matrix.npy"},
-                "golden_tensor_map": {"op_a": "/path/to/matrix.npy"},
+                "target_tensor_map": {"/path/to/matrix.npy": ["op_a"]},
+                "golden_tensor_map": {"/path/to/matrix.npy": ["op_a"]},
             })
             n_value = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
             b_value = np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32)
@@ -227,7 +227,8 @@ class TestTensorPostprocessManager(TestCase):
             "right_matmul.yaml",
             "mode: right_matmul\n"
             "target_tensor_map:\n"
-            '  "op_a": "/path/to/mat.npy"\n'
+            '  "/path/to/mat.npy":\n'
+            '    - "op_a"\n'
             "golden_tensor_map: {}\n",
         )
         manager = TensorPostprocessManager(config_dir=self._tmp_dir.name)
@@ -239,9 +240,11 @@ class TestTensorPostprocessManager(TestCase):
             "right_matmul.yaml",
             "mode: right_matmul\n"
             "target_tensor_map:\n"
-            '  "op_a": "/path/to/mat.npy"\n'
+            '  "/path/to/mat.npy":\n'
+            '    - "op_a"\n'
             "golden_tensor_map:\n"
-            '  "op_a": "/path/to/mat.npy"\n',
+            '  "/path/to/mat.npy":\n'
+            '    - "op_a"\n',
         )
         mat = np.array([[2.0, 0.0], [0.0, 2.0]], dtype=np.float32)
         with mock.patch(
@@ -261,7 +264,8 @@ class TestTensorPostprocessManager(TestCase):
             "right_matmul.yaml",
             "mode: right_matmul\n"
             "target_tensor_map:\n"
-            '  "op_a": "/path/to/mat.npy"\n'
+            '  "/path/to/mat.npy":\n'
+            '    - "op_a"\n'
             "golden_tensor_map: {}\n",
         )
         manager = TensorPostprocessManager(config_dir=self._tmp_dir.name)
@@ -276,9 +280,11 @@ class TestTensorPostprocessManager(TestCase):
             "right_matmul.yaml",
             "mode: right_matmul\n"
             "target_tensor_map:\n"
-            '  "npu_op": "/path/to/npu_mat.npy"\n'
+            '  "/path/to/npu_mat.npy":\n'
+            '    - "npu_op"\n'
             "golden_tensor_map:\n"
-            '  "bench_op": "/path/to/bench_mat.npy"\n',
+            '  "/path/to/bench_mat.npy":\n'
+            '    - "bench_op"\n',
         )
         npu_m = np.array([[2.0, 0.0], [0.0, 2.0]], dtype=np.float32)
         bench_m = np.array([[3.0, 0.0], [0.0, 3.0]], dtype=np.float32)
@@ -341,17 +347,21 @@ class TestTensorPostprocessManager(TestCase):
             "rm1.yaml",
             "mode: right_matmul\n"
             "target_tensor_map:\n"
-            '  "op_a": "/path/to/m1.npy"\n'
+            '  "/path/to/m1.npy":\n'
+            '    - "op_a"\n'
             "golden_tensor_map:\n"
-            '  "op_a": "/path/to/m1.npy"\n',
+            '  "/path/to/m1.npy":\n'
+            '    - "op_a"\n',
         )
         self._write_yaml(
             "rm2.yaml",
             "mode: right_matmul\n"
             "target_tensor_map:\n"
-            '  "op_a": "/path/to/m2.npy"\n'
+            '  "/path/to/m2.npy":\n'
+            '    - "op_a"\n'
             "golden_tensor_map:\n"
-            '  "op_a": "/path/to/m2.npy"\n',
+            '  "/path/to/m2.npy":\n'
+            '    - "op_a"\n',
         )
         m1 = np.array([[2.0, 0.0], [0.0, 2.0]], dtype=np.float32)
         m2 = np.array([[3.0, 0.0], [0.0, 3.0]], dtype=np.float32)
@@ -382,6 +392,37 @@ class TestTensorPostprocessManager(TestCase):
             f.write("not a config")
         manager = TensorPostprocessManager(config_dir=self._tmp_dir.name)
         self.assertEqual(len(manager._processors), 0)
+
+    def test_one_tensor_multiple_data_names_yaml(self):
+        self._write_yaml(
+            "right_matmul.yaml",
+            "mode: right_matmul\n"
+            "target_tensor_map:\n"
+            '  "/path/to/mat.npy":\n'
+            '    - "op_a"\n'
+            '    - "op_b"\n'
+            "golden_tensor_map: {}\n",
+        )
+        mat = np.array([[2.0, 0.0], [0.0, 2.0]], dtype=np.float32)
+        with mock.patch(
+            "msprobe.core.compare.tensor_postprocess.processor._load_tensor_as_numpy",
+            return_value=mat,
+        ):
+            manager = TensorPostprocessManager(config_dir=self._tmp_dir.name)
+            n_value = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
+            b_value = np.array([[5.0, 6.0], [7.0, 8.0]], dtype=np.float32)
+
+            n_out, b_out = manager.process(n_value, b_value, "op_a", "bench_op")
+            np.testing.assert_array_equal(n_out, np.array([[2.0, 4.0], [6.0, 8.0]], dtype=np.float32))
+            np.testing.assert_array_equal(b_out, b_value)
+
+            n_out, b_out = manager.process(n_value, b_value, "op_b", "bench_op")
+            np.testing.assert_array_equal(n_out, np.array([[2.0, 4.0], [6.0, 8.0]], dtype=np.float32))
+            np.testing.assert_array_equal(b_out, b_value)
+
+            n_out, b_out = manager.process(n_value, b_value, "op_c", "bench_op")
+            np.testing.assert_array_equal(n_out, n_value)
+            np.testing.assert_array_equal(b_out, b_value)
 
 
 class TestBaseTensorPostprocessor(TestCase):
