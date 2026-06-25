@@ -36,6 +36,62 @@ def compare(bench_zip_path, cmp_zip_path, output_path):
     ConfigChecker.compare(bench_zip_path, cmp_zip_path, output_path)
 
 
+def _get_verl_verify_error_message(verl_verify_args):
+    """Return error message when verl-verify arguments are invalid, None when valid."""
+    n_args = len(verl_verify_args)
+    if n_args > 2:
+        return f"verl-verify supports up to two files, but received {n_args} files"
+
+    if n_args == 1:
+        if check_log_extension(verl_verify_args[0]):
+            return None
+        if check_yaml_extension(verl_verify_args[0]):
+            return (
+                "verl-verify requires tgt_log (log or txt file) as the mandatory argument. "
+                "When providing only one file, it must be a log or txt file, not yaml."
+            )
+        return (
+            "verl-verify requires tgt_log in log or txt format. "
+            "Optionally, provide bench_config (yaml) as the first argument "
+            "and tgt_log (log or txt) as the second argument."
+        )
+
+    first, second = verl_verify_args[0], verl_verify_args[1]
+    first_is_yaml = check_yaml_extension(first)
+    first_is_log = check_log_extension(first)
+    second_is_yaml = check_yaml_extension(second)
+    second_is_log = check_log_extension(second)
+
+    if first_is_yaml and second_is_log:
+        return None
+
+    if first_is_log and second_is_yaml:
+        return (
+            "verl-verify parameter order error: the first argument must be bench_config "
+            "(yaml file), and the second argument must be tgt_log (log or txt file). "
+            f"Received '{first}' as first and '{second}' as second."
+        )
+
+    if first_is_yaml and not second_is_log:
+        return (
+            "verl-verify requires tgt_log (log or txt file) as the second argument "
+            f"when bench_config (yaml) is provided as the first argument. "
+            f"Received '{second}' with unsupported file extension."
+        )
+
+    if second_is_log and not first_is_yaml:
+        return (
+            "verl-verify requires bench_config (yaml file) as the first argument "
+            f"when two files are provided. Received '{first}' with unsupported file extension."
+        )
+
+    return (
+        "verl-verify requires tgt_log (log or txt file) as mandatory argument. "
+        "When providing two files, the first must be bench_config (yaml file) "
+        "and the second must be tgt_log (log or txt file)."
+    )
+
+
 def _config_checking_parser(parser):
     group = parser.add_argument_group('Select one of the following operations, multiple selections are not permitted.')
     mutex = group.add_mutually_exclusive_group(required=False)
@@ -92,11 +148,8 @@ def _run_config_checking_command(args):
             logger.error(ext_err_msg)
             raise Exception(ext_err_msg)  # pylint: disable=broad-exception-raised
     elif args.verl_verify:
-        if (len(args.verl_verify) == 1 and check_log_extension(args.verl_verify[0])) or (
-            len(args.verl_verify) == 2
-            and check_yaml_extension(args.verl_verify[0])
-            and check_log_extension(args.verl_verify[1])
-        ):
+        verl_verify_error = _get_verl_verify_error_message(args.verl_verify)
+        if verl_verify_error is None:
             output_dirpath = args.output if args.output else "./verl_param_verify_result"
             real_file_folder = os.path.realpath(output_dirpath)
             if not os.path.isdir(real_file_folder):
@@ -109,17 +162,9 @@ def _run_config_checking_command(args):
             )
             bench_config = default_yaml_path if len(args.verl_verify) == 1 else args.verl_verify[0]
             verl_verify_hyper_params(bench_config, tgt_config, output_dirpath)
-        elif len(args.verl_verify) > 2:
-            msg = f"verl-verify supports up to two files, but received {len(args.verl_verify)} files"
-            logger.error(msg)
-            raise Exception(msg)  # pylint: disable=broad-exception-raised
         else:
-            msg = (
-                "verl-verify requires a mandatory log file "
-                "in either log or txt format, and an optional YAML configuration file"
-            )
-            logger.error(msg)
-            raise Exception(msg)  # pylint: disable=broad-exception-raised
+            logger.error(verl_verify_error)
+            raise Exception(verl_verify_error)  # pylint: disable=broad-exception-raised
     else:
         logger.error(
             "The param is not correct, you need to give '-d' for dump or '-c' for compare "

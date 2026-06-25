@@ -17,7 +17,13 @@
 import unittest
 from unittest.mock import patch
 import argparse
-from msprobe.core.config_check.config_check_cli import pack, compare, _config_checking_parser, _run_config_checking_command
+from msprobe.core.config_check.config_check_cli import (
+    pack,
+    compare,
+    _config_checking_parser,
+    _run_config_checking_command,
+    _get_verl_verify_error_message,
+)
 
 
 class TestConfigCheckCli(unittest.TestCase):
@@ -225,16 +231,53 @@ class TestConfigCheckCli(unittest.TestCase):
         args.dump = None
         args.compare = None
         args.verl_compare = None
-        args.verl_verify = ['bench_config.txt', 'tgt_config.json']
+        args.verl_verify = ['bench_config.md', 'tgt_config.json']
         args.output = None
         with self.assertRaises(Exception) as context:
             _run_config_checking_command(args)
 
-        err_msg = ("verl-verify requires a mandatory log file "
-                    "in either log or txt format, and an optional YAML configuration file")
+        err_msg = (
+            "verl-verify requires tgt_log (log or txt file) as mandatory argument. "
+            "When providing two files, the first must be bench_config (yaml file) "
+            "and the second must be tgt_log (log or txt file)."
+        )
         mock_logger.error.assert_called_once_with(err_msg)
         self.assertEqual(str(context.exception), err_msg)
         mock_verl_verify_hyper_params.assert_not_called()
+
+    @patch('msprobe.core.config_check.config_check_cli.verl_verify_hyper_params')
+    @patch('msprobe.core.config_check.config_check_cli.logger')
+    def test_run_config_checking_command_verl_hyper_params_verify_wrong_order(
+        self, mock_logger, mock_verl_verify_hyper_params
+    ):
+        """Test verl hyper params verify with reversed argument order"""
+        args = argparse.Namespace()
+        args.dump = None
+        args.compare = None
+        args.verl_compare = None
+        args.verl_verify = ['tgt_config.log', 'bench_config.yaml']
+        args.output = None
+        with self.assertRaises(Exception) as context:
+            _run_config_checking_command(args)
+
+        err_msg = (
+            "verl-verify parameter order error: the first argument must be bench_config "
+            "(yaml file), and the second argument must be tgt_log (log or txt file). "
+            "Received 'tgt_config.log' as first and 'bench_config.yaml' as second."
+        )
+        mock_logger.error.assert_called_once_with(err_msg)
+        self.assertEqual(str(context.exception), err_msg)
+        mock_verl_verify_hyper_params.assert_not_called()
+
+    def test_get_verl_verify_error_message_valid_cases(self):
+        """Test _get_verl_verify_error_message returns None for valid arguments"""
+        self.assertIsNone(_get_verl_verify_error_message(['tgt_config.log']))
+        self.assertIsNone(_get_verl_verify_error_message(['bench_config.yaml', 'tgt_config.log']))
+
+    def test_get_verl_verify_error_message_too_many_files(self):
+        """Test _get_verl_verify_error_message with too many files"""
+        err_msg = _get_verl_verify_error_message(['a.yaml', 'b.log', 'c.log'])
+        self.assertEqual(err_msg, "verl-verify supports up to two files, but received 3 files")
 
     @patch('msprobe.core.config_check.config_check_cli.logger')
     def test_run_config_checking_command_invalid_param(self, mock_logger):
