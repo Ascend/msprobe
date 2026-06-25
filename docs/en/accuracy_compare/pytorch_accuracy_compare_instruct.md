@@ -220,6 +220,53 @@ Single-point data comparison supports single-rank and multi-rank comparison. In 
 
 3. View the comparison results by referring to [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
 
+#### Tensor Postprocessing
+
+In some scenarios (such as quantization-aware training), the dumped tensor is the dequantized result rather than the original tensor. For example, the dequantization process right-multiplies the original tensor by a rotation matrix, causing a systematic deviation between the dumped tensor and the baseline tensor.
+
+To restore the original tensor for precision comparison, a tensor postprocessing step can be inserted into the comparison pipeline. This step right-multiplies the dumped tensor of specified operators by a calibration tensor (such as the inverse of the rotation matrix) to cancel the rotation effect.
+
+> [!NOTE]
+>
+> Tensor postprocessing takes effect only in **real data mode** (i.e., `task` is set to `"tensor"` in `config.json` during dump). It does not take effect in statistics mode or MD5 mode.
+
+Configuration:
+
+1. Run the following command to find the msprobe installation path:
+
+   ```shell
+   python -c "import msprobe, os; print(os.path.dirname(msprobe.__file__))"
+   ```
+
+2. Open the [right_matmul.yaml](../../../python/msprobe/core/compare/tensor_postprocess/right_matmul.yaml) configuration file (under the msprobe installation path), and configure the calibration tensor path (absolute paths only) and the corresponding operator `data_name` to be postprocessed in `target_tensor_map` and/or `golden_tensor_map`.
+
+   The calibration tensor file supports `.pt` and `.npy` formats.
+
+   Example configuration:
+
+   ```yaml
+   mode: right_matmul
+   target_tensor_map:
+     "/home/user/calib/to_scale.pt":
+       - "Tensor.to.0.forward.input.0.pt"
+       - "Tensor.to.1.forward.input.0.pt"
+     "/home/user/calib/to_offset.pt":
+       - "Add.0.forward.output.0.pt"
+   golden_tensor_map:
+     "/home/user/calib/to_scale.npy":
+       - "Tensor.to.0.forward.input.0.pt"
+     "/home/user/calib/to_offset.npy":
+       - "Add.0.forward.output.0.pt"
+   ```
+
+   For more configuration details, see the comments in [right_matmul.yaml](../../../python/msprobe/core/compare/tensor_postprocess/right_matmul.yaml).
+
+3. Refer to [PyTorch Data Dump](../dump/pytorch_data_dump_instruct.md) to dump precision data on CPU or GPU and NPU.
+
+4. Run the comparison command (no additional parameters required; the tool automatically loads the postprocessing configuration).
+
+5. View the comparison results by referring to [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
+
 ### Output Description
 
 After the comparison is complete, the message `msprobe compare ends successfully.` is displayed.
