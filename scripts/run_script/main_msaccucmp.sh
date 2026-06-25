@@ -34,7 +34,7 @@ create_install_dir() {
         error "Please check if you have sufficient permissions, or create the directory manually"
         exit 1
     fi
-    
+
     # 设置目录权限为777
     chmod -R 777 "$INSTALL_DIR"
     info "Set directory permissions to 777: $INSTALL_DIR"
@@ -51,7 +51,6 @@ function convert_install_path() {
     if [ -z "${_install_path}" ]; then
         _install_path="/"
     fi
-    # covert relative path to absolute path
     # 处理以 "./" 或 "." 开头的路径
     if [[ "${_install_path}" =~ ^\./.* ]] || [[ "${_install_path}" =~ ^\.$ ]]; then
         # 移除开头的 "./" 或 "."
@@ -67,7 +66,6 @@ function convert_install_path() {
             _install_path="${run_path}/${_install_path}"
         fi
     fi
-    # covert '~' to home path
     local _suffix_path=`echo "${_install_path}" | cut -d"~" -f2`
     if [ "${_suffix_path}" != "${_install_path}" ]; then
         local _home_path=`eval echo "~" | sed "s/\/*$//g"`
@@ -106,7 +104,7 @@ main_install() {
     else
         cp -r "$PWD"/msaccucmp/* "$INSTALL_DIR"/
     fi
-    
+
     # 安装完成后，将目录权限改回安全权限（750）
     chmod -R 750 "$INSTALL_DIR"
     if [ $? -ne 0 ]; then
@@ -115,7 +113,7 @@ main_install() {
     info "Set directory permissions to 750: $INSTALL_DIR"
     info "Installation completed!"
     info "Install directory: $INSTALL_DIR"
-    
+
     # 注册卸载脚本
     register_uninstall
 }
@@ -124,7 +122,11 @@ main_install() {
 function get_install_path() {
     if [ -z "${input_install_path}" ]; then
         local _install_path
-        _install_path="/usr/local/Ascend/tools/operator_cmp/compare"
+        if [ -n "${ASCEND_TOOLKIT_HOME}" ]; then
+	            _install_path="${ASCEND_TOOLKIT_HOME}/tools/operator_cmp/compare"
+	        else
+	            _install_path="/usr/local/Ascend/tools/operator_cmp/compare"
+	        fi
     else
         _install_path="${input_install_path}/tools/operator_cmp/compare"
     fi
@@ -141,12 +143,12 @@ register_uninstall() {
     local _uninstall_source="${_script_dir}/uninstall.sh"
     local _cann_uninstall="${_install_path}/../../../cann_uninstall.sh"
     local _version_source="${_script_dir}/version.info"
- 
+
     # 如果存在cann_uninstall.sh，则执行sed命令
     if [ -f "${_cann_uninstall}" ] && ! grep -q "uninstall_package \"share/info/operator_cmp\"" "${_cann_uninstall}"; then
         sed -i "/^exit /i uninstall_package \"share/info/operator_cmp\"" "${_cann_uninstall}"
     fi
-    
+
     # 检查父目录是否存在和权限
     local _parent_dir=$(dirname "${_info_dir}")
     info "Checking parent directory: ${_parent_dir}"
@@ -155,14 +157,36 @@ register_uninstall() {
         error "Please ensure the installation directory structure is correct"
         return 1
     fi
-    
+
+    # cp前提权：目录/文件无写权限则临时加写权限，flag记录是否改动过
+    # 使用 u+w 仅给当前用户提权，避免 world-writable 安全风险
+    local _chmod_parent=0
+    local _chmod_info=0
+    local _chmod_info_list=""
     if [ ! -w "${_parent_dir}" ]; then
-        error "No write permission to parent directory: ${_parent_dir}"
-        error "Current user: $(whoami)"
-        error "Please run with appropriate permissions"
-        return 1
+        chmod u+w "${_parent_dir}" 2>/dev/null && _chmod_parent=1
     fi
-    
+    # 目录可能可写但里面旧文件属主不同不可写，用 -R 递归加写权限
+    # 同时记录提权前原本不可写的文件列表，恢复时只回退这些文件，避免:
+    # 1. 无差别移除原有可写文件的写权限
+    # 2. 误伤本次新拷贝的 version.info 和 uninstall.sh
+    if [ -d "${_info_dir}" ]; then
+        _chmod_info_list=$(mktemp)
+        find "${_info_dir}" -mindepth 1 ! -perm /u+w -print0 > "${_chmod_info_list}" 2>/dev/null
+        chmod -R u+w "${_info_dir}" 2>/dev/null && _chmod_info=1
+    fi
+
+    # 权限恢复函数：确保所有退出路径（包括提前return）都能恢复权限
+    _restore_perms() {
+        if [ "${_chmod_info}" -eq 1 ] && [ -n "${_chmod_info_list}" ] && [ -f "${_chmod_info_list}" ]; then
+            xargs -0 -r chmod u-w < "${_chmod_info_list}" 2>/dev/null || true
+            rm -f "${_chmod_info_list}"
+        fi
+        if [ "${_chmod_parent}" -eq 1 ]; then
+            chmod u-w "${_parent_dir}" 2>/dev/null || true
+        fi
+    }
+
     # 创建目录
     info "Creating directory: ${_info_dir}"
     mkdir -p "${_info_dir}" 2>&1
@@ -172,20 +196,17 @@ register_uninstall() {
         error "Parent directory: ${_parent_dir}"
         error "Parent directory writable: $([ -w "${_parent_dir}" ] && echo "yes" || echo "no")"
         error "mkdir exit code: ${_mkdir_result}"
+        _restore_perms
         return 1
     fi
-    
+
     # 验证目录是否创建成功
     if [ ! -d "${_info_dir}" ]; then
         error "Directory was not created: ${_info_dir}"
+        _restore_perms
         return 1
     fi
-    
-    if [ ! -w "${_info_dir}" ]; then
-        error "Directory exists but is not writable: ${_info_dir}"
-        return 1
-    fi
-    
+
     # 拷贝version.info
     if [ -f "${_version_source}" ]; then
         info "Copying version info from ${_version_source} to ${_info_dir}/version.info"
@@ -197,6 +218,7 @@ register_uninstall() {
             error "Destination: ${_info_dir}/version.info"
             error "Destination directory writable: $([ -w "${_info_dir}" ] && echo "yes" || echo "no")"
             error "cp exit code: ${_cp_result}"
+            _restore_perms
             return 1
         fi
         info "Version info registered successfully"
@@ -205,6 +227,7 @@ register_uninstall() {
         warn "Script directory: ${_script_dir}"
         warn "Current working directory: $(pwd)"
         warn "Script path (\$0): $0"
+        _restore_perms
         return 1
     fi
 
@@ -219,15 +242,20 @@ register_uninstall() {
             error "Destination: ${_info_dir}/uninstall.sh"
             error "Destination directory writable: $([ -w "${_info_dir}" ] && echo "yes" || echo "no")"
             error "cp exit code: ${_cp_result}"
+            _restore_perms
             return 1
         fi
         chmod +x "${_info_dir}/uninstall.sh" 2>/dev/null || true
         info "Uninstall script registered successfully"
     else
         warn "Uninstall script not found: ${_uninstall_source}"
+        _restore_perms
         return 1
     fi
-    
+
+    # cp后恢复：flag为1说明提权过，减去写权限
+    _restore_perms
+
     return 0
 }
 
@@ -237,8 +265,8 @@ main_uninstall() {
     OPERATOR_CMP_DIR=$(get_install_path)
     local _install_path="$INSTALL_DIR"
     local _cann_uninstall="${_install_path}/../../../cann_uninstall.sh"
-    
-    
+
+
     if [[ "$SILENT_MODE" != "true" ]]; then
         echo "========================================="
         echo "  mindstudio-accucmp Uninstaller"
@@ -246,14 +274,14 @@ main_uninstall() {
         echo "Target directory: $OPERATOR_CMP_DIR"
         echo ""
     fi
-    
+
     # 检查目录是否存在
     if [[ ! -d "$OPERATOR_CMP_DIR" ]]; then
         warn "Directory does not exist: $OPERATOR_CMP_DIR"
         warn "Nothing to uninstall"
         return 0
     fi
-    
+
     # 检查写权限
     if [[ ! -w "$(dirname "$OPERATOR_CMP_DIR")" ]]; then
         error "No permission to delete $OPERATOR_CMP_DIR"
@@ -262,10 +290,10 @@ main_uninstall() {
         error "or manually delete: rm -rf $OPERATOR_CMP_DIR"
         exit 1
     fi
-    
+
     info "Uninstalling mindstudio-accucmp..."
     info "Removing directory: $OPERATOR_CMP_DIR"
-    
+
     # 删除operator_cmp目录
     if rm -rf "$OPERATOR_CMP_DIR"; then
         info "mindstudio-accucmp has been successfully removed"
