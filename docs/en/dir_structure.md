@@ -27,6 +27,6 @@ MindStudio-probe
 │   │   └── visualization        # Visualization module
 ├── scripts                      # Directory for storing installation, uninstallation, and upgrade scripts
 ├── test                         # Test code directory 
-├── setup.py                     # E2E packaging and build script
+├── build.py                     # E2E packaging and build script
 ├── README.md                  # Repository description
 ├── LICENSE                       # License file

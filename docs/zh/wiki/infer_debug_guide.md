@@ -322,17 +322,17 @@ MindIE（Mind Inference Engine，昇腾推理引擎）是华为昇腾针对AI全
 git clone https://gitcode.com/Ascend/msprobe.git
 cd msprobe
 
-pip install setuptools wheel
+pip install uv
 
-python setup.py bdist_wheel --include-mod=atb_probe
-cd ./dist
+python3 build.py -e include-mod=atb_probe
+cd ./artifacts
 pip install ./mindstudio_probe*.whl
 ```
 
 需要注意的是
 
 1. 编译环境需安装git、curl、GCC 7.5或以上版本、CMake 3.19.3或以上版本等第三方依赖软件；
-2. 若编译过程中因安全证书问题导致编译失败，在保证环境安全的情况下，可临时关闭安全证书验证。关闭证书校验的编译命令为`python setup.py bdist_wheel --include-mod=atb_probe --no-check`。
+2. 若编译过程中因安全证书问题导致编译失败，在保证环境安全的情况下，可临时关闭安全证书验证。关闭证书校验的编译命令为`python3 build.py -e include-mod=atb_probe -e no-check=true`。
 
 **工具使用**
 

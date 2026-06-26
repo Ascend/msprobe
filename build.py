@@ -244,6 +244,11 @@ class BuildManager:
         if not self.has_cpp:
             return
 
+        release_dir = self.project_root / "output" / "release"
+        if release_dir.exists():
+            logging.info("Removing previous build output: %s", release_dir)
+            shutil.rmtree(release_dir)
+
         arch = platform.machine()
         py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
 

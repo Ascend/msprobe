@@ -1,6 +1,6 @@
 {
   "torch": {
-    "url_template": "https://download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-{py_tag}-manylinux_2_28_{arch}.whl",
+    "url_template": "https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/{arch}/download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-{py_tag}-manylinux_2_28_{arch}.whl",
     "sha256": {
       "cp39-cp39-aarch64": "a4551cb97b83df5f93fc0d7538332535828581e1db2f179afc287027afbdd6e8",
       "cp39-cp39-x86_64": "d205cac087d60bc176bdc0b63a1d00dc7a4ee5ac76fd20a2ca318ac65674167e",

@@ -18,7 +18,7 @@
 >
 >源码编译安装时需包含 `aclgraph_dump` 模块，通过如下命令安装：
 >
->`python3 setup.py bdist_wheel --include-mod=aclgraph_dump --no-check`
+>`python3 build.py -e include-mod=aclgraph_dump -e no-check=true`
 
 **约束**
 

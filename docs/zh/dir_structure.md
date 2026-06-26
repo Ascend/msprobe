@@ -27,6 +27,6 @@ MindStudio-probe
 │   │   └── visualization        # 可视化模块
 ├── scripts                      # 存放安装卸载升级脚本
 ├── test                         # 测试代码目录
-├── setup.py                     # 端到端打包构建脚本
+├── build.py                     # 端到端打包构建脚本
 ├── README.md                    # 整体仓代码说明
 └── LICENSE                      # LICENSE文件

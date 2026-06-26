@@ -3,8 +3,8 @@
 | Type  | Open-Source Code Address| File Name                             | Public IP Address/Public URL/Domain Name/Email Address                                                                 | Description                |
 |------|--------|----------------------------------|-----------------------------------------------------------------------------------------|----------------------|
 | Open-source software| -      | All files                            | <http://license.coscl.org.cn/MulanPSL2>                                                   | License information in the file header    |
-| Open-source software| -      | setup.py                         | <pmail_mindstudio@huawei.com>                                                             | author-email information of the software package|
-| Open-source software| -      | setup.py                         | <https://gitcode.com/Ascend/MindStudio-Probe>                                             | home-page information of the software package   |
+| Open-source software| -      | pyproject.toml                         | <pmail_mindstudio@huawei.com>                                                             | author-email information of the software package|
+| Open-source software| -      | pyproject.toml                         | <https://gitcode.com/Ascend/MindStudio-Probe>                                             | home-page information of the software package   |
 | Open-source software| -      | cmake/config.ini                 | <https://gitee.com/mirrors/googletest/repository/archive/release-1.12.1.tar.gz>           | Open-source software download              |
 | Open-source software| -      | cmake/config.ini                 | <https://gitee.com/sinojelly/mockcpp/repository/archive/v2.7.zip>                         | Open-source software download              |
 | Open-source software| -      | cmake/config.ini                 | <https://gitee.com/mirrors/JSON-for-Modern-CPP/repository/archive/v3.10.1.zip>            | Open-source software download              |
@@ -23,3 +23,6 @@
 | Open-source software| -      | Not introduced from the source code, but included in the build output                | <https://developer.mozilla.org/>                                                          | Introduced during build; commented out             |
 | Open-source software| -      | Not introduced from the source code, but included in the build output                | <https://github.com/vaadin/vaadin-time-picker/issues/145>                                 | Introduced during build; commented out             |
 | Open-source software| -      | Not introduced from the source code, but included in the build output                | <http://codepen.io/shyndman/pen/>                                                         | Introduced during build; commented out             |
+| Open-source software| -      | torch_npu_url.json              | <https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/x86_64/download.pytorch.org/whl/cpu/> | Download torch package |
+| Open-source software| -      | torch_npu_url.json              | <https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/aarch64/download.pytorch.org/whl/cpu/> | Download torch package |
+| Open-source software| -      | torch_npu_url.json              | <https://gitcode.com/Ascend/pytorch/releases/download/v26.1.0-beta.1-pytorch2.7.1/> | Download torch_npu package |

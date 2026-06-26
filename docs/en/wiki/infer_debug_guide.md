@@ -308,7 +308,7 @@ As shown in the preceding figure, matmul is the suspicious operator. You can rep
 
 Mind Inference Engine (MindIE) is an inference acceleration suite provided by Ascend for various AI scenarios. Through layered open AI capabilities, it supports diverse AI service needs and empowers a large number of models by leveraging the compute of Ascend hardware. MindIE supports multiple mainstream AI frameworks and is compatible with different types of Ascend AI processors, providing multi-layer programming APIs to help users quickly build inference services based on the Ascend platform.
 
-Currently, MindIE is often used together with the [Ascend Transformer Boost (ATB)](<>) acceleration library to achieve optimal inference performance. The following uses MindIE + ATB as an example to describe how to locate accuracy problems in MindIE scenarios.
+Currently, MindIE is often used together with the [Ascend Transformer Boost (ATB)](https://www.hiascend.com/document/detail/en/canncommercial/850/acce/ascendtb/ascendtb_0001.html) acceleration library to achieve optimal inference performance. The following uses MindIE + ATB as an example to describe how to locate accuracy problems in MindIE scenarios.
 
 #### 4.1.2.2 Tool Usage
 
@@ -322,10 +322,10 @@ Currently, the WHL msProbe installation package capable of dumping accuracy data
 git clone https://gitcode.com/Ascend/msprobe.git
 cd msprobe
 
-pip install setuptools wheel
+pip install uv
 
-python setup.py bdist_wheel --include-mod=atb_probe
-cd ./dist
+python3 build.py -e include-mod=atb_probe
+cd ./artifacts
 pip install ./mindstudio_probe*.whl
 ```
 
@@ -333,7 +333,7 @@ Notes:
 
 (1) The third-party dependencies such as Git, curl, GCC 7.5 or later, and CMake 3.19.3 or later must be installed in the compilation environment.
 
-(2) If the compilation fails due to a security certificate issue, you can temporarily disable the security certificate verification if the environment is secure. The compile command for disabling certificate verification is `python setup.py bdist_wheel --include-mod=atb_probe --no-check`.
+(2) If the compilation fails due to a security certificate issue, you can temporarily disable the security certificate verification if the environment is secure. The compile command for disabling certificate verification is `python3 build.py -e include-mod=atb_probe -e no-check=true`.
 
 **Usage**
 
