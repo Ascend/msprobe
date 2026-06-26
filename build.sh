@@ -184,8 +184,10 @@ if [[ "${INCLUDE_MOD}" == *"${XOR_CHECKSUM_MOD}"* ]]; then
     XOR_CHECKSUM_NPU_ARCH=$(detect_xor_checksum_npu_arch)
     echo "[xor_checksum_build] Using NPU_ARCH=${XOR_CHECKSUM_NPU_ARCH}"
     cd ${BUILD_PATH}
+    PYTHON_ROOT_DIR=$(${PYTHON_BIN} -c "import sys; print(sys.prefix)")
     cmake -B ${XOR_CHECKSUM_OUTPUT_PATH} -S ${BUILD_PATH}/ccsrc/xor_checksum \
           -DPython3_EXECUTABLE=${PYTHON_BIN} \
+          -DPython3_ROOT_DIR=${PYTHON_ROOT_DIR} \
           -DNPU_ARCH=${XOR_CHECKSUM_NPU_ARCH}
     cd ${XOR_CHECKSUM_OUTPUT_PATH}
     make -j${CONCURRENT_JOBS}
