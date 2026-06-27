@@ -196,7 +196,7 @@ After determining the step to be analyzed, perform the following steps:
 
     - In Megatron and DeepSpeed models, `overlap` parameters (such as `overlap-param-gather` and `overlap-grad-reduce`) have high risks. You can disable these parameters first.
     - If a NaN error occurs when mixed precision is used in the FSDP framework, you are advised to first check for memory corruption caused by the PTA framework by switching the PTA version.
-    - The FA (`npu_fusion_attention`) fusion operator is complex, and parameter passing errors may occur during its use. You can disable the FA branch to determine whether the fault is caused by FA. If it is, check whether there are usage errors by referring to the [official FA documentation](<>).
+    - The FA (`npu_fusion_attention`) fusion operator is complex, and parameter passing errors may occur during its use. You can disable the FA branch to determine whether the fault is caused by FA. If it is, check whether there are usage errors by referring to the [official FA documentation](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/zh/custom_APIs/torch_npu/torch_npu-npu_fusion_attention.md).
     - Ensure that the Inf/NaN mode or non-saturation mode is enabled. For details, see [Appendix - Non-Saturation Mode](#53-non-saturation-mode).
 
 ##### 2.3.1.2 First Step Loss Difference
@@ -277,9 +277,9 @@ Memory corruption usually occurs in precision issues that are characterized by o
 - If the issue is stably resolved after enabling stream synchronization or using the precision collection tool, there is a high probability that the issue is caused by memory corruption in the computation or communication stream, incorrect calculation of memory allocation offsets within the framework, or reading of dirty data due to a lack of communication protection.
  When synchronization is added, operators and communication are completely isolated from each other, which prevents the issue from recurring. The command for enabling stream synchronization is as follows:
 
- ```bash
- export ASCEND_LAUNCH_BLOCKING=1
- ```
+    ```bash
+    export ASCEND_LAUNCH_BLOCKING=1
+    ```
 
 - However, memory corruption inside an operator cannot be avoided even with stream synchronization. This is more likely with non-integral block sizes, complex computation, or data type changes in core-based and UB-based computation.
 
@@ -289,7 +289,7 @@ Troubleshooting
 2. Analyze whether the tensor difference pattern suggests memory corruption (e.g., regular corruption patterns: multiples of 2048, row-aligned, column-aligned).
 3. Use msProf in conjunction with msInsight to examine the computation parallelism. For detailed instructions, refer to the [msProf User Guide](https://gitcode.com/Ascend/msprof) and [msInsight User Guide](https://gitcode.com/Ascend/msinsight).
 4. Add pointer address printing. For NaN occurrence locations, intrusively modify PyTorch or PTA source code to add prints.
-5. Use the [operator competition tool](<>) to check whether the operator's implementation (intra-pipeline for instruction execution, inter-pipeline for operator transfers, and inter-core for `aicube` and `aivector` parallelism) has anomalies indicating memory corruption.
+5. Use the [operator competition tool](https://gitcode.com/Ascend/mssanitizer/blob/26.0.0/docs/zh/quick_start/mssanitizer_quick_start.md) to check whether the operator's implementation (intra-pipeline for instruction execution, inter-pipeline for operator transfers, and inter-core for `aicube` and `aivector` parallelism) has anomalies indicating memory corruption.
 6. If the root cause is still not found, refer to a more detailed memory issue debugging guide.
 
 ##### 2.3.2.2 Operator Determinism Issues
@@ -411,7 +411,7 @@ Data collection:
 
 When using the precision collection tool, set the collection level to `mix` or `L0` (at least module-level data needs to be collected) to enable layer-by-layer comparison. Example `config.json`:
 
-```bash
+```json
 {
     "task": "statistics",
     "dump_path": "/home/data_dump",
@@ -434,7 +434,7 @@ Data comparison:
  NPU and benchmark will have many layer name/structure differences. Use the [hierarchical visualization tool](#44-hierarchical-visualization-tool) with the "point-to-point matching" feature to manually align nodes that are not automatically matched. 
     <img src="https://raw.gitcode.com/user-images/assets/7898473/1c469d88-ebc5-45eb-b19d-6d40f1568755/image.png" alt="Your image title" width="800"/>  
 
-For more details, refer to [Foundation Model Inference Accuracy Debugging Guide](<>).
+For more details, refer to [Foundation Model Inference Accuracy Debugging Guide](../wiki/infer_debug_guide.md).
 
 ##### 2.3.3.2 Reward Debugging
 
@@ -490,14 +490,14 @@ Training backends in RL typically use FSDP or Megatron (MindSpeed/MindSpeed-LLM 
 
 Data Collection
 
-- FSDP backend: The collection file in verl is `verl/workers/fsdp_workers.py`. Refer to [verl (FSDP)](<>) for insertion points.
+- FSDP backend: The collection file in verl is `verl/workers/fsdp_workers.py`. Refer to [verl (FSDP)](../dump/verl_fsdp_consistency_preprocess_dump.md) for insertion points.
 - Megatron backend: The collection file in verl is `verl/workers/megatron_workers.py`. Insertion is similar to FSDP.
 
 Data Analysis
 
 - Same framework (e.g., Megatron + MindSpeed vs Megatron)
     - For small-scale training, refer to [First Step Loss Difference](#2312-first-step-loss-difference) for data analysis.
-    - For large-scale training, such as training with a large number of ranks or a large model, use the [Trend Visualization Tool](<>) for analysis.
+    - For large-scale training, such as training with a large number of ranks or a large model, use the [Trend Visualization Tool](../accuracy_compare/trend_visualization_instruct.md) for analysis.
 - Different frameworks (e.g., Megatron vs FSDP) 
  NPU and benchmark will have many layer name/structure differences. Use the [hierarchical visualization tool](#44-hierarchical-visualization-tool) with the "point-to-point matching" feature for comparison.
 
@@ -599,7 +599,7 @@ In verl RL training, `batch` dimensions are flattened to `token` dimensions. For
 Key differences between training and inference `forward token` sequences in standard RL training:
 
 - Single prompt
-    - Inference: prefill amd *N**decode phases. 
+    - Inference: prefill and *N**decode phases. 
     In the prefill phase, the `token` dimension of `forward` is `prompt_len`. In the `decode` phase, the `token` dimension of `forward` is `1`. After the phase ends, `prompt` + `response` is obtained.
     - Training: full `forward`.
       - If `pad` does not exist, the `token` dimension is `prompt_len` + `response_len`.
@@ -951,7 +951,7 @@ Debugging method:
 
 1. Collect data with `mix` level at step 0 (where overflow occurs). `config.json` example:
 
-    ```bash
+    ```json
     {
         "task": "statistics",
         "dump_path": "/home/data_dump",
@@ -1034,7 +1034,7 @@ The loss initially aligned but diverged later at a step with a large ID. Since t
 1. Check the trends of grad norm and loss: 
     Consistent trend suggests gradient-induced loss spikes. Use the following `monitor_config.json` to collect gradient data.
 
-    ```bash
+    ```json
     {
       "targets": {},
       "wg_distribution": true, 
@@ -1104,7 +1104,7 @@ Debugging method:
     The reason adding the precision collection tool can prevent NaN is that calculating tensor statistics (like `min` and `max`) and flushing data to drives interfere with how operators work in streams, preventing NaN from reappearing. 
     By enabling asynchronous dump, the tool does not trigger synchronization during training. Instead, data is flushed to drives after the current step is complete, reducing the impact on the operator execution sequence and stream synchronization. 
     How to do: Add `async_dump: True` to the `config.json` file. 
-    Collect the`Functional.layer_norm.10` and `Functional.layer_norm.11` data, as well as the `torch.split.192` reverse data in between. The NaN can be reproduced when a single operator is dumped.
+    Collect the `Functional.layer_norm.10` and `Functional.layer_norm.11` data, as well as the `torch.split.192` reverse data in between. The NaN can be reproduced when a single operator is dumped.
 7. Analyze the asynchronous dump data:
     According to the `dump.json file` without loss NaN, the input of `torch.split.192.backward` should be the output of `Functional.layer_norm.11`. However, when stream synchronization is disabled, the input of `torch.split.192.backward` of asynchronous dump is inconsistent with the output of `Functional.layer_norm.11`. 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f4c2607e-d9ff-42fd-9801-2f7f5d89bfe7/image.png 'image.png')  
@@ -1119,7 +1119,7 @@ Debugging method:
 
 Root cause: backend without `record` + multi-stream FSDP + consecutive LayerNorms caused memory corruption.
 
-Solution: Add `record` on the FSDP `unshard` stream in torch_npu2.3 to ensure tensor memory is not reused before the current operator completes.
+Solution: Add `record` on the FSDP `unshard` stream in torch_npu 2.3 to ensure tensor memory is not reused before the current operator completes.
 
 Result: Loss NaN disappeared; convergence normal.
 
@@ -1140,7 +1140,7 @@ Debugging method:
     Some ranks still showed inconsistent backward results with random occurrence positions.
 2. Collect step 0 data at the `mix` level using the precision collection tool. Set `summary_mode` to `md5` to highlight minor differences. The `config.json` configuration is as follows:
 
-    ```bash
+    ```json
     {
         "task": "statistics",
         "dump_path": "/home/data_dump",
@@ -1228,7 +1228,7 @@ Instructions
     There are two common configurations for collecting statistics:
     - Collecting statistics for specified steps
 
-      ```bsh
+      ```json
       {
           "task": "statistics",
           "dump_path": "/home/data_dump",
@@ -1436,7 +1436,7 @@ Instructions
 1. Configure the `config.json` file before using the tool. 
     Common configurations for training monitoring (monitoring weight gradients):
 
-    ```bash
+    ```json
     {
       "targets": {},
       "wg_distribution": true, 

@@ -152,7 +152,7 @@ The MSAdapter model uses MindSpore as its underlying framework. Therefore, the m
 
 * **msprobe.mindspore.PrecisionDebugger.step**: Ends data collection of a step, flushes all data, and updates dump parameters.
 
-For details about the dump APIs, see [API Description](#API Description).
+For details about the dump APIs, see [API Description](#api-description).
 
 **Precautions**
 

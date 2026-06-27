@@ -13,7 +13,7 @@
 采集OM模型数据依赖aisbench包和aclruntime包，用户使用前可通过以下命令安装这两个依赖包。
 
 ```bash
- msprobe install_deps -m offline --no_check
+msprobe install_deps -m offline --no_check
 ```
 
 > [!NOTE]

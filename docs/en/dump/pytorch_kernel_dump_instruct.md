@@ -85,4 +85,4 @@ After kernel-level data collection is successful, the following files are genera
 
 1. Check whether the tool usage, configuration file content, and API name format in **list** are correct.
 2. Check whether the API is running on the Ascend NPU. If the API is running on other devices, no kernel-level data exists.
-3. If the problem persists, use the **torch_npu.npu** API provided by the [Ascend Extension for PyTorch plugin](https://gitcode.com/Ascend/pytorch) to collect kernel-level data. The kernel dump function of the tool is implemented based on the **init_dump**, **set_dump**, and **finalize_dump** sub-interfaces. For details about the **torch_npu.npu** API, see [torch_npu.npu](<>).
+3. If the problem persists, use the **torch_npu.npu** API provided by the [Ascend Extension for PyTorch plugin](https://gitcode.com/Ascend/pytorch) to collect kernel-level data. The kernel dump function of the tool is implemented based on the **init_dump**, **set_dump**, and **finalize_dump** sub-interfaces. For details about the **torch_npu.npu** API, see [torch_npu.npu](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/native_apis/pytorch_2-10-0/overview.md).

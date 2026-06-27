@@ -8,7 +8,7 @@ This document describes how to enable debugging tools in common frameworks, incl
 
 ### Reference
 
-- [Data Dump for PyTorch](<>)
+- [Data Dump for PyTorch](../dump/pytorch_data_dump_instruct.md)
 
 ### Method for Locating the Position to Add Tools
 

@@ -28,7 +28,7 @@ This tool is used to compare the configurations that may affect training precisi
 
 5. Analyze the result.
 
-   Check whether attributes in the comparison result pass the check based on the [Result File Description](#Result File Description).
+   Check whether attributes in the comparison result pass the check based on the [Result File Description](#output-file-description).
 
 ## Preparations
 
@@ -52,7 +52,7 @@ By default, environment variables and third-party library versions are collected
 
 **Precautions**
 
-The static data collection mode can obtain only environment variables in the system. The hyperparameters parsed in the shell script do not support data restoration of complex operations. In this case, you are advised to use [dynamic collection mode](#dynamic data collection).
+The static data collection mode can obtain only environment variables in the system. The hyperparameters parsed in the shell script do not support data restoration of complex operations. In this case, you are advised to use [dynamic collection mode](#dynamic-data-collection).
 
 **Syntax**
 
@@ -83,13 +83,13 @@ msprobe config_check -d [<*.sh> <*.yaml>] [-o <output_file_path>]
 
 - Shell script and YAML configuration file passed
 
-  ```Python
+  ```bash
   msprobe config_check -d train.sh config.yaml -o /xx/output_file_path/config_check_pack.zip
   ```
 
 **Output Description**
 
-After command execution, **config_check_pack.zip** is output in both environments. The result file is used for subsequent [data comparison](#data comparison).
+After command execution, **config_check_pack.zip** is output in both environments. The result file is used for subsequent [data comparison](#data-comparison).
 
 ### Dynamic Data Collection
 
@@ -114,7 +114,7 @@ after the **megatron_adaptor** function in **pretrain_gpt.py** of MindSpeed-LLM 
 
    **apply_patches**: apply patches required for data collection.
 
-   - **fmk** (string): (optional) training framework. The value can be **pytorch** or **mindspore**. By default, this parameter is not set, indicating that PyTorch is used.
+   **fmk** (string): (optional) training framework. The value can be **pytorch** or **mindspore**. By default, this parameter is not set, indicating that PyTorch is used.
 
 2. Add the following code after the model is initialized:
 
@@ -136,13 +136,13 @@ after the **megatron_adaptor** function in **pretrain_gpt.py** of MindSpeed-LLM 
 
 **Output Description**
 
-After command execution, **config_check_pack.zip** is output in both environments. The result file is used for subsequent [data comparison](#data comparison).
+After command execution, **config_check_pack.zip** is output in both environments. The result file is used for subsequent [data comparison](#data-comparison).
 
 ## Data Comparison
 
 **Description**
 
-The .zip packages collected in the two training environments when [data collection](#data collection) is performed are used as inputs for data comparison.
+The .zip packages collected in the two training environments when [data collection](#data-collection) is performed are used as inputs for data comparison.
 
 **Precautions**
 
@@ -171,7 +171,7 @@ msprobe config_check -c bench_zip_path cmp_zip_path
 
 **Output Description**
 
-After the comparison command is executed, a comparison result file is generated. For details, see [Output File Description](#Output File Description).
+After the comparison command is executed, a comparison result file is generated. For details, see [Output File Description](#output-file-description).
 
 ## Output File Description
 

@@ -107,10 +107,10 @@ By default, the data is saved in the `./ut_error_data{timestamp}` directory. You
       | ----------- | -------- | -----------|
       | white_list      | No    | API dump trustlist. Only the specified APIs are dumped.<br>**Example**: `white_list=["conv1d", "conv2d"]` By default, no trustlist is configured, that is, all API data is dumped.|
       | black_list      | No    | API dump blocklist. The specified APIs are not dumped.<br>**Example**: `black_list=["conv1d", "conv2d"]` By default, no blocklist is configured, that is, all API data is dumped.|
-      | error_data_path | No    | Path for storing the API input and output data that does not meet the precision requirements.<br>**Example**: `error_data_path": "./" The default value is the current path.|
+      | error_data_path | No    | Path for storing the API input and output data that does not meet the precision requirements.<br>**Example**: error_data_path: './' The default value is the current path.|
       | precision       | No    | Number of decimal places of a floating-point number. By default, 14 decimal places are used.                        |
 
-      > [!NOTE]NOTE
+      > [!NOTE]
       >
       > If both `white_list` and `black_list` are configured and the API lists configured for them do not overlap, the trustlist takes effect. If the API lists overlap, the APIs excluded by the trustlist and the overlapped APIs are not dumped.
 
@@ -240,7 +240,7 @@ Note that an API in `accuracy_checking_details_{timestamp}.csv` may have multipl
    - Dual-100, dual-1000, and dual-10000 precision metrics:
      + For float16 and bfloat16 data: If the dual-100 metric fails to pass the test, mark the data as "error". If the dual-100 metric passes the test, but the dual-1000 metric fails, mark the data as "warning". If both the dual-100 and dual-1000 metrics pass the test, mark the data as "pass".
      + For float32 and float64 data: If the dual-1000 metric fails, mark the data as "error". If the dual-1000 metric passes, but the dual-10000 metric fails, mark the data as "warning". If both the dual-1000 and dual-10000 metrics pass, mark the data as "pass".
-   - In the `accuracy_checking_result_{timestamp}.csv` file, the`Forward Test Success` and `Backward Test Success` fields are used to collect statistics on the test results of the forward and backward outputs of an operator. For operators marked as "pass", the value in `accuracy_checking_result_{timestamp}.csv` is `TRUE`, indicating that the test is passed. For operators marked as "error" or "warning", the value in `accuracy_checking_result_{timestamp}.csv` is `FALSE`, indicating that the test is failed. An operator may have multiple forward or backward inputs or outputs. Therefore, all inputs and outputs of such an operator must be marked as "pass" in `accuracy_checking_result_{timestamp}.csv` for the operator to be marked as `TRUE`. If any input or output is marked as "error" or "warning", the operator is marked as `FALSE` in `accuracy_checking_result_{timestamp}.csv`.
+   - In the `accuracy_checking_result_{timestamp}.csv` file, the `Forward Test Success` and `Backward Test Success` fields are used to collect statistics on the test results of the forward and backward outputs of an operator. For operators marked as "pass", the value in `accuracy_checking_result_{timestamp}.csv` is `TRUE`, indicating that the test is passed. For operators marked as "error" or "warning", the value in `accuracy_checking_result_{timestamp}.csv` is `FALSE`, indicating that the test is failed. An operator may have multiple forward or backward inputs or outputs. Therefore, all inputs and outputs of such an operator must be marked as "pass" in `accuracy_checking_result_{timestamp}.csv` for the operator to be marked as `TRUE`. If any input or output is marked as "error" or "warning", the operator is marked as `FALSE` in `accuracy_checking_result_{timestamp}.csv`.
 
 ### Small Value Range
 

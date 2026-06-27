@@ -13,10 +13,10 @@ Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_
 The collection of OM model data depends on the aisbench and aclruntime packages. You can run the following command to install the two packages:
 
 ```bash
- msprobe install_deps -m offline --no_check
+msprobe install_deps -m offline --no_check
 ```
 
-> [!NOTE]NOTE
+> [!NOTE]
 >
 > --The **no_check** parameter skips the check of the certificate information of the target website, which poses security risks. Exercise caution when using this parameter and you shall bear the consequences.
 
@@ -43,7 +43,7 @@ Only ONNX and OM model data can be collected.
 **Syntax**
 
  ```sh
-  msprobe offline_dump --model_path <model_path> [options]
+msprobe offline_dump --model_path <model_path> [options]
  ```
 
 --**model_path** is a mandatory parameter, and **[options]** indicates optional parameters. For details about the parameters, see the table below.

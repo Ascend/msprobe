@@ -234,7 +234,7 @@ for data, label in data_loader:
     debugger.stop()  # Insert this function after the start function. Only the forward and backward data between the start function and this function is dumped. Segment-based collection using start-stop-start-stop-step sequences is supported.
     # ...
     loss.backward()
-    debugger.step ()  # Stop the dump of a step.
+    debugger.step()  # Stop the dump of a step.
 ```
 
 ### Examples (L2)
@@ -337,7 +337,7 @@ After training is complete, the data is saved in the directory specified by `dum
   |   |   |   |    ├── Cast.Default_network-TrainOneStepCell_network-WithLossCell__backbone-Net_Cast-op0.9.10.1735011096426349.input.0.ND.FLOAT.npy
   |   |   |   |    ├── GetNext.Default_GetNext-op0.0.11.17350110964032987.output.0.ND.FLOAT.npy
   |   |   |   |    ...
-  |   |   |   |    ├── RefDAata.accum_bias1.6.10.1735011096424907.output.0.ND.FLOAT.npy
+  |   |   |   |    ├── RefData.accum_bias1.6.10.1735011096424907.output.0.ND.FLOAT.npy
   |   |   |   |    ├── Sub.Default_network-TrainOneStepCell_network-WithLossCell__backbone-Net_Sub-op0.10.10.1735011096427368.input.0.ND.BF16
   |   |   |   |    └── mapping.csv
   │   |   │   ├── step_1
@@ -706,7 +706,7 @@ The **dump.json** file contains the following data:
    ]
   }
  }
-}  
+}
 ```
 
 ##### mix Level

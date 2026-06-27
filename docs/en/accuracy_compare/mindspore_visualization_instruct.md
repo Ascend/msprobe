@@ -228,7 +228,7 @@ Focuses on the model structure rather than the training process data. For exampl
 
 When using msProbe to collect model data, collect only the model structure (`task=structure`). This configuration prevents the collection of model training process data, significantly reducing the collection time.
 
-For details about the dump configuration, see [Dump Configuration Example](../dump/config_json_introduct.md#task = structure).
+For details about the dump configuration, see [Dump Configuration Example](../dump/config_json_introduct.md#task--structure).
 
 **Syntax**
 
@@ -335,13 +335,13 @@ After the startup, the following log is printed:
 
 In the preceding example, `ubuntu` is the server address, and `6008` is the port number.
 
-Replace `ubuntu` with the actual server address. For example, if the actual server address is `10.123.456.78`, enter `http://10.123.456.78:6008` in the address box of the browser.
+Replace `ubuntu` with the actual server address. For example, if the actual server address is `10.123.12.12`, enter `http://10.123.12.12:6008` in the address box of the browser.
 
 ### Server Without Direct Connectivity
 
 If the link is inaccessible (for example, the server cannot be directly connected and a VPN is required), try one of the following methods:
 
-1. Manually set a proxy for the local computer network. For example, in Windows 10, add the server address (for example, `10.123.456.78`) in the manual proxy settings.
+1. Manually set a proxy for the local computer network. For example, in Windows 10, add the server address (for example, `10.123.12.12`) in the manual proxy settings.
 
    ![proxy](../figures/visualization/proxy.png)
 
@@ -351,7 +351,7 @@ If the link is inaccessible (for example, the server cannot be directly connecte
    tensorboard --logdir out_path --bind_all
    ```
 
-   Finally, enter `http://10.123.456.78:6008` in the browser.
+   Finally, enter `http://10.123.12.12:6008` in the browser.
 
    If the firewall is enabled on the server, this method will not work. In this case, disable the firewall or try the following methods.
 
@@ -472,7 +472,7 @@ Model code example:
 
 **Single-Rank Format**
 
-`dump_path`: Must contain `dump.json`, `stack.json`, and `construct.json`. `construct.json` cannot be empty. If `construct.json` is empty, check whether the`level` parameter is set to `L0` or `mix` or not.
+`dump_path`: Must contain `dump.json`, `stack.json`, and `construct.json`. `construct.json` cannot be empty. If `construct.json` is empty, check whether the `level` parameter is set to `L0` or `mix` or not.
 
 ```ColdFusion
 ├── dump_path
@@ -482,13 +482,13 @@ Model code example:
 |   |    ...
 |   |    └── Cell.relu.ReLU.forward.0.input.0.npy
 |   ├── dump.json         # Data information
-|   ├── dump.json         # Call stack information
+|   ├── stack.json         # Call stack information
 |   └── construct.json    # Hierarchical structure. When `level` is set to `L1`, the `construct.json` file is empty.
 ```
 
 **Multi-Rank Format**
 
-`dump_path`: Must contain only folders named in the format of `rank{number}`. Each `rank` folder must contain `dump.json`, `stack.json`, and `construct.json`. `construct.json` cannot be empty. If `construct.json` is empty, check whether the`level` parameter is set to `L0` or `mix` or not.
+`dump_path`: Must contain only folders named in the format of `rank{number}`. Each `rank` folder must contain `dump.json`, `stack.json`, and `construct.json`. `construct.json` cannot be empty. If `construct.json` is empty, check whether the `level` parameter is set to `L0` or `mix` or not.
 
 ```ColdFusion
 ├── dump_path
@@ -514,7 +514,7 @@ Model code example:
 
 **Multi-Step Format**
 
-`dump_path`: Must contain only folders named in the format of `step{number}`. Each `step` folder must contain only folders named in the format of `rank{number}`. Each `rank` folder must contain `dump.json`, `stack.json`, and `construct.json`. `construct.json` cannot be empty. If `construct.json` is empty, check whether the`level` parameter is set to `L0` or `mix` or not.
+`dump_path`: Must contain only folders named in the format of `step{number}`. Each `step` folder must contain only folders named in the format of `rank{number}`. Each `rank` folder must contain `dump.json`, `stack.json`, and `construct.json`. `construct.json` cannot be empty. If `construct.json` is empty, check whether the `level` parameter is set to `L0` or `mix` or not.
 
 ```ColdFusion
 ├── dump_path
@@ -557,6 +557,6 @@ Model code example:
 
 Dump names follow the format `Name + Number of calls` (e.g., in `Torch.matmul.2.forward`, `matmul` is the name and `2` is the call count).
 
-# FAQs
+## FAQs
 
 For details, see [FAQs](./pytorch_visualization_instruct.md#faq) in *Graph Comparison in Hierarchical Visualization in PyTorch*.

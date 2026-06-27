@@ -115,15 +115,15 @@ Logs are printed after TensorBoard is started.
 
 In the preceding figure, `ubuntu` is the server address, and `6008` is the port number. You can specify another port number using the `--port` parameter.
 
-> [!NOTE]NOTE
+> [!NOTE]
 >
-> Replace `ubuntu` with the actual server address. For example, if the actual server address is `10.123.456.78`, enter [http://10.123.456.78:6008](http://10.123.456.78:6008/) in the address box of the browser.
+> Replace `ubuntu` with the actual server address. For example, if the actual server address is `10.123.12.12`, enter [http://10.123.12.12:6008](http://10.123.12.12:6008/) in the address box of the browser.
 
 **Server Without Direct Connectivity**
 
 If the link cannot be opened (for example, the server cannot be directly connected and a VPN is required), try one of the following methods:
 
-1. Manually set a proxy for the local computer network. For example, in Windows 10, add the server address (for example, `10.123.456.78`) in the manual proxy settings.
+1. Manually set a proxy for the local computer network. For example, in Windows 10, add the server address (for example, `10.123.12.12`) in the manual proxy settings.
 
    ![proxy](../figures/visualization/proxy.png)
 
@@ -133,9 +133,9 @@ If the link cannot be opened (for example, the server cannot be directly connect
    tensorboard --logdir out_path --bind_all
    ```
 
-   Finally, enter `http://10.123.456.78:6008` in the browser's address bar.>
+   Finally, enter `http://10.123.12.12:6008` in the browser's address bar.
 
-   > [!note]NOTE
+   > [!NOTE]
    >
    > If the firewall is enabled on the server, this method will not work. In this case, disable the firewall or try the following methods.
 
@@ -274,7 +274,7 @@ The table below describes the PNG file.
 ### Mapping File Configuration
 
 Mapping configuration files provide input to the `--mapping` parameter of the [precision data parsing](#precision-data-parsing) function.
-After the `-mapping` parameter is configured, the parser sequentially replaces model layer or operator names in each precision data file with the keys and values specified in `mapping.json`. This is intended for scenarios requiring name simplification or cross-step name alignment.
+After the `--mapping` parameter is configured, the parser sequentially replaces model layer or operator names in each precision data file with the keys and values specified in `mapping.json`. This is intended for scenarios requiring name simplification or cross-step name alignment.
 
 The JSON file format and an example are provided below; keys and values are strings.
 
@@ -299,7 +299,7 @@ plot_model_parallelism(config: ParallelConfig) -> None
 
 **Parameters**
 
-Parameters need to ba passed during instance initialization when a ParallelConfig instance is configured.
+Parameters need to be passed during instance initialization when a ParallelConfig instance is configured.
 
 | Parameter                               | Input/Output| Description                                                                                                                                                                   |
 | ------------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -309,7 +309,7 @@ Parameters need to ba passed during instance initialization when a ParallelConfi
 | pipeline_parallel_size                | Input     | (Optional; int) Pipeline parallel group size. The default value is **1**. In the actual training script, `--pipeline-model-parallel-size P` is specified, where `P` is the specified pipeline parallel group size.                                                                                                                         |
 | num_layers_per_virtual_pipeline_stage | Input     | (Optional; int) Number of layers in each virtual pipeline stage. The default value is **None**, indicating that virtual pipeline parallelism is disabled. In the actual training script, `--num-layers-per-virtual-pipeline-stage V` is specified, where `V` is the number of layers in each virtual pipeline stage.|
 | order                                 | Input     | (Optional; str) Sorting order of model parallelism strategies. The default Megatron setting (`tp-cp-ep-dp-pp`) is used.                                                                                                            |
-| standalone_embedding_stage            | Input     | (Optional; bool) Whether to use the embedding layer as an independent pipeline stage. `True` for enabled; 'False` for disabled. The default value is `False`.                                                                                                  |
+| standalone_embedding_stage            | Input     | (Optional; bool) Whether to use the embedding layer as an independent pipeline stage. `True` for enabled; `False` for disabled. The default value is `False`.                                                                                                  |
 | output_path                           | Input     | (Optional; str) Output path of the visualization result. The default value is './'.                                                                                                                  |
 
 **Returns**

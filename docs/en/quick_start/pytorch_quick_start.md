@@ -36,11 +36,11 @@ This Quick Start guide focuses on rapid onboarding for precision data collection
 
 1. Prepare a training server equipped with Ascend NPUs (such as Atlas A2 training servers) and install the NPU driver and firmware.
 
-2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](<>).
+2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](https://www.hiascend.com/cann/download).
 
 3. Install the framework.
 
-   In the following example, PyTorch 2.9.0, Python 3.12, AArch64-based system, and torchvision 0.24.0 are used as examples in the PyTorch training scenario. For details, see "Installing PyTorch > [Method 1: Installation via a Binary Package](<>)" in [*Ascend Extension for PyTorch Installation Guide*](<>).
+   In the following example, PyTorch 2.9.0, Python 3.12, AArch64-based system, and torchvision 0.24.0 are used as examples in the PyTorch training scenario. For details, see "Installing PyTorch > [Method 1: Installation via a Binary Package](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/installation_guide/installation_via_binary_package.md)" in [*Ascend Extension for PyTorch Installation Guide*](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/installation_guide/installation_description.md).
 
 4. Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).
 
@@ -92,7 +92,7 @@ Data Collection
 
 3. Add the tool to the training script (`pytorch_main.py`) in the GPU and Ascend NPU environments.
 
-   > [!NOTE]NOTE
+   > [!NOTE]
    >
    > Ensure that the tool has been added to the sample code in [PyTorch Precision Data Collection Code Sample](#pytorch-precision-data-collection-code-sample). Below is where the tool interface is added to the script.
 
@@ -120,7 +120,7 @@ Data Collection
    362         debugger.step()    # End data dump. If you enable data dump again, the collected data will be recorded in the next step.
    ```
    
-   > [!NOTE]NOTE
+   > [!NOTE]
    >
    > Precision data occupies certain drive space. As a result, the server may be unavailable when the drive space is used up. The space required by precision data is closely related to model parameters, collection configurations, and number of collection iterations. You need to ensure that the available drive space in the directory where precision data is flushed is sufficient.
    
@@ -653,7 +653,7 @@ def validate(val_loader, model, criterion, args):
                 i = base_progress + i
                 if use_accel:
                     if args.gpu is not None and device.type=='cuda':
-                        torch.accelerator.set_device_index(argps.gpu)
+                        torch.accelerator.set_device_index(args.gpu)
                         images = images.cuda(args.gpu, non_blocking=True)
                         target = target.cuda(args.gpu, non_blocking=True)
                     else:

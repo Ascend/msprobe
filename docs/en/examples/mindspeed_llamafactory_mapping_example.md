@@ -335,7 +335,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 
    ![7.png](../figures/visualization/mindspeed_llamafactoary_img/7.png)
    
-   The TransformerLayer and MLP layers have already been configured and cannot be modified. You can [manually select nodes for mapping](#selecting-nodes-for-mapping).
+   The TransformerLayer and MLP layers have already been configured and cannot be modified. You can [Manually Selecting Nodes for Mapping](#selecting-nodes-for-mapping).
 
 ### Selecting Nodes for Mapping
 

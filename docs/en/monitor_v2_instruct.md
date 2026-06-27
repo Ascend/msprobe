@@ -38,7 +38,7 @@ Install msProbe by referring to [msProbe Installation Guide](./msprobe_install_g
 To avoid confusion with [Monitor V1](./monitor_instruct.md), Monitor V2 must meet the following requirements:
 
 - Output: Only `format=csv` is supported (`tensorboard`/`api` not supported).
-- Configuration: `monitors.<name>` is used for organization, and naming of v1 such as`xy_distribution/wg_distribution/...` is not used. is not used.
+- Configuration: `monitors.<name>` is used for organization, and naming of v1 such as`xy_distribution/wg_distribution/...` is not used.
 - Toolchain: Toolchains of v1 such as `print_struct`, `stack_info`, `alert`, `csv2tensorboard`, and `csv2db in v1` are not supported.
 
 ## Quick Start
@@ -74,7 +74,7 @@ For more configuration fields and their meanings, see [Detailed Configuration](#
 
 First, initialize the monitor after the model and optimizer are ready. Then, call `mon.step()` once at the end of each training step. Finally, call `mon.stop()` to release resources when the training is complete. The key is to ensure that the function is called once for each step (usually after `optimizer.step()` and before or after `optimizer.zero_grad()`).
 
-> [!NOTE]NOTE
+> [!NOTE]
 >
 > If `patch_optimizer_step=true` is configured (or `optimizer` is passed without explicit configuration), `optimizer.step()` is automatically wrapped to trigger data collection. In this case, do not manually call `mon.step()`. If you need to manually call it, explicitly set `patch_optimizer_step=false`.
 
@@ -257,7 +257,7 @@ The following displays `monitors.param` configurations. For details about how to
 
 Configuration field description: See [Detailed Configuration > monitors.param](#config-param).
 
-Code example: See [Example in PyTorch Scenario](#example-in-pytorch-scenario) or [Example in MindSpore Scenarios](#quickstart-mindspore).
+Code example: See [Example in PyTorch Scenario](#example-in-pytorch-scenario) or [Example in MindSpore Scenario](#quickstart-mindspore).
 
 **Output Description**
 
@@ -324,7 +324,7 @@ Currently, only `format=csv` is supported. As each rank outputs independently to
 
 Directory structure:
 
-```Python
+```ColdFusion
 <output_dir>/
   rank_<rank_id>/
     module_step0-0.csv
@@ -334,7 +334,7 @@ Directory structure:
     cc_step0-0.csv
 ```
 
-> [!NOTE]NOTE
+> [!NOTE]
 >
 > CSV files are generated only for modules enabled in `monitors`.
 
@@ -448,7 +448,7 @@ Note: "Prototype" is for documentation purposes only, where `Any/Optional/Dict/T
 - Prototype:
   
   ```Python
-  TrainerMonitorV2.stop() -> Non
+  TrainerMonitorV2.stop() -> None
   ```
 
 - Parameters: None
@@ -509,7 +509,7 @@ The table below list common fields that are applicable to most modules.
 | `grad_acc_steps` | No| int | Number of gradient accumulation steps, which can be passed through `TrainerMonitorV2.start(..., grad_acc_steps=...)`.|
 | <idp:inline displayname="code" id="code8652331599">ops</idp:inline>/<idp:inline displayname="code" id="code106528335916">eps</idp:inline>| No| - | See description in the "common fields" table.|
 
-> [!NOTE]NOTE
+> [!NOTE]
 >
 > `weight_grad` records `unreduced` in the backward phase and captures and records `reduced` before `optimizer.step()` is called.
 
@@ -527,7 +527,7 @@ The table below list common fields that are applicable to most modules.
 | `param_distribution` | No     | bool | Whether to collect parameter distribution. The default value is `true`.|
 | <idp:inline displayname="code" id="code18655431596">ops</idp:inline>/<idp:inline displayname="code" id="code4655163125920">eps</idp:inline>       | No     | -    | See description in the "common fields" table.                  |
 
-> [!NOTE]NOTE
+> [!NOTE]
 >
 > `param` collects parameter distribution before and after `optimizer.step()` and outputs `scope=param_origin/param_updated`.
 
@@ -543,6 +543,6 @@ It takes effect only when the distributed environment has been initialized (for 
 | `module_ranks` | No| list[int] | This parameter takes effect only on specified ranks. (If this parameter is not set, the list is empty by default.)|
 | `ops`/`eps`| No| - | See description in the "common fields" table.|
 
-> [!NOTE]NOTE
+> [!NOTE]
 >
 > `monitors.cc` supports two formats: configuring the preceding fields directly, or nesting them within `cc_distribution` (for compatibility with the legacy structure).

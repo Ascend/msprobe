@@ -5,7 +5,7 @@
 - msProbe supports Ascend PyTorch 2.1.0 or later. For details about the version mapping between PyTorch and CANN, and between PyTorch and Python, see [Ascend Extension for PyTorch](https://gitcode.com/Ascend/pytorch).
 - msProbe supports MindSpore 2.4.0 or later. For details about the version mapping between MindSpore and CANN, and between MindSpore and Python, see [MindSpore Version Release List](https://www.mindspore.cn/versions/en).
 - msProbe supports MSAdapter 2.1.0.
-- The firmware and driver versions supported by msProbe are the same as those supported by CANN. You can check the firmware and driver versions by visiting the [Firmware and Drivers](<>) page of the Ascend Community.
+- The firmware and driver versions supported by msProbe are the same as those supported by CANN. You can check the firmware and driver versions by visiting the [Firmware and Drivers](https://www.hiascend.com/hardware/firmware-drivers/community) page of the Ascend Community.
 
 The following table lists the detailed version mapping of msProbe and the download links of the corresponding packages.
 

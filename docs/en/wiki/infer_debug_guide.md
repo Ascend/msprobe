@@ -183,13 +183,13 @@ Incorrect output: For example, the model consistently answers "Shanghai" instead
 
 ### 4.1.1 Locating Accuracy Issues in vLLM Scenarios
 
-vLLM is a high-performance model inference framework developed by the team at UC Berkeley. It uses innovative memory management and scheduling policies to address the problems of low memory utilization, insufficient throughput, and low concurrent processing efficiency in traditional inference frameworks when deploying foundation models. The core advantages of vLLM lie in its unique memory management mechanism (PagedAttention) and Continues Batching technology. These two innovations enable memory utilization to reach nearly 100% and the throughput to be 24 times that of traditional frameworks, making vLLM particularly suitable for real-time inference scenarios with high concurrency and low latency. The inference process of vLLM is divided into two main phases: prefill and decode. The prefill phase processes input prompts and generates the initial KV Cache, while the decode phase generates output tokens one by one and continuously updates the KV Cache. Throughout the process, vLLM uses its PagedAttention and Continues Batching features to efficiently utilize memory resources and fully schedule computing resources.
+vLLM is a high-performance model inference framework developed by the team at UC Berkeley. It uses innovative memory management and scheduling policies to address the problems of low memory utilization, insufficient throughput, and low concurrent processing efficiency in traditional inference frameworks when deploying foundation models. The core advantages of vLLM lie in its unique memory management mechanism (PagedAttention) and Continuous Batching technology. These two innovations enable memory utilization to reach nearly 100% and the throughput to be 24 times that of traditional frameworks, making vLLM particularly suitable for real-time inference scenarios with high concurrency and low latency. The inference process of vLLM is divided into two main phases: prefill and decode. The prefill phase processes input prompts and generates the initial KV Cache, while the decode phase generates output tokens one by one and continuously updates the KV Cache. Throughout the process, vLLM uses its PagedAttention and Continuous Batching features to efficiently utilize memory resources and fully schedule computing resources.
 
-#### 4.1.1.2 Tool Usage
+#### 4.1.1.1 Tool Usage
 
 To locate accuracy issues in vLLM scenarios, the dump and comparison capabilities of the msProbe tool are mainly used. vLLM involves multiple startup modes. The following describes how to enable the tool in each startup mode, using vLLM 0.9 as an example.
 
-##### 4.1.1.2.1 V0 Scenario
+##### 4.1.1.1.1 V0 Scenario
 
 - V0, offline mode, TP = 1
 
@@ -222,7 +222,7 @@ The multiprocessing executor `MultiprocessingDistributedExecutor` is used, which
 
 Tool adding position: See "V0, online, TP > 1" mode.
 
-##### 4.1.1.2.2 V1 Scenario
+##### 4.1.1.1.2 V1 Scenario
 
 - `v1 engine`, `eager(enforce_eager=True)`
 
@@ -265,20 +265,20 @@ GPU->vllm/v1/worker/gpu_model_runner.py  GPUModelRunner.execute_model
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/2fafa44e-8a21-4488-8762-76e5e21eccfd/image.png 'image.png')
 
-#### 4.1.1.3 Locating Process
+#### 4.1.1.2 Locating Process
 
 Generally, there are three phases for locating accuracy problems that can be reproduced in a single case.
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/dd6bf3db-d722-43da-9df0-1daa297feffb/image.png 'image.png')
 
-##### 4.1.1.3.1 Pre-locating Operations
+##### 4.1.1.2.1 Pre-locating Operations
 
 The accuracy benchmark may come from either a GPU or a historical version of the NPU baseline that is known to have normal accuracy.
 
 For details about model configuration check and randomness fixing, refer to [Checklist](#31-checklist) and [Preparations for Reproducing a Problem](#32-preparations-for-reproducing-a-problem). In the vLLM scenario, you also need to fix sampling randomness (`temperature` = `0`).
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/425c6827-f81f-4c7c-8a5b-5a4ffd8f4a80/image.png 'image.png')
 
-##### 4.1.1.3.2 Locating Operations
+##### 4.1.1.2.2 Locating Operations
 
 - Confirming the first different token
 
@@ -289,11 +289,11 @@ Then, you can easily compare the position of the first different token in the pr
 
 - Using msProbe to dump data
 
-For details about how to enable the msProbe dump feature, see [Tool Usage](#4112-tool-usage). The mix level and statistics mode are recommended for data dump. The data in the following format can be obtained.
+For details about how to enable the msProbe dump feature, see [Tool Usage](#4121-tool-usage). The mix level and statistics mode are recommended for data dump. The data in the following format can be obtained.
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f5c9ea68-a488-41c1-a57a-3166a251edae/image.png 'image.png')
 
-##### 4.1.1.3.3 Analysis of the Result
+##### 4.1.1.2.3 Analysis of the Result
 
 After the data dump, two files are obtained, one for the problem scenario and the other for the benchmark scenario.
 You can use [msProbe](../accuracy_compare/pytorch_accuracy_compare_instruct.md) to compare the data. The following is an example:
@@ -308,9 +308,9 @@ As shown in the preceding figure, matmul is the suspicious operator. You can rep
 
 Mind Inference Engine (MindIE) is an inference acceleration suite provided by Ascend for various AI scenarios. Through layered open AI capabilities, it supports diverse AI service needs and empowers a large number of models by leveraging the compute of Ascend hardware. MindIE supports multiple mainstream AI frameworks and is compatible with different types of Ascend AI processors, providing multi-layer programming APIs to help users quickly build inference services based on the Ascend platform.
 
-Currently, MindIE is often used together with the [Ascend Transformer Boost (ATB)](<>) acceleration library to achieve optimal inference performance. The following uses MindIE + ATB as an example to describe how to locate accuracy problems in MindIE scenarios.
+Currently, MindIE is often used together with the [Ascend Transformer Boost (ATB)](https://www.hiascend.com/document/detail/en/canncommercial/850/acce/ascendtb/ascendtb_0001.html) acceleration library to achieve optimal inference performance. The following uses MindIE + ATB as an example to describe how to locate accuracy problems in MindIE scenarios.
 
-#### 4.1.2.2 Tool Usage
+#### 4.1.2.1 Tool Usage
 
 The following describes how to use the dump and comparison functions of the msProbe tool to locate accuracy problems in the MindIE scenario.
 
@@ -394,7 +394,7 @@ Notes:
 
 For details about how to use the dump and comparison functions, see the [ATB Precision Data Collection](../dump/atb_data_dump_instruct.md) and [ATB Data Precision Comparison](../accuracy_compare/atb_data_compare_instruct.md).
 
-#### 4.1.2.3 Locating Process
+#### 4.1.2.2 Locating Process
 
 If a precision issue cannot be located, you can narrow down the scope hierarchically: first identify the problematic layer, and then locate the specific op within that layer. Here, an op includes both operation and kernel under the layer.
 

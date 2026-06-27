@@ -64,8 +64,8 @@ This baseline is a reference for data size changes in "tensor" mode in the MindS
     </tr> 
     <tr>
      <td>2</td>
-     <td>3.3TB</td>
-     <td>26.6TB</td>
+     <td>3.3 TB</td>
+     <td>26.6 TB</td>
     </tr> 
     <tr>
      <td>3</td>

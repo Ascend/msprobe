@@ -15,7 +15,7 @@ export MS_ASCEND_CHECK_OVERFLOW_MODE="INFNAN_MODE"
 
 **a**: When processing floating-point number overflow/underflow, NPU supports two modes: INF/NaN mode and saturation mode. Inf/NaN mode complies with IEEE 754 and outputs the Inf/NaN compute result based on the definition. In saturation mode, when overflow/underflow occurs during computation, the value is saturated to the extreme value (±MAX) of the floating-point number. For CANN configurations in Atlas training products, the saturation mode is used by default, and the Inf/NaN mode is not supported. For Atlas A2 training products, the Inf/NaN mode is used by default, and the saturation mode is not recommended. For the MindSpore framework, the configuration applies only to Atlas A2 training products. The Inf/NaN mode is used by default. The configuration on the CANN side must match that on the MindSpore framework side.
 
-For details about the configuration example of an overflow/underflow detection task, see [MindSpore Static Graph Scenario](../dump/config_json_introduct.md#task = overflow_check).
+For details about the configuration example of an overflow/underflow detection task, see [MindSpore Static Graph Scenario](../dump/config_json_introduct.md#task--overflow_check).
 
 ## Preparations
 

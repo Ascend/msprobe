@@ -3,12 +3,12 @@
   <p>🚀 <b>All-scenario Ascend AI precision debugging tool</b></p>
 
 [![Docs](https://badgen.net/badge/Docs/readthedocs/green)](https://msprobe.readthedocs.io/zh-cn/latest/)
-  [![License](https://badgen.net/badge/License/MulanPSL-2.0/blue)](https://raw.gitcode.com/Ascend/msprobe/raw/master/LICENSE) [![Version](https://badgen.net/badge/Version/26.0.0-alpha.1/green)](https://gitcode.com/Ascend/msprobe/releases/26.0.0-alpha.1) [![Ascend](https://img.shields.io/badge/Hardware-Ascend-orange.svg)](https://www.hiascend.com/)
+  [![License](https://badgen.net/badge/License/MulanPSL-2.0/blue)](https://raw.gitcode.com/Ascend/msprobe/raw/26.0.0/LICENSE) [![Version](https://badgen.net/badge/Version/26.0.0-alpha.1/green)](https://gitcode.com/Ascend/msprobe/releases/26.0.0-alpha.1) [![Ascend](https://img.shields.io/badge/Hardware-Ascend-orange.svg)](https://www.hiascend.com/)
 </div>
 
 ## 📢 What's New
 
-[2026.03.28]: [Notice of Deprecation: ADump Module in the msProbe Repository](<>)
+[2026.03.28]: [Notice of Deprecation: ADump Module in the msProbe Repository](https://gitcode.com/Ascend/msprobe/discussions/2)
 
 [2026.03.20]: Released the [Foundation Model Training Accuracy Debugging Guide](./docs/en/wiki/train_debug_guide.md), [Foundation Model Inference Accuracy Debugging Guide](./docs/en/wiki/infer_debug_guide.md), and [Common Framework Tool Instructions](./docs/en/wiki/dump_enable_guide.md).
 
@@ -69,7 +69,7 @@ An executable sample is provided to describe the precision data collection and c
 |                 |             | Precision comparison        | Compare the precision of the data dumped by ATB to locate precision issues.                                                                | [Precision Comparison](docs/en/accuracy_compare/atb_data_compare_instruct.md)                                                                                                     |
 |                 |             | Data conversion        | Convert the precision data dumped by ATB into a NumPy (.npy) or PyTorch tensor (.pt) file.                                         | [Data Conversion](docs/en/dump/data_parse_instruct.md)                                                                                                                       |
 | **Offline model inference**     |      -      | Data collection        | Collect msProbe precision data.                                                                            | [Data Collection](docs/en/dump/infer_offline_dump_instruct.md)                                                                                                               |
-|                 |             | Precision comparison        | Provide one-click offline model comparison by simplify inputting a model without data collection in advance and generate results quickly.                                                   | [Precision Comparison](docs/en/accuracy_compare/infer_compare_offline_model_instruct.md)                                                                                          |
+|                 |             | Precision comparison        | Provide one-click offline model comparison by simplifying inputting a model without data collection in advance and generate results quickly.                                                   | [Precision Comparison](docs/en/accuracy_compare/infer_compare_offline_model_instruct.md)                                                                                          |
 |                 |             | Offline model data precision comparison  | Compare the precision of an offline model by inputting the dump data of the offline model.                                                             | [Offline Model Data Precision Comparison](docs/en/accuracy_compare/offline_data_compare_instruct.md)                                                                                          |
 |                 |             | Data conversion        | Convert the dump data of an offline model into a NumPy (.npy) or PyTorch tensor (.pt) file.                                           | [Data Conversion](docs/en/dump/data_parse_instruct.md)                                                                                                                       |
 | **PyTorch training**  |      -      | Configuration check before training     | Before training or precision comparison, compare the configuration differences that may affect training precision in the two environments.                                                               | [Configuration Check Before Training](docs/en/config_check_instruct.md)                                                                                                                       |

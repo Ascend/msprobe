@@ -226,7 +226,7 @@ Focuses on the model structure rather than the training process data. For exampl
 
 When using msProbe to collect model data, collect only the model structure (`task=structure`). This configuration prevents the collection of model training process data, significantly reducing the collection time.
 
-For details about the dump configuration, see [Dump Configuration Example](../dump/config_json_introduct.md#task = structure).
+For details about the dump configuration, see [Dump Configuration Example](../dump/config_json_introduct.md#task--structure).
 
 **Syntax**
 
@@ -270,7 +270,7 @@ msprobe graph_visualize -tp <target_path> [-gp <golden_path>] -o <output_path> [
 | `-tp` or `--target_path`          | Yes | Comparison path on the debugging side. The value is of the string type. The tool automatically performs single-rank comparison, multi-rank batch comparison, or multi-step batch comparison based on the path format.|
 | `-gp` or `--golden_path`          | No | Comparison path on the benchmark side. The value is of the string type. If this parameter is not set, single-graph construction is performed.|
 | `-o` or `--output_path`           | Yes | Directory for storing the graph construction result file. The value is of the string type. The file name is automatically generated based on the timestamp in the format of `compare_{timestamp}.vis.db`.                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `-lm` or `--layer_mapping` | No    | Cross-suite comparison, for example, comparison of a model that uses both the DeepSpeed and Megatron suites. If this parameter is configured, cross-suite layer comparison is enabled. After the layers in the model code are specified, the corresponding modules or APIs of the dump data can be identified. You need to specify a custom mapping file in .yaml format. For details about the format and configuration of the custom mapping file, see [Custom Layer Mapping File](#custom-layer-mapping-file) and [Configuring Layer Mapping for Hierarchical Model Visualization](../examples/layer_mapping_example.md). After this parameter is configured, comparison is performed only by node name, and the type and shape of a node are ignored.<br><br>Node naming format: `{Module}.{module_name}.{class_name}.{forward/backward}.{number_of_calls}`<br>&#738226; If the values of `module_name` are different, specify a custom mapping file using the `-lm` parameter, for example, `-lm mapping.yaml`.<br>&#738226; If the values of `module_name` are the same but the values of `class_name` are different, directly configure the `-lm` parameter, for example, `-lm`.<br>&#738226; If the values of `cell_name` and `class_name` are the same, you do not need to configure the `-lm` parameter.<br><br>For details, see [Data Collection and Automatic Comparison in MindSpeed and LLamaFactory](../examples/mindspeed_llamafactory_mapping_example.md).|
+| `-lm` or `--layer_mapping` | No    | Cross-suite comparison, for example, comparison of a model that uses both the DeepSpeed and Megatron suites. If this parameter is configured, cross-suite layer comparison is enabled. After the layers in the model code are specified, the corresponding modules or APIs of the dump data can be identified. You need to specify a custom mapping file in .yaml format. For details about the format and configuration of the custom mapping file, see [Custom Layer Mapping File](#custom-layer-mapping-file) and [Configuring Layer Mapping for Hierarchical Model Visualization](../examples/layer_mapping_example.md). After this parameter is configured, comparison is performed only by node name, and the type and shape of a node are ignored.<br><br>Node naming format: `{Module}.{module_name}.{class_name}.{forward/backward}.{number_of_calls}`<br>&#8226; If the values of `module_name` are different, specify a custom mapping file using the `-lm` parameter, for example, `-lm mapping.yaml`.<br>&#8226; If the values of `module_name` are the same but the values of `class_name` are different, directly configure the `-lm` parameter, for example, `-lm`.<br>&#8226; If the values of `module_name` and `class_name` are the same, you do not need to configure the `-lm` parameter.<br><br>For details, see [Data Collection and Automatic Comparison in MindSpeed and LLamaFactory](../examples/mindspeed_llamafactory_mapping_example.md).|
 | `-oc` or `--overflow_check`       | No | Whether to enable overflow/underflow detection. After it is enabled, the overflow/underflow level of each overflowed/underflowed node is marked in the output .db file (`compare_{timestamp}.vis.db`). If this parameter is configured, the function is enabled. By default, this parameter is not configured.                                                                                                                                                                                                                                                                                                                                                                    |
 | `-fm` or `--fuzzy_match`          | No | Whether to enable fuzzy matching. If this parameter is configured, the function is enabled. By default, this parameter is not configured. For details about the differences between fuzzy matching and default matching, see [Matching Description](#matching-description).                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `-tensor_log` or `--is_print_compare_log`   | No                  | Whether to enable log printing for a single module or API. Only the tensor data dumped by msProbe is supported. If this parameter is configured, the function is enabled. By default, this parameter is not configured.|
@@ -315,7 +315,7 @@ Example 4: Comparison in graph merging mode with different PP and TP sizes
 msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path --rank_size 8 8 --tp 1 8 --pp 8 1
 ```
 
-In all the preceding examples, the formats of `npu_path` and `bench_path` must meet the multi-rank or multi-step format requirements listed in [Dump File Requirements for Graph Construction in Hierarchical Visualization](#dump-file-requirements-for-graph-construction-in-hierarchical-visualization).
+In all the preceding examples, the formats of `target_path` and `golden_path` must meet the multi-rank or multi-step format requirements listed in [Dump File Requirements for Graph Construction in Hierarchical Visualization](#dump-file-requirements-for-graph-construction-in-hierarchical-visualization).
 
 ## Starting TensorBoard
 
@@ -333,13 +333,13 @@ Logs are printed after TensorBoard is started.
 
 In the preceding figure, `ubuntu` is the server address, and `6008` is the port number.
 
-Replace `ubuntu` with the actual server address. For example, if the actual server address is `10.123.456.78`, enter `http://10.123.456.78:6008` in the address box of the browser.
+Replace `ubuntu` with the actual server address. For example, if the actual server address is `10.123.12.12`, enter `http://10.123.12.12:6008` in the address box of the browser.
 
 ### Server Without Direct Connectivity
 
 If the link is inaccessible (for example, the server cannot be directly connected and a VPN is required), try one of the following methods:
 
-1. Manually set a proxy for the local computer network. For example, in Windows 10, add the server address (for example, `10.123.456.78`) in the manual proxy settings.
+1. Manually set a proxy for the local computer network. For example, in Windows 10, add the server address (for example, `10.123.12.12`) in the manual proxy settings.
 
    ![proxy](../figures/visualization/proxy.png)
 
@@ -349,7 +349,7 @@ If the link is inaccessible (for example, the server cannot be directly connecte
    tensorboard --logdir out_path --bind_all
    ```
 
-   Finally, enter `http://10.123.456.78:6008` in the browser.
+   Finally, enter `http://10.123.12.12:6008` in the browser.
 
    If the firewall is enabled on the server, this method will not work. In this case, disable the firewall or try the following methods.
 

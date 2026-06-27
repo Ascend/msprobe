@@ -124,7 +124,7 @@ Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_
            # Print the output shape of each layer for debugging.
            print(f"After Conv1: {x.shape}")
    
-           x = self.max_pool2d (x)   # Max pooling
+           x = self.max_pool2d(x)   # Max pooling
            print(f"After MaxPool: {x.shape}")   # Print the shape after pooling.
    
            x = self.conv2(x)

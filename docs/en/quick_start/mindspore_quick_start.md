@@ -36,7 +36,7 @@ This Quick Start guide focuses on rapid onboarding for precision data collection
 
 1. Prepare a training server equipped with Ascend NPUs (such as Atlas A2 training servers) and install the NPU driver and firmware.
 
-2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](<>).
+2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](https://www.hiascend.com/cann/download).
 
 3. Install the framework.
 
@@ -84,7 +84,7 @@ Data Collection
 
 3. Add the tool to the training script (`mindspore_main.py`) in the MindSpore 2.7.2 and MindSpore 2.8.0 environments.
 
-   > [!NOTE]NOTE
+   > [!NOTE]
    >
    > Ensure that the tool has been added to the sample code in [MindSpore Precision Data Collection Code Sample](#mindspore-precision-data-collection-code-sample). Below is where the tool interface is added to the script.
 
@@ -106,7 +106,7 @@ Data Collection
     56     print("train finish")
    ```
 
-   > [!NOTE]NOTE
+   > [!NOTE]
    >
    > Precision data occupies certain drive space. As a result, the server may be unavailable when the drive space is used up. The space required by precision data is closely related to model parameters, collection configurations, and number of collection iterations. You need to ensure that the available drive space in the directory where precision data is flushed is sufficient.
 
@@ -242,7 +242,7 @@ Performing Comparison
    tensorboard --logdir ./output --bind_all
    ```
 
-   --The path specified by `logdir` is `/home/dump/output` in step 2.
+   The path specified by `logdir` is `/home/dump/output` in step 2.
 
    After the preceding command is executed, the following log is displayed:
 

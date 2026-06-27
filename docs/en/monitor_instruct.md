@@ -539,7 +539,7 @@ You can specify the output format by setting `format`, which supports `csv`, `te
 - **csv**:
   The monitoring result is written into a .csv file. You can set the number of decimal places by using the `ndigits` field. 
   The header is `vpp_stage | name | step | micro_step(optional) | *ops |`.
-  `micor_step` is contained only in the output file of activation monitoring.
+  `micro_step` is contained only in the output file of activation monitoring.
   `name` of activation monitoring is `<module_name>.<input or output>`, and `name` of other tasks is `<param_name>`.
 
 - **api**:

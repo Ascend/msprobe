@@ -139,7 +139,7 @@ The following is a basic example of data dump. The highlighted code in the examp
 API description:
 
 - [seed_all](#seed_all): fixes randomness in the network and enables deterministic computing.
-- [[PrecisionDebugger](#precisiondebugger): loads the dump configuration file to determine the detailed dump configuration.
+- [PrecisionDebugger](#precisiondebugger): loads the dump configuration file to determine the detailed dump configuration.
 - [start](#start): starts precision data collection.
 - [stop](#stop): stops precision data collection.
 - [step](#step): ends data collection of a step, flushes all data, and updates dump parameters.

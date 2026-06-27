@@ -15,7 +15,7 @@ msProbe collects precision data of an ATB model by executing the ATB dump module
 
 **Concepts**
 
-* **Ascend Transformer Boost (ATB)**: An efficient and reliable acceleration library designed for Transformer models based on the Ascend Ascend AI Processor. For details, see [ATB User Guide (CANN Commercial Edition)](<>).
+* **Ascend Transformer Boost (ATB)**: An efficient and reliable acceleration library designed for Transformer models based on the Ascend Ascend AI Processor. For details, see [ATB User Guide (CANN Commercial Edition)](https://www.hiascend.com/document/detail/en/canncommercial/850/acce/ascendtb/ascendtb_0001.html).
 
 * **dump**: a process of collecting precision data and completing data persistence.
 
@@ -250,7 +250,7 @@ The following uses the MindIE image for serving inference as an example. Ensure 
 
 The following is an example of the directory structure for the ATB dump output:
 
-```lua
+```ColdFusion
 ├── outputPath  # Output path when the module loading script is executed
 │   ├── atb_dump_data  # Fixed directory automatically created by the tool
 │   |   ├── data  # Fixed directory automatically created by the tool, which stores the input/output data of an op.

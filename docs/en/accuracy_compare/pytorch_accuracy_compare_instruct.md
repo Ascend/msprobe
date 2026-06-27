@@ -88,7 +88,7 @@ Both single-rank and multi-rank scenarios are supported. The dump data of multip
    msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output
    ```
 
-   Multi-rank scenario (`-tp` and `gp` need to be set to the step level, that is, the upper level of rank):
+   Multi-rank scenario (`-tp` and `-gp` need to be set to the step level, that is, the upper level of rank):
 
    ```shell
    msprobe compare -tp /target_dump/step0 -gp /golden_dump/step0 -o ./output
@@ -147,7 +147,7 @@ Procedure:
    msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output -da
    ```
 
-   Multi-rank scenario (`-tp` and `gp` need to be set to the step level, that is, the upper level of rank):
+   Multi-rank scenario (`-tp` and `-gp` need to be set to the step level, that is, the upper level of rank):
 
    ```shell
    msprobe compare -tp /target_dump/step0 -gp /golden_dump/step0 -o ./output -da
@@ -168,9 +168,9 @@ Procedure:
 
 #### verl Training and Inference Consistency Comparison
 
-In this scenario, thr training and inference data in the prefill phase of verl is compared.
+In this scenario, the training and inference data in the prefill phase of verl is compared.
 
-> [!NOTE]NOTE
+> [!NOTE]
 >
 > - Currently, the L0 comparison of tensor data dumped by FSDP and Megatron backends is supported. The supported models include Qwen3-30B, Qwen3-32B, Qwen3-4B, and Qwen2.5-0.5B.
 > - In this scenario, both training and inference data need to be dumped. Ensure that the dump paths for the two types of data are different; otherwise, the dump data will be overwritten. During comparison, `-tp` must be set to training data, and `-gp` must be set to inference data.
@@ -212,7 +212,7 @@ Single-point data comparison supports single-rank and multi-rank comparison. In 
    msprobe compare -tp /target_dump/debug.json -gp /golden_dump/debug.json -o ./output
    ```
 
-   Multi-rank scenario (`-tp` and `gp` need to be set to the step level, that is, the upper level of rank):
+   Multi-rank scenario (`-tp` and `-gp` need to be set to the step level, that is, the upper level of rank):
 
    ```shell
    msprobe compare -tp /target_dump/step0 -gp /golden_dump/step0 -o ./output

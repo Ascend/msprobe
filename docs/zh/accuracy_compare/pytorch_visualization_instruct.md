@@ -186,7 +186,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path
 msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path -lm
 ```
 
-调试侧和标杆侧有节点名称不相同，则需要配置自定义映射文件，-lm参数传入自定义映射文件路径，映射文件如何配置详见参数说明。
+调试侧和标杆侧有节点名称不相同，则需要配置自定义映射文件，-lm参数传入自定义映射文件路径。
 
 ```bash
 msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path -lm ./mapping.yaml

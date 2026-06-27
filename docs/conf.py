@@ -90,6 +90,7 @@ templates_path = ['_templates']
 # 屏蔽不必要的文件
 exclude_patterns = [
     'zh/design_documents/*',
+    'en/design_documents/*',
 ]
 
 # 添加页面内目录配置

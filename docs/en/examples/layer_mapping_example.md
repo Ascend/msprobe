@@ -25,7 +25,7 @@ Some node names are excessively long—for example, `Module.module.module.langua
 - **Module.module.module.language_model.TransformerLanguageModel.forward.0** -----> Module{**Module**}.module.module.language_model{**module_name**}.TransformerLanguageModel{**class_name**}.forward.0{**number_of_calls**}
 - **Module.module.module.language_model.embedding.Embedding.forward.0** -----> Module{**Module**}.module.module.language_model.embedding{**module_name**}.Embedding{**class_name**}.forward.0{**number_of_calls**}
 
-As shown in the preceding examples, `module_name` grows longer as the model level deepens. For the embedding layer, `module_name` combines the`language_model` layer with its upper and top-level modules.
+As shown in the preceding examples, `module_name` grows longer as the model level deepens. For the embedding layer, `module_name` combines the `language_model` layer with its upper and top-level modules.
 
 ## Example
 

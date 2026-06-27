@@ -47,7 +47,7 @@ The table below lists a sub-configuration item for a **statistics** task.
 
 | Parameter        | Description                                                        | Mandatory (Yes/No)|
 | ------------ | ------------------------------------------------------------ | -------- |
-| summary_mode | Dump file output mode, which is of the string type. The value can be **statistics** or **md5**. For details, see [task = statistics](./config_json_introduct.md#task = statistics).| No      |
+| summary_mode | Dump file output mode, which is of the string type. The value can be **statistics** or **md5**. For details, see [task = statistics](./config_json_introduct.md#task--statistics).| No      |
 
 There is no sub-configuration items for a **tensor** task.
 

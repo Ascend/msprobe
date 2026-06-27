@@ -99,7 +99,7 @@ For details about the result, see [Pre-check Result Description](#pre-check-resu
 
 **Function**
 
-The·`acc_check` command is used to perform unit tests on all API execution units recorded in the `dump.json` file, compare the output differences between the NPU and CPU, and generate the forward and backward precision results. This function is applicable to API precision pre-check in single-device scenarios.
+The `acc_check` command is used to perform unit tests on all API execution units recorded in the `dump.json` file, compare the output differences between the NPU and CPU, and generate the forward and backward precision results. This function is applicable to API precision pre-check in single-device scenarios.
 
 **Precautions**
 

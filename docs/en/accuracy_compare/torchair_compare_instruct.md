@@ -19,7 +19,7 @@ For details, see [Environment Setup](../dump/torchair_dump_instruct.md#environme
 
 ## Precision Comparison Between Dump Data in GE Fusion Mode (Default) and FX Dump Data
 
-For details about the dump data collection method, API parameters, examples, and result directory structure, see [Dumping Data in GE Fusion Mode](../dump/torchair_dump_instruct.md#dumping-data-in-ge-mode-with-fusion-disabled) and [Dumping Data in FX Mode](../dump/torchair_dump_instruct.md#dumping-data-in-fx-mode).
+For details about the dump data collection method, API parameters, examples, and result directory structure, see [Dumping Data in GE Fusion Mode](../dump/torchair_dump_instruct.md#dumping-data-in-ge-fusion-mode) and [Dumping Data in FX Mode](../dump/torchair_dump_instruct.md#dumping-data-in-fx-mode).
 
 ### Precision Comparison
 

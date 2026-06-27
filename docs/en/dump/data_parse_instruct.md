@@ -10,7 +10,7 @@ This document describes how to convert dump data into NumPy (.npy) or PyTorch te
 
 - Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).
 - To convert data into the PyTorch tensor (.pt) format, PyTorch also needs to be installed.
-- To convert adump data, ensure that the CANN Toolkit of the matching version has been installed and the CANN environment variables have been configured. For details, see [CANN Software Installation Guide](<>).
+- To convert adump data, ensure that the CANN Toolkit of the matching version has been installed and the CANN environment variables have been configured. For details, see [CANN Software Installation Guide](https://www.hiascend.com/cann/download).
 
 **Constraints**
 
