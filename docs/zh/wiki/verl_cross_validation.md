@@ -50,7 +50,7 @@ python train.py \
 
 ### 代码修改
 
-修改文件 `verl/verl/utils/rollout_skip.py`：
+修改文件 `verl/utils/rollout_skip.py`：
 
 **在 `class RolloutSkip` 的 `__init__` 方法中添加索引变量：**
 
@@ -167,7 +167,7 @@ python train.py \
 
 #### 1. 新增工具类
 
-创建文件 `verl/verl/utils/share_data.py`:
+创建文件 `verl/utils/share_data.py`:
 
 ```python
 import torch
@@ -318,7 +318,7 @@ def after_update_policy(share_data, load_func, dump_func):
 
 ### 2. 修改Trainer类
 
-修改文件 `verl/verl/trainer/ppo/ray_trainer.py`:
+修改文件 `verl/trainer/ppo/ray_trainer.py`:
 
 **在 `fit()` 函数中添加初始化逻辑，并包装 `generate_sequences` 方法：**
 
