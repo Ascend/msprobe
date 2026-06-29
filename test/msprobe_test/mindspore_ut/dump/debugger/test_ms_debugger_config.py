@@ -38,6 +38,4 @@ class TestDebuggerConfig(unittest.TestCase):
         task_config = StatisticsConfig(json_config)
         debugger_config = DebuggerConfig(common_config, task_config)
         self.assertEqual(debugger_config.task, Const.STATISTICS)
-        self.assertEqual(debugger_config.file_format, "npy")
-        self.assertEqual(debugger_config.check_mode, "all")
         self.assertEqual(debugger_config.tensor_list, [])

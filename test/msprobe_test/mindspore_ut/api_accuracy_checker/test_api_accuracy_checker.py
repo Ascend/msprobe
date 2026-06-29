@@ -65,7 +65,6 @@ class TestApiAccuracyChecker(unittest.TestCase):
             self.assertEqual(config.dump_path, temp_dir)
             self.assertEqual(config.dump_tensor_data_dir, temp_dir)
             self.assertFalse(config.async_dump)
-            self.assertEqual(config.file_format, "npy")
 
             # 2. error_data 目录已创建
             error_dir = os.path.join(temp_dir, "error_data")

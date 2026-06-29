@@ -17,7 +17,6 @@
 from msprobe.core.common.const import Const
 from msprobe.mindspore.dump.debugger.debugger_config import DebuggerConfig
 from msprobe.mindspore.dump.dump_processor.dump_tool_factory import DumpToolFactory
-from msprobe.mindspore.dump.overflow_check.overflow_check_tool_factory import OverflowCheckToolFactory
 from msprobe.mindspore.dump.exception_dump.exception_dump_tool_factory import ExceptionDumpToolFactory
 
 
@@ -25,19 +24,18 @@ class TaskHandlerFactory:
     tasks = {
         Const.TENSOR: DumpToolFactory,
         Const.STATISTICS: DumpToolFactory,
-        Const.OVERFLOW_CHECK: OverflowCheckToolFactory,
-        Const.EXCEPTION_DUMP: ExceptionDumpToolFactory
+        Const.EXCEPTION_DUMP: ExceptionDumpToolFactory,
     }
 
     @staticmethod
     def create(config: DebuggerConfig, model=None):
         task = TaskHandlerFactory.tasks.get(config.task)
         if not task:
-            raise Exception("Valid task is needed.")
+            raise Exception("Valid task is needed.")  # pylint: disable=W0719
         if task == DumpToolFactory:
             handler = task.create(config, model)
         else:
             handler = task.create(config)
         if not handler:
-            raise Exception("Can not find task handler")
+            raise Exception("Can not find task handler")  # pylint: disable=W0719
         return handler

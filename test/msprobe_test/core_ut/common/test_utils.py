@@ -235,7 +235,7 @@ class TestUtils(TestCase):
             dump_mode = get_dump_mode(input_param)
         self.assertEqual(dump_mode, Const.MD5)
 
-        npu_json["task"] = Const.OVERFLOW_CHECK
+        npu_json["task"] = Const.EXCEPTION_DUMP
         with patch("msprobe.core.common.utils.load_json", return_value=npu_json), \
                 patch("msprobe.core.common.utils.get_file_type", return_value=Const.DUMP_JSON_FILE):
             with self.assertRaises(CompareException) as context:

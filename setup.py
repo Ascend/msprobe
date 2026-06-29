@@ -116,7 +116,6 @@ INSTALL_REQUIRED = [
     "openpyxl >= 3.0.6",
     "matplotlib",
     "tensorboard >= 2.11.2",
-    "protobuf <= 3.20.2",
     "rich",
     "skl2onnx >= 1.14.1",
     "setuptools <= 81.0.0",
@@ -131,9 +130,8 @@ if platform.system() != "Linux":
     raise SystemError("MindStudio-Probe is only supported on Linux platforms.")
 
 
-# 扩展模块范围，包括adump和tb_graph_ascend
+# 扩展模块范围
 mod_list_range = {
-    "adump",
     "tb_graph_ascend",
     "trend_analyzer",
     "atb_probe",
@@ -191,14 +189,8 @@ if mod_list:
         # 可选：raise BuildError(f"清理失败: {e}")
         with_trend_analyzer = False
 
-    # 如果包含adump/atb_probe/aclgraph_dump/nan_check/xor_checksum，则进行C++相关的构建
-    if (
-        "adump" in mod_list
-        or "atb_probe" in mod_list
-        or "aclgraph_dump" in mod_list
-        or "nan_check" in mod_list
-        or "xor_checksum" in mod_list
-    ):
+    # 如果包含atb_probe/aclgraph_dump/nan_check/xor_checksum，则进行C++相关的构建
+    if "atb_probe" in mod_list or "aclgraph_dump" in mod_list or "nan_check" in mod_list or "xor_checksum" in mod_list:
         os.environ["PYTHON_BIN"] = sys.executable
         arch = platform.machine()
         sys.argv.append("--plat-name")

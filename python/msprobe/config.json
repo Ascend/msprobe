@@ -1,22 +1,21 @@
 {
     "task": "statistics",
-    "dump_path": "./dump_path", 
-    "rank": [],  
-    "step": [],  
+    "dump_path": "./dump_path",
+    "rank": [],
+    "step": [],
     "level": "L1",
     "extra_info": true,
     "async_dump": false,
     "statistics": {
         "scope": [],
-        "list":[],
+        "list": [],
         "data_mode": ["all"],
         "summary_mode": "statistics"
     },
     "tensor": {
-        "scope": [], 
-        "list":[], 
-        "data_mode": ["all"],
-        "file_format": "npy"
+        "scope": [],
+        "list": [],
+        "data_mode": ["all"]
     },
     "acc_check": {
         "white_list": [],

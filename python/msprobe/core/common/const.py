@@ -120,7 +120,6 @@ class Const:  # pylint: disable=too-many-lines
     MAX_SEED_VALUE = 4294967295  # 2**32 - 1
     STATISTICS = "statistics"
     TENSOR = "tensor"
-    OVERFLOW_CHECK = "overflow_check"
     DIFF_CHECK = "diff_check"
     FREE_BENCHMARK = "free_benchmark"
     ACC_CHECK = "acc_check"
@@ -135,7 +134,6 @@ class Const:  # pylint: disable=too-many-lines
         STATISTICS,
         ACC_CHECK,
         STRUCTURE,
-        OVERFLOW_CHECK,
         DIFF_CHECK,
         EXCEPTION_DUMP,
         NAN_CHECK,

@@ -60,7 +60,7 @@ Successfully installed mindstudio-probe-{version}
 
    若覆盖安装，请在命令行末尾添加 `--force-reinstall` 参数。
 
-   以上提供的whl包链接不包含adump、aclgraph_dump、atb_probe和nan_check等功能，如果需要使用这些功能，请参见[源码安装](#23-源码安装)下载源码编译whl包。
+   以上提供的whl包链接不包含aclgraph_dump、atb_probe和nan_check等功能，如果需要使用这些功能，请参见[源码安装](#23-源码安装)下载源码编译whl包。
 
 ### 2.3 源码安装
 
@@ -82,7 +82,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 
 | 参数          | 可选/必选 | 说明                                                         |
 | ------------- | :-------: | ------------------------------------------------------------ |
-| --include-mod |   可选    | 指定可选模块，可取值：<br/>&#8226; adump：表示在编译whl包时加入adump模块。adump模块用于MindSpore静态图场景L2级别的dump。仅MindSpore 2.5.0及以上版本支持adump模块。<br/>&#8226; tb_graph_ascend：表示在编译whl包时加入模型分级可视化插件。模型分级可视化构建相关依赖和推荐版本为Node.js v20.19.3、npm v10.8.2。模型分级可视化插件的详细依赖及功能使用说明请参见[PyTorch场景分级可视化构图比对](./accuracy_compare/pytorch_visualization_instruct.md)或[MindSpore场景分级可视化构图比对](./accuracy_compare/mindspore_visualization_instruct.md)。<br/>&#8226; trend_analyzer：表示在编译whl包时加入趋势分级可视化插件。趋势分级可视化构建相关依赖和推荐版本为Node.js v20.19.3、npm v10.8.2。趋势分级可视化插件的功能说明请参见[趋势可视化](./accuracy_compare/trend_visualization_instruct.md)。 <br/>&#8226; atb_probe：表示在编译whl包时加入atb_probe模块。atb_probe模块用于ATB推理场景下的数据采集。<br/>&#8226; aclgraph_dump：表示在编译whl包时加入aclgraph_dump模块，用于在aclgraph场景通过acl_save保存.pt文件。编译环境需要额外依赖`torch`和`torch_npu`。<br/>&#8226; nan_check：表示在编译whl包时加入nan_check模块，用于在nan_check场景下做寄存器溢出状态监测。<br/>&#8226; xor_checksum：表示在编译whl包时加入XOR校验加速算子，用于PyTorch场景下`summary_mode`配置为`xor`时加速校验值采集，可带来数倍性能提升。编译环境需要额外依赖`torch`和`torch_npu`。<br/>默认未配置该参数，表示编译基础工具包。<br/>指定多个模块时，模块间以","连接，例如adump,atb_probe。<br/>指定adump或atb_probe模块时，编译环境需具备git、curl、GCC 7.5或以上版本、CMake 3.19.3或以上版本等第三方依赖软件。且指定adump模块时，使能的CANN环境下需包含`libadump_server.a`文件。<br/>配置该参数生成的whl包，仅限编译时使用的Python版本和处理器架构可用。 |
+| --include-mod |   可选    | 指定可选模块，可取值：<br/>&#8226; tb_graph_ascend：表示在编译whl包时加入模型分级可视化插件。模型分级可视化构建相关依赖和推荐版本为Node.js v20.19.3、npm v10.8.2。模型分级可视化插件的详细依赖及功能使用说明请参见[PyTorch场景分级可视化构图比对](./accuracy_compare/pytorch_visualization_instruct.md)或[MindSpore场景分级可视化构图比对](./accuracy_compare/mindspore_visualization_instruct.md)。<br/>&#8226; trend_analyzer：表示在编译whl包时加入趋势分级可视化插件。趋势分级可视化构建相关依赖和推荐版本为Node.js v20.19.3、npm v10.8.2。趋势分级可视化插件的功能说明请参见[趋势可视化](./accuracy_compare/trend_visualization_instruct.md)。 <br/>&#8226; atb_probe：表示在编译whl包时加入atb_probe模块。atb_probe模块用于ATB推理场景下的数据采集。<br/>&#8226; aclgraph_dump：表示在编译whl包时加入aclgraph_dump模块，用于在aclgraph场景通过acl_save保存.pt文件。编译环境需要额外依赖`torch`和`torch_npu`。<br/>&#8226; nan_check：表示在编译whl包时加入nan_check模块，用于在nan_check场景下做寄存器溢出状态监测。<br/>&#8226; xor_checksum：表示在编译whl包时加入XOR校验加速算子，用于PyTorch场景下`summary_mode`配置为`xor`时加速校验值采集，可带来数倍性能提升。编译环境需要额外依赖`torch`和`torch_npu`。<br/>默认未配置该参数，表示编译基础工具包。<br/>指定多个模块时，模块间以","连接，例如atb_probe,aclgraph。<br/>指定atb_probe模块时，编译环境需具备git、curl、GCC 7.5或以上版本、CMake 3.19.3或以上版本等第三方依赖软件。<br/>配置该参数生成的whl包，仅限编译时使用的Python版本和处理器架构可用。 |
 | --no-check    |   可选    | 跳过证书校验。--include-mod指定可选模块后，会下载所依赖的第三方库包，下载过程会进行证书校验，配置本参数可以跳过证书校验。 |
 
 **使用示例**
@@ -112,19 +112,6 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
   WHL_VERSION=2.1.0 python3 setup.py bdist_wheel
   cd ./dist
   pip install ./mindstudio_probe-2.1.0*.whl
-  ```
-  
-- 安装基础工具包和adump模块
-
-  ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
-  cd msprobe
-  
-  pip install setuptools wheel
-  
-  python3 setup.py bdist_wheel --include-mod=adump --no-check
-  cd ./dist
-  pip install ./mindstudio_probe*.whl
   ```
   
 - 安装基础工具包和aclgraph_dump模块

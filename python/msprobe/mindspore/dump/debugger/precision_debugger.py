@@ -29,8 +29,7 @@ from msprobe.mindspore.common.const import Const as MsConst
 from msprobe.mindspore.common.utils import (
     set_register_backward_hook_functions,
     check_save_param,
-    is_graph_mode_cell_dump_allowed,
-    wrap_backward_hook_call_func
+    wrap_backward_hook_call_func,
 )
 from msprobe.mindspore.dump.debugger.debugger_config import DebuggerConfig
 from msprobe.mindspore.dump.dump_processor.graph_mode_cell_dump import GraphModeCellDump
@@ -48,25 +47,12 @@ except ImportError:
 else:
     enable_dynamic_kbyk_dump = True
 
-try:
-    from msprobe.lib import _msprobe_c
-except ImportError:
-    _msprobe_c = None
-
 
 ConfigParameters = namedtuple("ConfigParameters", ["config_path", "task", "dump_path", "level"])
 
 
 class PrecisionDebugger(BasePrecisionDebugger):
-
-    def __init__(
-            self,
-            config_path=None,
-            task=None,
-            dump_path=None,
-            level=None,
-            step=None
-    ):
+    def __init__(self, config_path=None, task=None, dump_path=None, level=None, step=None):
         if self.initialized:
             return
         set_register_backward_hook_functions()
@@ -79,12 +65,11 @@ class PrecisionDebugger(BasePrecisionDebugger):
         if self._is_kernel_dump() and not self.task_config.is_regex_valid:
             raise ValueError('Illegal regular expressions exist in the list.')
 
-        setattr(inner.CellBackwardHook, '__call__',
-                wrap_backward_hook_call_func(getattr(inner.CellBackwardHook, '__call__')))
-
-        if self._is_kernel_dump() and _msprobe_c:
-            os.environ["MS_HOOK_ENABLE"] = "on"
-            _msprobe_c._PrecisionDebugger(framework="MindSpore", config_path=config_path)
+        setattr(
+            inner.CellBackwardHook,
+            '__call__',
+            wrap_backward_hook_call_func(getattr(inner.CellBackwardHook, '__call__')),
+        )
 
         self.config.execution_mode = self._get_execution_mode()
         if self._need_service():
@@ -116,14 +101,6 @@ class PrecisionDebugger(BasePrecisionDebugger):
                 return MsConst.GRAPH_KBYK_MODE
         else:
             return MsConst.PYNATIVE_MODE
-
-    @staticmethod
-    def _is_graph_dump(config: DebuggerConfig):
-        if not config.list:
-            return True
-        is_graph = any(item.startswith("name-regex") for item in config.list)
-        is_graph |= all("." not in item for item in config.list)
-        return is_graph
 
     @classmethod
     def handle_graph_cell_dump(cls, instance):
@@ -176,8 +153,6 @@ class PrecisionDebugger(BasePrecisionDebugger):
         if enable_dynamic_kbyk_dump and instance.config.level_ori == Const.LEVEL_L2:
             ms.runtime.synchronize()
             _dump_stop()
-        if cls._is_kernel_dump() and _msprobe_c:
-            _msprobe_c._PrecisionDebugger().stop()
 
     @classmethod
     def step(cls):
@@ -194,8 +169,6 @@ class PrecisionDebugger(BasePrecisionDebugger):
 
         if enable_dynamic_kbyk_dump and instance.config.level_ori == Const.LEVEL_L2:
             _dump_step(1)
-        if cls._is_kernel_dump() and _msprobe_c:
-            _msprobe_c._PrecisionDebugger().step()
 
         HOOKCell.cell_count = defaultdict(int)
         CellProcessor.reset_cell_stats()
@@ -206,7 +179,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
     def save(cls, variable, name, save_backward=True):
         instance = cls._instance
         if not instance:
-            raise Exception(MsgConst.NOT_CREATED_INSTANCE)
+            raise Exception(MsgConst.NOT_CREATED_INSTANCE)  # pylint: disable=W0719
         if instance.task not in [Const.TENSOR, Const.STATISTICS] or instance.config.level_ori != Const.LEVEL_DEBUG:
             return
         try:
@@ -221,9 +194,9 @@ class PrecisionDebugger(BasePrecisionDebugger):
     def _need_service(cls):
         instance = cls._instance
         if not instance:
-            raise Exception(MsgConst.NOT_CREATED_INSTANCE)
+            raise Exception(MsgConst.NOT_CREATED_INSTANCE)  # pylint: disable=W0719
         if instance.config.level_ori == Const.LEVEL_L2:
-            return not instance._is_graph_dump(instance.config)
+            return False
         if instance.config.execution_mode != MsConst.PYNATIVE_MODE:
             return False
         return True
@@ -232,30 +205,22 @@ class PrecisionDebugger(BasePrecisionDebugger):
     def _is_kernel_dump(cls):
         instance = cls._instance
         if not instance:
-            raise Exception(MsgConst.NOT_CREATED_INSTANCE)
+            raise Exception(MsgConst.NOT_CREATED_INSTANCE)  # pylint: disable=W0719
         return instance.config.level_ori == Const.LEVEL_L2
 
     @classmethod
     def _start_kernel_dump(cls):
         instance = cls._get_instance()
-        is_graph_config = cls._is_graph_dump(instance.config)
-        instance.config.check_config_with_l2(is_graph_config)
-        if not is_graph_config:
-            if not instance.service:
-                instance.service = MindsporeService(instance.config)
-            instance.service.start()
-        else:
-            if _msprobe_c:
-                _msprobe_c._PrecisionDebugger().start()
-            if not instance.first_start:
-                get_api_register().restore_all_api()
-                handlers = TaskHandlerFactory.create(instance.config)
-                for handler in handlers:
-                    handler.handle()
-                if enable_dynamic_kbyk_dump:
-                    _set_init_iter(0)
+
+        if not instance.first_start:
+            get_api_register().restore_all_api()
+            handlers = TaskHandlerFactory.create(instance.config)
+            for handler in handlers:
+                handler.handle()
             if enable_dynamic_kbyk_dump:
-                is_valid_rank = (not instance.config.rank or Runtime.rank_id in instance.config.rank)
-                is_valid_step = (not instance.config.step or Runtime.step_count in instance.config.step)
-                if is_valid_rank and is_valid_step:
-                    _dump_start()
+                _set_init_iter(0)
+        if enable_dynamic_kbyk_dump:
+            is_valid_rank = not instance.config.rank or Runtime.rank_id in instance.config.rank
+            is_valid_step = not instance.config.step or Runtime.step_count in instance.config.step
+            if is_valid_rank and is_valid_step:
+                _dump_start()

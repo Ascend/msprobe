@@ -84,12 +84,10 @@ class DataProcessorFactory:
             from msprobe.core.dump.data_dump.data_processor.mindspore_processor import (
                 StatisticsDataProcessor as MindsporeStatisticsDataProcessor,
                 TensorDataProcessor as MindsporeTensorDataProcessor,
-                KernelDumpDataProcessor as MindsporeKernelDumpDataProcessor,
             )
             from msprobe.mindspore.dump.cell_processor import CellProcessor
 
             cls.register_processor(Const.MS_FRAMEWORK, Const.STATISTICS, MindsporeStatisticsDataProcessor)
             cls.register_processor(Const.MS_FRAMEWORK, Const.TENSOR, MindsporeTensorDataProcessor)
-            cls.register_processor(Const.MS_FRAMEWORK, Const.KERNEL_DUMP, MindsporeKernelDumpDataProcessor)
             cls.register_processor(Const.MS_FRAMEWORK, Const.STRUCTURE, BaseDataProcessor)
             cls.register_module_processor(Const.MS_FRAMEWORK, CellProcessor)
