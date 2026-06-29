@@ -65,7 +65,6 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 | | | 分级可视化构图比对 | 将msProbe工具dump的精度数据进行解析，还原模型图结构，实现模型各个层级的精度数据比对 | [分级可视化构图比对](docs/zh/accuracy_compare/mindspore_visualization_instruct.md) |
 | | | 精度比对 | 将msProbe工具dump的精度数据进行精度比对，进而定位精度问题 | [精度比对](docs/zh/accuracy_compare/mindspore_accuracy_compare_instruct.md) |
 | | | 训练状态监测 | 收集和聚合模型训练过程中的网络层，优化器，通信算子的中间值，帮助诊断模型训练过程中计算，通信，优化器各部分出现的异常情况 | [训练状态监测](docs/zh/monitor_instruct.md) |
-| | | 溢出检测与解析 | 溢出检测用于采集溢出API或模块的精度数据，而溢出解析则是通过对溢出数据的分析，进一步判断是否为正常溢出<br/>推荐直接使用数据采集功能采集统计量信息，检测溢出问题，具体请参见数据采集 | [溢出检测与解析](docs/zh/overflow_check/mindspore_overflow_check_instruct.md)<br>[数据采集](docs/zh/dump/mindspore_data_dump_instruct.md) |
 | | | checkpoint比对 | 训练过程中或结束后，比较两个不同的checkpoint，评估模型相似度 | [checkpoint比对](docs/zh/checkpoint_compare_instruct.md) |
 | | | 趋势可视化 | 将msProbe工具数据采集或训练状态监测的统计量数据从迭代步数、节点rank和张量目标三个维度进行趋势可视化 | [趋势可视化](docs/zh/accuracy_compare/trend_visualization_instruct.md) |
 | **MSAdapter场景** | - | 数据采集 | 通过config.json配置，完成msProbe精度数据采集操作 | [数据采集](docs/zh/dump/msadapter_data_dump_instruct.md) |

@@ -379,11 +379,7 @@ class TestBaseService(unittest.TestCase):
         self.service.config.async_dump = False
         self.service._process_async_dump()
         self.service.data_collector.data_processor.dump_async_data.assert_not_called()
-        
-        self.service.config.task = Const.OVERFLOW_CHECK
-        self.service._process_async_dump()
-        self.service.data_collector.data_processor.dump_async_data.assert_not_called()
-    
+
     def test_reset_status(self):
         self.service._reset_status()
         self.service.data_collector.reset_status.assert_called_once()

@@ -17,9 +17,6 @@ class TestPtConfig(unittest.TestCase):
                 "scope": [],
                 "list": [],
                 "data_mode": ["all"],
-            },
-            "tensor": {
-                "file_format": "npy"
             }
         }
         with patch("msprobe.pytorch.dump.pt_config.os.path.join", return_value="/path/config.json"), \
@@ -27,12 +24,6 @@ class TestPtConfig(unittest.TestCase):
             common_config, task_config = parse_json_config(None, None)
         self.assertEqual(common_config.task, Const.STATISTICS)
         self.assertEqual(task_config.data_mode, [Const.ALL])
-
-        with patch("msprobe.pytorch.dump.pt_config.os.path.join", return_value="/path/config.json"), \
-                patch("msprobe.pytorch.dump.pt_config.load_json", return_value=mock_json_data):
-            common_config, task_config = parse_json_config(None, Const.TENSOR)
-        self.assertEqual(common_config.task, Const.STATISTICS)
-        self.assertEqual(task_config.file_format, "npy")
 
 
 class TestStatisticsConfig(unittest.TestCase):

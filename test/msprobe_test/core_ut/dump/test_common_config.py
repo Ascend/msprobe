@@ -72,9 +72,7 @@ class TestBaseConfig(TestCase):
         base_config.check_config()
         self.assertIsNone(base_config.scope)
         self.assertIsNone(base_config.list)
-        self.assertIsNone(base_config.file_format)
         self.assertIsNone(base_config.summary_mode)
-        self.assertIsNone(base_config.check_mode)
 
         json_config.update({"scope": "Tensor_Add"})
         base_config = BaseConfig(json_config)

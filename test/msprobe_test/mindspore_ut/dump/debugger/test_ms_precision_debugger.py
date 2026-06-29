@@ -115,34 +115,3 @@ class TestPrecisionDebugger(unittest.TestCase):
         with patch.object(CellProcessor, "reset_cell_stats") as mock_reset_cell:
             PrecisionDebugger.step()
         mock_reset_cell.assert_called_once()
-
-    def test_is_graph_dump_empty_list(self):
-        config = MagicMock()
-        config.level = MsConst.KERNEL
-        config.list = []
-        result = PrecisionDebugger._is_graph_dump(config)
-        self.assertTrue(result)
-
-    def test_is_graph_dump_multiple_items_in_list(self):
-        config = MagicMock()
-        config.level = MsConst.KERNEL
-        config.list = ["item1", "item2"]
-        result = PrecisionDebugger._is_graph_dump(config)
-        self.assertTrue(result)
-
-    def test_is_graph_dump_single_item_with_slash_or_dash(self):
-        config = MagicMock()
-        config.level = MsConst.KERNEL
-        config.list = ["item/with/slash"]
-        result = PrecisionDebugger._is_graph_dump(config)
-        self.assertTrue(result)
-        config.list = ["item-with-dash"]
-        result = PrecisionDebugger._is_graph_dump(config)
-        self.assertTrue(result)
-
-    def test_is_graph_dump_single_item_without_dash_or_slash(self):
-        config = MagicMock()
-        config.level = MsConst.KERNEL
-        config.list = ["Functional.relu.1.forward"]
-        result = PrecisionDebugger._is_graph_dump(config)
-        self.assertFalse(result)

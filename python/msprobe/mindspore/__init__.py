@@ -14,16 +14,10 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import os
-
-try:
-    from msprobe.lib import _msprobe_c
-    os.environ["HOOK_TOOL_PATH"] = _msprobe_c.__file__
-except ImportError:
-    from .common.log import logger
-    logger.info("Module _msprobe_c has not been installed. L2-Dump may not work normally.")
-
 from msprobe.mindspore.dump.debugger.precision_debugger import PrecisionDebugger
 from msprobe.mindspore.common.utils import seed_all, MsprobeStep, MsprobeInitStep
 from msprobe.mindspore.monitor.module_hook import TrainerMon
 from msprobe.mindspore.dump.dump_processor.graph_tensor_dump import save, save_grad, step
+
+
+__all__ = ['PrecisionDebugger', 'seed_all', 'MsprobeStep', 'MsprobeInitStep', 'TrainerMon', 'save', 'save_grad', 'step']

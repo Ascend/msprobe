@@ -39,16 +39,9 @@ class TestKernelGraphExceptionDump(TestCase):
 
         common_config = CommonConfig(json_config)
         task_config = BaseConfig(json_config)
-        task_config.check_mode = "atomic"
         config = DebuggerConfig(common_config, task_config)
         checker = KernelGraphExceptionDump(config)
         self.assertEqual(checker.dump_json["common_dump_settings"]["op_debug_mode"], 4)
-
-        _msprobe_c_existed = True
-        try:
-            from msprobe.lib import _msprobe_c
-        except ImportError:
-            _msprobe_c_existed = False
 
         with patch("msprobe.mindspore.dump.exception_dump.kernel_graph_exception_dump.create_directory"), \
              patch("msprobe.mindspore.dump.exception_dump.kernel_graph_exception_dump.logger.info"), \

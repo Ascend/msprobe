@@ -17,7 +17,6 @@ BUILD_TEST_CASE=False
 USE_LOCAL_FIRST=False
 PYTHON_VERSION=""
 INCLUDE_MOD=""
-ADUMP_MOD="'adump'"
 ATB_PROBE_MOD="'atb_probe'"
 ACLGRAPH_DUMP_MOD="'aclgraph_dump'"
 NAN_CHECK_MOD="'nan_check'"
@@ -104,20 +103,6 @@ done
 
 BUILD_OUTPUT_PATH=${BUILD_PATH}/output/${BUILD_TYPE}
 
-if [[ "${INCLUDE_MOD}" == *"${ADUMP_MOD}"* ]]; then
-    export MSPROBE_INCLUDE_MOD="adump"
-    cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \
-                                  -DUSE_LOCAL_FIRST=${USE_LOCAL_FIRST} -DBUILD_TEST_CASE=${BUILD_TEST_CASE} \
-                                  -DPYTHON_VERSION=${PYTHON_VERSION}
-    cd ${BUILD_OUTPUT_PATH}
-    make -j${CONCURRENT_JOBS}
-
-    if [[ ! -e ${BUILD_OUTPUT_PATH}/ccsrc/adump/lib_msprobe_c.so ]]; then
-        echo "Failed to build lib_msprobe_c.so."
-        exit 1
-    fi
-fi
-
 if [[ "${INCLUDE_MOD}" == *"${ATB_PROBE_MOD}"* ]]; then
     export MSPROBE_INCLUDE_MOD="atb_probe"
     cd ${BUILD_PATH}
@@ -200,10 +185,6 @@ fi
 
 if [ ! -d ${BUILD_PATH}/python/msprobe/lib ]; then
     mkdir ${BUILD_PATH}/python/msprobe/lib
-fi
-
-if [[ "${INCLUDE_MOD}" == *"${ADUMP_MOD}"* ]]; then
-    cp -f ${BUILD_OUTPUT_PATH}/ccsrc/adump/lib_msprobe_c.so ${BUILD_PATH}/python/msprobe/lib/_msprobe_c.so
 fi
 
 if [[ "${INCLUDE_MOD}" == *"${ATB_PROBE_MOD}"* ]]; then

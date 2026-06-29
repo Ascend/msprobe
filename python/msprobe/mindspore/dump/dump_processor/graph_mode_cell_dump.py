@@ -31,13 +31,13 @@ import msprobe.mindspore.dump.dump_processor.cell_dump_with_insert_gradient as c
 tensordump_flag = True
 DEFAULT_RANK_DIR = "rank0"
 try:
-    from mindspore._c_expression import _tensordump_set_step
+    from mindspore._c_expression import _tensordump_set_step  # pylint: disable=C0412
 except ImportError:
     tensordump_flag = False
 
 graph_step_flag = True
 try:
-    from mindspore._c_expression import _dump_step
+    from mindspore._c_expression import _dump_step  # pylint: disable=C0412
 except ImportError:
     graph_step_flag = False
 
@@ -50,11 +50,10 @@ class GraphModeCellDump:
         self.execution_mode = config.execution_mode
         self.dump_path = config.dump_path if config.dump_path else "./"
         self.rank = config.rank
-        self.step = config.step
+        self.spec_step = config.step
         self.scope = config.scope
         self.list = config.list
         self.data_mode = config.data_mode
-        self.file_format = config.file_format
         self.summary_mode = config.summary_mode
         self.task = config.task
         self.check_config(strict)
@@ -83,38 +82,34 @@ class GraphModeCellDump:
         # 更新静态图KBK dump的step数
         if task == CoreConst.STATISTICS:
             if not graph_step_flag:
-                raise Exception(
-                    "Importing _dump_step failed, "
-                    "please use the latest version package of MindSpore."
-                )
+                # pylint: disable=W0719
+                raise Exception("Importing _dump_step failed, please use the latest version package of MindSpore.")
             ms.runtime.synchronize()
             _dump_step(1)
             cellDumperWithDumpGradient.process_statistics_step(dump_path, Runtime.step_count, step_list)
 
     def check_config(self, strict):
         if not self.net:
-            raise Exception("The model is empty and cell dump is not enabled.")
+            raise Exception("The model is empty and cell dump is not enabled.")  # pylint: disable=W0719
 
         if strict:
             if self.rank:
-                raise Exception("In graph mode, cell dump does not currently support specifying rank.")
+                raise Exception("In graph mode, cell dump does not currently support specifying rank.")  # pylint: disable=W0719
             if self.scope:
-                raise Exception("In graph mode, cell dump does not currently support specifying scope.")
+                raise Exception("In graph mode, cell dump does not currently support specifying scope.")  # pylint: disable=W0719
             if self.list:
-                raise Exception("In graph mode, cell dump does not currently support specifying list.")
+                raise Exception("In graph mode, cell dump does not currently support specifying list.")  # pylint: disable=W0719
             if len(self.data_mode) != 1 or self.data_mode[0] not in Const.GRAPH_CELL_DUMP_DATA_MODE_LIST:
-                raise Exception("In graph mode and cell dump, data_mode must be one of all, forword, backword.")
-            if self.file_format != []:
-                logger.warning("In graph mode, cell dump does not currently support specifying file_format."
-                               " The file will be stored in npy format.")
+                raise Exception("In graph mode and cell dump, data_mode must be one of all, forword, backword.")  # pylint: disable=W0719
             if self.task == CoreConst.STATISTICS and self.summary_mode == CoreConst.MD5:
-                raise Exception("The L0 level statistics dump mode does not support "
-                            "the calculation of md5 values currently In graph mode.")
+                raise Exception(  # pylint: disable=W0719
+                    "The L0 level statistics dump mode does not support "
+                    "the calculation of md5 values currently In graph mode."
+                )
         else:
             self.rank = []
             self.scope = []
             self.list = []
-            self.file_format = []
             if len(self.data_mode) != 1 or self.data_mode[0] not in Const.GRAPH_CELL_DUMP_DATA_MODE_LIST:
                 self.data_mode = [CoreConst.ALL]
             if self.task == CoreConst.STATISTICS and self.summary_mode == CoreConst.MD5:
@@ -124,11 +119,10 @@ class GraphModeCellDump:
 
     def set_step(self):
         if tensordump_flag:
-            _tensordump_set_step(self.step)
+            _tensordump_set_step(self.spec_step)
         else:
-            raise Exception(
-                "Importing _tensordump_set_step failed, "
-                "please use the latest version package of MindSpore."
+            raise Exception(  # pylint: disable=W0719
+                "Importing _tensordump_set_step failed, please use the latest version package of MindSpore."
             )
 
     def handle(self):
@@ -151,16 +145,14 @@ class GraphModeCellDump:
                     logger.warning('the DumpGradient operator failed to execute.')
             if not enable_dump_gradient:
                 cell_dumper = cellDumperWithInsertGradient
-        
+
         dump_config = cell_dumper.CellDumpConfig(
             net=self.net,
             dump_path=dump_path,
             data_mode=self.data_mode[0],
             task=self.task,
             summary_mode=self.summary_mode,
-            step=self.step
+            step=self.spec_step,
         )
 
-        cell_dumper.start(
-            dump_config
-        )
+        cell_dumper.start(dump_config)

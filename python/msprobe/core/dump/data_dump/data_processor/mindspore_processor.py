@@ -17,26 +17,19 @@
 import os
 import zlib
 from concurrent.futures import ThreadPoolExecutor
-import inspect
 
 import mindspore as ms
-from mindspore import mint, ops, hal
+from mindspore import mint, ops
 from mindspore.mint import distributed
 from mindspore._c_expression.typing import Number
 import numpy as np
 
 from msprobe.core.common.const import Const
-from msprobe.core.dump.data_dump.data_processor.base import (BaseDataProcessor, TensorStatInfo)
+from msprobe.core.dump.data_dump.data_processor.base import BaseDataProcessor, TensorStatInfo
 from msprobe.mindspore.common.utils import convert_bf16_to_fp32, save_tensor_as_npy
 from msprobe.mindspore.common.log import logger
 from msprobe.mindspore.dump.dump_processor.hook_cell.api_register import get_api_register
 from msprobe.mindspore.common.utils import is_mindtorch, cast_to_float_if_fp8
-
-has_adump = True
-try:
-    from msprobe.lib import _msprobe_c
-except ImportError:
-    has_adump = False
 
 if is_mindtorch():
     from torch import distributed as dist
@@ -50,9 +43,7 @@ class MindsporeDataProcessor(BaseDataProcessor):
 
     def __init__(self, config, data_writer):
         super().__init__(config, data_writer)
-        self.mindspore_object_key = {
-            "dtype": self.analyze_dtype_in_kwargs
-        }
+        self.mindspore_object_key = {"dtype": self.analyze_dtype_in_kwargs}
         self._async_dump_cache = {}
         self.api_register = get_api_register()
         self._crc_executor = ThreadPoolExecutor(max_workers=os.cpu_count() // 2)
@@ -119,7 +110,7 @@ class MindsporeDataProcessor(BaseDataProcessor):
                 tensor_stat.min = np.min(data_np).item()
         elif not data.shape:
             tensor_stat.max = tensor_stat.min = tensor_stat.mean = tensor_stat.norm = data.copy()
-        elif data.dtype == ms.complex64 or data.dtype == ms.complex128:
+        elif data.dtype in (ms.complex64, ms.complex128):
             if self.config.async_dump:
                 logger.warning("Async dump do not support complex data!")
             else:
@@ -129,8 +120,11 @@ class MindsporeDataProcessor(BaseDataProcessor):
                 tensor_stat.mean = np.mean(data_abs).item()
                 tensor_stat.norm = np.linalg.norm(data_abs).item()
         else:
-            if self.config.precision == Const.DUMP_PRECISION_HIGH or not ops.is_floating_point(
-                    data) or data.dtype == ms.float64:
+            if (
+                self.config.precision == Const.DUMP_PRECISION_HIGH
+                or not ops.is_floating_point(data)
+                or data.dtype == ms.float64
+            ):
                 data = data.to(ms.float32)
             get_norm_value = mint.norm if hasattr(mint, "norm") else ops.norm
             tensor_stat.max = mint.max(data)
@@ -151,7 +145,7 @@ class MindsporeDataProcessor(BaseDataProcessor):
             (Number, self.analyze_dtype_in_kwargs),
             (MindsporeDataProcessor.np_type[:-1], self._analyze_numpy),
             (np.ndarray, lambda e: self._analyze_ndarray(e, suffix_str)),
-            (distributed.P2POp, lambda e: self._analyze_p2pop(e, suffix_str))
+            (distributed.P2POp, lambda e: self._analyze_p2pop(e, suffix_str)),
         ]
         if is_mindtorch():
             type_analyzer.append((dist.ProcessGroup, self._analyze_process_group))
@@ -178,11 +172,7 @@ class MindsporeDataProcessor(BaseDataProcessor):
         dtype = str(tensor.dtype)
         tensor = cast_to_float_if_fp8(tensor)
         tensor_stat = self.get_stat_info(tensor)
-        tensor_json = {
-            'type': 'mindspore.Tensor',
-            'dtype': dtype,
-            'shape': tensor.shape
-        }
+        tensor_json = {'type': 'mindspore.Tensor', 'dtype': dtype, 'shape': tensor.shape}
         if hasattr(tensor, "layout") and tensor.layout is not None:
             layout_dic = {}
             if hasattr(tensor.layout, "device_matrix") and tensor.layout.device_matrix is not None:
@@ -202,12 +192,7 @@ class MindsporeDataProcessor(BaseDataProcessor):
             tensor_json['hsdp_shard_size'] = tensor.hsdp_effective_shard_size
 
         # 将统计值存入全局 buffer，并返回占位索引
-        stat_values = [
-            tensor_stat.max,
-            tensor_stat.min,
-            tensor_stat.mean,
-            tensor_stat.norm
-        ]
+        stat_values = [tensor_stat.max, tensor_stat.min, tensor_stat.mean, tensor_stat.norm]
 
         placeholder_index = self.data_writer.append_stat_to_buffer(stat_values)
 
@@ -218,10 +203,7 @@ class MindsporeDataProcessor(BaseDataProcessor):
             # 拷贝并搬到 CPU
             tensor_bytes = tensor.asnumpy()
 
-            future = self._crc_executor.submit(
-                MindsporeDataProcessor.compute_crc32_bytes,
-                tensor_bytes
-            )
+            future = self._crc_executor.submit(MindsporeDataProcessor.compute_crc32_bytes, tensor_bytes)
 
             crc_placeholder = self.data_writer.append_crc32_to_buffer(future)
             tensor_json[Const.MD5_INDEX] = crc_placeholder
@@ -247,6 +229,7 @@ class StatisticsDataProcessor(MindsporeDataProcessor):
         else:
             return super()._analyze_tensor(tensor, suffix)
 
+    # pylint: disable=W0221
     def _analyze_ndarray(self, ndarray, suffix):
         if any(item in self.current_api_or_module_name for item in self.config.tensor_list):
             return self._analyze_and_save_ndarray(ndarray, suffix)
@@ -258,63 +241,6 @@ class TensorDataProcessor(MindsporeDataProcessor):
     def _analyze_tensor(self, tensor, suffix):
         return self._analyze_and_save_tensor(tensor, suffix)
 
+    # pylint: disable=W0221
     def _analyze_ndarray(self, ndarray, suffix):
         return self._analyze_and_save_ndarray(ndarray, suffix)
-
-
-class KernelDumpDataProcessor(MindsporeDataProcessor):
-    def __init__(self, config, data_writer):
-        super().__init__(config, data_writer)
-        self.enable_kernel_dump = True
-
-    @staticmethod
-    def start_kernel_dump(config_path):
-        hal.synchronize()
-        _msprobe_c.init_dump()
-        _msprobe_c.set_dump(config_path)
-        hal.synchronize()
-
-    @staticmethod
-    def stop_kernel_dump():
-        hal.synchronize()
-        _msprobe_c.finalize_dump()
-        hal.synchronize()
-
-    @staticmethod
-    def _print_unsupported_log(api_name):
-        logger.warning(f"The kernel dump does not support the {api_name} API.")
-
-    def analyze_forward_input(self, name, module, module_input_output):
-        if not self.enable_kernel_dump:
-            return
-        if not has_adump:
-            logger.warning("The current msprobe package does not compile adump, and kernel dump cannot be used.")
-            self.enable_kernel_dump = False
-            return
-        self.start_kernel_dump(self.config.kernel_config_path)
-
-    def analyze_forward_output(self, name, module, module_input_output):
-        if not self.enable_kernel_dump:
-            return
-        self.enable_kernel_dump = False
-        self.stop_kernel_dump()
-        logger.info(f"The kernel data of {name} is dumped successfully.")
-
-    def analyze_backward_input(self, name, module, module_input_output):
-        if not self.enable_kernel_dump:
-            return
-        if not has_adump:
-            logger.warning("The current msprobe package does not compile adump, and kernel dump cannot be used.")
-            self.enable_kernel_dump = False
-            return
-        self.start_kernel_dump(self.config.kernel_config_path)
-
-    def analyze_backward(self, name, module, module_input_output):
-        if not self.enable_kernel_dump:
-            return
-        self.enable_kernel_dump = False
-        self.stop_kernel_dump()
-        logger.info(f"The kernel data of {name} is dumped successfully.")
-
-    def reset_status(self):
-        self.enable_kernel_dump = True

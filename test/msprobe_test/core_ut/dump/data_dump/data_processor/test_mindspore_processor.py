@@ -22,11 +22,7 @@ import mindspore as ms
 import numpy as np
 from mindspore import Tensor, ops, mint
 
-from msprobe.core.dump.data_dump.data_processor.mindspore_processor import (
-    MindsporeDataProcessor,
-    TensorDataProcessor,
-    KernelDumpDataProcessor,
-)
+from msprobe.core.dump.data_dump.data_processor.mindspore_processor import MindsporeDataProcessor, TensorDataProcessor
 from msprobe.mindspore.common.log import logger
 
 
@@ -196,71 +192,3 @@ class TestTensorDataProcessor(unittest.TestCase):
             expected['hsdp_shard_size'] = tensor.hsdp_effective_shard_size    
         result.pop('tensor_stat_index', None)
         self.assertEqual(expected, result)
-
-
-class TestKernelDumpDataProcessor(unittest.TestCase):
-    def setUp(self):
-        self.config = MagicMock()
-        self.data_writer = MagicMock()
-        self.processor = KernelDumpDataProcessor(self.config, self.data_writer)
-
-    @patch.object(logger, 'warning')
-    def test_print_unsupported_log(self, mock_logger_warning):
-        self.processor._print_unsupported_log("test_api_name")
-        mock_logger_warning.assert_called_with("The kernel dump does not support the test_api_name API.")
-
-    @patch('msprobe.core.dump.data_dump.data_processor.mindspore_processor.KernelDumpDataProcessor.start_kernel_dump')
-    @patch('msprobe.core.dump.data_dump.data_processor.mindspore_processor.has_adump', new=True)
-    def test_analyze_pre_forward_with_adump(self, mock_start_kernel_dump):
-        self.processor.analyze_forward_input("test_api_name", None, None)
-        mock_start_kernel_dump.assert_called_once()
-        self.assertTrue(self.processor.enable_kernel_dump)
-
-    @patch('msprobe.core.dump.data_dump.data_processor.mindspore_processor.has_adump', new=False)
-    @patch.object(logger, 'warning')
-    def test_analyze_pre_forward_without_adump(self, mock_logger_warning):
-        self.processor.enable_kernel_dump = True
-        self.processor.analyze_forward_input("test_api_name", None, None)
-        mock_logger_warning.assert_called_with(
-            "The current msprobe package does not compile adump, and kernel dump cannot be used.")
-        self.assertFalse(self.processor.enable_kernel_dump)
-
-    @patch('msprobe.core.dump.data_dump.data_processor.mindspore_processor.KernelDumpDataProcessor.stop_kernel_dump')
-    @patch.object(logger, 'info')
-    def test_analyze_forward_successfully(self, mock_logger_info, mock_stop_kernel_dump):
-        self.processor.enable_kernel_dump = True
-        self.processor.analyze_forward_output('test_api_name', None, None)
-        self.assertFalse(self.processor.enable_kernel_dump)
-        mock_stop_kernel_dump.assert_called_once()
-        mock_logger_info.assert_called_with("The kernel data of test_api_name is dumped successfully.")
-
-    @patch('msprobe.core.dump.data_dump.data_processor.mindspore_processor.has_adump', new=True)
-    @patch('msprobe.core.dump.data_dump.data_processor.mindspore_processor.KernelDumpDataProcessor.start_kernel_dump')
-    def test_analyze_pre_backward_with_adump(self, mock_start_kernel_dump):
-        self.processor.enable_kernel_dump = True
-        self.processor.analyze_backward_input("test_api_name", None, None)
-        self.assertTrue(self.processor.enable_kernel_dump)
-        mock_start_kernel_dump.assert_called_once()
-
-    @patch('msprobe.core.dump.data_dump.data_processor.mindspore_processor.has_adump', new=False)
-    @patch.object(logger, 'warning')
-    def test_analyze_pre_backward_without_adump(self, mock_logger_warning):
-        self.processor.enable_kernel_dump = True
-        self.processor.analyze_backward_input("test_api_name", None, None)
-        self.assertFalse(self.processor.enable_kernel_dump)
-        mock_logger_warning.assert_called_with(
-            "The current msprobe package does not compile adump, and kernel dump cannot be used.")
-
-    @patch('msprobe.core.dump.data_dump.data_processor.mindspore_processor.KernelDumpDataProcessor.stop_kernel_dump')
-    @patch.object(logger, 'info')
-    def test_analyze_backward_successfully(self, mock_logger_info, mock_stop_kernel_dump):
-        self.processor.enable_kernel_dump = True
-        self.processor.analyze_backward('test_api_name', None, None)
-        self.assertFalse(self.processor.enable_kernel_dump)
-        mock_stop_kernel_dump.assert_called_once()
-        mock_logger_info.assert_called_with("The kernel data of test_api_name is dumped successfully.")
-
-    def test_reset_status(self):
-        self.processor.enable_kernel_dump = False
-        self.processor.reset_status()
-        self.assertTrue(self.processor.enable_kernel_dump)

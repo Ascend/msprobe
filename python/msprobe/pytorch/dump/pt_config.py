@@ -28,12 +28,7 @@ class TensorConfig(BaseConfig):
         super().__init__(json_config)
         self.check_config()
         self._check_summary_mode()
-        self._check_file_format()
         self.bench_path = json_config.get("bench_path")
-
-    def _check_file_format(self):
-        if self.file_format is not None and self.file_format not in ["npy", "bin"]:
-            raise Exception("file_format is invalid")
 
 
 class StatisticsConfig(BaseConfig):
@@ -60,17 +55,17 @@ class ACCCheckConfig(BaseConfig):
     @classmethod
     def check_filter_list_config(cls, key, filter_list):
         if not isinstance(filter_list, list):
-            raise Exception("%s must be a list type" % key)
+            raise Exception("%s must be a list type" % key)  # pylint: disable=W0719
         if not all(isinstance(item, str) for item in filter_list):
-            raise Exception("All elements in %s must be string type" % key)
+            raise Exception("All elements in %s must be string type" % key)  # pylint: disable=W0719
         invalid_api = [item for item in filter_list if item not in cls.WrapApi]
         if invalid_api:
-            raise Exception("Invalid api in %s: %s" % (key, invalid_api))
+            raise Exception("Invalid api in %s: %s" % (key, invalid_api))  # pylint: disable=W0719
 
     @classmethod
     def check_error_data_path_config(cls, error_data_path):
         if not os.path.exists(error_data_path):
-            raise Exception("error_data_path: %s does not exist" % error_data_path)
+            raise Exception("error_data_path: %s does not exist" % error_data_path)  # pylint: disable=W0719
 
     def check_acc_check_config(self):
         ACCCheckConfig.check_filter_list_config(Const.WHITE_LIST, self.white_list)
@@ -82,21 +77,18 @@ class DiffCheckConfig(BaseConfig):
     def __init__(self, json_config):
         super().__init__(json_config)
         self.diff_nums = json_config.get("diff_nums")
-        self.check_mode = json_config.get("check_mode")
         self.check_diff_config()
 
     def check_diff_config(self):
         if self.diff_nums is not None and not is_int(self.diff_nums):
-            raise Exception("diff_num is invalid")
+            raise Exception("diff_num is invalid")  # pylint: disable=W0719
         if self.diff_nums is not None and self.diff_nums != -1 and self.diff_nums <= 0:
-            raise Exception("diff_nums should be -1 or positive integer")
-        if self.check_mode is not None and self.check_mode not in ["all", "aicore", "atomic"]:
-            raise Exception("check_mode is invalid")
+            raise Exception("diff_nums should be -1 or positive integer")  # pylint: disable=W0719
 
 
 class StructureConfig(BaseConfig):
-    def __init__(self, json_config):
-        super().__init__(json_config)
+    pass
+
 
 class NanCheckConfig(BaseConfig):
     def __init__(self, json_config):
@@ -118,7 +110,7 @@ TaskDict = {
 
 def parse_task_config(task, json_config):
     if task not in Const.TORCH_TASK_LIST:
-        raise Exception(f"task <{task}> is invalid, it is not in the {Const.TORCH_TASK_LIST}.")
+        raise Exception(f"task <{task}> is invalid, it is not in the {Const.TORCH_TASK_LIST}.")  # pylint: disable=W0719
     task_map = json_config.get(task, dict())
     return TaskDict.get(task)(task_map)
 

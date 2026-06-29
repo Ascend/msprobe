@@ -43,13 +43,12 @@ class DebuggerConfig:
         self.list = [] if not task_config.list else task_config.list
         self.scope = [] if not task_config.scope else task_config.scope
         self.data_mode = [Const.ALL] if not task_config.data_mode else task_config.data_mode
-        self.file_format = task_config.file_format
-        self.check_mode = task_config.check_mode
         self.framework = Const.MS_FRAMEWORK
         self.summary_mode = task_config.summary_mode
         self.stat_cal_mode = task_config.stat_cal_mode if hasattr(task_config, 'stat_cal_mode') else None
-        self.device_stat_precision_mode = task_config.device_stat_precision_mode \
-            if hasattr(task_config, 'device_stat_precision_mode') else None
+        self.device_stat_precision_mode = (
+            task_config.device_stat_precision_mode if hasattr(task_config, 'device_stat_precision_mode') else None
+        )
         self.async_dump = common_config.async_dump if common_config.async_dump else False
         self.precision = common_config.precision if common_config.precision else Const.DUMP_PRECISION_LOW
         self.check()
@@ -74,31 +73,28 @@ class DebuggerConfig:
             if error_model is not None:
                 error_info = (
                     f"The 'model' parameter must be a {target_module_type[1]} or list[{target_module_type[1]}] "
-                    f"type, currently there is a {type(error_model)} type.")
-                raise MsprobeException(
-                    MsprobeException.INVALID_PARAM_ERROR, error_info)
+                    f"type, currently there is a {type(error_model)} type."
+                )
+                raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, error_info)
 
         else:
-            error_info = (f"The 'model' parameter must be a {target_module_type[1]} or list[{target_module_type[1]}] "
-                          f"type, currently there is a {type(models)} type.")
-            raise MsprobeException(
-                MsprobeException.INVALID_PARAM_ERROR, error_info)
+            error_info = (
+                f"The 'model' parameter must be a {target_module_type[1]} or list[{target_module_type[1]}] "
+                f"type, currently there is a {type(models)} type."
+            )
+            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, error_info)
         return models
 
     def check(self):
         if not self.dump_path:
-            raise Exception("Dump path is empty.")
+            raise Exception("Dump path is empty.")  # pylint: disable=W0719
         self.dump_path = os.path.abspath(self.dump_path)
         if not self.task:
             self.task = "statistics"
         if not self.level:
-            raise Exception("level must be L0, L1 or L2")
-        if not self.file_format:
-            self.file_format = "npy"
-        if not self.check_mode:
-            self.check_mode = "all"
+            raise Exception("level must be L0, L1 or L2")  # pylint: disable=W0719
         if not isinstance(self.async_dump, bool):
-            raise Exception("The parameters async_dump should be bool.")
+            raise Exception("The parameters async_dump should be bool.")  # pylint: disable=W0719
         if self.task == Const.STRUCTURE and self.level_ori not in [Const.LEVEL_L0, Const.LEVEL_MIX]:
             logger.warning_on_rank_0(
                 f"When the task is set to structure, the level should be one of {[Const.LEVEL_L0, Const.LEVEL_MIX]}. "
@@ -112,27 +108,17 @@ class DebuggerConfig:
                 if not self.list and self.level_ori != Const.LEVEL_DEBUG:
                     raise MsprobeException(
                         MsprobeException.INVALID_PARAM_ERROR,
-                        "The parameters async_dump is true in tensor task, the parameters list cannot be empty."
+                        "The parameters async_dump is true in tensor task, the parameters list cannot be empty.",
                     )
-            is_unsupported_mode = self.summary_mode == Const.MD5 or \
-                                  isinstance(self.summary_mode, list) and Const.MD5 in self.summary_mode
+            is_unsupported_mode = (
+                self.summary_mode == Const.MD5 or isinstance(self.summary_mode, list) and Const.MD5 in self.summary_mode
+            )
             if is_unsupported_mode:
                 raise MsprobeException(
                     MsprobeException.INVALID_PARAM_ERROR,
-                    f"The parameters async_dump is true, the parameters summary_mode cannot be/contain md5."
+                    "The parameters async_dump is true, the parameters summary_mode cannot be/contain md5.",
                 )
         return True
-
-    def check_config_with_l2(self, is_graph_config):
-        if not is_graph_config and self.task != Const.TENSOR:
-            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                                   f"When level is set to L2, the task must be set to tensor.")
-        if not is_graph_config and self.scope:
-            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                                   f"When level is set to L2, the scope cannot be configured.")
-        if not is_graph_config and (not self.list or len(self.list) != 1):
-            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                                   f"When level is set to L2, the list must be configured as a list with one api name.")
 
     def _check_statistics_config(self, task_config):
         if self.task != Const.STATISTICS:
