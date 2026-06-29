@@ -377,6 +377,9 @@ class BuildManager:
                 ["uv", "build", "--wheel", "--out-dir", str(artifacts_dir)],
                 cwd=self.project_root,
             )
+            gitignore_path = artifacts_dir / ".gitignore"
+            if gitignore_path.exists():
+                gitignore_path.unlink()
             logging.info("Build artifacts saved to: %s", artifacts_dir)
         finally:
             os.environ.pop("MSPROBE_CPP_BUILD", None)
