@@ -65,6 +65,6 @@ def verl_verify_hyper_params(bench_config, tgt_config, output_dirpath):
         )
     output_file = os.path.join(output_dirpath, "hyper_params_verify.csv")
     df = pd.DataFrame(rows, columns=CompareConst.VERL_HYPER_PARAM_VERIFY_COLUM)
-    write_df_to_csv(df, output_file)
+    write_df_to_csv(df, output_file, encoding='utf-8-sig')
 
     logger.info(f"Saving verl verify file to disk: {output_file}")

@@ -95,8 +95,8 @@ def get_config_start_idx(lines, target_key):
         raise ValueError("Not found the start with 'actor_rollout_ref' dict in log.")
     elif len(config_start_ids) > 1:
         logger.warning(
-            f"This log contains {len(config_start_ids)} pieces of verl's config information, \
-                       only the last config configuration will be collected!"
+            f"This log contains {len(config_start_ids)} pieces of verl's config information, "
+            "only the last config configuration will be collected!"
         )
 
     return config_start_ids[-1], target_key
