@@ -65,9 +65,9 @@ Response Anomaly使用以下配置文件：
 
    ```bash
    # 进入工具所在路径
-   cd /{msprobe_install_path}/msprobe/response_anomaly
+   cd /{msprobe_install_path}/msprobe/response_anomaly/tools
    # 执行如下脚本
-   python ./tools/gen_model_config.py --model-path /home/Qwen3-30B-A3B --model-name Qwen3-30B-A3B
+   python gen_model_config.py --model-path /home/Qwen3-30B-A3B --model-name Qwen3-30B-A3B
    ```
 
    | 参数         | 可选/必选 | 说明                                                         |
