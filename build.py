@@ -284,7 +284,7 @@ class BuildManager:
             shutil.copytree(src_scripts, dst_scripts)
 
         vendor_dir = self.project_root / "python" / "msprobe" / "vendors"
-        if vendor_dir.exists():
+        if "nan_check" not in self.mod_list and vendor_dir.exists():
             for root, dirs, files in os.walk(vendor_dir):
                 for d in dirs:
                     os.chmod(os.path.join(root, d), 0o750)
