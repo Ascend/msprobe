@@ -180,7 +180,7 @@ class TensorHandler:
         ):
             logger.debug(f"Saving tensors with NZ format is not supported, the current tensor is {file_path}.")
             return
-        if common_tensor.untyped_storage().data_ptr() == 0:
+        if not is_hifloat8_tensor(common_tensor) and common_tensor.untyped_storage().data_ptr() == 0:
             logger.debug(f"Saving null-pointer tensor is not supported, the current tensor is {file_path}.")
             return
         if is_float8_tensor(common_tensor) or is_float4_tensor(common_tensor):
@@ -536,7 +536,7 @@ class PytorchDataProcessor(BaseDataProcessor):
         if self.tensor_handler.is_empty_data(common_tensor):
             logger.debug(f"Saving fake tensor or meta tensor is not supported, the current tensor is {file_path}.")
             return single_arg
-        if common_tensor.untyped_storage().data_ptr() == 0:
+        if not is_hifloat8_tensor(common_tensor) and common_tensor.untyped_storage().data_ptr() == 0:
             logger.debug(f"Saving null-pointer tensor is not supported, the current tensor is {file_path}.")
             return single_arg
 
