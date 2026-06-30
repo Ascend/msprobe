@@ -1075,7 +1075,6 @@ class Match:
         ]
         if self.mode_config.dump_mode == Const.ALL:
             keep_list.append(Const.DATA_NAME)
-            # keep_list.extend([Const.DATA_NAME, Const.DIRTY_VALID_LEN])
 
         npu_df = npu_df[keep_list]
         bench_df = bench_df[keep_list]
