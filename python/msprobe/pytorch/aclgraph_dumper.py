@@ -83,11 +83,15 @@ def _in_fake_mode(inputs):
 def _is_collectable_tensor(tensor):
     if not isinstance(tensor, torch.Tensor):
         return False
+    if _in_fake_mode((tensor,)):
+        return False
     if getattr(tensor, "is_meta", False):
         return False
     try:
-        _ = tensor.device
+        device = tensor.device
     except Exception:
+        return False
+    if getattr(device, "type", None) == "cpu":
         return False
     return True
 
@@ -95,6 +99,8 @@ def _is_collectable_tensor(tensor):
 if TorchDispatchMode is not None:
 
     class _AclTorchDispatchMode(TorchDispatchMode):
+        supports_higher_order_operators = True
+
         def __init__(self, dumper):
             super().__init__()
             self._dumper = dumper
@@ -280,7 +286,7 @@ class AclGraphDumper:
     @staticmethod
     def _should_skip_dispatch_func(func):
         func_text = str(func)
-        return "acl_stat" in func_text or "acl_save" in func_text
+        return "acl_stat" in func_text or "acl_save" in func_text or "higher_order." in func_text
 
     def _tls_get(self, key, default):
         if not hasattr(self._tls, key):

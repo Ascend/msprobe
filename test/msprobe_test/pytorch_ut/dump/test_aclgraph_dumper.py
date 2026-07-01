@@ -176,8 +176,10 @@ class TestAclGraphDumper(unittest.TestCase):
         self.assertEqual(list(self.module._iter_tensors("abc")), [])
 
     def test_is_collectable_tensor_if_tensor_variants_then_pass(self):
-        self.assertTrue(self.module._is_collectable_tensor(torch.randn(2, 3)))
         self.assertFalse(self.module._is_collectable_tensor(torch.empty(2, device="meta")))
+        with patch.object(self.module, "_in_fake_mode", return_value=True):
+            self.assertFalse(self.module._is_collectable_tensor(torch.randn(2, 3)))
+        self.assertFalse(self.module._is_collectable_tensor(torch.ones(2, 3, device="cpu")))
         self.assertFalse(self.module._is_collectable_tensor("not_a_tensor"))
 
     def test_load_msprobe_config_if_config_and_validations_then_pass(self):
@@ -318,6 +320,9 @@ class TestAclGraphDumper(unittest.TestCase):
 
         self.assertTrue(self.AclGraphDumper._should_skip_dispatch_func(FakeFunc("aten.acl_stat.default")))
         self.assertTrue(self.AclGraphDumper._should_skip_dispatch_func(FakeFunc("aten.acl_save.default")))
+        self.assertTrue(
+            self.AclGraphDumper._should_skip_dispatch_func(FakeFunc("torch.ops.higher_order.auto_functionalized_v2"))
+        )
         self.assertFalse(self.AclGraphDumper._should_skip_dispatch_func(FakeFunc("aten.add.Tensor")))
 
     def test_tls_and_scope_stack_helpers_if_tls_operations_then_pass(self):
@@ -421,7 +426,8 @@ class TestAclGraphDumper(unittest.TestCase):
         valid_tensor = torch.randn(2, 3)
         meta_tensor = torch.empty(1, device="meta")
 
-        collected = dumper._collect("scope", "input", [valid_tensor, meta_tensor, "bad"], mark_forward_start=True)
+        with patch.object(self.module, "_is_collectable_tensor", side_effect=lambda tensor: tensor is valid_tensor):
+            collected = dumper._collect("scope", "input", [valid_tensor, meta_tensor, "bad"], mark_forward_start=True)
 
         self.assertTrue(collected)
         self.assertEqual(self.aclgraph_dump_stub.acl_stat.call_count, 1)
@@ -430,7 +436,8 @@ class TestAclGraphDumper(unittest.TestCase):
 
         self.aclgraph_dump_stub.acl_stat.reset_mock(side_effect=False)
         self.aclgraph_dump_stub.acl_stat.side_effect = lambda tensor, tag: tensor
-        collected = dumper._collect("scope", "output", ["bad", meta_tensor], mark_forward_start=False)
+        with patch.object(self.module, "_is_collectable_tensor", return_value=False):
+            collected = dumper._collect("scope", "output", ["bad", meta_tensor], mark_forward_start=False)
         self.assertFalse(collected)
         self.aclgraph_dump_stub.acl_stat.assert_not_called()
 
@@ -441,7 +448,8 @@ class TestAclGraphDumper(unittest.TestCase):
         x = torch.randn(2, 8)
         bias = torch.randn(2, 8)
 
-        output = model(x, bias=bias)
+        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
+            output = model(x, bias=bias)
 
         self.assertTrue(torch.equal(output, x + bias))
         tags = [call.args[1] for call in self.aclgraph_dump_stub.acl_stat.call_args_list]
@@ -468,11 +476,19 @@ class TestAclGraphDumper(unittest.TestCase):
         dumper = self.make_dumper(level="L1")
         mode = self.module._AclTorchDispatchMode(dumper)
         tensor = torch.randn(2, 3)
+        self.assertTrue(mode.supports_higher_order_operators)
 
         skip_func = FakeFunc("aten.acl_stat.default", result=tensor)
         result = mode.__torch_dispatch__(skip_func, (), args=(tensor,), kwargs={})
         self.assertIs(result, tensor)
         self.assertEqual(len(skip_func.calls), 1)
+
+        higher_order_func = FakeFunc("torch.ops.higher_order.auto_functionalized_v2", result=tensor)
+        with patch.object(dumper, "_collect") as mock_collect:
+            result = mode.__torch_dispatch__(higher_order_func, (), args=(tensor,), kwargs={})
+        self.assertIs(result, tensor)
+        mock_collect.assert_not_called()
+        self.assertEqual(len(higher_order_func.calls), 1)
 
         dumper._push_scope("scope")
         setattr(dumper._tls, "dispatch_collecting", True)
@@ -509,7 +525,8 @@ class TestAclGraphDumper(unittest.TestCase):
         dumper = self.make_dumper(keywords=[], level="mix")
         dumper.start(model)
 
-        _ = model(torch.randn(2, 8))
+        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
+            _ = model(torch.randn(2, 8))
 
         tags = [call.args[1] for call in self.aclgraph_dump_stub.acl_stat.call_args_list]
         self.assertTrue(any(tag.startswith("Module.linear.Linear.") for tag in tags))
