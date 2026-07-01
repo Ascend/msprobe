@@ -4,6 +4,6 @@
 
 详细使用说明请参考：
 
-* [PyTorch场景的分级可视化构图比对](../../../docs/zh/accuracy_compare/pytorch_visualization_instruct.md)
+* [PyTorch场景的分级可视化构图比对](../../../docs/zh/user_guide/accuracy_compare/pytorch_visualization_instruct.md)
 
-* [MindSpore场景的分级可视化构图比对](../../../docs/zh/accuracy_compare/mindspore_visualization_instruct.md)
+* [MindSpore场景的分级可视化构图比对](../../../docs/zh/user_guide/accuracy_compare/mindspore_visualization_instruct.md)

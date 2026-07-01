@@ -4,4 +4,4 @@
 
 详细使用说明请参考：
 
-* [趋势可视化](../../../docs/zh/accuracy_compare/trend_visualization_instruct.md)
+* [趋势可视化](../../../docs/zh/user_guide/accuracy_compare/trend_visualization_instruct.md)
