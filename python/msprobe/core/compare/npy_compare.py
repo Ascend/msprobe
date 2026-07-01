@@ -201,7 +201,7 @@ class GetCosineSimilarity(TensorComparisonBasic):
 
 
 class GetEuclideanDistance(TensorComparisonBasic):
-    """计算欧式距离"""
+    """计算欧氏距离"""
 
     def apply(self, n_value, b_value, relative_err, err_msg):
         if "This is type of 0-d tensor" in err_msg:

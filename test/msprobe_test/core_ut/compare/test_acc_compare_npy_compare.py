@@ -418,7 +418,7 @@ class TestGetEuclideanDistance(unittest.TestCase):
         self.euc_distance = GetEuclideanDistance()
 
     def test_euclidean_distance_normal(self):
-        # 测试计算两个张量之间的欧式距离
+        # 测试计算两个张量之间的欧氏距离
         n_value = np.array([1, 2, 3])
         b_value = np.array([4, 5, 6])
         relative_err = None
@@ -430,7 +430,7 @@ class TestGetEuclideanDistance(unittest.TestCase):
         self.assertEqual(msg, '')
 
     def test_euclidean_distance_0d_tensor(self):
-        # 测试计算两个张量之间的欧式距离
+        # 测试计算两个张量之间的欧氏距离
         n_value = np.array(1)
         b_value = np.array(1)
         relative_err = None
