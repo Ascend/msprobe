@@ -26,12 +26,7 @@ from msprobe.core.common.file_utils import load_yaml
 from msprobe.core.common.runtime import Runtime
 from msprobe.core.dump.api_dump.api_registry import ApiRegistry
 from msprobe.pytorch.common.log import logger
-from msprobe.pytorch.common.utils import (
-    torch_without_guard_version,
-    is_gpu,
-    torch_device_guard,
-    parameter_adapter
-)
+from msprobe.pytorch.common.utils import torch_without_guard_version, is_gpu, torch_device_guard, parameter_adapter
 from msprobe.pytorch.dump.function_factory import npu_custom_functions
 from msprobe.pytorch.dump.api_dump.hook_module import HOOKModule
 from msprobe.pytorch.dump.api_dump.utils import dynamic_import_op
@@ -76,7 +71,7 @@ if not is_gpu:
             {
                 Const.PT_API_TYPE_NPU_DIST: (
                     (torch_npu.distributed,),
-                    (torch_npu.distributed, torch_npu.distributed.distributed_c10d)
+                    (torch_npu.distributed, torch_npu.distributed.distributed_c10d),
                 )
             }
         )
@@ -86,15 +81,10 @@ if not is_gpu:
         mindspeed_op_file_list = [op.split(Const.SEP)[0] + Const.PY_SUFFIX for op in mindspeed_op_list]
         dynamic_import_op(mindspeed.ops, mindspeed_op_file_list)
 
-_inner_used_api = {
-    Const.PT_FRAMEWORK + Const.SEP + Const.PT_API_TYPE_TENSOR: (
-        torch.Tensor, "view_as"
-    )
-}
+_inner_used_api = {Const.PT_FRAMEWORK + Const.SEP + Const.PT_API_TYPE_TENSOR: (torch.Tensor, "view_as")}
 
 
 def reset_dist_collect_func():
-    global dist_data_collect_func, dist_batch_data_collect_func
     dist_data_collect_func.clear()
     dist_batch_data_collect_func.clear()
 
@@ -163,7 +153,7 @@ def redirect_wait():
 def npu_module_forward(module, *args, **kwargs):
     if not module.need_hook:
         if module.api_name not in npu_custom_functions:
-            raise Exception(f'There is not bench function {module.api_name}')
+            raise KeyError(f'There is not bench function {module.api_name}')
         if module.device == Const.CUDA_LOWERCASE:
             module.api_name = _cuda_func_mapping.get(module.api_name, module.api_name)
         if module.device in [Const.CUDA_LOWERCASE, Const.CPU_LOWERCASE]:
@@ -171,11 +161,7 @@ def npu_module_forward(module, *args, **kwargs):
     return module.api_func(*args, **kwargs)
 
 
-forward_methods = {
-    "Tensor": tensor_module_forward,
-    "Distributed": dist_module_forward,
-    "NPU": npu_module_forward
-}
+forward_methods = {"Tensor": tensor_module_forward, "Distributed": dist_module_forward, "NPU": npu_module_forward}
 
 
 class ApiTemplate(HOOKModule):

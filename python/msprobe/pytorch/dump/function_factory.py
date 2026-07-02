@@ -14,37 +14,69 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-from msprobe.pytorch.bench_functions.apply_adam_w import npu_apply_adam_w
-from msprobe.pytorch.bench_functions.confusion_transpose import npu_confusion_transpose, \
-    npu_confusion_transpose_backward
-from msprobe.pytorch.bench_functions.fast_gelu import npu_fast_gelu, npu_fast_gelu_backward
-from msprobe.pytorch.bench_functions.layer_norm_eval import npu_layer_norm_eval
-from msprobe.pytorch.bench_functions.linear import npu_linear, npu_linear_backward
-from msprobe.pytorch.bench_functions.matmul_backward import matmul_backward
-from msprobe.pytorch.bench_functions.npu_fusion_attention import npu_fusion_attention, npu_fusion_attention_grad, \
-    gpu_fusion_attention
-from msprobe.pytorch.bench_functions.rms_norm import npu_rms_norm, npu_rms_norm_backward
-from msprobe.pytorch.bench_functions.rotary_mul import npu_rotary_mul, npu_rotary_mul_backward
-from msprobe.pytorch.bench_functions.scaled_mask_softmax import npu_scaled_masked_softmax, \
-    npu_scaled_masked_softmax_backward
-from msprobe.pytorch.bench_functions.swiglu import npu_swiglu, npu_swiglu_backward
-from msprobe.pytorch.bench_functions.apply_adam import npu_apply_adam
-from msprobe.pytorch.bench_functions.group_norm_silu import npu_group_norm_silu
-from msprobe.pytorch.bench_functions.mish import npu_mish
-from msprobe.pytorch.bench_functions.moe_gating_top_k_softmax import npu_moe_gating_top_k_softmax
-from msprobe.pytorch.bench_functions.sort_v2 import npu_sort_v2
+"""
+融合算子标杆函数自动注册模块
+
+功能：
+  从 fusion_operator_config.yaml 读取融合算子配置，自动发现并注册前向/反向标杆函数。
+  用户添加新融合算子时，只需：
+    1. 在 bench_functions/ 下创建 Python 文件，实现标杆函数
+    2. 在 bench_functions/fusion_operator_config.yaml 中注册算子信息
+  无需修改本文件或任何其他源代码文件。
+"""
+
+import os
+
+from msprobe.core.common.file_utils import load_yaml
 from msprobe.pytorch.common.utils import logger
+from msprobe.pytorch import bench_functions
+
+
+_FUSION_CONFIG_CACHE = None
+
+
+def get_fusion_config():
+    """加载融合算子注册配置（带缓存，仅首次从 YAML 加载）"""
+    global _FUSION_CONFIG_CACHE
+    if _FUSION_CONFIG_CACHE is not None:
+        return _FUSION_CONFIG_CACHE
+    bench_dir = os.path.dirname(bench_functions.__file__)
+    config_path = os.path.join(bench_dir, "fusion_operator_config.yaml")
+    if not os.path.exists(config_path):
+        logger.warning(
+            f"Fusion operator config file not found at {config_path}. No custom fusion operators will be loaded."
+        )
+        _FUSION_CONFIG_CACHE = {}
+        return _FUSION_CONFIG_CACHE
+    config = load_yaml(config_path)
+    _FUSION_CONFIG_CACHE = config.get("operators", {})
+    return _FUSION_CONFIG_CACHE
+
+
+def _resolve_func(func_name, bench_functions_module):
+    """从 bench_functions 模块中解析函数"""
+    if func_name is None:
+        return None
+    func = getattr(bench_functions_module, func_name, None)
+    if func is None:
+        logger.warning(
+            f"Fusion operator bench function '{func_name}' not found in "
+            f"bench_functions module. Available functions starting with 'npu_': "
+            f"{[n for n in dir(bench_functions_module) if n.startswith('npu_') and callable(getattr(bench_functions_module, n, None))]}"
+        )
+    return func
 
 
 class Register(dict):
+    """可调用对象注册表，按函数名注册可调用对象"""
+
     def __init__(self, *args, **kwargs):
-        super(Register, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._dict = {}
 
     def __call__(self, target_func_list):
         for target in target_func_list:
             self.register(target)
-        return
 
     def __setitem__(self, key, value):
         self._dict[key] = value
@@ -58,6 +90,9 @@ class Register(dict):
     def __str__(self):
         return str(self._dict)
 
+    def __len__(self):
+        return len(self._dict)
+
     def keys(self):
         return self._dict.keys()
 
@@ -68,7 +103,6 @@ class Register(dict):
         return self._dict.items()
 
     def register(self, target):
-
         def add_register_item(key, value):
             if key in self._dict:
                 logger.warning(f"{value.__name__} has been registered before, so we will override it.")
@@ -78,21 +112,51 @@ class Register(dict):
         if callable(target):
             return add_register_item(target.__name__, target)
         else:
-            raise Exception(f"The func {target} is not callable.")
+            raise TypeError(f"The func {target} is not callable.")
 
 
-# register for npu custom bench functions
-npu_custom_functions = Register()
-npu_custom_functions([
-    npu_apply_adam_w, npu_confusion_transpose, npu_fast_gelu, npu_layer_norm_eval, npu_linear, npu_fusion_attention,
-    npu_rms_norm, npu_rotary_mul, npu_scaled_masked_softmax, npu_swiglu, gpu_fusion_attention, npu_apply_adam,
-    npu_group_norm_silu, npu_mish, npu_moe_gating_top_k_softmax, npu_sort_v2
-])
+def _build_registries():
+    """
+    从 fusion_operator_config.yaml 构建前向/反向函数注册表。
 
-# register for npu custom backward bench functions
-npu_custom_grad_functions = Register()
-npu_custom_grad_functions([
-    npu_confusion_transpose_backward, npu_fast_gelu_backward, npu_linear_backward, matmul_backward,
-    npu_fusion_attention_grad, npu_rms_norm_backward, npu_rotary_mul_backward, npu_scaled_masked_softmax_backward,
-    npu_swiglu_backward
-])
+    Returns:
+        tuple: (npu_custom_functions, npu_custom_grad_functions)
+            - npu_custom_functions: 前向标杆函数注册表
+            - npu_custom_grad_functions: 反向标杆函数注册表
+    """
+    forward_registry = Register()
+    backward_registry = Register()
+
+    operators = get_fusion_config()
+    if not operators:
+        logger.warning("No fusion operators configured in fusion_operator_config.yaml")
+        return forward_registry, backward_registry
+
+    for op_name, op_config in operators.items():
+        # 注册前向函数
+        forward_func_name = op_config.get("forward")
+        if forward_func_name:
+            func = _resolve_func(forward_func_name, bench_functions)
+            if func is not None:
+                # 用算子名注册（用于 npu 侧查找），同时也用函数名注册
+                forward_registry[op_name] = func
+
+        # 注册反向函数
+        backward_func_name = op_config.get("backward")
+        if backward_func_name:
+            func = _resolve_func(backward_func_name, bench_functions)
+            if func is not None:
+                backward_registry[backward_func_name] = func
+
+    logger.info(
+        f"Loaded {len(forward_registry)} forward and {len(backward_registry)} backward "
+        f"fusion operator bench functions from config."
+    )
+    logger.debug(f"Registered forward operators: {list(forward_registry.keys())}")
+    return forward_registry, backward_registry
+
+
+# =============================================================================
+# 构建注册表（模块加载时自动执行）
+# =============================================================================
+npu_custom_functions, npu_custom_grad_functions = _build_registries()

@@ -1,0 +1,126 @@
+# -------------------------------------------------------------------------
+#  This file is part of the MindStudio project.
+# Copyright (c) 2025 Huawei Technologies Co.,Ltd.
+#
+# MindStudio is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#
+#          http://license.coscl.org.cn/MulanPSL2
+#
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+
+# =============================================================================
+# 融合算子标杆函数注册配置
+# =============================================================================
+#
+# 【功能说明】
+#   在此文件中注册融合算子，预检工具会自动加载对应的标杆函数，无需修改 Python 源代码。
+#   标杆函数文件统一存放在 bench_functions/ 目录下。
+#
+# 【添加新融合算子步骤】
+#   1. 在 bench_functions/ 目录下创建 Python 文件，实现前向（及可选的反向）标杆函数
+#   2. 在本文件中注册算子信息（参考下方已有条目）
+#   3. 运行 acc_check 即可自动使用标杆函数进行精度预检
+#
+# 【配置项说明】
+#   operators:                   顶级字段，包含所有融合算子配置
+#     <operator_name>:           算子名称，必须与 NPU 侧算子名完全一致
+#       forward: <func_name>     前向标杆函数名（必填）
+#       backward: <func_name>    反向标杆函数名（选填，不需要反向可不填）
+#       description: <string>    算子描述（选填）
+#
+# =============================================================================
+
+operators:
+  # ---------- 融合注意力 ----------
+  npu_fusion_attention:
+    forward: npu_fusion_attention
+    backward: npu_fusion_attention_grad
+    description: "NPU 融合注意力算子 (Flash Attention)"
+
+  # ---------- Fast GELU ----------
+  npu_fast_gelu:
+    forward: npu_fast_gelu
+    backward: npu_fast_gelu_backward
+    description: "NPU Fast GELU 激活函数"
+
+  # ---------- SwiGLU ----------
+  npu_swiglu:
+    forward: npu_swiglu
+    backward: npu_swiglu_backward
+    description: "NPU SwiGLU 激活函数"
+
+  # ---------- RMS Norm ----------
+  npu_rms_norm:
+    forward: npu_rms_norm
+    backward: npu_rms_norm_backward
+    description: "NPU RMS Layer Normalization"
+
+  # ---------- Rotary Mul ----------
+  npu_rotary_mul:
+    forward: npu_rotary_mul
+    backward: npu_rotary_mul_backward
+    description: "NPU 旋转位置编码乘法"
+
+  # ---------- Scaled Masked Softmax ----------
+  npu_scaled_masked_softmax:
+    forward: npu_scaled_masked_softmax
+    backward: npu_scaled_masked_softmax_backward
+    description: "NPU Scaled Masked Softmax"
+
+  # ---------- Linear ----------
+  npu_linear:
+    forward: npu_linear
+    backward: npu_linear_backward
+    description: "NPU Linear 算子"
+
+  # ---------- Confusion Transpose ----------
+  npu_confusion_transpose:
+    forward: npu_confusion_transpose
+    backward: npu_confusion_transpose_backward
+    description: "NPU Confusion Transpose"
+
+  # ---------- Apply Adam ----------
+  npu_apply_adam:
+    forward: npu_apply_adam
+    description: "NPU Apply Adam 优化器算子"
+
+  # ---------- Apply AdamW ----------
+  npu_apply_adam_w:
+    forward: npu_apply_adam_w
+    description: "NPU Apply AdamW 优化器算子"
+
+  # ---------- Layer Norm Eval ----------
+  npu_layer_norm_eval:
+    forward: npu_layer_norm_eval
+    description: "NPU Layer Norm Eval"
+
+  # ---------- Group Norm + SiLU ----------
+  npu_group_norm_silu:
+    forward: npu_group_norm_silu
+    description: "NPU Group Norm + SiLU 融合算子"
+
+  # ---------- Mish ----------
+  npu_mish:
+    forward: npu_mish
+    description: "NPU Mish 激活函数"
+
+  # ---------- MoE Gating TopK Softmax ----------
+  npu_moe_gating_top_k_softmax:
+    forward: npu_moe_gating_top_k_softmax
+    description: "NPU MoE Gating TopK Softmax"
+
+  # ---------- Sort V2 ----------
+  npu_sort_v2:
+    forward: npu_sort_v2
+    description: "NPU Sort V2"
+
+  # ---------- Matmul Backward ----------
+  matmul_backward:
+    backward: matmul_backward
+    description: "Matmul Backward (反向专用)"
