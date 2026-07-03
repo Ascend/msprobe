@@ -46,7 +46,6 @@ class BaseHookManager(ABC):
     inner_switch = defaultdict(bool)
     inner_api_count = defaultdict(int)
     hook_handle_dict = {}
-    params_grad_info = {}
     grad_hook_call = {}
 
     def __init__(self, data_collector, config):
@@ -64,7 +63,7 @@ class BaseHookManager(ABC):
     def reset_status():
         BaseHookManager.inner_switch = defaultdict(bool)
         BaseHookManager.inner_api_count = defaultdict(int)
-        BaseHookManager.params_grad_info.clear()
+        BaseHookManager.grad_hook_call.clear()
 
     @staticmethod
     def ensure_gc_enabled():

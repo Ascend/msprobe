@@ -82,7 +82,7 @@ class TestBaseHookManager(unittest.TestCase):
         )
         BaseHookManager.inner_switch[threading.get_ident()] = False
         BaseHookManager.hook_handle_dict = {}
-        BaseHookManager.params_grad_info = {}
+        BaseHookManager.grad_hook_call = {}
 
     def test_init(self):
         self.assertEqual(self.manager.data_collector, self.mock_data_collector)

@@ -383,4 +383,4 @@ class TestBaseService(unittest.TestCase):
     def test_reset_status(self):
         self.service._reset_status()
         self.service.data_collector.reset_status.assert_called_once()
-        self.assertEqual(BaseHookManager.params_grad_info, {})
+        self.assertEqual(BaseHookManager.grad_hook_call, {})
