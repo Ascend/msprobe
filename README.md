@@ -17,7 +17,7 @@
 <span style="font-size:14px;">
 
 🔹 **[2026.03.28]**：[msprobe 仓库 ADump 模块日落下线通知](https://gitcode.com/Ascend/msprobe/discussions/2)  
-🔹 **[2026.03.20]**：上线[大模型训练精度定位指南](docs/zh/bast_pratices/train_debug_guide.md)、[大模型推理精度定位指南](docs/zh/bast_pratices/infer_debug_guide.md)及[常用框架工具使能指南](docs/zh/bast_pratices/dump_enable_guide.md)  
+🔹 **[2026.03.20]**：上线[大模型训练精度定位指南](docs/zh/best_practices/train_debug_guide.md)、[大模型推理精度定位指南](docs/zh/best_practices/infer_debug_guide.md)及[常用框架工具使能指南](docs/zh/best_practices/dump_enable_guide.md)  
 🔹 **[2025.12.31]**：MindStudio Probe 精度调试工具全面开源
 
 </span>
@@ -87,9 +87,9 @@ msProbe 的功能覆盖训练和推理等多种场景。请根据您的实际使
 
 ## 💡 典型案例
 
-🔹 [大模型训练精度定位指南](docs/zh/bast_pratices/train_debug_guide.md)  
-🔹 [大模型推理精度定位指南](docs/zh/bast_pratices/infer_debug_guide.md)  
-🔹 [常用框架工具使能指南](docs/zh/bast_pratices/dump_enable_guide.md)  
+🔹 [大模型训练精度定位指南](docs/zh/best_practices/train_debug_guide.md)  
+🔹 [大模型推理精度定位指南](docs/zh/best_practices/infer_debug_guide.md)  
+🔹 [常用框架工具使能指南](docs/zh/best_practices/dump_enable_guide.md)  
 
 ## 📚 补充材料
 

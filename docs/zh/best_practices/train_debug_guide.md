@@ -287,7 +287,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 1. [精度采集工具](#43-精度采集工具)改`异步dump`，具体操作为在`config.json`文件中加入`async_dump: true`的配置项，同时采集开启流同步无`NaN`+不开流同步有`NaN`的两组训练中最先出现`NaN`的`tensor`数据。对于异步`dump`仍影响问题复现的，使用手动挂`Hook`或者`print`的方式采集数据。
 2. 分析`tensor`差异特征是否满足内存踩踏的规律性，一般内存踩踏时踩踏区域较为规整，如为按整倍踩（如`2048`）、按行踩、按列踩等。
-3. 使用`profiling`结合`insight`工具查看计算并行关系，具体操作参考[profiling使用文档](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/quick_start/quick_start.md)和[insight使用文档](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)。
+3. 使用`profiling`结合`insight`工具查看计算并行关系，具体操作参考[profiling使用文档](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/quick_start/msprof_quick_start.md)和[insight使用文档](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)。
 4. 添加`ptr`内存地址打印，针对`NaN`出现的位置侵入式修改`PyTorch`或`torch-npu`源码添加打印。
 5. 使用[算子检测工具](https://gitcode.com/Ascend/mssanitizer/blob/master/docs/zh/quick_start/mssanitizer_quick_start.md)排查算子流水内（不同指令间执行）、流水间（算子搬运操作）和核间（`aicube`和`aivector`并行）的实现是否存在异常，来判断该算子是否存在内存踩踏。
 6. 若以上排查仍未能定位根因，可进一步参考更详细的内存问题定位指南。

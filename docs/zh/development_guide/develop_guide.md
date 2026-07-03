@@ -128,7 +128,7 @@ bash run_test.sh
 | 快速入门 | `docs/zh/quick_start` |
 | 功能文档 | `docs/zh/user_guide/dump` |
 | 性能基线文档 | `docs/zh/baseline` |
-| 案例文档 | `docs/zh/bast_pratices` |
+| 案例文档 | `docs/zh/best_practices` |
 | FAQ | `docs/zh/support` |
 
 若新增文档、截图或示意图：
