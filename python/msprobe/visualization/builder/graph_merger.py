@@ -25,10 +25,10 @@ from msprobe.visualization.utils import GraphConst, update_shared_dict, update_p
 from msprobe.core.common.decorator import recursion_depth_decorator
 from msprobe.core.common.parallel_state import get_tp_pp_default_groups
 
-MAX_INFO = 'The Max value merging method for '
-MIN_INFO = 'The Min value merging method for '
-MEAN_INFO = 'The Mean value merging method for '
-NORM_INFO = 'The Norm value merging method for '
+MAX_INFO = "The Max value merging method for "
+MIN_INFO = "The Min value merging method for "
+MEAN_INFO = "The Mean value merging method for "
+NORM_INFO = "The Norm value merging method for "
 
 
 class GraphMerger:
@@ -42,13 +42,19 @@ class GraphMerger:
         elif param.tp == param.rank_size:
             return TPMerger(results, param, is_bench, pbar_info)
         elif param.pp == param.rank_size:
-            return PPMerger(results, param, is_bench, pbar_info) if param.vpp == 1 \
+            return (
+                PPMerger(results, param, is_bench, pbar_info)
+                if param.vpp == 1
                 else VPPMerger(results, param, is_bench, pbar_info)
+            )
         elif param.pp == 1:
             return TPMerger(results, param, is_bench, pbar_info)
         elif param.tp == 1:
-            return PPMerger(results, param, is_bench, pbar_info) if param.vpp == 1 \
+            return (
+                PPMerger(results, param, is_bench, pbar_info)
+                if param.vpp == 1
                 else VPPMerger(results, param, is_bench, pbar_info)
+            )
         elif param.tp * param.pp == param.rank_size:
             return TPPPMerger(results, param, is_bench, pbar_info)
         else:
@@ -61,24 +67,26 @@ class GraphMerger:
 class BaseGraphMerger:
     def __init__(self, build_graph_results, parallel_param, is_bench, pbar_info=None):
         self.unmerged_module = [Const.CLIP_GRAD, Const.OPTIMIZER]
-        self.dtype_list = Const.TORCH_INT_DTYPE + Const.TORCH_FLOAT_DTYPE + [Const.FLOAT16, Const.FLOAT32,
-                                                                             Const.BFLOAT16]
+        self.dtype_list = (
+            Const.TORCH_INT_DTYPE + Const.TORCH_FLOAT_DTYPE + [Const.FLOAT16, Const.FLOAT32, Const.BFLOAT16]
+        )
         self.build_graph_results = build_graph_results
         self.parallel_param = parallel_param
         self.is_bench = is_bench
-        self.log_prefix = '[Bench]' if self.is_bench else '[NPU]'
+        self.log_prefix = "[Bench]" if self.is_bench else "[NPU]"
         self.pbar_info = pbar_info
         self._add_all_nodes_rank()
 
     @staticmethod
     def sort_merged_api_collection(graph):
         def extract_rank(node):
-            match = re.search(r'_Rank(\d+)', node.id)
+            match = re.search(r"_Rank(\d+)", node.id)
             return int(match.group(1)) if match else None
 
         for sub_node in graph.root.subnodes:
             if sub_node.op == NodeOp.api_collection and sub_node.id.startswith(
-                    GraphConst.APIS_BETWEEN_MODULES_ALL_RANKS):
+                GraphConst.APIS_BETWEEN_MODULES_ALL_RANKS
+            ):
                 sub_node.subnodes = sorted(sub_node.subnodes, key=extract_rank)
 
     @staticmethod
@@ -86,8 +94,8 @@ class BaseGraphMerger:
         new_dict = {}
         for key, value in data_dict.items():
             new_key = key.replace(old_id, new_id)
-            if 'full_op_name' in value:
-                value['full_op_name'] = value.get('full_op_name').replace(old_id, new_id)
+            if "full_op_name" in value:
+                value["full_op_name"] = value.get("full_op_name").replace(old_id, new_id)
             new_dict[new_key] = value
         return new_dict
 
@@ -103,8 +111,11 @@ class BaseGraphMerger:
             elif math.isinf(diff):
                 return math.isinf(main_value) and math.isinf(other_value)
             else:
-                return diff < GraphConst.UNCERTAINTY_THRESHOLD if main_value == 0 else \
-                    abs(diff / main_value) < GraphConst.UNCERTAINTY_THRESHOLD
+                return (
+                    diff < GraphConst.UNCERTAINTY_THRESHOLD
+                    if main_value == 0
+                    else abs(diff / main_value) < GraphConst.UNCERTAINTY_THRESHOLD
+                )
         else:
             return main_value == other_value
 
@@ -146,16 +157,21 @@ class BaseGraphMerger:
                     main_node.subnodes.extend(other_node.subnodes)
             # 游离api集合合并为一个总的游离api集合
             elif main_node.id.startswith(GraphConst.APIS_BETWEEN_MODULES):
-                all_collection_node_id = main_graph_result.graph.add_node(NodeOp.api_collection,
-                                                                          GraphConst.APIS_BETWEEN_MODULES_ALL_RANKS,
-                                                                          id_accumulation=True)
+                all_collection_node_id = main_graph_result.graph.add_node(
+                    NodeOp.api_collection,
+                    GraphConst.APIS_BETWEEN_MODULES_ALL_RANKS,
+                    id_accumulation=True,
+                )
                 all_collection_node = main_graph_result.graph.get_node(all_collection_node_id)
                 all_collection_node.upnode = main_graph_result.graph.root
                 new_main_root_sub_nodes.append(all_collection_node)
                 # Apis_Between_Modules.0 --> Apis_Between_Modules_Rank0.0
                 origin_main_node_id = main_node.id
-                main_node.id = GraphConst.APIS_BETWEEN_MODULES + f'_Rank{main_graph_result.rank}.' + \
-                               main_node.id.split(Const.SEP)[-1]
+                main_node.id = (
+                    GraphConst.APIS_BETWEEN_MODULES
+                    + f"_Rank{main_graph_result.rank}."
+                    + main_node.id.split(Const.SEP)[-1]
+                )
                 all_collection_node.subnodes = [main_node]
                 main_node.upnode = all_collection_node
                 main_graph_result.graph.node_map[main_node.id] = main_node
@@ -165,14 +181,17 @@ class BaseGraphMerger:
                     if not other_node:
                         continue
                     # Apis_Between_Modules.0 --> Apis_Between_Modules_Rank1.0
-                    other_node.id = GraphConst.APIS_BETWEEN_MODULES + f'_Rank{other_graph_result.rank}.' + \
-                                    other_node.id.split(Const.SEP)[-1]
+                    other_node.id = (
+                        GraphConst.APIS_BETWEEN_MODULES
+                        + f"_Rank{other_graph_result.rank}."
+                        + other_node.id.split(Const.SEP)[-1]
+                    )
                     main_graph_result.graph.node_map[other_node.id] = other_node
                     for sub_node in other_node.subnodes:
                         # api节点，在api名称上添加rank信息
                         old_id = sub_node.id
                         parts = sub_node.id.split(Const.SEP)
-                        parts[1] += f'_rank{other_graph_result.rank}'
+                        parts[1] += f"_rank{other_graph_result.rank}"
                         sub_node.id = Const.SEP.join(parts)
                         sub_node.input_data = self._update_node_data_key(old_id, sub_node.id, sub_node.input_data)
                         sub_node.output_data = self._update_node_data_key(old_id, sub_node.id, sub_node.output_data)
@@ -200,7 +219,7 @@ class BaseGraphMerger:
         """
         if not other_nodes:
             return {}, {}
-        data_types = {'input_data': {}, 'output_data': {}}
+        data_types = {"input_data": {}, "output_data": {}}
         for data_type, data_dict in data_types.items():
             main_data_dict = getattr(main_node, data_type)
             for key, main_param in main_data_dict.items():
@@ -217,8 +236,8 @@ class BaseGraphMerger:
                     if compare_data and not self.compare_param_same(main_param, other_param, has_uncertainty=True):
                         same_flag = False
                 if not same_flag:
-                    data_dict[key.replace(main_node.id + Const.SEP, '')] = tp_need_merge_params
-        return data_types.get('input_data'), data_types.get('output_data')
+                    data_dict[key.replace(main_node.id + Const.SEP, "")] = tp_need_merge_params
+        return data_types.get("input_data"), data_types.get("output_data")
 
     def compare_param_same(self, main_param, other_param, has_uncertainty=False):
         if not self._compare_value_same(main_param.get(Const.MAX), other_param.get(Const.MAX)):
@@ -239,8 +258,12 @@ class BaseGraphMerger:
         tp_groups: 张量并行组列表，每个元素是一个包含组内rank的列表
         pp_groups: 流水线并行组列表，每个元素是一个包含组内rank的列表
         """
-        tp_groups, pp_groups = get_tp_pp_default_groups(self.parallel_param.rank_size, self.parallel_param.tp,
-                                                        self.parallel_param.pp, order=self.parallel_param.order)
+        tp_groups, pp_groups = get_tp_pp_default_groups(
+            self.parallel_param.rank_size,
+            self.parallel_param.tp,
+            self.parallel_param.pp,
+            order=self.parallel_param.order,
+        )
 
         return tp_groups, pp_groups
 
@@ -253,7 +276,7 @@ class BaseGraphMerger:
 class PPMerger(BaseGraphMerger):
     LAYERS_PATTERN = re.compile(r"(layers\.|layer\.)\d+(\.)")
     MARK_PATTERN = re.compile(r"%(\d+)%(\d+)$")
-    MARK = '%'
+    MARK = "%"
 
     @staticmethod
     def _trace_p2p_mapping(p2p_mapping: dict):
@@ -304,8 +327,12 @@ class PPMerger(BaseGraphMerger):
             # backward可能没有output，是否要pp合并从对应的forward节点判断
             if Const.SEP + Const.BACKWARD + Const.SEP in main_node.id:
                 f_node = main_graph.node_map.get(
-                    main_node.id.replace(Const.SEP + Const.BACKWARD + Const.SEP, Const.SEP + Const.FORWARD + Const.SEP))
-                if f_node and hasattr(f_node, 'is_pp_merged'):
+                    main_node.id.replace(
+                        Const.SEP + Const.BACKWARD + Const.SEP,
+                        Const.SEP + Const.FORWARD + Const.SEP,
+                    )
+                )
+                if f_node and hasattr(f_node, "is_pp_merged"):
                     pp_merged_condition = True
             if pp_merged_condition:
                 main_node.is_pp_merged = True
@@ -340,7 +367,12 @@ class PPMerger(BaseGraphMerger):
 
     def merge_pp_graphs(self, results):
         if self.pbar_info:
-            update_shared_dict(self.pbar_info.current_stage_dict, self.pbar_info.task_id, 1, update_all=True)
+            update_shared_dict(
+                self.pbar_info.current_stage_dict,
+                self.pbar_info.task_id,
+                1,
+                update_all=True,
+            )
         if not results or len(results) < 2:
             return results
         graphs = [x.graph for x in results]
@@ -352,7 +384,53 @@ class PPMerger(BaseGraphMerger):
                 self._sort_nodes(main_graph_result.graph, main_node)
             if self.pbar_info:
                 update_pbar_info(self.pbar_info, i + 1, total, update_all=True)
+        self._merge_root_unique_subnodes(main_graph_result, graphs)
         return [main_graph_result]
+
+    def _merge_root_unique_subnodes(self, main_graph_result, graphs):
+        """合并其他rank根节点下独有的子节点到主graph
+
+        场景：layers模块直接挂在根节点下，各PP stage各有不同的layers，
+        导致各stage的独有子节点（如layers.14-layers.27）需要合并到主graph。
+        """
+        if len(graphs) < 2:
+            return
+        main_root = main_graph_result.graph.root
+        # 守卫条件：只有根节点下直接包含layer模块时（而非包在decoder等wrapper模块内），
+        # 才需要执行根级别的独有节点合并。Megatron等场景的layers在decoder wrapper下，
+        # 由_merge_nodes递归处理。
+        if not any(self.LAYERS_PATTERN.search(node.id) for node in main_root.subnodes):
+            return
+        main_subnode_ids = {n.id for n in main_root.subnodes}
+        nodes_to_merge = []
+        for other_root in [graph.root for graph in graphs[1:]]:
+            for node in other_root.subnodes:
+                if node.id not in main_subnode_ids and not node.id.startswith(GraphConst.APIS_BETWEEN_MODULES):
+                    nodes_to_merge.append(node)
+        if not nodes_to_merge:
+            return
+        for node in nodes_to_merge:
+            self._mark_node_id_position_rank(node, node.rank)
+            self._add_node_to_main_graph(main_graph_result.graph, node)
+            node.upnode = main_root
+            main_root.subnodes.append(node)
+        # 将新增节点排序在已有节点之后，按标记中的position排序
+        unmarked = [n for n in main_root.subnodes if not self.MARK_PATTERN.search(n.id)]
+        marked = [n for n in main_root.subnodes if self.MARK_PATTERN.search(n.id)]
+        marked.sort(
+            key=lambda n: (int(self.MARK_PATTERN.search(n.id).group(2)), int(self.MARK_PATTERN.search(n.id).group(1)))
+        )
+        main_root.subnodes = unmarked + marked
+        # 计算已有节点的最大layer index，用于给新增节点重编号
+        layer_idx = -1
+        for node in unmarked:
+            if self.LAYERS_PATTERN.search(node.id):
+                layer_idx += 1
+        for node in marked:
+            if self.LAYERS_PATTERN.search(node.id):
+                layer_idx += 1
+                node.pp_index = layer_idx
+            self._update_node_id(main_graph_result.graph, node)
 
     def get_groups(self):
         """
@@ -365,16 +443,16 @@ class PPMerger(BaseGraphMerger):
             for node in result.graph.node_map.values():
                 if not node.id.startswith(Const.DISTRIBUTED + Const.SEP):
                     continue
-                if '.batch_isend_irecv.' in node.id:
+                if ".batch_isend_irecv." in node.id:
                     for p2p_info in node.batch_p2p_info:
                         target_rank = p2p_info.get(GraphConst.PEER)
-                        if target_rank is not None and target_rank != rank and p2p_info.get(GraphConst.OP) == 'isend':
+                        if target_rank is not None and target_rank != rank and p2p_info.get(GraphConst.OP) == "isend":
                             pp_rank = target_rank
                             break
-                elif '.send.' in node.id or '.isend.' in node.id:
+                elif ".send." in node.id or ".isend." in node.id:
                     # example: Distributed.isend.0.forward --> Distributed.isend.0.forward.input.dst
-                    dst_kwarg = f'{node.id}{Const.SEP}{Const.INPUT}{Const.SEP}{GraphConst.DST}'
-                    dst = node.input_data.get(dst_kwarg, {}).get('value')
+                    dst_kwarg = f"{node.id}{Const.SEP}{Const.INPUT}{Const.SEP}{GraphConst.DST}"
+                    dst = node.input_data.get(dst_kwarg, {}).get("value")
                     if dst is not None:
                         pp_rank = dst
                         break
@@ -384,16 +462,20 @@ class PPMerger(BaseGraphMerger):
                 p2p_mapping[rank] = pp_rank
         pp_groups = self._trace_p2p_mapping(p2p_mapping)
         if not pp_groups:
-            logger.info('Unable to get pp groups based on Distributed Api (batch_isend_irecv, send, or isend), '
-                        'generate pp groups using parallel param "rank_size", "tp" and "pp".')
+            logger.info(
+                "Unable to get pp groups based on Distributed Api (batch_isend_irecv, send, or isend), "
+                'generate pp groups using parallel param "rank_size", "tp" and "pp".'
+            )
             _, pp_groups = self.get_default_groups()
         elif len(pp_groups[0]) != self.parallel_param.pp:
-            logger.warning(f'Based on Distributed Api (atch_isend_irecv, send, or isend), '
-                           f'the resulting pp groups={pp_groups}, '
-                           f'its length is not equal to the parallel param "pp"({self.parallel_param.pp}) you defined, '
-                           f'generate pp groups using parallel param "rank_size", "tp" and "pp".')
+            logger.warning(
+                f"Based on Distributed Api (atch_isend_irecv, send, or isend), "
+                f"the resulting pp groups={pp_groups}, "
+                f'its length is not equal to the parallel param "pp"({self.parallel_param.pp}) you defined, '
+                f'generate pp groups using parallel param "rank_size", "tp" and "pp".'
+            )
             _, pp_groups = self.get_default_groups()
-        logger.info(f'{self.log_prefix} All pp groups is {pp_groups}.')
+        logger.info(f"{self.log_prefix} All pp groups is {pp_groups}.")
         return pp_groups
 
     def _merge_other_unique_nodes(self, main_graph, main_node, other_nodes):
@@ -433,13 +515,17 @@ class PPMerger(BaseGraphMerger):
         while stack:
             node = stack.pop()
             if self.MARK_PATTERN.search(node.id):
-                is_forward = (Const.SEP + Const.FORWARD + Const.SEP in node.id or
-                              Const.SEP + Const.FORWARD + self.MARK in node.id)
+                is_forward = (
+                    Const.SEP + Const.FORWARD + Const.SEP in node.id or Const.SEP + Const.FORWARD + self.MARK in node.id
+                )
                 new_sub_nodes1, new_sub_nodes2 = [], []
                 for item in node.upnode.subnodes:
-                    new_sub_nodes2.append(item) if self.MARK_PATTERN.search(item.id) else new_sub_nodes1.append(item)
+                    if self.MARK_PATTERN.search(item.id):
+                        new_sub_nodes2.append(item)
+                    else:
+                        new_sub_nodes1.append(item)
 
-                order = True if is_forward else False
+                order = bool(is_forward)
                 new_sub_nodes2.sort(key=lambda n: self._get_node_sort_rule(n, rank_ascending=order))
                 new_sub_nodes = new_sub_nodes1 + new_sub_nodes2 if is_forward else new_sub_nodes2 + new_sub_nodes1
 
@@ -460,7 +546,7 @@ class PPMerger(BaseGraphMerger):
 
     def _add_node_to_main_graph(self, main_graph: Graph, node: BaseNode):
         if node.id in main_graph.node_map:
-            logger.warning(f'{node.id} is exist!')
+            logger.warning(f"{node.id} is exist!")
         else:
             main_graph.node_map[node.id] = node
         for sub_node in node.subnodes:
@@ -475,7 +561,7 @@ class PPMerger(BaseGraphMerger):
                 return rank, position
             else:
                 return -rank, position
-        return (float('inf'), float('inf')) if rank_ascending else (-float('inf'), -float('inf'))
+        return (float("inf"), float("inf")) if rank_ascending else (-float("inf"), -float("inf"))
 
     def _mark_node_id_position_rank(self, node: BaseNode, rank):
         position = 0
@@ -484,7 +570,7 @@ class PPMerger(BaseGraphMerger):
                 position = index
                 break
         # 各rank重复节点添加所处层级位置排序信息position和rank号，用%分隔
-        node.id = node.id + f'{self.MARK}{position}' + f'{self.MARK}{rank}'
+        node.id = node.id + f"{self.MARK}{position}" + f"{self.MARK}{rank}"
         for sub_node in node.subnodes:
             self._mark_node_id_position_rank(sub_node, rank)
 
@@ -494,20 +580,20 @@ class PPMerger(BaseGraphMerger):
             node, pp_index = stack.pop()
             # 修改节点id之前删除node_map的信息，修改完再添加回去
             if node.id not in graph.node_map:
-                logger.warning(f'Update node id {node.id} fail!')
+                logger.warning(f"Update node id {node.id} fail!")
             else:
                 del graph.node_map[node.id]
                 old_id = self.MARK_PATTERN.sub("", node.id)
                 if node.op == NodeOp.module:
                     # 被pp切分的模块节点，基于位置和rank信息修改模块名称计数信息
                     if self.LAYERS_PATTERN.search(node.id) and self.MARK_PATTERN.search(node.id):
-                        if hasattr(node, 'pp_index'):
+                        if hasattr(node, "pp_index"):
                             pp_index = str(node.pp_index)
                         node.id = self.LAYERS_PATTERN.sub(r"\g<1>" + pp_index + r"\g<2>", node.id)
                 else:
                     # api节点，在api名称上添加rank信息
                     parts = node.id.split(Const.SEP)
-                    parts[1] += f'_rank{node.id.split(PPMerger.MARK)[-1]}'
+                    parts[1] += f"_rank{node.id.split(PPMerger.MARK)[-1]}"
                     node.id = Const.SEP.join(parts)
                 # 把之前添加的位置和rank信息删掉
                 node.id = self.MARK_PATTERN.sub("", node.id)
@@ -524,31 +610,33 @@ class TPMerger(BaseGraphMerger):
     RANK_PATTERN = re.compile(r"_rank(\d+)\.")
     OPERATION_TABLE = {
         Const.MAX: {
-            'initial': lambda p: p.get(Const.MAX),
-            'merge': lambda current, other: max(current, other.get(Const.MAX)),
-            'finalize': lambda current, count: current,
-            'formula': lambda key, values: f'{MAX_INFO}{key} is: max({", ".join(map(str, values))})'
+            "initial": lambda p: p.get(Const.MAX),
+            "merge": lambda current, other: max(current, other.get(Const.MAX)),
+            "finalize": lambda current, count: current,
+            "formula": lambda key, values: (f"{MAX_INFO}{key} is: max({', '.join(map(str, values))})"),
         },
         Const.MIN: {
-            'initial': lambda p: p.get(Const.MIN),
-            'merge': lambda current, other: min(current, other.get(Const.MIN)),
-            'finalize': lambda current, count: current,
-            'formula': lambda key, values: f'{MIN_INFO}{key} is: min({", ".join(map(str, values))})'
+            "initial": lambda p: p.get(Const.MIN),
+            "merge": lambda current, other: min(current, other.get(Const.MIN)),
+            "finalize": lambda current, count: current,
+            "formula": lambda key, values: (f"{MIN_INFO}{key} is: min({', '.join(map(str, values))})"),
         },
         Const.MEAN: {
-            'initial': lambda p: p.get(Const.MEAN),
-            'merge': lambda current, other: current + other.get(Const.MEAN),
-            'finalize': lambda current, count: current / count,
-            'formula': lambda key, values: f'{MEAN_INFO}{key} is: ({" + ".join(map(str, values))}) / {len(values)}'
+            "initial": lambda p: p.get(Const.MEAN),
+            "merge": lambda current, other: current + other.get(Const.MEAN),
+            "finalize": lambda current, count: current / count,
+            "formula": lambda key, values: (f"{MEAN_INFO}{key} is: ({' + '.join(map(str, values))}) / {len(values)}"),
         },
         Const.NORM: {
-            'initial': lambda p: pow(p.get(Const.NORM), 2.0),
-            'merge': lambda current, other: current + pow(other.get(Const.NORM), 2.0),
-            'finalize': lambda current, count: pow(current, 1 / 2.0),
-            'formula': lambda key, values: f'{NORM_INFO}{key} is: ({" + ".join([f"{v} ** 2" for v in values])}) ** 0.5'
-        }
+            "initial": lambda p: pow(p.get(Const.NORM), 2.0),
+            "merge": lambda current, other: current + pow(other.get(Const.NORM), 2.0),
+            "finalize": lambda current, count: pow(current, 1 / 2.0),
+            "formula": lambda key, values: (
+                f"{NORM_INFO}{key} is: ({' + '.join([f'{v} ** 2' for v in values])}) ** 0.5"
+            ),
+        },
     }
-    TP_MERGED_INFO = f'This data is the merged data after tensor parallelism(TP), and the data is merged from rank '
+    TP_MERGED_INFO = "This data is the merged data after tensor parallelism(TP), and the data is merged from rank "
 
     @staticmethod
     def _merge_params(tp_need_merge_param: dict):
@@ -564,16 +652,16 @@ class TPMerger(BaseGraphMerger):
             main_param = param_list[0]
 
             for stat, ops in TPMerger.OPERATION_TABLE.items():
-                current_value = ops['initial'](main_param)
+                current_value = ops["initial"](main_param)
                 value_list = [current_value if stat != Const.NORM else main_param.get(Const.NORM)]
 
                 for other_param in param_list[1:]:
-                    current_value = ops['merge'](current_value, other_param)
+                    current_value = ops["merge"](current_value, other_param)
                     value_list.append(other_param.get(stat) if stat != Const.NORM else other_param.get(Const.NORM))
 
-                final_value = ops['finalize'](current_value, len(param_list))
+                final_value = ops["finalize"](current_value, len(param_list))
                 main_param[stat] = final_value
-                formula_base = f'{ops["formula"](key, value_list)}' + f' = {final_value}'
+                formula_base = f"{ops['formula'](key, value_list)}" + f" = {final_value}"
 
                 merge_info.append(formula_base)
 
@@ -623,7 +711,7 @@ class TPMerger(BaseGraphMerger):
                 start_index = index
             elif target_id2 in node.id:
                 end_index = index
-        return [] if start_index == -1 or end_index == -1 else node_list[start_index:end_index + 1]
+        return [] if start_index == -1 or end_index == -1 else node_list[start_index : end_index + 1]
 
     def merge_graphs(self):
         results_groups = self.split_graph_results_by_groups(self.get_groups())
@@ -635,7 +723,12 @@ class TPMerger(BaseGraphMerger):
 
     def merge_tp_graphs(self, results, tp_merge_mapping=None):
         if self.pbar_info:
-            update_shared_dict(self.pbar_info.current_stage_dict, self.pbar_info.task_id, 1, update_all=True)
+            update_shared_dict(
+                self.pbar_info.current_stage_dict,
+                self.pbar_info.task_id,
+                1,
+                update_all=True,
+            )
         if not results or len(results) < 2:
             return results
         graphs = [x.graph for x in results]
@@ -643,9 +736,12 @@ class TPMerger(BaseGraphMerger):
         total = len(main_graph_result.graph.node_map.values())
         for i, main_node in enumerate(main_graph_result.graph.node_map.values()):
             should_continue = (
-                    not main_node.upnode or main_node.upnode.op != NodeOp.module or
-                    main_node.upnode.id in self.unmerged_module or main_node.id.startswith(Const.DISTRIBUTED) or
-                    main_node.parallel_merge_info != [])
+                not main_node.upnode
+                or main_node.upnode.op != NodeOp.module
+                or main_node.upnode.id in self.unmerged_module
+                or main_node.id.startswith(Const.DISTRIBUTED)
+                or main_node.parallel_merge_info != []
+            )
             if should_continue:
                 continue
             self._handle_tp_matmul_reduce(main_node, graphs[1:], tp_merge_mapping)
@@ -655,7 +751,7 @@ class TPMerger(BaseGraphMerger):
                 ranks = [main_node.rank]
                 for other_node in other_nodes:
                     ranks.append(other_node.rank)
-                main_node.parallel_merge_info.append(f'{self.TP_MERGED_INFO}{ranks}.')
+                main_node.parallel_merge_info.append(f"{self.TP_MERGED_INFO}{ranks}.")
                 merge_info_in = self._merge_params(tp_need_merge_param_in)
                 merge_info_out = self._merge_params(tp_need_merge_param_out)
                 main_node.parallel_merge_info.extend(merge_info_in + merge_info_out)
@@ -670,21 +766,25 @@ class TPMerger(BaseGraphMerger):
         for result in self.build_graph_results:
             for node in result.graph.node_map.values():
                 if any(op in node.id for op in GraphConst.REDUCE_OPERATIONS):
-                    group_ranks = node.input_data.get(f'{node.id}.input.group', {}).get('group_ranks')
+                    group_ranks = node.input_data.get(f"{node.id}.input.group", {}).get("group_ranks")
                     if group_ranks and group_ranks not in tp_groups:
                         tp_groups.append(group_ranks)
                     break
         if not tp_groups:
-            logger.info('Unable to get tp groups based on Distributed Api (reduce_scatter or all_reduce), '
-                        'generate tp groups using parallel param "rank_size", "tp" and "pp".')
+            logger.info(
+                "Unable to get tp groups based on Distributed Api (reduce_scatter or all_reduce), "
+                'generate tp groups using parallel param "rank_size", "tp" and "pp".'
+            )
             tp_groups, _ = self.get_default_groups()
         elif len(tp_groups[0]) != self.parallel_param.tp:
-            logger.warning(f'Based on Distributed Api (reduce_scatter or all_reduce), '
-                           f'the resulting tp groups={tp_groups}, '
-                           f'its length is not equal to the parallel param "tp"({self.parallel_param.tp}) you defined, '
-                           f'generate tp groups using parallel param "rank_size", "tp" and "pp".')
+            logger.warning(
+                f"Based on Distributed Api (reduce_scatter or all_reduce), "
+                f"the resulting tp groups={tp_groups}, "
+                f'its length is not equal to the parallel param "tp"({self.parallel_param.tp}) you defined, '
+                f'generate tp groups using parallel param "rank_size", "tp" and "pp".'
+            )
             tp_groups, _ = self.get_default_groups()
-        logger.info(f'{self.log_prefix} All tp groups is {tp_groups}.')
+        logger.info(f"{self.log_prefix} All tp groups is {tp_groups}.")
         return tp_groups
 
     def _handle_tp_matmul_reduce(self, node, other_graphs, tp_merge_mapping):
@@ -696,17 +796,20 @@ class TPMerger(BaseGraphMerger):
         splits = node.id.split(Const.SEP)
         if len(splits) < 4:
             return
-        is_forward_with_row_parallel = splits[-2] == Const.FORWARD and 'RowParallelLinear' in splits[-3]
-        is_backward_with_column_parallel = splits[-2] == Const.BACKWARD and 'ColumnParallelLinear' in splits[-3]
+        is_forward_with_row_parallel = splits[-2] == Const.FORWARD and "RowParallelLinear" in splits[-3]
+        is_backward_with_column_parallel = splits[-2] == Const.BACKWARD and "ColumnParallelLinear" in splits[-3]
         if not is_forward_with_row_parallel and not is_backward_with_column_parallel:
             return
         matmul_list = []
         reduce_list = []
         for sub_node in node.subnodes:
-            if 'matmul' in sub_node.id:
+            if "matmul" in sub_node.id:
                 matmul_list.append(sub_node)
-            if ('_reduce_scatter_base' in sub_node.id or 'reduce_scatter_tensor' in sub_node.id or
-                    'all_reduce' in sub_node.id):
+            if (
+                "_reduce_scatter_base" in sub_node.id
+                or "reduce_scatter_tensor" in sub_node.id
+                or "all_reduce" in sub_node.id
+            ):
                 reduce_list.append(sub_node)
         if not matmul_list or not reduce_list:
             return
@@ -715,10 +818,10 @@ class TPMerger(BaseGraphMerger):
                 continue
             # matmul的output0，将传递给all_reduce/reduce_scatter，作为all_reduce的input0，或作为reduce_scatter的input1
             matmul_node_output_param = list(matmul_node.output_data.values())[0]
-            for reduce_node in reduce_list:
+            for reduce_node in list(reduce_list):
                 if not reduce_node.output_data:
                     continue
-                if 'all_reduce' in reduce_node.id:
+                if "all_reduce" in reduce_node.id:
                     if not reduce_node.input_data:
                         continue
                     reduce_node_input_param = list(reduce_node.input_data.values())[0]
@@ -735,16 +838,16 @@ class TPMerger(BaseGraphMerger):
                     ranks = [matmul_node.rank]
                     for other_node in other_nodes:
                         ranks.append(other_node.rank)
-                    matmul_node.parallel_merge_info.append(f'{self.TP_MERGED_INFO}{ranks}.')
+                    matmul_node.parallel_merge_info.append(f"{self.TP_MERGED_INFO}{ranks}.")
                     merge_info_in = self._merge_params(tp_need_merge_param_in)
                     matmul_node.parallel_merge_info.extend(merge_info_in)
                 # matmul的output0替换为all_reduce/reduce_scatter的output0
                 reduce_node_output_param = list(reduce_node.output_data.values())[0]
                 keys = [Const.MAX, Const.MIN, Const.MEAN, Const.NORM]
                 matmul_node_output_param.update({k: reduce_node_output_param.get(k) for k in keys})
-                full_op_name = reduce_node_output_param.get('full_op_name')
+                full_op_name = reduce_node_output_param.get("full_op_name")
                 param_name = full_op_name if full_op_name else reduce_node.id
-                matmul_node.parallel_merge_info.append(f'The output of this data is merged from {param_name}')
+                matmul_node.parallel_merge_info.append(f"The output of this data is merged from {param_name}")
                 reduce_list.remove(reduce_node)
                 break
 
@@ -754,13 +857,13 @@ class TPMerger(BaseGraphMerger):
         splits = node.id.split(Const.SEP)
         if len(splits) < 4:
             return
-        is_forward_with_column_parallel = splits[-2] == Const.FORWARD and 'ColumnParallelLinear' in splits[-3]
+        is_forward_with_column_parallel = splits[-2] == Const.FORWARD and "ColumnParallelLinear" in splits[-3]
         if not is_forward_with_column_parallel:
             return
         if not node.upnode:
             return
         # 获取[ColumnParallelLinear, RowParallelLinear]结构
-        nodes = self._slice_list_at_id(node.upnode.subnodes, node.id, 'RowParallelLinear')
+        nodes = self._slice_list_at_id(node.upnode.subnodes, node.id, "RowParallelLinear")
         if len(nodes) < 2:
             return
         stack = nodes[:]
@@ -778,14 +881,14 @@ class TPMerger(BaseGraphMerger):
                 ranks = [current_node.rank]
                 for other_node in other_nodes:
                     ranks.append(other_node.rank)
-                current_node.parallel_merge_info.append(f'{self.TP_MERGED_INFO}{ranks}.')
+                current_node.parallel_merge_info.append(f"{self.TP_MERGED_INFO}{ranks}.")
                 # ColumnParallelLinear层的输入、其中的matmul输入不需要合并
-                if current_node == nodes[0] or ('matmul' in current_node.id and current_node.upnode == nodes[0]):
-                    param_in.pop('input.0', None)
+                if current_node == nodes[0] or ("matmul" in current_node.id and current_node.upnode == nodes[0]):
+                    param_in.pop("input.0", None)
                 # RowParallelLinear层的输出、其中的matmul输出不需要合并, bias不需要合并
-                elif current_node == nodes[-1] or ('matmul' in current_node.id and current_node.upnode == nodes[-1]):
+                elif current_node == nodes[-1] or ("matmul" in current_node.id and current_node.upnode == nodes[-1]):
                     param_out = {}
-                    param_in.pop('parameters.bias', None)
+                    param_in.pop("parameters.bias", None)
 
                 merge_info_in = self._merge_params(param_in)
                 merge_info_out = self._merge_params(param_out)
@@ -801,9 +904,21 @@ class NoParallelMerger(BaseGraphMerger):
 class TPPPMerger(BaseGraphMerger):
     def merge_graphs(self):
         tp_merger = TPMerger(self.build_graph_results, self.parallel_param, self.is_bench, self.pbar_info)
-        pp_merger = PPMerger(self.build_graph_results, self.parallel_param, self.is_bench, self.pbar_info) \
-            if self.parallel_param.vpp == 1 else \
-            VPPMerger(self.build_graph_results, self.parallel_param, self.is_bench, self.pbar_info)
+        pp_merger = (
+            PPMerger(
+                self.build_graph_results,
+                self.parallel_param,
+                self.is_bench,
+                self.pbar_info,
+            )
+            if self.parallel_param.vpp == 1
+            else VPPMerger(
+                self.build_graph_results,
+                self.parallel_param,
+                self.is_bench,
+                self.pbar_info,
+            )
+        )
         pp_groups = pp_merger.get_groups()
         tp_groups = tp_merger.get_groups()
         # 进入TP+PP混合处理器，PP和TP必然大于1
@@ -825,17 +940,29 @@ class TPPPMerger(BaseGraphMerger):
 class FullMerger(BaseGraphMerger):
     def merge_graphs(self):
         tp_merger = TPMerger(self.build_graph_results, self.parallel_param, self.is_bench, self.pbar_info)
-        pp_merger = PPMerger(self.build_graph_results, self.parallel_param, self.is_bench, self.pbar_info) \
-            if self.parallel_param.vpp == 1 else \
-            VPPMerger(self.build_graph_results, self.parallel_param, self.is_bench, self.pbar_info)
+        pp_merger = (
+            PPMerger(
+                self.build_graph_results,
+                self.parallel_param,
+                self.is_bench,
+                self.pbar_info,
+            )
+            if self.parallel_param.vpp == 1
+            else VPPMerger(
+                self.build_graph_results,
+                self.parallel_param,
+                self.is_bench,
+                self.pbar_info,
+            )
+        )
         pp_groups = pp_merger.get_groups()
         tp_groups = tp_merger.get_groups()
         tp_merge_mapping = {}
         if len(tp_groups) < 1:
-            raise RuntimeError(f'Graph merged error, and tp_groups is {tp_groups}.')
+            raise RuntimeError(f"Graph merged error, and tp_groups is {tp_groups}.")
         for tp_group in tp_groups[1:]:
             if len(tp_group) < 1:
-                raise RuntimeError(f'Graph merged error, and tp_group is {tp_group}.')
+                raise RuntimeError(f"Graph merged error, and tp_group is {tp_group}.")
             tp_merge_mapping[tp_group[0]] = tp_group[1:]
         # 先合并pp，需要知道pp域，在各自pp域中合并
         results_groups_pp = self.split_graph_results_by_groups(pp_groups)
@@ -865,7 +992,7 @@ class FullMerger(BaseGraphMerger):
 
 class VPPMerger(PPMerger):
     LAYERS_NUM_PATTERN = re.compile(r"(layers\.|layer\.)(\d+)(\.)")
-    FORWARD_PATTERN = re.compile(r'\.forward\.\d+$')
+    FORWARD_PATTERN = re.compile(r"\.forward\.\d+$")
 
     @staticmethod
     def _replace_vpp_id(s, vpp_id):
@@ -877,7 +1004,12 @@ class VPPMerger(PPMerger):
 
     def merge_pp_graphs(self, results):
         if self.pbar_info:
-            update_shared_dict(self.pbar_info.current_stage_dict, self.pbar_info.task_id, 1, update_all=True)
+            update_shared_dict(
+                self.pbar_info.current_stage_dict,
+                self.pbar_info.task_id,
+                1,
+                update_all=True,
+            )
         if not results or len(results) < 2:
             return results
         graphs = [x.graph for x in results]
@@ -889,6 +1021,7 @@ class VPPMerger(PPMerger):
                 self._sort_nodes(main_graph_result.graph, main_node)
             if self.pbar_info:
                 update_pbar_info(self.pbar_info, i + 1, total, update_all=True)
+        self._merge_root_unique_subnodes(main_graph_result, graphs)
         self._merge_vpp_data(main_graph_result.graph)
         self._merge_vpp_chunks(main_graph_result.graph)
         return [main_graph_result]
@@ -909,8 +1042,11 @@ class VPPMerger(PPMerger):
         stack = module_list[:]
         while stack:
             current_node = stack.pop()
-            if hasattr(current_node, 'is_pp_merged') or hasattr(current_node,
-                                                                'pp_index') or current_node.op != NodeOp.module:
+            if (
+                hasattr(current_node, "is_pp_merged")
+                or hasattr(current_node, "pp_index")
+                or current_node.op != NodeOp.module
+            ):
                 continue
             is_forward = self.FORWARD_PATTERN.search(current_node.id)
             stack.extend(reversed(current_node.subnodes))
@@ -919,17 +1055,19 @@ class VPPMerger(PPMerger):
             if not target_node:
                 continue
             if is_forward:
-                current_node.output_data = self._update_node_data_key(target_node.id, current_node.id,
-                                                                      target_node.output_data)
+                current_node.output_data = self._update_node_data_key(
+                    target_node.id, current_node.id, target_node.output_data
+                )
             else:
-                current_node.input_data = self._update_node_data_key(target_node.id, current_node.id,
-                                                                     target_node.input_data)
+                current_node.input_data = self._update_node_data_key(
+                    target_node.id, current_node.id, target_node.input_data
+                )
 
     def _merge_vpp_chunks(self, graph):
         """
         所有chunk都合并到chunk0，layers层搬到chunk0并重排序号
         """
-        chunk_id_list = [i for i in range(1, self.parallel_param.vpp)]
+        chunk_id_list = list(range(1, self.parallel_param.vpp))
         chunk_0_list = []
         for node in reversed(graph.root.subnodes):
             parts = node.id.split(Const.SEP)
@@ -943,8 +1081,11 @@ class VPPMerger(PPMerger):
         layers_need_merge_dict = {}
         while stack:
             current_node = stack.pop()
-            if hasattr(current_node, 'is_pp_merged') or hasattr(current_node, 'pp_index') \
-                    and current_node.upnode.id not in layers_need_merge_dict:
+            if (
+                hasattr(current_node, "is_pp_merged")
+                or hasattr(current_node, "pp_index")
+                and current_node.upnode.id not in layers_need_merge_dict
+            ):
                 layers_need_merge_dict[current_node.upnode.id] = current_node.upnode
                 continue
             stack.extend(reversed(current_node.subnodes))
@@ -984,7 +1125,7 @@ class VPPMerger(PPMerger):
             if len(parts) < 2 or parts[1] == GraphConst.VPP_CHUNK_0:
                 continue
             # layers层修改chunk号和layers序号，非layers层修改chunk号
-            new_node_id_prefix = ''
+            new_node_id_prefix = ""
             if match:
                 prefix, number, dot = match.groups()
                 new_string = prefix + str(index) + dot
@@ -1011,10 +1152,12 @@ class VPPMerger(PPMerger):
                     new_current_node_id = new_node_id_prefix + current_node.id[e:]
                 else:
                     new_current_node_id = self._replace_vpp_id(current_node.id, GraphConst.VPP_CHUNK_0)
-                current_node.input_data = self._update_node_data_key(current_node.id, new_current_node_id,
-                                                                     current_node.input_data)
-                current_node.output_data = self._update_node_data_key(current_node.id, new_current_node_id,
-                                                                      current_node.output_data)
+                current_node.input_data = self._update_node_data_key(
+                    current_node.id, new_current_node_id, current_node.input_data
+                )
+                current_node.output_data = self._update_node_data_key(
+                    current_node.id, new_current_node_id, current_node.output_data
+                )
                 graph.node_map.pop(current_node.id, None)
                 current_node.id = new_current_node_id
                 graph.node_map[new_current_node_id] = current_node
