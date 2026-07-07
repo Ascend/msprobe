@@ -157,10 +157,16 @@ def get_relative_err(n_value, b_value):
         n_value_copy = n_value.copy()
         b_value_copy = b_value.copy()
         zero_mask = b_value_copy == 0
-        b_value_copy[zero_mask] += Const.FLOAT_EPSILON
-        n_value_copy[zero_mask] += Const.FLOAT_EPSILON
-        relative_err = np.divide((n_value_copy - b_value_copy), b_value_copy)
-    return np.abs(relative_err)
+
+        result_type = np.result_type(n_value_copy, b_value_copy, np.float32)
+        n = n_value_copy.astype(result_type)
+        b = b_value_copy.astype(result_type)
+        epsilon = np.finfo(result_type).eps
+        n[zero_mask] += epsilon
+        b[zero_mask] += epsilon
+        relative_err = np.abs(np.divide((n - b), b))
+
+    return relative_err
 
 
 class GetCosineSimilarity(TensorComparisonBasic):
