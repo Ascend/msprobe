@@ -45,7 +45,7 @@
 4. 安装本工具，具体请参见《[msProbe工具安装指南](../install_guide/msprobe_install_guide.md)》。
 
    ```bash
-   pip install mindstudio-probe --pre
+   pip install mindstudio-probe
    ```
 
 ## 精度数据采集

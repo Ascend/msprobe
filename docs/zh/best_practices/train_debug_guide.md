@@ -65,7 +65,7 @@
  可以使用`Beyond Compare`软件比对双方训练日志或启动脚本中的训练超参和环境变量设置，也可以使用[脚本比对工具](#48-脚本比对工具)进行自动比对。其中，常见训练超参可参考[附录-模型超参数](#52-模型超参数)。
 - **三方库版本比对**  
  通过`git`分支检查`MindSpeed-LLM`、`Megatron`、`DeepSpeed`等三方库版本是否与标杆对齐。
-  通过`pip list`检查`PyTorch`、torch-npu等第三方库版本是否与标杆对齐，也可以使用[脚本比对工具](#48-脚本比对工具)进行自动比对。
+  通过`pip list`检查PyTorch、TorchNPU等第三方库版本是否与标杆对齐，也可以使用[脚本比对工具](#48-脚本比对工具)进行自动比对。
 - **数据读取检查**  
  检查从数据集中读取后并送入模型训练的数据，一般可通过精度采集工具采集最开始的输入数据或直接在代码中调用模型`forward`时保存或打印传入的具体`tensor`来进行数据集检查，也可使用[脚本比对工具](#48-脚本比对工具)进行自动比对。
 - **模型结构检查**  
@@ -73,7 +73,7 @@
 - **权重初始化对齐**  
  需要确认训练前的初始化权重是否一致，需保证加载同一个预训练模型或使用一样的初始化随机种子，[固定随机性](#221-固定随机性)可参考问题复现章节，检查时可以使用[脚本比对工具](#48-脚本比对工具)进行自动比对。
 - **环境版本更新**  
- 这一项仅在条件允许的情况下进行，根据之前的精度问题定位经验，很多问题都是旧版本上的问题，在新的版本上已经解决。因此，在条件允许的情况下，推荐安装最新版本的`CANN`、驱动以及`torch-npu`包。
+ 这一项仅在条件允许的情况下进行，根据之前的精度问题定位经验，很多问题都是旧版本上的问题，在新的版本上已经解决。因此，在条件允许的情况下，推荐安装最新版本的CANN、驱动以及TorchNPU包。
 
 ### 2.2 问题复现前置操作
 
@@ -195,7 +195,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 2. 在`NaN`问题中，若根据以上排查没有找到根因，可补充排查以下几种特殊情况：
 
     - 在`Megatron`、`DeepSpeed`类模型中，`overlap`参数（如`overlap-param-gather`、`overlap-grad-reduce`等）存在较高风险，可先关闭该类参数。
-    - 在`FSDP`框架下使用混合精度出现的`NaN`问题，建议优先排查`torch-npu`框架导致的内存踩踏，可尝试切换torch-npu版本。
+    - 在`FSDP`框架下使用混合精度出现的`NaN`问题，建议优先排查TorchNPU框架导致的内存踩踏，可尝试切换TorchNPU版本。
     - `FA`（`npu_fusion_attention`）融合算子功能复杂，使用时易出现传参规范错误的问题，可先关闭`FA`分支，定界是否为`FA`导致。若定界确实为`FA`分支导致后，请参照[FA官网文档](https://www.hiascend.com/document/detail/zh/Pytorch/60RC3/apiref/apilist/ptaoplist_000762.html)来排查是否存在使用规范错误。
     - 确保打开了`Inf`/`NaN`模式或者非饱和模式，参照[附录-非饱和模式](#53-非饱和模式)。
 
@@ -274,7 +274,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 内存踩踏一般多发在现象为溢出或NaN的精度问题中，其可进一步分为以下两类情况：
 
-- 若开启流同步或加入精度采集工具后，问题能够稳定消失，对于这一类问题，大概率是因为计算流/通信流的踩踏、框架内部内存分配偏移量计算错误、通信未做保护导致读入脏数据等。
+- 若开启流同步或加入精度采集工具后，问题能够稳定消失，对于这一类问题，大概率是因为计算流/通信流的踩踏、框架内部内存分配偏移量计算错误、通信未做保护导致读入无效数据等。
  因此加入同步后算子和算子之间、通信和算子之间被完全隔离开来，不再复现。其中开启流同步命令如下：
 
  ```bash
@@ -288,7 +288,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 1. [精度采集工具](#43-精度采集工具)改`异步dump`，具体操作为在`config.json`文件中加入`async_dump: true`的配置项，同时采集开启流同步无`NaN`+不开流同步有`NaN`的两组训练中最先出现`NaN`的`tensor`数据。对于异步`dump`仍影响问题复现的，使用手动挂`Hook`或者`print`的方式采集数据。
 2. 分析`tensor`差异特征是否满足内存踩踏的规律性，一般内存踩踏时踩踏区域较为规整，如为按整倍踩（如`2048`）、按行踩、按列踩等。
 3. 使用`profiling`结合`insight`工具查看计算并行关系，具体操作参考[profiling使用文档](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/quick_start/msprof_quick_start.md)和[insight使用文档](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)。
-4. 添加`ptr`内存地址打印，针对`NaN`出现的位置侵入式修改`PyTorch`或`torch-npu`源码添加打印。
+4. 添加`ptr`内存地址打印，针对`NaN`出现的位置侵入式修改PyTorch或TorchNPU源码添加打印。
 5. 使用[算子检测工具](https://gitcode.com/Ascend/mssanitizer/blob/master/docs/zh/quick_start/mssanitizer_quick_start.md)排查算子流水内（不同指令间执行）、流水间（算子搬运操作）和核间（`aicube`和`aivector`并行）的实现是否存在异常，来判断该算子是否存在内存踩踏。
 6. 若以上排查仍未能定位根因，可进一步参考更详细的内存问题定位指南。
 
@@ -406,7 +406,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 **数据采集：**
 
-- 对于`vLLM-Ascend`框架的推理数据采集参考[vLLM-Ascend精度数据采集](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/msprobe_guide.html)。
+- 对于`vLLM-Ascend`框架的推理数据采集参考[vLLM-Ascend精度数据采集](https://docs.vllm.ai/projects/ascend/zh-cn/latest/developer_guide/performance_and_debug/msprobe_guide.html)。
 - 对于`SGlang`框架的推理数据采集参考[SGlang精度数据采集](../user_guide/dump/sglang_eager_dump_instruct.md)。
 
 注意在使用[精度采集工具](#43-精度采集工具)时采集配置需指定`level`为`mix`或`L0`，即需至少包含`Module`级别数据，保证后续可做逐层比对。基础配置config.json样例如下：
@@ -1021,7 +1021,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
     分析表格发现gelu算子输入差异较小，输出差异较大。  
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/0c44ccee-3715-4dfc-b3c0-660e1d85db73/image.png 'image.png')
 
-**解决方案**：将gelu算子计算转CPU，精度问题解决，明确该问题为gelu算子导致，但转CPU会影响性能，后续联系算子支撑人员提供了torch-npu的gelu修复包。
+**解决方案**：将gelu算子计算转CPU，精度问题解决，明确该问题为gelu算子导致，但转CPU会影响性能，后续联系算子支撑人员提供了TorchNPU的gelu修复包。
 
 **结果**：用修复包后不转CPU也精度达标。
 
@@ -1114,7 +1114,7 @@ GPU上运行结果：
     发现刚好踩了size=2048（0-2047基本不等，2048-3071相等），满足内存踩踏特征。  
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/d70832b1-c199-4ca8-9233-48ab0da20540/image.png 'image.png')
 8. 算子内存地址打印：
-    尝试通过修改torch_npu源码对算子的输入和输出tensor对应的ptr地址和shape进行打印。  
+    尝试通过修改TorchNPU源码对算子的输入和输出tensor对应的ptr地址和shape进行打印。  
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/62c1f075-9756-4022-a450-c275882e551a/image.png 'image.png')  
     从日志发现两个连续layernorm中，存在cast算子输出对concat算子输入的踩踏（两者地址一致）  
     踩踏现场确认如下：  
@@ -1593,7 +1593,7 @@ for name, module in model.named_modules():
 
 - 算子数值计算错误：因为计算逻辑等方面存在bug，从而导致算子数值计算错误。
 - 算子内存踩踏：这种情况下指因为算子计算的内存问题导致的精度错误。例如分核计算和分ub计算，出现非整块，计算复杂，数据类型变化时，容易出现此类问题。框架分配内存也有概率出现问题，例如分配地址不对齐等。算子越位读取也是较为常见的情况。
-- 算子内部计算未同步：这会导致计算数据读取到脏数据，多见于融合算子。
+- 算子内部计算未同步：这会导致计算数据读取到无效数据，多见于融合算子。
 - 算子实现和GPU存在差异：因为有些算子在不同的PyTorch版本下，适配层实现有差异。
 - 算子缓存读取逻辑异常：某些算子为了性能加速会使用缓存逻辑，而在特定场景下缓存读取可能存在bug。
 - 算子确定性：确定性计算是NPU的一套机制，用于保证算子的计算确定性。之所以要有这个机制，是为了在debug过程中，让所有的算子计算结果前后完全一致可复现。

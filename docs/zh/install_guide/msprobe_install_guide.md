@@ -200,9 +200,9 @@ python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-c
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
   cd msprobe
-
+  
   pip install uv
-
+  
   python3 build.py -e include-mod=nan_check -e no-check=true
   cd ./artifacts
   pip install ./mindstudio_probe*.whl
@@ -215,9 +215,9 @@ python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-c
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git
   cd msprobe
-
+  
   pip install uv
-
+  
   python3 build.py -e include-mod=xor_checksum
   cd ./artifacts
   pip install ./mindstudio_probe*.whl
@@ -261,7 +261,7 @@ Successfully uninstalled mindstudio-probe-{version}
 
 msProbe工具不支持直接升级，需要先完成[卸载](#4-卸载)后再重新[安装](#2-安装方式)。
 
-可通过`pip show mindstudio-probe`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.0.0/release_notes.md)》。
+可通过`pip show mindstudio-probe`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.1.0/release_notes.md)》。
 
 ## 6. 附录
 
@@ -293,7 +293,7 @@ Home-page: https://gitcode.com/Ascend/MindStudio-Probe
 Author: 
 Author-email: Ascend Team <pmail_mindstudio@xx.com>
 License-Expression: MulanPSL-2.0
-Location: /home/xxx/miniconda3/envs/xxx/lib/python3.x/site-packages/
+Location: /xxx/xxx/miniconda3/envs/xxx/lib/python3.x/site-packages/
 Requires: einops, matplotlib, numpy, openpyxl, pandas, psutil, pytz, pyyaml, rich, skl2onnx, tensorboard, tqdm, wheel
 Required-by: 
 ```

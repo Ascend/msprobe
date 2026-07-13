@@ -88,7 +88,7 @@ python train.py \
  def wrap_generate_sequences(rolloutskip: RolloutSkip, rollout_wg):
      generate_sequences = rollout_wg.generate_sequences
  
-     def warp_fn(batch, **kwargs):
+     def wrap_fn(batch, **kwargs):
          gen_batch_output = rolloutskip.try_load()
  
          if gen_batch_output is None:
@@ -98,7 +98,7 @@ python train.py \
              rolloutskip.dump(gen_batch_output)
 +        rolloutskip._add_index()
          return gen_batch_output
-     return warp_fn
+     return wrap_fn
 ```
 
 ### 落盘文件

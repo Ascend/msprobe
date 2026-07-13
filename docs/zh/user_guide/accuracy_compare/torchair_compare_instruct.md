@@ -26,21 +26,21 @@ dump数据采集方式、接口参数、示例以及结果目录结构参见《[
 执行 `msprobe compare --target_path <GE_dump_data_path> --golden_path <FX_dump_data_path> [--output_path <output_path>] --mode torchair`，在指定的 `output_path` 路径下输出比对结果csv文件，若不使用 `--output_path` 参数，则默认保存在当前目录下。
 
 ```sh
-# 使用Ascend for PyTorch 7.1.0及以上版本
+# 使用TorchNPU 7.1.0及以上版本
 msprobe compare --target_path ${dump_path}/msprobe_ge_dump --golden_path ${dump_path}/msprobe_fx_dump --mode torchair
 ```
 
 ```sh
-# 使用Ascend for PyTorch 7.1.0版本
+# 使用TorchNPU 7.1.0版本
 msprobe compare --target_path ${dump_path}/msprobe_ge_dump --golden_path ${dump_path}/msprobe_fx_dump/data_dump --mode torchair
 ```
 
 ```sh
-# 使用Ascend for PyTorch 7.1.0以下版本
+# 使用TorchNPU 7.1.0以下版本
 msprobe compare --target_path ${dump_path}/msprobe_ge_dump --golden_path data_dump --mode torchair
 ```
 
-**注意**：使用Ascend for PyTorch 7.1.0以下版本时，FX模式dump结果文件中的token id目录的目录名比实际token id大1，因此在比对时会将token id目录名减1，作为真实token id。
+**注意**：使用TorchNPU 7.1.0以下版本时，FX模式dump结果文件中的token id目录的目录名比实际token id大1，因此在比对时会将token id目录名减1，作为真实token id。
 
 ## GE融合模式（默认）dump数据与GE关闭融合模式dump数据精度比对
 
@@ -121,12 +121,12 @@ python3 convert.py msprobe_ge_dump
 ```
 
 ```bash
-# 使用Ascend for PyTorch 7.1.0及以上版本时，将msprobe_fx_dump下的FX dump数据转化为info
+# 使用TorchNPU 7.1.0及以上版本时，将msprobe_fx_dump下的FX dump数据转化为info
 python3 convert.py msprobe_fx_dump
 ```
 
 ```bash
-# 使用Ascend for PyTorch 7.1.0以下版本时，将data_dump下的FX dump数据转化为info
+# 使用TorchNPU 7.1.0以下版本时，将data_dump下的FX dump数据转化为info
 python3 convert.py data_dump
 ```
 
