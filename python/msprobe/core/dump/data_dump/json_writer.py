@@ -313,7 +313,7 @@ class DataWriter:
             self.cache_debug['data'].update(new_data)
 
     def write_data_json(self, file_path):
-        logger.info(f"dump.json is at {os.path.dirname(os.path.dirname(file_path))}. ")
+        logger.info_on_rank_0(f"dump.json is at {os.path.dirname(os.path.dirname(file_path))}. ")
         save_json(file_path, self.cache_data, indent=1)
 
     def write_stack_info_json(self, file_path):
@@ -405,11 +405,15 @@ class DataWriter:
                 return
 
             if self.cache_data:
+                data_count = len(self.cache_data.get(Const.DATA, {}))
+                logger.debug(f"write_json: dump.json written with {data_count} entries")
                 self.write_data_json(self.dump_file_path)
             if self._is_extra_info_enabled() and self.cache_stack:
                 self.write_stack_info_json(self.stack_file_path)
             if self._is_extra_info_enabled() and self.cache_construct:
                 self.write_construct_info_json(self.construct_file_path)
             if self.cache_debug:
+                debug_count = len(self.cache_debug.get(Const.DATA, {}))
+                logger.debug(f"write_json: debug.json written with {debug_count} entries")
                 self.write_debug_info_json(self.debug_file_path)
             self.data_updated = False

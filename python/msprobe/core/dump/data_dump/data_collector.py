@@ -90,6 +90,7 @@ class DataCollector:
             return True
         if self.config.framework == Const.PT_FRAMEWORK:
             from msprobe.pytorch.dump.api_dump.api_risk_level import get_api_risk_level
+
             api_name = self._api_name_pattern.sub('', name).split(Const.SEP, 1)
             prefix = api_name[0]
             if prefix in Const.MODULE_PREFIX:
@@ -136,6 +137,7 @@ class DataCollector:
             if not self.should_collect(name, pid):
                 return
 
+            logger.debug(f"forward_input_data_collect for {name}")
             data_info = {}
             if self.config.task != Const.STRUCTURE:
                 data_info = self.data_processor.analyze_forward_input(name, module, module_input_output)
@@ -145,12 +147,11 @@ class DataCollector:
             self.handle_data(name, data_info, flush=self.data_processor.is_terminated)
 
         except Exception as e:
-            # 取异常类名作为“类型”做去重
             error_type = type(e).__name__
             tb = traceback.format_exc()
+            logger.debug(f"forward_input_data_collect failed for {name}: {e}")
             self.data_writer.write_error_log(
-                f"[ERROR] forward_input_data_collect failed: name={name}, pid={pid}\n{tb}",
-                error_type=error_type
+                f"[ERROR] forward_input_data_collect failed: name={name}, pid={pid}\n{tb}", error_type=error_type
             )
 
     def forward_output_data_collect(self, name, module, pid, module_input_output):
@@ -158,6 +159,7 @@ class DataCollector:
         if not self.should_collect(name, pid):
             return
 
+        logger.debug(f"forward_output_data_collect for {name}")
         data_info = {}
         if self.config.task != Const.STRUCTURE:
             data_info = self.data_processor.analyze_forward_output(name, module, module_input_output)
@@ -189,6 +191,7 @@ class DataCollector:
         self.update_construct(name)
         if not self.should_collect(name, pid):
             return
+        logger.debug(f"backward_data_collect for {name}")
         data_info = {}
         if self.config.task != Const.STRUCTURE:
             data_info = self.data_processor.analyze_backward(name, module, module_input_output)
@@ -224,13 +227,16 @@ class DataCollector:
             if self.optimizer_status in [Const.OPTIMIZER, Const.CLIP_GRAD]:
                 if self.optimizer_status_first_start[self.optimizer_status]:
                     self.data_writer.update_construct(
-                        {self.optimizer_status: None if not is_megatron() else [None, get_micro_step()]})
+                        {self.optimizer_status: None if not is_megatron() else [None, get_micro_step()]}
+                    )
                     self.optimizer_status_first_start[self.optimizer_status] = False
                 self.data_writer.update_construct(
-                    {name: self.optimizer_status if not is_megatron() else [self.optimizer_status, get_micro_step()]})
+                    {name: self.optimizer_status if not is_megatron() else [self.optimizer_status, get_micro_step()]}
+                )
             else:
-                if self.config.level == Const.LEVEL_MIX and \
-                        not (name.startswith(Const.MODULE) or name.startswith(Const.CELL)):
+                if self.config.level == Const.LEVEL_MIX and not (
+                    name.startswith(Const.MODULE) or name.startswith(Const.CELL)
+                ):
                     self.data_writer.update_construct(
                         {name: self.module_processor.api_parent_node.get(threading.get_ident())}
                     )
@@ -242,6 +248,7 @@ class DataCollector:
 
     def handle_data(self, name, data_info, flush=False):
         if data_info:
+            logger.debug(f"handle_data: saving data for {name} to cache")
             self.update_data(name, data_info)
         if self.config.async_dump:
             return
@@ -288,5 +295,6 @@ class DataCollector:
         self.data_writer.update_debug({grad_name_with_count_category: all_none_data_info})
 
         # register tensor backward hook
-        self.data_processor.analyze_debug_backward(variable, grad_name_with_count_category,
-                                                   self.data_writer.cache_debug['data'])
+        self.data_processor.analyze_debug_backward(
+            variable, grad_name_with_count_category, self.data_writer.cache_debug['data']
+        )

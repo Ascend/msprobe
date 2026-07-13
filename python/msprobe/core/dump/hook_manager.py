@@ -212,6 +212,8 @@ class BaseHookManager(ABC):
             if not self._should_execute_hook(hook_type, tid):
                 return None
             with ThreadSafe():
+                if self.logger:
+                    self.logger.debug(f"forward_pre_hook executed for {api_name}, type={hook_type}")
                 self._on_forward_pre_hook()
                 self._maybe_update_dump_dir()
                 original_state = self.ensure_gc_enabled()
@@ -248,6 +250,8 @@ class BaseHookManager(ABC):
                 return None
 
             with ThreadSafe():
+                if self.logger:
+                    self.logger.debug(f"forward_hook executed for {api_name}, type={hook_type}")
                 self._maybe_update_dump_dir()
                 original_state = self.ensure_gc_enabled()
                 if hook_type == Const.API:
@@ -297,6 +301,8 @@ class BaseHookManager(ABC):
                 return
 
             with ThreadSafe():
+                if self.logger:
+                    self.logger.debug(f"backward_hook executed for {full_name}, type={hook_type}")
                 self._maybe_update_dump_dir()
                 original_state = self.ensure_gc_enabled()
                 BaseHookManager.inner_switch[tid] = True

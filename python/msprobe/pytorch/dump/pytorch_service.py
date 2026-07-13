@@ -23,7 +23,7 @@ from msprobe.pytorch.dump.api_dump.api_register import (
     get_api_register,
     ApiTemplate,
     redirect_wait,
-    reset_dist_collect_func
+    reset_dist_collect_func,
 )
 from msprobe.pytorch.dump.api_dump.hook_module import HOOKModule
 from msprobe.pytorch.dump.api_dump.pt_hook_manager import PytorchHookManager
@@ -54,12 +54,13 @@ class PytorchService(BaseService):
     def _init_specific_components(self):
         self.logger = logger
         self.api_register = get_api_register()
+        self.module_processor = None
         self._refresh_module_processor()
         self.hook_manager = PytorchHookManager(self.data_collector, self.config)
         self.api_template = ApiTemplate
 
     def _refresh_module_processor(self):
-        self.module_processor = ModuleProcessor(self.data_collector.scope)
+        self.module_processor = ModuleProcessor(self.data_collector.scope)  # pylint: disable=attribute-defined-outside-init
 
     def _register_hook(self):
         if self._is_mix_level:
@@ -95,7 +96,7 @@ class PytorchService(BaseService):
     def _register_module_hook(self):
         ModuleProcessor.enable_module_dump = True
         self.module_processor.register_module_hook(self.model, self.build_hook)
-        self.logger.info(f"The module {self.config.task} hook function is successfully mounted to the model.")
+        self.logger.info_on_rank_0(f"The module {self.config.task} hook function is successfully mounted to the model.")
 
     def _reset_status(self):
         super()._reset_status()

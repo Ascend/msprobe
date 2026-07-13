@@ -136,7 +136,7 @@ class TestBaseService(unittest.TestCase):
         mock_register_hook.assert_called_once()
         mock_register_module_hook.assert_called_once()
 
-        self.service.logger.info.assert_called_with(f"Dump data will be saved in {self.service.dump_iter_dir}.")
+        self.service.logger.info_on_rank_0.assert_called_with(f"Dump data will be saved in {self.service.dump_iter_dir}.")
         self.assertTrue(Runtime.is_running)
         self.assertTrue(self.service.primitive_switch)
         self.assertFalse(self.service.first_start)
@@ -186,7 +186,7 @@ class TestBaseService(unittest.TestCase):
         self.assertFalse(Runtime.is_running)
         self.assertFalse(self.service.primitive_switch)
 
-        self.service.logger.info.assert_called_with(
+        self.service.logger.info_on_rank_0.assert_called_with(
             f"{Const.TOOL_NAME}: debugger.stop() is set successfully. "
             "Please set debugger.start() to turn on the dump switch again. "
         )
@@ -329,7 +329,7 @@ class TestBaseService(unittest.TestCase):
         self.service._register_api_hook()
         self.service.api_register.initialize_hook.assert_called()
         self.service.api_register.register_all_api.assert_called()
-        self.service.logger.info.assert_called_with(
+        self.service.logger.info_on_rank_0.assert_called_with(
             f"The api {self.config.task} hook function is successfully mounted to the model."
         )
     

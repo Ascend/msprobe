@@ -37,6 +37,13 @@ class CommonConfig:
         self.risk_level = json_config.get("risk_level", Const.RISK_LEVEL_FOCUS)
         self.custom_op_namespaces = json_config.get("custom_op_namespaces")
         self._check_config()
+        logger.debug(
+            f"CommonConfig: task={self.task}, dump_path={self.dump_path}, "
+            f"rank={self.rank}, step={self.step}, level={self.level}, "
+            f"dump_enable={self.dump_enable}, extra_info={self.extra_info}, "
+            f"async_dump={self.async_dump}, precision={self.precision}, "
+            f"risk_level={self.risk_level}, custom_op_namespaces={self.custom_op_namespaces}"
+        )
 
     def _check_config(self):
         if self.task and self.task not in Const.TASK_LIST:
@@ -100,6 +107,11 @@ class BaseConfig:
         self.summary_mode = json_config.get("summary_mode")
         self.diff_nums = json_config.get("diff_nums")
         self.is_regex_valid = True
+        logger.debug(
+            f"BaseConfig: scope={self.scope}, list={self.list}, "
+            f"data_mode={self.data_mode}, summary_mode={self.summary_mode}, "
+            f"diff_nums={self.diff_nums}"
+        )
 
     @staticmethod
     def _check_str_list_config(config_item, config_name):

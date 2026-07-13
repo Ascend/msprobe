@@ -181,7 +181,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
             return False
 
         self._apply_reloaded_config(common_config, task_config, new_config, pending_signature)
-        logger.info("PrecisionDebugger detected config change and reloaded runtime settings.")
+        logger.info_on_rank_0("PrecisionDebugger detected config change and reloaded runtime settings.")
         return True
 
     # pylint: disable=attribute-defined-outside-init
@@ -251,7 +251,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
                 logger.debug(f"Failed to scan custom ops namespace {ns_name}: {ex}")
 
         if registered_count > 0:
-            logger.info(f"Auto registered {registered_count} custom ops for dump.")
+            logger.info_on_rank_0(f"Auto registered {registered_count} custom ops for dump.")
 
     def _register_single_op(self, ns_name, op_name, ns_module):
         op_key = (ns_name, op_name)
@@ -319,7 +319,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
                     raise AttributeError(f"{module_path} does not have attribute {api_name}")
                 self.__class__.register_custom_api(module_obj, api_name, api_prefix)
                 self._custom_api_auto_registered.add(key)
-                logger.info(f"Auto-registered custom api from yaml: {module_path}.{api_name}")
+                logger.info_on_rank_0(f"Auto-registered custom api from yaml: {module_path}.{api_name}")
             except Exception as ex:
                 pending.append(item)
                 logger.warning(f"Auto-register custom api from yaml skipped: {item}, reason: {ex}")
@@ -348,7 +348,9 @@ class PrecisionDebugger(BasePrecisionDebugger):
             logger.warning(f"Failed to load custom api yaml: {yaml_path}, reason: {ex}")
             return []
         if not content:
-            logger.info(f"Custom api yaml is empty: {yaml_path}, yaml-based custom op registration is disabled.")
+            logger.info_on_rank_0(
+                f"Custom api yaml is empty: {yaml_path}, yaml-based custom op registration is disabled."
+            )
             return []
         if not isinstance(content, dict):
             logger.warning(f"Invalid custom api yaml format: {yaml_path}, expected dict")

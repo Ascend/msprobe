@@ -95,8 +95,8 @@ class BaseService(ABC):
     def _need_tensor_data(self):
         """Whether tensor data collection is required."""
         return bool(
-            self.config.task in self.data_collector.tasks_need_tensor_data or
-            (self.config.task == Const.STATISTICS and self.config.tensor_list)
+            self.config.task in self.data_collector.tasks_need_tensor_data
+            or (self.config.task == Const.STATISTICS and self.config.tensor_list)
         )
 
     @property
@@ -155,14 +155,14 @@ class BaseService(ABC):
         elif self._is_no_dump_rank:
             Runtime.is_running = False
             return
-        self.logger.info(f"{Const.TOOL_NAME}: debugger.start() is set successfully")
+        self.logger.info_on_rank_0(f"{Const.TOOL_NAME}: debugger.start() is set successfully")
         if token_range is None:
             self.primitive_switch = True
             self._change_jit_switch(True)
-            self.logger.info(f"Dump switch is turned on at step {self.current_iter}. ")
+            self.logger.info_on_rank_0(f"Dump switch is turned on at step {self.current_iter}. ")
 
         self.create_dirs()
-        self.logger.info(f"Dump data will be saved in {self.dump_iter_dir}.")
+        self.logger.info_on_rank_0(f"Dump data will be saved in {self.dump_iter_dir}.")
 
     def stop(self):
         """Common stop flow."""
@@ -173,8 +173,10 @@ class BaseService(ABC):
             return
         if self._is_no_dump_step or self._is_no_dump_rank:
             return
-        self.logger.info(f"{Const.TOOL_NAME}: debugger.stop() is set successfully. "
-                         "Please set debugger.start() to turn on the dump switch again. ")
+        self.logger.info_on_rank_0(
+            f"{Const.TOOL_NAME}: debugger.stop() is set successfully. "
+            "Please set debugger.start() to turn on the dump switch again. "
+        )
         Runtime.is_running = False
         self.primitive_switch = False
         self._change_jit_switch(False)
@@ -234,8 +236,9 @@ class BaseService(ABC):
 
     def register_custom_api(self, module, api_name, api_prefix):
         self.ori_customer_func[str(module) + Const.SEP + api_name] = getattr(module, api_name)
-        ApiRegistry.register_custom_api(module, api_name, api_prefix,
-                                        functools.partial(self.build_hook, Const.API), self.api_template)
+        ApiRegistry.register_custom_api(
+            module, api_name, api_prefix, functools.partial(self.build_hook, Const.API), self.api_template
+        )
 
     def restore_custom_api(self, module, api):
         ori_func = self.ori_customer_func.get(str(module) + Const.SEP + api)
@@ -285,8 +288,12 @@ class BaseService(ABC):
     def _need_stop_service(self):
         if self.should_stop_service:
             return True
-        end_service = self.config.step and self.current_iter > max(self.config.step) or \
-            self.data_collector and self.data_collector.data_processor.is_terminated
+        end_service = (
+            self.config.step
+            and self.current_iter > max(self.config.step)
+            or self.data_collector
+            and self.data_collector.data_processor.is_terminated
+        )
         if end_service:
             self.primitive_switch = False
             self._change_jit_switch(False)
@@ -302,7 +309,9 @@ class BaseService(ABC):
         if self._is_need_api_hook:
             self.api_register.initialize_hook(functools.partial(self.build_hook, Const.API))
             self.api_register.register_all_api()
-            self.logger.info(f"The api {self.config.task} hook function is successfully mounted to the model.")
+            self.logger.info_on_rank_0(
+                f"The api {self.config.task} hook function is successfully mounted to the model."
+            )
 
     def _register_infer_count_hook(self, root_model, token_range):
         """
@@ -323,21 +332,24 @@ class BaseService(ABC):
                 Runtime.is_running = True
                 self.primitive_switch = True
                 self._change_jit_switch(True)
-                self.logger.info(f"Current token id: {self.cur_token_id}, start dump infer token.")
+                self.logger.info_on_rank_0(f"Current token id: {self.cur_token_id}, start dump infer token.")
             elif token_range[0] < self.cur_token_id <= token_range[1]:
                 self.logger.debug(f"Current token id: {self.cur_token_id}.")
             elif self.cur_token_id == token_range[1] + 1:
                 Runtime.is_running = False
                 self.primitive_switch = False
                 self._change_jit_switch(False)
-                self.logger.info(
-                    f"Current token id: {self.cur_token_id}, exceed token_range, early stop dump infer token.")
+                self.logger.info_on_rank_0(
+                    f"Current token id: {self.cur_token_id}, exceed token_range, early stop dump infer token."
+                )
             self.cur_token_id += 1
 
         # root_model is guaranteed to be Module/Cell or [Module/Cell]
         if root_model and isinstance(root_model, list):
             root_model = root_model[0]
-            self.logger.warning("Infer model can only input one to support token_range, choose the first one.")
+            self.logger.warning_on_rank_0(
+                "Infer model can only input one to support token_range, choose the first one."
+            )
 
         root_model.register_forward_pre_hook(infer_hook)
 
@@ -424,4 +436,3 @@ class BaseService(ABC):
         self.hook_manager.reset_status()
         if self._is_l2_level:
             self.data_collector.data_processor.reset_status()
-

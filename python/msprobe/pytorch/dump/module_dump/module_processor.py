@@ -30,21 +30,29 @@ from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.common.utils import is_torch_nn_module, register_forward_pre_hook
 from msprobe.pytorch.dump.module_dump.hook_wrapper import (
     wrap_setup_input_output_hook,
-    wrap_backward_hook_function_apply
+    wrap_backward_hook_function_apply,
 )
 
 
 torch_version_above_or_equal_2 = torch.__version__.split('+')[0] >= '2.0'
 torch_version_above_or_equal_21 = torch.__version__.split('+')[0] >= '2.1'
 if torch_version_above_or_equal_21:
-    from torch.utils.checkpoint import _StopRecomputationError
+    from torch.utils.checkpoint import (  # pylint: disable=ungrouped-imports
+        _StopRecomputationError,
+    )
+else:
+    _StopRecomputationError = type('_StopRecomputationError', (Exception,), {})
 
 
 def wrap_megatron_deallocate(func):
     def wrapper_func(out, deallocate_pipeline_outputs=False):
         if deallocate_pipeline_outputs and isinstance(out, torch.Tensor) and getattr(out, "_base") is not None:
             out_clone = out.clone()
-            out.data = torch.empty((1,), device=out.device, dtype=out.dtype, )
+            out.data = torch.empty(
+                (1,),
+                device=out.device,
+                dtype=out.dtype,
+            )
             return func(out_clone, deallocate_pipeline_outputs)
         return func(out, deallocate_pipeline_outputs)
 
@@ -92,6 +100,7 @@ class ModuleProcessor:
         wrap_backward_hook_function_apply()
         try:
             from megatron.core.pipeline_parallel import schedules
+
             origin_func_id = id(schedules.deallocate_output_tensor)
             schedules.deallocate_output_tensor = wrap_megatron_deallocate(schedules.deallocate_output_tensor)
             schedules.forward_step = wrap_megatron_step(schedules.forward_step)
@@ -128,9 +137,11 @@ class ModuleProcessor:
 
     @staticmethod
     def has_register_backward_hook(module):
-        return hasattr(module, '_backward_hooks') and \
-            len(module._backward_hooks) > 0 and \
-            module._is_full_backward_hook is False
+        return (
+            hasattr(module, '_backward_hooks')
+            and len(module._backward_hooks) > 0
+            and module._is_full_backward_hook is False
+        )
 
     @staticmethod
     def get_modules_and_names(models, recursive, module_names):
@@ -139,13 +150,13 @@ class ModuleProcessor:
             if not recursive and len(module_names) != len(models):
                 return modules_and_names_with_index
             for index, model in enumerate(models):
-                modules_and_names_with_index[str(index)] = model.named_modules() if recursive else \
-                    [(module_names[index], model)]
+                modules_and_names_with_index[str(index)] = (
+                    model.named_modules() if recursive else [(module_names[index], model)]
+                )
         else:
             if not recursive and len(module_names) != 1:
                 return modules_and_names_with_index
-            modules_and_names_with_index["-1"] = models.named_modules() if recursive else \
-                [(module_names[0], models)]
+            modules_and_names_with_index["-1"] = models.named_modules() if recursive else [(module_names[0], models)]
         return modules_and_names_with_index
 
     @staticmethod
@@ -154,8 +165,8 @@ class ModuleProcessor:
             for model in models:
                 if "megatron" in type(model).__module__:
                     return True
-        else:
-            return "megatron" in type(models).__module__
+            return False
+        return "megatron" in type(models).__module__
 
     @classmethod
     def reset_module_stats(cls):
@@ -175,11 +186,11 @@ class ModuleProcessor:
         modules_and_names_with_index = self.get_modules_and_names(models, recursive, module_names)
         for index, modules_and_names in modules_and_names_with_index.items():
             model = models if index == "-1" else models[int(index)]
-            
+
             model_list = []
             for name, module in modules_and_names:
                 model_list.append((name, module))
-            
+
             is_verl = "verl" in sys.modules
             for idx, (name, module) in enumerate(model_list):
                 if recursive and module == model:
@@ -192,17 +203,21 @@ class ModuleProcessor:
                     continue
                 if module.__class__.__name__ == "FullyShardedDataParallel":
                     continue
-                
+
                 # verl 场景下跳过第一层和最后一层
-                if is_verl and (idx == 1 or idx == len(model_list) - 1):
-                    logger.warning(f"The module {name} is the first or last layer in verl scenario, "
-                                   f"the data dump for this module will be skipped.")
+                if is_verl and idx in (1, len(model_list) - 1):
+                    logger.warning(
+                        f"The module {name} is the first or last layer in verl scenario, "
+                        f"the data dump for this module will be skipped."
+                    )
                     continue
-                
+
                 setattr(module, 'msprobe_hook', True)
                 module_index = (index + Const.SEP) if index != "-1" else ""
-                prefix_name = f'{BaseScope.Module_Type_Module}{Const.SEP}{module_index}{name}{Const.SEP}' + \
-                              f'{module.__class__.__name__}{Const.SEP}'
+                prefix_name = (
+                    f'{BaseScope.Module_Type_Module}{Const.SEP}{module_index}{name}{Const.SEP}'
+                    + f'{module.__class__.__name__}{Const.SEP}'
+                )
 
                 forward_pre_hook = self.build_module_hook(prefix_name, build_hook)
 
@@ -231,6 +246,7 @@ class ModuleProcessor:
             full_forward_name = f'{module_name}{Const.FORWARD}{Const.SEP}{index}'
             full_backward_name = f'{module_name}{Const.BACKWARD}{Const.SEP}{index}'
 
+            logger.debug(f"module forward_pre_hook executed for {module_name}")
             self.set_construct_info_in_pre_hook(full_forward_name)
 
             if not hasattr(module, 'msprobe_forward_hook'):
@@ -256,6 +272,7 @@ class ModuleProcessor:
             def get_backward_hook(backward_data_hook, full_backward_name):
                 @ThreadSafe.synchronized
                 def backward_hook_fn(module, grad_input, grad_output):
+                    logger.debug(f"module backward_hook executed for {full_backward_name}")
                     new_output = backward_data_hook(module, grad_input, grad_output)
                     self.set_construct_info_in_hook(full_backward_name, is_forward=False)
                     return new_output
@@ -281,6 +298,7 @@ class ModuleProcessor:
             index = ModuleProcessor.module_count.get(module_name)
             full_name = f'{module_name}{Const.FORWARD}{Const.SEP}{index}'
 
+            logger.debug(f"module forward_hook executed for {module_name}")
             hook_set = build_data_hook(BaseScope.Module_Type_Module, full_name)
             hook_result = hook_set.forward_hook(module, args, kwargs_or_output, output_or_kwargs)
             self.set_construct_info_in_hook(full_name)
@@ -304,12 +322,14 @@ class ModuleProcessor:
             ModuleProcessor.module_stack[tid] = []
 
         if self.module_stack[tid]:
-            ModuleProcessor.module_node[full_name] = self.module_stack[tid][-1] if not is_megatron() \
-                else [self.module_stack[tid][-1], get_micro_step()]
+            ModuleProcessor.module_node[full_name] = (
+                self.module_stack[tid][-1] if not is_megatron() else [self.module_stack[tid][-1], get_micro_step()]
+            )
         else:
             parent_name = ModuleProcessor.module_queue.find_last(full_name)
-            ModuleProcessor.module_node[full_name] = parent_name if not is_megatron() \
-                else [parent_name, get_micro_step()]
+            ModuleProcessor.module_node[full_name] = (
+                parent_name if not is_megatron() else [parent_name, get_micro_step()]
+            )
 
         ModuleProcessor.module_queue.add_name(full_name)
         ModuleProcessor.module_stack[tid].append(full_name)
@@ -325,8 +345,11 @@ class ModuleProcessor:
             if self.module_stack.get(tid):
                 ModuleProcessor.module_stack[tid].pop()
             if self.module_stack.get(tid):
-                ModuleProcessor.api_parent_node[tid] = ModuleProcessor.module_stack[tid][-1] if not is_megatron() \
+                ModuleProcessor.api_parent_node[tid] = (
+                    ModuleProcessor.module_stack[tid][-1]
+                    if not is_megatron()
                     else [ModuleProcessor.module_stack[tid][-1], get_micro_step()]
+                )
             if self.scope:
                 self.scope.end_module(full_name)
         else:
