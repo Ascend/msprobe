@@ -51,9 +51,9 @@
 
 如上所示的结果文件中主要关注以下几项:
 
- - [x] [NPUDump]：这个对应om模型中的算子，由于融合规则，可能会对应多个GPU/CPU算子。
+ - [x] [NPUDump]：这个对应OM模型中的算子，由于融合规则，可能会对应多个GPU/CPU算子。
  - [x] [DataType]：一共有两个，一个是NPU侧的数据类型，一个是CPU/GPU侧的数据类型，二者有所不同，可能会有精度损失问题。
- - [x] [GroundTruth]：om算子所对应的ONNX模型算子。
+ - [x] [GroundTruth]：OM算子所对应的ONNX模型算子。
  - [x] [Overflow]：数据是否出现上溢出或下溢出。
  - [x] [CompareFailReason]：比对失败原因，误差可能会因为除零非法或者不对应等原因造成无法计算，变为NaN值，会列出详细原因。
  - [x] [IsNpuOps]：用于过滤是否为npu独有节点。

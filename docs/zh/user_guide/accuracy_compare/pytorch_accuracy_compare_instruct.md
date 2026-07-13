@@ -77,10 +77,10 @@ msprobe compare -tp <target_path> -gp <golden_path> [options]
 
 支持单卡和多卡，可同时比对多卡的 dump 数据。多机场景需要每个设备单独执行比对操作。
 
-   > [!NOTE] 脏数据清理说明
+   > [!NOTE] 无效数据清理说明
    >
-   > - 为适配部分 API 在真实场景中的变长输出（例如尾部 padding 区域携带无效值），比对在指标计算前支持按规则对两侧输出做脏数据清理。
-   > - 支持通过 [api_output_postprocess.yaml](../../../../python/msprobe/core/common/output_postprocess/api_output_postprocess.yaml) 配置 `compare_handlers`，对指定 API 的脏数据清理后再进行比对。
+   > - 为适配部分 API 在真实场景中的变长输出（例如尾部 padding 区域携带无效值），比对在指标计算前支持按规则对两侧输出做无效数据清理。
+   > - 支持通过 [api_output_postprocess.yaml](../../../../python/msprobe/core/common/output_postprocess/api_output_postprocess.yaml) 配置 `compare_handlers`，对指定 API 的无效数据清理后再进行比对。
    > - 当前默认已预置 handler 的 API 包括 `npu_dequant_swiglu_quant` 和 `npu_grouped_matmul`。
    > - 处理函数脚本需放在 [output_postprocess](../../../../python/msprobe/core/common/output_postprocess/) 目录路径下，支持相对路径或绝对路径配置。
    > - 该能力仅在真实数据模式生效；统计数据模式和 MD5 模式下不生效。
