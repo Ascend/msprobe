@@ -83,15 +83,11 @@ def _in_fake_mode(inputs):
 def _is_collectable_tensor(tensor):
     if not isinstance(tensor, torch.Tensor):
         return False
-    if _in_fake_mode((tensor,)):
-        return False
     if getattr(tensor, "is_meta", False):
         return False
     try:
-        device = tensor.device
+        _ = tensor.device
     except Exception:
-        return False
-    if getattr(device, "type", None) == "cpu":
         return False
     return True
 

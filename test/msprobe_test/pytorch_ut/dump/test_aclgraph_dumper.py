@@ -20,7 +20,7 @@ import os
 import sys
 import types
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import torch
 
@@ -49,7 +49,7 @@ def _build_aclgraph_dumper_import_env():
             "torch_npu": fake_torch_npu,
         },
     )
-    pytorch_attr_patcher = patch.object(msprobe, "pytorch", fake_pytorch_pkg)
+    pytorch_attr_patcher = patch.object(msprobe, "pytorch", fake_pytorch_pkg, create=True)
     return modules_patcher, pytorch_attr_patcher, pytorch_pkg_dir, fake_aclgraph_dump, fake_torch_npu
 
 
@@ -177,9 +177,10 @@ class TestAclGraphDumper(unittest.TestCase):
 
     def test_is_collectable_tensor_if_tensor_variants_then_pass(self):
         self.assertFalse(self.module._is_collectable_tensor(torch.empty(2, device="meta")))
-        with patch.object(self.module, "_in_fake_mode", return_value=True):
+        with patch.object(torch.Tensor, "device", new_callable=PropertyMock) as mock_device:
+            mock_device.side_effect = RuntimeError("device access failed")
             self.assertFalse(self.module._is_collectable_tensor(torch.randn(2, 3)))
-        self.assertFalse(self.module._is_collectable_tensor(torch.ones(2, 3, device="cpu")))
+        self.assertTrue(self.module._is_collectable_tensor(torch.ones(2, 3, device="cpu")))
         self.assertFalse(self.module._is_collectable_tensor("not_a_tensor"))
 
     def test_load_msprobe_config_if_config_and_validations_then_pass(self):
