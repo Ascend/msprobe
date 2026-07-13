@@ -652,6 +652,10 @@ class TPMerger(BaseGraphMerger):
             main_param = param_list[0]
 
             for stat, ops in TPMerger.OPERATION_TABLE.items():
+                # 检查所有参数在当前统计量上是否有有效的数值，若存在None等非数值则跳过该统计量的合并
+                if any(not isinstance(p.get(stat), (int, float)) for p in param_list):
+                    continue
+
                 current_value = ops["initial"](main_param)
                 value_list = [current_value if stat != Const.NORM else main_param.get(Const.NORM)]
 
