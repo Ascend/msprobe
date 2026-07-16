@@ -138,6 +138,8 @@ def clean_single_tensor(tensor, valid_len: int):
         与输入类型保持一致的清理结果；输入不符合条件时返回原值。
     """
     if isinstance(tensor, np.ndarray):
+        if tensor.dtype.kind in ('U', 'S'):
+            return tensor
         import torch
 
         torch_tensor = torch.from_numpy(tensor)

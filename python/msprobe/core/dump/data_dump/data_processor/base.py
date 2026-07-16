@@ -27,8 +27,14 @@ import numpy as np
 from msprobe.core.common.const import Const
 from msprobe.core.common.file_utils import save_npy
 from msprobe.core.common.log import logger
-from msprobe.core.common.utils import (convert_tuple, CompareException, is_np2,
-                                       is_jagged_tensor, is_keyed_jagged_tensor, is_keyed_tensor)
+from msprobe.core.common.utils import (
+    convert_tuple,
+    CompareException,
+    is_np2,
+    is_jagged_tensor,
+    is_keyed_jagged_tensor,
+    is_keyed_tensor,
+)
 
 
 @dataclass
@@ -90,11 +96,18 @@ class TensorStatInfo:
         self.check_sum = check_sum
 
 
-
 class BaseDataProcessor:
     builtin_type = (bool, int, float, str, slice, type(Ellipsis))
-    np_type = (np.integer, np.floating, np.bool_, np.complexfloating, np.str_, np.byte,
-               np.str_ if is_np2() else np.unicode_, np.ndarray)
+    np_type = (
+        np.integer,
+        np.floating,
+        np.bool_,
+        np.complexfloating,
+        np.str_,
+        np.byte,
+        np.str_ if is_np2() else np.unicode_,
+        np.ndarray,
+    )
 
     def __init__(self, config, data_writer):
         self.data_writer = data_writer
@@ -125,24 +138,26 @@ class BaseDataProcessor:
     @staticmethod
     def transfer_type(data):
         dtype = str(type(data))
-        if 'int' in dtype:
+        if "int" in dtype:
             return int(data)
-        elif 'float' in dtype:
+        elif "float" in dtype:
             return float(data)
         else:
             return data
 
     @staticmethod
     def set_value_into_nested_structure(data_structure, indexes, value):
-        '''
+        """
         Args:
             data_structure: nested data structure
             indexes: List
             value: value to be set
-        '''
+        """
         if not indexes:
-            raise ValueError("set_value_into_nested_structure failed: "
-                             "indexes need to be non empty when set value to nested data structure")
+            raise ValueError(
+                "set_value_into_nested_structure failed: "
+                "indexes need to be non empty when set value to nested data structure"
+            )
         current_level = data_structure
         for i, index in enumerate(indexes):
             valid_for_list = isinstance(current_level, list) and isinstance(index, int) and len(current_level) > index
@@ -160,8 +175,7 @@ class BaseDataProcessor:
                     except Exception as e:
                         raise IndexError("set_value_into_nested_structure failed: passed indexes wrong") from e
             else:
-                raise ValueError("set_value_into_nested_structure failed: "
-                                 "invalid data_structure type or invalid index")
+                raise ValueError("set_value_into_nested_structure failed: invalid data_structure type or invalid index")
 
     @staticmethod
     def is_distributed_op(module):
@@ -190,7 +204,10 @@ class BaseDataProcessor:
             for path, line, func in stack_info:
                 source_line = linecache.getline(path, line).strip()
                 if source_line:
-                    if any(filter_path in path for filter_path in Const.STACK_FILTER_KEYWORDS) or Const.CALL_STACK_FLAG in path:
+                    if (
+                        any(filter_path in path for filter_path in Const.STACK_FILTER_KEYWORDS)
+                        or Const.CALL_STACK_FLAG in path
+                    ):
                         continue
                     stack_line = f"File {path}, line {str(line)}, in {func}, \n {source_line}"
                     stack_str.append(stack_line)
@@ -230,26 +247,21 @@ class BaseDataProcessor:
     @staticmethod
     def _analyze_ndarray(ndarray, _):
         ndarray_json = {}
-        ndarray_json.update({'type': 'numpy.ndarray'})
-        ndarray_json.update({'dtype': str(ndarray.dtype)})
-        ndarray_json.update({'shape': ndarray.shape})
+        ndarray_json.update({"type": "numpy.ndarray"})
+        ndarray_json.update({"dtype": str(ndarray.dtype)})
+        ndarray_json.update({"shape": ndarray.shape})
 
         # 先初始化默认值
-        stats = {
-            "Max": None,
-            "Min": None,
-            "Mean": None,
-            "Norm": None
-        }
+        stats = {"Max": None, "Min": None, "Mean": None, "Norm": None}
 
         try:
-            # 只有非空时才尝试计算
-            if ndarray.size > 0:
+            # 只有非空且非字符串类型时才尝试计算
+            if ndarray.size > 0 and ndarray.dtype.kind not in ("U", "S"):
                 stats = {
                     "Max": np.max(ndarray).item(),
                     "Min": np.min(ndarray).item(),
                     "Mean": np.mean(ndarray).item(),
-                    "Norm": np.linalg.norm(ndarray).item()
+                    "Norm": np.linalg.norm(ndarray).item(),
                 }
         except Exception as e:
             # 决定打印内容或切片
@@ -263,7 +275,12 @@ class BaseDataProcessor:
     @staticmethod
     def _get_allowed_data_mode(data_mode):
         if Const.ALL in data_mode:
-            allowed_data_mode = [Const.FORWARD, Const.BACKWARD, Const.INPUT, Const.OUTPUT]
+            allowed_data_mode = [
+                Const.FORWARD,
+                Const.BACKWARD,
+                Const.INPUT,
+                Const.OUTPUT,
+            ]
         else:
             allowed_data_mode = list(set(data_mode))
             if Const.FORWARD not in allowed_data_mode and Const.BACKWARD not in allowed_data_mode:
@@ -305,14 +322,14 @@ class BaseDataProcessor:
             "ignore_input_indices": set(),
             "ignore_output_indices": set(),
             "ignore_input_keys": set(),
-            "ignore_output_keys": set()
+            "ignore_output_keys": set(),
         }
         if not isinstance(value, dict):
             return normalized_rule
 
         for io_type, key_all, key_indices in (
             (Const.INPUT, "ignore_input_all", "ignore_input_indices"),
-            (Const.OUTPUT, "ignore_output_all", "ignore_output_indices")
+            (Const.OUTPUT, "ignore_output_all", "ignore_output_indices"),
         ):
             io_value = value.get(io_type)
             if io_value == Const.ALL:
@@ -321,9 +338,7 @@ class BaseDataProcessor:
             if not isinstance(io_value, list):
                 continue
             normalized_rule[key_indices].update(index for index in io_value if isinstance(index, int) and index >= 0)
-            normalized_rule[f"ignore_{io_type}_keys"].update(
-                key for key in io_value if isinstance(key, str) and key
-            )
+            normalized_rule[f"ignore_{io_type}_keys"].update(key for key in io_value if isinstance(key, str) and key)
         return normalized_rule
 
     @staticmethod
@@ -370,8 +385,9 @@ class BaseDataProcessor:
         if not ignore_rule:
             return data
         ignore_all = ignore_rule["ignore_input_all"] if io_type == Const.INPUT else ignore_rule["ignore_output_all"]
-        ignore_indices = ignore_rule["ignore_input_indices"] if io_type == Const.INPUT \
-            else ignore_rule["ignore_output_indices"]
+        ignore_indices = (
+            ignore_rule["ignore_input_indices"] if io_type == Const.INPUT else ignore_rule["ignore_output_indices"]
+        )
         ignore_keys = ignore_rule["ignore_input_keys"] if io_type == Const.INPUT else ignore_rule["ignore_output_keys"]
         if ignore_all:
             if isinstance(data, tuple):
@@ -390,8 +406,10 @@ class BaseDataProcessor:
                     masked_data[index] = None
                     hit_items.append(str(index))
             if hit_items:
-                logger.debug(f"Ignore rules matched for {self.current_api_or_module_name}: "
-                             f"{stage}.{io_type}.{','.join(sorted(hit_items))}")
+                logger.debug(
+                    f"Ignore rules matched for {self.current_api_or_module_name}: "
+                    f"{stage}.{io_type}.{','.join(sorted(hit_items))}"
+                )
             return tuple(masked_data) if isinstance(data, tuple) else masked_data
 
         if isinstance(data, dict) and ignore_keys:
@@ -401,8 +419,10 @@ class BaseDataProcessor:
                     masked_data[key] = None
                     hit_items.append(str(key))
             if hit_items:
-                logger.debug(f"Ignore rules matched for {self.current_api_or_module_name}: "
-                             f"{stage}.{io_type}.{','.join(sorted(hit_items))}")
+                logger.debug(
+                    f"Ignore rules matched for {self.current_api_or_module_name}: "
+                    f"{stage}.{io_type}.{','.join(sorted(hit_items))}"
+                )
             return masked_data
 
         return data
@@ -421,7 +441,7 @@ class BaseDataProcessor:
         if isinstance(args, cls.get_special_types()):
             arg_transform = transform(args, key_stack)
             return arg_transform
-        elif isinstance(args, tuple) and hasattr(args, '_fields'):
+        elif isinstance(args, tuple) and hasattr(args, "_fields"):
             # namedtuple to dict
             args_dict = {field: getattr(args, field) for field in args._fields}
             return cls.apply_transform_dict(args_dict, transform, depth, key_stack)
@@ -456,9 +476,7 @@ class BaseDataProcessor:
         for k, arg in args.items():
             key_stack.append(k)
             try:
-                result_dict[k] = cls.recursive_apply_transform(
-                    arg, transform, depth=depth + 1, key_stack=key_stack
-                )
+                result_dict[k] = cls.recursive_apply_transform(arg, transform, depth=depth + 1, key_stack=key_stack)
             finally:
                 key_stack.pop()
         return result_dict
@@ -469,12 +487,14 @@ class BaseDataProcessor:
         for i, arg in enumerate(args):
             key_stack.append(i)
             try:
-                result_list.append(cls.recursive_apply_transform(
-                    arg, transform, depth=depth + 1, key_stack=key_stack
-                ))
+                result_list.append(cls.recursive_apply_transform(arg, transform, depth=depth + 1, key_stack=key_stack))
             finally:
                 key_stack.pop()
         return result_list
+
+    @staticmethod
+    def is_hookable_element(element):
+        return False
 
     @classmethod
     def register_hook_single_element(cls, element, suffix_stack, hook_fn):
@@ -502,7 +522,7 @@ class BaseDataProcessor:
             self.current_api_or_module_name = api_or_module_name
             self.current_ignore_rules = {
                 Const.FORWARD: self._resolve_ignore_rule(api_or_module_name, Const.FORWARD),
-                Const.BACKWARD: self._resolve_ignore_rule(api_or_module_name, Const.BACKWARD)
+                Const.BACKWARD: self._resolve_ignore_rule(api_or_module_name, Const.BACKWARD),
             }
 
     def is_dump_for_data_mode(self, forward_backward, input_output):
@@ -517,6 +537,9 @@ class BaseDataProcessor:
             bool: True if the parameters are in data_mode or data_mode is all, False otherwise.
         """
         return forward_backward in self.allowed_data_mode and input_output in self.allowed_data_mode
+
+    def analyze_single_element(self, element, suffix_stack):
+        return {}
 
     def analyze_element(self, element):
         return self.recursive_apply_transform(element, self.analyze_single_element)
@@ -603,8 +626,7 @@ class BaseDataProcessor:
 
         return api_info_struct
 
-    def analyze_backward_input(self, name, module,
-                               module_input_output: ModuleBackwardInputs):
+    def analyze_backward_input(self, name, module, module_input_output: ModuleBackwardInputs):
         api_info_struct = {}
         if self.is_dump_for_data_mode(Const.BACKWARD, Const.INPUT):
             api_info_struct[name] = {}
@@ -615,8 +637,7 @@ class BaseDataProcessor:
             api_info_struct[name][Const.INPUT] = input_info_list
         return api_info_struct
 
-    def analyze_backward_output(self, name, module,
-                                module_input_output: ModuleBackwardOutputs):
+    def analyze_backward_output(self, name, module, module_input_output: ModuleBackwardOutputs):
         api_info_struct = {}
         if self.is_dump_for_data_mode(Const.BACKWARD, Const.OUTPUT):
             api_info_struct[name] = {}
@@ -639,11 +660,12 @@ class BaseDataProcessor:
     def get_save_file_path(self, suffix):
         file_format = Const.PT_SUFFIX if self.config.framework == Const.PT_FRAMEWORK else Const.NUMPY_SUFFIX
         if self.save_name is not None:
-            dump_data_name = (self.save_name + file_format)
+            dump_data_name = self.save_name + file_format
         else:
             suffix_with_seq = (Const.SEP + suffix) if suffix else ""
-            dump_data_name = (self.current_api_or_module_name + Const.SEP + self.api_data_category + suffix_with_seq +
-                              file_format)
+            dump_data_name = (
+                self.current_api_or_module_name + Const.SEP + self.api_data_category + suffix_with_seq + file_format
+            )
         file_path = os.path.join(self.data_writer.dump_tensor_data_dir, dump_data_name)
         return dump_data_name, file_path
 
@@ -668,8 +690,10 @@ class BaseDataProcessor:
             try:
                 self.set_value_into_nested_structure(nested_data_structure, full_index, grad_data_info)
             except (ValueError, IndexError) as e:
-                logger.warning(f"error occurred while recording statistics of {grad_name_with_count_category} variable,"
-                               f"skip current recording, detailed information: {e}")
+                logger.warning(
+                    f"error occurred while recording statistics of {grad_name_with_count_category} variable,"
+                    f"skip current recording, detailed information: {e}"
+                )
             return grad
 
         wrap_register_hook_single_element = partial(self.register_hook_single_element, hook_fn=hook_fn)
