@@ -30,7 +30,7 @@ from torch.distributed.distributed_c10d import _get_default_group
 from msprobe.core.common.const import Const
 from msprobe.core.common.decorator import recursion_depth_decorator
 from msprobe.core.common.exceptions import MsprobeException
-from msprobe.core.common.file_utils import load_json, load_yaml
+from msprobe.core.common.file_utils import load_json, load_yaml, save_npy
 from msprobe.core.common.log import logger
 from msprobe.core.common.utils import convert_tuple, is_int
 from msprobe.core.dump.data_dump.data_processor.base import (
@@ -552,7 +552,12 @@ class PytorchDataProcessor(BaseDataProcessor):
 
     def _analyze_and_save_ndarray(self, ndarray, suffix):
         dump_data_name, file_path = self.get_save_file_path(suffix)
-        self.tensor_handler.save_tensor(torch.tensor(ndarray), file_path)
+        if ndarray.dtype.kind in ('U', 'S'):
+            file_path = file_path.replace(Const.PT_SUFFIX, Const.NUMPY_SUFFIX)
+            dump_data_name = dump_data_name.replace(Const.PT_SUFFIX, Const.NUMPY_SUFFIX)
+            save_npy(ndarray, file_path)
+        else:
+            self.tensor_handler.save_tensor(torch.tensor(ndarray), file_path)
         ndarray_json = PytorchDataProcessor._analyze_ndarray(ndarray, suffix)
         ndarray_json.update({"data_name": dump_data_name})
         return ndarray_json
