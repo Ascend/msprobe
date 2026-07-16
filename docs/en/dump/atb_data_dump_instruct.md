@@ -31,7 +31,7 @@ msProbe collects precision data of an ATB model by executing the ATB dump module
 
 Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).
 
-**Note**: Currently, msProbe with the ATB dump module can be [compiled and installed from source code](../msprobe_install_guide.md#compilation-and-installation). During compilation, you need to use the `--include-mod` parameter to specify the **atb_probe** module.
+**Note**: Currently, msProbe with the ATB dump module can be [compiled and installed from source code](../msprobe_install_guide.md#23-installation-from-source). During compilation, you need to use the `--include-mod` parameter to specify the **atb_probe** module.
 
 **Constraints**
 

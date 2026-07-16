@@ -6,7 +6,7 @@ In the inference scenario of Torch graph mode (TorchAir), precision data collect
 
 ## Basic Concepts
 
-- [TorchAir](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/ascend_ir/api/torchair/compiler_config.md): backend of the Torch graph mode, which is used to compile the Torch model into an executable program on the Ascend AI Processor, including computational graph conversion and optimization.
+- [TorchAir](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/ascend_ir/api/torchair/compiler_config.md): backend of the Torch graph mode, which is used to compile the Torch model into an executable program on the Ascend AI Processor, including computational graph conversion and optimization.
 - Graph Engine (GE): core component of the Ascend AI computing platform. As the control center for computational graph build and execution, GE provides the following functions:
     - Graph optimization: optimizes the neural network computational graph to improve execution efficiency.
     - Graph build management: converts models of different frameworks into a unified internal representation, providing a basis for graph optimization and execution.
@@ -21,7 +21,7 @@ In the inference scenario of Torch graph mode (TorchAir), precision data collect
 
 ### Environment Setup
 
-Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md#installation-description).
+Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).
 
 ### Constraints
 
@@ -229,7 +229,7 @@ When a version earlier than Ascend Extension for PyTorch 7.1.0 is used, the resu
 
 In addition to operations in [Dumping Data in GE Fusion Mode](#dumping-data-in-ge-fusion-mode), pass the configuration file for disabling operator fusion through the `fusion_switch_file` parameter of the `set_ge_dump_config` API. The following is an example of tool usage:
 
-- Create the `fusion_switch.json` file for disabling operator fusion. For details about operator fusion patterns, see [Operator Fusion Pattern Settings (fusion_switch_file)](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/ascend_ir/features/advanced/fusion_switch_file.md).
+- Create the `fusion_switch.json` file for disabling operator fusion. For details about operator fusion patterns, see [Operator Fusion Pattern Settings (fusion_switch_file)](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/en/ascend_ir/features/advanced/fusion_switch_file.md).
 
   ```json
   {

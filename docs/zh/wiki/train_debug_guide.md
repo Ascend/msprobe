@@ -406,7 +406,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 **数据采集：**
 
-- 对于`vLLM-Ascend`框架的推理数据采集参考[vLLM-Ascend精度数据采集](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/msprobe_guide.html)。
+- 对于`vLLM-Ascend`框架的推理数据采集参考[vLLM-Ascend精度数据采集](https://docs.vllm.ai/projects/ascend/zh-cn/latest/developer_guide/performance_and_debug/msprobe_guide.html)。
 - 对于`SGlang`框架的推理数据采集参考[SGlang精度数据采集](../dump/sglang_eager_dump_instruct.md)。
 
 注意在使用[精度采集工具](#43-精度采集工具)时采集配置需指定`level`为`mix`或`L0`，即需至少包含`Module`级别数据，保证后续可做逐层比对。基础配置config.json样例如下：

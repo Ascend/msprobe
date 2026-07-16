@@ -36,11 +36,11 @@ This Quick Start guide focuses on rapid onboarding for precision data collection
 
 1. Prepare a training server equipped with Ascend NPUs (such as Atlas A2 training servers) and install the NPU driver and firmware.
 
-2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](https://www.hiascend.com/cann/download).
+2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](https://www.hiascend.com/en/cann/download).
 
 3. Install the framework.
 
-   In the following example, PyTorch 2.9.0, Python 3.12, AArch64-based system, and torchvision 0.24.0 are used as examples in the PyTorch training scenario. For details, see "Installing PyTorch > [Method 1: Installation via a Binary Package](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/installation_guide/installation_via_binary_package.md)" in [*Ascend Extension for PyTorch Installation Guide*](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/installation_guide/installation_description.md).
+   In the following example, PyTorch 2.9.0, Python 3.12, AArch64-based system, and torchvision 0.24.0 are used as examples in the PyTorch training scenario. For details, see "Installing PyTorch > [Method 1: Installation via a Binary Package](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/en/installation_guide/installation_via_binary_package.md)" in [*Ascend Extension for PyTorch Installation Guide*](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/en/installation_guide/installation_description.md).
 
 4. Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).
 

@@ -36,7 +36,7 @@ This Quick Start guide focuses on rapid onboarding for precision data collection
 
 1. Prepare a training server equipped with Ascend NPUs (such as Atlas A2 training servers) and install the NPU driver and firmware.
 
-2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](https://www.hiascend.com/cann/download).
+2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](https://www.hiascend.com/en/cann/download).
 
 3. Install the framework.
 

@@ -15,24 +15,10 @@ This guide is designed to help you effectively distinguish between normal comput
 Accuracy issues in LLM inference typically manifest as model outputs that deviate from expectations. These symptoms can be classified into the following types:
 
 1. Garbled characters in model responses: A large number of abnormal symbols such as �, \<unk\>, and â€™ are displayed in outputs, or a segment of characters in another language is suddenly inserted.
-
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/78a354cb-eec8-4670-aa11-39893d30b635/image.png 'image.png')
-
 2. Repeated model responses: A model is stuck in a certain part and repeatedly generates the same or similar text segments.
-
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f1f550d1-6c47-4cd5-a3f2-13b654544ebf/image.png 'image.png')
-
 3. Semantic or logical errors: The output uses fluent language but the reasoning is either incoherent or broken.
-
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/5725d07b-d5c1-46f4-a2a7-2881e91409ae/image.png 'image.png')
-
 4. Inconsistency and jitter: The outputs vary greatly among multiple requests.
-
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/657ad9a7-d3a9-4e98-b5b0-da8a83fd1d8d/image.png 'image.png')
-
 5. Dataset evaluation discrepancy: The evaluation accuracy falls below the benchmark.
-
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/e831b0d3-1f41-4f1b-9055-47731a4f9495/image.png 'image.png')
 
 # 2. Common Causes of Model Inference Accuracy Issues
 
@@ -70,7 +56,7 @@ Generally, accuracy may be normal on one type of server but suddenly become abno
 
 The following figure shows the overall process of locating model inference accuracy issues.
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/79fb6a89-4944-4044-85a9-f2edd6a4098f/image.png 'image.png')
+![model_accuracy_issue_locating_roadmap](../figures/wiki/infer_debug_guide/model_accuracy_issue_locating_roadmap.png)
 
 ## 3.1 Checklist
 
@@ -196,7 +182,7 @@ To locate accuracy issues in vLLM scenarios, the dump and comparison capabilitie
 Obtain the model:
 `model=llm.llm_engine.model_executor.driver_worker.worker.model_runner.get_model()`
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/20631717-1da6-426d-8d03-52a84a0ed29c/image.png 'image.png')
+![get_model](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\get_model.png)
 
 For details about the configuration file, see [Configuration File Introduction](../dump/config_json_introduct.md). For details about msProbe interfaces, see documents related to precision data collection in torch scenarios. You can set the `token_range` parameter in the `start` interface to control the token data to be collected.
 
@@ -206,7 +192,7 @@ The multiprocessing executor `MultiprocessingDistributedExecutor` is used, which
 
 Tool adding position: For data collection on rank 0, the tool can be directly added to the outermost layer of the `generate` function called by LLM. For data collection on other ranks, the tool needs to be added to the `_run_worker_process` function of the subprocess (`vllm/executor/multiproc_worker_utils.py`).
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/28a7eec9-1a46-4d7a-a3e7-91237f55b1fb/image.png 'image.png')
+![add_PrecisionDebugger1](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\add_PrecisionDebugger1.png)
 
 - V0, online mode, PP = 1 (TP and DP not limited; `--disable-frontend-multiprocessing` not set)
 
@@ -214,7 +200,7 @@ The multi-process client `MQLLMEngineClient` is used, causing a process interval
 
 Tool adding position: `run_engine_loop` function of the `MQLLMEngine` class in the subprocess (`vllm/engine/multiprocessing/engine.py`)
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/7e7f693f-e67f-4832-ae66-8afaa113069e/image.png 'image.png')
+![add_PrecisionDebugger2](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\add_PrecisionDebugger2.png)
 
 - V0, online mode, PP > 1 or `--disable-frontend-multiprocessing` specified
 
@@ -234,7 +220,7 @@ NPU: `NPUModelRunner.init` function in `vllm_ascend/worker/model_runner_v1.py`:
 
 GPU: `GPUModelRunner.init` function in `vllm/v1/worker/gpu_model_runner.py`
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/a8bf2df4-d083-42a4-b146-4d4d5ec9279f/image.png 'image.png')
+![add_PrecisionDebugger3](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\add_PrecisionDebugger3.png)
 
 ###### 2. Add the tool enabling code
 
@@ -269,20 +255,22 @@ GPU->vllm/v1/worker/gpu_model_runner.py  GPUModelRunner.execute_model
 
 Generally, there are three phases for locating accuracy problems that can be reproduced in a single case.
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/dd6bf3db-d722-43da-9df0-1daa297feffb/image.png 'image.png')
+![three_phases_of_the_location_procedure](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\three_phases_of_the_location_procedure.png)
 
 ##### 4.1.1.2.1 Pre-locating Operations
 
 The accuracy benchmark may come from either a GPU or a historical version of the NPU baseline that is known to have normal accuracy.
 
 For details about model configuration check and randomness fixing, refer to [Checklist](#31-checklist) and [Preparations for Reproducing a Problem](#32-preparations-for-reproducing-a-problem). In the vLLM scenario, you also need to fix sampling randomness (`temperature` = `0`).
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/425c6827-f81f-4c7c-8a5b-5a4ffd8f4a80/image.png 'image.png')
+
+![temperature](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\temperature.png)
 
 ##### 4.1.1.2.2 Locating Operations
 
 - Confirming the first different token
 
 You can print the output token ID sequence of the test case in vLLM. The following uses the V1 scenario as an example.
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/1151539d-5ad6-494a-b872-8e504eefe829/image.png 'image.png')
 
 Then, you can easily compare the position of the first different token in the problem scenario with that in the benchmark scenario.
