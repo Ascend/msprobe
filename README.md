@@ -75,7 +75,7 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 
 ## 🚀 快速入门
 
-通过一个可执行样例，快速上手精度数据采集和精度比对功能，请参见《[PyTorch 场景精度调试工具快速入门](docs/zh/quick_start/pytorch_quick_start.md)》或《[MindSpore 场景精度调试工具快速入门](docs/zh/quick_start/mindspore_quick_start.md)》。
+10 分钟快速一站式体验数据采集、NPU/GPU 精度比对与分级可视化构图比对的完整流程，请参见《[msProbe 快速入门](docs/zh/quick_start/pytorch_quick_start.md)》。
 
 ## 📦 安装指南
 
