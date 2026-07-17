@@ -48,33 +48,34 @@ def extract_root_nodes(data):
             if not isinstance(key, str):
                 continue
             # 如果父节点是null，则该key自己就是根节点
-            root_flag = max([key.startswith(prefix) for prefix in Data2DBConst.ROOT_NODE_PREFIX])
+            root_flag = max(key.startswith(prefix) for prefix in Data2DBConst.ROOT_NODE_PREFIX)
             if root_flag:
                 parent_map[key] = micro_step
                 micro_step += 1
         else:
             parent_map[key] = value
-    
+
     # 查找每个key的根节点（递归查找直到找到没有父节点的节点）
     root_nodes = {}
-    
+
     def find_root(node):
         """递归查找根节点"""
         if isinstance(node, str):
-            node = node.replace(
-                f"{Const.SEP}{Const.BACKWARD}", f"{Const.SEP}{Const.FORWARD}").replace(
-                    f"{Const.SEP}{Const.PARAMS_GRAD}", f"{Const.SEP}{Const.FORWARD}")
+            node = node.replace(f"{Const.SEP}{Const.BACKWARD}", f"{Const.SEP}{Const.FORWARD}").replace(
+                f"{Const.SEP}{Const.PARAMS_GRAD}", f"{Const.SEP}{Const.FORWARD}"
+            )
         if node not in parent_map:
             return node
         return find_root(parent_map[node])
-    
+
     # 为每个key找到其根节点
     for key in data.keys():
         parent = find_root(key)
         if parent is not None and isinstance(parent, int):
             root_nodes[key] = parent
-    
+
     return root_nodes
+
 
 def reindex_keys_with_mapping(original_dict):
     """
@@ -128,11 +129,12 @@ def reindex_keys_with_mapping(original_dict):
                 key_mapping[original_key] = new_key
     return key_mapping
 
+
 def scan_files(data_dir):
     logger.info("Scanning data directory...")
     # 扫描所有step和rank
     valid_ranks = defaultdict(list)
-    
+
     # 首先扫描目录结构获取有效rank
     for step_dir in os.listdir(data_dir):
         if not step_dir.startswith('step'):
@@ -142,11 +144,11 @@ def scan_files(data_dir):
         except ValueError:
             continue
         step_path = os.path.join(data_dir, step_dir)
-        
+
         # 分别收集当前step的rank和proc信息
         normal_ranks = []
         proc_items = []
-        
+
         for item_dir in os.listdir(step_path):
             if item_dir.startswith('rank') or item_dir.startswith('proc'):
                 try:
@@ -162,19 +164,19 @@ def scan_files(data_dir):
                     normal_ranks.append((original_id, json_path, construct_path))
                 else:  # proc directory
                     proc_items.append((original_id, json_path, construct_path))
-        
+
         # 处理并分配连续的rank编号
         if normal_ranks or proc_items:
             proc_items.sort(key=lambda x: x[0])
             normal_ranks.sort(key=lambda x: x[0])
-            
+
             # 计算下一个可用的rank编号
             if normal_ranks:
                 max_rank = normal_ranks[-1][0]
                 start_rank = max_rank + 1
             else:
                 start_rank = 0
-            
+
             # 组合结果：先放正常rank，再放映射后的proc
             final_ranks = normal_ranks[:]
             # 记录proc到rank的映射关系
@@ -188,13 +190,14 @@ def scan_files(data_dir):
                 logger.info(f"Step {step}: proc to rank mapping - {proc_to_rank_mapping}")
             # 按rank排序后存储
             valid_ranks[step] = final_ranks
-    
+
     return valid_ranks
 
 
 @dataclass
 class TensorProcessingParams:
     """Tensor处理函数的参数载体"""
+
     tensor_data: Dict[str, Any]
     target_prefix: str
     vpp_stage: int
@@ -266,8 +269,7 @@ class DumpRecordBuilder:
             total_micro_step = []
             for rank, json_path, construct_path in tqdm(valid_ranks[step], desc=f"Step {step} ranks", leave=False):
                 max_rank = max(max_rank, rank)
-                total_micro_step.append(self._process_dump_file(
-                    json_path, construct_path, current_start_step, rank))
+                total_micro_step.append(self._process_dump_file(json_path, construct_path, current_start_step, rank))
             if self.micro_step:
                 logger.info(f"Step {step} processing completed. Total micro steps identified: {total_micro_step}")
                 total_micro_step = max(total_micro_step)
@@ -278,7 +280,7 @@ class DumpRecordBuilder:
             "max_rank": max_rank,
             "min_step": 0 if self.micro_step else min(valid_ranks.keys()),
             # micro_step下实际步数为下一个micro_step起始步数-1
-            "max_step": current_start_step - 1 if self.micro_step else current_start_step
+            "max_step": current_start_step - 1 if self.micro_step else current_start_step,
         }
         for metric_name in Data2DBConst.METRICS:
             global_stats[metric_name] = Data2DBConst.ORDERED_STAT
@@ -291,21 +293,16 @@ class DumpRecordBuilder:
 
         # 确定metric类型
         metric_type = None
-        if f"{Const.SEP}{Const.FORWARD}{Const.SEP}" in full_key or \
-                full_key.endswith(f"{Const.SEP}{Const.FORWARD}"):
+        if f"{Const.SEP}{Const.FORWARD}{Const.SEP}" in full_key or full_key.endswith(f"{Const.SEP}{Const.FORWARD}"):
             if tensor_data.get('is_recompute', False):
                 metric_type = Data2DBConst.RECOMPUTE
             else:
                 metric_type = Data2DBConst.FORWARD
-            full_key = full_key.replace(
-                f"{Const.SEP}{Const.FORWARD}{Const.SEP}", Const.SEP)  # module
-            full_key = full_key.replace(
-                f"{Const.SEP}{Const.FORWARD}", "")  # api
-        elif f"{Const.SEP}{Const.BACKWARD}{Const.SEP}" in full_key or \
-                full_key.endswith(f"{Const.SEP}{Const.BACKWARD}"):
+            full_key = full_key.replace(f"{Const.SEP}{Const.FORWARD}{Const.SEP}", Const.SEP)  # module
+            full_key = full_key.replace(f"{Const.SEP}{Const.FORWARD}", "")  # api
+        elif f"{Const.SEP}{Const.BACKWARD}{Const.SEP}" in full_key or full_key.endswith(f"{Const.SEP}{Const.BACKWARD}"):
             metric_type = Data2DBConst.BACKWARD
-            full_key = full_key.replace(
-                f"{Const.SEP}{Const.BACKWARD}{Const.SEP}", Const.SEP)
+            full_key = full_key.replace(f"{Const.SEP}{Const.BACKWARD}{Const.SEP}", Const.SEP)
             full_key = full_key.replace(f"{Const.SEP}{Const.BACKWARD}", "")
         elif full_key.endswith(Const.PARAMS_GRAD):
             metric_type = Data2DBConst.PARAMETERS_GRAD
@@ -322,11 +319,9 @@ class DumpRecordBuilder:
     def _add_tensor_data(self, tensor, target_name, tensor_params: TensorProcessingParams, batch_data):
         """添加tensor数据方法"""
 
-        cache_key = (target_name, tensor_params.vpp_stage,
-                     tensor_params.micro_step)
+        cache_key = (target_name, tensor_params.vpp_stage, tensor_params.micro_step)
         # 如果缓存中不存在，创建临时ID
-        cache_id_dict = self.db.cache_targets(
-            cache_key, tensor_params.metric_id)
+        cache_id_dict = self.db.cache_targets(cache_key, tensor_params.metric_id)
 
         # 准备数据行, 这里id还是个临时id, 需要更新后读取, 第三个实际为{"id": 0}
         row_data = [tensor_params.rank, tensor_params.step, cache_id_dict, tensor_params.metric_id]
@@ -343,11 +338,9 @@ class DumpRecordBuilder:
                 if isinstance(tensor, dict) and tensor.get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
                     if tensor.get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
                         continue
-                    target_suffix = DumpRecordBuilder.parse_tensor_target(
-                        Data2DBConst.FORWARD, Const.INPUT_ARGS, idx)
+                    target_suffix = DumpRecordBuilder.parse_tensor_target(Data2DBConst.FORWARD, Const.INPUT_ARGS, idx)
                     target_name = tensor_params.target_prefix + target_suffix
-                    self._add_tensor_data(
-                        tensor, target_name, tensor_params, batch_data)
+                    self._add_tensor_data(tensor, target_name, tensor_params, batch_data)
 
         # 处理output
         if Const.OUTPUT in tensor_params.tensor_data:
@@ -355,37 +348,42 @@ class DumpRecordBuilder:
                 if isinstance(tensor, dict) and tensor.get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
                     if tensor.get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
                         continue
-                    target_suffix = DumpRecordBuilder.parse_tensor_target(
-                        Data2DBConst.FORWARD, Const.OUTPUT, idx)
+                    target_suffix = DumpRecordBuilder.parse_tensor_target(Data2DBConst.FORWARD, Const.OUTPUT, idx)
                     target_name = tensor_params.target_prefix + target_suffix
-                    self._add_tensor_data(
-                        tensor, target_name, tensor_params, batch_data)
+                    self._add_tensor_data(tensor, target_name, tensor_params, batch_data)
 
         # 处理parameters
         if Const.PARAMS in tensor_params.tensor_data:
             for param_name, param_tensors in tensor_params.tensor_data[Const.PARAMS].items():
-                if not (isinstance(param_tensors, list) and param_tensors and isinstance(param_tensors[0], dict)):
+                if isinstance(param_tensors, dict):
+                    tensor = param_tensors
+                elif isinstance(param_tensors, list) and param_tensors and isinstance(param_tensors[0], dict):
+                    tensor = param_tensors[0]
+                else:
                     continue
-                if param_tensors[0].get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
-                    if param_tensors[0].get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
+                if tensor.get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
+                    if tensor.get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
                         continue
                     target_suffix = DumpRecordBuilder.parse_tensor_target(
-                        Data2DBConst.FORWARD, Const.PARAMS, param_name)
+                        Data2DBConst.FORWARD, Const.PARAMS, param_name
+                    )
                     target_name = tensor_params.target_prefix + target_suffix
-                    self._add_tensor_data(
-                        param_tensors[0], target_name, tensor_params, batch_data)
+                    self._add_tensor_data(tensor, target_name, tensor_params, batch_data)
 
     def _process_parameters_data(self, tensor_params: TensorProcessingParams, batch_data):
         """处理parameters数据"""
         for param_name, param_tensors in tensor_params.tensor_data.items():
-            if not (isinstance(param_tensors, list) and param_tensors and isinstance(param_tensors[0], dict)):
+            if isinstance(param_tensors, dict):
+                tensor = param_tensors
+            elif isinstance(param_tensors, list) and param_tensors and isinstance(param_tensors[0], dict):
+                tensor = param_tensors[0]
+            else:
                 continue
-            if param_tensors[0].get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
-                if param_tensors[0].get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
+            if tensor.get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
+                if tensor.get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
                     continue
                 target_name = tensor_params.target_prefix + f".{param_name}"
-                self._add_tensor_data(
-                    param_tensors[0], target_name, tensor_params, batch_data)
+                self._add_tensor_data(tensor, target_name, tensor_params, batch_data)
 
     def _process_backward_data(self, tensor_params: TensorProcessingParams, batch_data):
         """处理backward数据"""
@@ -395,11 +393,9 @@ class DumpRecordBuilder:
                 if isinstance(tensor, dict) and tensor.get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
                     if tensor.get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
                         continue
-                    target_suffix = DumpRecordBuilder.parse_tensor_target(
-                        Data2DBConst.BACKWARD, Const.INPUT, idx)
+                    target_suffix = DumpRecordBuilder.parse_tensor_target(Data2DBConst.BACKWARD, Const.INPUT, idx)
                     target_name = tensor_params.target_prefix + target_suffix
-                    self._add_tensor_data(
-                        tensor, target_name, tensor_params, batch_data)
+                    self._add_tensor_data(tensor, target_name, tensor_params, batch_data)
 
         # 处理output
         if Const.OUTPUT in tensor_params.tensor_data:
@@ -407,11 +403,9 @@ class DumpRecordBuilder:
                 if isinstance(tensor, dict) and tensor.get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
                     if tensor.get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
                         continue
-                    target_suffix = DumpRecordBuilder.parse_tensor_target(
-                        Data2DBConst.BACKWARD, Const.OUTPUT, idx)
+                    target_suffix = DumpRecordBuilder.parse_tensor_target(Data2DBConst.BACKWARD, Const.OUTPUT, idx)
                     target_name = tensor_params.target_prefix + target_suffix
-                    self._add_tensor_data(
-                        tensor, target_name, tensor_params, batch_data)
+                    self._add_tensor_data(tensor, target_name, tensor_params, batch_data)
 
     def _process_dump_file(self, json_path, construct_path, start_step, rank):
         """处理单个dump.json文件"""
@@ -426,8 +420,8 @@ class DumpRecordBuilder:
             total_micro_step = max(micro_step_dict.values() or [0]) + 1
             index_mapping = reindex_keys_with_mapping(micro_step_dict)
         if 'data' not in data or not isinstance(data['data'], dict):
-            return
-        
+            return total_micro_step
+
         batch_data = []
         for _, (ori_key, tensor_data) in enumerate(data['data'].items()):
             if not isinstance(ori_key, str) or not isinstance(tensor_data, dict):
@@ -437,17 +431,15 @@ class DumpRecordBuilder:
             if not full_key:
                 continue
             mstep = micro_step_dict.get(ori_key, 0)
-            
-            metric_type, full_key = self._determine_metric_type(
-                full_key, tensor_data)
+
+            metric_type, full_key = self._determine_metric_type(full_key, tensor_data)
 
             if not metric_type:
                 continue
 
             # 使用缓存获取metric_id和stats
             metric_id = self.db.get_metric_id(metric_type)
-            target_prefix, vpp_stage, target_index = DumpRecordBuilder.extract_target_info(
-                full_key)
+            target_prefix, vpp_stage, target_index = DumpRecordBuilder.extract_target_info(full_key)
 
             tensor_params = TensorProcessingParams(
                 tensor_data=tensor_data,
@@ -457,7 +449,7 @@ class DumpRecordBuilder:
                 step=start_step + mstep,
                 rank=rank,
                 metric_id=metric_id,
-                metric_type=metric_type
+                metric_type=metric_type,
             )
 
             # 处理不同类型的tensor数据

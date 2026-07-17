@@ -742,7 +742,7 @@ class TestProcessDumpFileEdgeCases(unittest.TestCase):
         """缺少'data'字段返回None"""
         file_path = self._create_json_file({"other": "data"})
         result = self.builder._process_dump_file(file_path, "", 0, 0)
-        self.assertIsNone(result)
+        self.assertIsNone(result, 1)
 
     def test_process_dump_file_empty_data(self):
         """空的data字典"""
