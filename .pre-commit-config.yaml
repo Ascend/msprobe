@@ -1,5 +1,5 @@
 minimum_pre_commit_version: 4.0.0
-exclude: ^(LICENSES/|test/)|\.(html|csv|svg|md|yaml)$
+exclude: ^(LICENSES/|test/)|\.(html|csv|svg|md|yaml)$|^examples/.*.json$
 
 default_stages: [pre-commit]
 ci:
