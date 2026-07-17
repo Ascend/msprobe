@@ -230,9 +230,9 @@ class AlgorithmManager:
     def _make_all_algorithm_list(self: any, select_algorithm: str) -> list:
         select_algorithm_list = []
         if select_algorithm.lower() == 'all':
-            select_algorithm_list = ConstManager.BUILT_IN_ALGORITHM
+            select_algorithm_list = list(ConstManager.BUILT_IN_ALGORITHM)
             for item in self.custom_support_algorithm:
-                if item not in self.custom_support_algorithm:
+                if item not in self.built_in_support_algorithm:
                     select_algorithm_list.append(item)
             return select_algorithm_list
         return select_algorithm_list
