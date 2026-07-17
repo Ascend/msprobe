@@ -38,8 +38,10 @@ except Exception:
     TorchDispatchMode = None
 
 try:
+    from torch._guards import active_fake_mode as _active_fake_mode
     from torch._guards import detect_fake_mode as _detect_fake_mode
 except Exception:
+    _active_fake_mode = None
     _detect_fake_mode = None
 
 
@@ -72,6 +74,14 @@ def _iter_tensors(value, prefix=""):
 
 
 def _in_fake_mode(inputs):
+    active_fake_mode = None
+    if _active_fake_mode is not None:
+        try:
+            active_fake_mode = _active_fake_mode()
+        except Exception:
+            active_fake_mode = None
+        if active_fake_mode is not None:
+            return True
     if _detect_fake_mode is None:
         return False
     try:

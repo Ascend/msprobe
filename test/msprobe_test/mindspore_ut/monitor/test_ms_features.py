@@ -9,19 +9,26 @@ from msprobe.mindspore.monitor.features import max_eigenvalue, cal_entropy, cal_
 
 
 class TestMathFunctions(unittest.TestCase):
+    @staticmethod
+    def _dominant_randn(in_features):
+        vector = [0.0] * int(in_features)
+        vector[0] = 1.0
+        return Tensor(vector, dtype=mstype.float32)
+
     def test_max_eigenvalue(self):
         """测试最大特征值计算"""
         # 创建已知特征值的矩阵
         A = ops.diag(Tensor([3.0, 2.0, 1.0]))
 
         # 测试不同迭代次数
-        eigval = max_eigenvalue(A, num_iterations=5)
-        self.assertAlmostEqual(eigval.item(), 3.0, delta=0.1)
+        with patch("msprobe.mindspore.monitor.features.ops.randn", side_effect=self._dominant_randn):
+            eigval = max_eigenvalue(A, num_iterations=5)
+            self.assertAlmostEqual(eigval.item(), 3.0, delta=0.1)
 
         # 测试全零矩阵
-        zero_matrix = ops.zeros((3, 3))
-        eigval = max_eigenvalue(zero_matrix)
-        self.assertAlmostEqual(eigval.item(), 0.0)
+            zero_matrix = ops.zeros((3, 3))
+            eigval = max_eigenvalue(zero_matrix)
+            self.assertAlmostEqual(eigval.item(), 0.0)
 
     def test_cal_entropy(self):
         """测试注意力熵计算"""
@@ -65,18 +72,19 @@ class TestMathFunctions(unittest.TestCase):
     def test_cal_stable_rank(self):
         """测试谱半径计算"""
         # 创建已知谱半径的矩阵
-        A = ops.diag(Tensor([3.0, 2.0, 1.0]))
-        sr, eig = cal_stable_rank(A)
+        with patch("msprobe.mindspore.monitor.features.ops.randn", side_effect=self._dominant_randn):
+            A = ops.diag(Tensor([3.0, 2.0, 1.0]))
+            sr, eig = cal_stable_rank(A)
 
         # 验证Frobenius范数
-        fro_norm = ops.norm(A, ord='fro')
-        self.assertAlmostEqual(sr, fro_norm / 3.0, delta=.5)  # 最大特征值为3
+            fro_norm = ops.norm(A, ord='fro')
+            self.assertAlmostEqual(sr, fro_norm / 3.0, delta=.5)  # 最大特征值为3
 
         # 测试正交矩阵
-        ortho = ops.eye(5)
-        sr, eig = cal_stable_rank(ortho)
-        self.assertAlmostEqual(sr, Tensor(2.23/1), delta=.5)  # F范数应为2.23
-        self.assertAlmostEqual(eig, Tensor(1.0), delta=.1)  # 特征值应为1
+            ortho = ops.eye(5)
+            sr, eig = cal_stable_rank(ortho)
+            self.assertAlmostEqual(sr, Tensor(2.23/1), delta=.5)  # F范数应为2.23
+            self.assertAlmostEqual(eig, Tensor(1.0), delta=.1)  # 特征值应为1
 
 
 if __name__ == '__main__':

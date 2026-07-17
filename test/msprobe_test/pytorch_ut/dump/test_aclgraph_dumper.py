@@ -183,6 +183,14 @@ class TestAclGraphDumper(unittest.TestCase):
         self.assertTrue(self.module._is_collectable_tensor(torch.ones(2, 3, device="cpu")))
         self.assertFalse(self.module._is_collectable_tensor("not_a_tensor"))
 
+    def test_is_collectable_tensor_if_fake_mode_detected_then_still_checks_tensor_only(self):
+        tensor = torch.randn(2, 3)
+
+        with patch.object(self.module, "_detect_fake_mode", return_value=object()) as mock_detect_fake_mode:
+            self.assertTrue(self.module._is_collectable_tensor(tensor))
+
+        mock_detect_fake_mode.assert_not_called()
+
     def test_load_msprobe_config_if_config_and_validations_then_pass(self):
         default_path = os.path.normpath(self.AclGraphDumper._default_config_path())
         self.assertTrue(default_path.endswith(os.path.join("msprobe", "config.json")))
@@ -462,6 +470,23 @@ class TestAclGraphDumper(unittest.TestCase):
         origin_forward = model._msprobe_aclgraph_origin_forward
         dumper._patch(model)
         self.assertIs(model._msprobe_aclgraph_origin_forward, origin_forward)
+
+    def test_patch_if_l0_and_fake_mode_detected_then_module_collect_still_runs(self):
+        model = KwModel()
+        dumper = self.make_dumper(keywords=[], level="L0")
+        dumper.start(model)
+        x = torch.randn(2, 8)
+        bias = torch.randn(2, 8)
+
+        with patch.object(self.module, "_detect_fake_mode", return_value=object()) as mock_detect_fake_mode:
+            output = model(x, bias=bias)
+
+        self.assertTrue(torch.equal(output, x + bias))
+        mock_detect_fake_mode.assert_not_called()
+        tags = [call.args[1] for call in self.aclgraph_dump_stub.acl_stat.call_args_list]
+        self.assertTrue(any(".input." in tag for tag in tags))
+        self.assertTrue(any("input_kwargs" in tag for tag in tags))
+        self.assertTrue(any(tag.endswith(".output") or ".output." in tag for tag in tags))
 
     def test_patch_if_unmatched_modules_then_pass(self):
         model = OnlyRootModel()
