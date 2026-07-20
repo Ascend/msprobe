@@ -498,7 +498,6 @@ In verl training, data shuffling or reorganization improves generalization and h
   ```bash
   actor_rollout_ref.actor.use_dynamic_bsz=False  # Must match benchmark; must be disabled for training-inference alignment.
   ```
-  
 
 Training backends in RL typically use FSDP or Megatron (MindSpeed/MindSpeed-LLM with patches on Ascend).
 

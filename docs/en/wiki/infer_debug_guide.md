@@ -182,7 +182,7 @@ To locate accuracy issues in vLLM scenarios, the dump and comparison capabilitie
 Obtain the model:
 `model=llm.llm_engine.model_executor.driver_worker.worker.model_runner.get_model()`
 
-![get_model](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\get_model.png)
+![get_model](../figures/wiki/infer_debug_guide/get_model.png)
 
 For details about the configuration file, see [Configuration File Introduction](../dump/config_json_introduct.md). For details about msProbe interfaces, see documents related to precision data collection in torch scenarios. You can set the `token_range` parameter in the `start` interface to control the token data to be collected.
 
@@ -192,7 +192,7 @@ The multiprocessing executor `MultiprocessingDistributedExecutor` is used, which
 
 Tool adding position: For data collection on rank 0, the tool can be directly added to the outermost layer of the `generate` function called by LLM. For data collection on other ranks, the tool needs to be added to the `_run_worker_process` function of the subprocess (`vllm/executor/multiproc_worker_utils.py`).
 
-![add_PrecisionDebugger1](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\add_PrecisionDebugger1.png)
+![add_PrecisionDebugger1](../figures/wiki/infer_debug_guide/add_PrecisionDebugger1.png)
 
 - V0, online mode, PP = 1 (TP and DP not limited; `--disable-frontend-multiprocessing` not set)
 
@@ -200,7 +200,7 @@ The multi-process client `MQLLMEngineClient` is used, causing a process interval
 
 Tool adding position: `run_engine_loop` function of the `MQLLMEngine` class in the subprocess (`vllm/engine/multiprocessing/engine.py`)
 
-![add_PrecisionDebugger2](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\add_PrecisionDebugger2.png)
+![add_PrecisionDebugger2](../figures/wiki/infer_debug_guide/add_PrecisionDebugger2.png)
 
 - V0, online mode, PP > 1 or `--disable-frontend-multiprocessing` specified
 
@@ -220,7 +220,7 @@ NPU: `NPUModelRunner.init` function in `vllm_ascend/worker/model_runner_v1.py`:
 
 GPU: `GPUModelRunner.init` function in `vllm/v1/worker/gpu_model_runner.py`
 
-![add_PrecisionDebugger3](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\add_PrecisionDebugger3.png)
+![add_PrecisionDebugger3](../figures/wiki/infer_debug_guide/add_PrecisionDebugger3.png)
 
 ###### 2. Add the tool enabling code
 
@@ -255,7 +255,7 @@ GPU->vllm/v1/worker/gpu_model_runner.py  GPUModelRunner.execute_model
 
 Generally, there are three phases for locating accuracy problems that can be reproduced in a single case.
 
-![three_phases_of_the_location_procedure](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\three_phases_of_the_location_procedure.png)
+![three_phases_of_the_location_procedure](../figures/wiki/infer_debug_guide/three_phases_of_the_location_procedure.png)
 
 ##### 4.1.1.2.1 Pre-locating Operations
 
@@ -263,7 +263,7 @@ The accuracy benchmark may come from either a GPU or a historical version of the
 
 For details about model configuration check and randomness fixing, refer to [Checklist](#31-checklist) and [Preparations for Reproducing a Problem](#32-preparations-for-reproducing-a-problem). In the vLLM scenario, you also need to fix sampling randomness (`temperature` = `0`).
 
-![temperature](N:\Users\cwx1035602\Desktop\MindStudio-Probe\docs\en\figures\wiki\infer_debug_guide\temperature.png)
+![temperature](../figures/wiki/infer_debug_guide/temperature.png)
 
 ##### 4.1.1.2.2 Locating Operations
 
