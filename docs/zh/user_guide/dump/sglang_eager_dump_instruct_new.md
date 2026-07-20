@@ -114,9 +114,9 @@ dump "statistics"模式的性能膨胀大小与"tensor"模式采集的数据量�
 
     config文件详细介绍请参见《[配置文件介绍](./config_json_introduct.md)》。
 
-2. SGLang框架中使能msProbe工具
+2. SGLang框架中使能msProbe工具。
   
-    指定配置文件路径`--msprobe-dump-config`。具体可参考《[For MindStudio-probe(msProbe) dump](https://github.com/sgl-project/sglang/blob/main/docs/advanced_features/server_arguments.md#for-mindstudio-probemsprobe-dump)》。
+    指定配置文件路径`--msprobe-dump-config`。具体可参考《[For MindStudio-probe(msProbe) dump](https://github.com/sgl-project/sglang/blob/main/docs_new/docs/advanced_features/server_arguments.mdx#for-mindstudio-probemsprobe-dump)》。
   
 3. 启动SGLang框架PD分离场景模型推理，开始采集数据。以下示例基于NPU设备。
 

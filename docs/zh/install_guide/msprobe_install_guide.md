@@ -90,7 +90,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 - 安装基础工具包
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.1.0
   cd msprobe
   
   pip install setuptools wheel
@@ -103,7 +103,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 - 安装基础工具包（指定自定义版本）
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.1.0
   cd msprobe
   
   pip install setuptools wheel
@@ -117,7 +117,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 - 安装基础工具包和aclgraph_dump模块
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.1.0
   cd msprobe
   
   pip install setuptools wheel
@@ -130,7 +130,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 - 安装基础工具包和分级可视化插件
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.1.0
   cd msprobe
   
   pip install setuptools wheel
@@ -143,7 +143,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 - 安装基础工具包和趋势可视化插件
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.1.0
   cd msprobe
   
   pip install setuptools wheel
@@ -156,7 +156,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 - 安装基础工具包和分级可视化、趋势可视化插件
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.1.0
   cd msprobe
   
   pip install setuptools wheel
@@ -169,7 +169,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 - 安装基础工具包和atb_probe模块
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.1.0
   cd msprobe
   
   pip install setuptools wheel
@@ -182,7 +182,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 - 安装基础工具包和nan_check模块
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.1.0
   cd msprobe
   
   pip install setuptools wheel
@@ -197,7 +197,7 @@ WHL_VERSION=自定义版本号 python3 setup.py bdist_wheel [--include-mod=<incl
 - 安装基础工具包和xor_checksum加速算子
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git
+  git clone https://gitcode.com/Ascend/msprobe.git -b 26.1.0
   cd msprobe
   
   pip install setuptools wheel
@@ -271,7 +271,7 @@ pip show mindstudio-probe
 
 ```ColdFusion
 Name: mindstudio-probe
-Version: 26.0.x
+Version: 26.1.0
 Summary: Ascend MindStudio Probe Utils
 Home-page: https://gitcode.com/Ascend/MindStudio-Probe
 Author: Ascend Team
