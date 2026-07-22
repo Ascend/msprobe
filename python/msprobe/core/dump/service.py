@@ -239,11 +239,13 @@ class BaseService(ABC):
         ApiRegistry.register_custom_api(
             module, api_name, api_prefix, functools.partial(self.build_hook, Const.API), self.api_template
         )
+        self.logger.info_on_rank_0(f"Custom api registered: {getattr(module, '__name__', str(module))}.{api_name}")
 
     def restore_custom_api(self, module, api):
         ori_func = self.ori_customer_func.get(str(module) + Const.SEP + api)
         if ori_func:
             setattr(module, api, ori_func)
+            self.logger.info_on_rank_0(f"Custom api restored: {getattr(module, '__name__', str(module))}.{api}")
 
     def build_hook(self, hook_type, name):
         return self.hook_manager.build_hook(hook_type, name)
