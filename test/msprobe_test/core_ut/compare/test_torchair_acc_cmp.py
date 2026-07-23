@@ -160,6 +160,105 @@ node {
         self.assertEqual(gathered_map[1], [os.path.join(data_path, "0", "a.npy")])
         self.assertEqual(gathered_map[2], [os.path.join(data_path, "1", "b.npy")])
 
+    def test_gather_data_with_token_id_fx_when_multiple_rank_token_groups_then_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for image_name in ["image0", "image1"]:
+                for token_id in ["0", "1"]:
+                    token_path = os.path.join(tmp, image_name, token_id)
+                    os.makedirs(token_path)
+                    open(os.path.join(token_path, f"{image_name}_{token_id}.npy"), "wb").close()
+
+            gathered = tac.gather_data_with_token_id_fx(tmp, [], rank_info_existed=True)
+
+            self.assertEqual(len(gathered), 2)
+            self.assertIn(1, gathered[0])
+            self.assertIn(2, gathered[0])
+            self.assertIn(os.path.join(tmp, "image0", "0", "image0_0.npy"), gathered[0][1])
+            self.assertIn(os.path.join(tmp, "image0", "1", "image0_1.npy"), gathered[0][2])
+            self.assertIn(1, gathered[1])
+            self.assertIn(2, gathered[1])
+            self.assertIn(os.path.join(tmp, "image1", "0", "image1_0.npy"), gathered[1][1])
+            self.assertIn(os.path.join(tmp, "image1", "1", "image1_1.npy"), gathered[1][2])
+
+    def test_gather_data_with_token_id_fx_when_multiple_dump_groups_then_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for image_name in ["image0", "image1"]:
+                for token_id in ["1", "2"]:
+                    dump_path = os.path.join(tmp, image_name, token_id, "dump0")
+                    os.makedirs(dump_path)
+                    open(os.path.join(dump_path, f"{image_name}_{token_id}.npy"), "wb").close()
+
+            gathered = tac.gather_data_with_token_id_fx(tmp, [], rank_info_existed=False)
+
+            self.assertEqual(len(gathered), 2)
+            self.assertIn(1, gathered[0])
+            self.assertIn(2, gathered[0])
+            self.assertIn(os.path.join(tmp, "image0", "1", "dump0", "image0_1.npy"), gathered[0][1])
+            self.assertIn(os.path.join(tmp, "image0", "2", "dump0", "image0_2.npy"), gathered[0][2])
+            self.assertIn(1, gathered[1])
+            self.assertIn(2, gathered[1])
+            self.assertIn(os.path.join(tmp, "image1", "1", "dump0", "image1_1.npy"), gathered[1][1])
+            self.assertIn(os.path.join(tmp, "image1", "2", "dump0", "image1_2.npy"), gathered[1][2])
+
+    def test_gather_data_with_token_id_fx_when_empty_token_dir_then_skip_token(self):
+        # rank_info_existed=True: token dir with no .npy files should be skipped
+        with tempfile.TemporaryDirectory() as tmp:
+            token_empty = os.path.join(tmp, "0")
+            token_full = os.path.join(tmp, "1")
+            os.makedirs(token_empty)
+            os.makedirs(token_full)
+            open(os.path.join(token_full, "x.npy"), "wb").close()
+
+            gathered = tac.gather_data_with_token_id_fx(tmp, [], rank_info_existed=True)
+
+            self.assertEqual(len(gathered), 1)
+            self.assertNotIn(1, gathered[0])  # empty token dir is skipped
+            self.assertIn(2, gathered[0])
+            self.assertEqual(gathered[0][2], [os.path.join(token_full, "x.npy")])
+
+    def test_gather_data_with_token_id_fx_when_empty_dump_dir_then_skip_dump(self):
+        # rank_info_existed=False: dump dir with no .npy files should be skipped
+        with tempfile.TemporaryDirectory() as tmp:
+            for token_id in ["1", "2"]:
+                token_path = os.path.join(tmp, token_id)
+                os.makedirs(token_path)
+                if token_id == "1":
+                    dump_path = os.path.join(token_path, "dump0")
+                    os.makedirs(dump_path)
+                    open(os.path.join(dump_path, "x.npy"), "wb").close()
+                else:
+                    empty_dump = os.path.join(token_path, "dump0")
+                    os.makedirs(empty_dump)
+
+            gathered = tac.gather_data_with_token_id_fx(tmp, [], rank_info_existed=False)
+
+            self.assertEqual(len(gathered), 1)
+            self.assertNotIn(2, gathered[0])  # token 2's only dump is empty, skipped
+            self.assertIn(1, gathered[0])
+            self.assertEqual(gathered[0][1], [os.path.join(tmp, "1", "dump0", "x.npy")])
+
+    def test_gather_data_with_token_id_fx_when_inconsistent_dump_counts_then_use_min(self):
+        # When tokens have different numbers of dump dirs, gather_data should
+        # use the smallest count and emit a warning instead of silently skipping.
+        with tempfile.TemporaryDirectory() as tmp:
+            # token "1" has 2 dump dirs, token "2" has 1 dump dir
+            for token_id, dump_count in [("1", 2), ("2", 1)]:
+                token_path = os.path.join(tmp, token_id)
+                os.makedirs(token_path)
+                for i in range(dump_count):
+                    dump_path = os.path.join(token_path, f"dump{i}")
+                    os.makedirs(dump_path)
+                    open(os.path.join(dump_path, f"{token_id}_dump{i}.npy"), "wb").close()
+
+            gathered = tac.gather_data_with_token_id_fx(tmp, [], rank_info_existed=False)
+
+            # num_dumps = min(2, 1) = 1
+            self.assertEqual(len(gathered), 1)
+            self.assertIn(1, gathered[0])
+            self.assertIn(2, gathered[0])
+            self.assertEqual(gathered[0][1], [os.path.join(tmp, "1", "dump0", "1_dump0.npy")])
+            self.assertEqual(gathered[0][2], [os.path.join(tmp, "2", "dump0", "2_dump0.npy")])
+
     def test_gather_data_with_token_id_when_rank_info_existed_true_then_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
             parent = os.path.join(tmp, "parent")

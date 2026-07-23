@@ -38,8 +38,8 @@ MAX_TOKEN_LEN = 12
 def get_rank_id_from_torchair_data(dir_name: str):
     rank_id = -1
     rank_index = dir_name.rfind('rank')
-    if dir_name.startswith('worldsize') and rank_index != -1 and str.isdigit(dir_name[rank_index + 4:]):
-        rank_id = int(dir_name[rank_index + 4:])
+    if dir_name.startswith('worldsize') and rank_index != -1 and str.isdigit(dir_name[rank_index + 4 :]):
+        rank_id = int(dir_name[rank_index + 4 :])
     return rank_id
 
 
@@ -152,49 +152,73 @@ def _validate_read_path(path):
 
 
 def gather_data_with_token_id_fx(data_path, token_dirs, rank_info_existed=False):
-    for cur_path, dirs, _ in os.walk(data_path):
-        if len(dirs) == 0:
-            continue
-        if all([len(ii) < MAX_TOKEN_LEN and str.isdigit(ii) for ii in dirs]):
-            dirs = sorted(dirs, key=lambda xx: int(xx))
-            token_dirs = [os.path.join(cur_path, dir_name) for dir_name in dirs]
-            break
+    token_dir_groups = []
+    if token_dirs:
+        token_dir_groups.append(token_dirs)
+    else:
+        # Sort os.walk by cur_path so the resulting token_dir_groups list is
+        # in a stable order regardless of the underlying filesystem's
+        # os.listdir() ordering (which differs between e.g. ext4 / overlayfs /
+        # some CI sandboxes and would otherwise swap groups for callers that
+        # rely on positional ordering).
+        for cur_path, dirs, _ in sorted(os.walk(data_path), key=lambda x: x[0]):
+            if len(dirs) == 0:
+                continue
+            if all(len(ii) < MAX_TOKEN_LEN and str.isdigit(ii) for ii in dirs):
+                dirs.sort(key=int)
+                token_dir_groups.append([os.path.join(cur_path, dir_name) for dir_name in dirs])
 
-    if len(token_dirs) == 0:
-        token_dirs.append(data_path)  # Just use data_path if found no token like dirs
+    if len(token_dir_groups) == 0:
+        token_dir_groups.append([data_path])  # Just use data_path if found no token like dirs
 
     gathered_files_list = []
 
-    if rank_info_existed:
-        gathered_files = {}
-        for token_dir in token_dirs:
-            cur_token_id = os.path.basename(token_dir)
-            cur_token_id = int(cur_token_id) + 1 if cur_token_id.isdigit() else 0
-            file_names = [os.path.join(token_dir, f) for f in os.listdir(token_dir) if f.endswith(".npy")]
-            gathered_files[cur_token_id] = file_names
-        gathered_files_list.append(gathered_files)
-        return gathered_files_list
+    for token_group in token_dir_groups:
+        if rank_info_existed:
+            gathered_files = {}
+            for token_dir in token_group:
+                cur_token_id = os.path.basename(token_dir)
+                cur_token_id = int(cur_token_id) + 1 if cur_token_id.isdigit() else 0
+                file_names = [os.path.join(token_dir, f) for f in os.listdir(token_dir) if f.endswith(".npy")]
+                if not file_names:
+                    # Skip empty token directories rather than silently include them;
+                    # downstream stages assume gathered_files[token_id] is non-empty.
+                    continue
+                gathered_files[cur_token_id] = file_names
+            if gathered_files:
+                gathered_files_list.append(gathered_files)
+            continue
 
-    dump_dirs = {}
-    for token_dir in token_dirs:
-        cur_token_id = os.path.basename(token_dir)
-        cur_token_id = int(cur_token_id) if cur_token_id.isdigit() else 0
-        dump_dirs[cur_token_id] = sorted(
-            [
-                os.path.join(token_dir, d)
-                for d in os.listdir(token_dir)
-                if os.path.isdir(os.path.join(token_dir, d))
-            ],
-            key=lambda x: os.path.basename(x),
-        )
-    num_dumps = len(dump_dirs.get(1, None))
-    for i in range(num_dumps):
-        gathered_files = {}
-        for cur_token_id, dumps in dump_dirs.items():
-            dump_path = dumps[i]
-            file_names = [os.path.join(dump_path, f) for f in os.listdir(dump_path) if f.endswith(".npy")]
-            gathered_files[cur_token_id] = file_names
-        gathered_files_list.append(gathered_files)
+        dump_dirs = {}
+        for token_dir in token_group:
+            cur_token_id = os.path.basename(token_dir)
+            cur_token_id = int(cur_token_id) if cur_token_id.isdigit() else 0
+            dump_dirs[cur_token_id] = sorted(
+                [
+                    os.path.join(token_dir, d)
+                    for d in os.listdir(token_dir)
+                    if os.path.isdir(os.path.join(token_dir, d))
+                ],
+                key=os.path.basename,
+            )
+        num_dumps_per_token = {tid: len(dumps) for tid, dumps in dump_dirs.items()}
+        distinct_counts = set(num_dumps_per_token.values())
+        if len(distinct_counts) > 1:
+            logger.warning(
+                f"gather_data_with_token_id_fx found inconsistent dump counts across tokens: {num_dumps_per_token}. "
+                "The smallest count will be used to avoid mixing unmatched dump indices."
+            )
+        num_dumps = min(num_dumps_per_token.values()) if num_dumps_per_token else 0
+        for i in range(num_dumps):
+            gathered_files = {}
+            for cur_token_id, dumps in dump_dirs.items():
+                dump_path = dumps[i]
+                file_names = [os.path.join(dump_path, f) for f in os.listdir(dump_path) if f.endswith(".npy")]
+                if not file_names:
+                    continue
+                gathered_files[cur_token_id] = file_names
+            if gathered_files:
+                gathered_files_list.append(gathered_files)
     return gathered_files_list
 
 
@@ -218,13 +242,11 @@ def gather_data_with_token_id(data_path, fx=False, rank_info_existed=False):
     for token_dir in token_dirs:
         if is_multi_device:
             parts = token_dir
-            """
-            token_dir格式如下：
-            /home/dump/dump_20241114_113410/0/graph_1_0/1/4/
-            dump路径+时间戳+device_id+子图名称+子图ID号+token_id
-            对于多卡场景，应取device_id下相同的子图进行比较，
-            此处parts=/home/dump/dump_20241114_113410/0
-            """
+            # token_dir格式如下：
+            # /home/dump/dump_20241114_113410/0/graph_1_0/1/4/
+            # dump路径+时间戳+device_id+子图名称+子图ID号+token_id
+            # 对于多卡场景，应取device_id下相同的子图进行比较，
+            # 此处parts=/home/dump/dump_20241114_113410/0
             for _ in range(3):
                 parts = os.path.dirname(parts)
             parent_dir = os.path.basename(parts)
@@ -262,7 +284,9 @@ def init_ge_dump_data_from_bin_path(ge_dump_path):
     """
     gathered_files_list = gather_data_with_token_id(ge_dump_path)
     if not gathered_files_list:
-        raise Exception("Cannot get ge dump data, because the gathered_files_list is empty.")
+        raise CompareException(
+            CompareException.NO_DUMP_FILE_ERROR, "Cannot get ge dump data, because the gathered_files_list is empty."
+        )
 
     dump_data_with_token_id_list = []
     for gathered_files in gathered_files_list:
@@ -314,7 +338,9 @@ def init_fx_dump_data_from_path(fx_dump_path, rank_info_existed=False):
     """
     gathered_files_list = gather_data_with_token_id(fx_dump_path, fx=True, rank_info_existed=rank_info_existed)
     if not gathered_files_list:
-        raise Exception("Cannot get fx dump data, because the gathered_files_list is empty.")
+        raise CompareException(
+            CompareException.NO_DUMP_FILE_ERROR, "Cannot get fx dump data, because the gathered_files_list is empty."
+        )
 
     dump_data_with_token_id_list = []
     for gathered_files in gathered_files_list:
@@ -361,16 +387,14 @@ def get_all_ops_from_fusion_op(op_name, graph_map_dict, ge_dump_data):
             logger.debug(f"Failed parsing ge op name: {cur_op_name}.Compare manually if required.")
             break
         all_ops.append(cur_op_name)
-        op_name = op_name[len(cur_op_name):]
+        op_name = op_name[len(cur_op_name) :]
     return all_ops
 
 
 def compare_ge_with_fx(graph_map, ge_dump_data, fx_dump_data, token_id=0):
     gathered_row_data = []
     graph_map_dict = {
-        graph["op"]["name"]: graph["op"]
-        for graph in graph_map
-        if "op" in graph and "name" in graph["op"]
+        graph["op"]["name"]: graph["op"] for graph in graph_map if "op" in graph and "name" in graph["op"]
     }
     ge_dump_data = sort_ge_dump_data(ge_dump_data, graph_map)
     for op_name, my_path in ge_dump_data.items():
@@ -540,7 +564,7 @@ def gather_fused_op_data(fused_op_name, op_map, fused_ge_dump_data, ge_dump_data
         gathered_ops.append(cur_op_name)
         gathered_inputs.extend(op_inputs)
         gatherd_input_pathes.extend(input_pathes)
-        fused_op_name = fused_op_name[len(cur_op_name):]
+        fused_op_name = fused_op_name[len(cur_op_name) :]
 
     filtered_input_names, filtered_inputs, filtered_input_pathes = [], [], []
     for input_name, inputs, input_path in zip(gathered_input_names, gathered_inputs, gatherd_input_pathes):
@@ -619,7 +643,10 @@ def acc_compare(golden_path, my_path, output_path='./', rank_id=None, rank_info_
     set_msaccucmp_path_from_cann()
 
     if not get_torchair_ge_graph_path(my_path):
-        raise Exception("Can not get ge graph, Please check whether the input path contains graph.")
+        raise CompareException(
+            CompareException.INVALID_PATH_ERROR,
+            "Can not get ge graph, Please check whether the input path contains graph.",
+        )
 
     if rank_info_existed:
         if rank_id is None:
@@ -638,7 +665,9 @@ def acc_compare(golden_path, my_path, output_path='./', rank_id=None, rank_info_
 
             compared_ranks = list(golden_data_ranks & my_data_ranks)
             if not compared_ranks:
-                raise Exception("No common rank data in golden_path and my_path.")
+                raise CompareException(
+                    CompareException.INVALID_PATH_ERROR, "No common rank data in golden_path and my_path."
+                )
         else:
             compared_ranks = [rank_id]
     else:
@@ -651,14 +680,14 @@ def acc_compare(golden_path, my_path, output_path='./', rank_id=None, rank_info_
         acc_compare_once(args[0])
     else:
         # Use multiprocessing for multiple ranks but make sure to propagate exceptions
-        processes_pool = Pool(min(len(args), int(cpu_count() * 1.3)))
-        async_results = [processes_pool.apply_async(save_compare_once, (arg,)) for arg in args]
-        processes_pool.close()
-        # Ensure that exceptions in worker processes are not silenced. Calling `get()` will
-        # re-raise any exception occurred in the worker process in the main process.
-        for res in async_results:
-            res.get()
-        processes_pool.join()
+        with Pool(min(len(args), int(cpu_count() * 1.3))) as processes_pool:
+            async_results = [processes_pool.apply_async(save_compare_once, (arg,)) for arg in args]
+            processes_pool.close()
+            # Ensure that exceptions in worker processes are not silenced. Calling `get()` will
+            # re-raise any exception occurred in the worker process in the main process.
+            for res in async_results:
+                res.get()
+            processes_pool.join()
 
     return output_path
 
@@ -705,7 +734,7 @@ def acc_compare_once(*args):
             if is_dir and subdir.startswith('worldsize') and subdir.endswith(f'rank{rank_id}'):
                 subdirs.append(subdir)
         if not subdirs:
-            raise Exception(f'Can not get golden data in rank {rank_id}')
+            raise CompareException(CompareException.INVALID_PATH_ERROR, f'Can not get golden data in rank {rank_id}')
         golden_path = os.path.join(dir_of_golden_path, subdirs[-1])
 
         subdirs = []
@@ -714,7 +743,7 @@ def acc_compare_once(*args):
             if is_dir and subdir.startswith('worldsize') and subdir.endswith(f'rank{rank_id}'):
                 subdirs.append(subdir)
         if not subdirs:
-            raise Exception(f'Can not get my data in rank {rank_id}')
+            raise CompareException(CompareException.INVALID_PATH_ERROR, f'Can not get my data in rank {rank_id}')
         my_path = os.path.join(dir_of_my_path, subdirs[-1])
     else:
         golden_path = dir_of_golden_path
@@ -723,7 +752,10 @@ def acc_compare_once(*args):
     ge_graph_path = get_torchair_ge_graph_path(dir_of_my_path, rank_id)
 
     if not ge_graph_path:
-        raise Exception("Can not get ge graph, Please check whether the input path contains graph.")
+        raise CompareException(
+            CompareException.INVALID_PATH_ERROR,
+            "Can not get ge graph, Please check whether the input path contains graph.",
+        )
 
     logger.info(f"[compare_torchair], golden_path: {golden_path}, my_path: {my_path}, ge_graph_path: {ge_graph_path}")
 
