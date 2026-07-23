@@ -40,6 +40,8 @@ class TestPrecisionDebugger(unittest.TestCase):
     def test_init(self):
         step = get_real_step_or_rank([0, 1, "3-5"], Const.STEP)
         self.assertListEqual(step, [0, 1, 3, 4, 5])
+        step = get_real_step_or_rank(["0", 1, "3-5"], Const.STEP)
+        self.assertListEqual(step, [0, 1, 3, 4, 5])
 
     def test_check_input_params(self):
         args = Args(config_path=1)

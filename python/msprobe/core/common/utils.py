@@ -510,7 +510,16 @@ def print_tools_ends_info():
 
 def get_step_or_rank_from_string(step_or_rank, obj):
     splited = step_or_rank.split(Const.HYPHEN)
-    if len(splited) == 2:
+    if len(splited) == 1:
+        try:
+            borderlines = int(splited[0]), int(splited[0])
+        except (ValueError, IndexError) as e:
+            raise MsprobeException(
+                MsprobeException.INVALID_PARAM_ERROR,
+                f'The string parameter for {obj} only supports formats like "3" or "3-5". '
+                f'Now string parameter for {obj} is "{step_or_rank}".',
+            ) from e
+    elif len(splited) == 2:
         try:
             borderlines = int(splited[0]), int(splited[1])
         except (ValueError, IndexError) as e:
@@ -520,7 +529,7 @@ def get_step_or_rank_from_string(step_or_rank, obj):
     else:
         raise MsprobeException(
             MsprobeException.INVALID_PARAM_ERROR,
-            f'The string parameter for {obj} only supports formats like "3-5". '
+            f'The string parameter for {obj} only supports formats like "3" or "3-5". '
             f'Now string parameter for {obj} is "{step_or_rank}".',
         )
     if all(Const.STEP_RANK_MINIMUM_VALUE <= b <= Const.STEP_RANK_MAXIMUM_VALUE for b in borderlines):

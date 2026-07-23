@@ -313,6 +313,12 @@ class TestUtils(TestCase):
         self.assertEqual(context.exception.code, MsprobeException.INVALID_PARAM_ERROR)
         result = get_real_step_or_rank([1, 10, 50], "step")
         self.assertEqual(result, [1, 10, 50])
+        result = get_real_step_or_rank(["0"], "step")
+        self.assertEqual(result, [0])
+        result = get_real_step_or_rank(["0", "2-3"], "step")
+        self.assertEqual(result, [0, 2, 3])
+        result = get_real_step_or_rank(["0"], "rank")
+        self.assertEqual(result, [0])
 
     def test_get_step_or_rank_from_string(self):
         with self.assertRaises(MsprobeException) as context:
@@ -327,6 +333,8 @@ class TestUtils(TestCase):
         with self.assertRaises(MsprobeException) as context:
             get_step_or_rank_from_string("5-100000000000000", "step")
         self.assertEqual(context.exception.code, MsprobeException.INVALID_PARAM_ERROR)
+        result = get_step_or_rank_from_string("0", "step")
+        self.assertEqual(result, [0])
         result = get_real_step_or_rank(["1-5", 10], "rank")
         self.assertEqual(result, [1, 2, 3, 4, 5, 10])
         result = get_real_step_or_rank([10, "1-3", 3], "step")
