@@ -150,7 +150,8 @@ msProbe 的功能覆盖训练和推理等多种场景。请根据您的实际使
 分级可视化构图比对 <zh/user_guide/accuracy_compare/pytorch_visualization_instruct>
 精度比对 <zh/user_guide/accuracy_compare/pytorch_accuracy_compare_instruct>
 编译精度比对 <zh/user_guide/accuracy_compare/pytorch_compile_accuracy_compare_instruct>
-训练状态监测 <zh/user_guide/monitor_instruct.md>
+训练状态监测 <zh/user_guide/monitor_instruct>
+趋势可视化 <zh/user_guide/accuracy_compare/trend_visualization_instruct>
 精度预检 <zh/user_guide/accuracy_checker/pytorch_accuracy_checker_instruct>
 ```
 
