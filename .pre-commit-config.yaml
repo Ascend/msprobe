@@ -103,3 +103,15 @@ repos:
           - --redact
           - --config=pre-commit/.gitleaks.toml
         stages: [pre-commit]
+
+  # --------------- C++ 静态检查（本地 clang-tidy）------------------
+  - repo: local
+    hooks:
+      - id: clang-tidy
+        name: clang-tidy (本地venv)
+        entry: clang-tidy
+        language: system
+        pass_filenames: true
+        files: ^csrc/.+\.(c|h|cpp|hpp|cc|hh|cxx|hxx)$
+        args:
+          - "--config-file=.clang-tidy"
