@@ -89,7 +89,7 @@
 
 通过git分支检查MindIE、vLLM、Transformers等三方库版本是否与标杆对齐。
 
-通过pip list检查PyTorch、torch-npu等第三方库版本是否与标杆对齐。
+通过pip list检查PyTorch、torch_npu等第三方库版本是否与标杆对齐。
 
 - **数据读取检查** 
 
