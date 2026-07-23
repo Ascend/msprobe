@@ -102,7 +102,10 @@ class DBImporter:
 
         valid_ranks = dump_scan_files(self.data_path)
         if not valid_ranks:
-            logger.warning(f"No valid 'step*' directories found in: {self.data_path}")
+            logger.info(
+                f"No valid dump data discovered in {self.data_path}; "
+                "dump import skipped. See preceding scan warnings for the exact reason."
+            )
             return
         dump_db_file = os.path.join(self.db_path, Data2DBConst.DB_DUMP)
         self._ensure_db_file_clean(dump_db_file)

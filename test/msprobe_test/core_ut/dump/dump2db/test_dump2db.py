@@ -530,23 +530,49 @@ class TestScanFilesAdditional(unittest.TestCase):
         with open(os.path.join(item_path, "construct.json"), "w") as f:
             json.dump({}, f)
 
-    def test_scan_files_empty_dir(self):
-        """空目录返回空结果"""
+    @patch("msprobe.core.dump.dump2db.dump2db.logger")
+    def test_scan_files_empty_dir(self, mock_logger):
+        """Return an empty result and warn when no valid step exists."""
         result = scan_files(self.temp_dir)
         self.assertEqual(result, {})
+        mock_logger.warning.assert_called_once_with(
+            f"No valid 'step*' directories found in: {self.temp_dir}. "
+            "Expected directory names like 'step0'."
+        )
 
-    def test_scan_files_invalid_step_name(self):
-        """无效step名称应跳过"""
-        os.makedirs(os.path.join(self.temp_dir, "not_a_step"), exist_ok=True)
+    @patch("msprobe.core.dump.dump2db.dump2db.logger")
+    def test_scan_files_invalid_step_name(self, mock_logger):
+        """Skip malformed step directories and report the step-level issue."""
+        os.makedirs(os.path.join(self.temp_dir, "stepabc"), exist_ok=True)
         result = scan_files(self.temp_dir)
         self.assertEqual(result, {})
+        mock_logger.warning.assert_called_once_with(
+            f"No valid 'step*' directories found in: {self.temp_dir}. "
+            "Expected directory names like 'step0'."
+        )
 
-    def test_scan_files_no_json_files(self):
-        """有step目录但无dump.json时该step不会出现在结果中"""
+    @patch("msprobe.core.dump.dump2db.dump2db.logger")
+    def test_scan_files_no_rank_or_proc_directories(self, mock_logger):
+        """Warn when a valid step has no valid rank/proc directory."""
+        step_path = os.path.join(self.temp_dir, "step0")
+        os.makedirs(os.path.join(step_path, "rankabc"), exist_ok=True)
+
+        result = scan_files(self.temp_dir)
+
+        self.assertEqual(result, {})
+        mock_logger.warning.assert_called_once_with(
+            f"No valid 'rank*' or 'proc*' directories found in: {step_path}. "
+            "Expected directory names like 'rank0' or 'proc0'. Skipped entries: rankabc"
+        )
+
+    @patch("msprobe.core.dump.dump2db.dump2db.logger")
+    def test_scan_files_no_json_files(self, mock_logger):
+        """Warn when a valid rank/proc directory is missing dump.json."""
         rank_path = os.path.join(self.temp_dir, "step0", "rank0")
         os.makedirs(rank_path, exist_ok=True)
         result = scan_files(self.temp_dir)
         self.assertNotIn(0, result)
+        mock_logger.warning.assert_called_once_with(f"No 'dump.json' file found in: {rank_path}")
 
     def test_scan_files_proc_directories(self):
         """proc目录正确映射为rank编号"""
