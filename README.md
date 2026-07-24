@@ -72,6 +72,7 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 | **MSAdapter场景** | - | 数据采集 | 通过config.json配置，完成msProbe精度数据采集操作 | [数据采集](docs/zh/user_guide/dump/msadapter_data_dump_instruct.md) |
 | | | checkpoint比对 | 训练过程中或结束后，比较两个不同的checkpoint，评估模型相似度 | [checkpoint比对](docs/zh/user_guide/checkpoint_compare_instruct.md) |
 | **Slime场景** |-| 数据采集         | 训推阶段完成msProbe精度数据采集操作            | [数据采集](docs/zh/user_guide/dump/slime_train_rollout_dump_instruct.md) |
+| | | 训推一致性比对数据采集 | megatron训练后端，sglang推理引擎，保证训推一致性比对时的输入shape一致的比对数据采集操作 | [slime框架训推一致性预处理与数据采集](docs/zh/user_guide/dump/slime_consistency_preprocess_dump.md) |
 
 ## 🚀 快速入门
 
