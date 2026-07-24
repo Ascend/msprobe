@@ -40,7 +40,7 @@
 
 3. 安装框架。
 
-   PyTorch训练场景以安装PyTorch 2.9.0、Python 3.12、系统架构AArch64、torchvision==0.24.0为例，具体操作请参见《[Ascend Extension for PyTorch 软件安装指南](https://www.hiascend.com/document/detail/zh/Pytorch/730/configandinstg/instg/insg_0001.html)》的“安装PyTorch > [方式一：二进制软件包安装](https://www.hiascend.com/document/detail/zh/Pytorch/730/configandinstg/instg/docs/zh/installation_guide/installation_via_binary_package.md)”章节。
+   PyTorch训练场景以安装PyTorch 2.9.0、Python 3.12、系统架构AArch64、torchvision==0.24.0为例，具体操作请参见《[Ascend Extension for PyTorch 软件安装指南](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/installation_guide/installation_description.md)》的“安装PyTorch > [方式一：离线安装（Whl）](https://gitcode.com/Ascend/pytorch/blob/v2.7.1-26.0.0/docs/zh/installation_guide/installation_via_binary_package.md)”章节。
 
 4. 安装本工具，具体请参见《[msProbe工具安装指南](../msprobe_install_guide.md)》。
 

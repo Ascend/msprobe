@@ -80,7 +80,7 @@ In addition, issue locating is primarily performed based on comparison between t
 - Weight initialization alignment 
  Check whether the initialized weights are consistent before training. Ensure that the same pre-trained model is loaded or the same random seed is used for initialization. For details about how to fix randomness, see [Fixing Randomness](#221-fixing-randomness). During the check, you can use the [script comparison tool](#48-script-comparison-tool) for automatic comparison.
 - Environment version update 
- Update the environment version only when conditions permit. Based on past troubleshooting for accuracy issues, most issues have been fixed in the latest version. Therefore, you are advised to install the CANN, driver, and PTA packages of the latest commercial version.
+ Update the environment version only when conditions permit. Based on past troubleshooting for accuracy issues, most issues have been fixed in the latest version. Therefore, you are advised to install the CANN, driver, and PTA packages of the latest version.
 
 ### 2.2 Preparations for Reproducing the Problem
 
@@ -296,7 +296,7 @@ Troubleshooting
 
 1. Enable asynchronous dump. Specifically, add `async_dump: true` to `config.json` of the [precision collection tool](#43-precision-collection-tool). In addition, collect tensor data from the first NaN occurrence in two training runs: one with stream synchronization (no NaN) and one without (NaN present). If `async dump` still affects reproduction, manually mount hooks or use `print` statements.
 2. Analyze whether the tensor difference pattern suggests memory corruption (e.g., regular corruption patterns: multiples of 2048, row-aligned, column-aligned).
-3. Use msProf in conjunction with msInsight to examine the computation parallelism. For detailed instructions, refer to the [msProf User Guide](https://gitcode.com/Ascend/msprof) and [msInsight User Guide](https://gitcode.com/Ascend/msinsight).
+3. Use msProf in conjunction with msInsight to examine the computation parallelism. For detailed instructions, refer to the [msProf User Guide](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0001.html) and [msInsight User Guide](https://gitcode.com/Ascend/msinsight/blob/26.0.0/docs/en/user_guide/overview.md).
 4. Add pointer address printing. For NaN occurrence locations, intrusively modify PyTorch or PTA source code to add prints.
 5. Use the [operator competition tool](https://gitcode.com/Ascend/mssanitizer/blob/26.0.0/docs/en/quick_start/mssanitizer_quick_start.md) to check whether the operator's implementation (intra-pipeline for instruction execution, inter-pipeline for operator transfers, and inter-core for `aicube` and `aivector` parallelism) has anomalies indicating memory corruption.
 6. If the root cause is still not found, refer to a more detailed memory issue debugging guide.

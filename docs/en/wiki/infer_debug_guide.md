@@ -296,7 +296,7 @@ As shown in the preceding figure, matmul is the suspicious operator. You can rep
 
 Mind Inference Engine (MindIE) is an inference acceleration suite provided by Ascend for various AI scenarios. Through layered open AI capabilities, it supports diverse AI service needs and empowers a large number of models by leveraging the compute of Ascend hardware. MindIE supports multiple mainstream AI frameworks and is compatible with different types of Ascend AI processors, providing multi-layer programming APIs to help users quickly build inference services based on the Ascend platform.
 
-Currently, MindIE is often used together with the [Ascend Transformer Boost (ATB)](https://www.hiascend.com/document/detail/en/canncommercial/850/acce/ascendtb/ascendtb_0001.html) acceleration library to achieve optimal inference performance. The following uses MindIE + ATB as an example to describe how to locate accuracy problems in MindIE scenarios.
+Currently, MindIE is often used together with the [Ascend Transformer Boost (ATB)](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/900/API/ascendtb/ascendtb_0001.html) acceleration library to achieve optimal inference performance. The following uses MindIE + ATB as an example to describe how to locate accuracy problems in MindIE scenarios.
 
 #### 4.1.2.1 Tool Usage
 
@@ -307,7 +307,7 @@ The following describes how to use the dump and comparison functions of the msPr
 Currently, the WHL msProbe installation package capable of dumping accuracy data for the ATB model can only be obtained by compiling the source code. The compilation and installation procedure is as follows:
 
 ```shell
-git clone https://gitcode.com/Ascend/msprobe.git
+git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
 cd msprobe
 
 pip install setuptools wheel

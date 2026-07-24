@@ -6,7 +6,7 @@ torch图模式（torchair）推理场景的精度数据采集是对torchair图�
 
 ## 基本概念
 
-- [torchair](https://www.hiascend.com/document/detail/zh/Pytorch/720/modthirdparty/torchairuseguide/torchair_00073.html)：torch图模式的后端，用于将torch模型编译为昇腾AI处理器上的可执行程序，包括计算图转换与优化。
+- [torchair](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/ascend_ir/api/api_list.md)：torch图模式的后端，用于将torch模型编译为昇腾AI处理器上的可执行程序，包括计算图转换与优化。
 - GE: GE指Graph Engine（图引擎），是昇腾AI计算平台的核心组件 。GE作为计算图编译和运行的控制中心，主要提供：
     - 图优化：对神经网络计算图进行优化，提高执行效率。
     - 图编译管理：将不同框架的模型转换为统一的内部表示，为图优化和执行提供基础。
@@ -229,7 +229,7 @@ dump数据保存路径为 `{dump_path}/msprobe_fx_dump`。其中 `{dump_path}` �
 
 在[GE融合模式dump数据](#ge融合模式dump数据)的基础上，通过 `set_ge_dump_config` 接口的 `fusion_switch_file` 参数传入设置关闭算子融合的配置文件。工具使用示例如下：
 
-- 创建设置关闭算子融合的配置文件 `fusion_switch.json`。算子融合规则的详解介绍可参见《PyTorch图模式使用(torchair)》中的“[算子融合规则配置功能](https://www.hiascend.com/document/detail/zh/Pytorch/710/modthirdparty/torchairuseguide/torchair_00025.html)”章节。
+- 创建设置关闭算子融合的配置文件 `fusion_switch.json`。算子融合规则的详解介绍可参见《PyTorch图模式使用(torchair)》中的“[算子融合规则配置功能](https://gitcode.com/Ascend/torchair/blob/26.0.0/docs/zh/ascend_ir/features/advanced/fusion_switch_file.md)”章节。
 
   ```json
   {

@@ -196,7 +196,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
     - 在`Megatron`、`DeepSpeed`类模型中，`overlap`参数（如`overlap-param-gather`、`overlap-grad-reduce`等）存在较高风险，可先关闭该类参数。
     - 在`FSDP`框架下使用混合精度出现的`NaN`问题，建议优先排查`torch-npu`框架导致的内存踩踏，可尝试切换torch-npu版本。
-    - `FA`（`npu_fusion_attention`）融合算子功能复杂，使用时易出现传参规范错误的问题，可先关闭`FA`分支，定界是否为`FA`导致。若定界确实为`FA`分支导致后，请参照[FA官网文档](https://www.hiascend.com/document/detail/zh/Pytorch/60RC3/apiref/apilist/ptaoplist_000762.html)来排查是否存在使用规范错误。
+    - `FA`（`npu_fusion_attention`）融合算子功能复杂，使用时易出现传参规范错误的问题，可先关闭`FA`分支，定界是否为`FA`导致。若定界确实为`FA`分支导致后，请参照[FA官网文档](https://gitcode.com/Ascend/op-plugin/blob/26.0.0/docs/zh/custom_APIs/torch_npu/torch_npu-npu_fusion_attention.md)来排查是否存在使用规范错误。
     - 确保打开了`Inf`/`NaN`模式或者非饱和模式，参照[附录-非饱和模式](#53-非饱和模式)。
 
 ##### 2.3.1.2 首Step Loss差异
@@ -287,9 +287,9 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 1. [精度采集工具](#43-精度采集工具)改`异步dump`，具体操作为在`config.json`文件中加入`async_dump: true`的配置项，同时采集开启流同步无`NaN`+不开流同步有`NaN`的两组训练中最先出现`NaN`的`tensor`数据。对于异步`dump`仍影响问题复现的，使用手动挂`Hook`或者`print`的方式采集数据。
 2. 分析`tensor`差异特征是否满足内存踩踏的规律性，一般内存踩踏时踩踏区域较为规整，如为按整倍踩（如`2048`）、按行踩、按列踩等。
-3. 使用`profiling`结合`insight`工具查看计算并行关系，具体操作参考[profling使用文档](https://gitcode.com/Ascend/msprof)和[insight使用文档](https://gitcode.com/Ascend/msinsight)。
+3. 使用`profiling`结合`insight`工具查看计算并行关系，具体操作参考[profling使用文档](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/900/devaids/Profiling/atlasprofiling_16_0001.html)和[insight使用文档](https://gitcode.com/Ascend/msinsight/blob/26.0.0/docs/zh/user_guide/overview.md)。
 4. 添加`ptr`内存地址打印，针对`NaN`出现的位置侵入式修改`PyTorch`或`torch-npu`源码添加打印。
-5. 使用[算子竞争工具](https://www.hiascend.com/document/detail/zh/canncommercial/800/devaids/opdev/optool/atlasopdev_16_0039.html)排查算子流水内（不同指令间执行）、流水间（算子搬运操作）和核间（`aicube`和`aivector`并行）的实现是否存在异常，来判断该算子是否存在内存踩踏。
+5. 使用[算子竞争工具](https://gitcode.com/Ascend/mssanitizer/blob/26.0.0/docs/zh/quick_start/mssanitizer_quick_start.md)排查算子流水内（不同指令间执行）、流水间（算子搬运操作）和核间（`aicube`和`aivector`并行）的实现是否存在异常，来判断该算子是否存在内存踩踏。
 6. 若以上排查仍未能定位根因，可进一步参考更详细的内存问题定位指南。
 
 ##### 2.3.2.2 算子确定性问题
@@ -434,7 +434,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
  数据采集后NPU会与标杆存在大量的层级名称/结构差异，优先以分级可视化工具进行比对，并通过[分级可视化工具](#44-分级可视化工具)的`点点匹配`功能，对因模块名称差异导致未自动匹配的节点进行手动对齐，方便后续进行对比分析。  
     <img src="https://raw.gitcode.com/user-images/assets/7898473/1c469d88-ebc5-45eb-b19d-6d40f1568755/image.png" alt="Your image title" width="800"/>  
 
-除此之外，更详细的操作可参考[推理精度定位指南](https://gitcode.com/Ascend/msprobe/wiki/%E5%A4%A7%E6%A8%A1%E5%9E%8B%E6%8E%A8%E7%90%86%E7%B2%BE%E5%BA%A6%E5%AE%9A%E4%BD%8D%E6%8C%87%E5%8D%97.md)。
+除此之外，更详细的操作可参考[推理精度定位指南](./infer_debug_guide.md)。
 
 ##### 2.3.3.2 reward排查
 
@@ -490,7 +490,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 **数据采集**
 
-- 对于FSDP框架的训练数据采集，在`verl`框架中的采集文件位置为`verl/workers/fsdp_workers.py`，工具在该文件中具体插入位置参考[VERL(FSDP后端)采集](https://gitcode.com/Ascend/msprobe/wiki/%E5%B8%B8%E8%A7%81%E6%A1%86%E6%9E%B6dump%E5%B7%A5%E5%85%B7%E4%BD%BF%E8%83%BD.md#verl-fsdp%E5%90%8E%E7%AB%AF)。
+- 对于FSDP框架的训练数据采集，在`verl`框架中的采集文件位置为`verl/workers/fsdp_workers.py`，工具在该文件中具体插入位置参考[VERL(FSDP后端)采集](./dump_enable_guide.md#verl-fsdp后端)。
 - 对于Megatron类框架的训练数据采集，在`verl`框架中的采集文件位置为`verl/workers/megatron_workers.py`，工具在该文件中具体插入位置与`FSDP`类似，此处不赘述。
 
 **数据分析**
