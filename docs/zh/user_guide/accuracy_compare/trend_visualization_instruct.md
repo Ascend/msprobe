@@ -350,7 +350,7 @@ plot_model_parallelism(config: ParallelConfig) -> None
 
 无
 
-# FAQ
+## FAQ
 
 1. 如何使用趋势可视化工具对比两组不同实验的精度数据文件？
    
