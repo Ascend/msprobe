@@ -2,7 +2,6 @@ import pytest
 import os
 import json
 import numpy as np
-import mock
 from datetime import datetime
 import unittest
 import inspect
@@ -178,6 +177,9 @@ class TestTrainerMonWithRealNetwork:
     @classmethod
     def setup_class(cls):
         """Setup once for all tests in this class"""
+        if ms.hal.device_count("Ascend") == 0:
+            pytest.skip("No Ascend NPU device available")
+
         cls.mock_config = {
             "start_step": 0,
             "collect_times": 10,

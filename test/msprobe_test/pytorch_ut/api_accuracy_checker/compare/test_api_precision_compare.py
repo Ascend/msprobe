@@ -441,6 +441,7 @@ class TestApiPrecisionCompare(unittest.TestCase):
         self.assertEqual(result, CompareConst.PASS)
 
     def test_record_thousandth_threshold_result(self):
+        self.row_npu = self.row_npu.astype(object)
         self.row_npu[ApiPrecisionCompareColumn.REL_ERR_THOUSANDTH] = 0.999
         self.compare_column.rel_err_thousandth = 0.999
         self.compare_column.rel_err_thousandth_status = CompareConst.PASS

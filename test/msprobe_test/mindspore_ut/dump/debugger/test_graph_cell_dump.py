@@ -227,7 +227,10 @@ class TestGetConstruct(unittest.TestCase):
         parent_cell_types.clear()
         parent_cell_types.update(self.original_parent_cell_types)
 
-        patch.stopall()
+        self.patcher_get_cell_name.stop()
+        self.patcher_get_data_mode.stop()
+        self.patcher_check_relation.stop()
+        self.patcher_get_parent_cell_name.stop()
 
     def test_get_construct_found_parent_cell(self):
         cell_list_input = ["cell1", "cell2"]
@@ -315,12 +318,13 @@ class TestGenerateConstruct(unittest.TestCase):
     def setUp(self):
         global dump_task
         self.original_dump_task = dump_task
-        patch.object(logger, 'info', MagicMock()).start()
+        self._logger_patcher = patch.object(logger, 'info', MagicMock())
+        self._logger_patcher.start()
 
     def tearDown(self):
         global dump_task
         dump_task = self.original_dump_task
-        patch.stopall()
+        self._logger_patcher.stop()
 
     @patch('msprobe.mindspore.dump.dump_processor.cell_dump_process.read_csv')
     @patch('msprobe.mindspore.dump.dump_processor.cell_dump_process.get_construct')

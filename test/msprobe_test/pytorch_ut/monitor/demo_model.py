@@ -51,7 +51,7 @@ class ToyDataset(torch.utils.data.Dataset):
 
 def monitor_demo(config: str = "./config/monitor_config.json"):
     net = Model().to(device=device)
-    optimizer = torch.optim.Adam(net.parameters(), lr=0.0001)
+    optimizer = torch.optim.Adam(net.parameters(), lr=0.0001, foreach=False)
 
     hooker = TrainerMon(
         config,

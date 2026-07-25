@@ -1267,7 +1267,7 @@ class TestMatch(unittest.TestCase):
         target_match_result = pd.DataFrame([['op', 'float32', [1, 2], 'summary', 'stack_info',
                                              'input', 'op_origin', 'False', 'data_name', 'op', [1, 2],
                                              'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A', 'N/A']],
-                                           columns=match.fuzzy_result_columns)
+                                           columns=match.fuzzy_result_columns, dtype=object)
         self.assertTrue(match_result.equals(target_match_result))
 
     def test_put_matched_in_table(self):
@@ -1294,7 +1294,7 @@ class TestMatch(unittest.TestCase):
                                              'input', 'op_origin', 'False', 'data_name', 'op', [1, 2],
                                              'op', 'float32', [1, 2], 'summary', 'stack_info',
                                              'input', 'op_origin', 'False', 'data_name']],
-                                           columns=match.fuzzy_result_columns)
+                                           columns=match.fuzzy_result_columns, dtype=object)
         self.assertTrue(match_result.equals(target_match_result))
 
     def test_rename_api(self):
@@ -1345,7 +1345,7 @@ class TestMatch(unittest.TestCase):
              'Functional.amax.1.forward.input.0', [1, 2]]
         ], columns=['op_name', 'dtype', 'shape', 'summary', 'stack_info',
                     'state', 'api_origin_name', 'requires_grad', 'data_name',
-                    'compare_key', 'compare_shape'])
+                    'compare_key', 'compare_shape'], dtype=object)
         bench_df = pd.DataFrame([
             ['Functional.conv2d.0.forward.input.0', 'float32', [1, 2], 'summary', 'stack_info',
              'input', 'Functional.conv2d.0.forward', 'True', 'Functional.conv2d.0.forward.input.0.pt',
@@ -1354,7 +1354,8 @@ class TestMatch(unittest.TestCase):
              'input', 'Functional.amax.0.forward', 'True', 'Functional.amax.0.forward.input.0.pt',
              'Functional.amax.0.forward.input.0', [1, 2]]
         ], columns=['op_name', 'dtype', 'shape', 'summary', 'stack_info',
-                    'state', 'api_origin_name', 'requires_grad', 'data_name', 'compare_key', 'compare_shape'])
+                    'state', 'api_origin_name', 'requires_grad', 'data_name', 'compare_key', 'compare_shape'],
+            dtype=object)
 
         match_result = match.process_fuzzy_match(npu_df, bench_df)
         expected = pd.DataFrame(
@@ -1370,7 +1371,7 @@ class TestMatch(unittest.TestCase):
                  'Functional.amax.0.forward.input.0', 'float32', [1, 2], 'summary', 'stack_info',
                  'input', 'Functional.amax.0.forward', 'True', 'Functional.amax.0.forward.input.0.pt']
             ]
-        , columns=match.fuzzy_result_columns)
+        , columns=match.fuzzy_result_columns, dtype=object)
 
         self.assertTrue(match_result.equals(expected))
 

@@ -124,6 +124,7 @@ class TestPatchDynamoCompile(unittest.TestCase):
         original_fn = lambda *args, **kwargs: None
         if not hasattr(self._cf_mod, '_compile'):
             self._cf_mod._compile = original_fn
+            self.original_compile = original_fn
 
         patch_dynamo_compile()
 
@@ -139,6 +140,7 @@ class TestPatchDynamoCompile(unittest.TestCase):
         original_fn = lambda *args, **kwargs: None
         if not hasattr(self._cf_mod, '_compile'):
             self._cf_mod._compile = original_fn
+            self.original_compile = original_fn
 
         patch_dynamo_compile()
         first_patched = self._cf_mod._compile
@@ -156,6 +158,8 @@ class TestPatchDynamoCompile(unittest.TestCase):
         def failing_compile(*args, **kwargs):
             raise RuntimeError("compile failed")
 
+        if not hasattr(self._cf_mod, '_compile') or self.original_compile is None:
+            self.original_compile = getattr(self._cf_mod, '_compile', None)
         self._cf_mod._compile = failing_compile
 
         patch_dynamo_compile()
@@ -179,8 +183,15 @@ class TestUnpatchDynamoCompile(unittest.TestCase):
             self._cf_mod._compile = self.original_compile
 
     def test_unpatch_when_not_patched(self):
+        # 先清理之前测试可能留下的 patch 状态，
+        # 确保 _compile 处于未被 patch 的状态
         if hasattr(self._cf_mod, '_compile'):
-            self.original_compile = self._cf_mod._compile
+            current = self._cf_mod._compile
+            if hasattr(current, '__msprobe_patched__'):
+                original = getattr(current, '__msprobe_original__', None)
+                if original is not None:
+                    self._cf_mod._compile = original
+        self.original_compile = getattr(self._cf_mod, '_compile', None)
         result = unpatch_dynamo_compile()
         self.assertFalse(result)
 
@@ -321,8 +332,9 @@ class TestAdaptMegatronDistributedMappings(unittest.TestCase):
             adapt_megatron_distributed_mappings()
 
     @patch('importlib.util.find_spec', return_value=True)
-    @patch('importlib.import_module', side_effect=ImportError)
+    @patch('importlib.import_module')
     def test_adapt_import_error(self, mock_import, mock_find_spec):
+        mock_import.side_effect = ImportError
         adapt_megatron_distributed_mappings()
 
     @patch('importlib.util.find_spec', return_value=True)

@@ -250,17 +250,21 @@ class TestGradMonitor(unittest.TestCase):
         test_module = MockModule()
         nn.init.constant_(test_module.linear.weight, 1.0)
         nn.init.constant_(test_module.linear.bias, 1.0)
-        optimizer = torch.optim.Adam(test_module.parameters())
+        optimizer = torch.optim.Adam(test_module.parameters(), foreach=False)
 
         monitor = TrainerMon(config_json_path, params_have_main_grad=False)
         monitor.set_monitor(test_module, grad_acc_steps=1, optimizer=optimizer)
 
-        for input_data, label in zip(inputs, labels):
-            output = test_module(input_data)
-            loss = loss_fun(output, label)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        with (
+            patch("msprobe.pytorch.monitor.utils.device", "cpu"),
+            patch("msprobe.pytorch.monitor.utils.NAN_TENSOR_ON_DEVICE", None),
+        ):
+            for input_data, label in zip(inputs, labels):
+                output = test_module(input_data)
+                loss = loss_fun(output, label)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
         cls.timestamp_dirpath = os.path.join(monitor_output, os.listdir(monitor_output)[0])
         csv2tensorboard_by_step(monitor_output)

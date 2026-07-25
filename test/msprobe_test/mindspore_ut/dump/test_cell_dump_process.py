@@ -600,10 +600,28 @@ class TestIsDownloadFinished(unittest.TestCase):
 class TestProcessStep(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp()
+        # 保存模块级全局变量，避免process_step()调用generate_construct()
+        # 通过"construct = {}"重新赋值导致其他测试的引用失效
+        import msprobe.mindspore.dump.dump_processor.cell_dump_process as cdp
+        self._saved_construct = cdp.construct
+        self._saved_cell_list = list(cdp.cell_list)
+        self._saved_free_cells = dict(cdp.free_cells)
+        self._saved_parent_cell_types = dict(cdp.parent_cell_types)
+        self._saved_dump_task = cdp.dump_task
 
     def tearDown(self):
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
+        # 恢复模块级全局变量
+        import msprobe.mindspore.dump.dump_processor.cell_dump_process as cdp
+        cdp.construct = self._saved_construct
+        cdp.cell_list.clear()
+        cdp.cell_list.extend(self._saved_cell_list)
+        cdp.free_cells.clear()
+        cdp.free_cells.update(self._saved_free_cells)
+        cdp.parent_cell_types.clear()
+        cdp.parent_cell_types.update(self._saved_parent_cell_types)
+        cdp.dump_task = self._saved_dump_task
 
     def test_process_step_skip(self):
         with patch("os.path.exists") as mock_exists:

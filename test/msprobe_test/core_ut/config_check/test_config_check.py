@@ -96,7 +96,7 @@ def train_test(seed, output_zip_path, shell_path, mock_env, mock_pip):
 
     if use_pytorch:
         loss_fun = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(test_module.parameters(), lr=1e-2)
+        optimizer = torch.optim.SGD(test_module.parameters(), lr=1e-2, foreach=False)
         ConfigChecker(test_module, shell_path, output_zip_path)
 
         for input_data, label in test_dataset:

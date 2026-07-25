@@ -35,6 +35,9 @@ dependencies = [
     "skl2onnx>=1.14.1",
     "pytz",
     "psutil",
+    "h5py",
+    "protobuf",
+    "onnxruntime",
 ]
 
 [project.scripts]

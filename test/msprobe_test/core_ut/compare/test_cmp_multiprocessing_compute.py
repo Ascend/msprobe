@@ -78,7 +78,7 @@ class TestCompareRealData(unittest.TestCase):
             CompareConst.COSINE, CompareConst.EUC_DIST, CompareConst.MAX_ABS_ERR, CompareConst.MAX_RELATIVE_ERR,
             CompareConst.ONE_THOUSANDTH_ERR_RATIO, CompareConst.FIVE_THOUSANDTHS_ERR_RATIO,
             CompareConst.ACCURACY, CompareConst.ERROR_MESSAGE
-        ])
+        ], dtype=object)
         os.makedirs(base_dir, mode=0o750, exist_ok=True)
         os.makedirs(base_dir3, mode=0o750, exist_ok=True)
         os.makedirs(pt_dir, mode=0o750, exist_ok=True)

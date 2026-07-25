@@ -111,11 +111,15 @@ class BuildManager:
 
         self.mod_list = []
         if 'include-mod' in self.extra:
-            mods = self.extra['include-mod'].split(',')
-            self.mod_list = [m for m in mods if m in MOD_LIST_RANGE]
-            invalid_mods = [m for m in mods if m not in MOD_LIST_RANGE]
-            if invalid_mods:
-                logging.warning("Unknown modules ignored: %s", invalid_mods)
+            raw = self.extra['include-mod']
+            if raw == 'all':
+                self.mod_list = list(MOD_LIST_RANGE)
+            else:
+                mods = raw.split(',')
+                self.mod_list = [m for m in mods if m in MOD_LIST_RANGE]
+                invalid_mods = [m for m in mods if m not in MOD_LIST_RANGE]
+                if invalid_mods:
+                    logging.warning("Unknown modules ignored: %s", invalid_mods)
 
         self.no_check = self.extra.get('no-check', 'false').lower() == 'true'
         self.has_cpp = any(mod in self.mod_list for mod in CPP_MODS)
@@ -387,6 +391,12 @@ class BuildManager:
 
     def _run_tests(self):
         test_dir = self.project_root / "test" / "msprobe_test"
+
+        # 安装依赖
+        self._execute_command(self._pip_cmd + ["install", "-e", str(self.project_root)])
+        self._install_torch_npu()
+        self._execute_command(self._pip_cmd + ["install", "mindspore"])
+
         self._execute_command(["bash", "run_test.sh"], cwd=test_dir)
 
     def _build_all(self):

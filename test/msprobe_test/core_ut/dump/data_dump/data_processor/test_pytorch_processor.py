@@ -806,7 +806,7 @@ class TestNanCheckDataProcessor(unittest.TestCase):
             patch.object(
                 NanCheckDataProcessor, "_nan_overflow_ops_available", return_value=True
             ),
-            patch("torch.npu.current_device", return_value=0),
+            patch.object(torch.npu, "current_device", return_value=0),
         ):
             return NanCheckDataProcessor(self.config, self.data_writer)
 
@@ -871,7 +871,7 @@ class TestNanCheckDataProcessor(unittest.TestCase):
         proc = self._create_processor()
         self.assertIsNone(proc._nan_buffer)
         with patch.object(torch, "empty", return_value=MagicMock()):
-            with patch("torch.npu.current_device", return_value=0):
+            with patch.object(torch.npu, "current_device", return_value=0):
                 proc._ensure_nan_buffer()
         self.assertIsNotNone(proc._nan_buffer)
 

@@ -214,12 +214,13 @@ class TestGenerateConstruct(unittest.TestCase):
     def setUp(self):
         global dump_task
         self.original_dump_task = dump_task
-        patch.object(logger, 'info', MagicMock()).start()
+        self._logger_patcher = patch.object(logger, 'info', MagicMock())
+        self._logger_patcher.start()
 
     def tearDown(self):
         global dump_task
         dump_task = self.original_dump_task
-        patch.stopall()
+        self._logger_patcher.stop()
 
     @patch('msprobe.mindspore.dump.dump_processor.cell_dump_with_insert_gradient.read_csv')
     @patch('msprobe.mindspore.dump.dump_processor.cell_dump_with_insert_gradient.get_construct')

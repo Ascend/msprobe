@@ -17,6 +17,9 @@ from msprobe.pytorch.common.utils import is_recomputation
 
 
 class TestMonitorUtils(unittest.TestCase):
+    @patch.multiple(
+        "msprobe.pytorch.monitor.utils", device="cpu", NAN_TENSOR_ON_DEVICE=None
+    )
     def test_get_nan_tensor(self):
         result = get_nan_tensor()
         self.assertTrue(torch.isnan(result).item())

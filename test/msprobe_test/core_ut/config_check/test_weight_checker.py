@@ -9,10 +9,8 @@ from msprobe.core.config_check.checkers.weights_checker import collect_weights_d
 
 class TestWeightComparison(unittest.TestCase):
     @patch('msprobe.core.config_check.utils.utils.get_tensor_features')
-    @patch('torch.nn.Module.named_parameters')
-    def test_collect_weights_data(self, mock_named_parameters, mock_get_tensor_features):
-        mock_model = unittest.mock.create_autospec(torch.nn.Module)
-        mock_named_parameters.return_value = [('param1', object())]
+    def test_collect_weights_data(self, mock_get_tensor_features):
+        mock_model = torch.nn.Linear(1, 1)
         mock_get_tensor_features.return_value = {'max': 1, 'min': 0, 'mean': 0.5, 'norm': 1}
         result = collect_weights_data(mock_model)
         self.assertEqual(isinstance(result, dict), True)
@@ -76,4 +74,3 @@ class TestWeightComparison(unittest.TestCase):
         result = compare_weight('bench', 'cmp')
         self.assertEqual(isinstance(result, pd.DataFrame), True)
         self.assertEqual(len(result), 2)
-

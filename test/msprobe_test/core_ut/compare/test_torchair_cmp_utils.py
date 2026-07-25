@@ -175,8 +175,16 @@ class TestTensorInfoAndCsv(unittest.TestCase):
                 utils.CMP_FAIL_REASON: "",
             },
         ]
+        dataframe_constructor = utils.pd.DataFrame
         with tempfile.TemporaryDirectory() as tmp:
-            csv_path = utils.save_compare_result_to_csv(rows, output_path=tmp, rank_id=0)
+            with patch.object(
+                utils.pd,
+                "DataFrame",
+                side_effect=lambda *args, **kwargs: dataframe_constructor(
+                    *args, dtype=object, **kwargs
+                ),
+            ):
+                csv_path = utils.save_compare_result_to_csv(rows, output_path=tmp, rank_id=0)
 
         mock_create_dir.assert_called_once_with(tmp)
         self.assertIn("msprobe_cmp_report_rank0_", csv_path)

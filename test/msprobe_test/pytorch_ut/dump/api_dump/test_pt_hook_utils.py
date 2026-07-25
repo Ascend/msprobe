@@ -34,10 +34,11 @@ class TestUtils(unittest.TestCase):
             'torch_npu': ['npu_op1']
         }
 
-        self.mock_listdir = patch('msprobe.pytorch.dump.api_dump.utils.os.listdir').start()
+        self._mock_listdir_patcher = patch('msprobe.pytorch.dump.api_dump.utils.os.listdir')
+        self.mock_listdir = self._mock_listdir_patcher.start()
 
     def tearDown(self):
-        patch.stopall()
+        self._mock_listdir_patcher.stop()
 
     def test_get_ops(self):
         with patch('msprobe.pytorch.dump.api_dump.utils.load_yaml') as mock_load:
@@ -71,9 +72,9 @@ class TestUtils(unittest.TestCase):
 
     def test_dynamic_import_op_failure(self):
         self.mock_listdir.return_value = ['fail.py']
-        with patch('importlib.import_module') as mock_import:
-            mock_import.side_effect = ImportError("Fake error")
-            with patch('msprobe.pytorch.dump.api_dump.utils.logger.warning') as mock_logger:
+        with patch('msprobe.pytorch.dump.api_dump.utils.logger.warning') as mock_logger:
+            with patch('importlib.import_module') as mock_import:
+                mock_import.side_effect = ImportError("Fake error")
                 ops = dynamic_import_op(MockPackage(), white_list=['fail.py'])
                 self.assertEqual(ops, {})
                 mock_logger.assert_called_once_with("import mock_package.fail failed!")
