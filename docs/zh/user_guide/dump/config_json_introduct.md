@@ -57,7 +57,8 @@
         "list": [],
         "tensor_list": [],
         "data_mode": ["all"],
-        "summary_mode": "statistics"
+        "summary_mode": "statistics",
+        "slice": []
     }
 }
 ```
@@ -70,14 +71,15 @@
 
 **参数说明**
 
-| 参数         | 可选/必选 | 解释                                                         |
-| ------------ | --------- | ------------------------------------------------------------ |
-| scope        | 可选      | PyTorch、MSAdapter以及MindSpore动态图场景dump范围，list[str]类型，默认未配置（list也未配置时表示dump所有API的数据）。详细配置方法请参见[scope参数配置说明](#scope参数配置说明)。 |
-| list         | 可选      | 自定义采集的算子列表，list[str]类型，默认未配置（scope也未配置时表示dump所有API的数据）。详细配置方法请参见[list参数配置说明](#list参数配置说明)。 |
+| 参数           | 可选/必选 | 解释                                                                                                                                                                       |
+|--------------| --------- |--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| scope        | 可选      | PyTorch、MSAdapter以及MindSpore动态图场景dump范围，list[str]类型，默认未配置（list也未配置时表示dump所有API的数据）。详细配置方法请参见[scope参数配置说明](#scope参数配置说明)。                                                 |
+| list         | 可选      | 自定义采集的算子列表，list[str]类型，默认未配置（scope也未配置时表示dump所有API的数据）。详细配置方法请参见[list参数配置说明](#list参数配置说明)。                                                                               |
 | tensor_list  | 可选      | 自定义采集真实数据的算子列表，list[str]类型，默认未配置。详细配置方法请参见[tensor_list参数配置说明](#tensor_list参数配置说明)。<br/>PyTorch、MSAdapter以及MindSpore动态图场景目前只支持level配置为L0、L1和mix级别。<br/>MindSpore静态图场景不支持。 |
-| device       | 可选      | 控制统计值计算所用的设备，可选值["device", "host"]，默认值为"host"。使用device计算会比host有性能加速，只支持min/max/avg/l2norm统计量。<br/>仅MindSpore静态图O0/O1场景支持。 |
-| data_mode    | 可选      | dump数据过滤，list[str]类型。详细配置方法请参见[data_mode参数配置说明](#data_mode参数配置说明)。 |
-| summary_mode | 可选      | 控制dump文件输出的模式，支持PyTorch、MSAdapter、MindSpore动态图以及MindSpore静态图L0级别jit_level=O0/O1场景。详细配置方法请参见[summary_mode参数配置说明](#summary_mode参数配置说明)。 |
+| device       | 可选      | 控制统计值计算所用的设备，可选值["device", "host"]，默认值为"host"。使用device计算会比host有性能加速，只支持min/max/avg/l2norm统计量。<br/>仅MindSpore静态图O0/O1场景支持。                                                |
+| data_mode    | 可选      | dump数据过滤，list[str]类型。详细配置方法请参见[data_mode参数配置说明](#data_mode参数配置说明)。                                                                                                       |
+| summary_mode | 可选      | 控制dump文件输出的模式，支持PyTorch、MSAdapter、MindSpore动态图以及MindSpore静态图L0级别jit_level=O0/O1场景。详细配置方法请参见[summary_mode参数配置说明](#summary_mode参数配置说明)。                                    |
+| slice        | 可选      | 对tensor进行切片, list[dict]类型。详细配置方法请参见[slice参数配置说明](#slice参数配置说明)。                                                                                                          |
 
 ### task配置为tensor
 
@@ -98,7 +100,8 @@
         "data_mode": ["all"],
         "bench_path": "/home/bench_data_dump",
         "summary_mode": "md5",
-        "diff_nums": 5        
+        "diff_nums": 5,
+        "slice": []
     }
 }
 ```
@@ -111,14 +114,15 @@
 
 **参数说明**
 
-| 参数         | 可选/必选 | 解释                                                                                                                                                                                                                                                                      |
-| -------------- | -------- |-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| scope          | 可选     | PyTorch、MSAdapter以及MindSpore动态图场景dump范围，list[str]类型，默认未配置（list也未配置时表示dump所有API的数据）。详细配置方法请参见[scope参数配置说明](#scope参数配置说明)。                                                                                    |
-| list           | 可选     | 自定义采集的算子列表，list[str]类型，默认未配置（scope也未配置时表示dump所有API的数据）。详细配置方法请参见[list参数配置说明](#list参数配置说明)。                                                                                                                  |
-| data_mode      | 可选     | dump数据过滤，list[str]类型。详细配置方法请参见[data_mode参数配置说明](#data_mode参数配置说明)。|
-| summary_mode  | 可选 | 控制dump文件输出的模式，支持PyTorch、MSAdapter、MindSpore动态图。可选参数：<br/>&#8226; md5：dump输出包含CRC-32值以及API统计信息的dump.json文件，用于验证数据的完整性。<br/>&#8226; statistics：dump仅输出包含API统计信息的dump.json文件。<br/>&#8226; xor：仅PyTorch场景支持。dump输出仅包含XOR二进制校验值（字段名为md5），不输出max、min、mean、L2norm统计信息。<br/>默认值为statistics。                             |
-| bench_path      | 可选     | 自动控制在PyTorch确定性问题定位时进行md5实时差异分析，即dump存在差异的md5数据，str类型，默认未配置本参数。<br/>需要在bench_path参数传入提前预置的md5数据路径（即在上一次dump操作时，summary_mode参数配置为md5），并且本次dump时同样配置summary_mode为md5。<br/>配置本参数后，dump会判断本次任务中每个tensor与预置的md5数据的差异，识别到差异节点后，进行真实数据dump。<br/>配置示例："bench_path": "./bench_dump_path"。 |
-| diff_nums      | 可选     | 最大差异次数，int类型，默认为1，仅PyTorch md5实时差异分析场景支持（即配置bench_path）。 表示第N次差异出现后，不再进行差异分析。过程中检测到差异对应的输入输出数据均dump。<br/>配置为-1时，表示持续检测溢出直到训练结束。<br/>配置示例："diff_nums": 3。 |
+| 参数             | 可选/必选 | 解释                                                                                                                                                                                                                                                                                  |
+|----------------|-------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| scope          | 可选    | PyTorch、MSAdapter以及MindSpore动态图场景dump范围，list[str]类型，默认未配置（list也未配置时表示dump所有API的数据）。详细配置方法请参见[scope参数配置说明](#scope参数配置说明)。                                                                                                                                                            |
+| list           | 可选    | 自定义采集的算子列表，list[str]类型，默认未配置（scope也未配置时表示dump所有API的数据）。详细配置方法请参见[list参数配置说明](#list参数配置说明)。                                                                                                                                                                                          |
+| data_mode      | 可选    | dump数据过滤，list[str]类型。详细配置方法请参见[data_mode参数配置说明](#data_mode参数配置说明)。                                                                                                                                                                                                                  |
+| summary_mode   | 可选    | 控制dump文件输出的模式，支持PyTorch、MSAdapter、MindSpore动态图。可选参数：<br/>&#8226; md5：dump输出包含CRC-32值以及API统计信息的dump.json文件，用于验证数据的完整性。<br/>&#8226; statistics：dump仅输出包含API统计信息的dump.json文件。<br/>&#8226; xor：仅PyTorch场景支持。dump输出仅包含XOR二进制校验值（字段名为md5），不输出max、min、mean、L2norm统计信息。<br/>默认值为statistics。 |
+| bench_path     | 可选    | 自动控制在PyTorch确定性问题定位时进行md5实时差异分析，即dump存在差异的md5数据，str类型，默认未配置本参数。<br/>需要在bench_path参数传入提前预置的md5数据路径（即在上一次dump操作时，summary_mode参数配置为md5），并且本次dump时同样配置summary_mode为md5。<br/>配置本参数后，dump会判断本次任务中每个tensor与预置的md5数据的差异，识别到差异节点后，进行真实数据dump。<br/>配置示例："bench_path": "./bench_dump_path"。    |
+| diff_nums      | 可选    | 最大差异次数，int类型，默认为1，仅PyTorch md5实时差异分析场景支持（即配置bench_path）。 表示第N次差异出现后，不再进行差异分析。过程中检测到差异对应的输入输出数据均dump。<br/>配置为-1时，表示持续检测溢出直到训练结束。<br/>配置示例："diff_nums": 3。                                                                                                                            |
+| slice          | 可选    | 对tensor进行切片, list[dict]类型。详细配置方法请参见[slice参数配置说明](#slice参数配置说明)。                                                                                                                                                                                                                     |
 
 ### task配置为acc_check
 
@@ -357,3 +361,31 @@ MindSpore动态图场景下，"level"须为"L2"; MindSpore静态图场景下，"
   配置示例："summary_mode": ["max", "min"]。
 
 **说明**：PyTorch、MSAdapter以及MindSpore动态图场景，"summary_mode"配置为"md5"时，所使用的校验算法为CRC-32算法；MindSpore静态图场景，"summary_mode"配置为"md5"时，所使用的校验算法为MD5算法。
+
+### slice参数配置说明
+
+- PyTorch
+
+  list[dict]类型。
+
+  - 对tensor进行切片，默认值为空，表示不切分。
+  - dict里的key可选值为["dim", "size", "begin", "end"]，value必须是整数。
+  - `dim`表示要进行切片的维度，从0开始计算，必须大于等于0，不填默认是0。
+  - `size`表示选中的维度的目标大小，只有等于size时才切片，从1开始计算，必须大于等于0，不填表示对任意大小进行切分。
+  - `begin`表示切片的开始位置，包括当前位置，从0开始计算，不填默认是0。
+  - `end`表示切片的结束位置，不包括当前位置，从0开始计算，不填表示切到末尾。
+
+**配置样例**：
+
+ | 配置字段 | 配置样例 | 说明                     |
+|---------|---------|------------------------|
+| `begin` | `"slice": [{"begin": 10}]` | 移除第0维的前10个数据           |
+| `begin`（负值） | `"slice": [{"begin": -10}]` | 保留第0维的后10个数据           |
+| `end` | `"slice": [{"end": 10}]` | 保留第0维的前10个数据           |
+| `end`（负值） | `"slice": [{"end": -10}]` | 移除第0维的后10个数据           |
+| `begin` + `end` | `"slice": [{"begin": 10, "end": 20}]` | 保留第0维的10到20个数据         |
+| `dim` + `begin` + `end` | `"slice": [{"dim": 1, "begin": 10, "end": 20}]` | 指定第1维保留第10到20个数据       |
+| `size` + `begin` + `end` | `"slice": [{"size": 50, "begin": 10, "end": 20}]` | 当第0维大小为50时，保留第10到20个数据 |
+| `dim` + `size` + `begin` + `end` | `"slice": [{"dim": 1, "size": 50, "begin": 10, "end": 20}]` | 当第1维大小为50时，保留第10到20个数据 |
+
+>说明： PyTorch动态图场景，只对 `statistics` 和 `tensor` 生效，支持`L0`、`L1`和`mix`；PyTorch静态图场景，只对`statistics` 生效，支持`L0`、`L1`和`mix`。
