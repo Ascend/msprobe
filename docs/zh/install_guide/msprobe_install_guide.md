@@ -294,7 +294,7 @@ Author:
 Author-email: Ascend Team <pmail_mindstudio@xx.com>
 License-Expression: MulanPSL-2.0
 Location: /xxx/xxx/miniconda3/envs/xxx/lib/python3.x/site-packages/
-Requires: einops, matplotlib, numpy, openpyxl, pandas, psutil, pytz, pyyaml, rich, skl2onnx, tensorboard, tqdm, wheel
+Requires: einops, matplotlib, numpy, openpyxl, pandas, psutil, pytz, pyyaml, skl2onnx, tensorboard, tqdm, wheel
 Required-by: 
 ```
 

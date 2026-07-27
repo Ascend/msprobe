@@ -63,7 +63,6 @@ MindStudio Probe 提供 AI 任务运行精度数据的采集、预检与比对�
 - openpyxl
 - pandas
 - pyyaml
-- rich
 - skl2onnx
 - tensorboard
 - tqdm
