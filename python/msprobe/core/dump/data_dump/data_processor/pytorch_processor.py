@@ -32,7 +32,7 @@ from msprobe.core.common.decorator import recursion_depth_decorator
 from msprobe.core.common.exceptions import MsprobeException
 from msprobe.core.common.file_utils import load_json, load_yaml, save_npy
 from msprobe.core.common.log import logger
-from msprobe.core.common.utils import convert_tuple, is_int
+from msprobe.core.common.utils import convert_tuple, is_int, slice_by_config
 from msprobe.core.dump.data_dump.data_processor.base import (
     BaseDataProcessor,
     ModuleBackwardInputsOutputs,
@@ -56,7 +56,7 @@ except ImportError:
 
 
 class TensorHandler:
-    def __init__(self):
+    def __init__(self, slice_info=None):
         self.has_dtensor = hasattr(dist, "tensor") and hasattr(dist.tensor, "DTensor")
         self.has_fake_tensor = hasattr(torch, "_subclasses") and hasattr(torch._subclasses, "fake_tensor")
         self.has_async_collective_tensor = hasattr(dist, "_functional_collectives") and hasattr(
@@ -68,6 +68,7 @@ class TensorHandler:
             and hasattr(torch.nested._internal, "nested_tensor")
             and hasattr(torch.nested._internal.nested_tensor, "NestedTensor")
         )
+        self.slice_info = slice_info
 
     @staticmethod
     def free_tensor(tensor, tensor_name):
@@ -189,7 +190,8 @@ class TensorHandler:
             saved_tensor = common_tensor.clone().contiguous().detach()
             if self.is_gradtrackingtensor(saved_tensor):
                 saved_tensor = torch._C._functorch.get_unwrapped(saved_tensor)
-        save_pt(saved_tensor, file_path)
+        sliced_tensor = slice_by_config(saved_tensor, self.slice_info)
+        save_pt(sliced_tensor, file_path)
         self.free_tensor(saved_tensor, file_path)
 
 
@@ -219,7 +221,7 @@ class PytorchDataProcessor(BaseDataProcessor):
             "output_dtype": self.analyze_dtype_in_kwargs,
         }
         self._async_dump_cache = {}
-        self.tensor_handler = TensorHandler()
+        self.tensor_handler = TensorHandler(config.slice_info)
         self._crc_executor = ThreadPoolExecutor(max_workers=os.cpu_count() // 2)
 
     def _load_builtin_ignore_rules(self):
@@ -475,6 +477,7 @@ class PytorchDataProcessor(BaseDataProcessor):
 
     def _analyze_tensor(self, tensor, suffix):
         common_tensor = self.tensor_handler.convert_common_tensor(tensor)
+        common_tensor = slice_by_config(common_tensor, self.config.slice_info)
         tensor_stat = self.get_stat_info(common_tensor, self.config.async_dump, self.config.precision)
         tensor_json = {}
         tensor_json.update({"type": self.tensor_handler.get_tensor_type(tensor)})

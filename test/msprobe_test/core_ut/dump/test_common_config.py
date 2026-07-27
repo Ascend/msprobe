@@ -141,3 +141,31 @@ class TestBaseConfig(TestCase):
             f"The element 'test_case_1' of data_mode {self.config.data_mode} is not in {Const.DUMP_DATA_MODE_LIST}."
         )
 
+    def test_slice_info_parse(self):
+        # 未配置 slice 时为 None
+        base_config = BaseConfig({})
+        self.assertIsNone(base_config.slice_info)
+
+        # 合法 slice 配置解析
+        json_config = {"slice": [{"dim": 0, "size": 100, "begin": 0, "end": 50}]}
+        base_config = BaseConfig(json_config)
+        self.assertEqual(base_config.slice_info, [{"dim": 0, "size": 100, "begin": 0, "end": 50}])
+
+    def test_slice_info_check_config_valid(self):
+        # check_config 对合法 slice 不报错
+        json_config = {"slice": [{"dim": 0, "size": 100, "begin": 0, "end": 50}]}
+        base_config = BaseConfig(json_config)
+        self.assertIsNone(base_config.check_config())
+
+    def test_slice_info_check_config_invalid(self):
+        # check_config 对非法 slice 抛出异常
+        json_config = {"slice": [{"dim": 0, "size": -1, "begin": 0, "end": 50}]}
+        base_config = BaseConfig(json_config)
+        with self.assertRaises(MsprobeException):
+            base_config.check_config()
+
+    def test_slice_info_check_config_none(self):
+        # check_config 对 None slice 不报错
+        base_config = BaseConfig({})
+        self.assertIsNone(base_config.check_config())
+

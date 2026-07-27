@@ -44,6 +44,7 @@ class DebuggerConfig:
         self.scope = task_config.scope if task_config.scope else []
         self.list = task_config.list if task_config.list else []
         self.data_mode = task_config.data_mode if task_config.data_mode else ["all"]
+        self.slice_info = task_config.slice_info if task_config.slice_info else []
         self.summary_mode = task_config.summary_mode if task_config.summary_mode else Const.STATISTICS
         self.framework = Const.PT_FRAMEWORK
         self.async_dump = common_config.async_dump if common_config.async_dump else False
@@ -114,6 +115,15 @@ class DebuggerConfig:
                 f"If not, the default level is {Const.LEVEL_MIX}."
             )
             self.level = Const.LEVEL_MIX
+        if self.slice_info and (
+            self.task not in [Const.STATISTICS, Const.TENSOR]
+            or self.level not in [Const.LEVEL_L0, Const.LEVEL_L1, Const.LEVEL_MIX]
+        ):
+            logger.warning_on_rank_0(
+                f'The "slice" is valid, only when the task is {Const.TENSOR} or {Const.STATISTICS}, '
+                f'and the level is {Const.LEVEL_L0}, {Const.LEVEL_L1} or {Const.LEVEL_MIX}. '
+            )
+            self.slice_info = []
         if self.async_dump:
             if self.task == Const.TENSOR:
                 if self.level == Const.LEVEL_DEBUG:

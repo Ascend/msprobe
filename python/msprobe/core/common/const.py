@@ -87,6 +87,12 @@ class Const:  # pylint: disable=too-many-lines
     XOR_CHECKSUM = "xor"
     VALUE = "value"
     SUMMARY_MODE = ["statistics", "md5", "xor"]
+    DIM = "dim"
+    SIZE = "size"
+    BEGIN = "begin"
+    END = "end"
+    DEFAULT_DIM = 0
+    DEFAULT_BEGIN = 0
 
     WRITE_FLAGS = os.O_WRONLY | os.O_CREAT
     WRITE_MODES = stat.S_IWUSR | stat.S_IRUSR

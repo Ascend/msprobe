@@ -25,7 +25,7 @@ import torch
 from msprobe.pytorch.aclgraph_dump import acl_stat, get_acl_stat_dict
 from msprobe.core.common.const import Const, FileCheckConst
 from msprobe.core.common.file_utils import create_directory, check_and_get_real_path, save_json, load_json
-from msprobe.core.common.utils import get_real_step_or_rank
+from msprobe.core.common.utils import get_real_step_or_rank, check_slice_info, slice_by_config
 
 try:
     import torch_npu
@@ -144,15 +144,19 @@ if TorchDispatchMode is not None:
 
 class AclGraphDumper:
     def __init__(self, config_path=None):
-        config_dump_path, config_list, config_level, config_rank, config_seq_len = self._load_msprobe_config(
-            config_path
-        )
+        (
+            config_dump_path,
+            config_list,
+            config_level,
+            config_rank,
+            config_slice_info,
+        ) = self._load_msprobe_config(config_path)
         self.dump_path = self._validate_dump_path(config_dump_path)
         self.list = self._validate_list(config_list)
         self.level = self._validate_level(config_level)
         self.rank = get_real_step_or_rank(config_rank, Const.RANK)
         self.rank_id = self._resolve_rank_id()
-        self.seq_len = config_seq_len if isinstance(config_seq_len, int) and config_seq_len >= 0 else 0
+        self.slice_info = config_slice_info
         self.step_id = 0
         self._running = False
         self._tls = threading.local()
@@ -177,8 +181,15 @@ class AclGraphDumper:
         if not isinstance(task_config, dict):
             raise TypeError(f"task config for {task} must be a dict")
         level = task_config.get("level", json_config.get("level", Const.LEVEL_L0))
-        seq_len = task_config.get("seq_len", 0)
-        return json_config.get("dump_path"), task_config.get("list", []), level, json_config.get(Const.RANK), seq_len
+        slice_info = task_config.get("slice", [])
+        check_slice_info(slice_info)
+        return (
+            json_config.get("dump_path"),
+            task_config.get("list", []),
+            level,
+            json_config.get(Const.RANK),
+            slice_info,
+        )
 
     @staticmethod
     def _validate_dump_path(dump_path):
@@ -470,7 +481,7 @@ class AclGraphDumper:
     def _collect(self, module_name, io_name, value, mark_forward_start=False):
         has_collected = False
         has_marked = False
-        seq_len = self.seq_len
+        slice_info = self.slice_info
         for suffix, tensor in _iter_tensors(value):
             if not _is_collectable_tensor(tensor):
                 continue
@@ -481,11 +492,7 @@ class AclGraphDumper:
                 has_marked = True
             if effective_suffix:
                 tag = f"{tag}.{effective_suffix}"
-            # When seq_len > 0 and the tensor is large enough, collect stats only
-            # on the leading seq_len slice. This is used to skip padded tail data.
-            stat_tensor = tensor
-            if 0 < seq_len < tensor.size(0):
-                stat_tensor = tensor[:seq_len]
+            stat_tensor = slice_by_config(tensor, slice_info)
             acl_stat(stat_tensor, tag)
             has_collected = True
         return has_collected

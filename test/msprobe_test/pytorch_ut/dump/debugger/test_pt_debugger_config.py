@@ -177,3 +177,79 @@ class TestDebuggerConfig(unittest.TestCase):
         debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
         debugger._check_statistics_config(self.task_config)
         self.assertEqual(debugger.tensor_list, self.task_config.tensor_list)
+
+    def test_slice_info_valid_with_tensor_l0(self):
+        """TC-301: tensor + L0 → slice 有效"""
+        self.common_config.task = Const.TENSOR
+        self.common_config.level = Const.LEVEL_L0
+        self.task_config.slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.slice_info, [{"dim": 0, "size": 100, "begin": 0, "end": 50}])
+
+    def test_slice_info_valid_with_tensor_l1(self):
+        """TC-302: tensor + L1 → slice 有效"""
+        self.common_config.task = Const.TENSOR
+        self.common_config.level = Const.LEVEL_L1
+        self.task_config.slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.slice_info, [{"dim": 0, "size": 100, "begin": 0, "end": 50}])
+
+    def test_slice_info_valid_with_tensor_mix(self):
+        """TC-303: tensor + MIX → slice 有效"""
+        self.common_config.task = Const.TENSOR
+        self.common_config.level = Const.LEVEL_MIX
+        self.task_config.slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.slice_info, [{"dim": 0, "size": 100, "begin": 0, "end": 50}])
+
+    def test_slice_info_valid_with_statistics_l1(self):
+        """TC-304: statistics + L1 → slice 有效"""
+        self.common_config.task = Const.STATISTICS
+        self.common_config.level = Const.LEVEL_L1
+        self.task_config.slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.slice_info, [{"dim": 0, "size": 100, "begin": 0, "end": 50}])
+
+    def test_slice_info_valid_multi_dim_config(self):
+        """TC-305: 多维度切片配置有效"""
+        self.common_config.task = Const.TENSOR
+        self.common_config.level = Const.LEVEL_L1
+        self.task_config.slice_info = [
+            {"dim": 0, "size": 100, "begin": 0, "end": 50},
+            {"dim": 1, "size": 3, "begin": 0, "end": 2},
+        ]
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.slice_info, [
+            {"dim": 0, "size": 100, "begin": 0, "end": 50},
+            {"dim": 1, "size": 3, "begin": 0, "end": 2},
+        ])
+
+    def test_slice_info_invalid_with_debug_level(self):
+        """TC-306: tensor + DEBUG → slice 置空"""
+        self.common_config.task = Const.TENSOR
+        self.common_config.level = Const.LEVEL_DEBUG
+        self.task_config.slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.slice_info, [])
+
+    def test_slice_info_invalid_with_structure_task(self):
+        """TC-307: structure + L1 → slice 置空"""
+        self.common_config.task = Const.STRUCTURE
+        self.common_config.level = Const.LEVEL_L1
+        self.task_config.slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.slice_info, [])
+
+    def test_slice_info_invalid_with_acc_check_task(self):
+        """TC-308: acc_check + L1 → slice 置空"""
+        self.common_config.task = Const.ACC_CHECK
+        self.common_config.level = Const.LEVEL_L1
+        self.task_config.slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.slice_info, [])
+
+    def test_slice_info_default_empty(self):
+        """未配置 slice_info 时默认为空 list"""
+        self.task_config.slice_info = []
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.slice_info, [])

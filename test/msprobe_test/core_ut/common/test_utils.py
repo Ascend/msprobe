@@ -60,7 +60,9 @@ from msprobe.core.common.utils import (CompareException,
                                        is_torchrec_available,
                                        is_jagged_tensor,
                                        is_keyed_jagged_tensor,
-                                       is_keyed_tensor)
+                                       is_keyed_tensor,
+                                       check_slice_info,
+                                       slice_by_config)
 from msprobe.core.common.decorator import recursion_depth_decorator
 from torchrec.sparse.jagged_tensor import JaggedTensor, KeyedJaggedTensor, KeyedTensor
 
@@ -659,3 +661,174 @@ class TestTorchrecUtils(unittest.TestCase):
         jt = JaggedTensor(values=values, lengths=lengths)
         result = is_jagged_tensor(jt)
         self.assertFalse(result)
+
+
+class TestCheckSliceInfo(TestCase):
+    """check_slice_info 校验函数测试"""
+
+    def test_none_slice_info(self):
+        # 未配置或 null，校验通过不抛异常
+        self.assertIsNone(check_slice_info(None))
+
+    def test_empty_list_slice_info(self):
+        # 空列表不进入校验，不抛异常
+        self.assertIsNone(check_slice_info([]))
+
+    def test_empty_dict_slice_info(self):
+        # 空 dict (falsy) 不进入校验，不抛异常
+        self.assertIsNone(check_slice_info({}))
+
+    def test_valid_config_full(self):
+        # 合法配置：所有字段，校验通过不抛异常
+        self.assertIsNone(check_slice_info([{"dim": 0, "size": 100, "begin": 0, "end": 50}]))
+
+    def test_valid_config_without_dim(self):
+        # 合法配置：省略 dim（默认 0），校验通过不抛异常
+        self.assertIsNone(check_slice_info([{"size": 100, "begin": 0, "end": 50}]))
+
+    def test_valid_config_without_end(self):
+        # 合法配置：省略 end（取 [begin:]），校验通过不抛异常
+        self.assertIsNone(check_slice_info([{"dim": 0, "size": 100, "begin": 10}]))
+
+    def test_valid_config_only_size(self):
+        # 合法配置：仅有 size 和 dim，校验通过不抛异常
+        self.assertIsNone(check_slice_info([{"dim": 0, "size": 100}]))
+
+    def test_valid_multi_dim_config(self):
+        # 合法配置：多维度切片，校验通过不抛异常
+        self.assertIsNone(check_slice_info([
+            {"dim": 0, "size": 100, "begin": 0, "end": 50},
+            {"dim": 1, "size": 3, "begin": 0, "end": 2},
+        ]))
+
+    def test_not_list(self):
+        # slice 不是 list（truthy 的非 list 值）
+        with self.assertRaises(MsprobeException) as ctx:
+            check_slice_info("invalid")
+        self.assertEqual(ctx.exception.code, MsprobeException.INVALID_PARAM_ERROR)
+
+    def test_dict_not_list(self):
+        # 非空 dict 不是 list
+        with self.assertRaises(MsprobeException):
+            check_slice_info({"size": 100, "begin": 0, "end": 50})
+
+    def test_item_not_dict(self):
+        # list 中包含非 dict 元素
+        with self.assertRaises(MsprobeException):
+            check_slice_info([1, 2])
+
+    def test_size_negative(self):
+        # size 为负数
+        with self.assertRaises(MsprobeException):
+            check_slice_info([{"dim": 0, "size": -1, "begin": 0, "end": 50}])
+
+    def test_float_value(self):
+        # 值为浮点数
+        with self.assertRaises(MsprobeException):
+            check_slice_info([{"dim": 0, "size": 100.0, "begin": 0, "end": 50}])
+
+    def test_string_value(self):
+        # 值为字符串
+        with self.assertRaises(MsprobeException):
+            check_slice_info([{"dim": "0", "size": 100, "begin": 0, "end": 50}])
+
+
+class TestSliceByConfig(TestCase):
+    """slice_by_config 切片函数测试"""
+
+    def test_none_config(self):
+        # config 为 None，返回原始 tensor
+        tensor = torch.arange(100)
+        result = slice_by_config(tensor, None)
+        self.assertIs(result, tensor)
+
+    def test_empty_list_config(self):
+        # config 为空列表，返回原始 tensor
+        tensor = torch.arange(100)
+        result = slice_by_config(tensor, [])
+        self.assertIs(result, tensor)
+
+    def test_empty_dict_config(self):
+        # config 为空 dict (falsy)，返回原始 tensor
+        tensor = torch.arange(100)
+        result = slice_by_config(tensor, {})
+        self.assertIs(result, tensor)
+
+    def test_slice_dim0_matched(self):
+        # dim0 匹配 size，切片 [0:50]
+        tensor = torch.arange(300).reshape(100, 3)
+        config = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        result = slice_by_config(tensor, config)
+        self.assertEqual(result.shape, (50, 3))
+        torch.testing.assert_close(result, tensor[0:50])
+
+    def test_slice_dim0_not_matched(self):
+        # dim0 不匹配 size，不切片
+        tensor = torch.randn(200, 3)
+        config = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        result = slice_by_config(tensor, config)
+        self.assertIs(result, tensor)
+
+    def test_slice_partial_range(self):
+        # 部分范围 [10:60]
+        tensor = torch.arange(300).reshape(100, 3)
+        config = [{"dim": 0, "size": 100, "begin": 10, "end": 60}]
+        result = slice_by_config(tensor, config)
+        self.assertEqual(result.shape, (50, 3))
+        torch.testing.assert_close(result, tensor[10:60])
+
+    def test_slice_dim1(self):
+        # 在 dim1 上切片
+        tensor = torch.arange(300).reshape(100, 3)
+        config = [{"dim": 1, "size": 3, "begin": 0, "end": 2}]
+        result = slice_by_config(tensor, config)
+        self.assertEqual(result.shape, (100, 2))
+        torch.testing.assert_close(result, tensor[:, 0:2])
+
+    def test_slice_dim_exceeds_ndim(self):
+        # dim 超出维度，忽略
+        tensor = torch.randn(100, 3)
+        config = [{"dim": 5, "size": 100, "begin": 0, "end": 50}]
+        result = slice_by_config(tensor, config)
+        self.assertIs(result, tensor)
+
+    def test_slice_without_end(self):
+        # 省略 end，取 [begin:]
+        tensor = torch.arange(300).reshape(100, 3)
+        config = [{"dim": 0, "size": 100, "begin": 10}]
+        result = slice_by_config(tensor, config)
+        self.assertEqual(result.shape, (90, 3))
+        torch.testing.assert_close(result, tensor[10:])
+
+    def test_slice_multi_dim(self):
+        # 多维度同时切片
+        tensor = torch.arange(600).reshape(100, 3, 2)
+        config = [
+            {"dim": 0, "size": 100, "begin": 0, "end": 50},
+            {"dim": 1, "size": 3, "begin": 0, "end": 2},
+        ]
+        result = slice_by_config(tensor, config)
+        self.assertEqual(result.shape, (50, 2, 2))
+        torch.testing.assert_close(result, tensor[0:50, 0:2])
+
+    def test_slice_zero_dim_tensor(self):
+        # 0维 tensor，dim >= ndim，不切片
+        tensor = torch.tensor(42)
+        config = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        result = slice_by_config(tensor, config)
+        self.assertIs(result, tensor)
+
+    def test_slice_empty_item_in_list(self):
+        # config 包含空 dict，跳过
+        tensor = torch.arange(100)
+        config = [{}, {"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        result = slice_by_config(tensor, config)
+        self.assertEqual(result.shape, (50,))
+
+    def test_slice_without_size(self):
+        # 省略 size，不校验维度大小，直接切片
+        tensor = torch.arange(300).reshape(100, 3)
+        config = [{"dim": 0, "begin": 0, "end": 50}]
+        result = slice_by_config(tensor, config)
+        self.assertEqual(result.shape, (50, 3))
+        torch.testing.assert_close(result, tensor[0:50])

@@ -19,7 +19,7 @@ import re
 from msprobe.core.common.const import Const
 from msprobe.core.common.log import logger
 from msprobe.core.common.exceptions import MsprobeException
-from msprobe.core.common.utils import get_real_step_or_rank
+from msprobe.core.common.utils import get_real_step_or_rank, check_slice_info
 
 
 class CommonConfig:
@@ -104,6 +104,7 @@ class BaseConfig:
         self.scope = json_config.get('scope')
         self.list = json_config.get('list')
         self.data_mode = json_config.get('data_mode')
+        self.slice_info = json_config.get('slice')
         self.summary_mode = json_config.get("summary_mode")
         self.diff_nums = json_config.get("diff_nums")
         self.is_regex_valid = True
@@ -131,6 +132,7 @@ class BaseConfig:
     def check_config(self):
         self._check_str_list_config(self.scope, "scope")
         self._check_str_list_config(self.list, "list")
+        check_slice_info(self.slice_info)
         self._check_data_mode()
         self._check_regex_in_list()
 

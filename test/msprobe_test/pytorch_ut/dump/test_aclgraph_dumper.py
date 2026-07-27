@@ -144,11 +144,12 @@ class TestAclGraphDumper(unittest.TestCase):
         self._pytorch_attr_patcher.stop()
         self._modules_patcher.stop()
 
-    def make_dumper(self, dump_path="./dump", keywords=None, level="mix", rank=None, rank_id=0):
+    def make_dumper(self, dump_path="./dump", keywords=None, level="mix", rank=None, rank_id=0,
+                    slice_info=None):
         with patch.object(
             self.AclGraphDumper,
             "_load_msprobe_config",
-            return_value=(dump_path, keywords or [], level, rank, 0),
+            return_value=(dump_path, keywords or [], level, rank, slice_info),
         ), \
                 patch.object(self.AclGraphDumper, "_validate_dump_path", return_value=dump_path), \
                 patch.object(self.AclGraphDumper, "_resolve_rank_id", return_value=rank_id):
@@ -205,9 +206,9 @@ class TestAclGraphDumper(unittest.TestCase):
         with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json") as mock_real_path, \
                 patch.object(self.module, "load_json", return_value=config):
-            dump_path, module_list, level, rank, seq_len = self.AclGraphDumper._load_msprobe_config(None)
+            dump_path, module_list, level, rank, slice_info = self.AclGraphDumper._load_msprobe_config(None)
 
-        self.assertEqual((dump_path, module_list, level, rank, seq_len), ("./dump_dir", ["linear"], "mix", [0], 0))
+        self.assertEqual((dump_path, module_list, level, rank, slice_info), ("./dump_dir", ["linear"], "mix", [0], []))
         mock_real_path.assert_called_once()
 
         with self.assertRaises(TypeError):
@@ -225,8 +226,8 @@ class TestAclGraphDumper(unittest.TestCase):
 
         with patch.object(self.module, "check_and_get_real_path", return_value="/tmp/config.json"), \
                 patch.object(self.module, "load_json", return_value={"task": 1, "dump_path": "./x", "level": "L0"}):
-            dump_path, module_list, level, rank, seq_len = self.AclGraphDumper._load_msprobe_config("./config.json")
-        self.assertEqual((dump_path, module_list, level, rank, seq_len), ("./x", [], "L0", None, 0))
+            dump_path, module_list, level, rank, slice_info = self.AclGraphDumper._load_msprobe_config("./config.json")
+        self.assertEqual((dump_path, module_list, level, rank, slice_info), ("./x", [], "L0", None, []))
 
         with self.assertRaises(TypeError):
             self.AclGraphDumper._validate_dump_path(1)
@@ -641,6 +642,145 @@ class TestAclGraphDumper(unittest.TestCase):
         self.assertIn("toy.forward", dump_json["data"])
         self.assertEqual(mock_save_json.call_args.kwargs["indent"], 2)
         self.assertEqual(dumper.step_id, 1)
+
+    def test_collect_with_slice_matched(self):
+        """TC-201: tensor 第0维匹配 total 时切片，acl_stat 接收切片后数据"""
+        slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        dumper = self.make_dumper(slice_info=slice_info)
+        tensor = torch.arange(300).reshape(100, 3)
+        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
+            dumper._collect("scope", "input", [tensor])
+        self.assertEqual(self.aclgraph_dump_stub.acl_stat.call_count, 1)
+        stat_tensor = self.aclgraph_dump_stub.acl_stat.call_args[0][0]
+        self.assertEqual(stat_tensor.shape, (50, 3))
+        torch.testing.assert_close(stat_tensor, tensor[0:50])
+
+    def test_collect_with_slice_not_matched(self):
+        """TC-202: tensor 第0维不匹配 total 时不切片"""
+        slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        dumper = self.make_dumper(slice_info=slice_info)
+        tensor = torch.randn(200, 3)
+        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
+            dumper._collect("scope", "input", [tensor])
+        self.assertEqual(self.aclgraph_dump_stub.acl_stat.call_count, 1)
+        stat_tensor = self.aclgraph_dump_stub.acl_stat.call_args[0][0]
+        self.assertEqual(stat_tensor.shape, (200, 3))
+        torch.testing.assert_close(stat_tensor, tensor)
+
+    def test_collect_slice_with_dim1(self):
+        """TC-203: 在 dim1 上切片"""
+        slice_info = [{"dim": 1, "size": 3, "begin": 0, "end": 2}]
+        dumper = self.make_dumper(slice_info=slice_info)
+        tensor = torch.arange(300).reshape(100, 3)
+        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
+            dumper._collect("scope", "input", [tensor])
+        self.assertEqual(self.aclgraph_dump_stub.acl_stat.call_count, 1)
+        stat_tensor = self.aclgraph_dump_stub.acl_stat.call_args[0][0]
+        self.assertEqual(stat_tensor.shape, (100, 2))
+        torch.testing.assert_close(stat_tensor, tensor[:, 0:2])
+
+    def test_collect_slice_multi_dim(self):
+        """TC-204: 多维度同时切片"""
+        slice_info = [
+            {"dim": 0, "size": 100, "begin": 0, "end": 50},
+            {"dim": 1, "size": 3, "begin": 0, "end": 2},
+        ]
+        dumper = self.make_dumper(slice_info=slice_info)
+        tensor = torch.arange(600).reshape(100, 3, 2)
+        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
+            dumper._collect("scope", "input", [tensor])
+        self.assertEqual(self.aclgraph_dump_stub.acl_stat.call_count, 1)
+        stat_tensor = self.aclgraph_dump_stub.acl_stat.call_args[0][0]
+        self.assertEqual(stat_tensor.shape, (50, 2, 2))
+        torch.testing.assert_close(stat_tensor, tensor[0:50, 0:2])
+
+    def test_collect_slice_with_partial_range(self):
+        """TC-205: 部分范围切片 [10:60]"""
+        slice_info = [{"dim": 0, "size": 100, "begin": 10, "end": 60}]
+        dumper = self.make_dumper(slice_info=slice_info)
+        tensor = torch.arange(300).reshape(100, 3)
+        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
+            dumper._collect("scope", "input", [tensor])
+        self.assertEqual(self.aclgraph_dump_stub.acl_stat.call_count, 1)
+        stat_tensor = self.aclgraph_dump_stub.acl_stat.call_args[0][0]
+        self.assertEqual(stat_tensor.shape, (50, 3))
+        torch.testing.assert_close(stat_tensor, tensor[10:60])
+
+    def test_collect_slice_with_zero_dim_tensor(self):
+        """TC-206: 0维 tensor 不切片"""
+        slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
+        dumper = self.make_dumper(slice_info=slice_info)
+        tensor = torch.tensor(42)
+        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
+            dumper._collect("scope", "input", [tensor])
+        self.assertEqual(self.aclgraph_dump_stub.acl_stat.call_count, 1)
+        stat_tensor = self.aclgraph_dump_stub.acl_stat.call_args[0][0]
+        self.assertEqual(stat_tensor.shape, ())
+        self.assertEqual(stat_tensor.item(), 42)
+
+    def test_collect_without_slice_info(self):
+        """未配置 slice_info 时正常采集不切片"""
+        dumper = self.make_dumper(slice_info=None)
+        self.assertIsNone(dumper.slice_info)
+        tensor = torch.randn(100, 3)
+        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
+            dumper._collect("scope", "input", [tensor])
+        self.assertEqual(self.aclgraph_dump_stub.acl_stat.call_count, 1)
+        stat_tensor = self.aclgraph_dump_stub.acl_stat.call_args[0][0]
+        self.assertEqual(stat_tensor.shape, (100, 3))
+
+    def test_load_msprobe_config_returns_slice_info(self):
+        """EC-201: _load_msprobe_config 正确返回 slice 配置"""
+        config = {
+            "task": "statistics",
+            "dump_path": "./dump_dir",
+            "level": "L1",
+            "statistics": {
+                "list": ["linear"],
+                "level": "mix",
+                "slice": [{"dim": 0, "size": 100, "begin": 0, "end": 50}],
+            },
+            "rank": [0],
+        }
+        with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
+                patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json"), \
+                patch.object(self.module, "load_json", return_value=config):
+            _, _, _, _, slice_info = self.AclGraphDumper._load_msprobe_config(None)
+        self.assertEqual(slice_info, [{"dim": 0, "size": 100, "begin": 0, "end": 50}])
+
+    def test_load_msprobe_config_without_slice_info(self):
+        """EC-202: _load_msprobe_config 无 slice 配置时返回空 list"""
+        config = {
+            "task": "statistics",
+            "dump_path": "./dump_dir",
+            "level": "L1",
+            "statistics": {"list": ["linear"], "level": "mix"},
+            "rank": [0],
+        }
+        with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
+                patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json"), \
+                patch.object(self.module, "load_json", return_value=config):
+            _, _, _, _, slice_info = self.AclGraphDumper._load_msprobe_config(None)
+        self.assertEqual(slice_info, [])
+
+    def test_load_msprobe_config_with_invalid_slice_info(self):
+        """EC-203: _load_msprobe_config 遇到非法 slice 时抛出异常"""
+        config = {
+            "task": "statistics",
+            "dump_path": "./dump_dir",
+            "level": "L1",
+            "statistics": {
+                "list": ["linear"],
+                "level": "mix",
+                "slice": [{"dim": 0, "size": -1, "begin": 0, "end": 0}],
+            },
+            "rank": [0],
+        }
+        with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
+                patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json"), \
+                patch.object(self.module, "load_json", return_value=config):
+            with self.assertRaises(Exception):
+                self.AclGraphDumper._load_msprobe_config(None)
 
 
 if __name__ == "__main__":

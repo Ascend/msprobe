@@ -785,3 +785,72 @@ def is_keyed_jagged_tensor(data):
 
 def is_keyed_tensor(data):
     return is_torchrec_available() and isinstance(data, KeyedTensor)
+
+
+def check_slice_info(slice_info):
+    if slice_info:
+        if not isinstance(slice_info, list):
+            logger.error_log_with_exp(
+                "slice is invalid, it should be a list",
+                MsprobeException(MsprobeException.INVALID_PARAM_ERROR),
+            )
+
+        for item in slice_info:
+            if not isinstance(item, dict):
+                logger.error_log_with_exp(
+                    "slice is invalid, it should be a list[dict]",
+                    MsprobeException(MsprobeException.INVALID_PARAM_ERROR),
+                )
+
+            for key, value in item.items():
+                # 必须是整数类型
+                if not isinstance(value, int):
+                    logger.error_log_with_exp(
+                        f"Field '{key}' in slice must be an integer, got {type(value).__name__}",
+                        MsprobeException(MsprobeException.INVALID_PARAM_ERROR),
+                    )
+                # dim >= 0
+                if key == Const.DIM and value < 0:
+                    logger.error_log_with_exp(
+                        f"slice.dim cannot be negative, got {value}",
+                        MsprobeException(MsprobeException.INVALID_PARAM_ERROR),
+                    )
+                # size >= 0
+                if key == Const.SIZE and value < 0:
+                    logger.error_log_with_exp(
+                        f"slice.size cannot be negative, got {value}",
+                        MsprobeException(MsprobeException.INVALID_PARAM_ERROR),
+                    )
+
+
+def slice_by_config(tensor, config):
+    if not config:
+        return tensor
+    ndim = tensor.ndim
+    # 初始化：所有维度默认全选 (:)
+    indexers = [slice(None)] * ndim
+    is_slice = False
+    for item in config:
+        if not item:
+            continue
+        dim = item.get(Const.DIM, Const.DEFAULT_DIM)
+        begin = item.get(Const.BEGIN, Const.DEFAULT_BEGIN)
+        end = item.get(Const.END)
+        size = item.get(Const.SIZE)
+
+        # 超出张量维度，忽略
+        if dim >= ndim:
+            continue
+
+        # 当前维度不符合总长度，忽略
+        if size is not None:
+            actual_size = tensor.shape[dim]
+            if actual_size != size:
+                continue
+
+        is_slice = True
+        indexers[dim] = slice(begin, end)
+    # 只有真正要切分时，才去切
+    if is_slice:
+        return tensor[tuple(indexers)]
+    return tensor
