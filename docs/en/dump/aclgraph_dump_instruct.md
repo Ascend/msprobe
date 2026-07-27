@@ -12,7 +12,7 @@
 2. Include the `aclgraph_dump` module during compilation and installation from source code.
 
    ```bash
-   python3 setup.py bdist_wheel --include-mod=aclgraph_dump --no-check
+   python3 build.py -e include-mod=aclgraph_dump -e no-check=true
    ```
 
 3. Install and correctly configure Ascend Extension for PyTorch (torch_npu) and CANN (following msProbe installation requirements).

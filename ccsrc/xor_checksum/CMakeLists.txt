@@ -4,7 +4,7 @@ set(PKG_NAME xor_checksum_ext)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ascend.cmake)
 find_package(ASC REQUIRED)
 project(${PKG_NAME} VERSION 1.0.0 LANGUAGES C CXX ASC)
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 
 execute_process(
     COMMAND ${Python3_EXECUTABLE} -c "import torch; print(torch.utils.cmake_prefix_path)"
@@ -61,7 +61,6 @@ set(LINK_DIRECTORIES
 
 set(LINK_LIBRARIES
     ${TORCH_LIBRARIES}
-    ${Python3_LIBRARIES}
     torch_npu
 )
 
