@@ -56,7 +56,7 @@
     | `rank`      | 可选 | 指定采集的 rank，list[int \|str]类型。默认值为空，表示采集所有 rank；字符串仅支持 `"start-end"` 范围格式。非目标 rank 不开启整网采集。                             |
     | `level`     | 可选 | 根级采集级别，str类型。支持 `L0`、`L1`、`mix`，默认值为`L0`。<br>`L0` 采集 module 输入/输出统计值；`L1` 采集 API 输入/输出统计值；`mix` 同时采集 module 和 API 统计值。 |
     | `list`      | 可选 | 模块名关键词过滤列表，list[str]类型。默认值为空，表示采集所有模块。                                                                                 |
-    | `slice`     | 可选 | 对tensor进行切片, list[dict]类型。详细配置方法请参见[slice参数配置说明](./config_json_introduct.md#slice参数配置说明)。                              |
+    | `slice`     | 可选 | 对tensor进行切片，list[dict]类型。详细配置方法请参见[slice参数配置说明](./config_json_introduct.md#slice参数配置说明)。                              |
 
 2. 完成文件（`config.json`）配置后，下面示例展示如何使用整网采集功能：
 
@@ -101,7 +101,7 @@
 #### 功能说明
 
 `AclGraphDumper` 用于采集整网中间数据，当前支持 module 级别、API 级别以及 module+API 混合级别的统计值采集，结果包括张量形状、数据类型、统计值等信息。  
-`AclGraphDumper` 的初始化与 `start` 调用需在模型编图（ 如`torch.npu.graph`或`torch.compile` ）之前完成。
+`AclGraphDumper` 的初始化与 `start` 调用需在模型编图（如`torch.npu.graph`或`torch.compile`）之前完成。
 
 #### 接口说明
 
@@ -260,7 +260,7 @@ acl_save(x: torch.Tensor, path: str) -> torch.Tensor
    ```python
    # 多卡场景需要区分rank，使用参考如下。
    # 需要保证“./dump/rank{torch.distributed.get_rank()}”目录已创建，否则会出现目录不存在问题。
-   acl_save(tensor,f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
+   acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
    ```
 
 ### 输出说明
@@ -285,10 +285,10 @@ tensor = torch.load("./dump/act_0.pt")
 
 请确认：
 
-- 编译安装时已包含 `--include-mod=aclgraph_dump`；
+- 编译安装时通过 `python3 build.py -e include-mod=aclgraph_dump -e no-check=true` 完成编译安装；
 - 已安装 TorchNPU 且环境变量配置正确；
 - 当前系统为 Linux。
 
 **2. `Allocate SQ failed` 问题**
 
-CANN 8.5 以下（不含 8.5）可能出现 `Allocate SQ failed`，这是老版本 SQ 不复用导致。可将 `ccsrc/aclgraph_dump/aclgraph_dump.cpp` 中 `CurrentNPUStream` 改为 `DefaultNPUStream` 规避，或升级至 CANN 8.5.0及以上版本。
+CANN 8.5.0 以下（不含 8.5.0）可能出现 `Allocate SQ failed`，这是老版本 SQ 不复用导致。可将 `ccsrc/aclgraph_dump/aclgraph_dump.cpp` 中 `CurrentNPUStream` 改为 `DefaultNPUStream` 规避，或升级至 CANN 8.5.0及以上版本。
