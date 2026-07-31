@@ -100,13 +100,21 @@ class DBImporter:
         """导入 dump 格式数据"""
         logger.info("Starting dump data import...")
 
-        valid_ranks = dump_scan_files(self.data_path)
+        valid_ranks, valid_step_found = dump_scan_files(self.data_path)
         if not valid_ranks:
-            logger.info(
-                f"No valid dump data discovered in {self.data_path}; "
-                "dump import skipped. See preceding scan warnings for the exact reason."
+            msg = (
+                f"No valid dump data discovered in: {self.data_path}, "
+                f"dump import skipped. See preceding scan warnings for the exact reason."
             )
-            return
+            # 如果指定了dump数据解析，或者扫描到step文件，那么没有数据是报ERROR
+            if self.format == "dump" or valid_step_found:
+                logger.error(msg)
+                return
+            # 否则INFO级别
+            else:
+                logger.info(msg)
+                return
+
         dump_db_file = os.path.join(self.db_path, Data2DBConst.DB_DUMP)
         self._ensure_db_file_clean(dump_db_file)
 

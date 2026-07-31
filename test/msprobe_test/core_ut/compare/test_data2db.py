@@ -232,7 +232,7 @@ class TestDBImporterImportDumpData(unittest.TestCase):
         self, mock_scan_files, mock_dump_db_class, mock_builder_class
     ):
         """有有效rank时正常导入"""
-        mock_scan_files.return_value = {0: [(0, "/path/to/dump.json", "/path/to/construct.json")]}
+        mock_scan_files.return_value = ({0: [(0, "/path/to/dump.json", "/path/to/construct.json")]}, True)
 
         mock_db = MagicMock()
         mock_dump_db_class.return_value = mock_db
@@ -248,15 +248,32 @@ class TestDBImporterImportDumpData(unittest.TestCase):
         mock_builder_class.assert_called_once()
         mock_builder.import_data.assert_called_once()
 
+    @patch("msprobe.core.compare.data2db.logger")
     @patch("msprobe.core.compare.data2db.dump_scan_files")
-    def test_import_dump_data_no_valid_ranks(self, mock_scan_files):
-        """无有效rank时应警告并返回"""
-        mock_scan_files.return_value = {}
+    def test_import_dump_data_no_valid_ranks_with_step_found(self, mock_scan_files, mock_logger):
+        """无有效rank但valid_step_found=True时应log ERROR并返回"""
+        mock_scan_files.return_value = ({}, True)
 
         importer = DBImporter(db_path=self.db_dir, data_path=self.data_dir, micro_step="true")
         importer.import_dump_data()
 
         mock_scan_files.assert_called_once_with(self.data_dir)
+        mock_logger.error.assert_called_once()
+        self.assertIn("No valid dump data discovered", mock_logger.error.call_args[0][0])
+
+    @patch("msprobe.core.compare.data2db.logger")
+    @patch("msprobe.core.compare.data2db.dump_scan_files")
+    def test_import_dump_data_no_valid_ranks_without_step_found(self, mock_scan_files, mock_logger):
+        """无有效rank且valid_step_found=False时应log INFO并返回"""
+        mock_scan_files.return_value = ({}, False)
+
+        importer = DBImporter(db_path=self.db_dir, data_path=self.data_dir, micro_step="true")
+        importer.import_dump_data()
+
+        mock_scan_files.assert_called_once_with(self.data_dir)
+        mock_logger.info.assert_called()
+        self.assertIn("No valid dump data discovered", mock_logger.info.call_args[0][0])
+        mock_logger.error.assert_not_called()
 
 
 class TestDBImporterImportMonitorData(unittest.TestCase):

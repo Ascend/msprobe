@@ -212,8 +212,8 @@ def scan_files(data_dir):
             valid_ranks[step] = final_ranks
 
     if not valid_step_found:
-        logger.warning(f"No valid 'step*' directories found in: {data_dir}. Expected directory names like 'step0'.")
-    return valid_ranks
+        logger.warning(f"No valid 'step*' directories found in: {data_dir}, Expected directory names like 'step0'.")
+    return valid_ranks, valid_step_found
 
 
 @dataclass

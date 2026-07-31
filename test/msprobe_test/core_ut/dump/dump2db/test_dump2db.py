@@ -417,7 +417,7 @@ class TestIntegration(unittest.TestCase):
             # 模拟get_metric_id
             self.mock_db.get_metric_id.return_value = 1
             # 模拟table_name_cache
-            valid_ranks = scan_files(self.data_dir)
+            valid_ranks, _ = scan_files(self.data_dir)
             with patch.object(self.builder, '_process_dump_file') as mock_process_dump:
                 # 执行测试
                 self.builder.import_data(valid_ranks)
@@ -533,10 +533,11 @@ class TestScanFilesAdditional(unittest.TestCase):
     @patch("msprobe.core.dump.dump2db.dump2db.logger")
     def test_scan_files_empty_dir(self, mock_logger):
         """Return an empty result and warn when no valid step exists."""
-        result = scan_files(self.temp_dir)
+        result, step_found  = scan_files(self.temp_dir)
         self.assertEqual(result, {})
+        self.assertFalse(step_found)
         mock_logger.warning.assert_called_once_with(
-            f"No valid 'step*' directories found in: {self.temp_dir}. "
+            f"No valid 'step*' directories found in: {self.temp_dir}, "
             "Expected directory names like 'step0'."
         )
 
@@ -544,10 +545,11 @@ class TestScanFilesAdditional(unittest.TestCase):
     def test_scan_files_invalid_step_name(self, mock_logger):
         """Skip malformed step directories and report the step-level issue."""
         os.makedirs(os.path.join(self.temp_dir, "stepabc"), exist_ok=True)
-        result = scan_files(self.temp_dir)
+        result, step_found = scan_files(self.temp_dir)
         self.assertEqual(result, {})
+        self.assertFalse(step_found)
         mock_logger.warning.assert_called_once_with(
-            f"No valid 'step*' directories found in: {self.temp_dir}. "
+            f"No valid 'step*' directories found in: {self.temp_dir}, "
             "Expected directory names like 'step0'."
         )
 
@@ -557,9 +559,10 @@ class TestScanFilesAdditional(unittest.TestCase):
         step_path = os.path.join(self.temp_dir, "step0")
         os.makedirs(os.path.join(step_path, "rankabc"), exist_ok=True)
 
-        result = scan_files(self.temp_dir)
+        result, step_found = scan_files(self.temp_dir)
 
         self.assertEqual(result, {})
+        self.assertTrue(step_found)
         mock_logger.warning.assert_called_once_with(
             f"No valid 'rank*' or 'proc*' directories found in: {step_path}. "
             "Expected directory names like 'rank0' or 'proc0'. Skipped entries: rankabc"
@@ -570,8 +573,9 @@ class TestScanFilesAdditional(unittest.TestCase):
         """Warn when a valid rank/proc directory is missing dump.json."""
         rank_path = os.path.join(self.temp_dir, "step0", "rank0")
         os.makedirs(rank_path, exist_ok=True)
-        result = scan_files(self.temp_dir)
+        result, step_found = scan_files(self.temp_dir)
         self.assertNotIn(0, result)
+        self.assertTrue(step_found)
         mock_logger.warning.assert_called_once_with(f"No 'dump.json' file found in: {rank_path}")
 
     def test_scan_files_proc_directories(self):
@@ -579,7 +583,8 @@ class TestScanFilesAdditional(unittest.TestCase):
         self._create_dump_file("step0", "rank0")
         self._create_dump_file("step0", "proc0")
         self._create_dump_file("step0", "proc1")
-        result = scan_files(self.temp_dir)
+        result, step_found = scan_files(self.temp_dir)
+        self.assertTrue(step_found)
         self.assertIn(0, result)
         self.assertEqual(len(result[0]), 3)  # rank0 + proc0 + proc1
         # proc0 -> rank1, proc1 -> rank2
@@ -888,7 +893,7 @@ class TestImportDataMicroStep(unittest.TestCase):
         self.mock_db.init_global_stats_data.return_value = None
         self.mock_db.extract_tags_from_processed_targets.return_value = None
 
-        valid_ranks = scan_files(self.data_dir)
+        valid_ranks, _ = scan_files(self.data_dir)
         with patch("msprobe.core.dump.dump2db.dump2db.tqdm") as mock_tqdm:
             mock_tqdm.side_effect = lambda x, **kwargs: x
             with patch.object(self.builder, "_process_dump_file", return_value=1) as mock_process:
