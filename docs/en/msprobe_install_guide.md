@@ -208,8 +208,6 @@ python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-c
   pip install ./mindstudio_probe*.whl
   ```
 
-<a id="install-xor-checksum"></a>
-
 - Install the basic tool package and the xor_checksum acceleration operator.
 
   ```bash

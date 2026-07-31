@@ -92,13 +92,13 @@ msProbe工具通过在训练脚本中添加`PrecisionDebugger`接口并启动训
 
 根据需求选择合适的功能(task)类型，task配置项详细说明请参见[config.json介绍](./config_json_introduct.md#参数介绍)。
 
-| 调试需求   | 推荐配置        | 特点                                                  |
-| ------ | --------------- |-----------------------------------------------------|
-| 初步精度分析 | task="statistics"      | 资源占用低，快速获取统计信息                                      |
-| 深度精度分析 | task="tensor"          | 采集完整数据，支持详细分析                                       |
-| 确定性问题分析 | task="statistics"<br>summary_mode="md5"          | 采集统计信息和tensor的CRC-32校验值，快速分析确定性问题                   |
-| 轻量确定性差异定位 | task="statistics"<br>summary_mode="xor"          | 仅采集XOR校验值；如需加速采集，可安装编译时包含`--include-mod=xor_checksum`的工具包，安装方法请参见[安装基础工具包和xor_checksum加速算子](../../install_guide/msprobe_install_guide.md#install-xor-checksum)，优先使用C++加速算子执行，可带来数倍性能提升 |
-| NaN/Inf检测 | task="nan_check"      | 通过寄存器状态检测API运行中的NaN/Inf |
+| 调试需求   | 推荐配置        | 特点                                                                                                                                                                                     |
+| ------ | --------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 初步精度分析 | task="statistics"      | 资源占用低，快速获取统计信息                                                                                                                                                                         |
+| 深度精度分析 | task="tensor"          | 采集完整数据，支持详细分析                                                                                                                                                                          |
+| 确定性问题分析 | task="statistics"<br>summary_mode="md5"          | 采集统计信息和tensor的CRC-32校验值，快速分析确定性问题                                                                                                                                                      |
+| 轻量确定性差异定位 | task="statistics"<br>summary_mode="xor"          | 仅采集XOR校验值；如需加速采集，可安装编译时包含`--include-mod=xor_checksum`的工具包，安装方法请参见[安装指南-源码安装](../../install_guide/msprobe_install_guide.md#23-源码安装)中的“xor_checksum加速算子”相关指导，优先使用C++加速算子执行，可带来数倍性能提升 |
+| NaN/Inf检测 | task="nan_check"      | 通过寄存器状态检测API运行中的NaN/Inf                                                                                                                                                                |
 
 ### 使用示例
 

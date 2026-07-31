@@ -1,10 +1,10 @@
-# 开发者指南
+# msProbe 开发指南
 
-本文面向 MindStudio Probe 的开发和维护人员，介绍源码目录、构建方式、功能开发流程、功能改动后的验证方法，以及资料联动更新要求。本文重点结合 MindStudio Probe 当前仓库和现有文档内容编写，适用于新增命令参数、扩展工具能力、增加交付件或维护软件包安装方式等场景。
+本文面向 msProbe 的开发和维护人员，介绍源码目录、构建方式、功能开发流程、功能改动后的验证方法，以及资料联动更新要求。本文重点结合 msProbe 当前仓库和现有文档内容编写，适用于新增命令参数、扩展工具能力、增加交付件或维护软件包安装方式等场景。
 
-## 1. MindStudio Probe 开发概述
+## 1. msProbe 开发概述
 
-MindStudio Probe 提供 AI 任务运行精度数据的采集、预检与比对等能力。围绕开发工作，通常可以分为以下几类：
+msProbe 提供 AI 任务运行精度数据的采集、预检与比对等能力。围绕开发工作，通常可以分为以下几类：
 
 | 开发对象 | 典型内容                                                     |
 | -------- | ------------------------------------------------------------ |
@@ -40,42 +40,11 @@ MindStudio Probe 提供 AI 任务运行精度数据的采集、预检与比对�
 
 ## 3. 开发环境配置
 
-### 3.1 基础软件
+按照《[msProbe 安装指南 — 源码安装](../install_guide/msprobe_install_guide.md#231-环境准备)》章节完成编译和测试环境的搭建。
 
-| 软件名                   | 版本要求       | 用途                   |
-| ------------------------ | -------------- | ---------------------- |
-| PyCharm（推荐）/ VS Code | 无硬性要求     | 编写和调试 Python 代码 |
-| Python                   | 3.8 及以上     | 主开发环境             |
-| pip                      | 与 Python 配套 | 安装依赖和本地包       |
-| conda                    | 无硬性要求     | 隔离开发依赖           |
-| wheel                    | 最新稳定版     | 构建 whl 包            |
-| Git                      | 无硬性要求     | 拉取、管理和提交代码   |
+> **说明：** 环境镜像的构建方法及配套软件版本由 MindStudio 统一镜像制作指南维护，本仓库不重复定义。
 
-### 3.2 开发依赖
-
-基础依赖定义在 `docs/requirements.txt`。
-
-其中核心运行依赖包括：
-
-- einops
-- matplotlib
-- numpy
-- openpyxl
-- pandas
-- pyyaml
-- skl2onnx
-- tensorboard
-- tqdm
-- wheel
-
-### 3.3 推荐环境准备
-
-建议在仓库根目录下使用虚拟环境进行开发：
-
-```bash
-conda create -n msprobe python=3.10
-conda activate msprobe
-```
+进入编译容器后，可执行启动界面提示的命令（如 `py310`）切换至对应的 Python 版本环境。
 
 ## 4. 获取代码与构建
 
@@ -89,8 +58,6 @@ cd msprobe
 ### 4.2 编译安装基础工具包
 
 ```bash
-pip install uv
-
 python3 build.py
 cd ./artifacts
 pip install ./mindstudio_probe*.whl

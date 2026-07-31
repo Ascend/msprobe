@@ -351,7 +351,7 @@ MindSpore动态图场景下，"level"须为"L2"; MindSpore静态图场景下，"
 
   配置示例："summary_mode": "md5"。如需使用轻量XOR校验，配置示例："summary_mode": "xor"。
 
-  若用户希望降低大张量场景下的采集开销，可使用编译时包含`--include-mod=xor_checksum`参数的msProbe工具包，安装方法请参见[安装基础工具包和xor_checksum加速算子](../../install_guide/msprobe_install_guide.md#install-xor-checksum)。配置`summary_mode`为`xor`后，工具会优先使用编译生成的C++加速算子在设备侧计算XOR校验值，可带来数倍性能提升；当加速算子不可用、加载失败或执行异常时，会自动回退到通用实现，采集流程不会中断。
+  若用户希望降低大张量场景下的采集开销，可使用编译时包含`--include-mod=xor_checksum`参数的msProbe工具包，安装方法请参考[安装指南-源码安装](../../install_guide/msprobe_install_guide.md#23-源码安装)中的“xor_checksum加速算子”相关指导。配置`summary_mode`为`xor`后，工具会优先使用编译生成的C++加速算子在设备侧计算XOR校验值，可带来数倍性能提升；当加速算子不可用、加载失败或执行异常时，会自动回退到通用实现，采集流程不会中断。
 
 - MindSpore静态图场景
 
