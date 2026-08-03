@@ -20,6 +20,10 @@ If the following information is displayed, msProbe is successfully installed:
 Successfully installed mindstudio-probe-{version}
 ```
 
+> [!NOTE]
+>
+> The dependencies installed online do not include the aclgraph_dump, nan_check, or xor_checksum functions. To use these functions, see [Source Installation](#23-source-installation).
+
 ### 2.2 Offline Installation
 
 1. Download the msProbe .whl package and the corresponding digital signature file (.sha256) by referring to [msProbe Release](https://gitcode.com/Ascend/msprobe/releases).
@@ -59,29 +63,12 @@ Successfully installed mindstudio-probe-{version}
    ```
 
    To overwrite the existing installation, add `--force-reinstall` to the end of the command.
-
-   The preceding .whl package does not contain functions such as aclgraph_dump, atb_probe, and nan_check. To use these functions, download the source code and compile the .whl package by referring to [Source Installation](#23-source-installation).
+  
+> [!NOTE]
+>
+> The dependencies installed offline do not include the aclgraph_dump, nan_check, or xor_checksum functions. To use these functions, see [Source Installation](#23-source-installation).
 
 ### 2.3 Source Installation
-
-**Prerequisites**
-
-It is recommended to pull the Docker compilation image before source installation to ensure compilation environment consistency.
-
-1. Pull the Docker image.
-
-   ```bash
-   docker pull swr.cn-north-4.myhuaweicloud.com/mindstudio-image/mindstudio-build:26.1.0-20260610
-   ```
-
-2. Start the container.
-
-   ```bash
-   docker run -it --name msprobe-compile \
-   --network host \
-   swr.cn-north-4.myhuaweicloud.com/mindstudio-image/mindstudio-build:26.1.0-20260610 \
-   /bin/bash
-   ```
 
 **Function Description**
 
