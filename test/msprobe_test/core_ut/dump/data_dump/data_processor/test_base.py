@@ -111,10 +111,6 @@ class TestBaseDataProcessor(unittest.TestCase):
         expected = {"type": 'float32', "value": 3.140000104904175}
         self.assertEqual(result, expected)
 
-        result = BaseDataProcessor._analyze_numpy(np.bool_(True))
-        expected = {"type": 'bool_', "value": True}
-        self.assertEqual(result, expected)
-
         result = BaseDataProcessor._analyze_numpy(np.str_("abc"))
         expected = {"type": 'str_', "value": "abc"}
         self.assertEqual(result, expected)

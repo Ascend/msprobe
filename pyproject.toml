@@ -32,11 +32,9 @@ dependencies = [
     "matplotlib",
     "tensorboard>=2.11.2",
     "skl2onnx>=1.14.1",
+    "packaging",
     "pytz",
     "psutil",
-    "h5py",
-    "protobuf",
-    "onnxruntime",
 ]
 
 [project.scripts]
@@ -45,9 +43,15 @@ msprobe = "msprobe.msprobe:main"
 [project.urls]
 Homepage = "https://gitcode.com/Ascend/MindStudio-Probe"
 
-[dependency-groups]
-dev = [
-    "pytest>=8.0"
+[project.optional-dependencies]
+test = [
+    "h5py",
+    "mindspore",
+    "onnxruntime",
+    "protobuf",
+    "pytest-cov",
+    "pytest>=8.0",
+    "torch",
 ]
 
 [build-system]

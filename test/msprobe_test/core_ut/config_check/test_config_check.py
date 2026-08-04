@@ -5,6 +5,7 @@ import unittest
 import torch
 import json
 import numpy as np
+from packaging.version import parse as version_parse
 import torch.nn as nn
 import mindspore as ms
 import mindspore.nn as ms_nn
@@ -121,8 +122,9 @@ class TestConfigChecker(unittest.TestCase):
     def tearDown(self):
         FmkAdp.set_fmk("pytorch")
         shutil.rmtree(temp_dir)
-        
 
+    @unittest.skipIf(version_parse(np.__version__) >= version_parse("2.0.0"),
+                     "mindspore is not compatible with numpy >= 2.0")
     def test_all(self):
         train_test(1234, os.path.join(temp_dir, "config_check_pack1.zip"), [os.path.join(testdir, "cmp.sh")])
 

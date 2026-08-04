@@ -81,8 +81,7 @@
 
 ```bash
 # Python单元测试
-cd test/msprobe_test
-bash run_test.sh
+python3 build.py test
 ```
 
 #### 添加测试

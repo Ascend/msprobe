@@ -20,6 +20,7 @@ from unittest.mock import patch, MagicMock
 
 import mindspore as ms
 import numpy as np
+from packaging.version import parse as version_parse
 from mindspore import Tensor, ops, mint
 
 from msprobe.core.dump.data_dump.data_processor.mindspore_processor import MindsporeDataProcessor, TensorDataProcessor
@@ -75,6 +76,8 @@ class TestMindsporeDataProcessor(unittest.TestCase):
         result = self.processor._analyze_builtin(test_int)
         self.assertEqual(result, expected_result)
 
+    @unittest.skipIf(version_parse(np.__version__) >= version_parse("2.0.0"),
+                     "mindspore is not compatible with numpy >= 2.0")
     def test_get_stat_info_float(self):
         self.config.async_dump = False
         tensor = ms.Tensor([1.0, 2.0, 3.0])
@@ -84,6 +87,8 @@ class TestMindsporeDataProcessor(unittest.TestCase):
         self.assertEqual(result.mean, 2.0)
         self.assertEqual(result.norm, ms.ops.norm(tensor).item())
 
+    @unittest.skipIf(version_parse(np.__version__) >= version_parse("2.0.0"),
+                     "mindspore is not compatible with numpy >= 2.0")
     def test_get_stat_info_float_async(self):
         self.config.async_dump = True
         tensor = ms.tensor([1.0, 2.0, 3.0])
@@ -98,6 +103,8 @@ class TestMindsporeDataProcessor(unittest.TestCase):
         self.assertEqual(result_mean.item(), 2.0)
         self.assertEqual(result_norm.item(), ms.ops.norm(tensor).item())
 
+    @unittest.skipIf(version_parse(np.__version__) >= version_parse("2.0.0"),
+                     "mindspore is not compatible with numpy >= 2.0")
     def test_get_stat_info_int(self):
         self.config.async_dump = False
         tensor = ms.Tensor([1, 2, 3], dtype=ms.int32)
@@ -107,6 +114,8 @@ class TestMindsporeDataProcessor(unittest.TestCase):
         self.assertEqual(result.mean, 2)
         self.assertEqual(result.norm, ms.ops.norm(tensor).item())
 
+    @unittest.skipIf(version_parse(np.__version__) >= version_parse("2.0.0"),
+                     "mindspore is not compatible with numpy >= 2.0")
     def test_get_stat_info_int_async(self):
         self.config.async_dump = True
         tensor = ms.tensor([1, 2, 3])
@@ -139,6 +148,8 @@ class TestMindsporeDataProcessor(unittest.TestCase):
         self.assertEqual(result_min.item(), False)
 
     @patch.object(MindsporeDataProcessor, 'get_md5_for_tensor')
+    @unittest.skipIf(version_parse(np.__version__) >= version_parse("2.0.0"),
+                     "mindspore is not compatible with numpy >= 2.0")
     def test__analyze_tensor(self, get_md5_for_tensor):
         get_md5_for_tensor.return_value = "test_md5"
         tensor = ms.Tensor(np.array([1, 2, 3], dtype=np.int32))
@@ -173,6 +184,8 @@ class TestTensorDataProcessor(unittest.TestCase):
         self.processor.api_data_category = "input"
 
     @patch('msprobe.core.dump.data_dump.data_processor.mindspore_processor.save_tensor_as_npy')
+    @unittest.skipIf(version_parse(np.__version__) >= version_parse("2.0.0"),
+                     "mindspore is not compatible with numpy >= 2.0")
     def test_analyze_tensor(self, mock_save):
         self.config.framework = "mindspore"
         self.config.async_dump = False

@@ -418,11 +418,11 @@ class TestUtilsMethods(unittest.TestCase):
         ]
         columns = CompareConst.SUMMARY_COMPARE_RESULT_HEADER + ['NPU_Stack_Info'] + ['state', 'api_origin_name']
         o_result = pd.DataFrame(o_data, columns=columns, dtype=object)
-        self.assertEquals(result.loc[0, CompareConst.NPU_NAME], o_result.loc[0, CompareConst.NPU_NAME])
-        self.assertEquals(result.loc[0, CompareConst.NPU_DTYPE], o_result.loc[0, CompareConst.NPU_DTYPE])
-        self.assertEquals(result.loc[0, CompareConst.NPU_SHAPE], o_result.loc[0, CompareConst.NPU_SHAPE])
-        self.assertEquals(result.loc[0, CompareConst.NPU_MEAN], o_result.loc[0, CompareConst.NPU_MEAN])
-        self.assertEquals(result.loc[0, CompareConst.REQ_GRAD_CONSIST], o_result.loc[0, CompareConst.REQ_GRAD_CONSIST])
+        self.assertEqual(result.loc[0, CompareConst.NPU_NAME], o_result.loc[0, CompareConst.NPU_NAME])
+        self.assertEqual(result.loc[0, CompareConst.NPU_DTYPE], o_result.loc[0, CompareConst.NPU_DTYPE])
+        self.assertEqual(result.loc[0, CompareConst.NPU_SHAPE], o_result.loc[0, CompareConst.NPU_SHAPE])
+        self.assertEqual(result.loc[0, CompareConst.NPU_MEAN], o_result.loc[0, CompareConst.NPU_MEAN])
+        self.assertEqual(result.loc[0, CompareConst.REQ_GRAD_CONSIST], o_result.loc[0, CompareConst.REQ_GRAD_CONSIST])
 
 
 class TestParseData(unittest.TestCase):

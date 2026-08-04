@@ -198,6 +198,7 @@ fi
 
 if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
     cp -f ${BUILD_OUTPUT_PATH}/ccsrc/nan_check/nan_check_ext.so ${BUILD_PATH}/python/msprobe/lib/nan_check_ext.so
+    chmod -R u+w "${PYTHON_NAN_CHECK_VENDOR_DIR}" 2>/dev/null || true
     rm -rf "${PYTHON_NAN_CHECK_VENDOR_DIR}"
     if [[ -d "${BUILD_PATH}/vendors" ]]; then
         cp -a "${BUILD_PATH}/vendors" "${PYTHON_NAN_CHECK_VENDOR_DIR}"
@@ -207,6 +208,7 @@ if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
         exit 1
     fi
 elif [[ -d "${PYTHON_NAN_CHECK_VENDOR_DIR}" ]]; then
+    chmod -R u+w "${PYTHON_NAN_CHECK_VENDOR_DIR}"
     rm -rf "${PYTHON_NAN_CHECK_VENDOR_DIR}"
 fi
 

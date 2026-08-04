@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch
 import mindspore as ms
 import pandas as pd
 import numpy as np
+from packaging.version import parse as version_parse
 
 from msprobe.mindspore.dump.dump_processor.cell_dump_with_insert_gradient import cell_construct_wrapper
 from msprobe.mindspore.dump.dump_processor.cell_dump_with_insert_gradient import check_relation
@@ -191,7 +192,7 @@ class TestMergeFile(unittest.TestCase):
     @patch('msprobe.mindspore.dump.dump_processor.cell_dump_with_insert_gradient.rename_filename')
     def test_merge_file(self, mock_rename, mock_read):
         """测试文件合并"""
-        if (ms.__version__ > "2.7.0"):
+        if (version_parse(ms.__version__) > version_parse("2.7.0")):
             KEY_DUMP_TENSOR_DATA = "dump_tensor_data/"
         else:
             KEY_DUMP_TENSOR_DATA = "dump_tensor_data_"
@@ -389,13 +390,13 @@ class TestIsDownloadFinished(unittest.TestCase):
     def test_is_download_finished_not_exists(self, mock_listdir):
         """测试标志文件不存在"""
         mock_listdir.return_value = ["other_file"]
-        self.assertEquals(is_download_finished("/mock/path", "step_0"), (False, False))
+        self.assertEqual(is_download_finished("/mock/path", "step_0"), (False, False))
 
     @patch('os.path.exists')
     def test_is_download_finished_dir_not_exists(self, mock_exists):
         """测试目录不存在"""
         mock_exists.return_value = False
-        self.assertEquals(is_download_finished("/invalid/path", "step_0"), (False, False))
+        self.assertEqual(is_download_finished("/invalid/path", "step_0"), (False, False))
 
 
 class TestHelperFunctions(unittest.TestCase):

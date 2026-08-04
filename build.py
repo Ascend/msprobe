@@ -15,8 +15,6 @@
 # -------------------------------------------------------------------------
 
 import argparse
-import hashlib
-import json
 import logging
 import os
 import platform
@@ -24,10 +22,8 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 import traceback
 from pathlib import Path
-from urllib.parse import unquote, urlparse
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -41,10 +37,6 @@ MOD_LIST_RANGE = {
 }
 
 CPP_MODS = {"atb_probe", "aclgraph_dump", "nan_check", "xor_checksum"}
-
-TORCH_NPU_MODS = {"aclgraph_dump", "nan_check", "xor_checksum"}
-TORCH_NPU_URL_PATH = "torch_npu_url.json"
-TORCH_NPU_DEPS = {"pyyaml", "numpy", "importlib_metadata"}
 
 FRONTEND_MOD_MAP = {
     "tb_graph_ascend": "hierarchy_plugin",
@@ -137,86 +129,10 @@ class BuildManager:
                     return match.group(1)
         return "26.0.0"
 
-    def _need_torch_npu(self):
-        return any(mod in self.mod_list for mod in TORCH_NPU_MODS)
-
     def _prepare_dependencies(self):
-        if self._need_torch_npu():
-            self._install_torch_npu()
         for mod, plugin_name in FRONTEND_MOD_MAP.items():
             if mod in self.mod_list:
                 self._install_frontend_deps(plugin_name)
-
-    def _get_py_tag(self):
-        return f"cp{sys.version_info.major}{sys.version_info.minor}-cp{sys.version_info.major}{sys.version_info.minor}"
-
-    def _load_wheels_config(self):
-        config_path = self.project_root / TORCH_NPU_URL_PATH
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-
-    def _verify_sha256(self, file_path, expected):
-        if not expected:
-            logging.warning("sha256 not configured for %s, skip verification", file_path)
-            return
-        h = hashlib.sha256()
-        with open(file_path, 'rb') as f:
-            for chunk in iter(lambda: f.read(8192), b''):
-                h.update(chunk)
-        actual = h.hexdigest()
-        if actual.lower() != expected.lower():
-            raise RuntimeError(f"sha256 mismatch for {file_path}: expected {expected}, got {actual}")
-        logging.info("sha256 verified for %s", file_path)
-
-    def _install_torch_npu(self):
-        result = subprocess.run(
-            self._pip_cmd + ["show", "torch_npu"],
-            capture_output=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            logging.info("torch_npu already installed, skip download")
-            return
-
-        config = self._load_wheels_config()
-        arch = platform.machine()
-        py_tag = self._get_py_tag()
-        sha_key = f"{py_tag}-{arch}"
-
-        wheels = []
-        for name in ("torch", "torch_npu"):
-            pkg = config[name]
-            url = pkg["url_template"].format(py_tag=py_tag, arch=arch)
-            sha256 = pkg.get("sha256", {}).get(sha_key, "")
-            wheels.append((name, url, sha256))
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            local_files = []
-            for name, url, sha256 in wheels:
-                filename = unquote(urlparse(url).path.split("/")[-1])
-                dst = os.path.join(tmp_dir, filename)
-                logging.info("Downloading %s from %s", name, url)
-                self._execute_command(["wget", "-q", "-O", dst, url])
-                self._verify_sha256(dst, sha256)
-                local_files.append(dst)
-            self._execute_command(self._pip_cmd + ["install"] + local_files)
-
-        self._install_torch_npu_deps()
-
-    def _install_torch_npu_deps(self):
-        missing = []
-        for dep in TORCH_NPU_DEPS:
-            result = subprocess.run(
-                self._pip_cmd + ["show", dep],
-                capture_output=True,
-                check=False,
-            )
-            if result.returncode != 0:
-                missing.append(dep)
-        if missing:
-            self._execute_command(
-                self._pip_cmd + ["install"] + missing,
-            )
 
     def _install_frontend_deps(self, plugin_name):
         fe_path = self.project_root / "plugins" / "tb_graph_ascend" / plugin_name / "front"
@@ -392,14 +308,15 @@ class BuildManager:
     def _run_tests(self):
         test_dir = self.project_root / "test" / "msprobe_test"
 
-        # 安装依赖
-        self._execute_command(self._pip_cmd + ["install", "-e", str(self.project_root)])
-        self._install_torch_npu()
-        self._execute_command(self._pip_cmd + ["install", "mindspore"])
+        if 'local' not in self.args.command:
+            self._execute_command([sys.executable, "-m", "pip", "install", "-e", f"{self.project_root}[test]"])
 
-        self._execute_command(["bash", "run_test.sh"], cwd=test_dir)
+        self._execute_command([sys.executable, "run_ut.py"], cwd=test_dir)
 
     def _build_all(self):
+        if 'local' not in self.args.command:
+            self._prepare_dependencies()
+
         for mod, plugin_name in FRONTEND_MOD_MAP.items():
             if mod in self.mod_list:
                 self._build_frontend(plugin_name)
@@ -415,9 +332,6 @@ class BuildManager:
         for opt in self.args.extra:
             key, _, val = opt.partition('=')
             logging.info("--extra: %s = %s", key, val)
-
-        if 'local' not in self.args.command:
-            self._prepare_dependencies()
 
         if 'test' in self.args.command:
             self._run_tests()

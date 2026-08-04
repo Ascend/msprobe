@@ -23,6 +23,3 @@
 | Open-source software| -      | Not introduced from the source code, but included in the build output                | <https://developer.mozilla.org/>                                                          | Introduced during build; commented out             |
 | Open-source software| -      | Not introduced from the source code, but included in the build output                | <https://github.com/vaadin/vaadin-time-picker/issues/145>                                 | Introduced during build; commented out             |
 | Open-source software| -      | Not introduced from the source code, but included in the build output                | <http://codepen.io/shyndman/pen/>                                                         | Introduced during build; commented out             |
-| Open-source software| -      | torch_npu_url.json              | <https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/x86_64/download.pytorch.org/whl/cpu/> | Download torch package |
-| Open-source software| -      | torch_npu_url.json              | <https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/aarch64/download.pytorch.org/whl/cpu/> | Download torch package |
-| Open-source software| -      | torch_npu_url.json              | <https://gitcode.com/Ascend/pytorch/releases/download/v26.1.0-beta.1-pytorch2.7.1/> | Download torch_npu package |

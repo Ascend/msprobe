@@ -13,6 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 import atexit
 from multiprocessing import Pool
@@ -22,14 +23,31 @@ import time
 
 import numpy as np
 import pandas as pd
+from packaging.version import parse as version_parse
 import mindspore as ms
 from mindspore import nn, ops
+
+try:
+    from mindspore._c_expression import _set_init_iter
+
+    graph_step_flag = True
+except ImportError:
+    graph_step_flag = False
 
 from msprobe.core.common.const import Const as CoreConst
 from msprobe.core.common.const import FileCheckConst
 from msprobe.core.common.file_utils import (
-    load_npy, save_json, remove_path, load_yaml,
-    create_directory, read_csv, write_df_to_csv, write_csv, move_file, move_directory)
+    load_npy,
+    save_json,
+    remove_path,
+    load_yaml,
+    create_directory,
+    read_csv,
+    write_df_to_csv,
+    write_csv,
+    move_file,
+    move_directory,
+)
 from msprobe.mindspore.common.log import logger
 from msprobe.mindspore.dump.dump_processor.cell_dump_process import CellDumpConfig
 
@@ -45,22 +63,17 @@ KEY_FORWARD = CoreConst.FORWARD
 KEY_BACKWARD = CoreConst.BACKWARD
 KEY_INPUT = CoreConst.INPUT
 KEY_OUTPUT = CoreConst.OUTPUT
-if (ms.__version__ > "2.7.0"):
+if version_parse(ms.__version__) > version_parse("2.7.0"):
     KEY_DUMP_TENSOR_DATA = "dump_tensor_data/"
 else:
     KEY_DUMP_TENSOR_DATA = "dump_tensor_data_"
 KEY_STATISTIC_CSV = "statistic.csv"
 KEY_TD_FLAG = "td_flag"
 td = ops.TensorDump()
-if (ms.__version__ >= "2.5.0"):
+if version_parse(ms.__version__) >= version_parse("2.5.0"):
     td_in = ops.TensorDump("in")
 else:
     td_in = ops.TensorDump()
-graph_step_flag = True
-try:
-    from mindspore._c_expression import _set_init_iter
-except ImportError:
-    graph_step_flag = False
 td.add_prim_attr(KEY_SIDE_EFFECT, False)
 td_in.add_prim_attr(KEY_SIDE_EFFECT, False)
 td.add_prim_attr(KEY_TD_FLAG, True)
@@ -92,7 +105,7 @@ np_ms_dtype_dict = {
     "double": ms.double,
     "bfloat16": ms.bfloat16,
     "complex64": ms.complex64,
-    "complex128": ms.complex128
+    "complex128": ms.complex128,
 }
 
 
@@ -109,6 +122,7 @@ def gen_file_path(dump_path, cell_prefix, suffix, io_type, index):
 def partial_func(func, dump_path, cell_prefix, index, io_type):
     def newfunc(*args, **kwargs):
         return func(dump_path, cell_prefix, index, io_type, *args, **kwargs)
+
     return newfunc
 
 
@@ -141,15 +155,9 @@ def cell_construct_wrapper(func, self):
                 item = self.output_clips[index](item)
             if forward_or_all and ops.is_tensor(item):
                 if need_tensordump_in(self, 'input_dump_mode'):
-                    temp = td_in(
-                        gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_INPUT, index),
-                        item
-                    )
+                    temp = td_in(gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_INPUT, index), item)
                 else:
-                    temp = td(
-                        gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_INPUT, index),
-                        item
-                    )
+                    temp = td(gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_INPUT, index), item)
                 item = ops.depend(item, temp)
             new_args.append(item)
 
@@ -163,14 +171,10 @@ def cell_construct_wrapper(func, self):
                 if forward_or_all and ops.is_tensor(item):
                     if need_tensordump_in(self, 'output_dump_mode'):
                         temp = td_in(
-                            gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_OUTPUT, index),
-                            item
+                            gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_OUTPUT, index), item
                         )
                     else:
-                        temp = td(
-                            gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_OUTPUT, index),
-                            item
-                        )
+                        temp = td(gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_OUTPUT, index), item)
                     item = ops.depend(item, temp)
                     out_list.append(item)
                 elif forward_or_all and not ops.is_tensor(item):
@@ -182,15 +186,9 @@ def cell_construct_wrapper(func, self):
                 out = self.input_clips[0](out)
             if forward_or_all and ops.is_tensor(out):
                 if need_tensordump_in(self, 'output_dump_mode'):
-                    temp = td_in(
-                        gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_OUTPUT, 0),
-                        out
-                    )
+                    temp = td_in(gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_OUTPUT, 0), out)
                 else:
-                    temp = td(
-                        gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_OUTPUT, 0),
-                        out
-                    )
+                    temp = td(gen_file_path(self.dump_path, self.cell_prefix, KEY_FORWARD, KEY_OUTPUT, 0), out)
                 out = ops.depend(out, temp)
             return out
 
@@ -214,16 +212,18 @@ def sort_filenames(path):
 
 
 def rename_filename(path="", data_df=None):
+    filenames = []
     if dump_task == CoreConst.TENSOR:
         filenames = sort_filenames(path)
-    if dump_task == CoreConst.STATISTICS:
+    elif dump_task == CoreConst.STATISTICS:
         filenames = data_df[CoreConst.OP_NAME].tolist()
 
     filename_dict = {}
     for index, filename in enumerate(filenames):
+        name_field = None
         if dump_task == CoreConst.TENSOR:
             name_field = filename.rsplit(CoreConst.REPLACEMENT_CHARACTER, 1)[0]
-        if dump_task == CoreConst.STATISTICS:
+        elif dump_task == CoreConst.STATISTICS:
             name_field = filename
 
         if name_field in filename_dict:
@@ -234,13 +234,16 @@ def rename_filename(path="", data_df=None):
         cell_index = filename_dict[name_field]
 
         # 修改文件名，增加重复调用Cell的序号
+        new_file_name = filename
         if CoreConst.FORWARD_PATTERN in filename:
             # Format: Cell.{cell_name}.{class_name}.{forward/backward}.{number}.{input/output}.{index}_{dtype}_{id}.npy
-            new_file_name = filename.replace(CoreConst.FORWARD_PATTERN,
-                                             CoreConst.FORWARD_PATTERN + str(cell_index) + CoreConst.SEP)
+            new_file_name = filename.replace(
+                CoreConst.FORWARD_PATTERN, CoreConst.FORWARD_PATTERN + str(cell_index) + CoreConst.SEP
+            )
         if CoreConst.BACKWARD_PATTERN in filename:
-            new_file_name = filename.replace(CoreConst.BACKWARD_PATTERN,
-                                             CoreConst.BACKWARD_PATTERN + str(cell_index) + CoreConst.SEP)
+            new_file_name = filename.replace(
+                CoreConst.BACKWARD_PATTERN, CoreConst.BACKWARD_PATTERN + str(cell_index) + CoreConst.SEP
+            )
         if dump_task == CoreConst.TENSOR:
             move_file(os.path.join(path, filename), os.path.join(path, new_file_name))
         if dump_task == CoreConst.STATISTICS:
@@ -262,7 +265,7 @@ def get_cell_name(string):
 def get_data_mode(string):
     last_dot_index = string.rfind(CoreConst.SEP)
     second_last_dot_index = string.rfind(CoreConst.SEP, 0, last_dot_index)
-    data_mode = string[second_last_dot_index + 1:last_dot_index]
+    data_mode = string[second_last_dot_index + 1 : last_dot_index]
     return data_mode
 
 
@@ -303,11 +306,13 @@ def get_construct(cell_list_input):
 
 def generate_construct(path):
     global construct
+    filenames = []
+    point_position = 0
     if dump_task == CoreConst.TENSOR:
         # filename格式：Cell.clip_grad_norm.ClipGradNorm.forward.0.output.1_int32_0.npy
         filenames = sort_filenames(path)
         point_position = 3
-    if dump_task == CoreConst.STATISTICS:
+    elif dump_task == CoreConst.STATISTICS:
         df = read_csv(path)
         # filename格式：Cell.clip_grad_norm.ClipGradNorm.forward.0.output.1
         filenames = df[CoreConst.OP_NAME].tolist()
@@ -325,7 +330,7 @@ def generate_construct(path):
                 index = filenames.index(filename)
                 output_field = mid_field + KEY_OUTPUT
                 find_flag = False
-                for filename_other in cell_list[index + 1:]:
+                for filename_other in cell_list[index + 1 :]:
                     if output_field in filename_other:
                         find_flag = True
                 if find_flag is False:
@@ -384,7 +389,7 @@ def process_file(file_path):
             CoreConst.MIN: npy_content.min().item(),
             CoreConst.MEAN: npy_content.mean().item(),
             CoreConst.NORM: np.linalg.norm(npy_content).item(),
-            CoreConst.DATA_NAME: new_file_name
+            CoreConst.DATA_NAME: new_file_name,
         }
 
         # 根据文件名的最后一个部分（输入或输出）确定是添加到input_args还是output
@@ -415,8 +420,12 @@ def convert_special_values(value):
             return float(value)
         except ValueError:
             return value
-    elif pd.isna(value):
-        return None
+    else:
+        try:
+            if pd.isna(value):
+                return None
+        except (ValueError, TypeError):
+            pass
     return value
 
 
@@ -429,7 +438,7 @@ def process_csv(path):
         'Max Value': CoreConst.MAX,
         'Min Value': CoreConst.MIN,
         'Avg Value': CoreConst.MEAN,
-        'L2Norm Value': CoreConst.NORM
+        'L2Norm Value': CoreConst.NORM,
     }
     for _, row in df.iterrows():
         # op_name_value格式：Cell.network._backbone.loss.CrossEntropyLoss.forward.0.input.0
@@ -446,13 +455,13 @@ def process_csv(path):
         tensor_json = {
             CoreConst.TYPE: 'mindspore.Tensor',
             CoreConst.DTYPE: str(np_ms_dtype_dict.get(row['Data Type'])),
-            CoreConst.SHAPE: shape
+            CoreConst.SHAPE: shape,
         }
         for col_name, json_key in colume_to_json_key.items():
             if col_name in columns:
                 value = convert_special_values(row[col_name])
                 tensor_json[json_key] = value
-      
+
         if io_key == KEY_INPUT:
             data_info.append([op_name, CoreConst.INPUT_ARGS, tensor_json])
         elif io_key == KEY_OUTPUT:
@@ -467,6 +476,8 @@ def generate_dump_info(path):
         logger.error("The provided path does not exist.")
         return
 
+    results = []
+    dump_data = {}
     if dump_task == CoreConst.TENSOR:
         dump_data = {"task": "tensor", "level": "L0", "framework": "mindspore", "dump_data_dir": path, "data": {}}
         with Pool(processes=10) as pool:
@@ -476,7 +487,7 @@ def generate_dump_info(path):
                     file_paths.append((os.path.join(path, file),))
             file_paths.sort()
             results = pool.starmap(process_file, file_paths)
-    if dump_task == CoreConst.STATISTICS:
+    elif dump_task == CoreConst.STATISTICS:
         dump_data = {"task": "statistics", "level": "L0", "framework": "mindspore", "dump_data_dir": None, "data": {}}
         results = process_csv(path)
 
@@ -484,9 +495,11 @@ def generate_dump_info(path):
     for op_name, key, tensor_json in results:
         if op_name:
             if op_name not in dump_data.get(CoreConst.DATA, {}):
-                dump_data.get(CoreConst.DATA, {})[op_name] = {CoreConst.INPUT_ARGS: [],
-                                                              CoreConst.INPUT_KWARGS: {},
-                                                              KEY_OUTPUT: []}
+                dump_data.get(CoreConst.DATA, {})[op_name] = {
+                    CoreConst.INPUT_ARGS: [],
+                    CoreConst.INPUT_KWARGS: {},
+                    KEY_OUTPUT: [],
+                }
             if key not in dump_data.get(CoreConst.DATA, {}).get(op_name, {}):
                 dump_data.get(CoreConst.DATA, {}).get(op_name, {})[key] = []
             dump_data.get(CoreConst.DATA, {}).get(op_name, {}).get(key, []).append(tensor_json)
@@ -615,7 +628,7 @@ def merge_file(dump_path, rank_dir, file_dict):
 
             # 合并所有 DataFrame
             merged_df = pd.concat(all_dfs, ignore_index=True)
-          
+
             # 按 Timestamp 字段升序排序
             merged_df = merged_df.sort_values(by='Timestamp', ascending=True)
             # 删除Slot字段为0的数据
@@ -625,11 +638,11 @@ def merge_file(dump_path, rank_dir, file_dict):
 
             # 获取op_name并加工为Cell.network._backbone.LlamaForCausalLM.forward.input.0格式
             merged_df[CoreConst.OP_NAME] = merged_df[CoreConst.OP_NAME].str.split(KEY_DUMP_TENSOR_DATA, expand=True)[1]
-            merged_df[CoreConst.OP_NAME] = (
-                merged_df[CoreConst.OP_NAME].str.split(CoreConst.PIPE_SEPARATOR, expand=True)[0]
-            )
-            merged_df[CoreConst.OP_NAME] = (
-                merged_df[CoreConst.OP_NAME].str.replace(CoreConst.HYPHEN, CoreConst.SEP, regex=False)
+            merged_df[CoreConst.OP_NAME] = merged_df[CoreConst.OP_NAME].str.split(
+                CoreConst.PIPE_SEPARATOR, expand=True
+            )[0]
+            merged_df[CoreConst.OP_NAME] = merged_df[CoreConst.OP_NAME].str.replace(
+                CoreConst.HYPHEN, CoreConst.SEP, regex=False
             )
             # 重命名op_name，改为Cell.{cell_name}.{class_name}.{forward/backward}.{number}.{input/output}.{index}格式
             rename_filename(data_df=merged_df)
@@ -639,8 +652,10 @@ def merge_file(dump_path, rank_dir, file_dict):
         except FileNotFoundError:
             logger.error("One or more files not found.")
         except KeyError:
-            logger.error("The value of the ‘Op Name’ field does not contain KEY_DUMP_TENSOR_DATA,"
-                         " and the index is out of bounds.")
+            logger.error(
+                "The value of the ‘Op Name’ field does not contain KEY_DUMP_TENSOR_DATA,"
+                " and the index is out of bounds."
+            )
         except Exception as e:
             logger.error(f"An error occurred:{e}")
 
@@ -708,7 +723,7 @@ def get_tensordump_mode(input_str):
 
     # 提取括号内的字符串
     if left_index != -1 and right_index != -1:
-        inner_str = input_str[left_index + 1:right_index]
+        inner_str = input_str[left_index + 1 : right_index]
         # 分割字符串得到元素列表
         elements = inner_str.split(',')
         if len(elements) >= 2:
@@ -730,7 +745,7 @@ def create_kbyk_json(dump_path, summary_mode, step):
     if step:
         step_str = ""
         for s in step:
-            step_str += (str(s) + '|')
+            step_str += str(s) + '|'
         iteration = step_str[:-1]
     else:
         iteration = "all"
@@ -755,13 +770,9 @@ def create_kbyk_json(dump_path, summary_mode, step):
             "input_output": 0,
             "kernels": ["TensorDump"],
             "support_device": [0, 1, 2, 3, 4, 5, 6, 7],
-            "statistic_category": statistic_category
+            "statistic_category": statistic_category,
         },
-        "e2e_dump_settings": {
-            "enable": False,
-            "trans_flag": True,
-            "stat_calc_mode": "device"
-        }
+        "e2e_dump_settings": {"enable": False, "trans_flag": True, "stat_calc_mode": "device"},
     }
 
     create_directory(dump_path)
@@ -774,6 +785,7 @@ def create_kbyk_json(dump_path, summary_mode, step):
     return config_json_path
 
 
+# pylint: disable=too-many-nested-blocks
 def start(config: CellDumpConfig):
     global dump_task
     dump_task = config.task
@@ -792,10 +804,7 @@ def start(config: CellDumpConfig):
 
         # 初始化静态图KBK dump的step数，从0开始
         if not graph_step_flag:
-            raise Exception(
-                "Importing _set_init_iter failed, "
-                "please use the latest version package of MindSpore."
-            )
+            raise RuntimeError("Importing _set_init_iter failed, please use the latest version package of MindSpore.")
         _set_init_iter(0)
         remove_path(config_json_path)
 
@@ -808,6 +817,7 @@ def start(config: CellDumpConfig):
     td_config_path = ""
     try:
         import mindformers
+
         mindformers_file = mindformers.__file__
         mindformers_dir = os.path.dirname(mindformers_file)
         td_config_path = os.path.join(mindformers_dir, "configuration", "layer_mapping.yaml")
@@ -836,11 +846,10 @@ def start(config: CellDumpConfig):
             if class_name.startswith(CoreConst.REPLACEMENT_CHARACTER):
                 logger.info(f"Cell {name}.{class_name} is skipped!")
                 continue
-            else:
-                # Format: Cell.{cell_name}.{class_name}
-                cell.cell_prefix = CoreConst.SEP.join([CoreConst.CELL, name, cell.__class__.__name__])
-                if dump_task == CoreConst.STATISTICS:
-                    cell.cell_prefix = cell.cell_prefix.replace(CoreConst.SEP, CoreConst.HYPHEN)
+            # Format: Cell.{cell_name}.{class_name}
+            cell.cell_prefix = CoreConst.SEP.join([CoreConst.CELL, name, cell.__class__.__name__])
+            if dump_task == CoreConst.STATISTICS:
+                cell.cell_prefix = cell.cell_prefix.replace(CoreConst.SEP, CoreConst.HYPHEN)
 
             # 根据yaml配置文件设置cell的TensorDump模式
             if class_name in first_layer_key:

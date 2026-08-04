@@ -3,6 +3,8 @@ import sys
 import logging
 import os
 import mindspore
+import numpy as np
+from packaging.version import parse as version_parse
 
 from msprobe.mindspore.api_accuracy_checker.api_info import ApiInfo
 from msprobe.mindspore.api_accuracy_checker.utils import global_context
@@ -35,7 +37,8 @@ class TestApiInfo(unittest.TestCase):
         kwargs_compute_element_dict = api_info.get_kwargs()
         self.assertEqual(kwargs_compute_element_dict.get("approximate").get_parameter(), None)
 
-
+    @unittest.skipIf(version_parse(np.__version__) >= version_parse("2.0.0"),
+                     "mindspore is not compatible with numpy >= 2.0")
     def test_get_compute_element_list(self):
         # first load forward backward api_info
         forward_api_info_dict = {

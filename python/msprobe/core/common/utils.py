@@ -26,6 +26,7 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 
 import numpy as np
+from packaging.version import parse as version_parse
 
 from msprobe.core.common.const import Const, CompareConst
 from msprobe.core.common.decorator import recursion_depth_decorator
@@ -767,8 +768,7 @@ def check_rank_id(rank_id):
 
 
 def is_np2():
-    np_version = tuple(map(int, np.__version__.split('.')[:2]))
-    return np_version >= (2, 0)
+    return version_parse(np.__version__) >= version_parse("2.0")
 
 
 def is_torchrec_available():

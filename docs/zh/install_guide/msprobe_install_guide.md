@@ -22,6 +22,10 @@ pip install mindstudio-probe
 Successfully installed mindstudio-probe-{version}
 ```
 
+> [!NOTE]
+>
+> 在线安装的安装包不包含aclgraph_dump、nan_check和xor_checksum功能。若需要使用这些功能，请参见[源码安装](#23-源码安装)。
+
 ### 2.2 离线安装
 
 1. 请参见[msProbe Release](https://gitcode.com/Ascend/msprobe/releases)下载msProbe的whl软件包和对应数字签名文件（.sha256）。
@@ -62,7 +66,9 @@ Successfully installed mindstudio-probe-{version}
 
    若覆盖安装，请在命令行末尾添加 `--force-reinstall` 参数。
 
-   以上提供的whl包链接不包含aclgraph_dump、atb_probe和nan_check等功能，如果需要使用这些功能，请参见[源码安装](#23-源码安装)下载源码编译whl包。
+> [!NOTE]
+>
+> 离线安装的安装包不包含aclgraph_dump、nan_check和xor_checksum功能。若需要使用这些功能，请参见[源码安装](#23-源码安装)。
 
 ### 2.3 源码安装
 
@@ -106,7 +112,7 @@ python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-c
 | ----------------- | :-------: | ------------------------------------------------------------ |
 | local             |   可选    | 本地构建，即复用本地已有依赖，不主动下载第三方依赖 |
 | -v / --version    |   可选    | 指定构建版本号，默认从pyproject.toml读取。                   |
-| -e / --extra      |   可选    | 额外构建选项，KEY=VALUE格式，可多次指定。支持的KEY：<br/>&#8226; include-mod：指定可选模块，可取值：<br/>&emsp;- tb_graph_ascend：表示在编译whl包时加入模型分级可视化插件。模型分级可视化构建相关依赖和推荐版本为Node.js v20.19.3、npm v10.8.2。模型分级可视化插件的详细依赖及功能使用说明请参见[PyTorch场景分级可视化构图比对](../user_guide/accuracy_compare/pytorch_visualization_instruct.md)或[MindSpore场景分级可视化构图比对](../user_guide/accuracy_compare/mindspore_visualization_instruct.md)。<br/>&emsp;- trend_analyzer：表示在编译whl包时加入趋势可视化插件。趋势可视化构建相关依赖和推荐版本为Node.js v20.19.3、npm v10.8.2。趋势可视化插件的功能说明请参见[趋势可视化](../user_guide/accuracy_compare/trend_visualization_instruct.md)。<br/>&emsp;- atb_probe：表示在编译whl包时加入atb_probe模块。atb_probe模块用于ATB推理场景下的数据采集。<br/>&emsp;- aclgraph_dump：表示在编译whl包时加入aclgraph_dump模块，用于在aclgraph场景通过acl_save保存.pt文件。编译环境需要额外依赖`torch`和`TorchNPU`。<br/>&emsp;- nan_check：表示在编译whl包时加入nan_check模块，用于在nan_check场景下做寄存器溢出状态监测。<br/>&emsp;- xor_checksum：表示在编译whl包时加入XOR校验加速算子，用于PyTorch场景下`summary_mode`配置为`xor`时加速校验值采集，可带来数倍性能提升。编译环境需要额外依赖`torch`和`TorchNPU`。<br/>默认未配置该参数，表示编译基础工具包。<br/>指定多个模块时，模块间以","连接，例如tb_graph_ascend,trend_analyzer。<br/>指定atb_probe模块时，编译环境需具备git、curl、GCC 7.5或以上版本、CMake 3.19.3或以上版本等第三方依赖软件。<br/>配置该参数生成的whl包，仅限编译时使用的Python版本和处理器架构可用。<br/>&#8226; no-check：跳过证书校验，值为true或false。include-mod指定可选模块后，会下载所依赖的第三方库包，下载过程会进行证书校验，配置本参数可以跳过证书校验。 |
+| -e / --extra      |   可选    | 额外构建选项，KEY=VALUE格式，可多次指定。支持的KEY：<br/>&#8226; include-mod：指定可选模块，可取值：<br/>&emsp;- all：表示安装所有插件，环境必须满足下列各组件的依赖项。<br/>&emsp;- tb_graph_ascend：表示在编译whl包时加入模型分级可视化插件。模型分级可视化构建相关依赖和推荐版本为Node.js v20.19.3、npm v10.8.2。模型分级可视化插件的详细依赖及功能使用说明请参见[PyTorch场景分级可视化构图比对](../user_guide/accuracy_compare/pytorch_visualization_instruct.md)或[MindSpore场景分级可视化构图比对](../user_guide/accuracy_compare/mindspore_visualization_instruct.md)。<br/>&emsp;- trend_analyzer：表示在编译whl包时加入趋势可视化插件。趋势可视化构建相关依赖和推荐版本为Node.js v20.19.3、npm v10.8.2。趋势可视化插件的功能说明请参见[趋势可视化](../user_guide/accuracy_compare/trend_visualization_instruct.md)。<br/>&emsp;- atb_probe：表示在编译whl包时加入atb_probe模块。atb_probe模块用于ATB推理场景下的数据采集。<br/>&emsp;- aclgraph_dump：表示在编译whl包时加入aclgraph_dump模块，用于在aclgraph场景通过acl_save保存.pt文件。编译环境需要额外依赖`torch`和`TorchNPU`。<br/>&emsp;- nan_check：表示在编译whl包时加入nan_check模块，用于在nan_check场景下做寄存器溢出状态监测。编译环境需要额外依赖`torch`和`TorchNPU`。<br/>&emsp;- xor_checksum：表示在编译whl包时加入XOR校验加速算子，用于PyTorch场景下`summary_mode`配置为`xor`时加速校验值采集，可带来数倍性能提升。编译环境需要额外依赖`torch`和`TorchNPU`。<br/>默认未配置该参数，表示编译基础工具包。<br/>指定多个模块时，模块间以","连接，例如tb_graph_ascend,trend_analyzer。<br/>指定atb_probe模块时，编译环境需具备git、curl、GCC 7.5或以上版本、CMake 3.19.3或以上版本等第三方依赖软件。<br/>配置该参数生成的whl包，仅限编译时使用的Python版本和处理器架构可用。<br/>&#8226; no-check：跳过证书校验，值为true或false。include-mod指定可选模块后，会下载所依赖的第三方库包，下载过程会进行证书校验，配置本参数可以跳过证书校验。 |
 
 ##### 2.3.2.2 编译命令示例
 
@@ -162,6 +168,12 @@ python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-c
 
   ```bash
   python3 build.py -e include-mod=xor_checksum
+  ```
+
+- 安装带上所有功能的工具包
+
+  ```bash
+  python3 build.py -e include-mod=all
   ```
 
 **输出说明**

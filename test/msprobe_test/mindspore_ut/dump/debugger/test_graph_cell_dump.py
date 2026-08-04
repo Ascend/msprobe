@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, patch
 import mindspore as ms
 import pandas as pd
 import numpy as np
+from packaging.version import parse as version_parse
 
 from msprobe.mindspore.dump.dump_processor.cell_dump_process import cell_construct_wrapper
 from msprobe.mindspore.dump.dump_processor.cell_dump_process import check_relation
@@ -534,7 +535,7 @@ class TestMergeFile(unittest.TestCase):
     @patch('msprobe.mindspore.dump.dump_processor.cell_dump_process.write_df_to_csv')
     def test_merge_file(self, mock_write, mock_rename, mock_read, mock_remove):
         """测试文件合并"""
-        if (ms.__version__ > "2.7.0"):
+        if (version_parse(ms.__version__) > version_parse("2.7.0")):
             KEY_DUMP_TENSOR_DATA = "dump_tensor_data/"
         else:
             KEY_DUMP_TENSOR_DATA = "dump_tensor_data_"

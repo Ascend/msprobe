@@ -77,8 +77,8 @@ msprobe --help
 仓库提供了统一的单元测试入口：
 
 ```bash
-cd test/msprobe_test
-bash run_test.sh
+# Python单元测试
+python3 build.py test
 ```
 
 - 测试数据应该放在`test/`目录下的相应位置。

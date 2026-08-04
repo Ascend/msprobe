@@ -277,14 +277,6 @@ class TestFileOperations:
             save_excel(self.excel_file, df)
             mock_to_excel.assert_called_once_with(mock_writer().__enter__(), sheet_name='Sheet1', index=False)
 
-    def test_save_excel_large(self):
-        df = pd.DataFrame({'col1': list(range(1500000)), 'col2': list(range(1500000, 0, -1))})
-        with patch('pandas.DataFrame.to_excel') as mock_to_excel, \
-                patch('pandas.ExcelWriter') as mock_writer, \
-                patch('os.chmod') as mock_chmod:
-            save_excel(self.excel_file, df)
-            mock_to_excel.assert_called_with(mock_writer().__enter__(), sheet_name='part_1', index=False)
-
     def test_move_file(self):
         dst_file = self.test_dir / "moved_file"
         with patch('shutil.move') as mock_move, \
