@@ -5,7 +5,7 @@
 在 **PyTorch ACLGraph** 图模式下执行精度对齐时，整体策略如下：**先整网筛查，后单点深挖**。通过**整网采集**快速收敛异常范围，针对疑似问题算子进行**单点采集**并保存其 Tensor 数据，以便于细粒度排查。`aclgraph_dump` 提供如下采集能力：
 
 - 单点采集：`acl_save`
-- 整网采集：`AclGraphDumper`
+- 整网采集：`AclGraphDumper`，支持统计值采集、Tensor 真实数据采集、自定义 API 采集以及动态启停。
 
 ## 使用前准备
 
@@ -51,12 +51,14 @@
 
     | 配置项         | 可选/必选 | 说明                                                                                                                     |
     |-------------| -- |------------------------------------------------------------------------------------------------------------------------|
-    | `task`      | 可选 | 采集任务类型，str类型。默认值为`statistics`，整网 aclgraph dump 当前仅支持 `statistics`。                                                     |
+    | `task`      | 可选 | 采集任务类型，str类型。支持 `statistics` 和 `tensor`，默认值为 `statistics`。`statistics` 采集统计值，`tensor` 采集 Tensor 真实数据。                    |
     | `dump_path` | 必选 | dump 结果输出目录，str类型。工具会检查并创建该目录。                                                                                         |
     | `rank`      | 可选 | 指定采集的 rank，list[int \|str]类型。默认值为空，表示采集所有 rank；字符串仅支持 `"start-end"` 范围格式。非目标 rank 不开启整网采集。                             |
-    | `level`     | 可选 | 根级采集级别，str类型。支持 `L0`、`L1`、`mix`，默认值为`L0`。<br>`L0` 采集 module 输入/输出统计值；`L1` 采集 API 输入/输出统计值；`mix` 同时采集 module 和 API 统计值。 |
-    | `list`      | 可选 | 模块名关键词过滤列表，list[str]类型。默认值为空，表示采集所有模块。                                                                                 |
-    | `slice`     | 可选 | 对tensor进行切片，list[dict]类型。详细配置方法请参见[slice参数配置说明](./config_json_introduct.md#slice参数配置说明)。                              |
+    | `dump_enable` | 可选 | 采集开关，bool类型，默认值为 `true`。运行过程中修改该字段可动态启停采集，详细说明请参见[动态启停](#动态启停)。                                              |
+    | `level`     | 可选 | 采集级别，str类型。支持 `L0`、`L1`、`mix`，默认值为 `L0`。<br>`L0` 采集 module 输入/输出；`L1` 采集 API 输入/输出；`mix` 同时采集 module 和 API。      |
+    | `list`      | 可选 | module 或 API 名称的关键词过滤列表，list[str]类型。默认值为空，表示采集当前 `level` 覆盖的全部数据。                                                        |
+    | `custom_api` | 可选 | 自定义 Python API 的完整导入路径列表，list[str]类型，仅 `tensor` 任务支持。详细说明请参见[自定义 API 采集](#自定义-api-采集)。                              |
+    | `slice`     | 可选 | 对 Tensor 进行切片，list[dict]类型，仅 `statistics` 任务生效。详细配置方法请参见[slice参数配置说明](./config_json_introduct.md#slice参数配置说明)。             |
 
 2. 完成文件（`config.json`）配置后，下面示例展示如何使用整网采集功能：
 
@@ -100,7 +102,7 @@
 
 #### 功能说明
 
-`AclGraphDumper` 用于采集整网中间数据，当前支持 module 级别、API 级别以及 module+API 混合级别的统计值采集，结果包括张量形状、数据类型、统计值等信息。  
+`AclGraphDumper` 用于采集整网中间数据，支持 module 级别、API 级别以及 module+API 混合级别采集。`statistics` 任务输出张量形状、数据类型和统计值；`tensor` 任务输出 Tensor 真实数据。
 `AclGraphDumper` 的初始化与 `start` 调用需在模型编图（如`torch.npu.graph`或`torch.compile`）之前完成。
 
 #### 接口说明
@@ -115,7 +117,7 @@ AclGraphDumper(config_path: str | None = None)
 
 | 参数名 | 可选/必选 | 说明                                                                                                            |
 | --- | --- |---------------------------------------------------------------------------------------------------------------|
-| config_path | 可选 | 配置文件路径，str类型。若不传，默认读取 msprobe 包内置 `config.json`。`dump_path`、`task`、`rank`、`level`、`list` 与 `slice` 从该配置文件中读取。 |
+| config_path | 可选 | 配置文件路径，str类型。若不传，默认读取 msProbe 包内置 `config.json`。采集任务及其参数均从该文件读取。 |
 
 **函数原型**
 
@@ -139,11 +141,88 @@ AclGraphDumper.step(dump: bool = True) -> None
 
 | 参数名 | 类型 | 说明 | 是否必选 |
 | --- | --- | --- | --- |
-| dump | bool | 是否将当前统计结果落盘到 `dump.json`。`True`：清理统计并落盘，`step_id` 增加 1；`False`：仅清理统计不落盘，`step_id` 不增加（可用于 `dummy_run` 预热阶段）。 | 否 |
+| dump | bool | 是否将当前统计结果落盘到 `dump.json`，仅 `statistics` 任务生效。`True`：清理统计并落盘，`step_id` 增加 1；`False`：仅清理统计不落盘，`step_id` 不增加（可用于 `dummy_run` 预热阶段）。`tensor` 任务会归档当前步骤生成的 `.pt` 文件并推进 `step_id`。 | 否 |
 
 若未启动采集则直接返回。
 
+### Tensor 整网采集
+
+将 `task` 配置为 `tensor` 后，`AclGraphDumper` 会保存采集范围内 module 或 API 的输入、关键字参数和输出 Tensor 真实数据。配置示例如下：
+
+```json
+{
+    "task": "tensor",
+    "dump_path": "./tensor_dump",
+    "rank": [],
+    "dump_enable": true,
+    "level": "mix",
+    "tensor": {
+        "list": ["linear", "attention"]
+    }
+}
+```
+
+每次 ACLGraph replay 后调用 `dumper.step()`，工具会将本次 replay 生成的 `.pt` 文件归档到对应的 `step` 目录。同一 API 调用的输入、关键字参数和输出共享调用序号，文件名格式如下：
+
+```text
+{api_name}.{call_index}.{input|input_kwargs|output}[.{index}].pt
+```
+
+> [!NOTE]
+>
+> Tensor 整网采集会产生较大的磁盘和传输开销，建议结合 `level` 和 `list` 缩小采集范围。
+
+### 自定义 API 采集
+
+对于无法通过 module hook 或 PyTorch dispatch 自动识别的 Python API，可在 `tensor.custom_api` 中配置完整导入路径。该能力仅支持 `tensor` 任务。
+
+```json
+{
+    "task": "tensor",
+    "dump_path": "./tensor_dump",
+    "level": "L1",
+    "tensor": {
+        "custom_api": [
+            "my_package.ops.reshape_and_cache"
+        ]
+    }
+}
+```
+
+`AclGraphDumper.start()` 会在编图前解析并包装目标 API，递归采集其位置参数、关键字参数和返回值中的 Tensor。配置时需满足以下要求：
+
+- 配置值必须是可导入、可调用对象的完整路径。
+- 模型编图时必须通过该路径对应的对象调用 API；在 `start()` 前已复制到其他变量的函数引用不会被包装。
+- `custom_api` 在 `start()` 时生效，运行过程中修改该配置不会重新包装 API。
+- 自定义 API 的输入、关键字参数和输出共享同一个 replay 调用序号。
+
+### 动态启停
+
+在配置文件根级设置 `dump_enable` 可控制 `statistics` 和 `tensor` 任务是否执行采集：
+
+```json
+{
+    "task": "tensor",
+    "dump_path": "./tensor_dump",
+    "dump_enable": false,
+    "level": "L1",
+    "tensor": {
+        "list": []
+    }
+}
+```
+
+即使初始值为 `false`，也必须在编图前调用 `AclGraphDumper.start()`，以便将采集节点加入 ACLGraph。运行过程中可直接修改同一配置文件中的 `dump_enable`，无需重新编图：
+
+- `dumper.step()` 检测配置文件变化并刷新开关。
+- 新开关值从后续 ACLGraph replay 开始生效。
+- 动态刷新仅更新 `dump_enable`；运行过程中修改 `task`、`level`、`list`、`custom_api` 或 `slice` 不会改变已捕获的图。
+
+如果需要在下一次 replay 前立即应用新值，请先修改配置文件，再调用 `dumper.step()` 刷新开关。`statistics` 任务可使用 `dumper.step(dump=False)` 避免生成当前步骤的 `dump.json`；`tensor` 任务调用 `dumper.step()` 会同时归档待处理的 `.pt` 文件并推进 `step_id`。
+
 ### 输出说明
+
+#### statistics 任务
 
 **单卡场景**
 
@@ -181,9 +260,31 @@ L0_dump
 │         └── dump.json
 ```
 
+#### tensor 任务
+
+单卡场景输出路径为：`dump_path/step{step_id}/pid{pid}/tensor_data/*.pt`；多卡场景输出路径为：`dump_path/step{step_id}/rank{rank_id}/tensor_data/*.pt`。
+
+```text
+tensor_dump
+├── step0
+│   └── rank0
+│       └── tensor_data
+│           ├── linear.0.input.0.pt
+│           └── linear.0.output.0.pt
+└── step1
+    └── rank0
+        └── tensor_data
+            ├── linear.1.input.0.pt
+            └── linear.1.output.0.pt
+```
+
+`.pt` 文件可通过 `torch.load` 读取。
+
+`tensor` 任务不生成 `dump.json`。
+
 ### 比对说明
 
-可直接通过 `msprobe compare` 对整网采集结果进行比对。  
+`statistics` 任务可直接通过 `msprobe compare` 对整网采集结果进行比对。
 比对完成后会生成 csv 报告文件，例如：`compare_result_{rank_id}_{timestamp}.csv`。
 
 在分布式多进程场景中，通常会按 rank 生成对应的 compare 结果文件，请结合 rank 维度查看结果。
