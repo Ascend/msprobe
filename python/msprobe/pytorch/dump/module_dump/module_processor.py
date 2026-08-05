@@ -14,6 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code
+
 import sys
 import threading
 from collections import OrderedDict
@@ -261,6 +263,9 @@ class ModuleProcessor:
                 setattr(module, 'msprobe_forward_hook', True)
 
             hook_set = build_data_hook(BaseScope.Module_Type_Module, full_forward_name)
+
+            if hook_set.module_forward_pre_hook:
+                hook_set.module_forward_pre_hook(module, args, kwargs)
 
             def get_backward_pre_hook(full_backward_name):
                 @ThreadSafe.synchronized

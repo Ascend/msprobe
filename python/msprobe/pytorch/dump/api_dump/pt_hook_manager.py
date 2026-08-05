@@ -14,6 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code
+
 import functools
 import threading
 from contextlib import nullcontext
@@ -83,6 +85,7 @@ class PytorchHookManager(BaseHookManager):
         else:
             full_backward_name = replace_last_occurrence(name, Const.FORWARD, Const.BACKWARD)
             hook_set = HookSet(
+                module_forward_pre_hook=self._build_module_forward_pre_hook(name),
                 forward_hook=self._build_forward_hook(hook_type, name),
                 backward_hook=self._build_backward_hook(hook_type, full_backward_name),
             )

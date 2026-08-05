@@ -150,7 +150,7 @@ class TestBaseHookManager(unittest.TestCase):
         with patch.object(self.manager, '_get_params_dict', return_value={}):
             result = hook(module, args, kwargs, output)
             self.assertEqual(result, output)
-            self.mock_data_collector.forward_data_collect.assert_called_once()
+            self.mock_data_collector.forward_output_data_collect.assert_called_once()
             self.mock_data_collector.get_forward_new_output.assert_not_called()
 
         self.mock_data_collector.if_return_forward_new_output.return_value = True

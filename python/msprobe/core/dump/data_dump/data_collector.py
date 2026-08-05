@@ -18,7 +18,6 @@ import atexit
 import os
 import re
 import threading
-import traceback
 
 from msprobe.core.common.const import Const
 from msprobe.core.common.log import logger
@@ -133,26 +132,17 @@ class DataCollector:
         self.data_writer.update_stack(name, stack_info)
 
     def forward_input_data_collect(self, name, module, pid, module_input_output):
-        try:
-            if not self.should_collect(name, pid):
-                return
+        if not self.should_collect(name, pid):
+            return
 
-            logger.debug(f"forward_input_data_collect for {name}")
-            data_info = {}
-            if self.config.task != Const.STRUCTURE:
-                data_info = self.data_processor.analyze_forward_input(name, module, module_input_output)
-            if self.config.level == Const.LEVEL_L2:
-                return
-            self.call_stack_collect(name)
-            self.handle_data(name, data_info, flush=self.data_processor.is_terminated)
-
-        except Exception as e:
-            error_type = type(e).__name__
-            tb = traceback.format_exc()
-            logger.debug(f"forward_input_data_collect failed for {name}: {e}")
-            self.data_writer.write_error_log(
-                f"[ERROR] forward_input_data_collect failed: name={name}, pid={pid}\n{tb}", error_type=error_type
-            )
+        logger.debug(f"forward_input_data_collect for {name}")
+        data_info = {}
+        if self.config.task != Const.STRUCTURE:
+            data_info = self.data_processor.analyze_forward_input(name, module, module_input_output)
+        if self.config.level == Const.LEVEL_L2:
+            return
+        self.call_stack_collect(name)
+        self.handle_data(name, data_info, flush=self.data_processor.is_terminated)
 
     def forward_output_data_collect(self, name, module, pid, module_input_output):
         self.update_construct(name)

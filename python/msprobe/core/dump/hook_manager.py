@@ -14,6 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code
+
 import gc
 import os
 import re
@@ -34,12 +36,14 @@ class HookSet:
         backward_pre_hook=None,
         backward_hook=None,
         distributed_forward_hook=None,
+        module_forward_pre_hook=None,
     ):
         self.forward_pre_hook = forward_pre_hook
         self.forward_hook = forward_hook
         self.backward_pre_hook = backward_pre_hook
         self.backward_hook = backward_hook
         self.distributed_forward_hook = distributed_forward_hook
+        self.module_forward_pre_hook = module_forward_pre_hook
 
 
 class BaseHookManager(ABC):
@@ -279,7 +283,9 @@ class BaseHookManager(ABC):
                         if params_dict:
                             self._register_param_hook(api_name, module, params_dict)
                         self.data_collector.update_api_or_module_name(api_name)
-                        self.data_collector.forward_data_collect(api_name, module, self._pid, module_input_output)
+                        self.data_collector.forward_output_data_collect(
+                            api_name, module, self._pid, module_input_output
+                        )
                     else:
                         self.data_collector.update_api_or_module_name(full_forward_name)
                         self.data_collector.forward_output_data_collect(
@@ -293,6 +299,28 @@ class BaseHookManager(ABC):
                 return output
 
         return forward_hook
+
+    def _build_module_forward_pre_hook(self, full_name):
+        def module_forward_pre_hook(module, args, kwargs):
+            tid = threading.get_ident()
+            if not self._should_execute_hook(Const.MODULE, tid):
+                return
+
+            with ThreadSafe():
+                original_state = self.ensure_gc_enabled()
+                BaseHookManager.inner_switch[tid] = True
+
+                self._maybe_update_dump_dir()
+                self.data_collector.update_api_or_module_name(full_name)
+                module_input_output = ModuleForwardInputsOutputs(args=args, kwargs=kwargs, output=None)
+
+                with self._no_grad_context():
+                    self.data_collector.forward_input_data_collect(full_name, module, self._pid, module_input_output)
+
+                BaseHookManager.inner_switch[tid] = False
+                self.restore_gc_state(original_state)
+
+        return module_forward_pre_hook
 
     def _build_backward_hook(self, hook_type, full_name):
         def backward_hook(module, grad_input, grad_output):

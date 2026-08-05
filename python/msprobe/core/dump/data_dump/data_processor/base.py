@@ -575,6 +575,10 @@ class BaseDataProcessor:
             )
             api_info_struct[name][Const.OUTPUT] = output_info_list
 
+        if name in api_info_struct and hasattr(module_input_output, Const.PARAMS):
+            self.api_data_category = Const.PARAMS
+            api_info_struct[name][Const.PARAMS] = self.analyze_element(getattr(module_input_output, Const.PARAMS))
+
         return api_info_struct
 
     def analyze_forward(self, name, module, module_input_output: ModuleForwardInputsOutputs):

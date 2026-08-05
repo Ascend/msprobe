@@ -285,7 +285,12 @@ class DataWriter:
             self.data_updated = True
             key = next(iter(new_data.keys()))
             if key in dump_data:
-                dump_data.get(key).update(new_data.get(key))
+                if key.startswith(Const.MODULE + Const.SEP):
+                    existing = dump_data.pop(key)
+                    existing.update(new_data.get(key))
+                    dump_data[key] = existing
+                else:
+                    dump_data.get(key).update(new_data.get(key))
             else:
                 dump_data.update(new_data)
 
