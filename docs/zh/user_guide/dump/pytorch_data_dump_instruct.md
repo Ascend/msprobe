@@ -887,7 +887,7 @@ debugger是PrecisionDebugger类的实例对象，该实例对象提供**start**�
 **函数原型**
 
 ```Python
-debugger.start(model=None, token_range=None, rank_id=None)
+debugger.start(model=None, token_range=None, rank_id=None, scheduled_tokens=None)
 ```
 
 **参数说明**
@@ -911,6 +911,9 @@ debugger.start(model=None, token_range=None, rank_id=None)
   针对此类特殊场景，可通过配置rank_id参数为rank文件夹命名，但需要保证rank_id在各个进程中唯一。该值通常可在模型脚本或训练推理框架中获取，例如推理框架sglang中的self.gpu_id，其在每个进程中均保持唯一性。
 
   配置示例：`debugger.start(rank_id=self.gpu_id)`
+
+- scheduled_tokens: 指定当前调度每个请求占用的token数，dict类型。key是str，表示请求id，value是int, value>=0，表示该请求占用的token数。配置示例：`debugger.start(scheduled_tokens={"chatcmpl-req-0": 10, "chatcmpl-req-1": 15})`。
+  配合[request_id配置](./config_json_introduct.md#request_id参数配置说明)可以实现指定请求id采集数据。
 
 **返回值说明**
 

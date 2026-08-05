@@ -11,7 +11,7 @@ msProbe工具支持在vLLM推理场景中采集模型执行过程中的中间过
 | `vllm-ascend` | NPU | ✅ | ✅ | 参考vLLM Ascend官方《[MSProbe 调试指南](https://docs.vllm.ai/projects/ascend/zh-cn/latest/developer_guide/performance_and_debug/msprobe_guide.html)》 |
 | 社区原生vLLM | GPU | ✅ | ❌ | 在`GPUModelRunner`中接入`PrecisionDebugger`接口，详见本文后续章节 |
 
-dump "statistics"模式的性能膨胀大小与"tensor"模式采集的数据量大小，可以参考[dump基线](../../baseline/pytorch_data_dump_perf_baseline.md)。
+dump `statistics`模式的性能膨胀大小与`tensor`模式采集的数据量大小，可以参考[dump基线](../../baseline/pytorch_data_dump_perf_baseline.md)。
 
 **注意**：
 
@@ -43,7 +43,7 @@ dump "statistics"模式的性能膨胀大小与"tensor"模式采集的数据量�
 
 仅支持采集基于PyTorch框架实现的模型。
 
-当前在图模式下不支持低精场景（`fp8`/`fp4`）的数据采集与结果分析；vLLM 图模式采集时建议使用 `fp16`/`bf16`/`fp32` 等常规精度配置。
+当前在图模式下不支持低精度场景（`fp8`/`fp4`）的数据采集与结果分析；vLLM 图模式采集时建议使用 `fp16`/`bf16`/`fp32` 等常规精度配置。
 
 ## 快速入门
 
@@ -93,6 +93,102 @@ acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
 ```
 
 更详细的 `acl_save` 接口说明及图模式整网采集方案，请参见《[ACLGraph数据采集](./aclgraph_dump_instruct.md)》。
+
+#### vllm-ascend 指定request_id采集
+
+1. 修改vllm-ascend代码
+
+   找到vllm-ascend框架`NPUModelRunner`类所属文件： vllm-ascend/vllm_ascend/worker/model_runner_v1.py
+
+   - 修改`NPUModelRunner`类的`execute_model`方法中的`self._start_dump_data`所有调用点。
+
+       ```diff
+       class NPUModelRunner(GPUModelRunner):
+           ...
+           def execute_model(
+               self,
+               scheduler_output: "SchedulerOutput",
+               intermediate_tensors: IntermediateTensors | None = None,
+           ) -> ModelRunnerOutput | IntermediateTensors | None:
+               ...
+       -       self._start_dump_data()
+       +       self._start_dump_data(scheduled_tokens=scheduler_output.num_scheduled_tokens)
+       ```
+
+   - 修改`NPUModelRunner`类的`_start_dump_data`方法。
+
+       ```diff
+       class NPUModelRunner(GPUModelRunner):
+           ...
+       -    def _start_dump_data(self) -> None:
+       +    def _start_dump_data(self, **kwargs) -> None:
+               if self.debugger is None or self._debugger_started:
+                   return
+       -       self.debugger.start(self.model)    
+       +       try:
+       +           self.debugger.start(self.model, **kwargs)
+       +       except TypeError:
+       +           self.debugger.start(self.model)
+               self._debugger_started = True
+       ```
+
+2. request_id配置
+
+    vllm会在request_id前加上`chatcmpl-`前缀，curl请求指定request_id为`<REQ_ID>`，需要config.json配置request_id为`chatcmpl-<REQ_ID>`
+
+    在当前目录下创建`config.json`文件，用于配置dump参数。内容示例如下：
+
+    ```json
+    {
+       "task": "statistics",
+       "dump_path": "/home/data_dump",
+       "rank": [],
+       "step": [],
+       "level": "mix",
+       "async_dump": false,
+       "statistics": {
+          "scope": [],
+          "list": [],
+          "data_mode": [
+             "all"
+          ],
+          "summary_mode": "statistics",
+          "request_id": "chatcmpl-req-0"
+       }
+    }
+    ```
+
+    config.json配置文件及配置样例详细介绍请参见[配置文件介绍](./config_json_introduct.md)。
+
+3. 启动vLLM服务并开始采集数据
+
+   启动服务时需开启eager模式，配置`export VLLM_DISABLE_REQUEST_ID_RANDOMIZATION=1`禁用随机request_id，示例如下：
+
+   ```shell
+   #!/bin/bash
+   export TORCHDYNAMO_DISABLE=1
+   export VLLM_DISABLE_REQUEST_ID_RANDOMIZATION=1
+   vllm serve Qwen/Qwen2.5-0.5B-Instruct \
+     --dtype float16 \
+     --enforce-eager \
+     --host 0.0.0.0 \
+     --port 8000 \
+     --additional-config '{"dump_config_path": "./config.json"}'
+   ```
+
+   服务启动后发送推理请求，通过-H "X-Request-ID: req-0" 指定request_id为`req-0`，请求执行过程中将自动触发dump：
+
+   ```shell
+   curl http://127.0.0.1:8000/v1/completions \
+     -H "Content-Type: application/json" \
+     -H "X-Request-ID: req-0" \
+     -d '{
+           "model": "Qwen/Qwen2.5-0.5B-Instruct",
+           "prompt": "Explain gravity in one sentence.",
+           "max_tokens": 32,
+           "temperature": 0
+         }'
+   ```
 
 ### 社区vLLM场景
 
@@ -161,7 +257,7 @@ acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
           if hasattr(self, "debugger"):
               self.debugger.start(model=self.model)
           ################################ msprobe ################################
-  
+    
           try:
               ...
               return output
