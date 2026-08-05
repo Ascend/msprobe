@@ -320,7 +320,7 @@ MindSpore动态图场景下，"level"须为"L2"; MindSpore静态图场景下，"
 
   - 配置示例："tensor_list": ["relu"]。
 
-- nan_check 任务下的特殊说明：`nan_check` 任务默认检测所有 API 是否存在 NaN/Inf 溢出。当需要进一步定位某个 API 内部的具体溢出位置时，可通过 `tensor_list` 指定需要深入分析的 API，当发生溢出时，工具会触发`Exception`，对这些 API 生成额外的详细数据文件，并落盘至当前目录下的 `extra-info` 子目录中，供 [Tensor 解析工具](https://www.hiascend.com/document/detail/zh/canncommercial/900/maintenref/troubleshooting/troubleshooting_0532.html) 进行逐元素级分析。
+- nan_check 任务下的特殊说明：`nan_check` 任务默认检测所有 API 是否存在 NaN/Inf 溢出。当需要进一步定位某个 API 内部的具体溢出位置时，可通过 `tensor_list` 指定需要深入分析的 API，当发生溢出时，工具会触发`Exception`，对这些 API 生成额外的详细数据文件，并落盘至当前目录下的 `extra-info` 子目录中，供 [Tensor 解析工具](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/maintenref/troubleshooting/troubleshooting_0532.html) 进行逐元素级分析。
   - 匹配方式：匹配方式为子串匹配，不区分大小写。例如配置 `["truediv"]` 时，所有名称中包含 "truediv" 的 API（如 `truediv`、`__truediv__`）均会被命中。
 
   - 使用建议

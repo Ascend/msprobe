@@ -308,7 +308,7 @@ msprobe dump的使用方式，可以参考[常用工具介绍](#4111-常用工�
 
 MindIE（Mind Inference Engine，昇腾推理引擎）是华为昇腾针对AI全场景业务的推理加速套件。通过分层开放AI能力，支撑用户多样化的AI业务需求，使能百模千态，释放昇腾硬件设备算力。MindIE向上支持多种主流AI框架，向下对接不同类型昇腾AI处理器，提供多层次编程接口，帮助用户快速构建基于昇腾平台的推理业务。
 
-当前，MindIE往往与[ATB加速库](https://www.hiascend.com/document/detail/zh/canncommercial/850/acce/ascendtb/ascendtb_0001.html)结合使用，达到最佳的推理性能。下文以MindIE+ATB为例，介绍MindIE场景下的精度问题定位方法。
+当前，MindIE往往与[ATB加速库](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/acce/ascendtb/ascendtb_0001.html)结合使用，达到最佳的推理性能。下文以MindIE+ATB为例，介绍MindIE场景下的精度问题定位方法。
 
 ##### 4.1.2.1 常用工具介绍
 

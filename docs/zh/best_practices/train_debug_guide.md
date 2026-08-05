@@ -196,7 +196,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
     - 在`Megatron`、`DeepSpeed`类模型中，`overlap`参数（如`overlap-param-gather`、`overlap-grad-reduce`等）存在较高风险，可先关闭该类参数。
     - 在`FSDP`框架下使用混合精度出现的`NaN`问题，建议优先排查TorchNPU框架导致的内存踩踏，可尝试切换TorchNPU版本。
-    - `FA`（`npu_fusion_attention`）融合算子功能复杂，使用时易出现传参规范错误的问题，可先关闭`FA`分支，定界是否为`FA`导致。若定界确实为`FA`分支导致后，请参照[FA官网文档](https://www.hiascend.com/document/detail/zh/Pytorch/60RC3/apiref/apilist/ptaoplist_000762.html)来排查是否存在使用规范错误。
+    - `FA`（`npu_fusion_attention`）融合算子功能复杂，使用时易出现传参规范错误的问题，可先关闭`FA`分支，定界是否为`FA`导致。若定界确实为`FA`分支导致后，请参照[FA官网文档](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu/torch_npu-npu_fusion_attention.md)来排查是否存在使用规范错误。
     - 确保打开了`Inf`/`NaN`模式或者非饱和模式，参照[附录-非饱和模式](#53-非饱和模式)。
 
 ##### 2.3.1.2 首Step Loss差异

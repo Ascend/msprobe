@@ -15,7 +15,7 @@ msProbe工具通过在ATB模型运行前，执行ATB dump模块加载脚本的�
 
 **基本概念**
 
-* **ATB**：全称为Ascend Transformer Boost，是一款基于昇腾Ascend AI处理器，专门为Transformer模型设计的高效、可靠的加速库。详细介绍请参见《ATB加速库用户指南》中的“[简介](https://www.hiascend.com/document/detail/zh/canncommercial/900/API/ascendtb/ascendtb_0001.html)”章节。
+* **ATB**：全称为Ascend Transformer Boost，是一款基于昇腾Ascend AI处理器，专门为Transformer模型设计的高效、可靠的加速库。详细介绍请参见《[ATB加速库用户指南](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/acce/ascendtb/ascendtb_0001.html)》。
 
 * **dump**：采集精度数据，并完成数据持久化的过程。
 

@@ -85,4 +85,4 @@ kernel级数据采集成功后，会在指定的dump_path目录下生成如下�
 
 1. 首先需要确认工具使用方式、配置文件内容和list填写的API名称格式是否都正确无误。
 2. 其次需要确认API是否运行在昇腾NPU上，如果是运行在其他设备上则不会存在kernel级数据。
-3. 如果排除上述两点仍然没有数据，您可以使用[Ascend for PyTorch](https://gitcode.com/Ascend/pytorch)提供的torch_npu.npu接口进行kernel级数据采集，工具的kernel dump也是基于其中的init_dump、set_dump和finalize_dump三个子接口实现的。torch_npu.npu接口详细描述见《[torch_npu.npu API 概述](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_list.md)》。
+3. 如果排除上述两点仍然没有数据，您可以使用[TorchNPU](https://gitcode.com/Ascend/pytorch)提供的torch_npu.npu接口进行kernel级数据采集，工具的kernel dump也是基于其中的init_dump、set_dump和finalize_dump三个子接口实现的。torch_npu.npu接口详细描述见《[torch_npu.npu API 概述](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu-npu/torch_npu-npu_list.md)》。
