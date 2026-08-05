@@ -52,6 +52,7 @@ class PytorchService(BaseService):
         self._reset_status()
 
     def _init_specific_components(self):
+        # pylint: disable=attribute-defined-outside-init
         self.logger = logger
         self.api_register = get_api_register()
         self.module_processor = None
@@ -61,6 +62,20 @@ class PytorchService(BaseService):
 
     def _refresh_module_processor(self):
         self.module_processor = ModuleProcessor(self.data_collector.scope)  # pylint: disable=attribute-defined-outside-init
+
+    def _need_dump_data(self, scheduled_tokens=None):
+        self.config.update_slice_info(scheduled_tokens, False)
+        if scheduled_tokens is None:
+            return True
+        if not self.config.check_scheduled_tokens(scheduled_tokens):
+            return True
+        if self.config.request_id not in scheduled_tokens:
+            self.logger.warning(
+                f"{self.config.request_id} not found in scheduled_tokens, step {self.current_iter} will not be dumped"
+            )
+            return False
+        self.config.update_slice_info(scheduled_tokens, True)
+        return True
 
     def _register_hook(self):
         if self._is_mix_level:

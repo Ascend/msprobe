@@ -45,6 +45,7 @@ class DebuggerConfig:
         self.list = task_config.list if task_config.list else []
         self.data_mode = task_config.data_mode if task_config.data_mode else ["all"]
         self.slice_info = task_config.slice_info if task_config.slice_info else []
+        self.request_id = task_config.request_id if task_config.request_id else None
         self.summary_mode = task_config.summary_mode if task_config.summary_mode else Const.STATISTICS
         self.framework = Const.PT_FRAMEWORK
         self.async_dump = common_config.async_dump if common_config.async_dump else False
@@ -59,6 +60,7 @@ class DebuggerConfig:
         if self.level == Const.LEVEL_L2:
             self.is_backward_kernel_dump = False
             self._check_and_adjust_config_with_l2()
+        self.is_slice_info_modified = False
 
     def _get_custom_op_namespaces(self, common_config):
         custom_op_namespaces = vars(common_config).get("custom_op_namespaces", None)
@@ -115,15 +117,18 @@ class DebuggerConfig:
                 f"If not, the default level is {Const.LEVEL_MIX}."
             )
             self.level = Const.LEVEL_MIX
-        if self.slice_info and (
-            self.task not in [Const.STATISTICS, Const.TENSOR]
-            or self.level not in [Const.LEVEL_L0, Const.LEVEL_L1, Const.LEVEL_MIX]
-        ):
+        if self.slice_info and not self._is_slice_supported():
             logger.warning_on_rank_0(
                 f'The "slice" is valid, only when the task is {Const.TENSOR} or {Const.STATISTICS}, '
                 f'and the level is {Const.LEVEL_L0}, {Const.LEVEL_L1} or {Const.LEVEL_MIX}. '
             )
             self.slice_info = []
+        if self.request_id and not self._is_slice_supported():
+            logger.warning_on_rank_0(
+                f'The "request_id" is valid, only when the task is {Const.TENSOR} or {Const.STATISTICS}, '
+                f'and the level is {Const.LEVEL_L0}, {Const.LEVEL_L1} or {Const.LEVEL_MIX}. '
+            )
+            self.request_id = None
         if self.async_dump:
             if self.task == Const.TENSOR:
                 if self.level == Const.LEVEL_DEBUG:
@@ -139,6 +144,13 @@ class DebuggerConfig:
                     "The parameters async_dump is true, the parameters summary_mode cannot be md5.",
                 )
         return True
+
+    def _is_slice_supported(self):
+        return self.task in [Const.STATISTICS, Const.TENSOR] and self.level in [
+            Const.LEVEL_L0,
+            Const.LEVEL_L1,
+            Const.LEVEL_MIX,
+        ]
 
     def check_model(self, models, token_range=None):
         if token_range and not models:
@@ -210,3 +222,72 @@ class DebuggerConfig:
             logger.warning_on_rank_0("When level is set to debug, the tensor_list will be invalid.")
             return
         self.tensor_list = task_config.tensor_list
+
+    def check_scheduled_tokens(self, scheduled_tokens):
+        if not self.request_id:
+            return False
+        if not isinstance(self.request_id, str):
+            logger.warning(
+                "request_id invalid, expected str, "
+                f"actual_type={type(self.request_id).__name__}, value={self.request_id}"
+            )
+            return False
+
+        if not scheduled_tokens:
+            return False
+        if not isinstance(scheduled_tokens, dict):
+            logger.warning(
+                "scheduled_tokens invalid, expected dict, "
+                f"actual_type={type(scheduled_tokens).__name__}, value={scheduled_tokens}"
+            )
+            return False
+
+        for req_id, num_tokens in scheduled_tokens.items():
+            if not isinstance(req_id, str):
+                logger.warning(
+                    f"scheduled_tokens invalid, key expected str, actual_type={type(req_id).__name__}, value={req_id}"
+                )
+                return False
+            if type(num_tokens) is not int:  # pylint: disable=unidiomatic-typecheck
+                logger.warning(
+                    "scheduled_tokens invalid, value expected int,"
+                    f" actual_type={type(num_tokens).__name__}, value={num_tokens}"
+                )
+                return False
+            if num_tokens <= 0:
+                logger.warning(f"scheduled_tokens invalid, value should be positive, current value={num_tokens}")
+                return False
+        return True
+
+    def update_slice_info(self, scheduled_tokens, is_add):
+        if not is_add:
+            if self.slice_info and self.is_slice_info_modified:
+                self.slice_info.pop()
+                self.is_slice_info_modified = False
+            return
+        if self.request_id not in scheduled_tokens:
+            logger.warning(f"request_id {self.request_id} not in scheduled_tokens, skip slice update")
+            return
+        total_num_tokens, slice_begin, slice_end = 0, 0, 0
+        for req_id, num_tokens in scheduled_tokens.items():
+            if req_id == self.request_id:
+                slice_begin = total_num_tokens
+                slice_end = total_num_tokens + num_tokens
+            total_num_tokens += num_tokens
+        if slice_begin >= slice_end or slice_end > total_num_tokens:
+            logger.warning(
+                f"request_id {self.request_id} slice_begin={slice_begin} slice_end={slice_end} "
+                f"out of range, total_num_tokens={total_num_tokens}"
+            )
+            return
+
+        new_slice_item = {Const.DIM: 0, Const.SIZE: total_num_tokens, Const.BEGIN: slice_begin, Const.END: slice_end}
+        if self.slice_info:
+            if self.is_slice_info_modified:
+                self.slice_info[-1] = new_slice_item
+            else:
+                self.slice_info.append(new_slice_item)
+        else:
+            self.slice_info = [new_slice_item]
+        logger.info(f"request_id={self.request_id}, scheduled_tokens will apply slice_item={new_slice_item}")
+        self.is_slice_info_modified = True

@@ -169,3 +169,31 @@ class TestBaseConfig(TestCase):
         base_config = BaseConfig({})
         self.assertIsNone(base_config.check_config())
 
+    def test_request_id_parse(self):
+        # 未配置 request_id 时为 None
+        base_config = BaseConfig({})
+        self.assertIsNone(base_config.request_id)
+
+        # 合法 request_id 配置解析
+        json_config = {"request_id": "req_0"}
+        base_config = BaseConfig(json_config)
+        self.assertEqual(base_config.request_id, "req_0")
+
+    def test_request_id_check_config_valid(self):
+        # check_config 对合法 request_id 不报错
+        json_config = {"request_id": "req_0"}
+        base_config = BaseConfig(json_config)
+        self.assertIsNone(base_config.check_config())
+
+    def test_request_id_check_config_none(self):
+        # check_config 对 None request_id 不报错
+        base_config = BaseConfig({})
+        self.assertIsNone(base_config.check_config())
+
+    def test_request_id_check_config_invalid(self):
+        # check_config 对非 str 的 request_id 抛出异常
+        json_config = {"request_id": 123}
+        base_config = BaseConfig(json_config)
+        with self.assertRaises(MsprobeException):
+            base_config.check_config()
+

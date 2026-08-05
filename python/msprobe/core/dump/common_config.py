@@ -105,13 +105,14 @@ class BaseConfig:
         self.list = json_config.get('list')
         self.data_mode = json_config.get('data_mode')
         self.slice_info = json_config.get('slice')
+        self.request_id = json_config.get('request_id')
         self.summary_mode = json_config.get("summary_mode")
         self.diff_nums = json_config.get("diff_nums")
         self.is_regex_valid = True
         logger.debug(
             f"BaseConfig: scope={self.scope}, list={self.list}, "
             f"data_mode={self.data_mode}, summary_mode={self.summary_mode}, "
-            f"diff_nums={self.diff_nums}"
+            f"diff_nums={self.diff_nums}, slice={self.slice_info}, request_id={self.request_id}"
         )
 
     @staticmethod
@@ -135,6 +136,7 @@ class BaseConfig:
         check_slice_info(self.slice_info)
         self._check_data_mode()
         self._check_regex_in_list()
+        self._check_request_id()
 
     def _check_data_mode(self):
         if self.data_mode is not None:
@@ -184,3 +186,10 @@ class BaseConfig:
                     except re.error:
                         self.is_regex_valid = False
                         break
+
+    def _check_request_id(self):
+        if self.request_id is not None and not isinstance(self.request_id, str):
+            logger.error_log_with_exp(
+                f"request_id is invalid, it should be str, actual type={type(self.request_id).__name__}.",
+                MsprobeException(MsprobeException.INVALID_PARAM_ERROR),
+            )

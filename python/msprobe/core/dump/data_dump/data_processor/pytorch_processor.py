@@ -56,7 +56,7 @@ except ImportError:
 
 
 class TensorHandler:
-    def __init__(self, slice_info=None):
+    def __init__(self, config=None):
         self.has_dtensor = hasattr(dist, "tensor") and hasattr(dist.tensor, "DTensor")
         self.has_fake_tensor = hasattr(torch, "_subclasses") and hasattr(torch._subclasses, "fake_tensor")
         self.has_async_collective_tensor = hasattr(dist, "_functional_collectives") and hasattr(
@@ -68,7 +68,7 @@ class TensorHandler:
             and hasattr(torch.nested._internal, "nested_tensor")
             and hasattr(torch.nested._internal.nested_tensor, "NestedTensor")
         )
-        self.slice_info = slice_info
+        self.config = config
 
     @staticmethod
     def free_tensor(tensor, tensor_name):
@@ -190,7 +190,7 @@ class TensorHandler:
             saved_tensor = common_tensor.clone().contiguous().detach()
             if self.is_gradtrackingtensor(saved_tensor):
                 saved_tensor = torch._C._functorch.get_unwrapped(saved_tensor)
-        sliced_tensor = slice_by_config(saved_tensor, self.slice_info)
+        sliced_tensor = slice_by_config(saved_tensor, self.config.slice_info if self.config else None)
         save_pt(sliced_tensor, file_path)
         self.free_tensor(saved_tensor, file_path)
 
@@ -221,7 +221,7 @@ class PytorchDataProcessor(BaseDataProcessor):
             "output_dtype": self.analyze_dtype_in_kwargs,
         }
         self._async_dump_cache = {}
-        self.tensor_handler = TensorHandler(config.slice_info)
+        self.tensor_handler = TensorHandler(config)
         self._crc_executor = ThreadPoolExecutor(max_workers=os.cpu_count() // 2)
 
     def _load_builtin_ignore_rules(self):

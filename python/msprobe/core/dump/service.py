@@ -116,7 +116,7 @@ class BaseService(ABC):
         """Toggle JitDump switch. MindSpore subclass overrides."""
         pass
 
-    def start(self, model=None, token_range=None, rank_id=None):
+    def start(self, model=None, token_range=None, rank_id=None, scheduled_tokens=None):
         """Common start flow."""
         self._process_iteration()
         if not self._is_dump_enabled:
@@ -130,6 +130,9 @@ class BaseService(ABC):
             self._register_module_hook()
             self.hooked_modules.append(self.model)
         if self._need_stop_service():
+            return
+        if not self._need_dump_data(scheduled_tokens):
+            self._disable_dump_runtime()
             return
         Runtime.is_running = True
         self.cur_token_id = 0
@@ -306,6 +309,13 @@ class BaseService(ABC):
         if self._is_no_dump_step:
             return True
         return False
+
+    def _need_dump_data(self, scheduled_tokens=None):
+        """Decide whether to dump data for this step. Override in subclass.
+        Returns:
+            bool: True if should dump data, False if should skip.
+        """
+        return True
 
     def _register_api_hook(self):
         if self._is_need_api_hook:

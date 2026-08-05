@@ -75,7 +75,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
 
     @classmethod
     @ThreadSafe.synchronized
-    def start(cls, model=None, token_range=None, rank_id=None):
+    def start(cls, model=None, token_range=None, rank_id=None, scheduled_tokens=None):
         instance = cls._instance_with_reload()
 
         # 延迟注册：在 start() 时再次扫描自定义算子
@@ -85,7 +85,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
         check_token_range(token_range)
         check_rank_id(rank_id)
         instance.config.check_model(model, token_range)
-        instance.service.start(model, token_range, rank_id)
+        instance.service.start(model, token_range, rank_id, scheduled_tokens)
         instance._auto_register_custom_api(force_retry=True)
 
     @classmethod

@@ -101,3 +101,84 @@ class TestPytorchService(unittest.TestCase):
         self.service.model = MagicMock()
         self.service._register_module_hook()
         self.service.module_processor.register_module_hook.assert_called_once()
+
+    # ------------------ _need_dump_data ------------------
+
+    def _make_real_config(self, request_id="req_0"):
+        """构造真实 DebuggerConfig 替换 mock config，便于验证 slice_info 真实更新"""
+        common_config = MagicMock()
+        common_config.dump_path = "./dump_path"
+        common_config.task = Const.TENSOR
+        common_config.level = Const.LEVEL_L1
+        common_config.async_dump = False
+        common_config.rank = []
+        common_config.step = []
+        task_config = MagicMock()
+        task_config.request_id = request_id
+        task_config.slice_info = []
+        from msprobe.pytorch.dump.debugger.debugger_config import DebuggerConfig
+        return DebuggerConfig(common_config, task_config, None, None, None)
+
+    def test_need_dump_data_none_returns_true(self):
+        """scheduled_tokens=None → 返回 True，回退上一轮动态切片"""
+        self.service.config = self._make_real_config("req_0")
+        # 先添加一轮动态切片
+        self.service.config.update_slice_info({"req_0": 100}, True)
+        self.assertEqual(self.service.config.slice_info, [
+            {"dim": 0, "size": 100, "begin": 0, "end": 100}
+        ])
+        # None 轮：回退后返回 True
+        result = self.service._need_dump_data(None)
+        self.assertTrue(result)
+        self.assertEqual(self.service.config.slice_info, [])
+
+    def test_need_dump_data_empty_tokens_returns_true(self):
+        """scheduled_tokens 为空 dict → 回退上一轮，返回 True"""
+        self.service.config = self._make_real_config("req_0")
+        self.service.config.update_slice_info({"req_0": 100}, True)
+        result = self.service._need_dump_data({})
+        self.assertTrue(result)
+        self.assertEqual(self.service.config.slice_info, [])
+
+    def test_need_dump_data_invalid_tokens_returns_true(self):
+        """scheduled_tokens 非法 → 回退上一轮，返回 True"""
+        self.service.config = self._make_real_config("req_0")
+        self.service.config.update_slice_info({"req_0": 100}, True)
+        result = self.service._need_dump_data({"req_0": -1})
+        self.assertTrue(result)
+        self.assertEqual(self.service.config.slice_info, [])
+
+    def test_need_dump_data_request_not_found_returns_false(self):
+        """request_id 不在 scheduled_tokens → 返回 False，回退上一轮"""
+        self.service.config = self._make_real_config("req_0")
+        self.service.config.update_slice_info({"req_0": 100}, True)
+        result = self.service._need_dump_data({"req_1": 200})
+        self.assertFalse(result)
+        self.assertEqual(self.service.config.slice_info, [])
+
+    def test_need_dump_data_request_hit_updates_slice(self):
+        """request_id 命中 → update_slice_info 被调用，slice_info 正确更新，返回 True"""
+        self.service.config = self._make_real_config("req_1")
+        result = self.service._need_dump_data({"req_0": 512, "req_1": 1024})
+        self.assertTrue(result)
+        self.assertEqual(self.service.config.slice_info, [
+            {"dim": 0, "size": 1536, "begin": 512, "end": 1536}
+        ])
+        self.assertTrue(self.service.config.is_slice_info_modified)
+
+    def test_need_dump_data_consecutive_calls_no_bloat(self):
+        """连续多轮调用：每轮先回退再添加，slice_info 不膨胀"""
+        self.service.config = self._make_real_config("req_0")
+        # 第1轮
+        self.service._need_dump_data({"req_0": 100, "req_1": 200})
+        self.assertEqual(len(self.service.config.slice_info), 1)
+        # 第2轮：先回退上一轮，再添加新一轮
+        self.service._need_dump_data({"req_0": 300, "req_1": 400})
+        self.assertEqual(len(self.service.config.slice_info), 1)
+        self.assertEqual(self.service.config.slice_info[-1], {
+            "dim": 0, "size": 700, "begin": 0, "end": 300
+        })
+        # 第3轮：目标缺失 → 回退，不添加
+        result = self.service._need_dump_data({"req_1": 500})
+        self.assertFalse(result)
+        self.assertEqual(self.service.config.slice_info, [])
