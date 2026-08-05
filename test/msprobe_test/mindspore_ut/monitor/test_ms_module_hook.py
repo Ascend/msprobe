@@ -94,9 +94,9 @@ class TestTrainerMon(unittest.TestCase):
         result = is_recording_module("layer1.block", ["0:layer1.block"], "0:")
         self.assertEqual(result, "0:layer1.block")
 
-    def test_is_recording_module_when_targets_empty_then_error(self):
-        with self.assertRaises(NotImplementedError):
-            is_recording_module("layer", [], "0:")
+    def test_is_recording_module_when_targets_empty_then_returns_empty(self):
+        result = is_recording_module("layer", [], "0:")
+        self.assertEqual(result, "")
 
     def test_feature_hook_context_reset_when_called_then_pass(self):
         ctx = FeatureHookContext("m")

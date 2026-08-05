@@ -14,12 +14,19 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code  # 跨框架（mindspore/pytorch）实现相似是设计决定
+
 import re
 
 import torch
 
 from msprobe.pytorch.monitor.features import get_max, get_min, get_zeros, get_nans, get_norm, get_mean
-from msprobe.pytorch.monitor.features import cal_entropy, cal_stable_rank
+from msprobe.pytorch.monitor.features import (
+    cal_entropy,
+    cal_stable_rank,
+    cal_router_weight_similarity,
+    cal_per_token_expert_entropy,
+)
 from msprobe.pytorch.monitor.utils import get_nan_tensor
 
 
@@ -34,8 +41,13 @@ def squash_param_name(param_name, enable=True):
     if not enable:
         return param_name
     name = ''
-    for pattern in ['^.*\.(layers?\..*)', '^.*\.(embeddings?\..*)', '^.*\.(final.*)', '^.*\.(output.*)',
-                    '^.*\.(norm.*)']:
+    for pattern in [
+        r'^.*\.(layers?\..*)',
+        r'^.*\.(embeddings?\..*)',
+        r'^.*\.(final.*)',
+        r'^.*\.(output.*)',
+        r'^.*\.(norm.*)',
+    ]:
         match = re.findall(pattern, param_name)
         if match:
             name += match[0]
@@ -84,15 +96,15 @@ class TensorMetrics:
                 self.cur_idx[key] += 1
 
 
-class Metric(object):
+class Metric:
     @staticmethod
     def get_metric_value(tensor, eps):
-        NotImplementedError
+        raise NotImplementedError
 
     def get_metric(self, tensor, eps):
         try:
             return self.get_metric_value(tensor, eps)
-        except RuntimeError as e:
+        except RuntimeError:
             return torch.tensor(torch.nan).to(tensor.device)
 
 
@@ -212,3 +224,25 @@ def get_entropy_metric(tag2tensor, out_dict=None):
         entropy, softmax_max = cal_entropy(tensor)
         out_dict[tag]['entropy'] = entropy
         out_dict[tag]['softmax_max'] = softmax_max
+
+
+def get_moe_router_weight_metric(tag2tensor, out_dict=None):
+    if out_dict is None:
+        out_dict = {}
+    for tag, tensor in tag2tensor.items():
+        if "router_weight" not in tag:
+            continue
+        if tag not in out_dict:
+            out_dict[tag] = {}
+        out_dict[tag]['router_weight_similarity'] = cal_router_weight_similarity(tensor)
+
+
+def get_moe_router_logit_metric(tag2tensor, out_dict=None):
+    if out_dict is None:
+        out_dict = {}
+    for tag, tensor in tag2tensor.items():
+        if "router_logit" not in tag:
+            continue
+        if tag not in out_dict:
+            out_dict[tag] = {}
+        out_dict[tag]['per_token_expert_entropy'] = cal_per_token_expert_entropy(tensor)

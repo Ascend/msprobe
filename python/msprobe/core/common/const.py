@@ -1101,7 +1101,7 @@ class MonitorConst:
     )
     DEEPSPEED_ZERO_OPT_FILTER = "DeepSpeedZeroOptimizer"
     RULE_NAME = ["AnomalyTurbulence", "AnomalyNan"]
-    L2_HOOKS = ["linear_hook", "attention_hook"]
+    L2_HOOKS = ["linear_hook", "attention_hook", "moe_router_weight_hook", "moe_router_logit_hook"]
     SA_ORDERS = ["s,b,h,d", "b,s,h,d"]
 
     SLICE_SIZE = 20480

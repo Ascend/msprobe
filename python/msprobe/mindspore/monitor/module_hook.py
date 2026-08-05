@@ -14,13 +14,13 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-from gzip import FEXTRA
+# pylint: disable=duplicate-code  # 跨框架（mindspore/pytorch）实现相似是设计决定
+
 import os
 import re
 import uuid
 from collections import defaultdict
 from datetime import datetime
-from functools import partial
 
 import pytz
 import pandas as pd
@@ -34,10 +34,22 @@ from msprobe.core.common.file_utils import load_json, save_json, create_director
 from msprobe.core.monitor.utils import validate_config, get_output_base_dir, get_target_output_dir
 from msprobe.core.monitor.anomaly_processor import AnomalyScanner, AnomalyDataFactory, AnomalyDataWriter
 from msprobe.mindspore.common.utils import is_mindtorch
-from msprobe.mindspore.monitor.common_func import is_valid_instance, get_parameters, get_submodules, get_rank, \
-    comm_is_initialized
-from msprobe.mindspore.monitor.utils import get_summary_writer_tag_name, step_accumulates_one, is_skip_step, \
-    get_metrics, get_entropy_metric, get_sr_metric
+from msprobe.mindspore.monitor.common_func import (
+    is_valid_instance,
+    get_parameters,
+    get_submodules,
+    get_rank,
+)
+from msprobe.mindspore.monitor.utils import (
+    get_summary_writer_tag_name,
+    step_accumulates_one,
+    is_skip_step,
+    get_metrics,
+    get_entropy_metric,
+    get_sr_metric,
+    get_moe_router_weight_metric,
+    get_moe_router_logit_metric,
+)
 from msprobe.mindspore.monitor.optimizer_collect import OptimizerMonFactory
 from msprobe.mindspore.monitor.data_writers import CSVWriterWithAD, BaseWriterWithAD, WriterInput
 from msprobe.mindspore.monitor.distributed.wrap_distributed import api_register, create_hooks, op_aggregate
@@ -45,14 +57,7 @@ from msprobe.mindspore.monitor.features import cal_qkt
 from msprobe.core.common.file_utils import write_df_to_csv
 from msprobe.core.common.utils import analyze_api_call_stack
 
-FORMAT_MAPPING = {
-    MonitorConst.CSV: CSVWriterWithAD,
-    MonitorConst.API: BaseWriterWithAD
-}
-
-
-def get_output_base_dir():
-    return os.getenv(MonitorConst.MONITOR_OUTPUT_DIR, MonitorConst.DEFAULT_MONITOR_OUTPUT_DIR)
+FORMAT_MAPPING = {MonitorConst.CSV: CSVWriterWithAD, MonitorConst.API: BaseWriterWithAD}
 
 
 def get_param_struct(param):
@@ -72,7 +77,7 @@ def get_param_struct(param):
 
 def param_is_not_tensor_parallel_duplicate(param, tp_group):
     return (hasattr(param, 'tensor_model_parallel') and param.tensor_model_parallel) or (
-            mint.distributed.get_rank(group=tp_group) == 0
+        mint.distributed.get_rank(group=tp_group) == 0
     )
 
 
@@ -81,8 +86,13 @@ def param_is_data_parallel_duplicate(dp_group):
 
 
 def squash_param_name(param_name):
-    for pattern in ['^.*\.(layers?\..*)', '^.*\.(embeddings?\..*)', '^.*\.(final.*)', '^.*\.(output.*)',
-                    '^.*\.(norm.*)']:
+    for pattern in [
+        r'^.*\.(layers?\..*)',
+        r'^.*\.(embeddings?\..*)',
+        r'^.*\.(final.*)',
+        r'^.*\.(output.*)',
+        r'^.*\.(norm.*)',
+    ]:
         match = re.findall(pattern, param_name)
         if match:
             return match[0]
@@ -94,9 +104,7 @@ def is_recording_module(module_name, l2_targets, vpp_stage):
         for pattern in [vpp_stage + squash_param_name(module_name), vpp_stage + module_name]:
             if pattern in l2_targets:
                 return pattern
-        return ""
-    else:
-        raise NotImplementedError("If monitering l2_features, the targets should be set specifically.")
+    return ""
 
 
 # Used For Module Forward & Backward Collect
@@ -121,11 +129,20 @@ class FeatureHookContext:
         self.micro_step = 0
         self.attention_feature = {}
         self.linear_feature = {}
+        self.moe_router_weight_feature = {}
+        self.moe_router_logit_feature = {}
+        # 独立的 micro_step 计数器，避免同一 module 上多个 hook 共享计数导致时序错乱
+        self.moe_router_weight_micro_step = 0
+        self.moe_router_logit_micro_step = 0
         self.module_name = module_name
 
     def reset(self):
         self.attention_feature.clear()
         self.linear_feature.clear()
+        self.moe_router_weight_feature.clear()
+        self.moe_router_logit_feature.clear()
+        self.moe_router_weight_micro_step = 0
+        self.moe_router_logit_micro_step = 0
 
 
 start_step = 0
@@ -199,7 +216,9 @@ class TrainerMon:
         self.process_group = process_group
         self.params_have_main_grad = params_have_main_grad
         self.is_mindtorch = is_mindtorch()
-        self.config_timestamp = 0  # 后面有校验时间戳, 首次监测无需为了更新config文件时间戳而去改, 可通过dynamic_on开关直接打开
+        self.config_timestamp = (
+            0  # 后面有校验时间戳, 首次监测无需为了更新config文件时间戳而去改, 可通过dynamic_on开关直接打开
+        )
         self.config = load_json(config_file_path)
         validate_config(self.config)
 
@@ -216,9 +235,10 @@ class TrainerMon:
                     self.tensorboard_dir = output_append_dirs[str(self.rank)]
                     logger.info(f"Append rank({self.rank}) result to {self.tensorboard_dir}")
             else:
-                self.tensorboard_dir = os.path.join(self.output_base_dir,
-                                                    f"{cur_time}-rank{self.rank}-{self.unique_id}")
-        except Exception as e:
+                self.tensorboard_dir = os.path.join(
+                    self.output_base_dir, f"{cur_time}-rank{self.rank}-{self.unique_id}"
+                )
+        except Exception:
             self.rank = 0
             self.tensorboard_dir = os.path.join(self.output_base_dir, f"{cur_time}-rank{self.rank}-{self.unique_id}")
 
@@ -260,8 +280,10 @@ class TrainerMon:
         # 动静态区分
         self.dynamic_enable = os.getenv("DYNAMIC_MONITOR", 'False').lower() == 'true'
         if self.dynamic_enable:
-            logger.warning(f"DYNAMIC_MONITOR is set, "
-                           f"please make sure you have 'dynamic_on' and 'collect_times' in {self.config_file_path}")
+            logger.warning(
+                f"DYNAMIC_MONITOR is set, "
+                f"please make sure you have 'dynamic_on' and 'collect_times' in {self.config_file_path}"
+            )
             self.monitoring = False
         else:
             self.set_config()
@@ -338,14 +360,15 @@ class TrainerMon:
                     self.unique_id,
                     self.anomaly_data_factory,
                     self.ndigits,
-                    self.step_count_per_record
+                    self.step_count_per_record,
                 )
             )
 
             # 初始化anomaly detected文件目录
             if self.anomaly_data_factory:
-                self.anomaly_data_writer = AnomalyDataWriter(os.path.join(self.output_base_dir, "anomaly_detected"),
-                                                             self.rank)
+                self.anomaly_data_writer = AnomalyDataWriter(
+                    os.path.join(self.output_base_dir, "anomaly_detected"), self.rank
+                )
                 self.anomaly_data_writer.init_detected_json()
 
     def common_info(self):
@@ -366,15 +389,7 @@ class TrainerMon:
         if not self.cc_distribution.get('enable', False):
             logger.info("> cc operator is not monitored.")
 
-    def set_monitor(
-            self,
-            model,
-            optimizer,
-            grad_acc_steps=1,
-            tp_group=None,
-            dp_group=None,
-            start_iteration=0
-    ):
+    def set_monitor(self, model, optimizer, grad_acc_steps=1, tp_group=None, dp_group=None, start_iteration=0):
         global start_step
         start_step = start_iteration
         self.micro_batch_number = grad_acc_steps
@@ -397,8 +412,9 @@ class TrainerMon:
             # 静态在第0步就可以保存, 动态在第0步不可以, 因为动态设计的就是重置后下一步开启, 第0步的self.monitoring还是False
             if self.monitoring:
                 module_rank_valid = self.is_target_rank()
-                step_condition = (context.step >= self.start_step and (
-                        context.step - self.start_step) % self.step_interval == 0)
+                step_condition = (
+                    context.step >= self.start_step and (context.step - self.start_step) % self.step_interval == 0
+                )
                 if module_rank_valid and step_condition:
                     self.has_collect_times += 1
 
@@ -411,7 +427,7 @@ class TrainerMon:
                     self.write_features_tb(context.step)
                     if self.stack_info:
                         self.write_stack_info()
-                        self.stack_info = False
+                        self.stack_info = False  # pylint: disable=attribute-defined-outside-init
                         for handle in self.handles["stack"]:
                             handle.remove()
                         self.handles["stack"].clear()
@@ -450,8 +466,6 @@ class TrainerMon:
         else:
             optimizer.__class__.construct = patch_step(optimizer.__class__.construct, optimizer)
 
-        return
-
     def dynamic_monitor(self, optimizer):
         """
         If dynamic monitor enabled and config.json updated,
@@ -477,9 +491,10 @@ class TrainerMon:
                 validate_config(config)
                 self.config = config
                 self.set_config()
-                self.start_step = context.step  # 动态启停时不受原start_step影响，永远从下一步开始
-                logger.warning(f"config is updated at step{context.step - 1}, "
-                               f"will start new hook at step{context.step}.")
+                self.start_step = context.step  # pylint: disable=attribute-defined-outside-init
+                logger.warning(
+                    f"config is updated at step{context.step - 1}, will start new hook at step{context.step}."
+                )
             except Exception as e:
                 logger.error(f"set config wrong because {e}, not updated, please check!!!")
                 return
@@ -505,7 +520,8 @@ class TrainerMon:
         for key in module_in_all_stage:
             struct = self.targets.pop(key)
             self.targets.update(
-                {f'{vpp_stage}{MonitorConst.NAME_SEP}{key}': struct for vpp_stage in range(len(self.model))})
+                {f'{vpp_stage}{MonitorConst.NAME_SEP}{key}': struct for vpp_stage in range(len(self.model))}
+            )
 
         hooked_count = 0
         for vpp_stage, model_chunk in enumerate(self.model):
@@ -521,13 +537,17 @@ class TrainerMon:
     def hook_optimizer(self, optimizer):
         def optimizer_pre_step_hook(opt, *args, **kwargs):
             context = self.optimizer_context[opt]
-            if (self.print_struct and not all(value == {} for value in self.module_struct.values())
-                    and not self.struct_printed):
+            if (
+                self.print_struct
+                and not all(value == {} for value in self.module_struct.values())
+                and not self.struct_printed
+            ):
                 self._save_module_struct()
                 if not self.cc_log_only:
-                    raise Exception("exit after first monitor step when print model struct")
-            if is_skip_step(context.step, self.start_step, self.step_interval, self.has_collect_times,
-                            self.collect_times):
+                    raise RuntimeError("exit after first monitor step when print model struct")
+            if is_skip_step(
+                context.step, self.start_step, self.step_interval, self.has_collect_times, self.collect_times
+            ):
                 return
 
             grad_dict = {}
@@ -536,8 +556,12 @@ class TrainerMon:
 
             if self.mv_distribution or self.ur_distribution or self.mg_direction:
                 if self.is_mindtorch:
-                    context.param_exp_avg, context.param_exp_avg_sq, context.param_adam_update, \
-                        context.param_adam_ratio = self.optimizer_mon.fetch_mv(self, self.param2name)
+                    (
+                        context.param_exp_avg,
+                        context.param_exp_avg_sq,
+                        context.param_adam_update,
+                        context.param_adam_ratio,
+                    ) = self.optimizer_mon.fetch_mv(self, self.param2name)
                 else:
                     context.param_exp_avg, context.param_exp_avg_sq = self.get_mv_for_ms(optimizer)
 
@@ -630,7 +654,7 @@ class TrainerMon:
         stack_data.append(header)
         for _, fwd_context in self.module_fwd_hook_context_by_module.items():
             stack_data.append([fwd_context.module_name, fwd_context.stack])
-        filepath = os.path.join(self.tensorboard_dir, f'stack_info.csv')
+        filepath = os.path.join(self.tensorboard_dir, 'stack_info.csv')
         if not os.path.exists(filepath):
             data_frame = pd.DataFrame(columns=stack_data)
             write_df_to_csv(data_frame, filepath)
@@ -658,21 +682,23 @@ class TrainerMon:
         if not self.mv_distribution:
             return
         self.summary_writer.write_metrics(self.ops, opt_context.exp_avg_metric, opt_context.step, MonitorConst.EXP_AVG)
-        self.summary_writer.write_metrics(self.ops, opt_context.exp_avg_sq_metric, opt_context.step,
-                                          MonitorConst.EXP_AVG_SQ)
+        self.summary_writer.write_metrics(
+            self.ops, opt_context.exp_avg_sq_metric, opt_context.step, MonitorConst.EXP_AVG_SQ
+        )
 
     def write_grad_tb(self, step):
         if not self.wg_distribution:
             return
 
-        self.summary_writer.write_metrics(self.ops, self.grad_context.pre, step, 'grad_unreduced',
-                                          use_micro_step=self.monitor_mbs_grad)
+        self.summary_writer.write_metrics(
+            self.ops, self.grad_context.pre, step, 'grad_unreduced', use_micro_step=self.monitor_mbs_grad
+        )
         self.summary_writer.write_metrics(self.ops, self.grad_context.post, step, 'grad_reduced')
 
     def write_metrics_if_not_empty(self, features, metrics, step, hook_name):
         if not features or len(features) == 0:
             return
-        use_micro_step = hook_name not in ["linear_hook"]
+        use_micro_step = hook_name not in ["linear_hook", "moe_router_weight_hook"]
         self.summary_writer.write_metrics(metrics, features, step, hook_name, use_micro_step=use_micro_step)
         features.clear()
 
@@ -680,13 +706,22 @@ class TrainerMon:
         if not self.recording_l2_features:
             return
         for context in self.feature_hook_context_by_module.values():
-            num_features = len(context.attention_feature) + len(context.linear_feature)
+            num_features = (
+                len(context.attention_feature)
+                + len(context.linear_feature)
+                + len(context.moe_router_weight_feature)
+                + len(context.moe_router_logit_feature)
+            )
             if num_features == 0:
                 continue
-            self.write_metrics_if_not_empty(context.attention_feature, ["entropy", "softmax"], step,
-                                            "attention_hook")
-            self.write_metrics_if_not_empty(context.linear_feature, ["sr", "kernel_norm"], step,
-                                            "linear_hook")
+            self.write_metrics_if_not_empty(context.attention_feature, ["entropy", "softmax"], step, "attention_hook")
+            self.write_metrics_if_not_empty(context.linear_feature, ["sr", "kernel_norm"], step, "linear_hook")
+            self.write_metrics_if_not_empty(
+                context.moe_router_weight_feature, ["router_weight_similarity"], step, "moe_router_weight_hook"
+            )
+            self.write_metrics_if_not_empty(
+                context.moe_router_logit_feature, ["per_token_expert_entropy"], step, "moe_router_logit_hook"
+            )
 
     def is_target_rank(self):
         if self.module_rank_list and (self.rank not in self.module_rank_list):
@@ -704,7 +739,7 @@ class TrainerMon:
         tensor_map = {}
         if isinstance(tensor, Tensor):
             tensor = [tensor]
-        if isinstance(tensor, tuple) or isinstance(tensor, list):
+        if isinstance(tensor, (tuple, list)):
             if len(tensor) == 1:
                 key = get_summary_writer_tag_name(module_name + suffix, tag, self.rank)
                 self.register_param_call_id("_hook_module", key)
@@ -752,12 +787,9 @@ class TrainerMon:
                     MonitorConst.PRE_GRAD,
                     MonitorConst.POST_GRAD,
                     MonitorConst.PRE_PARAM,
-                    MonitorConst.POST_PARAM
+                    MonitorConst.POST_PARAM,
                 ]
-                self.name2tag[name] = {
-                    k: get_summary_writer_tag_name(name, k, self.rank)
-                    for k in keywords
-                }
+                self.name2tag[name] = {k: get_summary_writer_tag_name(name, k, self.rank) for k in keywords}
                 index += 1
 
     def _save_module_struct(self):
@@ -774,7 +806,6 @@ class TrainerMon:
             return 0
 
         def fwd_hook_fun(module, args, kwargs, module_output, name):
-
             module_input = [tensor for tensor in args if isinstance(tensor, Tensor)]
             if kwargs:
                 kwargs_tensors = [tensor for tensor in kwargs.values() if isinstance(tensor, Tensor)]
@@ -786,33 +817,45 @@ class TrainerMon:
             if not context.struct:
                 context.struct = {
                     Const.INPUT: get_param_struct(module_input),
-                    Const.OUTPUT: get_param_struct(module_output)
+                    Const.OUTPUT: get_param_struct(module_output),
                 }
             if self.print_struct:
                 self.module_struct[context.module_name].update(context.struct)
                 return
             if not module.training:
                 return
-            if is_skip_step(context.step, self.start_step, self.step_interval, self.has_collect_times,
-                            self.collect_times):
+            if is_skip_step(
+                context.step, self.start_step, self.step_interval, self.has_collect_times, self.collect_times
+            ):
                 step_accumulates_one(context, self.micro_batch_number)
                 return
 
             tbtag_tensor_map = {}
             tbtag_tensor_map.update(
                 self.build_tbtag_tensor_map(
-                    f'{context.module_name}.{Const.INPUT}', f'{MonitorConst.NAME_SEP}{context.micro_step}',
-                    MonitorConst.ACTV, module_input))
-            module_output = [tensor for tensor in module_output if isinstance(tensor, Tensor)] \
-                if isinstance(module_output, tuple) else module_output
+                    f'{context.module_name}.{Const.INPUT}',
+                    f'{MonitorConst.NAME_SEP}{context.micro_step}',
+                    MonitorConst.ACTV,
+                    module_input,
+                )
+            )
+            module_output = (
+                [tensor for tensor in module_output if isinstance(tensor, Tensor)]
+                if isinstance(module_output, tuple)
+                else module_output
+            )
             tbtag_tensor_map.update(
                 self.build_tbtag_tensor_map(
-                    f'{context.module_name}.{Const.OUTPUT}', f'{MonitorConst.NAME_SEP}{context.micro_step}',
-                    MonitorConst.ACTV, module_output))
+                    f'{context.module_name}.{Const.OUTPUT}',
+                    f'{MonitorConst.NAME_SEP}{context.micro_step}',
+                    MonitorConst.ACTV,
+                    module_output,
+                )
+            )
             try:
                 get_metrics(self.ops, tbtag_tensor_map, self.eps, context.actv)
-            except Exception as e:
-                logger.warning(f"An error occurred while generating forward activation metrics")
+            except Exception:
+                logger.warning("An error occurred while generating forward activation metrics")
 
             step_accumulates_one(context, self.micro_batch_number)
             return
@@ -822,14 +865,15 @@ class TrainerMon:
             if not context.struct:
                 context.struct = {
                     MonitorConst.ACTVGRAD_IN: get_param_struct(input_grad),
-                    MonitorConst.ACTVGRAD_OUT: get_param_struct(output_grad)
+                    MonitorConst.ACTVGRAD_OUT: get_param_struct(output_grad),
                 }
             if self.print_struct:
                 self.module_struct[context.module_name].update(context.struct)
                 return
 
-            if is_skip_step(context.step, self.start_step, self.step_interval, self.has_collect_times,
-                            self.collect_times):
+            if is_skip_step(
+                context.step, self.start_step, self.step_interval, self.has_collect_times, self.collect_times
+            ):
                 step_accumulates_one(context, self.micro_batch_number)
                 return
 
@@ -837,17 +881,27 @@ class TrainerMon:
             tbtag_tensor_map = {}
             tbtag_tensor_map.update(
                 self.build_tbtag_tensor_map(
-                    f'{context.module_name}.{Const.INPUT}', f'{MonitorConst.NAME_SEP}{context.micro_step}',
-                    MonitorConst.ACTVGRAD, valid_input_grad))
+                    f'{context.module_name}.{Const.INPUT}',
+                    f'{MonitorConst.NAME_SEP}{context.micro_step}',
+                    MonitorConst.ACTVGRAD,
+                    valid_input_grad,
+                )
+            )
 
             tbtag_tensor_map.update(
                 self.build_tbtag_tensor_map(
-                    f'{context.module_name}.{Const.OUTPUT}', f'{MonitorConst.NAME_SEP}{context.micro_step}',
-                    MonitorConst.ACTVGRAD, output_grad))
+                    f'{context.module_name}.{Const.OUTPUT}',
+                    f'{MonitorConst.NAME_SEP}{context.micro_step}',
+                    MonitorConst.ACTVGRAD,
+                    output_grad,
+                )
+            )
 
             if context.micro_step == 0 and context.actvgrad:
-                logger.warning(f"actvgrad context of {context.module_name} is not empty when first micro_step, "
-                               f"maybe something wrong happened. Now clear it.")
+                logger.warning(
+                    f"actvgrad context of {context.module_name} is not empty when first micro_step, "
+                    f"maybe something wrong happened. Now clear it."
+                )
                 context.actvgrad.clear()
             try:
                 get_metrics(self.ops, tbtag_tensor_map, self.eps, self.grad_context.actv)
@@ -859,13 +913,16 @@ class TrainerMon:
 
         def fwd_hook_register(module, fwd_hook_fun, name):
             from packaging import version
+
             if version.parse(mindspore.__version__) >= version.parse('2.6.0'):
+
                 def wrapper(module, args, kwargs, module_output):
                     return fwd_hook_fun(module, args, kwargs, module_output, name)
 
                 return module.register_forward_hook(wrapper, with_kwargs=True)
 
             else:
+
                 def wrapper(module, args, module_output):
                     return fwd_hook_fun(module, args, None, module_output, name)
 
@@ -885,22 +942,23 @@ class TrainerMon:
             if len(module_input) < 2:
                 logger.warning(
                     "Calculate attention feature failed, the length of module_input in attention hook's module should "
-                    "be greater than or equal to 2.")
+                    "be greater than or equal to 2."
+                )
 
             q_h = module_input[0]
             k_h = module_input[1]
             qkt = cal_qkt(q_h, k_h, order=self.sa_order)
             tbtag_tensor_map.update(
                 self.build_tbtag_tensor_map(
-                    f'{context.module_name}.attention', f'{MonitorConst.NAME_SEP}{context.micro_step}',
-                    'qkt', qkt))
+                    f'{context.module_name}.attention', f'{MonitorConst.NAME_SEP}{context.micro_step}', 'qkt', qkt
+                )
+            )
             get_entropy_metric(tbtag_tensor_map, context.attention_feature)
 
             context.micro_step += 1
             if context.micro_step == self.micro_batch_number:
                 context.micro_step = 0
                 context.step += 1
-            return
 
         def extract_linear_sr_hook(module, args, kwargs, module_output, name):
             weight_name = self.get_linear_hook_target(module)
@@ -915,8 +973,9 @@ class TrainerMon:
                 value = module.weight.data
                 tbtag_tensor_map.update(
                     self.build_tbtag_tensor_map(
-                        f'{context.module_name}.linear', f'{MonitorConst.NAME_SEP}{context.micro_step}',
-                        'sr', value))
+                        f'{context.module_name}.linear', f'{MonitorConst.NAME_SEP}{context.micro_step}', 'sr', value
+                    )
+                )
 
                 get_sr_metric(tbtag_tensor_map, context.linear_feature)
 
@@ -926,12 +985,71 @@ class TrainerMon:
                 context.step += 1
             return
 
+        def extract_router_weight_similarity_hook(module, args, kwargs, module_output, name):
+            if not module.training:
+                return
+            weight_name = self.get_linear_hook_target(module)
+            if weight_name == "":
+                return
+            if module not in self.feature_hook_context_by_module:
+                self.feature_hook_context_by_module[module] = FeatureHookContext(name)
+            context: FeatureHookContext = self.feature_hook_context_by_module[module]
+
+            if context.moe_router_weight_micro_step == self.micro_batch_number - 1:
+                tbtag_tensor_map = {}
+                value = getattr(module, weight_name).data
+                tbtag_tensor_map.update(
+                    self.build_tbtag_tensor_map(f'{context.module_name}.moe_router', '', 'router_weight', value)
+                )
+                get_moe_router_weight_metric(tbtag_tensor_map, context.moe_router_weight_feature)
+
+            context.moe_router_weight_micro_step += 1
+            if context.moe_router_weight_micro_step == self.micro_batch_number:
+                context.moe_router_weight_micro_step = 0
+            return
+
+        def extract_per_token_expert_entropy_hook(module, args, kwargs, module_output, name):
+            if not module.training:
+                return
+            logit_tensor = module_output
+            if isinstance(logit_tensor, (list, tuple)):
+                logit_tensor = next((t for t in logit_tensor if isinstance(t, Tensor)), None)
+            if not isinstance(logit_tensor, Tensor):
+                logger.warning(
+                    f"moe_router_logit hook ({name}) got non-tensor output: {type(module_output)}. Skipping."
+                )
+                return
+            if logit_tensor.dim() < 2:
+                logger.warning(
+                    f"moe_router_logit hook ({name}) got unexpected logit shape: {logit_tensor.shape}. Skipping."
+                )
+                return
+
+            if module not in self.feature_hook_context_by_module:
+                self.feature_hook_context_by_module[module] = FeatureHookContext(name)
+            context: FeatureHookContext = self.feature_hook_context_by_module[module]
+
+            tbtag_tensor_map = {}
+            tbtag_tensor_map.update(
+                self.build_tbtag_tensor_map(
+                    f'{context.module_name}.moe_router',
+                    f'{MonitorConst.NAME_SEP}{context.moe_router_logit_micro_step}',
+                    'router_logit',
+                    logit_tensor,
+                )
+            )
+            get_moe_router_logit_metric(tbtag_tensor_map, context.moe_router_logit_feature)
+
+            context.moe_router_logit_micro_step += 1
+            if context.moe_router_logit_micro_step == self.micro_batch_number:
+                context.moe_router_logit_micro_step = 0
+            return
+
         def stack_hook(module, args, kwargs, module_output, name):
             if module not in self.module_fwd_hook_context_by_module:
                 self.module_fwd_hook_context_by_module[module] = ModuleHookContext(name)
             context: ModuleHookContext = self.module_fwd_hook_context_by_module[module]
             context.stack = analyze_api_call_stack(name)
-            return
 
         if self.backward_only and self.forward_only:
             logger.warning('not enable backward_only and forward_only simultaneously')
@@ -960,17 +1078,20 @@ class TrainerMon:
             for module_name, submodule in get_submodules(module):
                 func_map = {
                     "attention_hook": extract_attention_feature_hook,
-                    "linear_hook": extract_linear_sr_hook
+                    "linear_hook": extract_linear_sr_hook,
+                    "moe_router_weight_hook": extract_router_weight_similarity_hook,
+                    "moe_router_logit_hook": extract_per_token_expert_entropy_hook,
                 }
-                for hook in func_map.keys():
+                for hook, func in func_map.items():
                     if hook in l2_target_names:
                         temp_names = l2_target_names[hook]
                         name = is_recording_module(module_name, temp_names, vpp_stage)
                         if name:
-                            handle = fwd_hook_register(submodule, func_map[hook], name=name)
-                            print_feature_name = hook.split('_')[0]
+                            handle = fwd_hook_register(submodule, func, name=name)
+                            print_feature_name = hook.split('_', maxsplit=1)[0]
                             logger.info_on_rank_0(
-                                f'> {print_feature_name} features of {name} is monitored successfully')
+                                f'> {print_feature_name} features of {name} is monitored successfully'
+                            )
                             self.handles["L2_features"].append(handle)
                             hooked_count += 1
         return hooked_count
@@ -981,8 +1102,6 @@ class TrainerMon:
         self._hook_weights()
 
     def _hook_weights(self):
-        context = self.grad_context
-
         @_no_grad()
         def param_hook(grad, param, name):
             key = name
@@ -1005,8 +1124,7 @@ class TrainerMon:
         logger.info("hooking weight grads.")
         for param, name in self.param2name.items():
             setattr(param, 'micro_step', 0)
-            handle = param.register_hook(
-                param_hook_wrapper(param_hook, param=param, name=name))
+            handle = param.register_hook(param_hook_wrapper(param_hook, param=param, name=name))
             self.handles['wgrads'].append(handle)
         self.weight_hooked = True
 
@@ -1090,7 +1208,8 @@ class TrainerMon:
                 config_timestamp = os.path.getmtime(self.config_file_path)
                 self.config_timestamp = config_timestamp
                 logger.info(
-                    "Finish monitor, set config'dynamic_on=False, will restart by set it to True and update config")
+                    "Finish monitor, set config'dynamic_on=False, will restart by set it to True and update config"
+                )
             except Exception as e:
                 logger.warning(f"Finish monitor, set config'dynamic_on=False fail because {e}, please check!!!")
         logger.info("Finish monitor")

@@ -14,9 +14,17 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code  # 跨框架（mindspore/pytorch）实现相似是设计决定
+
 from mindspore import dtype as mstype, Tensor
 
-from msprobe.mindspore.monitor.features import FUNC_MAP, cal_entropy, cal_stable_rank
+from msprobe.mindspore.monitor.features import (
+    FUNC_MAP,
+    cal_entropy,
+    cal_stable_rank,
+    cal_router_weight_similarity,
+    cal_per_token_expert_entropy,
+)
 
 
 def get_single_metrics(op_list, tag, tensor, eps=1e-8, output=None):
@@ -102,4 +110,28 @@ def get_sr_metric(tag2tensor, out_dict=None):
         sr, eig = cal_stable_rank(tensor)
         out_dict[tag]["sr"] = sr
         out_dict[tag]["eig"] = eig
+    return out_dict
+
+
+def get_moe_router_weight_metric(tag2tensor, out_dict=None):
+    if out_dict is None:
+        out_dict = {}
+    for tag, tensor in tag2tensor.items():
+        if "router_weight" not in tag:
+            continue
+        if tag not in out_dict:
+            out_dict[tag] = {}
+        out_dict[tag]["router_weight_similarity"] = cal_router_weight_similarity(tensor)
+    return out_dict
+
+
+def get_moe_router_logit_metric(tag2tensor, out_dict=None):
+    if out_dict is None:
+        out_dict = {}
+    for tag, tensor in tag2tensor.items():
+        if "router_logit" not in tag:
+            continue
+        if tag not in out_dict:
+            out_dict[tag] = {}
+        out_dict[tag]["per_token_expert_entropy"] = cal_per_token_expert_entropy(tensor)
     return out_dict

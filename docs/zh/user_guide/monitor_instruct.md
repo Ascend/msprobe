@@ -310,7 +310,9 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 {
     "l2_targets": {
         "attention_hook": ["0:0.self_attention.core_attention.flash_attention"],
-        "linear_hook": ["0:0.self_attention.linear_qkv", "0:1.self_attention.linear_qkv"]
+        "linear_hook": ["0:0.self_attention.linear_qkv", "0:1.self_attention.linear_qkv"],
+        "moe_router_weight_hook": ["0:0.mlp.router.gate"],
+        "moe_router_logit_hook": ["0:0.mlp.router.gate"]
     },
     "recording_l2_features": true,
     "sa_order": "b,s,h,d"
@@ -319,7 +321,7 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 
 | 配置项 | 可选/必选 | 类型 | 说明 |
 |--------|--------|------|------|
-| **l2_targets** | 必选 | Dict[str, List[str]] | 指定需要监测的模型层配置<br>**支持的hook类型**：<br> • `attention_hook`：监测注意力层<br>&nbsp;&nbsp;▪️ 采集指标：`entropy` `softmax_max`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `linear_hook`：监测线性层<br>&nbsp;&nbsp;▪️ 采集指标：`sr`, `kernel_norm`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名, 不配置表示不采集<br>&nbsp;&nbsp;▪️ 配置空列表会自动识别符合条件的层（包含`weight`或`wg`2D参数属性的层） |
+| **l2_targets** | 必选 | Dict[str, List[str]] | 指定需要监测的模型层配置<br>**支持的hook类型**：<br> • `attention_hook`：监测注意力层<br>&nbsp;&nbsp;▪️ 采集指标：`entropy` `softmax_max`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `linear_hook`：监测线性层<br>&nbsp;&nbsp;▪️ 采集指标：`sr`, `kernel_norm`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名, 不配置表示不采集<br>&nbsp;&nbsp;▪️ 配置空列表会自动识别符合条件的层（包含`weight`或`wg`2D参数属性的层）<br>• `moe_router_weight_hook`：监测MoE路由权重层<br>&nbsp;&nbsp;▪️ 采集指标：`router_weight_similarity`<br>&nbsp;&nbsp;▪️ 配置为MoE路由线性层（如`router.gate`），需通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `moe_router_logit_hook`：监测MoE路由输出logits<br>&nbsp;&nbsp;▪️ 采集指标：`per_token_expert_entropy`<br>&nbsp;&nbsp;▪️ 配置为MoE路由线性层（如`router.gate`），需通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集 |
 | **recording_l2_features** | 可选 | bool | 是否开启L2层特征数据采集，默认为false表示不采集 |
 | **sa_order** | 可选 | str | 计算`attention_hook`内指标时，指定Attention输入(Q，K)的张量维度排列顺序，支持"s,b,h,d"和"b,s,h,d", 默认为"s,b,h,d"表示输入维度顺序为**s**equence_len​->**b**atch_size​->num_**h**eads​->head_**d**im  |
 
@@ -331,6 +333,8 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 | **softmax_max**    | attention_hook    | $\max(\text{softmax}(QK^T/\sqrt{d}))$                                               | 反映注意力机制的聚焦程度，**高值**表示存在显著主导的注意力token                                     |
 | **sr(stable_rank)**            | linear_hook       | $\frac{\|W\|_F}{\|W\|_2}$（稳定秩，Frobenius范数除以谱范数）                        | 评估权重矩阵的有效秩，**低值**表示矩阵接近低秩不稳定状态  |
 | **kernel_norm**    | linear_hook       | $\|W\|_F$（Frobenius范数）                                                          | 权重矩阵的Frobenius范数，反映输入在矩阵最大奇异向量张成空间的放大系数                                                   |
+| **router_weight_similarity**    | moe_router_weight_hook       | $\text{mean}_{i\neq j}\cos(w_i, w_j)$，对router权重所有专家列向量两两计算余弦相似度后取均值                        | 衡量MoE路由权重的多样性，**高值（接近1）**表示专家权重趋同，Router已名存实亡                                                   |
+| **per_token_expert_entropy**    | moe_router_logit_hook       | $\text{mean}_i\left[-\sum_{j=1}^{n}s_{ij}\log s_{ij}\right]$，对每个token在专家上的softmax路由分布求熵后取均值                          | 衡量路由决策的确定性，**低值**表示Router进入singleton模式，丧失多专家协作能力                                                   |
 
 ### mbs粒度梯度监测
 

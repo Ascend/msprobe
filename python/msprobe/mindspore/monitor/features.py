@@ -14,6 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code  # 跨框架（mindspore/pytorch）实现相似是设计决定
+
 from mindspore import mint, ops, _no_grad
 from mindspore import Tensor
 from mindspore import dtype as mstype
@@ -75,7 +77,7 @@ FUNC_MAP = {
     "nans": get_nans,
     "zeros": get_zeros,
     "shape": get_shape,
-    "dtype": get_dtype
+    "dtype": get_dtype,
 }
 
 
@@ -107,14 +109,11 @@ def max_eigenvalue(input_tensor: Tensor, num_iterations=3):
 
 def check_tensor_dim(tensor, n):
     if not isinstance(tensor, Tensor):
-        raise TypeError(
-            f"Input must be a mindspore Tensor, but got {type(tensor)} instead."
-            )
+        raise TypeError(f"Input must be a mindspore Tensor, but got {type(tensor)} instead.")
     if len(tensor.shape) < n:
         raise ValueError(
-            f"tensor dim must be at least {n} dimensions."
-            f"Got shape: {tuple(tensor.shape)} with {tensor.dim()} dims"
-            )
+            f"tensor dim must be at least {n} dimensions.Got shape: {tuple(tensor.shape)} with {tensor.dim()} dims"
+        )
 
 
 def cal_entropy(qk_tensor: Tensor, mask=None):
@@ -141,6 +140,78 @@ def cal_stable_rank(weight: Tensor):
     return f_norm / eig, eig
 
 
+@_no_grad()
+def cal_router_weight_similarity(weight: Tensor):
+    """Compute average cosine similarity between expert router weight columns.
+
+    Args:
+        weight: Router weight matrix. Expected shape (hidden_dim, num_experts) or
+            (num_experts, hidden_dim). When the first dim is smaller than the second
+            (i.e. num_experts < hidden_dim, the typical case for nn.Linear.weight),
+            the input is transposed so each column represents one expert.
+
+    Returns:
+        Tensor: Scalar mean cosine similarity between expert weight columns.
+            Returns 0 on invalid input or when there are fewer than 2 experts.
+    """
+    try:
+        check_tensor_dim(weight, 2)
+    except (TypeError, ValueError) as e:
+        logger.warning(f"calculate router weight similarity failed, {e}")
+        return Tensor(0.0, dtype=mstype.float32)
+    if weight.dim() != 2:
+        logger.warning(f"calculate router weight similarity failed, expected 2D tensor, got {weight.dim()}D.")
+        return Tensor(0.0, dtype=mstype.float32)
+    hidden_dim, num_experts = weight.shape
+    # Hidden dim is usually larger than num_experts; transpose if needed so that
+    # each column is one expert's weight vector.
+    if hidden_dim < num_experts:
+        weight = weight.T
+        hidden_dim, num_experts = weight.shape
+    if num_experts < 2:
+        return Tensor(0.0, dtype=mstype.float32)
+    weight = weight.astype(mstype.float32)
+    col_norms = ops.sqrt(ops.sum(weight * weight, axis=0, keepdims=True) + 1e-12)
+    normalized_w = weight / col_norms
+    cos_sim = ops.matmul(normalized_w.T, normalized_w)
+    # 取严格上三角（diagonal=1 排除对角线），sum 后除以元素数 = 平均余弦相似度
+    upper_tri = ops.triu(cos_sim, diagonal=1)
+    upper_count = num_experts * (num_experts - 1) // 2
+    return ops.sum(upper_tri) / upper_count
+
+
+@_no_grad()
+def cal_per_token_expert_entropy(logits: Tensor):
+    """Compute mean per-token entropy of the softmax distribution over experts.
+
+    Args:
+        logits: Router output logits of shape (..., num_experts). The last dim is
+            treated as the expert dimension; all leading dims are flattened into
+            the token dimension.
+
+    Returns:
+        Tensor: Scalar mean entropy across all tokens. Returns 0 on invalid input
+            or when there are no tokens.
+    """
+    try:
+        check_tensor_dim(logits, 1)
+    except (TypeError, ValueError) as e:
+        logger.warning(f"calculate per-token expert entropy failed, {e}")
+        return Tensor(0.0, dtype=mstype.float32)
+    if logits.dim() == 1:
+        logits = logits.unsqueeze(0)
+    num_experts = logits.shape[-1]
+    # 用 tensor.reshape 方法而非 ops.reshape，规避 MindSpore + numpy 2.x 下 pyboost_reshape 的兼容问题
+    logits = logits.astype(mstype.float32).reshape(-1, num_experts)
+    n_token = logits.shape[0]
+    if n_token == 0:
+        return Tensor(0.0, dtype=mstype.float32)
+    gates = ops.softmax(logits, axis=-1)
+    # 用 nansum 处理被 -inf mask 的专家：0 * log(0) = NaN，nansum 视为 0；全 -inf 行经 softmax 为 NaN，nansum 同样视为 0
+    entropy = -ops.nansum(gates * ops.log(gates), axis=-1)
+    return ops.sum(entropy) / n_token
+
+
 def cal_qkt(q_h: Tensor, k_h: Tensor, order="s,b,h,d"):
     # q_h shape is (s, b, h, d)
     try:
@@ -154,6 +225,6 @@ def cal_qkt(q_h: Tensor, k_h: Tensor, order="s,b,h,d"):
     elif order == "b,s,h,d":
         qkt = ops.matmul(q_h[0, :, 0, :], k_h[0, :, 0, :].t()) / q_h.shape[-1] ** 0.5
     else:
-        logger.warning(f"Calculate qk tensor failed: Order unsupported.")
+        logger.warning("Calculate qk tensor failed: Order unsupported.")
         qkt = Tensor(0)
     return qkt

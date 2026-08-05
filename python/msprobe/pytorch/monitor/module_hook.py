@@ -14,6 +14,8 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+# pylint: disable=duplicate-code  # 跨框架（mindspore/pytorch）实现相似是设计决定
+
 import json
 import os
 import uuid
@@ -60,6 +62,8 @@ from msprobe.pytorch.monitor.module_metric import (
     squash_param_name,
     get_entropy_metric,
     get_sr_metric,
+    get_moe_router_weight_metric,
+    get_moe_router_logit_metric,
 )
 from msprobe.pytorch.monitor.optimizer_collect import OptimizerMonFactory
 from msprobe.pytorch.monitor.visualizer import HeatmapVisualizer
@@ -104,11 +108,20 @@ class FeatureHookContext:
         self.micro_step = 0
         self.attention_feature = {}
         self.linear_feature = {}
+        self.moe_router_weight_feature = {}
+        self.moe_router_logit_feature = {}
+        # 独立的 micro_step 计数器，避免同一 module 上多个 hook 共享计数导致时序错乱
+        self.moe_router_weight_micro_step = 0
+        self.moe_router_logit_micro_step = 0
         self.module_name = module_name
 
     def reset(self):
         self.attention_feature.clear()
         self.linear_feature.clear()
+        self.moe_router_weight_feature.clear()
+        self.moe_router_logit_feature.clear()
+        self.moe_router_weight_micro_step = 0
+        self.moe_router_logit_micro_step = 0
 
 
 class OptimizerContext:
@@ -595,7 +608,7 @@ class TrainerMon:
     def write_metrics_if_not_empty(self, features, metrics, step, hook_name):
         if not features or len(features) == 0:
             return
-        use_micro_step = hook_name not in ["linear_hook"]
+        use_micro_step = hook_name not in ["linear_hook", "moe_router_weight_hook"]
         self.summary_writer.write_metrics(metrics, features, step, hook_name, use_micro_step=use_micro_step)
         features.clear()
 
@@ -603,13 +616,24 @@ class TrainerMon:
         if not self.recording_l2_features:
             return
         for context in self.feature_hook_context_by_module.values():
-            num_features = len(context.attention_feature) + len(context.linear_feature)
+            num_features = (
+                len(context.attention_feature)
+                + len(context.linear_feature)
+                + len(context.moe_router_weight_feature)
+                + len(context.moe_router_logit_feature)
+            )
             if num_features == 0:
                 continue
             self.write_metrics_if_not_empty(
                 context.attention_feature, ["entropy", "softmax_max"], step, "attention_hook"
             )
             self.write_metrics_if_not_empty(context.linear_feature, ["sr", "kernel_norm"], step, "linear_hook")
+            self.write_metrics_if_not_empty(
+                context.moe_router_weight_feature, ["router_weight_similarity"], step, "moe_router_weight_hook"
+            )
+            self.write_metrics_if_not_empty(
+                context.moe_router_logit_feature, ["per_token_expert_entropy"], step, "moe_router_logit_hook"
+            )
 
     def write_param_tb(self, opt_context):
         if not self.param_distribution:
@@ -945,6 +969,8 @@ class TrainerMon:
             fwd_context.reset()
         for _, bwd_context in self.module_bwd_hook_context_by_module.items():
             bwd_context.reset()
+        for feature_context in self.feature_hook_context_by_module.values():
+            feature_context.reset()
         self.grad_context.reset()  # 权重梯度和激活值梯度都在这
 
         # 还原梯度patch
@@ -1263,6 +1289,68 @@ class TrainerMon:
                 context.step += 1
             return
 
+        def extract_router_weight_similarity_hook(module, module_input, module_output, name):
+            if is_recomputation() or not module.training:
+                return
+            weight_name = self.get_linear_hook_target(module)
+            if weight_name == '':
+                return
+
+            if module not in self.feature_hook_context_by_module:
+                self.feature_hook_context_by_module[module] = FeatureHookContext(name)
+            context: FeatureHookContext = self.feature_hook_context_by_module[module]
+
+            if context.moe_router_weight_micro_step == (self.micro_batch_number - 1):
+                tbtag_tensor_map = {}
+                value = getattr(module, weight_name).data
+                tbtag_tensor_map.update(
+                    self.build_tbtag_tensor_map(f'{context.module_name}.moe_router', '', 'router_weight', value)
+                )
+                get_moe_router_weight_metric(tbtag_tensor_map, context.moe_router_weight_feature)
+
+            context.moe_router_weight_micro_step += 1
+            if context.moe_router_weight_micro_step == self.micro_batch_number:
+                context.moe_router_weight_micro_step = 0
+            return
+
+        def extract_per_token_expert_entropy_hook(module, module_input, module_output, name):
+            if is_recomputation() or not module.training:
+                return
+
+            logit_tensor = module_output
+            if isinstance(logit_tensor, (list, tuple)):
+                logit_tensor = next((t for t in logit_tensor if torch.is_tensor(t)), None)
+            if not torch.is_tensor(logit_tensor):
+                logger.warning(
+                    f"moe_router_logit hook ({name}) got non-tensor output: {type(module_output)}. Skipping."
+                )
+                return
+            if logit_tensor.dim() < 2:
+                logger.warning(
+                    f"moe_router_logit hook ({name}) got unexpected logit shape: {logit_tensor.shape}. Skipping."
+                )
+                return
+
+            if module not in self.feature_hook_context_by_module:
+                self.feature_hook_context_by_module[module] = FeatureHookContext(name)
+            context: FeatureHookContext = self.feature_hook_context_by_module[module]
+
+            tbtag_tensor_map = {}
+            tbtag_tensor_map.update(
+                self.build_tbtag_tensor_map(
+                    f'{context.module_name}.moe_router',
+                    f'{MonitorConst.NAME_SEP}{context.moe_router_logit_micro_step}',
+                    'router_logit',
+                    logit_tensor,
+                )
+            )
+            get_moe_router_logit_metric(tbtag_tensor_map, context.moe_router_logit_feature)
+
+            context.moe_router_logit_micro_step += 1
+            if context.moe_router_logit_micro_step == self.micro_batch_number:
+                context.moe_router_logit_micro_step = 0
+            return
+
         def stack_hook(module, args, kwargs, module_output, name):
             if module not in self.module_fwd_hook_context_by_module:
                 self.module_fwd_hook_context_by_module[module] = ModuleHookContext(name)
@@ -1298,6 +1386,8 @@ class TrainerMon:
                 func_map = {
                     "attention_hook": extract_attention_feature_hook,
                     "linear_hook": extract_linear_sr_hook,
+                    "moe_router_weight_hook": extract_router_weight_similarity_hook,
+                    "moe_router_logit_hook": extract_per_token_expert_entropy_hook,
                 }
                 for hook_name in func_map:  # pylint: disable=consider-using-dict-items
                     if hook_name not in l2_target_names:
