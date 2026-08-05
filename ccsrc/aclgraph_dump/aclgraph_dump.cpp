@@ -15,6 +15,7 @@
  * ------------------------------------------------------------------------- */
 
 #include <ATen/ATen.h>
+#include <c10/util/Optional.h>
 #include <pybind11/pybind11.h>
 #include <sys/stat.h>
 #include <torch/csrc/jit/serialization/pickle.h>
@@ -52,19 +53,50 @@ static constexpr const char* kAclSaveLogPrefix = "[acl_save_debug]";
 
 struct SaveTaskPayload
 {
-    SaveTaskPayload(at::Tensor tensor, std::string save_path)
-        : tensor(std::move(tensor)), save_path(std::move(save_path))
+    SaveTaskPayload(const at::Tensor& tensor, std::string save_path)
+        : device_ptr(tensor.const_data_ptr()),
+          nbytes(static_cast<size_t>(tensor.numel()) * static_cast<size_t>(tensor.element_size())),
+          shape(tensor.sizes().begin(), tensor.sizes().end()),
+          dtype(tensor.scalar_type()),
+          save_path(std::move(save_path))
     {
     }
 
-    at::Tensor tensor;
+    // Captured graphs replay with stable device addresses. Holding an at::Tensor
+    // here retains graph-pool Storage and prevents that pool from being reused.
+    const void* device_ptr{nullptr};
+    size_t nbytes{0};
+    std::vector<int64_t> shape;
+    at::ScalarType dtype{at::kFloat};
     std::string save_path;
+};
+
+struct TensorSaveTaskPayload
+{
+    TensorSaveTaskPayload(const at::Tensor& tensor, std::string save_path, std::string api_name, bool is_call_start,
+                          const c10::optional<at::Tensor>& switch_tensor)
+        : save(tensor, std::move(save_path)),
+          switch_tensor(switch_tensor),
+          api_name(std::move(api_name)),
+          is_call_start(is_call_start)
+    {
+    }
+
+    SaveTaskPayload save;
+    c10::optional<at::Tensor> switch_tensor;
+    std::string api_name;
+    bool is_call_start{false};
 };
 
 struct StatTaskPayload
 {
-    StatTaskPayload(at::Tensor stats_tensor, std::string tag, std::string dtype, std::vector<int64_t> shape)
-        : stats_tensor(std::move(stats_tensor)), tag(std::move(tag)), dtype(std::move(dtype)), shape(std::move(shape))
+    StatTaskPayload(at::Tensor stats_tensor, std::string tag, std::string dtype, std::vector<int64_t> shape,
+                    c10::optional<at::Tensor> switch_tensor)
+        : stats_tensor(std::move(stats_tensor)),
+          tag(std::move(tag)),
+          dtype(std::move(dtype)),
+          shape(std::move(shape)),
+          switch_tensor(std::move(switch_tensor))
     {
     }
 
@@ -72,6 +104,7 @@ struct StatTaskPayload
     std::string tag;
     std::string dtype;
     std::vector<int64_t> shape;
+    c10::optional<at::Tensor> switch_tensor;
 };
 
 struct StatRecord
@@ -85,8 +118,8 @@ struct StatRecord
 };
 
 static std::mutex g_stats_mutex;
-static std::unordered_map<std::string, uint64_t> g_tag_counter;
-static std::unordered_map<std::string, uint64_t> g_current_forward_idx;
+static std::mutex g_call_index_mutex;
+static std::unordered_map<std::string, uint64_t> g_call_indices;
 static std::unordered_map<std::string, StatRecord> g_stat_entries;
 static std::vector<std::string> g_stat_entry_order;
 
@@ -113,6 +146,46 @@ static std::string build_final_path(const std::string& path, uint64_t seq)
         return oss_name.str();
     }
     return path.substr(0, last_slash + 1) + oss_name.str();
+}
+
+static uint64_t get_call_index(const std::string& key, bool is_call_start)
+{
+    std::lock_guard<std::mutex> lock(g_call_index_mutex);
+    auto it = g_call_indices.find(key);
+    if (is_call_start || it == g_call_indices.end())
+    {
+        const uint64_t next_index = (it == g_call_indices.end()) ? 0 : it->second + 1;
+        g_call_indices[key] = next_index;
+        return next_index;
+    }
+    return it->second;
+}
+
+static void clear_call_indices()
+{
+    std::lock_guard<std::mutex> lock(g_call_index_mutex);
+    g_call_indices.clear();
+}
+
+static std::string build_indexed_tensor_path(const std::string& path, const std::string& api_name, uint64_t call_idx)
+{
+    const size_t last_slash = path.find_last_of("/\\\\");
+    const std::string directory = (last_slash == std::string::npos) ? "" : path.substr(0, last_slash + 1);
+    std::string filename = (last_slash == std::string::npos) ? path : path.substr(last_slash + 1);
+    const size_t dot_pos = filename.find_last_of('.');
+    const std::string stem = (dot_pos == std::string::npos) ? filename : filename.substr(0, dot_pos);
+    const size_t api_pos = stem.find(api_name);
+    std::ostringstream indexed_name;
+    if (api_pos != std::string::npos)
+    {
+        indexed_name << stem.substr(0, api_pos + api_name.size()) << "." << call_idx
+                     << stem.substr(api_pos + api_name.size());
+    }
+    else
+    {
+        indexed_name << stem << "." << call_idx;
+    }
+    return directory + indexed_name.str() + ".pt";
 }
 
 struct IoSegment
@@ -183,17 +256,7 @@ static std::string build_stat_key(const std::string& tag)
         }
     }
 
-    uint64_t call_idx = 0;
-    auto it = g_current_forward_idx.find(module_name);
-    if (is_forward_start || it == g_current_forward_idx.end())
-    {
-        call_idx = g_tag_counter[module_name]++;
-        g_current_forward_idx[module_name] = call_idx;
-    }
-    else
-    {
-        call_idx = it->second;
-    }
+    const uint64_t call_idx = get_call_index(module_name, is_forward_start);
 
     std::ostringstream oss;
     oss << module_name << "." << call_idx << ".forward." << io.type;
@@ -331,23 +394,23 @@ static std::vector<int64_t> shape_to_vector(const at::Tensor& x)
 
 static std::string dtype_to_string(const at::Tensor& x) { return std::string(c10::toString(x.scalar_type())); }
 
-static void acl_save_callback(const at::Tensor& x_dev_c, const std::string& path)
+static void acl_save_raw_callback(const SaveTaskPayload& payload, const std::string& path)
 {
-    at::Tensor xc = x_dev_c.is_contiguous() ? x_dev_c : x_dev_c.contiguous();
-    auto out = at::empty_like(xc, xc.options().device(at::kCPU), at::MemoryFormat::Contiguous);
-    const size_t nbytes = static_cast<size_t>(out.numel()) * static_cast<size_t>(out.element_size());
-    if (nbytes == 0)
+    auto out = at::empty(payload.shape, at::TensorOptions().dtype(payload.dtype).device(at::kCPU),
+                         at::MemoryFormat::Contiguous);
+    if (payload.nbytes == 0)
     {
         write_pt_or_throw(out, path);
         return;
     }
     aclmdlRICaptureMode mode = ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
     aclmdlRICaptureThreadExchangeMode(&mode);
-    auto memcpy_status = aclrtMemcpy(out.data_ptr(), nbytes, xc.data_ptr(), nbytes, ACL_MEMCPY_DEVICE_TO_HOST);
+    auto memcpy_status =
+        aclrtMemcpy(out.data_ptr(), payload.nbytes, payload.device_ptr, payload.nbytes, ACL_MEMCPY_DEVICE_TO_HOST);
     aclmdlRICaptureThreadExchangeMode(&mode);
     if (memcpy_status != ACL_ERROR_NONE)
     {
-        ASCEND_LOGE("%s device_to_host memcpy failed, path=%s, status=%d", kAclSaveLogPrefix, path.c_str(),
+        ASCEND_LOGE("%s raw device_to_host memcpy failed, path=%s, status=%d", kAclSaveLogPrefix, path.c_str(),
                     static_cast<int>(memcpy_status));
         return;
     }
@@ -395,6 +458,36 @@ static at::Tensor compute_stats_tensor(const at::Tensor& x)
     return at::stack({min_t, max_t, mean_t, norm_t});
 }
 
+static bool is_switch_enabled_on_host(const c10::optional<at::Tensor>& switch_tensor)
+{
+    if (!switch_tensor.has_value() || !switch_tensor->defined() || switch_tensor->numel() == 0)
+    {
+        return true;
+    }
+    const auto& value = switch_tensor.value();
+    const size_t nbytes = static_cast<size_t>(value.element_size());
+    if (value.device().type() == at::DeviceType::PrivateUse1)
+    {
+        auto host = at::empty({1}, at::TensorOptions().dtype(value.scalar_type()).device(at::kCPU),
+                              at::MemoryFormat::Contiguous);
+        aclmdlRICaptureMode mode = ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
+        aclmdlRICaptureThreadExchangeMode(&mode);
+        const auto memcpy_status =
+            aclrtMemcpy(host.data_ptr(), nbytes, value.const_data_ptr(), nbytes, ACL_MEMCPY_DEVICE_TO_HOST);
+        aclmdlRICaptureThreadExchangeMode(&mode);
+        if (memcpy_status != ACL_ERROR_NONE)
+        {
+            ASCEND_LOGE("acl_save switch device_to_host memcpy failed, status=%d", static_cast<int>(memcpy_status));
+            return true;
+        }
+        return host.item<int64_t>() != 0;
+    }
+    auto host = at::empty({1}, at::TensorOptions().dtype(value.scalar_type()).device(at::kCPU));
+    auto contiguous = value.contiguous();
+    std::memcpy(host.data_ptr(), contiguous.const_data_ptr(), nbytes);
+    return host.item<int64_t>() != 0;
+}
+
 static void update_stats_map(const std::string& tag, const std::string& dtype, const std::vector<int64_t>& shape,
                              double min_v, double max_v, double mean_v, double norm_v)
 {
@@ -419,11 +512,10 @@ static void acl_save_host_func(void* user_data)
         std::cout << kAclSaveLogPrefix << " acl_save_host_func received null payload" << std::endl;
         return;
     }
-
     const uint64_t file_seq = serial_num.fetch_add(1, std::memory_order_relaxed);
     const std::string final_path = build_final_path(payload->save_path, file_seq);
     validate_save_path(final_path);
-    acl_save_callback(payload->tensor, final_path);
+    acl_save_raw_callback(*payload, final_path);
 }
 
 static void acl_stat_callback(const at::Tensor& stats_dev, const std::string& tag, const std::string& dtype,
@@ -467,7 +559,10 @@ static void acl_stat_host_func(void* user_data)
     {
         return;
     }
-    acl_stat_callback(payload->stats_tensor, payload->tag, payload->dtype, payload->shape);
+    if (is_switch_enabled_on_host(payload->switch_tensor))
+    {
+        acl_stat_callback(payload->stats_tensor, payload->tag, payload->dtype, payload->shape);
+    }
 }
 
 static at::Tensor acl_save_impl(const at::Tensor& x, const std::string& path)
@@ -485,7 +580,10 @@ static at::Tensor acl_save_impl(const at::Tensor& x, const std::string& path)
 
     ensure_acl_runtime_initialized();
     auto stream = c10_npu::getCurrentNPUStream().stream();
-    auto* payload = new SaveTaskPayload(x, path);
+    // This runs while graph capture is active, so a layout conversion becomes
+    // an ordinary graph node. The host callback only ever reads dense bytes.
+    at::Tensor tensor_to_save = x.is_contiguous() ? x : x.contiguous();
+    auto* payload = new SaveTaskPayload(tensor_to_save, path);
     auto cb_status = aclrtLaunchHostFunc(stream, acl_save_host_func, payload);
     if (cb_status != ACL_ERROR_NONE)
     {
@@ -497,7 +595,55 @@ static at::Tensor acl_save_impl(const at::Tensor& x, const std::string& path)
     return x;
 }
 
-static at::Tensor acl_stat_impl(const at::Tensor& x, const std::string& tag)
+static void acl_tensor_save_host_func(void* user_data)
+{
+    auto* payload = static_cast<TensorSaveTaskPayload*>(user_data);
+    if (payload == nullptr)
+    {
+        return;
+    }
+    if (!is_switch_enabled_on_host(payload->switch_tensor))
+    {
+        return;
+    }
+    const uint64_t call_idx = get_call_index(payload->api_name, payload->is_call_start);
+    const std::string final_path = build_indexed_tensor_path(payload->save.save_path, payload->api_name, call_idx);
+    validate_save_path(final_path);
+    acl_save_raw_callback(payload->save, final_path);
+}
+
+static at::Tensor acl_tensor_save_impl(const at::Tensor& x, const std::string& path, const std::string& api_name,
+                                       bool is_call_start, const c10::optional<at::Tensor>& switch_tensor)
+{
+    const auto dev_type = x.device().type();
+    if (dev_type != at::DeviceType::PrivateUse1)
+    {
+        if (!is_switch_enabled_on_host(switch_tensor)) return x;
+        const uint64_t call_idx = get_call_index(api_name, is_call_start);
+        const std::string final_path = build_indexed_tensor_path(path, api_name, call_idx);
+        validate_save_path(final_path);
+        at::Tensor out = copy_to_cpu(x);
+        write_pt_or_throw(out, final_path);
+        return out;
+    }
+
+    ensure_acl_runtime_initialized();
+    auto stream = c10_npu::getCurrentNPUStream().stream();
+    // See acl_save_impl: keep layout conversion in the captured graph rather
+    // than allocating a temporary tensor from the host callback.
+    at::Tensor tensor_to_save = x.is_contiguous() ? x : x.contiguous();
+    auto* payload = new TensorSaveTaskPayload(tensor_to_save, path, api_name, is_call_start, switch_tensor);
+    auto cb_status = aclrtLaunchHostFunc(stream, acl_tensor_save_host_func, payload);
+    if (cb_status != ACL_ERROR_NONE)
+    {
+        delete payload;
+        check_acl(cb_status, "aclrtLaunchHostFunc failed for acl_tensor_save");
+    }
+    return x;
+}
+
+static at::Tensor acl_stat_impl(const at::Tensor& x, const std::string& tag,
+                                const c10::optional<at::Tensor>& switch_tensor)
 {
     if (!x.defined())
     {
@@ -510,6 +656,7 @@ static at::Tensor acl_stat_impl(const at::Tensor& x, const std::string& tag)
 
     if (dev_type != at::DeviceType::PrivateUse1)
     {
+        if (!is_switch_enabled_on_host(switch_tensor)) return x;
         at::Tensor stats = compute_stats_tensor(copy_to_cpu(x));
         at::Tensor stats_cpu = stats.to(at::kCPU, /*non_blocking=*/false).contiguous();
         if (!stats_cpu.defined() || stats_cpu.scalar_type() != at::kFloat || stats_cpu.numel() < 4)
@@ -525,7 +672,7 @@ static at::Tensor acl_stat_impl(const at::Tensor& x, const std::string& tag)
     ensure_acl_runtime_initialized();
     at::Tensor stats_dev = compute_stats_tensor(x);
     auto stream = c10_npu::getCurrentNPUStream().stream();
-    auto* payload = new StatTaskPayload(stats_dev, tag, dtype, shape);
+    auto* payload = new StatTaskPayload(stats_dev, tag, dtype, shape, switch_tensor);
     auto cb_status = aclrtLaunchHostFunc(stream, acl_stat_host_func, payload);
     if (cb_status != ACL_ERROR_NONE)
     {
@@ -540,9 +687,17 @@ static at::Tensor acl_save_meta(const at::Tensor& x, const std::string& /*path*/
     return at::empty_like(x, x.options().device(at::kMeta));
 }
 
-static at::Tensor acl_stat_meta(const at::Tensor& x, const std::string& /*tag*/)
+static at::Tensor acl_tensor_save_meta(const at::Tensor& x, const std::string& /*path*/,
+                                       const std::string& /*api_name*/, bool /*is_call_start*/,
+                                       const c10::optional<at::Tensor>& /*switch_tensor*/)
 {
-    return at::empty_like(x, x.options().device(at::kMeta));
+    return x;
+}
+
+static at::Tensor acl_stat_meta(const at::Tensor& x, const std::string& /*tag*/,
+                                const c10::optional<at::Tensor>& /*switch_tensor*/)
+{
+    return x;
 }
 
 static py::dict build_stat_record_dict(const StatRecord& record)
@@ -596,8 +751,7 @@ static py::dict get_acl_stat_dict_impl(bool clear)
     if (clear)
     {
         g_stat_entries.clear();
-        g_tag_counter.clear();
-        g_current_forward_idx.clear();
+        clear_call_indices();
         g_stat_entry_order.clear();
     }
     return result;
@@ -608,24 +762,28 @@ static py::dict get_acl_stat_dict_impl(bool clear)
 TORCH_LIBRARY(my_ns, m)
 {
     m.def("acl_save(Tensor x, str path) -> Tensor");
-    m.def("acl_stat(Tensor x, str tag) -> Tensor");
+    m.def("acl_tensor_save(Tensor x, str path, str api_name, bool is_call_start=False, Tensor? switch=None) -> Tensor");
+    m.def("acl_stat(Tensor x, str tag, Tensor? switch=None) -> Tensor");
 }
 
 TORCH_LIBRARY_IMPL(my_ns, Meta, m)
 {
     m.impl("acl_save", acl_save_meta);
+    m.impl("acl_tensor_save", acl_tensor_save_meta);
     m.impl("acl_stat", acl_stat_meta);
 }
 
 TORCH_LIBRARY_IMPL(my_ns, CPU, m)
 {
     m.impl("acl_save", acl_save_impl);
+    m.impl("acl_tensor_save", acl_tensor_save_impl);
     m.impl("acl_stat", acl_stat_impl);
 }
 
 TORCH_LIBRARY_IMPL(my_ns, PrivateUse1, m)
 {
     m.impl("acl_save", acl_save_impl);
+    m.impl("acl_tensor_save", acl_tensor_save_impl);
     m.impl("acl_stat", acl_stat_impl);
 }
 

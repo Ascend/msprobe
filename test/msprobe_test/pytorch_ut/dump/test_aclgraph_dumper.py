@@ -30,6 +30,9 @@ def _build_aclgraph_dumper_import_env():
 
     fake_aclgraph_dump = types.ModuleType("msprobe.pytorch.aclgraph_dump")
     fake_aclgraph_dump.acl_save = MagicMock(side_effect=lambda tensor, path: tensor)
+    fake_aclgraph_dump.acl_tensor_save = MagicMock(
+        side_effect=lambda tensor, path, api_name, is_call_start=False, switch=None: tensor
+    )
     fake_aclgraph_dump.acl_stat = MagicMock(side_effect=lambda tensor, tag: tensor)
     fake_aclgraph_dump.get_acl_stat_dict = MagicMock(return_value={})
 
@@ -133,7 +136,7 @@ class TestAclGraphDumper(unittest.TestCase):
         self.aclgraph_dump_stub = aclgraph_dump_stub
         self.torch_npu_stub = torch_npu_stub
         self.aclgraph_dump_stub.acl_stat.reset_mock(side_effect=False)
-        self.aclgraph_dump_stub.acl_stat.side_effect = lambda tensor, tag: tensor
+        self.aclgraph_dump_stub.acl_stat.side_effect = lambda tensor, tag, switch=None: tensor
         self.aclgraph_dump_stub.get_acl_stat_dict.reset_mock(side_effect=False)
         self.aclgraph_dump_stub.get_acl_stat_dict.return_value = {}
         self.torch_npu_stub.npu.synchronize.reset_mock()
@@ -145,12 +148,14 @@ class TestAclGraphDumper(unittest.TestCase):
         self._modules_patcher.stop()
 
     def make_dumper(self, dump_path="./dump", keywords=None, level="mix", rank=None, rank_id=0,
-                    slice_info=None):
+                    task="statistics", slice_info=None):
         with patch.object(
             self.AclGraphDumper,
             "_load_msprobe_config",
-            return_value=(dump_path, keywords or [], level, rank, slice_info),
+            return_value=(task, dump_path, keywords or [], [], level, rank, slice_info or [], True),
         ), \
+                patch.object(self.AclGraphDumper, "_resolve_config_path", return_value="./config.json"), \
+                patch.object(self.AclGraphDumper, "_get_config_signature", return_value=(1, 1)), \
                 patch.object(self.AclGraphDumper, "_validate_dump_path", return_value=dump_path), \
                 patch.object(self.AclGraphDumper, "_resolve_rank_id", return_value=rank_id):
             return self.AclGraphDumper(config_path="./config.json")
@@ -200,16 +205,27 @@ class TestAclGraphDumper(unittest.TestCase):
             "task": "statistics",
             "dump_path": "./dump_dir",
             "level": "L1",
-            "statistics": {"list": ["linear"], "level": "mix"},
+            "statistics": {"list": ["linear"]},
             "rank": [0],
         }
         with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json") as mock_real_path, \
                 patch.object(self.module, "load_json", return_value=config):
-            dump_path, module_list, level, rank, slice_info = self.AclGraphDumper._load_msprobe_config(None)
+            task, dump_path, module_list, custom_api, level, rank, slice_info, dump_enable = self.AclGraphDumper._load_msprobe_config(None)
 
-        self.assertEqual((dump_path, module_list, level, rank, slice_info), ("./dump_dir", ["linear"], "mix", [0], []))
+        self.assertEqual((task, dump_path, module_list, custom_api, level, rank, slice_info, dump_enable),
+                         ("statistics", "./dump_dir", ["linear"], [], "L1", [0], [], True))
         mock_real_path.assert_called_once()
+
+        config = {
+            "task": "statistics",
+            "dump_path": "./dump_dir",
+            "statistics": {"level": "mix"},
+        }
+        with patch.object(self.module, "check_and_get_real_path", return_value="/tmp/config.json"), \
+                patch.object(self.module, "load_json", return_value=config):
+            _, _, _, _, level, _, _, _ = self.AclGraphDumper._load_msprobe_config("./config.json")
+        self.assertEqual(level, "L0")
 
         with self.assertRaises(TypeError):
             self.AclGraphDumper._load_msprobe_config(123)
@@ -226,8 +242,9 @@ class TestAclGraphDumper(unittest.TestCase):
 
         with patch.object(self.module, "check_and_get_real_path", return_value="/tmp/config.json"), \
                 patch.object(self.module, "load_json", return_value={"task": 1, "dump_path": "./x", "level": "L0"}):
-            dump_path, module_list, level, rank, slice_info = self.AclGraphDumper._load_msprobe_config("./config.json")
-        self.assertEqual((dump_path, module_list, level, rank, slice_info), ("./x", [], "L0", None, []))
+            task, dump_path, module_list, custom_api, level, rank, slice_info, dump_enable = self.AclGraphDumper._load_msprobe_config("./config.json")
+        self.assertEqual((task, dump_path, module_list, custom_api, level, rank, slice_info, dump_enable),
+                         (1, "./x", [], [], "L0", None, [], True))
 
         with self.assertRaises(TypeError):
             self.AclGraphDumper._validate_dump_path(1)
@@ -244,6 +261,13 @@ class TestAclGraphDumper(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.AclGraphDumper._validate_list(["linear", 1])
         self.assertEqual(self.AclGraphDumper._validate_list(["linear"]), ["linear"])
+
+        self.assertEqual(self.AclGraphDumper._validate_custom_api(None), [])
+        self.assertEqual(self.AclGraphDumper._validate_custom_api(["pkg.api"]), ["pkg.api"])
+        with self.assertRaises(TypeError):
+            self.AclGraphDumper._validate_custom_api("pkg.api")
+        with self.assertRaises(TypeError):
+            self.AclGraphDumper._validate_custom_api(["pkg.api", 1])
 
         with self.assertRaises(TypeError):
             self.AclGraphDumper._validate_level(1)
@@ -291,17 +315,12 @@ class TestAclGraphDumper(unittest.TestCase):
         dumper.rank_id = None
         self.assertTrue(dumper._should_dump_current_rank())
 
-        api_func = FakeFunc("aten.add.Tensor")
-        dumper._push_scope("encoder.block")
-        self.assertEqual(
-            dumper._next_api_scope(api_func),
-            f"encoder.block.{self.module.Const.ATEN_API_TYPE_PREFIX}.add",
-        )
-        self.assertFalse(dumper._should_collect_api("encoder.block", api_func))
+        op_name = f"{self.module.Const.ATEN_API_TYPE_PREFIX}.add"
+        self.assertFalse(dumper._should_collect_api(op_name))
         dumper.list = ["add"]
-        self.assertTrue(dumper._should_collect_api("encoder.block", api_func))
+        self.assertTrue(dumper._should_collect_api(op_name))
         dumper.list = ["matmul"]
-        self.assertFalse(dumper._should_collect_api("encoder.block", api_func))
+        self.assertFalse(dumper._should_collect_api(op_name))
 
     def test_op_name_helpers_if_dispatch_funcs_then_pass(self):
         aten_func = FakeFunc("ignored", schema_name="aten::add")
@@ -335,21 +354,9 @@ class TestAclGraphDumper(unittest.TestCase):
         )
         self.assertFalse(self.AclGraphDumper._should_skip_dispatch_func(FakeFunc("aten.add.Tensor")))
 
-    def test_tls_and_scope_stack_helpers_if_tls_operations_then_pass(self):
+    def test_dispatch_collecting_guard_if_collection_raises_then_restores_state(self):
         dumper = self.make_dumper()
-        self.assertEqual(dumper._dispatch_depth(), 0)
-        dumper._set_dispatch_depth(2)
-        self.assertEqual(dumper._dispatch_depth(), 2)
         self.assertFalse(dumper._is_dispatch_collecting())
-
-        dumper._push_scope("outer")
-        dumper._push_scope("inner")
-        self.assertEqual(dumper._current_scope(), "inner")
-        dumper._pop_scope()
-        self.assertEqual(dumper._current_scope(), "outer")
-        dumper._pop_scope()
-        dumper._pop_scope()
-        self.assertEqual(dumper._current_scope(), "")
 
         def raise_inside():
             self.assertTrue(dumper._is_dispatch_collecting())
@@ -517,7 +524,6 @@ class TestAclGraphDumper(unittest.TestCase):
         mock_collect.assert_not_called()
         self.assertEqual(len(higher_order_func.calls), 1)
 
-        dumper._push_scope("scope")
         setattr(dumper._tls, "dispatch_collecting", True)
         guarded_func = FakeFunc("aten.add.Tensor", result=tensor)
         with patch.object(dumper, "_collect") as mock_collect:
@@ -529,13 +535,12 @@ class TestAclGraphDumper(unittest.TestCase):
         if self.module.TorchDispatchMode is None:
             self.skipTest("TorchDispatchMode unavailable")
         dumper = self.make_dumper(level="L1")
-        dumper._push_scope("module")
         mode = self.module._AclTorchDispatchMode(dumper)
         tensor = torch.randn(2, 3)
         func = FakeFunc("aten.add.Tensor", result=tensor)
         collected_calls = []
 
-        def fake_collect(scope, io_name, value, mark_forward_start=False):
+        def fake_collect(scope, io_name, value, mark_forward_start=False, call_started=None):
             collected_calls.append((scope, io_name, mark_forward_start, value))
             return io_name != "output"
 
@@ -558,7 +563,56 @@ class TestAclGraphDumper(unittest.TestCase):
         tags = [call.args[1] for call in self.aclgraph_dump_stub.acl_stat.call_args_list]
         self.assertTrue(any(tag.startswith("Module.linear.Linear.") for tag in tags))
         if self.module.TorchDispatchMode is not None:
-            self.assertTrue(any(".Aten." in tag for tag in tags))
+            self.assertTrue(any(tag.startswith(f"{self.module.Const.ATEN_API_TYPE_PREFIX}.") for tag in tags))
+
+    def test_patch_if_l1_then_only_root_module_is_wrapped(self):
+        model = ToyModel()
+        dumper = self.make_dumper(keywords=[], level="L1")
+
+        dumper._patch(model)
+
+        self.assertTrue(hasattr(model, "_msprobe_aclgraph_origin_forward"))
+        for module_name, module in model.named_modules():
+            if module_name:
+                self.assertFalse(hasattr(module, "_msprobe_aclgraph_origin_forward"))
+
+    def test_patch_custom_api_if_configured_then_collects_indexed_inputs_and_outputs(self):
+        target_module_name = "msprobe_custom_api_test_module"
+        target_module = types.ModuleType(target_module_name)
+
+        def reshape_and_cache(key, *, value_cache):
+            return key + value_cache
+
+        target_module.reshape_and_cache = reshape_and_cache
+        dumper = self.make_dumper(task="tensor")
+        dumper.custom_api = [f"{target_module_name}.reshape_and_cache"]
+        dumper._tensor_data_dir_path = "./tensor_data"
+        dumper._running = True
+
+        with patch.dict(sys.modules, {target_module_name: target_module}):
+            dumper._patch_custom_api()
+            output = target_module.reshape_and_cache(torch.ones(1), value_cache=torch.ones(1))
+
+        self.assertTrue(torch.equal(output, torch.full((1,), 2.0)))
+        self.assertEqual(self.aclgraph_dump_stub.acl_tensor_save.call_count, 3)
+        calls = self.aclgraph_dump_stub.acl_tensor_save.call_args_list
+        self.assertEqual([call.args[2] for call in calls], ["reshape_and_cache"] * 3)
+        self.assertEqual([call.args[3] for call in calls], [True, False, False])
+        self.assertIn("reshape_and_cache.input.0", calls[0].args[1])
+        self.assertIn("reshape_and_cache.input_kwargs.value_cache", calls[1].args[1])
+        self.assertIn("reshape_and_cache.output", calls[2].args[1])
+
+    def test_start_if_statistics_then_does_not_patch_custom_api(self):
+        dumper = self.make_dumper(task="statistics")
+        dumper.custom_api = ["missing.module.api"]
+
+        with patch.object(dumper, "_resolve_rank_id", return_value=0), \
+                patch.object(dumper, "_patch"), \
+                patch.object(dumper, "_patch_custom_api") as mock_patch_custom_api:
+            dumper.start(MagicMock())
+
+        self.assertTrue(dumper._running)
+        mock_patch_custom_api.assert_not_called()
 
     def test_synchronize_if_sync_paths_then_pass(self):
         dumper = self.make_dumper()
@@ -721,7 +775,7 @@ class TestAclGraphDumper(unittest.TestCase):
     def test_collect_without_slice_info(self):
         """未配置 slice_info 时正常采集不切片"""
         dumper = self.make_dumper(slice_info=None)
-        self.assertIsNone(dumper.slice_info)
+        self.assertEqual(dumper.slice_info, [])
         tensor = torch.randn(100, 3)
         with patch.object(self.module, "_is_collectable_tensor", return_value=True):
             dumper._collect("scope", "input", [tensor])
@@ -737,7 +791,6 @@ class TestAclGraphDumper(unittest.TestCase):
             "level": "L1",
             "statistics": {
                 "list": ["linear"],
-                "level": "mix",
                 "slice": [{"dim": 0, "size": 100, "begin": 0, "end": 50}],
             },
             "rank": [0],
@@ -745,7 +798,7 @@ class TestAclGraphDumper(unittest.TestCase):
         with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "load_json", return_value=config):
-            _, _, _, _, slice_info = self.AclGraphDumper._load_msprobe_config(None)
+            _, _, _, _, _, _, slice_info, _ = self.AclGraphDumper._load_msprobe_config(None)
         self.assertEqual(slice_info, [{"dim": 0, "size": 100, "begin": 0, "end": 50}])
 
     def test_load_msprobe_config_without_slice_info(self):
@@ -754,13 +807,13 @@ class TestAclGraphDumper(unittest.TestCase):
             "task": "statistics",
             "dump_path": "./dump_dir",
             "level": "L1",
-            "statistics": {"list": ["linear"], "level": "mix"},
+            "statistics": {"list": ["linear"]},
             "rank": [0],
         }
         with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "load_json", return_value=config):
-            _, _, _, _, slice_info = self.AclGraphDumper._load_msprobe_config(None)
+            _, _, _, _, _, _, slice_info, _ = self.AclGraphDumper._load_msprobe_config(None)
         self.assertEqual(slice_info, [])
 
     def test_load_msprobe_config_with_invalid_slice_info(self):
@@ -771,7 +824,6 @@ class TestAclGraphDumper(unittest.TestCase):
             "level": "L1",
             "statistics": {
                 "list": ["linear"],
-                "level": "mix",
                 "slice": [{"dim": 0, "size": -1, "begin": 0, "end": 0}],
             },
             "rank": [0],

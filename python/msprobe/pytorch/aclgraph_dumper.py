@@ -15,14 +15,16 @@
 # -------------------------------------------------------------------------
 
 import functools
+import importlib
 import os
+import shutil
 import threading
 from collections.abc import Iterable
 from contextlib import nullcontext
 
 import torch
 
-from msprobe.pytorch.aclgraph_dump import acl_stat, get_acl_stat_dict
+from msprobe.pytorch.aclgraph_dump import acl_stat, acl_tensor_save, get_acl_stat_dict
 from msprobe.core.common.const import Const, FileCheckConst
 from msprobe.core.common.file_utils import create_directory, check_and_get_real_path, save_json, load_json
 from msprobe.core.common.utils import get_real_step_or_rank, check_slice_info, slice_by_config
@@ -121,45 +123,73 @@ if TorchDispatchMode is not None:
             if self._dumper._is_dispatch_collecting():
                 return func(*args, **kwargs)
 
-            op_scope = self._dumper._next_api_scope(func)
-            should_collect = self._dumper._should_collect_api(self._dumper._current_scope(), func)
+            op_name = self._dumper._op_name_from_dispatch_func(func)
+            should_collect = self._dumper._should_collect_api(op_name)
             started = False
+            call_started = [False]
             if should_collect:
                 collected = self._dumper._dc(
-                    self._dumper._collect, op_scope, "input", args, mark_forward_start=not started
+                    self._dumper._collect,
+                    op_name,
+                    "input",
+                    args,
+                    mark_forward_start=not started,
+                    call_started=call_started,
                 )
                 started = started or collected
                 if kwargs:
                     collected = self._dumper._dc(
-                        self._dumper._collect, op_scope, "input_kwargs", kwargs, mark_forward_start=not started
+                        self._dumper._collect,
+                        op_name,
+                        "input_kwargs",
+                        kwargs,
+                        mark_forward_start=not started,
+                        call_started=call_started,
                     )
                     started = started or collected
 
             output = func(*args, **kwargs)
 
             if should_collect:
-                self._dumper._dc(self._dumper._collect, op_scope, "output", output, mark_forward_start=not started)
+                self._dumper._dc(
+                    self._dumper._collect,
+                    op_name,
+                    "output",
+                    output,
+                    mark_forward_start=not started,
+                    call_started=call_started,
+                )
             return output
 
 
 class AclGraphDumper:
     def __init__(self, config_path=None):
+        self.config_path = self._resolve_config_path(config_path)
+        self._config_signature = self._get_config_signature(self.config_path)
         (
+            config_task,
             config_dump_path,
             config_list,
+            config_custom_api,
             config_level,
             config_rank,
             config_slice_info,
-        ) = self._load_msprobe_config(config_path)
+            dump_enable,
+        ) = self._load_msprobe_config(self.config_path)
+        self.task = self._validate_task(config_task)
         self.dump_path = self._validate_dump_path(config_dump_path)
         self.list = self._validate_list(config_list)
+        self.custom_api = self._validate_custom_api(config_custom_api)
         self.level = self._validate_level(config_level)
         self.rank = get_real_step_or_rank(config_rank, Const.RANK)
         self.rank_id = self._resolve_rank_id()
         self.slice_info = config_slice_info
+        self.dump_enable = self._validate_dump_enable(dump_enable)
+        self.switch = torch.tensor([int(self.dump_enable)], dtype=torch.int32)
         self.step_id = 0
         self._running = False
         self._tls = threading.local()
+        self._tensor_data_dir_path = None
 
     @staticmethod
     def _default_config_path():
@@ -167,12 +197,21 @@ class AclGraphDumper:
         return os.path.join(cur_dir, "..", "config.json")
 
     @staticmethod
-    def _load_msprobe_config(config_path):
+    def _resolve_config_path(config_path):
         if config_path is None:
             config_path = AclGraphDumper._default_config_path()
         if not isinstance(config_path, str):
             raise TypeError("config_path must be a string")
-        config_path = check_and_get_real_path(config_path, FileCheckConst.READ_ABLE, must_exist=True)
+        return check_and_get_real_path(config_path, FileCheckConst.READ_ABLE, must_exist=True)
+
+    @staticmethod
+    def _get_config_signature(config_path):
+        info = os.stat(config_path)
+        return info.st_mtime_ns, info.st_size
+
+    @staticmethod
+    def _load_msprobe_config(config_path):
+        config_path = AclGraphDumper._resolve_config_path(config_path)
         json_config = load_json(config_path)
         if not isinstance(json_config, dict):
             raise TypeError("config must be a dict")
@@ -180,15 +219,18 @@ class AclGraphDumper:
         task_config = json_config.get(task, {}) if isinstance(task, str) else {}
         if not isinstance(task_config, dict):
             raise TypeError(f"task config for {task} must be a dict")
-        level = task_config.get("level", json_config.get("level", Const.LEVEL_L0))
+        level = json_config.get("level", Const.LEVEL_L0)
         slice_info = task_config.get("slice", [])
         check_slice_info(slice_info)
         return (
+            task,
             json_config.get("dump_path"),
             task_config.get("list", []),
+            task_config.get("custom_api", []),
             level,
             json_config.get(Const.RANK),
             slice_info,
+            json_config.get("dump_enable", True),
         )
 
     @staticmethod
@@ -200,6 +242,35 @@ class AclGraphDumper:
         return dump_path
 
     @staticmethod
+    def _validate_task(task):
+        if task not in (Const.STATISTICS, Const.TENSOR):
+            raise ValueError(f"task must be one of {[Const.STATISTICS, Const.TENSOR]}")
+        return task
+
+    @staticmethod
+    def _validate_dump_enable(value):
+        if not isinstance(value, bool):
+            raise TypeError("dump_enable must be a boolean")
+        return value
+
+    def _switch_for_tensor(self, tensor):
+        if self.switch.device != tensor.device:
+            self.switch = self.switch.to(tensor.device)
+        return self.switch
+
+    def _refresh_dump_enable(self):
+        try:
+            signature = self._get_config_signature(self.config_path)
+        except OSError:
+            return
+        if signature == self._config_signature:
+            return
+        self._config_signature = signature
+        *_, value = self._load_msprobe_config(self.config_path)
+        self.dump_enable = self._validate_dump_enable(value)
+        self.switch.fill_(int(self.dump_enable))
+
+    @staticmethod
     def _validate_list(keywords):
         if keywords is None:
             return []
@@ -209,6 +280,14 @@ class AclGraphDumper:
             if not isinstance(keyword, str):
                 raise TypeError("list must be a list[str]")
         return keywords
+
+    @staticmethod
+    def _validate_custom_api(custom_api):
+        if custom_api is None:
+            return []
+        if not isinstance(custom_api, list) or not all(isinstance(item, str) and item for item in custom_api):
+            raise TypeError("custom_api must be a list[str]")
+        return custom_api
 
     @staticmethod
     def _validate_level(level):
@@ -234,6 +313,41 @@ class AclGraphDumper:
         path = os.path.join(self.dump_path, f"step{self.step_id}", rank_name)
         create_directory(path)
         return path
+
+    def _rank_dir_name(self):
+        return f"rank{self.rank_id}" if self.rank_id is not None else f"pid{os.getpid()}"
+
+    def _tensor_data_dir(self):
+        return os.path.join(self.dump_path, Const.DUMP_TENSOR_DATA, self._rank_dir_name())
+
+    def _step_tensor_data_dir(self):
+        return os.path.join(self.dump_path, f"step{self.step_id}", self._rank_dir_name(), Const.DUMP_TENSOR_DATA)
+
+    def _prepare_tensor_data_dir(self):
+        self._tensor_data_dir_path = self._tensor_data_dir()
+        create_directory(self._tensor_data_dir_path)
+
+    def _archive_tensor_data_dir(self):
+        tensor_names = os.listdir(self._tensor_data_dir_path)
+        if not tensor_names:
+            self.step_id += 1
+            return
+        destination = self._step_tensor_data_dir()
+        create_directory(destination)
+        for name in tensor_names:
+            shutil.move(
+                os.path.join(self._tensor_data_dir_path, name),
+                os.path.join(destination, name),
+            )
+        self.step_id += 1
+
+    @staticmethod
+    def _safe_file_stem(tag):
+        safe = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+        return "".join(ch if ch in safe else "_" for ch in tag)
+
+    def _tensor_save_path(self, tag):
+        return os.path.join(self._tensor_data_dir_path, f"{self._safe_file_stem(tag)}{Const.PT_SUFFIX}")
 
     def _module_scope(self, module_name):
         return module_name if module_name else "__root__"
@@ -303,18 +417,17 @@ class AclGraphDumper:
     @staticmethod
     def _should_skip_dispatch_func(func):
         func_text = str(func)
-        return "acl_stat" in func_text or "acl_save" in func_text or "higher_order." in func_text
+        return (
+            "acl_stat" in func_text
+            or "acl_save" in func_text
+            or "acl_tensor_save" in func_text
+            or "higher_order." in func_text
+        )
 
     def _tls_get(self, key, default):
         if not hasattr(self._tls, key):
             setattr(self._tls, key, default)
         return getattr(self._tls, key)
-
-    def _dispatch_depth(self):
-        return self._tls_get("dispatch_depth", 0)
-
-    def _set_dispatch_depth(self, depth):
-        setattr(self._tls, "dispatch_depth", depth)
 
     def _is_dispatch_collecting(self):
         return self._tls_get("dispatch_collecting", False)
@@ -328,41 +441,8 @@ class AclGraphDumper:
         finally:
             setattr(self._tls, "dispatch_collecting", previous)
 
-    def _scope_stack(self):
-        return self._tls_get("scope_stack", [])
-
-    def _push_scope(self, module_name):
-        stack = self._scope_stack()
-        stack.append(module_name)
-
-    def _pop_scope(self):
-        stack = self._scope_stack()
-        if stack:
-            stack.pop()
-
-    def _current_scope(self):
-        stack = self._scope_stack()
-        return stack[-1] if stack else ""
-
-    def _next_api_scope(self, func):
-        op_name = self._op_name_from_dispatch_func(func)
-        scope = self._module_scope(self._current_scope())
-        return f"{scope}.{op_name}"
-
-    def _should_collect_api(self, module_name, func):
-        if not self.list:
-            return True
-        scope = self._module_scope(module_name)
-        op_name = self._op_name_from_dispatch_func(func)
-        api_scope_prefix = self._module_scope_name(module_name)
-        return self._match_list_keywords(
-            module_name,
-            scope,
-            api_scope_prefix,
-            op_name,
-            f"{scope}.{op_name}",
-            f"{api_scope_prefix}.{op_name}",
-        )
+    def _should_collect_api(self, op_name):
+        return self._match_list_keywords(op_name)
 
     @staticmethod
     def _normalize_dtype(dtype):
@@ -478,22 +558,53 @@ class AclGraphDumper:
                 op_entry[Const.OUTPUT] = cls._compress_numeric_tree_to_list(op_entry[Const.OUTPUT])
         return dump_data
 
-    def _collect(self, module_name, io_name, value, mark_forward_start=False):
+    def _collect(self, module_name, io_name, value, mark_forward_start=False, call_started=None):
         has_collected = False
         has_marked = False
+        call_started = [False] if call_started is None else call_started
         slice_info = self.slice_info
         for suffix, tensor in _iter_tensors(value):
             if not _is_collectable_tensor(tensor):
                 continue
             tag = f"{self._module_scope(module_name)}.{io_name}"
             effective_suffix = suffix
-            if mark_forward_start and not has_marked:
+            # The marker is consumed by the statistics aggregation path to
+            # delimit a forward. Tensor dumps are user-facing artifacts, so
+            # keep their names free of this implementation detail.
+            if self.task != Const.TENSOR and mark_forward_start and not has_marked:
                 effective_suffix = FORWARD_START_MARKER if not suffix else f"{FORWARD_START_MARKER}.{suffix}"
                 has_marked = True
             if effective_suffix:
                 tag = f"{tag}.{effective_suffix}"
-            stat_tensor = slice_by_config(tensor, slice_info)
-            acl_stat(stat_tensor, tag)
+            if self.task == Const.TENSOR:
+                api_name = self._safe_file_stem(self._module_scope(module_name))
+                acl_tensor_save(
+                    tensor, self._tensor_save_path(tag), api_name, not call_started[0], self._switch_for_tensor(tensor)
+                )
+                call_started[0] = True
+            else:
+                stat_tensor = slice_by_config(tensor, slice_info)
+                acl_stat(stat_tensor, tag, self._switch_for_tensor(stat_tensor))
+            has_collected = True
+        return has_collected
+
+    def _collect_custom_api(self, api_name, io_name, value, call_started):
+        """Collect a patched Python API as one replay-time indexed call."""
+        has_collected = False
+        for suffix, tensor in _iter_tensors(value):
+            if not _is_collectable_tensor(tensor):
+                continue
+            tag = f"{api_name}.{io_name}"
+            if suffix:
+                tag = f"{tag}.{suffix}"
+            acl_tensor_save(
+                tensor,
+                self._tensor_save_path(tag),
+                self._safe_file_stem(api_name),
+                not call_started[0],
+                self._switch_for_tensor(tensor),
+            )
+            call_started[0] = True
             has_collected = True
         return has_collected
 
@@ -504,8 +615,10 @@ class AclGraphDumper:
             if hasattr(module, "_msprobe_aclgraph_origin_forward"):
                 continue
             module_class_name = type(module).__name__
-            should_collect_module = self._should_collect_module(module_name, module_class_name)
-            should_wrap = self._collect_api_enabled() or should_collect_module
+            collect_module = self._collect_module_enabled() and self._should_collect_module(
+                module_name, module_class_name
+            )
+            should_wrap = collect_module or (self._collect_api_enabled() and not module_name)
             if not should_wrap:
                 continue
             origin = module.forward
@@ -516,42 +629,91 @@ class AclGraphDumper:
                 __origin=origin,
                 __module_name=module_name,
                 __module_class_name=module_class_name,
-                __should_collect_module=should_collect_module,
+                __collect_module=collect_module,
                 **kwargs,
             ):
-                api_scope_name = dumper._module_scope_name(__module_name, __module_class_name)
-                collect_module_data = dumper._running and dumper._collect_module_enabled() and __should_collect_module
-                module_scope_name = api_scope_name if collect_module_data else __module_name
-                dumper._push_scope(api_scope_name)
-                depth = dumper._dispatch_depth()
-                dumper._set_dispatch_depth(depth + 1)
+                collect_module_data = dumper._running and __collect_module
+                module_dump_name = (
+                    dumper._module_scope_name(__module_name, __module_class_name) if collect_module_data else None
+                )
                 use_dispatch = (
-                    dumper._running and dumper._collect_api_enabled() and TorchDispatchMode is not None and depth == 0
+                    dumper._running
+                    and dumper._collect_api_enabled()
+                    and TorchDispatchMode is not None
+                    and not __module_name
                 )
                 dispatch_mode = _AclTorchDispatchMode(dumper) if use_dispatch else nullcontext()  # pylint: disable=possibly-used-before-assignment
                 started = False
-                try:
-                    if collect_module_data:
-                        collected = dumper._collect(module_scope_name, "input", args, mark_forward_start=not started)
+                call_started = [False]
+                if collect_module_data:
+                    collected = dumper._collect(
+                        module_dump_name, "input", args, mark_forward_start=not started, call_started=call_started
+                    )
+                    started = started or collected
+                    if kwargs:
+                        collected = dumper._collect(
+                            module_dump_name,
+                            "input_kwargs",
+                            kwargs,
+                            mark_forward_start=not started,
+                            call_started=call_started,
+                        )
                         started = started or collected
-                        if kwargs:
-                            collected = dumper._collect(
-                                module_scope_name, "input_kwargs", kwargs, mark_forward_start=not started
-                            )
-                            started = started or collected
 
-                    with dispatch_mode:
-                        output = __origin(*args, **kwargs)
+                with dispatch_mode:
+                    output = __origin(*args, **kwargs)
 
-                    if collect_module_data:
-                        dumper._collect(module_scope_name, "output", output, mark_forward_start=not started)
-                    return output
-                finally:
-                    dumper._set_dispatch_depth(depth)
-                    dumper._pop_scope()
+                if collect_module_data:
+                    dumper._collect(
+                        module_dump_name,
+                        "output",
+                        output,
+                        mark_forward_start=not started,
+                        call_started=call_started,
+                    )
+                return output
 
             module.forward = wrapped_forward
             module._msprobe_aclgraph_origin_forward = origin
+
+    @staticmethod
+    def _resolve_custom_api(target):
+        """Resolve ``package.object.method`` to its owning object and attribute."""
+        parts = target.split(".")
+        for module_end in range(len(parts) - 1, 0, -1):
+            try:
+                obj = importlib.import_module(".".join(parts[:module_end]))
+                parent = None
+                for attr in parts[module_end:]:
+                    parent = obj
+                    obj = getattr(obj, attr)
+                return parent, parts[-1], obj
+            except (ImportError, AttributeError):
+                continue
+        raise ValueError(f"custom_api target cannot be resolved: {target}")
+
+    def _patch_custom_api(self):
+        for target in self.custom_api:
+            owner, attr_name, origin = self._resolve_custom_api(target)
+            if hasattr(origin, "_msprobe_aclgraph_origin"):
+                continue
+            setattr(owner, attr_name, self._make_custom_api_wrapper(origin, attr_name))
+
+    def _make_custom_api_wrapper(self, origin, api_name):
+        @functools.wraps(origin)
+        def wrapped(*args, **kwargs):
+            call_started = [False]
+            if self._running:
+                self._dc(self._collect_custom_api, api_name, "input", args, call_started)
+                if kwargs:
+                    self._dc(self._collect_custom_api, api_name, "input_kwargs", kwargs, call_started)
+            output = origin(*args, **kwargs)
+            if self._running:
+                self._dc(self._collect_custom_api, api_name, "output", output, call_started)
+            return output
+
+        wrapped._msprobe_aclgraph_origin = origin
+        return wrapped
 
     def _synchronize(self):
         if torch_npu is not None:
@@ -568,14 +730,22 @@ class AclGraphDumper:
         if not self._should_dump_current_rank():
             self._running = False
             return
+        if self.task == Const.TENSOR:
+            self._prepare_tensor_data_dir()
         self._patch(model)
         self._running = True
+        if self.task == Const.TENSOR:
+            self._patch_custom_api()
 
     def step(self, dump=True):
         if not self._running:
             return
 
+        self._refresh_dump_enable()
         self._synchronize()
+        if self.task == Const.TENSOR:
+            self._archive_tensor_data_dir()
+            return
         stats = dict(get_acl_stat_dict(clear=True))
         if not dump:
             return
