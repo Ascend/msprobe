@@ -70,6 +70,60 @@ def _load_aclgraph_dumper_module(pytorch_pkg_dir):
     return module
 
 
+def _load_aclgraph_dump_api_module(pytorch_pkg_dir):
+    module_name = "msprobe.pytorch.aclgraph_dump"
+    module_path = os.path.join(pytorch_pkg_dir, "aclgraph_dump", "__init__.py")
+
+    fake_msprobe = types.ModuleType("msprobe")
+    fake_msprobe.__path__ = []
+    fake_pytorch = types.ModuleType("msprobe.pytorch")
+    fake_pytorch.__path__ = []
+    fake_lib = types.ModuleType("msprobe.lib")
+    fake_extension = types.ModuleType("msprobe.lib.aclgraph_dump_ext")
+    fake_lib.aclgraph_dump_ext = fake_extension
+    fake_meta = types.ModuleType(f"{module_name}._meta")
+    fake_meta._register_meta = MagicMock()
+    fake_torch_npu = types.ModuleType("torch_npu")
+
+    acl_save_op = MagicMock(side_effect=lambda tensor, path: tensor)
+    acl_save_op.default = MagicMock()
+    acl_tensor_save_op = MagicMock(
+        side_effect=lambda tensor, path, api_name, is_call_start=False, switch=None: tensor
+    )
+    acl_tensor_save_op.default = MagicMock()
+    acl_stat_op = MagicMock(side_effect=lambda tensor, tag, switch=None: tensor)
+    acl_stat_op.default = MagicMock()
+    fake_ops = types.SimpleNamespace(
+        acl_save=acl_save_op,
+        acl_tensor_save=acl_tensor_save_op,
+        acl_stat=acl_stat_op,
+    )
+
+    modules_patcher = patch.dict(
+        sys.modules,
+        {
+            "msprobe": fake_msprobe,
+            "msprobe.pytorch": fake_pytorch,
+            "msprobe.lib": fake_lib,
+            "msprobe.lib.aclgraph_dump_ext": fake_extension,
+            f"{module_name}._meta": fake_meta,
+            "torch_npu": fake_torch_npu,
+        },
+    )
+    ops_patcher = patch.object(torch.ops, "my_ns", fake_ops)
+    modules_patcher.start()
+    ops_patcher.start()
+
+    spec = importlib.util.spec_from_file_location(
+        module_name, module_path, submodule_search_locations=[os.path.dirname(module_path)]
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module, fake_ops, modules_patcher, ops_patcher
+
+
 class ToyModel(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -833,6 +887,58 @@ class TestAclGraphDumper(unittest.TestCase):
                 patch.object(self.module, "load_json", return_value=config):
             with self.assertRaises(Exception):
                 self.AclGraphDumper._load_msprobe_config(None)
+
+
+class TestAclGraphDumpApi(unittest.TestCase):
+    def setUp(self):
+        pytorch_pkg_dir = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "python", "msprobe", "pytorch")
+        )
+        self.module, self.fake_ops, self.modules_patcher, self.ops_patcher = _load_aclgraph_dump_api_module(
+            pytorch_pkg_dir
+        )
+
+    def tearDown(self):
+        sys.modules.pop("msprobe.pytorch.aclgraph_dump", None)
+        self.ops_patcher.stop()
+        self.modules_patcher.stop()
+
+    def test_acl_save_makes_mixed_qkv_split_contiguous(self):
+        qkv_size, z_size = 8, 2
+        mixed_qkvz = torch.arange(2 * (qkv_size + z_size), dtype=torch.bfloat16).reshape(
+            2, qkv_size + z_size
+        )
+        mixed_qkv, _ = mixed_qkvz.split([qkv_size, z_size], dim=-1)
+        self.assertFalse(mixed_qkv.is_contiguous())
+
+        self.module.acl_save(mixed_qkv, "mixed_qkv.pt")
+
+        call = self.fake_ops.acl_save.call_args
+        saved_tensor = call.args[0]
+        self.assertTrue(saved_tensor.is_contiguous())
+        self.assertTrue(torch.equal(saved_tensor, mixed_qkv))
+        self.assertEqual(call.args[1], "mixed_qkv.pt")
+
+    def test_acl_save_reuses_contiguous_tensor(self):
+        tensor = torch.arange(12).reshape(3, 4)
+
+        result = self.module.acl_save(tensor, "tensor.pt")
+
+        self.assertIs(self.fake_ops.acl_save.call_args.args[0], tensor)
+        self.assertIs(result, tensor)
+
+    def test_acl_tensor_save_makes_tensor_contiguous_and_forwards_arguments(self):
+        tensor = torch.arange(24).reshape(4, 6)[:, :4]
+        switch = torch.tensor(True)
+
+        result = self.module.acl_tensor_save(tensor, "tensor.pt", "linear", True, switch)
+
+        call = self.fake_ops.acl_tensor_save.call_args
+        saved_tensor = call.args[0]
+        self.assertTrue(saved_tensor.is_contiguous())
+        self.assertTrue(torch.equal(saved_tensor, tensor))
+        self.assertEqual(call.args[1:], ("tensor.pt", "linear", True, switch))
+        self.assertIs(result, saved_tensor)
 
 
 if __name__ == "__main__":

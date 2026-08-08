@@ -580,10 +580,7 @@ static at::Tensor acl_save_impl(const at::Tensor& x, const std::string& path)
 
     ensure_acl_runtime_initialized();
     auto stream = c10_npu::getCurrentNPUStream().stream();
-    // This runs while graph capture is active, so a layout conversion becomes
-    // an ordinary graph node. The host callback only ever reads dense bytes.
-    at::Tensor tensor_to_save = x.is_contiguous() ? x : x.contiguous();
-    auto* payload = new SaveTaskPayload(tensor_to_save, path);
+    auto* payload = new SaveTaskPayload(x, path);
     auto cb_status = aclrtLaunchHostFunc(stream, acl_save_host_func, payload);
     if (cb_status != ACL_ERROR_NONE)
     {
@@ -629,10 +626,7 @@ static at::Tensor acl_tensor_save_impl(const at::Tensor& x, const std::string& p
 
     ensure_acl_runtime_initialized();
     auto stream = c10_npu::getCurrentNPUStream().stream();
-    // See acl_save_impl: keep layout conversion in the captured graph rather
-    // than allocating a temporary tensor from the host callback.
-    at::Tensor tensor_to_save = x.is_contiguous() ? x : x.contiguous();
-    auto* payload = new TensorSaveTaskPayload(tensor_to_save, path, api_name, is_call_start, switch_tensor);
+    auto* payload = new TensorSaveTaskPayload(x, path, api_name, is_call_start, switch_tensor);
     auto cb_status = aclrtLaunchHostFunc(stream, acl_tensor_save_host_func, payload);
     if (cb_status != ACL_ERROR_NONE)
     {

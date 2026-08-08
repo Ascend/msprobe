@@ -43,14 +43,16 @@ def acl_save(x: torch.Tensor, path: str) -> torch.Tensor:
     The file name is generated as {base}_{seq}.pt in the same directory.
     For NPU input, the save runs on the current NPU stream; synchronize if needed.
     """
-    return torch.ops.my_ns.acl_save(x, path)
+    tensor_to_save = x if x.is_contiguous() else x.contiguous()
+    return torch.ops.my_ns.acl_save(tensor_to_save, path)
 
 
 def acl_tensor_save(
     x: torch.Tensor, path: str, api_name: str, is_call_start: bool = False, switch: torch.Tensor = None
 ) -> torch.Tensor:
     """Save a whole-network tensor, grouped by its replay-time API call index."""
-    return torch.ops.my_ns.acl_tensor_save(x, path, api_name, is_call_start, switch)
+    tensor_to_save = x if x.is_contiguous() else x.contiguous()
+    return torch.ops.my_ns.acl_tensor_save(tensor_to_save, path, api_name, is_call_start, switch)
 
 
 def acl_stat(x: torch.Tensor, tag: str, switch: torch.Tensor = None) -> torch.Tensor:
