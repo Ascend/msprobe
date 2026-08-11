@@ -168,6 +168,13 @@ AclGraphDumper.step(dump: bool = True) -> None
 {api_name}.{call_index}.{input|input_kwargs|output}[.{index}].pt
 ```
 
+目录中的进程标识按运行场景区分：多卡场景使用 `rank{rank_id}`，单卡场景使用 `rank0`；若单卡场景未初始化分布式环境，则使用 `pid{pid}`。
+
+采集过程中，`dump_tensor_data` 目录分为以下两类（以下 `{process_dir}` 表示上述进程标识）：
+
+- `dump_path/dump_tensor_data/{process_dir}`：临时工作目录，用于保存当前 replay 生成、尚未归档的 `.pt` 文件。调用 `dumper.step()` 后，其中的文件会被移动到对应的 `step` 目录；临时工作目录会保留，供后续 replay 继续使用，因此在 `step()` 执行完成后通常为空。采集运行期间请勿删除或重命名该目录。
+- `dump_path/step{step_id}/{process_dir}/dump_tensor_data`：当前 step 的归档目录，用于保存该次 replay 最终落盘的 Tensor 数据。查看或解析采集结果时，请使用该目录下的 `.pt` 文件。
+
 > [!NOTE]
 >
 > Tensor 整网采集会产生较大的磁盘和传输开销，建议结合 `level` 和 `list` 缩小采集范围。
@@ -226,20 +233,20 @@ AclGraphDumper.step(dump: bool = True) -> None
 
 **单卡场景**
 
-`AclGraphDumper` 单卡场景输出路径为：`dump_path/step{step_id}/pid{pid}/dump.json`。
+`AclGraphDumper` 输出路径通常为：`dump_path/step{step_id}/rank0/dump.json`。若未初始化分布式环境，输出路径为：`dump_path/step{step_id}/pid{pid}/dump.json`。
 
 生成目录示例：
 
 ```text
 L0_dump
 ├── step0
-│   └── pid9527
+│   └── rank0
 │       └── dump.json
 ├── step1
-│   └── pid9527
+│   └── rank0
 │       └── dump.json
 ├── step2
-|   └── pid9527
+|   └── rank0
 |       └── dump.json
 ```
 
@@ -262,18 +269,20 @@ L0_dump
 
 #### tensor 任务
 
-单卡场景输出路径为：`dump_path/step{step_id}/pid{pid}/tensor_data/*.pt`；多卡场景输出路径为：`dump_path/step{step_id}/rank{rank_id}/tensor_data/*.pt`。
+单卡场景输出路径为：`dump_path/step{step_id}/rank0/dump_tensor_data/*.pt`；若未初始化分布式环境，输出路径为：`dump_path/step{step_id}/pid{pid}/dump_tensor_data/*.pt`。多卡场景输出路径为：`dump_path/step{step_id}/rank{rank_id}/dump_tensor_data/*.pt`。
 
 ```text
 tensor_dump
+├── dump_tensor_data
+│   └── rank0                         # 当前 replay 的临时工作目录
 ├── step0
 │   └── rank0
-│       └── tensor_data
+│       └── dump_tensor_data          # step0 的归档数据
 │           ├── linear.0.input.0.pt
 │           └── linear.0.output.0.pt
 └── step1
     └── rank0
-        └── tensor_data
+        └── dump_tensor_data          # step1 的归档数据
             ├── linear.1.input.0.pt
             └── linear.1.output.0.pt
 ```
