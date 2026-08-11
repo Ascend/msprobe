@@ -285,7 +285,7 @@ class DataWriter:
             self.data_updated = True
             key = next(iter(new_data.keys()))
             if key in dump_data:
-                if key.startswith(Const.MODULE + Const.SEP):
+                if key.startswith(Const.MODULE + Const.SEP) or key.startswith(Const.CELL + Const.SEP):
                     existing = dump_data.pop(key)
                     existing.update(new_data.get(key))
                     dump_data[key] = existing

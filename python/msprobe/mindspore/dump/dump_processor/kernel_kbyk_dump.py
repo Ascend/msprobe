@@ -16,13 +16,16 @@
 
 import os
 
+from packaging.version import parse as version_parse
+
 from msprobe.core.common.const import Const
 from msprobe.core.common.file_utils import create_directory, save_json
 from msprobe.mindspore.common.log import logger
 from msprobe.mindspore.dump.debugger.debugger_config import DebuggerConfig
 
 import mindspore as ms
-ms_version = ms.__version__
+
+ms_version = version_parse(ms.__version__)
 
 
 class KernelKbykDump:
@@ -47,16 +50,13 @@ class KernelKbykDump:
 
         if config.stat_cal_mode and config.device_stat_precision_mode:
             e2e_set = {
-                        "enable": not config.async_dump,
-                        "trans_flag": True,
-                        "stat_calc_mode": config.stat_cal_mode,
-                        "device_stat_precision_mode": config.device_stat_precision_mode
-                    }
+                "enable": not config.async_dump,
+                "trans_flag": True,
+                "stat_calc_mode": config.stat_cal_mode,
+                "device_stat_precision_mode": config.device_stat_precision_mode,
+            }
         else:
-            e2e_set = {
-                        "enable": not config.async_dump,
-                        "trans_flag": True
-                    }
+            e2e_set = {"enable": not config.async_dump, "trans_flag": True}
 
         if config.list:
             common_set["dump_mode"] = 1
@@ -65,7 +65,7 @@ class KernelKbykDump:
         if config.step:
             step_str = ""
             for s in config.step:
-                step_str += (str(s) + '|')
+                step_str += str(s) + '|'
             common_set["iteration"] = step_str[:-1]
         if config.rank:
             common_set["support_device"] = config.rank
@@ -84,17 +84,16 @@ class KernelKbykDump:
                     mode = self._process_hash(config.summary_mode)
                     common_set["statistic_category"] = [mode]
             elif isinstance(config.summary_mode, list):
-                common_set["statistic_category"] = list({
-                    self._process_hash("avg" if mode == "mean" else mode)
-                    for mode in config.summary_mode
-                })
+                common_set["statistic_category"] = list(
+                    {self._process_hash("avg" if mode == "mean" else mode) for mode in config.summary_mode}
+                )
 
         self.dump_json[KernelKbykDump.COMMON_SETTINGS] = common_set
         self.dump_json[KernelKbykDump.E2E_SETTINGS] = e2e_set
 
     @staticmethod
     def _process_hash(value):
-        if ms_version <= "2.7.0" and (value == Const.HASH or value == Const.MD5):
+        if ms_version <= version_parse("2.7.0") and value in (Const.HASH, Const.MD5):
             value = "md5"
         elif value == Const.MD5:
             value = "hash:md5"

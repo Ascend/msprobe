@@ -301,7 +301,7 @@ class BaseHookManager(ABC):
         return forward_hook
 
     def _build_module_forward_pre_hook(self, full_name):
-        def module_forward_pre_hook(module, args, kwargs):
+        def module_forward_pre_hook(module, args, kwargs=None):
             tid = threading.get_ident()
             if not self._should_execute_hook(Const.MODULE, tid):
                 return

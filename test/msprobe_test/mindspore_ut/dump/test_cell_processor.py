@@ -137,7 +137,7 @@ class TestCellProcessor(unittest.TestCase):
             mock_get_cell_construct.assert_called_with('_run_construct')
             self.assertEqual(mock_sub_cell.__class__._run_construct, '_construct')
             self.assertTrue(mock_sub_cell.msprobe_hook)
-            mock_build_cell_hook.assert_called_with('Cell.sub_cell.MagicMock.', None)
+            mock_build_cell_hook.assert_called_with('Cell.sub_cell.MagicMock.', None, False)
             mock_cell.assert_not_called()
             mock_sub_cell.register_forward_pre_hook.assert_called_with('forward_pre_hook')
             mock_sub_cell.register_forward_hook.assert_not_called()
@@ -183,7 +183,7 @@ class TestCellProcessor(unittest.TestCase):
             self.processor.register_cell_hook(mock_cell, None, 'config')
             self.assertTrue(mock_another_sub_cell.__class__.msprobe_construct)
             mock_get_cell_construct.assert_called_with('_call_impl')
-            mock_build_cell_hook.assert_called_with('Module.another_sub_cell.MagicMock.', None)
+            mock_build_cell_hook.assert_called_with('Module.another_sub_cell.MagicMock.', None, False)
             mock_cell.assert_not_called()
             mock_another_sub_cell.register_forward_pre_hook.assert_called_with('forward_pre_hook')
             mock_another_sub_cell.register_forward_hook.assert_not_called()
@@ -255,7 +255,7 @@ class TestCellProcessor(unittest.TestCase):
             self.assertEqual(CellProcessor.api_parent_node[threading.get_ident()], full_forward_name)
             self.scope.begin_module.assert_called_with(full_forward_name)
             self.assertEqual(len(CellProcessor.cell_backward_hook), 1)
-            mock_build_data_hook.assert_not_called()
+            mock_build_data_hook.assert_called_once_with('Module', full_forward_name)
 
             full_forward_name = f'{cell_name}{Const.FORWARD}.0'
             CellProcessor.cell_count = {cell_name: 0}

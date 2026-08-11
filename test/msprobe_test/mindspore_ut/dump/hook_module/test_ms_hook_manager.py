@@ -79,6 +79,7 @@ class TestMindsporeHookManager(unittest.TestCase):
         self.assertEqual(hook_set.forward_pre_hook.__name__, "forward_pre_hook")
 
         hook_set = self.manager.build_hook(Const.MODULE, "test_module")
+        self.assertEqual(hook_set.module_forward_pre_hook.__name__, "module_forward_pre_hook")
         self.assertEqual(hook_set.forward_hook.__name__, "forward_hook")
         self.assertEqual(hook_set.backward_pre_hook.__name__, "backward_pre_hook")
         self.assertEqual(hook_set.backward_hook.__name__, "backward_hook")

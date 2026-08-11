@@ -36,7 +36,8 @@ class TestModelUtils:
 
 
     def test_is_valid_instance_if_model_is_cell_or_module_then_return_true(self):
-        with patch('msprobe.mindspore.monitor.common_func.is_mindtorch') as mock_is_mindtorch:
+        with patch('msprobe.mindspore.monitor.common_func.is_mindtorch') as mock_is_mindtorch, \
+             patch('msprobe.mindspore.monitor.common_func.torch', torch, create=True):
             if TORCH_AVAILABLE:
                 mock_is_mindtorch.return_value = True
                 assert is_valid_instance(self.torch_model)
@@ -50,7 +51,8 @@ class TestModelUtils:
         assert not is_valid_instance(123)
 
     def test_get_submodules_if_model_is_valid_then_return_non_empty_dict(self):
-        with patch('msprobe.mindspore.monitor.common_func.is_mindtorch') as mock_is_mindtorch:
+        with patch('msprobe.mindspore.monitor.common_func.is_mindtorch') as mock_is_mindtorch, \
+             patch('msprobe.mindspore.monitor.common_func.torch', torch, create=True):
             mock_is_mindtorch.return_value = True
             if TORCH_AVAILABLE:
                 submodules = dict(get_submodules(self.torch_model))
@@ -67,7 +69,8 @@ class TestModelUtils:
         assert get_submodules("invalid") == {}
 
     def test_get_parameters_if_model_is_valid_then_return_non_empty_dict(self):
-        with patch('msprobe.mindspore.monitor.common_func.is_mindtorch') as mock_is_mindtorch:
+        with patch('msprobe.mindspore.monitor.common_func.is_mindtorch') as mock_is_mindtorch, \
+             patch('msprobe.mindspore.monitor.common_func.torch', torch, create=True):
             mock_is_mindtorch.return_value = True
             if TORCH_AVAILABLE:
                 params = dict(get_parameters(self.torch_model))

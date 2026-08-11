@@ -14,6 +14,7 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+import inspect
 import threading
 from collections import OrderedDict
 
@@ -34,7 +35,7 @@ from msprobe.mindspore.common.utils import (
     get_cells_and_names_with_index,
     has_kwargs_in_forward_hook,
     is_graph_mode_cell_dump_allowed,
-    is_backward_hook_output_a_view
+    is_backward_hook_output_a_view,
 )
 from msprobe.mindspore.dump.debugger.debugger_config import DebuggerConfig
 from msprobe.mindspore.dump.dump_processor.graph_mode_cell_dump import GraphModeCellDump
@@ -52,6 +53,7 @@ def get_cell_construct(construct):
 def patch_schedules_step():
     try:
         from mindspeed.mindspore.core.pipeline_parallel import schedules
+
         schedules.forward_step = wrap_megatron_step(schedules.forward_step)
         schedules.backward_step = wrap_megatron_step(schedules.backward_step, is_forward=False)
         logger.info_on_rank_0("Patch mindspeed.mindspore method success.")
@@ -62,6 +64,7 @@ def patch_schedules_step():
 
     try:
         from megatron.core.pipeline_parallel import schedules
+
         schedules.forward_step = wrap_megatron_step(schedules.forward_step)
         schedules.backward_step = wrap_megatron_step(schedules.backward_step, is_forward=False)
         logger.info_on_rank_0("Patch megatron method success.")
@@ -105,8 +108,9 @@ class CellProcessor:
 
     def register_cell_hook(self, models, build_hook, config: DebuggerConfig):
         if not models:
-            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR,
-                                   'The model cannot be None, when level is "L0" or "mix"')
+            raise MsprobeException(
+                MsprobeException.INVALID_PARAM_ERROR, 'The model cannot be None, when level is "L0" or "mix"'
+            )
 
         patch_schedules_step()
 
@@ -125,15 +129,22 @@ class CellProcessor:
                     if not hasattr(cell.__class__, 'msprobe_construct'):
                         setattr(cell.__class__, 'msprobe_construct', True)
                         if hasattr(cell.__class__, construct_name):
-                            setattr(cell.__class__, construct_name,
-                                    get_cell_construct(getattr(cell.__class__, construct_name)))
+                            setattr(
+                                cell.__class__,
+                                construct_name,
+                                get_cell_construct(getattr(cell.__class__, construct_name)),
+                            )
                 setattr(cell, 'msprobe_hook', True)
 
                 cell_index = (index + Const.SEP) if index != "-1" else ""
                 prefix = f'{model_type}{Const.SEP}{cell_index}{name}{Const.SEP}{cell.__class__.__name__}{Const.SEP}'
 
-                forward_pre_hook = self.build_cell_hook(prefix, build_hook)
-                cell.register_forward_pre_hook(forward_pre_hook)
+                pre_hook_with_kwargs = 'with_kwargs' in inspect.signature(cell.register_forward_pre_hook).parameters
+                forward_pre_hook = self.build_cell_hook(prefix, build_hook, pre_hook_with_kwargs)
+                if pre_hook_with_kwargs:
+                    cell.register_forward_pre_hook(forward_pre_hook, with_kwargs=True)
+                else:
+                    cell.register_forward_pre_hook(forward_pre_hook)
 
                 if not is_registered:
                     logger.info("The cell hook function is successfully mounted to the model.")
@@ -153,12 +164,14 @@ class CellProcessor:
                 Runtime.run_mode = MsConst.PYNATIVE_GRAPH_MODE
                 GraphModeCellDump(config, cells_and_names_in_graph_mode, strict=False).handle()
 
-
-    def build_cell_hook(self, cell_name, build_data_hook):
+    def build_cell_hook(self, cell_name, build_data_hook, with_kwargs=False):
         @ThreadSafe.synchronized
-        def forward_pre_hook(cell, args):
+        def forward_pre_hook(cell, args, kwargs=None):
+            if kwargs is None:
+                kwargs = {}
+
             if not Runtime.is_running:
-                return args
+                return (args, kwargs) if with_kwargs else args
 
             index = CellProcessor.set_and_get_calls_number(cell_name)
             full_forward_name = f'{cell_name}{Const.FORWARD}{Const.SEP}{index}'
@@ -182,6 +195,11 @@ class CellProcessor:
 
                 setattr(cell, 'msprobe_forward_hook', True)
 
+            hook_set = build_data_hook(BaseScope.Module_Type_Module, full_forward_name)
+
+            if hook_set.module_forward_pre_hook:
+                hook_set.module_forward_pre_hook(cell, args, kwargs)
+
             def get_backward_hook(backward_data_hook, full_backward_name):
                 @ThreadSafe.synchronized
                 def backward_hook_fn(cell, grad_input, grad_output):
@@ -193,21 +211,19 @@ class CellProcessor:
                 return backward_hook_fn
 
             enable_hooked = sum(
-                [isinstance(ele, Tensor) and ele.dtype not in MsConst.NonDifferentiableType for ele in args]
+                isinstance(ele, Tensor) and ele.dtype not in MsConst.NonDifferentiableType for ele in args
             )
             if enable_hooked:
                 backward_hook = OrderedDict()
-                hook_set = build_data_hook(BaseScope.Module_Type_Module, full_forward_name)
                 backward_hook[full_backward_name] = get_backward_hook(hook_set.backward_hook, full_backward_name)
                 CellProcessor.cell_backward_hook.append(backward_hook)
-                bw_hook = inner.CellBackwardHook(full_backward_name, cell,
-                                                 self.cell_backward_hook[-1])
+                bw_hook = inner.CellBackwardHook(full_backward_name, cell, self.cell_backward_hook[-1])
                 bw_hook.register_backward_hook()
                 CellProcessor.cell_bw_hook_kernels[full_forward_name] = bw_hook
 
                 args = bw_hook(args) if is_backward_hook_output_a_view() else bw_hook(*args)
 
-            return args
+            return (args, kwargs) if with_kwargs else args
 
         @ThreadSafe.synchronized
         def forward_hook(cell, args, kwargs_or_output, output_or_kwargs=None):
@@ -227,9 +243,11 @@ class CellProcessor:
             bw_hook = CellProcessor.cell_bw_hook_kernels.get(full_forward_name)
             if bw_hook:
                 if not isinstance(outputs, (Tensor, tuple)):
-                    logger.warning("For backward hooks to be called,"
-                                   " cell output should be a Tensor or a tuple of Tensors"
-                                   f" but received {type(outputs)}")
+                    logger.warning(
+                        "For backward hooks to be called,"
+                        " cell output should be a Tensor or a tuple of Tensors"
+                        f" but received {type(outputs)}"
+                    )
                 if is_backward_hook_output_a_view():
                     new_outputs = bw_hook(outputs)
                 else:
@@ -257,8 +275,7 @@ class CellProcessor:
             backward_data_hook = None if bw_hook else hook_set.backward_hook
             backward_pre_hook[full_backward_name] = get_backward_pre_hook(full_backward_name, backward_data_hook)
             CellProcessor.cell_backward_pre_hook.append(backward_pre_hook)
-            bw_pre_hook = inner.CellBackwardHook(full_backward_name, cell,
-                                                 self.cell_backward_pre_hook[-1])
+            bw_pre_hook = inner.CellBackwardHook(full_backward_name, cell, self.cell_backward_pre_hook[-1])
             bw_pre_hook.register_backward_pre_hook()
 
             if is_backward_hook_output_a_view():
@@ -286,8 +303,9 @@ class CellProcessor:
             CellProcessor.cell_stack[tid] = []
 
         if self.cell_stack[tid]:
-            CellProcessor.module_node[full_name] = self.cell_stack[tid][-1] if not is_megatron() \
-                else [self.cell_stack[tid][-1], get_micro_step()]
+            CellProcessor.module_node[full_name] = (
+                self.cell_stack[tid][-1] if not is_megatron() else [self.cell_stack[tid][-1], get_micro_step()]
+            )
         else:
             parent_name = CellProcessor.cell_queue.find_last(full_name)
             CellProcessor.module_node[full_name] = parent_name if not is_megatron() else [parent_name, get_micro_step()]
@@ -305,7 +323,10 @@ class CellProcessor:
         if self.cell_stack.get(tid):
             CellProcessor.cell_stack[tid].pop()
         if self.cell_stack.get(tid):
-            CellProcessor.api_parent_node[tid] = CellProcessor.cell_stack[tid][-1] if not is_megatron() \
+            CellProcessor.api_parent_node[tid] = (
+                CellProcessor.cell_stack[tid][-1]
+                if not is_megatron()
                 else [CellProcessor.cell_stack[tid][-1], get_micro_step()]
+            )
         if self.scope:
             self.scope.end_module(full_name)

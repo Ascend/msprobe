@@ -20,10 +20,19 @@ import random
 import sys
 import types
 
+from packaging.version import parse as version_parse
+
 import mindspore as ms
 from mindspore import ops
 from mindspore.common.jit_config import JitConfig
 from mindspore.mint import nn
+
+try:
+    from mindspore._c_expression import _set_init_iter
+except ImportError:
+    enable_dynamic_kbyk_dump = False
+else:
+    enable_dynamic_kbyk_dump = True
 
 from msprobe.core.common.const import Const
 from msprobe.core.common.decorator import recursion_depth_decorator
@@ -33,13 +42,6 @@ from msprobe.core.common.log import logger
 from msprobe.core.common.utils import CompareException, check_seed_all, is_save_variable_valid
 from msprobe.mindspore.common.const import Const as MsConst
 
-try:
-    from mindspore._c_expression import _set_init_iter
-except ImportError:
-    enable_dynamic_kbyk_dump = False
-else:
-    enable_dynamic_kbyk_dump = True
-
 mindtorch_check_result = None
 register_backward_hook_functions = {}
 kwargs_exist_in_forward_hook = None
@@ -48,7 +50,7 @@ is_output_of_backward_hook_a_view = None
 
 class MsprobeStep(ms.train.Callback):
     def __init__(self, debugger):
-        super(MsprobeStep, self).__init__()
+        super().__init__()
         self.debugger = debugger
 
     def on_train_begin(self, run_context):
@@ -145,17 +147,17 @@ def seed_all(seed=1234, mode=False, rm_dropout=False):
 
 class Dropout(ops.Dropout):
     def __init__(self, keep_prob=0.5, seed0=0, seed1=1):
-        super().__init__(1., seed0, seed1)
+        super().__init__(1.0, seed0, seed1)
 
 
 class Dropout2D(ops.Dropout2D):
     def __init__(self, keep_prob=0.5):
-        super().__init__(1.)
+        super().__init__(1.0)
 
 
 class Dropout3D(ops.Dropout3D):
     def __init__(self, keep_prob=0.5):
-        super().__init__(1.)
+        super().__init__(1.0)
 
 
 class DropoutExt(nn.Dropout):
@@ -195,7 +197,6 @@ def is_mindtorch():
 
 
 def set_register_backward_hook_functions():
-    global register_backward_hook_functions
     if register_backward_hook_functions:
         return
 
@@ -204,8 +205,9 @@ def set_register_backward_hook_functions():
         from msprobe.mindspore.dump.mindtorch import (
             _call_impl,
             register_full_backward_pre_hook,
-            register_full_backward_hook
+            register_full_backward_hook,
         )
+
         if not hasattr(torch.nn.Module, "register_full_backward_hook"):
             setattr(torch.nn.Module, "_call_impl", _call_impl)
             setattr(torch.nn.Module, "register_full_backward_pre_hook", register_full_backward_pre_hook)
@@ -222,19 +224,17 @@ def check_save_param(variable, name, save_backward):
     valid_data_types = (ms.Tensor, int, float, str)
     if not is_save_variable_valid(variable, valid_data_types):
         valid_data_types_with_nested_types = valid_data_types + (dict, tuple, list)
-        logger.warning("PrecisionDebugger.save variable type not valid, "
-                       f"should be one of {valid_data_types_with_nested_types}"
-                       "Skip current save process.")
+        logger.warning(
+            "PrecisionDebugger.save variable type not valid, "
+            f"should be one of {valid_data_types_with_nested_types}"
+            "Skip current save process."
+        )
         raise ValueError
     if not isinstance(name, str):
-        logger.warning("PrecisionDebugger.save name not valid, "
-                       "should be string. "
-                       "skip current save process.")
+        logger.warning("PrecisionDebugger.save name not valid, should be string. skip current save process.")
         raise ValueError
     if not isinstance(save_backward, bool):
-        logger.warning("PrecisionDebugger.save_backward name not valid, "
-                       "should be bool. "
-                       "Skip current save process.")
+        logger.warning("PrecisionDebugger.save_backward name not valid, should be bool. Skip current save process.")
         raise ValueError
 
 
@@ -244,7 +244,7 @@ def is_graph_mode_cell_dump_allowed(config):
     valid_mix_level = [MsConst.CELL_AND_API, Const.LEVEL_MIX]
     if config.level in valid_mix_level and config.execution_mode == MsConst.PYNATIVE_MODE:
         return True
-    return config.level == MsConst.CELL or config.level == Const.LEVEL_L0
+    return config.level in (MsConst.CELL, Const.LEVEL_L0)
 
 
 @recursion_depth_decorator('msprobe.mindspore.common.utils.is_decorated_by_jit')
@@ -280,8 +280,7 @@ def get_cells_and_names(model, cells_set=None, name_prefix='', parent_cell=None)
             if jit_decorated:
                 yield cells_name_prefix, cell, jit_decorated, model
             else:
-                for ele in get_cells_and_names(cell, cells_set, cells_name_prefix, model):
-                    yield ele
+                yield from get_cells_and_names(cell, cells_set, cells_name_prefix, model)
 
 
 def get_cells_and_names_with_index(models):
@@ -343,10 +342,11 @@ def is_backward_hook_output_a_view():
 
     if is_output_of_backward_hook_a_view is None:
         is_output_of_backward_hook_a_view = False
-        if getattr(ms, '__version__', '2.4.0') < '2.7.0':
+        if version_parse(getattr(ms, '__version__', '2.4.0')) < version_parse('2.7.0'):
             return is_output_of_backward_hook_a_view
         try:
             from mindspore.ops.operations import _inner_ops as inner
+
             call_func = getattr(inner.CellBackwardHook, '__call__')
             func_params = inspect.signature(call_func).parameters
         except Exception:
@@ -383,8 +383,7 @@ def cast_to_float_if_fp8(tensor):
     dtype = str(tensor.dtype)
     if dtype in MsConst.FP8_TYPE_LIST:
         logger.debug(
-            f"The {dtype} tensor analyzing/saving is unsupported in dump function."
-            f"Casting to a float for processing"
+            f"The {dtype} tensor analyzing/saving is unsupported in dump function.Casting to a float for processing"
         )
         tensor = tensor.to(ms.float32)
     return tensor

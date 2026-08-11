@@ -18,6 +18,8 @@ import os
 import types
 from collections import defaultdict
 
+from packaging.version import parse as version_parse
+
 import mindspore
 from mindspore import nn
 from mindspore._c_expression import PyNativeExecutor_
@@ -49,14 +51,16 @@ def dump_jit(name, in_feat, out_feat, is_forward):
                 JitDump.jit_count[name] += 1
             else:
                 JitDump.jit_count[name] = 0
-            name_template = (Const.JIT + Const.SEP + name + Const.SEP +
-                             str(JitDump.jit_count[name]) + Const.SEP + Const.FORWARD)
+            name_template = (
+                Const.JIT + Const.SEP + name + Const.SEP + str(JitDump.jit_count[name]) + Const.SEP + Const.FORWARD
+            )
             JitDump.data_collector.update_api_or_module_name(name_template)
             module_input_output = ModuleForwardInputsOutputs(args=in_feat, kwargs={}, output=out_feat)
             JitDump.data_collector.forward_data_collect(name_template, None, pid, module_input_output)
         else:
-            name_template = Const.JIT + Const.SEP + name + Const.SEP + str(JitDump.jit_count[name]) + Const.SEP + \
-                            Const.BACKWARD
+            name_template = (
+                Const.JIT + Const.SEP + name + Const.SEP + str(JitDump.jit_count[name]) + Const.SEP + Const.BACKWARD
+            )
             JitDump.data_collector.update_api_or_module_name(name_template)
             module_input_output = ModuleBackwardInputsOutputs(grad_input=in_feat, grad_output=out_feat)
             JitDump.data_collector.backward_data_collect(name_template, None, pid, module_input_output)
@@ -99,7 +103,7 @@ class JitDump(_MindsporeFunctionExecutor):
 
     @classmethod
     def need_dump(cls):
-        if cls.dump_config.task != Const.TENSOR and cls.dump_config.task != Const.STATISTICS:
+        if cls.dump_config.task not in (Const.TENSOR, Const.STATISTICS):
             return False
         if not cls.data_collector or cls.data_collector.data_processor.is_terminated:
             return False
@@ -108,8 +112,10 @@ class JitDump(_MindsporeFunctionExecutor):
     def grad(self, obj, grad, weights, grad_position, *args, **kwargs):
         if JitDump.jit_dump_switch and JitDump.jit_enable:
             _api_register.restore_all_api()
-        if mindspore.__version__ >= "2.5":
-            output = self._executor.grad(grad, obj, weights, grad_position, False, *args, *(kwargs.values()))
+        if version_parse(mindspore.__version__) >= version_parse("2.5"):
+            # mindspore>=2.5 的调用方将 has_aux 作为参数传入（位于 *args 首位），需要原样透传给底层 executor
+            has_aux = args[0] if args else False
+            output = self._executor.grad(grad, obj, weights, grad_position, has_aux, *args[1:], *(kwargs.values()))
         else:
             output = self._executor.grad(grad, obj, weights, grad_position, *args, *(kwargs.values()))
         if JitDump.jit_dump_switch and JitDump.jit_enable:

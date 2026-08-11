@@ -17,12 +17,14 @@
 import threading
 from collections import defaultdict
 
+from packaging.version import parse as version_parse
+
 import mindspore as ms
 from mindspore import nn
 
-from msprobe.mindspore.common.utils import is_mindtorch, register_backward_hook_functions
+from msprobe.mindspore.common.utils import is_mindtorch
 
-ms_version = ms.__version__
+ms_version = version_parse(ms.__version__)
 
 
 def add_cell_count(name):
@@ -39,7 +41,7 @@ def __init__(self, hook_build_func) -> None:
     prefix = self.prefix_api_name if hasattr(self, "prefix_api_name") else ""
     if callable(hook_build_func):
         hook_set = hook_build_func(prefix)
-        if ms_version < "2.6.0" and not is_mindtorch():
+        if ms_version < version_parse("2.6.0") and not is_mindtorch():
             getattr(self, "_forward_pre_hook", {})[id(self)] = hook_set.forward_pre_hook
             if hook_set.forward_hook:
                 getattr(self, "_forward_hook", {})[id(self)] = hook_set.forward_hook
@@ -61,11 +63,12 @@ hook_cell_dict = {
     "add_cell_count": staticmethod(add_cell_count),
     "get_cell_count": staticmethod(get_cell_count),
     "__init__": __init__,
-    "__call__": __call__
+    "__call__": __call__,
 }
 
 if is_mindtorch():
     import torch
+
     HOOKCell = type("HOOKCell", (torch.nn.Module,), hook_cell_dict)
 else:
     HOOKCell = type("HOOKCell", (nn.Cell,), hook_cell_dict)

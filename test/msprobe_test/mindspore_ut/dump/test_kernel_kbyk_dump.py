@@ -17,6 +17,7 @@
 
 import os
 
+from packaging.version import parse as version_parse
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -28,7 +29,7 @@ from msprobe.mindspore.dump.dump_processor.kernel_kbyk_dump import KernelKbykDum
 from collections import Counter
 
 import mindspore as ms
-ms_version = ms.__version__
+ms_version = version_parse(ms.__version__)
 
 
 class TestKernelKbykDump(TestCase):
@@ -409,7 +410,7 @@ class TestKernelKbykDump(TestCase):
         dumper = KernelKbykDump(config)
         self.assertEqual(dumper.dump_json["e2e_dump_settings"]["stat_calc_mode"], "host")
         self.assertEqual(dumper.dump_json["common_dump_settings"]["saved_data"], "statistic")
-        if ms_version > "2.7.0":
+        if ms_version > version_parse("2.7.0"):
             self.assertEqual(Counter(dumper.dump_json["common_dump_settings"]["statistic_category"]), Counter(["max", "hash", "hash:md5", "avg"]))
         else:
             self.assertEqual(Counter(dumper.dump_json["common_dump_settings"]["statistic_category"]), Counter(["max", "md5", "avg"]))

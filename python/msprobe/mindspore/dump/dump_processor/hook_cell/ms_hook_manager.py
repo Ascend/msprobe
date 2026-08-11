@@ -18,6 +18,8 @@
 import threading
 from collections import OrderedDict
 
+from packaging.version import parse as version_parse
+
 import mindspore as ms
 from mindspore import Tensor
 from mindspore.common.api import _no_grad, _pynative_executor
@@ -33,11 +35,11 @@ from msprobe.mindspore.common.utils import (
     has_kwargs_in_forward_hook,
     is_mindtorch,
     is_backward_hook_output_a_view,
-    get_rank_if_initialized
+    get_rank_if_initialized,
 )
 from msprobe.mindspore.dump.dump_processor.hook_cell.hook_cell import HOOKCell
 
-ms_version = ms.__version__
+ms_version = version_parse(ms.__version__)
 
 
 class MindsporeHookManager(BaseHookManager):
@@ -80,15 +82,14 @@ class MindsporeHookManager(BaseHookManager):
 
     def build_hook(self, hook_type, name):
         if hook_type == Const.API:
-            hook_set = HookSet(
-                forward_pre_hook=self._build_forward_pre_hook(hook_type, name)
-            )
+            hook_set = HookSet(forward_pre_hook=self._build_forward_pre_hook(hook_type, name))
         else:
             full_backward_name = replace_last_occurrence(name, Const.FORWARD, Const.BACKWARD)
             hook_set = HookSet(
+                module_forward_pre_hook=self._build_module_forward_pre_hook(name),
                 forward_hook=self._build_forward_hook(hook_type, name),
                 backward_pre_hook=self._build_backward_pre_hook(hook_type, full_backward_name),
-                backward_hook=self._build_backward_hook(hook_type, full_backward_name)
+                backward_hook=self._build_backward_hook(hook_type, full_backward_name),
             )
         return hook_set
 
@@ -98,7 +99,7 @@ class MindsporeHookManager(BaseHookManager):
     def _register_forward_hook(self, module, api_name):
         if not hasattr(module, 'msprobe_forward_hook'):
             forward_hook = self._build_forward_hook(Const.API, api_name)
-            if ms_version < "2.6.0" and not is_mindtorch():
+            if ms_version < version_parse("2.6.0") and not is_mindtorch():
                 getattr(module, "_forward_hook", {})[id(module)] = forward_hook
             else:
                 module.register_forward_hook(forward_hook)
@@ -108,9 +109,7 @@ class MindsporeHookManager(BaseHookManager):
         if not _pynative_executor.requires_grad():
             return args
 
-        enable_hooked = sum(
-            [isinstance(ele, Tensor) and ele.dtype not in MsConst.NonDifferentiableType for ele in args]
-        )
+        enable_hooked = sum(isinstance(ele, Tensor) and ele.dtype not in MsConst.NonDifferentiableType for ele in args)
 
         if enable_hooked:
             backward_hook_dict = OrderedDict()
@@ -129,9 +128,11 @@ class MindsporeHookManager(BaseHookManager):
         bw_hook = MindsporeHookManager.cell_bw_hook_kernels.get(full_backward_name)
         if bw_hook:
             if not isinstance(output, (Tensor, tuple)):
-                self.logger.debug("For backward hooks to be called, "
-                                  "cell output should be a Tensor or a tuple of Tensors "
-                                  f"but received {type(output)}")
+                self.logger.debug(
+                    "For backward hooks to be called, "
+                    "cell output should be a Tensor or a tuple of Tensors "
+                    f"but received {type(output)}"
+                )
             if is_backward_hook_output_a_view():
                 new_outputs = bw_hook(output)
             else:
@@ -156,15 +157,10 @@ class MindsporeHookManager(BaseHookManager):
         backward_post_hook = None if bw_hook else self._build_backward_hook(Const.API, full_backward_name)
 
         backward_pre_hook_dict = OrderedDict()
-        backward_pre_hook_dict[full_backward_name] = get_backward_pre_hook(
-            backward_pre_hook,
-            backward_post_hook
-        )
+        backward_pre_hook_dict[full_backward_name] = get_backward_pre_hook(backward_pre_hook, backward_post_hook)
         MindsporeHookManager.cell_backward_pre_hook.append(backward_pre_hook_dict)
         bw_pre_hook = inner.CellBackwardHook(
-            full_backward_name,
-            module,
-            MindsporeHookManager.cell_backward_pre_hook[-1]
+            full_backward_name, module, MindsporeHookManager.cell_backward_pre_hook[-1]
         )
         bw_pre_hook.register_backward_pre_hook()
 
@@ -195,8 +191,7 @@ class MindsporeHookManager(BaseHookManager):
         params_dict = {}
         if self.config.task != Const.STRUCTURE:
             params_dict = {
-                key.split(Const.SEP)[-1]: value
-                for key, value in module.parameters_dict(recurse=False).items()
+                key.split(Const.SEP)[-1]: value for key, value in module.parameters_dict(recurse=False).items()
             }
         return params_dict
 
