@@ -74,6 +74,8 @@
         torch.nn.ReLU(),
         torch.nn.Linear(H, D_out)
       ).npu()
+    + # 设置默认设备，确保采集开关在编图前创建在 NPU 上
+    + torch.set_default_device("npu:0")
     + # 初始化配置
     + dumper = AclGraphDumper('./config.json')
     + # 在编图前配置采集任务
