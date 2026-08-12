@@ -165,7 +165,9 @@ Call `AclGraphDumper.start()` before graph capture even if the initial value is 
 - The updated value takes effect for subsequent graph replays.
 - Only `dump_enable` is refreshed dynamically. Runtime changes to `task`, `level`, `list`, `custom_api`, or `slice` do not change the captured graph.
 
-To apply a changed value before the next replay, update the configuration file and call `dumper.step()` to refresh the switch. For a `statistics` task, use `dumper.step(dump=False)` to avoid generating `dump.json` for the current step. For a `tensor` task, `dumper.step()` also archives pending `.pt` files and advances the step ID.
+> [!NOTE]
+>
+> For a `statistics` task, `dump_enable` does not control data persistence by `dumper.step()`. When `dump_enable` is `false`, calling `dumper.step()` still creates the current step directory and `dump.json` by default, with an empty object (`{}`) in the `data` field. This is expected and does not mean that collection is still enabled. Call `dumper.step(dump=False)` to disable data persistence.
 
 ### Output
 

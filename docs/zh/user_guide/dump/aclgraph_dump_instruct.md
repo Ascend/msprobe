@@ -227,7 +227,9 @@ AclGraphDumper.step(dump: bool = True) -> None
 - 新开关值从后续 ACLGraph replay 开始生效。
 - 动态刷新仅更新 `dump_enable`；运行过程中修改 `task`、`level`、`list`、`custom_api` 或 `slice` 不会改变已捕获的图。
 
-如果需要在下一次 replay 前立即应用新值，请先修改配置文件，再调用 `dumper.step()` 刷新开关。`statistics` 任务可使用 `dumper.step(dump=False)` 避免生成当前步骤的 `dump.json`；`tensor` 任务调用 `dumper.step()` 会同时归档待处理的 `.pt` 文件并推进 `step_id`。
+> [!NOTE]
+>
+> 对于 `statistics` 任务，`dump_enable` 不控制 `dumper.step()` 接口的数据落盘。`dump_enable` 为 `false` 时，调用 `dumper.step()`，默认情况下工具仍会创建当前 step 的目录和 `dump.json`，其中 `data` 字段为空字典 `{}`。这是预期行为，不表示采集仍处于开启状态。调用 `dumper.step(dump=False)` 即可关闭数据落盘。
 
 ### 输出说明
 
