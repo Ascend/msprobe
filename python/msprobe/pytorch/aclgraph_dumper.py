@@ -25,6 +25,7 @@ from contextlib import nullcontext
 import torch
 
 from msprobe.pytorch.aclgraph_dump import acl_stat, acl_tensor_save, get_acl_stat_dict
+from msprobe.pytorch.common.log import logger
 from msprobe.core.common.const import Const, FileCheckConst
 from msprobe.core.common.file_utils import create_directory, check_and_get_real_path, save_json, load_json
 from msprobe.core.common.utils import get_real_step_or_rank, check_slice_info, slice_by_config
@@ -749,6 +750,13 @@ class AclGraphDumper:
         stats = dict(get_acl_stat_dict(clear=True))
         if not dump:
             return
+        statistic_names = (Const.MIN, Const.MAX, Const.MEAN, Const.NORM)
+        if any(
+            any(record.get(name) is None for name in statistic_names)
+            for key, record in stats.items()
+            if self._parse_stat_key(key) is not None
+        ):
+            logger.warning("Invalid statistics detected. Please use tensor mode to collect the affected data.")
 
         dump_json = {
             "task": Const.STATISTICS,

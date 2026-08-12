@@ -561,7 +561,13 @@ static void acl_stat_host_func(void* user_data)
     }
     if (is_switch_enabled_on_host(payload->switch_tensor))
     {
-        acl_stat_callback(payload->stats_tensor, payload->tag, payload->dtype, payload->shape);
+        if (payload->stats_tensor.defined())
+        {
+            acl_stat_callback(payload->stats_tensor, payload->tag, payload->dtype, payload->shape);
+            return;
+        }
+        const double invalid = std::nan("");
+        update_stats_map(payload->tag, payload->dtype, payload->shape, invalid, invalid, invalid, invalid);
     }
 }
 
@@ -664,8 +670,9 @@ static at::Tensor acl_stat_impl(const at::Tensor& x, const std::string& tag,
     }
 
     ensure_acl_runtime_initialized();
-    at::Tensor stats_dev = compute_stats_tensor(x);
     auto stream = c10_npu::getCurrentNPUStream().stream();
+    // Statistics ops are unavailable for integral tensors in some internal formats.
+    at::Tensor stats_dev = (x.is_floating_point() || x.is_complex()) ? compute_stats_tensor(x) : at::Tensor{};
     auto* payload = new StatTaskPayload(stats_dev, tag, dtype, shape, switch_tensor);
     auto cb_status = aclrtLaunchHostFunc(stream, acl_stat_host_func, payload);
     if (cb_status != ACL_ERROR_NONE)

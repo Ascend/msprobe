@@ -751,6 +751,36 @@ class TestAclGraphDumper(unittest.TestCase):
         self.assertEqual(mock_save_json.call_args.kwargs["indent"], 2)
         self.assertEqual(dumper.step_id, 1)
 
+    def test_step_if_statistics_are_invalid_then_warn_and_save(self):
+        dumper = self.make_dumper(level="L1", rank=[], rank_id=0)
+        dumper._running = True
+        self.aclgraph_dump_stub.get_acl_stat_dict.return_value = {
+            "Torch.npu_quant_matmul.forward.input.0": {
+                "dtype": "Char",
+                "shape": [896, 1152],
+                "max": None,
+                "min": None,
+                "mean": None,
+                "norm": None,
+            }
+        }
+
+        with patch.object(dumper, "_synchronize"), \
+                patch.object(dumper, "_step_rank_dir", return_value="./dump/step0/rank0"), \
+                patch.object(self.module, "save_json") as mock_save_json, \
+                patch.object(self.module.logger, "warning") as mock_warning:
+            dumper.step()
+
+        mock_warning.assert_called_once_with(
+            "Invalid statistics detected. Please use tensor mode to collect the affected data."
+        )
+        saved_record = mock_save_json.call_args[0][1]["data"]["Torch.npu_quant_matmul.forward"][
+            self.module.Const.INPUT_ARGS
+        ][0]
+        self.assertIsNone(saved_record[self.module.Const.MIN])
+        self.assertIsNone(saved_record[self.module.Const.MAX])
+        self.assertEqual(saved_record[self.module.Const.DTYPE], "torch.int8")
+
     def test_collect_with_slice_matched(self):
         """TC-201: tensor 第0维匹配 total 时切片，acl_stat 接收切片后数据"""
         slice_info = [{"dim": 0, "size": 100, "begin": 0, "end": 50}]
