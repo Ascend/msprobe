@@ -112,10 +112,11 @@ class JitDump(_MindsporeFunctionExecutor):
     def grad(self, obj, grad, weights, grad_position, *args, **kwargs):
         if JitDump.jit_dump_switch and JitDump.jit_enable:
             _api_register.restore_all_api()
-        if version_parse(mindspore.__version__) >= version_parse("2.5"):
-            # mindspore>=2.5 的调用方将 has_aux 作为参数传入（位于 *args 首位），需要原样透传给底层 executor
+        if version_parse(mindspore.__version__) >= version_parse("2.9.0"):
             has_aux = args[0] if args else False
             output = self._executor.grad(grad, obj, weights, grad_position, has_aux, *args[1:], *(kwargs.values()))
+        elif version_parse(mindspore.__version__) >= version_parse("2.5"):
+            output = self._executor.grad(grad, obj, weights, grad_position, False, *args, *(kwargs.values()))
         else:
             output = self._executor.grad(grad, obj, weights, grad_position, *args, *(kwargs.values()))
         if JitDump.jit_dump_switch and JitDump.jit_enable:
