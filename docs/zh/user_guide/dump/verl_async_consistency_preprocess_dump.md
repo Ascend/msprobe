@@ -11,6 +11,8 @@
 
 本文针对verl的上述异步架构，以verl v0.8.0 为例，介绍训推一致性比对数据采集的适配方案。
 
+verl v0.9.0.dev引入V1 Trainer，相关适配方法请参见《[verl V1 Trainer训推一致性比对数据采集](./verl_v1_trainer_consistency_preprocess_dump.md)》。
+
 ## 前置操作
 
 ### 基础配置

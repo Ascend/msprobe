@@ -186,7 +186,8 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 1. 完成模型前置处理和训练推理精度数据dump。
    - verl < v0.7.0：参见《[fsdp训练后端verl训推一致性比对数据采集](../dump/verl_fsdp_consistency_preprocess_dump.md)》和《[megatron训练后端verl训推一致性比对数据采集](../dump/verl_megatron_consistency_preprocess_dump.md)》。
-   - verl ≥ v0.7.0：参见《[异步架构verl训推一致性比对数据采集](../dump/verl_async_consistency_preprocess_dump.md)》。
+   - verl v0.7.0至v0.8.0：参见《[异步架构verl训推一致性比对数据采集](../dump/verl_async_consistency_preprocess_dump.md)》。
+   - verl v0.9.0.dev：参见《[verl V1 Trainer训推一致性比对数据采集](../dump/verl_v1_trainer_consistency_preprocess_dump.md)》。
 
 2. 运行命令示例：
 

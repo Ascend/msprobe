@@ -56,6 +56,7 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 | | | 趋势可视化 | 将msProbe工具数据采集或训练状态监测的统计量数据从迭代步数、节点rank和张量目标三个维度进行趋势可视化 | [趋势可视化](docs/zh/user_guide/accuracy_compare/trend_visualization_instruct.md) |
 | | verl场景 | verl超参比对与关键超参校验 | verl训练过程中或结束后，比对两台不同服务器上训练日志中采集到的真实超参配置，或者校验配置是否与关键超参取值相同，辅助用户高效比对真实超参值配置，加速定位因配置差异所引发的训练精度问题 | [verl超参比对与关键超参校验](docs/zh/user_guide/verl_param_compare_or_verify_instruct.md) |
 | | | 异步架构verl训推一致性比对数据采集 | verl ≥ v0.7.0，保证verl训推一致性比对时的输入shape一致的比对数据采集 | [异步架构verl训推一致性比对数据采集](docs/zh/user_guide/dump/verl_async_consistency_preprocess_dump.md) |
+| | | verl V1 Trainer训推一致性比对数据采集 | verl 0.9.0.dev，保证verl训推一致性比对时的输入shape一致的比对数据采集 | [verl V1 Trainer训推一致性比对数据采集](docs/zh/user_guide/dump/verl_v1_trainer_consistency_preprocess_dump.md) |
 | | | fsdp训练后端verl训推一致性比对数据采集 | verl < v0.7.0，fsdp训练后端，保证verl训推一致性比对时的输入shape一致的比对数据采集 | [fsdp训练后端verl训推一致性比对数据采集](docs/zh/user_guide/dump/verl_fsdp_consistency_preprocess_dump.md) |
 | | | megatron训练后端verl训推一致性比对数据采集 | verl < v0.7.0，megatron训练后端，保证verl训推一致性比对时的输入shape一致的比对数据采集 | [megatron训练后端verl训推一致性比对数据采集](docs/zh/user_guide/dump/verl_megatron_consistency_preprocess_dump.md) |
 | | | 精度比对 | 将msProbe工具dump的精度数据进行精度比对，进而定位精度问题 | [精度比对](docs/zh/user_guide/accuracy_compare/pytorch_accuracy_compare_instruct.md#verl训推一致性比对场景) |
