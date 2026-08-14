@@ -426,7 +426,7 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 }
 ```
 
-debugger是PrecisionDebugger类的实例对象，在模型初始化之后的位置添加`debugger.start(scheduled_tokens={"chatcmpl-req-0": 10, "chatcmpl-req-1": 15})`，则可以实现只采集请求为`chatcmpl-req-0`的数据（即对tensor的第0维进行切片，保留索引区间[0,10)的数据）。
+debugger是PrecisionDebugger类的实例对象，在模型初始化之后的位置添加`debugger.start(scheduled_tokens={"chatcmpl-req-0": 10, "chatcmpl-req-1": 15})`，则可以实现只采集请求为`chatcmpl-req-0`的数据（即当tensor第0维长度等于25时进行切片，保留索引区间[0,10)的数据）。
 
 >[!NOTE]
 >

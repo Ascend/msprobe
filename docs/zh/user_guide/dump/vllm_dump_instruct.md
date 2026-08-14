@@ -98,7 +98,7 @@ acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
 
 1. 修改vllm-ascend代码
 
-   找到vllm-ascend框架`NPUModelRunner`类所属文件： vllm-ascend/vllm_ascend/worker/model_runner_v1.py
+   找到vllm-ascend框架`NPUModelRunner`类所属文件： vllm_ascend/worker/model_runner_v1.py
 
    - 修改`NPUModelRunner`类的`execute_model`方法中的`self._start_dump_data`所有调用点。
 
@@ -125,10 +125,7 @@ acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
                if self.debugger is None or self._debugger_started:
                    return
        -       self.debugger.start(self.model)    
-       +       try:
-       +           self.debugger.start(self.model, **kwargs)
-       +       except TypeError:
-       +           self.debugger.start(self.model)
+       +       self.debugger.start(self.model, **kwargs)
                self._debugger_started = True
        ```
 
@@ -179,12 +176,12 @@ acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
    服务启动后发送推理请求，通过-H "X-Request-ID: req-0" 指定request_id为`req-0`，请求执行过程中将自动触发dump：
 
    ```shell
-   curl http://127.0.0.1:8000/v1/completions \
+   curl http://127.0.0.1:8000/v1/chat/completions \
      -H "Content-Type: application/json" \
      -H "X-Request-ID: req-0" \
      -d '{
            "model": "Qwen/Qwen2.5-0.5B-Instruct",
-           "prompt": "Explain gravity in one sentence.",
+           "messages": [{"role": "user", "content": "Explain gravity in one sentence."}],
            "max_tokens": 32,
            "temperature": 0
          }'
