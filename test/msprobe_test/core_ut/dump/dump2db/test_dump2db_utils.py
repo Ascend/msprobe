@@ -38,6 +38,27 @@ class TestParseFunctions(unittest.TestCase):
              ("function_name", Data2DBConst.TAG_FUNCTION),
              ("input.0", Data2DBConst.TAG_INDEX)
              ]),
+            ("Module.Layer0.parameters.weight",
+             [
+                 ("parameters.weight", Data2DBConst.TAG_INDEX),
+                 ("parameters", Data2DBConst.TAG_DEFAULT),
+                 ("Module", Data2DBConst.TAG_DEFAULT),
+                 ("Layer0", Data2DBConst.TAG_MODULE)
+             ]),
+            ("Module.layer1.parameters.weight.0",
+             [
+                 ("weight.0", Data2DBConst.TAG_INDEX),
+                 ("parameters", Data2DBConst.TAG_DEFAULT),
+                 ("Module", Data2DBConst.TAG_DEFAULT),
+                 ("layer1.parameters", Data2DBConst.TAG_MODULE)
+             ]),
+            ("Module.layer1.parameters.mlp.0.weight",
+             [
+                 ("0.weight", Data2DBConst.TAG_INDEX),
+                 ("parameters", Data2DBConst.TAG_DEFAULT),
+                 ("Module", Data2DBConst.TAG_DEFAULT),
+                 ("layer1.parameters.mlp", Data2DBConst.TAG_MODULE)
+             ]),
         ]
 
         for i, (full_key, expected_patterns) in enumerate(test_cases):

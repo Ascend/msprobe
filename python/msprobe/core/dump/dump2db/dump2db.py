@@ -377,27 +377,37 @@ class DumpRecordBuilder:
         # 处理parameters
         if Const.PARAMS in tensor_params.tensor_data:
             for param_name, param_tensors in tensor_params.tensor_data[Const.PARAMS].items():
-                if not (isinstance(param_tensors, list) and param_tensors and isinstance(param_tensors[0], dict)):
+                # dump.json中parameters值为dict格式（{weight: {...}, bias: {...}}），旧格式为list，兼容两者
+                if isinstance(param_tensors, dict) and Const.TYPE in param_tensors:
+                    tensor = param_tensors
+                elif isinstance(param_tensors, list) and param_tensors and isinstance(param_tensors[0], dict):
+                    tensor = param_tensors[0]
+                else:
                     continue
-                if param_tensors[0].get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
-                    if param_tensors[0].get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
+                if tensor.get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
+                    if tensor.get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
                         continue
                     target_suffix = DumpRecordBuilder.parse_tensor_target(
                         Data2DBConst.FORWARD, Const.PARAMS, param_name
                     )
                     target_name = tensor_params.target_prefix + target_suffix
-                    self._add_tensor_data(param_tensors[0], target_name, tensor_params, batch_data)
+                    self._add_tensor_data(tensor, target_name, tensor_params, batch_data)
 
     def _process_parameters_data(self, tensor_params: TensorProcessingParams, batch_data):
         """处理parameters数据"""
         for param_name, param_tensors in tensor_params.tensor_data.items():
-            if not (isinstance(param_tensors, list) and param_tensors and isinstance(param_tensors[0], dict)):
+            # dump.json中parameters_grad值为dict格式，旧格式为list，兼容两者
+            if isinstance(param_tensors, dict) and Const.TYPE in param_tensors:
+                tensor = param_tensors
+            elif isinstance(param_tensors, list) and param_tensors and isinstance(param_tensors[0], dict):
+                tensor = param_tensors[0]
+            else:
                 continue
-            if param_tensors[0].get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
-                if param_tensors[0].get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
+            if tensor.get(Const.TYPE) in Data2DBConst.SUPPORT_TYPE:
+                if tensor.get(Const.DTYPE) not in Data2DBConst.SUPPORT_DTYPE:
                     continue
                 target_name = tensor_params.target_prefix + f".{param_name}"
-                self._add_tensor_data(param_tensors[0], target_name, tensor_params, batch_data)
+                self._add_tensor_data(tensor, target_name, tensor_params, batch_data)
 
     def _process_backward_data(self, tensor_params: TensorProcessingParams, batch_data):
         """处理backward数据"""

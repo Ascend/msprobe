@@ -16,7 +16,7 @@
 
 from collections import defaultdict
 
-from msprobe.core.common.const import Data2DBConst
+from msprobe.core.common.const import Data2DBConst, Const
 from msprobe.core.common.db_manager import DBManager, TrendSql
 from msprobe.core.common.log import logger
 
@@ -28,12 +28,15 @@ def parse_full_key(full_key):
     tags = set()
     parts = full_key.split('.')
     if len(parts) < 3:
-        logger.debug(
-            f"parse_full_key: key '{full_key}' has less than 3 parts,"
-            f"returning empty set of tags")
+        logger.debug(f"parse_full_key: key '{full_key}' has less than 3 parts,returning empty set of tags")
         return set()
     # 关联index标签 full_key中最后一部分，如 'input.2'
     tags.add((".".join(parts[-2:]), Data2DBConst.TAG_INDEX))
+
+    # parameters类型打默认标签，如 Module.layer1.parameters.weight
+    # 用 in 判断而非 parts[-2]，兼容 param_name 含点/数字的场景（如 parameters.mlp.0.weight）
+    if Const.PARAMS in parts:
+        tags.add((Const.PARAMS, Data2DBConst.TAG_DEFAULT))
 
     # 关联默认标签
     filtered_parts = []
@@ -58,20 +61,16 @@ def parse_full_key(full_key):
             if i == 0 or i - 1 in processed_indices:  # 确保数字前面有非数字部分, 组成layer标签
                 processed_indices.append(i)
                 continue
-            layer_tag = (
-                f"{filtered_parts[i-1]}.{filtered_parts[i]}", Data2DBConst.TAG_LAYER)
+            layer_tag = (f"{filtered_parts[i - 1]}.{filtered_parts[i]}", Data2DBConst.TAG_LAYER)
             tags.add(layer_tag)
 
-            before_layer = ".".join(
-                filtered_parts[processed_indices[-1] + 1: i - 1])
+            before_layer = ".".join(filtered_parts[processed_indices[-1] + 1 : i - 1])
             if before_layer:
                 module_tag = (before_layer, Data2DBConst.TAG_MODULE)
                 tags.add(module_tag)
             processed_indices.append(i)
-    if processed_indices[-1] != len(filtered_parts) - 1 and \
-            ".".join(filtered_parts[processed_indices[-1] + 1:]):
-        module_tag = (
-            ".".join(filtered_parts[processed_indices[-1] + 1:]), Data2DBConst.TAG_MODULE)
+    if processed_indices[-1] != len(filtered_parts) - 1 and ".".join(filtered_parts[processed_indices[-1] + 1 :]):
+        module_tag = (".".join(filtered_parts[processed_indices[-1] + 1 :]), Data2DBConst.TAG_MODULE)
         tags.add(module_tag)
     return tags
 
@@ -83,34 +82,35 @@ class DumpDB:
 
         # 缓存
         self._metric_id_cache = {}  # metric_name -> metric_id
-        self._stats_cache = {}      # metric_name -> stats list
+        self._stats_cache = {}  # metric_name -> stats list
         self._processed_targets = defaultdict(dict)  # 记录所有metric_id下的targets
         self._new_targets = defaultdict(list)  # 记录新增targets
         self._init_schema()
-    
+
     def init_global_stats_data(self, config):
         """初始化全局统计表数据"""
         # 准备插入数据
-        self.db_manager.execute_sql(
-            TrendSql.create_global_stats_table(config)
-        )
-        
+        self.db_manager.execute_sql(TrendSql.create_global_stats_table(config))
+
         column_values = []
         for _, column_value in config.items():
             if isinstance(column_value, (list, set)):
                 column_values.append(",".join(column_value))
             elif isinstance(column_value, (int, float)):
                 column_values.append(column_value)
-        self.db_manager.insert_data("global_stats", [column_values,])
+        self.db_manager.insert_data(
+            "global_stats",
+            [
+                column_values,
+            ],
+        )
 
     def get_metric_id(self, metric_name: str):
         """Get metric ID by name"""
         if metric_name in self._metric_id_cache:
             return self._metric_id_cache[metric_name]
         result = self.db_manager.select_data(
-            table_name="monitoring_metrics",
-            columns=["metric_id"],
-            where={"metric_name": metric_name}
+            table_name="monitoring_metrics", columns=["metric_id"], where={"metric_name": metric_name}
         )
         metric_id = result[0]["metric_id"] if result else None
         self._metric_id_cache[metric_name] = metric_id
@@ -129,16 +129,15 @@ class DumpDB:
             targets = self._new_targets[metric_id]
             if not targets:
                 continue
-            self.db_manager.insert_data("monitoring_targets", list(targets), key_list=[
-                                        "target_name", "vpp_stage", "micro_step"])
+            self.db_manager.insert_data(
+                "monitoring_targets", list(targets), key_list=["target_name", "vpp_stage", "micro_step"]
+            )
             results = self.db_manager.select_data(
-                table_name="monitoring_targets",
-                columns=["target_id", "target_name", "vpp_stage", "micro_step"]
+                table_name="monitoring_targets", columns=["target_id", "target_name", "vpp_stage", "micro_step"]
             )
             # 更新缓存
             for row in results:
-                cache_key = (row["target_name"],
-                             row["vpp_stage"], row["micro_step"])
+                cache_key = (row["target_name"], row["vpp_stage"], row["micro_step"])
                 if cache_key in self._processed_targets[metric_id]:
                     self._processed_targets[metric_id][cache_key]['id'] = row["target_id"]
         self._new_targets = defaultdict(list)
@@ -179,39 +178,30 @@ class DumpDB:
                 continue
             self.db_manager.insert_data(
                 "monitoring_tags",
-                [(tag_name, category, metric_id)
-                    for tag_name, category in new_tags_data],
-                key_list=["tag_name", "category", "metric_id"]
+                [(tag_name, category, metric_id) for tag_name, category in new_tags_data],
+                key_list=["tag_name", "category", "metric_id"],
             )
 
             # 重新获取tag_id用于映射
             tag_records = self.db_manager.select_data(
-                "monitoring_tags",
-                columns=["tag_id", "tag_name", "category", "metric_id"]
+                "monitoring_tags", columns=["tag_id", "tag_name", "category", "metric_id"]
             )
             for row in tag_records:
-                tag_info_to_id[(row["tag_name"], row["category"],
-                                row["metric_id"])] = row["tag_id"]
+                tag_info_to_id[(row["tag_name"], row["category"], row["metric_id"])] = row["tag_id"]
 
             for target_id, tags_list in target_to_tags.items():
                 for tag_name, category in tags_list:
-                    tag_id = tag_info_to_id.get(
-                        (tag_name, category, metric_id))
+                    tag_id = tag_info_to_id.get((tag_name, category, metric_id))
                     if tag_id:
                         mapping_data.append((target_id, tag_id))
 
             # 插入映射关系
             if mapping_data:
-                self.db_manager.insert_data(
-                    "tag_target_mapping",
-                    mapping_data,
-                    key_list=["target_id", "tag_id"]
-                )
+                self.db_manager.insert_data("tag_target_mapping", mapping_data, key_list=["target_id", "tag_id"])
 
     def _init_schema(self) -> None:
         """Initialize database schema"""
         self.db_manager.execute_multi_sql(TrendSql.get_table_definition())
         self.db_manager.execute_sql(TrendSql.create_trend_table(Data2DBConst.ORDERED_STAT))
         for metric_name in Data2DBConst.METRICS:
-            self.db_manager.insert_data("monitoring_metrics", [
-                                        (metric_name,)], ["metric_name"])
+            self.db_manager.insert_data("monitoring_metrics", [(metric_name,)], ["metric_name"])

@@ -215,6 +215,46 @@ class TestTensorDataProcessing(unittest.TestCase):
         # 4个tensor加入batch (input_args and output, params)
         self.assertEqual(len(batch_data), 4)
 
+    def test_process_forward_data_params_dict_format(self):
+        """Test processing forward data with dict format parameters"""
+        tensor_data = {
+            Const.INPUT_ARGS: [self.valid_tensor],
+            Const.OUTPUT: [self.valid_tensor],
+            Const.PARAMS: {
+                "weight": self.valid_tensor,
+                "bias": self.valid_tensor
+            }
+        }
+
+        tensor_params = self._create_tensor_params(
+            tensor_data, Data2DBConst.FORWARD)
+        batch_data = []
+
+        self.builder._process_forward_data(tensor_params, batch_data)
+
+        # dict格式parameters的weight/bias也应写入
+        self.assertEqual(len(batch_data), 4)
+
+    def test_process_forward_data_params_dict_invalid(self):
+        """Test forward data with empty dict or nested dict parameters (should be skipped)"""
+        tensor_data = {
+            Const.INPUT_ARGS: [self.valid_tensor],
+            Const.OUTPUT: [self.valid_tensor],
+            Const.PARAMS: {
+                "empty": {},
+                "nested": {"sub1": self.valid_tensor, "sub2": self.valid_tensor}
+            }
+        }
+
+        tensor_params = self._create_tensor_params(
+            tensor_data, Data2DBConst.FORWARD)
+        batch_data = []
+
+        self.builder._process_forward_data(tensor_params, batch_data)
+
+        # 仅input/output写入，空dict和嵌套dict被跳过
+        self.assertEqual(len(batch_data), 2)
+
     def test_process_backward_data_normal(self):
         """Test processing backward data with normal tensors"""
         tensor_data = {
@@ -245,6 +285,22 @@ class TestTensorDataProcessing(unittest.TestCase):
         self.builder._process_parameters_data(tensor_params, batch_data)
 
         # 两个权重加入batch
+        self.assertEqual(len(batch_data), 2)
+
+    def test_process_parameters_data_dict_format(self):
+        """Test processing parameters_grad with dict format"""
+        tensor_data = {
+            "weight": self.valid_tensor,
+            "bias": self.valid_tensor
+        }
+
+        tensor_params = self._create_tensor_params(
+            tensor_data, Data2DBConst.PARAMETERS_GRAD)
+        batch_data = []
+
+        self.builder._process_parameters_data(tensor_params, batch_data)
+
+        # dict格式的weight/bias也应写入
         self.assertEqual(len(batch_data), 2)
 
     def test_process_recompute_data(self):
