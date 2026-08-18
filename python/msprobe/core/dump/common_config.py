@@ -14,6 +14,7 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+import os
 import re
 
 from msprobe.core.common.const import Const
@@ -37,6 +38,7 @@ class CommonConfig:
         self.risk_level = json_config.get("risk_level", Const.RISK_LEVEL_FOCUS)
         self.custom_op_namespaces = json_config.get("custom_op_namespaces")
         self._check_config()
+        self.load_config = LoadConfig(json_config)
         logger.debug(
             f"CommonConfig: task={self.task}, dump_path={self.dump_path}, "
             f"rank={self.rank}, step={self.step}, level={self.level}, "
@@ -97,6 +99,65 @@ class CommonConfig:
                         "custom_op_namespaces is invalid, it should be a list[str]",
                         MsprobeException(MsprobeException.INVALID_PARAM_ERROR),
                     )
+
+
+class LoadConfig:
+    """Configuration for loading previously-dumped module input tensors to override actual inputs.
+
+    Parsed from the "load" section of config.json. When "load" section is absent,
+    the feature is disabled and existing behavior is unchanged.
+    """
+
+    def __init__(self, json_config):
+        load = json_config.get("load") or {}
+        self.path = load.get("path")
+        self.modules = load.get("modules")
+        self.step = load.get("step", [])  # list, [] = auto-align to current step
+        self.rank = load.get("rank", [])  # list, [] = auto-align to current rank
+        self.dump_after_load = load.get("dump_after_load", False)
+        self.is_enabled = "load" in json_config  # "load" section present
+        self._check()
+
+    def _check(self):
+        if not self.is_enabled:
+            return
+        if not isinstance(self.modules, list) or not self.modules:
+            logger.error_log_with_exp(
+                "load.modules is required and must be a non-empty list[str]",
+                MsprobeException(
+                    MsprobeException.INVALID_PARAM_ERROR,
+                    "load.modules is required and must be a non-empty list[str]",
+                ),
+            )
+        if not all(isinstance(m, str) for m in self.modules):
+            logger.error_log_with_exp(
+                "load.modules must be a list[str]",
+                MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "load.modules must be a list[str]"),
+            )
+        if not self.path:
+            logger.error_log_with_exp(
+                "load.path is required",
+                MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "load.path is required"),
+            )
+        if not isinstance(self.path, str) or not os.path.isdir(self.path):
+            logger.error_log_with_exp(
+                f"load.path does not exist or is not a directory: {self.path}",
+                MsprobeException(
+                    MsprobeException.INVALID_PARAM_ERROR,
+                    f"load.path does not exist or is not a directory: {self.path}",
+                ),
+            )
+        if not isinstance(self.dump_after_load, bool):
+            logger.error_log_with_exp(
+                "load.dump_after_load must be bool",
+                MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "load.dump_after_load must be bool"),
+            )
+        self.step = get_real_step_or_rank(self.step, Const.STEP)
+        self.rank = get_real_step_or_rank(self.rank, Const.RANK)
+        logger.debug(
+            f"LoadConfig: path={self.path}, modules={self.modules}, "
+            f"step={self.step}, rank={self.rank}, dump_after_load={self.dump_after_load}"
+        )
 
 
 class BaseConfig:

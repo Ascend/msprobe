@@ -34,6 +34,7 @@ from msprobe.pytorch.dump.module_dump.hook_wrapper import (
     wrap_setup_input_output_hook,
     wrap_backward_hook_function_apply,
 )
+from msprobe.pytorch.dump.module_load.tensor_loader import TensorLoader
 
 
 torch_version_above_or_equal_2 = torch.__version__.split('+')[0] >= '2.0'
@@ -96,8 +97,11 @@ class ModuleProcessor:
     enable_module_dump = False
     is_megatron_module = False
 
-    def __init__(self, scope):
+    def __init__(self, scope, load_config=None):
         self.scope = scope if isinstance(scope, (ModuleRangeScope, MixRangeScope)) else None
+        self.tensor_loader = None
+        if load_config and load_config.is_enabled:
+            self.tensor_loader = TensorLoader(load_config)
         wrap_setup_input_output_hook()
         wrap_backward_hook_function_apply()
         try:
@@ -238,14 +242,39 @@ class ModuleProcessor:
             if kwargs is None:
                 kwargs = {}
 
-            if not Runtime.is_running:
-                return (args, kwargs) if torch_version_above_or_equal_2 else args
+            # === load override: executed before Runtime.is_running check ===
+            # so that override takes effect even when dump is off (dump_after_load=false).
+            # When tensor_loader is active, index must be incremented here (before the
+            # Runtime check) to keep call_index aligned with source dump filenames.
+            # Note: in load-only mode (Runtime.is_running=False), index is incremented but
+            # the function returns immediately without dump. This is harmless because step()
+            # calls _reset_status which resets module_count, so index does not accumulate
+            # across steps.
+            if self.tensor_loader is not None:
+                # If loader is not active for current step (load.step out of range),
+                # skip load logic entirely — no override, no warning, no overhead.
+                if not self.tensor_loader.active:
+                    return (args, kwargs) if torch_version_above_or_equal_2 else args
+                index = ModuleProcessor.set_and_get_calls_number(module_name)
+                full_forward_name = f'{module_name}{Const.FORWARD}{Const.SEP}{index}'
+                if self.tensor_loader.should_override(full_forward_name):
+                    args, kwargs = self.tensor_loader.override_args(full_forward_name, args, kwargs)
+                # tensor_loader active but dump not running: return after override
+                if not Runtime.is_running:
+                    return (args, kwargs) if torch_version_above_or_equal_2 else args
+            else:
+                # original path: no override, check Runtime first
+                if not Runtime.is_running:
+                    return (args, kwargs) if torch_version_above_or_equal_2 else args
 
+            # === dump logic below (shared by both paths) ===
             if hasattr(module, 'msprobe_module_dump') and not self.enable_module_dump:
                 return (args, kwargs) if torch_version_above_or_equal_2 else args
 
-            index = ModuleProcessor.set_and_get_calls_number(module_name)
-            full_forward_name = f'{module_name}{Const.FORWARD}{Const.SEP}{index}'
+            # original path increments index here; load path already did it above
+            if self.tensor_loader is None:
+                index = ModuleProcessor.set_and_get_calls_number(module_name)
+                full_forward_name = f'{module_name}{Const.FORWARD}{Const.SEP}{index}'
             full_backward_name = f'{module_name}{Const.BACKWARD}{Const.SEP}{index}'
 
             logger.debug(f"module forward_pre_hook executed for {module_name}")

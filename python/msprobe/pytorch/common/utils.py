@@ -319,11 +319,13 @@ def print_rank_0(message):
         logger.info(message)
 
 
-def load_pt(pt_path, to_cpu=False):
+def load_pt(pt_path, to_cpu=False, map_location=None):
     pt_path = os.path.realpath(pt_path)
     check_file_or_directory_path(pt_path)
     try:
-        if to_cpu:
+        if map_location is not None:
+            pt = torch.load(pt_path, map_location=map_location, weights_only=True)
+        elif to_cpu:
             pt = torch.load(pt_path, map_location=torch.device("cpu"), weights_only=True)
         else:
             pt = torch.load(pt_path, weights_only=True)

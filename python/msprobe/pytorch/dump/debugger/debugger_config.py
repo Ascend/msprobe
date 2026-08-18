@@ -54,6 +54,7 @@ class DebuggerConfig:
         self.bench_path = getattr(task_config, "bench_path", None)
         self.risk_level = common_config.risk_level if common_config.risk_level else Const.RISK_LEVEL_ALL
         self.custom_op_namespaces = self._get_custom_op_namespaces(common_config)
+        self.load_config = getattr(common_config, 'load_config', None)
         self.check()
         self._check_statistics_config(task_config)
 
@@ -80,7 +81,12 @@ class DebuggerConfig:
                 f"The level <{self.level}> is not in the {Const.LEVEL_LIST}.",
             )
         if not self.dump_path:
-            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "The dump_path not found.")
+            load_cfg = getattr(self, "load_config", None)
+            if load_cfg and load_cfg.is_enabled and not load_cfg.dump_after_load:
+                # load-only mode: dump_path not required, use load.path as fallback
+                self.dump_path = load_cfg.path
+            else:
+                raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "The dump_path not found.")
         if not isinstance(self.async_dump, bool):
             raise MsprobeException(
                 MsprobeException.INVALID_PARAM_ERROR,

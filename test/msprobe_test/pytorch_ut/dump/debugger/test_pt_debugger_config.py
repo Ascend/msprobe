@@ -524,3 +524,89 @@ class TestDebuggerConfig(unittest.TestCase):
             {"dim": 1, "size": 3, "begin": 0, "end": 2}
         ])
         self.assertFalse(debugger.is_slice_info_modified)
+
+
+class TestDebuggerConfigLoad(unittest.TestCase):
+    """Tests for load_config propagation and dump_path relaxation in load-only mode."""
+
+    def setUp(self):
+        import tempfile
+        self.tmpdir = tempfile.mkdtemp()
+        self.common_config = MagicMock()
+        self.task_config = MagicMock()
+
+        self.common_config.dump_path = self.tmpdir
+        self.common_config.task = Const.TENSOR
+        self.common_config.level = Const.LEVEL_L0
+        self.common_config.async_dump = False
+        self.common_config.rank = []
+        self.common_config.step = []
+        self.common_config.dump_enable = None
+        self.common_config.extra_info = True
+        self.common_config.precision = Const.DUMP_PRECISION_LOW
+        self.common_config.risk_level = Const.RISK_LEVEL_FOCUS
+        self.common_config.custom_op_namespaces = None
+        self.task_config.scope = []
+        self.task_config.list = []
+        self.task_config.data_mode = ["all"]
+        self.task_config.slice_info = []
+        self.task_config.request_id = None
+        self.task_config.summary_mode = Const.STATISTICS
+        self.task_config.diff_nums = 1
+        self.task_config.bench_path = None
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _make_load_config(self, enabled=True, dump_after_load=False, path=None):
+        from msprobe.core.dump.common_config import LoadConfig
+        if enabled:
+            lc = LoadConfig({"load": {
+                "path": path or self.tmpdir,
+                "modules": ["Module.blocks.0.attn.A.forward.0"],
+                "dump_after_load": dump_after_load,
+            }})
+        else:
+            lc = LoadConfig({})
+        return lc
+
+    def test_load_config_propagated(self):
+        """load_config from common_config is accessible on DebuggerConfig."""
+        self.common_config.load_config = self._make_load_config(enabled=True)
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertIsNotNone(debugger.load_config)
+        self.assertTrue(debugger.load_config.is_enabled)
+
+    def test_load_config_none_when_absent(self):
+        """No load section -> load_config is disabled."""
+        self.common_config.load_config = self._make_load_config(enabled=False)
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertFalse(debugger.load_config.is_enabled)
+
+    def test_dump_path_relaxed_in_load_only_mode(self):
+        """dump_path can be missing when load is enabled and dump_after_load=False."""
+        self.common_config.dump_path = None
+        self.common_config.load_config = self._make_load_config(
+            enabled=True, dump_after_load=False, path=self.tmpdir
+        )
+        debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertEqual(debugger.dump_path, self.tmpdir)
+
+    def test_dump_path_required_when_load_disabled(self):
+        """dump_path must still be provided when load is not enabled."""
+        self.common_config.dump_path = None
+        self.common_config.load_config = self._make_load_config(enabled=False)
+        with self.assertRaises(MsprobeException) as ctx:
+            DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertIn("dump_path not found", str(ctx.exception))
+
+    def test_dump_path_required_when_dump_after_load_true(self):
+        """dump_path must be provided when dump_after_load=True even if load is enabled."""
+        self.common_config.dump_path = None
+        self.common_config.load_config = self._make_load_config(
+            enabled=True, dump_after_load=True, path=self.tmpdir
+        )
+        with self.assertRaises(MsprobeException) as ctx:
+            DebuggerConfig(self.common_config, self.task_config, None, None, None)
+        self.assertIn("dump_path not found", str(ctx.exception))

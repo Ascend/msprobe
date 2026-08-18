@@ -203,6 +203,36 @@ class TestLoadPt(unittest.TestCase):
             load_pt(self.temp_file.name)
         self.assertIn("load pt file", str(context.exception))
 
+    @patch('torch.load')
+    def test_load_pt_map_location(self, mock_load):
+        """map_location takes priority over to_cpu."""
+        mock_load.return_value = torch.tensor([1, 2, 3])
+        device = torch.device("cpu")
+        result = load_pt(self.temp_file.name, to_cpu=True, map_location=device)
+        self.assertTrue(torch.equal(result, torch.tensor([1, 2, 3])))
+        mock_load.assert_called_once_with(
+            self.temp_file.name, map_location=device, weights_only=True
+        )
+
+    @patch('torch.load')
+    def test_load_pt_map_location_only(self, mock_load):
+        """map_location works without to_cpu."""
+        mock_load.return_value = torch.tensor([1, 2, 3])
+        device = torch.device("cpu")
+        result = load_pt(self.temp_file.name, map_location=device)
+        self.assertTrue(torch.equal(result, torch.tensor([1, 2, 3])))
+        mock_load.assert_called_once_with(
+            self.temp_file.name, map_location=device, weights_only=True
+        )
+
+    @patch('torch.load')
+    def test_load_pt_default_no_map_location(self, mock_load):
+        """Default behavior unchanged when map_location is None and to_cpu is False."""
+        mock_load.return_value = torch.tensor([1, 2, 3])
+        result = load_pt(self.temp_file.name)
+        self.assertTrue(torch.equal(result, torch.tensor([1, 2, 3])))
+        mock_load.assert_called_once_with(self.temp_file.name, weights_only=True)
+
     def tearDown(self):
         if os.path.isfile(self.temp_file.name):
             os.remove(self.temp_file.name)

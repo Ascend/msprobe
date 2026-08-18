@@ -72,7 +72,13 @@ class BaseService(ABC):
 
     @property
     def _is_need_module_hook(self):
-        return self.config.level in [Const.LEVEL_MIX, Const.LEVEL_L0]
+        if self.config.level in [Const.LEVEL_MIX, Const.LEVEL_L0]:
+            return True
+        # force module hooks when load is active (override needs module hooks even if level=L1)
+        load_config = getattr(self.config, 'load_config', None)
+        if load_config and load_config.is_enabled:
+            return True
+        return False
 
     @property
     def _is_need_api_hook(self):
@@ -158,6 +164,30 @@ class BaseService(ABC):
         elif self._is_no_dump_rank:
             Runtime.is_running = False
             return
+
+        # update tensor loader with current step/rank (called after current_rank is set in first_start block)
+        # Must be before the load-only check below so active flag is set before any logs.
+        module_processor = getattr(self, 'module_processor', None)
+        if module_processor and getattr(module_processor, 'tensor_loader', None):
+            module_processor.tensor_loader.update_step_rank(self.current_iter, self.current_rank)
+
+        # load-only mode: dump_after_load=false, only override, no dump.
+        # If load.step specifies specific steps and current step is not in range,
+        # skip entirely — no override, no log, no overhead.
+        load_config = getattr(self.config, 'load_config', None)
+        if load_config and load_config.is_enabled and not load_config.dump_after_load:
+            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
+            if tensor_loader and not tensor_loader.active:
+                Runtime.is_running = False
+                return
+            Runtime.is_running = False
+            self.primitive_switch = False
+            self._change_jit_switch(False)
+            self.logger.info_on_rank_0(f"{Const.TOOL_NAME}: debugger.start() is set successfully")
+            self.logger.info_on_rank_0(f"Dump switch is turned on at step {self.current_iter}. ")
+            self.logger.info_on_rank_0("Load-only mode: module input override active, dump disabled.")
+            return
+
         self.logger.info_on_rank_0(f"{Const.TOOL_NAME}: debugger.start() is set successfully")
         if token_range is None:
             self.primitive_switch = True
@@ -176,6 +206,13 @@ class BaseService(ABC):
             return
         if self._is_no_dump_step or self._is_no_dump_rank:
             return
+        # load-only mode: if current step is not in load.step range, skip stop logic silently
+        load_config = getattr(self.config, 'load_config', None)
+        if load_config and load_config.is_enabled and not load_config.dump_after_load:
+            module_processor = getattr(self, 'module_processor', None)
+            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
+            if tensor_loader and not tensor_loader.active:
+                return
         self.logger.info_on_rank_0(
             f"{Const.TOOL_NAME}: debugger.stop() is set successfully. "
             "Please set debugger.start() to turn on the dump switch again. "

@@ -61,7 +61,8 @@ class PytorchService(BaseService):
         self.api_template = ApiTemplate
 
     def _refresh_module_processor(self):
-        self.module_processor = ModuleProcessor(self.data_collector.scope)  # pylint: disable=attribute-defined-outside-init
+        load_config = getattr(self.config, 'load_config', None)
+        self.module_processor = ModuleProcessor(self.data_collector.scope, load_config=load_config)  # pylint: disable=attribute-defined-outside-init
 
     def _need_dump_data(self, scheduled_tokens=None):
         self.config.update_slice_info(scheduled_tokens, False)

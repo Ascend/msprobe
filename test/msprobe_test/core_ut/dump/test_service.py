@@ -62,6 +62,7 @@ class TestBaseService(unittest.TestCase):
         self.config.async_dump = True
         self.config.tensor_list = []
         self.config.framework = "test_framwork"
+        self.config.load_config = None
         with patch('msprobe.core.dump.service.build_data_collector'):
             self.service = ConcreteBaseService(self.config)
             self.service.config.bench_path = None

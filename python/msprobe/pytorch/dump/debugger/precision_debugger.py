@@ -78,6 +78,15 @@ class PrecisionDebugger(BasePrecisionDebugger):
     def start(cls, model=None, token_range=None, rank_id=None, scheduled_tokens=None):
         instance = cls._instance_with_reload()
 
+        # Check if load-only mode and current step is not in load.step range.
+        # If so, skip all start logic (no custom op registration, no service.start, no logs).
+        load_config = getattr(instance.config, 'load_config', None)
+        if load_config and load_config.is_enabled and not load_config.dump_after_load:
+            module_processor = getattr(instance.service, 'module_processor', None)
+            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
+            if tensor_loader and not tensor_loader.active:
+                return
+
         # 延迟注册：在 start() 时再次扫描自定义算子
         # 这样即使用户先创建 debugger 再 enable_custom_op() 也能正常工作
         instance._auto_register_custom_ops(refresh_schema=instance._custom_op_schema_dirty)
@@ -91,7 +100,17 @@ class PrecisionDebugger(BasePrecisionDebugger):
     @classmethod
     @ThreadSafe.synchronized
     def stop(cls):
-        cls._run_with_reload(lambda instance: instance.service.stop())
+        # Check if load-only mode and current step is not in load.step range.
+        # If so, skip stop logic entirely (no logs, no overhead).
+        instance = cls._get_instance()
+        load_config = getattr(instance.config, 'load_config', None)
+        if load_config and load_config.is_enabled and not load_config.dump_after_load:
+            module_processor = getattr(instance.service, 'module_processor', None)
+            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
+            if tensor_loader and not tensor_loader.active:
+                return
+
+        cls._run_with_reload(lambda inst: inst.service.stop())
 
     @classmethod
     @ThreadSafe.synchronized
