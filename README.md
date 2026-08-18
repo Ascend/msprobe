@@ -46,6 +46,7 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 | | | 数据转换 | 将离线模型的dump数据转换为numpy（.npy）或PyTorch tensor（.pt）格式文件 | [数据转换](docs/zh/user_guide/dump/data_parse_instruct.md) |
 | **PyTorch** | 训练场景 | 训练前配置检查 | 训练前或精度比对前，对比两个环境下可能影响训练精度的配置差异 | [训练前配置检查](docs/zh/user_guide/config_check_instruct.md) |
 | | | 数据采集 | 通过config.json配置，完成msProbe精度数据采集操作 | [数据采集](docs/zh/user_guide/dump/pytorch_data_dump_instruct.md) |
+| | | 数据加载 | 加载已采集的模块级输入tensor，覆盖模型实际输入，隔离前序累计误差 | [数据加载](docs/zh/user_guide/dump/pytorch_data_load_instruct.md) |
 | | | 精度预检 | 在昇腾NPU上扫描训练模型中的所有API，给出精度情况的诊断和分析 | [精度预检](docs/zh/user_guide/accuracy_checker/pytorch_accuracy_checker_instruct.md) |
 | | | 分级可视化构图比对 | 将msProbe工具dump的精度数据进行解析，还原模型图结构，实现模型各个层级的精度数据比对 | [分级可视化构图比对](docs/zh/user_guide/accuracy_compare/pytorch_visualization_instruct.md) |
 | | | 精度比对 | 将msProbe工具dump的精度数据进行精度比对，进而定位精度问题 | [精度比对](docs/zh/user_guide/accuracy_compare/pytorch_accuracy_compare_instruct.md) |
