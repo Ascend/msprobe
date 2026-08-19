@@ -33,6 +33,7 @@ from msprobe.core.install_deps.install_deps import _install_deps_parser, install
 from msprobe.core.parse.parse_cli import _parse_parser, parse_cli
 from msprobe.core.common.logo import CliLogo
 from msprobe.core.common.cli_help import MindStudioArgumentParser
+from msprobe.version import get_version_info
 
 
 def main():
@@ -47,6 +48,7 @@ def main():
     )
 
     parser.set_defaults(print_help=parser.print_help)
+    parser.add_argument('-V', '--version', action='version', version=get_version_info())
     subparsers = parser.add_subparsers(parser_class=MindStudioArgumentParser)
 
     compare_parser = subparsers.add_parser('compare')
