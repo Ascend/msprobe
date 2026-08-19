@@ -762,7 +762,23 @@ class TestAclGraphDumper(unittest.TestCase):
                 "min": None,
                 "mean": None,
                 "norm": None,
-            }
+            },
+            "Torch.npu_quant_matmul.forward.input.1": {
+                "dtype": "Float8_e4m3fn",
+                "shape": [896, 128],
+                "max": None,
+                "min": None,
+                "mean": None,
+                "norm": None,
+            },
+            "Torch.npu_quant_matmul.forward.input.2": {
+                "dtype": "Float4_e2m1fn_x2",
+                "shape": [896, 64],
+                "max": None,
+                "min": None,
+                "mean": None,
+                "norm": None,
+            },
         }
 
         with patch.object(dumper, "_synchronize"), \
@@ -774,12 +790,60 @@ class TestAclGraphDumper(unittest.TestCase):
         mock_warning.assert_called_once_with(
             "Invalid statistics detected. Please use tensor mode to collect the affected data."
         )
-        saved_record = mock_save_json.call_args[0][1]["data"]["Torch.npu_quant_matmul.forward"][
+        saved_records = mock_save_json.call_args[0][1]["data"]["Torch.npu_quant_matmul.forward"][
             self.module.Const.INPUT_ARGS
-        ][0]
-        self.assertIsNone(saved_record[self.module.Const.MIN])
-        self.assertIsNone(saved_record[self.module.Const.MAX])
-        self.assertEqual(saved_record[self.module.Const.DTYPE], "torch.int8")
+        ]
+        expected_metadata = (
+            ("torch.int8", [896, 1152]),
+            ("Float8_e4m3fn", [896, 128]),
+            ("Float4_e2m1fn_x2", [896, 64]),
+        )
+        for saved_record, (expected_dtype, expected_shape) in zip(saved_records, expected_metadata):
+            self.assertIsNone(saved_record[self.module.Const.MIN])
+            self.assertIsNone(saved_record[self.module.Const.MAX])
+            self.assertIsNone(saved_record[self.module.Const.MEAN])
+            self.assertIsNone(saved_record[self.module.Const.NORM])
+            self.assertEqual(saved_record[self.module.Const.DTYPE], expected_dtype)
+            self.assertEqual(saved_record[self.module.Const.SHAPE], expected_shape)
+
+    def test_step_if_int32_int64_statistics_are_valid_then_save_values(self):
+        dumper = self.make_dumper(level="L1", rank=[], rank_id=0)
+        dumper._running = True
+        self.aclgraph_dump_stub.get_acl_stat_dict.return_value = {
+            "Torch.index_select.forward.input.0": {
+                "dtype": "Int",
+                "shape": [2, 4],
+                "max": 7.0,
+                "min": 0.0,
+                "mean": 3.5,
+                "norm": 11.832159,
+            },
+            "Torch.index_select.forward.input.1": {
+                "dtype": "Long",
+                "shape": [4],
+                "max": 6.0,
+                "min": 0.0,
+                "mean": 3.0,
+                "norm": 7.483315,
+            },
+        }
+
+        with patch.object(dumper, "_synchronize"), \
+                patch.object(dumper, "_step_rank_dir", return_value="./dump/step0/rank0"), \
+                patch.object(self.module, "save_json") as mock_save_json:
+            dumper.step()
+
+        saved_records = mock_save_json.call_args[0][1]["data"]["Torch.index_select.forward"][
+            self.module.Const.INPUT_ARGS
+        ]
+        self.assertEqual(saved_records[0][self.module.Const.DTYPE], "torch.int32")
+        self.assertEqual(saved_records[0][self.module.Const.SHAPE], [2, 4])
+        self.assertEqual(saved_records[0][self.module.Const.MAX], 7.0)
+        self.assertEqual(saved_records[0][self.module.Const.MEAN], 3.5)
+        self.assertEqual(saved_records[1][self.module.Const.DTYPE], "torch.int64")
+        self.assertEqual(saved_records[1][self.module.Const.SHAPE], [4])
+        self.assertEqual(saved_records[1][self.module.Const.MIN], 0.0)
+        self.assertEqual(saved_records[1][self.module.Const.NORM], 7.483315)
 
     def test_collect_with_slice_matched(self):
         """TC-201: tensor 第0维匹配 total 时切片，acl_stat 接收切片后数据"""

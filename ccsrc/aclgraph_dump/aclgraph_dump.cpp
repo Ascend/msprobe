@@ -671,8 +671,11 @@ static at::Tensor acl_stat_impl(const at::Tensor& x, const std::string& tag,
 
     ensure_acl_runtime_initialized();
     auto stream = c10_npu::getCurrentNPUStream().stream();
-    // Statistics ops are unavailable for integral tensors in some internal formats.
-    at::Tensor stats_dev = (x.is_floating_point() || x.is_complex()) ? compute_stats_tensor(x) : at::Tensor{};
+    // Cast/reduction kernels are unavailable for INT8/UINT8 tensors in some
+    // internal formats and for one-byte floating-point types (FP4/FP8).
+    const bool disable_statistics = x.scalar_type() == at::kChar || x.scalar_type() == at::kByte || x.is_quantized() ||
+                                    (x.is_floating_point() && x.element_size() <= 1);
+    at::Tensor stats_dev = disable_statistics ? at::Tensor{} : compute_stats_tensor(x);
     auto* payload = new StatTaskPayload(stats_dev, tag, dtype, shape, switch_tensor);
     auto cb_status = aclrtLaunchHostFunc(stream, acl_stat_host_func, payload);
     if (cb_status != ACL_ERROR_NONE)
