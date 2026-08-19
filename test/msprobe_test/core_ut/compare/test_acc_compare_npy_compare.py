@@ -257,8 +257,8 @@ class TestEuclideanDistanceAlgorithm(unittest.TestCase):
         n_value = np.array([1.0])
         b_value = np.array([1.0])
         result, err_msg = euc_compare(n_value, b_value)
-        self.assertEqual(result, CompareConst.UNSUPPORTED)
-        self.assertIn("length 1", err_msg)
+        self.assertEqual(result, 0.0)
+        self.assertIn(err_msg, "")
 
     def test_euclidean_identical(self):
         n_value = np.array([1.0, 2.0, 3.0])

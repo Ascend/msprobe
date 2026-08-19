@@ -18,6 +18,7 @@
 import numpy as np
 from msprobe.core.common.const import CompareConst
 from msprobe.core.common.utils import format_value
+from msprobe.core.compare.utils import flatten_numpy
 
 
 def column_name() -> str:
@@ -25,10 +26,9 @@ def column_name() -> str:
 
 
 def compare(n_value: np.ndarray, b_value: np.ndarray):
-    n_value = n_value.reshape(-1).astype(float)
-    b_value = b_value.reshape(-1).astype(float)
+    n_value, b_value = flatten_numpy(n_value, b_value)
 
     max_value = np.max(np.abs(n_value - b_value))
     if np.isnan(max_value):
-        return CompareConst.NAN, "Cannot compare by MaxAbsError, the data contains nan/inf/-inf."
+        return CompareConst.NAN, "Cannot compare by MaxAbsError, the data contains nan/inf/-inf in dump data."
     return format_value(max_value), ""

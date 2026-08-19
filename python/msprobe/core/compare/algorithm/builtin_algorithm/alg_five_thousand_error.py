@@ -17,7 +17,7 @@
 
 import numpy as np
 from msprobe.core.common.const import CompareConst
-from msprobe.core.compare.utils import validate_compare_numpy, get_relative_err, calc_err_ratio
+from msprobe.core.compare.utils import calc_relative_err_ratio
 
 
 def column_name() -> str:
@@ -25,7 +25,4 @@ def column_name() -> str:
 
 
 def compare(n_value: np.ndarray, b_value: np.ndarray):
-    result, err = validate_compare_numpy(n_value, b_value)
-    if err:
-        return result, err
-    return calc_err_ratio(get_relative_err(n_value, b_value), CompareConst.FIVE_THOUSAND_RATIO_THRESHOLD), ""
+    return calc_relative_err_ratio(n_value, b_value, CompareConst.FIVE_THOUSAND_RATIO_THRESHOLD)

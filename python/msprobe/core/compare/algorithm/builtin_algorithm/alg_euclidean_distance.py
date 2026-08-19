@@ -17,7 +17,7 @@
 
 import numpy as np
 from msprobe.core.common.const import CompareConst
-from msprobe.core.compare.utils import flatten_compare_numpy
+from msprobe.core.compare.utils import flatten_numpy
 
 
 def column_name() -> str:
@@ -25,9 +25,9 @@ def column_name() -> str:
 
 
 def compare(n_value: np.ndarray, b_value: np.ndarray):
-    n_value, b_value, result, err = flatten_compare_numpy(n_value, b_value)
-    if err:
-        return result, err
+    if n_value.ndim == 0 or b_value.ndim == 0:
+        return CompareConst.UNSUPPORTED, CompareConst.ERR_SCALAR_INPUT
+    n_value, b_value = flatten_numpy(n_value, b_value)
 
     distance = np.linalg.norm(n_value - b_value, ord=2)
     return distance, ""

@@ -761,6 +761,10 @@ class CompareConst:
         FIVE_THOUSANDTHS_ERR_RATIO,
     ]
 
+    ERR_SCALAR_INPUT = "This is type of 0-d tensor, can not calculate"
+    ERR_EMPTY_TENSOR = "This is an empty tensor, can not calculate."
+    ERR_SINGLE_ELEMENT_TENSOR = "This is a 1-d tensor of length 1."
+
     @staticmethod
     def _get_custom_compare_index() -> List[str]:
         from msprobe.core.compare.algorithm.algorithm_scheduler import AlgorithmScheduler

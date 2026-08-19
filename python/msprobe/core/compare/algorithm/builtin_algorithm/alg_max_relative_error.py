@@ -30,6 +30,6 @@ def compare(n_value: np.ndarray, b_value: np.ndarray):
     if np.isnan(max_relative_err):
         return (
             CompareConst.NAN,
-            "Cannot compare by MaxRelativeError, the data contains nan/inf/-inf.",
+            "Cannot compare by MaxRelativeError, the data contains nan/inf/-inf in dump data.",
         )
     return format_value(max_relative_err), ""

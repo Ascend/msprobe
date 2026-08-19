@@ -42,8 +42,6 @@ json_file_mapping = {
     Const.STACK_JSON_FILE: "stack.json",
 }
 
-_header_mapping = {}
-
 
 def extract_json(dirname, json_file_type):
     json_path = ''
@@ -1219,33 +1217,28 @@ def load_pt_in_structure(obj, data_dirs, device):
     return _load(obj)
 
 
-def validate_compare_numpy(n_value, b_value):
+def validate_numpy(n_value, b_value):
     """校验比对张量：0‑d 张量与长度为 1 的张量不支持计算。"""
     # 0‑d array: ndim == 0
     if n_value.ndim == 0 or b_value.ndim == 0:
-        return CompareConst.UNSUPPORTED, "This is type of 0-d tensor, can not calculate"
+        return CompareConst.UNSUPPORTED, CompareConst.ERR_SCALAR_INPUT
     if n_value.size == 0 or b_value.size == 0:
-        return CompareConst.UNSUPPORTED, "This is an empty tensor, can not calculate."
+        return CompareConst.UNSUPPORTED, CompareConst.ERR_EMPTY_TENSOR
     if n_value.size == 1 or b_value.size == 1:
-        return CompareConst.UNSUPPORTED, "This is a 1-d tensor of length 1."
+        return CompareConst.UNSUPPORTED, CompareConst.ERR_SINGLE_ELEMENT_TENSOR
     return "", ""
 
 
-def flatten_compare_numpy(n_value, b_value):
-    """校验并将比对张量重塑为一维向量。"""
-    result, err = validate_compare_numpy(n_value, b_value)
-    if err:
-        return None, None, result, err
-
+def flatten_numpy(n_value, b_value):
     if not n_value.shape:  # 判断数据是否为0维tensor， 如果0维tensor，不会转成1维tensor，直接返回
         if n_value.dtype == bool:
             n_value = n_value.astype(float)
             b_value = b_value.astype(float)
-        return n_value, b_value, result, err
+        return n_value, b_value
 
     n_value = n_value.reshape(-1).astype(float)  # 32转64为了防止某些数转dataframe时出现误差
     b_value = b_value.reshape(-1).astype(float)
-    return n_value, b_value, result, err
+    return n_value, b_value
 
 
 def get_relative_err(n_value, b_value):
@@ -1271,9 +1264,14 @@ def get_relative_err(n_value, b_value):
     return relative_err
 
 
-def calc_err_ratio(relative_err, threshold):
+def calc_relative_err_ratio(n_value, b_value, threshold):
     """计算小于阈值的占比，返回格式化后的值。"""
+    if n_value.ndim == 0 or b_value.ndim == 0:
+        return CompareConst.UNSUPPORTED, CompareConst.ERR_SCALAR_INPUT
+    relative_err = get_relative_err(n_value, b_value)
+    if not np.size(relative_err):
+        return CompareConst.NAN, ""
     total = relative_err.size
     count = np.sum(relative_err < threshold)
     ratio = count / total
-    return format_value(ratio)
+    return format_value(ratio), ""
