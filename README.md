@@ -1,10 +1,11 @@
 <h1 align="center">MindStudio Probe</h1>
 <div align="center">
   <p>🚀 <b>昇腾 AI 全场景精度调试利器</b></p>
-
 [![Docs](https://badgen.net/badge/Docs/readthedocs/green)](https://msprobe.readthedocs.io/zh-cn/latest/)
   [![License](https://badgen.net/badge/License/MulanPSL-2.0/blue)](https://raw.gitcode.com/Ascend/msprobe/raw/26.0.0/LICENSE) [![Version](https://badgen.net/badge/Version/26.0.0-alpha.1/green)](https://gitcode.com/Ascend/msprobe/releases/26.0.0-alpha.1) [![Ascend](https://img.shields.io/badge/Hardware-Ascend-orange.svg)](https://www.hiascend.com/)
 </div>
+
+简体中文 | [English](./README_EN.md)
 
 ## 📢 最新消息
 
