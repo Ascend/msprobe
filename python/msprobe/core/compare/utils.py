@@ -25,16 +25,24 @@ import numpy as np
 import pandas as pd
 
 from msprobe.core.common.const import Const, CompareConst, FileCheckConst
-from msprobe.core.common.utils import CompareException, check_regex_prefix_format_valid, logger, \
-    safe_get_value, is_module_available
+from msprobe.core.common.utils import (
+    CompareException,
+    check_regex_prefix_format_valid,
+    format_value,
+    logger,
+    safe_get_value,
+    is_module_available,
+)
 from msprobe.core.common.file_utils import check_file_or_directory_path, load_json, find_proc_dir
 from msprobe.core.common.output_postprocess.load_pt_helper import load_pt_file
 
 json_file_mapping = {
     Const.DUMP_JSON_FILE: "dump.json",
     Const.DEBUG_JSON_FILE: "debug.json",
-    Const.STACK_JSON_FILE: "stack.json"
+    Const.STACK_JSON_FILE: "stack.json",
 }
+
+_header_mapping = {}
 
 
 def extract_json(dirname, json_file_type):
@@ -115,14 +123,14 @@ def read_op(op_data, op_name):
         op_parsed_list = op_item_parse(op_data, op_name, Const.PARAMS_GRAD)
     else:
         op_parsed_list = []
-        for name in CompareConst.IO_NAME_MAPPING:
+        for name, value in CompareConst.IO_NAME_MAPPING.items():
             if name in op_data:
-                op_parsed_list.extend(op_item_parse(op_data[name], op_name + CompareConst.IO_NAME_MAPPING[name], name))
+                op_parsed_list.extend(op_item_parse(op_data[name], op_name + value, name))
     return op_parsed_list
 
 
 def op_item_parse(op_data, op_name: str, state: str, depth: int = 0) -> list:
-    if state == Const.INPUT_ARGS or state == Const.INPUT_KWARGS:
+    if state in (Const.INPUT_ARGS, Const.INPUT_KWARGS):
         state = Const.INPUT
     default_item = {
         'full_op_name': op_name,
@@ -137,7 +145,7 @@ def op_item_parse(op_data, op_name: str, state: str, depth: int = 0) -> list:
         Const.VALUE: None,
         Const.DATA_NAME: '-1',
         Const.STATE: state,
-        Const.REQ_GRAD: None
+        Const.REQ_GRAD: None,
     }
 
     if depth > Const.MAX_DEPTH:
@@ -254,7 +262,7 @@ def merge_tensor(tensor_list, dump_mode):
         Const.SUMMARY,
         Const.STACK_INFO,
         Const.STATE,
-        Const.REQ_GRAD
+        Const.REQ_GRAD,
     ]
     op_dict = {key: [] for key in keys}
 
@@ -282,7 +290,8 @@ def merge_tensor(tensor_list, dump_mode):
 
         # 当统计量为None时，转成字符串None，避免后续操作list放到pd中时None被默认转成NaN
         op_dict[Const.SUMMARY].append(
-            [str(tensor[key]) if tensor[key] is None else tensor[key] for key in Const.SUMMARY_METRICS_LIST])
+            [str(tensor[key]) if tensor[key] is None else tensor[key] for key in Const.SUMMARY_METRICS_LIST]
+        )
 
         if dump_mode == Const.ALL:
             op_dict[Const.DATA_NAME].append(tensor.get(Const.DATA_NAME))
@@ -332,7 +341,7 @@ class ApiBatch:
 
     def increment(self, state: str):
         self.set_state(state)
-        if self._state == Const.INPUT or self._state == Const.KWARGS:
+        if self._state in (Const.INPUT, Const.KWARGS):
             self.input_len += 1
             self.params_end_index += 1
             self.output_end_index += 1
@@ -356,7 +365,8 @@ def api_batches_update(api_batches, api_name, state, index):
     else:
         api_batch = api_batches[-1]
         if api_batch.api_name == api_name or (
-                not re.search(Const.REGEX_FORWARD_BACKWARD, api_name) and api_name in api_batch.api_name):
+            not re.search(Const.REGEX_FORWARD_BACKWARD, api_name) and api_name in api_batch.api_name
+        ):
             try:
                 api_batch.increment(state)
             except ValueError as e:
@@ -456,13 +466,6 @@ def get_rela_diff_summary_mode(result_item, npu_summary_data, bench_summary_data
     return result_item, accuracy_check, err_msg
 
 
-@dataclass
-class ApiItemInfo:
-    name: str
-    struct: tuple
-    stack_info: list
-
-
 def stack_column_process(result_item, has_stack, index, key, npu_stack_info):
     if has_stack and index == 0 and key == CompareConst.INPUT_STRUCT:
         result_item.extend(npu_stack_info)
@@ -481,20 +484,28 @@ def result_item_init(n_info, b_info, requires_grad_pair, dump_mode):
     struct_long_enough = (n_len > 2 and b_len > 2) if dump_mode == Const.MD5 else (n_len > 1 and b_len > 1)
     if struct_long_enough:
         result_item = [
-            n_info.name, b_info.name, n_info.struct[0], b_info.struct[0], n_info.struct[1], b_info.struct[1],
-            n_requires_grad, b_requires_grad
+            n_info.name,
+            b_info.name,
+            n_info.struct[0],
+            b_info.struct[0],
+            n_info.struct[1],
+            b_info.struct[1],
+            n_requires_grad,
+            b_requires_grad,
         ]
         if dump_mode == Const.MD5:
             md5_compare_result = CompareConst.PASS if n_info.struct[2] == b_info.struct[2] else CompareConst.DIFF
             result_item.extend([n_info.struct[2], b_info.struct[2], req_grad_consist, md5_compare_result])
         elif dump_mode == Const.SUMMARY:
-            result_item.extend([" "] * 8)  # 8个统计量数据情况的比对指标
+            result_item.extend([" "] * len(CompareConst.SUMMARY_COMPARE_INDEX))
         else:
-            result_item.extend([" "] * 6)  # 6个真实数据情况的比对指标
+            result_item.extend([" "] * len(CompareConst.ALL_COMPARE_INDEX))
     else:
-        err_msg = "index out of bounds error will occur in result_item_init, please check!\n" \
-                  f"npu_info_struct is {n_info.struct}\n" \
-                  f"bench_info_struct is {b_info.struct}"
+        err_msg = (
+            "index out of bounds error will occur in result_item_init, please check!\n"
+            f"npu_info_struct is {n_info.struct}\n"
+            f"bench_info_struct is {b_info.struct}"
+        )
         logger.error(err_msg)
         raise CompareException(CompareException.INDEX_OUT_OF_BOUNDS_ERROR)
     return result_item
@@ -506,7 +517,7 @@ def count_struct(op_dict):
         CompareConst.INPUT_STRUCT,
         CompareConst.OUTPUT_STRUCT,
         CompareConst.PARAMS_STRUCT,
-        CompareConst.PARAMS_GRAD_STRUCT
+        CompareConst.PARAMS_GRAD_STRUCT,
     ]
     lengths = [len(op_dict.get(part, [])) for part in parts]
     num = lengths[0]
@@ -553,8 +564,9 @@ def get_accuracy(result, n_dict, b_dict, dump_mode):
             result_item.extend(process_summary_data(bench_summary_data))
 
             if dump_mode == Const.SUMMARY:
-                result_item, accuracy_check, err_msg = get_rela_diff_summary_mode(result_item, npu_summary_data,
-                                                                                  bench_summary_data, err_msg)
+                result_item, accuracy_check, err_msg = get_rela_diff_summary_mode(
+                    result_item, npu_summary_data, bench_summary_data, err_msg
+                )
 
             result_item.append(req_grad_consist)
             err_msg += "Requires_grad inconsistent." if not req_grad_consist else ""
@@ -577,35 +589,53 @@ def get_accuracy(result, n_dict, b_dict, dump_mode):
 
                     if dump_mode == Const.MD5:
                         result_item = [
-                            n_name, CompareConst.NAN, n_struct[0], CompareConst.NAN, n_struct[1], CompareConst.NAN,
-                            n_requires_grad, CompareConst.NAN,
-                            n_struct[2], CompareConst.NAN,
+                            n_name,
+                            CompareConst.NAN,
+                            n_struct[0],
+                            CompareConst.NAN,
+                            n_struct[1],
+                            CompareConst.NAN,
+                            n_requires_grad,
+                            CompareConst.NAN,
+                            n_struct[2],
+                            CompareConst.NAN,
                             False,
                             CompareConst.NAN,
-                            None
+                            None,
                         ]
                         result.append(result_item)
                         continue
                     if dump_mode == Const.ALL:
                         result_item = [
-                            n_name, CompareConst.NAN, n_struct[0], CompareConst.NAN, n_struct[1], CompareConst.NAN,
-                            n_requires_grad, CompareConst.NAN,
-                            " ", " ", " ", " ", " ", " "
+                            n_name,
+                            CompareConst.NAN,
+                            n_struct[0],
+                            CompareConst.NAN,
+                            n_struct[1],
+                            CompareConst.NAN,
+                            n_requires_grad,
+                            CompareConst.NAN,
                         ]
+                        result_item.extend([" "] * len(CompareConst.ALL_COMPARE_INDEX))
                     else:
                         result_item = [
-                            n_name, CompareConst.NAN, n_struct[0], CompareConst.NAN, n_struct[1], CompareConst.NAN,
-                            n_requires_grad, CompareConst.NAN,
-                            " ", " ", " ", " ", " ", " ", " ", " "
+                            n_name,
+                            CompareConst.NAN,
+                            n_struct[0],
+                            CompareConst.NAN,
+                            n_struct[1],
+                            CompareConst.NAN,
+                            n_requires_grad,
+                            CompareConst.NAN,
                         ]
+                        result_item.extend([" "] * len(CompareConst.SUMMARY_COMPARE_INDEX))
                     summary_data = n_dict.get(CompareConst.SUMMARY)[n_start + index]
                     result_item.extend(summary_data)
                     summary_data = [CompareConst.NAN for _ in range(len(n_dict.get(CompareConst.SUMMARY)[0]))]
                     result_item.extend(summary_data)
                     result_item.append(False)
                 except IndexError as e:
-                    err_msg = "index out of bounds error occurs, please check!\n" \
-                              f"n_dict is {n_dict}"
+                    err_msg = f"index out of bounds error occurs, please check!\nn_dict is {n_dict}"
                     logger.error(err_msg)
                     raise CompareException(CompareException.INDEX_OUT_OF_BOUNDS_ERROR) from e
 
@@ -623,13 +653,17 @@ def get_accuracy(result, n_dict, b_dict, dump_mode):
     _, b_num_input, b_num_output, b_num_params, b_num_params_grad = count_struct(b_dict)
 
     get_accuracy_core(0, n_num_input, 0, b_num_input, CompareConst.INPUT_STRUCT)
-    get_accuracy_core(n_num_input, n_num_params, b_num_input, b_num_params,
-                      CompareConst.PARAMS_STRUCT)
-    get_accuracy_core(n_num_input + n_num_params, n_num_output, b_num_input + b_num_params, b_num_output,
-                      CompareConst.OUTPUT_STRUCT)
-    get_accuracy_core(n_num_input + n_num_params + n_num_output, n_num_params_grad,
-                      b_num_input + b_num_params + b_num_output, b_num_params_grad,
-                      CompareConst.PARAMS_GRAD_STRUCT)
+    get_accuracy_core(n_num_input, n_num_params, b_num_input, b_num_params, CompareConst.PARAMS_STRUCT)
+    get_accuracy_core(
+        n_num_input + n_num_params, n_num_output, b_num_input + b_num_params, b_num_output, CompareConst.OUTPUT_STRUCT
+    )
+    get_accuracy_core(
+        n_num_input + n_num_params + n_num_output,
+        n_num_params_grad,
+        b_num_input + b_num_params + b_num_output,
+        b_num_params_grad,
+        CompareConst.PARAMS_GRAD_STRUCT,
+    )
 
 
 def make_result_table(result, dump_mode, stack_mode):
@@ -669,64 +703,204 @@ def get_paired_dirs(npu_path, bench_path):
 
 
 def _compare_parser(parser):
-    parser.add_argument("-m", "--mode", dest="mode", type=str, default="auto",
-                        help="<optional> Comparison mode: 'auto' (default) or 'torchair' for torchair accuracy compare",
-                        required=False)
-    parser.add_argument("-tp", "--target_path", dest="target_path", type=str,
-                        help="<Required> The compare target device path", required=True)
-    parser.add_argument("-gp", "--golden_path", dest="golden_path", type=str,
-                        help="<Required> The compare golden device path", required=True)
-    parser.add_argument("-o", "--output_path", dest="output_path", type=str,
-                        help="<Required> The compare task result out path. Default path: ./output",
-                        required=False, default="./output", nargs="?", const="./output")
-    parser.add_argument("--xlsx", dest="xlsx", action="store_true",
-                        help="<optional> Save compare results in xlsx format. Default output format is csv.",
-                        required=False)
-    parser.add_argument("-fm", "--fuzzy_match", dest="fuzzy_match", action="store_true",
-                        help="<optional> Whether to perform a fuzzy match on the api name.", required=False)
-    parser.add_argument("-cm", "--cell_mapping", dest="cell_mapping", type=str, nargs='?', const=True,
-                        help="<optional> The cell mapping file path.", required=False)
-    parser.add_argument("-am", "--api_mapping", dest="api_mapping", type=str, nargs='?', const=True,
-                        help="<optional> The api mapping file path.", required=False)
-    parser.add_argument("-dm", "--data_mapping", dest="data_mapping", type=str,
-                        help="<optional> The data mapping file path.", required=False)
-    parser.add_argument("-lm", "--layer_mapping", dest="layer_mapping", type=str, nargs='?', const=True,
-                        help="<optional> The layer mapping file path.", required=False)
-    parser.add_argument("-da", "--diff_analyze", dest="diff_analyze", action="store_true",
-                        help="<optional> Whether to perform a diff analyze on the api name.", required=False)
-    parser.add_argument("-tensor_log", "--is_print_compare_log", dest="is_print_compare_log", action="store_true",
-                        help="<Optional> whether print compare log for compare auto mode task.", required=False)
-    parser.add_argument("-fr", "--fusion_rule_file", dest="fusion_rule_file", type=str, default="",
-                        help="<Optional> The fusion rule file path.", required=False)
-    parser.add_argument("-qfr", "--quant_fusion_rule_file", dest="quant_fusion_rule_file", type=str, default="",
-                        help="<Optional> The quant fusion rule file path.", required=False)
-    parser.add_argument("-cfr", "--close_fusion_rule_file", dest="close_fusion_rule_file", type=str, default="",
-                        help="<Optional> The close fusion rule file path.", required=False)
+    parser.add_argument(
+        "-m",
+        "--mode",
+        dest="mode",
+        type=str,
+        default="auto",
+        help="<optional> Comparison mode: 'auto' (default) or 'torchair' for torchair accuracy compare",
+        required=False,
+    )
+    parser.add_argument(
+        "-tp",
+        "--target_path",
+        dest="target_path",
+        type=str,
+        help="<Required> The compare target device path",
+        required=True,
+    )
+    parser.add_argument(
+        "-gp",
+        "--golden_path",
+        dest="golden_path",
+        type=str,
+        help="<Required> The compare golden device path",
+        required=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--output_path",
+        dest="output_path",
+        type=str,
+        help="<Required> The compare task result out path. Default path: ./output",
+        required=False,
+        default="./output",
+        nargs="?",
+        const="./output",
+    )
+    parser.add_argument(
+        "--xlsx",
+        dest="xlsx",
+        action="store_true",
+        help="<optional> Save compare results in xlsx format. Default output format is csv.",
+        required=False,
+    )
+    parser.add_argument(
+        "-fm",
+        "--fuzzy_match",
+        dest="fuzzy_match",
+        action="store_true",
+        help="<optional> Whether to perform a fuzzy match on the api name.",
+        required=False,
+    )
+    parser.add_argument(
+        "-cm",
+        "--cell_mapping",
+        dest="cell_mapping",
+        type=str,
+        nargs='?',
+        const=True,
+        help="<optional> The cell mapping file path.",
+        required=False,
+    )
+    parser.add_argument(
+        "-am",
+        "--api_mapping",
+        dest="api_mapping",
+        type=str,
+        nargs='?',
+        const=True,
+        help="<optional> The api mapping file path.",
+        required=False,
+    )
+    parser.add_argument(
+        "-dm",
+        "--data_mapping",
+        dest="data_mapping",
+        type=str,
+        help="<optional> The data mapping file path.",
+        required=False,
+    )
+    parser.add_argument(
+        "-lm",
+        "--layer_mapping",
+        dest="layer_mapping",
+        type=str,
+        nargs='?',
+        const=True,
+        help="<optional> The layer mapping file path.",
+        required=False,
+    )
+    parser.add_argument(
+        "-da",
+        "--diff_analyze",
+        dest="diff_analyze",
+        action="store_true",
+        help="<optional> Whether to perform a diff analyze on the api name.",
+        required=False,
+    )
+    parser.add_argument(
+        "-tensor_log",
+        "--is_print_compare_log",
+        dest="is_print_compare_log",
+        action="store_true",
+        help="<Optional> whether print compare log for compare auto mode task.",
+        required=False,
+    )
+    parser.add_argument(
+        "-fr",
+        "--fusion_rule_file",
+        dest="fusion_rule_file",
+        type=str,
+        default="",
+        help="<Optional> The fusion rule file path.",
+        required=False,
+    )
+    parser.add_argument(
+        "-qfr",
+        "--quant_fusion_rule_file",
+        dest="quant_fusion_rule_file",
+        type=str,
+        default="",
+        help="<Optional> The quant fusion rule file path.",
+        required=False,
+    )
+    parser.add_argument(
+        "-cfr",
+        "--close_fusion_rule_file",
+        dest="close_fusion_rule_file",
+        type=str,
+        default="",
+        help="<Optional> The close fusion rule file path.",
+        required=False,
+    )
     # rank：ms静态图比对、推理离线模型一键式比对
-    parser.add_argument("--rank", dest="rank", type=str, required=False,
-                        help="<optional> Ranks to compare when compare kernel of MindSpore for <compare auto>. "
-                             "Ranks to compare for <torchair dumps>. "
-                             "Input rank ID [0, 255] for <compare offline_model>.")
-    parser.add_argument("--step", dest="step", type=str, required=False,
-                        help="<optional> Steps to compare when compare kernel of MindSpore.")
-    parser.add_argument('--input_data', dest="input_data", default='',
-                        help='The input data path of the model. Separate multiple inputs with commas(,).'
-                             ' E.g: input_0.bin,input_1.bin')
-    parser.add_argument('--input_shape', dest="input_shape", default='',
-                        help="Shape of input shape. Separate multiple nodes with semicolons(;)."
-                             " E.g: \"input_name1:1,224,224,3;input_name2:3,300\"")
-    parser.add_argument('--output_size', dest="output_size", default='',
-                        help='The size of output. Separate multiple sizes with commas(,). E.g: 10200,34000')
-    parser.add_argument('--dym_shape_range', dest="dym_shape_range", default='',
-                        help="Dynamic shape range using in dynamic model, using this means ignore input_shape."
-                             " E.g: \"input_name1:1,3,200\~224,224-230;input_name2:1,300\"")
-    parser.add_argument('-ofs', '--onnx_fusion_switch', dest="onnx_fusion_switch", default=True,
-                        help='Onnxruntime fusion switch, set False for dump complete onnx data when necessary. '
-                             'Usage: -ofs False')
-    parser.add_argument("--consistent_check", dest="consistent_check", action="store_true",
-                        help="<optional> Whether to compare train and infer data.", required=False)
-    parser.add_argument("--backend", dest="backend", type=str, choices=["fsdp", "megatron"], default="",
-                        help="<optional> Backend when comparing train and infer data.", required=False)
+    parser.add_argument(
+        "--rank",
+        dest="rank",
+        type=str,
+        required=False,
+        help="<optional> Ranks to compare when compare kernel of MindSpore for <compare auto>. "
+        "Ranks to compare for <torchair dumps>. "
+        "Input rank ID [0, 255] for <compare offline_model>.",
+    )
+    parser.add_argument(
+        "--step",
+        dest="step",
+        type=str,
+        required=False,
+        help="<optional> Steps to compare when compare kernel of MindSpore.",
+    )
+    parser.add_argument(
+        '--input_data',
+        dest="input_data",
+        default='',
+        help='The input data path of the model. Separate multiple inputs with commas(,). E.g: input_0.bin,input_1.bin',
+    )
+    parser.add_argument(
+        '--input_shape',
+        dest="input_shape",
+        default='',
+        help="Shape of input shape. Separate multiple nodes with semicolons(;)."
+        " E.g: \"input_name1:1,224,224,3;input_name2:3,300\"",
+    )
+    parser.add_argument(
+        '--output_size',
+        dest="output_size",
+        default='',
+        help='The size of output. Separate multiple sizes with commas(,). E.g: 10200,34000',
+    )
+    parser.add_argument(
+        '--dym_shape_range',
+        dest="dym_shape_range",
+        default='',
+        help="Dynamic shape range using in dynamic model, using this means ignore input_shape."
+        " E.g: \"input_name1:1,3,200~224,224-230;input_name2:1,300\"",
+    )
+    parser.add_argument(
+        '-ofs',
+        '--onnx_fusion_switch',
+        dest="onnx_fusion_switch",
+        default=True,
+        help='Onnxruntime fusion switch, set False for dump complete onnx data when necessary. Usage: -ofs False',
+    )
+    parser.add_argument(
+        "--consistent_check",
+        dest="consistent_check",
+        action="store_true",
+        help="<optional> Whether to compare train and infer data.",
+        required=False,
+    )
+    parser.add_argument(
+        "--backend",
+        dest="backend",
+        type=str,
+        choices=["fsdp", "megatron"],
+        default="",
+        help="<optional> Backend when comparing train and infer data.",
+        required=False,
+    )
 
 
 def get_sorted_ranks(npu_dump_dir, bench_dump_dir):
@@ -736,12 +910,16 @@ def get_sorted_ranks(npu_dump_dir, bench_dump_dir):
     unsorted_npu_ranks = check_and_return_dir_contents(npu_dump_dir, 'rank', skip_wrong_dir=True)
     unsorted_bench_ranks = check_and_return_dir_contents(bench_dump_dir, 'rank', skip_wrong_dir=True)
     # 正则匹配已经校验rank后面必是数字，或者无数字的rank
-    npu_ranks = sorted(unsorted_npu_ranks, key=lambda x: int(x[4:]) if len(x) > 4 else -1)  # 前四个字符都是rank，后面是卡号
+    npu_ranks = sorted(
+        unsorted_npu_ranks, key=lambda x: int(x[4:]) if len(x) > 4 else -1
+    )  # 前四个字符都是rank，后面是卡号
     bench_ranks = sorted(unsorted_bench_ranks, key=lambda x: int(x[4:]) if len(x) > 4 else -1)
     if len(npu_ranks) != len(bench_ranks):
-        logger.error('The number of ranks in the two runs are different. '
-                     'Unable to match the ranks. Please use another folder to compare '
-                     'or use compare() api and manually match the ranks.')
+        logger.error(
+            'The number of ranks in the two runs are different. '
+            'Unable to match the ranks. Please use another folder to compare '
+            'or use compare() api and manually match the ranks.'
+        )
         raise CompareException(CompareException.INVALID_PATH_ERROR)
     return npu_ranks, bench_ranks
 
@@ -760,28 +938,22 @@ def multi_statistics_compare(func, func_args):
     else:
         chunk_size = param_num // process_num
         remainder = param_num % process_num
-        chunks = [input_param_nr_list[i:i + chunk_size] for i in range(0, param_num - remainder, chunk_size)]
+        chunks = [input_param_nr_list[i : i + chunk_size] for i in range(0, param_num - remainder, chunk_size)]
         for i in range(remainder):
             chunks[i].append(input_param_nr_list[param_num - remainder + i])
 
-    pool = multiprocessing.Pool(process_num)
+    with multiprocessing.Pool(process_num) as pool:
+        async_results = []
+        for chunk in chunks:
+            result = pool.apply_async(func, args=(compare_func, chunk, output_path, kwargs), error_callback=err_call)
+            async_results.append(result)
 
-    async_results = []
-    for chunk in chunks:
-        result = pool.apply_async(func, args=(compare_func, chunk, output_path, kwargs), error_callback=err_call)
-        async_results.append(result)
-
-    pool.close()
-
-    for ar in async_results:
-        try:
-            ar.get(timeout=3600)
-        except Exception as e:
-            logger.error(f"Task failed with exception: {e}")
-            pool.terminate()
-            raise CompareException(CompareException.MULTIPROCESS_ERROR) from e
-
-    pool.join()
+        for ar in async_results:
+            try:
+                ar.get(timeout=3600)
+            except Exception as e:
+                logger.error(f"Task failed with exception: {e}")
+                raise CompareException(CompareException.MULTIPROCESS_ERROR) from e
 
 
 def mp_logger_init(ranks_str):
@@ -834,7 +1006,7 @@ def compare_distributed_inner(npu_dump_dir, bench_dump_dir, output_path, **kwarg
         _input_param = {
             'npu_path': npu_path,
             'bench_path': bench_path,
-            'is_print_compare_log': kwargs.get('is_print_compare_log', False)
+            'is_print_compare_log': kwargs.get('is_print_compare_log', False),
         }
         return _input_param, False
 
@@ -882,9 +1054,11 @@ def compare_distributed_inner(npu_dump_dir, bench_dump_dir, output_path, **kwarg
         compare_framework = Const.PT_FRAMEWORK
     if compare_framework == Const.PT_FRAMEWORK:
         from msprobe.pytorch.compare.pt_compare import pt_compare
+
         compare_func = pt_compare
     elif compare_framework == Const.MS_FRAMEWORK:
         from msprobe.mindspore.compare.ms_compare import ms_compare
+
         compare_func = ms_compare
     else:
         logger.error(f"Unrecognized framework, now is {compare_framework}, please check dump.json.")
@@ -924,22 +1098,28 @@ def get_compare_framework(target_path, golden_path):
     golden_dump_json_content = load_json(golden_path)
     target_framework = target_dump_json_content.get("framework", None)
     if not target_framework:
-        logger.warning(f"Unable to get framework information from target dump.json, "
-                       f"default setting is {Const.PT_FRAMEWORK}.")
+        logger.warning(
+            f"Unable to get framework information from target dump.json, default setting is {Const.PT_FRAMEWORK}."
+        )
         target_framework = Const.PT_FRAMEWORK
     golden_framework = golden_dump_json_content.get("framework", None)
     if not golden_framework:
-        logger.warning(f"Unable to get framework information from golden dump.json, "
-                       f"default setting is {Const.PT_FRAMEWORK}.")
+        logger.warning(
+            f"Unable to get framework information from golden dump.json, default setting is {Const.PT_FRAMEWORK}."
+        )
         golden_framework = Const.PT_FRAMEWORK
     if target_framework == Const.PT_FRAMEWORK and golden_framework == Const.PT_FRAMEWORK:
         frame_name = Const.PT_FRAMEWORK
-    elif (target_framework in [Const.MS_FRAMEWORK, Const.MT_FRAMEWORK] and
-          golden_framework in [Const.PT_FRAMEWORK, Const.MS_FRAMEWORK]):
+    elif target_framework in [Const.MS_FRAMEWORK, Const.MT_FRAMEWORK] and golden_framework in [
+        Const.PT_FRAMEWORK,
+        Const.MS_FRAMEWORK,
+    ]:
         frame_name = Const.MS_FRAMEWORK
     else:
-        logger.error(f"Unrecognized framework, target now is {target_framework}, golden now is {golden_framework},"
-                     f" please check dump.json.")
+        logger.error(
+            f"Unrecognized framework, target now is {target_framework}, golden now is {golden_framework},"
+            f" please check dump.json."
+        )
         raise CompareException(CompareException.INVALID_TASK_ERROR)
     return frame_name
 
@@ -952,10 +1132,10 @@ def check_input_param_path_and_framework(args, target_framework):
 
     if target_framework == Const.PT_FRAMEWORK and not is_module_available("torch"):
         logger.error("PyTorch does not exist, please install PyTorch library")
-        raise Exception("PyTorch does not exist, please install PyTorch library")
+        raise ImportError("PyTorch does not exist, please install PyTorch library")
     if target_framework == Const.MS_FRAMEWORK and not is_module_available("mindspore"):
         logger.error("MindSpore does not exist, please install MindSpore library")
-        raise Exception("MindSpore does not exist, please install MindSpore library")
+        raise ImportError("MindSpore does not exist, please install MindSpore library")
 
 
 def split_tensors(data_name):
@@ -983,10 +1163,7 @@ def parse_op_data(obj):
             return parse_op_data(obj["value"])
 
         # 递归处理 key 和 value（key 很少需要，但更完整）
-        return {
-            parse_op_data(k): parse_op_data(v)
-            for k, v in obj.items()
-        }
+        return {parse_op_data(k): parse_op_data(v) for k, v in obj.items()}
 
     # 2. list
     elif isinstance(obj, list):
@@ -1012,7 +1189,7 @@ def load_pt_in_structure(obj, data_dirs, device):
     data_dir = data_dirs.get(device)
     if data_dir is None:
         return obj  # 没有对应设备的数据目录，返回原对象
-    
+
     def _load(obj):
         # 1. .pt 文件
         if isinstance(obj, str) and obj.endswith(FileCheckConst.PT_SUFFIX):
@@ -1022,21 +1199,81 @@ def load_pt_in_structure(obj, data_dirs, device):
             except Exception as e:
                 logger.error(f"Failed to load .pt file: {full_path} when extract dirty data valid length, error: {e}")
                 return None
-        
+
         # 2. dict
         elif isinstance(obj, dict):
             return {k: _load(v) for k, v in obj.items()}
-        
+
         # 3. list
         elif isinstance(obj, list):
             return [_load(item) for item in obj]
-        
+
         # 4. tuple
         elif isinstance(obj, tuple):
             return tuple(_load(item) for item in obj)
-        
+
         # 5. 其他
         else:
             return obj
-        
+
     return _load(obj)
+
+
+def validate_compare_numpy(n_value, b_value):
+    """校验比对张量：0‑d 张量与长度为 1 的张量不支持计算。"""
+    # 0‑d array: ndim == 0
+    if n_value.ndim == 0 or b_value.ndim == 0:
+        return CompareConst.UNSUPPORTED, "This is type of 0-d tensor, can not calculate"
+    if n_value.size == 0 or b_value.size == 0:
+        return CompareConst.UNSUPPORTED, "This is an empty tensor, can not calculate."
+    if n_value.size == 1 or b_value.size == 1:
+        return CompareConst.UNSUPPORTED, "This is a 1-d tensor of length 1."
+    return "", ""
+
+
+def flatten_compare_numpy(n_value, b_value):
+    """校验并将比对张量重塑为一维向量。"""
+    result, err = validate_compare_numpy(n_value, b_value)
+    if err:
+        return None, None, result, err
+
+    if not n_value.shape:  # 判断数据是否为0维tensor， 如果0维tensor，不会转成1维tensor，直接返回
+        if n_value.dtype == bool:
+            n_value = n_value.astype(float)
+            b_value = b_value.astype(float)
+        return n_value, b_value, result, err
+
+    n_value = n_value.reshape(-1).astype(float)  # 32转64为了防止某些数转dataframe时出现误差
+    b_value = b_value.reshape(-1).astype(float)
+    return n_value, b_value, result, err
+
+
+def get_relative_err(n_value, b_value):
+    """计算相对误差"""
+    with np.errstate(divide='ignore', invalid='ignore'):
+        if n_value.dtype not in CompareConst.FLOAT_TYPE:
+            n_value = n_value.astype(float)
+        if b_value.dtype not in CompareConst.FLOAT_TYPE:
+            b_value = b_value.astype(float)
+
+        n_value_copy = n_value.copy()
+        b_value_copy = b_value.copy()
+        zero_mask = b_value_copy == 0
+
+        result_type = np.result_type(n_value_copy, b_value_copy, np.float32)
+        n = n_value_copy.astype(result_type)
+        b = b_value_copy.astype(result_type)
+        epsilon = np.finfo(result_type).eps
+        n[zero_mask] += epsilon
+        b[zero_mask] += epsilon
+        relative_err = np.abs(np.divide((n - b), b))
+
+    return relative_err
+
+
+def calc_err_ratio(relative_err, threshold):
+    """计算小于阈值的占比，返回格式化后的值。"""
+    total = relative_err.size
+    count = np.sum(relative_err < threshold)
+    ratio = count / total
+    return format_value(ratio)

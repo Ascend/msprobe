@@ -15,12 +15,69 @@
 # -------------------------------------------------------------------------
 
 # pylint: disable=too-many-lines
-
+from __future__ import annotations
 
 import os
 import stat
 
 import numpy as np
+from typing import Callable, Generic, TypeVar, Any, List, Dict
+import threading
+
+_T = TypeVar("_T")
+
+
+class LazyConst(Generic[_T]):
+    """懒求值的常量"""
+
+    def __init__(self, factory: Callable[[], _T]) -> None:
+        if isinstance(factory, staticmethod):
+            factory = factory.__func__
+        self.factory: Callable[[], _T] = factory
+        self._value: _T | None = None
+        self._initialized: bool = False
+        self._lock = threading.RLock()
+
+    def __get__(self, instance: Any | None, owner: type[Any]) -> _T:
+        if not self._initialized:
+            with self._lock:
+                if not self._initialized:
+                    self._value = self.factory()
+                    self._initialized = True
+        return self._value
+
+
+_KT = TypeVar("_KT")
+_VT = TypeVar("_VT")
+
+
+class LazyDict(dict, Generic[_KT, _VT]):
+    """按 key 懒求值的字典"""
+
+    _factories: Dict[_KT, Callable[[], _VT]]
+
+    def __init__(self, factories: Dict[_KT, Callable[[], _VT]]) -> None:
+        self._factories = factories
+        super().__init__()
+        self._lock = threading.RLock()
+
+    def __getitem__(self, key: _KT) -> _VT:
+        if key in self:
+            return super().__getitem__(key)
+
+        with self._lock:
+            if key not in self and key in self._factories:
+                self[key] = self._factories[key]()
+            return super().__getitem__(key)
+
+    def get(self, key: _KT, default: _VT = None) -> _VT:
+        if key in self:
+            return super().get(key, default)
+
+        with self._lock:
+            if key not in self and key in self._factories:
+                self[key] = self._factories[key]()
+            return super().get(key, default)
 
 
 class Const:  # pylint: disable=too-many-lines
@@ -695,7 +752,7 @@ class CompareConst:
     VERL_HYPER_PARAM_COMPARE_COLUM = [HYPER_PARAM_NAME, NPU_EFFECTIVE_VALUE, BENCH_EFFECTIVE_VALUE, IS_CONSISTENT]
     VERL_HYPER_PARAM_VERIFY_COLUM = [KEY_PARAM_NAME, BENCH_EFFECTIVE_VALUE, TARGET_EFFECTIVE_VALUE, IS_CONSISTENT]
 
-    ALL_COMPARE_INDEX = [
+    BUILTIN_COMPARE_COLUMNS = [
         COSINE,
         EUC_DIST,
         MAX_ABS_ERR,
@@ -703,6 +760,17 @@ class CompareConst:
         ONE_THOUSANDTH_ERR_RATIO,
         FIVE_THOUSANDTHS_ERR_RATIO,
     ]
+
+    @staticmethod
+    def _get_custom_compare_index() -> List[str]:
+        from msprobe.core.compare.algorithm.algorithm_scheduler import AlgorithmScheduler
+
+        algorithm_columns = AlgorithmScheduler.get_instance().get_algorithm_column_names()
+        exist_compare_cols = [c for c in CompareConst.BUILTIN_COMPARE_COLUMNS if c in algorithm_columns]
+        rest_columns = [col for col in algorithm_columns if col not in exist_compare_cols]
+        return exist_compare_cols + rest_columns
+
+    ALL_COMPARE_INDEX = LazyConst(_get_custom_compare_index)
     SUMMARY_COMPARE_INDEX = [
         MAX_DIFF,
         MIN_DIFF,
@@ -737,23 +805,32 @@ class CompareConst:
         BENCH_NORM,
     ]
 
-    COMPARE_RESULT_HEADER = BASIC_INFO + ALL_COMPARE_INDEX + SUMMARY_INFO + EXTRACT_INDEX
+    COMPARE_RESULT_HEADER = LazyConst(
+        lambda: (
+            CompareConst.BASIC_INFO
+            + CompareConst.ALL_COMPARE_INDEX
+            + CompareConst.SUMMARY_INFO
+            + CompareConst.EXTRACT_INDEX
+        )
+    )
 
     SUMMARY_COMPARE_RESULT_HEADER = BASIC_INFO + SUMMARY_COMPARE_INDEX + SUMMARY_INFO + EXTRACT_INDEX
 
     MD5_COMPARE_RESULT_HEADER = BASIC_INFO + [NPU_MD5, BENCH_MD5] + EXTRACT_INDEX
 
-    COMPARE_RESULT_HEADER_STACK = COMPARE_RESULT_HEADER + [STACK]
+    COMPARE_RESULT_HEADER_STACK = LazyConst(lambda: CompareConst.COMPARE_RESULT_HEADER + [CompareConst.STACK])
 
     SUMMARY_COMPARE_RESULT_HEADER_STACK = SUMMARY_COMPARE_RESULT_HEADER + [STACK]
 
     MD5_COMPARE_RESULT_HEADER_STACK = MD5_COMPARE_RESULT_HEADER + [STACK]
 
-    HEAD_OF_COMPARE_MODE = {
-        Const.ALL: COMPARE_RESULT_HEADER,
-        Const.SUMMARY: SUMMARY_COMPARE_RESULT_HEADER,
-        Const.MD5: MD5_COMPARE_RESULT_HEADER,
-    }
+    HEAD_OF_COMPARE_MODE: LazyDict[str, list[str]] = LazyDict(
+        {
+            Const.ALL: lambda: CompareConst.COMPARE_RESULT_HEADER,
+            Const.SUMMARY: lambda: CompareConst.SUMMARY_COMPARE_RESULT_HEADER,
+            Const.MD5: lambda: CompareConst.MD5_COMPARE_RESULT_HEADER,
+        }
+    )
 
     # dtype match
 
