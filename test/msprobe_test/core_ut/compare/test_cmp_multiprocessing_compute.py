@@ -113,15 +113,11 @@ class TestCompareRealData(unittest.TestCase):
         cross_frame = False
         compare_real_data = CompareRealData(file_reader, mode_config, cross_frame)
 
-        comparison_result = ComparisonResult(
-            cos_result=[0.99, 0.98],
-            max_err_result=[0.01, 0.02],
-            max_relative_err_result=[0.001, 0.002],
-            euc_dist_result=[0.5, 0.49],
-            one_thousand_err_ratio_result=[0.1, 0.2],
-            five_thousand_err_ratio_result=[0.05, 0.1],
-            err_msgs=['', 'Error in comparison']
-        )
+        results = {CompareConst.COSINE: [0.99, 0.98], CompareConst.MAX_ABS_ERR: [0.01, 0.02],
+                   CompareConst.MAX_RELATIVE_ERR: [0.001, 0.002], CompareConst.EUC_DIST: [0.5, 0.49],
+                   CompareConst.ONE_THOUSANDTH_ERR_RATIO: [0.1, 0.2], CompareConst.FIVE_THOUSANDTHS_ERR_RATIO: [0.05, 0.1]}
+        comparison_result = ComparisonResult(results, ['', 'Error in comparison'])
+
         offset = 0
         updated_df = compare_real_data._save_cmp_result(offset, comparison_result, self.result_df, self.lock)
 
@@ -135,18 +131,13 @@ class TestCompareRealData(unittest.TestCase):
         cross_frame = False
         compare_real_data = CompareRealData(file_reader, mode_config, cross_frame)
 
-        comparison_result = ComparisonResult(
-            cos_result=[0.99],
-            max_err_result=[],
-            max_relative_err_result=[0.001],
-            euc_dist_result=[0.5],
-            one_thousand_err_ratio_result=[0.1],
-            five_thousand_err_ratio_result=[0.05],
-            err_msgs=['']
-        )
+        results = {CompareConst.COSINE: [0.99], CompareConst.MAX_ABS_ERR: [0.98],
+                   CompareConst.MAX_RELATIVE_ERR: [0.001], CompareConst.EUC_DIST: [0.5],
+                   CompareConst.ONE_THOUSANDTH_ERR_RATIO: [0.1], CompareConst.FIVE_THOUSANDTHS_ERR_RATIO: [0.05]}
+        comparison_result = ComparisonResult(results, [""])
         with self.assertRaises(CompareException) as context:
             compare_real_data._save_cmp_result(0, comparison_result, self.result_df, self.lock)
-        self.assertEqual(context.exception.code, CompareException.INDEX_OUT_OF_BOUNDS_ERROR)
+        self.assertEqual(context.exception.code, CompareException.INVALID_DATA_ERROR)
 
     def test_compare_by_op_bench_normal(self):
         npu_op_name = 'Functional.linear.0.forward.input.0'

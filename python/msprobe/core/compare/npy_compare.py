@@ -15,15 +15,15 @@
 # -------------------------------------------------------------------------
 
 
-import abc
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
-from msprobe.core.common.const import Const, CompareConst
+from msprobe.core.common.const import CompareConst
 from msprobe.core.common.log import logger
-from msprobe.core.common.utils import CompareException, format_value
+from msprobe.core.common.utils import CompareException
+from msprobe.core.compare.algorithm.algorithm_scheduler import AlgorithmScheduler
 
 
 @dataclass
@@ -68,19 +68,6 @@ def handle_inf_nan(n_value, b_value):
             b_value[b_nan] = 0
         else:
             return CompareConst.NAN, CompareConst.NAN
-    return n_value, b_value
-
-
-def reshape_value(n_value, b_value):
-    """返回reshape后的数据"""
-    if not n_value.shape:  # 判断数据是否为0维tensor， 如果0维tensor，不会转成1维tensor，直接返回
-        if n_value.dtype == bool:
-            n_value = n_value.astype(float)
-            b_value = b_value.astype(float)
-        return n_value, b_value
-
-    n_value = n_value.reshape(-1).astype(float)  # 32转64为了防止某些数转dataframe时出现误差
-    b_value = b_value.reshape(-1).astype(float)
     return n_value, b_value
 
 
@@ -138,137 +125,6 @@ def statistics_data_check(result_dict):
     return error_flag, error_message
 
 
-class TensorComparisonBasic(abc.ABC):
-    """NPU和bench中npy数据的比较模板"""
-
-    @abc.abstractmethod
-    def apply(self, n_value, b_value, relative_err, err_msg):
-        raise NotImplementedError
-
-
-def get_relative_err(n_value, b_value):
-    """计算相对误差"""
-    with np.errstate(divide='ignore', invalid='ignore'):
-        if n_value.dtype not in CompareConst.FLOAT_TYPE:
-            n_value = n_value.astype(float)
-        if b_value.dtype not in CompareConst.FLOAT_TYPE:
-            b_value = b_value.astype(float)
-
-        n_value_copy = n_value.copy()
-        b_value_copy = b_value.copy()
-        zero_mask = b_value_copy == 0
-
-        result_type = np.result_type(n_value_copy, b_value_copy, np.float32)
-        n = n_value_copy.astype(result_type)
-        b = b_value_copy.astype(result_type)
-        epsilon = np.finfo(result_type).eps
-        n[zero_mask] += epsilon
-        b[zero_mask] += epsilon
-        relative_err = np.abs(np.divide((n - b), b))
-
-    return relative_err
-
-
-class GetCosineSimilarity(TensorComparisonBasic):
-    """计算cosine相似度"""
-
-    @staticmethod
-    def correct_data(result):
-        if result == CompareConst.NAN:
-            return result
-        if float(result) > CompareConst.COSINE_THRESHOLD:
-            return round(float(result), 6)
-        return result
-
-    def apply(self, n_value, b_value, relative_err, err_msg):
-        if "This is type of 0-d tensor" in err_msg:
-            return CompareConst.UNSUPPORTED, err_msg
-
-        with np.errstate(divide="ignore", invalid="ignore"):
-            if len(n_value) == 1:
-                return CompareConst.UNSUPPORTED, "This is a 1-d tensor of length 1."
-            num = n_value.dot(b_value)
-            a_norm = np.linalg.norm(n_value)
-            b_norm = np.linalg.norm(b_value)
-
-            if a_norm <= Const.FLOAT_EPSILON and b_norm <= Const.FLOAT_EPSILON:
-                return 1.0, ""
-            if a_norm <= Const.FLOAT_EPSILON:
-                return CompareConst.NAN, "Cannot compare by Cosine Similarity, All the data is Zero in npu dump data."
-            if b_norm <= Const.FLOAT_EPSILON:
-                return CompareConst.NAN, "Cannot compare by Cosine Similarity, All the data is Zero in Bench dump data."
-
-            cos = num / (a_norm * b_norm)
-            if np.isnan(cos):
-                return CompareConst.NAN, "Cannot compare by Cosine Similarity, the dump data has NaN."
-            result = format_value(cos)
-            result = self.correct_data(result)
-        return result, ""
-
-
-class GetEuclideanDistance(TensorComparisonBasic):
-    """计算欧氏距离"""
-
-    def apply(self, n_value, b_value, relative_err, err_msg):
-        if "This is type of 0-d tensor" in err_msg:
-            return CompareConst.UNSUPPORTED, err_msg
-
-        distance = np.linalg.norm(n_value - b_value, ord=2)
-
-        return distance, ""
-
-
-class GetMaxAbsErr(TensorComparisonBasic):
-    """计算最大绝对误差"""
-
-    def apply(self, n_value, b_value, relative_err, err_msg):
-        temp_res = n_value - b_value
-        max_value = np.max(np.abs(temp_res))
-        if np.isnan(max_value):
-            msg = "Cannot compare by MaxAbsError, the data contains nan/inf/-inf in dump data."
-            return CompareConst.NAN, msg
-        return format_value(max_value), ""
-
-
-class GetMaxRelativeErr(TensorComparisonBasic):
-    """计算最大相对误差"""
-
-    def apply(self, n_value, b_value, relative_err, err_msg):
-        max_relative_err = np.max(np.abs(relative_err))
-        if np.isnan(max_relative_err):
-            msg = "Cannot compare by MaxRelativeError, the data contains nan/inf/-inf in dump data."
-            return CompareConst.NAN, msg
-        return format_value(max_relative_err), ""
-
-
-class GetErrRatio(TensorComparisonBasic):
-    """计算相对误差小于指定阈值(千分之一、千分之五)的比例"""
-
-    def __init__(self, threshold):
-        self.threshold = threshold
-
-    def apply(self, n_value, b_value, relative_err, err_msg):
-        if "This is type of 0-d tensor" in err_msg:
-            return CompareConst.UNSUPPORTED, err_msg
-
-        if not np.size(relative_err):
-            return CompareConst.NAN, ""
-
-        ratio = np.sum(relative_err < self.threshold) / np.size(relative_err)
-        return format_value(ratio), ""
-
-
-class CompareOps:
-    compare_ops = {
-        "cosine_similarity": GetCosineSimilarity(),
-        "euclidean_distance": GetEuclideanDistance(),
-        "max_abs_error": GetMaxAbsErr(),
-        "max_relative_error": GetMaxRelativeErr(),
-        "one_thousand_err_ratio": GetErrRatio(CompareConst.THOUSAND_RATIO_THRESHOLD),
-        "five_thousand_err_ratio": GetErrRatio(CompareConst.FIVE_THOUSAND_RATIO_THRESHOLD),
-    }
-
-
 def error_value_process(n_value):
     if n_value in [
         CompareConst.READ_NONE,
@@ -285,22 +141,16 @@ def error_value_process(n_value):
     return CompareConst.N_A, ""
 
 
-def compare_ops_apply(n_value, b_value, error_flag, err_msg):
-    result_list = []
+def compare_ops_apply(n_value, b_value, error_flag, err_msg, column_names=None):
+    if not column_names:
+        column_names = CompareConst.BUILTIN_COMPARE_COLUMNS
     if error_flag:
         result, msg = error_value_process(n_value)
-        result_list = [result] * len(CompareOps.compare_ops)
+        result_list = [result] * len(column_names)
         err_msg += msg
         return result_list, err_msg
-
-    relative_err = get_relative_err(n_value, b_value)
-    n_value, b_value = reshape_value(n_value, b_value)
-
-    for op in CompareOps.compare_ops.values():
-        result, msg = op.apply(n_value, b_value, relative_err, err_msg)
-        result_list.append(result)
-        err_msg += msg
-    return result_list, err_msg
+    results, err_msgs = AlgorithmScheduler.get_instance().compare(n_value, b_value, column_names=column_names)
+    return results, err_msg + "".join(err_msgs)
 
 
 class ValidateTensor:

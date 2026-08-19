@@ -17,7 +17,7 @@
 import math
 import json
 from msprobe.core.common.const import CompareConst, Const
-from msprobe.visualization.utils import ToolTip, GraphConst, str2float
+from msprobe.visualization.utils import ToolTip, GraphConst
 
 
 class ModeAdapter:
@@ -74,8 +74,7 @@ class ModeAdapter:
             headers = CompareConst.COMPARE_RESULT_HEADER
         ModeAdapter._add_compare_data(node.input_data, compare_data_dict, key_list, headers)
         ModeAdapter._add_compare_data(node.output_data, compare_data_dict, key_list, headers)
-        precision_index = GraphConst.COMPARE_INDICATOR_TO_PRECISION_INDEX_MAPPING.get(api_indicator,
-                                                                                      CompareConst.PASS)
+        precision_index = GraphConst.COMPARE_INDICATOR_TO_PRECISION_INDEX_MAPPING.get(api_indicator, CompareConst.PASS)
         precision_index = self._ignore_precision_index(node.id, precision_index)
         return precision_index
 
@@ -102,16 +101,14 @@ class ModeAdapter:
                 CompareConst.MAX_DIFF: ToolTip.MAX_DIFF,
                 CompareConst.MIN_DIFF: ToolTip.MIN_DIFF,
                 CompareConst.MEAN_DIFF: ToolTip.MEAN_DIFF,
-                CompareConst.NORM_DIFF: ToolTip.NORM_DIFF}
+                CompareConst.NORM_DIFF: ToolTip.NORM_DIFF,
+            }
         elif self.compare_mode == GraphConst.MD5_COMPARE:
             tips = {Const.MD5: ToolTip.MD5}
         else:
-            tips = {
-                CompareConst.ONE_THOUSANDTH_ERR_RATIO: ToolTip.ONE_THOUSANDTH_ERR_RATIO,
-                CompareConst.FIVE_THOUSANDTHS_ERR_RATIO: ToolTip.FIVE_THOUSANDTHS_ERR_RATIO,
-                CompareConst.COSINE: ToolTip.COSINE,
-                CompareConst.MAX_ABS_ERR: ToolTip.MAX_ABS_ERR,
-                CompareConst.MAX_RELATIVE_ERR: ToolTip.MAX_RELATIVE_ERR}
+            # tips 前端已经不展示，全部设置为""
+            algorithm_columns = CompareConst.ALL_COMPARE_INDEX
+            tips = {col: "" for col in algorithm_columns}
         return json.dumps(tips)
 
     def _ignore_precision_index(self, node_id, precision_index):

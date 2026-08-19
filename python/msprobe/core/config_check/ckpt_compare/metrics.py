@@ -17,8 +17,6 @@
 import numpy as np
 
 from msprobe.core.common.log import logger
-from msprobe.core.compare.npy_compare import CompareOps
-
 
 
 def in_different_shape(a, b):
@@ -51,9 +49,9 @@ def cos_sim(a, b):
     b_norm = np.linalg.norm(b)
 
     if a_norm == 0 and b_norm == 0:
-        return 1.
+        return 1.0
     if a_norm == 0 or b_norm == 0:
-        logger.warning(f'One tensor norm is zero.')
+        logger.warning('One tensor norm is zero.')
         return None
 
     sim = num / (a_norm * b_norm)
@@ -76,9 +74,4 @@ def shape(a, b):
     return list(a.shape)
 
 
-METRIC_FUNC = {
-    'l2': l2_distance, 
-    'cos': cos_sim, 
-    'numel': numel, 
-    'shape': shape
-    }
+METRIC_FUNC = {'l2': l2_distance, 'cos': cos_sim, 'numel': numel, 'shape': shape}

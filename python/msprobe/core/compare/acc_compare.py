@@ -1627,15 +1627,8 @@ class CalcStatsDiff:
             result_df.loc[~condition_no_bench, [CompareConst.RESULT, CompareConst.ERROR_MESSAGE]] = ''
             result_df.loc[~condition_req_grad_consist, CompareConst.ERROR_MESSAGE] += 'Requires_grad inconsistent. '
         else:
-            fill_cols = [
-                CompareConst.COSINE,
-                CompareConst.EUC_DIST,
-                CompareConst.MAX_ABS_ERR,
-                CompareConst.MAX_RELATIVE_ERR,
-                CompareConst.ONE_THOUSANDTH_ERR_RATIO,
-                CompareConst.FIVE_THOUSANDTHS_ERR_RATIO,
-                CompareConst.ERROR_MESSAGE,
-            ]
+            fill_cols = CompareConst.ALL_COMPARE_INDEX.copy()
+            fill_cols.append(CompareConst.ERROR_MESSAGE)
             result_df.loc[~condition_no_bench, fill_cols] = (
                 ''  # 默认填充'', df默认省缺值为nan，不便后续处理，容易出现意外情况
             )

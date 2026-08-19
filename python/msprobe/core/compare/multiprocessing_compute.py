@@ -17,7 +17,7 @@
 import multiprocessing
 from dataclasses import dataclass
 from functools import partial
-from typing import Any
+from typing import Any, Dict, List
 
 import pandas as pd
 from tqdm import tqdm
@@ -34,13 +34,13 @@ from msprobe.core.compare.tensor_postprocess.processor import TensorPostprocessM
 
 @dataclass
 class ComparisonResult:
-    cos_result: list
-    euc_dist_result: list
-    max_err_result: list
-    max_relative_err_result: list
-    one_thousand_err_ratio_result: list
-    five_thousand_err_ratio_result: list
-    err_msgs: list
+    results: Dict[str, List[str]]  # 列名 -> 结果列表
+    err_msgs: List[str]  # 错误信息列表
+
+    @classmethod
+    def create_empty(cls, column_names: List[str], size: int) -> "ComparisonResult":
+        results = {name: [""] * size for name in column_names}
+        return cls(results=results, err_msgs=[""] * size)
 
 
 @dataclass
@@ -151,19 +151,19 @@ class CompareRealData:
 
         lock.acquire()
         try:
-            for i, cos_item in enumerate(result.cos_result):
-                process_index = i + offset
-                result_df.loc[process_index, CompareConst.COSINE] = cos_item
-                result_df.loc[process_index, CompareConst.EUC_DIST] = result.euc_dist_result[i]
-                result_df.loc[process_index, CompareConst.MAX_ABS_ERR] = result.max_err_result[i]
-                result_df.loc[process_index, CompareConst.MAX_RELATIVE_ERR] = result.max_relative_err_result[i]
-                result_df.loc[process_index, CompareConst.ONE_THOUSANDTH_ERR_RATIO] = (
-                    result.one_thousand_err_ratio_result
-                )[i]
-                result_df.loc[process_index, CompareConst.FIVE_THOUSANDTHS_ERR_RATIO] = (
-                    result.five_thousand_err_ratio_result
-                )[i]
-                result_df.loc[process_index, CompareConst.ERROR_MESSAGE] += result.err_msgs[i]
+            slice_len = len(next(iter(result.results.values()), []))
+            slice_loc = slice(offset, offset + slice_len)
+
+            # 批量赋值算法列
+            for col_name, algo_results in result.results.items():
+                result_df.loc[slice_loc, col_name] = algo_results
+
+            # 错误消息处理
+            err_len = len(result.err_msgs)
+            err_slice = slice(offset, offset + err_len)
+
+            target_index = result_df.loc[err_slice].index
+            result_df.loc[err_slice, CompareConst.ERROR_MESSAGE] += pd.Series(result.err_msgs, index=target_index)
             return result_df
         except ValueError as e:
             logger.error('result dataframe is not found.')
@@ -288,7 +288,13 @@ class CompareRealData:
         构建最终的对比结果
         负责调用指标计算函数，并补充模糊匹配提示信息。
         """
-        result_list, err_msg = compare_ops_apply(result.n_value, result.b_value, result.error_flag, result.err_msg)
+        result_list, err_msg = compare_ops_apply(
+            result.n_value,
+            result.b_value,
+            result.error_flag,
+            result.err_msg,
+            column_names=CompareConst.ALL_COMPARE_INDEX,
+        )
         npu_op_name = npu_info.op_name
         bench_op_name = bench_info.op_name
         if self.mode_config.fuzzy_match and npu_op_name != bench_op_name and bench_op_name != CompareConst.N_A:
@@ -297,13 +303,9 @@ class CompareRealData:
         return result_list
 
     def compare_ops(self, idx, dump_path_dict, result_df, lock, input_param):
-        cos_result = []
-        euc_dist_result = []
-        max_err_result = []
-        max_relative_err_result = []
-        one_thousand_err_ratio_result = []
-        five_thousand_err_ratio_result = []
-        err_mess = []
+        columns_names = CompareConst.ALL_COMPARE_INDEX
+        size = len(result_df)
+        comparison_result = ComparisonResult.create_empty(columns_names, size)
 
         is_print_compare_log = input_param.get("is_print_compare_log")
 
@@ -326,47 +328,25 @@ class CompareRealData:
             if is_print_compare_log:
                 logger.info("start compare: {}".format(npu_op_name))
 
-            (
-                cos_sim,
-                euc_dist,
-                max_abs_err,
-                max_relative_err,
-                one_thousand_err_ratio,
-                five_thousand_err_ratio,
-                err_msg,
-            ) = self.compare_by_op(npu_info, bench_info, input_param)
-
+            compare_result = self.compare_by_op(npu_info, bench_info, input_param)
+            err_msg = compare_result[-1]
             if is_print_compare_log:
                 if "does not have data file" in err_msg:
                     logger.info(f"[{npu_op_name}] Compare result: {err_msg} ")
                 elif "Bench api/module unmatched" in err_msg:
                     logger.info(f"[{npu_op_name}] Compare result: {err_msg} ")
                 else:
-                    logger.info(
-                        f"[{npu_op_name}] Compare result: cosine {cos_sim}, euc_dist {euc_dist}, "
-                        f"max_abs_err {max_abs_err}, max_relative_err {max_relative_err}, "
-                        f"one_thousand_err_ratio {one_thousand_err_ratio}, "
-                        f"five_thousand_err_ratio {five_thousand_err_ratio}, {err_msg}"
-                    )
-            cos_result.append(cos_sim)
-            euc_dist_result.append(euc_dist)
-            max_err_result.append(max_abs_err)
-            max_relative_err_result.append(max_relative_err)
-            one_thousand_err_ratio_result.append(one_thousand_err_ratio)
-            five_thousand_err_ratio_result.append(five_thousand_err_ratio)
-            err_mess.append(err_msg)
+                    log_parts = []
+                    for column_idx, column_name in enumerate(columns_names):
+                        log_parts.append(f"{column_name} {compare_result[column_idx]}")
+                    log_parts.append(err_msg)
+                    logger.info(f"[{npu_op_name}] Compare result: {', '.join(log_parts)}")
 
-        cr = ComparisonResult(
-            cos_result=cos_result,
-            euc_dist_result=euc_dist_result,
-            max_err_result=max_err_result,
-            max_relative_err_result=max_relative_err_result,
-            one_thousand_err_ratio_result=one_thousand_err_ratio_result,
-            five_thousand_err_ratio_result=five_thousand_err_ratio_result,
-            err_msgs=err_mess,
-        )
+            for column_idx, column_name in enumerate(columns_names):
+                comparison_result.results[column_name][i] = compare_result[column_idx]
+            comparison_result.err_msgs[i] = err_msg
 
-        return self._save_cmp_result(idx, cr, result_df, lock)
+        return self._save_cmp_result(idx, comparison_result, result_df, lock)
 
     def do_multi_process(self, input_param, result_df):
         try:

@@ -17,10 +17,10 @@
 import os
 import re
 import json
-import pickle
+import pickle  # nosec B403
 import time
 from msprobe.core.common.file_utils import FileOpen, find_proc_dir
-from msprobe.core.common.const import CompareConst, Const
+from msprobe.core.common.const import LazyConst, CompareConst, Const
 from msprobe.core.common.log import logger
 from msprobe.core.common.exceptions import MsprobeException
 from msprobe.core.compare.utils import check_and_return_dir_contents
@@ -117,9 +117,11 @@ def check_directory_content(input_path):
     if step_all:
         return GraphConst.STEPS
 
-    raise ValueError("The input path content does not conform to the expected naming convention. "
-                     "It is expected to be all step{number} named folders (such as step0), "
-                     "all rank{number} named folders (such as rank0), or all files.")
+    raise ValueError(
+        "The input path content does not conform to the expected naming convention. "
+        "It is expected to be all step{number} named folders (such as step0), "
+        "all rank{number} named folders (such as rank0), or all files."
+    )
 
 
 def extract_rank_number(rank_str):
@@ -141,34 +143,52 @@ def load_parallel_param(args):
         raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
 
     if not args.golden_path and len(args.rank_size) != 1:
-        logger.error('In the graph merge build task, '
-                     'the number of parameters "rank_size" to be filled in is either 1!')
+        logger.error('In the graph merge build task, the number of parameters "rank_size" to be filled in is either 1!')
         raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
 
     if args.golden_path and len(args.rank_size) != 2:
-        logger.error('In the graph merge compare task, '
-                     'the number of parameters "rank_size" to be filled in is either 2!')
+        logger.error(
+            'In the graph merge compare task, the number of parameters "rank_size" to be filled in is either 2!'
+        )
         raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
 
     if len(args.rank_size) == 1:
         if any(len(x) != 1 for x in param_t):
-            logger.error('In the graph merge build task, '
-                         'the number of parameters "tp/pp/rank_size" to be filled in is either 1!')
+            logger.error(
+                'In the graph merge build task, the number of parameters "tp/pp/rank_size" to be filled in is either 1!'
+            )
             raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
 
-        param_n = ParallelParam(args.rank_size[0], args.tp[0], args.pp[0], args.vpp[0] if args.vpp else 1,
-                                args.order[0] if args.order else 'tp-cp-ep-dp-pp')
+        param_n = ParallelParam(
+            args.rank_size[0],
+            args.tp[0],
+            args.pp[0],
+            args.vpp[0] if args.vpp else 1,
+            args.order[0] if args.order else 'tp-cp-ep-dp-pp',
+        )
         return (param_n,)
     else:
         if any(len(x) != 2 for x in param_t):
-            logger.error('In the graph merge compare task, '
-                         'the number of parameters "tp/pp/rank_size" to be filled in is either 2!')
+            logger.error(
+                'In the graph merge compare task, '
+                'the number of parameters "tp/pp/rank_size" to be filled in is either 2!'
+            )
             raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
 
-        param_n = ParallelParam(args.rank_size[0], args.tp[0], args.pp[0], args.vpp[0] if len(args.vpp) == 2 else 1,
-                                args.order[0] if len(args.order) == 2 else 'tp-cp-ep-dp-pp')
-        param_b = ParallelParam(args.rank_size[1], args.tp[1], args.pp[1], args.vpp[1] if len(args.vpp) == 2 else 1,
-                                args.order[1] if len(args.order) == 2 else 'tp-cp-ep-dp-pp')
+        param_n = ParallelParam(
+            args.rank_size[0],
+            args.tp[0],
+            args.pp[0],
+            args.vpp[0] if len(args.vpp) == 2 else 1,
+            args.order[0] if len(args.order) == 2 else 'tp-cp-ep-dp-pp',
+        )
+        param_b = ParallelParam(
+            args.rank_size[1],
+            args.tp[1],
+            args.pp[1],
+            args.vpp[1] if len(args.vpp) == 2 else 1,
+            args.order[1] if len(args.order) == 2 else 'tp-cp-ep-dp-pp',
+        )
         return param_n, param_b
 
 
@@ -177,8 +197,10 @@ def validate_parallel_param(parallel_param, dump_path, log_prefix='[NPU]'):
     params = [parallel_param.tp, parallel_param.pp, parallel_param.rank_size, parallel_param.vpp]
     ranks = check_and_return_dir_contents(dump_path, Const.RANK)
     if len(ranks) != parallel_param.rank_size:
-        logger.error(f'{log_prefix} The parallel param "rank_size" error, '
-                     f'you set {parallel_param.rank_size} but expected {len(ranks)}.')
+        logger.error(
+            f'{log_prefix} The parallel param "rank_size" error, '
+            f'you set {parallel_param.rank_size} but expected {len(ranks)}.'
+        )
         raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
     if any(x is None for x in params):
         logger.error(f'{log_prefix} The parallel params "tp/pp/rank_size" must not be null!')
@@ -233,8 +255,12 @@ class ToolTip:
     MEAN_DIFF = 'NPU与标杆API统计信息比对，平均值的差值'
     NORM_DIFF = 'NPU与标杆API统计信息比对，2范数（平方根）的差值'
     MD5 = '数据MD5信息，用于比较两个数据信息是否完全一致'
-    ONE_THOUSANDTH_ERR_RATIO = 'Tensor中的元素逐个与对应的标杆数据对比，相对误差小于千分之一的比例占总元素个数的比例，比例越接近1越好'
-    FIVE_THOUSANDTHS_ERR_RATIO = 'Tensor中的元素逐个与对应的标杆数据对比，相对误差小于千分之五的比例占总元素个数的比例，比例越接近1越好'
+    ONE_THOUSANDTH_ERR_RATIO = (
+        'Tensor中的元素逐个与对应的标杆数据对比，相对误差小于千分之一的比例占总元素个数的比例，比例越接近1越好'
+    )
+    FIVE_THOUSANDTHS_ERR_RATIO = (
+        'Tensor中的元素逐个与对应的标杆数据对比，相对误差小于千分之五的比例占总元素个数的比例，比例越接近1越好'
+    )
     COSINE = (
         '通过计算两个向量的余弦值来判断其相似度，数值越接近于1说明计算出的两个张量越相似，实际可接受阈值为大于0.99。'
         '在计算中可能会存在nan，主要由于可能会出现其中一个向量为0'
@@ -272,12 +298,20 @@ class GraphConst:
     INPUT = '.input.'
     OUTPUT = '.output.'
     STR_MAX_LEN = 50
-    MD5_INDEX_LIST = CompareConst.MD5_COMPARE_INDEX + [CompareConst.REQ_GRAD_CONSIST, CompareConst.RESULT,
-                                                       CompareConst.ERROR_MESSAGE]
-    REAL_DATA_INDEX_LIST = CompareConst.ALL_COMPARE_INDEX + [CompareConst.REQ_GRAD_CONSIST, CompareConst.RESULT,
-                                                             CompareConst.ERROR_MESSAGE]
-    SUMMARY_INDEX_LIST = CompareConst.SUMMARY_COMPARE_INDEX + [CompareConst.REQ_GRAD_CONSIST, CompareConst.RESULT,
-                                                               CompareConst.ERROR_MESSAGE]
+    MD5_INDEX_LIST = CompareConst.MD5_COMPARE_INDEX + [
+        CompareConst.REQ_GRAD_CONSIST,
+        CompareConst.RESULT,
+        CompareConst.ERROR_MESSAGE,
+    ]
+    REAL_DATA_INDEX_LIST = LazyConst(
+        lambda: CompareConst.ALL_COMPARE_INDEX
+        + [CompareConst.REQ_GRAD_CONSIST, CompareConst.RESULT, CompareConst.ERROR_MESSAGE]
+    )
+    SUMMARY_INDEX_LIST = CompareConst.SUMMARY_COMPARE_INDEX + [
+        CompareConst.REQ_GRAD_CONSIST,
+        CompareConst.RESULT,
+        CompareConst.ERROR_MESSAGE,
+    ]
     APIS_BETWEEN_MODULES = 'Apis_Between_Modules'
     APIS_BETWEEN_MODULES_ALL_RANKS = 'Apis_Between_Modules_All_Ranks'
     NULL = 'null'
@@ -294,20 +328,20 @@ class GraphConst:
         Const.ALL: REAL_DATA_COMPARE,
         Const.SUMMARY: SUMMARY_COMPARE,
         Const.MD5: MD5_COMPARE,
-        Const.STRUCTURE: STRUCTURE_COMPARE
+        Const.STRUCTURE: STRUCTURE_COMPARE,
     }
 
     GRAPHCOMPARE_MODE_TO_DUMP_MODE_TO_MAPPING = {
         REAL_DATA_COMPARE: Const.ALL,
         SUMMARY_COMPARE: Const.SUMMARY,
         MD5_COMPARE: Const.MD5,
-        STRUCTURE_COMPARE: Const.STRUCTURE
+        STRUCTURE_COMPARE: Const.STRUCTURE,
     }
 
     COMPARE_INDICATOR_TO_PRECISION_INDEX_MAPPING = {
         CompareConst.PASS: 0,
         CompareConst.WARNING: 0.5,
-        CompareConst.ERROR: 1
+        CompareConst.ERROR: 1,
     }
 
     RANKS = 'ranks'
@@ -325,8 +359,14 @@ class GraphConst:
     UNCERTAINTY_THRESHOLD = 1e-6
     REDUCE_OPERATIONS = ['reduce_scatter', 'all_reduce']
 
-    IGNORE_PRECISION_INDEX = {'empty', 'empty_like', 'empty_with_format', 'new_empty_strided', 'new_empty',
-                              'empty_strided'}
+    IGNORE_PRECISION_INDEX = {
+        'empty',
+        'empty_like',
+        'empty_with_format',
+        'new_empty_strided',
+        'new_empty',
+        'empty_strided',
+    }
     VPP_CHUNK_0 = '0'
 
     PBAR_TOTAL = 100
@@ -365,12 +405,15 @@ def calculate_list(path_n, path_b, prefix_str=Const.RANK, mode=GraphConst.INTERS
     计算列表，可取交集、并集
     """
     if prefix_str not in [Const.RANK, Const.STEP]:
-        logger.error(f'Parameter "prefix_str" is expected to be {Const.RANK} or {Const.STEP}, '
-                     f'but in reality it is {prefix_str}.')
+        logger.error(
+            f'Parameter "prefix_str" is expected to be {Const.RANK} or {Const.STEP}, but in reality it is {prefix_str}.'
+        )
         raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
     if mode not in [GraphConst.INTERSECTION, GraphConst.UNION]:
-        logger.error(f'Parameter "mode" is expected to be {GraphConst.INTERSECTION} or {GraphConst.UNION}, '
-                     f'but in reality it is {mode}.')
+        logger.error(
+            f'Parameter "mode" is expected to be {GraphConst.INTERSECTION} or {GraphConst.UNION}, '
+            f'but in reality it is {mode}.'
+        )
         raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
 
     npu_list = check_and_return_dir_contents(path_n, prefix_str, skip_wrong_dir=True)
@@ -404,6 +447,7 @@ class ProgressInfo:
     """
     前端监测此类属性获取进度信息
     """
+
     current_progress = 0
     process_running = True
     error_msg = []
@@ -458,8 +502,9 @@ def monitor_progress(pbar_info, pbar, all_task_ids, is_parallel_merge=False):
         task_progress[task_id] = 0
     # 图合并模式，总进度卡99%，剩余的1%给db后处理函数; 否则总进度卡98%，剩余的1%给db后处理函数，1%给分布式节点分析关联
     global POST_DB_PROCESS
-    POST_DB_PROCESS = pbar_info.total - pbar_info.step_total if is_parallel_merge \
-        else pbar_info.total - 2 * pbar_info.step_total
+    POST_DB_PROCESS = (
+        pbar_info.total - pbar_info.step_total if is_parallel_merge else pbar_info.total - 2 * pbar_info.step_total
+    )
     all_complete = False
 
     while not all_complete:
@@ -513,7 +558,7 @@ def update_pbar_info(pbar_info, current_data, total_data, step_ratio=0.01, updat
         return
 
     progress = (current_data * pbar_info.total // total_data) // pbar_info.stage_total
-    progress += (pbar_info.stage_progress * (pbar_info.current_stage_dict.get(pbar_info.task_id) - 1))
+    progress += pbar_info.stage_progress * (pbar_info.current_stage_dict.get(pbar_info.task_id) - 1)
     if pbar_info.pbar is not None:
         if progress == pbar_info.total:
             # 卡99%，剩余的1%给db后处理函数

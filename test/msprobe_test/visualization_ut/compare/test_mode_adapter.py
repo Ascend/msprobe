@@ -81,9 +81,6 @@ class TestModeAdapter(unittest.TestCase):
 
         self.adapter.compare_mode = GraphConst.REAL_DATA_COMPARE
         tips = self.adapter.get_tool_tip()
-        self.assertEqual(tips, json.dumps({
-            CompareConst.ONE_THOUSANDTH_ERR_RATIO: ToolTip.ONE_THOUSANDTH_ERR_RATIO,
-            CompareConst.FIVE_THOUSANDTHS_ERR_RATIO: ToolTip.FIVE_THOUSANDTHS_ERR_RATIO,
-            CompareConst.COSINE: ToolTip.COSINE,
-            CompareConst.MAX_ABS_ERR: ToolTip.MAX_ABS_ERR,
-            CompareConst.MAX_RELATIVE_ERR: ToolTip.MAX_RELATIVE_ERR}))
+        algorithm_columns = CompareConst.ALL_COMPARE_INDEX
+        expect_tips = {col: "" for col in algorithm_columns}
+        self.assertEqual(tips, json.dumps(expect_tips))

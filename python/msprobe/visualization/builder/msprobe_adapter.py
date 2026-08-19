@@ -29,7 +29,7 @@ from msprobe.core.compare.utils import (
 )
 from msprobe.core.common.utils import set_dump_path, get_dump_mode
 from msprobe.visualization.utils import GraphConst
-from msprobe.core.common.const import Const, CompareConst
+from msprobe.core.common.const import LazyConst, Const, CompareConst
 from msprobe.core.compare.indicator_analysis.calculator import calculate_result
 from msprobe.core.common.file_utils import FileChecker, FileCheckConst
 from msprobe.core.common.log import BaseLogger, logger
@@ -240,7 +240,7 @@ class MatchedNodeCalculator:
     功能：用户在前端选择NPU和Bench节点匹配，前端会查询db数据打包发送到此类，此类进行精度指标的计算，最终返回结果给前端
     """
 
-    TENSOR_COMPARE_INDEX = CompareConst.ALL_COMPARE_INDEX + CompareConst.EXTRACT_INDEX
+    TENSOR_COMPARE_INDEX = LazyConst(lambda: CompareConst.ALL_COMPARE_INDEX + CompareConst.EXTRACT_INDEX)
     STATISTICS_COMPARE_INDEX = CompareConst.SUMMARY_COMPARE_INDEX + CompareConst.EXTRACT_INDEX
 
     _RESP_SUCCESS = "success"
@@ -272,17 +272,10 @@ class MatchedNodeCalculator:
             Const.REQ_GRAD: (CompareConst.NPU_REQ_GRAD, CompareConst.BENCH_REQ_GRAD),
             Const.MD5: (CompareConst.NPU_MD5, CompareConst.BENCH_MD5),
         }
+        algorithm_columns = CompareConst.ALL_COMPARE_INDEX
+        compare_result_header = CompareConst.COMPARE_RESULT_HEADER
         self.tensor_indicators_index = {
-            CompareConst.COSINE: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.COSINE),
-            CompareConst.EUC_DIST: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.EUC_DIST),
-            CompareConst.MAX_ABS_ERR: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.MAX_ABS_ERR),
-            CompareConst.MAX_RELATIVE_ERR: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.MAX_RELATIVE_ERR),
-            CompareConst.ONE_THOUSANDTH_ERR_RATIO: CompareConst.COMPARE_RESULT_HEADER.index(
-                CompareConst.ONE_THOUSANDTH_ERR_RATIO
-            ),
-            CompareConst.FIVE_THOUSANDTHS_ERR_RATIO: CompareConst.COMPARE_RESULT_HEADER.index(
-                CompareConst.FIVE_THOUSANDTHS_ERR_RATIO
-            ),
+            col_name: compare_result_header.index(col_name) for col_name in algorithm_columns
         }
         self.extra_tensor_indicators_index = {
             CompareConst.REQ_GRAD_CONSIST: CompareConst.COMPARE_RESULT_HEADER.index(CompareConst.REQ_GRAD_CONSIST),
