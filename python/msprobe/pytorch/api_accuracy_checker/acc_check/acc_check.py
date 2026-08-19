@@ -15,6 +15,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 import argparse
 import os
@@ -58,6 +59,7 @@ from msprobe.core.common.file_utils import FileChecker, create_directory, get_js
 from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.dump.pt_config import parse_json_config
 from msprobe.core.common.const import Const, FileCheckConst, CompareConst
+from msprobe.core.common.cli_help import MindStudioArgumentParser
 from msprobe.core.common.utils import safe_get_value, CompareException, is_int, check_op_str_pattern_valid
 from msprobe.core.common.output_postprocess.processor import postprocess_output, should_postprocess_output
 from msprobe.pytorch.common.utils import seed_all
@@ -474,7 +476,7 @@ def preprocess_forward_content(forward_content):
 
 def _acc_check(parser=None):
     if not parser:
-        parser = argparse.ArgumentParser()
+        parser = MindStudioArgumentParser(prog="acc_check")
     _acc_check_parser(parser)
     args = parser.parse_args(sys.argv[1:])
     acc_check_command(args)

@@ -40,7 +40,7 @@ MAKESELF_DIR=${TOP_DIR}/opensource/makeself
 # footnote for creating run package
 CREATE_RUN_SCRIPT=${MAKESELF_DIR}/makeself.sh
 
-# footnote for controling params
+# footnote for controlling params
 CONTROL_PARAM_SCRIPT=${MAKESELF_DIR}/makeself-header.sh
 
 # store run package
@@ -226,4 +226,3 @@ function main() {
 parse_script_args "$@"
 
 main
-

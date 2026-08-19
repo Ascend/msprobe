@@ -32,12 +32,14 @@ from msprobe.infer.offline.compare.msquickcmp.main import _offline_dump_parser, 
 from msprobe.core.install_deps.install_deps import _install_deps_parser, install_deps_cli
 from msprobe.core.parse.parse_cli import _parse_parser, parse_cli
 from msprobe.core.common.logo import CliLogo
+from msprobe.core.common.cli_help import MindStudioArgumentParser
 
 
 def main():
     CliLogo().print_logo()
 
-    parser = argparse.ArgumentParser(
+    parser = MindStudioArgumentParser(
+        prog="msprobe",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="msprobe(mindstudio probe), [Powered by MindStudio].\n"
         "A full-process, all-scenario precision tool base on Ascend products.\n"
@@ -45,7 +47,7 @@ def main():
     )
 
     parser.set_defaults(print_help=parser.print_help)
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(parser_class=MindStudioArgumentParser)
 
     compare_parser = subparsers.add_parser('compare')
     _compare_parser(compare_parser)

@@ -15,8 +15,9 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
-import argparse
+import math
 import os
 import sys
 
@@ -32,13 +33,14 @@ import torch
 from tqdm import tqdm
 from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check import generate_device_params, get_api_info
 from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check_utils import exec_api, is_unsupported_api, ExecParams
-from msprobe.core.common.file_utils import check_link, FileChecker
+from msprobe.core.common.file_utils import FileChecker
 from msprobe.pytorch.api_accuracy_checker.common.utils import extract_basic_api_segments
 from msprobe.core.common.const import FileCheckConst, Const
 from msprobe.core.common.utils import check_op_str_pattern_valid
 from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.common.parse_json import parse_json_info_forward_backward
 from msprobe.core.common.decorator import recursion_depth_decorator
+from msprobe.core.common.cli_help import MindStudioArgumentParser
 
 
 def check_tensor_overflow(x):
@@ -49,21 +51,10 @@ def check_tensor_overflow(x):
         else:
             tensor_max = torch.max(x).cpu().detach().float().numpy().tolist()
             tensor_min = torch.min(x).cpu().detach().float().numpy().tolist()
-        # inf
-        if tensor_max == float('inf') or tensor_min == float('-inf'):
-            return True
-        # nan
-        elif tensor_max != tensor_max or tensor_min != tensor_min:
-            return True
-        else:
-            return False
-    elif isinstance(x, bool) or isinstance(x, int) or isinstance(x, float):
-        if x == float('inf') or x == float('-inf') or x != x:
-            return True
-        else:
-            return False
-    else:
-        return False
+        return any(math.isinf(value) or math.isnan(value) for value in (tensor_max, tensor_min))
+    if isinstance(x, (bool, float, int)):
+        return math.isinf(x) or math.isnan(x)
+    return False
 
 
 @recursion_depth_decorator("check_data_overflow")
@@ -104,14 +95,19 @@ def run_overflow_check(forward_file):
         except Exception as err:
             _, api_name, _ = api_full_name.split(Const.SEP)
             if "not implemented for 'Half'" in str(err):
-                logger.warning(f"API {api_name} not support half tensor in CPU. This API does not support overflow "
-                               "check, so it will be skipped.")
+                logger.warning(
+                    f"API {api_name} not support half tensor in CPU. This API does not support overflow "
+                    "check, so it will be skipped."
+                )
             elif "expected scalar type Long" in str(err):
-                logger.warning(f"API {api_name} not support int32 tensor in CPU, please add {api_name} to CONVERT_API "
-                               "'int32_to_int64' list in accuracy_tools/msprobe/core/common/const.py file.")
+                logger.warning(
+                    f"API {api_name} not support int32 tensor in CPU, please add {api_name} to CONVERT_API "
+                    "'int32_to_int64' list in accuracy_tools/msprobe/core/common/const.py file."
+                )
             elif "could not create a primitive descriptor for a matmul primitive" in str(err):
-                logger.warning(f"API {api_name} not support matmul primitive in CPU due to pytorch bug, "
-                               "so it will be skipped.")
+                logger.warning(
+                    f"API {api_name} not support matmul primitive in CPU due to pytorch bug, so it will be skipped."
+                )
             else:
                 logger.error(f"Run {api_full_name} acc_check Error: %s" % str(err))
 
@@ -121,8 +117,9 @@ def run_torch_api(api_full_name, api_info_dict, real_data_path):
     api_type, api_name = extract_basic_api_segments(api_full_name)
     args, kwargs, need_grad = get_api_info(api_info_dict, api_name, real_data_path)
     if not need_grad:
-        logger.warning("%s function with out=... arguments don't support automatic differentiation, skip backward." 
-                       % api_full_name)
+        logger.warning(
+            "%s function with out=... arguments don't support automatic differentiation, skip backward." % api_full_name
+        )
     device_info_kwargs = kwargs.get(Const.DEVICE)
     if device_info_kwargs and device_info_kwargs.get(Const.VALUE):
         kwargs[Const.DEVICE] = current_device
@@ -137,8 +134,9 @@ def run_torch_api(api_full_name, api_info_dict, real_data_path):
         logger.warning("The %s overflow is a normal overflow, out and npu_out is None." % api_full_name)
         return
     if is_bool_output(out) or is_bool_output(npu_out):
-        logger.warning("The output of %s is bool type.This dtype not support overflow, so it will be skipped."
-                       % api_full_name)
+        logger.warning(
+            "The output of %s is bool type.This dtype not support overflow, so it will be skipped." % api_full_name
+        )
         return
 
     cpu_overflow = check_data_overflow(out, Const.CPU_LOWERCASE)
@@ -151,19 +149,36 @@ def run_torch_api(api_full_name, api_info_dict, real_data_path):
 
 
 def _run_overflow_check_parser(parser):
-    parser.add_argument("-api_info", "--api_info_file", dest="api_info_file", default="",
-                        help="<Required> The api param tool result file: generate from api param tool, "
-                             "a json file.",
-                        required=True)
-    parser.add_argument("-j", "--jit_compile", dest="jit_compile", help="<optional> whether to turn on jit compile",
-                        default=False, required=False)
-    parser.add_argument("-d", "--device", dest="device_id", type=int, help="<optional> set NPU device id to acc_check",
-                        default=0, required=False)
+    parser.add_argument(
+        "-api_info",
+        "--api_info_file",
+        dest="api_info_file",
+        default="",
+        help="<Required> The api param tool result file: generate from api param tool, a json file.",
+        required=True,
+    )
+    parser.add_argument(
+        "-j",
+        "--jit_compile",
+        dest="jit_compile",
+        help="<optional> whether to turn on jit compile",
+        default=False,
+        required=False,
+    )
+    parser.add_argument(
+        "-d",
+        "--device",
+        dest="device_id",
+        type=int,
+        help="<optional> set NPU device id to acc_check",
+        default=0,
+        required=False,
+    )
 
 
 def _run_overflow_check(parser=None):
     if not parser:
-        parser = argparse.ArgumentParser()
+        parser = MindStudioArgumentParser(prog="run_overflow_check")
     _run_overflow_check_parser(parser)
     args = parser.parse_args(sys.argv[1:])
     _run_overflow_check_command(args)
@@ -173,8 +188,12 @@ def _run_overflow_check(parser=None):
 def _run_overflow_check_command(args):
     torch.npu.set_compile_mode(jit_compile=args.jit_compile)
     npu_device = "npu:" + str(args.device_id)
-    api_info_file_checker = FileChecker(file_path=args.api_info_file, path_type=FileCheckConst.FILE, 
-                                            ability=FileCheckConst.READ_ABLE, file_type=FileCheckConst.JSON_SUFFIX)
+    api_info_file_checker = FileChecker(
+        file_path=args.api_info_file,
+        path_type=FileCheckConst.FILE,
+        ability=FileCheckConst.READ_ABLE,
+        file_type=FileCheckConst.JSON_SUFFIX,
+    )
     api_info = api_info_file_checker.common_check()
     try:
         torch.npu.set_device(npu_device)

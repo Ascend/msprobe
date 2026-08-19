@@ -19,7 +19,6 @@
 import subprocess  # nosec
 import os
 import sys
-import argparse
 import time
 import signal
 import threading
@@ -38,6 +37,7 @@ from msprobe.core.common.file_utils import FileChecker, create_directory, load_j
 from msprobe.core.common.file_utils import remove_path
 from msprobe.core.common.const import FileCheckConst, Const
 from msprobe.core.common.utils import CompareException
+from msprobe.core.common.cli_help import MindStudioArgumentParser
 
 
 def split_json_file(input_file, num_splits, filter_api):
@@ -269,7 +269,7 @@ def prepare_config(args):
 def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    parser = argparse.ArgumentParser(description='Run acc_check in parallel')
+    parser = MindStudioArgumentParser(prog="multi_acc_check", description='Run acc_check in parallel')
     _acc_check_parser(parser)
     parser.add_argument(
         '-n',

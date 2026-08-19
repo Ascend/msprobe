@@ -13,11 +13,11 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 import os
 import sys
 import math
-import argparse
 import ast
 import heapq
 from abc import ABC
@@ -26,8 +26,14 @@ from typing import List
 
 from msprobe.core.common.const import MonitorConst
 from msprobe.core.common.log import logger
-from msprobe.core.common.file_utils import save_json, create_directory, remove_path, \
-    check_file_or_directory_path, load_json
+from msprobe.core.common.cli_help import MindStudioArgumentParser
+from msprobe.core.common.file_utils import (
+    save_json,
+    create_directory,
+    remove_path,
+    check_file_or_directory_path,
+    load_json,
+)
 
 
 class ScanRule(ABC):
@@ -64,7 +70,6 @@ class AnomalyNan(ScanRule):
 
 
 class AnomalyScanner:
-
     @staticmethod
     def load_rules(specs: List[dict]):
         """
@@ -119,8 +124,7 @@ class AnomalyDataFactory(ABC):
         self.name2callid = {}
 
     def set_call_id(self, name2callid):
-        """根据当前GradContext信息更新call_id vpp_stage等信息
-        """
+        """根据当前GradContext信息更新call_id vpp_stage等信息"""
         self.name2callid = name2callid
 
     def create(self, tag, message, step):
@@ -140,15 +144,7 @@ class AnomalyDataFactory(ABC):
             vpp_stage = 0
 
         return GradAnomalyData(
-            self.rank,
-            step,
-            self.micro_step,
-            self.pp_stage,
-            vpp_stage,
-            call_id,
-            tag_name,
-            message,
-            self.group_mates
+            self.rank, step, self.micro_step, self.pp_stage, vpp_stage, call_id, tag_name, message, self.group_mates
         )
 
 
@@ -304,11 +300,7 @@ class AnomalyAnalyse:
         if not step_list:
             filtered_anomalies = anomalies
         else:
-            filtered_anomalies = [
-                anomaly
-                for anomaly in anomalies
-                if anomaly.step in step_list
-            ]
+            filtered_anomalies = [anomaly for anomaly in anomalies if anomaly.step in step_list]
         if topk >= len(filtered_anomalies):
             self.sorted_anomalies = sorted(filtered_anomalies)
         else:
@@ -336,9 +328,9 @@ def _get_step_and_stop(args):
         if not isinstance(step_list, list):
             raise ValueError(f"{args.step_list} is not a list.")
     except (ValueError, SyntaxError, RecursionError) as e:
-        raise Exception(f"The step list must be a resolvable list type.") from e
+        raise ValueError("The step list must be a resolvable list type.") from e
     if args.top_k_number <= 0:
-        raise Exception("The top k number must be greater than 0.")
+        raise ValueError("The top k number must be greater than 0.")
     return step_list, args.top_k_number
 
 
@@ -348,12 +340,8 @@ def _anomaly_analyse():
     loader = AnomalyDataLoader(args.data_path_dir)
     anomalies = loader.get_anomalies_from_jsons()
     analyser = AnomalyAnalyse()
-    top_anomalies = analyser.get_range_top_k(
-        top_k_number, step_list, anomalies
-    )
-    analyser.rewrite_sorted_anomalies(
-        args.out_path if args.out_path else args.data_path_dir
-    )
+    top_anomalies = analyser.get_range_top_k(top_k_number, step_list, anomalies)
+    analyser.rewrite_sorted_anomalies(args.out_path if args.out_path else args.data_path_dir)
 
     logger.info(f"Top {top_k_number} anomalies are listed as follows:")
     for index, anomaly in enumerate(top_anomalies):
@@ -361,23 +349,44 @@ def _anomaly_analyse():
 
 
 def _get_parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-d", "--data_path", dest="data_path_dir", default="./", type=str,
-                        help="<Required> The anomaly detect result dictionary: generate from monitor tool.",
-                        required=True,
-                        )
-    parser.add_argument("-o", "--out_path", dest="out_path", default="", type=str,
-                        help="<optional> The analyse task result out path.",
-                        required=False,
-                        )
-    parser.add_argument("-k", "--topk", dest="top_k_number", default=8, type=int,
-                        help="<optional> Top K number of earliest anomalies.",
-                        required=False,
-                        )
-    parser.add_argument("-s", "--step", dest="step_list", default="[]", type=str,
-                        help="<optional> Analyse which steps.",
-                        required=False,
-                        )
+    parser = MindStudioArgumentParser(prog="anomaly_processor")
+    parser.add_argument(
+        "-d",
+        "--data_path",
+        dest="data_path_dir",
+        default="./",
+        type=str,
+        metavar="<DIR>",
+        help="<Required> The anomaly detect result dictionary: generate from monitor tool.",
+        required=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--out_path",
+        dest="out_path",
+        default="",
+        type=str,
+        help="<optional> The analyse task result out path.",
+        required=False,
+    )
+    parser.add_argument(
+        "-k",
+        "--topk",
+        dest="top_k_number",
+        default=8,
+        type=int,
+        help="<optional> Top K number of earliest anomalies.",
+        required=False,
+    )
+    parser.add_argument(
+        "-s",
+        "--step",
+        dest="step_list",
+        default="[]",
+        type=str,
+        help="<optional> Analyse which steps.",
+        required=False,
+    )
     return parser.parse_args(sys.argv[1:])
 
 

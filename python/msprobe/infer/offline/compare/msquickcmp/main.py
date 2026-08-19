@@ -45,6 +45,7 @@ def _offline_dump_parser(parser):
         '--model_path',
         required=True,
         dest="model_path",
+        metavar="<FILE>",
         type=check_model_path_legality,
         help='The original model .onnx or .om file path',
     )

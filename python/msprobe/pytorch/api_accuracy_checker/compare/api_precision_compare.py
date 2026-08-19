@@ -16,7 +16,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-import argparse
 import os
 import sys
 from collections import namedtuple
@@ -44,6 +43,7 @@ from msprobe.core.common.file_utils import FileChecker, create_directory
 from msprobe.pytorch.common.log import logger
 from msprobe.core.common.utils import CompareException, check_op_str_pattern_valid
 from msprobe.core.common.const import Const, CompareConst, FileCheckConst
+from msprobe.core.common.cli_help import MindStudioArgumentParser
 
 CompareConfig = namedtuple('CompareConfig', ['npu_csv_path', 'gpu_csv_path', 'result_csv_path', 'details_csv_path'])
 BenchmarkInfNanConsistency = namedtuple(
@@ -429,7 +429,7 @@ def record_thousandth_threshold_result(input_data):
 
 def _api_precision_compare(parser=None):
     if not parser:
-        parser = argparse.ArgumentParser()
+        parser = MindStudioArgumentParser(prog="api_precision_compare")
     _api_precision_compare_parser(parser)
     args = parser.parse_args(sys.argv[1:])
     _api_precision_compare_command(args)

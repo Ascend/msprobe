@@ -11,7 +11,7 @@ from msprobe.msprobe import main
 
 
 class TestMsprobeMain(TestCase):
-    @patch("msprobe.msprobe.argparse.ArgumentParser")
+    @patch("msprobe.msprobe.MindStudioArgumentParser")
     def test_main_when_no_args_then_pass(self, mock_arg_parser):
         parser_instance = MagicMock()
         subparsers_instance = MagicMock()

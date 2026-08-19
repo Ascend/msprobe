@@ -16,7 +16,6 @@
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import re
@@ -26,13 +25,15 @@ from dataclasses import dataclass
 from functools import lru_cache
 from transformers import AutoTokenizer
 from msprobe.core.common.file_utils import check_path_exists, save_json
+from msprobe.core.common.cli_help import MindStudioArgumentParser
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="")
+    parser = MindStudioArgumentParser(prog="gen_model_config")
     parser.add_argument(
         "--model-path",
         required=True,
+        metavar="<DIR>",
         help="Path of the model for starting the service.",
     )  # 目标模型路径
     parser.add_argument("--model-name", default=None, type=str)  # 保存的文件名以及mtype_config.json文件里对应的key
