@@ -348,6 +348,16 @@ msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 1 
 
 > 以上所有示例中，target_path和golden_path格式必须满足[分级可视化构图所需dump文件落盘格式](#分级可视化构图所需dump文件落盘格式)的多rank格式或多step格式
 
+### 自定义比对算法
+
+某些场景下，内置的比对算法无法满足业务诉求，用户可以自定义算法进行比对。
+
+> [!NOTE]
+>
+> 仅在**真实数据模式**下生效（即 dump 时 config.json 中 `task` 配置为 `"tensor"`）。统计数据模式和 MD5 模式下不生效，用户自定义比对算法Python文件只能用来进行精度比对，文件安全性和传入参数的安全性由用户保证。
+
+请参见[PyTorch场景精度比对自定义比对算法场景](./pytorch_accuracy_compare_instruct.md#自定义比对算法场景)的配置方式完成比对算法自定义，之后再使用本节分级可视化命令对dump的数据进行可视化构建。
+
 ## 启动TensorBoard
 
 ### 可直连的服务器

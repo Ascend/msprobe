@@ -278,6 +278,53 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 5. 查看比对结果，请参见 [精度比对结果分析](#精度比对结果分析)。
 
+#### 自定义比对算法场景
+
+某些场景下，内置的比对算法无法满足业务诉求，用户可以自定义算法进行比对。
+
+> [!NOTE]
+>
+> 仅在**真实数据模式**下生效（即 dump 时 config.json 中 `task` 配置为 `"tensor"`）。统计数据模式和 MD5 模式下不生效。 用户自定义比对算法Python文件只能用来进行精度比对，文件安全性和传入参数的安全性由用户保证。
+
+配置方式：
+
+1. 通过如下命令找到msprobe安装路径：
+
+   ```shell
+   python -c "import msprobe, os; print(os.path.dirname(msprobe.__file__))"
+   ```
+
+2. 进入`core/compare/algorithm/custom_algorithm`目录（相对msprobe安装路径），创建.py格式文件。
+
+   - .py文件命名需满足规则：“alg_{algorithm_name}.py”，其中，algorithm_name为算法名，算法名只能包含数字、小写字母和_。
+   - .py文件内容需要满足以下规则：
+
+      ```python
+      import torch
+      def column_name() -> str: # 算法结果展示的列名，需要保证唯一
+          # 以下为示例
+          return "MaxAbsError"
+   
+      def compare(n_value: torch.Tensor, b_value: torch.Tensor): # 进行比对的算法实现
+          # 以下为示例
+          diff = torch.abs(n_value - b_value)
+          max_abs = diff.max()
+          return max_abs.item(), ""
+      ```
+   
+      **参数说明**
+   
+      | 参数名          | 说明                             |
+      |--------------|--------------------------------|
+      | n_value      | target_path侧对应的单条数据，类型是`torch.Tensor`  |
+      | b_value      | golden_path侧对应的单条数据, 类型是`torch.Tensor` |
+
+      **返回值说明**
+      
+      返回二元组 (result, err_msg)
+      - result：算法比对结果，支持`int`、`float`、`str`三种类型；
+      - err_msg：错误信息字符串，算法执行无错误时返回空字符串""；若非空，框架将视为算法执行异常并展示该错误信息。   
+
 ### 输出说明
 
 比对完成则打印提示信息：msprobe compare ends successfully.
