@@ -96,6 +96,7 @@ class ModuleProcessor:
     module_with_backward_hook = {}
     enable_module_dump = False
     is_megatron_module = False
+    module_dump_level = None  # level from config, used to decide if module-level dump should run
 
     def __init__(self, scope, load_config=None):
         self.scope = scope if isinstance(scope, (ModuleRangeScope, MixRangeScope)) else None
@@ -261,6 +262,11 @@ class ModuleProcessor:
                     args, kwargs = self.tensor_loader.override_args(full_forward_name, args, kwargs)
                 # tensor_loader active but dump not running: return after override
                 if not Runtime.is_running:
+                    return (args, kwargs) if torch_version_above_or_equal_2 else args
+                # load only needs forward_pre_hook for override, not for module-level dump.
+                # If level is not L0/mix, skip module-level dump logic to avoid collecting
+                # module-level data in L1 scenarios.
+                if ModuleProcessor.module_dump_level not in [Const.LEVEL_L0, Const.LEVEL_MIX]:
                     return (args, kwargs) if torch_version_above_or_equal_2 else args
             else:
                 # original path: no override, check Runtime first

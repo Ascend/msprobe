@@ -111,6 +111,7 @@ class PytorchService(BaseService):
 
     def _register_module_hook(self):
         ModuleProcessor.enable_module_dump = True
+        ModuleProcessor.module_dump_level = self.config.level
         self.module_processor.register_module_hook(self.model, self.build_hook)
         self.logger.info_on_rank_0(f"The module {self.config.task} hook function is successfully mounted to the model.")
 
