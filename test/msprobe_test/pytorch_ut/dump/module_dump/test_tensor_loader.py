@@ -108,7 +108,7 @@ class TestTensorLoaderBuildPath(unittest.TestCase):
         self.assertEqual(path, expected)
 
     def test_auto_step_rank(self):
-        """When src_step/src_rank are empty list, uses current_step/current_rank."""
+        """step/rank always use current_step/current_rank (auto-align to current step/rank)."""
         cfg = FakeLoadConfig(self.tmpdir, ["m"])
         loader = TensorLoader(cfg)
         loader.update_step_rank(3, 2)
@@ -117,15 +117,51 @@ class TestTensorLoaderBuildPath(unittest.TestCase):
         self.assertIn("step3", path)
         self.assertIn("rank2", path)
 
-    def test_explicit_step_rank_overrides_current(self):
-        """src_step/src_rank (non-empty list) take priority over current_step/current_rank."""
+    def test_step_rank_always_auto_align(self):
+        """Even when load.step/rank are non-empty, _build_pt_path uses current step/rank.
+        load.step/rank only controls which steps/ranks are active, not the source step/rank."""
         cfg = FakeLoadConfig(self.tmpdir, ["m"], step=[5], rank=[7])
         loader = TensorLoader(cfg)
         loader.update_step_rank(3, 2)
         ffn = "Module.head.Linear.forward.0"
         path = loader._build_pt_path(ffn, Const.INPUT, 0)
-        self.assertIn("step5", path)
-        self.assertIn("rank7", path)
+        self.assertIn("step3", path)
+        self.assertIn("rank2", path)
+
+    def test_active_when_step_in_range(self):
+        """load.step=[0, 1]: current step 0 is in range, active should be True."""
+        cfg = FakeLoadConfig(self.tmpdir, ["m"], step=[0, 1])
+        loader = TensorLoader(cfg)
+        loader.update_step_rank(0, 0)
+        self.assertTrue(loader.active)
+
+    def test_inactive_when_step_not_in_range(self):
+        """load.step=[0]: current step 1 is not in range, active should be False."""
+        cfg = FakeLoadConfig(self.tmpdir, ["m"], step=[0])
+        loader = TensorLoader(cfg)
+        loader.update_step_rank(1, 0)
+        self.assertFalse(loader.active)
+
+    def test_active_when_step_empty(self):
+        """load.step=[] (default): active should be True for any step."""
+        cfg = FakeLoadConfig(self.tmpdir, ["m"])
+        loader = TensorLoader(cfg)
+        loader.update_step_rank(99, 0)
+        self.assertTrue(loader.active)
+
+    def test_active_when_rank_in_range(self):
+        """load.rank=[0]: current rank 0 is in range, active should be True."""
+        cfg = FakeLoadConfig(self.tmpdir, ["m"], rank=[0])
+        loader = TensorLoader(cfg)
+        loader.update_step_rank(0, 0)
+        self.assertTrue(loader.active)
+
+    def test_inactive_when_rank_not_in_range(self):
+        """load.rank=[0]: current rank 1 is not in range, active should be False."""
+        cfg = FakeLoadConfig(self.tmpdir, ["m"], rank=[0])
+        loader = TensorLoader(cfg)
+        loader.update_step_rank(0, 1)
+        self.assertFalse(loader.active)
 
     def test_single_card_proc_dir(self):
         """Single-card: rank=None, source dump uses proc{pid} dir, load auto-discovers it."""

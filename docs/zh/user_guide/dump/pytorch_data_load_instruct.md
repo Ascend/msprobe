@@ -160,8 +160,8 @@ load功能与dump的`level`配置解耦：
 |------|----------|------|
 | path | 必选 | 源dump目录路径，str类型，需包含`step{N}/rank{M}/dump_tensor_data/`目录结构。 |
 | modules | 必选 | 要覆盖的模块条目名列表，list[str]类型。条目名与dump产出的`.pt`文件名前缀一致，格式为`Module.{path}.{ClassName}.forward.{N}`。详细介绍请参见[modules参数配置说明](#modules参数配置说明)。 |
-| step | 可选 | 指定从源dump的哪个step加载数据，list类型，格式与dump的`step`参数一致（如`[0]`、`["0-2"]`）。默认为空，表示自动对齐当前step。详细介绍请参见[step/rank参数配置说明](#steprank参数配置说明)。 |
-| rank | 可选 | 指定从源dump的哪个rank加载数据，list类型，格式与dump的`rank`参数一致。默认为空，表示自动对齐当前rank。详细介绍请参见[step/rank参数配置说明](#steprank参数配置说明)。 |
+| step | 可选 | 指定哪些step进行load，list类型，格式与dump的`step`参数一致（如`[0]`、`["0-2"]`）。默认为空，表示每个step都进行load。加载时从源dump的对应step自动对齐。详细介绍请参见[step/rank参数配置说明](#steprank参数配置说明)。 |
+| rank | 可选 | 指定哪些rank进行load，list类型，格式与dump的`rank`参数一致。默认为空，表示每个rank都进行load。加载时从源dump的对应rank自动对齐。详细介绍请参见[step/rank参数配置说明](#steprank参数配置说明)。 |
 | dump_after_load | 可选 | 是否在覆盖后继续执行dump采集，bool类型。`false`表示只覆盖不dump，`true`表示覆盖后继续dump，默认为`false`。 |
 
 #### modules参数配置说明
@@ -183,11 +183,11 @@ Module.{dotted_path}.{ClassName}.forward.{N}
 
 #### step/rank参数配置说明
 
-`load.step`和`load.rank`为list类型，格式与dump的`step`/`rank`参数一致，支持整数、单个数字字符串和范围字符串。
+`load.step`和`load.rank`为list类型，格式与dump的`step`/`rank`参数一致，支持整数、单个数字字符串和范围字符串。用于控制哪些step/rank进行load，加载时始终从源dump的对应step/rank自动对齐。
 
-- 空列表`[]`（默认）：自动对齐当前训练的step/rank，即当前跑到step N就从源dump的step N加载。
-- 非空列表如`[0]`：固定从源dump的step 0加载，不随当前step变化。
-- 范围字符串如`["0-2"]`：取范围内的第一个值（即step 0）。
+- 空列表`[]`（默认）：每个step/rank都进行load，从源dump的对应step/rank加载。
+- 非空列表如`[0]`：仅step/rank 0进行load，其余step/rank不进行load（工具无影响）。
+- 范围字符串如`["0-2"]`：仅step/rank 0、1、2进行load，各自从源dump的对应step/rank加载。
 
 ### 使用示例
 

@@ -79,9 +79,15 @@ class TensorLoader:
         # If load.step is specified (non-empty), only activate for steps in range.
         # Empty load.step means auto-align (active for all steps).
         if self.src_step:
-            self.active = current_step in self.src_step
+            step_active = current_step in self.src_step
         else:
-            self.active = True
+            step_active = True
+        # If load.rank is specified (non-empty), only activate for ranks in range.
+        if self.src_rank:
+            rank_active = current_rank in self.src_rank
+        else:
+            rank_active = True
+        self.active = step_active and rank_active
 
     def should_override(self, full_forward_name):
         """Check whether this module forward call should be overridden.
@@ -182,8 +188,8 @@ class TensorLoader:
             - rank is None (single-card): proc{pid}, auto-discovered via glob
               (source dump pid differs between runs)
         """
-        step = self.src_step[0] if self.src_step else self._current_step
-        rank = self.src_rank[0] if self.src_rank else self._current_rank
+        step = self._current_step
+        rank = self._current_rank
         if rank is not None:
             rank_subdir = f"{Const.RANK}{rank}"
         else:
