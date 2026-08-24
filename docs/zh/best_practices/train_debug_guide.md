@@ -1414,7 +1414,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 2. 保存格式：
     比对后保存两类文件：
     - advisor_{timestamp}.txt 文件，给出可能存在精度问题的 API 的专家建议。
-    - compare_result_{timestamp}.xlsx 文件，列出所有执行精度比对的 API 详细信息和比对结果，具体结果分析参照下文使用思路。
+    - compare_result_{timestamp}.csv 文件，列出所有执行精度比对的 API 详细信息和比对结果，具体结果分析参照下文使用思路。
 
 **使用思路**
 

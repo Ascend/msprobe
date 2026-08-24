@@ -2,7 +2,8 @@
 
 ## Time Expansion Baseline for Data Collection in "statistics" Mode
 
-This baseline is a reference for performance expansion when data is collected in "statistics" mode in the PyTorch framework. This baseline shows time expansion of a single-layer DeepSeek model with eight cards in different collection modes.
+This baseline serves as a reference for performance inflation when collecting data in "statistics" mode with `risk_level` set to `ALL` under the PyTorch framework. This baseline tests the time inflation of a 16-layer Llama 2 large model across different collection modes on 4 ranks.
+The tests were run using the MindSpeed-LLM framework, with core configurations: `seq-length` set to `8192`, `mbs` set to `2`, and `gbs` set to `32`.
 
 | Collection Mode| Without Tool (Time Required)|  With Tool but Dump Disabled (Time Required) |   With Tool and Dump Enabled (Time Required)  | With Tool and MD5 Dump Enabled (Time Required)|
 |:--------:|:--------:|:-------------------:|:--------------------:|:--------------------:|

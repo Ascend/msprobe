@@ -1,812 +1,609 @@
-# Quick Start of msProbe in the PyTorch Scenario
+# msProbe PyTorch Quick Start
 
-## Overview
+<!-- md-trans-meta sourceCommit=d8769dcb657f88517a1877f5ff6691464e86ec45 translatedAt=2026-08-11T11:42:51.498Z pushedAt=2026-08-11T11:47:06.110Z -->
 
-This document describes how to quickly get started with the precision debugging tool MindStudio Probe (msProbe) during the training development process in the PyTorch scenario.
+<br>
 
-For foundation models developed based on Ascend or migrated from GPU to Ascend NPU, training issues such as precision overflow/underflow, loss divergence, or non-convergent loss may arise. Since metrics such as the training loss cannot accurately locate the failed module, msProbe is recommended for rapid fault demarcation.
+## 1. Overview
 
-### Usage Process
+MindStudio Probe (msProbe) is an AI model precision debugging tool. This document uses ResNet-50 model training as an example to demonstrate the complete workflow of NPU/GPU data collection, precision comparison, and graph comparison in hierarchical visualization, helping you master the troubleshooting methods and analysis approaches for typical precision issues such as numerical overflow, loss anomalies, and model non-convergence.
 
-When using msProbe for model precision debugging, perform the following operations:
+**Experience Map (Core Operations Take Approximately 10 Minutes)**
 
-   1. Configuration check before training
+| Step | Phase | Core Tool | Operation Time | Principle Learning |
+| :---: | :--- | :--- | :---: | :---: |
+| 1 | Environment preparation | CANN container | 5 min | 5 min |
+| 2 | NPU data collection | PrecisionDebugger | 1 min | 10 min |
+| 3 | GPU benchmark data collection | PrecisionDebugger | 0.5 min | 5 min |
+| 4 | Precision comparison | msProbe compare | 1 min | 10 min |
+| 5 | Visualized graph comparison | graph_visualize / TensorBoard | 2 min | 10 min |
 
-      Identify the configuration differences that affect the precision in two environments.
+> 👉 This tutorial is based on the PyTorch framework. If you need to use it in the MindSpore scenario, please refer to *[Quick Start of msProbe in the MindSpore Scenario](mindspore_quick_start.md)*.
 
-   2. Training status monitoring
+## 2. Procedure
 
-      Monitor exceptions that occur during computing, communication, and optimizer operations during training.
+### 2.1 Environment Preparation (Required)
 
-   3. Precision data collection
+🛑 **This step is mandatory! Skipping it may cause subsequent operations to fail.**
 
-      Collect the forward and backward input and output data at the API or module level during training.
+The NPU-side operations in this tutorial are **only supported** in standardized CANN containers and are not supported for execution directly on bare metal, virtual machines, or other non-standard container environments.
 
-   4. Precision pre-check
+#### 2.1.1 Prerequisites
 
-      Scan API data to identify APIs with precision issues.
+Before starting, ensure that your server meets the following requirements:
 
-   5. Precision comparison
+| Item | Requirement | Verification Method |
+| --- | --- | --- |
+| **Hardware computing power** | The Linux server is equipped with at least one NPU, with drivers and firmware installed. | Execute `npu-smi info` and confirm that the NPU status is normal. |
+| **Container runtime** | Docker is installed and running (recommended version ≥ 18.0). | Execute `docker ps`. No error indicates that the service is running normally. |
+| **Script execution** | Python 3 is installed on the host. | Execute `python3 -V` on the host. Version information output indicates that it is installed. |
+| **Network communication** | curl is installed (any version). | Execute `curl -V`. Version information output indicates that it is installed. |
 
-      Compare the API data on NPU with that in the benchmark environment to quickly locate precision issues.
+> 👉 When these requirements are met and if the environment has public network access, all NPU-side commands in this chapter can be directly executed by **Copy/Paste** without manual typing or concatenation. This can avoid command execution failures caused by input errors.
 
-This Quick Start guide focuses on rapid onboarding for precision data collection and precision comparison. For usage details of other tool functions, please refer to the relevant documentation.
+#### 2.1.2 Host: Automatically Identify and Configure Image Environment Variables
 
-### Environment Setup
+Execute the following command on the host (this command sequentially reads the NPU PCI ID, matches the image version, and writes environment variables for subsequent processes):
 
-1. Prepare a training server equipped with Ascend NPUs (such as Atlas A2 training servers) and install the NPU driver and firmware.
-
-2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](<>).
-
-3. Install the framework.
-
-   In the following example, PyTorch 2.9.0, Python 3.12, AArch64-based system, and torchvision 0.24.0 are used as examples in the PyTorch training scenario. For details, see "Installing PyTorch > [Method 1: Installation via a Binary Package](<>)" in [*Ascend Extension for PyTorch Installation Guide*](<>).
-
-4. Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).
-
-   ```bash
-   pip install mindstudio-probe --pre
-   ```
-
-## Precision Data Collection
-
-In this example, the ResNet-50 model and virtual data are used for training.
-
-Prerequisites
-
-- Complete procedures listed in [Environment Setup](#environment-setup).
-
-Data Collection
-
-1. Prepare a training script.
-
-   `pytorch_main.py` is used as an example. In the GPU and Ascend NPU environments, you can directly copy the sample code from [PyTorch Precision Data Collection Code Sample](#pytorch-precision-data-collection-code-sample). When training is performed in the GPU environment, add the following lines 24 and 25 to the script.
-
-   ```python
-    24 import torch_npu
-    25 from torch_npu.contrib import transfer_to_npu
-   ```
-
-2. Create a configuration file.
-
-   Create a `config.json` file in the directory where the training script is located. Copy the file content as follows:
-
-   ```json
-   {
-       "task": "statistics",
-       "dump_path": "/home/dump",
-       "rank": [],
-       "step": [0,1],
-       "level": "L1",
-       "async_dump": false,
-   
-       "statistics": {
-           "scope": [], 
-           "list": [],
-           "tensor_list": [],
-           "data_mode": ["all"],
-           "summary_mode": "statistics"
-       }
-   }
-   ```
-
-3. Add the tool to the training script (`pytorch_main.py`) in the GPU and Ascend NPU environments.
-
-   > [!NOTE]NOTE
-   >
-   > Ensure that the tool has been added to the sample code in [PyTorch Precision Data Collection Code Sample](#pytorch-precision-data-collection-code-sample). Below is where the tool interface is added to the script.
-
-   ```python
-    26 # Import the data collection interface of the tool. Execute seed_all and instantiate PrecisionDebugger after the package import statements in the iterative training script.
-    27 from msprobe.pytorch import PrecisionDebugger, seed_all
-    28 seed_all(seed=1234, mode=True)    # Fix the random seed and enable deterministic computing to ensure that the model execution data is consistent each time.
-   ...
-   314 def train(train_loader, model, criterion, optimizer, epoch, device, args):
-   ...
-   331     end = time.time()
-   
-   332     debugger = PrecisionDebugger(config_path="./config.json")    # Instantiate PrecisionDebugger and load the dump configuration file.
-   
-           # Dataset iteration typically marks the start of model training.
-   333     for i, (images, target) in enumerate(train_loader):
-   334         debugger.start()  # Enable data dump.
-   ...
-   356
-   357         # measure elapsed time
-   358         batch_time.update(time.time() - end)
-   359         end = time.time()
-   360
-   361         debugger.stop()    # Disable data dump. If you enable data dump again, the collected data will be recorded in the same step.
-   362         debugger.step()    # End data dump. If you enable data dump again, the collected data will be recorded in the next step.
-   ```
-   
-   > [!NOTE]NOTE
-   >
-   > Precision data occupies certain drive space. As a result, the server may be unavailable when the drive space is used up. The space required by precision data is closely related to model parameters, collection configurations, and number of collection iterations. You need to ensure that the available drive space in the directory where precision data is flushed is sufficient.
-   
-4. Run the training script command. The tool collects precision data during model training.
-
-   ```bash
-   python pytorch_main.py -a resnet50 -b 32 --gpu 1 --dummy
-   ```
-
-   If the following information is displayed in the log, you can manually stop model training and view the collected data to save time.
-
-   ```txt
-   ****************************************************************************
-   *                        msprobe ends successfully.                        *
-   ****************************************************************************
-   ```
-
-Checking the Result
-
-The following directory structure is displayed in the path specified by `dump_path`. Select data for analysis as required.
-
-```txt
-/home/dump/
-├── step0
-    └── proc3209296                  # If the training process does not contain rank information, it will be saved in proc{pid} in the single-rank training scenario or rank{id} in the multi-rank training scenario.
-        ├── construct.json          # Hierarchical relationship information of modules. This file is empty in the current scenario.
-        ├── dump.json                # Input and output statistics and overflow/underflow information of forward and backward APIs.
-        └── stack.json               # API call stack information
-├── step1
-...
+```bash
+source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | head -n1 | cut -d: -f2); case "$dev_id" in 'd500' ) echo "export MY_STUDY_VAR_CANN_IMAGE=swr.cn-south-1.myhuaweicloud.com/ascendhub/cann:9.0.0-310p-openeuler24.03-py3.11-devel; export MY_CHIP_NAME=310P";; 'd802' ) echo "export MY_STUDY_VAR_CANN_IMAGE=swr.cn-south-1.myhuaweicloud.com/ascendhub/cann:9.0.0-910b-openeuler24.03-py3.11-devel; export MY_CHIP_NAME=910B";; 'd803' ) echo "export MY_STUDY_VAR_CANN_IMAGE=swr.cn-south-1.myhuaweicloud.com/ascendhub/cann:9.0.0-a3-openeuler24.03-py3.11-devel; export MY_CHIP_NAME=A3";; 'd806' ) echo "export MY_STUDY_VAR_CANN_IMAGE=swr.cn-south-1.myhuaweicloud.com/ascendhub/cann:9.0.0-950-openeuler24.03-py3.11-devel; export MY_CHIP_NAME=950";; * ) echo "unset MY_STUDY_VAR_CANN_IMAGE MY_CHIP_NAME; echo >&2; echo -e '\033[31m[FAIL] Get device ID: $dev_id. Learning is not supported in the current environment.\033[0m' >&2";; esac)"
+[ -n "$MY_STUDY_VAR_CANN_IMAGE" ] && echo -e "\e[32m[PASS] Successfully identified chip [$MY_CHIP_NAME] and auto-selected image:\n    $MY_STUDY_VAR_CANN_IMAGE\e[0m"
 ```
 
-The collected data needs to be further analyzed for precision comparison. For details, see [Precision Comparison](#precision-comparison).
+> [!NOTE]
+>
+> **Command Principle**
+>
+> Obtain the NPU PCI ID via `lspci`, automatically match the CANN official image, and assign the image address to the environment variable `MY_STUDY_VAR_CANN_IMAGE` for subsequent use.
+> All images are from the CANN official images published on Huawei Cloud AscendHub. For image details, please refer to [Official CANN Image Repository](https://www.hiascend.com/developer/ascendhub/detail/17da20d1c2b6493cb38765adeba85884).
 
-## Precision Comparison
+If `[PASS]` is output after command execution, it indicates success; if `[FAIL]` is output, possible causes are as follows:
 
-### Precision Comparison via compare Command
+1. The hardware is not within the scope of this tutorial: this learning environment only supports Ascend 310P, A2, A3, and 950 products. Please switch to a compatible hardware environment and retry.
+2. Underlying environment anomaly: `lspci` is not installed, or the current user cannot query the NPU PCI ID via `lspci -n -D`. Contact the environment administrator to verify the underlying environment.
 
-Prerequisites
+#### 2.1.3 Host: Pull the Image
 
-- Complete procedures listed in [Environment Setup](#environment-setup).
-- Complete procedures listed in [Precision Data Collection](#precision-data-collection) to obtain the precision data in the GPU and Ascend NPU environments.
+Execute on the host:
 
-Performing Comparison
+```bash
+docker pull ${MY_STUDY_VAR_CANN_IMAGE}
+```
 
-1. Prepare data.
+If the pull fails due to being on a corporate intranet, please refer to the solution in [Section 3.1](#31-how-to-obtain-docker-images-in-an-isolated-intranet).
 
-   After dumping data in the GPU and Ascend NPU environments, copy the precision data dumped from the GPU environment to the Ascend NPU environment. Pay attention to the directory names specified by `dump_path`. `dump_data_npu` and `dump_data_gpu` are used as examples.
+#### 2.1.4 Host: Download Container Startup Script
 
-   The path of `dump.json` in the `dump_data_gpu` directory is `/home/dump/dump_data_gpu/step0/rank/dump.json`.
+Execute on the host:
 
-   The path of `dump.json` file in the `dump_data_npu` directory is `/home/dump/dump_data_npu/step0/rank/dump.json`.
+```bash
+cd ~ && curl -fLO --retry 3 https://inst.obs.cn-north-4.myhuaweicloud.com/env/ctr_in.py && chmod +x ctr_in.py
+```
 
-2. Perform the comparison.
+If download fails due to network restrictions, please refer to the solution in <a href="#32-transfer-container-startup-script">Section 3.2</a>.
 
-   The command is as follows:
+#### 2.1.5 Host: Start Container
 
-   ```bash
-   msprobe compare -tp /home/dump/dump_data_gpu/step0/rank/dump.json -gp /home/dump/dump_data_npu/step0/rank/dump.json -o /home/accuracy_compare
-   ```
+On the host, execute the following command and confirm the container creation information according to the terminal prompt:
 
-   If the following information is displayed, the comparison is successful:
+```bash
+~/ctr_in.py ${MY_STUDY_VAR_CANN_IMAGE}
+```
 
-   ```txt
-   ...
-   The result excel file path is: /home/accuracy_compare/compare_result_{timestamp}.xlsx
-   ************************************************************************************
-   *                        msprobe compare ends successfully.                        *
-   ************************************************************************************
-   ```
-   
-3. Analyze the comparison result file.
+**Expected result**: The terminal displays a root shell prompt similar to the following, indicating that the container has been successfully started and entered:
 
-   `compare` generates the following file in `/home/accuracy_compare`:
+```text
+[root@xxxxxx ~]#
+```
 
-   `compare_result_{timestamp}.xlsx`: This file lists the details about all APIs for precision comparison and comparison results. You can locate suspicious operators based on the comparison result (`Result`) and error message (`Err_Message`). However, each metric has a determination standard. Since each metric has its own evaluation criteria, make judgments based on actual circumstances.
+If an error is prompted or a container selection interface appears, go back to [Section 2.1.2](#212-host-automatically-identify-and-configure-image-environment-variables) and confirm that the command outputs `[PASS]`, then restart the container.
 
-   Examples:
+#### 2.1.6 Inside Container: Install Python Dependencies and msProbe
 
-   **Figure 1** compare_result_1
+Execute the following command inside the container:
 
-   ![img](../figures/compare_result_1.png)
+```bash
+pip3 install networkx==3.6.1 pillow==12.2.0
+pip3 install https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/$(arch)/download.pytorch.org/whl/cpu/torch-2.7.1%2Bcpu-cp311-cp311-manylinux_2_28_$(arch).whl
+pip3 install https://gitcode.com/Ascend/pytorch/releases/download/v26.0.0-pytorch2.7.1/torch_npu-2.7.1.post4-cp311-cp311-manylinux_2_28_$(arch).whl
+pip3 install torchvision==0.22.1 --index-url https://download.pytorch.org/whl/cpu
+pip3 install -U mindstudio-probe
+```
 
-   **Figure 2** compare_result_2
+If the installation fails due to being on a corporate intranet, please refer to the solution in <a href="#33-offline-installation-of-python-dependencies">Section 3.3</a>.
 
-   ![img](../figures/compare_result_2.png)
+#### 2.1.7 Inside Container: Verify Environment Installation Correctness
 
-   **Figure 3** compare_result_3
-   
-   ![img](../figures/compare_result_3.png)
-   
-   For more information about the comparison result analysis, see [Precision Comparison Result Analysis](../accuracy_compare/pytorch_accuracy_compare_instruct.md#precision-comparison-result-analysis).
+After installation, execute the environment check command:
 
-### Graph Comparison in Hierarchical Visualization Mode
+```bash
+python3 -c 'import torch, torch_npu; assert torch.npu.is_available(), "NPU is unavailable"; import msprobe; print("PyTorch:", torch.__version__)' && msprobe --help >/dev/null && tensorboard --help >/dev/null && echo -e "\e[32m[PASS] NPU environment, msProbe and TensorBoard check passed.\e[0m"
+```
 
-Prerequisites
+If `[PASS]` is displayed, it indicates that the NPU environment, Python dependencies, msProbe, and TensorBoard are all properly configured, and you can proceed to the next step.
 
-- Complete procedures listed in [Environment Setup](#environment-setup).
+### 2.2 Collect Data to Be Debugged in NPU Environment
 
-- Complete procedures listed in [Precision Data Collection](#precision-data-collection) to obtain the precision data in the GPU and Ascend NPU environments.
+#### 2.2.1 Prepare Collection Configuration
 
-  For hierarchical visualization, the `level` parameter in the `config.json` file must be set to `L0` or `mix` during a data dump. In this example, `mix` is used to re-collect precision data.
-  
-Performing Comparison
+Execute the following command inside the container to write the collection configuration to `~/config.json`:
 
-1. Prepare data.
+```bash
+cat > ~/config.json << EOF
+{
+    "task": "statistics",
+    "dump_path": "${HOME}/msprobe_dump_npu",
+    "rank": [],
+    "step": [0, 1],
+    "level": "mix",
+    "async_dump": false,
+    "statistics": {
+        "scope": [],
+        "list": [],
+        "data_mode": ["all"],
+        "summary_mode": "statistics"
+    }
+}
+EOF
+```
 
-   After dumping data in the GPU and Ascend NPU environments, copy the precision data dumped from the GPU environment to the Ascend NPU environment. Pay attention to the directory names specified by `dump_path`. `dump_data_npu` and `dump_data_gpu` are used as examples.
+This configuration collects the forward and backward input/output statistics at the Module and API levels for the 0th and 1st training iterations. The collection results can be used for both precision comparison and hierarchical visualized graph comparison. Since `task` is set to `statistics`, only Tensor statistics are saved, not the complete Tensor data, which reduces disk usage.
 
-   The path of `dump_data_gpu` is `/home/dump/dump_data_gpu/step1`.
+#### 2.2.2 Prepare Model Training Code
 
-   The path of `dump_data_npu` is `/home/dump/dump_data_npu/step1`.
-
-2. Perform graph comparison.
-
-   ```bash
-   msprobe graph_visualize -tp /home/dump/dump_data_npu/step1 -gp /home/dump/dump_data_gpu/step1 -o /home/dump/output
-   ```
-
-   After the comparison is complete, a `.vis.db` file is generated in the `/home/dump/output` directory.
-
-3. Start TensorBoard.
-
-   ```bash
-   tensorboard --logdir ./output --bind_all
-   ```
-
-   --The path specified by `logdir` is `/home/dump/output` in step 2.
-
-   After the preceding command is executed, the following log is displayed:
-
-   ```txt
-   TensorBoard 2.20.0 at http://ubuntu:6006/ (Press CTRL+C to quit)
-   ```
-
-   Open a browser in the Windows environment and access `http://ubuntu:6006/`, where `ubuntu` should be replaced with the IP address of your server, for example, `http://192.168.1.10:6006/`.
-
-   After the access is successful, the TensorBoard page is displayed, as shown in the following figure.
-
-   **Figure 1** Graph comparison in hierarchical visualization mode
-
-   ![img](../figures/vis_result.png)
-
-## Code Sample
-
-### PyTorch Precision Data Collection Code Sample
+Execute the following command inside the container to write the training code to `~/precision_sample.py`. The script uses fixed random data to train a ResNet-50 model and collects precision data through `PrecisionDebugger`. The model includes typical structures such as convolution, normalization, activation, residual connection, pooling, and fully connected layers:
 
 ```python
-import argparse
-import os
-import random
-import shutil
-import time
-import warnings
-from enum import Enum
-
-import torch
-import torch.backends.cudnn as cudnn
-import torch.distributed as dist
-import torch.multiprocessing as mp
-import torch.nn as nn
-import torch.nn.parallel
-import torch.optim
-import torch.utils.data
-import torch.utils.data.distributed
-import torchvision.datasets as datasets
-import torchvision.models as models
-import torchvision.transforms as transforms
-from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import Subset
-
-import torch_npu
-from torch_npu.contrib import transfer_to_npu
-
+cat > ~/precision_sample.py << 'EOF'
+import os, argparse, torch, torch.nn as nn
+from torch.utils.data import DataLoader
+import torchvision.datasets as datasets, torchvision.models as models, torchvision.transforms as transforms
+try:
+    import torch_npu
+    from torch_npu.contrib import transfer_to_npu
+except ImportError:
+    pass
 from msprobe.pytorch import PrecisionDebugger, seed_all
-seed_all(seed=1234, mode=True)  # Fix the random seed and enable deterministic computing to ensure that the model execution data is consistent each time.
 
-model_names = sorted(name for name in models.__dict__
-    if name.islower() and not name.startswith("__")
-    and callable(models.__dict__[name]))
+seed_all(seed=1234, mode=True)
 
-parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('data', metavar='DIR', nargs='?', default='imagenet',
-                    help='path to dataset (default: imagenet)')
-parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
-                    choices=model_names,
-                    help='model architecture: ' +
-                        ' | '.join(model_names) +
-                        ' (default: resnet18)')
-parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
-                    help='number of data loading workers (default: 4)')
-parser.add_argument('--epochs', default=90, type=int, metavar='N',
-                    help='number of total epochs to run')
-parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
-                    help='manual epoch number (useful on restarts)')
-parser.add_argument('-b', '--batch-size', default=256, type=int,
-                    metavar='N',
-                    help='mini-batch size (default: 256), this is the total '
-                         'batch size of all GPUs on the current node when '
-                         'using Data Parallel or Distributed Data Parallel')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
-                    metavar='LR', help='initial learning rate', dest='lr')
-parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
-                    help='momentum')
-parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
-                    metavar='W', help='weight decay (default: 1e-4)',
-                    dest='weight_decay')
-parser.add_argument('-p', '--print-freq', default=10, type=int,
-                    metavar='N', help='print frequency (default: 10)')
-parser.add_argument('--resume', default='', type=str, metavar='PATH',
-                    help='path to latest checkpoint (default: none)')
-parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
-                    help='evaluate model on validation set')
-parser.add_argument('--pretrained', dest='pretrained', action='store_true',
-                    help='use pre-trained model')
-parser.add_argument('--world-size', default=-1, type=int,
-                    help='number of nodes for distributed training')
-parser.add_argument('--rank', default=-1, type=int,
-                    help='node rank for distributed training')
-parser.add_argument('--dist-url', default='tcp://224.66.41.62:23456', type=str,
-                    help='url used to set up distributed training')
-parser.add_argument('--dist-backend', default='nccl', type=str,
-                    help='distributed backend')
-parser.add_argument('--seed', default=None, type=int,
-                    help='seed for initializing training. ')
-parser.add_argument('--gpu', default=None, type=int,
-                    help='GPU id to use.')
-parser.add_argument('--no-accel', action='store_true',
-                    help='disables accelerator')
-parser.add_argument('--multiprocessing-distributed', action='store_true',
-                    help='Use multi-processing distributed training to launch '
-                         'N processes per node, which has N GPUs. This is the '
-                         'fastest way to use PyTorch for either single node or '
-                         'multi node data parallel training')
-parser.add_argument('--dummy', action='store_true', help="use fake data to benchmark")
+parser = argparse.ArgumentParser()
+parser.add_argument('--gpu', default=0, type=int)
+args = parser.parse_args()
 
-best_acc1 = 0
+device = torch.device(f'cuda:{args.gpu}')
+torch.cuda.set_device(args.gpu)
+model = models.resnet50().to(device)
+criterion = nn.CrossEntropyLoss().to(device)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+train_loader = DataLoader(datasets.FakeData(1281167, (3, 224, 224), 1000, transforms.ToTensor()), batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
+val_loader = DataLoader(datasets.FakeData(50000, (3, 224, 224), 1000, transforms.ToTensor()), batch_size=32, shuffle=False, num_workers=4, pin_memory=True)
+debugger = PrecisionDebugger(config_path=os.path.expanduser("~/config.json"))
 
+global_step = 0
+total_epochs = 2
+total_steps = total_epochs * len(train_loader)
 
-def main():
-    args = parser.parse_args()
-
-    if args.seed is not None:
-        random.seed(args.seed)
-        torch.manual_seed(args.seed)
-        cudnn.deterministic = True
-        cudnn.benchmark = False
-        warnings.warn('You have chosen to seed training. '
-                      'This will turn on the CUDNN deterministic setting, '
-                      'which can slow down your training considerably! '
-                      'You may see unexpected behavior when restarting '
-                      'from checkpoints.')
-
-    if args.gpu is not None:
-        warnings.warn('You have chosen a specific GPU. This will completely '
-                      'disable data parallelism.')
-
-    if args.dist_url == "env://" and args.world_size == -1:
-        args.world_size = int(os.environ["WORLD_SIZE"])
-
-    args.distributed = args.world_size > 1 or args.multiprocessing_distributed
-
-    use_accel = not args.no_accel and torch.accelerator.is_available()
-
-    if use_accel:
-        device = torch.accelerator.current_accelerator()
-    else:
-        device = torch.device("cpu")
-
-    print(f"Using device: {device}")
-
-    if device.type =='cuda':
-        ngpus_per_node = torch.accelerator.device_count()
-        if ngpus_per_node == 1 and args.dist_backend == "nccl":
-            warnings.warn("nccl backend >=2.5 requires GPU count>1, see https://github.com/NVIDIA/nccl/issues/103 perhaps use 'gloo'")
-    else:
-        ngpus_per_node = 1
-
-    if args.multiprocessing_distributed:
-        # Since we have ngpus_per_node processes per node, the total world_size
-        # needs to be adjusted accordingly
-        args.world_size = ngpus_per_node * args.world_size
-        # Use torch.multiprocessing.spawn to launch distributed processes: the
-        # main_worker process function
-        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
-    else:
-        # Simply call main_worker function
-        main_worker(args.gpu, ngpus_per_node, args)
-
-
-def main_worker(gpu, ngpus_per_node, args):
-    global best_acc1
-    args.gpu = gpu
-
-    use_accel = not args.no_accel and torch.accelerator.is_available()
-
-    if use_accel:
-        if args.gpu is not None:
-            torch.accelerator.set_device_index(args.gpu)
-        device = torch.accelerator.current_accelerator()
-    else:
-        device = torch.device("cpu")
-
-    if args.distributed:
-        if args.dist_url == "env://" and args.rank == -1:
-            args.rank = int(os.environ["RANK"])
-        if args.multiprocessing_distributed:
-            # For multiprocessing distributed training, rank needs to be the
-            # global rank among all the processes
-            args.rank = args.rank * ngpus_per_node + gpu
-        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                world_size=args.world_size, rank=args.rank)
-    # create model
-    if args.pretrained:
-        print("=> using pre-trained model '{}'".format(args.arch))
-        model = models.__dict__[args.arch](pretrained=True)
-    else:
-        print("=> creating model '{}'".format(args.arch))
-        model = models.__dict__[args.arch]()
-
-    if not use_accel:
-        print('using CPU, this will be slow')
-    elif args.distributed:
-        # For multiprocessing distributed, DistributedDataParallel constructor
-        # should always set the single device scope, otherwise,
-        # DistributedDataParallel will use all available devices.
-        if device.type == 'cuda':
-            if args.gpu is not None:
-                torch.cuda.set_device(args.gpu)
-                model.cuda(device)
-                # When using a single GPU per process and per
-                # DistributedDataParallel, we need to divide the batch size
-                # ourselves based on the total number of GPUs of the current node.
-                args.batch_size = int(args.batch_size / ngpus_per_node)
-                args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
-                model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-            else:
-                model.cuda()
-                # DistributedDataParallel will divide and allocate batch_size to all
-                # available GPUs if device_ids are not set
-                model = torch.nn.parallel.DistributedDataParallel(model)
-    elif device.type == 'cuda':
-        # DataParallel will divide and allocate batch_size to all available GPUs
-        if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
-            model.features = torch.nn.DataParallel(model.features)
-            model.cuda()
-        else:
-            model = torch.nn.DataParallel(model).cuda()
-    else:
-        model.to(device)
-
-
-    # define loss function (criterion), optimizer, and learning rate scheduler
-    criterion = nn.CrossEntropyLoss().to(device)
-
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
-
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
-
-    # optionally resume from a checkpoint
-    if args.resume:
-        if os.path.isfile(args.resume):
-            print("=> loading checkpoint '{}'".format(args.resume))
-            if args.gpu is None:
-                checkpoint = torch.load(args.resume)
-            else:
-                # Map model to be loaded to specified single gpu.
-                loc = f'{device.type}:{args.gpu}'
-                checkpoint = torch.load(args.resume, map_location=loc)
-            args.start_epoch = checkpoint['epoch']
-            best_acc1 = checkpoint['best_acc1']
-            if args.gpu is not None:
-                # best_acc1 may be from a checkpoint from a different GPU
-                best_acc1 = best_acc1.to(args.gpu)
-            model.load_state_dict(checkpoint['state_dict'])
-            optimizer.load_state_dict(checkpoint['optimizer'])
-            scheduler.load_state_dict(checkpoint['scheduler'])
-            print("=> loaded checkpoint '{}' (epoch {})"
-                  .format(args.resume, checkpoint['epoch']))
-        else:
-            print("=> no checkpoint found at '{}'".format(args.resume))
-
-
-    # Data loading code
-    if args.dummy:
-        print("=> Dummy data is used!")
-        train_dataset = datasets.FakeData(1281167, (3, 224, 224), 1000, transforms.ToTensor())
-        val_dataset = datasets.FakeData(50000, (3, 224, 224), 1000, transforms.ToTensor())
-    else:
-        traindir = os.path.join(args.data, 'train')
-        valdir = os.path.join(args.data, 'val')
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-
-        train_dataset = datasets.ImageFolder(
-            traindir,
-            transforms.Compose([
-                transforms.RandomResizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                normalize,
-            ]))
-
-        val_dataset = datasets.ImageFolder(
-            valdir,
-            transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                normalize,
-            ]))
-
-    if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-        val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False, drop_last=True)
-    else:
-        train_sampler = None
-        val_sampler = None
-
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler)
-
-    val_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True, sampler=val_sampler)
-
-    if args.evaluate:
-        validate(val_loader, model, criterion, args)
-        return
-
-    for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
-            train_sampler.set_epoch(epoch)
-
-        # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, device, args)
-
-        # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
-
-        scheduler.step()
-
-        # remember best acc@1 and save checkpoint
-        is_best = acc1 > best_acc1
-        best_acc1 = max(acc1, best_acc1)
-
-        if not args.multiprocessing_distributed or (args.multiprocessing_distributed
-                and args.rank % ngpus_per_node == 0):
-            save_checkpoint({
-                'epoch': epoch + 1,
-                'arch': args.arch,
-                'state_dict': model.state_dict(),
-                'best_acc1': best_acc1,
-                'optimizer' : optimizer.state_dict(),
-                'scheduler' : scheduler.state_dict()
-            }, is_best)
-
-def train(train_loader, model, criterion, optimizer, epoch, device, args):
-
-    use_accel = not args.no_accel and torch.accelerator.is_available()
-
-    batch_time = AverageMeter('Time', use_accel, ':6.3f', Summary.NONE)
-    data_time = AverageMeter('Data', use_accel, ':6.3f', Summary.NONE)
-    losses = AverageMeter('Loss', use_accel, ':.4e', Summary.NONE)
-    top1 = AverageMeter('Acc@1', use_accel, ':6.2f', Summary.NONE)
-    top5 = AverageMeter('Acc@5', use_accel, ':6.2f', Summary.NONE)
-    progress = ProgressMeter(
-        len(train_loader),
-        [batch_time, data_time, losses, top1, top5],
-        prefix="Epoch: [{}]".format(epoch))
-
-    # switch to train mode
+for epoch in range(total_epochs):
     model.train()
-
-    end = time.time()
-    debugger = PrecisionDebugger(config_path="./config.json")
     for i, (images, target) in enumerate(train_loader):
-        debugger.start()
-        # measure data loading time
-        data_time.update(time.time() - end)
-
-        # move data to the same device as model
-        images = images.to(device, non_blocking=True)
-        target = target.to(device, non_blocking=True)
-
-        # compute output
-        output = model(images)
-        loss = criterion(output, target)
-
-        # measure accuracy and record loss
-        acc1, acc5 = accuracy(output, target, topk=(1, 5))
-        losses.update(loss.item(), images.size(0))
-        top1.update(acc1[0], images.size(0))
-        top5.update(acc5[0], images.size(0))
-
-        # compute gradient and do SGD step
+        debugger.start(model)
+        images, target = images.to(device, non_blocking=True), target.to(device, non_blocking=True)
+        loss = criterion(model(images), target)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-
         debugger.stop()
+        
+        if global_step % 10 == 0:
+            print(f"Current Step: {global_step} (Progress: {global_step / total_steps:.2%})\tLoss: {loss.item():.4e}")
+
         debugger.step()
+        global_step += 1
 
-        if i % args.print_freq == 0:
-            progress.display(i + 1)
-
-
-def validate(val_loader, model, criterion, args):
-
-    use_accel = not args.no_accel and torch.accelerator.is_available()
-
-    def run_validate(loader, base_progress=0):
-
-        if use_accel:
-            device = torch.accelerator.current_accelerator()
-        else:
-            device = torch.device("cpu")
-
-        with torch.no_grad():
-            end = time.time()
-            for i, (images, target) in enumerate(loader):
-                i = base_progress + i
-                if use_accel:
-                    if args.gpu is not None and device.type=='cuda':
-                        torch.accelerator.set_device_index(argps.gpu)
-                        images = images.cuda(args.gpu, non_blocking=True)
-                        target = target.cuda(args.gpu, non_blocking=True)
-                    else:
-                        images = images.to(device)
-                        target = target.to(device)
-
-                # compute output
-                output = model(images)
-                loss = criterion(output, target)
-
-                # measure accuracy and record loss
-                acc1, acc5 = accuracy(output, target, topk=(1, 5))
-                losses.update(loss.item(), images.size(0))
-                top1.update(acc1[0], images.size(0))
-                top5.update(acc5[0], images.size(0))
-
-                # measure elapsed time
-                batch_time.update(time.time() - end)
-                end = time.time()
-
-                if i % args.print_freq == 0:
-                    progress.display(i + 1)
-
-    batch_time = AverageMeter('Time', use_accel, ':6.3f', Summary.NONE)
-    losses = AverageMeter('Loss', use_accel, ':.4e', Summary.NONE)
-    top1 = AverageMeter('Acc@1', use_accel, ':6.2f', Summary.AVERAGE)
-    top5 = AverageMeter('Acc@5', use_accel, ':6.2f', Summary.AVERAGE)
-    progress = ProgressMeter(
-        len(val_loader) + (args.distributed and (len(val_loader.sampler) * args.world_size < len(val_loader.dataset))),
-        [batch_time, losses, top1, top5],
-        prefix='Test: ')
-
-    # switch to evaluate mode
     model.eval()
-
-    run_validate(val_loader)
-    if args.distributed:
-        top1.all_reduce()
-        top5.all_reduce()
-
-    if args.distributed and (len(val_loader.sampler) * args.world_size < len(val_loader.dataset)):
-        aux_val_dataset = Subset(val_loader.dataset,
-                                 range(len(val_loader.sampler) * args.world_size, len(val_loader.dataset)))
-        aux_val_loader = torch.utils.data.DataLoader(
-            aux_val_dataset, batch_size=args.batch_size, shuffle=False,
-            num_workers=args.workers, pin_memory=True)
-        run_validate(aux_val_loader, len(val_loader))
-
-    progress.display_summary()
-
-    return top1.avg
-
-
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
-    if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
-
-class Summary(Enum):
-    NONE = 0
-    AVERAGE = 1
-    SUM = 2
-    COUNT = 3
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-    def __init__(self, name, use_accel, fmt=':f', summary_type=Summary.AVERAGE):
-        self.name = name
-        self.use_accel = use_accel
-        self.fmt = fmt
-        self.summary_type = summary_type
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-    def all_reduce(self):    
-        if use_accel:
-            device = torch.accelerator.current_accelerator()
-        else:
-            device = torch.device("cpu")
-        total = torch.tensor([self.sum, self.count], dtype=torch.float32, device=device)
-        dist.all_reduce(total, dist.ReduceOp.SUM, async_op=False)
-        self.sum, self.count = total.tolist()
-        self.avg = self.sum / self.count
-
-    def __str__(self):
-        fmtstr = '{name} {val' + self.fmt + '} ({avg' + self.fmt + '})'
-        return fmtstr.format(**self.__dict__)
-
-    def summary(self):
-        fmtstr = ''
-        if self.summary_type is Summary.NONE:
-            fmtstr = ''
-        elif self.summary_type is Summary.AVERAGE:
-            fmtstr = '{name} {avg:.3f}'
-        elif self.summary_type is Summary.SUM:
-            fmtstr = '{name} {sum:.3f}'
-        elif self.summary_type is Summary.COUNT:
-            fmtstr = '{name} {count:.3f}'
-        else:
-            raise ValueError('invalid summary type %r' % self.summary_type)
-
-        return fmtstr.format(**self.__dict__)
-
-
-class ProgressMeter(object):
-    def __init__(self, num_batches, meters, prefix=""):
-        self.batch_fmtstr = self._get_batch_fmtstr(num_batches)
-        self.meters = meters
-        self.prefix = prefix
-
-    def display(self, batch):
-        entries = [self.prefix + self.batch_fmtstr.format(batch)]
-        entries += [str(meter) for meter in self.meters]
-        print('\t'.join(entries))
-
-    def display_summary(self):
-        entries = [" *"]
-        entries += [meter.summary() for meter in self.meters]
-        print(' '.join(entries))
-
-    def _get_batch_fmtstr(self, num_batches):
-        num_digits = len(str(num_batches // 1))
-        fmt = '{:' + str(num_digits) + 'd}'
-        return '[' + fmt + '/' + fmt.format(num_batches) + ']'
-
-def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+    correct, total = 0, 0
     with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        for k in topk:
-            correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
-
-
-if __name__ == '__main__':
-    main()
+        for images, target in val_loader:
+            images, target = images.to(device, non_blocking=True), target.to(device, non_blocking=True)
+            correct += model(images).argmax(dim=1).eq(target).sum().item()
+            total += target.size(0)
+    print(f" * Finished Epoch Pool - Evaluation Acc@1: {100.0 * correct / total:.3f}%")
+    scheduler.step()
+EOF
 ```
+
+#### 2.2.3 Start Training and Data Collection
+
+Execute the following command inside the container:
+
+```bash
+python3 ${HOME}/precision_sample.py --gpu 0
+```
+
+> Card 0 is used by default. If this card is unavailable or you need to specify another card, replace the number in `--gpu 0` with the target card ID.
+
+When the log outputs the following information, it indicates that the precision data collection for step0/step1 is complete. At this point, subsequent training iterations (step 2, 3, 4, etc.) will continue to execute. You can safely terminate the process by pressing `Ctrl + C` to save time. Early termination will not affect the integrity of the collected step0/step1 data:
+
+```text
+2026-07-15 02:08:30 (2596) [INFO] dump.json is at /root/msprobe_dump_npu/step1.
+2026-07-15 02:08:31 (2596) [INFO] ****************************************************************************
+2026-07-15 02:08:31 (2596) [INFO] *                        msprobe ends successfully.                        *
+2026-07-15 02:08:31 (2596) [INFO] ****************************************************************************
+```
+
+> [!NOTE]
+> 
+> **Log Output and Manual Termination Principle**  
+> Training begins immediately after the script starts. Since `"step": [0, 1]` is configured in `config.json`, msProbe only triggers data collection and outputs related logs at the 0th and 1st training iterations. Starting from the 2nd iteration, msProbe stops collecting data, and the terminal only outputs logs from the training script itself (e.g., `Current Step: 10 (Progress: 0.01%)`). At this point, the precision data for step0 and step1 has been completely written to disk, and the training process can be safely terminated.
+
+#### 2.2.4 View Collection Results
+
+Execute the following command to automatically locate the `dump.json` generated at training iteration 0 (`step0`) and view the directory structure:
+
+```bash
+NPU_DUMP_JSON=$(find "${HOME}/msprobe_dump_npu/step0" -type f -name dump.json | head -n 1)
+echo "${NPU_DUMP_JSON}"
+tree -L 3 "${HOME}/msprobe_dump_npu"
+```
+
+If the `dump.json` path is successfully output, it indicates that data collection is normal.
+
+In single-device training, precision data is typically saved in the `proc{pid}` directory; in multi-device training, it is saved in the `rank{id}` directory. The common structure is as follows:
+
+```text
+msprobe_dump_npu
+├── step0
+│   └── proc{pid}
+│       ├── construct.json
+│       ├── dump.json
+│       └── stack.json
+└── step1
+    └── proc{pid}
+        ├── construct.json
+        ├── dump.json
+        └── stack.json
+```
+
+| File | Description |
+| :--- | :--- |
+| `construct.json` | Records Module hierarchy information |
+| `dump.json` | Contains input/output statistics and overflow information of Modules and APIs during forward and backward processes, serving as the core input for subsequent precision comparison |
+| `stack.json` | Records API call stack information, used to trace back from suspicious APIs to the training code |
+
+### 2.3 Collect Benchmark Data in GPU Environment
+
+This quick start is intended for experiencing the core functionality of msProbe. Collecting GPU data on your own offers limited value for understanding the tool, so it is recommended to directly use the preset sample data:
+
+```bash
+cd ~
+git clone --depth 1 --single-branch https://gitcode.com/Ascend/msprobe.git -b 26.1.0
+cp -rf ~/msprobe/examples/quick_start/gpu_dump ~/msprobe_dump_gpu
+```
+
+> [!NOTE]
+> 
+> The preset GPU data already covers typical precision issues, which can significantly shorten your experience time and allow you to focus on the core analysis capabilities of msProbe rather than environment setup.
+> If you wish to experience the GPU data collection process, please refer to the instructions in [Chapter 4](#4-appendix-b-train-the-model-and-collecting-data-in-a-gpu-environment) for self-guided exploration.
+
+### 2.4 NPU and GPU Precision Comparison
+
+#### 2.4.1 Prepare Comparison Data
+
+Execute the following command inside the NPU container to relocate the dual-end data paths:
+
+```bash
+NPU_DUMP_JSON=$(find "${HOME}/msprobe_dump_npu/step0" -type f -name dump.json | head -n 1)
+GPU_DUMP_JSON=$(find "${HOME}/msprobe_dump_gpu/step0" -type f -name dump.json | head -n 1)
+echo "NPU: ${NPU_DUMP_JSON}"
+echo "GPU: ${GPU_DUMP_JSON}"
+```
+
+Confirm that both variables output the actual `dump.json` path before proceeding with the comparison.
+
+#### 2.4.2 Execute Precision Comparison
+
+Execute the following command inside the NPU container:
+
+```bash
+msprobe compare -tp "${NPU_DUMP_JSON}" -gp "${GPU_DUMP_JSON}" -o "${HOME}/accuracy_compare"
+```
+
+If the following information is output, the comparison is successful:
+
+```text
+************************************************************************************
+*                        msprobe compare ends successfully.                        *
+************************************************************************************
+```
+
+#### 2.4.3 View Precision Comparison Results
+
+Execute the following command to view the generated result file:
+
+```bash
+tree -L 1 "${HOME}/accuracy_compare"
+```
+
+In a single-device scenario, a `compare_result_{timestamp}.csv` (or xlsx format) file is generated, which lists the APIs participating in the comparison, data types, tensor shapes, statistic errors, comparison conclusions, and error messages:
+
+![Precision Comparison Result Diagram](../figures/compare_result_quick_start.png)
+<div style="text-align: center;">
+<strong>Figure 1</strong> Example of Precision Comparison Result File Content
+</div>
+
+When reviewing the results, it is recommended to analyze them in the following order:
+
+1. **Filter anomalies**: Filter APIs that failed based on the `Result` column.
+2. **Troubleshoot errors**: Check `Err_Message` to determine whether there are issues such as unmatched APIs, inconsistent data types, or shape mismatches.
+3. **Compare statistics**: For APIs that are matched but have significant precision differences, compare statistics such as Max, Min, Mean, and L2 Norm, as well as relative errors.
+4. **Trace back to code**: Use `NPU_Stack_Info` or the `stack.json` file on the NPU side to locate the training code corresponding to the suspicious API.
+
+For more metric definitions and result interpretation methods, see *[Precision Comparison Result Analysis](../user_guide/accuracy_compare/pytorch_accuracy_compare_instruct.md#precision-comparison-result-analysis)*.
+
+### 2.5 Graph Comparison in Hierarchical Visualization
+
+This feature reconstructs the Module and API hierarchy of both models and maps precision differences onto graph nodes, making it suitable for locating suspicious nodes layer by layer from the overall model structure.
+
+#### 2.5.1 Generate Dual-Graph Comparison Files
+
+Execute the following command inside the NPU container:
+
+```bash
+msprobe graph_visualize -tp "${HOME}/msprobe_dump_npu" -gp "${HOME}/msprobe_dump_gpu" -o "${HOME}/graph_visualize_output"
+```
+
+After execution, check the output results:
+
+```bash
+tree -L 1 "${HOME}/graph_visualize_output"
+```
+
+The following files will be generated in the output directory:
+
+```text
+graph_visualize_output
+└── compare_{timestamp}.vis.db
+```
+
+If the model structure is empty, verify that the `level` in both NPU and GPU collection configurations is either `mix` or `L0`, and check whether the `construct.json` file content on both sides is empty.
+
+#### 2.5.2 Start TensorBoard
+
+Execute the following command inside the NPU container:
+
+```bash
+tensorboard --logdir "${HOME}/graph_visualize_output" --bind_all
+```
+
+The terminal will output an access address similar to the following (the hostname and port are subject to the actual log):
+
+```text
+TensorBoard 2.x.x at http://hostname:6006/ (Press CTRL+C to quit)
+```
+
+Access `http://<Server IP>:6006/` in a browser. If direct access is blocked by firewall restrictions, you can access it via VS Code port forwarding or SSH port forwarding. For details, please refer to [Section 5.3](#53-how-to-access-tensorboard-when-the-port-is-blocked-by-a-firewall).
+
+#### 2.5.3 View Visualized Comparison Results
+
+After successfully opening TensorBoard, you can see the following dual-graph comparison results:
+
+![Hierarchical visualized graph comparison results](../figures/vis_quick_start.png)
+<div style="text-align: center;">
+<strong>Figure 2</strong> NPU and GPU hierarchical visualized graph comparison
+</div>
+
+It is recommended to analyze in the following order:
+
+1. **Confirm data**: In the data selection area, verify that the selected NPU data, GPU data, training step, and process correspond to each other;
+2. **Expand level by level**: Expand modules level by level from the top of the model, prioritizing nodes with darker colors or those marked as having suspicious accuracy.
+3. **Search and locate**: Use the node search function to quickly locate suspicious APIs identified in the Precision Comparison result file.
+4. **Analyze deviations**: After selecting a node, compare the statistics, precision metrics, and call stacks on both sides to determine the first significant deviation position.
+
+For more methods on node matching, precision filtering, overflow detection, and cross-framework comparison, please refer to *[PyTorch Scenario Hierarchical Visualization Graph Comparison](../user_guide/accuracy_compare/pytorch_visualization_instruct.md)*.
+
+### 2.6 Next Steps
+
+Congratulations on completing the msProbe quick start experience! You have now mastered the basic usage of msProbe. For a deeper understanding of its features, please refer to:
+
+- *[Pre-Training Configuration Check](../user_guide/config_check_instruct.md)*
+- *[Training Status Monitoring](../user_guide/monitor_instruct.md)*
+- *[Data Collection in PyTorch](../user_guide/dump/pytorch_data_dump_instruct.md)*
+- [*Precision Comparison in PyTorch*](../user_guide/accuracy_compare/pytorch_accuracy_compare_instruct.md)
+- [*Graph Comparison in Hierarchical Visualization in PyTorch*](../user_guide/accuracy_compare/pytorch_visualization_instruct.md)
+
+## 3. Appendix A: Solution for Intranet Environments Without Public Network Access
+
+### 3.1 How to Obtain Docker Images in an Isolated Intranet
+
+**Solution 1: Configure Docker Proxy for Direct Image Pull**
+
+This solution applies to most Linux distributions with Docker version ≥ 18.0 (compatibility is not guaranteed for all scenarios). If exceptions occur, adjust the configuration according to the actual situation.
+
+Edit the Docker service proxy configuration file `/etc/systemd/system/docker.service.d/http-proxy.conf`. The following is an example of its content (replace the username, password, proxy address, and port according to your actual environment):
+
+```text
+[Service]
+Environment="HTTP_PROXY=http://username:password@proxy.example.com:8080"
+Environment="HTTPS_PROXY=http://username:password@proxy.example.com:8080"
+Environment="NO_PROXY=localhost,127.0.0.1,.example.com"
+```
+
+After saving, reload and restart the Docker service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+```
+
+You can then execute `docker pull` normally.
+
+**Option 2: Import the CANN Image Offline**
+
+If the proxy solution is not feasible, first execute [Section 2.1.2](#212-host-automatically-identify-and-configure-image-environment-variables) on the intranet NPU server and record the complete value of `MY_STUDY_VAR_CANN_IMAGE`. Then log in to a relay machine that has public network access and the same CPU architecture, replace the value of `CANN_IMAGE` below with the image address you just recorded, and execute the command:
+
+```bash
+CANN_IMAGE='Complete_image_address'
+docker pull "${CANN_IMAGE}"
+docker save -o cann.tar "${CANN_IMAGE}"
+```
+
+After transferring `cann.tar` to the intranet server via a USB drive or other means, execute the following command on the intranet server to load it:
+
+```bash
+docker load -i cann.tar
+docker images | grep cann
+```
+
+After loading is complete, proceed to <a href="#32-transfer-container-startup-script">Section 3.2</a>, then return to <a href="#215-host-start-container">Section 2.1.5</a> to start the container. If you have switched the host shell, re-execute the command in Section 2.1.2 to restore the image environment variable.
+
+### 3.2 Transfer Container Startup Script
+
+Enter the following link in a browser that can access the current web page, download the `ctr_in.py` script file, and manually copy it to the `~/` directory on the intranet server:
+
+```text
+https://inst.obs.cn-north-4.myhuaweicloud.com/env/ctr_in.py
+```
+
+After copying, execute the following on the host of the intranet server:
+
+```bash
+cd ~
+chmod +x ctr_in.py
+ls -l ctr_in.py
+```
+
+After confirming that `ctr_in.py` exists and has execution permissions, return to <a href="#215-host-start-container">Section 2.1.5</a> to start the container.
+
+### 3.3 Offline Installation of Python Dependencies
+
+Prioritize using an internal network pip source to install dependencies. If no internal network software source is available, download the required installation packages as follows in a transfer environment that has public network access and shares the same CPU architecture and Python version as the internal network NPU server:
+
+```bash
+mkdir -p offline_wheels
+python3 -m pip download xxx --dest offline_wheels
+```
+
+Transfer the `offline_wheels` directory to the internal network server, copy it to the user home directory inside the container, and then execute inside the container:
+
+```bash
+pip3 install --no-index --find-links="${HOME}/offline_wheels" xxx
+```
+
+After installation is complete, return to [Section 2.1.7](#217-inside-container-verify-environment-installation-correctness) to execute the verification command. There is no need to execute the online installation command again.
+
+## 4. Appendix B: Train the Model and Collecting Data in a GPU Environment
+
+If you need to collect data on your own, ensure that the GPU environment has PyTorch installed with the same version as the NPU environment, and install msProbe:
+
+```bash
+pip3 install -U mindstudio-probe
+```
+
+Execute the following command in the GPU environment to create the collection configuration:
+
+```bash
+cat > ~/config.json << EOF
+{
+    "task": "statistics",
+    "dump_path": "${HOME}/msprobe_dump_gpu",
+    "rank": [],
+    "step": [0, 1],
+    "level": "mix",
+    "async_dump": false,
+    "statistics": {
+        "scope": [],
+        "list": [],
+        "data_mode": ["all"],
+        "summary_mode": "statistics"
+    }
+}
+EOF
+```
+
+Refer to [Section 2.2.2](#212-host-automatically-identify-and-configure-image-environment-variables) to write the training code into `~/precision_sample.py`, then start training and data collection:
+
+```bash
+python3 ${HOME}/precision_sample.py --gpu 0
+```
+
+After collection is complete, execute the following command to package the data for transfer to the NPU container:
+
+```bash
+tar -czvf ${HOME}/msprobe_dump_gpu.tar.gz ${HOME}/msprobe_dump_gpu
+```
+
+## 5. FAQs
+
+### 5.1 How to Re-enter the Container After Exiting?
+
+On the host, choose either of the following methods to re-enter the container:
+
+**Method 1 (Recommended): Use the Container Startup Script**
+
+```bash
+~/ctr_in.py
+```
+
+Select the target container as prompted. If there is only one accessible container, the script will automatically enter that container.
+
+**Method 2: Use the Docker Native Command**
+
+```bash
+docker exec -it alice_YYMMDD_HHMMSS bash
+```
+
+Please replace `alice_YYMMDD_HHMMSS` with the actual container name. You can first execute `docker ps` to view the running containers and their names.
+
+### 5.2 How to Handle "permission denied" When Executing Docker Commands?
+
+The current user may not have been added to the Docker user group. Execute the following on the host with root privileges:
+
+```bash
+sudo usermod -aG docker "${USER}"
+```
+
+After execution, log out of the current user session and log in again, or run the following command to apply the user group change immediately:
+
+```bash
+newgrp docker
+```
+
+After completion, run `docker ps` to verify that Docker commands work properly. It is not recommended to perform daily operations as the root user. The Docker user group has elevated system privileges; add only trusted users to this group.
+
+### 5.3 How to Access TensorBoard When the Port Is Blocked by a Firewall?
+
+When the server firewall restricts direct access to the TensorBoard port, you can use **VS Code port forwarding** or **SSH local port forwarding**. Both methods require only SSH port connectivity and do not require opening port `6006` separately.
+
+#### Method 1: VS Code Port Forwarding (Recommended)
+
+If you have already connected to the server using VS Code Remote-SSH, you can quickly complete port mapping through the graphical interface:
+
+1. Stop the TensorBoard process started above, and instead start TensorBoard in the VS Code remote terminal:
+
+    ```bash
+    tensorboard --logdir "${HOME}/graph_visualize_output" --bind_all
+    ```
+
+2. VS Code usually automatically detects the port listening information in the terminal and displays a prompt in the lower-right corner. Click the link directly to access it.
+3. If no prompt appears, you can also click the **"Ports"** tab in the bottom panel of VS Code, select **"Forward a Port"**, enter `6006`, and confirm.
+4. After the forwarding is successful, click the **"Local Address"** link generated in the list (such as `http://localhost:6006`) to access it directly in your local browser.
+
+#### Method 2: SSH Command-Line Port Forwarding
+
+If VS Code is not used, you can establish a tunnel using native SSH commands:
+
+1. Execute the following command in a local terminal (Windows PowerShell/CMD/Linux/macOS), and enter the password when prompted:
+
+    ```bash
+    ssh -L 6006:localhost:6006 your_username@192.168.1.1
+    ```
+
+    > Please replace `your_username` and `192.168.1.1` with the actual username and server IP, and keep this SSH session connected.
+
+2. Open the following address in a local browser:
+
+    ```text
+    http://localhost:6006/
+    ```

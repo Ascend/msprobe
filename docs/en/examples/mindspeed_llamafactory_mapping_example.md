@@ -12,7 +12,7 @@ This document uses the Qwen2.5vl and Qwen2.5 models as examples to describe how 
 
 Before data collection, you need to prepare a JSON file (`config.json` in the example) to specify configurations required for data collection.
 
-The configurations used in this example are described as follows. For more configurations and details, see [Configuration File Introduction](../dump/config_json_introduct.md).
+The configurations used in this example are described as follows. For more configurations and details, see [Configuration File Introduction](../user_guide/dump/config_json_introduct.md).
 
 ```json
 {
@@ -37,7 +37,7 @@ Note that after data collection is complete, model comparison will be performed 
 
 ### Adding msProbe Collection APIs
 
-See the figures below for APIs used. For more configurations and API descriptions, see [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+See the figures below for APIs used. For more configurations and API descriptions, see [Precision Data Collection in PyTorch](../user_guide/dump/pytorch_data_dump_instruct.md).
 
 #### Data Collection in LLamaFactory
 
@@ -53,7 +53,7 @@ Take Transformers 4.49.0 as an example. Use `pip3 show Transformers` to obtain `
 
    ![llamafactory2.png](../figures/visualization/mindspeed_llamafactoary_img/llamafactory2.png)
 
-3. After the configuration is complete, start the model training script. Data will be automatically collected. For details about the format of the flushed data, see [Dump Result File](../dump/pytorch_data_dump_instruct.md#dump-result-file) in *Precision Data Collection in PyTorch*.
+3. After the configuration is complete, start the model training script. Data will be automatically collected. For details about the format of the flushed data, see [Dump Result File](../user_guide/dump/pytorch_data_dump_instruct.md#dump-result-file) in *Precision Data Collection in PyTorch*.
 
 #### MindSpeed Data Collection
 
@@ -67,7 +67,7 @@ Open the `training.py` file. The MindSpeed-MM path is `mindspeed_mm/training.py`
 
    ![mindspeed2.png](../figures/visualization/mindspeed_llamafactoary_img/mindspeed2.png)
 
-3. After the configuration is complete, start the model training script. Data will be automatically collected. For details about the format of the flushed data, see [Dump Result File](../dump/pytorch_data_dump_instruct.md#dump-result-file) in *Precision Data Collection in PyTorch*.
+3. After the configuration is complete, start the model training script. Data will be automatically collected. For details about the format of the flushed data, see [Dump Result File](../user_guide/dump/pytorch_data_dump_instruct.md#dump-result-file) in *Precision Data Collection in PyTorch*.
 
 ## Automatic Comparison
 
@@ -81,11 +81,11 @@ Run the following command to perform model comparison in hierarchical visualizat
 msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path -lm ./layer_mapping.yaml
 ```
 
-For details about the parameters, see [Hierarchical Visualization Overview](../accuracy_compare/pytorch_visualization_instruct.md#hierarchical-visualization-overview).
+For details about the parameters, see [Hierarchical Visualization Overview](../user_guide/accuracy_compare/pytorch_visualization_instruct.md#hierarchical-visualization-overview).
 
 For model comparison scenarios that involve both the MindSpeed and LlamaFactory frameworks, the `-lm` parameter is mandatory. The following content describes how to configure the `layer_mapping.yaml` file required by this parameter.
 
-After model comparison in hierarchical visualization mode is complete, you can use TensorBoard to view the model structure and precision comparison result on the browser page. For details, see [Starting TensorBoard](../accuracy_compare/pytorch_visualization_instruct.md#starting-tensorboard) and [Viewing Results in a Browser](../accuracy_compare/pytorch_visualization_instruct.md#viewing-results-in-browser).
+After model comparison in hierarchical visualization mode is complete, you can use TensorBoard to view the model structure and precision comparison result on the browser page. For details, see [Starting TensorBoard](../user_guide/accuracy_compare/pytorch_visualization_instruct.md#starting-tensorboard) and [Viewing Results in a Browser](../user_guide/accuracy_compare/pytorch_visualization_instruct.md#viewing-results-in-browser).
 
 ### layer_mapping Configurations
 
@@ -335,10 +335,10 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 
    ![7.png](../figures/visualization/mindspeed_llamafactoary_img/7.png)
    
-   The TransformerLayer and MLP layers have already been configured and cannot be modified. You can [manually select nodes for mapping](#selecting-nodes-for-mapping).
+   The TransformerLayer and MLP layers have already been configured and cannot be modified. You can [Manually Selecting Nodes for Mapping](#selecting-nodes-for-mapping).
 
 ### Selecting Nodes for Mapping
 
 If some nodes are not matched after layer_mapping configuration, you can use the mouse to select two gray nodes to be matched on the browser page.
 
-For details, see [Selecting Nodes for Mapping](../accuracy_compare/pytorch_visualization_instruct.md#selecting-nodes-for-mapping).
+For details, see [Selecting Nodes for Mapping](../user_guide/accuracy_compare/pytorch_visualization_instruct.md#selecting-nodes-for-mapping).

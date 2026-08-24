@@ -12,23 +12,23 @@ When using msProbe for model precision debugging, perform the following operatio
 
    1. Configuration check before training
 
-      Identify the configuration differences that affect the precision in two environments.
+      Identify the configuration differences that affect the precision in two environments. For details, see [Pre-training Configuration Check](../user_guide/config_check_instruct.md).
 
    2. Training status monitoring
 
-      Monitor exceptions that occur during computing, communication, and optimizer operations during training.
+      Monitor exceptions that occur during computing, communication, and optimizer operations during training. For details, see [Training Status Monitoring](../user_guide/monitor_instruct.md).
 
    3. Precision data collection
 
-      Collect the forward and backward input and output data at the API or module level during training.
+      Collect the forward and backward input and output data at the API or module level during training. For details, see [Data Collection](../user_guide/dump/mindspore_data_dump_instruct.md).
 
    4. Precision pre-check
 
-      Scan API data to identify APIs with precision issues.
+      Scan API data to identify APIs with precision issues. For details, see [Precision Pre-check](../user_guide/accuracy_checker/mindspore_accuracy_checker_instruct.md).
 
    5. Precision comparison
 
-      Compare the API data on NPU with that in the benchmark environment to quickly locate precision issues.
+      Compare the API data on NPU with that in the benchmark environment to quickly locate precision issues. For details, see [Precision Comparison](../user_guide/accuracy_compare/mindspore_accuracy_compare_instruct.md).
 
 This Quick Start guide focuses on rapid onboarding for precision data collection and precision comparison. For usage details of other tool functions, please refer to the relevant documentation.
 
@@ -36,16 +36,16 @@ This Quick Start guide focuses on rapid onboarding for precision data collection
 
 1. Prepare a training server equipped with Ascend NPUs (such as Atlas A2 training servers) and install the NPU driver and firmware.
 
-2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. The following uses CANN 8.5.0 as an example. For details, see [CANN Software Installation Guide](<>).
+2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. For details, see [CANN Software Installation Guide](https://www.hiascend.com/en/cann/download).
 
 3. Install the framework.
 
-   In the MindSpore training scenario, versions 2.7.2 and 2.8.0 are used as examples. For details, see [MindSpore Installation Guide](https://www.mindspore.cn/install/en).
+   In the MindSpore training scenario, versions 2.6.0 and 2.7.0 are used as examples. For details, see [MindSpore Installation Guide](https://www.mindspore.cn/install/en).
 
-4. Install msProbe by referring to [msProbe Installation Guide](../msprobe_install_guide.md).
+4. Install msProbe by referring to [msProbe Installation Guide](../install_guide/msprobe_install_guide.md).
 
    ```bash
-   pip install mindstudio-probe --pre
+   pip install mindstudio-probe
    ```
 
 ## Precision Data Collection
@@ -82,11 +82,9 @@ Data Collection
    }
    ```
 
-3. Add the tool to the training script (`mindspore_main.py`) in the MindSpore 2.7.2 and MindSpore 2.8.0 environments.
+3. Add the tool to the training script (`mindspore_main.py`) in the MindSpore 2.6.0 and MindSpore 2.7.0 environments.
 
-   > [!NOTE]NOTE
-   >
-   > Ensure that the tool has been added to the sample code in [MindSpore Precision Data Collection Code Sample](#mindspore-precision-data-collection-code-sample). Below is where the tool interface is added to the script.
+   Note: Ensure that the tool has been added to the sample code in [MindSpore Precision Data Collection Code Sample](#mindspore-precision-data-collection-code-sample). Below is where the tool interface is added to the script.
 
    ```python
    ...
@@ -106,9 +104,7 @@ Data Collection
     56     print("train finish")
    ```
 
-   > [!NOTE]NOTE
-   >
-   > Precision data occupies certain drive space. As a result, the server may be unavailable when the drive space is used up. The space required by precision data is closely related to model parameters, collection configurations, and number of collection iterations. You need to ensure that the available drive space in the directory where precision data is flushed is sufficient.
+   Note: Precision data occupies certain drive space. As a result, the server may be unavailable when the drive space is used up. The space required by precision data is closely related to model parameters, collection configurations, and number of collection iterations. You need to ensure that the available drive space in the directory where precision data is flushed is sufficient.
 
 4. Run the training script command. The tool collects precision data during model training.
 
@@ -130,18 +126,12 @@ Checking the Result
 The following directory structure is displayed in the path specified by `dump_path`. Select data for analysis as required.
 
 ```ColdFusion
-dump_data/
+/home/dump/
 ├── step0
-    └── rank
-        ├── construct.json          # Hierarchical relationship information of modules. This file is empty in the current scenario.
-        ├── dump.json                # Input and output statistics and overflow/underflow information of forward and backward APIs.
-        ├── dump_tensor_data        # Actual input and output tensor data of forward and backward APIs.
-        │   ├── Jit.Momentum.0.forward.input.1.0.npy
-        │   ├── Primitive.matmul.MatMul.1.forward.input.1.npy
-        │   ├── Mint.add.1.backward.input.0.npy
-        │   ├── Primitive.matmul.MatMul.1.forward.output.0.npy
-        ...
-        └── stack.json               # API call stack information
+    └── proc1280778                  # In single-rank training, the training process has no rank information, so data is saved under proc{pid}. In multi-rank scenarios, this is rank{id}.
+        ├── construct.json           # Saves Module hierarchy relationship information; empty in the current scenario
+        ├── dump.json                # Saves statistics and overflow information for forward/backward API inputs and outputs
+        └── stack.json               # Saves API call stack information
 ├── step1
 ...
 ```
@@ -155,31 +145,31 @@ The collected data needs to be further analyzed for precision comparison. For de
 Prerequisites
 
 - Complete procedures listed in [Environment Setup](#environment-setup).
-- The following example illustrates cell comparison between different MindSpore versions (e.g. MindSpore 2.7.2 and 2.8.0). For details about how to dump cell data, see [Precision Data Collection](#precision-data-collection).
+- The following example illustrates cell comparison between different MindSpore versions (e.g. MindSpore 2.6.0 and MindSpore 2.7.0). For details about how to dump cell data, see [Precision Data Collection](#precision-data-collection).
 
 Performing Comparison
 
 1. Prepare data.
 
-   Generate two precision data directories as described in the "Prerequisites" part. The following uses `dump_data_2.7.2` and `dump_data_2.8.0` as examples.
+   Generate two precision data directories as described in the "Prerequisites" part. The following uses `dump_data_2.6.0` and `dump_data_2.7.0` as examples.
 
-   The path of the `dump.json` file in the `dump_data_2.7.2` directory is `/home/dump/dump_data_2.7.2/step0/rank/dump.json`.
+   The path of the `dump.json` file in the `dump_data_2.6.0` directory is `/home/dump/dump_data_2.6.0/step0/proc1280778/dump.json`.
 
-   The path of the `dump.json` file in the `dump_data_2.8.0` directory is `/home/dump/dump_data_2.8.0/step0/rank/dump.json`.
+   The path of the `dump.json` file in the `dump_data_2.7.0` directory is `/home/dump/dump_data_2.7.0/step0/proc1280779/dump.json`.
 
 2. Perform the comparison.
 
    The command is as follows:
 
    ```bash
-   msprobe compare -tp /home/dump/dump_data_2.8.0/step0/rank/dump.json -gp /home/dump/dump_data_2.7.2/step0/rank/dump.json -o ./compare_result/accuracy_compare
+   msprobe compare -tp /home/dump/dump_data_2.7.0/step0/proc1280779/dump.json -gp /home/dump/dump_data_2.6.0/step0/proc1280778/dump.json -o ./compare_result/accuracy_compare
    ```
 
    If the following information is displayed, the comparison is successful:
 
    ```txt
    ...
-   Compare result is /xxx/compare_result/accuracy_compare/compare_result_{timestamp}.xlsx
+   The result file path is: /xxx/compare_result/accuracy_compare/compare_result_{timestamp}.csv
    ...
    ************************************************************************************
    *                        msprobe compare ends successfully.                        *
@@ -190,23 +180,9 @@ Performing Comparison
 
    `compare` generates the following file in `./compare_result/accuracy_compare`:
 
-   `compare_result_{timestamp}.xlsx`: This file lists the details about all APIs for precision comparison and comparison results. You can locate suspicious operators based on the comparison result (`Result`) and error message (`Err_Message`). However, each metric has a determination standard. Since each metric has its own evaluation criteria, make judgments based on actual circumstances.
+   `compare_result_{timestamp}.csv`: This file lists the details about all APIs for precision comparison and comparison results. You can locate suspicious operators based on the comparison result (`Result`) and error message (`Err_Message`). However, each metric has a determination standard. Since each metric has its own evaluation criteria, make judgments based on actual circumstances.
 
-   Examples:
-
-   **Figure 1** compare_result_1
-
-   ![img](../figures/compare_result_4.png)
-
-   **Figure 2** compare_result_2
-
-   ![img](../figures/compare_result_5.png)
-
-   **Figure 3** compare_result_3
-   
-   ![img](../figures/compare_result_6.png)
-   
-   For more information about the comparison result analysis, see [Output File Description](../accuracy_compare/mindspore_accuracy_compare_instruct.md#output-file-description).
+   For more details, see [Output File Description](../user_guide/accuracy_compare/mindspore_accuracy_compare_instruct.md#output-file-description).
 
 ### Graph Comparison in Hierarchical Visualization Mode
 
@@ -214,7 +190,7 @@ Prerequisites
 
 - Complete procedures listed in [Environment Setup](#environment-setup).
 
-- The following example illustrates cell comparison between different MindSpore versions (e.g. MindSpore 2.7.2 and 2.8.0). For details about how to dump cell data, see [Precision Data Collection](#precision-data-collection).
+- The following example illustrates cell comparison between different MindSpore versions (e.g. MindSpore 2.6.0 and 2.7.0). For details about how to dump cell data, see [Precision Data Collection](#precision-data-collection).
   
   For hierarchical visualization, the `level` parameter in the `config.json` file must be set to `L0` or `mix` during a data dump. In this example, `mix` is used to re-collect precision data.
 
@@ -222,16 +198,16 @@ Performing Comparison
 
 1. Prepare data.
 
-   Generate two precision data directories as described in the "Prerequisites" part. The following uses `dump_data_2.7.2` and `dump_data_2.8.0` as examples.
+   Generate two precision data directories as described in the "Prerequisites" part. The following uses `dump_data_2.6.0` and `dump_data_2.7.0` as examples.
 
-   The path of the `dump_data_2.7.2` directory is `/home/dump/dump_data_2.7.2`.
+   The path of the `dump_data_2.6.0` directory is `/home/dump/dump_data_2.6.0`.
 
-   The path of the `dump_data_2.8.0` directory is `/home/dump/dump_data_2.8.0`.
+   The path of the `dump_data_2.7.0` directory is `/home/dump/dump_data_2.7.0`.
 
-2. Perform graph comparison.
+2. Perform graph comparison. For details, see [Dual Graph Comparison](../user_guide/accuracy_compare/mindspore_visualization_instruct.md#dual-graph-comparison).
 
    ```bash
-   msprobe graph_visualize -tp /home/dump/dump_data_2.8.0 -gp /home/dump/dump_data_2.7.2 -o /home/dump/output
+   msprobe graph_visualize -tp /home/dump/dump_data_2.7.0 -gp /home/dump/dump_data_2.6.0 -o /home/dump/output
    ```
 
    After the comparison is complete, a .vis file is generated in the `./output` directory.
@@ -239,18 +215,18 @@ Performing Comparison
 3. Start TensorBoard.
 
    ```bash
-   tensorboard --logdir ./output --bind_all
+   tensorboard --logdir /home/dump/output --bind_all
    ```
 
-   --The path specified by `logdir` is `/home/dump/output` in step 2.
+   The path specified by `logdir` is `/home/dump/output` in step 2.
 
    After the preceding command is executed, the following log is displayed:
 
    ```txt
-   TensorBoard 2.19.0 at http://ubuntu:6008/ (Press CTRL+C to quit)
+   TensorBoard 2.20.0 at http://ubuntu:6006/ (Press CTRL+C to quit)
    ```
 
-   Open a browser in the Windows environment and access `http://ubuntu:6008/`, where `ubuntu` should be replaced with the IP address of your server, for example, `http://192.168.1.10:6008/`.
+   Open a browser in any OS and access `http://ubuntu:6008/`, where `ubuntu` should be replaced with the IP address of your server, for example, `http://192.168.1.10:6008/`.
 
    After the access is successful, the TensorBoard page is displayed, as shown in the following figure.
 
