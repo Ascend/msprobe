@@ -750,7 +750,7 @@ class AclGraphDumper:
         stats = dict(get_acl_stat_dict(clear=True))
         if not dump:
             return
-        statistic_names = (Const.MIN, Const.MAX, Const.MEAN, Const.NORM)
+        statistic_names = ("min", "max", "mean", "norm")
         if any(
             any(record.get(name) is None for name in statistic_names)
             for key, record in stats.items()

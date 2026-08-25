@@ -830,9 +830,11 @@ class TestAclGraphDumper(unittest.TestCase):
 
         with patch.object(dumper, "_synchronize"), \
                 patch.object(dumper, "_step_rank_dir", return_value="./dump/step0/rank0"), \
-                patch.object(self.module, "save_json") as mock_save_json:
+                patch.object(self.module, "save_json") as mock_save_json, \
+                patch.object(self.module.logger, "warning") as mock_warning:
             dumper.step()
 
+        mock_warning.assert_not_called()
         saved_records = mock_save_json.call_args[0][1]["data"]["Torch.index_select.forward"][
             self.module.Const.INPUT_ARGS
         ]
