@@ -45,11 +45,11 @@ dump `statistics`模式的性能膨胀大小与`tensor`模式采集的数据量�
 
 当前在图模式下不支持低精度场景（`fp8`/`fp4`）的数据采集与结果分析；vLLM 图模式采集时建议使用 `fp16`/`bf16`/`fp32` 等常规精度配置。
 
-## 快速入门
+## vllm-ascend场景
 
-以下给出vLLM场景的使用方式。
+### Eager模式
 
-### vllm-ascend场景
+#### 快速入门
 
 `vllm-ascend`已提供msProbe接入能力，启动服务时可直接通过`--additional-config`传入dump配置文件路径。官方文档当前给出的示例如下：
 
@@ -62,39 +62,11 @@ vllm serve Qwen/Qwen2.5-0.5B-Instruct \
   --additional-config '{"dump_config_path": "/data/msprobe_config.json"}'
 ```
 
-说明：
+>[!NOTE]
+>
+>该方式适用于已集成msProbe能力的`vllm-ascend`，无需再手工修改`GPUModelRunner`实现。
 
-* 该方式适用于已集成msProbe能力的`vllm-ascend`，无需再手工修改`GPUModelRunner`实现。
-
-#### vllm-ascend 单点采集
-
-图模式下，通过 PrecisionDebugger 完成整网数据采集并定位到疑似异常算子后，可以使用 `acl_save` 接口对特定张量进行单点保存，做更精细的逐层分析。
-
-**使用方式**：在模型前向代码中，对需要保存的张量调用 `acl_save(tensor, path)` 即可。
-
-示例：
-
-```python
-from msprobe.pytorch import acl_save
-
-# 在模型的 forward 中，对需要排查的张量调用 acl_save
-def forward(self, x):
-    y = self.linear(x)
-    acl_save(y, "./dump/linear_out.pt")  # 保存中间张量
-    return y
-```
-
-`acl_save` 会在指定路径下生成 `.pt` 文件（文件名自动追加序号，如 `linear_out_0.pt`、`linear_out_1.pt`），可通过 `torch.load()` 直接读取分析。
-
-多卡场景下，需要按 rank 区分保存路径：
-
-```python
-acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
-```
-
-更详细的 `acl_save` 接口说明及图模式整网采集方案，请参见《[ACLGraph数据采集](./aclgraph_dump_instruct.md)》。
-
-#### vllm-ascend 指定request_id采集
+#### 指定request_id采集
 
 1. 修改vllm-ascend代码
 
@@ -187,7 +159,41 @@ acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
          }'
    ```
 
-### 社区vLLM场景
+### Aclgraph图模式
+
+#### 单点采集
+
+图模式下，通过 PrecisionDebugger 完成整网数据采集并定位到疑似异常算子后，可以使用 `acl_save` 接口对特定张量进行单点保存，做更精细的逐层分析。
+
+**使用方式**：在模型前向代码中，对需要保存的张量调用 `acl_save(tensor, path)` 即可。
+
+示例：
+
+```python
+from msprobe.pytorch import acl_save
+
+# 在模型的 forward 中，对需要排查的张量调用 acl_save
+def forward(self, x):
+    y = self.linear(x)
+    acl_save(y, "./dump/linear_out.pt")  # 保存中间张量
+    return y
+```
+
+`acl_save` 会在指定路径下生成 `.pt` 文件（文件名自动追加序号，如 `linear_out_0.pt`、`linear_out_1.pt`），可通过 `torch.load()` 直接读取分析。
+
+多卡场景下，需要按 rank 区分保存路径：
+
+```python
+acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
+```
+
+更详细的 `acl_save` 接口说明，请参见《[ACLGraph数据采集](./aclgraph_dump_instruct.md#单点采集功能介绍)》。
+
+#### 整网采集
+
+图模式整网采集方案，请参见《[ACLGraph数据采集](./aclgraph_dump_instruct.md#整网采集)》。
+
+## 社区vLLM场景
 
 以下通过一个简单的示例，展示如何在社区原生vLLM框架的`GPUModelRunner`中使用msProbe工具进行精度数据采集。
 
