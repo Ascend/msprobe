@@ -306,7 +306,7 @@ _调测类特性，对性能影响不敏感，不涉及_
 
 该特性需要支持以下几个子场景能力：
 
-1. 【A5】PTAinductor_triton精度工具支持torch 2.10
+1. 昇腾950PR&950DT系列产品：PTAinductor_triton精度工具支持torch 2.10
 2. Torch Inductor融合算子映射可视化（POC）
 3. Torch Inductor融合算子精度检测工具（POC）
 
@@ -316,7 +316,7 @@ _调测类特性，对性能影响不敏感，不涉及_
 
 ## 5.3 详细实现（从用户入口的模块级别或进程级别消息序列图）
 
-- 【A5】PTAinductor_triton精度工具支持torch 2.10
+- 昇腾950PR&950DT系列产品：PTAinductor_triton精度工具支持torch 2.10
   - 需求背景：需要对比eager模式和算子自动生成后整网的精度，找到不满足精度的节点
   - 需求内容：（框架类需求）
     - 描述：支持Inductor（triton后端）自动精度对比，并支持设置精度阈值
