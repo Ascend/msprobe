@@ -213,6 +213,15 @@ class BaseService(ABC):
             tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
             if tensor_loader and not tensor_loader.active:
                 return
+            # check unhit modules before stop
+            if tensor_loader:
+                tensor_loader.check_unhit()
+        # for dump_after_load=true mode, also check unhit modules
+        if load_config and load_config.is_enabled and load_config.dump_after_load:
+            module_processor = getattr(self, 'module_processor', None)
+            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
+            if tensor_loader and tensor_loader.active:
+                tensor_loader.check_unhit()
         self.logger.info_on_rank_0(
             f"{Const.TOOL_NAME}: debugger.stop() is set successfully. "
             "Please set debugger.start() to turn on the dump switch again. "

@@ -74,7 +74,7 @@ class TestLoadConfig(unittest.TestCase):
 
     def test_load_defaults_step_rank(self):
         """step/rank default to [] (auto-align), dump_after_load defaults to False."""
-        cfg = LoadConfig({"load": {"path": self.tmpdir, "modules": ["m1"]}})
+        cfg = LoadConfig({"load": {"path": self.tmpdir, "modules": ["Module.m1.A.forward.0"]}})
         self.assertTrue(cfg.is_enabled)
         self.assertEqual(cfg.step, [])
         self.assertEqual(cfg.rank, [])
@@ -82,7 +82,7 @@ class TestLoadConfig(unittest.TestCase):
 
     def test_load_step_rank_range_string(self):
         """step/rank support range string like dump's step/rank."""
-        cfg = LoadConfig({"load": {"path": self.tmpdir, "modules": ["m1"], "step": ["0-2"], "rank": ["1-3"]}})
+        cfg = LoadConfig({"load": {"path": self.tmpdir, "modules": ["Module.m1.A.forward.0"], "step": ["0-2"], "rank": ["1-3"]}})
         self.assertEqual(cfg.step, [0, 1, 2])
         self.assertEqual(cfg.rank, [1, 2, 3])
 
@@ -91,13 +91,13 @@ class TestLoadConfig(unittest.TestCase):
     def test_check_path_missing(self):
         """path is required."""
         with self.assertRaises(MsprobeException) as ctx:
-            LoadConfig({"load": {"modules": ["m1"]}})
+            LoadConfig({"load": {"modules": ["Module.m1.A.forward.0"]}})
         self.assertIn("load.path is required", str(ctx.exception))
 
     def test_check_path_not_a_directory(self):
         """path must be an existing directory."""
         with self.assertRaises(MsprobeException) as ctx:
-            LoadConfig({"load": {"path": "/nonexistent/path/abc", "modules": ["m1"]}})
+            LoadConfig({"load": {"path": "/nonexistent/path/abc", "modules": ["Module.m1.A.forward.0"]}})
         self.assertIn("not a directory", str(ctx.exception))
 
     def test_check_modules_not_list(self):
@@ -115,7 +115,7 @@ class TestLoadConfig(unittest.TestCase):
     def test_check_dump_after_load_not_bool(self):
         """dump_after_load must be bool."""
         with self.assertRaises(MsprobeException) as ctx:
-            LoadConfig({"load": {"path": self.tmpdir, "modules": ["m1"], "dump_after_load": "yes"}})
+            LoadConfig({"load": {"path": self.tmpdir, "modules": ["Module.m1.A.forward.0"], "dump_after_load": "yes"}})
         self.assertIn("dump_after_load must be bool", str(ctx.exception))
 
     # ---- integration with CommonConfig ----

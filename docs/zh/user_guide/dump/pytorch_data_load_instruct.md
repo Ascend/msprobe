@@ -159,7 +159,7 @@ load功能与dump的`level`配置解耦：
 | 参数 | 可选/必选 | 说明 |
 |------|----------|------|
 | path | 必选 | 源dump目录路径，str类型，需包含`step{N}/rank{M}/dump_tensor_data/`目录结构。 |
-| modules | 必选 | 要覆盖的模块条目名列表，list[str]类型。条目名与dump产出的`.pt`文件名前缀一致，格式为`Module.{path}.{ClassName}.forward.{N}`。详细介绍请参见[modules参数配置说明](#modules参数配置说明)。 |
+| modules | 必选 | 要覆盖的模块条目名列表，list[str]类型。条目名与dump产出的`.pt`文件名前缀一致，格式为`Module.{path}.{ClassName}.forward.{N}`，不支持`.backward.{N}`，不允许重复。详细介绍请参见[modules参数配置说明](#modules参数配置说明)。 |
 | step | 可选 | 指定哪些step进行load，list类型，格式与dump的`step`参数一致（如`[0]`、`["0-2"]`）。默认为空，表示每个step都进行load。加载时从源dump的对应step自动对齐。详细介绍请参见[step/rank参数配置说明](#steprank参数配置说明)。 |
 | rank | 可选 | 指定哪些rank进行load，list类型，格式与dump的`rank`参数一致。默认为空，表示每个rank都进行load。加载时从源dump的对应rank自动对齐。详细介绍请参见[step/rank参数配置说明](#steprank参数配置说明)。 |
 | dump_after_load | 可选 | 是否在覆盖后继续执行dump采集，bool类型。`false`表示只覆盖不dump，`true`表示覆盖后继续dump，默认为`false`。 |
@@ -173,6 +173,23 @@ Module.{dotted_path}.{ClassName}.forward.{N}
 ```
 
 其中`forward.{N}`的`N`是模块前向调用的序号（从0开始），**不可省略**——在梯度累积等场景下同一模块会被多次调用，`forward.0`、`forward.1`对应不同的调用，必须明确指定。
+
+**条目格式要求：**
+
+- 必须以`Module.`开头。
+- 必须以`.forward.{N}`结尾，其中`N`为非负整数，不支持`.backward.{N}`。
+- 不允许重复条目。
+- 条目中的模块路径（去掉`Module.`前缀和`.forward.{N}`后缀后的部分）必须在当前模型的`named_modules()`中存在，否则启动时会打印warning日志提示。
+
+**校验与反馈：**
+
+工具在启动时会自动校验`load.modules`的格式和模块路径，输出校验结果汇总日志，例如：
+
+```text
+[load] module validation: 2/5 modules valid in model
+```
+
+对于路径不存在或类名不匹配的条目，会逐条打印warning。训练过程中，如果某些条目因`forward.{N}`的调用序号不匹配而从未命中，工具会在`debugger.stop()`时打印warning提示未命中的条目。
 
 **如何获取条目名**：在源dump的`dump_tensor_data/`目录下查看`.pt`文件名，取`.input.{i}.pt`之前的部分即可。例如：
 
@@ -261,8 +278,10 @@ Module.{dotted_path}.{ClassName}.forward.{N}
 | `load.path`不存在或非目录 | 启动报错（MsprobeException）。 |
 | `load.modules`为空列表 | 启动报错（避免用户误认为全覆盖）。 |
 | `load.modules`非list类型 | 启动报错。 |
+| `load.modules`条目格式不合法（不以`Module.`开头、不以`.forward.{N}`结尾、含`.backward.`、重复） | 启动报错。 |
 | 已配置`load.modules`，但未指定`load.path` | 启动报错。 |
-| 模块条目名在模型中不存在 | 不报错，该模块覆盖未生效，训练正常继续。 |
+| 模块条目名在模型中不存在 | 启动时打印warning日志提示，训练正常继续。 |
+| 模块条目配置了但运行时从未命中（如`forward.{N}`序号不匹配） | `debugger.stop()`时打印warning日志提示未命中条目，训练正常继续。 |
 | 源`.pt`文件缺失 | 打印warning日志，该参数保持原值，训练程序继续运行。 |
 | shape/dtype不匹配 | 打印warning日志，仍执行替换，forward可能报错。 |
 

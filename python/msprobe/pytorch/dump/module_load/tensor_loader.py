@@ -27,14 +27,16 @@ config.json load.modules, e.g.:
 
 import glob
 import os
-import logging
+import re
 
 import torch
 
 from msprobe.core.common.const import Const
+from msprobe.core.common.log import logger
 from msprobe.pytorch.common.utils import load_pt
 
-logger = logging.getLogger(__name__)
+# Regex for parsing module entry: Module.{dotted_path}.{ClassName}.forward.{N}
+_MODULE_ENTRY_RE = re.compile(r"Module\.(.+)\.forward\.(\d+)$")
 
 
 class TensorLoader:
@@ -66,6 +68,95 @@ class TensorLoader:
         # set to False so forward_pre_hook skips load logic entirely (no override,
         # no warning, no performance overhead).
         self.active = True
+        # track which modules have been hit by should_override
+        self._hit_modules = set()
+
+    def validate_modules(self, model):
+        """Validate module paths in load.modules against model's named_modules().
+
+        Called after module hooks are mounted. Checks that the module path part
+        (everything before .forward.N) exists in the model. Prints summary of
+        valid/invalid modules.
+
+        Args:
+            model: the model passed to debugger.start(), used for named_modules()
+        """
+
+        # build set of module paths from named_modules()
+        # named_modules() returns (name, module) where name is dotted path like "blocks.0.attn"
+        # load.modules entries have format "Module.{path}.{ClassName}.forward.{N}"
+        model_module_paths = set()
+        model_class_names = {}
+        for name, module in model.named_modules():
+            model_module_paths.add(name)
+            model_class_names[name] = module.__class__.__name__
+
+        valid = []
+        invalid = []
+        for entry in sorted(self.modules):
+            module_path, class_name = self._parse_module_entry(entry)
+            if module_path is None:
+                invalid.append((entry, "invalid format"))
+                continue
+
+            if module_path in model_module_paths:
+                actual_class = model_class_names.get(module_path, "")
+                if actual_class != class_name:
+                    invalid.append(
+                        (entry, f"class name mismatch: configured '{class_name}' vs actual '{actual_class}'")
+                    )
+                else:
+                    valid.append(entry)
+            else:
+                invalid.append((entry, f"module path '{module_path}' not found in model"))
+
+        # check for multiple forward.N pointing to same module path
+        path_count = {}
+        for entry in valid:
+            module_path, _ = self._parse_module_entry(entry)
+            if module_path is not None:
+                path_count[module_path] = path_count.get(module_path, 0) + 1
+
+        logger.info(f"[load] module validation: {len(valid)}/{len(self.modules)} modules valid in model")
+        for entry, reason in invalid:
+            logger.warning(f"[load] invalid module: {entry} ({reason})")
+        for path, count in path_count.items():
+            if count > 1:
+                logger.warning(f"[load] module path '{path}' has {count} forward.N entries")
+        logger.info(
+            "[load] note: forward.N call_index cannot be verified before runtime, "
+            "mismatched call_index will result in source data missing warning during forward"
+        )
+
+    @staticmethod
+    def _parse_module_entry(entry):
+        """Parse a module entry into (module_path, class_name).
+
+        Supports two formats:
+        - Single model:  Module.{dotted_path}.{ClassName}.forward.{N}
+        - List model:    Module.{index}.{dotted_path}.{ClassName}.forward.{N}
+
+        Returns (module_path, class_name) or (None, None) if format is invalid.
+
+        Example:
+            "Module.blocks.0.attn.MultiHeadSelfAttention.forward.0"
+            -> ("blocks.0.attn", "MultiHeadSelfAttention")
+            "Module.0.blocks.0.attn.MultiHeadSelfAttention.forward.0"
+            -> ("blocks.0.attn", "MultiHeadSelfAttention")  (index stripped)
+        """
+        m = _MODULE_ENTRY_RE.match(entry)
+        if not m:
+            return None, None
+        path_with_class = m.group(1)  # "blocks.0.attn.MultiHeadSelfAttention" or "0.blocks.0.attn..."
+        # strip leading index for list models: "0.blocks.0.attn..." -> "blocks.0.attn..."
+        parts = path_with_class.split(".", 1)
+        if len(parts) == 2 and parts[0].isdigit():
+            path_with_class = parts[1]
+        # split into module_path and class_name
+        parts = path_with_class.rsplit(".", 1)
+        if len(parts) == 2:
+            return parts[0], parts[1]
+        return "", parts[0]
 
     def update_step_rank(self, current_step, current_rank):
         """Called by service at each start() to inform loader of current step/rank.
@@ -93,6 +184,7 @@ class TensorLoader:
         """Check whether this module forward call should be overridden.
 
         Exact match against user-configured module names.
+        Also tracks which modules have been hit for end-of-run reporting.
 
         Args:
             full_forward_name: the full forward name from hook, e.g.
@@ -100,7 +192,10 @@ class TensorLoader:
         Returns:
             bool
         """
-        return full_forward_name in self.modules
+        hit = full_forward_name in self.modules
+        if hit:
+            self._hit_modules.add(full_forward_name)
+        return hit
 
     def override_args(self, full_forward_name, args, kwargs):
         """Replace tensor-type positional args and kwargs with loaded tensors.
@@ -146,28 +241,23 @@ class TensorLoader:
 
         pt_path = self._build_pt_path(full_forward_name, category, suffix)
         if not os.path.exists(pt_path):
-            logger.warning("[load] source data missing: %s, keep original value", pt_path)
+            logger.warning(f"[load] source data missing: {pt_path}, keep original value")
             return None
 
         try:
             loaded = load_pt(pt_path, map_location=current_tensor.device)
             if loaded.shape != current_tensor.shape or loaded.dtype != current_tensor.dtype:
                 logger.warning(
-                    "[load] tensor mismatch for %s.%s.%s: source shape=%s dtype=%s "
-                    "vs current shape=%s dtype=%s, override may cause forward error",
-                    full_forward_name,
-                    category,
-                    suffix,
-                    list(loaded.shape),
-                    loaded.dtype,
-                    list(current_tensor.shape),
-                    current_tensor.dtype,
+                    f"[load] tensor mismatch for {full_forward_name}.{category}.{suffix}: "
+                    f"source shape={list(loaded.shape)} dtype={loaded.dtype} "
+                    f"vs current shape={list(current_tensor.shape)} dtype={current_tensor.dtype}, "
+                    f"override may cause forward error"
                 )
             self._cache[cache_key] = loaded
-            logger.debug("[load] override %s.%s.%s <- %s", full_forward_name, category, suffix, pt_path)
+            logger.debug(f"[load] override {full_forward_name}.{category}.{suffix} <- {pt_path}")
             return loaded
         except Exception as e:
-            logger.warning("[load] failed to load %s: %s, keep original value", pt_path, e)
+            logger.warning(f"[load] failed to load {pt_path}: {e}, keep original value")
             return None
 
     def _build_pt_path(self, full_forward_name, category, suffix):
@@ -198,15 +288,27 @@ class TensorLoader:
             proc_dirs = glob.glob(os.path.join(step_dir, f"{Const.PROC}*"))
             if not proc_dirs:
                 logger.error(
-                    "[load] no proc* directory found in %s. "
+                    f"[load] no proc* directory found in {step_dir}. "
                     "Please verify load.path is a valid dump directory with step{N}/proc{pid}/ structure. "
-                    "Source dump pid differs from current process, auto-discovery failed.",
-                    step_dir,
+                    "Source dump pid differs from current process, auto-discovery failed."
                 )
                 rank_subdir = f"{Const.PROC}{os.getpid()}"  # fallback (will likely miss)
             else:
                 rank_subdir = os.path.basename(proc_dirs[0])
                 if len(proc_dirs) > 1:
-                    logger.warning("[load] multiple proc* directories found in %s, using %s", step_dir, rank_subdir)
+                    logger.warning(f"[load] multiple proc* directories found in {step_dir}, using {rank_subdir}")
         filename = f"{full_forward_name}{Const.SEP}{category}{Const.SEP}{suffix}{Const.PT_SUFFIX}"
         return os.path.join(self.path, f"step{step}", rank_subdir, "dump_tensor_data", filename)
+
+    def check_unhit(self):
+        """Report modules that were configured but never hit during forward.
+
+        Called at debugger.stop() time. Warns about configured modules that
+        were never matched by should_override (e.g., wrong call_index or
+        module not in model's forward path for current step).
+        """
+        unhit = self.modules - self._hit_modules
+        if unhit:
+            logger.warning(
+                f"[load] {len(unhit)} module(s) were configured but never matched during this step: {sorted(unhit)}"
+            )

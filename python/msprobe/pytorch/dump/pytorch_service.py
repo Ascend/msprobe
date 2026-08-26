@@ -114,6 +114,14 @@ class PytorchService(BaseService):
         ModuleProcessor.module_dump_level = self.config.level
         self.module_processor.register_module_hook(self.model, self.build_hook)
         self.logger.info_on_rank_0(f"The module {self.config.task} hook function is successfully mounted to the model.")
+        # validate load modules against model's named_modules
+        tensor_loader = getattr(self.module_processor, 'tensor_loader', None)
+        if tensor_loader:
+            if isinstance(self.model, (list, tuple)):
+                for model in self.model:
+                    tensor_loader.validate_modules(model)
+            else:
+                tensor_loader.validate_modules(self.model)
 
     def _reset_status(self):
         super()._reset_status()

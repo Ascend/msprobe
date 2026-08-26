@@ -22,6 +22,9 @@ from msprobe.core.common.log import logger
 from msprobe.core.common.exceptions import MsprobeException
 from msprobe.core.common.utils import get_real_step_or_rank, check_slice_info
 
+# Regex for validating module entry suffix: .forward.{N} where N is a non-negative integer
+_FORWARD_SUFFIX_RE = re.compile(r"\.forward\.(\d+)$")
+
 
 class CommonConfig:
     def __init__(self, json_config):
@@ -134,6 +137,8 @@ class LoadConfig:
                 "load.modules must be a list[str]",
                 MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "load.modules must be a list[str]"),
             )
+        # format validation for each module entry
+        self._validate_modules_format()
         if not self.path:
             logger.error_log_with_exp(
                 "load.path is required",
@@ -158,6 +163,54 @@ class LoadConfig:
             f"LoadConfig: path={self.path}, modules={self.modules}, "
             f"step={self.step}, rank={self.rank}, dump_after_load={self.dump_after_load}"
         )
+
+    def _validate_modules_format(self):
+        """Validate format of each module entry in load.modules.
+
+        Each entry must:
+        - start with "Module."
+        - contain ".forward.{N}" where N is a non-negative integer
+        - not contain ".backward."
+        - not be duplicated
+        """
+        seen = set()
+        for m in self.modules:
+            if m in seen:
+                logger.error_log_with_exp(
+                    f"load.modules contains duplicate entry: {m}",
+                    MsprobeException(
+                        MsprobeException.INVALID_PARAM_ERROR,
+                        f"load.modules contains duplicate entry: {m}",
+                    ),
+                )
+            seen.add(m)
+
+            if not m.startswith("Module."):
+                logger.error_log_with_exp(
+                    f"load.modules entry must start with 'Module.': {m}",
+                    MsprobeException(
+                        MsprobeException.INVALID_PARAM_ERROR,
+                        f"load.modules entry must start with 'Module.': {m}",
+                    ),
+                )
+
+            if ".backward." in m:
+                logger.error_log_with_exp(
+                    f"load.modules entry must use '.forward.N', not '.backward.N': {m}",
+                    MsprobeException(
+                        MsprobeException.INVALID_PARAM_ERROR,
+                        f"load.modules entry must use '.forward.N', not '.backward.N': {m}",
+                    ),
+                )
+
+            if not _FORWARD_SUFFIX_RE.search(m):
+                logger.error_log_with_exp(
+                    f"load.modules entry must end with '.forward.N' (N is a non-negative integer): {m}",
+                    MsprobeException(
+                        MsprobeException.INVALID_PARAM_ERROR,
+                        f"load.modules entry must end with '.forward.N' (N is a non-negative integer): {m}",
+                    ),
+                )
 
 
 class BaseConfig:
