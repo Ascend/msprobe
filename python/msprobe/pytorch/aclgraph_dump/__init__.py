@@ -62,7 +62,27 @@ def acl_stat(x: torch.Tensor, tag: str, switch: torch.Tensor = None) -> torch.Te
     Collect min/max/mean/norm on device, then stash the statistics plus dtype
     and shape into the host-side dictionary.
     """
-    return torch.ops.my_ns.acl_stat(x, tag, switch)
+    # Keep statistics as an explicit custom-op input so graph replay preserves
+    # the producer-before-host-callback dependency.
+    disable_statistics = (
+        x.dtype in (torch.int8, torch.uint8) or x.is_quantized or (x.is_floating_point() and x.element_size() <= 1)
+    )
+    stats = None
+    if not disable_statistics:
+        if x.numel() == 0:
+            stats = torch.zeros(4, dtype=torch.float32, device=x.device)
+        else:
+            stat_tensor = torch.abs(x) if x.is_complex() else x
+            stat_tensor = stat_tensor.to(torch.float32)
+            stats = torch.stack(
+                (
+                    torch.amin(stat_tensor),
+                    torch.amax(stat_tensor),
+                    torch.mean(stat_tensor),
+                    torch.norm(stat_tensor),
+                )
+            )
+    return torch.ops.my_ns.acl_stat(x, stats, tag, switch)
 
 
 def get_acl_stat_dict(clear: bool = False):

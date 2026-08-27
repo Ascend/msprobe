@@ -438,26 +438,6 @@ static at::Tensor copy_to_cpu(const at::Tensor& x)
     return x.to(at::kCPU, /*non_blocking=*/false).contiguous();
 }
 
-static at::Tensor compute_stats_tensor(const at::Tensor& x)
-{
-    at::Tensor x_stat = x;
-    if (x_stat.numel() == 0)
-    {
-        return at::zeros({4}, x_stat.options().dtype(at::kFloat));
-    }
-    if (x_stat.is_complex())
-    {
-        x_stat = at::abs(x_stat);
-    }
-    x_stat = x_stat.to(at::kFloat);
-
-    at::Tensor min_t = at::amin(x_stat);
-    at::Tensor max_t = at::amax(x_stat);
-    at::Tensor mean_t = at::mean(x_stat);
-    at::Tensor norm_t = at::norm(x_stat);
-    return at::stack({min_t, max_t, mean_t, norm_t});
-}
-
 static bool is_switch_enabled_on_host(const c10::optional<at::Tensor>& switch_tensor)
 {
     if (!switch_tensor.has_value() || !switch_tensor->defined() || switch_tensor->numel() == 0)
@@ -642,8 +622,8 @@ static at::Tensor acl_tensor_save_impl(const at::Tensor& x, const std::string& p
     return x;
 }
 
-static at::Tensor acl_stat_impl(const at::Tensor& x, const std::string& tag,
-                                const c10::optional<at::Tensor>& switch_tensor)
+static at::Tensor acl_stat_impl(const at::Tensor& x, const c10::optional<at::Tensor>& stats_tensor,
+                                const std::string& tag, const c10::optional<at::Tensor>& switch_tensor)
 {
     if (!x.defined())
     {
@@ -657,8 +637,13 @@ static at::Tensor acl_stat_impl(const at::Tensor& x, const std::string& tag,
     if (dev_type != at::DeviceType::PrivateUse1)
     {
         if (!is_switch_enabled_on_host(switch_tensor)) return x;
-        at::Tensor stats = compute_stats_tensor(copy_to_cpu(x));
-        at::Tensor stats_cpu = stats.to(at::kCPU, /*non_blocking=*/false).contiguous();
+        if (!stats_tensor.has_value() || !stats_tensor->defined())
+        {
+            const double invalid = std::nan("");
+            update_stats_map(tag, dtype, shape, invalid, invalid, invalid, invalid);
+            return x;
+        }
+        at::Tensor stats_cpu = stats_tensor->to(at::kCPU, /*non_blocking=*/false).contiguous();
         if (!stats_cpu.defined() || stats_cpu.scalar_type() != at::kFloat || stats_cpu.numel() < 4)
         {
             return x;
@@ -671,11 +656,7 @@ static at::Tensor acl_stat_impl(const at::Tensor& x, const std::string& tag,
 
     ensure_acl_runtime_initialized();
     auto stream = c10_npu::getCurrentNPUStream().stream();
-    // Cast/reduction kernels are unavailable for INT8/UINT8 tensors in some
-    // internal formats and for one-byte floating-point types (FP4/FP8).
-    const bool disable_statistics = x.scalar_type() == at::kChar || x.scalar_type() == at::kByte || x.is_quantized() ||
-                                    (x.is_floating_point() && x.element_size() <= 1);
-    at::Tensor stats_dev = disable_statistics ? at::Tensor{} : compute_stats_tensor(x);
+    at::Tensor stats_dev = stats_tensor.has_value() ? stats_tensor.value() : at::Tensor{};
     auto* payload = new StatTaskPayload(stats_dev, tag, dtype, shape, switch_tensor);
     auto cb_status = aclrtLaunchHostFunc(stream, acl_stat_host_func, payload);
     if (cb_status != ACL_ERROR_NONE)
@@ -698,8 +679,8 @@ static at::Tensor acl_tensor_save_meta(const at::Tensor& x, const std::string& /
     return x;
 }
 
-static at::Tensor acl_stat_meta(const at::Tensor& x, const std::string& /*tag*/,
-                                const c10::optional<at::Tensor>& /*switch_tensor*/)
+static at::Tensor acl_stat_meta(const at::Tensor& x, const c10::optional<at::Tensor>& /*stats_tensor*/,
+                                const std::string& /*tag*/, const c10::optional<at::Tensor>& /*switch_tensor*/)
 {
     return x;
 }
@@ -767,7 +748,7 @@ TORCH_LIBRARY(my_ns, m)
 {
     m.def("acl_save(Tensor x, str path) -> Tensor");
     m.def("acl_tensor_save(Tensor x, str path, str api_name, bool is_call_start=False, Tensor? switch=None) -> Tensor");
-    m.def("acl_stat(Tensor x, str tag, Tensor? switch=None) -> Tensor");
+    m.def("acl_stat(Tensor x, Tensor? stats, str tag, Tensor? switch=None) -> Tensor");
 }
 
 TORCH_LIBRARY_IMPL(my_ns, Meta, m)

@@ -91,7 +91,7 @@ def _load_aclgraph_dump_api_module(pytorch_pkg_dir):
         side_effect=lambda tensor, path, api_name, is_call_start=False, switch=None: tensor
     )
     acl_tensor_save_op.default = MagicMock()
-    acl_stat_op = MagicMock(side_effect=lambda tensor, tag, switch=None: tensor)
+    acl_stat_op = MagicMock(side_effect=lambda tensor, stats, tag, switch=None: tensor)
     acl_stat_op.default = MagicMock()
     fake_ops = types.SimpleNamespace(
         acl_save=acl_save_op,
@@ -1035,6 +1035,34 @@ class TestAclGraphDumpApi(unittest.TestCase):
         self.assertTrue(torch.equal(saved_tensor, tensor))
         self.assertEqual(call.args[1:], ("tensor.pt", "linear", True, switch))
         self.assertIs(result, saved_tensor)
+
+    def test_acl_stat_computes_statistics_before_calling_custom_op(self):
+        tensor = torch.arange(8, dtype=torch.int32)
+        switch = torch.tensor(True)
+
+        result = self.module.acl_stat(tensor, "linear.input.0", switch)
+
+        call = self.fake_ops.acl_stat.call_args
+        self.assertIs(call.args[0], tensor)
+        torch.testing.assert_close(call.args[1], torch.tensor([0.0, 7.0, 3.5, 11.832159]))
+        self.assertEqual(call.args[2:], ("linear.input.0", switch))
+        self.assertIs(result, tensor)
+
+    def test_acl_stat_skips_low_precision_statistics(self):
+        tensors = [torch.arange(8, dtype=torch.int8), torch.arange(8, dtype=torch.uint8)]
+        for dtype_name in ("float8_e4m3fn", "float8_e5m2", "float4_e2m1fn_x2"):
+            dtype = getattr(torch, dtype_name, None)
+            if dtype is not None:
+                tensors.append(torch.zeros(8, dtype=torch.uint8).view(dtype))
+        for tensor in tensors:
+            with self.subTest(dtype=tensor.dtype):
+                result = self.module.acl_stat(tensor, "linear.input.0")
+
+                call = self.fake_ops.acl_stat.call_args
+                self.assertIs(call.args[0], tensor)
+                self.assertIsNone(call.args[1])
+                self.assertEqual(call.args[2:], ("linear.input.0", None))
+                self.assertIs(result, tensor)
 
 
 if __name__ == "__main__":

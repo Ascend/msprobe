@@ -32,7 +32,7 @@ def _register_meta():
             return x
 
         @torch.library.register_fake("my_ns.acl_stat")
-        def _fake_acl_stat(x: torch.Tensor, tag: str, switch: torch.Tensor = None):
+        def _fake_acl_stat(x: torch.Tensor, stats: torch.Tensor, tag: str, switch: torch.Tensor = None):
             return x
     except Exception:  # nosec B110 - duplicate fake registration is safe to ignore
         pass
