@@ -252,22 +252,29 @@ class ModuleProcessor:
             # calls _reset_status which resets module_count, so index does not accumulate
             # across steps.
             if self.tensor_loader is not None:
-                # If loader is not active for current step (load.step out of range),
-                # skip load logic entirely — no override, no warning, no overhead.
-                if not self.tensor_loader.active:
-                    return (args, kwargs) if torch_version_above_or_equal_2 else args
-                index = ModuleProcessor.set_and_get_calls_number(module_name)
-                full_forward_name = f'{module_name}{Const.FORWARD}{Const.SEP}{index}'
-                if self.tensor_loader.should_override(full_forward_name):
-                    args, kwargs = self.tensor_loader.override_args(full_forward_name, args, kwargs)
-                # tensor_loader active but dump not running: return after override
-                if not Runtime.is_running:
-                    return (args, kwargs) if torch_version_above_or_equal_2 else args
-                # load only needs forward_pre_hook for override, not for module-level dump.
-                # If level is not L0/mix, skip module-level dump logic to avoid collecting
-                # module-level data in L1 scenarios.
-                if ModuleProcessor.module_dump_level not in [Const.LEVEL_L0, Const.LEVEL_MIX]:
-                    return (args, kwargs) if torch_version_above_or_equal_2 else args
+                # If loader is active for current step/rank, perform override before dump.
+                # If not active (load.step/rank out of range), skip override but still
+                # proceed to dump logic below — load should not affect dump behavior.
+                if self.tensor_loader.active:
+                    index = ModuleProcessor.set_and_get_calls_number(module_name)
+                    full_forward_name = f'{module_name}{Const.FORWARD}{Const.SEP}{index}'
+                    if self.tensor_loader.should_override(full_forward_name):
+                        args, kwargs = self.tensor_loader.override_args(full_forward_name, args, kwargs)
+                    # tensor_loader active but dump not running: return after override
+                    if not Runtime.is_running:
+                        return (args, kwargs) if torch_version_above_or_equal_2 else args
+                    # load only needs forward_pre_hook for override, not for module-level dump.
+                    # If level is not L0/mix, skip module-level dump logic to avoid collecting
+                    # module-level data in L1 scenarios.
+                    if ModuleProcessor.module_dump_level not in [Const.LEVEL_L0, Const.LEVEL_MIX]:
+                        return (args, kwargs) if torch_version_above_or_equal_2 else args
+                else:
+                    # not active: skip override, but still check Runtime for dump
+                    if not Runtime.is_running:
+                        return (args, kwargs) if torch_version_above_or_equal_2 else args
+                    # same L0/mix check as active branch: L1 should not collect module-level data
+                    if ModuleProcessor.module_dump_level not in [Const.LEVEL_L0, Const.LEVEL_MIX]:
+                        return (args, kwargs) if torch_version_above_or_equal_2 else args
             else:
                 # original path: no override, check Runtime first
                 if not Runtime.is_running:
@@ -277,8 +284,8 @@ class ModuleProcessor:
             if hasattr(module, 'msprobe_module_dump') and not self.enable_module_dump:
                 return (args, kwargs) if torch_version_above_or_equal_2 else args
 
-            # original path increments index here; load path already did it above
-            if self.tensor_loader is None:
+            # increment index here unless load path already did it (active=True)
+            if self.tensor_loader is None or not self.tensor_loader.active:
                 index = ModuleProcessor.set_and_get_calls_number(module_name)
                 full_forward_name = f'{module_name}{Const.FORWARD}{Const.SEP}{index}'
             full_backward_name = f'{module_name}{Const.BACKWARD}{Const.SEP}{index}'
