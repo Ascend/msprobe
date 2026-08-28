@@ -24,7 +24,6 @@
 
 - 仅支持 PyTorch 框架。
 - 构建 `aclgraph_dump` 需要 TorchNPU 参与编译；若未包含该模块，将无法正常使用该功能。
-- 当前不支持低精场景（`fp8`/`fp4`）的数据采集与结果分析，建议使用 `fp16`/`bf16`/`fp32` 等常规精度进行 ACLGraph 排查。
 
 ## 整网采集
 
@@ -406,3 +405,7 @@ tensor = torch.load("./dump/act_0.pt")
 **2. `Allocate SQ failed` 问题**
 
 CANN 8.5.0 以下（不含 8.5.0）可能出现 `Allocate SQ failed`，这是老版本 SQ 不复用导致。可将 `ccsrc/aclgraph_dump/aclgraph_dump.cpp` 中 `CurrentNPUStream` 改为 `DefaultNPUStream` 规避，或升级至 CANN 8.5.0及以上版本。
+
+**3. 运行时出现提示信息：`[WARNING]: Invalid statistics detected. Please use tensor mode to collect the affected data.`**
+
+当统计量场景涉及低精度数据类型时，由于无法采集相关低精度信息，系统会触发此提示。若需要解决该问题，建议切换至真实数据模式进行数据采集，具体操作可参考[Tensor 整网采集](#tensor-整网采集)。
