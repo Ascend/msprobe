@@ -64,6 +64,7 @@ MindStudio Probe（MindStudio 精度调试工具，msProbe）是针对昇腾 AI 
 | | | 训推一致性监控：逐Token级别的probs_diff监控 | 训推一致性监控，逐Token级别监控probs_diff | [训推一致性监控：逐Token级别的probs_diff监控](docs/zh/user_guide/dump/verl_token_level_probs_diff_monitoring.md) |
 | | | VeRL 训推交叉打桩 | 在两个阶段结束位置打桩，对阶段输出进行替换，通过替换后的训练效果来判断阶段输出是否存在异常 | [VeRL 训推交叉打桩](docs/zh/user_guide/verl_cross_validation.md) |
 |  |Slime场景| 数据采集         | 训推阶段完成msProbe精度数据采集操作            | [数据采集](docs/zh/user_guide/dump/slime_train_rollout_dump_instruct.md) |
+| | | slime超参比对 | slime训练过程中或结束后，比对两台不同服务器上训练日志中采集到的真实超参配置是否取值相同，辅助用户高效比对真实超参值配置，加速定位因配置差异所引发的训练精度问题 | [slime超参比对与关键超参校验](docs/zh/user_guide/slime_param_compare_instruct.md) |
 | | | 训推一致性比对数据采集 | megatron训练后端，sglang推理引擎，保证训推一致性比对时的输入shape一致的比对数据采集操作 | [slime框架训推一致性预处理与数据采集](docs/zh/user_guide/dump/slime_consistency_preprocess_dump.md) |
 | **MindSpore训练** | - | 训练前配置检查 | 训练前或精度比对前，对比两个环境下可能影响训练精度的配置差异 | [训练前配置检查](docs/zh/user_guide/config_check_instruct.md) |
 | | | 数据采集 | 通过config.json配置，完成msProbe精度数据采集操作 | [数据采集](docs/zh/user_guide/dump/mindspore_data_dump_instruct.md) |

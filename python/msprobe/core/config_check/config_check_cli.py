@@ -21,10 +21,15 @@ from msprobe.core.config_check.verl_param_compare.verl_log_filter import (
     verl_get_config_file_path,
     check_log_extension,
 )
+from msprobe.core.config_check.slime_param_compare.slime_log_filter import (
+    slime_filter_config_info,
+    slime_get_config_file_path,
+)
 from msprobe.core.config_check.verl_param_compare.utils import check_yaml_extension
 from msprobe.core.common.file_utils import create_directory
 from msprobe.core.config_check.verl_param_compare.verl_hyper_params_cmp import verl_compare_hyper_params
 from msprobe.core.config_check.verl_param_compare.verl_hyper_params_verify import verl_verify_hyper_params
+from msprobe.core.config_check.slime_param_compare.slime_hyper_params_cmp import slime_compare_hyper_params
 from msprobe.core.common.log import logger
 
 
@@ -111,13 +116,21 @@ def _config_checking_parser(parser):
         help='Verify the parameter info in the configuration file for target and bench, the first argument is an optional '
         'benchmark configuration file(eg:bench_yaml), and the second argument is a mandatory target log that must be passed in(eg:target_log)',
     )
+    mutex.add_argument(
+        '-sc',
+        '--slime-compare',
+        nargs=2,
+        help='Compare the parameter info in the configuration file filtered from the slime train logs for NPU and bench,'
+        'the first argument is the log to be compared(eg:NPU_log), and the second argument is the bench log(eg:bench_log).',
+    )
     parser.add_argument(
         '-o',
         '--output',
         help='output path, default is ./config_check_pack.zip for dump mode and'
         ' ./config_check_result for compare mode and'
         ' ./verl_param_compare_result a folder for verl compare mode.'
-        ' ./verl_param_verify_result for verl verify mode',
+        ' ./verl_param_verify_result for verl verify mode'
+        ' ./slime_param_compare_result a folder for slime compare mode.',
     )
 
 
@@ -147,6 +160,19 @@ def _run_config_checking_command(args):
             )
             logger.error(ext_err_msg)
             raise Exception(ext_err_msg)  # pylint: disable=broad-exception-raised
+    elif args.slime_compare:
+        if check_log_extension(args.slime_compare[0]) and check_log_extension(args.slime_compare[1]):
+            output_dirpath = args.output if args.output else "./slime_param_compare_result"
+            npu_config_file, bench_config_file = slime_get_config_file_path(output_dirpath)
+            slime_filter_config_info(args.slime_compare[0], npu_config_file)
+            slime_filter_config_info(args.slime_compare[1], bench_config_file)
+            slime_compare_hyper_params(npu_config_file, bench_config_file, output_dirpath)
+        else:
+            ext_err_msg = (
+                "The param of slime-compare require two log files, and the file format just support '.log' or '.txt'."
+            )
+            logger.error(ext_err_msg)
+            raise Exception(ext_err_msg)  # pylint: disable=broad-exception-raised
     elif args.verl_verify:
         verl_verify_error = _get_verl_verify_error_message(args.verl_verify)
         if verl_verify_error is None:
@@ -168,10 +194,10 @@ def _run_config_checking_command(args):
     else:
         logger.error(
             "The param is not correct, you need to give '-d' for dump or '-c' for compare "
-            "or '-vc' for verl compare or '-vv' for verl verify."
+            "or '-vc' for verl compare or '-vv' for verl verify or '-sc' for slime compare."
         )
         # pylint: disable=broad-exception-raised
         raise Exception(
             "The param is not correct, you need to give '-d' for dump or '-c' for compare "
-            "or '-vc' for verl compare or '-vv' for verl verify."
+            "or '-vc' for verl compare or '-vv' for verl verify or '-sc' for slime compare."
         )

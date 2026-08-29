@@ -67,6 +67,10 @@ class TestConfigCheckCli(unittest.TestCase):
         self.assertEqual(args.verl_compare, ['NPU_log', 'bench_log'])
         self.assertEqual(args.output, 'verl_compare_result')
 
+        args = parser.parse_args(['-sc', 'NPU_log', 'bench_log', '-o', 'slime_compare_result'])
+        self.assertEqual(args.slime_compare, ['NPU_log', 'bench_log'])
+        self.assertEqual(args.output, 'slime_compare_result')
+
         args = parser.parse_args(['-vv', 'bench_config', 'tgt_config', '-o', 'verl_verify_result'])
         self.assertEqual(args.verl_verify, ['bench_config', 'tgt_config'])
         self.assertEqual(args.output, 'verl_verify_result')
@@ -84,6 +88,7 @@ class TestConfigCheckCli(unittest.TestCase):
         args.compare = None
         args.verl_compare = None
         args.verl_verify = None
+        args.slime_compare = None
         
         _run_config_checking_command(args)
         
@@ -103,6 +108,7 @@ class TestConfigCheckCli(unittest.TestCase):
         args.dump = None
         args.verl_compare = None
         args.verl_verify = None
+        args.slime_compare = None
         args.compare = ['file1.zip', 'file2.zip']
         args.output = 'result_dir'
         
@@ -125,6 +131,7 @@ class TestConfigCheckCli(unittest.TestCase):
         args.dump = None
         args.verl_compare = None
         args.verl_verify = None
+        args.slime_compare = None
         args.compare = ['file1.ckpt', 'file2.ckpt']
         args.output = 'result.json'
         
@@ -169,6 +176,38 @@ class TestConfigCheckCli(unittest.TestCase):
         mock_verl_compare_hyper_params.assert_called_with('./verl_param_compare_result/NPU_config.json',
             './verl_param_compare_result/bench_config.json', './verl_param_compare_result')
 
+    @patch('msprobe.core.config_check.config_check_cli.slime_compare_hyper_params')
+    @patch('msprobe.core.config_check.config_check_cli.slime_filter_config_info')
+    @patch('msprobe.core.config_check.config_check_cli.slime_get_config_file_path')
+    def test_run_config_checking_command_slime_hyper_params_compare(self, mock_slime_get_config_file_path,
+                                                                   mock_slime_filter_config_info,
+                                                                   mock_slime_compare_hyper_params):
+        """Test _run_config_checking_command with slime hyper params compare"""
+        args = argparse.Namespace()
+        args.dump = None
+        args.compare = None
+        args.verl_compare = None
+        args.verl_verify = None
+        args.slime_compare = ['NPU_slime.log', 'bench_slime.log']
+        args.output = 'slime_compare_result'
+        mock_slime_get_config_file_path.return_value = ("slime_compare_result/NPU_config.json",
+                                                       "slime_compare_result/bench_config.json")        
+        _run_config_checking_command(args)
+        mock_slime_get_config_file_path.assert_called_once_with('slime_compare_result')
+        mock_slime_filter_config_info.assert_any_call('NPU_slime.log', 'slime_compare_result/NPU_config.json')
+        mock_slime_filter_config_info.assert_any_call('bench_slime.log', 'slime_compare_result/bench_config.json')
+        mock_slime_compare_hyper_params.assert_called_once_with('slime_compare_result/NPU_config.json',
+            'slime_compare_result/bench_config.json', 'slime_compare_result')
+        
+        # Test with default output path
+        args.output = None
+        mock_slime_get_config_file_path.return_value = ("./slime_param_compare_result/NPU_config.json",
+                                                       "./slime_param_compare_result/bench_config.json")    
+        _run_config_checking_command(args)
+        mock_slime_get_config_file_path.assert_called_with('./slime_param_compare_result')
+        mock_slime_compare_hyper_params.assert_called_with('./slime_param_compare_result/NPU_config.json',
+            './slime_param_compare_result/bench_config.json', './slime_param_compare_result')
+
     @patch('msprobe.core.config_check.config_check_cli.verl_filter_config_info')
     @patch('msprobe.core.config_check.config_check_cli.verl_verify_hyper_params')  
     def test_run_config_checking_command_verl_hyper_params_verify(self, mock_verl_verify_hyper_params,
@@ -178,6 +217,7 @@ class TestConfigCheckCli(unittest.TestCase):
         args.dump = None
         args.compare = None
         args.verl_compare = None
+        args.slime_compare = None
         args.verl_verify = ['bench_config.yaml', 'tgt_config.log']
         args.output = 'verl_verify_result'
    
@@ -221,6 +261,34 @@ class TestConfigCheckCli(unittest.TestCase):
         mock_verl_filter_config_info.assert_not_called()
         mock_verl_compare_hyper_params.assert_not_called()
 
+    @patch('msprobe.core.config_check.config_check_cli.slime_compare_hyper_params')  
+    @patch('msprobe.core.config_check.config_check_cli.slime_filter_config_info')
+    @patch('msprobe.core.config_check.config_check_cli.slime_get_config_file_path')
+    @patch('msprobe.core.config_check.config_check_cli.logger')
+    def test_run_config_checking_command_slime_hyper_params_compare_invalid_param(
+        self, mock_logger, mock_slime_get_config_file_path,
+        mock_slime_filter_config_info, mock_slime_compare_hyper_params
+    ):
+        """Test _run_config_checking_command with slime hyper params compare invalid param"""
+        args = argparse.Namespace()
+        args.dump = None
+        args.compare = None
+        args.verl_compare = None
+        args.verl_verify = None
+        args.slime_compare = ['NPU_slime.md', 'bench_slime.log']
+        args.output = None
+
+        with self.assertRaises(Exception) as context:
+            _run_config_checking_command(args)
+
+        err_msg = ("The param of slime-compare require two log files, "
+                    "and the file format just support '.log' or '.txt'.")
+        mock_logger.error.assert_called_once_with(err_msg)
+        self.assertEqual(str(context.exception), err_msg)
+        mock_slime_get_config_file_path.assert_not_called()
+        mock_slime_filter_config_info.assert_not_called()
+        mock_slime_compare_hyper_params.assert_not_called()
+
     @patch('msprobe.core.config_check.config_check_cli.verl_verify_hyper_params')
     @patch('msprobe.core.config_check.config_check_cli.logger')
     def test_run_config_checking_command_verl_hyper_params_verify_invalid_param(
@@ -231,6 +299,7 @@ class TestConfigCheckCli(unittest.TestCase):
         args.dump = None
         args.compare = None
         args.verl_compare = None
+        args.slime_compare = None
         args.verl_verify = ['bench_config.md', 'tgt_config.json']
         args.output = None
         with self.assertRaises(Exception) as context:
@@ -255,6 +324,7 @@ class TestConfigCheckCli(unittest.TestCase):
         args.dump = None
         args.compare = None
         args.verl_compare = None
+        args.slime_compare = None
         args.verl_verify = ['tgt_config.log', 'bench_config.yaml']
         args.output = None
         with self.assertRaises(Exception) as context:
@@ -287,12 +357,13 @@ class TestConfigCheckCli(unittest.TestCase):
         args.compare = None
         args.verl_compare = None
         args.verl_verify = None
+        args.slime_compare = None
         args.output = None
         
         with self.assertRaises(Exception) as context:
             _run_config_checking_command(args)
         
         self.assertEqual(str(context.exception), "The param is not correct, you need to give '-d' for dump or '-c' for compare "
-                    "or '-vc' for verl compare or '-vv' for verl verify.")
+                    "or '-vc' for verl compare or '-vv' for verl verify or '-sc' for slime compare.")
         mock_logger.error.assert_called_once_with("The param is not correct, you need to give '-d' for dump or '-c' for compare "
-                    "or '-vc' for verl compare or '-vv' for verl verify.")
+                    "or '-vc' for verl compare or '-vv' for verl verify or '-sc' for slime compare.")
