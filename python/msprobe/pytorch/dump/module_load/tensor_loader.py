@@ -32,7 +32,7 @@ import re
 import torch
 
 from msprobe.core.common.const import Const
-from msprobe.core.common.log import logger
+from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.common.utils import load_pt
 
 # Regex for parsing module entry: Module.{dotted_path}.{ClassName}.forward.{N}
@@ -96,19 +96,17 @@ class TensorLoader:
         for entry in sorted(self.modules):
             module_path, class_name = self._parse_module_entry(entry)
             if module_path is None:
-                invalid.append((entry, "invalid format"))
+                invalid.append(entry)
                 continue
 
             if module_path in model_module_paths:
                 actual_class = model_class_names.get(module_path, "")
                 if actual_class != class_name:
-                    invalid.append(
-                        (entry, f"class name mismatch: configured '{class_name}' vs actual '{actual_class}'")
-                    )
+                    invalid.append(entry)
                 else:
                     valid.append(entry)
             else:
-                invalid.append((entry, f"module path '{module_path}' not found in model"))
+                invalid.append(entry)
 
         # check for multiple forward.N pointing to same module path
         path_count = {}
@@ -117,13 +115,13 @@ class TensorLoader:
             if module_path is not None:
                 path_count[module_path] = path_count.get(module_path, 0) + 1
 
-        logger.info(f"[load] module validation: {len(valid)}/{len(self.modules)} modules valid in model")
-        for entry, reason in invalid:
-            logger.warning(f"[load] invalid module: {entry} ({reason})")
+        logger.info_on_rank_0(f"[load] module validation: {len(valid)}/{len(self.modules)} modules valid in model")
+        for entry in invalid:
+            logger.warning_on_rank_0(f"[load] invalid module: {entry}")
         for path, count in path_count.items():
             if count > 1:
-                logger.warning(f"[load] module path '{path}' has {count} forward.N entries")
-        logger.info(
+                logger.warning_on_rank_0(f"[load] module path '{path}' has {count} forward.N entries")
+        logger.info_on_rank_0(
             "[load] note: forward.N call_index cannot be verified before runtime, "
             "mismatched call_index will result in source data missing warning during forward"
         )
@@ -296,7 +294,9 @@ class TensorLoader:
             else:
                 rank_subdir = os.path.basename(proc_dirs[0])
                 if len(proc_dirs) > 1:
-                    logger.warning(f"[load] multiple proc* directories found in {step_dir}, using {rank_subdir}")
+                    logger.warning_on_rank_0(
+                        f"[load] multiple proc* directories found in {step_dir}, using {rank_subdir}"
+                    )
         filename = f"{full_forward_name}{Const.SEP}{category}{Const.SEP}{suffix}{Const.PT_SUFFIX}"
         return os.path.join(self.path, f"step{step}", rank_subdir, "dump_tensor_data", filename)
 
