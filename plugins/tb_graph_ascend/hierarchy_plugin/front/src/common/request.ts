@@ -15,6 +15,7 @@
  * -------------------------------------------------------------------------
  */
 import axios, { type AxiosResponse, AxiosError } from 'axios';
+import { buildRequestUrl } from './request-url';
 import type { ApiResponse } from './type';
 interface RequestOptions {
   url: string; // 请求地址
@@ -36,8 +37,7 @@ export default async function request<T = any>(options: RequestOptions): Promise
         params.metaData.type = 'rank' in params.metaData ? 'db' : 'json';
       }
     }
-    const baseURL = '/data/plugin/graph_ascend';
-    const fullUrl = baseURL ? `${baseURL.replace(/\/$/, '')}/${url.replace(/^\//, '')}` : url;
+    const fullUrl = buildRequestUrl(url, import.meta.env.DEV);
     const response: AxiosResponse<T> = await axios({
       url: fullUrl,
       method,
