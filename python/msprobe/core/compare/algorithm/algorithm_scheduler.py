@@ -95,10 +95,17 @@ class AlgorithmScheduler:
             self._add_algorithm_file_to_list(file_path, algorithm_list)
 
     def _validate_column_names(self) -> None:
+        reserved_columns = self._get_reserved_column_names()
         all_algorithms = self.get_algorithm_names()
         for algo_name in all_algorithms:
             module = self._get_module(algo_name)
             col_name = self._get_column_name(algo_name, module)
+            if col_name in reserved_columns:
+                raise ValueError(
+                    f"The column name '{col_name}' of algorithm [{algo_name}] conflicts with a reserved "
+                    f"result column. Reserved columns: {sorted(reserved_columns)}. "
+                    f"Please use a different column name."
+                )
             if col_name in self._column_name_algorithm_mapping:
                 raise ValueError(
                     f"The column name {col_name} is duplicated for algorithm {algo_name} "
@@ -107,6 +114,22 @@ class AlgorithmScheduler:
             self._column_name_algorithm_mapping[col_name] = algo_name
         for col_name, algo_name in self._column_name_algorithm_mapping.items():
             logger.info(f"Load algorithm [{algo_name}] success, column: {col_name}")
+
+    @staticmethod
+    def _get_reserved_column_names() -> set:
+        """
+        返回真实数据比对结果完整表头中由框架管理的固定列名集合。
+        算法列名不得与这些固定列名冲突，否则会覆盖框架写入的固定列数据。
+        """
+        from msprobe.core.common.const import CompareConst
+
+        fixed_columns = (
+            CompareConst.BASIC_INFO
+            + CompareConst.SUMMARY_INFO
+            + CompareConst.EXTRACT_INDEX
+            + [CompareConst.STACK, CompareConst.DATA_NAME, CompareConst.DIRTY_VALID_LEN]
+        )
+        return set(fixed_columns)
 
     @staticmethod
     def _add_algorithm_file_to_list(file_path: str, algorithm_list: List[str]) -> bool:

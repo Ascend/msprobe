@@ -36,6 +36,20 @@ EXPECTED_BUILTIN_COLUMN_NAMES = {
     "MaxRelativeErr",
     "One Thousandth Err Ratio",
 }
+# 真实数据比对完整表头中由框架管理的固定列（BASIC_INFO + SUMMARY_INFO + EXTRACT_INDEX + 附加列）
+EXPECTED_RESERVED_COLUMNS = {
+    # BASIC_INFO
+    "NPU Name", "Bench Name", "NPU Dtype", "Bench Dtype",
+    "NPU Tensor Shape", "Bench Tensor Shape",
+    "NPU Requires_grad", "Bench Requires_grad",
+    # SUMMARY_INFO
+    "NPU max", "NPU min", "NPU mean", "NPU l2norm",
+    "Bench max", "Bench min", "Bench mean", "Bench l2norm",
+    # EXTRACT_INDEX
+    "Requires_grad Consistent", "Result", "Err_message",
+    # 真实数据比对附加列
+    "NPU_Stack_Info", "Data_name", "Dirty Valid Len",
+}
 
 
 def _two_param_func(n_value, b_value):
@@ -140,6 +154,58 @@ class TestAlgorithmScheduler(unittest.TestCase):
                 mock.patch.object(inst, "_get_column_name", side_effect=lambda name, mod: col_names[name]):
             inst._validate_column_names()
         self.assertEqual(inst._column_name_algorithm_mapping, {"ColA": "alg_a", "ColB": "alg_b"})
+
+    # ------------------------------------------------------------------
+    # 保留列名校验（真实数据比对固定列）
+    # ------------------------------------------------------------------
+    def test_get_reserved_column_names_given_const_when_call_then_returns_real_data_fixed_columns(self):
+        reserved = AlgorithmScheduler._get_reserved_column_names()
+        self.assertEqual(reserved, EXPECTED_RESERVED_COLUMNS)
+        # 内置算法列属于算法列，不应被列为保留列
+        self.assertFalse(reserved & EXPECTED_BUILTIN_COLUMN_NAMES)
+
+    def test_validate_column_names_given_reserved_conflict_when_validate_then_value_error(self):
+        # 跳过真实加载，构造受控状态后直接测试 _validate_column_names
+        with mock.patch.object(AlgorithmScheduler, "_make_support_algorithm", lambda self: None):
+            inst = AlgorithmScheduler.get_instance()
+        inst.build_in_support_algorithm = ["alg_a"]
+        inst.custom_support_algorithm = []
+        inst.algorithm_names = ["alg_a"]
+        inst._column_name_algorithm_mapping = {}
+        dummy_module = mock.Mock()
+        with mock.patch.object(inst, "_get_module", return_value=dummy_module), \
+                mock.patch.object(inst, "_get_column_name", return_value="NPU Tensor Shape"):
+            with self.assertRaisesRegex(ValueError, "conflicts with a reserved"):
+                inst._validate_column_names()
+
+    def test_validate_column_names_given_reserved_conflict_when_validate_then_error_shows_reserved(self):
+        with mock.patch.object(AlgorithmScheduler, "_make_support_algorithm", lambda self: None):
+            inst = AlgorithmScheduler.get_instance()
+        inst.build_in_support_algorithm = ["alg_a"]
+        inst.custom_support_algorithm = []
+        inst.algorithm_names = ["alg_a"]
+        inst._column_name_algorithm_mapping = {}
+        dummy_module = mock.Mock()
+        with mock.patch.object(inst, "_get_module", return_value=dummy_module), \
+                mock.patch.object(inst, "_get_column_name", return_value="Data_name"):
+            with self.assertRaises(ValueError) as ctx:
+                inst._validate_column_names()
+        self.assertIn("Reserved columns", str(ctx.exception))
+        self.assertIn("Dirty Valid Len", str(ctx.exception))
+
+    def test_validate_column_names_given_not_reserved_when_validate_then_no_conflict_error(self):
+        # 非保留列名不触发保留列冲突，正常建立映射
+        with mock.patch.object(AlgorithmScheduler, "_make_support_algorithm", lambda self: None):
+            inst = AlgorithmScheduler.get_instance()
+        inst.build_in_support_algorithm = ["alg_a"]
+        inst.custom_support_algorithm = []
+        inst.algorithm_names = ["alg_a"]
+        inst._column_name_algorithm_mapping = {}
+        dummy_module = mock.Mock()
+        with mock.patch.object(inst, "_get_module", return_value=dummy_module), \
+                mock.patch.object(inst, "_get_column_name", return_value="ColA"):
+            inst._validate_column_names()
+        self.assertEqual(inst._column_name_algorithm_mapping, {"ColA": "alg_a"})
 
     # ------------------------------------------------------------------
     # _is_real_number
