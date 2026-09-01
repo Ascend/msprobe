@@ -58,13 +58,15 @@ def acc_check_cli(argv):
     2. 根据 dump.json 中的 framework 动态选择 PT/MS 的 parser + 命令。
     """
     # ====================== 关键：先判断 -api_info ======================
-    has_api_info = "-api_info" in argv
+    has_api_info = any(option in argv for option in ("-api_info", "--api_info_file"))
 
     # 只输 -h，没带 -api_info → 打印基础帮助
     if not has_api_info:
         pre_parser = MindStudioArgumentParser(add_help=True, prog="msprobe acc_check")
         pre_parser.add_argument(
             "-api_info",
+            "--api_info_file",
+            dest="api_info_file",
             required=True,
             help="Path to API info JSON file. Used to determine PyTorch or MindSpore pre-check.",
         )
@@ -73,10 +75,10 @@ def acc_check_cli(argv):
 
     # 第一阶段：只解析 -api_info，关闭自带 help
     pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("-api_info", required=True)
+    pre_parser.add_argument("-api_info", "--api_info_file", dest="api_info_file", required=True)
     pre_args, _ = pre_parser.parse_known_args(argv)
 
-    framework = _detect_framework_from_api_info(pre_args.api_info)
+    framework = _detect_framework_from_api_info(pre_args.api_info_file)
 
     if framework == Const.PT_FRAMEWORK:
         # PyTorch 路径：使用原来的 PT acc_check 实现
@@ -84,6 +86,7 @@ def acc_check_cli(argv):
 
         pt_parser = MindStudioArgumentParser(
             prog="msprobe acc_check",
+            help_spec_key="msprobe acc_check pytorch",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Run PyTorch acc_check with msprobe.",
         )
@@ -99,6 +102,7 @@ def acc_check_cli(argv):
 
         ms_parser = MindStudioArgumentParser(
             prog="msprobe acc_check",
+            help_spec_key="msprobe acc_check mindspore",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Run MindSpore Check  with msprobe.",
         )
@@ -114,13 +118,15 @@ def multi_acc_check_cli(argv):
     同样通过 -api_info -> dump.json -> framework 做分发。
     """
     # ====================== 第一步：先检查是否带了 -api_info ======================
-    has_api_info = "-api_info" in argv
+    has_api_info = any(option in argv for option in ("-api_info", "--api_info_file"))
 
     # ====================== 情况1：只输 -h，没带 -api_info → 打印基础帮助 ======================
     if not has_api_info:
         pre_parser = MindStudioArgumentParser(add_help=True, prog="msprobe multi_acc_check")
         pre_parser.add_argument(
             "-api_info",
+            "--api_info_file",
+            dest="api_info_file",
             required=True,
             help="Path to API info JSON file. Used to determine PyTorch or MindSpore pre-check.",
         )
@@ -130,11 +136,11 @@ def multi_acc_check_cli(argv):
     # ====================== 情况2：带了 -api_info（无论是否带 -h）→ 走完整解析 ======================
     # 先解析拿到 api_info
     pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("-api_info", required=True)
+    pre_parser.add_argument("-api_info", "--api_info_file", dest="api_info_file", required=True)
     pre_args, _ = pre_parser.parse_known_args(argv)
 
     # 检测框架
-    framework = _detect_framework_from_api_info(pre_args.api_info)
+    framework = _detect_framework_from_api_info(pre_args.api_info_file)
 
     if framework == Const.PT_FRAMEWORK:
         # PyTorch 多进程路径：沿用原来的 prepare_config + run_parallel_ut
@@ -143,6 +149,7 @@ def multi_acc_check_cli(argv):
 
         pt_parser = MindStudioArgumentParser(
             prog="msprobe multi_acc_check",
+            help_spec_key="msprobe multi_acc_check pytorch",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Run PyTorch acc_check in parallel with msprobe.",
         )
@@ -167,6 +174,7 @@ def multi_acc_check_cli(argv):
 
         ms_parser = MindStudioArgumentParser(
             prog="msprobe multi_acc_check",
+            help_spec_key="msprobe multi_acc_check mindspore",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Run MindSpore Check in parallel with msprobe.",
         )

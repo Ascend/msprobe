@@ -119,6 +119,22 @@ class TestAccCheckCli(unittest.TestCase):
 
     @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")
     @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.parse_args")
+    def test_pt_framework_long_api_info_alias_dispatches(self, mock_parse, mock_detect):
+        mock_detect.return_value = Const.PT_FRAMEWORK
+        mock_parse.return_value = MagicMock()
+        mock_acc_check = MagicMock()
+
+        with patch.dict("sys.modules", {
+            "msprobe.pytorch": MagicMock(),
+            "msprobe.pytorch.api_accuracy_checker": MagicMock(),
+            "msprobe.pytorch.api_accuracy_checker.acc_check": MagicMock(),
+            "msprobe.pytorch.api_accuracy_checker.acc_check.acc_check": mock_acc_check,
+        }):
+            acc_check_cli(["--api_info_file", "/tmp/dump.json"])
+            mock_acc_check.acc_check_command.assert_called_once()
+
+    @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")
+    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.parse_args")
     def test_ms_framework_dispatches(self, mock_parse, mock_detect):
         """MS 分支验证正确调用 api_checker_main。"""
         mock_detect.return_value = Const.MS_FRAMEWORK
@@ -159,6 +175,23 @@ class TestMultiAccCheckCli(unittest.TestCase):
             "msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check": mock_multi,
         }):
             multi_acc_check_cli(["-api_info", "/tmp/dump.json"])
+            mock_multi.run_parallel_ut.assert_called_once()
+
+    @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")
+    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.parse_args")
+    def test_pt_framework_long_api_info_alias_dispatches(self, mock_parse, mock_detect):
+        mock_detect.return_value = Const.PT_FRAMEWORK
+        mock_parse.return_value = MagicMock()
+        mock_multi = MagicMock()
+
+        with patch.dict("sys.modules", {
+            "msprobe.pytorch": MagicMock(),
+            "msprobe.pytorch.api_accuracy_checker": MagicMock(),
+            "msprobe.pytorch.api_accuracy_checker.acc_check": MagicMock(),
+            "msprobe.pytorch.api_accuracy_checker.acc_check.acc_check": MagicMock(),
+            "msprobe.pytorch.api_accuracy_checker.acc_check.multi_acc_check": mock_multi,
+        }):
+            multi_acc_check_cli(["--api_info_file", "/tmp/dump.json"])
             mock_multi.run_parallel_ut.assert_called_once()
 
     @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")

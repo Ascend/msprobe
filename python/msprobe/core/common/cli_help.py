@@ -62,14 +62,68 @@ HELP_SPECS: Dict[str, HelpSpec] = {
     "msprobe acc_check": HelpSpec(
         "Run API accuracy checks using the framework recorded in the API information file.",
         "msprobe acc_check -api_info <FILE> [options]",
-        (("Run an API accuracy check", "msprobe acc_check -api_info ./dump.json"),),
-        ("<out_path>/accuracy_checking_result_{timestamp}.csv",),
+        (
+            (
+                "Show options for the framework recorded in the API information file",
+                "msprobe acc_check -api_info ./dump_source/step0/rank0/dump.json -h",
+            ),
+            ("Run an API accuracy check", "msprobe acc_check -api_info ./dump.json"),
+        ),
+        (
+            "<DIR>/accuracy_checking_result_{timestamp}.csv",
+            "<DIR>/accuracy_checking_details_{timestamp}.csv",
+        ),
+    ),
+    "msprobe acc_check pytorch": HelpSpec(
+        "Run PyTorch API accuracy checks from an API information file.",
+        "msprobe acc_check -api_info <FILE> [options]",
+        (("Run a PyTorch API accuracy check", "msprobe acc_check -api_info ./dump.json"),),
+        (
+            "<DIR>/accuracy_checking_result_{timestamp}.csv",
+            "<DIR>/accuracy_checking_details_{timestamp}.csv",
+        ),
+    ),
+    "msprobe acc_check mindspore": HelpSpec(
+        "Run MindSpore API accuracy checks from an API information file.",
+        "msprobe acc_check -api_info <FILE> [options]",
+        (("Run a MindSpore API accuracy check", "msprobe acc_check -api_info ./dump.json"),),
+        (
+            "<DIR>/accuracy_checking_result_{timestamp}.csv",
+            "<DIR>/accuracy_checking_details_{timestamp}.csv",
+        ),
     ),
     "msprobe multi_acc_check": HelpSpec(
         "Run API accuracy checks in parallel using the framework recorded in the API information file.",
         "msprobe multi_acc_check -api_info <FILE> [options]",
-        (("Run parallel API accuracy checks", "msprobe multi_acc_check -api_info ./dump.json"),),
-        ("<out_path>/accuracy_checking_result_{timestamp}.csv",),
+        (
+            (
+                "Show options for the framework recorded in the API information file",
+                "msprobe multi_acc_check -api_info ./dump_source/step0/rank0/dump.json -h",
+            ),
+            ("Run parallel API accuracy checks", "msprobe multi_acc_check -api_info ./dump.json"),
+        ),
+        (
+            "<DIR>/accuracy_checking_result_{timestamp}.csv",
+            "<DIR>/accuracy_checking_details_{timestamp}.csv",
+        ),
+    ),
+    "msprobe multi_acc_check pytorch": HelpSpec(
+        "Run PyTorch API accuracy checks in parallel from an API information file.",
+        "msprobe multi_acc_check -api_info <FILE> [options]",
+        (("Run parallel PyTorch API accuracy checks", "msprobe multi_acc_check -api_info ./dump.json"),),
+        (
+            "<DIR>/accuracy_checking_result_{timestamp}.csv",
+            "<DIR>/accuracy_checking_details_{timestamp}.csv",
+        ),
+    ),
+    "msprobe multi_acc_check mindspore": HelpSpec(
+        "Run MindSpore API accuracy checks in parallel from an API information file.",
+        "msprobe multi_acc_check -api_info <FILE> [options]",
+        (("Run parallel MindSpore API accuracy checks", "msprobe multi_acc_check -api_info ./dump.json"),),
+        (
+            "<DIR>/accuracy_checking_result_{timestamp}.csv",
+            "<DIR>/accuracy_checking_details_{timestamp}.csv",
+        ),
     ),
     "msprobe merge_result": HelpSpec(
         "Merge distributed accuracy comparison results into one result set.",
@@ -225,7 +279,7 @@ def _normalise_prog(prog: str) -> str:
 
 def _lookup_spec(parser: argparse.ArgumentParser) -> HelpSpec:
     prog = _normalise_prog(parser.prog)
-    spec = HELP_SPECS.get(prog)
+    spec = HELP_SPECS.get(getattr(parser, "help_spec_key", None) or prog)
     if spec:
         return spec
     description = (parser.description or f"Run the {prog} command.").strip()
@@ -233,7 +287,7 @@ def _lookup_spec(parser: argparse.ArgumentParser) -> HelpSpec:
 
 
 def _preferred_options(action: argparse.Action) -> Tuple[Optional[str], Optional[str]]:
-    short = next((item for item in action.option_strings if len(item) == 2 and item.startswith("-")), None)
+    short = next((item for item in action.option_strings if item.startswith("-") and not item.startswith("--")), None)
     long_name = next((item for item in action.option_strings if item.startswith("--")), None)
     if long_name is None:
         long_name = next((item for item in action.option_strings if item != short), None)
@@ -245,7 +299,7 @@ def _is_flag(action: argparse.Action) -> bool:
 
 
 def _metavar(action: argparse.Action) -> str:
-    if action.choices is not None:
+    if action.choices is not None and not isinstance(action.choices, range):
         return "{" + ",".join(str(value).lower() for value in action.choices) + "}"
     value = action.metavar
     if isinstance(value, tuple):
@@ -387,6 +441,10 @@ def format_help(parser: argparse.ArgumentParser) -> str:
 
 class MindStudioArgumentParser(argparse.ArgumentParser):
     """Argument parser with the unified MindStudio help layout."""
+
+    def __init__(self, *args, help_spec_key: Optional[str] = None, **kwargs):
+        self.help_spec_key = help_spec_key
+        super().__init__(*args, **kwargs)
 
     def format_help(self) -> str:
         return format_help(self)

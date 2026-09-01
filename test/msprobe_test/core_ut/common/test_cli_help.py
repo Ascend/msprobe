@@ -96,3 +96,63 @@ def test_parameter_descriptions_follow_terminal_width(monkeypatch):
     optional_section = help_text.split("Optional arguments:\n", 1)[1].split("\n\n", 1)[0]
 
     assert max(len(line) for line in optional_section.splitlines()) <= 60
+
+
+def test_acc_check_help_lists_aliases_examples_and_outputs():
+    for command in ("acc_check", "multi_acc_check"):
+        parser = MindStudioArgumentParser(prog=f"msprobe {command}")
+        parser.add_argument("-api_info", "--api_info_file", dest="api_info_file", required=True)
+
+        help_text = parser.format_help()
+
+        assert "-api_info, --api_info_file <FILE>" in help_text
+        assert f"msprobe {command} -api_info ./dump_source/step0/rank0/dump.json -h" in help_text
+        assert "<DIR>/accuracy_checking_result_{timestamp}.csv" in help_text
+        assert "<DIR>/accuracy_checking_details_{timestamp}.csv" in help_text
+        assert "<out_path>" not in help_text
+
+
+def test_framework_specific_acc_check_help():
+    test_cases = (
+        ("msprobe acc_check pytorch", "PyTorch", False),
+        ("msprobe acc_check mindspore", "MindSpore", False),
+        ("msprobe multi_acc_check pytorch", "PyTorch", True),
+        ("msprobe multi_acc_check mindspore", "MindSpore", True),
+    )
+
+    for help_spec_key, framework, is_multi in test_cases:
+        prog = "msprobe multi_acc_check" if is_multi else "msprobe acc_check"
+        parser = MindStudioArgumentParser(prog=prog, help_spec_key=help_spec_key)
+        parser.add_argument("-api_info", "--api_info_file", dest="api_info_file", required=True)
+        parser.add_argument("-csv_path", "--result_csv_path", dest="result_csv_path")
+        if framework == "PyTorch":
+            parser.add_argument("-config", "--config_path", dest="config_path")
+
+        help_text = parser.format_help()
+
+        assert f"Run {framework} API accuracy checks" in help_text
+        assert "-api_info, --api_info_file <FILE>" in help_text
+        assert "-csv_path, --result_csv_path <FILE>" in help_text
+        assert "<DIR>/accuracy_checking_result_{timestamp}.csv" in help_text
+        assert "<DIR>/accuracy_checking_details_{timestamp}.csv" in help_text
+        if framework == "PyTorch":
+            assert "-config,   --config_path <FILE>" in help_text
+
+
+def test_integer_range_choices_use_numeric_metavar():
+    parser = MindStudioArgumentParser(prog="range_choices")
+    parser.add_argument(
+        "-n",
+        "--num_splits",
+        type=int,
+        choices=range(1, 65),
+        default=8,
+        help="Number of splits for parallel processing. Range: 1-64",
+    )
+
+    help_text = parser.format_help()
+
+    assert "-n, --num_splits <N>" in help_text
+    assert "{1,2,3" not in help_text
+    assert "Range: 1-64." in help_text
+    assert "[default: 8]" in help_text
