@@ -899,6 +899,14 @@ def _compare_parser(parser):
         help="<optional> Backend when comparing train and infer data.",
         required=False,
     )
+    parser.add_argument(
+        "--config",
+        dest="config",
+        type=str,
+        default="",
+        help="<optional> The tensor postprocess config file path.",
+        required=False,
+    )
 
 
 def get_sorted_ranks(npu_dump_dir, bench_dump_dir):

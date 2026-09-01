@@ -1,0 +1,62 @@
+# =============================================================================
+# Tensor 后处理配置 - 矩阵乘校准 (matmul)
+#
+# 功能说明:
+#   在精度比对流程中，读取 tensor 数据后、校验前，对 target 和 golden 两侧的
+#   tensor 乘以指定的校准 tensor，用于量化场景下对量化前后的 tensor 进行对齐校准。
+#
+# 三种模式:
+#   right_matmul:       n_value * mat  /  b_value * mat
+#   left_matmul:        mat * n_value  /  mat * b_value
+#   left_right_matmul:  mat_left * n_value * mat_right  /  mat_left * b_value * mat_right
+#
+# 配置方式:
+#   right_matmul:
+#     target_tensor_map:
+#       "<path/to/calibration_tensor>":
+#         - "<target_data_name>"
+#     golden_tensor_map:
+#       "<path/to/calibration_tensor>":
+#         - "<golden_data_name>"
+#   left_matmul:
+#     target_tensor_map: {}
+#     golden_tensor_map: {}
+#   left_right_matmul:
+#     left_target_tensor_map:
+#       "<path/to/left_calibration_tensor>":
+#         - "<target_data_name>"
+#     right_target_tensor_map:
+#       "<path/to/right_calibration_tensor>":
+#         - "<target_data_name>"
+#     left_golden_tensor_map:
+#       "<path/to/left_calibration_tensor>":
+#         - "<golden_data_name>"
+#     right_golden_tensor_map:
+#       "<path/to/right_calibration_tensor>":
+#         - "<golden_data_name>"
+#
+# 支持的校准 tensor 文件格式:
+#   - .pt: PyTorch 格式
+#   - .npy: numpy 格式
+#
+# 注意事项:
+#   - data_name 即 dump.json 中记录的算子 data_name 字段对应的名称
+#   - 校准 tensor 路径要求使用绝对路径
+#   - 同一个校准 tensor 可以对应多个 data_name
+#   - 未配置的 data_name 不会被处理，直接返回原 tensor
+#   - 配置为空 {} 时对应模式不生效
+# =============================================================================
+
+right_matmul:
+  target_tensor_map: {}
+  golden_tensor_map: {}
+
+left_matmul:
+  target_tensor_map: {}
+  golden_tensor_map: {}
+
+left_right_matmul:
+  left_target_tensor_map: {}
+  right_target_tensor_map: {}
+  left_golden_tensor_map: {}
+  right_golden_tensor_map: {}

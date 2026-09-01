@@ -24,7 +24,8 @@ def _build_args(
     rank=None,
     is_print_compare_log=False,
     consistent_check=False,
-    backend=''
+    backend='',
+    config='',
 ):
     return SimpleNamespace(
         target_path=target_path,
@@ -40,7 +41,8 @@ def _build_args(
         rank=rank,
         is_print_compare_log=is_print_compare_log,
         consistent_check=consistent_check,
-        backend=backend
+        backend=backend,
+        config=config,
     )
 
 

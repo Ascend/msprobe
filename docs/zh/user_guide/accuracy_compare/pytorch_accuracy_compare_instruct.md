@@ -68,6 +68,7 @@ msprobe compare -tp <target_path> -gp <golden_path> [options]
 | -tensor_log或--is_print_compare_log | 可选     | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。通过直接配置该参数开启，默认未配置，表示关闭。                                                                                                            |
 | --consistent_check | 可选     | 配置是否开启verl训推一致性比对。通过直接配置该参数开启，默认未配置，表示关闭。仅[verl训推一致性比对场景](#verl训推一致性比对场景)需要配置。                                                                                                   |
 | --backend | 可选     | verl训推一致性比对时指定的训练后端，取值为fsdp或megatron。须先配置--consistent_check，如不配置--consistent_check，单独配置--backend不生效。                                                                             |
+| --config | 可选     | Tensor后处理配置文件路径，指定yaml格式的校准文件。用于量化场景下对dump的tensor进行矩阵乘校准。配置文件格式请参见[matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml)。仅PyTorch场景支持。 |
 
 ### 使用示例
 
@@ -235,7 +236,15 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 某些场景（如量化感知训练）下，dump 出的 tensor 是反量化后的结果，并非原始 tensor。例如反量化过程在原始 tensor 基础上右乘了一个旋转矩阵，导致 dump 出的 tensor 与基准 tensor 存在系统性偏差。
 
-为了还原出原始 tensor 进行精度比对，可以在比对流程中插入 tensor 后处理步骤，对指定算子 dump 出的 tensor 右乘校准 tensor（如旋转矩阵的逆矩阵），抵消旋转的影响。
+为了还原出原始 tensor 进行精度比对，可以在比对流程中插入 tensor 后处理步骤，对指定算子 dump 出的 tensor 乘以校准 tensor（如旋转矩阵的逆矩阵），抵消旋转的影响。
+
+支持三种矩阵乘模式：
+
+| 模式 | 操作 | 适用场景 |
+|------|------|----------|
+| `right_matmul` | `tensor * mat` | 右乘校准 |
+| `left_matmul` | `mat * tensor` | 左乘校准 |
+| `left_right_matmul` | `mat_left * tensor * mat_right` | 左右乘校准 |
 
 > [!NOTE]
 >
@@ -243,40 +252,38 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 配置方式：
 
-1. 通过如下命令找到msprobe安装路径：
+1. 创建校准配置文件（yaml 格式），参考 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 模板。校准 tensor 文件支持 `.pt` 和 `.npy` 格式，路径要求使用绝对路径。
 
-   ```shell
-   python -c "import msprobe, os; print(os.path.dirname(msprobe.__file__))"
-   ```
-
-2. 打开 [right_matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/right_matmul.yaml) 配置文件（msprobe安装路径下），在 `target_tensor_map` 和/或 `golden_tensor_map` 中配置校准 tensor 路径（仅支持绝对路径）及对应需要后处理的算子 data_name。
-
-   校准 tensor 文件支持 `.pt` 和 `.npy` 格式。
-
-   配置示例：
+   配置示例（右乘模式）：
 
    ```yaml
-   mode: right_matmul
-   target_tensor_map:
-     "/home/user/calib/to_scale.pt":
-       - "Tensor.to.0.forward.input.0.pt"
-       - "Tensor.to.1.forward.input.0.pt"
-     "/home/user/calib/to_offset.pt":
-       - "Add.0.forward.output.0.pt"
-   golden_tensor_map:
-     "/home/user/calib/to_scale.npy":
-       - "Tensor.to.0.forward.input.0.pt"
-     "/home/user/calib/to_offset.npy":
-       - "Add.0.forward.output.0.pt"
+   right_matmul:
+     target_tensor_map:
+       "/home/user/calib/to_scale.pt":
+         - "Tensor.to.0.forward.input.0.pt"
+         - "Tensor.to.1.forward.input.0.pt"
+       "/home/user/calib/to_offset.pt":
+         - "Add.0.forward.output.0.pt"
+     golden_tensor_map:
+       "/home/user/calib/to_scale.npy":
+         - "Tensor.to.0.forward.input.0.pt"
+       "/home/user/calib/to_offset.npy":
+         - "Add.0.forward.output.0.pt"
    ```
 
-   更多配置细节请参见 [right_matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/right_matmul.yaml) 中的注释说明。
+   左乘模式类似，将 `right_matmul` 替换为 `left_matmul`。左右乘模式替换为 `left_right_matmul`，配置字段分别为 `left_target_tensor_map`、`right_target_tensor_map`、`left_golden_tensor_map`、`right_golden_tensor_map`。
 
-3. 参见《[PyTorch场景精度数据采集](../dump/pytorch_data_dump_instruct.md)》完成 CPU 或 GPU 与 NPU 的精度数据 dump。
+   更多配置细节请参见 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 中的注释说明。
 
-4. 执行比对命令（无需额外参数，工具自动加载后处理配置）。
+2. 参见《[PyTorch场景精度数据采集](../dump/pytorch_data_dump_instruct.md)》完成 CPU 或 GPU 与 NPU 的精度数据 dump。
 
-5. 查看比对结果，请参见 [精度比对结果分析](#精度比对结果分析)。
+3. 执行比对命令，通过 `--config` 指定校准配置文件：
+
+   ```shell
+   msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output --config matmul.yaml
+   ```
+
+4. 查看比对结果，请参见 [精度比对结果分析](#精度比对结果分析)。
 
 #### 自定义比对算法场景
 

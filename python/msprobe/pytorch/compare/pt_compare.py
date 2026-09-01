@@ -88,7 +88,8 @@ def pt_compare(input_param, output_path, **kwargs):
         'first_diff_analyze': config.first_diff_analyze,
         'compared_file_type': config.compared_file_type,
         'consistent_check': config.consistent_check,
-        'backend': config.backend
+        'backend': config.backend,
+        'config': config.config,
     }
     mode_config = ModeConfig(**config_dict)
     mapping_config = MappingConfig(cell_mapping=config.cell_mapping, data_mapping=config.data_mapping)

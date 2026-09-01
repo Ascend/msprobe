@@ -69,6 +69,7 @@ msprobe compare -tp <target_path> -gp <golden_path> [options]
 | `-tensor_log` or `--is_print_compare_log`| Whether to enable log printing for a single module or API. Only the tensor data dumped by msProbe is supported. This function can be enabled by directly configuring this parameter. By default, this parameter is not configured, indicating that the function is disabled.                                                                                                           | No      |
 | `--consistent_check`| Whether to enable verl training and inference consistency comparison. This function can be enabled by directly configuring this parameter. By default, this parameter is not configured, indicating that the function is disabled. This parameter needs to be configured only in the scenario of [verl training and inference consistency comparison](#verl-training-and-inference-consistency-comparison).                                                                                                  | No      |
 | --backend | Training backend specified during verl training and inference consistency comparison. The value can be `fsdp` or `megatron`. `--consistent_check` must be configured first. If `--consistent_check` is not configured, `--backend` does not take effect.                                                                            | No      |
+| `--config` | Path to the tensor postprocessing configuration file (yaml format). Used for matrix multiplication calibration of dumped tensors in quantization scenarios. For the configuration file format, see [matmul.yaml](../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml). Supported only in PyTorch scenarios. | No      |
 
 ### Examples
 
@@ -224,7 +225,15 @@ Single-point data comparison supports single-rank and multi-rank comparison. In 
 
 In some scenarios (such as quantization-aware training), the dumped tensor is the dequantized result rather than the original tensor. For example, the dequantization process right-multiplies the original tensor by a rotation matrix, causing a systematic deviation between the dumped tensor and the baseline tensor.
 
-To restore the original tensor for precision comparison, a tensor postprocessing step can be inserted into the comparison pipeline. This step right-multiplies the dumped tensor of specified operators by a calibration tensor (such as the inverse of the rotation matrix) to cancel the rotation effect.
+To restore the original tensor for precision comparison, a tensor postprocessing step can be inserted into the comparison pipeline. This step multiplies the dumped tensor of specified operators by a calibration tensor (such as the inverse of the rotation matrix) to cancel the rotation effect.
+
+Three matrix multiplication modes are supported:
+
+| Mode | Operation | Use Case |
+|------|----------|----------|
+| `right_matmul` | `tensor * mat` | Right multiplication calibration |
+| `left_matmul` | `mat * tensor` | Left multiplication calibration |
+| `left_right_matmul` | `mat_left * tensor * mat_right` | Left and right multiplication calibration |
 
 > [!NOTE]
 >
@@ -232,40 +241,38 @@ To restore the original tensor for precision comparison, a tensor postprocessing
 
 Configuration:
 
-1. Run the following command to find the msprobe installation path:
+1. Create a calibration configuration file (yaml format) by referring to the [matmul.yaml](../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) template. Calibration tensor files support `.pt` and `.npy` formats, and paths must be absolute.
 
-   ```shell
-   python -c "import msprobe, os; print(os.path.dirname(msprobe.__file__))"
-   ```
-
-2. Open the [right_matmul.yaml](../../../python/msprobe/core/compare/tensor_postprocess/right_matmul.yaml) configuration file (under the msprobe installation path), and configure the calibration tensor path (absolute paths only) and the corresponding operator `data_name` to be postprocessed in `target_tensor_map` and/or `golden_tensor_map`.
-
-   The calibration tensor file supports `.pt` and `.npy` formats.
-
-   Example configuration:
+   Example configuration (right multiplication mode):
 
    ```yaml
-   mode: right_matmul
-   target_tensor_map:
-     "/home/user/calib/to_scale.pt":
-       - "Tensor.to.0.forward.input.0.pt"
-       - "Tensor.to.1.forward.input.0.pt"
-     "/home/user/calib/to_offset.pt":
-       - "Add.0.forward.output.0.pt"
-   golden_tensor_map:
-     "/home/user/calib/to_scale.npy":
-       - "Tensor.to.0.forward.input.0.pt"
-     "/home/user/calib/to_offset.npy":
-       - "Add.0.forward.output.0.pt"
+   right_matmul:
+     target_tensor_map:
+       "/home/user/calib/to_scale.pt":
+         - "Tensor.to.0.forward.input.0.pt"
+         - "Tensor.to.1.forward.input.0.pt"
+       "/home/user/calib/to_offset.pt":
+         - "Add.0.forward.output.0.pt"
+     golden_tensor_map:
+       "/home/user/calib/to_scale.npy":
+         - "Tensor.to.0.forward.input.0.pt"
+       "/home/user/calib/to_offset.npy":
+         - "Add.0.forward.output.0.pt"
    ```
 
-   For more configuration details, see the comments in [right_matmul.yaml](../../../python/msprobe/core/compare/tensor_postprocess/right_matmul.yaml).
+   For left multiplication mode, replace `right_matmul` with `left_matmul`. For left-right multiplication mode, replace with `left_right_matmul`, and the configuration fields are `left_target_tensor_map`, `right_target_tensor_map`, `left_golden_tensor_map`, and `right_golden_tensor_map` respectively.
 
-3. Refer to [PyTorch Data Dump](../dump/pytorch_data_dump_instruct.md) to dump precision data on CPU or GPU and NPU.
+   For more configuration details, see the comments in [matmul.yaml](../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml).
 
-4. Run the comparison command (no additional parameters required; the tool automatically loads the postprocessing configuration).
+2. Refer to [PyTorch Data Dump](../dump/pytorch_data_dump_instruct.md) to dump precision data on CPU or GPU and NPU.
 
-5. View the comparison results by referring to [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
+3. Run the comparison command with `--config` to specify the calibration configuration file:
+
+   ```shell
+   msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output --config matmul.yaml
+   ```
+
+4. View the comparison results by referring to [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
 
 ### Output Description
 

@@ -31,6 +31,7 @@ class ModeConfig:
         self.compared_file_type = kwargs.get('compared_file_type', Const.DUMP_JSON_FILE)
         self.consistent_check = kwargs.get('consistent_check', False)
         self.backend = kwargs.get('backend', '')
+        self.config = kwargs.get('config', {})
 
 
 class MappingConfig:
@@ -71,6 +72,7 @@ class MappingDict:
         elif isinstance(data_mapping, dict):
             data_mapping_dict = data_mapping
         else:
-            raise TypeError(f"The type of parameter `data_mapping` must be dict, str or None, but got "
-                            f"{type(data_mapping)}")
+            raise TypeError(
+                f"The type of parameter `data_mapping` must be dict, str or None, but got {type(data_mapping)}"
+            )
         return data_mapping_dict

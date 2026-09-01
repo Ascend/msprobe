@@ -106,7 +106,7 @@ class CompareRealData:
         self.file_reader = file_reader
         self.mode_config = mode_config
         self.cross_frame = cross_frame
-        self._tensor_postprocess_manager = TensorPostprocessManager()
+        self._tensor_postprocess_manager = TensorPostprocessManager(self.mode_config.config)
 
     @staticmethod
     def read_dump_data(result_df):

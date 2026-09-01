@@ -43,7 +43,8 @@ def compare_auto_mode(args, depth=1):
         "cell_mapping": args.cell_mapping,
         "layer_mapping": args.layer_mapping,
         "consistent_check": args.consistent_check,
-        "backend": args.backend
+        "backend": args.backend,
+        "config": args.config,
     }
 
     tp_file_type = check_file_type(args.target_path)
@@ -59,7 +60,7 @@ def compare_auto_mode(args, depth=1):
         input_param = {
             "npu_path": args.target_path,
             "bench_path": args.golden_path,
-            "is_print_compare_log": args.is_print_compare_log
+            "is_print_compare_log": args.is_print_compare_log,
         }
 
         # 所有框架都基于 common_kwargs
@@ -70,10 +71,12 @@ def compare_auto_mode(args, depth=1):
                 logger.error("Argument -am is not supported in PyTorch framework")
                 raise CompareException(CompareException.INVALID_TASK_ERROR)
             from msprobe.pytorch.compare.pt_compare import pt_compare
+
             pt_compare(input_param, args.output_path, **kwargs)
         else:
             kwargs["api_mapping"] = args.api_mapping
             from msprobe.mindspore.compare.ms_compare import ms_compare
+
             ms_compare(input_param, args.output_path, **kwargs)
 
     # ===================== DIR vs DIR =====================
@@ -89,6 +92,7 @@ def compare_auto_mode(args, depth=1):
         # rank 静态图比较模式优先
         if args.rank is not None:
             from msprobe.mindspore.compare.distributed_compare import ms_graph_compare
+
             ms_graph_compare(args)
             return
 
@@ -96,6 +100,7 @@ def compare_auto_mode(args, depth=1):
         if common_kwargs.get('diff_analyze', False):
             logger.info("Start finding first diff node......")
             from msprobe.core.compare.find_first.analyzer import DiffAnalyzer
+
             DiffAnalyzer(args.target_path, args.golden_path, args.output_path).analyze()
             return
 

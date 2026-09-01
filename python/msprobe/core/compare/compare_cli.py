@@ -29,32 +29,75 @@ MODE_DISPATCHER = {
     'offline_data': compare_offline_data_mode,
     'torchair': compare_torchair_mode,
     'offline_model': compare_offline_model_mode,
-    'atb': compare_atb_mode
+    'atb': compare_atb_mode,
 }
 
 VALID_ARGS_MAP = {
     'auto': [
-        '--mode', '-m', '--target_path', '-tp', '--golden_path', '-gp', '--output_path', '-o', 
+        '--mode',
+        '-m',
+        '--target_path',
+        '-tp',
+        '--golden_path',
+        '-gp',
+        '--output_path',
+        '-o',
         '--xlsx',
-        '--fuzzy_match', '-fm', '--cell_mapping', '-cm', '--api_mapping', '-am', '--data_mapping',
-        '-dm', '--layer_mapping', '-lm', '--diff_analyze', '-da', '--rank', '--step',
-        '--is_print_compare_log', '-tensor_log', '--consistent_check', '--backend'
+        '--fuzzy_match',
+        '-fm',
+        '--cell_mapping',
+        '-cm',
+        '--api_mapping',
+        '-am',
+        '--data_mapping',
+        '-dm',
+        '--layer_mapping',
+        '-lm',
+        '--diff_analyze',
+        '-da',
+        '--rank',
+        '--step',
+        '--is_print_compare_log',
+        '-tensor_log',
+        '--consistent_check',
+        '--backend',
+        '--config',
     ],
     'offline_data': [
-        "-m", "-tp", "-gp", "-fr", "-qfr", "-cfr", "-o", "--mode", "--target_path", "--golden_path", 
-        "--fusion_rule_file", "--quant_fusion_rule_file", "--close_fusion_rule_file", "--output_path"
+        "-m",
+        "-tp",
+        "-gp",
+        "-fr",
+        "-qfr",
+        "-cfr",
+        "-o",
+        "--mode",
+        "--target_path",
+        "--golden_path",
+        "--fusion_rule_file",
+        "--quant_fusion_rule_file",
+        "--close_fusion_rule_file",
+        "--output_path",
     ],
-    'torchair': [
-        '--mode', '-m', '--target_path', '-tp', '--golden_path', '-gp', '--output_path', '-o'
-    ],
+    'torchair': ['--mode', '-m', '--target_path', '-tp', '--golden_path', '-gp', '--output_path', '-o'],
     'offline_model': [
-        '--mode', '-m', '--target_path', '-tp', '--golden_path', '-gp', '--output_path', '-o',
-        '--rank', '--input_data', '--input_shape', '--output_size', '--dym_shape_range',
-        '-ofs', '--onnx_fusion_switch'
+        '--mode',
+        '-m',
+        '--target_path',
+        '-tp',
+        '--golden_path',
+        '-gp',
+        '--output_path',
+        '-o',
+        '--rank',
+        '--input_data',
+        '--input_shape',
+        '--output_size',
+        '--dym_shape_range',
+        '-ofs',
+        '--onnx_fusion_switch',
     ],
-    'atb': [
-        '--mode', '-m', '--target_path', '-tp', '--golden_path', '-gp', '--output_path', '-o'
-    ],
+    'atb': ['--mode', '-m', '--target_path', '-tp', '--golden_path', '-gp', '--output_path', '-o'],
 }
 
 

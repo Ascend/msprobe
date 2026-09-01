@@ -88,6 +88,7 @@ class ComparisonConfig:
     is_print_compare_log: bool
     consistent_check: bool
     backend: str
+    config: dict
 
 
 class Comparator:
@@ -1655,6 +1656,7 @@ def setup_comparison(input_param, output_path, **kwargs) -> ComparisonConfig:
             is_print_compare_log=kwargs.get('is_print_compare_log', False),
             consistent_check=kwargs.get('consistent_check', False),
             backend=kwargs.get('backend', ''),
+            config=kwargs.get('config', ''),
         )
 
         set_dump_path(input_param)
