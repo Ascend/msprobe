@@ -115,10 +115,11 @@ class AlgorithmScheduler:
         file_name = os.path.basename(file_path)
         match_result = re.match(AlgorithmScheduler.ALGORITHM_FILE_NAME_PATTERN, file_name)
         if not match_result:
-            logger.warning(
-                f"The algorithm file {file_name} does not match the pattern "
-                f"{AlgorithmScheduler.ALGORITHM_FILE_NAME_PATTERN}, skip."
-            )
+            if file_name != "__init__.py":
+                logger.warning(
+                    f"The algorithm file {file_name} does not match the pattern "
+                    f"{AlgorithmScheduler.ALGORITHM_FILE_NAME_PATTERN}, skip."
+                )
             return False
         algorithm_list.append(match_result.group(1))
         return True
@@ -180,8 +181,7 @@ class AlgorithmScheduler:
         """
         if not isinstance(value, tuple) or len(value) != self.RESULT_COUNT:
             raise ValueError(
-                f"Algorithm [{algorithm_name}] return value invalid. "
-                f"Expected {self.RESULT_COUNT}‑element tuple, got type={type(value).__name__}."
+                f"Algorithm [{algorithm_name}] return value invalid. Expected {self.RESULT_COUNT}‑element tuple"
             )
 
         ret_val, ret_msg = value

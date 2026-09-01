@@ -20,6 +20,10 @@ import sys
 from functools import wraps
 from msprobe.core.common.const import MsgConst
 
+# 模块导入时的进程号。fork出的子进程会继承该值但不等于自身getpid()，
+# 用于识别子进程（子进程中tqdm进度条实例是继承的过期副本，不应重绘）
+_INIT_PID = os.getpid()
+
 
 def filter_special_chars(func):
     @wraps(func)
@@ -51,8 +55,7 @@ class BaseLogger:
         用于输出子进程的原始日志，避免双份前缀
         """
         msg = msg.rstrip("_")
-        print(msg)
-        sys.stdout.flush()
+        self._output(msg)
 
     def get_rank(self):
         return self.rank
@@ -107,6 +110,34 @@ class BaseLogger:
         self.warning(msg)
         raise exception
 
+    @staticmethod
+    def _output(msg, end='\n'):
+        """
+        输出日志。存在活动的tqdm进度条时避免日志与进度条显示在同一行。
+        - 本进程创建的进度条（主进程）：tqdm.write 先清行、打印日志、再重绘当前进度
+        - fork子进程：继承的进度条实例进度值停留在fork时刻（通常为0），重绘会闪现旧进度，
+          因此只清除进度条行、不重绘，由主进程下次update时重绘真实进度
+        """
+        try:
+            from tqdm import tqdm
+
+            instances = getattr(tqdm, '_instances', None)
+            if instances:
+                if os.getpid() == _INIT_PID:
+                    tqdm.write(msg, end=end)
+                    sys.stdout.flush()
+                    return
+                # fork子进程：仅清除继承的过期进度条行，不重绘
+                for inst in list(instances):
+                    try:
+                        inst.clear(nolock=True)
+                    except Exception:  # nosec B110
+                        pass
+        except Exception:  # nosec B110
+            pass
+        print(msg, end=end)
+        sys.stdout.flush()
+
     def _print_log(self, level, msg, end='\n'):
         current_rank = self.get_rank()
         current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -115,8 +146,7 @@ class BaseLogger:
             full_msg = f"{current_time} ({pid}) [rank {current_rank}] [{level}] {msg}"
         else:
             full_msg = f"{current_time} ({pid}) [{level}] {msg}"
-        print(full_msg, end=end)
-        sys.stdout.flush()
+        self._output(full_msg, end=end)
 
 
 logger = BaseLogger()

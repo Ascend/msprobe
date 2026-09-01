@@ -190,6 +190,12 @@ class TestAlgorithmScheduler(unittest.TestCase):
             with self.assertRaises(ValueError):
                 inst._validate_return_value(bad, "alg")
 
+    def test_validate_return_value_given_wrong_length_when_invalid_then_message_has_expected_count(self):
+        # 错误信息应包含期望的返回值个数，不再拼接实际类型
+        inst = self._bare_instance()
+        with self.assertRaisesRegex(ValueError, r"Expected 2.element tuple"):
+            inst._validate_return_value((1, "a", "b"), "alg")
+
     def test_validate_return_value_given_bool_first_when_invalid_then_value_error(self):
         # bool 被排除在实数之外，且不属于 str，应当拦截
         inst = self._bare_instance()
@@ -450,6 +456,26 @@ class TestAlgorithmScheduler(unittest.TestCase):
             result = AlgorithmScheduler._add_algorithm_file_to_list("/x/alg_OK.py", algos)
         self.assertFalse(result)
         self.assertEqual(algos, [])
+
+    def test_add_algorithm_file_to_list_given_init_py_when_call_then_silent_skip(self):
+        # __init__.py 属正常文件，跳过时不应产生 warning 日志
+        algos = []
+        with mock.patch("os.path.isfile", return_value=True), \
+                mock.patch("msprobe.core.compare.algorithm.algorithm_scheduler.logger") as mock_logger:
+            result = AlgorithmScheduler._add_algorithm_file_to_list("/x/__init__.py", algos)
+        self.assertFalse(result)
+        self.assertEqual(algos, [])
+        mock_logger.warning.assert_not_called()
+
+    def test_add_algorithm_file_to_list_given_bad_name_when_call_then_warns(self):
+        # 非 __init__.py 的不匹配文件仍需告警，便于发现命名错误的算法文件
+        algos = []
+        with mock.patch("os.path.isfile", return_value=True), \
+                mock.patch("msprobe.core.compare.algorithm.algorithm_scheduler.logger") as mock_logger:
+            result = AlgorithmScheduler._add_algorithm_file_to_list("/x/not_match.py", algos)
+        self.assertFalse(result)
+        self.assertEqual(algos, [])
+        mock_logger.warning.assert_called_once()
 
 
 if __name__ == "__main__":
