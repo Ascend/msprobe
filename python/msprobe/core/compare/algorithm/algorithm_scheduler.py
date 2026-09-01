@@ -45,7 +45,6 @@ class AlgorithmScheduler:
     COMPARE_FUNC_NAME = "compare"
     COLUMN_NAME_FUNC_NAME = "column_name"
     ARG_COUNT = 2  # compare方法入参的个数
-    RESULT_COUNT = 2  # compare方法返回值的个数
 
     _instance = None
     _lock = threading.Lock()
@@ -198,29 +197,14 @@ class AlgorithmScheduler:
     def _validate_return_value(self, value: Any, algorithm_name: str) -> bool:
         """
         校验自定义比对算法返回值格式
-        要求返回二元组: (result_value, message)
-            result_value: int | float | str
-            message: str
+        result_value: int | float | str
         """
-        if not isinstance(value, tuple) or len(value) != self.RESULT_COUNT:
-            raise ValueError(
-                f"Algorithm [{algorithm_name}] return value invalid. Expected {self.RESULT_COUNT}‑element tuple"
-            )
-
-        ret_val, ret_msg = value
-
-        if not self._is_real_number(ret_val) and not isinstance(ret_val, str):
-            raise ValueError(
-                f"Algorithm [{algorithm_name}] first return value type invalid. "
-                f"Expected int/float/str, got {type(ret_val).__name__}"
-            )
-
-        if not isinstance(ret_msg, str):
-            raise ValueError(
-                f"Algorithm [{algorithm_name}] second return value type invalid. "
-                f"Expected str(message), got {type(ret_msg).__name__}"
-            )
-
+        if algorithm_name not in self.build_in_support_algorithm:
+            if not self._is_real_number(value) and not isinstance(value, str):
+                raise ValueError(
+                    f"Algorithm [{algorithm_name}] return value type invalid. "
+                    f"Expected int/float/str, got {type(value).__name__}"
+                )
         return True
 
     def _is_real_number(self, value) -> bool:
@@ -233,7 +217,10 @@ class AlgorithmScheduler:
             if isinstance(b_value, np.ndarray):
                 b_value = torch.from_numpy(b_value)
             with torch.no_grad():
-                return self._call_compare(algorithm_name, n_value, b_value)
+                result = self._call_compare(algorithm_name, n_value, b_value)
+                if not isinstance(result, tuple):
+                    return result, ""
+                return result
         return self._call_compare(algorithm_name, n_value, b_value)
 
     def _call_compare(self, algorithm_name, n_value, b_value):
@@ -245,7 +232,7 @@ class AlgorithmScheduler:
             return result
         except Exception as e:
             logger.error(f"Call algorithm [{algorithm_name}] failed, error: {e}")
-            return "unsupported", str(e)
+            return "unsupported", ""
 
     def compare(self, n_value, b_value, column_names=None):
         if not column_names:

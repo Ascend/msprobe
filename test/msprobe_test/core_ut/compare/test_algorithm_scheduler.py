@@ -232,53 +232,29 @@ class TestAlgorithmScheduler(unittest.TestCase):
     # ------------------------------------------------------------------
     # _validate_return_value
     # ------------------------------------------------------------------
-    def test_validate_return_value_given_int_str_when_valid_then_true(self):
+    def test_validate_return_value_given_custom_int_when_valid_then_true(self):
         inst = self._bare_instance()
-        self.assertTrue(inst._validate_return_value((1, "msg"), "alg"))
+        self.assertTrue(inst._validate_return_value(1, "alg"))
 
-    def test_validate_return_value_given_float_str_when_valid_then_true(self):
+    def test_validate_return_value_given_custom_float_when_valid_then_true(self):
         inst = self._bare_instance()
-        self.assertTrue(inst._validate_return_value((1.5, "msg"), "alg"))
+        self.assertTrue(inst._validate_return_value(1.5, "alg"))
 
-    def test_validate_return_value_given_str_str_when_valid_then_true(self):
+    def test_validate_return_value_given_custom_str_when_valid_then_true(self):
         inst = self._bare_instance()
-        self.assertTrue(inst._validate_return_value(("err", "msg"), "alg"))
+        self.assertTrue(inst._validate_return_value("err", "alg"))
 
-    def test_validate_return_value_given_non_tuple_when_invalid_then_value_error(self):
+    def test_validate_return_value_given_custom_invalid_type_when_invalid_then_value_error(self):
         inst = self._bare_instance()
-        for bad in (5, "abc", [1, "a"], None):
+        for bad in (True, False, (1, "msg"), (1,), [1], {"a": 1}, None, object()):
             with self.assertRaises(ValueError):
                 inst._validate_return_value(bad, "alg")
 
-    def test_validate_return_value_given_wrong_length_when_invalid_then_value_error(self):
+    def test_validate_return_value_given_builtin_when_call_then_skip_validate(self):
         inst = self._bare_instance()
-        for bad in ((1,), (1, "a", "b"), tuple()):
-            with self.assertRaises(ValueError):
-                inst._validate_return_value(bad, "alg")
-
-    def test_validate_return_value_given_wrong_length_when_invalid_then_message_has_expected_count(self):
-        # 错误信息应包含期望的返回值个数，不再拼接实际类型
-        inst = self._bare_instance()
-        with self.assertRaisesRegex(ValueError, r"Expected 2.element tuple"):
-            inst._validate_return_value((1, "a", "b"), "alg")
-
-    def test_validate_return_value_given_bool_first_when_invalid_then_value_error(self):
-        # bool 被排除在实数之外，且不属于 str，应当拦截
-        inst = self._bare_instance()
-        with self.assertRaises(ValueError):
-            inst._validate_return_value((True, "msg"), "alg")
-
-    def test_validate_return_value_given_invalid_first_type_when_invalid_then_value_error(self):
-        inst = self._bare_instance()
-        for bad_first in ([1], {"a": 1}, None, object()):
-            with self.assertRaises(ValueError):
-                inst._validate_return_value((bad_first, "msg"), "alg")
-
-    def test_validate_return_value_given_invalid_second_type_when_invalid_then_value_error(self):
-        inst = self._bare_instance()
-        for bad_second in (1, 1.5, None, [1]):
-            with self.assertRaises(ValueError):
-                inst._validate_return_value((1, bad_second), "alg")
+        inst.build_in_support_algorithm = ["alg"]
+        for value in ((1, "msg"), 0.5, None, [1, 2]):
+            self.assertTrue(inst._validate_return_value(value, "alg"))
 
     # ------------------------------------------------------------------
     # _get_module
@@ -411,13 +387,47 @@ class TestAlgorithmScheduler(unittest.TestCase):
     # _call_algorithm
     # ------------------------------------------------------------------
 
-    def test_call_algorithm_given_valid_return_when_call_then_returns_result(self):
+    def test_call_algorithm_given_custom_scalar_when_call_then_wrapped_with_empty_msg(self):
+        inst = self._bare_instance()
+        fake_module = mock.Mock()
+        fake_module.compare = lambda n, b: 0.5
+        with mock.patch.object(inst, "_get_module", return_value=fake_module):
+            result = inst._call_algorithm("alg", 1, 2)
+        self.assertEqual(result, (0.5, ""))
+
+    def test_call_algorithm_given_custom_invalid_tuple_when_call_then_unsupported(self):
         inst = self._bare_instance()
         fake_module = mock.Mock()
         fake_module.compare = lambda n, b: (0.5, "")
         with mock.patch.object(inst, "_get_module", return_value=fake_module):
             result = inst._call_algorithm("alg", 1, 2)
-        self.assertEqual(result, (0.5, ""))
+        self.assertEqual(result, ("unsupported", ""))
+
+    def test_call_algorithm_given_builtin_tuple_when_call_then_returns_as_is(self):
+        inst = self._bare_instance()
+        inst.build_in_support_algorithm = ["alg"]
+        fake_module = mock.Mock()
+        fake_module.compare = lambda n, b: (0.5, "msg")
+        with mock.patch.object(inst, "_get_module", return_value=fake_module):
+            result = inst._call_algorithm("alg", 1, 2)
+        self.assertEqual(result, (0.5, "msg"))
+
+    def test_call_algorithm_given_builtin_scalar_when_call_then_not_wrapped(self):
+        inst = self._bare_instance()
+        inst.build_in_support_algorithm = ["alg"]
+        fake_module = mock.Mock()
+        fake_module.compare = lambda n, b: 0.5
+        with mock.patch.object(inst, "_get_module", return_value=fake_module):
+            result = inst._call_algorithm("alg", 1, 2)
+        self.assertEqual(result, 0.5)
+
+    def test_call_compare_given_algorithm_raise_when_call_then_unsupported_with_empty_msg(self):
+        inst = self._bare_instance()
+        fake_module = mock.Mock()
+        fake_module.compare = mock.Mock(side_effect=RuntimeError("boom"))
+        with mock.patch.object(inst, "_get_module", return_value=fake_module):
+            result = inst._call_compare("alg", 1, 2)
+        self.assertEqual(result, ("unsupported", ""))
 
     # ------------------------------------------------------------------
     # compare 编排

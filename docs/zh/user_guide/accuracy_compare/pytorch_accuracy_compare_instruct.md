@@ -316,7 +316,7 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
           # 以下为示例
           diff = torch.abs(n_value - b_value)
           max_abs = diff.max()
-          return max_abs.item(), ""
+          return max_abs.item()
       ```
    
       **参数说明**
@@ -328,9 +328,7 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
       **返回值说明**
       
-      返回二元组 (result, err_msg)
-      - result：算法比对结果，支持`int`、`float`、`str`三种类型；
-      - err_msg：错误信息字符串，算法执行无错误时返回空字符串""；若非空，框架将视为算法执行异常并展示该错误信息。   
+      算法比对结果：支持`int`、`float`、`str`三种类型。当算法比对结果不满足约束或者算法执行异常时，算法比对结果会被置为`unsupported`   
 
 ### 输出说明
 
