@@ -33,6 +33,7 @@ from msprobe.pytorch import bench_functions
 
 
 _FUSION_CONFIG_CACHE = None
+_FUSION_REGISTRIES_CACHE = None
 
 
 def get_fusion_config():
@@ -156,7 +157,18 @@ def _build_registries():
     return forward_registry, backward_registry
 
 
-# =============================================================================
-# 构建注册表（模块加载时自动执行）
-# =============================================================================
-npu_custom_functions, npu_custom_grad_functions = _build_registries()
+def get_fusion_registries():
+    """Build and cache fusion operator registries on first use."""
+    global _FUSION_REGISTRIES_CACHE
+    if _FUSION_REGISTRIES_CACHE is None:
+        _FUSION_REGISTRIES_CACHE = _build_registries()
+    return _FUSION_REGISTRIES_CACHE
+
+
+def get_npu_custom_functions():
+    return get_fusion_registries()[0]
+
+
+# The backward operator is not used but is registered to support future feature expansion.
+def get_npu_custom_grad_functions():
+    return get_fusion_registries()[1]

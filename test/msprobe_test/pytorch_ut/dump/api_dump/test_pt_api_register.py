@@ -78,16 +78,21 @@ class TestNpuModuleForward(unittest.TestCase):
         self.module = MagicMock()
         self.module.api_func.return_value = "test_result"
 
-    def test_with_hook_enabled(self):
+    @patch('msprobe.pytorch.dump.api_dump.api_register.get_npu_custom_functions')
+    def test_with_hook_enabled(self, mock_get_npu_custom_functions):
         self.module.need_hook = True
         result = npu_module_forward(self.module, 1, 2, key="value")
         self.module.api_func.assert_called_once_with(1, 2, key="value")
         self.assertEqual(result, "test_result")
+        mock_get_npu_custom_functions.assert_not_called()
 
     def test_with_unknown_api(self):
         self.module.need_hook = False
         self.module.api_name = "unknown_func"
-        with patch('msprobe.pytorch.dump.api_dump.api_register.npu_custom_functions', new=self.npu_custom_functions):
+        with patch(
+            'msprobe.pytorch.dump.api_dump.api_register.get_npu_custom_functions',
+            return_value=self.npu_custom_functions,
+        ):
             with self.assertRaises(Exception) as context:
                 npu_module_forward(self.module, 1, 2, key="value")
         self.assertIn("There is not bench function unknown_func", str(context.exception))
@@ -97,7 +102,10 @@ class TestNpuModuleForward(unittest.TestCase):
         self.module.api_name = "npu_fusion_attention"
         self.module.device = 'cuda'
 
-        with patch('msprobe.pytorch.dump.api_dump.api_register.npu_custom_functions', new=self.npu_custom_functions):
+        with patch(
+            'msprobe.pytorch.dump.api_dump.api_register.get_npu_custom_functions',
+            return_value=self.npu_custom_functions,
+        ):
             result = npu_module_forward(self.module, 1, 2, key="value")
         self.npu_custom_functions["gpu_fusion_attention"].assert_called_once_with(1, 2, key="value")
         self.assertEqual(result, "gfa_result")
@@ -107,7 +115,10 @@ class TestNpuModuleForward(unittest.TestCase):
         self.module.api_name = "custom_func"
         self.module.device = "cpu"
 
-        with patch('msprobe.pytorch.dump.api_dump.api_register.npu_custom_functions', new=self.npu_custom_functions):
+        with patch(
+            'msprobe.pytorch.dump.api_dump.api_register.get_npu_custom_functions',
+            return_value=self.npu_custom_functions,
+        ):
             result = npu_module_forward(self.module, 1, 2, key="value")
         self.npu_custom_functions["custom_func"].assert_called_once_with(1, 2, key="value")
         self.assertEqual(result, "custom_result")
@@ -117,7 +128,10 @@ class TestNpuModuleForward(unittest.TestCase):
         self.module.api_name = "custom_func"
         self.module.device = "unsupported_device"
 
-        with patch('msprobe.pytorch.dump.api_dump.api_register.npu_custom_functions', new=self.npu_custom_functions):
+        with patch(
+            'msprobe.pytorch.dump.api_dump.api_register.get_npu_custom_functions',
+            return_value=self.npu_custom_functions,
+        ):
             result = npu_module_forward(self.module, 1, 2, key="value")
         self.module.api_func.assert_called_once_with(1, 2, key="value")
         self.assertEqual(result, "test_result")

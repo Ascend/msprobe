@@ -27,7 +27,7 @@ from msprobe.core.common.runtime import Runtime
 from msprobe.core.dump.api_dump.api_registry import ApiRegistry
 from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.common.utils import torch_without_guard_version, is_gpu, torch_device_guard, parameter_adapter
-from msprobe.pytorch.dump.function_factory import npu_custom_functions
+from msprobe.pytorch.dump.function_factory import get_npu_custom_functions
 from msprobe.pytorch.dump.api_dump.hook_module import HOOKModule
 from msprobe.pytorch.dump.api_dump.utils import dynamic_import_op
 
@@ -152,6 +152,7 @@ def redirect_wait():
 
 def npu_module_forward(module, *args, **kwargs):
     if not module.need_hook:
+        npu_custom_functions = get_npu_custom_functions()
         if module.api_name not in npu_custom_functions:
             raise KeyError(f'There is not bench function {module.api_name}')
         if module.device == Const.CUDA_LOWERCASE:

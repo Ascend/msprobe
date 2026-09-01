@@ -1,7 +1,12 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from msprobe.pytorch.dump.function_factory import Register, _resolve_func, get_fusion_config
+from msprobe.pytorch.dump.function_factory import (
+    Register,
+    _resolve_func,
+    get_fusion_config,
+    get_fusion_registries,
+)
 
 
 class TestRegister(unittest.TestCase):
@@ -137,6 +142,24 @@ class TestGetFusionConfig(unittest.TestCase):
         operators2 = get_fusion_config()
         self.assertEqual(len(operators2), 1)
         self.assertIn("npu_test", operators2)
+
+
+class TestFusionRegistries(unittest.TestCase):
+    def setUp(self):
+        import msprobe.pytorch.dump.function_factory as ff
+        ff._FUSION_REGISTRIES_CACHE = None
+
+    @patch("msprobe.pytorch.dump.function_factory._build_registries")
+    def test_registries_are_built_only_on_first_use(self, mock_build_registries):
+        expected_registries = (Register(), Register())
+        mock_build_registries.return_value = expected_registries
+
+        registries = get_fusion_registries()
+        cached_registries = get_fusion_registries()
+
+        self.assertIs(registries, expected_registries)
+        self.assertIs(cached_registries, expected_registries)
+        mock_build_registries.assert_called_once_with()
 
 
 if __name__ == "__main__":
