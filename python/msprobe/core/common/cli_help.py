@@ -57,7 +57,7 @@ HELP_SPECS: Dict[str, HelpSpec] = {
                 "msprobe compare --target_path ./npu_dump --golden_path ./golden_dump --output_path ./result",
             ),
         ),
-        ("<output_path>/compare_result_{timestamp}.csv (or .xlsx)",),
+        ("<DIR>/compare_result_{timestamp}.csv (or .xlsx)",),
     ),
     "msprobe acc_check": HelpSpec(
         "Run API accuracy checks using the framework recorded in the API information file.",
@@ -134,13 +134,13 @@ HELP_SPECS: Dict[str, HelpSpec] = {
                 "msprobe merge_result --input_dir ./results --output_dir ./merged --config-path ./merge.yaml",
             ),
         ),
-        ("<output_dir>/",),
+        ("<DIR>/multi_ranks_compare_merge_{timestamp}.xlsx",),
     ),
     "msprobe overflow_check": HelpSpec(
         "Analyze dumped tensor data and report overflow information.",
         "msprobe overflow_check --input_path <DIR> [options]",
         (("Analyze one dump step", "msprobe overflow_check --input_path ./dump/step_0"),),
-        ("<output_path>/",),
+        ("<DIR>/anomaly_analyze_{timestamp}.json",),
     ),
     "msprobe config_check": HelpSpec(
         "Collect, compare, or verify training configuration data.",
@@ -169,7 +169,10 @@ HELP_SPECS: Dict[str, HelpSpec] = {
         "Import dump or monitor data into a SQLite database.",
         "msprobe data2db --db <DIR> --data <DIR> [options]",
         (("Import data with automatic format detection", "msprobe data2db --db ./database --data ./dump"),),
-        ("<db>/",),
+        (
+            "Dump data input: <DIR>/dump_data.trend.db",
+            "Monitor data input: <DIR>/monitor_data.trend.db",
+        ),
     ),
     "msprobe parse": HelpSpec(
         "Parse dumped tensor data into NumPy or PyTorch files.",
@@ -415,16 +418,39 @@ def _format_parameter_section(title: str, actions: Sequence[argparse.Action]) ->
     return "\n".join(lines)
 
 
+def _format_command_section(actions: Sequence[argparse.Action]) -> str:
+    rows = []
+    for action in actions:
+        for command, subparser in action.choices.items():
+            rows.append((command, _lookup_spec(subparser).description))
+    if not rows:
+        return ""
+
+    command_width = max(len(command) for command, _ in rows)
+    description_column = 2 + command_width + 4
+    terminal_width = max(40, shutil.get_terminal_size(fallback=(100, 24)).columns)
+    lines = ["Commands:"]
+    for command, description in rows:
+        prefix = f"  {command:<{command_width}}    "
+        wrapped = textwrap.wrap(description, width=max(20, terminal_width - description_column)) or [""]
+        lines.append(prefix + wrapped[0])
+        lines.extend(" " * description_column + line for line in wrapped[1:])
+    return "\n".join(lines)
+
+
 def format_help(parser: argparse.ArgumentParser) -> str:
     spec = _lookup_spec(parser)
     usage = spec.usage or _build_usage(parser)
     terminal_width = max(40, shutil.get_terminal_size(fallback=(100, 24)).columns)
     actions = list(_visible_actions(parser))
-    required = [action for action in actions if _required(action)]
-    optional = [action for action in actions if not _required(action)]
+    command_actions = [action for action in actions if isinstance(action, argparse._SubParsersAction)]
+    parameter_actions = [action for action in actions if not isinstance(action, argparse._SubParsersAction)]
+    required = [action for action in parameter_actions if _required(action)]
+    optional = [action for action in parameter_actions if not _required(action)]
     sections = [
         "Description:\n" + "\n".join(f"  {line}" for line in textwrap.wrap(spec.description, width=terminal_width - 4)),
         f"Usage:\n  {usage}",
+        _format_command_section(command_actions),
         _format_parameter_section("Required arguments:", required),
         _format_parameter_section("Optional arguments:", optional),
     ]

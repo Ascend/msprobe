@@ -21,7 +21,22 @@ import shutil
 from unittest.mock import patch, MagicMock
 import json
 
-from msprobe.overflow_check.analyzer import OverFlowCheck
+from msprobe.core.common.cli_help import MindStudioArgumentParser
+from msprobe.overflow_check.analyzer import OverFlowCheck, _overflow_check_parser
+
+
+class TestOverflowCheckHelp(unittest.TestCase):
+
+    def test_help_lists_result_file_and_uses_standard_example_abbreviation(self):
+        parser = MindStudioArgumentParser(prog="msprobe overflow_check")
+        _overflow_check_parser(parser)
+
+        help_text = parser.format_help()
+
+        self.assertIn("<DIR>/anomaly_analyze_{timestamp}.json", help_text)
+        self.assertNotIn("<output_path>/", help_text)
+        self.assertIn('e.g. "xxx/step_0/".', help_text)
+        self.assertNotIn("eg:", help_text)
 
 
 class TestOverFlowCheck(unittest.TestCase):

@@ -18,14 +18,31 @@ from msprobe.core.compare.merge_result.merge_result import merge_result
 
 
 def _merge_result_parser(parser):
-    parser.add_argument("-i", "--input_dir", dest="input_dir", type=str,
-                        help="<Required> The compare result path, a dir.", required=True)
-    parser.add_argument("-o", "--output_dir", dest="output_dir", type=str,
-                        help="<Required> The result merge output path, a dir.", required=True)
-    parser.add_argument("-config", "--config-path", dest="config_path", type=str,
-                        help="<Required> Yaml path containing distribute APIs and compare indexes for merging data "
-                             "from compare results.",
-                        required=True)
+    parser.add_argument(
+        "-i",
+        "--input_dir",
+        dest="input_dir",
+        type=str,
+        help="<Required> The compare result path, a directory.",
+        required=True,
+    )
+    parser.add_argument(
+        "-o",
+        "--output_dir",
+        dest="output_dir",
+        type=str,
+        help="<Required> The result merge output path, a directory.",
+        required=True,
+    )
+    parser.add_argument(
+        "-config",
+        "--config-path",
+        dest="config_path",
+        type=str,
+        help="<Required> YAML path containing distributed APIs and compare indexes for merging data "
+        "from compare results.",
+        required=True,
+    )
 
 
 def merge_result_cli(args):

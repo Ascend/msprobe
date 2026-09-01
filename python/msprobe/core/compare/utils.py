@@ -706,8 +706,9 @@ def _compare_parser(parser):
         "--mode",
         dest="mode",
         type=str,
+        choices=["auto", "offline_data", "torchair", "offline_model", "atb"],
         default="auto",
-        help="<optional> Comparison mode: 'auto' (default) or 'torchair' for torchair accuracy compare",
+        help="<optional> Comparison mode.",
         required=False,
     )
     parser.add_argument(
@@ -839,9 +840,8 @@ def _compare_parser(parser):
         dest="rank",
         type=str,
         required=False,
-        help="<optional> Ranks to compare when compare kernel of MindSpore for <compare auto>. "
-        "Ranks to compare for <torchair dumps>. "
-        "Input rank ID [0, 255] for <compare offline_model>.",
+        help='<optional> Rank ID(s) to compare when comparing MindSpore kernels in "--mode auto". '
+        'Input rank ID [0, 255] for "--mode offline_model".',
     )
     parser.add_argument(
         "--step",

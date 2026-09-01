@@ -11,6 +11,7 @@ import tempfile
 import numpy as np
 import pandas as pd
 
+from msprobe.core.common.cli_help import MindStudioArgumentParser
 from msprobe.core.common.const import CompareConst, Const
 from msprobe.core.common.utils import CompareException
 from msprobe.core.compare.utils import ApiItemInfo, _compare_parser, check_and_return_dir_contents, extract_json, \
@@ -369,6 +370,25 @@ class TestUtilsMethods(unittest.TestCase):
             shutil.rmtree(base_dir1)
         if os.path.exists(base_dir2):
             shutil.rmtree(base_dir2)
+
+    def test_compare_help_lists_modes_aliases_rank_scenarios_and_output(self):
+        parser = MindStudioArgumentParser(prog="msprobe compare")
+        _compare_parser(parser)
+
+        help_text = parser.format_help()
+        normalized_help = " ".join(help_text.split())
+
+        self.assertIn("--mode {auto,offline_data,torchair,offline_model,atb}", help_text)
+        for alias in (
+            "-tensor_log", "-ofs", "-cfr", "-qfr", "-fr", "-da", "-lm",
+            "-dm", "-am", "-cm", "-fm", "-tp", "-gp",
+        ):
+            self.assertIn(alias, help_text)
+        self.assertIn('Rank ID(s) to compare when comparing MindSpore kernels in "--mode auto".', normalized_help)
+        self.assertIn('Input rank ID [0, 255] for "--mode offline_model".', normalized_help)
+        self.assertNotIn("torchair dumps", help_text)
+        self.assertIn("<DIR>/compare_result_{timestamp}.csv (or .xlsx)", help_text)
+        self.assertNotIn("<output_path>/", help_text)
 
     def test_extract_json_1(self):
         create_json_files(base_dir1)

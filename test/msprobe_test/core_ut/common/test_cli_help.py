@@ -51,6 +51,28 @@ def test_unified_help_omits_empty_output_and_required_sections():
     assert "[default: off]" in help_text
 
 
+def test_top_level_help_lists_commands_with_descriptions():
+    parser = MindStudioArgumentParser(prog="msprobe")
+    subparsers = parser.add_subparsers(parser_class=MindStudioArgumentParser)
+    subparsers.add_parser("compare")
+    subparsers.add_parser("merge_result")
+    subparsers.add_parser("overflow_check")
+
+    help_text = parser.format_help()
+    commands_section = help_text.split("Commands:\n", 1)[1].split("\n\n", 1)[0]
+    normalized_commands = " ".join(commands_section.split())
+
+    assert "Required arguments:" not in help_text
+    assert "Commands:" in help_text
+    assert "compare" in commands_section
+    assert "Compare target-side dump data" in normalized_commands
+    assert "merge_result" in commands_section
+    assert "Merge distributed accuracy comparison results" in normalized_commands
+    assert "overflow_check" in commands_section
+    assert "Analyze dumped tensor data" in normalized_commands
+    assert "{compare,merge_result,overflow_check}" not in help_text
+
+
 def test_generated_usage_reuses_action_metavar():
     test_cases = (
         ("anomaly_processor", "-d", "--data_path", "data_path_dir"),
@@ -96,6 +118,17 @@ def test_parameter_descriptions_follow_terminal_width(monkeypatch):
     optional_section = help_text.split("Optional arguments:\n", 1)[1].split("\n\n", 1)[0]
 
     assert max(len(line) for line in optional_section.splitlines()) <= 60
+
+
+def test_data2db_help_distinguishes_outputs_by_input_type():
+    parser = MindStudioArgumentParser(prog="msprobe data2db")
+    parser.add_argument("--db", required=True)
+    parser.add_argument("--data", required=True)
+
+    output_section = parser.format_help().split("Output:\n", 1)[1]
+
+    assert "Dump data input: <DIR>/dump_data.trend.db" in output_section
+    assert "Monitor data input: <DIR>/monitor_data.trend.db" in output_section
 
 
 def test_acc_check_help_lists_aliases_examples_and_outputs():

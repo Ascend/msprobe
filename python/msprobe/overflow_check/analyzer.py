@@ -22,8 +22,14 @@ from itertools import dropwhile, chain
 from msprobe.core.common.file_utils import check_file_or_directory_path, save_json, make_dir, load_json
 from msprobe.core.common.log import logger
 from msprobe.core.common.const import Const
-from msprobe.overflow_check.utils import (RankPath, FileCache, is_communication_op, is_ignore_op, OverFlowCheckConst,
-                                          analyze_anomaly_in_group)
+from msprobe.overflow_check.utils import (
+    RankPath,
+    FileCache,
+    is_communication_op,
+    is_ignore_op,
+    OverFlowCheckConst,
+    analyze_anomaly_in_group,
+)
 from msprobe.overflow_check.graph import DataNode, CommunicationNode
 
 
@@ -56,7 +62,7 @@ class OverFlowCheck:
             elif not path.startswith('rank'):
                 continue
             else:
-                rank_str = path[len('rank'):]
+                rank_str = path[len('rank') :]
                 if not rank_str:
                     rank = 0
                 elif not rank_str.isdigit():
@@ -72,8 +78,9 @@ class OverFlowCheck:
         for _, rankpath in self._paths.items():
             data = load_json(rankpath.dump_path)
             if data.get('framework', '') != "pytorch":
-                logger.error('overflow check is only available for PyTorch, though the data is stored in '
-                             'a different framework.')
+                logger.error(
+                    'overflow check is only available for PyTorch, though the data is stored in a different framework.'
+                )
                 raise RuntimeError(f'invalid dump_path {rankpath.dump_path}')
             break
 
@@ -130,8 +137,9 @@ class OverFlowCheck:
             node_id = f'{rank}.{op_name}'
             op_data = data[op_name]
             if is_communication_op(op_name):
-                comm_node = CommunicationNode(node_id, rank, DataNode(op_name, rank, op_data, sub_layer=sub_layer),
-                                              compute_ops=compute_ops)
+                comm_node = CommunicationNode(
+                    node_id, rank, DataNode(op_name, rank, op_data, sub_layer=sub_layer), compute_ops=compute_ops
+                )
                 if last_node_id:
                     communication_nodes.get(last_node_id).add_next(comm_node)
                 communication_nodes[node_id] = comm_node
@@ -185,6 +193,7 @@ class OverFlowCheck:
         使用索引直接查找连接节点
         时间复杂度：O(1)
         """
+
         def connect():
             seen_nodes.add(search_node.node_id)
             if search_node.type == OverFlowCheckConst.DST:
@@ -197,7 +206,7 @@ class OverFlowCheck:
 
         found = cur_node.connected
         target_api = conn_info['api'].replace('Distributed.', '')
-        
+
         if target_api in comm_index:
             for connected_rank in conn_info['ranks']:
                 if connected_rank in searched_ranks:
@@ -210,8 +219,9 @@ class OverFlowCheck:
                         if search_node.type != conn_info.get('type'):
                             continue
                         search_conn_ranks = search_node.find_connected_nodes().get('ranks')
-                        if ((not search_conn_ranks and search_node.api not in OverFlowCheckConst.DIRECTED_API) or
-                            cur_node.rank in search_conn_ranks):
+                        if (
+                            not search_conn_ranks and search_node.api not in OverFlowCheckConst.DIRECTED_API
+                        ) or cur_node.rank in search_conn_ranks:
                             connect()
                             found = True
                             break
@@ -254,8 +264,9 @@ class OverFlowCheck:
         def get_relative_ids(ori_node):
             if not ori_node:
                 return set()
-            return ({ori_node.node_id} | ori_node.link_nodes.keys() | ori_node.src_nodes.keys() |
-                    ori_node.dst_nodes.keys())
+            return (
+                {ori_node.node_id} | ori_node.link_nodes.keys() | ori_node.src_nodes.keys() | ori_node.dst_nodes.keys()
+            )
 
         while any(nodes_queues):
             groups = []
@@ -285,12 +296,24 @@ class OverFlowCheck:
 
 
 def _overflow_check_parser(parser):
-    parser.add_argument("-i", "--input_path", dest="input_path", default="", type=str,
-                        help="<Required> The dump file path, over step level. eg: \"xxx/step_0/\".",
-                        required=True)
-    parser.add_argument("-o", "--output_path", dest="output_path", default="./output", type=str,
-                        help="<optional> The overflow check result output file path.",
-                        required=False)
+    input_options = ("-i", "--input_path")
+    output_options = ("-o", "--output_path")
+    parser.add_argument(
+        *input_options,
+        dest="input_path",
+        default="",
+        type=str,
+        help="<Required> The dump file path, over step level. e.g. \"xxx/step_0/\".",
+        required=True,
+    )
+    parser.add_argument(
+        *output_options,
+        dest="output_path",
+        default="./output",
+        type=str,
+        help="<optional> The overflow check result output file path.",
+        required=False,
+    )
 
 
 def _run_overflow_check(args):
