@@ -163,6 +163,7 @@ class TestPrecisionDebugger(unittest.TestCase):
         obj = PrecisionDebugger.__new__(PrecisionDebugger)
         obj._custom_api_auto_registered = set()
         obj._custom_api_pending = []
+        obj._custom_api_warned = set()
         return obj
 
     def test_load_yaml_dir_not_exist(self):
@@ -293,6 +294,42 @@ class TestPrecisionDebugger(unittest.TestCase):
             result = debugger._load_custom_api_from_yaml()
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["api"], "Conv2d")
+
+    # ========== _auto_register_custom_api dedup tests ==========
+
+    def test_auto_register_custom_api_warns_once(self):
+        debugger = self._create_debugger_without_init()
+        item = {"module": "fake.module", "api": "fake_api", "prefix": "fake.module"}
+        with patch.object(PrecisionDebugger, "_load_custom_api_from_yaml", return_value=[item]), \
+             patch.object(PrecisionDebugger, "_resolve_module_path",
+                          side_effect=AttributeError("no attr")), \
+             patch("msprobe.pytorch.dump.debugger.precision_debugger.logger") as mock_logger:
+            debugger._auto_register_custom_api(force_retry=False)
+            debugger._auto_register_custom_api(force_retry=False)
+        self.assertEqual(mock_logger.warning.call_count, 1)
+
+    def test_auto_register_custom_api_warns_on_error_change(self):
+        debugger = self._create_debugger_without_init()
+        item = {"module": "fake.module", "api": "fake_api", "prefix": "fake.module"}
+        with patch.object(PrecisionDebugger, "_load_custom_api_from_yaml", return_value=[item]), \
+             patch("msprobe.pytorch.dump.debugger.precision_debugger.logger") as mock_logger:
+            with patch.object(PrecisionDebugger, "_resolve_module_path",
+                              side_effect=AttributeError("no attr")):
+                debugger._auto_register_custom_api(force_retry=False)
+            with patch.object(PrecisionDebugger, "_resolve_module_path",
+                              side_effect=ImportError("no module")):
+                debugger._auto_register_custom_api(force_retry=False)
+        self.assertEqual(mock_logger.warning.call_count, 2)
+
+    def test_clear_custom_api_warned(self):
+        debugger = self._create_debugger_without_init()
+        debugger._custom_api_warned = {
+            ("m1", "a1", "err1"),
+            ("m1", "a1", "err2"),
+            ("m2", "a2", "err1"),
+        }
+        debugger._clear_custom_api_warned("m1", "a1")
+        self.assertEqual(debugger._custom_api_warned, {("m2", "a2", "err1")})
 
     # ========== Validation regex tests ==========
 

@@ -67,6 +67,7 @@ class PrecisionDebugger(BasePrecisionDebugger):
         self._custom_op_schema_dirty = True
         self._custom_api_auto_registered = set()
         self._custom_api_pending = []
+        self._custom_api_warned = set()
         self._auto_register_custom_api(force_retry=True)
 
     @staticmethod
@@ -338,16 +339,35 @@ class PrecisionDebugger(BasePrecisionDebugger):
                     raise AttributeError(f"{module_path} does not have attribute {api_name}")
                 self.__class__.register_custom_api(module_obj, api_name, api_prefix)
                 self._custom_api_auto_registered.add(key)
+                self._clear_custom_api_warned(module_path, api_name)
                 logger.info_on_rank_0(f"Auto-registered custom api from yaml: {module_path}.{api_name}")
             except Exception as ex:
                 pending.append(item)
-                logger.warning(f"Auto-register custom api from yaml skipped: {item}, reason: {ex}")
+                self._log_custom_api_register_failed_once(module_path, api_name, ex, item)
 
         if force_retry:
             for item in self._custom_api_pending:
                 if item not in pending:
                     pending.append(item)
         self._custom_api_pending = pending
+
+    def _log_custom_api_yaml_once(self, log_fn, message):
+        if not getattr(self, '_custom_api_yaml_warned', False):
+            log_fn(message)
+            self._custom_api_yaml_warned = True
+
+    def _clear_custom_api_warned(self, module_path, api_name):
+        self._custom_api_warned = {
+            key for key in self._custom_api_warned if key[0] != module_path or key[1] != api_name
+        }
+
+    def _log_custom_api_register_failed_once(self, module_path, api_name, ex, item):
+        warn_key = (module_path, api_name, str(ex))
+        if warn_key in self._custom_api_warned:
+            return
+        self._clear_custom_api_warned(module_path, api_name)
+        self._custom_api_warned.add(warn_key)
+        logger.warning(f"Auto-register custom api from yaml skipped: {item}, reason: {ex}")
 
     def _load_custom_api_from_yaml(self):
         api_dump_dir = os.path.realpath(
@@ -364,15 +384,18 @@ class PrecisionDebugger(BasePrecisionDebugger):
         try:
             content = load_yaml(yaml_path)
         except Exception as ex:
-            logger.warning(f"Failed to load custom api yaml: {yaml_path}, reason: {ex}")
+            self._log_custom_api_yaml_once(logger.warning, f"Failed to load custom api yaml: {yaml_path}, reason: {ex}")
             return []
         if not content:
-            logger.info_on_rank_0(
-                f"Custom api yaml is empty: {yaml_path}, yaml-based custom op registration is disabled."
+            self._log_custom_api_yaml_once(
+                logger.info_on_rank_0,
+                f"Custom api yaml is empty: {yaml_path}, yaml-based custom op registration is disabled.",
             )
             return []
         if not isinstance(content, dict):
-            logger.warning(f"Invalid custom api yaml format: {yaml_path}, expected dict")
+            self._log_custom_api_yaml_once(
+                logger.warning, f"Invalid custom api yaml format: {yaml_path}, expected dict"
+            )
             return []
 
         items = []
