@@ -415,7 +415,7 @@ _调测类特性，对性能影响不敏感，不涉及_
 - monitor支持L2新指标：router权重相似度、逐token专家熵
   - 需求背景：
     1. router权重相似度（Router Weight Cosine Similarity）：通过计算所有专家权重列向量之间的平均余弦相似度来量化专家退化的程度，当 sim(W) → 1 时，所有专家权重趋于一致，Router已经名存实亡。
-       公式：sim(W) = E(i≠j)[cos(wi, wj)]
+       公式：`sim(W) = E(i≠j)[cos(wi, wj)]`
     2. 逐Token专家熵（Per-Token Expert Entropy）：通过记录token在多个专家上的softmax路由分布，从路由决策的"确定性"角度观察Router健康。如果每个token的路由分布都过度集中（熵极低），说明Router进入了"singleton"模式。
        公式：Entropy(S) = E_i[-Σ(j=1,n) s_ij log s_ij]
   - 需求内容：monitor L2可解释性指标新增router权重相似度、逐token专家熵监控项
@@ -427,7 +427,7 @@ _调测类特性，对性能影响不敏感，不涉及_
     - 优化模块级数据采集流程，避免 Inplace 操作导致输入数据被覆盖。
 
 - torch_npu.atb.xx算子补充采集
-  - 需求背景：当前工具依据算子采集 YAML 清单进行数据采集。随着 vLLM-Ascend 框架持续演进，新增了大量 torch_npu.atb.* 系列算子，但相关算子尚未纳入采集清单，导致部分算子无法完成数据采集，影响工具对新版本框架的覆盖能力及精度分析完整性。因此，需要补充 torch_npu.atb.* 算子的采集支持。
+  - 需求背景：当前工具依据算子采集 YAML 清单进行数据采集。随着 vLLM-Ascend 框架持续演进，新增了大量 `torch_npu.atb.*` 系列算子，但相关算子尚未纳入采集清单，导致部分算子无法完成数据采集，影响工具对新版本框架的覆盖能力及精度分析完整性。因此，需要补充 `torch_npu.atb.*` 算子的采集支持。
   - 需求内容：
     - 补充 torch_npu.atb.* 系列算子至采集 YAML 清单。
     - 支持新增 ATB 算子的输入输出数据采集。
