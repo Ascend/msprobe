@@ -707,7 +707,7 @@ If your goal is to completely exclude an API from collection, modify `support_wr
 
 | Field | Description |
 | --- | --- |
-| top-level-key | The top-level category, using the classification name before the colon. This field uses the API prefix from the dump results, and case must match. For the available top-level categories, see [Top-Level Category Mapping Table](#<a id="top-level-category-mapping-table"></a>). |
+| top-level-key | The top-level category, using the classification name before the colon. This field uses the API prefix from the dump results, and case must match. For the available top-level categories, see [Top-Level Category Mapping Table](#top-level-category-mapping-table). |
 | api-name | The API name after removing the top-level category. For example, if the dump result is `Distributed.recv.0.forward`, enter `recv`; if it is `NPU.npu_fusion_attention.0.forward`, enter `npu_fusion_attention`. If the API name itself contains a `.`, include the full name. |
 | `input` | Inputs to ignore for the API forward call. Integers in the list represent positional argument indices; strings represent keyword argument names. You can also configure `all` to ignore all inputs. |
 | `output` | Outputs to ignore for the API forward call. Integers in the list represent output indices. You can also configure `all` to ignore all outputs. |

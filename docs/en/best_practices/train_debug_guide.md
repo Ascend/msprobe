@@ -236,7 +236,7 @@ Troubleshooting
 
 1. Select a tool and collect data based on the actual situation.
 
-    - [Precision collection tool](#43-precision-collection-tool): Applicable to scenarios where the number of steps is determined, for example, if loss or grad norm changes significantly during the process.
+   - [Precision collection tool](#43-precision-collection-tool): Applicable to scenarios where the number of steps is determined, for example, if loss or grad norm changes significantly during the process.
 
         (1) Determine the number of steps to be collected (take the smaller step number of the two).
 
@@ -250,7 +250,8 @@ Troubleshooting
 
         (3) After identifying suspicious operators through visualization or comparison tool, collect the specific `tensor` values for further single-operator analysis.
 
-    - [Training status monitoring tool](#46-training-status-monitoring-tool): Applicable to large-scale scenarios where the number of dump steps to be collected is uncertain.
+   - [Training status monitoring tool](#46-training-status-monitoring-tool): Applicable to large-scale scenarios where the number of dump steps to be collected is uncertain.
+        
         - If grad norm becomes abnormal first and then loss becomes abnormal, collect gradient data during training.
         - If loss is abnormal, collect activations and weight data during training.
 
