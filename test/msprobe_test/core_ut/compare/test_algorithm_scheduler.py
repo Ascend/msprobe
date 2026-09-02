@@ -65,7 +65,7 @@ def _one_param_func(n_value):
 
 
 class TestAlgorithmScheduler(unittest.TestCase):
-    """AlgorithmScheduler 单例/发现/校验/调度行为单测。"""
+    """AlgorithmScheduler 单例/懒加载/校验/调度行为单测。"""
 
     def setUp(self):
         # 每个用例隔离单例状态，避免相互污染
@@ -75,17 +75,22 @@ class TestAlgorithmScheduler(unittest.TestCase):
         AlgorithmScheduler._instance = None
 
     # ------------------------------------------------------------------
-    # 辅助：构造一个未经 __init__ 的纯净实例，用于测试纯方法/受控状态
+    # 辅助：构造一个真实 __init__ 初始化的实例（不注册为单例），
+    # 并标记目录已扫描，避免用例触发真实目录扫描
     # ------------------------------------------------------------------
     @staticmethod
     def _bare_instance():
         inst = object.__new__(AlgorithmScheduler)
-        inst._module_cache = {}
-        inst.build_in_support_algorithm = []
-        inst.custom_support_algorithm = []
-        inst.algorithm_names = []
-        inst._column_name_algorithm_mapping = {}
-        inst.algorithm_column_names = []
+        inst.__init__()
+        inst._discovered = True
+        return inst
+
+    @staticmethod
+    def _get_loaded_instance():
+        # 获取真实单例并触发目录扫描（懒扫描延迟到首次使用，需显式触发；
+        AlgorithmScheduler._instance = None
+        inst = AlgorithmScheduler.get_instance()
+        inst._ensure_algorithm_discovered()
         return inst
 
     # ------------------------------------------------------------------
@@ -103,34 +108,64 @@ class TestAlgorithmScheduler(unittest.TestCase):
             AlgorithmScheduler()
 
     # ------------------------------------------------------------------
+    # 懒加载：初始化零开销，按需扫描/按需构建映射
+    # ------------------------------------------------------------------
+    def test_init_given_any_when_init_then_not_discover_nor_import(self):
+        # 初始化不扫描算法目录、不 import 任何算法模块
+        with mock.patch.object(AlgorithmScheduler, "_make_support_algorithm") as mock_scan, \
+                mock.patch("importlib.import_module") as mock_import:
+            inst = AlgorithmScheduler.get_instance()
+        mock_scan.assert_not_called()
+        mock_import.assert_not_called()
+        self.assertFalse(inst._discovered)
+        self.assertFalse(inst._builtin_mapping_loaded)
+        self.assertFalse(inst._full_mapping_loaded)
+        self.assertEqual(inst.build_in_support_algorithm, [])
+        self.assertEqual(inst.custom_support_algorithm, [])
+        self.assertEqual(inst._module_cache, {})
+        self.assertEqual(inst._builtin_column_name_mapping, {})
+        self.assertEqual(inst._full_column_name_mapping, {})
+
+    def test_ensure_algorithm_discovered_given_multiple_calls_when_call_then_scan_once(self):
+        inst = self._bare_instance()
+        inst._discovered = False
+        with mock.patch.object(inst, "_make_support_algorithm") as mock_scan:
+            inst._ensure_algorithm_discovered()
+            inst._ensure_algorithm_discovered()
+            inst._ensure_algorithm_discovered()
+        mock_scan.assert_called_once()
+        self.assertTrue(inst._discovered)
+
+    # ------------------------------------------------------------------
     # builtin 算法自动发现
     # ------------------------------------------------------------------
     def test_make_support_algorithm_given_builtin_dir_when_load_then_all_discovered(self):
-        inst = AlgorithmScheduler.get_instance()
+        inst = self._get_loaded_instance()
         self.assertEqual(set(inst.build_in_support_algorithm), EXPECTED_BUILTIN_ALGORITHMS)
         self.assertEqual(inst.custom_support_algorithm, [])
 
-    def test_validate_column_names_given_builtin_when_load_then_no_duplicate(self):
-        # __init__ 已执行 _validate_column_names，未抛异常即说明列名唯一
-        inst = AlgorithmScheduler.get_instance()
-        self.assertEqual(set(inst.algorithm_column_names), EXPECTED_BUILTIN_COLUMN_NAMES)
-        self.assertEqual(len(inst.algorithm_column_names), len(set(inst.algorithm_column_names)))
+    def test_builtin_mapping_given_builtin_when_load_then_columns_unique_and_correct(self):
+        inst = self._get_loaded_instance()
+        self.assertFalse(inst._builtin_mapping_loaded)
+        inst._ensure_builtin_mapping_loaded()
+        cols = list(inst._builtin_column_name_mapping)
+        self.assertEqual(set(cols), EXPECTED_BUILTIN_COLUMN_NAMES)
+        self.assertEqual(len(cols), len(set(cols)))
+        self.assertTrue(inst._builtin_mapping_loaded)
 
-    def test_get_algorithm_names_given_loaded_when_call_then_returns_all(self):
-        inst = AlgorithmScheduler.get_instance()
-        self.assertEqual(set(inst.get_algorithm_names()), EXPECTED_BUILTIN_ALGORITHMS)
-
-    def test_get_algorithm_column_names_given_loaded_when_call_then_returns_all(self):
-        inst = AlgorithmScheduler.get_instance()
-        self.assertEqual(set(inst.get_algorithm_column_names()), EXPECTED_BUILTIN_COLUMN_NAMES)
+    def test_get_algorithm_column_names_given_loaded_when_call_then_returns_full_mapping(self):
+        # custom_algorithm 目录已清空，全量列名应等于内置列名
+        inst = self._get_loaded_instance()
+        cols = inst.get_algorithm_column_names()
+        self.assertEqual(set(cols), EXPECTED_BUILTIN_COLUMN_NAMES)
+        self.assertEqual(set(inst._full_column_name_mapping), EXPECTED_BUILTIN_COLUMN_NAMES)
+        self.assertTrue(inst._full_mapping_loaded)
 
     # ------------------------------------------------------------------
-    # column_name 去重校验
+    # 列名映射构建（受控状态，经 _ensure_builtin_mapping_loaded 触发）
     # ------------------------------------------------------------------
-    def test_validate_column_names_given_duplicate_when_validate_then_value_error(self):
-        # 跳过真实加载，构造受控状态后直接测试 _validate_column_names
-        with mock.patch.object(AlgorithmScheduler, "_make_support_algorithm", lambda self: None):
-            inst = AlgorithmScheduler.get_instance()
+    def test_build_mapping_given_duplicate_when_validate_then_value_error(self):
+        inst = self._bare_instance()
         inst.build_in_support_algorithm = ["alg_a", "alg_b"]
         inst.custom_support_algorithm = []
         inst.algorithm_names = ["alg_a", "alg_b"]
@@ -139,21 +174,18 @@ class TestAlgorithmScheduler(unittest.TestCase):
         with mock.patch.object(inst, "_get_module", return_value=dummy_module), \
                 mock.patch.object(inst, "_get_column_name", side_effect=lambda name, mod: "dup_col"):
             with self.assertRaisesRegex(ValueError, "duplicated"):
-                inst._validate_column_names()
+                inst._ensure_builtin_mapping_loaded()
 
-    def test_validate_column_names_given_unique_when_validate_then_mapping_built(self):
-        with mock.patch.object(AlgorithmScheduler, "_make_support_algorithm", lambda self: None):
-            inst = AlgorithmScheduler.get_instance()
+    def test_build_mapping_given_unique_when_validate_then_mapping_built(self):
+        inst = self._bare_instance()
         inst.build_in_support_algorithm = ["alg_a", "alg_b"]
-        inst.custom_support_algorithm = []
-        inst.algorithm_names = ["alg_a", "alg_b"]
-        inst._column_name_algorithm_mapping = {}
         dummy_module = mock.Mock()
         col_names = {"alg_a": "ColA", "alg_b": "ColB"}
         with mock.patch.object(inst, "_get_module", return_value=dummy_module), \
                 mock.patch.object(inst, "_get_column_name", side_effect=lambda name, mod: col_names[name]):
-            inst._validate_column_names()
-        self.assertEqual(inst._column_name_algorithm_mapping, {"ColA": "alg_a", "ColB": "alg_b"})
+            inst._ensure_builtin_mapping_loaded()
+        self.assertEqual(inst._builtin_column_name_mapping, {"ColA": "alg_a", "ColB": "alg_b"})
+        self.assertTrue(inst._builtin_mapping_loaded)
 
     # ------------------------------------------------------------------
     # 保留列名校验（真实数据比对固定列）
@@ -164,48 +196,35 @@ class TestAlgorithmScheduler(unittest.TestCase):
         # 内置算法列属于算法列，不应被列为保留列
         self.assertFalse(reserved & EXPECTED_BUILTIN_COLUMN_NAMES)
 
-    def test_validate_column_names_given_reserved_conflict_when_validate_then_value_error(self):
-        # 跳过真实加载，构造受控状态后直接测试 _validate_column_names
-        with mock.patch.object(AlgorithmScheduler, "_make_support_algorithm", lambda self: None):
-            inst = AlgorithmScheduler.get_instance()
+    def test_build_mapping_given_reserved_conflict_when_validate_then_value_error(self):
+        inst = self._bare_instance()
         inst.build_in_support_algorithm = ["alg_a"]
-        inst.custom_support_algorithm = []
-        inst.algorithm_names = ["alg_a"]
-        inst._column_name_algorithm_mapping = {}
         dummy_module = mock.Mock()
         with mock.patch.object(inst, "_get_module", return_value=dummy_module), \
                 mock.patch.object(inst, "_get_column_name", return_value="NPU Tensor Shape"):
             with self.assertRaisesRegex(ValueError, "conflicts with a reserved"):
-                inst._validate_column_names()
+                inst._ensure_builtin_mapping_loaded()
 
-    def test_validate_column_names_given_reserved_conflict_when_validate_then_error_shows_reserved(self):
-        with mock.patch.object(AlgorithmScheduler, "_make_support_algorithm", lambda self: None):
-            inst = AlgorithmScheduler.get_instance()
+    def test_build_mapping_given_reserved_conflict_when_validate_then_error_shows_reserved(self):
+        inst = self._bare_instance()
         inst.build_in_support_algorithm = ["alg_a"]
-        inst.custom_support_algorithm = []
-        inst.algorithm_names = ["alg_a"]
-        inst._column_name_algorithm_mapping = {}
         dummy_module = mock.Mock()
         with mock.patch.object(inst, "_get_module", return_value=dummy_module), \
                 mock.patch.object(inst, "_get_column_name", return_value="Data_name"):
             with self.assertRaises(ValueError) as ctx:
-                inst._validate_column_names()
+                inst._ensure_builtin_mapping_loaded()
         self.assertIn("Reserved columns", str(ctx.exception))
         self.assertIn("Dirty Valid Len", str(ctx.exception))
 
-    def test_validate_column_names_given_not_reserved_when_validate_then_no_conflict_error(self):
+    def test_build_mapping_given_not_reserved_when_validate_then_no_conflict_error(self):
         # 非保留列名不触发保留列冲突，正常建立映射
-        with mock.patch.object(AlgorithmScheduler, "_make_support_algorithm", lambda self: None):
-            inst = AlgorithmScheduler.get_instance()
+        inst = self._bare_instance()
         inst.build_in_support_algorithm = ["alg_a"]
-        inst.custom_support_algorithm = []
-        inst.algorithm_names = ["alg_a"]
-        inst._column_name_algorithm_mapping = {}
         dummy_module = mock.Mock()
         with mock.patch.object(inst, "_get_module", return_value=dummy_module), \
                 mock.patch.object(inst, "_get_column_name", return_value="ColA"):
-            inst._validate_column_names()
-        self.assertEqual(inst._column_name_algorithm_mapping, {"ColA": "alg_a"})
+            inst._ensure_builtin_mapping_loaded()
+        self.assertEqual(inst._builtin_column_name_mapping, {"ColA": "alg_a"})
 
     # ------------------------------------------------------------------
     # _is_real_number
@@ -265,7 +284,7 @@ class TestAlgorithmScheduler(unittest.TestCase):
             inst._get_module("not_an_algorithm")
 
     def test_get_module_given_loaded_when_call_twice_then_cached(self):
-        inst = AlgorithmScheduler.get_instance()
+        inst = self._get_loaded_instance()
         inst._module_cache.clear()
         m1 = inst._get_module("cosine_similarity")
         m2 = inst._get_module("cosine_similarity")
@@ -434,16 +453,18 @@ class TestAlgorithmScheduler(unittest.TestCase):
     # ------------------------------------------------------------------
     def test_compare_given_unknown_column_when_call_then_unsupported(self):
         inst = self._bare_instance()
-        inst._column_name_algorithm_mapping = {"ColA": "alg_a", "ColB": "alg_b"}
-        inst.algorithm_column_names = ["ColA", "ColB"]
+        inst._builtin_column_name_mapping = {"ColA": "alg_a", "ColB": "alg_b"}
+        inst._builtin_mapping_loaded = True
         results, errors = inst.compare(1, 2, column_names=["Unknown"])
         self.assertEqual(results, ["unsupported"])
         self.assertIn("No available algorithm", errors[0])
 
     def test_compare_given_none_columns_when_call_then_uses_all(self):
         inst = self._bare_instance()
-        inst._column_name_algorithm_mapping = {"ColA": "alg_a", "ColB": "alg_b"}
-        inst.algorithm_column_names = ["ColA", "ColB"]
+        inst._builtin_column_name_mapping = {"ColA": "alg_a", "ColB": "alg_b"}
+        inst._builtin_mapping_loaded = True
+        inst._full_column_name_mapping = dict(inst._builtin_column_name_mapping)
+        inst._full_mapping_loaded = True
         with mock.patch.object(inst, "_call_algorithm", return_value=(0.0, "")) as mock_call:
             results, errors = inst.compare(1, 2, column_names=None)
         self.assertEqual(len(results), 2)
@@ -451,8 +472,10 @@ class TestAlgorithmScheduler(unittest.TestCase):
 
     def test_compare_given_empty_columns_when_call_then_uses_all(self):
         inst = self._bare_instance()
-        inst._column_name_algorithm_mapping = {"ColA": "alg_a", "ColB": "alg_b"}
-        inst.algorithm_column_names = ["ColA", "ColB"]
+        inst._builtin_column_name_mapping = {"ColA": "alg_a", "ColB": "alg_b"}
+        inst._builtin_mapping_loaded = True
+        inst._full_column_name_mapping = dict(inst._builtin_column_name_mapping)
+        inst._full_mapping_loaded = True
         with mock.patch.object(inst, "_call_algorithm", return_value=(0.0, "")) as mock_call:
             results, errors = inst.compare(1, 2, column_names=[])
         self.assertEqual(len(results), 2)
@@ -460,8 +483,8 @@ class TestAlgorithmScheduler(unittest.TestCase):
 
     def test_compare_given_subset_columns_when_call_then_only_subset_invoked(self):
         inst = self._bare_instance()
-        inst._column_name_algorithm_mapping = {"ColA": "alg_a", "ColB": "alg_b"}
-        inst.algorithm_column_names = ["ColA", "ColB"]
+        inst._builtin_column_name_mapping = {"ColA": "alg_a", "ColB": "alg_b"}
+        inst._builtin_mapping_loaded = True
         with mock.patch.object(inst, "_call_algorithm", return_value=(0.0, "")) as mock_call:
             results, errors = inst.compare(1, 2, column_names=["ColA"])
         self.assertEqual(len(results), 1)
@@ -469,8 +492,8 @@ class TestAlgorithmScheduler(unittest.TestCase):
 
     def test_compare_given_error_msg_when_call_then_error_msgs_collected(self):
         inst = self._bare_instance()
-        inst._column_name_algorithm_mapping = {"ColA": "alg_a"}
-        inst.algorithm_column_names = ["ColA"]
+        inst._builtin_column_name_mapping = {"ColA": "alg_a"}
+        inst._builtin_mapping_loaded = True
         with mock.patch.object(inst, "_call_algorithm", return_value=(0.0, "some error")):
             results, errors = inst.compare(1, 2, column_names=["ColA"])
         self.assertEqual(errors, ["some error"])

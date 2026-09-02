@@ -68,15 +68,19 @@ class AlgorithmScheduler:
         # only invoked inside get_instance
         if os.path.dirname(__file__) not in sys.path:
             sys.path.append(os.path.dirname(__file__))
+        # 懒加载：初始化不扫描算法目录、不 import 任何算法模块。
+        # 算法文件名扫描、列名映射构建均延迟到首次使用时：
+        # - 首次 compare（内置列名）：扫描目录 + import 内置算法
+        # - 首次 get_algorithm_column_names（全量列名）：额外 import 自定义算法
         self.build_in_support_algorithm: List[str] = []
         self.custom_support_algorithm: List[str] = []
-        # 为了校验column_name唯一性，初始化全量加载
         self._module_cache: Dict[str, Any] = {}
-        self._column_name_algorithm_mapping: Dict[str, str] = {}  # 算法名 -> 列名
-        self._make_support_algorithm()
-        self.algorithm_names = self.build_in_support_algorithm + self.custom_support_algorithm
-        self._validate_column_names()
-        self.algorithm_column_names = list(self._column_name_algorithm_mapping.keys())
+        self._builtin_column_name_mapping: Dict[str, str] = {}  # 列名 -> 内置算法名
+        self._full_column_name_mapping: Dict[str, str] = {}  # 列名 -> 算法名（内置+自定义）
+        self._discovered = False
+        self._builtin_mapping_loaded = False
+        self._full_mapping_loaded = False
+        self._mapping_lock = threading.Lock()
 
     def _make_support_algorithm(self) -> None:
         buildin_dir = os.path.join(os.path.dirname(__file__), self.BUILT_IN_ALGORITHM_DIR_NAME)
@@ -93,10 +97,44 @@ class AlgorithmScheduler:
             file_path = os.path.join(dir_path, file_name)
             self._add_algorithm_file_to_list(file_path, algorithm_list)
 
-    def _validate_column_names(self) -> None:
+    def _ensure_algorithm_discovered(self) -> None:
+        """按需扫描算法目录，仅收集算法文件名，不 import 模块"""
+        if self._discovered:
+            return
+        with self._mapping_lock:
+            if self._discovered:
+                return
+            self._make_support_algorithm()
+            self._discovered = True
+
+    def _ensure_builtin_mapping_loaded(self) -> None:
+        """按需构建内置算法列名映射（首次调用时才扫描目录并 import 内置算法模块）"""
+        self._ensure_algorithm_discovered()
+        if self._builtin_mapping_loaded:
+            return
+        with self._mapping_lock:
+            if self._builtin_mapping_loaded:
+                return
+            self._build_mapping(self.build_in_support_algorithm, self._builtin_column_name_mapping)
+            self._builtin_mapping_loaded = True
+
+    def _ensure_full_mapping_loaded(self) -> None:
+        """按需构建全量列名映射（内置+自定义，首次调用时才 import 自定义算法模块）"""
+        self._ensure_builtin_mapping_loaded()
+        if self._full_mapping_loaded:
+            return
+        with self._mapping_lock:
+            if self._full_mapping_loaded:
+                return
+            full_mapping = dict(self._builtin_column_name_mapping)
+            self._build_mapping(self.custom_support_algorithm, full_mapping)
+            self._full_column_name_mapping = full_mapping
+            self._full_mapping_loaded = True
+
+    def _build_mapping(self, algorithm_names: List[str], mapping: Dict[str, str]) -> None:
+        """加载算法模块并构建列名 -> 算法名映射，校验保留列冲突与列名唯一性"""
         reserved_columns = self._get_reserved_column_names()
-        all_algorithms = self.get_algorithm_names()
-        for algo_name in all_algorithms:
+        for algo_name in algorithm_names:
             module = self._get_module(algo_name)
             col_name = self._get_column_name(algo_name, module)
             if col_name in reserved_columns:
@@ -105,13 +143,11 @@ class AlgorithmScheduler:
                     f"result column. Reserved columns: {sorted(reserved_columns)}. "
                     f"Please use a different column name."
                 )
-            if col_name in self._column_name_algorithm_mapping:
+            if col_name in mapping:
                 raise ValueError(
-                    f"The column name {col_name} is duplicated for algorithm {algo_name} "
-                    f"and {self._column_name_algorithm_mapping[col_name]}."
+                    f"The column name {col_name} is duplicated for algorithm {algo_name} and {mapping[col_name]}."
                 )
-            self._column_name_algorithm_mapping[col_name] = algo_name
-        for col_name, algo_name in self._column_name_algorithm_mapping.items():
+            mapping[col_name] = algo_name
             logger.info(f"Load algorithm [{algo_name}] success, column: {col_name}")
 
     @staticmethod
@@ -234,24 +270,28 @@ class AlgorithmScheduler:
             logger.error(f"Call algorithm [{algorithm_name}] failed, error: {e}")
             return "unsupported", ""
 
+    def _get_algorithm_by_column(self, column_name: str):
+        self._ensure_builtin_mapping_loaded()
+        if column_name in self._builtin_column_name_mapping:
+            return self._builtin_column_name_mapping[column_name]
+        self._ensure_full_mapping_loaded()
+        return self._full_column_name_mapping.get(column_name)
+
     def compare(self, n_value, b_value, column_names=None):
         if not column_names:
-            column_names = self.algorithm_column_names
+            column_names = self.get_algorithm_column_names()
         results = []
         error_msgs = []
         for column_name in column_names:
-            if column_name in self._column_name_algorithm_mapping:
-                result, error_msg = self._call_algorithm(
-                    self._column_name_algorithm_mapping[column_name], n_value, b_value
-                )
+            algo_name = self._get_algorithm_by_column(column_name)
+            if algo_name is not None:
+                result, error_msg = self._call_algorithm(algo_name, n_value, b_value)
             else:
                 result, error_msg = "unsupported", f"No available algorithm for {column_name}"
             results.append(result)
             error_msgs.append(error_msg if error_msg else "")
         return results, error_msgs
 
-    def get_algorithm_names(self) -> List[str]:
-        return self.algorithm_names
-
     def get_algorithm_column_names(self) -> List[str]:
-        return self.algorithm_column_names
+        self._ensure_full_mapping_loaded()
+        return list(self._full_column_name_mapping.keys())
