@@ -144,26 +144,59 @@ HELP_SPECS: Dict[str, HelpSpec] = {
     ),
     "msprobe config_check": HelpSpec(
         "Collect, compare, or verify training configuration data.",
-        "msprobe config_check <operation> [values] [options]",
-        (("Collect the current training configuration", "msprobe config_check -d ./train.sh"),),
-        ("<output>/",),
+        "msprobe config_check (-d [<FILE> ...] | -c <FILE_OR_DIR> <FILE_OR_DIR> | "
+        "-vc <NPU_LOG> <BENCH_LOG> | -vv [<BENCH_CONFIG>] <TGT_LOG> | "
+        "-sc <NPU_LOG> <BENCH_LOG>) [-o <FILE_OR_DIR>]",
+        (
+            ("Collect the current training configuration", "msprobe config_check -d ./train.sh"),
+            (
+                "Compare configurations collected from two environments",
+                "msprobe config_check -c ./bench.zip ./cmp.zip",
+            ),
+            (
+                "Compare verl hyperparameters",
+                "msprobe config_check -vc ./npu.log ./bench.log",
+            ),
+            (
+                "Verify verl hyperparameters against the default benchmark",
+                "msprobe config_check -vv ./tgt.log",
+            ),
+        ),
+        (
+            "Dump (-d): <FILE> (default: ./config_check_pack.zip)",
+            "Packed-config comparison (-c): <DIR>/result.xlsx (default directory: ./config_check_result)",
+            "Checkpoint comparison (-c): <FILE> (default: ./ckpt_similarity.json)",
+            "Verl comparison (-vc): <DIR>/NPU_config.json, <DIR>/bench_config.json, and "
+            "<DIR>/hyper_params_compare.csv (default directory: ./verl_param_compare_result)",
+            "Verl verification (-vv): <DIR>/tgt_config.json and <DIR>/hyper_params_verify.csv "
+            "(default directory: ./verl_param_verify_result)",
+            "Slime comparison (-sc): <DIR>/NPU_config.json, <DIR>/bench_config.json, and "
+            "<DIR>/hyper_params_compare.csv (default directory: ./slime_param_compare_result)",
+        ),
     ),
     "msprobe api_precision_compare": HelpSpec(
         "Compare API accuracy result files produced on NPU and GPU devices.",
-        "msprobe api_precision_compare --npu_csv_path <FILE> --gpu_csv_path <FILE> [options]",
+        "msprobe api_precision_compare -npu <FILE> -gpu <FILE> [options]",
         (
             (
                 "Compare two accuracy reports",
-                "msprobe api_precision_compare --npu_csv_path ./npu.csv --gpu_csv_path ./gpu.csv",
+                "msprobe api_precision_compare -npu ./npu.csv -gpu ./gpu.csv",
             ),
         ),
-        ("<out_path>/",),
+        (
+            "<DIR>/api_precision_compare_result_{timestamp}.csv",
+            "<DIR>/api_precision_compare_details_{timestamp}.csv",
+        ),
     ),
     "msprobe graph_visualize": HelpSpec(
         "Build graph visualization data from one or two dump directories.",
         "msprobe graph_visualize --target_path <DIR> --output_path <DIR> [options]",
         (("Build visualization data", "msprobe graph_visualize --target_path ./dump --output_path ./graph"),),
-        ("<output_path>/",),
+        (
+            "Single-graph build: <DIR>/build_{timestamp}.vis.db",
+            "Two-graph comparison: <DIR>/compare_{timestamp}.vis.db",
+            "Merged graph JSON: <DIR>/step<STEP>/rank<RANK>/{construct.json,dump.json,stack.json}",
+        ),
     ),
     "msprobe data2db": HelpSpec(
         "Import dump or monitor data into a SQLite database.",
@@ -178,13 +211,17 @@ HELP_SPECS: Dict[str, HelpSpec] = {
         "Parse dumped tensor data into NumPy or PyTorch files.",
         "msprobe parse --dump_path <FILE_OR_DIR> [options]",
         (("Parse dump data as PyTorch files", "msprobe parse --dump_path ./dump --type pt --output_path ./output"),),
-        ("<output_path>/",),
+        ("<DIR>/{input_basename}.npy or <DIR>/{input_basename}.pt",),
     ),
     "msprobe offline_dump": HelpSpec(
         "Run an offline model and dump intermediate model data for analysis.",
         "msprobe offline_dump --model_path <FILE> [options]",
         (("Dump an offline model", "msprobe offline_dump --model_path ./model.om -o ./output"),),
-        ("<output_path>/",),
+        (
+            "<DIR>/{timestamp}/[{input_name-input_shape}/]dump_data/",
+            "<DIR>/{timestamp}/[{input_name-input_shape}/]input/",
+            "<DIR>/{timestamp}/[{input_name-input_shape}/]model/",
+        ),
     ),
     "msprobe install_deps": HelpSpec(
         "Install optional dependencies required by a selected msprobe mode.",
@@ -222,9 +259,12 @@ HELP_SPECS: Dict[str, HelpSpec] = {
     ),
     "api_precision_compare": HelpSpec(
         "Compare API accuracy result files produced on NPU and GPU devices.",
-        "api_precision_compare --npu_csv_path <FILE> --gpu_csv_path <FILE> [options]",
-        (("Compare two accuracy reports", "api_precision_compare --npu_csv_path ./npu.csv --gpu_csv_path ./gpu.csv"),),
-        ("<out_path>/",),
+        "api_precision_compare -npu <FILE> -gpu <FILE> [options]",
+        (("Compare two accuracy reports", "api_precision_compare -npu ./npu.csv -gpu ./gpu.csv"),),
+        (
+            "<DIR>/api_precision_compare_result_{timestamp}.csv",
+            "<DIR>/api_precision_compare_details_{timestamp}.csv",
+        ),
     ),
 }
 
@@ -306,7 +346,7 @@ def _metavar(action: argparse.Action) -> str:
         return "{" + ",".join(str(value).lower() for value in action.choices) + "}"
     value = action.metavar
     if isinstance(value, tuple):
-        value = value[0]
+        return " ".join(str(item) for item in value)
     if value:
         value = str(value).strip("<>").upper()
         if value not in {"STRING", "VALUE", "ARG", "PATH"}:
@@ -326,8 +366,10 @@ def _metavar(action: argparse.Action) -> str:
     else:
         base = "<NAME>"
 
-    if action.nargs in ("+", "*"):
+    if action.nargs == "+":
         return f"{base} [{base} ...]"
+    if action.nargs == "*":
+        return f"[{base} ...]"
     if isinstance(action.nargs, int) and action.nargs > 1:
         return " ".join(base for _ in range(action.nargs))
     return base
@@ -378,11 +420,15 @@ def _description(action: argparse.Action, required: bool) -> str:
     return help_text
 
 
-def _required(action: argparse.Action) -> bool:
+def _required(action: argparse.Action, parser: Optional[argparse.ArgumentParser] = None) -> bool:
     if isinstance(action, argparse._SubParsersAction):
         return True
     if action.option_strings:
-        return bool(action.required)
+        if action.required:
+            return True
+        if parser is not None:
+            return any(group.required and action in group._group_actions for group in parser._mutually_exclusive_groups)
+        return False
     return action.nargs not in ("?", "*")
 
 
@@ -392,11 +438,11 @@ def _visible_actions(parser: argparse.ArgumentParser) -> Iterable[argparse.Actio
 
 def _build_usage(parser: argparse.ArgumentParser) -> str:
     parts = [_normalise_prog(parser.prog)]
-    required_actions = [action for action in _visible_actions(parser) if _required(action)]
+    required_actions = [action for action in _visible_actions(parser) if _required(action, parser)]
     for action in required_actions:
         _, long_name = _signature(action)
         parts.append(long_name)
-    if any(not _required(action) for action in _visible_actions(parser)):
+    if any(not _required(action, parser) for action in _visible_actions(parser)):
         parts.append("[options]")
     return " ".join(parts)
 
@@ -445,8 +491,8 @@ def format_help(parser: argparse.ArgumentParser) -> str:
     actions = list(_visible_actions(parser))
     command_actions = [action for action in actions if isinstance(action, argparse._SubParsersAction)]
     parameter_actions = [action for action in actions if not isinstance(action, argparse._SubParsersAction)]
-    required = [action for action in parameter_actions if _required(action)]
-    optional = [action for action in parameter_actions if not _required(action)]
+    required = [action for action in parameter_actions if _required(action, parser)]
+    optional = [action for action in parameter_actions if not _required(action, parser)]
     sections = [
         "Description:\n" + "\n".join(f"  {line}" for line in textwrap.wrap(spec.description, width=terminal_width - 4)),
         f"Usage:\n  {usage}",

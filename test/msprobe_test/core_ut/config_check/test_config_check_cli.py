@@ -17,6 +17,7 @@
 import unittest
 from unittest.mock import patch
 import argparse
+from msprobe.core.common.cli_help import MindStudioArgumentParser
 from msprobe.core.config_check.config_check_cli import (
     pack,
     compare,
@@ -58,6 +59,16 @@ class TestConfigCheckCli(unittest.TestCase):
         args = parser.parse_args(['-d', 'test.sh', '-o', 'output.zip'])
         self.assertEqual(args.dump, ['test.sh'])
         self.assertEqual(args.output, 'output.zip')
+
+        args = parser.parse_args(['-d'])
+        self.assertEqual(args.dump, [])
+
+        args = parser.parse_args([])
+        self.assertIsNone(args.dump)
+        self.assertIsNone(args.compare)
+        self.assertIsNone(args.verl_compare)
+        self.assertIsNone(args.verl_verify)
+        self.assertIsNone(args.slime_compare)
         
         args = parser.parse_args(['-c', 'file1', 'file2', '-o', 'result'])
         self.assertEqual(args.compare, ['file1', 'file2'])
@@ -78,6 +89,32 @@ class TestConfigCheckCli(unittest.TestCase):
         args = parser.parse_args(['-vv', 'tgt_config', '-o', 'verl_verify_result'])
         self.assertEqual(args.verl_verify, ['tgt_config'])
         self.assertEqual(args.output, 'verl_verify_result')
+
+    def test_config_checking_help(self):
+        parser = MindStudioArgumentParser(prog='msprobe config_check')
+        _config_checking_parser(parser)
+
+        help_text = parser.format_help()
+        normalized_help_text = ' '.join(help_text.split())
+
+        self.assertNotIn('Required arguments:', help_text)
+        self.assertIn('Optional arguments:', help_text)
+        self.assertIn('-d,  --dump [<FILE> ...]', help_text)
+        self.assertIn('-vc, --verl-compare <NPU_LOG> <BENCH_LOG>', help_text)
+        self.assertIn('-vv, --verl-verify [<BENCH_CONFIG>] <TGT_LOG>', help_text)
+        self.assertIn('-o, --output <FILE_OR_DIR>', normalized_help_text)
+        self.assertNotIn('<operation>', help_text)
+        self.assertNotIn('(eg:', help_text)
+        for output_name in (
+            'config_check_pack.zip',
+            'result.xlsx',
+            'NPU_config.json',
+            'bench_config.json',
+            'hyper_params_compare.csv',
+            'tgt_config.json',
+            'hyper_params_verify.csv',
+        ):
+            self.assertIn(output_name, help_text)
 
     @patch('msprobe.core.config_check.config_check_cli.pack')
     def test_run_config_checking_command_dump(self, mock_pack):

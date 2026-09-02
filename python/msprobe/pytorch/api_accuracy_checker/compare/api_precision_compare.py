@@ -457,7 +457,7 @@ def _api_precision_compare_parser(parser):
         dest="npu_csv_path",
         default="",
         type=str,
-        help="<Required> , Accuracy_checking_details.csv generated on the NPU by using the api_accuracy_checker tool.",
+        help="Path to accuracy_checking_details_{timestamp}.csv generated on the NPU by api_accuracy_checker.",
         required=True,
     )
     parser.add_argument(
@@ -466,7 +466,7 @@ def _api_precision_compare_parser(parser):
         dest="gpu_csv_path",
         default="",
         type=str,
-        help="<Required> Accuracy_checking_details.csv generated on the GPU by using the api_accuracy_checker tool.",
+        help="Path to accuracy_checking_details_{timestamp}.csv generated on the GPU by api_accuracy_checker.",
         required=True,
     )
     parser.add_argument(

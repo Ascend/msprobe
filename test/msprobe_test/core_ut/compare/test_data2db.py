@@ -394,6 +394,14 @@ class TestData2dbServiceParser(unittest.TestCase):
         self.assertEqual(args.micro_step, 'false')
         self.assertEqual(args.process_num, 4)
 
+        args = parser.parse_args([
+            'data2db',
+            '--db', '/tmp/db',
+            '--data', '/tmp/data',
+            '--micro_step', 'True',
+        ])
+        self.assertEqual(args.micro_step, 'true')
+
     def test_parser_default_values(self):
         """验证命令行参数默认值"""
         import argparse

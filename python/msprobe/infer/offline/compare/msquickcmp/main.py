@@ -93,8 +93,8 @@ def _offline_dump_parser(parser):
         dest="onnx_fusion_switch",
         default=True,
         type=str2bool,
-        help='Onnxruntime fusion switch, set False for dump complete onnx data when '
-        'necessary.Usage: --onnx_fusion_switch False',
+        choices=[True, False],
+        help='Whether to enable ONNX Runtime fusion. Disable it when complete ONNX dump data is required.',
     )
 
 

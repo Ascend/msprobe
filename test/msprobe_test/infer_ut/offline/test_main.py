@@ -1,13 +1,28 @@
-import unittest
-from unittest.mock import patch, MagicMock
 import argparse
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 # 导入被测模块
 from msprobe.infer.offline.compare.msquickcmp.main import offline_dump_cli, compare_offline_model_mode, \
-    set_args_default, check_compare_args, install_offline_deps_cli
+    set_args_default, check_compare_args, install_offline_deps_cli, _offline_dump_parser
 
 
 class TestOfflineDumpCli(unittest.TestCase):
+
+    def test_offline_dump_parser_boolean_choices(self):
+        parser = argparse.ArgumentParser()
+        _offline_dump_parser(parser)
+
+        with TemporaryDirectory() as temp_dir:
+            model_path = Path(temp_dir) / "model.onnx"
+            model_path.touch()
+            args = parser.parse_args(['--model_path', str(model_path), '--onnx_fusion_switch', 'false'])
+        self.assertFalse(args.onnx_fusion_switch)
+
+        choices = next(action.choices for action in parser._actions if action.dest == 'onnx_fusion_switch')
+        self.assertEqual(choices, [True, False])
 
     @patch("msprobe.infer.offline.compare.msquickcmp.main.dump_process")
     @patch("msprobe.infer.offline.compare.msquickcmp.main.DumpArgsAdapter")

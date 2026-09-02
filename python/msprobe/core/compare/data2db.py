@@ -174,8 +174,8 @@ def _data2db_service_parser(parser):
     parser.add_argument('--mapping', type=str, default=None, help='Path to optional JSON mapping file')
     parser.add_argument(
         '--micro_step',
-        type=str,
-        choices=['true', 'false', 'True', 'False'],
+        type=str.lower,
+        choices=['true', 'false'],
         default='true',
         help='Use micro-step counting (default: true)',
     )

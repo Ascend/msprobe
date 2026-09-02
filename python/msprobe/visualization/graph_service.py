@@ -650,7 +650,7 @@ def _graph_service_parser(parser):
         "--overflow_check",
         dest="overflow_check",
         action="store_true",
-        help="<Optional> whether open overflow_check for graph.",
+        help="Whether to enable overflow check for the graph.",
         required=False,
     )
     parser.add_argument(
@@ -658,7 +658,7 @@ def _graph_service_parser(parser):
         "--fuzzy_match",
         dest="fuzzy_match",
         action="store_true",
-        help="<Optional> whether to perform a fuzzy match on the api name.",
+        help="Whether to perform fuzzy matching on API names.",
         required=False,
     )
     parser.add_argument(
@@ -666,7 +666,7 @@ def _graph_service_parser(parser):
         "--is_print_compare_log",
         dest="is_print_compare_log",
         action="store_true",
-        help="<Optional> whether print tensor compare log for visualization task.",
+        help="Whether to print tensor comparison logs for the visualization task.",
         required=False,
     )
     parser.add_argument(
@@ -674,7 +674,7 @@ def _graph_service_parser(parser):
         "--is_print_progress_log",
         dest="is_print_progress_log",
         action="store_true",
-        help="<Optional> whether print progress log for visualization task.",
+        help="Whether to print progress logs for the visualization task.",
         required=False,
     )
 
@@ -719,7 +719,7 @@ def _graph_service_parser(parser):
         type=str,
         default="db",
         choices=["db", "json"],
-        help="<Optional> Output file type, default is db, can be json. Only supported in graph merge build scenarios.",
+        help="Output file type; only supported in graph merge build scenarios.",
         required=False,
     )
 

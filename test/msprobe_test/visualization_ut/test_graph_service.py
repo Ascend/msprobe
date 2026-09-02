@@ -220,6 +220,13 @@ class TestGraphService(unittest.TestCase):
         args = parser.parse_args(['-tp', 'input.json', '-o', 'output.json'])
         self.assertFalse(args.overflow_check)
 
+        actions = {action.dest: action for action in parser._actions}
+        self.assertEqual(actions['overflow_check'].help, 'Whether to enable overflow check for the graph.')
+        self.assertEqual(
+            actions['file_type'].help,
+            'Output file type; only supported in graph merge build scenarios.',
+        )
+
     def tearDown(self):
         signal.signal(signal.SIGPIPE, self.original_sigpipe)
         if os.path.exists(self.output):

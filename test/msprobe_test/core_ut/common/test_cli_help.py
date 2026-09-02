@@ -120,6 +120,48 @@ def test_parameter_descriptions_follow_terminal_width(monkeypatch):
     assert max(len(line) for line in optional_section.splitlines()) <= 60
 
 
+def test_cli_help_lists_expected_output_files_for_commands():
+    expected_outputs = {
+        "msprobe api_precision_compare": (
+            "api_precision_compare_result_{timestamp}.csv",
+            "api_precision_compare_details_{timestamp}.csv",
+        ),
+        "msprobe graph_visualize": (
+            "build_{timestamp}.vis.db",
+            "compare_{timestamp}.vis.db",
+            "<DIR>/step<STEP>/rank<RANK>/{construct.json,dump.json,stack.json}",
+        ),
+        "msprobe data2db": ("dump_data.trend.db", "monitor_data.trend.db"),
+        "msprobe parse": ("{input_basename}.npy", "{input_basename}.pt"),
+        "msprobe offline_dump": ("dump_data/", "input/", "model/"),
+    }
+
+    for prog, output_names in expected_outputs.items():
+        help_text = MindStudioArgumentParser(prog=prog).format_help()
+        output_section = help_text.split("Output:\n", 1)[1]
+        for output_name in output_names:
+            assert output_name in output_section
+
+
+def test_api_precision_compare_examples_reuse_usage_short_options():
+    for prog in ("msprobe api_precision_compare", "api_precision_compare"):
+        help_text = MindStudioArgumentParser(prog=prog).format_help()
+        examples_section = help_text.split("Examples:\n", 1)[1].split("\n\n", 1)[0]
+
+        assert f"{prog} -npu ./npu.csv -gpu ./gpu.csv" in examples_section
+        assert "--npu_csv_path" not in examples_section
+        assert "--gpu_csv_path" not in examples_section
+
+
+def test_multi_character_short_option_is_rendered():
+    parser = MindStudioArgumentParser(prog="multi_short")
+    parser.add_argument("-npu", "--npu_csv_path", required=True)
+
+    help_text = parser.format_help()
+
+    assert "-npu, --npu_csv_path <FILE>" in help_text
+
+
 def test_data2db_help_distinguishes_outputs_by_input_type():
     parser = MindStudioArgumentParser(prog="msprobe data2db")
     parser.add_argument("--db", required=True)

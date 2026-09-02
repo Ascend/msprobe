@@ -100,32 +100,39 @@ def _get_verl_verify_error_message(verl_verify_args):
 def _config_checking_parser(parser):
     group = parser.add_argument_group('Select one of the following operations, multiple selections are not permitted.')
     mutex = group.add_mutually_exclusive_group(required=False)
-    mutex.add_argument('-d', '--dump', nargs='*', help='Collect the train config into a zip file')
-    mutex.add_argument('-c', '--compare', nargs=2, help='Compare two zip files or checkpoints')
+    mutex.add_argument('-d', '--dump', nargs='*', metavar='<FILE>', help='Collect the train config into a zip file')
+    mutex.add_argument('-c', '--compare', nargs=2, metavar='<FILE_OR_DIR>', help='Compare two zip files or checkpoints')
     mutex.add_argument(
         '-vc',
         '--verl-compare',
         nargs=2,
+        metavar=('<NPU_LOG>', '<BENCH_LOG>'),
         help='Compare the parameter info in the configuration file filtered from the verl train logs for NPU and bench,'
-        'the first argument is the log to be compared(eg:NPU_log), and the second argument is the bench log(eg:bench_log).',
+        ' the first argument is the log to be compared (e.g., NPU_log), and the second argument is the bench log '
+        '(e.g., bench_log).',
     )
     mutex.add_argument(
         '-vv',
         '--verl-verify',
         nargs='+',
+        metavar=('[<BENCH_CONFIG>]', '<TGT_LOG>'),
         help='Verify the parameter info in the configuration file for target and bench, the first argument is an optional '
-        'benchmark configuration file(eg:bench_yaml), and the second argument is a mandatory target log that must be passed in(eg:target_log)',
+        'benchmark configuration file (e.g., bench_yaml), and the second argument is a mandatory target log that must be '
+        'passed in (e.g., target_log)',
     )
     mutex.add_argument(
         '-sc',
         '--slime-compare',
         nargs=2,
+        metavar=('<NPU_LOG>', '<BENCH_LOG>'),
         help='Compare the parameter info in the configuration file filtered from the slime train logs for NPU and bench,'
-        'the first argument is the log to be compared(eg:NPU_log), and the second argument is the bench log(eg:bench_log).',
+        ' the first argument is the log to be compared (e.g., NPU_log), and the second argument is the bench log '
+        '(e.g., bench_log).',
     )
     parser.add_argument(
         '-o',
         '--output',
+        metavar='<FILE_OR_DIR>',
         help='output path, default is ./config_check_pack.zip for dump mode and'
         ' ./config_check_result for compare mode and'
         ' ./verl_param_compare_result a folder for verl compare mode.'
