@@ -2,13 +2,16 @@
 
 ## 1. 简介
 
-slime 框架一般采用训推分离架构：训练侧使用 Megatron 训练后端，推理侧使用 SGLang 引擎。
+slime 框架采用"训练侧 Megatron + 推理侧 SGLang"的训推分离架构。
 
-在训推一致性精度定位场景中，两侧前向路径不同：推理侧在 SGLang 第一次 EXTEND（prefill）上运行，输入为 prompt token；训练侧在 Megatron `old_log_prob` 前向上运行，默认输入为 prompt + response。若两侧输入 token 不一致，dump 出的统计量无法直接比对，难以定位精度差异来源。
+在定位精度差异时，由于训练侧 `old_log_prob` 默认输入为 prompt + response，而推理侧 prefill 输入仅为 prompt，导致两侧输入 token 不一致，无法直接比对 dump 出的统计量。
 
-因此，须先完成**训推一致性预处理**（对齐 prefill 输入，并满足并行切分、batch、padding 等约束），再分别采集两侧前向过程的 msProbe 统计量用于比对。
+本文档专门针对训推一致性精度定位场景，提供完整的预处理与数据采集流程：
 
-本文介绍如何在 slime 框架下完成[训推一致性预处理](#3-训推一致性预处理)与[训推两侧 msProbe 数据采集](#4-训推两侧-msprobe-数据采集)。
+1. 通过预处理统一两侧 prefill 阶段的输入 token，确保数据满足并行切分、batch 及 padding 等工程约束。参见[训推一致性预处理](#3-训推一致性预处理)。
+2. 仅采集训练侧 `old_log_prob` 与推理侧 prefill 对应阶段的数据，用于逐 rank 比对以快速定位精度差异来源。参见[训推两侧 msProbe 数据采集](#4-训推两侧-msprobe-数据采集)。
+
+对于不要求训推输入对齐的场景，可使用 slime 框架通用的采集方式，详细介绍请参见《[slime 框架训推精度数据采集](./slime_train_rollout_dump_instruct.md)》。
 
 ## 2. 环境准备
 
@@ -28,7 +31,7 @@ pip install mindstudio-probe
 
 预处理目标（两侧分别要达到的效果）如下：
 
-| 侧 | 目标效果 | 对应小节 |
+| 目标侧 | 目标效果 | 对应小节 |
 |----|----------|----------|
 | **推理侧** | SGLang 第一次 EXTEND（prefill）输入为 prompt token；关闭图模式，并满足 DP / chunked prefill、并行切分、序列长度对齐等约束，保证采集到正式 prefill 前向 | [3.2](#32-序列长度与-padding-约束)、[3.3](#33-sglang-dp-与-chunked-prefill-约束)、[3.4](#34-训推并行切分一致)、[3.7](#37-关闭-cuda-graph-图模式) |
 | **训练侧** | Megatron `old_log_prob` 输入截断为 **prompt-only**（去掉 response），与推理 prefill 对齐；同时满足 padding、单条 prompt、禁用数据均衡等约束 | [3.1](#31-prompt-only-输入对齐)、[3.2](#32-序列长度与-padding-约束)、[3.5](#35-单条-prompt-输入与-dp-配置)、[3.6](#36-禁用数据均衡与动态-batch) |
@@ -173,7 +176,7 @@ slime 启动 SGLang 时须指定：
 ```json
 {
     "task": "statistics",
-    "dump_path": "/example_dump_path/msprobe_dump/update_actor",
+    "dump_path": "/example_dump_path/msprobe_dump",
     "rank": [],
     "step": [0],
     "level": "mix",
@@ -192,7 +195,7 @@ slime 启动 SGLang 时须指定：
 主要参数说明：
 
 - **task**：`statistics` 表示采集统计量；若需真实张量，配置为 `tensor`。
-- **dump_path**：dump 保存根路径；训练侧代码会动态拼接 `update_actor` 子目录，推理侧指向 `generate` 子目录。
+- **dump_path**：dump 保存根路径；训练侧代码会在 `dump_path` 下动态拼接 `old_log_prob` 子目录落盘，推理侧直接指向 `generate` 子目录落盘。
 - **step**：采集步数，训推一致性 dump 通常仅采 `step0`。
 - **level**：`mix` 表示同时采集 Module 级和 API 级数据。
 
@@ -201,30 +204,6 @@ slime 启动 SGLang 时须指定：
 ### 4.2 训练阶段数据采集
 
 训练阶段精度数据采集在 slime 的 Megatron 训练后端完成。在 `slime/backends/megatron_utils/actor.py` 中实例化 `PrecisionDebugger`，在 **old_log_prob 前向**前后调用 `start`、`stop` 接口，并在 stop 之后调用 `step()` 推进步数。`PrecisionDebugger` 接口更多介绍请参见《[PyTorch 场景精度数据采集](./pytorch_data_dump_instruct.md)》。
-
-#### 4.2.1 前置操作
-
-使能训练阶段数据采集：slime 基于 Ray 拉起训练 Worker，环境变量须通过 runtime env 下发。在 `ray job submit` 的 `runtime-env-json` 的 `env_vars` 中增加：
-
-```json
-{
-  "env_vars": {
-    "DUMP_ON": "1",
-    "PROMPTS_ONLY": "1",
-    "TORCHDYNAMO_DISABLE": "1",
-    "MSPROBE_SEED": "1234",
-    "MSPROBE_CONFIG_PATH": "/path/to/config_actor.json"
-  }
-}
-```
-
-| 变量 | 说明 |
-|------|------|
-| `DUMP_ON=1` | 训练侧 msProbe 总开关；0 或未设则与原始逻辑一致 |
-| `PROMPTS_ONLY=1` | 训练仅跑 old_log_prob prompt 段并跳过 actor 训练 |
-| `TORCHDYNAMO_DISABLE=1` | 遇 dynamo 报错时全局关闭 |
-
-#### 4.2.2 slime 代码修改
 
 以下展示训推一致性 dump 的代码修改方式（以 slime v0.2.2 为例）。修改步骤如下。
 
@@ -339,37 +318,18 @@ slime 启动 SGLang 时须指定：
 
 ### 4.3 推理阶段数据采集
 
-slime 框架推理侧使用 SGLang 引擎执行 rollout 生成。请根据 **SGLang 版本**选择做法：
+slime 框架推理侧使用 SGLang 引擎执行 rollout 生成。
 
-| SGLang 版本 | 做法 |
+SGLang 从 0.5.11 版本起原生内置 msProbe 能力，因此低于 0.5.11 版本须按照本节操作进行侵入式修改，不低于 0.5.11 版本直接传配置参数。请根据 SGLang 版本选择操作方法：
+
+| SGLang 版本 | 操作方法 |
 |-------------|------|
-| **< 0.5.11** | 需侵入式修改 `ModelRunner`（见 [4.3.2](#432-sglang-代码修改sglang-版本--0511)） |
-| **≥ 0.5.11** | 启动时传 `--msprobe-dump-config` 即可，详见《[SGLang 精度数据采集（SGLang 版本≥0.5.11）](./sglang_eager_dump_instruct_new.md)》 |
+| **< 0.5.11** | 侵入式修改 `ModelRunner`，见下文。 |
+| **≥ 0.5.11** | 已原生内置msProbe工具，可直接在 `SGLANG_ARGS` 中指定参数 `--sglang-msprobe-dump-config` 进行精度数据采集。 |
 
-说明：SGLang 从 **0.5.11** 起原生内置 msProbe 能力，因此以 0.5.11 为分界；低于该版本须按 4.3.1 节手工插桩，不低于该版本直接传配置参数。
 
-#### 4.3.1 前置操作（SGLang 版本 < 0.5.11）
 
-推理侧环境变量（同样通过 Ray `runtime-env-json` 下发）：
-
-```json
-{
-  "SGLANG_MSPROBE_DUMP": "1",
-  "MSPROBE_GENERATE_CONFIG": "/path/to/config_generate.json",
-  "MSPROBE_MIN_DUMP_TOKENS": "2"
-}
-```
-
-因SGLang engine 初始化时会执行一次约 **1 个 token** 的 dummy EXTEND forward（用于 warmup / 图编译探测）。`MSPROBE_MIN_DUMP_TOKENS` 用于**过滤推理侧极短 EXTEND 前向**，避免 msProbe 钩住 SGLang 启动阶段的探针请求。
-
-| 前向类型 | 典型 token 数 | `MSPROBE_MIN_DUMP_TOKENS=2` 时 |
-|----------|--------------|-------------------------------|
-| 启动 dummy forward | 约 1 | **跳过**，不 dump |
-| 正式 rollout prefill | prompt 长度 | 采集，作为 generate `step0` |
-
-#### 4.3.2 SGLang 代码修改（SGLang 版本 < 0.5.11）
-
-在 `python/sglang/srt/model_executor/model_runner.py` 中插入 `PrecisionDebugger` 接口。修改步骤如下。
+在 `sglang/srt/model_executor/model_runner.py` 中插入 `PrecisionDebugger` 接口。修改步骤如下。
 
 1. 在 `ModelRunner.__init__` 末尾实例化 debugger
 
@@ -414,9 +374,62 @@ slime 框架推理侧使用 SGLang 引擎执行 rollout 生成。请根据 **SGL
              return output
     ```
 
-## 5. 启动参数建议
+## 5. 启动命令
 
-训推一致性 dump 模式与正式训练隔离，建议参数如下：
+训推一致性 dump 模式与正式训练隔离。启动前需先下发训练/推理侧环境变量，再按建议参数启动 slime。
+
+### 5.1 环境变量配置
+
+slime 基于 Ray 启动训练 Worker 与推理引擎，环境变量须通过 `ray job submit` 的 `runtime-env-json` 的 `env_vars` 下发，才能保证 Ray 子进程同样生效。
+
+**训练侧**：
+
+```json
+{
+  "env_vars": {
+    "DUMP_ON": "1",
+    "PROMPTS_ONLY": "1",
+    "TORCHDYNAMO_DISABLE": "1",
+    "MSPROBE_SEED": "1234",
+    "MSPROBE_CONFIG_PATH": "/path/to/config_actor.json"
+  }
+}
+```
+
+| 变量 | 说明 |
+|------|------|
+| `DUMP_ON=1` | 训练侧 msProbe 总开关；0 或未设则与原始逻辑一致 |
+| `PROMPTS_ONLY=1` | 训练仅跑 old_log_prob prompt 段并跳过 actor 训练 |
+| `MSPROBE_CONFIG_PATH` | 训练侧 config.json 路径 |
+| `MSPROBE_SEED` | 固定随机种子，保证多次运行结果可复现 |
+| `TORCHDYNAMO_DISABLE=1` | 遇 dynamo 报错时全局关闭 |
+
+**推理侧**（SGLang 版本 < 0.5.11，需侵入式插桩时）：
+
+```json
+{
+  "env_vars": {
+    "SGLANG_MSPROBE_DUMP": "1",
+    "MSPROBE_GENERATE_CONFIG": "/path/to/config_generate.json",
+    "MSPROBE_MIN_DUMP_TOKENS": "2"
+  }
+}
+```
+
+| 变量 | 说明 |
+|------|------|
+| `SGLANG_MSPROBE_DUMP=1` | 推理侧 msProbe 开关 |
+| `MSPROBE_GENERATE_CONFIG` | 推理侧 config.json 路径 |
+| `MSPROBE_MIN_DUMP_TOKENS` | 过滤启动阶段约 1 个 token 的 dummy EXTEND forward，避免采集 warmup 探针请求（见下表） |
+
+因 SGLang engine 初始化时会执行一次约 **1 个 token** 的 dummy EXTEND forward（用于 warmup / 图编译探测），`MSPROBE_MIN_DUMP_TOKENS` 用于**过滤推理侧极短 EXTEND 前向**：
+
+| 前向类型 | 典型 token 数 | `MSPROBE_MIN_DUMP_TOKENS=2` 时 |
+|----------|--------------|-------------------------------|
+| 启动 dummy forward | 约 1 | **跳过**，不 dump |
+| 正式 rollout prefill | prompt 长度 | 采集，作为 generate `step0` |
+
+### 5.2 启动参数建议
 
 ```shell
 # rollout：仅 1 次；1 条 prompt，n-samples = DP
@@ -447,7 +460,7 @@ slime 框架推理侧使用 SGLang 引擎执行 rollout 生成。请根据 **SGL
 
 --tensor-model-parallel-size 1
 
---rollout-num-gpus-per-engine 4 
+--rollout-num-gpus-per-engine 4   # 启用 DP-Attention 时该值为 DP 而非 TP，此处 DP=4、TP=1，与训练侧 TP=1 一致
 --sglang-dp-size 4 
 --sglang-enable-dp-attention
 ```
@@ -456,27 +469,22 @@ dump 模式建议关闭 eval、不保存 checkpoint，并将日志写入实验�
 
 ## 6. dump 结果目录
 
-训推一致性场景目录结构如下：
+训推一致性场景的 dump 落盘目录结构如下（以 `dump_path` 根目录 `/example_dump_path/msprobe_dump` 为例）：
 
 ```text
-${exp_dir}/
-├── run.log
-├── msprobe_dump/
-│   ├── config_generate.json
-│   ├── config_actor.json
-│   ├── generate/                 # 推理 prefill 采集数据
-│   │   └── step0/
-│   │       └── rank{ID}/
-│   │           ├── dump.json
-│   │           ├── stack.json
-│   │           └── construct.json
-│   └── update_actor/             # 训练 old_log_prob 采集数据
-│       └── step0/
-│           └── rank{ID}/
-│               ├── dump.json
-│               ├── stack.json
-│               └── construct.json
-└── msprobe_vis/                  # graph_visualize 输出
+/example_dump_path/msprobe_dump/
+├── generate/                 # 推理 prefill 采集数据
+│   └── step0/
+│       └── rank{ID}/
+│           ├── dump.json
+│           ├── stack.json
+│           └── construct.json
+└── old_log_prob/             # 训练 old_log_prob 采集数据
+    └── step0/
+        └── rank{ID}/
+            ├── dump.json
+            ├── stack.json
+            └── construct.json
 ```
 
 各级目录及文件说明：
@@ -486,22 +494,17 @@ ${exp_dir}/
 - **stack.json**：API/Module 的调用栈信息。
 - **construct.json**：分层分级结构信息。
 
-**rank 对齐说明**：训推分离且推理为 4×TP1 engine 时，generate 侧 rank 目录可能从 `rank4` 起，须手动减偏移后再可视化；1×TP4 engine + 训练 TP4 时两侧均为 `rank0`–`rank3`，通常无需偏移。
+**rank 对齐说明**：训推分离架构下，训练与推理运行在不同卡上，两侧 rank ID 通常无法一一对应（例如 4 卡场景：前 2 张卡跑推理、后 2 张卡跑训练，generate 侧 rank 目录可能从 `rank2` 起，与训练侧 `rank0` 不对齐）。因此可视化比对**只能按单卡逐 rank 进行**，须将路径指定到具体的 `rank` 目录，不能使用多卡批量比对。
 
 ## 7. msProbe 可视化比对
 
 ```shell
 msprobe graph_visualize \
-  -tp ${exp_dir}/msprobe_dump/generate/step0 \
-  -gp ${exp_dir}/msprobe_dump/update_actor/step0 \
-  -o ${exp_dir}/msprobe_vis
+  -tp /example_dump_path/msprobe_dump/generate/step0/rank0 \
+  -gp /example_dump_path/msprobe_dump/old_log_prob/step0/rank0 \
+  -o /example_dump_path/msprobe_vis
 
-tensorboard --logdir ${exp_dir}/msprobe_vis
+tensorboard --logdir /example_dump_path/msprobe_vis
 ```
 
-比对时 `-tp` 指定推理（generate）数据，`-gp` 指定训练（actor）数据。
-
-## 8. 参考文档
-
-- [slime 框架训推精度数据采集](./slime_train_rollout_dump_instruct.md)
-- [PyTorch 场景精度比对](../accuracy_compare/pytorch_accuracy_compare_instruct.md)
+比对时 `-tp` 指定推理（generate）数据，`-gp` 指定训练（actor）数据；须逐 rank 单卡比对，路径指定到对应 `rank` 目录。

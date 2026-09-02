@@ -2,9 +2,13 @@
 
 ## 1. 简介
 
-slime 框架采用训推分离架构：训练侧使用 Megatron 训练后端，推理侧使用 SGLang 引擎。在 slime 框架精度定位场景中，需分别在训练与推理阶段采集模型前向过程的精度数据。
+slime 框架采用"训练侧 Megatron + 推理侧 SGLang"的训推分离架构。
+
+在 slime 框架精度定位场景中，需分别在训练与推理阶段采集模型前向过程的精度数据。
 
 本文介绍如何使用 msProbe 工具，在 slime 框架下完成上述两阶段的精度数据采集。
+
+如须定位精度差异的来源是训练还是推理阶段，建议在采集前完成训推一致性预处理，详细介绍请参见《[slime框架训推一致性预处理与数据采集](./slime_consistency_preprocess_dump.md)》。
 
 ## 2. 环境准备
 
@@ -198,8 +202,8 @@ B. 在 train_actor 方法中，于目标计算阶段前后插入 start/stop 接�
 
 slime 框架推理侧使用 SGLang 引擎执行 rollout 生成。推理阶段的精度数据采集在 SGLang 侧完成，请根据当前使用的 SGLang 版本选择对应文档：
 
-- **SGLang 版本 < 0.5.11**：需侵入式修改 SGLang 源码，在 `ModelRunner` 中插入 `PrecisionDebugger` 接口。详情请参见《[SGLang精度数据采集（SGLang版本<0.5.11）](../../user_guide/dump/sglang_eager_dump_instruct.md)》。
-- **SGLang 版本 >= 0.5.11**：SGLang 已原生内置 msProbe 能力，启动服务时通过 `--msprobe-dump-config` 指定配置文件即可。详情请参见《[SGLang精度数据采集（SGLang版本>=0.5.11）](../../user_guide/dump/sglang_eager_dump_instruct_new.md)》。
+- **SGLang 版本 < 0.5.11**：侵入式修改 SGLang 源码，在 `ModelRunner` 中插入 `PrecisionDebugger` 接口。详情请参见《[SGLang精度数据采集（SGLang版本<0.5.11）](../../user_guide/dump/sglang_eager_dump_instruct.md)》。
+- **SGLang 版本 >= 0.5.11**：已原生内置msProbe工具，可直接在 `SGLANG_ARGS` 中指定参数 `--sglang-msprobe-dump-config` 进行精度数据采集。
 
 **注意**：
 
