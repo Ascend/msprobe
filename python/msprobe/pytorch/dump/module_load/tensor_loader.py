@@ -115,13 +115,17 @@ class TensorLoader:
             if module_path is not None:
                 path_count[module_path] = path_count.get(module_path, 0) + 1
 
-        logger.info_on_rank_0(f"[load] module validation: {len(valid)}/{len(self.modules)} modules valid in model")
+        logger.info_on_rank_0_without_rank_prefix(
+            f"[load] module validation: {len(valid)}/{len(self.modules)} modules valid in model"
+        )
         for entry in invalid:
-            logger.warning_on_rank_0(f"[load] invalid module: {entry}")
+            logger.warning_on_rank_0_without_rank_prefix(f"[load] invalid module: {entry}")
         for path, count in path_count.items():
             if count > 1:
-                logger.warning_on_rank_0(f"[load] module path '{path}' has {count} forward.N entries")
-        logger.info_on_rank_0(
+                logger.warning_on_rank_0_without_rank_prefix(
+                    f"[load] module path '{path}' has {count} forward.N entries"
+                )
+        logger.info_on_rank_0_without_rank_prefix(
             "[load] note: forward.N call_index cannot be verified before runtime, "
             "mismatched call_index will result in source data missing warning during forward"
         )

@@ -99,6 +99,16 @@ class BaseLogger:
     def warning_on_rank_0(self, msg):
         return self.on_rank_0(self.warning)(msg)
 
+    @filter_special_chars
+    def info_on_rank_0_without_rank_prefix(self, msg):
+        if self.level <= MsgConst.LogLevel.INFO.value:
+            self.on_rank_0(lambda m: self._print_log(MsgConst.LOG_LEVEL[1], m, show_rank=False))(msg)
+
+    @filter_special_chars
+    def warning_on_rank_0_without_rank_prefix(self, msg):
+        if self.level <= MsgConst.LogLevel.WARNING.value:
+            self.on_rank_0(lambda m: self._print_log(MsgConst.LOG_LEVEL[2], m, show_rank=False))(msg)
+
     def error_log_with_exp(self, msg, exception):
         self.error(msg)
         raise exception
@@ -138,11 +148,11 @@ class BaseLogger:
         print(msg, end=end)
         sys.stdout.flush()
 
-    def _print_log(self, level, msg, end='\n'):
+    def _print_log(self, level, msg, end='\n', show_rank=True):
         current_rank = self.get_rank()
         current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         pid = os.getpid()
-        if current_rank is not None:
+        if show_rank and current_rank is not None:
             full_msg = f"{current_time} ({pid}) [rank {current_rank}] [{level}] {msg}"
         else:
             full_msg = f"{current_time} ({pid}) [{level}] {msg}"
