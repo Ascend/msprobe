@@ -103,6 +103,16 @@ def test_short_only_option_does_not_render_none():
     assert "-i <FILE>" in help_text
 
 
+def test_onnx_fusion_switch_uses_boolean_metavar():
+    parser = MindStudioArgumentParser(prog="msprobe compare")
+    parser.add_argument("-ofs", "--onnx_fusion_switch", dest="onnx_fusion_switch", default=True)
+
+    help_text = parser.format_help()
+
+    assert "--onnx_fusion_switch {True,False}" in help_text
+    assert "--onnx_fusion_switch <NAME>" not in help_text
+
+
 def test_parameter_descriptions_follow_terminal_width(monkeypatch):
     monkeypatch.setattr(
         "msprobe.core.common.cli_help.shutil.get_terminal_size",

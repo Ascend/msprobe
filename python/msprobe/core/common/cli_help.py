@@ -295,6 +295,7 @@ _METAVAR_BY_DEST = {
     "db": "<DIR>",
     "data": "<DIR>",
     "mode": "<MODE>",
+    "onnx_fusion_switch": "{True,False}",
     "format": "<FORMAT>",
     "rank": "<ID>",
     "device": "<ID>",
