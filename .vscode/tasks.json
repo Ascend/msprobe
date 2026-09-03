@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build: Debug Mode",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/build.py",
+        "-e",
+        "include-mod=all",
+        "-e",
+        "build-type=debug"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Test: Run Unit Tests",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/build.py",
+        "test"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean: All Workspace",
+      "type": "shell",
+      "command": "rm",
+      "args": [
+        "-rf",
+        "${workspaceFolder}/build",
+        "${workspaceFolder}/build_ut",
+        "${workspaceFolder}/output",
+        "${workspaceFolder}/artifacts",
+        "${workspaceFolder}/test_output",
+        "${workspaceFolder}/test/msprobe_test/report"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -49,7 +49,7 @@ add_library(nan_check_ext SHARED)
 
 set_target_properties(nan_check_ext PROPERTIES PREFIX "" OUTPUT_NAME "nan_check_ext")
 
-if(DEFINED BUILD_TYPE AND "${BUILD_TYPE}" STREQUAL "debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(nan_check_ext PRIVATE -O0 -g)
 else()
     target_compile_options(nan_check_ext PRIVATE -O3)

@@ -38,15 +38,21 @@ target_compile_options(${LIB_NAME} PRIVATE
     -fPIC
     -pie
     -fstack-protector-all
-    -O2
     -D_FORTIFY_SOURCE=2
     -ftrapv
 )
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(${LIB_NAME} PRIVATE -O0 -g)
+else()
+    target_compile_options(${LIB_NAME} PRIVATE -O2)
+endif()
 add_compile_options(-fstack-check)
 target_link_options(${LIB_NAME} PRIVATE
     -Wl,-z,relro,-z,now,-z,noexecstack
-    -s
 )
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_link_options(${LIB_NAME} PRIVATE -s)
+endif()
 target_link_libraries(${LIB_NAME} PRIVATE
     libstdc++fs.a
     -lpthread

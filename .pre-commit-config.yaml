@@ -21,6 +21,7 @@ repos:
       - id: check-merge-conflict
       - id: detect-private-key
       - id: check-json
+        exclude: ^\.devcontainer/devcontainer\.json$
 
   # -------------------------- Python 核心检查 --------------------------
   # Ruff：指定读取 pre-commit/pyproject.toml
@@ -43,7 +44,7 @@ repos:
       - id: codespell
         args: [
             "-L",
-            "CANN,cann,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog",
+            "CANN,cann,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog,DEPENDEES",
             "--skip",
             "*.py,*.cpp,*.hpp,*.c,*.h,pre-commit/typos.toml,*/package-lock.json",
           ]

@@ -1,0 +1,30 @@
+{
+  "files.watcherExclude": {
+    "**/build/**": true,
+    "**/build_ut/**": true,
+    "**/build_dependency/**": true,
+    "**/output/**": true,
+    "**/artifacts/**": true,
+    "**/third_party/**": true,
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/build": true,
+    "**/build_ut": true,
+    "**/build_dependency": true,
+    "**/output": true,
+    "**/artifacts": true,
+    "**/third_party": true,
+    "**/node_modules": true,
+    "**/.venv": true
+  },
+  "git.detectSubmodules": false,
+  "git.autoRepositoryDetection": false,
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/python"
+  ],
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "test/msprobe_test"
+  ]
+}

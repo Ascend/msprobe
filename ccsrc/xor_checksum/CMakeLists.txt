@@ -66,11 +66,15 @@ set(LINK_LIBRARIES
 
 set(COMPILE_OPTIONS
     ${TORCH_CXX_FLAGS}
-    -O3
     -fdiagnostics-color=always
     -w
     -DEXTENSION_MODULE_NAME=msprobe
 )
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    list(APPEND COMPILE_OPTIONS -O0 -g)
+else()
+    list(APPEND COMPILE_OPTIONS -O3)
+endif()
 
 add_subdirectory(csrc)
 get_property(OPERATOR_TARGETS GLOBAL PROPERTY ASCEND_OPS_OPERATOR_TARGETS)

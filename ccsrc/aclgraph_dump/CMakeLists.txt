@@ -49,7 +49,7 @@ add_library(aclgraph_dump_ext SHARED)
 
 set_target_properties(aclgraph_dump_ext PROPERTIES PREFIX "" OUTPUT_NAME "aclgraph_dump_ext")
 
-if(DEFINED BUILD_TYPE AND "${BUILD_TYPE}" STREQUAL "debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(aclgraph_dump_ext PRIVATE -O0 -g)
 else()
     target_compile_options(aclgraph_dump_ext PRIVATE -O3)

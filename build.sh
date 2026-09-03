@@ -11,6 +11,7 @@ eval set -- "${BUILD_ARGS}"
 
 ARCH_TYPE=$(uname -m)
 BUILD_TYPE=release
+CMAKE_BUILD_TYPE=Release
 CANN_PATH=""
 CONCURRENT_JOBS=16
 BUILD_TEST_CASE=False
@@ -101,12 +102,25 @@ while true; do
     esac
 done
 
+if [[ "${BUILD_TYPE}" == "debug" ]]; then
+    CMAKE_BUILD_TYPE=Debug
+fi
+
 BUILD_OUTPUT_PATH=${BUILD_PATH}/output/${BUILD_TYPE}
+
+preserve_compile_commands() {
+    local module_name="$1"
+    local source_file="${BUILD_OUTPUT_PATH}/compile_commands.json"
+    if [[ -f "${source_file}" ]]; then
+        cp -f "${source_file}" "${BUILD_OUTPUT_PATH}/compile_commands.${module_name}.json"
+    fi
+}
 
 if [[ "${INCLUDE_MOD}" == *"${ATB_PROBE_MOD}"* ]]; then
     export MSPROBE_INCLUDE_MOD="atb_probe"
     cd ${BUILD_PATH}
-    cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \
+    cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} \
+                                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \
                                   -DUSE_LOCAL_FIRST=${USE_LOCAL_FIRST} -DBUILD_TEST_CASE=${BUILD_TEST_CASE} \
                                   -DPYTHON_VERSION=${PYTHON_VERSION}
     cd ${BUILD_OUTPUT_PATH}
@@ -119,7 +133,8 @@ if [[ "${INCLUDE_MOD}" == *"${ATB_PROBE_MOD}"* ]]; then
 
     export ATB_PROBE_ABI="1"
     cd ${BUILD_PATH}
-    cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \
+    cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} \
+                                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \
                                   -DUSE_LOCAL_FIRST=${USE_LOCAL_FIRST} -DBUILD_TEST_CASE=${BUILD_TEST_CASE} \
                                   -DPYTHON_VERSION=${PYTHON_VERSION}
     cd ${BUILD_OUTPUT_PATH}
@@ -129,12 +144,14 @@ if [[ "${INCLUDE_MOD}" == *"${ATB_PROBE_MOD}"* ]]; then
         echo "Failed to build libatb_probe_abi1.so."
         exit 1
     fi
+    preserve_compile_commands "atb_probe"
 fi
 
 if [[ "${INCLUDE_MOD}" == *"${ACLGRAPH_DUMP_MOD}"* ]]; then
     export MSPROBE_INCLUDE_MOD="aclgraph_dump"
     cd ${BUILD_PATH}
-    cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \
+    cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} \
+                                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \
                                   -DUSE_LOCAL_FIRST=${USE_LOCAL_FIRST} -DBUILD_TEST_CASE=${BUILD_TEST_CASE} \
                                   -DPYTHON_VERSION=${PYTHON_VERSION}
     cd ${BUILD_OUTPUT_PATH}
@@ -144,6 +161,7 @@ if [[ "${INCLUDE_MOD}" == *"${ACLGRAPH_DUMP_MOD}"* ]]; then
         echo "Failed to build aclgraph_dump_ext.so."
         exit 1
     fi
+    preserve_compile_commands "aclgraph_dump"
 fi
 
 if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
@@ -151,7 +169,8 @@ if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
     bash ${BUILD_PATH}/ccsrc/nan_check/build_nan_test.sh
     export MSPROBE_INCLUDE_MOD="nan_check"
     cd ${BUILD_PATH}
-    cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \
+    cmake -B ${BUILD_OUTPUT_PATH} -S . -DARCH_TYPE=${ARCH_TYPE} -DBUILD_TYPE=${BUILD_TYPE} \
+                                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCANN_PATH=${CANN_PATH} \
                                   -DUSE_LOCAL_FIRST=${USE_LOCAL_FIRST} -DBUILD_TEST_CASE=${BUILD_TEST_CASE} \
                                   -DPYTHON_VERSION=${PYTHON_VERSION}
     cd ${BUILD_OUTPUT_PATH}
@@ -161,6 +180,7 @@ if [[ "${INCLUDE_MOD}" == *"${NAN_CHECK_MOD}"* ]]; then
         echo "Failed to build nan_check_ext.so."
         exit 1
     fi
+    preserve_compile_commands "nan_check"
 fi
 
 if [[ "${INCLUDE_MOD}" == *"${XOR_CHECKSUM_MOD}"* ]]; then
@@ -173,6 +193,7 @@ if [[ "${INCLUDE_MOD}" == *"${XOR_CHECKSUM_MOD}"* ]]; then
     cmake -B ${XOR_CHECKSUM_OUTPUT_PATH} -S ${BUILD_PATH}/ccsrc/xor_checksum \
           -DPython3_EXECUTABLE=${PYTHON_BIN} \
           -DPython3_ROOT_DIR=${PYTHON_ROOT_DIR} \
+          -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
           -DNPU_ARCH=${XOR_CHECKSUM_NPU_ARCH}
     cd ${XOR_CHECKSUM_OUTPUT_PATH}
     make -j${CONCURRENT_JOBS}
@@ -185,6 +206,47 @@ fi
 
 if [ ! -d ${BUILD_PATH}/python/msprobe/lib ]; then
     mkdir ${BUILD_PATH}/python/msprobe/lib
+fi
+
+# Merge each module's CMake database so clangd can index all native modules.
+# Reconfiguring the shared root build directory overwrites compile_commands.json,
+# while xor_checksum uses a standalone build directory.
+COMPILE_COMMANDS_PARTS=()
+for module_database in \
+    "${BUILD_OUTPUT_PATH}/compile_commands.atb_probe.json" \
+    "${BUILD_OUTPUT_PATH}/compile_commands.aclgraph_dump.json" \
+    "${BUILD_OUTPUT_PATH}/compile_commands.nan_check.json" \
+    "${BUILD_OUTPUT_PATH}/xor_checksum/compile_commands.json"; do
+    if [[ -f "${module_database}" ]]; then
+        COMPILE_COMMANDS_PARTS+=("${module_database}")
+    fi
+done
+
+COMPILE_COMMANDS_SOURCE="${BUILD_OUTPUT_PATH}/compile_commands.json"
+COMPILE_COMMANDS_LINK_TARGET="../output/${BUILD_TYPE}/compile_commands.json"
+if ((${#COMPILE_COMMANDS_PARTS[@]} > 0)); then
+    "${PYTHON_BIN}" - "${COMPILE_COMMANDS_SOURCE}" "${COMPILE_COMMANDS_PARTS[@]}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+output_path = Path(sys.argv[1])
+commands_by_file = {}
+for part in sys.argv[2:]:
+    with Path(part).open(encoding="utf-8") as file:
+        for command in json.load(file):
+            commands_by_file[command["file"]] = command
+
+temporary_path = output_path.with_suffix(".merged.json")
+with temporary_path.open("w", encoding="utf-8") as file:
+    json.dump(list(commands_by_file.values()), file, indent=2)
+    file.write("\n")
+temporary_path.replace(output_path)
+PY
+fi
+if [[ -f "${COMPILE_COMMANDS_SOURCE}" ]]; then
+    mkdir -p "${BUILD_PATH}/build"
+    ln -sfn "${COMPILE_COMMANDS_LINK_TARGET}" "${BUILD_PATH}/build/compile_commands.json"
 fi
 
 if [[ "${INCLUDE_MOD}" == *"${ATB_PROBE_MOD}"* ]]; then

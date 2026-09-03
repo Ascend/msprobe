@@ -83,7 +83,7 @@ class BuildManager:
             default=[],
             help=(
                 'Extra build options in KEY=VALUE format, can be specified multiple times. '
-                'Supported keys: include-mod, no-check'
+                'Supported keys: include-mod, no-check, only_down_deps, build-type'
             ),
         )
         self.args = ap.parse_args()
@@ -114,6 +114,10 @@ class BuildManager:
                     logging.warning("Unknown modules ignored: %s", invalid_mods)
 
         self.no_check = self.extra.get('no-check', 'false').lower() == 'true'
+        self.only_down_deps = self.extra.get('only_down_deps', 'false').lower() == 'true'
+        self.build_type = self.extra.get('build-type', 'release').lower()
+        if self.build_type not in {'release', 'debug'}:
+            raise ValueError("Invalid build-type. Expected 'release' or 'debug'")
         self.has_cpp = any(mod in self.mod_list for mod in CPP_MODS)
 
     def _execute_command(self, cmd, timeout_seconds=3600, cwd=None, env=None):
@@ -133,6 +137,33 @@ class BuildManager:
         for mod, plugin_name in FRONTEND_MOD_MAP.items():
             if mod in self.mod_list:
                 self._install_frontend_deps(plugin_name)
+
+        if "atb_probe" in self.mod_list:
+            self._prepare_cpp_dependencies()
+
+    def _prepare_cpp_dependencies(self):
+        arch = platform.machine()
+        py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
+        dependency_build_dir = self.project_root / "build_dependency"
+        cmake_build_type = "Debug" if self.build_type == "debug" else "Release"
+        env = os.environ.copy()
+        env["MSPROBE_INCLUDE_MOD"] = "atb_probe"
+
+        self._execute_command(
+            [
+                "cmake",
+                "-S",
+                str(self.project_root),
+                "-B",
+                str(dependency_build_dir),
+                f"-DARCH_TYPE={arch}",
+                f"-DBUILD_TYPE={self.build_type}",
+                f"-DCMAKE_BUILD_TYPE={cmake_build_type}",
+                f"-DPYTHON_VERSION={py_version}",
+            ],
+            cwd=self.project_root,
+            env=env,
+        )
 
     def _install_frontend_deps(self, plugin_name):
         fe_path = self.project_root / "plugins" / "tb_graph_ascend" / plugin_name / "front"
@@ -164,10 +195,10 @@ class BuildManager:
         if not self.has_cpp:
             return
 
-        release_dir = self.project_root / "output" / "release"
-        if release_dir.exists():
-            logging.info("Removing previous build output: %s", release_dir)
-            shutil.rmtree(release_dir)
+        build_output_dir = self.project_root / "output" / self.build_type
+        if build_output_dir.exists():
+            logging.info("Removing previous build output: %s", build_output_dir)
+            shutil.rmtree(build_output_dir)
 
         arch = platform.machine()
         py_version = f"{sys.version_info.major}.{sys.version_info.minor}"
@@ -187,6 +218,8 @@ class BuildManager:
 
         if 'local' in self.args.command:
             build_cmd.append("--local")
+        if self.build_type == 'debug':
+            build_cmd.append("--debug")
 
         env = os.environ.copy()
         env["PYTHON_BIN"] = sys.executable
@@ -332,6 +365,11 @@ class BuildManager:
         for opt in self.args.extra:
             key, _, val = opt.partition('=')
             logging.info("--extra: %s = %s", key, val)
+
+        if self.only_down_deps:
+            self._prepare_dependencies()
+            logging.info("only_down_deps=true, exiting after dependency download.")
+            return
 
         if 'test' in self.args.command:
             self._run_tests()

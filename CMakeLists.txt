@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.19.3)
 project(MindStudio-Probe)
 
+if(NOT CMAKE_BUILD_TYPE)
+    if(DEFINED BUILD_TYPE AND "${BUILD_TYPE}" STREQUAL "debug")
+        set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+    else()
+        set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    endif()
+endif()
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 execute_process(
     COMMAND uname -m
     OUTPUT_VARIABLE machine_arch
