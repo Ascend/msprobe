@@ -251,6 +251,8 @@ class TensorLoader:
                     f"vs current shape={list(current_tensor.shape)} dtype={current_tensor.dtype}, "
                     f"override may cause forward error"
                 )
+            if current_tensor.requires_grad and not loaded.requires_grad:
+                loaded.requires_grad_(True)
             self._cache[cache_key] = loaded
             logger.debug(f"[load] override {full_forward_name}.{category}.{suffix} <- {pt_path}")
             return loaded
