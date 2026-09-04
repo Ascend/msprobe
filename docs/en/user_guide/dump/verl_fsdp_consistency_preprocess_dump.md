@@ -2,7 +2,7 @@
 
 ## Overview
 
-Before comparing [data consistency between verl training and inference processes] (../accuracy_compare/pytorch_accuracy_compare_instruct.md#verl_training_and_inference_data_consistency_comparison), ensure that the input shapes during training and inference are the same. This ensures that the precision data dumped during training and inference can be matched during comparison.
+Before comparing [data consistency between verl training and inference processes](../accuracy_compare/pytorch_accuracy_compare_instruct.md#verl-training-and-inference-consistency-comparison), ensure that the input shapes during training and inference are the same. This ensures that the precision data dumped during training and inference can be matched during comparison.
 
 ## Input Alignment Analysis for verl Training and Inference
 

@@ -70,20 +70,25 @@ F.linear = custom_linear
 #### verl (FSDP)
 
 Positions where deterministic computing is enabled: 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7c9eb36a-096a-42e4-8120-e44075978cb6/image.png 'image.png')
 
 generate_sequences
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a86b2a58-59f9-4abd-838d-274f4bb65653/image.png 'image.png')  
 
 The preceding enabling modes are only applicable to the FSDP backend, which may vary depending on configurations.
 
 update_actor
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7edade77-bd4b-4d0b-ae08-3c72c6e81078/image.png 'image.png')
 
 compute_log_prob
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f0a85328-2860-44a2-8051-5322628032af/image.png 'image.png')
 
 compute_ref_log_prob
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/ce7f7a79-3f7a-425b-9172-6ac41d716954/image.png 'image.png')
 
 #### verl (SGLang Backend)

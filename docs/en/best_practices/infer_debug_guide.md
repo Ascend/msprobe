@@ -50,7 +50,7 @@ Common accuracy issues in LLM inference can be classified into accuracy errors a
 
    1. Operator implementation postprocessing: Generally, the accuracy is normal during greedy search of a model, but the output is incorrect after the postprocessing sampling policy is added. For example, the output is repeated or similar to the greedy search result.
 
-   2.Model-sided operator: Single-operator detection passes but the overall model behaves abnormally. Potential causes may include memory corruption caused by interaction among multiple operators, and improper resetting of registers. You can ask the same question for multiple times after deterministic computing is enabled. If the results are inconsistent, the operator implementation may be incorrect.
+   2. Model-sided operator: Single-operator detection passes but the overall model behaves abnormally. Potential causes may include memory corruption caused by interaction among multiple operators, and improper resetting of registers. You can ask the same question for multiple times after deterministic computing is enabled. If the results are inconsistent, the operator implementation may be incorrect.
 
 5. Environment version defects or differences
 
@@ -196,7 +196,7 @@ The multiprocessing executor `MultiprocessingDistributedExecutor` is used, which
 
 Tool adding position: For data collection on rank 0, the tool can be directly added to the outermost layer of the `generate` function called by LLM. For data collection on other ranks, the tool needs to be added to the `_run_worker_process` function of the subprocess (`vllm/executor/multiproc_worker_utils.py`).
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/28a7eec9-1a46-4d7a-a3e7-91237f55b1fb/image.png 'image.png')
+![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger1.png)
 
 - V0, online mode, PP = 1 (TP and DP not limited; `--disable-frontend-multiprocessing` not set)
 
@@ -204,7 +204,7 @@ The multi-process client `MQLLMEngineClient` is used, causing a process interval
 
 Tool adding position: `run_engine_loop` function of the `MQLLMEngine` class in the subprocess (`vllm/engine/multiprocessing/engine.py`)
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/7e7f693f-e67f-4832-ae66-8afaa113069e/image.png 'image.png')
+![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger2.png)
 
 - V0, online mode, PP > 1 or `--disable-frontend-multiprocessing` specified
 
@@ -218,42 +218,42 @@ Tool adding position: See "V0, online, TP > 1" mode.
 
 1. Add initialization
 
-NPU: `NPUModelRunner.init` function in `vllm_ascend/worker/model_runner_v1.py`:
+    NPU: `NPUModelRunner.init` function in `vllm_ascend/worker/model_runner_v1.py`:
 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/84fc8c8a-897e-4ac6-b791-aaf55654eda2/image.png 'image.png')
 
-GPU: `GPUModelRunner.init` function in `vllm/v1/worker/gpu_model_runner.py`
+    GPU: `GPUModelRunner.init` function in `vllm/v1/worker/gpu_model_runner.py`
 
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a8bf2df4-d083-42a4-b146-4d4d5ec9279f/image.png 'image.png')
+    ![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger3.png)
 
 2. Add the tool enabling code
 
-Add the corresponding code according to the configuration (L0/L1).
+    Add the corresponding code according to the configuration (L0/L1).
 
-```python
-    @torch.inference_mode()
-    def execute_model(
-        self,
-        scheduler_output: "SchedulerOutput",
-        intermediate_tensors: Optional[IntermediateTensors] = None,
-    ) -> Union[ModelRunnerOutput, torch.Tensor]:
-        # L0 use 
-        # self.debugger.start(self.model)
-        # L1 use
-        self.debugger.start()
-```
+    ```python
+        @torch.inference_mode()
+        def execute_model(
+            self,
+            scheduler_output: "SchedulerOutput",
+            intermediate_tensors: Optional[IntermediateTensors] = None,
+        ) -> Union[ModelRunnerOutput, torch.Tensor]:
+            # L0 use 
+            # self.debugger.start(self.model)
+            # L1 use
+            self.debugger.start()
+    ```
 
-NPU: `NPUModelRunner.execute_model` function in `vllm_ascend/worker/model_runner_v1.py`:
+    NPU: `NPUModelRunner.execute_model` function in `vllm_ascend/worker/model_runner_v1.py`:
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/d3105c07-5c6c-430d-8db5-81121fdf91ca/image.png 'image.png')
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/d3105c07-5c6c-430d-8db5-81121fdf91ca/image.png 'image.png')
 
-Disable the function (place the code before the `return` statement in the `execute_model` function):
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/c12564be-8976-49db-98dc-e09313dda74e/image.png 'image.png')
+    Disable the function (place the code before the `return` statement in the `execute_model` function):
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/c12564be-8976-49db-98dc-e09313dda74e/image.png 'image.png')
 
-GPU->vllm/v1/worker/gpu_model_runner.py  GPUModelRunner.execute_model
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/aa33f488-d3e1-4d5b-b3cb-439a23bdf0cc/image.png 'image.png')
+    GPU->vllm/v1/worker/gpu_model_runner.py  GPUModelRunner.execute_model
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/aa33f488-d3e1-4d5b-b3cb-439a23bdf0cc/image.png 'image.png')
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/2fafa44e-8a21-4488-8762-76e5e21eccfd/image.png 'image.png')
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/2fafa44e-8a21-4488-8762-76e5e21eccfd/image.png 'image.png')
 
 ##### 4.1.1.2 Locating Process
 
@@ -266,7 +266,7 @@ Generally, there are three phases for locating accuracy problems that can be rep
 The accuracy benchmark may come from either a GPU or a historical version of the NPU baseline that is known to have normal accuracy.
 
 For details about model configuration check and randomness fixing, refer to [Checklist](#31-checklist) and [Preparations for Reproducing a Problem](#32-preparations-for-reproducing-a-problem). In the vLLM scenario, you also need to fix sampling randomness (`temperature` = `0`).
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/425c6827-f81f-4c7c-8a5b-5a4ffd8f4a80/image.png 'image.png')
+![image.png](../figures/wiki/infer_debug_guide/temperature.png)
 
 ###### 4.1.1.2.2 Locating Operations
 

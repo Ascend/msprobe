@@ -11,7 +11,7 @@ The supported modes and usage methods for different vLLM scenarios are as follow
 | `vllm-ascend` | NPU | ✅ | ✅ | See vLLM-Ascend's official [msProbe Debugging Guide](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/msprobe_guide.html). |
 | Native vLLM | GPU | ✅ | ❌ | Add the `PrecisionDebugger` API to `GPUModelRunner`. For details, see the following sections |
 
-For details about performance changes in dump statistics mode and data volume collected in dump tensor mode, see [Dump Baseline] (../baseline/pytorch_data_dump_perf_baseline.md).
+For details about performance changes in dump statistics mode and data volume collected in dump tensor mode, see [Dump Baseline](../../baseline/pytorch_data_dump_perf_baseline.md).
 
 **Note**:
 

@@ -37,15 +37,23 @@ The scenario without a benchmark corresponds to native development, where users 
 This document focuses on the mainstream migration scenario, which involves a benchmark. In this scenario, the training process and results on NPU are inconsistent with those on the benchmark (GPU or other NPU frameworks), and the deviation exceeds the acceptable tolerance threshold. This situation is referred to as misalignment. The scenario can be further classified into the following types:
 
 - **Overflow or NaN**: Loss or grad norm overflow, or the occurrence of NaN values, happens more frequently than on the benchmark, as shown in the following figure. 
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/a5183818-b00b-4f5b-bb23-9b8277f0b004/image.png" alt="image.png" width="650"/>      
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/a5183818-b00b-4f5b-bb23-9b8277f0b004/image.png" alt="image.png" width="650"/>   
+
 - **Loss difference in the first step**: Loss in the step 0 or the first several steps is different from that on the benchmark, and the average error is greater than 1%, as shown in the following figure. 
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/deb21294-900a-4411-9857-890ae31950cd/image.png" alt="image.png" width="400"/>     
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/deb21294-900a-4411-9857-890ae31950cd/image.png" alt="image.png" width="400"/> 
+
 - **Loss difference in long-term stable training**: The loss difference between the early-stage loss fitting and the benchmark gradually increases over time, and the average error exceeds 1%, as shown in the following figure.
 
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/de267ea9-69ba-4f15-a179-54efc1a48528/image.png" alt="image.png" width="400"/>     
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/de267ea9-69ba-4f15-a179-54efc1a48528/image.png" alt="image.png" width="400"/>   
+
 - **Spikes**: The loss or grad norm sharply increases and then quickly decreases more frequently compared to the benchmark, as shown in the following figure. 
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/eb705a99-b07c-4014-a966-4136825144a5/image.png" alt="image.png" width="400"/>    
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/eb705a99-b07c-4014-a966-4136825144a5/image.png" alt="image.png" width="400"/>
+
 - Compared to the benchmark, the loss difference during training is small, but the downstream task performance is poor, as shown in the following figure.
+    
     ![image](../figures/wiki/train_debug_guide/NPU_CPU_train_100_step.png) 
 
 It is worth noting that even when the same type of problem occurs, the root causes are often complex and vary from case to case. For details, see [Root Causes](#51-root-cause-introduction). This document describes the overall fault locating approach and standard process for identifying model training accuracy issues, along with the usage of the training accuracy tools involved. It is designed to help users quickly become familiar with and master the accuracy locating process.
@@ -54,7 +62,9 @@ It is worth noting that even when the same type of problem occurs, the root caus
 
 ---
 The following figure shows the overall process of locating model training accuracy issues.
+
 ![image](../figures/wiki/train_debug_guide/overall_accuracy_troubleshooting_process.png)  
+
 It mainly describes the specific steps for locating accuracy issues in the migration scenario, helping you better understand the principles and methods of using the tool and apply them to other more specific and complex scenarios.
 
 ### 2.1 Checklist
@@ -162,6 +172,7 @@ You are advised to use msProbe provided by the Ascend MindStudio Training Tools 
 #### 2.3.1 Stable Reproduction
 
 After the [checklist](#21-checklist) has been confirmed and the issue can be stably reproduced, follow the figure below to locate the issue.
+
 ![image](../figures/wiki/train_debug_guide/stable_reproduction_scenario_locating.png) 
 
 ##### 2.3.1.1 Overflow or NaN
@@ -169,6 +180,7 @@ After the [checklist](#21-checklist) has been confirmed and the issue can be sta
 Symptom
 
 If other non-operator factors are excluded according to the [checklist](#21-checklist) and the randomness is fixed, check whether the loss NaN or gradient overflow occurs more frequently than that in the benchmark. Generally, the loss scale continuously decreases. 
+
 <img src="https://raw.gitcode.com/user-images/assets/7898473/a5183818-b00b-4f5b-bb23-9b8277f0b004/image.png" alt="image.png" width="650"/>  
 
 Troubleshooting
@@ -230,13 +242,14 @@ Do as follows:
 Symptom
 
 After other non-operator factors are excluded according to the [checklist](#21-checklist) and the randomness is fixed, loss can be aligned at the early stage of GPU and NPU training, but it cannot be aligned in the later stage of training. The average relative error in the later stage is greater than 1%, as shown in the following figure. 
+
 <img src="https://raw.gitcode.com/user-images/assets/7898473/de267ea9-69ba-4f15-a179-54efc1a48528/image.png" alt="image.png" width="400"/>  
 
 Troubleshooting
 
 1. Select a tool and collect data based on the actual situation.
 
-   - [Precision collection tool](#43-precision-collection-tool): Applicable to scenarios where the number of steps is determined, for example, if loss or grad norm changes significantly during the process.
+   - Use the [Precision collection tool](#43-precision-collection-tool), applicable to scenarios where the number of steps is determined, for example, if loss or grad norm changes significantly during the process.
 
         (1) Determine the number of steps to be collected (take the smaller step number of the two).
 
@@ -250,8 +263,8 @@ Troubleshooting
 
         (3) After identifying suspicious operators through visualization or comparison tool, collect the specific `tensor` values for further single-operator analysis.
 
-   - [Training status monitoring tool](#46-training-status-monitoring-tool): Applicable to large-scale scenarios where the number of dump steps to be collected is uncertain.
-        
+   - Use the [Training status monitoring tool](#46-training-status-monitoring-tool), applicable to large-scale scenarios where the number of dump steps to be collected is uncertain.
+     
         - If grad norm becomes abnormal first and then loss becomes abnormal, collect gradient data during training.
         - If loss is abnormal, collect activations and weight data during training.
 
@@ -269,6 +282,7 @@ Troubleshooting
 #### 2.3.2 Unstable Reproduction
 
 If the issue cannot be stably reproduced after the [checklist](#21-checklist) has been confirmed and the pre-operations for reproducing the issue have been completed, follow the figure below to locate the issue. 
+
 ![image](../figures/wiki/train_debug_guide/unstable_reproduction_scenario_locating.png) 
 
 ##### 2.3.2.1 Memory Corruption
@@ -312,7 +326,9 @@ If the operator is a special random operator or has fixed position with small va
 
 - Special random operators (e.g. `torch.randn`) 
  Even with fixed random seeds, different hardware may generate different random numbers, as shown below. 
+
     <img src="https://raw.gitcode.com/user-images/assets/7898473/f690a76c-5a00-48ab-ae0b-f77512715275/image.png" alt="Your image title" width="500"/>  
+
     According to the figures, `torch.randn` generates different random tensors even after its random seed is fixed on NPU and GPU. In such cases, generate the random tensor on CPU first, then move it to the target device. This ensures the same tensor is generated on the host side and remains identical after being moved to NPU or GPU.
 - Operators not yet supporting deterministic computation 
  Some operators besides random operators do not support deterministic computation yet, causing minor variations between runs. If such an uncommon operator (e.g., `MSDA`, `grid_sample`) is identified, try moving it to CPU or consult operator support for alternative implementations.
@@ -388,9 +404,11 @@ Troubleshooting
 **Issue Description**
 
 After ruling out non-operator factors, if RL training shows decreased `reward` relative to the benchmark or an increasing `logp_diff`, accuracy debugging is required.
+
 <img src="https://raw.gitcode.com/user-images/assets/7898473/a9411220-551b-4810-9560-6e8d15194203/image.png" alt="Your image title" width="600"/>
 
 The figure below shows the overall debugging process.
+
 ![image](../figures/wiki/train_debug_guide/reinforcement_learning_process.png)
 
 ##### 2.3.3.1 Basic Inference Debugging
@@ -435,9 +453,11 @@ Data comparison:
 
 - Same framework (e.g., vLLM-Ascend vs vLLM) 
  Refer to analysis point 2 in [First Step Loss Difference](#2312-first-step-loss-difference).
+ 
 - Different frameworks (e.g., vLLM-Ascend vs SGLang) 
  NPU and benchmark will have many layer name/structure differences. Use the [hierarchical visualization tool](#44-hierarchical-visualization-tool) with the "point-to-point matching" feature to manually align nodes that are not automatically matched.
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/1c469d88-ebc5-45eb-b19d-6d40f1568755/image.png" alt="Your image title" width="800"/>  
+   
+   ![docs_en_figures_visualization_vis_match_info](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)   
 
 For more details, refer to [Foundation Model Inference Accuracy Debugging Guide](./infer_debug_guide.md).
 
@@ -537,7 +557,9 @@ If neither condition is met, proceed to [Training-Inference Consistency Debuggin
 
 Mainstream RL algorithms are based on the `On-Policy` assumption, which requires that the behavioral policy for sampling (`rollout` inference) and the target policy for gradient computation (`actor` training) remain consistent to ensure unbiased gradient estimates and training stability. This consistency is referred to as training-inference consistency. 
 The main metric for training-inference consistency is `logp_diff`. Anomalous `logp_diff` indicates a discrepancy between training and inference, requiring root cause analysis. The formula is:
+
 <img src="https://raw.gitcode.com/user-images/assets/7898473/98058476-f95a-44ff-b5d0-7dfb79c1066c/image.png" alt="Your image title" width="400"/>  
+
 where `M` is `response_mask`.
 
 In verl:
@@ -781,6 +803,7 @@ Prerequisites for training-inference comparison:
 Comparison Details
 
 For training-inference consistency comparison, many module name mismatches exist. For example, with `qwen2.5-0.5b`, inference uses vLLM and training uses FSDP.
+
 ![image](../figures/wiki/train_debug_guide/vllm_infer_fsdp_train.png)
 
 Differences:
@@ -809,7 +832,8 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 Visual Comparison Tool Adaptation
 
 The hierarchical visualization tool provides a "point-to-point matching" feature. Users can select and match two (gray) nodes manually in the browser interface for matching. This currently only supports `statistics` data mode.
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/6d7ed4aa-17d6-4d4a-a045-22f5c2e3e160/image.png 'image.png')
+
+![docs_en_figures_visualization_vis_match_info](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)
 
 ##### 2.3.3.6 Long-term Training Debugging
 
@@ -905,6 +929,7 @@ Debugging method:
 
 Compare NPU and benchmark training configurations (startup scripts or logs). 
 Found that NPU used FSDP while GPU used DDP. Training Loss differences were small, but downstream metrics differed significantly. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/5b506a50-f3c3-406e-9c8e-a1e878709b64/image.png 'image.png')
 
 Solution: Align GPU configurations.
@@ -914,33 +939,40 @@ Result: WER dropped and aligned with GPU.
 #### 3.1.2  Data Inconsistency
 
 Case: An LLM migrated from LLama-Factory NPU (benchmark) to ModelLink NPU showed loss misalignment. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7efdae1a-4765-4914-9a7e-ffb41378aa1d/image.png 'image.png')
 
 Debugging method:
 
 Print and compare input tokens at the `forward_step` function (For ModelLink, print at the `forward_step` function in `modellink/pretrain_gpt.py`). 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/c29037c7-896a-4bc8-baba-4a35a61f3bfb/image.png 'image.png')  
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/c29037c7-896a-4bc8-baba-4a35a61f3bfb/image.png 'image.png') 
+
 As shown in the preceding figure, token tails are inconsistent.
 
 Solution: Fix the data preprocessing code to ensure identical inputs.
 
 Result: Aligned loss. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/655f0a54-b851-49f5-a750-cd6cbf32a691/image.png 'image.png')
 
 #### 3.1.3 Model Structure Inconsistency
 
 Case: An MOE model migrated from GPU to NPU showed loss misalignment. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9cd35663-a6f7-4056-88a3-29051af73e60/image.png 'image.png')
 
 Debugging method:
 
 Compare model structure implementations. 
 Found that residual ordering differed: NPU applied `residual` after `input_layernorm`, while GPU applied it before. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/880aab30-4973-43fb-a0cb-8e2914a63299/image.png 'image.png')
 
 Solution: Place `input_layernorm` after `residual` on NPU.
 
 Result: Aligned loss. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/08c4b411-aabd-486b-abe9-49a1ded42b87/image.png 'image.png')
 
 ### 3.2 Scenario-Specific Debugging Cases
@@ -950,7 +982,9 @@ Result: Aligned loss.
 ##### 3.2.1.1 Overflow or NaN
 
 Case: A vision model migrated from GPU to ModelLink NPU showed gradient overflow from the first step. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/3127cf1c-086e-48d8-8092-7762c8f5e3f9/image.png 'image.png')  
+
 As shown in the training screenshot, the gradient increases layer by layer until overflow occurs during gradient backpropagation in step 0.
 
 Debugging method:
@@ -975,6 +1009,7 @@ Debugging method:
     ```
 
     According to the training screenshot, the gradient increases layer by layer after each `self_attn` backward pass. By examining the `self_attn` code, it is found that the FA operator is used. This operator has historically caused many precision issues due to incorrect usage. Therefore, it is important to first check the corresponding backward data in the dump. It is found that after each backward pass through the FA layer, the `norm` value increases significantly. 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/6693c940-3bc0-452c-b25d-6c203fcf1aa8/image.png 'image.png')
 
 2. Avoid the FA fusion operator in the training configuration of ModelLink by deleting the following hyperparameter:
@@ -987,7 +1022,9 @@ Debugging method:
 
 3. Analyze the specific usage of the FA operator in the code by referring to its official documentation.
     This issue occurs in a variable-length scenario. The original input has a batch size of 2, with `seq_len=3577` for input sequence 1 and `seq_len=1502` for input sequence 2. Both sequences are padded to a length of 3577. The original input shape is [2, 3577, 32, 128]. Before FA computation, `batch_size` and `seq_len` are flattened, giving a shape of [7154, 32, 128]. The padding is then removed in the next step, reducing the input lengths for Q and KV to [5079, 32, 128]. 
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a66e4909-82f0-437e-8fc4-f5b8d046d488/image.png 'image.png') 
+
+    ![atten_mask](../figures/wiki/train_debug_guide/atten_mask.png)
+
     According to the official documentation, the attention mask should follow the rule [`maxSq`, `maxSkv`], i.e., [3577, 3577]. However, the customer's code actually uses [`query.shape[0]`, `key.shape[0]`], which evaluates to [5079, 5079]. This incorrect usage causes the operator to read row-wise during execution, resulting in numerical misalignment of 0s and 1s, ultimately leading to gradient overflow.
 
 **Solution**: Correct `attention_mask` passed to FA.
@@ -1003,6 +1040,7 @@ Debugging method:
 
 1. Collect step 0 data at `mix` level with the precision collection tool. For details about `config.json`, see section [3.2.1.1](#3211-overflow-or-nan).
  The following provides an example of adding the precision collection tool to the code: 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/0434a5a0-46fe-45f0-98e9-a05884141ad8/image.png 'image.png')
 2. Use the hierarchical visualization tool to analyze differences.
     The visualization command is as follows:
@@ -1012,7 +1050,9 @@ Debugging method:
     ```
 
     A `.vis` file is generated in the output directory. Use TensorBoard to open the visualization page.
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/99186c98-1b3f-47b8-bb6d-68113895e3f9/image.png 'image.png')
+    
+    ![visualization_page](../figures/wiki/train_debug_guide/visualization_page.png)
+    
     The GELU operator appears in red, signaling potential precision issues.
 3. Use the precision comparison tool for comparison. 
     Run the following command to obtain the comparison result in CSV format:
@@ -1022,6 +1062,7 @@ Debugging method:
     ```
 
     From the table, it is found that the input difference of the GELU operator is small, but the output difference is large. 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/0c44ccee-3715-4dfc-b3c0-660e1d85db73/image.png 'image.png')
 
 Solution: Move GELU computation to CPU (fixes precision but impacts performance). Contact the operator support personnel to obtain an official TorchNPU's GELU fix package.
@@ -1031,6 +1072,7 @@ Solution: Move GELU computation to CPU (fixes precision but impacts performance)
 ##### 3.2.1.3 Long-term Training Loss Difference
 
 **Case**: A search model converted from FP32 to BF16 showed normal loss initially but diverged later. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/52b9c64d-a386-4a3a-8e5e-dc001fae004b/image.png 'image.png')
 
 Debugging method:
@@ -1055,18 +1097,23 @@ The loss initially aligned but diverged later at a step with a large ID. Since t
     ```
 
     Code insertion: 
+    
      ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f42a70bb-0abb-4ad4-b59e-c547c831d444/image.png 'image.png')
     
 2. After the collection, the `grad_unreduced-xx-xx.csv` and `grad_reduced-xx-xx.csv` files of each rank can be obtained. 
 `xx` indicates the step ID. The following shows the gradient data of each layer before reduction from step 360. 
- ![image.png](https://raw.gitcode.com/user-images/assets/7898473/8b62626a-e35e-42c1-a2a2-178be0c0815c/image.png 'image.png')  
-The horizontal axis represents the layer order during backpropagation, with the output layer on the left and the embedding layer on the right. It can be observed that the weight gradient norm values are larger near the embedding layer. In comparison, the gradient data for FP32 is relatively stable on the embedding layer as well. 
- ![image.png](https://raw.gitcode.com/user-images/assets/7898473/581924af-bb80-4eaa-88d3-fb962423c878/image.png 'image.png')  
-Therefore, it is suspected that the gradient of the embedding layer is numerically less stable in BF16 than FP32.
 
-Solution: Apply gradient clipping to the embedding layer.
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/8b62626a-e35e-42c1-a2a2-178be0c0815c/image.png 'image.png')  
 
-Result: Loss converged normally without spikes.
+    The horizontal axis represents the layer order during backpropagation, with the output layer on the left and the embedding layer on the right. It can be observed that the weight gradient norm values are larger near the embedding layer. In comparison, the gradient data for FP32 is relatively stable on the embedding layer as well. 
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/581924af-bb80-4eaa-88d3-fb962423c878/image.png 'image.png')  
+
+    Therefore, it is suspected that the gradient of the embedding layer is numerically less stable in BF16 than FP32.
+
+    Solution: Apply gradient clipping to the embedding layer.
+
+    Result: Loss converged normally without spikes.
 
 #### 3.2.2 Unstable Reproduction Scenarios
 
@@ -1074,8 +1121,11 @@ Result: Loss converged normally without spikes.
 
 Case: A multi-modal model fine-tuned with FSDP showed loss NaN at step 2 after migration to NPU. 
 Execution result on NPU: 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/751daf11-9dba-4536-a5cc-1d1a5eb6c10e/image.png 'image.png')  
+
 Execution result on GPU: 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/b60f3448-308a-4421-95aa-068f4cae60fa/image.png 'image.png')
 
 Debugging method:
@@ -1097,13 +1147,18 @@ Debugging method:
     Narrow training down to `dit.transformer.layers`. If loss still contains NaN, the issue is caused by the `transformer.layers`.
 4. Print gradients manually by mounting a hook:
     It is found that loss NaN is not occurred at step 1. Instead, NaN first appears at the backward gradient of `post_attention_layernorm` at step 0. 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9e98aad8-0158-4171-894e-6e3bb0778138/image.png 'image.png')  
+
     Compared with the gradient data without NaNs when stream synchronization is enabled, all parameters except the `weight` and `bias` of the `input_layernorm` and `post_attention_layernorm` layers match. 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/2b958529-a687-42da-84c8-6f26a49979d4/image.png 'image.png')  
     The corresponding dump APIs are `Functional.layer_norm.10` and `Functional.layer_norm.11`.
 5. Analyze the code:
     `post_attention_layernorm` is continuously called twice for both the image and text. 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/e273c809-1669-4ce6-9ae1-2081b474b387/image.png 'image.png')  
+
     When the number of calls is changed to 1, the NaN issue disappears. This indicates that the issue occurs when the operator is repeatedly called. 
     The method of analyzing memory corruption is to check whether the abnormal data is regular and continuous. Therefore, you need to collect the corresponding data first.
 6. Enable asynchronous dump:
@@ -1113,14 +1168,21 @@ Debugging method:
     Collect the `Functional.layer_norm.10` and `Functional.layer_norm.11` data, as well as the `torch.split.192` reverse data in between. The NaN can be reproduced when a single operator is dumped.
 7. Analyze the asynchronous dump data:
     According to the `dump.json file` without loss NaN, the input of `torch.split.192.backward` should be the output of `Functional.layer_norm.11`. However, when stream synchronization is disabled, the input of `torch.split.192.backward` of asynchronous dump is inconsistent with the output of `Functional.layer_norm.11`. 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f4c2607e-d9ff-42fd-9801-2f7f5d89bfe7/image.png 'image.png')  
+
     It was found that the memory was corrupted exactly at a size of 2048 (values in the 0-2047 range were largely unequal, while values in the 2048-3071 range were equal), which fits the pattern of memory corruption. 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/d70832b1-c199-4ca8-9233-48ab0da20540/image.png 'image.png')
+
 8. Print the operator memory address:
     Try to modify the torch_npu source code to print the `ptr` addresses and shapes corresponding to the input and output tensors of the operator.
+
     ![image.png](../figures/wiki/train_debug_guide/operator_input_output_tensors.png)
+
     According to the logs, within two consecutive LayerNorms, memory corruption occurred where the output of a cast operator overlapped with the input of a concat operator (their memory addresses were identical). 
     Confirmation of memory corruption: 
+
     ![image.png](../figures/wiki/train_debug_guide/confirmation_of_memory_corruption.png)
 
 Root cause: backend without `record` + multi-stream FSDP + consecutive LayerNorms caused memory corruption.
@@ -1164,12 +1226,18 @@ Debugging method:
     ```
 
     Compare the data collected twice. The input of `masked_fill.23` is abnormal first. 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/23f89bbd-8f60-44ca-a777-575602508164/image.png 'image.png')
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/23f89bbd-8f60-44ca-a777-575602508164/image.png 'image.png')
+
     Trace input source to MMCV's MSDA operator based on the `stack.json` call stack and code in the dump result.
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/46e01b68-e868-4574-9f06-91e29abba68c/image.png 'image.png')
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/46e01b68-e868-4574-9f06-91e29abba68c/image.png 'image.png')
+
     It is confirmed with the operator support personnel that the MSDA operator does not support deterministic computing. It is recommended that the operator be replaced with small operators. 
     After replacement, `grid_sample` output still differed when the input of `masked_fill.23` was the same. 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7f726fa8-2cce-4a44-8789-20a17071775c/image.png 'image.png')
+
 Confirm with the `grid_sample` operator technical support that the operator does not support deterministic computing.
 
 Solution: Replace MSDA with small operators; move `grid_sample` to CPU.
@@ -1179,12 +1247,17 @@ Result: Randomness fixed; repeated runs gave identical results.
 ##### 3.2.2.3 Hardware Stress Testing
 
 Case: In a cluster with nearly 5,000 ranks, the loss remains unmatched, and numerous grad norm spikes appear. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/8562b38b-a85e-4b44-99de-89e70595c56b/image.png 'image.png')  
+
 Due to the large size of the cluster, hardware stress testing is prioritized to identify faulty nodes. 
 Divide the 4,800 ranks into 100 groups of *(3 × 16 ranks)* tasks to run the same training task. Enable fixed randomness and deterministic computing to check whether any group is abnormal based on the final loss curve. If an abnormal group is found, perform the `dmi` stress testing on the group. 
 Run the `ascend-dmi -dg -i aicore -s -sc 60 -q` command to perform a stress testing and check the result. 
+
 ![image.png](../figures/wiki/train_debug_guide/ascend-dmi_result.png)
+
 The detection result shows that there are faulty nodes. Rule out these nodes, and the precision becomes normal. Specifically, there are not loss spikes in the later phase, and the grad norm spike frequency is significantly reduced.
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/91e3f75b-3c9b-4b25-86e4-789a76790ae0/image.png 'image.png')
 
 ## 4. msProbe Usage
@@ -1299,7 +1372,9 @@ Instructions
 
 3. Output format 
     The result is saved in the path specified by `dump_path` in the `config.json` file. The overall format is as follows: 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/239c76c4-241e-442f-ab09-0f00c61285a5/image.png 'image.png')  
+
     Notes:
     - `dump.json`: statistics, typically including `Max`, `Min`, `Mean`, and `Norm`.
     - `stack.json`: call stacks for dumped APIs.
@@ -1310,7 +1385,9 @@ Instructions
 
 4. `dump.json` details 
     Example of `dump.json`: 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/201776cc-0ca5-4f30-88e3-464e35df6ddf/image.png 'image.png')  
+
     As shown in the figure, the statistics of the linear layer are collected, including:
     - `input_args`: contains three values, corresponding to input, weight, and bias from top to bottom. The bias is empty, so its value is `null`.
     - `output`: contains one value, corresponding to the computation result of the linear layer.
@@ -1318,6 +1395,7 @@ Instructions
 How to Use
 
 The following figure shows a typical scenario where the loss of the first few steps differs greatly from the benchmark. The loss of step 0 is completely the same, while the loss difference of step 1 increases by several times. Therefore, we can infer that the problem probably occurs in the backward pass of step 0 or the forward pass of step 1. 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a6f1d7c5-8861-4178-8b72-c3f545158ed4/image.png 'image.png')  
 
 1. Statistics collection:
@@ -1369,6 +1447,7 @@ Instructions
       ```
 
     After startup, the address and port number are printed. 
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/6d5e914f-4841-4486-83a2-40a3f20e6bff/image.png 'image.png')
 
 3. Browser analysis
@@ -1381,27 +1460,38 @@ When comparing graphs, follow these methods:
 
 - Model structure comparison: 
   In the left sidebar, check gray unmatched nodes. A list of all unmatched nodes will appear. Click a node to view its specific information in the network. 
+
   ![image.png](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)  
+
   Clicking a missing node expands stack trace and input/output information. Locate the corresponding code using the stack trace:
   - If some model steps are missing after migration, add them.
   - If the issue is only due to module naming differences, use the point-to-point match button in the left sidebar to manually match nodes.
+
   ![image.png](../figures/wiki/train_debug_guide/visualization_page1.png) 
+
 - Node precision comparison 
  In addition to unmatched nodes, the left sidebar allows filtering by precision risk level to highlight high-risk nodes. After visualization, darker colors indicate larger precision differences and higher suspicion.
   Besides prioritizing nodes by color depth, also check the first node where a precision difference appears. 
+
   ![image.png](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)
+
 - For communication operator issues, right-click a node and select data sending or receiving to view data from other ranks.
+
 ![image.png](../figures/wiki/train_debug_guide/right-click_a_node.png) 
+
 - Overflow analysis 
  Overflow levels can be filtered in the left sidebar. Overflow detection nodes of a specific level are sorted sequentially. Start debugging from the darkest-colored nodes. Click a filter item to jump to the corresponding node. 
+
     ![image.png](../figures/wiki/train_debug_guide/visualization_vis_overflow_check.PNG)  
+
     Overflow levels:
     - `medium`: Abnormal input, normal output. Low priority; check last.
     - `high`: Abnormal input and output, or sudden spike in metrics where scale exceeds threshold. Manually confirm whether an issue exists.
     - `critical`: Normal input, abnormal output. High priority; check first.
 
 For more details, see the following figure.
- ![image.png](../figures/visualization/vis_show_info.png 'image.png')  
+
+![image.png](../figures/visualization/vis_show_info.png 'image.png')  
 
 ### 4.5 Precision Comparison Tool
 
@@ -1423,13 +1513,19 @@ How to Use
 
 This tool can compare the collected dump data on NPU and the benchmark and generate a CSV comparison result file. 
 For non-`md5` statistics comparison: 
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a893f5a1-879b-46ea-a3e2-64d44aa6ace8/image.png 'image.png')  
+
 The comparison results use color coding, comparison outcomes, and specific precision values for each metric. When analyzing results, focus on the `MeanRelativeErr` column. Pay special attention to operators with small input differences but large output differences. 
 For `md5` statistics comparison: 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/90f090b5-6eed-4f5e-b8ba-57764fe467bd/image.png 'image.png')  
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/90f090b5-6eed-4f5e-b8ba-57764fe467bd/image.png 'image.png') 
+
 Directly filter the `Result` column, which indicates whether the md5 comparison passed (`Pass`) or showed differences (`Different`). Focus on operators with a `Different` result. 
 For tensor comparison: 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/daf75315-e30b-43d6-adda-6910b89f8967/image.png 'image.png')  
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/daf75315-e30b-43d6-adda-6910b89f8967/image.png 'image.png') 
+ 
 The comparison results use color coding, comparison outcomes, and specific precision values for each metric. When analyzing results, focus on the `One Thousandth Err Ratio` and `Five Thousandth Err Ratio` columns. Pay special attention to operators with small input differences but large output differences.
 
 ### 4.6 Training Status Monitoring Tool
@@ -1490,8 +1586,9 @@ Instructions
     - Weight gradients after reduction: `grad_reduced_xx-xx.csv`
     - Optimizer state: `exp_avg_xx-xx.csv`
     - Weights: `param_xx-xx.csv` 
-    The following is an example when the preceding items are collected: 
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9ae12b93-113f-4ff9-a6a8-6ec05bbaae84/image.png 'image.png')
+    The following is an example when the preceding items are collected:
+
+        ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9ae12b93-113f-4ff9-a6a8-6ec05bbaae84/image.png 'image.png')
 
 How to Use
 
@@ -1629,6 +1726,7 @@ Hardware-induced precision issues are rare but the most difficult to locate. If 
 ### 5.2 Model Hyperparameters
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/e4b647f4-0f5d-4864-9ed7-c15645579147/image.png 'image.png')  
+
 As shown in the figure, model hyperparameters typically include learning rate, batch size, parallel partition strategies, model parameters, fusion operator configurations, etc. Before comparing NPU and GPU accuracy, ensure all configurations are consistent on both sides.
 
 1. Learning rate and warm-up: Different learning rate schedulers have different hyperparameters. For example, linear scheduling can start warm-up from an initial learning rate `lr-warmup-init`. Also, you can specify the proportion of warm-up steps. Parameter names vary across frameworks. For example, ModelLink supports the following learning rate parameters:

@@ -248,7 +248,7 @@ Successfully uninstalled mindstudio-probe-{version}
 
 msProbe cannot be directly upgraded. You need to [uninstall](#4-uninstallation) msProbe and then [install](#2-installation-methods) it again.
 
-You can use the `pip show mindstudio-probe` command to view the version information of the current environment, and then select the version to upgrade to. When upgrading the version, you need to pay attention to the version compatibility relationship. Please refer to the [Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.1.0/release_notes.md).
+You can use the `pip show mindstudio-probe` command to view the version information of the current environment, and then select the version to upgrade to. When upgrading the version, you need to pay attention to the version compatibility relationship. Please refer to the [Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.1.0/release_notes_en.md).
 
 ## 6. Appendix
 
