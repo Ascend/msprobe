@@ -1,58 +1,103 @@
-# UWC（训推权重一致性验证）使用指南
+# 训推权重一致性验证定位指南
 
-> **适用模型与环境（本文档整体以此为准）**：`Qwen2.5-0.5B-Instruct` 模型，**Ascend NPU** 环境，
-> **GRPO** 训练算法，**veRL + Megatron-core（mcore）训练 + vLLM 推理** 的训推一体场景。
-> 下述代码段与命令均基于该组合编写，其他模型/框架需按注释调整（如命名归一化规则、`torch.npu` 同步）。
+## 1. 概述
 
-## 一、模块概述
+### 1.1 定义
 
-### 1.1 模块做了什么
+训推权重一致性验证（Unified Weight Consistency，本文档简称 UWC）旨在验证强化学习（RL）训推一体场景下，从训练侧（veRL + Megatron-core）到推理侧（vLLM）的权重同步链路中，各阶段数据的数值一致性。
 
-UWC（Unified Weight Consistency）用于验证 RL 训推一体场景下 **训练侧（veRL + Megatron-core）→ 推理侧（vLLM）权重同步链路** 的数值一致性。整个链路被拆成三个互相独立、可单独开关的阶段：
+### 1.2 UWC验证链路拆解
 
-```
-训练侧更新权重
-   ↓ ① Bridge 转换（HF ↔ mcore 格式）      —— 阶段1：P0 vs P2 + G0/G1 前向
-   ↓ ② 传输（共享内存 / IPC）              —— 阶段2：P2_sender vs P5
-   ↓ ③ vLLM 加载（HF → 内部分片格式）      —— 阶段3：dummy vs safetensors 差分 + data_ptr 指针偏移
-推理侧实际用的权重
-```
+UWC 将完整的权重同步链路解耦为三个相互独立、可单独开关的验证阶段。各阶段通过环境变量控制采集开关，默认关闭，可随时开启，不影响生产训练性能。
 
-三个阶段互相独立，可单独运行，通过环境变量控制采集开关。采集零侵入、默认关闭、可随时开启，不影响生产训练。
+> [!NOTE]
+>
+> 下面各阶段中在每个 rank 节点采集的数据内容相同，因此比对时只需保存 rank 0 的数据，以节省存储。
 
-### 1.2 解决了什么问题
+#### 阶段1：训练侧格式转换校验（Bridge）
+
+该阶段是验证 HF 格式与 mcore 格式之间的转换代码是否正确，确保“逻辑等价”。。
+
+该阶段包含两层防御机制：
+
+1. 执行 Bridge，动作是先进行一次 load_weights（将 HF 格式的模型权重转换为 mcore 格式），再进行一次 export_weights（将 mcore 格式的模型权重转换回 HF 格式）。load_weights 前 HF 格式的模型原始权重为 P0，export_weights 后得到转换后的 HF 格式模型权重 P2。
+   - 验证点：P0 vs P2
+   - 含义：对比原始权重 P0 和转换后的权重 P2 是否一致。
+   - 目的：通过验证Bridge前后的模型权重是否一致来判断格式转换代码的正确性。
+2. transformer 加载初始 HF 格式的模型权重，对同一输入执行一次前向传播，输出的 logits 为 G0；veRL 加载由 load_weights 转换而来的 mcore 格式模型权重，对同一输入执行一次前向传播（或 Rollout 阶段的前向计算），输出的 logits 为 G1。
+   - 验证点：G0 vs G1
+   - 含义：对比 G0 和 G1 是否一致。
+   - 目的：验证  load_weights 阶段的正确性。如果 load_weights 转换正确，且 HF 模型与 mcore 模型架构完全一致，那么 G0 ≈ G1（允许微小的浮点数精度差异，如 10⁻⁵ 级别）；如果 G0 和 G1 差异巨大，说明 load_weights 转换出错，或者模型架构、配置不匹配。
+
+#### 阶段2：传输完整性校验（Transport）
+
+共享内存或 IPC 在某些极端并发或内存对齐情况下可能导致数据截断或错位，此阶段验证传输的完整性。
+
+- 动作：通过共享内存或 IPC（进程间通信）将权重从训练进程传输到推理进程。
+- 验证点：P2_sender（同步时刻 sender 实际发送的 HF 权重）vs P5（Receiver 收到的 HF 权重）
+- 含义：对比 P2_sender 和 P5 是否一致。
+- 目的：确保跨进程、跨节点传输后，权重数值完全一致。确保传输通道没有损坏数据。
+
+#### 阶段3：推理侧加载校验（Loading）
+
+训练侧（veRL）切换到推理侧（vLLM）时，模型权重加载正确性的最终验证环节。
+
+该阶段包含两层防御机制：
+
+1. dummy vs safetensors 差分测试：分别用 `load_format=dummy` 和 `load_format=safetensors` 加载模型并运行 RL 的首步推理，保存输出为  `dummy_rl_first_step_output.json` 和 `safetensors_rl_first_step_output.json`。
+   - 验证点：`dummy_rl_first_step_output.json` vs `safetensors_rl_first_step_output.json`
+   - 含义：对比使用 dummy 加载逻辑生成的输出和使用真实 safetensors 权重加载生成的输出。
+   - 目的：通过对比 dummy 输出和 safetensors 输出的是否不同，来判断是否正确加载模型；黑盒行为校验，判断是否发生漏同步。
+2. data_ptr 指针偏移验证：启动 vLLM 服务，记录每个参数加载前的 data_ptr （ptr_before），触发 load_weights 记录每个参数加载后的 data_ptr （ptr_after）。
+   - 验证点：ptr_before vs ptr_after
+   - 含义：对比 load_weights 前后参数加载的权重是否相同。如果相同（但该层实际应该被更新），则判定该层漏同步，因此需要保证这些层的 ptr_before 和 ptr_after 均不同。
+   - 目的：验证 vLLM 加载 safetensors 文件并构建内部 KV Cache 结构时，内存指针映射正确；精确定位漏同步的层。
+
+> [!NOTE]
+>
+> 推理侧只做dummy vs safetensors 差分测试和data_ptr 指针偏移验证，不做分片反向还原。
+
+### 1.2 核心价值与解决的问题
 
 - **权重不一致来源难以定位**：训练侧权重经过 bridge 转换、跨进程传输、vLLM 加载三道工序才到达推理侧，任一环节出错都会导致 RL 推理乱码，且极难排查。UWC 把链路拆成三段，每段产出独立的比对报告，能**快速定位不一致发生在哪一段**（bridge 转换 / 传输通道 / vLLM 加载）。
 - **"dummy 权重"难以区分**：通过 sender 侧 `vs_P0_max_diff` 实时抽样诊断 + receiver 侧数值比对，能区分"传输了错误权重"与"漏同步了某些层"。
 - **漏同步定位到具体层**：推理侧 data_ptr 指针偏移验证，能精确到"哪一层的参数没有被 `load_weights` 覆盖"。
 - **黑盒行为兜底**：dummy vs safetensors 差分测试不依赖内部实现，直接对比两次 RL 首步推理输出，作为行为级校验。
 
-## 二、采集位点与链路
+## 2. 适用模型与环境
 
-| 位点 | 含义 | rank 维度 | 插入位置 |
-|------|------|----------|---------|
-| P0 | 原始 HF 权重（磁盘 safetensors） | 每 rank 完整 | `transformer_impl.py` init，`load_weights` 前 |
-| P2 | bridge.export_weights 后的 HF 权重（init 时刻） | 每 rank 完整 | `transformer_impl.py` init，`load_weights` 后 |
-| P2_sender | 同步时刻 sender 实际发送的 HF 权重 | 每 rank 完整 | `transformer_impl.py` `get_per_tensor_param` |
-| P5 | Receiver 收到的 HF 权重 | 每 rank 完整 | `vllm_rollout/utils.py` `_update_weights` 入口 |
-| G0/G1 | transformers/mcore 前向 logits | - | 离线 `forward_verify.py` |
-| ptr_before/after | 模型参数 data_ptr（推理侧指针偏移验证） | - | `_update_weights` load_weights 前后 |
+本文档整体以以下组合为准：
 
-> **范围说明**：推理侧只做**指针偏移（data_ptr）验证**和 **dummy vs safetensors 差分测试**，**不做**分片反向还原（P6/P7）的验证与实现。
+- **模型**：`Qwen2.5-0.5B-Instruct`
+- **硬件环境**：**Ascend NPU**
+- **训练算法**：**GRPO**
+- **训推框架**：**veRL + Megatron-core（mcore）训练 + vLLM 推理** 的训推一体场景
 
-**关键设计**：P0/P2/P2_sender/P5 每个 rank 内容相同，**比对时只需 rank 0 的数据**，采集也只落盘 rank 0，避免多 rank 存储浪费。
+> 下述代码段与命令均基于该组合编写，其他模型/框架需按注释调整（如命名归一化规则、`torch.npu` 同步）。
+
+## 3. UWC环境变量介绍
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `UWC_ENABLE` | 总开关，1 启用 | 0 |
+| `UWC_STAGE1` | 阶段1 采集开关（init 时刻 P0/P2） | 1（`UWC_ENABLE=1` 时） |
+| `UWC_STAGE2` | 阶段2 采集开关（P2_sender / P5） | 1（`UWC_ENABLE=1` 时） |
+| `UWC_STAGE3` | 阶段3 开关（data_ptr 指针偏移 + dummy/safetensors 差分） | 1（`UWC_ENABLE=1` 时） |
+| `UWC_DUMP_DIR` | 采集数据存放目录 | /tmp/uwc_dump |
+| `UWC_PTR_CHECK` | 阶段3 data_ptr 指针偏移采集（推理侧漏同步精确定位） | 0 |
+| `VERL_FORCE_USE_SHM` | 强制共享内存传输，绕过 NPU IPC 误判 | 0 |
+
+> 建议在脚本里显式设置各 `UWC_STAGE*`，避免默认值触发不想要的采集路径。
 
 ---
 
-## 三、代码修改清单
+## 4. 代码改动
 
-### 3.1 采集侧（运行时代码，具体修改代码段）
+采集侧一共修改 5 个文件，均为环境变量开关 + try-except 包裹的 best-effort 采集，不改变原有权重加载、训练和同步逻辑。
 
-采集侧一共改了 5 个文件，均为**环境变量开关 + try-except 包裹**的 best-effort 采集，不改变原有权重加载 / 训练 / 同步逻辑。
+### 4.1 verl/workers/engine/megatron/transformer_impl.py
 
-#### 3.1.1 `verl/workers/engine/megatron/transformer_impl.py`
-
-**① init 阶段采集 P0/P2（`UWC_ENABLE=1` + `UWC_STAGE1=1` 时）**
+（1）init 阶段采集 P0/P2（`UWC_ENABLE=1` + `UWC_STAGE1=1` 时）
 
 在模型初始化、`load_weights` 前后插入采集。关键点：`load_weights` 必须在守卫**之外**无条件执行（每个引擎都要加载），采集只做一次、任何异常都不影响加载。
 
@@ -86,7 +131,7 @@ if self.vanilla_bridge:
         self.bridge.load_weights(module, self.model_config.local_path)
 ```
 
-**② `get_per_tensor_param`：export 物化 + 实时诊断 + 落盘 P2_sender**
+（2）`get_per_tensor_param`：export 物化 + 实时诊断 + 落盘 P2_sender
 
 同步时刻 sender 侧核心改动：把 `export_weights` 返回的 generator **立即物化并 clone**（避免延迟访问读到被 offload/复用的数据）；对前 3 个 tensor 打印统计，并与磁盘 P0 实时对比 `vs_P0_max_diff`（判定 export 是否为 dummy）；`UWC_STAGE2=1` 时把实际发送的权重落盘为 `P2_sender`。
 
@@ -132,9 +177,9 @@ else:
     per_tensor_param = [(name, t.clone()) for name, t in per_tensor_param]
 ```
 
-#### 3.1.2 `verl/workers/rollout/vllm_rollout/utils.py`
+### 4.2 verl/workers/rollout/vllm_rollout/utils.py
 
-**`_update_weights` 入口：采集 P5 + data_ptr before/after**
+`_update_weights` 入口：采集 P5 + data_ptr before和after
 
 receiver 侧核心改动：入口处落盘 P5（`UWC_STAGE2`）；`UWC_PTR_CHECK=1` 时在 `load_weights` 前后采集 data_ptr（阶段3 推理侧指针偏移验证）。
 
@@ -180,9 +225,9 @@ def _update_weights(self, weights, peft_config, base_sync_done):
             logger.warning(f"[UWC stage3 ptr] ptr_after collect failed: {e}")
 ```
 
-#### 3.1.3 `verl/workers/rollout/vllm_rollout/bucketed_weight_transfer.py`
+### 4.3 verl/workers/rollout/vllm_rollout/bucketed_weight_transfer.py
 
-**sender 侧诊断日志：`use_shm` 状态 + 前 3 个权重统计 + buffer 内容统计**
+sender 侧诊断日志：`use_shm` 状态 + 前 3 个权重统计 + buffer 内容统计。
 
 ```python
 # bucketed_weight_transfer.py —— send() 中，逐权重写 buffer 的同时打诊断
@@ -212,9 +257,9 @@ async for name, weight in ensure_async_iterator(weights):
               f"sender_buf mean={buf_float.mean().item():.6f}, std={buf_float.std().item():.6f}", flush=True)
 ```
 
-#### 3.1.4 `verl/workers/engine_workers.py`
+### 4.4 verl/workers/engine_workers.py
 
-**`update_weights` send 前打印 `per_tensor_param` 前 3 个 tensor 统计**
+`update_weights` send 前打印 `per_tensor_param` 前 3 个 tensor 统计。
 
 ```python
 # engine_workers.py —— update_weights 中，get_per_tensor_param 返回后、send 之前
@@ -235,11 +280,11 @@ if os.environ.get("UWC_ENABLE", "0") == "1":
         print(f"[UWC engine diag] error: {e}", flush=True)
 ```
 
-> `compute_log_prob` 中另有一段**默认注释关闭**的训练权重 dump（调试用），需要时去掉注释即可用 `collect_p2` 在推理步 dump 训练侧权重与推理侧比对。
+> **注**：`compute_log_prob` 中另有一段默认注释关闭的训练权重 dump（调试用），需要时去掉注释即可用 `collect_p2` 在推理步 dump 训练侧权重与推理侧比对。
 
-#### 3.1.5 `verl/workers/rollout/vllm_rollout/vllm_rollout.py`
+### 4.5 verl/workers/rollout/vllm_rollout/vllm_rollout.py
 
-**新增 `VERL_FORCE_USE_SHM` 环境变量，强制走共享内存传输（绕过 NPU IPC 误判）**
+新增 `VERL_FORCE_USE_SHM` 环境变量，强制通过共享内存传输（绕过 NPU IPC 误判）。
 
 ```python
 # vllm_rollout.py —— __init__ 中确定传输方式
@@ -252,9 +297,7 @@ if self.use_shm:
                    "please ensure your software and CANN toolkit versions meet the IPC requirements.")
 ```
 
-### 3.2 UWC 工具包（新增 `verl/utils/uwc/`，参考示例）
-
-工具包目录结构如下，**采集器（collectors）是给用户扩展采集点的参考示例**——新采集点按同样模式写即可（环境变量开关 + try-except + 仅 rank 0 落盘）。
+### 4.6 UWC collectors采集器配置
 
 ```
 verl/utils/uwc/
@@ -272,9 +315,11 @@ verl/utils/uwc/
     └── uwc_summary.py                   # 全链路总结 summary.json
 ```
 
-> 注：推理侧不做分片反向还原，故无 `vllm_weight_restorer.py` / `stage3_inference_collector.py`。
+> **注**：推理侧不做分片反向还原，故无 `vllm_weight_restorer.py` / `stage3_inference_collector.py`。
 
-**参考示例 1：`collectors/stage1_bridge_collector.py`（P0 / P2 采集）**
+#### 4.6.1 P0和P2采集
+
+在 `collectors/stage1_bridge_collector.py` 文件添加采集，示例代码如下：
 
 ```python
 def collect_p0(bridge, local_path, dump_dir, step=0):
@@ -325,9 +370,11 @@ def collect_p2(bridge, module, dump_dir, step=0):
     return out_path
 ```
 
-> 同步时刻 sender 侧还会用 `load_p0_weights(local_path)` 从磁盘加载 P0（按 `local_path` 缓存，多次 sync 不重复读盘），用于实时计算 `vs_P0_max_diff`。
+> **注**：同步时刻 sender 侧还会用 `load_p0_weights(local_path)` 从磁盘加载 P0（按 `local_path` 缓存，多次 sync 不重复读盘），用于实时计算 `vs_P0_max_diff`。
 
-**参考示例 2：`collectors/stage2_transfer_collector.py`（P2_sender / P5 采集）**
+#### 4.6.2 P2_sender和P5采集
+
+在 `collectors/stage2_transfer_collector.py` 文件添加采集，示例代码如下：
 
 ```python
 def collect_p2_sender(weights, dump_dir, step=0):
@@ -381,7 +428,9 @@ def _sync_device():
             torch.cuda.synchronize()
 ```
 
-**参考示例 3：`collectors/stage3_vllm_collector.py`（data_ptr 指针偏移验证）**
+#### 4.6.3 data_ptr指针偏移验证采集
+
+在 `collectors/stage3_vllm_collector.py` 文件添加采集，示例代码如下：
 
 ```python
 def collect_ptr_before(model):
@@ -432,25 +481,9 @@ def collect_ptr_after(model, ptr_before, dump_dir, step=0) -> dict:
 
 ---
 
-## 四、环境变量
+## 5. 比对验证
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `UWC_ENABLE` | 总开关，1 启用 | 0 |
-| `UWC_STAGE1` | 阶段1 采集开关（init 时刻 P0/P2） | 1（`UWC_ENABLE=1` 时） |
-| `UWC_STAGE2` | 阶段2 采集开关（P2_sender / P5） | 1（`UWC_ENABLE=1` 时） |
-| `UWC_STAGE3` | 阶段3 开关（data_ptr 指针偏移 + dummy/safetensors 差分） | 1（`UWC_ENABLE=1` 时） |
-| `UWC_DUMP_DIR` | 采集数据存放目录 | /tmp/uwc_dump |
-| `UWC_PTR_CHECK` | 阶段3 data_ptr 指针偏移采集（推理侧漏同步精确定位） | 0 |
-| `VERL_FORCE_USE_SHM` | 强制共享内存传输，绕过 NPU IPC 误判 | 0 |
-
-> 建议在脚本里显式设置各 `UWC_STAGE*`，避免默认值触发不想要的采集路径。
-
----
-
-## 五、使用指南
-
-### 5.1 阶段1：Bridge 转换验证（验证训练侧 HF ↔ mcore 格式转换无损）
+### 5.1 Bridge转换验证（验证训练侧 HF ↔ mcore 格式转换无损）
 
 ```bash
 # 1. 开启 stage1（init 时自动采集 P0/P2）
@@ -471,7 +504,7 @@ python -m verl.utils.uwc.offline.forward_verify \
 # 需在 NPU + mbridge 环境、单卡运行；fp32 / TP=1 / PP=1 / SP 关闭 / eval 模式
 ```
 
-### 5.2 阶段2：传输一致性验证（验证 P2_sender → P5 跨进程传输无损）
+### 5.2 传输一致性验证（验证 P2_sender → P5 跨进程传输无损）
 
 ```bash
 export UWC_ENABLE=1 UWC_STAGE1=0 UWC_STAGE2=1 UWC_STAGE3=0
@@ -487,7 +520,7 @@ python -m verl.utils.uwc.offline.uwc_compare --dump_dir $UWC_DUMP_DIR --stage 2
 - `[UWC stage2] P5 saved ... keys=N`
 - `[UWC export diag] ... vs_P0_max_diff` —— step0 应为 0 左右，若极大说明 sender 侧是 dummy
 
-### 5.3 阶段3：vLLM 指针偏移验证（推理侧加载验证）
+### 5.3 vLLM加载验证（推理侧加载验证）
 
 > 推理侧只做**指针偏移（data_ptr）验证** + **dummy vs safetensors 差分测试**，不做分片反向还原。
 
@@ -531,30 +564,30 @@ python -m verl.utils.uwc.offline.uwc_summary --dump_dir $UWC_DUMP_DIR
 
 ---
 
-## 六、采集数据结构
+## 6. 结果文件介绍
 
 ```
 $UWC_DUMP_DIR/
 ├── stage1_bridge/
-│   ├── P0_hf_original_step0_rank0.pt     # 原始 HF 权重（dict）
-│   ├── P2_hf_exported_step0_rank0.pt     # init 时刻 export 后 HF 权重（dict）
-│   ├── G0_logits_gt.pt                   # 前向校验：transformers logits（可选）
-│   └── G1_logits_mcore.pt                # 前向校验：mcore logits（可选）
+│   ├── P0_hf_original_step0_rank0.pt  # 原始 HF 权重（dict）
+│   ├── P2_hf_exported_step0_rank0.pt  # init 时刻 export 后 HF 权重（dict）
+│   ├── G0_logits_gt.pt                # 前向校验：transformers logits（可选）
+│   └── G1_logits_mcore.pt             # 前向校验：mcore logits（可选）
 ├── stage2_transfer/
-│   ├── P2_sender_step0_rank0.pt          # 同步时刻 sender 实际发送权重（list[(name,tensor)]）
-│   └── P5_receiver_step0_rank0.pt        # 接收端收到的权重（list[(name,tensor)]）
+│   ├── P2_sender_step0_rank0.pt       # 同步时刻 sender 实际发送权重（list[(name,tensor)]）
+│   └── P5_receiver_step0_rank0.pt     # 接收端收到的权重（list[(name,tensor)]）
 ├── stage3_vllm/
-│   ├── diff_test_report.json             # dummy vs safetensors 差分报告
-│   └── ptr_before_after_*.json           # data_ptr 指针偏移报告（UWC_PTR_CHECK=1）
-├── stage1/report.json                    # 比对报告
+│   ├── diff_test_report.json          # dummy vs safetensors 差分报告
+│   └── ptr_before_after_*.json        # data_ptr 指针偏移报告（UWC_PTR_CHECK=1）
+├── stage1/report.json                 # 比对报告
 ├── stage2/report.json
 ├── stage3/report.json
-└── summary.json                          # 全链路总结
+└── summary.json                       # 全链路总结
 ```
 
 ---
 
-## 七、比对容差与使用约束
+## 7. 比对容差与使用约束
 
 ### 7.1 比对容差
 
@@ -582,7 +615,7 @@ $UWC_DUMP_DIR/
 
 ---
 
-## 八、验证结果与结论
+## 8. 验证结果与结论
 
 以下结果在 **Qwen2.5-0.5B-Instruct，Ascend NPU，GRPO** 环境下实测得到：
 
@@ -592,4 +625,4 @@ $UWC_DUMP_DIR/
 | P2_sender vs P5（阶段2 传输） | ✅ 290/290，max_abs_diff=0 |
 | export vs P0 实时抽样（vs_P0_max_diff） | step0=0.000000；训练1步后=0.000002（lr=1e-6） |
 
-**结论**：在 Qwen2.5-0.5B-Instruct / NPU / GRPO 场景下，Bridge export 与传输链路数值零差异，sender 侧发送的即为正确训练权重，训练→推理权重同步链路无损。使用时只需按第五节的命令依次跑阶段1/2/3，任一阶段 report 显示 fail 即可把问题定位到对应环节。
+**结论**：在 Qwen2.5-0.5B-Instruct / NPU / GRPO 场景下，Bridge export 与传输链路数值零差异，sender 侧发送的即为正确训练权重，训练到推理权重同步链路无损。

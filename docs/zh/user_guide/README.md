@@ -48,6 +48,7 @@ MindStudio Probe（msProbe）针对昇腾 AI 处理器提供全场景精度调�
 | 功能项 | 功能说明 | 参考文档 |
 |---|---|---|
 | VeRL 超参比对与关键超参校验 | VeRL 训练过程中或结束后，比对两台不同服务器上训练日志中采集到的真实超参配置，或者校验配置是否与关键超参取值相同，辅助用户高效比对真实超参值配置，加速定位因配置差异所引发的训练精度问题 | [VeRL 超参比对与关键超参校验](verl_param_compare_or_verify_instruct.md) |
+| VeRL 训推权重一致性验证 | VeRL 训练和推理阶段，权重存在传输和格式转换阶段存在因分片转换、传输不一致、指针偏移等因素导致精度问题，提供全流程的一致性验证方案进行定位分析 | [VeRL 训推权重一致性验证](rl_weight_consistency_verify.md) |
 | 异步架构 VeRL 训推一致性比对数据采集 | VeRL ≥ v0.7.0，保证 VeRL 训推一致性比对时的输入 shape 一致的比对数据采集 | [异步架构 VeRL 训推一致性比对数据采集](dump/verl_async_consistency_preprocess_dump.md) |
 | VeRL V1 Trainer 训推一致性比对数据采集 | VeRL 0.9.0.dev，保证 VeRL 训推一致性比对时的输入 shape 一致的比对数据采集 | [VeRL V1 Trainer 训推一致性比对数据采集](dump/verl_v1_trainer_consistency_preprocess_dump.md) |
 | FSDP 训练后端 VeRL 训推一致性比对数据采集 | VeRL < v0.7.0，FSDP 训练后端，保证 VeRL 训推一致性比对时的输入 shape 一致的比对数据采集 | [FSDP 训练后端 VeRL 训推一致性比对数据采集](dump/verl_fsdp_consistency_preprocess_dump.md) |
