@@ -51,34 +51,93 @@ def _detect_framework_from_api_info(api_info_path: str) -> str:
     raise ValueError(f"Unsupported framework in api_info: {framework}")
 
 
+class _DeferredHelpAction(argparse._HelpAction):
+    """将 -h/--help 延迟到未知参数校验之后处理，避免错误参数被帮助信息掩盖。"""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, "help_requested", True)
+
+
+def _parse_api_info_file(argv):
+    """预解析 -api_info/--api_info_file，用于确定校验框架。"""
+    pre_parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    pre_parser.add_argument("-api_info", "--api_info_file", dest="api_info_file")
+    pre_args, _ = pre_parser.parse_known_args(argv)
+    return pre_args.api_info_file
+
+
+def _validate_api_info_option(argv, prog):
+    """只允许精确的 -api_info / --api_info_file，其它任何前缀缩写形式一律报错。
+
+    argparse 的 allow_abbrev 只能关闭长选项（--）的前缀匹配，单短横线多字符选项
+    （如 -api_info）仍会无条件做前缀匹配，因此这里对两个 api_info 选项的任意前缀做精确校验。
+    """
+    for token in argv:
+        if token == "--":  # nosec B105
+            break
+        name = token.split("=", 1)[0]
+        if name in ("-api_info", "--api_info_file"):
+            continue
+        if name.startswith("-") and name != "-":
+            if "-api_info".startswith(name) or "--api_info_file".startswith(name):
+                _build_precheck_parser(prog, prog).error(f"unrecognized arguments: {name}")
+
+
+def _add_help_flag(parser):
+    parser.add_argument("-h", "--help", action=_DeferredHelpAction)
+
+
+def _build_precheck_parser(prog, help_spec_key):
+    """构建预检 parser，保证非法/缺失 -api_info 时报错 usage 一致。"""
+    parser = MindStudioArgumentParser(prog=prog, help_spec_key=help_spec_key, add_help=False, allow_abbrev=False)
+    _add_help_flag(parser)
+    parser.add_argument(
+        "-api_info",
+        "--api_info_file",
+        dest="api_info_file",
+        help="Path to the API info JSON file used to determine the check framework.",
+    )
+    return parser
+
+
+def _parse_args_strict(parser, argv):
+    """先校验未知参数（即使带 -h 也报错），再处理 -h，最后返回解析结果。"""
+    args, unknown = parser.parse_known_args(argv)
+    if unknown:
+        parser.error(f"unrecognized arguments: {' '.join(unknown)}")
+    if getattr(args, "help_requested", False):
+        parser.print_help()
+        parser.exit()
+    return args
+
+
+def _error_on_missing_api_info(prog, help_spec_key, argv):
+    """缺少 -api_info 时触发标准报错；-h/--help 显示帮助，未知参数优先报错。"""
+    parser = _build_precheck_parser(prog, help_spec_key)
+    args, unknown = parser.parse_known_args(argv)
+    if unknown:
+        parser.error(f"unrecognized arguments: {' '.join(unknown)}")
+    if getattr(args, "help_requested", False):
+        parser.print_help()
+        parser.exit()
+    parser.error("the following arguments are required: -api_info/--api_info_file")
+
+
 def acc_check_cli(argv):
     """
     msprobe acc_check ... 的统一入口。
     1. 先解析出 -api_info
     2. 根据 dump.json 中的 framework 动态选择 PT/MS 的 parser + 命令。
     """
-    # ====================== 关键：先判断 -api_info ======================
-    has_api_info = any(option in argv for option in ("-api_info", "--api_info_file"))
+    _validate_api_info_option(argv, "msprobe acc_check")
+    api_info_file = _parse_api_info_file(argv)
 
-    # 只输 -h，没带 -api_info → 打印基础帮助
-    if not has_api_info:
-        pre_parser = MindStudioArgumentParser(add_help=True, prog="msprobe acc_check")
-        pre_parser.add_argument(
-            "-api_info",
-            "--api_info_file",
-            dest="api_info_file",
-            required=True,
-            help="Path to API info JSON file. Used to determine PyTorch or MindSpore pre-check.",
-        )
-        pre_parser.print_help()
+    # 缺少必填参数 -api_info：报错（而非静默打印帮助）；-h 仍显示帮助
+    if api_info_file is None:
+        _error_on_missing_api_info("msprobe acc_check", "msprobe acc_check", argv)
         return
 
-    # 第一阶段：只解析 -api_info，关闭自带 help
-    pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("-api_info", "--api_info_file", dest="api_info_file", required=True)
-    pre_args, _ = pre_parser.parse_known_args(argv)
-
-    framework = _detect_framework_from_api_info(pre_args.api_info_file)
+    framework = _detect_framework_from_api_info(api_info_file)
 
     if framework == Const.PT_FRAMEWORK:
         # PyTorch 路径：使用原来的 PT acc_check 实现
@@ -89,10 +148,13 @@ def acc_check_cli(argv):
             help_spec_key="msprobe acc_check pytorch",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Run PyTorch acc_check with msprobe.",
+            add_help=False,
+            allow_abbrev=False,
         )
+        _add_help_flag(pt_parser)
         _acc_check_parser(pt_parser)  # 这里会给 parser 加上原来的所有 PT acc_check 参数（包括 -api_info）
 
-        pt_args = pt_parser.parse_args(argv)
+        pt_args = _parse_args_strict(pt_parser, argv)
         acc_check_command(pt_args)
 
     elif framework == Const.MS_FRAMEWORK:
@@ -105,10 +167,13 @@ def acc_check_cli(argv):
             help_spec_key="msprobe acc_check mindspore",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Run MindSpore Check  with msprobe.",
+            add_help=False,
+            allow_abbrev=False,
         )
+        _add_help_flag(ms_parser)
         add_api_accuracy_checker_argument(ms_parser)  # 给 acc_check 的 parser 加上原来 MS 的所有参数
 
-        ms_args = ms_parser.parse_args(argv)
+        ms_args = _parse_args_strict(ms_parser, argv)
         api_checker_main(ms_args)
 
 
@@ -117,30 +182,15 @@ def multi_acc_check_cli(argv):
     msprobe multi_acc_check ... 的统一入口。
     同样通过 -api_info -> dump.json -> framework 做分发。
     """
-    # ====================== 第一步：先检查是否带了 -api_info ======================
-    has_api_info = any(option in argv for option in ("-api_info", "--api_info_file"))
+    _validate_api_info_option(argv, "msprobe multi_acc_check")
+    api_info_file = _parse_api_info_file(argv)
 
-    # ====================== 情况1：只输 -h，没带 -api_info → 打印基础帮助 ======================
-    if not has_api_info:
-        pre_parser = MindStudioArgumentParser(add_help=True, prog="msprobe multi_acc_check")
-        pre_parser.add_argument(
-            "-api_info",
-            "--api_info_file",
-            dest="api_info_file",
-            required=True,
-            help="Path to API info JSON file. Used to determine PyTorch or MindSpore pre-check.",
-        )
-        pre_parser.print_help()
+    # 缺少必填参数 -api_info：报错（而非静默打印帮助）；-h 仍显示帮助
+    if api_info_file is None:
+        _error_on_missing_api_info("msprobe multi_acc_check", "msprobe multi_acc_check", argv)
         return
 
-    # ====================== 情况2：带了 -api_info（无论是否带 -h）→ 走完整解析 ======================
-    # 先解析拿到 api_info
-    pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("-api_info", "--api_info_file", dest="api_info_file", required=True)
-    pre_args, _ = pre_parser.parse_known_args(argv)
-
-    # 检测框架
-    framework = _detect_framework_from_api_info(pre_args.api_info_file)
+    framework = _detect_framework_from_api_info(api_info_file)
 
     if framework == Const.PT_FRAMEWORK:
         # PyTorch 多进程路径：沿用原来的 prepare_config + run_parallel_ut
@@ -152,7 +202,10 @@ def multi_acc_check_cli(argv):
             help_spec_key="msprobe multi_acc_check pytorch",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Run PyTorch acc_check in parallel with msprobe.",
+            add_help=False,
+            allow_abbrev=False,
         )
+        _add_help_flag(pt_parser)
         _acc_check_parser(pt_parser)
         pt_parser.add_argument(
             "-n",
@@ -163,7 +216,7 @@ def multi_acc_check_cli(argv):
             help="Number of splits for parallel processing. Range: 1-64",
         )
 
-        pt_args = pt_parser.parse_args(argv)
+        pt_args = _parse_args_strict(pt_parser, argv)
         config = prepare_config(pt_args)
         run_parallel_ut(config)
 
@@ -177,8 +230,11 @@ def multi_acc_check_cli(argv):
             help_spec_key="msprobe multi_acc_check mindspore",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Run MindSpore Check in parallel with msprobe.",
+            add_help=False,
+            allow_abbrev=False,
         )
+        _add_help_flag(ms_parser)
         multi_add_api_accuracy_checker_argument(ms_parser)
 
-        ms_args = ms_parser.parse_args(argv)
+        ms_args = _parse_args_strict(ms_parser, argv)
         mul_api_checker_main(ms_args)

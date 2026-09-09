@@ -134,7 +134,7 @@ def run_parallel_ut(config):
                 if output == '':
                     break
                 if '[ERROR]' in output:
-                    logger.warning(output)
+                    logger.raw(output.rstrip())
                     sys.stdout.flush()
         except ValueError as e:
             logger.warning(f"An error occurred while reading subprocess output: {e}")

@@ -94,17 +94,52 @@ class TestDetectFrameworkFromApiInfo(unittest.TestCase):
 
 class TestAccCheckCli(unittest.TestCase):
 
-    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.print_help")
-    def test_no_api_info_prints_help(self, mock_print_help):
-        acc_check_cli([])
-        mock_print_help.assert_called_once()
+    def test_no_api_info_errors(self):
+        """缺少 -api_info 时应报错（退出码 2），而不是静默打印帮助。"""
+        with self.assertRaises(SystemExit) as ctx:
+            acc_check_cli([])
+        self.assertEqual(ctx.exception.code, 2)
+
+    def test_unrecognized_arg_with_help_errors(self):
+        """即使带 -h，存在无法识别的参数时也应报错（退出码 2）。"""
+        with self.assertRaises(SystemExit) as ctx:
+            acc_check_cli(["aaa", "-h"])
+        self.assertEqual(ctx.exception.code, 2)
+
+    def test_help_alone_shows_help(self):
+        """仅 -h 时显示帮助并正常退出（退出码 0）。"""
+        with self.assertRaises(SystemExit) as ctx:
+            acc_check_cli(["-h"])
+        self.assertEqual(ctx.exception.code, 0)
+
+    def test_abbreviated_api_info_errors(self):
+        """只允许精确的 -api_info / --api_info_file，缩写形式（如 --api_info）应报错。"""
+        with self.assertRaises(SystemExit) as ctx:
+            acc_check_cli(["--api_info", "/tmp/dump.json"])
+        self.assertEqual(ctx.exception.code, 2)
+
+    def test_short_single_dash_prefixes_error(self):
+        """单短横线的任意缩写前缀（-a / -ap / -api / -api_ 等）都应报错。"""
+        for token in ("-a", "-ap", "-api", "-api_", "-api_i", "-api_in", "-api_inf"):
+            with self.subTest(token=token):
+                with self.assertRaises(SystemExit) as ctx:
+                    acc_check_cli([token, "/tmp/dump.json"])
+                self.assertEqual(ctx.exception.code, 2)
+
+    def test_long_option_prefixes_error(self):
+        """长选项的任意缩写前缀（--api / --api_info 等）都应报错。"""
+        for token in ("--api", "--api_info", "--api_info_f", "--api_info_fi", "--api_info_fil"):
+            with self.subTest(token=token):
+                with self.assertRaises(SystemExit) as ctx:
+                    acc_check_cli([token, "/tmp/dump.json"])
+                self.assertEqual(ctx.exception.code, 2)
 
     @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")
-    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.parse_args")
-    def test_pt_framework_dispatches(self, mock_parse, mock_detect):
+    @patch("msprobe.core.acc_check.acc_check_cli._parse_args_strict")
+    def test_pt_framework_dispatches(self, mock_parse_strict, mock_detect):
         """PT 分支验证正确调用 acc_check_command。"""
         mock_detect.return_value = Const.PT_FRAMEWORK
-        mock_parse.return_value = MagicMock()
+        mock_parse_strict.return_value = MagicMock()
         mock_acc_check = MagicMock()
         mock_acc_check.acc_check_command = MagicMock()
 
@@ -118,10 +153,10 @@ class TestAccCheckCli(unittest.TestCase):
             mock_acc_check.acc_check_command.assert_called_once()
 
     @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")
-    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.parse_args")
-    def test_pt_framework_long_api_info_alias_dispatches(self, mock_parse, mock_detect):
+    @patch("msprobe.core.acc_check.acc_check_cli._parse_args_strict")
+    def test_pt_framework_long_api_info_alias_dispatches(self, mock_parse_strict, mock_detect):
         mock_detect.return_value = Const.PT_FRAMEWORK
-        mock_parse.return_value = MagicMock()
+        mock_parse_strict.return_value = MagicMock()
         mock_acc_check = MagicMock()
 
         with patch.dict("sys.modules", {
@@ -134,11 +169,11 @@ class TestAccCheckCli(unittest.TestCase):
             mock_acc_check.acc_check_command.assert_called_once()
 
     @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")
-    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.parse_args")
-    def test_ms_framework_dispatches(self, mock_parse, mock_detect):
+    @patch("msprobe.core.acc_check.acc_check_cli._parse_args_strict")
+    def test_ms_framework_dispatches(self, mock_parse_strict, mock_detect):
         """MS 分支验证正确调用 api_checker_main。"""
         mock_detect.return_value = Const.MS_FRAMEWORK
-        mock_parse.return_value = MagicMock()
+        mock_parse_strict.return_value = MagicMock()
         mock_main = MagicMock()
 
         with patch.dict("sys.modules", {
@@ -154,17 +189,18 @@ class TestAccCheckCli(unittest.TestCase):
 
 class TestMultiAccCheckCli(unittest.TestCase):
 
-    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.print_help")
-    def test_no_api_info_prints_help(self, mock_print_help):
-        multi_acc_check_cli([])
-        mock_print_help.assert_called_once()
+    def test_no_api_info_errors(self):
+        """缺少 -api_info 时应报错（退出码 2），而不是静默打印帮助。"""
+        with self.assertRaises(SystemExit) as ctx:
+            multi_acc_check_cli([])
+        self.assertEqual(ctx.exception.code, 2)
 
     @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")
-    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.parse_args")
-    def test_pt_framework_dispatches(self, mock_parse, mock_detect):
+    @patch("msprobe.core.acc_check.acc_check_cli._parse_args_strict")
+    def test_pt_framework_dispatches(self, mock_parse_strict, mock_detect):
         """multi PT 分支验证调用 run_parallel_ut。"""
         mock_detect.return_value = Const.PT_FRAMEWORK
-        mock_parse.return_value = MagicMock()
+        mock_parse_strict.return_value = MagicMock()
         mock_multi = MagicMock()
 
         with patch.dict("sys.modules", {
@@ -178,10 +214,10 @@ class TestMultiAccCheckCli(unittest.TestCase):
             mock_multi.run_parallel_ut.assert_called_once()
 
     @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")
-    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.parse_args")
-    def test_pt_framework_long_api_info_alias_dispatches(self, mock_parse, mock_detect):
+    @patch("msprobe.core.acc_check.acc_check_cli._parse_args_strict")
+    def test_pt_framework_long_api_info_alias_dispatches(self, mock_parse_strict, mock_detect):
         mock_detect.return_value = Const.PT_FRAMEWORK
-        mock_parse.return_value = MagicMock()
+        mock_parse_strict.return_value = MagicMock()
         mock_multi = MagicMock()
 
         with patch.dict("sys.modules", {
@@ -195,11 +231,11 @@ class TestMultiAccCheckCli(unittest.TestCase):
             mock_multi.run_parallel_ut.assert_called_once()
 
     @patch("msprobe.core.acc_check.acc_check_cli._detect_framework_from_api_info")
-    @patch("msprobe.core.acc_check.acc_check_cli.argparse.ArgumentParser.parse_args")
-    def test_ms_framework_dispatches(self, mock_parse, mock_detect):
+    @patch("msprobe.core.acc_check.acc_check_cli._parse_args_strict")
+    def test_ms_framework_dispatches(self, mock_parse_strict, mock_detect):
         """multi MS 分支验证调用 mul_api_checker_main。"""
         mock_detect.return_value = Const.MS_FRAMEWORK
-        mock_parse.return_value = MagicMock()
+        mock_parse_strict.return_value = MagicMock()
         mock_main = MagicMock()
 
         with patch.dict("sys.modules", {
