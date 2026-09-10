@@ -134,8 +134,9 @@ def _export_compare_graph_result(args, result, pbar_info=None):
     graphs = [result.graph_n, result.graph_b]
     graph_comparator = result.graph_comparator
     micro_steps = result.micro_steps
-    logger.info(f'Start exporting compare graph result, file name: {compare_output_db_name}...')
-    output_db_path = os.path.join(args.output_path, compare_output_db_name)
+    output_db_name = getattr(args, 'compare_output_db_name', compare_output_db_name)
+    logger.info(f'Start exporting compare graph result, file name: {output_db_name}...')
+    output_db_path = os.path.join(args.output_path, output_db_name)
     task = GraphConst.GRAPHCOMPARE_MODE_TO_DUMP_MODE_TO_MAPPING.get(graph_comparator.ma.compare_mode)
     export_config = GraphExportConfig(
         graphs[0],
@@ -156,8 +157,8 @@ def _export_compare_graph_result(args, result, pbar_info=None):
         logger.info(f'Exporting compare graph result successfully, the result file is saved in {output_db_path}')
         return ''
     except RuntimeError as e:
-        logger.error(f'Failed to export compare graph result, file: {compare_output_db_name}, error: {e}')
-        return compare_output_db_name
+        logger.error(f'Failed to export compare graph result, file: {output_db_name}, error: {e}')
+        return output_db_name
 
 
 def _build_graph_info(dump_path, args, graph=None, pbar_info=None):
@@ -236,6 +237,7 @@ def _export_build_graph_result(args, result, pbar_info=None):
     graph = result.graph
     micro_steps = result.micro_steps
     overflow_check = args.overflow_check
+    output_db_name = getattr(args, 'output_db_name', build_output_db_name)
 
     if getattr(args, 'file_type', 'db') == 'json':
         logger.info('Start exporting graph to JSON files...')
@@ -247,8 +249,8 @@ def _export_build_graph_result(args, result, pbar_info=None):
             logger.error(f'Failed to export model graph as JSON, error: {e}')
             return 'json_export_error'
 
-    logger.info(f'Start exporting graph for {build_output_db_name}...')
-    output_db_path = os.path.join(out_path, build_output_db_name)
+    logger.info(f'Start exporting graph for {output_db_name}...')
+    output_db_path = os.path.join(out_path, output_db_name)
     config = GraphExportConfig(
         graph,
         micro_steps=micro_steps,
@@ -263,8 +265,8 @@ def _export_build_graph_result(args, result, pbar_info=None):
         logger.info(f'Model graph exported successfully, the result file is saved in {output_db_path}')
         return None
     except RuntimeError as e:
-        logger.error(f'Failed to export model graph, file: {build_output_db_name}, error: {e}')
-        return build_output_db_name
+        logger.error(f'Failed to export model graph, file: {output_db_name}, error: {e}')
+        return output_db_name
 
 
 def is_real_data_compare(input_param, npu_ranks, bench_ranks):
@@ -734,6 +736,10 @@ def _graph_service_command(args):
         ProgressInfo.print_progress_log = args.is_print_progress_log
         args.parallel_merge = bool(args.rank_size)
         args.parallel_params = load_parallel_param(args) if args.parallel_merge else None
+        # 在主进程固定输出文件名，避免 Python 3.14 默认 forkserver 启动方式下
+        # 子进程重新导入模块时模块级时间戳被重新计算，导致主进程索引与子进程导出文件名不一致。
+        args.output_db_name = build_output_db_name
+        args.compare_output_db_name = compare_output_db_name
         if args.file_type == 'json' and bench_path:
             logger.error(
                 'The --file_type json parameter is not supported in graph comparison mode. '
