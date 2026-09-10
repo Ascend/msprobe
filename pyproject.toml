@@ -1,7 +1,7 @@
 [project]
 name = "mindstudio-probe"
 version = "26.0.0"
-requires-python = ">=3.8,<3.14"
+requires-python = ">=3.8,<3.15"
 description = "Ascend MindStudio Probe Utils"
 license = "MulanPSL-2.0"
 authors = [
