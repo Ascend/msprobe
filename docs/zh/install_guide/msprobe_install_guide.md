@@ -89,7 +89,7 @@ Successfully installed mindstudio-probe-{version}
 
 ```bash
 cd ~
-git clone https://gitcode.com/Ascend/msprobe.git
+git clone https://gitcode.com/Ascend/msprobe.git -b master
 cd ~/msprobe
 ```
 
@@ -233,7 +233,7 @@ Successfully uninstalled mindstudio-probe-{version}
 
 msProbe工具不支持直接升级，需要先完成[卸载](#4-卸载)后再重新[安装](#2-安装方式)。
 
-可通过`pip show mindstudio-probe`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.1.0/release_notes.md)》。
+可通过`pip show mindstudio-probe`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/master/release_notes.md)》。
 
 ## 6. 附录
 
@@ -262,12 +262,12 @@ Name: mindstudio-probe
 Version: 26.x.x
 Summary: Ascend MindStudio Probe Utils
 Home-page: https://gitcode.com/Ascend/MindStudio-Probe
-Author: 
+Author:
 Author-email: Ascend Team <pmail_mindstudio@xx.com>
 License-Expression: MulanPSL-2.0
 Location: /xxx/xxx/miniconda3/envs/xxx/lib/python3.x/site-packages/
 Requires: einops, matplotlib, numpy, openpyxl, pandas, psutil, pytz, pyyaml, skl2onnx, tensorboard, tqdm, wheel
-Required-by: 
+Required-by:
 ```
 
 ### 6.3 Ascend生态链接

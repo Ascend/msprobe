@@ -27,13 +27,13 @@ msprobe 工具主要通过在训练推理脚本内添加 dump 接口，具体使
 
 分级可视化构图支持不同切分配置的数据对比，因此使用如下命令进行 TP8 与 TP1 的数据比对：
 
-```
+```bash
 msprobe graph_visualize -tp tp8_data -gp tp1_data -o output_path
 ```
 
 执行过程视模型大小而不同，较大规模模型构图约需数分钟，结束后会在 output 文件夹下生成 XXX.vis.db 的文件，之后使用 tensorboard 进行可视化对比：
 
-```
+```bash
 tensorboard --logdir out_path --bind_all --port [可选，端口号]
 ```
 

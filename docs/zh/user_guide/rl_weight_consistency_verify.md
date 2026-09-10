@@ -299,7 +299,7 @@ if self.use_shm:
 
 ### 4.6 UWC collectors采集器配置
 
-```
+```text
 verl/utils/uwc/
 ├── comparator.py                        # 同格式权重数值比对（exact / atol）
 ├── logits_comparator.py                 # logits 余弦相似度比对
@@ -566,7 +566,7 @@ python -m verl.utils.uwc.offline.uwc_summary --dump_dir $UWC_DUMP_DIR
 
 ## 6. 结果文件介绍
 
-```
+```ColdFusion
 $UWC_DUMP_DIR/
 ├── stage1_bridge/
 │   ├── P0_hf_original_step0_rank0.pt  # 原始 HF 权重（dict）

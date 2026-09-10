@@ -1,5 +1,6 @@
+# 强化学习训推一致性排查
 
-## 摘要：
+## 摘要
 
 在强化学习系统的开发与部署中，训练与推理阶段的行为偏差——即“训推不一致”——往往是导致训练loss震荡、收敛缓慢甚至reward崩溃的隐性根源。本文首先介绍训推一致性的背景与定义，指出导致训推不一致的本质原因。随后，聚焦训推对齐核心技术：介绍msprobe精度工具以及在训推一致对齐场景下的工具能力。最后，通过一次真实场景的实战案例复盘，展示如何因训推不一致引发训练曲线剧烈波动，以及reward崩溃。通过对齐手段恢复训练稳定性、提升整体训练精度的的全过程。本文旨在为强化学习实践者提供一套可落地的稳定性分析框架与解决思路，让模型不仅在训练环境中“游刃有余”，更在推理部署中“表里如一”。
 
@@ -37,7 +38,7 @@ y = (x - mean) / sqrt(var + eps) * gamma + beta
 # 分步计算：mean → var → normalize → scale → shift
 
 # vLLM 融合实现（推理）
-y = fused_rms_norm(x, weight)  
+y = fused_rms_norm(x, weight)
 # 单内核：向量化加载 + 寄存器级融合
 # 中间结果截断策略不同 → 最后几位小数差异
 ​
@@ -87,11 +88,14 @@ y = fused_rms_norm(x, weight)
 在**verl**框架中，对应行为如下：
 
 * 开启logp_diff监控的配置超参：
+
   ```makeup
   actor_rollout_ref.rollout.calculate_log_probs=True  # 默认为False
   ​
   ```
+
 * logp_diff的具体代码实现：
+
   ```makeup
   mean_log_prob_training = verl_F.masked_mean(old_log_prob, response_mask, axis=-1)
   mean_log_prob_rollout = verl_F.masked_mean(rollout_log_prob, response_mask, axis=-1)
@@ -150,28 +154,28 @@ y = fused_rms_norm(x, weight)
 综上所述，要保证训推可比，前提条件为：
 
 1. 保证训练`batch`未被拆分
-   
+
    * 需保证每轮训练中用于梯度更新的`mini<span> batch`个数`mini_batch_num`= `1`，计算公式为:
-   
+
    ```makeup
    mini_batch_num = train_batch_size/train_ppo_mini_batch_size
    ​
    ```
-   
+
    * 需保证梯度累计步骤数gac =1， 计算公式为：
-   
+
    ```makeup
    gac = train_ppo_mini_batch_size*n_resp_per_prompt/train_ppo_micro_batch_size_per_gpu/DP
    ​
    ```
-   
+
    其中，不同训练后端的`DP`计算公式为：
-   
+
    * `fsdp`是数据并行，`DP=world_size`
    * `megatron`有模型并行，`DP=world_size/TP/PP/CP`
-   
+
    在`VERL`框架脚本中以上所有值对应的具体超参为：
-   
+
    ```makeup
    data.train_batch_size=${train_batch_size}
    actor_rollout_ref.actor.ppo_mini_batch_size=${train_ppo_mini_batch_size}
@@ -180,20 +184,23 @@ y = fused_rms_norm(x, weight)
    actor_rollout_ref.rollout.n=${n_resp_per_prompt}
    ​
    ```
+
 2. 关闭训练中`pad`与动态组`batch`，在`VERL`框架脚本中对应的具体超参为：
-   
+
    ```makeup
    actor_rollout_ref.model.use_remove_padding=True
    actor_rollout_ref.actor.use_dynamic_bsz=False
    ​
    ```
+
 3. 训练与推理的切分配置一致，保证如`TP、PP、CP`等切分策略完全一致。
 4. 推理只执行prefill，在`VERL`框架脚本中对应的具体超参为：
-   
+
    ```makeup
    data.max_response_length=1
    ​
    ```
+
 5. 训练与推理不带response差异
    有如下两种实现对齐的方案：
 
@@ -245,8 +252,8 @@ def compute_log_prob(self, data: DataProto, calculate_entropy=False) -> torch.Te
 +                if "rollout_log_probs" in data.batch:
 +                    data.batch["rollout_log_probs"] = None
 +                if "response_mask" in data.batch:
-+                    data.batch["response_mask"] = None         
-+ 
++                    data.batch["response_mask"] = None
++
 
 micro_batch_size = data.meta_info["micro_batch_size"]
 ...
@@ -274,7 +281,7 @@ def update_policy(self, data: DataProto):
 +                    data.batch["rollout_log_probs"] = None
 +                if "response_mask" in data.batch:
 +                    data.batch["response_mask"] = None
-+ 
++
          select_keys = [
              "responses",
              "response_mask",
@@ -293,7 +300,7 @@ def update_policy(self, data: DataProto):
 +                    if response_mask is None:
 +                        prompt_mask = torch.ones_like(log_prob, dtype=torch.bool)
 +                        response_mask = prompt_mask
-+ 
++
                      # gpg -> verl.trainer.ppo.core_algos.compute_policy_loss_gpg
                      # clip_cov -> verl.trainer.ppo.core_algos.compute_policy_loss_clip_cov
                      policy_loss_fn = get_policy_loss_fn(loss_mode)
@@ -349,8 +356,9 @@ Routing Replay有R2/R3两种变体。
 **使用说明**
 
 1. 使用精度采集工具需要先配置config.json文件 对于采集统计值来说，最常用的两种配置如下：
-   
+
    * 采集指定步的统计量
+
      ```makeup
      {
          "task": "statistics",
@@ -359,7 +367,7 @@ Routing Replay有R2/R3两种变体。
          "step": [0,1],
          "level": "mix",
          "statistics": {
-             "scope": [], 
+             "scope": [],
              "list": [],
              "data_mode": ["all"],
              "summary_mode": "statistics"
@@ -367,7 +375,9 @@ Routing Replay有R2/R3两种变体。
      }
      ​
      ```
+
    * 采集指定步的tensor值
+
      ```makeup
      {
          "task": "tensor",
@@ -383,9 +393,9 @@ Routing Replay有R2/R3两种变体。
      }
      ​
      ```
-   
+
    此外，在这两种配置基础上常见的几种修改为：* 采集级别：修改level采集"mix"（API+模块级）、“L0”（模块级）、“L1”（API）。
-   
+
    * 统计量+md5：修改统计量中的"summary_mode"为 “md5”。
    * 指定采集步数（或卡号）：修改"step"（或"rank"），[]代表采集所有，内有数值代表采集该步，多步用英文逗号分割。
    * 筛选目标API，具体有如下两种方式：
@@ -593,16 +603,15 @@ YarnRotaryEmbedding入参，与推理做对比
    基于上述排查过程，目前把问题定位到是推理和训练在indexer模块里算topk_indices（调用npu_lightning_indexer融合算子）之前，npu_lightning_indexer有3个输入q，k和weights，推理和训练对q，k和weights的处理逻辑不一样，具体表现为如下两点：
    1.针对q和k，训练侧进行rope时使用的精度是fp32，rope完之后进行了一次降精操作，fp32->bfloat16，训练侧随后多进行一次rotate_activation操作，里面执行了一次哈达玛转换。
    2.针对weights，训练侧相比于推理侧多进行了一次缩放操作。
-   
+
    #### 3.2.4 问题修复
-   
+
    让推理严格对齐训练侧实现，针对q和k加上rotate_activation操作，针对weights，与训练侧对齐缩放规则，推理侧具体修改如下：
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/infer_fix_code_1.png)
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/infer_fix_code_2.png)
    对齐之后进行全层拉起实验，22个steps曲线图如下所示：
-   
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/fixed_reward_curve.png)
-   
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/fixed_logp_diff_curve.png)
    从曲线来看，reward正常上涨，logp diff没有上涨趋势，并且logp diff保持在千分位差异，目前没有资源进行长跑，只能通过观察前22steps得出上述indexer对齐改动能够解决训推不一致问题。
-

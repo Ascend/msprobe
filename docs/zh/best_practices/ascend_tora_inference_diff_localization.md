@@ -62,7 +62,7 @@ NPU推理结果为1260（错误答案）：
 比对时发现rotary+attention的输出存在差异，输入采集局部缺失，但该模块前上一模块输出一致，因此深入该模块进行排查
 014 Attention：
 
-```
+```python
 qkv, _ = self.qkv_proj(hidden_states)
 q, k, v = qkv.split([self.q_size, self.kv_size, self.kv_size], dim=-1)
 k_cache, v_cache = kv_cache
@@ -74,7 +74,7 @@ attn_output = self.attn(positions, q, k, v, k_cache, v_cache, input_metadata, ca
             self.head_size,
             self.cos_sin_cache,
     )
-    super().forward()  
+    super().forward()
         query = query.view(-1, self.num_heads, self.head_size)
         key = key.view(-1, self.num_kv_heads, self.head_size)
         value = value.view(-1, self.num_kv_heads, self.head_size)
@@ -97,7 +97,7 @@ output, _ = self.o_proj(attn_output)
 
 091 Attention：
 
-```
+```python
 qkv, _ = self.qkv_proj(hidden_states)
 q, k, v = qkv.split([self.q_size, self.kv_size, self.kv_size], dim=-1)
 q, k = self.rotary_emb(positions, q, k)  # self_attn.rotary_emb.RotaryEmbedding.forward
@@ -156,7 +156,7 @@ cos_sin_cache不一致
 
 014使用默认max_position，值为8192：
 
-```
+```python
 inv_freq = 1.0 / (base**(torch.arange(0, rotary_dim, 2) / rotary_dim))
 t = torch.arange(max_position).float()
 freqs = torch.einsum("i,j -> ij", t, inv_freq.float())
@@ -167,7 +167,7 @@ cache = torch.cat((cos, sin), dim=-1)
 
 091使用外部传入self.base和self.max_position_embeddings配置
 
-```
+```python
 inv_freq = 1.0 / (self.base**(torch.arange(0, self.rotary_dim, 2, dtype=torch.float) / self.rotary_dim))
 t = torch.arange(self.max_position_embeddings, dtype=torch.float)
 freqs = torch.einsum("i,j -> ij", t, inv_freq)
@@ -204,4 +204,3 @@ NPU做badcase验证，精度达标：
 
 * `max_position_embeddings`差异，`014`为`8192`（没传入，默认`8192`），`091`为`16384`（根据hf model路径中的`max_position_embedding`自动赋值）
 * `base`差异，`014`为`10000`（没传入，默认`10000`）， `091`是`100000`（根据hf model路径中的`rope_theta`自动赋值）
-

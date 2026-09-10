@@ -53,7 +53,7 @@
 (self_attention): MLASelfAttentionAbsorb(
              (core_attention): DSAttention(
                (indexer): DSAIndexer(
-                 (rotary_pos_emb): YarnRotaryEmbedding()  # not using yarn 
+                 (rotary_pos_emb): YarnRotaryEmbedding()  # not using yarn
                  (linear_wq_b): TELinear()
                  (linear_wk): TELinear()
                  (k_norm): FusedLayerNorm()
@@ -390,7 +390,7 @@ actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
 查看 stack 调用栈并检查代码后，明确 MLP 位置 Dense 层和 MoE 层的私有专家与共享专家的 act_fn 存在差异。推理侧以 npu_swiglu 融合算子实现，训练侧是因 mindspeed 的 patch 没生效，走的 glu 小算子实现，而 verl 的参数中已经添加 swiglu 使能参数。
 
 ```python
-+actor_rollout_ref.actor.megatron.override_transformer_config.swiglu=True \ 
++actor_rollout_ref.actor.megatron.override_transformer_config.swiglu=True \
 +actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_swiglu=True \
 ```
 
@@ -488,8 +488,6 @@ act_fn 的实现训练和推理不一致，vllm 侧走的是 vllm_ascend 的 swi
 
 ![image.png](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/length_penalty_curves.png)
 
-
-
 ## 经验总结
 
 在强化学习业务场景中，训推一致性是核心重难点，而训推数据差异比对是打通该问题的核心手段。msProbe 工具凭借采集范围全、采集效率高的优势，为排查训推差异筑牢基础，同时依托自动化精度比对能力，大幅提升问题定位与整改效率。
@@ -499,4 +497,3 @@ act_fn 的实现训练和推理不一致，vllm 侧走的是 vllm_ascend 的 swi
 1. 工具算子采集白名单暂未纳入部分自定义融合算子，当前需人工手动完成算子注册，使用流程繁琐。
 2. 现有算子级训推差异比对功能，在跨模型泛用性与比对精准度上仍有不足。现阶段 MSAgent 仅可实现问题初步定位，建议升级优化 Agent 能力，实现仅依托 Dump 数据即可全自动完成算子层级训推差异精准定位。
 3. 补充新增监测能力，支持对模型权重配置文件、训推引擎运行参数及框架级超参的变更进行实时感知与监控。
-

@@ -1,3 +1,4 @@
+# 基于昇腾的Kimi2.5训推一致性优化
 
 ## 问题背景
 
@@ -21,15 +22,15 @@ Kimi2.5 模型出现 log_prob 指数首 step 差异较大的现象。对于强�
 
 1. 在 `vllm_ascend/worker/model_runner_v1.py` 文件的 `NPUModelRunner.__init__` 方法中，增加工具初始化代码，同时增加确定性开关。
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_init_dump_code.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_init_dump_code.png)
 
 2. `execute_model` 方法开始执行时进行 debugger start（开始 dump）。
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_start_dump_code.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_start_dump_code.png)
 
 3. `execute_model` 方法中 `_generate_process_reqs_hidden_states` 执行完后进行 stop（结束 dump）。
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_stop_dump_code.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_stop_dump_code.png)
 
 ### 训练阶段 dump
 
@@ -65,13 +66,12 @@ Kimi2.5 模型出现 log_prob 指数首 step 差异较大的现象。对于强�
 
 **3. cos 和 sin 的计算均来自于 freqs，向上追溯 freqs 来源**
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/freqs_source_code_1.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/freqs_source_code_1.png)
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/freqs_source_code_2.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/freqs_source_code_2.png)
 
 4. 打印 `YarnRotaryEmbedding` 入参，与推理做对比，发现 `original_max_position_embeddings=1024`，而实际外层配置为 4096。
 
 ## 解决方案
 
 修正配置后，log_prob 指数首 step 差异明显下降至预期范围，持续训练后 reward 呈稳定上升趋势。
-

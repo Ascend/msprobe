@@ -113,7 +113,7 @@ export HCCL_EXEC_TIMEOUT=3600
 
 数据打印进一步证实了这一判断：
 
-```
+```python
 gt_labels_expand = noisy_labels_expand > torch.tensor([], device="npu:4", dtype=torch.int64)
 gt_labels_expand > torch.tensor([], device="npu:4", dtype=torch.int64)
 ```

@@ -120,7 +120,7 @@ return x + gate * residual
 * `x`：主分支输出，shape 一般为 `[B, S, H]` 或 `[B, H]`
 * `residual`：残差分支张量，shape 通常与 `x` 一致
 * `gate`：门控系数，可能是：
-  
+
   * 与 `residual` 同 shape 的张量
   * 或可广播到 `residual` 的张量
 
@@ -204,7 +204,7 @@ reciprocal() * other
 
 ---
 
-# 根因分析
+## 根因分析
 
 在定位到异常点之后，下一步就是分析根因。
 
@@ -251,16 +251,16 @@ reciprocal() * other
 3. 通过**手动打印**修正观察位置后，发现异常在 DDP 域中传播
 4. 使用 **mix dump** 定位到 `__mul__.5643.forward`
 5. 结合调用栈分析，排除 `gate * residual` 路径，确认问题点位于：
-   
+
    * `clip_grad_norm`
    * `reciprocal() * other`
 6. 使用 **monitor** 观察到 `video_dit.block.0.modulation` 聚合后 shape 异常，数值变为 `NaN`
 7. 手动打印确认问题发生在：
-   
+
    * **FSDP post_backward**
    * **foreach_reduce 前后**
 8. 最终通过加同步验证，确认根因与：
-   
+
    * **offload 场景下的流同步问题**
    * **`.to()` 前后的数据搬运时序异常**
      密切相关
@@ -271,4 +271,3 @@ reciprocal() * other
 
 1.重点检查 accelerate + FSDP +offload场景下的同步机制
 2.若条件允许，可进一步对accelerate 封装链路进行源码级分析，确认offload场景下同步异常落点。
-

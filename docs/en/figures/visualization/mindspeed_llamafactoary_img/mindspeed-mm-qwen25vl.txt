@@ -1,0 +1,80 @@
+[DistributedDataParallel(
+  (module): Float16Module(
+    (module): VLMModel(
+      (image_encoder): VisionModel(
+        (encoder): Qwen2VLViT(
+          (patch_embed): PatchEmbed(
+            (proj): Conv3d(3, 1280, kernel_size=(2, 14, 14), stride=(2, 14, 14), bias=False)
+          )
+          (rotary_pos_emb): VisionRotaryEmbedding()
+          (blocks): Qwen2VLVisionTransformerBlock(
+            (layers): ModuleList(
+              (0-15): 16 x TransformerLayer(
+                (input_layernorm): RMSNorm()
+                (self_attention): Qwen2vlVitSelfAttention(
+                  (core_attention): DotProductAttention(
+                    (scale_mask_softmax): FusedScaleMaskSoftmax()
+                    (attention_dropout): Dropout(p=0.0, inplace=False)
+                  )
+                  (linear_proj): RowParallelLinear()
+                  (linear_qkv): ColumnParallelLinear()
+                  (q_layernorm): IdentityOp()
+                  (k_layernorm): IdentityOp()
+                )
+                (pre_cross_attn_layernorm): IdentityOp()
+                (cross_attention): IdentityOp()
+                (cross_attn_bda): IdentityFuncOp()
+                (pre_mlp_layernorm): RMSNorm()
+                (mlp): MLP(
+                  (linear_fc1): ColumnParallelLinear()
+                  (linear_fc2): RowParallelLinear()
+                )
+              )
+            )
+          )
+        )
+        (projector): MultimodalProjector(
+          (layernorm): RMSNorm()
+          (encoder): MLP(
+            (linear_fc1): ColumnParallelLinear()
+            (linear_fc2): RowParallelLinear()
+          )
+        )
+      )
+      (text_decoder): MMGPTModel(
+        (embedding): LanguageModelEmbedding(
+          (word_embeddings): VocabParallelEmbedding()
+          (embedding_dropout): Dropout(p=0.0, inplace=False)
+        )
+        (rotary_pos_emb): Qwen2VLRotaryEmbedding_llm()
+        (decoder): TransformerBlock(
+          (layers): ModuleList(
+            (0-7): 8 x TransformerLayer(
+              (input_layernorm): RMSNorm()
+              (self_attention): Qwen2vlSelfAttention(
+                (core_attention): DotProductAttention(
+                  (scale_mask_softmax): FusedScaleMaskSoftmax()
+                  (attention_dropout): Dropout(p=0.0, inplace=False)
+                )
+                (linear_proj): RowParallelLinear()
+                (linear_qkv): ColumnParallelLinear()
+                (q_layernorm): IdentityOp()
+                (k_layernorm): IdentityOp()
+              )
+              (pre_cross_attn_layernorm): IdentityOp()
+              (cross_attention): IdentityOp()
+              (cross_attn_bda): IdentityFuncOp()
+              (pre_mlp_layernorm): RMSNorm()
+              (mlp): MLP(
+                (linear_fc1): ColumnParallelLinear()
+                (linear_fc2): RowParallelLinear()
+              )
+            )
+          )
+          (final_layernorm): RMSNorm()
+        )
+        (output_layer): ColumnParallelLinear()
+      )
+    )
+  )
+)]

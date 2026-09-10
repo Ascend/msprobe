@@ -53,4 +53,3 @@ VL 模型从第 7 个 token 起推理结果与 GPU 对不上、后续出现乱�
 ## 解决方案
 
 在 vLLM 模型中补齐 `KVMirrorManagerHook` 和 `KVMirrorManager` 两个模块的移植，使 key_states、value_states 的保存与取用逻辑与 GPU 侧一致。
-

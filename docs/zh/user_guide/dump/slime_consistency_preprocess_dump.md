@@ -327,8 +327,6 @@ SGLang 从 0.5.11 版本起原生内置 msProbe 能力，因此低于 0.5.11 版
 | **< 0.5.11** | 侵入式修改 `ModelRunner`，见下文。 |
 | **≥ 0.5.11** | 已原生内置msProbe工具，可直接在 `SGLANG_ARGS` 中指定参数 `--sglang-msprobe-dump-config` 进行精度数据采集。 |
 
-
-
 在 `sglang/srt/model_executor/model_runner.py` 中插入 `PrecisionDebugger` 接口。修改步骤如下。
 
 1. 在 `ModelRunner.__init__` 末尾实例化 debugger
@@ -454,14 +452,14 @@ slime 基于 Ray 启动训练 Worker 与推理引擎，环境变量须通过 `ra
 **4 卡示例**（`TP=1, PP=1, CP=1` → `DP=4`）：
 
 ```shell
---rollout-batch-size 1 
---n-samples-per-prompt 4 
+--rollout-batch-size 1
+--n-samples-per-prompt 4
 --global-batch-size 4
 
 --tensor-model-parallel-size 1
 
 --rollout-num-gpus-per-engine 4   # 启用 DP-Attention 时该值为 DP 而非 TP，此处 DP=4、TP=1，与训练侧 TP=1 一致
---sglang-dp-size 4 
+--sglang-dp-size 4
 --sglang-enable-dp-attention
 ```
 

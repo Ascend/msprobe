@@ -91,7 +91,7 @@
 
 通过pip list检查PyTorch、torch_npu等第三方库版本是否与标杆对齐。
 
-- **数据读取检查** 
+- **数据读取检查**
 
 检查模型推理的输入数据，一般可通过直接在代码中打印进行输入数据检查（如vLLM可以直接在llm.generate的输出中，通过output.prompt获取原始输入文本）。
 
@@ -247,7 +247,7 @@ gpu -> vllm/v1/worker/gpu_model_runner.py  GPUModelRunner.init函数
         scheduler_output: "SchedulerOutput",
         intermediate_tensors: Optional[IntermediateTensors] = None,
     ) -> Union[ModelRunnerOutput, torch.Tensor]:
-        # L0 use 
+        # L0 use
         # self.debugger.start(self.model)
         # L1 use
         self.debugger.start()
@@ -319,7 +319,7 @@ MindIE（Mind Inference Engine，昇腾推理引擎）是华为昇腾针对AI全
 当前仅支持通过源码编译的方式获取具有dump ATB模型精度数据能力的msProbe whl安装包。编译安装步骤如下：
 
 ```shell
-git clone https://gitcode.com/Ascend/msprobe.git
+git clone https://gitcode.com/Ascend/msprobe.git -b master
 cd msprobe
 
 pip install uv

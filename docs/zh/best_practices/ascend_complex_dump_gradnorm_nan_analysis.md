@@ -52,6 +52,7 @@
 #### 确认选卡顺序
 
 先从 rank0 的 dump 数据中搜索 NaN 和 Inf：
+
 - 若 rank0 中不存在 NaN 和 Inf，则从下一个 PP 组的 rank64 继续搜索（循环0卡操作）。
 - 若 rank0 中存在 NaN 和 Inf，则
   - 异常来自 rank0 本身，看本卡。
@@ -79,19 +80,19 @@
 #### 重点关注层：Attention、Layernorm、4层linear
 
 - **Attention（FA）**
-  
+
   ![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/attention_fa_trend.png)
-  
+
   顺序是192卡的FA.64衔接到128卡的FA.71，绿色线是gac分割线，呈逐层放大趋势。按照反向的从后往前的顺序深入分析，优先看最后一组VPP的32层（layer96\~65）：
-  
+
   1. 上图显示gac是分块并行而非完全串行的，如 gac1(71\~64)，gac2(79\~72)，gac3(97\~80)，gac4(95\~88)。
   2. 卡层数分析：
      - 右边 rank192，gac1(69\~64)，gac2(75\~70)，gac3(81\~76)，gac4(87\~82)，最后一组VPP每个gac有6层（有2层是填充的）其他为8层，一共是 gac4*6*最后一个VPP+gac4*8*前2个VPP=88。
      - 左边 rank128，gac1(71\~64)，gac2(79\~72)，gac3(97\~80)，gac4(95\~88)，每组VPP每个gac有8层，一共是 gac4*8*VPP3=96。
 - **Layernorm**：再看一下（Rmsnorm），跟FA的不同是1层有4个Rmsnorm（input、q、k、pre）。
-  
+
   ![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/layernorm_rmsnorm_trend.png)
-  
+
   Rmsnorm280是final_layernorm，此外每层layer有4个layernorm。
   FA和Rmsnorm都看到放大现象，FA的可能性比较大，但还是建议选择其中一层进行逐行分析。
 
@@ -171,4 +172,3 @@ FA 反向数据逐层放大导致 GradNorm 出现 NaN 的根因是：sparsemode=
 
 - 将 sparsemode 改为 2。
 - 或将 pre_tockens 设为算子默认值 2147483647。
-

@@ -40,4 +40,3 @@ embedding 反向输入为空时，返回了未初始化的数据。
 ## 解决方案
 
 修改 aclnnEmbeddingDenseBackward 逻辑：反向输入为空时返回 0 梯度，重新出包、验证后反向输出为 0。
-

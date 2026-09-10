@@ -12,12 +12,14 @@
 
 </div>
 
+简体中文 | [English](./README_EN.md)
+
 ## ✨ 最新消息
 
 <span style="font-size:14px;">
 
-🔹 **[2026.03.28]**：[msprobe 仓库 ADump 模块日落下线通知](https://gitcode.com/Ascend/msprobe/discussions/2)  
-🔹 **[2026.03.20]**：上线[大模型训练精度定位指南](docs/zh/best_practices/train_debug_guide.md)、[大模型推理精度定位指南](docs/zh/best_practices/infer_debug_guide.md)及[常用框架工具使能指南](docs/zh/best_practices/dump_enable_guide.md)  
+🔹 **[2026.03.28]**：[msprobe 仓库 ADump 模块日落下线通知](https://gitcode.com/Ascend/msprobe/discussions/2)
+🔹 **[2026.03.20]**：上线[大模型训练精度定位指南](docs/zh/best_practices/train_debug_guide.md)、[大模型推理精度定位指南](docs/zh/best_practices/infer_debug_guide.md)及[常用框架工具使能指南](docs/zh/best_practices/dump_enable_guide.md)
 🔹 **[2025.12.31]**：MindStudio Probe 精度调试工具全面开源
 
 </span>
@@ -52,9 +54,9 @@ msProbe 支持 PyPI 安装、WHL 安装、源码编译三种方式，具体请�
 
 ## 💡 典型案例
 
-🔹 [大模型训练精度定位指南](docs/zh/best_practices/train_debug_guide.md)  
-🔹 [大模型推理精度定位指南](docs/zh/best_practices/infer_debug_guide.md)  
-🔹 [常用框架工具使能指南](docs/zh/best_practices/dump_enable_guide.md)  
+🔹 [大模型训练精度定位指南](docs/zh/best_practices/train_debug_guide.md)
+🔹 [大模型推理精度定位指南](docs/zh/best_practices/infer_debug_guide.md)
+🔹 [常用框架工具使能指南](docs/zh/best_practices/dump_enable_guide.md)
 
 ## ❓ FAQ
 
@@ -62,10 +64,10 @@ msProbe 支持 PyPI 安装、WHL 安装、源码编译三种方式，具体请�
 
 ## 🌌 智能检索
 
-为提升文档查阅效率，我们提供多种高效检索方式：  
-🔹 [精确搜索（ReadTheDocs）](https://msprobe.readthedocs.io/zh-cn/latest/)：关键词全文检索，直达接口、参数与报错等信息。  
-🔹 [AI 问答（DeepWiki）](https://deepwiki.com/mindstudio-docs/master)：自然语言问答，快速把握项目架构与模块关系。  
-🔹 [AI 问答（ZRead）](https://zread.ai/mindstudio-docs/master)：中文问答体验更优，精准定位功能用法与细节。  
+为提升文档查阅效率，我们提供多种高效检索方式：
+🔹 [精确搜索（ReadTheDocs）](https://msprobe.readthedocs.io/zh-cn/latest/)：关键词全文检索，直达接口、参数与报错等信息。
+🔹 [AI 问答（DeepWiki）](https://deepwiki.com/mindstudio-docs/master)：自然语言问答，快速把握项目架构与模块关系。
+🔹 [AI 问答（ZRead）](https://zread.ai/mindstudio-docs/master)：中文问答体验更优，精准定位功能用法与细节。
 
 ## 🛠️ 贡献指南
 
@@ -73,11 +75,11 @@ msProbe 支持 PyPI 安装、WHL 安装、源码编译三种方式，具体请�
 
 ## ⚖️ 相关说明
 
-🔹 《[版本说明](https://gitcode.com/Ascend/msprobe/releases)》  
-🔹 《[开发者指南](docs/zh/development_guide/develop_guide.md)》  
-🔹 《[安全声明](docs/zh/legal/SECURITY.md)》  
-🔹 《[免责声明](docs/zh/legal/disclaimer.md)》  
-🔹 《[许可证声明](docs/zh/legal/license_notice.md)》  
+🔹 《[版本说明](https://gitcode.com/Ascend/msprobe/releases)》
+🔹 《[开发者指南](docs/zh/development_guide/develop_guide.md)》
+🔹 《[安全声明](docs/zh/legal/SECURITY.md)》
+🔹 《[免责声明](docs/zh/legal/disclaimer.md)》
+🔹 《[许可证声明](docs/zh/legal/license_notice.md)》
 
 ## 🤝 建议与交流
 
@@ -91,8 +93,8 @@ msProbe 支持 PyPI 安装、WHL 安装、源码编译三种方式，具体请�
 
 ## 🙏 致谢
 
-本工具由华为公司的下列部门联合贡献：  
-🔹 昇腾计算 MindStudio 开发部  
-🔹 分布式并行计算实验室  
+本工具由华为公司的下列部门联合贡献：
+🔹 昇腾计算 MindStudio 开发部
+🔹 分布式并行计算实验室
 
 感谢来自社区的每一个 PR，欢迎贡献 msProbe！
