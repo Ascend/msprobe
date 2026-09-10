@@ -1,0 +1,10 @@
+# Logic Buffer 工具链 — 环境版本说明
+# 实测验证栈（昇腾 NPU 主机）：
+torch==2.10.0+cpu
+torch-npu==2.10.0.post5.dev20260829
+triton==3.6.0
+# 可选：仅当你编译这些样例模型时才需要（torch.compile 采集本身不依赖）
+torchvision==0.25          # vgg16 等
+transformers==4.53         # bert / gpt2 / csa_moe / deltanet / mamba / kda 等
+# 可视化渲染（可选，xla_style_viz2 需要）：
+#   node 26 + @hpcc-js/wasm（graphviz 渲染，无系统 dot 时用）
