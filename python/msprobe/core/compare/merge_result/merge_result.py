@@ -22,8 +22,15 @@ from functools import partial
 import pandas as pd
 from tqdm import tqdm
 
-from msprobe.core.common.file_utils import load_yaml, logger, FileChecker, save_excel, read_xlsx, create_directory, \
-    remove_path
+from msprobe.core.common.file_utils import (
+    load_yaml,
+    logger,
+    FileChecker,
+    save_excel,
+    read_xlsx,
+    create_directory,
+    remove_path,
+)
 from msprobe.core.common.const import FileCheckConst, Const, CompareConst
 from msprobe.core.common.utils import CompareException, add_time_with_xlsx
 from msprobe.core.compare.utils import table_value_is_valid
@@ -51,8 +58,7 @@ def reorder_path(compare_result_path_list):
     """
     rank_pattern = r"compare_result_rank(\d+)"
     reorder_path_list = sorted(
-        compare_result_path_list,
-        key=lambda path: int(re.search(rank_pattern, os.path.basename(path)).group(1))
+        compare_result_path_list, key=lambda path: int(re.search(rank_pattern, os.path.basename(path)).group(1))
     )
     return reorder_path_list
 
@@ -61,8 +67,9 @@ def get_result_path(input_dir):
     """
     get rank ordered compare result file path list
     """
-    compare_result_path_list = [os.path.join(input_dir, f)
-                                for f in os.listdir(input_dir) if f.endswith(FileCheckConst.XLSX_SUFFIX)]
+    compare_result_path_list = [
+        os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith(FileCheckConst.XLSX_SUFFIX)
+    ]
     filt_compare_result_path_list = []
     for file_path in compare_result_path_list:
         FileChecker(file_path, FileCheckConst.FILE, FileCheckConst.READ_ABLE).common_check()
@@ -72,30 +79,33 @@ def get_result_path(input_dir):
             compare_result_path = compare_result_path_checker.common_check()
             filt_compare_result_path_list.append(compare_result_path)
 
-    filt_compare_result_path_list = reorder_path(filt_compare_result_path_list)       # 多卡比对结果按rank序号重新排序
+    filt_compare_result_path_list = reorder_path(filt_compare_result_path_list)  # 多卡比对结果按rank序号重新排序
 
     if len(filt_compare_result_path_list) < 2:
-        logger.warning("Number of compare result is no more than 1, no need to merge.")     # 单卡结果无需合并，直接退出
+        logger.warning("Number of compare result is no more than 1, no need to merge.")  # 单卡结果无需合并，直接退出
         raise CompareException(CompareException.MERGE_COMPARE_RESULT_ERROR)
     return filt_compare_result_path_list
 
 
 def get_dump_mode(result_df, rank_num):
-
     """
     get dump mode from header of first compare result table
     """
     header = result_df.columns.tolist()
-    if header in [CompareConst.COMPARE_RESULT_HEADER + [CompareConst.DATA_NAME],
-                  CompareConst.COMPARE_RESULT_HEADER_STACK + [CompareConst.DATA_NAME]]:
+    if header in [
+        CompareConst.COMPARE_RESULT_HEADER + [CompareConst.DATA_NAME],
+        CompareConst.COMPARE_RESULT_HEADER_STACK + [CompareConst.DATA_NAME],
+    ]:
         return Const.ALL
     elif header in [CompareConst.SUMMARY_COMPARE_RESULT_HEADER, CompareConst.SUMMARY_COMPARE_RESULT_HEADER_STACK]:
         return Const.SUMMARY
     elif header in [CompareConst.MD5_COMPARE_RESULT_HEADER, CompareConst.MD5_COMPARE_RESULT_HEADER_STACK]:
         return Const.MD5
     else:
-        logger.warning(f"A valid dump task can not be identified from rank{rank_num} compare result, please check! "
-                       f"The compare result will not be shown in merged result.")
+        logger.warning(
+            f"A valid dump task can not be identified from rank{rank_num} compare result, please check! "
+            f"The compare result will not be shown in merged result."
+        )
         return ""
 
 
@@ -105,13 +115,15 @@ def check_index_dump_mode_consistent(dump_mode, rank_num):
     if compare_index_list is None, return all compare_indexes of dump mode
     """
     if dump_mode == Const.MD5:
-        logger.warning(f"Rank{rank_num} compare result is 'md5' dump task and does not support merging result, please "
-                       f"check! The compare result will not be shown in merged result.")
+        logger.warning(
+            f"Rank{rank_num} compare result is 'md5' dump task and does not support merging result, please "
+            f"check! The compare result will not be shown in merged result."
+        )
         return []
 
     dump_mode_compare_index_map = {
         Const.ALL: CompareConst.ALL_COMPARE_INDEX + [CompareConst.REQ_GRAD_CONSIST],
-        Const.SUMMARY: CompareConst.SUMMARY_COMPARE_INDEX + [CompareConst.REQ_GRAD_CONSIST]
+        Const.SUMMARY: CompareConst.SUMMARY_COMPARE_INDEX + [CompareConst.REQ_GRAD_CONSIST],
     }
     valid_compare_index = dump_mode_compare_index_map.get(dump_mode)
 
@@ -125,9 +137,11 @@ def check_index_dump_mode_consistent(dump_mode, rank_num):
         return share_list
     else:
         invalid_compare_index = set(valid_compare_index) - set(share_list)
-        logger.warning(f"Compare indexes in rank{rank_num} compare result are not consistent with "
-                       f"those in other compare results, please check!")
-        logger.warning(f"The compare result will not be shown in merged result.")
+        logger.warning(
+            f"Compare indexes in rank{rank_num} compare result are not consistent with "
+            f"those in other compare results, please check!"
+        )
+        logger.warning("The compare result will not be shown in merged result.")
         logger.warning(f"The invalid compare indexes: {invalid_compare_index}")
         return []
 
@@ -141,7 +155,8 @@ def extract_api_full_name(api_list, result_df, rank_num):
         api_pat = api + Const.SEP
         escaped_api_pat = api_pat.replace('.', r'\.')
         single_api_full_name_list = result_df.loc[
-            result_df[CompareConst.NPU_NAME].str.contains(escaped_api_pat, na=False), CompareConst.NPU_NAME].tolist()
+            result_df[CompareConst.NPU_NAME].str.contains(escaped_api_pat, na=False), CompareConst.NPU_NAME
+        ].tolist()
         if len(single_api_full_name_list) == 0:
             logger.warning(f"{api} not found in rank{rank_num} compare result.")
             continue
@@ -181,8 +196,7 @@ def search_api_index_result(api_list, compare_index_list, result_df, rank_num, c
 
 def table_value_check(value):
     if not table_value_is_valid(value):
-        raise RuntimeError(
-            f"Malicious value [{value}] is not allowed to be written into the merged xlsx.")
+        raise RuntimeError(f"Malicious value [{value}] is not allowed to be written into the merged xlsx.")
 
 
 def result_process(compare_result_path_list, api_list):
@@ -210,8 +224,9 @@ def result_process(compare_result_path_list, api_list):
             if len(compare_index_list) == 0:
                 return [], [], []
             compare_index_list.extend([CompareConst.NPU_MAX, CompareConst.BENCH_MAX])
-            compare_index_dict = search_api_index_result(api_list, compare_index_list,
-                                                         result_df, rank_num, compare_index_dict)
+            compare_index_dict = search_api_index_result(
+                api_list, compare_index_list, result_df, rank_num, compare_index_dict
+            )
             compare_index_dict_list.append(compare_index_dict)
             rank_num_list.append(rank_num)
             compare_index_list.pop()
@@ -232,9 +247,13 @@ def handle_multi_process(func, func_args, lock):
         chunks = [[compare_result_path] for compare_result_path in compare_result_path_list]
     else:
         chunk_size = result_num // process_num
-        chunks = [compare_result_path_list[i:i + chunk_size] for i in range(0, result_num, chunk_size)]
+        chunks = [compare_result_path_list[i : i + chunk_size] for i in range(0, result_num, chunk_size)]
 
-    pool = multiprocessing.Pool(process_num)
+    pool = multiprocessing.Pool(  # pylint: disable=consider-using-with
+        process_num,
+        initializer=init_worker,
+        initargs=(share_compare_index_list,),
+    )
 
     def err_call(args):
         logger.error('Multiprocess merge result failed! Reason: {}'.format(args))
@@ -252,11 +271,12 @@ def handle_multi_process(func, func_args, lock):
     results = []
     for chunk in chunks:
         chunk_size = len(chunk)
-        result = pool.apply_async(func,     # pool.apply_async立即返回ApplyResult对象，因此results中结果是顺序的
-                                  args=(chunk, api_list),
-                                  error_callback=err_call,
-                                  callback=partial(update_progress, chunk_size, lock)
-                                  )
+        result = pool.apply_async(
+            func,  # pool.apply_async立即返回ApplyResult对象，因此results中结果是顺序的
+            args=(chunk, api_list),
+            error_callback=err_call,
+            callback=partial(update_progress, chunk_size, lock),
+        )
         results.append(result)
 
     all_compare_index_dict_list = []
@@ -355,11 +375,22 @@ def df_merge(all_result_df_list):
             merge_df_base[i] = pd.merge(merge_df_base[i], sub_df, on=CompareConst.NPU_NAME, how='outer')
     for i, value in enumerate(merge_df_base):
         merge_df_base[i] = value.reindex(
-            columns=[CompareConst.NPU_NAME] + [col for col in value.columns if col != CompareConst.NPU_NAME])
+            columns=[CompareConst.NPU_NAME] + [col for col in value.columns if col != CompareConst.NPU_NAME]
+        )
     return merge_df_base
 
 
 share_compare_index_list = []
+
+
+def init_worker(share_index_list):
+    """
+    pool worker initializer, pass the shared compare index list to worker process explicitly.
+    forkserver/spawn start method workers do not inherit module globals from parent process,
+    so the shared list must be delivered through Pool initargs (python3.14+ defaults to forkserver on linux).
+    """
+    global share_compare_index_list
+    share_compare_index_list = share_index_list
 
 
 def initialize_compare_index(config):
@@ -372,7 +403,9 @@ def merge_result(input_dir, output_dir, config_path):
     input_dir = FileChecker(input_dir, FileCheckConst.DIR, FileCheckConst.READ_ABLE).common_check()
     create_directory(output_dir)
 
-    compare_result_path_list = get_result_path(input_dir)   # 获得的input_dir中所有比对结果件的全路径，数量少于2，便提示退出
+    compare_result_path_list = get_result_path(
+        input_dir
+    )  # 获得的input_dir中所有比对结果件的全路径，数量少于2，便提示退出
 
     config = load_yaml(config_path)
     config = check_config(config)
@@ -382,7 +415,8 @@ def merge_result(input_dir, output_dir, config_path):
     initialize_compare_index(config)
 
     func_args = (compare_result_path_list, api_list)
-    all_compare_index_dict_list, all_rank_num_list, all_compare_index_list_list = (
-        handle_multi_process(result_process, func_args, multiprocessing.Manager().RLock()))
+    all_compare_index_dict_list, all_rank_num_list, all_compare_index_list_list = handle_multi_process(
+        result_process, func_args, multiprocessing.Manager().RLock()
+    )
 
     generate_merge_result(all_compare_index_dict_list, all_rank_num_list, all_compare_index_list_list, output_dir)
