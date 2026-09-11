@@ -20,8 +20,8 @@ English | [简体中文](./README.md)
 
 <span style="font-size:14px;">
 
-🔹 **[2026.03.28]**: [End-of-Life Notice for the ADump Module in the msProbe Repository](https://gitcode.com/Ascend/msprobe/discussions/2)
-🔹 **[2026.03.20]**: Released *Foundation Model Training Accuracy Debugging*, *Foundation Model Inference Accuracy Debugging*, and *Enabling Tools for Common Frameworks*
+🔹 **[2026.03.28]**: [End-of-Life Notice for the ADump Module in the msProbe Repository](https://gitcode.com/Ascend/msprobe/discussions/2)<br>
+🔹 **[2026.03.20]**: Released *Foundation Model Training Accuracy Debugging*, *Foundation Model Inference Accuracy Debugging*, and *Enabling Tools for Common Frameworks*<br>
 🔹 **[2025.12.31]**: MindStudio Probe Completely Open-Sourced
 
 </span>
@@ -90,15 +90,15 @@ msProbe's features cover various scenarios such as training and inference. Based
 
 ## 💡 Typical Cases
 
-🔹 [Foundation Model Training Accuracy Debugging](docs/en/best_practices/train_debug_guide.md)
-🔹 [Foundation Model Inference Accuracy Debugging](docs/en/best_practices/infer_debug_guide.md)
+🔹 [Foundation Model Training Accuracy Debugging](docs/en/best_practices/train_debug_guide.md)<br>
+🔹 [Foundation Model Inference Accuracy Debugging](docs/en/best_practices/infer_debug_guide.md)<br>
 🔹 [Enabling Tools for Common Frameworks](docs/en/best_practices/dump_enable_guide.md)
 
 ## 📚 Supplementary Materials
 
-🔹 [Precision Data Collection Baseline in PyTorch](docs/en/baseline/pytorch_data_dump_perf_baseline.md)
-🔹 [Precision Pre-check Baseline in MindSpore](docs/en/baseline/mindspore_accuracy_checker_perf_baseline.md)
-🔹 [Precision Data Collection Baseline in MindSpore](docs/en/baseline/mindspore_data_dump_perf_baseline.md)
+🔹 [Precision Data Collection Baseline in PyTorch](docs/en/baseline/pytorch_data_dump_perf_baseline.md)<br>
+🔹 [Precision Pre-check Baseline in MindSpore](docs/en/baseline/mindspore_accuracy_checker_perf_baseline.md)<br>
+🔹 [Precision Data Collection Baseline in MindSpore](docs/en/baseline/mindspore_data_dump_perf_baseline.md)<br>
 🔹 [Performance Baseline Report of the Training Status Monitoring Tool](docs/en/baseline/monitor_perf_baseline.md)
 
 ## ❓ FAQs
@@ -107,9 +107,9 @@ For a summary of frequently asked questions and solutions, see *[FAQs](docs/en/s
 
 ## 🌌 Intelligent Search
 
-To improve document search efficiency, we provide:
-🔹 [Exact Search (ReadTheDocs)](https://msprobe.readthedocs.io/zh-cn/latest/): Full-text keyword search, directly accessing information such as APIs, parameters, and error messages.
-🔹 [AI Q&A (DeepWiki)](https://deepwiki.com/mindstudio-docs/master): Natural language Q&A, quickly grasping the project architecture and module relationships.
+To improve document search efficiency, we provide:<br>
+🔹 [Exact Search (ReadTheDocs)](https://msprobe.readthedocs.io/zh-cn/latest/): Full-text keyword search, directly accessing information such as APIs, parameters, and error messages.<br>
+🔹 [AI Q&A (DeepWiki)](https://deepwiki.com/mindstudio-docs/master): Natural language Q&A, quickly grasping the project architecture and module relationships.<br>
 🔹 [AI Q&A (ZRead)](https://zread.ai/mindstudio-docs/master): Better Chinese Q&A experience, precisely locating feature usage and details.
 
 ## 🛠️ Contribution Guide
@@ -118,10 +118,10 @@ Welcome to contribute to this project. Please read *[Contribution Guide](docs/en
 
 ## ⚖️ Related Notes
 
-🔹 *[Release Notes](https://gitcode.com/Ascend/msprobe/releases)*
-🔹 *[Developer Guide](docs/en/development_guide/develop_guide.md)*
-🔹 *[Security Statement](docs/en/legal/SECURITY.md)*
-🔹 *[Disclaimer](docs/en/legal/disclaimer.md)*
+🔹 *[Release Notes](https://gitcode.com/Ascend/msprobe/releases)*<br>
+🔹 *[Developer Guide](docs/en/development_guide/develop_guide.md)*<br>
+🔹 *[Security Statement](docs/en/legal/SECURITY.md)*<br>
+🔹 *[Disclaimer](docs/en/legal/disclaimer.md)*<br>
 🔹 *[License Notice](docs/en/legal/license_notice.md)*
 
 ## 🤝 Suggestions and Communication
@@ -134,8 +134,8 @@ We welcome everyone to contribute to the community. If you have any questions or
 
 ## 🙏 Acknowledgments
 
-This tool is jointly contributed by the following departments of Huawei:
-🔹 Ascend Computing MindStudio Development Department
+This tool is jointly contributed by the following departments of Huawei:<br>
+🔹 Ascend Computing MindStudio Development Department<br>
 🔹 Parallel Distributed Computing Laboratory
 
 Thank you for every PR from the community. Contributions to msProbe are welcome!
