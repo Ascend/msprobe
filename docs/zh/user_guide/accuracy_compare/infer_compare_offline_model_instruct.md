@@ -24,6 +24,8 @@
 
 仅支持ONNX、OM模型比对。
 
+由于该功能依赖aclruntime，而aclruntime仅更新维护到Python 3.12版本，因此该功能仅支持Python 3.12及以下版本（Python <= 3.12）。
+
 一键式精度比对依赖CANN功能，用户可通过环境变量ASCEND_TOOLKIT_HOME修改CANN路径，默认路径为/usr/local/Ascend/cann。
 
 **安全风险提示**

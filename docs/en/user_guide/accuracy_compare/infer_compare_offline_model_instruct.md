@@ -24,6 +24,8 @@ Note that the `--no_check` parameter skips the certificate information check of 
 
 Only ONNX and OM models can be compared.
 
+This feature depends on `aclruntime`, which is maintained only up to Python 3.12. Therefore, this feature supports only Python 3.12 and earlier versions (Python <= 3.12).
+
 One-click precision comparison depends on CANN. You can use the environment variable `ASCEND_TOOLKIT_HOME` to modify the CANN path. The default path is `/usr/local/Ascend/cann`.
 
 **Security Warning**

@@ -22,6 +22,8 @@ msprobe install_deps -m offline [--no_check]
 
 Only ONNX and OM model data can be collected.
 
+This feature depends on `aclruntime`, which is maintained only up to Python 3.12. Therefore, this feature supports only Python 3.12 and earlier versions (Python <= 3.12).
+
 OM model data dumping depends on CANN. You can use the environment variable **ASCEND_TOOLKIT_HOME** to change the CANN path. The default path is **/usr/local/Ascend/cann**.
 
 **Security Warning**
