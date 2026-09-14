@@ -357,9 +357,11 @@ class Const:  # pylint: disable=too-many-lines
     ]
     FLOAT16 = "Float16"
     FLOAT32 = "Float32"
+    FLOAT64 = "Float64"
     BFLOAT16 = "BFloat16"
     TORCH_FLOAT16 = "torch.float16"
     TORCH_FLOAT32 = "torch.float32"
+    TORCH_FLOAT64 = "torch.float64"
     TORCH_BFLOAT16 = "torch.bfloat16"
 
     TYPE = 'type'
@@ -840,8 +842,8 @@ class CompareConst:
     # dtype match
 
     DTYPE_MATCH_GROUPS = [
-        {Const.FLOAT16, Const.FLOAT32, Const.BFLOAT16},
-        {Const.TORCH_FLOAT16, Const.TORCH_FLOAT32, Const.TORCH_BFLOAT16},
+        {Const.FLOAT16, Const.FLOAT32, Const.FLOAT64, Const.BFLOAT16},
+        {Const.TORCH_FLOAT16, Const.TORCH_FLOAT32, Const.TORCH_FLOAT64, Const.TORCH_BFLOAT16},
     ]
 
     # read_op
