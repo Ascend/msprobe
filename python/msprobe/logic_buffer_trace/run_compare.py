@@ -370,10 +370,35 @@ VIEW_FX_OPS = (
     "aten.contiguous",
 )
 
+# After AOT autograd transforms, a view op (e.g. permute) can become a graph
+# input: its FX node is a ``placeholder`` whose ``target`` is the node *name*
+# (e.g. ``permute_126``) rather than the qualified op (``aten.permute.default``).
+# Matching on ``fx_target`` alone misses those, so the dedup in build_maps keeps
+# them alongside the real compute producer and they surface as spurious
+# shape/value mismatches. Match the ``<op>_`` prefix on the node name as well.
+VIEW_FX_NODE_PREFIXES = (
+    "view_",
+    "reshape_",
+    "squeeze_",
+    "unsqueeze_",
+    "permute_",
+    "transpose_",
+    "as_strided_",
+    "flatten_",
+    "unflatten_",
+    "expand_",
+    "contiguous_",
+)
+
 
 def _is_pure_view_fx(row: Dict[str, Any]) -> bool:
     target = str(row.get("fx_target") or "")
-    return any(v in target for v in VIEW_FX_OPS)
+    if any(v in target for v in VIEW_FX_OPS):
+        return True
+    node_name = str(row.get("fx_node") or "")
+    # node names look like ``permute_126``; match the ``<op>_`` prefix so we do
+    # not catch compute ops whose name merely contains a view substring.
+    return any(node_name.startswith(p) for p in VIEW_FX_NODE_PREFIXES)
 
 
 def build_maps(trace_dir: Path) -> Tuple[Dict[str, List[Dict[str, Any]]], List[Dict[str, Any]]]:
