@@ -30,6 +30,7 @@ verl还在 `verl.experimental.fully_async_policy` 中提供独立的Fully Async�
 
 ```diff
 export DUMP_ON=1                # 启用训练侧msprobe采集
+export DUMP_PHASE=update_actor  # V1 prompt-only采集仅支持update_actor阶段
 export PROMPTS_ONLY=1           # 将训练输入裁剪为prompt-only
 
 # 启动入口为main_ppo
@@ -47,9 +48,10 @@ python3 -m verl.trainer.main_ppo \
 
 **说明**：
 
+- 本文的V1 prompt-only采集仅支持 `update_actor` 阶段，必须设置 `DUMP_PHASE=update_actor`，不能直接沿用基线代码默认的 `log_prob`。该限制不适用于下文的独立Fully Async方案。
 - `PROMPTS_ONLY=1` 会改变训练输入，仅用于训推一致性采集。
 - 该模式下的loss和梯度不代表正常训练结果。
-- 采集结束后，应取消 `DUMP_ON`、`PROMPTS_ONLY` 和推理侧
+- 采集结束后，应取消 `DUMP_ON`、`DUMP_PHASE`、`PROMPTS_ONLY` 和推理侧
   `dump_config_path`，恢复正常训练配置。
 
 ### Fully Async
@@ -64,11 +66,11 @@ Fully Async继续沿用[基线文档](./verl_async_consistency_preprocess_dump.m
 
 | 文件 | 修改类型 | 说明 | 对应小节 |
 | --- | --- | --- | --- |
-| `vllm_ascend/worker/dispatch_logger.py` | 新增 | 记录推理侧每个采集step的request ID | [推理侧：调度日志记录](./verl_async_consistency_preprocess_dump.md#推理侧调度日志记录) |
-| `vllm_ascend/worker/model_runner_v1.py` | 修改 | 初始化DispatchLogger，并同步记录调度日志和msprobe step | [推理侧：vLLM模型执行采集](./verl_async_consistency_preprocess_dump.md#推理侧vllm-模型执行采集) |
-| `verl/workers/engine/fsdp/transformer_impl.py` | 修改 | FSDP训练侧采集和request ID日志 | [训练侧：FSDP后端](./verl_async_consistency_preprocess_dump.md#fsdp-后端) |
-| `verl/workers/engine/megatron/transformer_impl.py` | 修改 | Megatron训练侧采集和request ID日志 | [训练侧：Megatron后端](./verl_async_consistency_preprocess_dump.md#megatron-后端) |
-| `verl/workers/rollout/llm_server.py` | 修改 | `LLMServerClient` 注入request ID | [Request ID贯穿链路](./verl_async_consistency_preprocess_dump.md#request-id-贯穿链路) |
+| `vllm_ascend/worker/dispatch_logger.py` | 新增 | 记录推理侧每个采集step的request ID | [【基线文档】推理侧：调度日志记录](./verl_async_consistency_preprocess_dump.md#推理侧调度日志记录) |
+| `vllm_ascend/worker/model_runner_v1.py` | 修改 | 初始化DispatchLogger，并同步记录调度日志和msprobe step | [【基线文档】推理侧：vLLM模型执行采集](./verl_async_consistency_preprocess_dump.md#推理侧vllm-模型执行采集) |
+| `verl/workers/engine/fsdp/transformer_impl.py` | 修改 | FSDP训练侧采集和request ID日志 | [【基线文档】训练侧：FSDP后端](./verl_async_consistency_preprocess_dump.md#fsdp-后端) |
+| `verl/workers/engine/megatron/transformer_impl.py` | 修改 | Megatron训练侧采集和request ID日志 | [【基线文档】训练侧：Megatron后端](./verl_async_consistency_preprocess_dump.md#megatron-后端) |
+| `verl/workers/rollout/llm_server.py` | 修改 | `LLMServerClient` 注入request ID | [【基线文档】Request ID贯穿链路](./verl_async_consistency_preprocess_dump.md#request-id-贯穿链路) |
 | `verl/trainer/ppo/v1/agent_loop_tq.py` | 修改 | 将request ID写入TransferQueue顶层字段 | [AgentLoopWorkerTQ传递request ID](#agentloopworkertq传递request-id) |
 | `verl/workers/engine_workers.py` | 修改 | 裁剪V1 jagged batch中的response | [Actor Worker裁剪prompt-only输入](#actor-worker裁剪prompt-only输入) |
 
@@ -76,10 +78,10 @@ Fully Async继续沿用[基线文档](./verl_async_consistency_preprocess_dump.m
 
 | 文件 | 修改类型 | 说明 | 对应小节 |
 | --- | --- | --- | --- |
-| `vllm_ascend/worker/dispatch_logger.py` | 新增 | 记录推理侧每个采集step的request ID | [推理侧：调度日志记录](./verl_async_consistency_preprocess_dump.md#推理侧调度日志记录) |
-| `vllm_ascend/worker/model_runner_v1.py` | 修改 | 初始化DispatchLogger，并同步记录调度日志和msprobe step | [推理侧：vLLM模型执行采集](./verl_async_consistency_preprocess_dump.md#推理侧vllm-模型执行采集) |
-| `verl/workers/engine/fsdp/transformer_impl.py` | 修改 | FSDP训练侧采集和request ID日志 | [训练侧：FSDP后端](./verl_async_consistency_preprocess_dump.md#fsdp-后端) |
-| `verl/workers/engine/megatron/transformer_impl.py` | 修改 | Megatron训练侧采集和request ID日志 | [训练侧：Megatron后端](./verl_async_consistency_preprocess_dump.md#megatron-后端) |
+| `vllm_ascend/worker/dispatch_logger.py` | 新增 | 记录推理侧每个采集step的request ID | [【基线文档】推理侧：调度日志记录](./verl_async_consistency_preprocess_dump.md#推理侧调度日志记录) |
+| `vllm_ascend/worker/model_runner_v1.py` | 修改 | 初始化DispatchLogger，并同步记录调度日志和msprobe step | [【基线文档】推理侧：vLLM模型执行采集](./verl_async_consistency_preprocess_dump.md#推理侧vllm-模型执行采集) |
+| `verl/workers/engine/fsdp/transformer_impl.py` | 修改 | FSDP训练侧采集和request ID日志 | [【基线文档】训练侧：FSDP后端](./verl_async_consistency_preprocess_dump.md#fsdp-后端) |
+| `verl/workers/engine/megatron/transformer_impl.py` | 修改 | Megatron训练侧采集和request ID日志 | [【基线文档】训练侧：Megatron后端](./verl_async_consistency_preprocess_dump.md#megatron-后端) |
 | `verl/workers/rollout/llm_server.py` | 修改 | 注入request ID，并保留partial rollout分段ID | [保留partial rollout的request ID](#保留partial-rollout的request-id) |
 | `verl/experimental/fully_async_policy/fully_async_trainer.py` | 修改 | 裁剪padded DataProto中的response | [prompt-only输入](#prompt-only输入) |
 
