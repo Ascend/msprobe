@@ -17,6 +17,11 @@
 import re
 import math
 
+try:
+    import torch
+except ImportError:
+    torch = None
+
 from msprobe.core.common.const import Const
 from msprobe.visualization.graph.graph import Graph, BaseNode
 from msprobe.visualization.graph.node_op import NodeOp
@@ -637,6 +642,36 @@ class TPMerger(BaseGraphMerger):
         },
     }
     TP_MERGED_INFO = "This data is the merged data after tensor parallelism(TP), and the data is merged from rank "
+    # 各rank统计值是用低精度浮点计算的，合并算术使用python float(float64)，合并结果需还原到采集时的精度，
+    # 否则与单卡场景（如tp1）的统计值相比会出现浮点偏差；无torch环境时不做精度还原
+    LOW_PRECISION_MERGE_DTYPE_MAP = (
+        {
+            Const.TORCH_BFLOAT16: torch.bfloat16,
+            Const.TORCH_FLOAT16: torch.float16,
+            Const.TORCH_FLOAT32: torch.float32,
+            Const.BFLOAT16: torch.bfloat16,
+            Const.FLOAT16: torch.float16,
+            Const.FLOAT32: torch.float32,
+        }
+        if torch is not None
+        else {}
+    )
+
+    @staticmethod
+    def _cast_to_origin_dtype(value, param):
+        """
+        将合并后的统计值还原为采集时的dtype，低精度浮点(bfloat16/float16等)统计值合并后不应带上float64精度
+        """
+        if not isinstance(value, float) or math.isnan(value) or math.isinf(value):
+            return value
+        merge_dtype = TPMerger.LOW_PRECISION_MERGE_DTYPE_MAP.get(param.get(Const.DTYPE))
+        if merge_dtype is None:
+            return value
+        try:
+            return torch.tensor(value, dtype=merge_dtype).item()
+        except (OverflowError, ValueError) as e:
+            logger.warning(f"Failed to cast merged value {value} to {merge_dtype} with error info: {e}.")
+            return value
 
     @staticmethod
     def _merge_params(tp_need_merge_param: dict):
@@ -664,6 +699,7 @@ class TPMerger(BaseGraphMerger):
                     value_list.append(other_param.get(stat) if stat != Const.NORM else other_param.get(Const.NORM))
 
                 final_value = ops["finalize"](current_value, len(param_list))
+                final_value = TPMerger._cast_to_origin_dtype(final_value, main_param)
                 main_param[stat] = final_value
                 formula_base = f"{ops['formula'](key, value_list)}" + f" = {final_value}"
 
