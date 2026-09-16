@@ -2,7 +2,7 @@
 
 ## 环境信息
 
-NPU：昇腾A2系列产品
+NPU：Atlas A2 系列产品
 
 CPU：
 
