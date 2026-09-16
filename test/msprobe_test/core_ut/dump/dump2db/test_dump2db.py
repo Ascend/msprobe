@@ -650,8 +650,8 @@ class TestScanFilesAdditional(unittest.TestCase):
         self.assertIn(2, rank_ids)
 
 
-class TestDetermineMetricTypeFSDP(unittest.TestCase):
-    """测试_determine_metric_type的FSDP场景"""
+class TestDetermineMetricTypeParametersGradIndex(unittest.TestCase):
+    """测试_determine_metric_type中parameters_grad带数字index后缀的场景"""
 
     def setUp(self):
         self.mock_db = Mock(spec=DumpDB)
@@ -662,15 +662,24 @@ class TestDetermineMetricTypeFSDP(unittest.TestCase):
             micro_step=None
         )
 
-    def test_fsdp_parameters_grad(self):
-        """FSDP格式的parameters_grad检测"""
-        # fsdp格式：parts[-2] == Const.PARAMS_GRAD
+    def test_parameters_grad_with_suffix(self):
+        """parameters_grad带非数字后缀时，仅识别metric类型"""
+        # 格式：parts[-2] == Const.PARAMS_GRAD
         full_key = "Module.fsdp_unit.parameters_grad.something"
         with patch("msprobe.core.dump.dump2db.dump2db.Const.SEP", "."), \
              patch("msprobe.core.dump.dump2db.dump2db.Const.PARAMS_GRAD", "parameters_grad"):
             metric_type, processed_key = self.builder._determine_metric_type(full_key, {})
             self.assertEqual(metric_type, Data2DBConst.PARAMETERS_GRAD)
             self.assertEqual(processed_key, "Module.fsdp_unit")
+
+    def test_parameters_grad_with_index(self):
+        """parameters_grad带数字index后缀时，index后缀应保留"""
+        full_key = "Module.fsdp_unit.parameters_grad.0"
+        with patch("msprobe.core.dump.dump2db.dump2db.Const.SEP", "."), \
+             patch("msprobe.core.dump.dump2db.dump2db.Const.PARAMS_GRAD", "parameters_grad"):
+            metric_type, processed_key = self.builder._determine_metric_type(full_key, {})
+            self.assertEqual(metric_type, Data2DBConst.PARAMETERS_GRAD)
+            self.assertEqual(processed_key, "Module.fsdp_unit.0")
 
 
 class TestProcessForwardDataUnsupported(unittest.TestCase):
@@ -917,6 +926,39 @@ class TestProcessDumpFileMicroStep(unittest.TestCase):
                        return_value={"Module.layer1.conv.forward.0": "Module.layer1.conv.forward.0"}):
                 result = self.builder._process_dump_file(dump_path, construct_path, 0, 0)
                 self.assertIsNotNone(result)
+
+    def test_process_with_parameters_grad(self):
+        """micro_step模式下parameters_grad数据不应被丢弃（construct.json中无parameters_grad节点）"""
+        dump_path = self._create_json_file({
+            "data": {
+                "Module.layer1.conv.forward.0": {
+                    Const.INPUT_ARGS: [self.valid_tensor]
+                },
+                "Module.layer1.conv.parameters_grad.0": {
+                    "weight": [self.valid_tensor]
+                }
+            }
+        })
+        construct_path = self._create_construct_file({
+            "Module.layer1.conv.forward.0": 0
+        })
+
+        self.mock_db.get_metric_id.side_effect = [1, 4]  # forward -> 1, parameters_grad -> 4
+
+        # mock extract_root_nodes 和 reindex_keys_with_mapping 简化测试
+        with patch("msprobe.core.dump.dump2db.dump2db.extract_root_nodes",
+                   return_value={"Module.layer1.conv.forward.0": 0}):
+            with patch("msprobe.core.dump.dump2db.dump2db.reindex_keys_with_mapping",
+                       return_value={"Module.layer1.conv.forward.0": "Module.layer1.conv.forward.0"}):
+                result = self.builder._process_dump_file(dump_path, construct_path, 0, 0)
+                self.assertIsNotNone(result)
+
+        # parameters_grad数据应正常写入（通过forward节点匹配micro_step，不再被跳过）
+        called_targets = [call.args[0] for call in self.mock_db.cache_targets.call_args_list]
+        self.assertTrue(
+            any(target[0] == "Module.layer1.conv.weight" for target in called_targets),
+            f"parameters_grad target should be cached, got: {called_targets}",
+        )
 
 
 class TestImportDataMicroStep(unittest.TestCase):

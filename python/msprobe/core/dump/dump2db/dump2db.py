@@ -329,12 +329,15 @@ class DumpRecordBuilder:
         elif full_key.endswith(Const.PARAMS_GRAD):
             metric_type = Data2DBConst.PARAMETERS_GRAD
             full_key = full_key.replace(f"{Const.SEP}{Const.PARAMS_GRAD}", "")
-        # fsdp
+        # parameters_grad带数字index后缀（如Module.a.parameters_grad.0，micro_step场景下普遍存在）
         elif len(full_key.split(Const.SEP)) >= 3:
             parts = full_key.split(Const.SEP)
             if parts[-2] == Const.PARAMS_GRAD:
                 metric_type = Data2DBConst.PARAMETERS_GRAD
-                full_key = Const.SEP.join(parts[:-2])
+                # 保留parameters_grad后的数字index后缀（如.0/.1/.2），否则多个index的数据会折叠成同一target
+                full_key = (
+                    Const.SEP.join(parts[:-2] + [parts[-1]]) if parts[-1].isdigit() else Const.SEP.join(parts[:-2])
+                )
 
         return metric_type, full_key
 
@@ -452,6 +455,11 @@ class DumpRecordBuilder:
                 continue
             # 对于micro_step内, 对index重新计数
             full_key = index_mapping.get(ori_key, None) if index_mapping else ori_key
+            if not full_key and Const.PARAMS_GRAD in ori_key:
+                # construct.json中无parameters_grad节点，通过同模块的forward节点匹配micro_step，key本身保持不变
+                fwd_key = ori_key.replace(f"{Const.SEP}{Const.PARAMS_GRAD}", f"{Const.SEP}{Const.FORWARD}")
+                full_key = ori_key
+                ori_key = fwd_key
             if not full_key:
                 continue
             mstep = micro_step_dict.get(ori_key, 0)
