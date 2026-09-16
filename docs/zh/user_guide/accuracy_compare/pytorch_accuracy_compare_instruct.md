@@ -248,11 +248,13 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 > [!NOTE]
 >
-> Tensor 后处理仅在**真实数据模式**下生效（即 dump 时 config.json 中 `task` 配置为 `"tensor"`）。统计数据模式和 MD5 模式下不生效。
+> - Tensor 后处理仅在**真实数据模式**下生效（即 dump 时 config.json 中 `task` 配置为 `"tensor"`）。统计数据模式和 MD5 模式下不生效。
+> - 校准配置文件yaml文件中，如果同时配置左乘、右乘、左右乘，都会生效，且只会生效一次。
+>
 
 配置方式：
 
-1. 创建校准配置文件（yaml 格式），参考 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 模板。校准 tensor 文件支持 `.pt` 和 `.npy` 格式，路径要求使用绝对路径。
+1. 创建校准配置文件（yaml 格式，如名为matmul_sample.yaml），参考 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 模板。校准 tensor 文件支持 `.pt` 和 `.npy` 格式，路径支持使用绝对路径或相对路径。
 
    配置示例（右乘模式）：
 
@@ -271,16 +273,14 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
          - "Add.0.forward.output.0.pt"
    ```
 
-   左乘模式类似，将 `right_matmul` 替换为 `left_matmul`。左右乘模式替换为 `left_right_matmul`，配置字段分别为 `left_target_tensor_map`、`right_target_tensor_map`、`left_golden_tensor_map`、`right_golden_tensor_map`。
-
-   更多配置细节请参见 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 中的注释说明。
+   左乘模式、右乘模式和左右乘模式的配置细节请参见 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 中的注释说明。
 
 2. 参见《[PyTorch场景精度数据采集](../dump/pytorch_data_dump_instruct.md)》完成 CPU 或 GPU 与 NPU 的精度数据 dump。
 
 3. 执行比对命令，通过 `--config` 指定校准配置文件：
 
    ```shell
-   msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output --config matmul.yaml
+   msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output --config matmul_sample.yaml
    ```
 
 4. 查看比对结果，请参见 [精度比对结果分析](#精度比对结果分析)。

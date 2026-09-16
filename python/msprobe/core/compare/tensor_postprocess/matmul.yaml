@@ -41,7 +41,7 @@
 #
 # 注意事项:
 #   - data_name 即 dump.json 中记录的算子 data_name 字段对应的名称
-#   - 校准 tensor 路径要求使用绝对路径
+#   - 校准 tensor 路径支持使用绝对路径或相对路径
 #   - 同一个校准 tensor 可以对应多个 data_name
 #   - 未配置的 data_name 不会被处理，直接返回原 tensor
 #   - 配置为空 {} 时对应模式不生效
