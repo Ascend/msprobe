@@ -278,6 +278,8 @@ const Controller: React.FC = (props: ControllerProps) => {
     setMetric(value);
     setStat(selectedStat);
     setStatNameList(statNameList);
+    // 切换指标时重新加载对应指标的标签列表，避免仍显示上一个指标的标签
+    updateTagsValueList({ metric: value });
   };
 
   // 统计量选择
