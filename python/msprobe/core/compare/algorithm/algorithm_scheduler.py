@@ -27,7 +27,6 @@ import re
 import sys
 import threading
 import numpy as np
-import torch
 from typing import Any, Dict, List
 from msprobe.core.common.log import logger
 
@@ -248,6 +247,8 @@ class AlgorithmScheduler:
 
     def _call_algorithm(self, algorithm_name, n_value, b_value):
         if algorithm_name not in self.build_in_support_algorithm:
+            import torch
+
             if isinstance(n_value, np.ndarray):
                 n_value = torch.from_numpy(n_value)
             if isinstance(b_value, np.ndarray):
