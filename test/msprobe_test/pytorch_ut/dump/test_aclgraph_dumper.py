@@ -656,6 +656,45 @@ class TestAclGraphDumper(unittest.TestCase):
         self.assertIn("reshape_and_cache.input_kwargs.value_cache", calls[1].args[1])
         self.assertIn("reshape_and_cache.output", calls[2].args[1])
 
+    def test_start_initializes_switch_device_before_patching_model(self):
+        dumper = self.make_dumper(task="tensor", keywords=["layers.0"])
+        original_switch = MagicMock(spec=torch.Tensor)
+        device_switch = torch.ones(1, dtype=torch.int32)
+        original_switch.to.return_value = device_switch
+        dumper.switch = original_switch
+        model = MagicMock()
+        model.parameters.return_value = iter([types.SimpleNamespace(device="npu:1", is_meta=False)])
+
+        def check_switch_before_patch(_model):
+            self.assertIs(dumper.switch, device_switch)
+            original_switch.to.assert_called_once_with("npu:1")
+
+        with patch.object(dumper, "_prepare_tensor_data_dir"), \
+                patch.object(dumper, "_patch", side_effect=check_switch_before_patch), \
+                patch.object(dumper, "_patch_custom_api"):
+            dumper.start(model)
+
+        self.assertTrue(dumper._running)
+
+    def test_start_keeps_switch_for_parameterless_or_meta_model(self):
+        for model in (OnlyRootModel(), torch.nn.Linear(8, 4, device="meta")):
+            with self.subTest(model=type(model).__name__):
+                dumper = self.make_dumper()
+                original_switch = dumper.switch
+                with patch.object(dumper, "_patch"):
+                    dumper.start(model)
+                self.assertIs(dumper.switch, original_switch)
+                self.assertTrue(dumper._running)
+
+    def test_start_preserves_disabled_switch(self):
+        dumper = self.make_dumper()
+        dumper.switch.zero_()
+        dumper.dump_enable = False
+        with patch.object(dumper, "_patch"):
+            dumper.start(ToyModel())
+        self.assertEqual(dumper.switch.item(), 0)
+        self.assertFalse(dumper.dump_enable)
+
     def test_start_if_statistics_then_does_not_patch_custom_api(self):
         dumper = self.make_dumper(task="statistics")
         dumper.custom_api = ["missing.module.api"]

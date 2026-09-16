@@ -731,6 +731,11 @@ class AclGraphDumper:
         if not self._should_dump_current_rank():
             self._running = False
             return
+        # Keep the switch transfer outside compiled forward/capture. Otherwise
+        # tracing can turn the state update into a graph output used by prefill.
+        parameter = next(model.parameters(), None)
+        if parameter is not None and not parameter.is_meta:
+            self.switch = self.switch.to(parameter.device)
         if self.task == Const.TENSOR:
             self._prepare_tensor_data_dir()
         self._patch(model)
