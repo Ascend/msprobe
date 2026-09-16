@@ -23,4 +23,3 @@
 | 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <http://jsbin.com/temexa/4>                                  | 构建引入，注释               |
 | 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://developer.mozilla.org/>                             | 构建引入，注释               |
 | 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://github.com/vaadin/vaadin-time-picker/issues/145>    | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <http://codepen.io/shyndman/pen/>                            | 构建引入，注释               |

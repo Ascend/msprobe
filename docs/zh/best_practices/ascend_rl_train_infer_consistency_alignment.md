@@ -404,29 +404,27 @@ Routing Replay有R2/R3两种变体。
 
 #### 2.2.4 训练侧数据采集
 
-· 以 Megatron 后端采集为例
+以 Megatron 后端采集为例。
 
-在verl/workers/actor/megatron_actor.py文件下
-
-MegatronPPOActor类的compute_log_prob方法中调用forward_backward_batch前后，增加工具初始化及dump开关
+在verl/workers/actor/megatron_actor.py文件下，MegatronPPOActor类的compute_log_prob方法中调用forward_backward_batch前后，增加工具初始化及dump开关。
 
 ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/megatron_train_dump_code.png)
 
 #### 2.2.5 推理侧数据采集
 
-· 以 vLLM 推理后端采集为例
+以 vLLM 推理后端采集为例。
 
-1. 在vllm_ascend/worker/model_runner_v1.py文件下NPUModelRunner的__init__方法中，增加工具初始化代码，同时增加确定性开关
+1. 在vllm_ascend/worker/model_runner_v1.py文件下NPUModelRunner的__init__方法中，增加工具初始化代码，同时增加确定性开关。
 
-![](../figures/cases/ascend_rl_train_infer_consistency_alignment/vllm_init_dump_code.png)
+    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/vllm_init_dump_code.png)
 
-1. execute_model方法，开始进行debugger start（开始dump）
+2. execute_model方法，开始进行debugger start（开始dump）。
 
-![](../figures/cases/ascend_rl_train_infer_consistency_alignment/vllm_start_dump_code.png)
+    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/vllm_start_dump_code.png)
 
-1. execute_model方法中_generate_process_reqs_hidden_states执行完后进行stop（结束dump）
+3. execute_model方法中_generate_process_reqs_hidden_states执行完后进行stop（结束dump）。
 
-![](../figures/cases/ascend_rl_train_infer_consistency_alignment/vllm_stop_dump_code.png)
+    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/vllm_stop_dump_code.png)
 
 #### 2.2.6 自动化比对能力
 
@@ -447,14 +445,12 @@ MegatronPPOActor类的compute_log_prob方法中调用forward_backward_batch前�
 
 ```makeup
 msprobe compare -tp /train_dump/dump.json -gp /infer_dump/dump.json --consistent_check --backend fsdp -o ./output
-​
 ```
 
 **多卡场景**
 
 ```makeup
 msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check --backend fsdp -o ./output
-​
 ```
 
 ##### 可视化比对工具介绍
@@ -483,37 +479,52 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 前置操作，训练推理使用相同输入，进行数据dump，优先采集模块级数据，方便匹配对齐，快速锁定问题模块。
 
-1. 首差异模块MLA模块：
-   如下图所示，左侧为推理实现，使用NPU自定义算子`npu_ring_mla`；右侧为训练实现，使用小算子封装为MLA模块；两者输出存在明显差异（四个统计量维度）
+1. 首差异模块MLA模块。
+
+   如下图所示，左侧为推理实现，使用NPU自定义算子`npu_ring_mla`；右侧为训练实现，使用小算子封装为MLA模块；两者输出存在明显差异（四个统计量维度）。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/mla_output_diff.png)
-   再进一步观测输入，可以发现，两个模块虽然功能一致，但是输入定义不同，以attention的q矩阵输入为例，推理模块分别将q_nope和q_rope作为输入，而训练模块直接将q_nope和q_rope拼接为q，作为MLA模块输入。观测二者统计量发现，输入就无法对齐，因此需要进一步向前排查：
+
+   再进一步观测输入，可以发现，两个模块虽然功能一致，但是输入定义不同，以attention的q矩阵输入为例，推理模块分别将q_nope和q_rope作为输入，而训练模块直接将q_nope和q_rope拼接为q，作为MLA模块输入。观测二者统计量发现，输入就无法对齐，因此需要进一步向前排查。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/mla_input_diff.png)
-2. q_rope差异：
-   进一步向前排查，找到训练侧对于q_nope和q_rope拼接为q的实现操作，再进一步与推理的q_nope和q_rope比对，发现q_rope操作没有对齐
+
+2. q_rope差异。
+
+   进一步向前排查，找到训练侧对于q_nope和q_rope拼接为q的实现操作，再进一步与推理的q_nope和q_rope比对，发现q_rope操作没有对齐。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/q_rope_diff.png)
-   进一步向前排查观测q_rope的计算来源，首先可以确认训推关于rope的实现方式不一致
-   推理实现：使用`npu_interleave_rope`融合算子
+
+   进一步向前排查观测q_rope的计算来源，首先可以确认训推关于rope的实现方式不一致。
+
+   推理实现：使用`npu_interleave_rope`融合算子。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/infer_fused_rope_impl.png)
-   训练实现：使用一系列小算子拼接实现
+
+   训练实现：使用一系列小算子拼接实现。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/train_composed_rope_impl.png)
-   其中两者均用到了cos和sin的编码矩阵，通过dump数据比对发现，cos和sin编码矩阵就已经无法对齐
+
+   其中两者均用到了cos和sin的编码矩阵，通过dump数据比对发现，cos和sin编码矩阵就已经无法对齐。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/cos_sin_matrix_diff.png)
-   由此基本可以推断出参与计算cos和sin的输入freqs存在差异.
-3. freqs来源分析及排查
-   cos和sin的计算均来自于freqs，向上追溯freqs来源，可以发现freqs实际为内部的`self.rotary_pos_emb`，该变量通过实例化的`YarnRotaryEmbedding`而得到，因此怀疑`YarnRotaryEmbedding`的实例化即传参有问题
 
-![](../figures/cases/ascend_rl_train_infer_consistency_alignment/freqs_source_code.png)
+   由此基本可以推断出参与计算cos和sin的输入freqs存在差异。
 
-![](../figures/cases/ascend_rl_train_infer_consistency_alignment/yarn_rotary_embedding_init.png)
-YarnRotaryEmbedding入参，与推理做对比
-发现
-参与计算的original_max_position_embeddings=1024
-实际外层配置为4096，即original_max_position_embeddings的期望值是4096，实际传入的是1024
-进一步确认，发现是mindspeed对`YarnRotaryEmbedding`的适配与megatron存在差异
+3. freqs来源分析及排查。
 
-![](../figures/cases/ascend_rl_train_infer_consistency_alignment/mindspeed_yarn_impl_1.png)
+   cos和sin的计算均来自于freqs，向上追溯freqs来源，可以发现freqs实际为内部的`self.rotary_pos_emb`，该变量通过实例化的`YarnRotaryEmbedding`而得到，因此怀疑`YarnRotaryEmbedding`的实例化即传参有问题。
 
-![](../figures/cases/ascend_rl_train_infer_consistency_alignment/mindspeed_yarn_impl_2.png)
+    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/freqs_source_code.png)
+
+    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/yarn_rotary_embedding_init.png)
+
+    YarnRotaryEmbedding入参与推理做对比，发现参与计算的original_max_position_embeddings=1024实际外层配置为4096，即original_max_position_embeddings的期望值是4096，实际传入的是1024
+    进一步确认，发现是MindSpeed对`YarnRotaryEmbedding`的适配与megatron存在差异。
+
+    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/mindspeed_yarn_impl_1.png)
+
+    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/mindspeed_yarn_impl_2.png)
 
 #### 3.1.4 问题修复
 
@@ -524,6 +535,7 @@ YarnRotaryEmbedding入参，与推理做对比
 #### 3.2.1 背景
 
 在DeepseekV3.2强化学习训练场景中，长跑曲线如下所示，可以看出在50步左右已经训崩，观察logp diff曲线，logp diff偏大，首个step在0.05左右且保持逐渐上升，将方向转移到训推不一致问题。
+
 ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/ds32_reward_collapse.png)
 
 ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/ds32_logp_diff_curve.png)
@@ -538,80 +550,147 @@ YarnRotaryEmbedding入参，与推理做对比
 
 固定输入的prompt，batchsize=1，response=1，保证训练和推理采用相同的切分策略，采集减层的mix级别数据，进行详细比对。
 
-1. 首先粗粒度排查大模块级别，发现经过整个大的MLA模块输入一致，输出不一致（左边推理，右边训练），如下图所示：
+1. 首先粗粒度排查大模块级别，发现经过整个大的MLA模块输入一致，输出不一致（左边推理，右边训练），如下图所示。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/mla_module_inout_diff.png)
+
    接着往上找MLA模块输出的具体来源，发现该mla的输出是由一个all_reduce操作而来，观察该all_reduce的输入输出，结果如下，观察到其输入已经有差异了，其他卡的输入也有差异，但差异较小，但经过all_reduce之后，输出的最大值差值明显。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/all_reduce_diff.png)
+
    紧接着往上找all_reduce的输入的来源，如下图所示，左边推理是一个linear操作，右边训练是一个matmul操作，并且观察输入值和权重在统计值上数值一致，但是输出不一致。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/infer_linear_op.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/train_matmul_op.png)
+
    linear和matmul这两个算子不应该有精度问题，我们初步怀疑这两个算子在输入就已经不一致了（​**虽然在统计值上表现一致**​），于是我们进行单算子复现，发现输入一致，这两个算子输出是一致的，我们比对输入和权重，发现权重完全一致，输入存在对不上的情况。
-   于是我们紧接着继续往前找该输入的来源，在推理和训练中找到了相应的api输出，具体结果如下，具体表现为输入一致，输出也一致。紧接着继续往前找该输入的来源，在推理和训练中找到了相应的api输出，具体结果如下，具体表现为输入一致，输出也一致。
+
+   接着继续往前找该输入的来源，在推理和训练中找到了相应的api输出，具体结果如下，具体表现为输入一致，输出也一致。紧接着继续往前找该输入的来源，在推理和训练中找到了相应的api输出，具体结果如下，具体表现为输入一致，输出也一致。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/upstream_api_output_1.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/upstream_api_output_2.png)
+
    接着往上找这两个算子的输入来源，目前找到下面的操作，虽然输入的统计值一样，但是save该两个算子的输入，进行逐元素比对，发现该两个算子的输入有差异。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/elementwise_diff_1.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/elementwise_diff_2.png)
+
    根据调用堆栈一直往前找，推理侧的来源是经过左边的vllm_ascend的自定义融合算子，训练侧的来源是经过右边的cann8.5中的融合算子，对比结果如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/fused_op_compare.png)
+
    因为工具原因没采到这两个融合算子的输入输出，只能往前找输入的q，k，v的来源。先排差q的一致性，q的来源如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/q_source_code.png)
+
    通过逐元素对比，发现q是一致的，结果如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/q_elementwise_match.png)
+
    由于推理和训练的key和value的语义不一致，维度也不一致，没办法直接比较，我们直接比较推理和训练的indexer模块输出的topk_indices，目前可以确认训推输出的topk_indices在统计的均值上就已经对不齐了。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/topk_indices_diff.png)
+
    topk_indices训推调用的过程如下，由于msprobe没采到lightning_indexer的输入输出，修改如下代码重新采集dump数据，dump级别为tensor+mix。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_dump_code_mod.png)
+
 2. npu_lightning_indexer算子输入输出排查
-   根据采集的结果，我们对输入的query，key，weights和输出topk_indices通过逐元素进行比对，比对结果差异较大：
+
+   根据采集的结果，我们对输入的query，key，weights和输出topk_indices通过逐元素进行比对，比对结果差异较大。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_input_output_diff.png)
+
    紧接着首先排查weights的来源，训练和推理的调用如下所示，都是weights_proj操作，其对应的都是一个linear操作，如下所示：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/train_weights_proj_call.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/infer_weights_proj_call.png)
+
    我们对其入参x，weight和输出output进行逐元素对比，输入x，weight和输出output能完全对齐，对比结果如下。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_proj_align_1.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_proj_align_2.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_proj_align_3.png)
+
    对于linear之后的输出，推理和训练分别进行了额外的操作，推理做了一次maybe_all_gather，训练做了两次缩放，如下图中的962和695行的输入输出是完全能对齐的。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_extra_ops_code.png)
+
    经过上图中的963和696之后，weight的值差值非常明显，对比结果如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_scaled_diff.png)
+
    接下来在来定位lighting_indexer的输入的q，推理和训练的调用位置如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_q_source_code.png)
+
    输入qr，权重weight和输出q逐元素能够完全对齐，对比结果如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_q_align_1.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_q_align_2.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_q_align_3.png)
-   接下来推理和训练分别对q做split和rope操作（左边推理，右边训练）：
+
+   接下来推理和训练分别对q做split和rope操作（左边推理，右边训练）。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/split_rope_ops_compare.png)
-   推理和训练分别走了不同的rope操作，经过rope操作之后，输出的q_pe和x_pe统计值能对上，但是逐元素对比对不上：
+
+   推理和训练分别走了不同的rope操作，经过rope操作之后，输出的q_pe和x_pe统计值能对上，但是逐元素对比对不上。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/rope_output_stats_1.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/rope_output_stats_2.png)
-   走进apply_rotary_pos_emb_bshd_in_complex函数内部，可以看到针对输出进行了一个fp32转bf16的操作：
+
+   走进apply_rotary_pos_emb_bshd_in_complex函数内部，可以看到针对输出进行了一个fp32转bf16的操作。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/fp32_to_bf16_code.png)
-   类型转换操作导致有一定的精度丢失：
+
+   类型转换操作导致有一定的精度丢失。
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/precision_loss_diff.png)
+
    这个转换操作，导致训推输出的x_pe和推理的输出q_pe对不齐了。紧接着训练对q执行了一次rotate_activation操作，推理侧没有执行该操作，rotate_activation里面执行了哈达玛转换，调用对比如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/rotate_activation_call.png)
+
    经过此操作，训练和推理的q完全对不齐全了，如下图所示：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/q_after_rotate_diff.png)
+
    k也是同理，训练和推理对于q和k，主要有两点差异，对q_pe和k_pe执行rope操作时，训练是先使用fp32进行计算，最后转成bfloat16，推理全程用的是bfloat16，训练会有精度丢失。
+
    对于npu_lighting_indexer算子的输入weights，训练和推理的操作也不一致，操作对比如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_ops_compare.png)
+
    推理和训练经过weights_proj操作之后能完全对齐，推理侧经过maybe_all_gather_and_maybe_unpad操作之后，weights不会改变，训练经过了右侧的两次缩放，导致weights对不齐，weights统计值对比如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_stats_compare.png)
+
    基于上述排查过程，目前把问题定位到是推理和训练在indexer模块里算topk_indices（调用npu_lightning_indexer融合算子）之前，npu_lightning_indexer有3个输入q，k和weights，推理和训练对q，k和weights的处理逻辑不一样，具体表现为如下两点：
-   1.针对q和k，训练侧进行rope时使用的精度是fp32，rope完之后进行了一次降精操作，fp32->bfloat16，训练侧随后多进行一次rotate_activation操作，里面执行了一次哈达玛转换。
-   2.针对weights，训练侧相比于推理侧多进行了一次缩放操作。
+
+   1. 针对q和k，训练侧进行rope时使用的精度是fp32，rope完之后进行了一次降精操作，fp32->bfloat16，训练侧随后多进行一次rotate_activation操作，里面执行了一次哈达玛转换。
+   2. 针对weights，训练侧相比于推理侧多进行了一次缩放操作。
 
    #### 3.2.4 问题修复
 
    让推理严格对齐训练侧实现，针对q和k加上rotate_activation操作，针对weights，与训练侧对齐缩放规则，推理侧具体修改如下：
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/infer_fix_code_1.png)
+
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/infer_fix_code_2.png)
+
    对齐之后进行全层拉起实验，22个steps曲线图如下所示：
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/fixed_reward_curve.png)
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/fixed_logp_diff_curve.png)
+
    从曲线来看，reward正常上涨，logp diff没有上涨趋势，并且logp diff保持在千分位差异，目前没有资源进行长跑，只能通过观察前22steps得出上述indexer对齐改动能够解决训推不一致问题。

@@ -1,8 +1,6 @@
 # 大模型训练精度定位指南
 
-## 1 精度问题概述
-
----
+## 1. 概述
 
 ### 1.1 定义
 
@@ -22,57 +20,65 @@
 
 当客户对模型训练提出要求时，需要参照以下产品线提供的精度标准来进行判断，只有不满足精度标准时才认为是精度问题。
 
-- **训练交付标准**  
+- **训练交付标准**
  当接收到客户反馈的问题时，需首先判断整体训练是否满足训练交付标准，确认要求是否合理。该标准提供了不同场景下的精度测试标准，例如预训练、微调、`Loss`曲线等。
-- **算子精度标准**  
+- **算子精度标准**
  在定位可疑算子时，需参照算子精度标准判断该算子是否满足算子精度标准。该标准详细介绍了算子和框架`API`的分类，并提供了多种精度判定方法和对应的测试标准。
 
 ### 1.3 场景介绍
 
 **训练精度问题发生的场景可分为有标杆和无标杆两类。**
 
-有标杆对应迁移场景，即用户将原本在标杆（如`GPU`、其他训练框架）上训练的模型迁移到`NPU`上进行训练。  
+有标杆对应迁移场景，即用户将原本在标杆（如`GPU`、其他训练框架）上训练的模型迁移到`NPU`上进行训练。
 无标杆对应原生开发场景，即用户直接在`NPU`上进行模型搭建及训练。
 
 其中，本文聚焦主流的有标杆迁移场景，主要表现为`NPU`训练过程和结果与标杆（`GPU`或`NPU`的其他框架）上的训练过程和结果不一致且偏差超过容忍阈值，我们称之为不对齐。该场景具体可再细分为以下几类现象：
 
-- **溢出或NaN**，即相较于标杆更频繁地出现`Loss`或`Grad Norm`溢出、`NaN`，如下图所示：  
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/a5183818-b00b-4f5b-bb23-9b8277f0b004/image.png" alt="image.png" width="650"/>  
-- **首Step Loss差异**，即第0步或前几步`Loss`与标杆出现差异，平均误差大于1%，如下图所示：  
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/deb21294-900a-4411-9857-890ae31950cd/image.png" alt="image.png" width="400"/>  
-- **长稳Loss差异**，即前期`Loss`拟合，后期与标杆差异逐渐变大，平均误差大于1%，如下图所示：  
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/de267ea9-69ba-4f15-a179-54efc1a48528/image.png" alt="image.png" width="400"/>  
-- **尖刺**，即相较于标杆更频繁地出现`Loss`或`Grad Norm`陡增又快速跌落的现象，如下图所示：  
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/eb705a99-b07c-4014-a966-4136825144a5/image.png" alt="image.png" width="400"/> 
-- **训练中Loss与标杆相比差异较小但下游任务表现差**，如下图所示：  
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/e46ee64d-2c1d-4a76-8e99-eec2236165dd/image.png" alt="image.png" width="400"/> 
+- **溢出或NaN**，即相较于标杆更频繁地出现`Loss`或`Grad Norm`溢出、`NaN`，如下图所示：
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/a5183818-b00b-4f5b-bb23-9b8277f0b004/image.png" alt="image.png" width="650"/>
+
+- **首Step Loss差异**，即第0步或前几步`Loss`与标杆出现差异，平均误差大于1%，如下图所示：
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/deb21294-900a-4411-9857-890ae31950cd/image.png" alt="image.png" width="400"/>
+
+- **长稳Loss差异**，即前期`Loss`拟合，后期与标杆差异逐渐变大，平均误差大于1%，如下图所示：
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/de267ea9-69ba-4f15-a179-54efc1a48528/image.png" alt="image.png" width="400"/>
+
+- **尖刺**，即相较于标杆更频繁地出现`Loss`或`Grad Norm`陡增又快速跌落的现象，如下图所示：
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/eb705a99-b07c-4014-a966-4136825144a5/image.png" alt="image.png" width="400"/>
+
+- **训练中Loss与标杆相比差异较小但下游任务表现差**，如下图所示：
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/e46ee64d-2c1d-4a76-8e99-eec2236165dd/image.png" alt="image.png" width="400"/>
 
 **值得注意的是，哪怕属于同一类问题现象，其根因也复杂各异**，具体可参考[根因介绍](#51-根因介绍)。本文将介绍大模型训练精度问题定位时的整体定位思路和标准流程，以及在定位过程中涉及的训练精度工具使用方法，旨在帮助用户快速熟悉和掌握精度定位流程。
 
-## 2 精度问题定位具体步骤
+## 2. 精度问题定位具体步骤
 
----
-大模型训练整体精度定位流程如图所示。  
- <img src="https://raw.gitcode.com/user-images/assets/7898473/83c3651f-ebc3-4683-99fb-6b042d9df5f4/image.png " alt="image.png" width="800"/>  
+大模型训练整体精度定位流程如图所示。
+ <img src="https://raw.gitcode.com/user-images/assets/7898473/83c3651f-ebc3-4683-99fb-6b042d9df5f4/image.png " alt="image.png" width="800"/>
 本章主要针对迁移场景介绍精度问题定位的具体步骤，旨在帮助用户更快理解工具使用的原理和方法，并举一反三到其他更加具体和复杂的问题场景。
 
 ### 2.1 检查CheckList
 
-在定位有标杆精度问题之前，需先排除其他非算子因素的干扰。目前大部分精度问题是由于模型超参、三方库版本、环境变量、数据读取、模型结构不一致等因素导致的，为了在定位过程中少走弯路，需在定位前先对训练环境及前置准备根据下列`CheckList`做有效排查。  
+在定位有标杆精度问题之前，需先排除其他非算子因素的干扰。目前大部分精度问题是由于模型超参、三方库版本、环境变量、数据读取、模型结构不一致等因素导致的，为了在定位过程中少走弯路，需在定位前先对训练环境及前置准备根据下列`CheckList`做有效排查。
 另外问题定位主要基于标杆设备和`NPU`设备的对比，因此定位的前置条件是需要分别准备标杆和`NPU`训练环境。
 
-- **训练超参和环境变量比对**  
+- **训练超参和环境变量比对**
  可以使用`Beyond Compare`软件比对双方训练日志或启动脚本中的训练超参和环境变量设置，也可以使用[脚本比对工具](#48-脚本比对工具)进行自动比对。其中，常见训练超参可参考[附录-模型超参数](#52-模型超参数)。
-- **三方库版本比对**  
+- **三方库版本比对**
  通过`git`分支检查`MindSpeed-LLM`、`Megatron`、`DeepSpeed`等三方库版本是否与标杆对齐。
   通过`pip list`检查PyTorch、TorchNPU等第三方库版本是否与标杆对齐，也可以使用[脚本比对工具](#48-脚本比对工具)进行自动比对。
-- **数据读取检查**  
+- **数据读取检查**
  检查从数据集中读取后并送入模型训练的数据，一般可通过精度采集工具采集最开始的输入数据或直接在代码中调用模型`forward`时保存或打印传入的具体`tensor`来进行数据集检查，也可使用[脚本比对工具](#48-脚本比对工具)进行自动比对。
-- **模型结构检查**  
+- **模型结构检查**
  通过在双方训练中直接打印模型结构并进行比对。
-- **权重初始化对齐**  
+- **权重初始化对齐**
  需要确认训练前的初始化权重是否一致，需保证加载同一个预训练模型或使用一样的初始化随机种子，[固定随机性](#221-固定随机性)可参考问题复现章节，检查时可以使用[脚本比对工具](#48-脚本比对工具)进行自动比对。
-- **环境版本更新**  
+- **环境版本更新**
  这一项仅在条件允许的情况下进行，根据之前的精度问题定位经验，很多问题都是旧版本上的问题，在新的版本上已经解决。因此，在条件允许的情况下，推荐安装最新版本的CANN、驱动以及TorchNPU包。
 
 ### 2.2 问题复现前置操作
@@ -81,7 +87,7 @@
 
 #### 2.2.1 固定随机性
 
-复现需要固定存在随机性的步骤，保证实验可重复性。存在随机性的步骤包括模型参数初始化，`Dropout`层，数据`batch`加载顺序等。  
+复现需要固定存在随机性的步骤，保证实验可重复性。存在随机性的步骤包括模型参数初始化，`Dropout`层，数据`batch`加载顺序等。
 涉及到的操作如下几项：
 
 - 固定随机种子，如`np.random.seed`、`torch.manual_seed`、`torch_npu.npu.manual_seed`等；
@@ -96,17 +102,17 @@
 
 - 算子计算确定性：
 
-```python
-torch.use_deterministic_algorithms(True)
-```
+    ```python
+    torch.use_deterministic_algorithms(True)
+    ```
 
 - 通信确定性：
 
-```bash
-export HCCL_DETERMINISTIC=TRUE
-```
+    ```bash
+    export HCCL_DETERMINISTIC=TRUE
+    ```
 
-注：不是所有的算子都支持确定性计算，对于一些特殊的暂未提供确定性计算特性的算子，参考[算子确定性问题](#2322-算子确定性问题)进行定位。
+不是所有的算子都支持确定性计算，对于一些特殊的暂未提供确定性计算特性的算子，参考[算子确定性问题](#2322-算子确定性问题)进行定位。
 
 #### 2.2.3 工具固定
 
@@ -116,10 +122,10 @@ export HCCL_DETERMINISTIC=TRUE
 
 ```python
 from msprobe.pytorch import seed_all
-seed_all(seed=1234, mode=True, rm_dropout=True) 
+seed_all(seed=1234, mode=True, rm_dropout=True)
 ```
 
-**参数说明：**  
+**参数说明：**
 
 | 参数名 | 可选/必选 | 说明 |
 | ---  | --- | --- |
@@ -127,7 +133,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 |mode| 可选 | 确定性计算模式。可配置`True`或`False`，默认值为`False`。该模式同时包含算子计算确定性和通信确定性。|
 |rm_dropout| 可选 | 控制`dropout`失效的开关，开启后会自动将`dropout`概率设置为0。可配置`True` 或 `False`，默认值为`True`。|
 
-**固定随机数范围：**  
+**固定随机数范围：**
 `seed_all`函数可固定随机数的范围如下表。
 
 |API|固定随机数|
@@ -146,7 +152,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 #### 2.2.4 缩小规模
 
-对于一些大集群如千卡甚至万卡训练出现的精度问题，需要将集群规模缩小进行复现定位。  
+对于一些大集群如千卡甚至万卡训练出现的精度问题，需要将集群规模缩小进行复现定位。
 常见的做法是保持`TP, PP, CP, SP, EP`等切分参数不变，将`Batch Size`缩小或直接减少模型层数，裁剪时需伴随实验确保能复现，最终选择规模尽可能小且可复现的训练参数。
 
 ### 2.3 精度问题分场景定位
@@ -160,15 +166,16 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 #### 2.3.1 稳定复现场景
 
-已经确认排除[CheckList](#21-检查checklist)且能稳定复现后，整体定位流程如下图所示：  
-<img src="https://raw.gitcode.com/user-images/assets/7898473/d7955340-9bde-479c-801e-f22573f50190/image.png" alt="Your image title" width="800"/>  
+已经确认排除[CheckList](#21-检查checklist)且能稳定复现后，整体定位流程如下图所示：
+
+<img src="https://raw.gitcode.com/user-images/assets/7898473/d7955340-9bde-479c-801e-f22573f50190/image.png" alt="Your image title" width="800"/>
 
 ##### 2.3.1.1 溢出或NaN
 
 **问题描述**
 
-在根据[CheckList](#21-检查checklist)排除其他非算子因素，并且固定随机性的情况下，首先确认该问题是否相较于标杆出现了更频繁的`Loss NaN`或梯度溢出，一般还伴随着`Loss Scale`的持续降低。  
-<img src="https://raw.gitcode.com/user-images/assets/7898473/a5183818-b00b-4f5b-bb23-9b8277f0b004/image.png" alt="image.png" width="650"/>  
+在根据[CheckList](#21-检查checklist)排除其他非算子因素，并且固定随机性的情况下，首先确认该问题是否相较于标杆出现了更频繁的`Loss NaN`或梯度溢出，一般还伴随着`Loss Scale`的持续降低。
+<img src="https://raw.gitcode.com/user-images/assets/7898473/a5183818-b00b-4f5b-bb23-9b8277f0b004/image.png" alt="image.png" width="650"/>
 
 **排查思路**
 
@@ -187,7 +194,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
             1. 结合[分级可视化工具](#44-分级可视化工具)溢出分析功能或手动搜索`Inf/NaN`查看溢出最先发生的位置：
                 - 若为`weight`，则怀疑上一步反向梯度先出现问题，切换定位`Step`为上一步重新采集梯度数据。
                 - 若为`input`，则怀疑存在未被采集的特殊算子，需对照代码栈分析`input`来源。
-                - 若为`output`，则`output`所在算子需重点分析。  
+                - 若为`output`，则`output`所在算子需重点分析。
                 其中`dump.json`文件中`input`、`weight`、`output`位置识别方法可参考[精度采集工具](#43-精度采集工具)中的`dump.json`统计量结果详解。
             2. 若没有定位到可疑算子，可能为累积误差导致，参照`Loss`对齐问题（[首Step Loss差异](#2312-首step-loss差异)/[长稳Loss差异](#2313-长稳训练loss差异)）进一步分析。
     - 若模型规模较大，精度采集工具所需时长过长或者不稳定复现，也可考虑使用[训练状态监测工具](#46-训练状态监测工具)或[非工具手段补充](#49-非工具手段补充)中手动挂`Hook`的方式来采集各层梯度，看是否有梯度异常的层。
@@ -203,8 +210,9 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 **问题描述**
 
-在根据[CheckList](#21-检查checklist)排除其他非算子因素，且固定随机性的情况下，`GPU`和`NPU`的第一步或前几步的`Loss`就已经出现差异，平均相对误差大于`1%`。如下图所示。  
-<img src="https://raw.gitcode.com/user-images/assets/7898473/deb21294-900a-4411-9857-890ae31950cd/image.png" alt="image.png" width="400"/>  
+在根据[CheckList](#21-检查checklist)排除其他非算子因素，且固定随机性的情况下，`GPU`和`NPU`的第一步或前几步的`Loss`就已经出现差异，平均相对误差大于`1%`。如下图所示。
+
+<img src="https://raw.gitcode.com/user-images/assets/7898473/deb21294-900a-4411-9857-890ae31950cd/image.png" alt="image.png" width="400"/>
 
 **排查思路**
 
@@ -227,30 +235,31 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 **问题描述**
 
-在根据[CheckList](#21-检查checklist)排除其他非算子因素，且固定随机性的情况下，`GPU`和`NPU`训练初期`Loss`能对齐，但是后期训练`Loss`对不齐，后期平均相对误差大于`1%`。如下图所示。  
-<img src="https://raw.gitcode.com/user-images/assets/7898473/de267ea9-69ba-4f15-a179-54efc1a48528/image.png" alt="image.png" width="400"/>  
+在根据[CheckList](#21-检查checklist)排除其他非算子因素，且固定随机性的情况下，`GPU`和`NPU`训练初期`Loss`能对齐，但是后期训练`Loss`对不齐，后期平均相对误差大于`1%`。如下图所示。
+
+<img src="https://raw.gitcode.com/user-images/assets/7898473/de267ea9-69ba-4f15-a179-54efc1a48528/image.png" alt="image.png" width="400"/>
 
 **排查思路**
 
 1. 根据情况选择工具并进行数据采集：
 
-    - [精度采集工具](#43-精度采集工具)，适用于问题第一现场步数确定的场景，如中途`Loss`或`Grad Norm`存在明显跳变，使用思路如下：  
+    - [精度采集工具](#43-精度采集工具)，适用于问题第一现场步数确定的场景，如中途`Loss`或`Grad Norm`存在明显跳变，使用思路如下：
 
-        1) 确定采集步数（两者取最小步数）：  
+        1) 确定采集步数（两者取最小步数）：
 
-            - `Loss`跳变采集上一步反向+当前步正向的数据。  
-            - `Grad Norm`跳变采集当前步反向的数据。  
+            - `Loss`跳变采集上一步反向+当前步正向的数据。
+            - `Grad Norm`跳变采集当前步反向的数据。
 
-        2) 确定采集规格：  
+        2) 确定采集规格：
 
-            - 模型规模小，直接采集`mix`级（`API`级+`Module`模块级）统计量。  
-            - 模型规模大，先采集模块级统计量，定位到模块后再内部采集`API`级统计量。  
+            - 模型规模小，直接采集`mix`级（`API`级+`Module`模块级）统计量。
+            - 模型规模大，先采集模块级统计量，定位到模块后再内部采集`API`级统计量。
 
-        3) 在统计量上通过使用可视化或精度比对工具分析到可疑算子后，采集具体`tensor`值进行进一步的单算子分析。  
+        3) 在统计量上通过使用可视化或精度比对工具分析到可疑算子后，采集具体`tensor`值进行进一步的单算子分析。
 
-    - [训练状态监测工具](#46-训练状态监测工具)，适合大规模、不确定采集`dump`步数的场景，使用思路如下：  
-        - 若问题同时表现为`Grad Norm`先`Loss`后，则优先采集训练过程中梯度数据。  
-        - 若问题主要表现在`Loss`上，则优先采集训练过程中激活值和权重数据。  
+    - [训练状态监测工具](#46-训练状态监测工具)，适合大规模、不确定采集`dump`步数的场景，使用思路如下：
+        - 若问题同时表现为`Grad Norm`先`Loss`后，则优先采集训练过程中梯度数据。
+        - 若问题主要表现在`Loss`上，则优先采集训练过程中激活值和权重数据。
 
 2. `dump`数据可参照上一节使用分级可视化工具或精度比对工具进行分析，训练状态监测数据参考[4.6节使用思路](#46-训练状态监测工具)进行结果分析。
 3. 若标杆数据采集成本较大，在不确定步数的情况下无法频繁采集，可补充精度预检工具+无标杆工具进行排查。
@@ -265,8 +274,9 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 #### 2.3.2 不稳定复现场景
 
-已经确认排除[CheckList](#21-检查checklist)且完成问题复现的前置操作后仍不能稳定复现，整体定位流程如下图所示。  
-<img src="https://raw.gitcode.com/user-images/assets/7898473/99f2e246-592c-4ee3-aa22-bc47fcceffc4/image.png" alt="Your image title" width="800"/>  
+已经确认排除[CheckList](#21-检查checklist)且完成问题复现的前置操作后仍不能稳定复现，整体定位流程如下图所示。
+
+<img src="https://raw.gitcode.com/user-images/assets/7898473/99f2e246-592c-4ee3-aa22-bc47fcceffc4/image.png" alt="Your image title" width="800"/>
 
 ##### 2.3.2.1 内存踩踏
 
@@ -277,9 +287,9 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 - 若开启流同步或加入精度采集工具后，问题能够稳定消失，对于这一类问题，大概率是因为计算流/通信流的踩踏、框架内部内存分配偏移量计算错误、通信未做保护导致读入无效数据等。
  因此加入同步后算子和算子之间、通信和算子之间被完全隔离开来，不再复现。其中开启流同步命令如下：
 
- ```bash
- export ASCEND_LAUNCH_BLOCKING=1
- ```
+    ```bash
+    export ASCEND_LAUNCH_BLOCKING=1
+    ```
 
 - 但对于算子内部出现踩踏的问题，哪怕加入流同步也无法规避。特别是在分核计算和分`ub`计算，出现非整块、计算复杂和数据类型变化时，易出现算子内部踩踏。
 
@@ -307,11 +317,13 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 若该算子为特殊随机算子或位置固定且计算虽有差异但结果相近，根据以下方案来尝试解决：
 
-- 特殊随机算子（如`torch.randn`）  
- 尽管工具内部对于随机的控制是通过设定统一的随机种子进行随机性固定的，但是由于硬件的差异，可能会导致同样的随机种子在不同硬件上生成的随机数不同，如下示例：  
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/f690a76c-5a00-48ab-ae0b-f77512715275/image.png" alt="Your image title" width="500"/>  
+- 特殊随机算子（如`torch.randn`）
+ 尽管工具内部对于随机的控制是通过设定统一的随机种子进行随机性固定的，但是由于硬件的差异，可能会导致同样的随机种子在不同硬件上生成的随机数不同，如下示例：
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/f690a76c-5a00-48ab-ae0b-f77512715275/image.png" alt="Your image title" width="500"/>
+
     图中可见，特殊随机算子`torch.randn`在`NPU`和`GPU`上固定随机种子后，仍然生成不同的随机张量。对于此类场景，用户需要将网络中的`randn`在`CPU`上生成后再转对应`device`，这样在host侧生成的随机张量能够保证一样，搬移到`NPU`或者`GPU`设备上仍然一样。
-- 算子暂不支持确定性计算  
+- 算子暂不支持确定性计算
  除随机性算子之外，还有部分算子暂不支持确定性计算的特性，因此每次运行结果会有细微差异。因此若排查到一些不常见的特殊算子（如`MSDA`、`grid_sample`）可通过转`CPU`或联系算子支撑人员咨询是否有替代实现来进行规避。
 
 ##### 2.3.2.3 硬件问题
@@ -328,23 +340,23 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 - 算子压测：若不稳定现象出现在某个特定算子且单算子无法复现，可分组单机做单算子压测。
 - 命令压测：使用`ascend-dmi`命令对`aicore`进行重复压测，命令如下：
 
- ```bash
- ascend-dmi -dg -i aicore -s -sc 60 -q
- ```
+    ```bash
+    ascend-dmi -dg -i aicore -s -sc 60 -q
+    ```
 
-除此之外，也可以通过以下命令逐步禁用相关通信链路，排查通信相关的硬件问题。
+    除此之外，也可以通过以下命令逐步禁用相关通信链路，排查通信相关的硬件问题。
 
 - 禁用ROCE：
 
- ```bash
- export HCCL_INTRA_ROCE_ENABLE=0
- ```
+    ```bash
+    export HCCL_INTRA_ROCE_ENABLE=0
+    ```
 
 - 禁用PCIE：
 
- ```bash
- export HCCL_INTRA_PCIE_ENABLE=0
- ```
+    ```bash
+    export HCCL_INTRA_PCIE_ENABLE=0
+    ```
 
 ##### 2.3.2.4 训练框架排查
 
@@ -377,18 +389,20 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
     - 模型分阶段排查：如减层、二分、排除`attention`等。
     - 挪`device`：在不确定哪个算子引发的问题，在测试成本允许的情况下可以通过二分把整网的算子放到`CPU`上来执行。
     - 明确问题出现在反向时，可通过二分法冻结梯度来进行尝试。
-- 版本排查  
- 在明确现象和问题点跟特定的版本绑定，但是无法定位到根因时，可采用版本二分的办法来确认问题合入。例如`CANN`可以通过替换对应合入的`so`来将算子实现替换到对应版本。`PyTorch`同理，可以对特定合入进行编译软件包来排查问题。但该方法不适用于短期内版本合入过多或某个合入影响过大的情况。
+- 版本排查
+    在明确现象和问题点跟特定的版本绑定，但是无法定位到根因时，可采用版本二分的办法来确认问题合入。例如`CANN`可以通过替换对应合入的`so`来将算子实现替换到对应版本。`PyTorch`同理，可以对特定合入进行编译软件包来排查问题。但该方法不适用于短期内版本合入过多或某个合入影响过大的情况。
 
 #### 2.3.3 强化学习场景
 
 **问题描述**
 
-在根据[CheckList](#21-检查checklist)排除其他非算子因素的情况下，强化学习训练中若出现了`reward`相对标杆下降，或伴随`logp_diff`上升等现象，则需对其展开精度排查。  
+在根据[CheckList](#21-检查checklist)排除其他非算子因素的情况下，强化学习训练中若出现了`reward`相对标杆下降，或伴随`logp_diff`上升等现象，则需对其展开精度排查。
+
 <img src="https://raw.gitcode.com/user-images/assets/7898473/a9411220-551b-4810-9560-6e8d15194203/image.png" alt="Your image title" width="600"/>
 
-**总体排查流程如下**    
-<img src="https://raw.gitcode.com/user-images/assets/7898473/c1041303-ad83-4b31-ab0d-bc46bbecc50a/image.png" alt="Your image title" width="700"/>  
+**总体排查流程如下**
+
+<img src="https://raw.gitcode.com/user-images/assets/7898473/c1041303-ad83-4b31-ab0d-bc46bbecc50a/image.png" alt="Your image title" width="700"/>
 
 ##### 2.3.3.1 基础推理排查
 
@@ -430,11 +444,12 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 **数据比对：**
 
-- 同框架推理（如`vLLM-Ascend` vs `vLLM`）  
- 数据采集后可参考[首Step Loss差异章节](#2312-首step-loss差异)中的第2点分析思路进行比对。
-- 跨框架推理（如`vLLM-Ascend` vs `SGlang`）  
- 数据采集后NPU会与标杆存在大量的层级名称/结构差异，优先以分级可视化工具进行比对，并通过[分级可视化工具](#44-分级可视化工具)的`点点匹配`功能，对因模块名称差异导致未自动匹配的节点进行手动对齐，方便后续进行对比分析。  
-    <img src="https://raw.gitcode.com/user-images/assets/7898473/1c469d88-ebc5-45eb-b19d-6d40f1568755/image.png" alt="Your image title" width="800"/>  
+- 同框架推理（如`vLLM-Ascend` vs `vLLM`）
+    数据采集后可参考[首Step Loss差异章节](#2312-首step-loss差异)中的第2点分析思路进行比对。
+- 跨框架推理（如`vLLM-Ascend` vs `SGlang`）
+    数据采集后NPU会与标杆存在大量的层级名称/结构差异，优先以分级可视化工具进行比对，并通过[分级可视化工具](#44-分级可视化工具)的`点点匹配`功能，对因模块名称差异导致未自动匹配的节点进行手动对齐，方便后续进行对比分析。
+
+    <img src="https://raw.gitcode.com/user-images/assets/7898473/1c469d88-ebc5-45eb-b19d-6d40f1568755/image.png" alt="Your image title" width="800"/>
 
 除此之外，更详细的操作可参考[推理精度定位指南](./infer_debug_guide.md)。
 
@@ -446,15 +461,15 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 - **首步推理结果一致（或插桩），但`reward`差异大。**
 
-若未触发，则跳转[基础训练排查](#2333-基础训练排查)，否则针对`reward`计算逻辑与标杆进行比对排查。
+    若未触发，则跳转[基础训练排查](#2333-基础训练排查)，否则针对`reward`计算逻辑与标杆进行比对排查。
 
-`reward`打分器排查根据其训练数据集类型不同可分为如下几类：
+    `reward`打分器排查根据其训练数据集类型不同可分为如下几类：
 
-|数据集类型| 打分方式| 对应逻辑| 下一步排查操作|
-| --- | --- | --- | --- |
-|Math| 规则打分| 数学题答案高度结构化，规则打分是最高效的打分方式，一般直接使用字符串匹配。| 对齐标杆的规则打分代码。 |
-|Code| 沙箱打分| 代码的正确性无法靠字符串匹配（如不同写法实现同一功能），必须通过沙箱执行结合测试用例验证。|   对齐沙箱执行与用例判定逻辑。|
-|通用| 模型打分| 通用场景（如闲聊、文案）无唯一标准答案，只能靠`Reward Model`学习人工偏好。| 1. 排查打分模型是否开启了随机性配置。<br>2. 参考[首Step差异章节](#2312-首step-loss差异)进行数据采集与比对。|
+    |数据集类型| 打分方式| 对应逻辑| 下一步排查操作|
+    | --- | --- | --- | --- |
+    |Math| 规则打分| 数学题答案高度结构化，规则打分是最高效的打分方式，一般直接使用字符串匹配。| 对齐标杆的规则打分代码。 |
+    |Code| 沙箱打分| 代码的正确性无法靠字符串匹配（如不同写法实现同一功能），必须通过沙箱执行结合测试用例验证。|   对齐沙箱执行与用例判定逻辑。|
+    |通用| 模型打分| 通用场景（如闲聊、文案）无唯一标准答案，只能靠`Reward Model`学习人工偏好。| 1. 排查打分模型是否开启了随机性配置。<br>2. 参考[首Step差异章节](#2312-首step-loss差异)进行数据采集与比对。|
 
 ##### 2.3.3.3 基础训练排查
 
@@ -464,7 +479,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 - **首步推理结果一致（或插桩），且`reward`正常，但`pg_loss`、`gnorm`与标杆差异大。**
 
-若未触发，则跳转[resharding权重同步排查](#2334-resharding权重同步排查)，否则针对训练前向/反向与标杆进行首步比对排查。
+    若未触发，则跳转[resharding权重同步排查](#2334-resharding权重同步排查)，否则针对训练前向/反向与标杆进行首步比对排查。
 
 **前置条件**
 
@@ -487,26 +502,26 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
   ```python
   actor_rollout_ref.actor.use_dynamic_bsz=False  # 训练与标杆比对时保持一致即可，训推一致比对时必须关闭
   ```
-  
-强化学习中的训练后端一般采用`FSDP`或`Megatron`（昇腾上会使用`MindSpeed/MindSpeed-LLM`打`patch`代替），对应的排查步骤如下：  
+
+强化学习中的训练后端一般采用`FSDP`或`Megatron`（昇腾上会使用`MindSpeed/MindSpeed-LLM`打`patch`代替），对应的排查步骤如下：
 
 **数据采集**
 
-- 对于FSDP框架的训练数据采集，在`verl`框架中的采集文件位置为`verl/workers/fsdp_workers.py`，工具在该文件中具体插入位置参考[VERL(FSDP后端)采集](./dump_enable_guide.md#verl-fsdp后端)。
+- 对于FSDP框架的训练数据采集，在`verl`框架中的采集文件位置为`verl/workers/fsdp_workers.py`，工具在该文件中具体插入位置参考[VERL(FSDP后端)采集](./dump_enable_guide.md#236-verl-fsdp后端)。
 - 对于Megatron类框架的训练数据采集，在`verl`框架中的采集文件位置为`verl/workers/megatron_workers.py`，工具在该文件中具体插入位置与`FSDP`类似，此处不赘述。
 
 **数据分析**
 
-- 同框架训练（如`Megatron + MindSpeed` vs `Megatron`）  
+- 同框架训练（如`Megatron + MindSpeed` vs `Megatron`）
     - 小规模训练，可直接参考[首Step Loss差异章节](#2312-首step-loss差异)进行数据分析。
     - 大规模训练，如卡数较多、模型较大的，建议结合[趋势可视化工具](../user_guide/accuracy_compare/trend_visualization_instruct.md)进行分析。
-- 跨框架训练（如`Megatron` vs `FSDP`）  
+- 跨框架训练（如`Megatron` vs `FSDP`）
  数据采集后NPU会与标杆存在大量的层级名称/结构差异，建议优先使用[分级可视化工具](#44-分级可视化工具)结合`点点匹配`功能进行比对。
 
 ##### 2.3.3.4 resharding权重同步排查
 
-强化学习的核心逻辑是「训练更新权重→推理验证效果→基于推理结果的`reward`反馈再优化训练」，这一闭环要求训练侧更新后的权重必须精准同步到推理侧，每个`step`的`rollout`都需做一次从`actor`训练到`rollout`推理的权重参数同步。若推理使用的权重与训练最新权重不一致，会导致推理输出偏离预期。  
-这一步骤我们称之为`resharding`权重同步，其需兼顾三大核心职责：  
+强化学习的核心逻辑是「训练更新权重→推理验证效果→基于推理结果的`reward`反馈再优化训练」，这一闭环要求训练侧更新后的权重必须精准同步到推理侧，每个`step`的`rollout`都需做一次从`actor`训练到`rollout`推理的权重参数同步。若推理使用的权重与训练最新权重不一致，会导致推理输出偏离预期。
+这一步骤我们称之为`resharding`权重同步，其需兼顾三大核心职责：
 
 - **权重分片适配**：将训练侧的多卡分片权重，按推理侧的并行策略重新拆分 / 合并，适配推理的显存与计算需求。
 - **权重读写管控**：负责权重在磁盘（disk）、多卡间（hccl）的读写与同步，确保权重从训练节点写入、推理节点读取的全过程无截断、无偏移、无丢失。
@@ -524,20 +539,20 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 若未触发以上现象，跳转[训推一致排查](#2335-训推一致排查)，否则需重点检查：
 
-- 现象1 — 检查权重对象：  
-   一般发生此种现象，代表**某些层权重未同步**，`resharding`过程中通常存在截断、偏移、指针分离等问题。若某层在`parameters`属性中注册的`weight`指针与其实际计算使用的`weight`指针出现分离，会导致即使打印`named_parameters()`里的权重正常更新，但实际计算使用权重无变化。若首步推理权重无变化，在`safetensors`模式下权重仍为初始化加载的正常权重，在首步（甚至前几步）不会表现出明显异常，但在`dummy`模式下，将导致推理侧权重仍为随机初始化权重，直接表现为推理输出乱码。  
-   
-- 现象2  — 检查权重读写/切分：  
+- 现象1 — 检查权重对象：
+   一般发生此种现象，代表**某些层权重未同步**，`resharding`过程中通常存在截断、偏移、指针分离等问题。若某层在`parameters`属性中注册的`weight`指针与其实际计算使用的`weight`指针出现分离，会导致即使打印`named_parameters()`里的权重正常更新，但实际计算使用权重无变化。若首步推理权重无变化，在`safetensors`模式下权重仍为初始化加载的正常权重，在首步（甚至前几步）不会表现出明显异常，但在`dummy`模式下，将导致推理侧权重仍为随机初始化权重，直接表现为推理输出乱码。
+
+- 现象2  — 检查权重读写/切分：
    一般发生此种现象，**代表权重已进行同步，但同步成错误值**。读写可切换`disk`和`hccl`两种读写配置看是否存在差异，或查看切分检查`TP/PP`等配置是否对齐等。
 
 ##### 2.3.3.5 训推一致排查
 
-目前主流RL算法是基于`On-Policy`前提展开的，`On-Policy`理论要求采样数据的行为策略与梯度计算的目标策略基本保持一致，才能确保梯度估计是无偏的，从而使训练过程更平稳。在强化学习中采样我们称之为`rollout`推理，梯度计算则对应`actor`训练，当推理与训练策略保持一致，即称为训推一致。  
-训推一致性的主要指标为`logp_diff`，当`logp_diff`异常时表示强化学习中训练和推理存在一定程度的差异，需进行训推差异的根因查找，其计算公式为：    
-<img src="https://raw.gitcode.com/user-images/assets/7898473/98058476-f95a-44ff-b5d0-7dfb79c1066c/image.png" alt="Your image title" width="400"/>  
+目前主流RL算法是基于`On-Policy`前提展开的，`On-Policy`理论要求采样数据的行为策略与梯度计算的目标策略基本保持一致，才能确保梯度估计是无偏的，从而使训练过程更平稳。在强化学习中采样我们称之为`rollout`推理，梯度计算则对应`actor`训练，当推理与训练策略保持一致，即称为训推一致。
+训推一致性的主要指标为`logp_diff`，当`logp_diff`异常时表示强化学习中训练和推理存在一定程度的差异，需进行训推差异的根因查找，其计算公式为：
+<img src="https://raw.gitcode.com/user-images/assets/7898473/98058476-f95a-44ff-b5d0-7dfb79c1066c/image.png" alt="Your image title" width="400"/>
 其中`M`为`response_mask`。
 
-在`verl`框架中，对应行为如下：  
+在`verl`框架中，对应行为如下：
 
 - 开启`logp_diff`监测的配置超参：
 
@@ -558,12 +573,12 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 - **`logp_diff`异常偏大（>0.01）或与标杆差异明显。**
 
-若未触发，直接跳转[长稳训练排查](#2336-长稳训练排查)，否则按如下操作进一步排查：
+    若未触发，直接跳转[长稳训练排查](#2336-长稳训练排查)，否则按如下操作进一步排查：
 
-- 首步`logp_diff`较大  
- 参考[训推一致比对](#23352-训推一致比对)对第0步进行NPU本身的训推比对（前提已经进行过`2.3.3.1`~`2.3.3.4`节的基础排查但未触发现象或未查明原因）。
-- 首步`logp_diff`正常但后期变大  
- 强行设`LR`=`0`，观察`logp_diff`变化：
+- 首步`logp_diff`较大
+    参考[训推一致比对](#23352-训推一致比对)对第0步进行NPU本身的训推比对（前提已经进行过`2.3.3.1`~`2.3.3.4`节的基础排查但未触发现象或未查明原因）。
+- 首步`logp_diff`正常但后期变大
+    强行设`LR`=`0`，观察`logp_diff`变化：
     - 仍异常 → 判定与训练反向无关，推理侧影响可能性大，可按如下两个方向进行排查：
         - 参考[kv cache排查](#23351-kv-cache排查)排查推理`decode`部分的`kv cache`读写逻辑。
         - 参考[训推一致比对](#23352-训推一致比对)对后期训崩的步数进行`NPU`本身的训推比对。
@@ -577,7 +592,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 - `prefill`：清除上一轮`kv cache`，写入当前上下文。
 - `decode`：增量读写`kv cache`。
 
-在实际工程实现中，通常通过 `state block` 管理缓存，而非逐句强制清除，若出现缓存清理不及时、复用错误、地址偏移等问题，会导致`decode`阶段读取异常，进而引发推理长稳漂移，最终导致后期`logp_diff`变大。  
+在实际工程实现中，通常通过 `state block` 管理缓存，而非逐句强制清除，若出现缓存清理不及时、复用错误、地址偏移等问题，会导致`decode`阶段读取异常，进而引发推理长稳漂移，最终导致后期`logp_diff`变大。
 此种情况下，由于`kv cache`为推理时特有的逻辑，与训练无关，因此在强化学习训练中必会触发`logp_diff`不一致。
 
 对于kv cache的排查可通过如下两种方案：
@@ -601,7 +616,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 在常规强化学习训练中，推理和训练的模型`forward token`序列维度通常存在如下差异：
 
 - 单`prompt`为例
-    - 推理分为`prefill`+`N*decode`  
+    - 推理分为`prefill`+`N*decode`
     `prefill`阶段`forward`的`token`维度为`prompt_len`，`decode`阶段`forward`的`token`维度为`1`，结束后得到`prompt`+`response`
     - 训练则为整体`forward`
       - 若不存在`pad`，`token`维度为`prompt_len`+`response_len`
@@ -656,15 +671,15 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
     data.max_response_length=1
     ```
 
-5. 训练与推理不带`response`差异  
+5. 训练与推理不带`response`差异
     有如下两种实现对齐的方案：
 
     - **方案1：将训练变单`prompt`。**
     - **方案2：将推理的prefill带上`response`**，具体为推理做完`prefill`和`decode`拿到完整的`prompt`+`response`后，设`max_response`=`1`重做一次`prefill`(`prompt`+`response`)  。
-    
+
     由于后者存在重复推理影响性能，因此本指南优先以前方案1进行操作。
 
-    **方案1具体实现**  
+    **方案1具体实现**
     在verl框架中针对进行训练的输入数据改动并适配`loss`计算保证不报错，对于不同后端，分别对应的修改文件如下：
     - `fsdp`：`verl/workers/actor/dp_actor.py`
     - `megatron`：`verl/workers/actor/megatron_actor.py`
@@ -684,41 +699,13 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
     +            response_length = 0
     multi_modal_inputs = {}
     ...
-    
+
     @GPUMemoryLogger(role="dp actor", logger=logger)
     def compute_log_prob(self, data: DataProto, calculate_entropy=False) -> torch.Tensor:
         """..."""
         # set to eval
         self.actor_module.eval()
-    
-    +        compute_prompts_only = int(os.getenv("PROMPTS_ONLY", "0"))
-    +        if compute_prompts_only:
-    +            if "responses" in data.batch:
-    +                responses_len = data.batch["responses"].size(1)
-    +                data.batch["input_ids"] = data.batch["input_ids"][:, :-responses_len]
-    +                data.batch["attention_mask"] = data.batch["attention_mask"][:, :-responses_len]
-    +                if data.batch["position_ids"].dim() == 3:
-    +                    data.batch["position_ids"] = data.batch["position_ids"][:, :, :-responses_len]
-    +                else:
-    +                    data.batch["position_ids"] = data.batch["position_ids"][:, :-responses_len]
-    +                # remove responses from batch
-    +                data.batch["responses"] = None
-    +                if "rollout_log_probs" in data.batch:
-    +                    data.batch["rollout_log_probs"] = None
-    +                if "response_mask" in data.batch:
-    +                    data.batch["response_mask"] = None         
-    + 
-    
-    micro_batch_size = data.meta_info["micro_batch_size"]
-    ...
-    
-    @GPUMemoryLogger(role="dp actor", logger=logger)
-    def update_policy(self, data: DataProto):
-        # make sure we are in training mode
-        self.actor_module.train()
-    
-        temperature = data.meta_info["temperature"]  # temperature must be in the data.meta_info to avoid silent error
-    
+
     +        compute_prompts_only = int(os.getenv("PROMPTS_ONLY", "0"))
     +        if compute_prompts_only:
     +            if "responses" in data.batch:
@@ -735,7 +722,35 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
     +                    data.batch["rollout_log_probs"] = None
     +                if "response_mask" in data.batch:
     +                    data.batch["response_mask"] = None
-    + 
+    +
+
+    micro_batch_size = data.meta_info["micro_batch_size"]
+    ...
+
+    @GPUMemoryLogger(role="dp actor", logger=logger)
+    def update_policy(self, data: DataProto):
+        # make sure we are in training mode
+        self.actor_module.train()
+
+        temperature = data.meta_info["temperature"]  # temperature must be in the data.meta_info to avoid silent error
+
+    +        compute_prompts_only = int(os.getenv("PROMPTS_ONLY", "0"))
+    +        if compute_prompts_only:
+    +            if "responses" in data.batch:
+    +                responses_len = data.batch["responses"].size(1)
+    +                data.batch["input_ids"] = data.batch["input_ids"][:, :-responses_len]
+    +                data.batch["attention_mask"] = data.batch["attention_mask"][:, :-responses_len]
+    +                if data.batch["position_ids"].dim() == 3:
+    +                    data.batch["position_ids"] = data.batch["position_ids"][:, :, :-responses_len]
+    +                else:
+    +                    data.batch["position_ids"] = data.batch["position_ids"][:, :-responses_len]
+    +                # remove responses from batch
+    +                data.batch["responses"] = None
+    +                if "rollout_log_probs" in data.batch:
+    +                    data.batch["rollout_log_probs"] = None
+    +                if "response_mask" in data.batch:
+    +                    data.batch["response_mask"] = None
+    +
              select_keys = [
                  "responses",
                  "response_mask",
@@ -750,15 +765,15 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
                          # Extract pre-computed rollout correction weights if present
                          # Weights are computed centrally in trainer and added when algorithm.rollout_is=True
                          rollout_is_weights = model_inputs.get("rollout_is_weights", None)
-    
+
     +                    if response_mask is None:
     +                        prompt_mask = torch.ones_like(log_prob, dtype=torch.bool)
     +                        response_mask = prompt_mask
-    + 
+    +
                          # gpg -> verl.trainer.ppo.core_algos.compute_policy_loss_gpg
                          # clip_cov -> verl.trainer.ppo.core_algos.compute_policy_loss_clip_cov
                          policy_loss_fn = get_policy_loss_fn(loss_mode)
-    
+
                          # Compute policy loss (any function is expected to return 2 values)
                          pg_loss, pg_metrics = policy_loss_fn(
                              old_log_prob=old_log_prob,
@@ -777,7 +792,8 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 **比对详情**
 
-对于训推一致的比对，除了`shape`之外，还存在较多的模块层级名称不一致，以`qwen2.5-0.5b`为例，若推理使用`vllm`后端、训练使用`fsdp`后端，双方对应的模块名称如下：  
+对于训推一致的比对，除了`shape`之外，还存在较多的模块层级名称不一致，以`qwen2.5-0.5b`为例，若推理使用`vllm`后端、训练使用`fsdp`后端，双方对应的模块名称如下：
+
 <img src="https://raw.gitcode.com/user-images/assets/7898473/3d0f7c0d-0f33-4850-af39-ec9b83792dad/image.png" alt="Your image title" width="800"/>
 
 可见存在如下差异：
@@ -805,8 +821,9 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 **可视化比对工具适配特性**
 
-在可视化比对工具中，提供`点点匹配`功能，用户可通过浏览器界面，鼠标选择两个待匹配的灰色节点进行匹配。当前仅支持统计值数据模式。 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/6d7ed4aa-17d6-4d4a-a045-22f5c2e3e160/image.png 'image.png')  
+在可视化比对工具中，提供`点点匹配`功能，用户可通过浏览器界面，鼠标选择两个待匹配的灰色节点进行匹配。当前仅支持统计值数据模式。
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/6d7ed4aa-17d6-4d4a-a045-22f5c2e3e160/image.png 'image.png')
 
 ##### 2.3.3.6 长稳训练排查
 
@@ -839,20 +856,20 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 精度修复三板斧主要分如下三种：
 
-- 升精度  
+- 升精度
  首先尝试升高`API`精度，如`FP16`、`BF16`升`FP32`，尝试规避半精度带来的精度问题。但需要注意有些`API`不适合升精度，如`random`噪声生成。
-- 常规`API`转`CPU`  
+- 常规`API`转`CPU`
  常规`API`指的是该`API`在`NPU`和`CPU`侧都有对应实现，因此可通过将该`API`替换到`CPU`侧运行，确保`API`自身计算没问题。
 
     ```python
     class ModuleOP(nn.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.linear = nn.Linear(in_features=2, out_features=2) 
+            self.linear = nn.Linear(in_features=2, out_features=2)
             self.relu = nn.ReLU()
-    
+
         def forward(self, x):
-            x1 = self.linear(x) 
+            x1 = self.linear(x)
             r1 = self.relu(x1)
             return r1
     ```
@@ -863,20 +880,20 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
         # 替换self.linear_1到CPU运行 class ModuleOP(nn.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.linear = nn.Linear(in_features=2, out_features=2) 
+            self.linear = nn.Linear(in_features=2, out_features=2)
             self.relu = nn.ReLU()
-    
+
         def forward(self, x):
             # 输入搬运到CPU, 如果有多处需要更改,则每处都要修改
             x = x.cpu()
             self.linear.cpu()
-            x1 = self.linear(x)  # 在CPU上运行 
+            x1 = self.linear(x)  # 在CPU上运行
             x1 = x1.npu()  # 输出搬运回NPU
             r1 = self.relu(x1)
             return r1
      ```
 
-- 小算子代替融合算子  
+- 小算子代替融合算子
  若定位到问题`API`为融合算子，可通过分支变量控制模型训练走融合算子或常规实现。若融合算子场景精度异常，常规逻辑精度正常，则说明融合算子实现异常。如`MindSpeed-LLM`中关于`attention`常规实现和融合算子实现的逻辑控制可通过如下命令行参数控制。
 
     ```bash
@@ -888,7 +905,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 - 对于外部用户或现场`PAE`、`FAE`来说，可联系昇腾相关支撑人员获取`API`责任田，找到对应责任人进行定位。
 - 对于内部用户，可根据`API`名称确定对应算子（通常情况下，`API`名称与算子名称高度相似），据此寻找算子责任人进行定位。
 
-## 3 定位流程对应案例
+## 3. 定位流程对应案例
 
 ---
 
@@ -900,8 +917,10 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 **定位方法：**
 
-根据启动脚本或训练日志对比NPU和标杆的训练配置。  
-比对发现NPU用的fsdp配置，GPU用的ddp配置，训练Loss差异不大但下游指标差异大。  
+根据启动脚本或训练日志对比NPU和标杆的训练配置。
+
+比对发现NPU用的fsdp配置，GPU用的ddp配置，训练Loss差异不大但下游指标差异大。
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/5b506a50-f3c3-406e-9c8e-a1e878709b64/image.png 'image.png')
 
 **解决方案**：同步GPU配置。
@@ -910,34 +929,42 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 #### 3.1.2 读取数据不一致
 
-**案例**：某大语言模型，从LLama-Factory NPU（标杆）迁移到ModelLink NPU训练，Loss对不齐  
+**案例**：某大语言模型，从LLama-Factory NPU（标杆）迁移到ModelLink NPU训练，Loss对不齐。
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7efdae1a-4765-4914-9a7e-ffb41378aa1d/image.png 'image.png')
 
 **定位方法：**
 
-打印比较输入的tokens等信息，具体位置需结合训练代码（如ModelLink可直接在modellink/pretrain_gpt.py的forward_step函数中添加打印），如图所示：  
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/c29037c7-896a-4bc8-baba-4a35a61f3bfb/image.png 'image.png')  
+打印比较输入的tokens等信息，具体位置需结合训练代码（如ModelLink可直接在modellink/pretrain_gpt.py的forward_step函数中添加打印），如图所示：
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/c29037c7-896a-4bc8-baba-4a35a61f3bfb/image.png 'image.png')
+
 可以看到读取的tokens数据末尾存在不一致的问题。
 
 **解决方案**：修复数据预处理代码，使其输入一致。
 
-**结果**：修复后Loss对齐。  
+**结果**：修复后Loss对齐。
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/655f0a54-b851-49f5-a750-cd6cbf32a691/image.png 'image.png')
 
 #### 3.1.3 模型结构不一致
 
-**案例**：某MOE模型，从GPU迁移到NPU后，Loss对不齐  
+**案例**：某MOE模型，从GPU迁移到NPU后，Loss对不齐。
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9cd35663-a6f7-4056-88a3-29051af73e60/image.png 'image.png')
 
 **定位方法：**
 
-可以通过查看具体代码实现或打印模型结构比较。  
-查看代码发现，NPU中residual是input_layernorm后的，GPU上是input_layernorm前的，两者模型顺序结构不一致。  
+可以通过查看具体代码实现或打印模型结构比较。
+
+查看代码发现，NPU中residual是input_layernorm后的，GPU上是input_layernorm前的，两者模型顺序结构不一致。
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/880aab30-4973-43fb-a0cb-8e2914a63299/image.png 'image.png')
 
 **解决方案**：在NPU中的input_layernorm也放到residual后面。
 
-**结果**：对齐模型结构后Loss对齐。  
+**结果**：对齐模型结构后Loss对齐。
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/08c4b411-aabd-486b-abe9-49a1ded42b87/image.png 'image.png')
 
 ### 3.2 分场景定位案例
@@ -946,8 +973,10 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 ##### 3.2.1.1 溢出或NaN问题
 
-**案例**：某视觉模型从GPU迁移到NPU ModelLink训练，从一开始就梯度溢出  
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/3127cf1c-086e-48d8-8092-7762c8f5e3f9/image.png 'image.png')  
+**案例**：某视觉模型从GPU迁移到NPU ModelLink训练，从一开始就梯度溢出。
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/3127cf1c-086e-48d8-8092-7762c8f5e3f9/image.png 'image.png')
+
 从用户共享的训练截图中可以看到第0步梯度反向时逐层变大直至溢出。
 
 **定位方法**：
@@ -963,7 +992,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
         "level": "mix",
         "enable_dataloader": false,
         "statistics": {
-            "scope": [], 
+            "scope": [],
             "list": [],
             "data_mode": ["all"],
             "summary_mode": "statistics"
@@ -971,7 +1000,8 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
     }
     ```
 
-    从训练截图中可看到每次self_attn反向之后梯度逐层变大，查看self_attn代码发现使用了FA算子，该算子历史上因使用规范引起的精度问题较多，优先查看dump中对应的反向数据，发现每次经过FA层反向后，norm值量级明显增大。  
+    从训练截图中可看到每次self_attn反向之后梯度逐层变大，查看self_attn代码发现使用了FA算子，该算子历史上因使用规范引起的精度问题较多，优先查看dump中对应的反向数据，发现每次经过FA层反向后，norm值量级明显增大。
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/6693c940-3bc0-452c-b25d-6c203fcf1aa8/image.png 'image.png')
 
 2. 快速验证，先在ModelLink的训练配置中规避FA融合算子，删除如下超参：
@@ -982,9 +1012,12 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
     溢出消失，明确该问题为FA分支引入，但性能下降明显，需进一步明确FA精度原因。
 3. 通过查阅FA算子官网使用文档，分析FA算子在代码中的具体使用方式：
-    该问题为变长场景，原始输入为batch_size=2，输入序列1的seq_len=3577，序列2的seq_len=1502，统一pad到3577长度，原始输入shape=[2, 3577, 32, 128]。  
-    在进行FA计算前，会将batch_size和seq_len做flatten，此时shape=[7154, 32, 128]，下一步去除其中的pad，因此Q和KV的输入长度变成了[5079, 32, 128]。  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a66e4909-82f0-437e-8fc4-f5b8d046d488/image.png 'image.png')  
+    该问题为变长场景，原始输入为batch_size=2，输入序列1的seq_len=3577，序列2的seq_len=1502，统一pad到3577长度，原始输入shape=[2, 3577, 32, 128]。
+
+    在进行FA计算前，会将batch_size和seq_len做flatten，此时shape=[7154, 32, 128]，下一步去除其中的pad，因此Q和KV的输入长度变成了[5079, 32, 128]。
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a66e4909-82f0-437e-8fc4-f5b8d046d488/image.png 'image.png')
+
     按照官网说明，此时attention mask按照规则本该为[maxSq, maxSkv] ，即[3577, 3577]，但实际客户代码中使用[query.shape[0], key.shape[0]，即 [5079, 5079]，使用规范错误，导致算子底层执行计算时会按行读取，导致出现0、1的数值错位，最终导致梯度溢出。
 
 **解决方案**：修正FA训练时传入的attention_mask。
@@ -993,32 +1026,38 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 ##### 3.2.1.2 首Step Loss不一致
 
-**案例**：某语音模型首Step就Loss对不齐  
+**案例**：某语音模型首Step就Loss对不齐。
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/64e451db-52a8-41b8-820c-b55c378769de/image.png 'image.png')
 
 **定位方法**：
 
-1. 使用精度采集工具采集第0步的mix级别数据，config.json配置参考[3.2.1.1节](#3211-溢出或nan问题)中的定位方法
- 精度采集工具在代码中插入方法可参考如下方式：  
+1. 使用精度采集工具采集第0步的mix级别数据，config.json配置参考[3.2.1.1节](#3211-溢出或nan问题)中的定位方法。
+    精度采集工具在代码中插入方法可参考如下方式：
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/0434a5a0-46fe-45f0-98e9-a05884141ad8/image.png 'image.png')
-2. 通过分级可视化工具分析差异   
+
+2. 通过分级可视化工具分析差异
     可视化命令为：
 
     ```bash
     msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path
     ```
 
-    在输出目录中可以看到生成的vis后缀文件，用tensorboard打开可视化界面：  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/99186c98-1b3f-47b8-bb6d-68113895e3f9/image.png 'image.png')  
+    在输出目录中可以看到生成的vis后缀文件，用tensorboard打开可视化界面：
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/99186c98-1b3f-47b8-bb6d-68113895e3f9/image.png 'image.png')
+
     可以看到gelu算子标红，算子精度可疑。
-3. 也可通过精度比对工具进行比对  
+3. 也可通过精度比对工具进行比对
     运行如下比对命令得到比对的csv表格：
 
     ```bash
     msprobe compare -tp /target_dump/step0 -gp /golden_dump/step0 -o ./output
     ```
 
-    分析表格发现gelu算子输入差异较小，输出差异较大。  
+    分析表格发现gelu算子输入差异较小，输出差异较大。
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/0c44ccee-3715-4dfc-b3c0-660e1d85db73/image.png 'image.png')
 
 **解决方案**：将gelu算子计算转CPU，精度问题解决，明确该问题为gelu算子导致，但转CPU会影响性能，后续联系算子支撑人员提供了TorchNPU的gelu修复包。
@@ -1027,20 +1066,21 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 ##### 3.2.1.3 长稳训练Loss不一致
 
-**案例**：某搜索模型从fp32转bf16之后，前期Loss差异不大后期Loss跑飞  
+**案例**：某搜索模型从fp32转bf16之后，前期Loss差异不大后期Loss跑飞。
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/52b9c64d-a386-4a3a-8e5e-dc001fae004b/image.png 'image.png')
 
 **定位方法**：
 
 由于前期对齐后期跑飞，且跑飞时步数已较大，全程dump数据量多且步数不确定，因此优先采用monitor状态监测工具进行采集。
 
-1. 查看Grad Norm与Loss趋势：  
+1. 查看Grad Norm与Loss趋势：
     两者趋势一致，倾向于由梯度导致的Loss突变，因此用如下配置采集梯度数据，monitor_config.json内容如下：
 
     ```json
     {
       "targets": {},
-      "wg_distribution": true, 
+      "wg_distribution": true,
       "format": "csv",
       "ops": [
         "norm",
@@ -1051,15 +1091,19 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
     }
     ```
 
-    代码中插入方式如下：  
+    代码中插入方式如下：
+
      ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f42a70bb-0abb-4ad4-b59e-c547c831d444/image.png 'image.png')
-    
-2. 采集后可得到每张卡上的grad_unreduced-xx-xx.csv和grad_reduced-xx-xx.csv  
-其中xx为步数，查看在360步之后的开始上扬位置的reduce前各层梯度数据，结果如下：  
- ![image.png](https://raw.gitcode.com/user-images/assets/7898473/8b62626a-e35e-42c1-a2a2-178be0c0815c/image.png 'image.png')  
-其中横坐标为反向的层顺序，左边为output，右边为embedding，可看到权重梯度norm值较大的位置在embedding附近，而对比fp32的梯度数据在embedding层上也相对稳定。  
- ![image.png](https://raw.gitcode.com/user-images/assets/7898473/581924af-bb80-4eaa-88d3-fb962423c878/image.png 'image.png')  
-因此重点怀疑embedding层梯度在bf16上相较于fp32存在数值不稳定现象。
+
+2. 采集后可得到每张卡上的grad_unreduced-xx-xx.csv和grad_reduced-xx-xx.csv，其中xx为步数，查看在360步之后的开始上扬位置的reduce前各层梯度数据，结果如下：
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/8b62626a-e35e-42c1-a2a2-178be0c0815c/image.png 'image.png')
+
+    其中横坐标为反向的层顺序，左边为output，右边为embedding，可看到权重梯度norm值较大的位置在embedding附近，而对比fp32的梯度数据在embedding层上也相对稳定。
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/581924af-bb80-4eaa-88d3-fb962423c878/image.png 'image.png')
+
+    因此重点怀疑embedding层梯度在bf16上相较于fp32存在数值不稳定现象。
 
 **解决方案**：对embedding的梯度做梯度裁剪。
 
@@ -1069,55 +1113,71 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 ##### 3.2.2.1 内存踩踏案例
 
-**案例**：某多模态模型从GPU迁移到NPU后做微调，使用框架为fsdp，训练第2步Loss出现NaN  
-NPU上运行结果：  
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/751daf11-9dba-4536-a5cc-1d1a5eb6c10e/image.png 'image.png')  
-GPU上运行结果：  
+**案例**：某多模态模型从GPU迁移到NPU后做微调，使用框架为fsdp，训练第2步Loss出现NaN。
+NPU上运行结果：
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/751daf11-9dba-4536-a5cc-1d1a5eb6c10e/image.png 'image.png')
+
+GPU上运行结果：
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/b60f3448-308a-4421-95aa-068f4cae60fa/image.png 'image.png')
 
-**定位方法**：  
+**定位方法**：
 
 1. 缩小规模：
- 该模型现网为128卡训练，做实验成本大，需首先缩小规模，减少层数后可在单机2卡稳定复现
+    该模型现网为128卡训练，做实验成本大，需首先缩小规模，减少层数后可在单机2卡稳定复现
 2. 使用精度采集工具采集Step1（最开始出现NaN的步数）的mix级别数据并分析：
-    加入工具后，发现NaN问题消失。  
+    加入工具后，发现NaN问题消失。
     去除工具并打开流同步进一步验证：
 
     ```bash
     export ASCEND_LAUNCH_BLOCKING=1
     ```
 
-    开启流同步后问题也消失。  
+    开启流同步后问题也消失。
     基于以上2个现象怀疑该fsdp模型训练存在内存踩踏问题。
 3. 缩小排查范围：
-    该模型由四个部分组成：vae，dit，denoiser和conditioner。  
+    该模型由四个部分组成：vae，dit，denoiser和conditioner。
     从训练完整模型改为只训练dit.transformer.layers，Loss仍然有NaN，确认是transformer.layers问题。
 4. 通过手动挂局部hook的方式打印梯度：
-    发现第1步Loss NaN不是第一现场，先出现NaN的是第0步post_attention_layernorm反向梯度。  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9e98aad8-0158-4171-894e-6e3bb0778138/image.png 'image.png')  
-    与打开流同步的无NaN的梯度数据进行对比，除了input_layernorm和post_attention_layernorm层的weight和bias，其余的参数都能对上。  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/2b958529-a687-42da-84c8-6f26a49979d4/image.png 'image.png')  
+    发现第1步Loss NaN不是第一现场，先出现NaN的是第0步post_attention_layernorm反向梯度。
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9e98aad8-0158-4171-894e-6e3bb0778138/image.png 'image.png')
+
+    与打开流同步的无NaN的梯度数据进行对比，除了input_layernorm和post_attention_layernorm层的weight和bias，其余的参数都能对上。
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/2b958529-a687-42da-84c8-6f26a49979d4/image.png 'image.png')
+
     对应dump中的接口为Functional.layer_norm.10和Functional.layer_norm.11。
 5. 结合具体代码进行分析：
-    post_attention_layernorm对于图像和文本连续下发了两次。  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/e273c809-1669-4ce6-9ae1-2081b474b387/image.png 'image.png')  
-    将其次数改为1次时NaN消失，明确该问题出现在该算子重复调用时。  
-    分析内存踩踏特征的方式是按异常数据是否存在规律性和连续性，所以需先采集对应数据。  
+    post_attention_layernorm对于图像和文本连续下发了两次。
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/e273c809-1669-4ce6-9ae1-2081b474b387/image.png 'image.png')
+
+    将其次数改为1次时NaN消失，明确该问题出现在该算子重复调用时。
+    分析内存踩踏特征的方式是按异常数据是否存在规律性和连续性，所以需先采集对应数据。
 6. 改用异步dump：
-    之前加入精度采集工具后NaN消失原因为对tensor取统计量（min、max等）和落盘的操作会影响流上算子的执行，导致NaN不复现。  
-    通过改异步dump方式，训练过程中工具不触发同步操作，在当前Step训练结束后统一落盘，降低对算子执行顺序和流同步影响。  
-    具体操作为：在config.json文件中加入async_dump: True的配置项。  
+    之前加入精度采集工具后NaN消失原因为对tensor取统计量（min、max等）和落盘的操作会影响流上算子的执行，导致NaN不复现。
+    通过改异步dump方式，训练过程中工具不触发同步操作，在当前Step训练结束后统一落盘，降低对算子执行顺序和流同步影响。
+    具体操作为：在config.json文件中加入async_dump: True的配置项。
     重新采集Functional.layer_norm.10和Functional.layer_norm.11及其中间的torch.split.192反向数据，可在dump单个算子时复现NaN。
 7. 分析异步dump数据：
-    参考无Loss NaN的dump.json文件，torch.split.192.backward的输入应为Functional.layer_norm.11的输出，而不开流同步时异步dump的torch.split.192.backward的输入与Functional.layer_norm.11的输出对不上，对比本该相等的2组数据：  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f4c2607e-d9ff-42fd-9801-2f7f5d89bfe7/image.png 'image.png')  
-    发现刚好踩了size=2048（0-2047基本不等，2048-3071相等），满足内存踩踏特征。  
+    参考无Loss NaN的dump.json文件，torch.split.192.backward的输入应为Functional.layer_norm.11的输出，而不开流同步时异步dump的torch.split.192.backward的输入与Functional.layer_norm.11的输出对不上，对比本该相等的2组数据：
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f4c2607e-d9ff-42fd-9801-2f7f5d89bfe7/image.png 'image.png')
+
+    发现刚好踩了size=2048（0-2047基本不等，2048-3071相等），满足内存踩踏特征。
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/d70832b1-c199-4ca8-9233-48ab0da20540/image.png 'image.png')
+
 8. 算子内存地址打印：
-    尝试通过修改TorchNPU源码对算子的输入和输出tensor对应的ptr地址和shape进行打印。  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/62c1f075-9756-4022-a450-c275882e551a/image.png 'image.png')  
-    从日志发现两个连续layernorm中，存在cast算子输出对concat算子输入的踩踏（两者地址一致）  
-    踩踏现场确认如下：  
+    尝试通过修改TorchNPU源码对算子的输入和输出tensor对应的ptr地址和shape进行打印。
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/62c1f075-9756-4022-a450-c275882e551a/image.png 'image.png')
+
+    从日志发现两个连续layernorm中，存在cast算子输出对concat算子输入的踩踏（两者地址一致）
+    踩踏现场确认如下：
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/1c25de8b-129f-4762-951d-0248f8402591/image.png 'image.png')
 
 总结根因为缺失record的backend +多流并行的FSDP +连续下发的layernorm导致了内存踩踏。
@@ -1128,11 +1188,11 @@ GPU上运行结果：
 
 ##### 3.2.2.2 算子确定性问题案例
 
-**案例**：某视觉模型存在确定性计算问题，重复训练Loss不一致  
+**案例**：某视觉模型存在确定性计算问题，重复训练Loss不一致
 
 **定位方法**：
 
-1. 打开确定性（计算确定性+通信确定性）、设随机种子、关闭Dropout、固定数据集读取顺序  
+1. 打开确定性（计算确定性+通信确定性）、设随机种子、关闭Dropout、固定数据集读取顺序
     通过msprobe工具中的seed_all来自动实现以上目的（除数据集读取之外）：
 
     ```bash
@@ -1152,7 +1212,7 @@ GPU上运行结果：
         "level": "mix",
         "enable_dataloader": false,
         "statistics": {
-            "scope": [], 
+            "scope": [],
             "list": [],
             "data_mode": ["all"],
             "summary_mode": "md5"
@@ -1160,14 +1220,20 @@ GPU上运行结果：
     }
     ```
 
-    比对2次采集的数据，最先出现异常的是masked_fill.23的输入。  
- ![image.png](https://raw.gitcode.com/user-images/assets/7898473/23f89bbd-8f60-44ca-a777-575602508164/image.png 'image.png')  
-    根据dump结果中的stack.json调用栈和代码查找输入来源，代码往上翻找为mmcv的MSDA。  
- ![image.png](https://raw.gitcode.com/user-images/assets/7898473/46e01b68-e868-4574-9f06-91e29abba68c/image.png 'image.png')  
-    与MSDA算子支撑人员确认该算子暂不支持确定性计算，建议可用小算子组合进行代替。  
-    小算子代替后masked_fill.23输入一致，但发现grid_sample输出仍有差异。  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7f726fa8-2cce-4a44-8789-20a17071775c/image.png 'image.png')  
- 与grid_sample算子支撑人员确认该算子也暂不支持确定性计算。
+    比对2次采集的数据，最先出现异常的是masked_fill.23的输入。
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/23f89bbd-8f60-44ca-a777-575602508164/image.png 'image.png')
+
+    根据dump结果中的stack.json调用栈和代码查找输入来源，代码往上翻找为mmcv的MSDA。
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/46e01b68-e868-4574-9f06-91e29abba68c/image.png 'image.png')
+
+    与MSDA算子支撑人员确认该算子暂不支持确定性计算，建议可用小算子组合进行代替。
+    小算子代替后masked_fill.23输入一致，但发现grid_sample输出仍有差异。
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7f726fa8-2cce-4a44-8789-20a17071775c/image.png 'image.png')
+
+    与grid_sample算子支撑人员确认该算子也暂不支持确定性计算。
 
 **解决方案**：MSDA算子转小算子拼接，grid_sample算子转CPU。
 
@@ -1175,18 +1241,23 @@ GPU上运行结果：
 
 ##### 3.2.2.3 硬件压测案例
 
-**案例**：某近5k卡大集群模型Loss不对齐，Grad Norm存在大量尖刺  
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/8562b38b-a85e-4b44-99de-89e70595c56b/image.png 'image.png')  
-由于集群较大，优先进行硬件压测，排查坏节点。  
-4800卡分成100组*（3*16卡）任务，跑同一个训练任务，固定随机性+开启确定性计算，看最终Loss曲线，有没有哪组异常，缩小到异常的机组再做dmi压测。  
-使用ascend-dmi -dg -i aicore -s -sc 60 -q命令进行机器压测，查看故障检测结果。  
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/c86efd04-6b4d-414c-99b3-f8c4bffdbc31/image.png 'image.png')  
+**案例**：某近5k卡大集群模型Loss不对齐，Grad Norm存在大量尖刺。
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/8562b38b-a85e-4b44-99de-89e70595c56b/image.png 'image.png')
+
+由于集群较大，优先进行硬件压测，排查坏节点。
+
+4800卡分成100组*（3*16卡）任务，跑同一个训练任务，固定随机性+开启确定性计算，看最终Loss曲线，有没有哪组异常，缩小到异常的机组再做dmi压测。
+使用ascend-dmi -dg -i aicore -s -sc 60 -q命令进行机器压测，查看故障检测结果。
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/c86efd04-6b4d-414c-99b3-f8c4bffdbc31/image.png 'image.png')
+
 检测结果显示存在坏节点，将其排除后精度正常，表现为Loss后期不再有尖刺、Grad Norm尖刺频率明显改善。
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/91e3f75b-3c9b-4b25-86e4-789a76790ae0/image.png 'image.png')
 
-## 4 msprobe工具定位
+## 4. msprobe工具定位
 
----
 本章介绍msprobe工具包的安装、使用思路及步骤说明，也可同步参考[msprobe官网](https://gitcode.com/Ascend/msprobe)查看最新版本说明文档。
 
 ### 4.1 工具安装
@@ -1239,7 +1310,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
           "step": [0,1],
           "level": "mix",
           "statistics": {
-              "scope": [], 
+              "scope": [],
               "list": [],
               "data_mode": ["all"],
               "summary_mode": "statistics"
@@ -1294,9 +1365,11 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
     - debugger.stop()需放在loss.backward之后的位置，代码里一般是放在调用loss.backward()后或者train_step()后。
     - debugger.step()需放在一个迭代结束的位置，且必须在stop函数之后的位置调用。
 
-3. 保存格式  
-    结果保存在config.json中配置的dump_path下，整体格式如下：  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/239c76c4-241e-442f-ab09-0f00c61285a5/image.png 'image.png')  
+3. 保存格式
+    结果保存在config.json中配置的dump_path下，整体格式如下：
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/239c76c4-241e-442f-ab09-0f00c61285a5/image.png 'image.png')
+
     对于保存的结果，需注意如下几点：
     - dump.json为统计量，一般包含Max、Min、Mean、Norm等。
     - stack.json可查看dump中API对应的调用栈。
@@ -1305,17 +1378,20 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
     - 只有采集"task"为"tensor"时， dump_tensor_data下才会有内容。
     - 只有采集"level"为"L0"和"mix"时，construct.json内才会有内容。
 
-4. dump.json统计量结果详解  
-    如下为dump.json采集结果样例：  
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/201776cc-0ca5-4f30-88e3-464e35df6ddf/image.png 'image.png')  
+4. dump.json统计量结果详解
+    如下为dump.json采集结果样例：
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/201776cc-0ca5-4f30-88e3-464e35df6ddf/image.png 'image.png')
+
     可以看到，此时采集了linear层统计量，主要包含内容：
     - 输入input_args：含3个值，从上到下对应input、weight和bias，其中bias为空所以值为null。
     - 输出output：含1个值，对应linear层计算结果。
 
 **使用思路**
 
-下图是一个典型的“前几个Step的Loss与标杆差异大”的问题场景，第0个Step Loss完全一致，第一个Step Loss差异增大数倍。因而我们可以推断问题大概发生于Step0的backward或Step1的forward。  
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/a6f1d7c5-8861-4178-8b72-c3f545158ed4/image.png 'image.png')  
+下图是一个典型的“前几个Step的Loss与标杆差异大”的问题场景，第0个Step Loss完全一致，第一个Step Loss差异增大数倍。因而我们可以推断问题大概发生于Step0的backward或Step1的forward。
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/a6f1d7c5-8861-4178-8b72-c3f545158ed4/image.png 'image.png')
 
 1. 优先统计量采集：
 
@@ -1350,8 +1426,8 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
       ```
 
       构图完成会生成.vis.db后缀的文件，文件名称基于时间戳自动生成，格式为：build_{timestamp}.vis.db。
-  
-2. 可视化：  
+
+2. 可视化：
     用如下所示进行可视化展示
     - 可直连服务器
 
@@ -1365,44 +1441,58 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
       tensorboard --logdir out_path
       ```
 
-    启动后会打印地址和端口号。  
+    启动后会打印地址和端口号。
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/6d5e914f-4841-4486-83a2-40a3f20e6bff/image.png 'image.png')
 
 3. 浏览器查看并分析：
-浏览器输入地址+端口号，打开可视化界面。
+    浏览器输入地址+端口号，打开可视化界面。
 
 **使用思路**
 
-注意：分级可视化工具只有在精度采集工具采用了L0或mix级别时才可以使用，即必须在dump结果中生成construct.json模型结构文件。  
+分级可视化工具只有在精度采集工具采用了L0或mix级别时才可以使用，即必须在dump结果中生成construct.json模型结构文件。
+
 分级可视化工具构图后比对时可按照如下方法进行比对：
 
-- 比对模型结构：  
-  在左边侧栏勾选灰色的无匹配节点， 选取后会出现所有节点匹配不上的列表，点击节点查看网络中具体信息。  
-  ![image.png](../figures/visualization/vis_unmatch_info.png 'image.png')  
+- 比对模型结构：
+  在左边侧栏勾选灰色的无匹配节点， 选取后会出现所有节点匹配不上的列表，点击节点查看网络中具体信息。
+
+  ![image.png](../figures/visualization/vis_unmatch_info.png 'image.png')
+
   点击缺失节点可展开堆栈和输入输出信息，可根据堆栈找到对应代码：
   - 若迁移后确实存在部分模型步骤缺失，则进行补齐。
-  - 若仅为模块名称命名差异等导致，可点击左侧点点匹配按钮进行手动匹配 
-  ![image.png](https://raw.gitcode.com/user-images/assets/7898473/49b8538e-3047-424d-a7d8-395cc75dc66d/image.png 'image.png')  
-- 比对节点精度  
- 左边侧栏除了选择无匹配节点外，还可以根据精度风险级别勾选高风险提示节点，可视化后颜色越深，精度比对差异越大，越可疑。
-  除按照颜色深浅判断分析节点的优先级外，也可以优先查看首个精度出现差异的节点。  
-  ![image.png](../figures/visualization/vis_precision_info.png 'image.png')
-- 对于通信算子问题，可右键点击节点，在弹出菜单中选择数据发送或接收查看其他卡数据：  
- ![image.png](https://raw.gitcode.com/user-images/assets/7898473/958e5083-6920-4d89-83cd-bc09c73c3c39/image.png 'image.png')  
-- 溢出分析  
- 可在左边侧边栏进行溢出等级筛选，将特定等级的溢出检测节点按照顺序筛选出来，从颜色深的开始排查，用户可点击对应筛选项跳转到对应节点。  
-    ![image.png](../figures/visualization/vis_overflow_check.png 'image.png')  
+  - 若仅为模块名称命名差异等导致，可点击左侧点点匹配按钮进行手动匹配
+
+  ![image.png](https://raw.gitcode.com/user-images/assets/7898473/49b8538e-3047-424d-a7d8-395cc75dc66d/image.png 'image.png')
+
+- 比对节点精度
+    左边侧栏除了选择无匹配节点外，还可以根据精度风险级别勾选高风险提示节点，可视化后颜色越深，精度比对差异越大，越可疑。
+    除按照颜色深浅判断分析节点的优先级外，也可以优先查看首个精度出现差异的节点。
+
+    ![image.png](../figures/visualization/vis_precision_info.png 'image.png')
+
+- 对于通信算子问题，可右键点击节点，在弹出菜单中选择数据发送或接收查看其他卡数据：
+
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/958e5083-6920-4d89-83cd-bc09c73c3c39/image.png 'image.png')
+
+- 溢出分析
+    可在左边侧边栏进行溢出等级筛选，将特定等级的溢出检测节点按照顺序筛选出来，从颜色深的开始排查，用户可点击对应筛选项跳转到对应节点。
+
+    ![image.png](../figures/visualization/vis_overflow_check.png 'image.png')
+
     溢出等级说明如下：
     - medium： 输入异常，输出正常，这类问题优先级低，用户需最后关注。
     - high：输入异常，输出异常，或者是输入输出的指标突增，数值scale超过阈值倍数，这类问题需要用户手动确认是否存在问题。
     - critical：输入正常，输出异常，这类问题需要用户首先关注。
 
 除此之外，更详细的页面示意图使用可参考下图：
- ![image.png](../figures/visualization/vis_show_info.png 'image.png')  
+
+ ![image.png](../figures/visualization/vis_show_info.png 'image.png')
 
 ### 4.5 精度比对工具
 
 对于已经通过精度采集工具在NPU和标杆上采集保存的统计量或tensor的数据，除可视化工具之外，也可以使用精度采集比对工具进行各评测指标的精度比对。
+
 **使用说明**
 
 1. 比对命令：
@@ -1418,31 +1508,37 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 
 **使用思路**
 
-对于使用精度采集工具分别在NPU和标杆上采集的dump数据，使用比对工具进行比对，将生成csv比对结果文件。  
-对于非md5的统计量比对结果如下形式：  
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/a893f5a1-879b-46ea-a3e2-64d44aa6ace8/image.png 'image.png')  
-比对结果通过颜色标记、比对结果以及具体的各比对指标下的精度数值，在分析结果时可以着重看**平均相对误差（MeanRelativeErr）列**，对于输入差异不大，输出差异大的算子需进行重点分析。  
-对于md5的统计量比对结果如下形式：  
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/90f090b5-6eed-4f5e-b8ba-57764fe467bd/image.png 'image.png')  
-比对结果可以直接筛选**Result列**，表示md5比对Pass或Different，对于结果为Different的算子需进行重点分析。  
-对于tensor的比对结果如下形式：  
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/daf75315-e30b-43d6-adda-6910b89f8967/image.png 'image.png')  
+对于使用精度采集工具分别在NPU和标杆上采集的dump数据，使用比对工具进行比对，将生成csv比对结果文件。
+对于非md5的统计量比对结果如下形式：
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/a893f5a1-879b-46ea-a3e2-64d44aa6ace8/image.png 'image.png')
+
+比对结果通过颜色标记、比对结果以及具体的各比对指标下的精度数值，在分析结果时可以着重看**平均相对误差（MeanRelativeErr）列**，对于输入差异不大，输出差异大的算子需进行重点分析。
+对于md5的统计量比对结果如下形式：
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/90f090b5-6eed-4f5e-b8ba-57764fe467bd/image.png 'image.png')
+
+比对结果可以直接筛选**Result列**，表示md5比对Pass或Different，对于结果为Different的算子需进行重点分析。
+对于tensor的比对结果如下形式：
+
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/daf75315-e30b-43d6-adda-6910b89f8967/image.png 'image.png')
+
 比对结果通过颜色标记、比对结果以及具体的各比对指标下的精度数值，在分析结果时可以着重看**双千指标（One Thousandth Err Ratio和Five Thousandth Err Ratio）列**，对于输入差异不大，输出差异大的算子需进行重点分析。
 
 ### 4.6 训练状态监测工具
 
-对于训练规模较大、问题现场步数不明确的精度问题，若采集dump数据落盘量过大，可以先通过轻量化的训练状态监测工具进行定位排查。  
+对于训练规模较大、问题现场步数不明确的精度问题，若采集dump数据落盘量过大，可以先通过轻量化的训练状态监测工具进行定位排查。
 训练状态轻量化监测工具，能够在较低性能损耗下收集和记录模型训练过程中的激活值、权重梯度、优化器状态和通信算子的中间值，实时呈现训练状态，同时该工具支持动态启停功能，能够在训练过程中随时重启监测同时修改监测目标及配置。
 
 **使用说明**
 
-1. 使用monitor监测工具需要先配置config.json文件：  
+1. 使用monitor监测工具需要先配置config.json文件：
     对于训练监测来说，最常用的配置（监测权重梯度）如下：
 
     ```json
     {
       "targets": {},
-      "wg_distribution": true, 
+      "wg_distribution": true,
       "format": "csv",
       "ops": ["norm", "mean", "max", "min"],
       "ndigits": 16
@@ -1464,7 +1560,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
     model, optimizer, _ = setup_model_and_optimizer(model_provider, type)
     # 使能工具
     from msprobe.pytorch import TrainerMon, seed_all
-    seed_all(mode=True) 
+    seed_all(mode=True)
     # 监测工具初始化
     monitor = TrainerMon(
             config_file_path="./monitor_config.json",
@@ -1479,15 +1575,16 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
         )
     ```
 
-3. 保存格式：  
+3. 保存格式：
     保存路径通过环境变量MONITOR_OUTPUT_DIR设置，默认为"monitor_output"，各类数据对应的文件名如下，其中"xx"为对应步数：
     - 激活值对应actv_xx-xx.csv。
     - 激活值梯度对应actv_grad_xx-xx.csv。
     - 权重梯度reduce前对应grad_unreduced_xx-xx.csv。
     - 权重梯度reduce后对应grad_reduced_xx-xx.csv。
     - 优化器状态对应exp_avg_xx-xx.csv。
-    - 权重对应param_xx-xx.csv。  
-    同时采集以上几种状态的结果样例如下：  
+    - 权重对应param_xx-xx.csv。
+    同时采集以上几种状态的结果样例如下：
+
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9ae12b93-113f-4ff9-a6a8-6ec05bbaae84/image.png 'image.png')
 
 **使用思路**
@@ -1497,7 +1594,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 - 若该问题表现为先Grad Norm后Loss，则优先采集训练过程中梯度的数据，对应在config.json中的配置为wg_distribution。
 - 若该问题同时主要表现在Loss上，则优先采集训练过程中激活值和权重的数据，对应在config.json中的配置为xy_distribution和param_distribution。
 
-值得注意的是，在统计选项中必须包含mean值，以供后续分析。  
+值得注意的是，在统计选项中必须包含mean值，以供后续分析。
 对于梯度数据可以从如下几方面进行分析：
 
 1. 查看梯度unreduced和reduced前后差异：
@@ -1518,7 +1615,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 
 首先准备两个用来训练的环境，使用工具采集两个环境下影响精度的配置并比对。
 
-1. 数据采集。在其中两个环境分别执行如下操作：  
+1. 数据采集。在其中两个环境分别执行如下操作：
       在训练脚本开始处插入如下代码：
 
       ```python
@@ -1533,7 +1630,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
       ConfigChecker(model, shell_path, output_zip_path, fmk)
       ```
 
-      说明： 
+      说明：
       - model：初始化好的模型。不传或缺省就不会采集权重和数据集
       - shell_path：训练脚本路径，类型为列表，传入一个或多个训练配置/启动脚本。不传或缺省就不会采集超参
       - output_zip_path：输出zip包的路径，不传默认为"./config_check_pack.zip"
@@ -1546,18 +1643,18 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
       msprobe config_check -c bench_zip_path cmp_zip_path [-o output_path]
       ```
 
-      其中bench_zip_path为标杆侧采集到的数据，cmp_zip_path为待对比侧采集到的数据，参数-o为可选的比对结果输出路径，默认为"./config_check_result"。  
-      结果内含2个目录和1个文件：  
+      其中bench_zip_path为标杆侧采集到的数据，cmp_zip_path为待对比侧采集到的数据，参数-o为可选的比对结果输出路径，默认为"./config_check_result"。
+      结果内含2个目录和1个文件：
       - bench：bench_zip_path里打包的数据
       - cmp：cmp_zip_path里打包的数据
-      - result.xlsx：比对结果。里面会有多个sheet页，其中summary总览通过情况，其余页是具体检查项的详情。  
+      - result.xlsx：比对结果。里面会有多个sheet页，其中summary总览通过情况，其余页是具体检查项的详情。
 
       精度比对具体执行的检查包含：环境变量、三方库版本、训练超参、权重、数据集。
 
 ### 4.9 非工具手段补充
 
-在某些情况下（如使用工具报错、使用工具后问题不复现、使用工具采集较慢），可以尝试进行手动挂hook。  
-此方法基于PyTorch原生hook，可以获取到整网block粒度的数据。其在功能上相较于精度工具更加轻量，且可以自由的加入各种判断，非常灵活。但是无法获取到通信前后的数据，需要找到相关位置才能进行输出。  
+在某些情况下（如使用工具报错、使用工具后问题不复现、使用工具采集较慢），可以尝试进行手动挂hook。
+此方法基于PyTorch原生hook，可以获取到整网block粒度的数据。其在功能上相较于精度工具更加轻量，且可以自由的加入各种判断，非常灵活。但是无法获取到通信前后的数据，需要找到相关位置才能进行输出。
 手动挂hook的样例代码如下：
 
 ```python
@@ -1581,7 +1678,7 @@ for name, module in model.named_modules():
          module.register_backward_hook(hook_func('[forward]:' + name, module))
 ```
 
-## 5 附录
+## 5. 附录
 
 ---
 
@@ -1609,7 +1706,7 @@ for name, module in model.named_modules():
 
 #### 5.1.3 业务代码
 
-在实际定位过程中，有大量的精度问题最后定位原因为迁移后环境变量、超参数、数据处理、权重转换、模型实现或评测方案出现问题，这类问题通常建议在定位前优先排查。  
+在实际定位过程中，有大量的精度问题最后定位原因为迁移后环境变量、超参数、数据处理、权重转换、模型实现或评测方案出现问题，这类问题通常建议在定位前优先排查。
 这个场景下引入一个难点：无法脱离GPU基线，在脱离GPU的情况下，目前没有一个完整的流程或者解决方案来自证清白。
 
 #### 5.1.4 训练框架
@@ -1625,7 +1722,8 @@ for name, module in model.named_modules():
 
 ### 5.2 模型超参数
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/e4b647f4-0f5d-4864-9ed7-c15645579147/image.png 'image.png')  
+![image.png](https://raw.gitcode.com/user-images/assets/7898473/e4b647f4-0f5d-4864-9ed7-c15645579147/image.png 'image.png')
+
 如上图所示，模型的超参通常可调整的主要有学习率，batch_size、并行切分策略、模型参数、融合算子配置等，用户在进行NPU精度和GPU精度比对前，需要保证两边的配置一致。
 
 1. 学习率和warm-up：不同的学习率调度器（决定什么阶段用多大的学习率）有不同的学习率调度相关超参，例如线性调度可以选择从一个初始学习率lr-warmup-init开始预热。可以选择多少比例的训练迭代步使用预热阶段的学习率。不同的训练框架有不同的参数命名，请结合代码实现设置对应的参数，如Modellink对应的学习率参数为：
@@ -1639,7 +1737,7 @@ for name, module in model.named_modules():
 3. 切分策略：DP、TP、PP、EP、CP：
     - DP（data parallel）：数据并行（data parallelism）是大规模深度学习训练中常用的并行模式，它会在每个进程（设备）或模型并行组中维护完整的模型和参数，并在每个进程上或模型并行组中处理不同的数据。因此，数据并行非常适合大数据量的训练任务。
     - TP（tensor parallel）：张量并行也叫层内并行，通过将网络中的权重切分到不同的设备，从而降低单个设备的显存消耗，使得超大规模模型训练成为可能。张量并行不会增加设备等待时间，除了通信代价外，没有额外代价。
-    - PP（pipeline parallel）：流水线并行将模型的不同层放置到不同的计算设备，降低单个计算设备的显存消耗，从而实现超大规模模型训练。流水线并行也叫层间并行，层输入输出的依赖性使得设备需要等待前一步的输出，通过batch进一步切分成微batch，网络层在多个设备上的特殊安排和巧妙的前向后向计算调度，可以最大程度减小设备等待（计算空泡），从而提高训练效率。 
+    - PP（pipeline parallel）：流水线并行将模型的不同层放置到不同的计算设备，降低单个计算设备的显存消耗，从而实现超大规模模型训练。流水线并行也叫层间并行，层输入输出的依赖性使得设备需要等待前一步的输出，通过batch进一步切分成微batch，网络层在多个设备上的特殊安排和巧妙的前向后向计算调度，可以最大程度减小设备等待（计算空泡），从而提高训练效率。
     - EP（expert parallel）：专家并行在混合专家模型(MOE)中对不同的专家放置到不同的计算设备，使每个专家网络可以独立地学习和处理输入数据的不同方面。增加整个混合专家模型的扩展性，提高计算效率和泛化能力，在大规模MOE模型中备受关注。
     - CP（context parallel）：上下文并行将序列维度切分数据，实现支持序列并行的attention层，对计算设备实现负载均衡。在长序列数据训练任务中，上下文并行切分策略可以有效降低等待时间，提升吞吐率，是处理大规模数据集和复杂模型场景下的有效手段。
 4. 模型结构，配置模型结构的超参主要有：
@@ -1665,8 +1763,8 @@ export INF_NAN_MODE_ENABLE=1
 若不确定是否开启了这个模式，可以检查自己的shell脚本里是否存在该环境变量，或者在训练python脚本里打印该环境变量检查，如：
 
 ```python
-import os 
-inf_nan_mode = os.environ.get("INF_NAN_MODE_ENABLE", False) 
+import os
+inf_nan_mode = os.environ.get("INF_NAN_MODE_ENABLE", False)
 print(f"******INF_NAN_MODE is {inf_nan_mode}******")
 ```
 

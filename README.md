@@ -54,9 +54,7 @@ msProbe 支持 PyPI 安装、WHL 安装、源码编译三种方式，具体请�
 
 ## 💡 典型案例
 
-🔹 [大模型训练精度定位指南](docs/zh/best_practices/train_debug_guide.md)<br>
-🔹 [大模型推理精度定位指南](docs/zh/best_practices/infer_debug_guide.md)<br>
-🔹 [常用框架工具使能指南](docs/zh/best_practices/dump_enable_guide.md)
+通过典型问题场景帮助用户理解并掌握工具使用，请参见《[msProbe 典型案例](./docs/zh/best_practices/README.md)》。
 
 ## ❓ FAQ
 
