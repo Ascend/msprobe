@@ -252,7 +252,7 @@ Three matrix multiplication modes are supported:
 
 Configuration method:
 
-1. Create a calibration configuration file (in YAML format, for example, named `matmul_sample.yaml`), referring to the [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) template. Calibration tensor files in `.pt` and `.npy` formats are supported, and both absolute and relative paths can be used.
+1. Create a calibration configuration file (in YAML format, for example, named `matmul_sample.yaml`), referring to the [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) template. The YAML configuration file can also be generated automatically. For details about the implementation, see the `msprobe-postprocess-yaml` skill under [Quantization Skills](https://gitcode.com/Ascend/msagent/tree/pre-research/skills#23-%E9%87%8F%E5%8C%96-skills) in MindStudio-Agent. Calibration tensor files in `.pt` and `.npy` formats are supported, and both absolute and relative paths can be used.
 
    Configuration example (right multiplication mode):
 

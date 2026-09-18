@@ -254,7 +254,7 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 配置方式：
 
-1. 创建校准配置文件（yaml 格式，如名为matmul_sample.yaml），参考 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 模板。校准 tensor 文件支持 `.pt` 和 `.npy` 格式，路径支持使用绝对路径或相对路径。
+1. 创建校准配置文件（yaml 格式，如名为matmul_sample.yaml），参考 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 模板。yaml 配置文件也可以自动化生成，实现方式参见 MindStudio-Agent 中[量化 Skills](https://gitcode.com/Ascend/msagent/tree/pre-research/skills#23-%E9%87%8F%E5%8C%96-skills) 下的 msprobe-postprocess-yaml skill。校准 tensor 文件支持 `.pt` 和 `.npy` 格式，路径支持使用绝对路径或相对路径。
 
    配置示例（右乘模式）：
 
