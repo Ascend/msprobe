@@ -147,7 +147,7 @@ class AlgorithmScheduler:
                     f"The column name {col_name} is duplicated for algorithm {algo_name} and {mapping[col_name]}."
                 )
             mapping[col_name] = algo_name
-            logger.info(f"Load algorithm [{algo_name}] success, column: {col_name}")
+            logger.debug(f"Load algorithm [{algo_name}] success, column: {col_name}")
 
     @staticmethod
     def _get_reserved_column_names() -> set:
