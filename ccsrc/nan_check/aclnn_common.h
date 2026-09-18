@@ -40,6 +40,8 @@
 #if __has_include("torch_npu/csrc/flopcount/FlopCount.h")
 #include "torch_npu/csrc/flopcount/FlopCount.h"
 #endif
+#include "cust_op_api_loader.h"
+
 #define NPU_NAME_SPACE at_npu::native
 
 using aclOpExecutor = struct aclOpExecutor;
@@ -128,12 +130,11 @@ inline void *TryGetCustOpApiLibHandler(void)
 {
     void *handler = nullptr;
 #ifdef MSPROBE_CUST_OPAPI_PATH
-    handler = dlopen(MSPROBE_CUST_OPAPI_PATH, RTLD_LAZY);
+    handler = LoadCheckedCustOpApiLib(MSPROBE_CUST_OPAPI_PATH);
     if (handler != nullptr)
     {
         return handler;
     }
-    ASCEND_LOGW("dlopen %s failed, error:%s.", MSPROBE_CUST_OPAPI_PATH, dlerror());
 #endif
     const char *customOppPath = std::getenv("ASCEND_CUSTOM_OPP_PATH");
     if (customOppPath != nullptr && customOppPath[0] != '\0')
@@ -148,14 +149,14 @@ inline void *TryGetCustOpApiLibHandler(void)
             if (!basePath.empty())
             {
                 std::string candidatePath = basePath + "/op_api/lib/" + GetCustOpApiLibName();
-                handler = dlopen(candidatePath.c_str(), RTLD_LAZY);
+                handler = LoadCheckedCustOpApiLib(candidatePath);
                 if (handler != nullptr)
                 {
                     return handler;
                 }
 
                 candidatePath = basePath + "/" + GetCustOpApiLibName();
-                handler = dlopen(candidatePath.c_str(), RTLD_LAZY);
+                handler = LoadCheckedCustOpApiLib(candidatePath);
                 if (handler != nullptr)
                 {
                     return handler;
@@ -169,7 +170,7 @@ inline void *TryGetCustOpApiLibHandler(void)
             start = end + 1;
         }
     }
-    return dlopen(GetCustOpApiLibName(), RTLD_LAZY);
+    return nullptr;
 }
 
 inline void *GetOpApiLibHandler(const char *libName)
@@ -178,6 +179,11 @@ inline void *GetOpApiLibHandler(const char *libName)
     if (strcmp(libName, GetCustOpApiLibName()) == 0)
     {
         handler = TryGetCustOpApiLibHandler();
+        if (handler == nullptr)
+        {
+            ASCEND_LOGW("No valid %s found in configured custom op API library paths.", libName);
+        }
+        return handler;
     }
     else
     {
