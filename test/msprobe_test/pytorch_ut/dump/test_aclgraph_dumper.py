@@ -81,8 +81,6 @@ def _load_aclgraph_dump_api_module(pytorch_pkg_dir):
     fake_lib = types.ModuleType("msprobe.lib")
     fake_extension = types.ModuleType("msprobe.lib.aclgraph_dump_ext")
     fake_lib.aclgraph_dump_ext = fake_extension
-    fake_meta = types.ModuleType(f"{module_name}._meta")
-    fake_meta._register_meta = MagicMock()
     fake_torch_npu = types.ModuleType("torch_npu")
 
     acl_save_op = MagicMock(side_effect=lambda tensor, path: tensor)
@@ -106,7 +104,6 @@ def _load_aclgraph_dump_api_module(pytorch_pkg_dir):
             "msprobe.pytorch": fake_pytorch,
             "msprobe.lib": fake_lib,
             "msprobe.lib.aclgraph_dump_ext": fake_extension,
-            f"{module_name}._meta": fake_meta,
             "torch_npu": fake_torch_npu,
         },
     )
