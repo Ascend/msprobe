@@ -26,13 +26,13 @@
 1. 保证训练中的batch size维度未被拆分。
 
    1. 需保证每轮训练中用于梯度更新的 mini batch 个数 mini_batch_num = 1
-   
+
       计算公式为：mini_batch_num = train_batch_size / train_ppo_mini_batch_size
       - train_batch_size: 训练中总的样本数。
       - train_ppo_mini_batch_size: 每个 mini batch 的样本数量。
-   
-   2. 需保证梯度累计步骤数 gac (Gradient Accumulation Steps) = 1
-   
+
+   2. 需保证梯度累积步骤数 gac (Gradient Accumulation Steps) = 1
+
       计算公式为：gac = train_ppo_mini_batch_size * n_resp_per_prompt / train_ppo_micro_batch_size_per_gpu / DP
       - train_ppo_mini_batch_size: 每个 mini batch 的样本数量。
       - n_resp_per_prompt: 每个提示（prompt）下的响应数。
@@ -90,7 +90,7 @@
 +            response_length = 0
          multi_modal_inputs = {}
          ...
- 
+
      @GPUMemoryLogger(role="dp actor", logger=logger)
      def compute_log_prob(self, data: DataProto, calculate_entropy=False) -> torch.Tensor:
          """..."""
@@ -113,17 +113,17 @@
 +                if "rollout_log_probs" in data.batch:
 +                    data.batch["rollout_log_probs"] = None
 +                if "response_mask" in data.batch:
-+                    data.batch["response_mask"] = None         
-+ 
-         
++                    data.batch["response_mask"] = None
++
+
          micro_batch_size = data.meta_info["micro_batch_size"]
          ...
- 
+
      @GPUMemoryLogger(role="dp actor", logger=logger)
      def update_policy(self, data: DataProto):
          # make sure we are in training mode
          self.actor_module.train()
- 
+
          temperature = data.meta_info["temperature"]  # temperature must be in the data.meta_info to avoid silent error
 
 +        # update_policy方法中修改
@@ -143,7 +143,7 @@
 +                    data.batch["rollout_log_probs"] = None
 +                if "response_mask" in data.batch:
 +                    data.batch["response_mask"] = None
-+ 
++
          select_keys = [
              "responses",
              "response_mask",
@@ -159,15 +159,15 @@
                      # Weights are computed centrally in trainer and added when algorithm.rollout_is=True
                      rollout_is_weights = model_inputs.get("rollout_is_weights", None)
 
-+                    # update_policy方法中修改                     
++                    # update_policy方法中修改
 +                    if response_mask is None:
 +                        prompt_mask = torch.ones_like(log_prob, dtype=torch.bool)
 +                        response_mask = prompt_mask
-+ 
++
                      # gpg -> verl.trainer.ppo.core_algos.compute_policy_loss_gpg
                      # clip_cov -> verl.trainer.ppo.core_algos.compute_policy_loss_clip_cov
                      policy_loss_fn = get_policy_loss_fn(loss_mode)
- 
+
                      # Compute policy loss (any function is expected to return 2 values)
                      pg_loss, pg_metrics = policy_loss_fn(
                          old_log_prob=old_log_prob,
@@ -195,7 +195,7 @@
      This worker can be instantiated as a standalone actor or a standalone rollout or a standalone reference policy
      or a hybrid engine based on the config.rollout
      """
- 
+
      def __init__(self, config: DictConfig, role: str, **kwargs):
          ...
          # normalize rollout config
@@ -219,7 +219,7 @@
 +            self.dump_path_prefix = self.debugger.config.dump_path
 +        else:
 +            self.debugger = None
- 
+
      ...
      @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="actor"))
      @DistProfiler.annotate(color="red", role="actor_update")
@@ -240,7 +240,7 @@
              delta_time = timer.last
              global_num_tokens = data.meta_info["global_token_num"]
              ...
-     
+
      @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="rollout"))
      @DistProfiler.annotate(color="red", role="rollout_generate")
      def generate_sequences(self, prompts: DataProto):
@@ -255,7 +255,7 @@
 +            if self.debugger:
 +                self.debugger.stop()
 +                self.debugger.service._reset_status()
- 
+
          if self._is_actor:
              loop.run_until_complete(self.trainer_mode())
              log_gpu_memory_usage("After switch to trainer mode", logger=logger)

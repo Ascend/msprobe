@@ -162,7 +162,7 @@ y = fused_rms_norm(x, weight)
    ​
    ```
 
-   * 需保证梯度累计步骤数gac =1， 计算公式为：
+   * 需保证梯度累积步骤数gac =1， 计算公式为：
 
    ```makeup
    gac = train_ppo_mini_batch_size*n_resp_per_prompt/train_ppo_micro_batch_size_per_gpu/DP
@@ -205,7 +205,7 @@ y = fused_rms_norm(x, weight)
    有如下两种实现对齐的方案：
 
 * **方案1：将训练变单`prompt`。**
-* ​**方案2：将推理的prefill带上`response`**​，具体为推理做完`prefill`和`decode`拿到完整的`prompt`+`response`后，设`max_response`=`1`重做一次`prefill`(`prompt`+`reponse`) 。
+* ​**方案2：将推理的prefill带上`response`**​，具体为推理做完`prefill`和`decode`拿到完整的`prompt`+`response`后，设`max_response`=`1`重做一次`prefill`(`prompt`+`response`) 。
 
 由于后者存在重复推理影响性能，因此本指南优先以前方案1进行操作。
 
@@ -582,7 +582,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/fused_op_compare.png)
 
-   因为工具原因没采到这两个融合算子的输入输出，只能往前找输入的q，k，v的来源。先排差q的一致性，q的来源如下：
+   因为工具原因没采到这两个融合算子的输入输出，只能往前找输入的q，k，v的来源。先排查q的一致性，q的来源如下：
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/q_source_code.png)
 
@@ -626,7 +626,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_scaled_diff.png)
 
-   接下来在来定位lighting_indexer的输入的q，推理和训练的调用位置如下：
+   接下来再来定位lighting_indexer的输入的q，推理和训练的调用位置如下：
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_q_source_code.png)
 

@@ -33,7 +33,7 @@
   - MindSpore框架详细采集方式请参见《[MindSpore场景精度数据采集](../dump/mindspore_data_dump_instruct.md)》。
 - monitor数据场景（输出格式`format`指定为`csv`）
   - 详细采集方式请参见《[Monitor训练状态轻量化监测工具](../monitor_instruct.md)》。
-  
+
 **约束**
 
 - 支持PyTorch框架和MindSpore框架。
@@ -176,7 +176,7 @@ tensorboard --logdir out_path --bind_all
 ##### 使用方法
 
 1. **准备多个数据库文件**
-   
+
    在 TensorBoard 的 logdir 目录下放置多个 `.trend.db` 文件，例如：
 
    ```bash
@@ -187,7 +187,7 @@ tensorboard --logdir out_path --bind_all
    ```
 
 2. **选择数据库文件**
-   
+
    - 打开浏览器访问 `http://localhost:6006`。
    - 选择顶部导航栏的“Trend Analyzer”标签页。
    - 在左侧控制面板中，找到“选择数据库文件”下拉框。
@@ -226,7 +226,7 @@ tensorboard --logdir out_path --bind_all
 |指标|dump数据场景：<br/>&#8226; forward：前向过程数据，张量属于dump.json中以"forward.X"为后缀的网络层（X为编号）或".forward"为后缀的算子API。<br/>&#8226; backward：反向过程数据，张量属于dump.json中以"backward.X"为后缀的网络层（X为编号）或".backward"为后缀的算子API。<br/>&#8226; recompute：重计算过程数据，张量属于dump.json中"is_recompute"属性为True的网络层或算子API。<br/>&#8226; parameters_grad：参数梯度数据，张量属于dump.json中以"parameters_grad"为后缀的网络层数据。<br> monitor数据场景：<br/>&#8226; 根据monitor数据文件前缀自动提取，支持项包括["actv", "actv_grad", "exp_avg", "exp_avg_sq", "grad_unreduced", "grad_reduced", "param_origin", "param_updated"]。|
 |统计量|&#8226; dump数据场景: 固定为 "norm"、"max"、"mean"、"min"，分别表示2范数、最大值、均值、最小值。<br/>&#8226; monitor数据场景：根据csv文件内容自动提取，当列包含有效数据时，自动提取该列列名作为统计量选项。|
 |维度|包含以下可选项：<br/>&#8226; Step：通过热力图查看单个step下所有数据（X轴为Rank，Y轴为Module Name），点选查看单个张量目标在Step维度下的趋势折线图。<br/>&#8226;  Rank：通过热力图查看单个rank下所有数据（X轴为Step，Y轴为Module Name），点选查看单个张量目标在Rank维度下的趋势折线图。<br/>&#8226; Module Name：通过热力图查看单个张量目标的所有数据（X轴为Step，Y轴为Rank），点选查看单个张量目标在Module Name维度下的趋势折线图。|
-|标签|通过设置标签，可以将热力图和折线图展示的数据范围限制在满足标签的数据范围内（例如特定层，特定模块类型），包含以下可选类型：<br/>&#8226; default类标签：标志张量目标属于网络层数据，如"Module", "Cell"，dump数据场景下特有，区分网络层数据和算子API数据；网络层参数张量还会提取出"parameters"默认标签，用于按参数类型筛选数据。<br/>&#8226; layer类标签：从网络层名中提取的形如xxx.N的标签，其中xxx为字符串，N为整数，代表网络层编号，如"layers.0"。<br/>&#8226; index类标签：张量所属输入输出位置，例如输入中第0个张量标记为"input.0"。<br/>&#8226;  module类标签：从网络层名中提取的字符串标签，代表网络层类型，如"TransformerLayer"。<br/>&#8226;  function类标签：未提取出layer类标签的算子API名。<br/>示例：<br/>&#8226; 对于monitor数据场景下采集全名为`module.decoder.layers.0.input_layernorm.weight`的监测对象，将会提取出以下标签：module类标签：`module`、`decoder`、`input_layernorm`、`weight`，layer类标签：`layers.0`。<br/>&#8226; 对于dump数据场景下采集全名为`Module.blocks.0.fsdp_wrapped_module.norm.1.WanLayerNorm`的监测对象，若其包含一个输入和一个输出张量，将会提取出以下标签：default类标签：`Module`，module类标签：`fsdp_wrapped_module`、`WanLayerNorm`，layer类标签：`blocks.0`、`norm.1`，index类标签：`input.0`、`output.0`。|
+|标签|通过设置标签，可以将热力图和折线图展示的数据范围限制在满足标签的数据范围内（例如特定层，特定模块类型），包含以下可选类型：<br/>&#8226; default类标签：标识张量目标属于网络层数据，如"Module", "Cell"，dump数据场景下特有，区分网络层数据和算子API数据；网络层参数张量还会提取出"parameters"默认标签，用于按参数类型筛选数据。<br/>&#8226; layer类标签：从网络层名中提取的形如xxx.N的标签，其中xxx为字符串，N为整数，代表网络层编号，如"layers.0"。<br/>&#8226; index类标签：张量所属输入输出位置，例如输入中第0个张量标记为"input.0"。<br/>&#8226;  module类标签：从网络层名中提取的字符串标签，代表网络层类型，如"TransformerLayer"。<br/>&#8226;  function类标签：未提取出layer类标签的算子API名。<br/>示例：<br/>&#8226; 对于monitor数据场景下采集全名为`module.decoder.layers.0.input_layernorm.weight`的监测对象，将会提取出以下标签：module类标签：`module`、`decoder`、`input_layernorm`、`weight`，layer类标签：`layers.0`。<br/>&#8226; 对于dump数据场景下采集全名为`Module.blocks.0.fsdp_wrapped_module.norm.1.WanLayerNorm`的监测对象，若其包含一个输入和一个输出张量，将会提取出以下标签：default类标签：`Module`，module类标签：`fsdp_wrapped_module`、`WanLayerNorm`，layer类标签：`blocks.0`、`norm.1`，index类标签：`input.0`、`output.0`。|
 
 #### 展示折线图
 
@@ -263,7 +263,7 @@ Megatron框架中的模型并行会将模型切分在不同节点rank上。分�
 
     ```python
     from msprobe.core.common.megatron_utils import ParallelConfig, plot_model_parallelism
-    
+
     config = ParallelConfig(
         world_size=32,
         num_layers=48,
@@ -278,7 +278,7 @@ Megatron框架中的模型并行会将模型切分在不同节点rank上。分�
     ```
 
     参数详细介绍请参见[plot_model_parallelism](#plot_model_parallelism)接口。
-    
+
 2. 执行如下命令开启转换。
 
     ```shell
@@ -295,13 +295,13 @@ Megatron框架中的模型并行会将模型切分在不同节点rank上。分�
 
 图片内容介绍：
 
-| 字段         | 说明 | 
+| 字段         | 说明 |
 | -------------- | --------- |
-| Model Parallelism Configuration | 用户设置或计算得来的并行配置信息，包括：<br> Total Layers：模型的总层数，即脚本中的`num_layers`； <br> DP：数据并行分组大小，通过传入并行参数计算得来；<br> TP：张量并行分组大小，即脚本中的`tensor_parallel_size`； <br> PP：流水线并行分组大小，即脚本中的`pipeline_parallel_size`；<br> VPP：虚拟流水线并行分组大小，即文件名中`virtual_pipeline_parallel_size`，通过传入并行参数计算得来。    |                 
-| TP Group | 纵坐标，张量并行分组，形如`Group{num}: Rank{start}-{end}`，其中`num`为分组编号，`start`和`end`分别表示分组内第一个rank的编号和最后一个rank的编号。例如，`Group0: Rank0-3`表示第0个分组，其中包含rank0到rank3共4个rank。     |                 
-| Virtual Pipeline Stage | 横坐标，流水线并行阶段或虚拟流水线并行阶段，形如`Stage {num}`，其中`num`表示阶段编号。      |                 
-| Model Copies | 模型副本图例。数据并行中，以不同颜色标记输入数据不同的模型副本。      |                 
-| `Embed`/ `L{start}-{end}`/ `Out`  | 图中颜色矩阵上的文字，标识一个张量并行分组下的一个阶段包含哪些模型层，其中：<br>  `Embed`：表示当前阶段为模型第一个阶段，通常包含嵌入层；<br> `L{start}-{end}`：表示当前阶段包含模型从start至end的模型层，例如`L1-3`说明当前阶段包含整个模型的第1、第2和第3模型层；<br> `Out`: 表示当前阶段为模型最后一个阶段，通常包含输出层。<br> 如果同时满足多个阶段定义，以"+"连接。    |                 
+| Model Parallelism Configuration | 用户设置或计算得来的并行配置信息，包括：<br> Total Layers：模型的总层数，即脚本中的`num_layers`； <br> DP：数据并行分组大小，通过传入并行参数计算得来；<br> TP：张量并行分组大小，即脚本中的`tensor_parallel_size`； <br> PP：流水线并行分组大小，即脚本中的`pipeline_parallel_size`；<br> VPP：虚拟流水线并行分组大小，即文件名中`virtual_pipeline_parallel_size`，通过传入并行参数计算得来。    |
+| TP Group | 纵坐标，张量并行分组，形如`Group{num}: Rank{start}-{end}`，其中`num`为分组编号，`start`和`end`分别表示分组内第一个rank的编号和最后一个rank的编号。例如，`Group0: Rank0-3`表示第0个分组，其中包含rank0到rank3共4个rank。     |
+| Virtual Pipeline Stage | 横坐标，流水线并行阶段或虚拟流水线并行阶段，形如`Stage {num}`，其中`num`表示阶段编号。      |
+| Model Copies | 模型副本图例。数据并行中，以不同颜色标记输入数据不同的模型副本。      |
+| `Embed`/ `L{start}-{end}`/ `Out`  | 图中颜色矩阵上的文字，标识一个张量并行分组下的一个阶段包含哪些模型层，其中：<br>  `Embed`：表示当前阶段为模型第一个阶段，通常包含嵌入层；<br> `L{start}-{end}`：表示当前阶段包含模型从start至end的模型层，例如`L1-3`说明当前阶段包含整个模型的第1、第2和第3模型层；<br> `Out`: 表示当前阶段为模型最后一个阶段，通常包含输出层。<br> 如果同时满足多个阶段定义，以"+"连接。    |
 
 ## 附录
 
@@ -353,7 +353,7 @@ plot_model_parallelism(config: ParallelConfig) -> None
 ## FAQ
 
 1. 如何使用趋势可视化工具对比两组不同实验的精度数据文件？
-   
+
    答：趋势可视化工具并不区分标杆实验和对比实验，仅根据输入的精度数据文件路径进行对比。如需对比两组不同实验的精度数据文件，用户需手动将两组文件子目录移至同一目录，然后使用趋势可视化工具查看和对比。
 
    例如：存在如下两组dump数据文件，dump_path1和dump_path2:

@@ -52,12 +52,12 @@ source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | 
 >
 > **命令原理**
 >
-> 通过 `lspci` 获取 NPU 的 PCI ID，自动匹配 CANN 官方镜像，并将镜像地址赋给环境变量 `MY_STUDY_VAR_CANN_IMAGE`，供后续使用。  
+> 通过 `lspci` 获取 NPU 的 PCI ID，自动匹配 CANN 官方镜像，并将镜像地址赋给环境变量 `MY_STUDY_VAR_CANN_IMAGE`，供后续使用。
 > 所有镜像均来自华为云 AscendHub 上发布的 CANN 官方镜像。如需了解镜像详情，请参阅 [CANN 官方镜像仓库](https://www.hiascend.com/developer/ascendhub/detail/17da20d1c2b6493cb38765adeba85884)。
 
 若命令执行后输出 `[PASS]`，则表示执行成功；若输出 `[FAIL]`，可能原因如下：
 
-1. 硬件不在本教程支持范围内：本学习环境仅支持昇腾 310P、A2、A3 及 950 系列产品，请切换至兼容的硬件环境后重试；
+1. 硬件不在本教程支持范围内：本学习环境仅支持Atlas推理系列产品、Atlas A2系列产品、Atlas A3系列产品及Ascend 950PR&950DT系列产品，请切换至兼容的硬件环境后重试；
 2. 底层环境异常：未安装 `lspci`，或当前用户无法通过 `lspci -n -D` 查询 NPU PCI ID，请联系环境管理员确认底层环境。
 
 #### 2.1.3 宿主机：拉取镜像
@@ -193,7 +193,7 @@ for epoch in range(total_epochs):
         loss.backward()
         optimizer.step()
         debugger.stop()
-        
+
         if global_step % 10 == 0:
             print(f"Current Step: {global_step} (Progress: {global_step / total_steps:.2%})\tLoss: {loss.item():.4e}")
 
@@ -232,8 +232,8 @@ python3 ${HOME}/precision_sample.py --gpu 0
 ```
 
 > [!NOTE]说明
-> 
-> **日志输出与手动终止原理**  
+>
+> **日志输出与手动终止原理**
 > 脚本启动后即开始训练，由于 `config.json` 中配置 `"step": [0, 1]`，msProbe 仅在第 0、1 个训练迭代触发采集并输出相关日志；从第 2 个迭代起，msProbe 停止采集，终端仅输出训练脚本自身的日志（如 `Current Step: 10 (Progress: 0.01%)`）。此时 step0 与 step1 的精度数据已完整落盘，可安全终止训练进程。
 
 #### 2.2.4 查看采集结果
@@ -281,8 +281,8 @@ cp -rf ~/msprobe/examples/quick_start/gpu_dump ~/msprobe_dump_gpu
 ```
 
 > [!NOTE]说明
-> 
-> 预置 GPU 数据已覆盖典型精度问题特征，可将您的体验时间大幅缩短，聚焦于 msProbe 核心分析能力而非环境搭建。  
+>
+> 预置 GPU 数据已覆盖典型精度问题特征，可将您的体验时间大幅缩短，聚焦于 msProbe 核心分析能力而非环境搭建。
 > 如您想体验 GPU 采集数据过程，请参考 [第 4 章](#4-附录-b在-gpu-环境下训练模型并采集数据) 中的提示自主探索操作。
 
 ### 2.4 NPU 与 GPU 精度比对

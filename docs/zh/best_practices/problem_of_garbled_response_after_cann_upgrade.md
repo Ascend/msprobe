@@ -24,15 +24,15 @@
 
 ### 工具安装
 
-详细安装步骤见《[msProbe工具安装指南](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/install_guide/msprobe_install_guide.md)》。因本问题发生在 vLLM 推理场景，安装基础工具包即可。
+详细安装步骤见《[msProbe工具安装指南](../install_guide/msprobe_install_guide.md)》。因本问题发生在 vLLM 推理场景，安装基础工具包即可。
 
 ### 一次 Dump 比对
 
-Dump 步骤见《[vLLM推理数据采集](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/user_guide/dump/vllm_dump_instruct.md)》，比对步骤见《[vLLM推理精度数据比对](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/user_guide/accuracy_compare/pytorch_accuracy_compare_instruct.md)》。
+Dump 步骤见《[vLLM推理数据采集](../user_guide/dump/vllm_dump_instruct.md)》，比对步骤见《[vLLM推理精度数据比对](../user_guide/accuracy_compare/pytorch_accuracy_compare_instruct.md)》。
 
 进行第一次 Dump、比对，初步排查问题发生点。
 
-首先，需根据问题现象确定合适的 Dump 配置参数。因首 token 即为乱码，采集首次 forward 整网数据即可，Dump 配置（具体介绍见《[配置文件介绍](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/user_guide/dump/config_json_introduct.md)》）如下：
+首先，需根据问题现象确定合适的 Dump 配置参数。因首 token 即为乱码，采集首次 forward 整网数据即可，Dump 配置（具体介绍见《[配置文件介绍](../user_guide/dump/config_json_introduct.md)》）如下：
 
 ```json
 {

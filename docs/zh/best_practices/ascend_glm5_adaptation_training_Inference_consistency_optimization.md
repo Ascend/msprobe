@@ -355,7 +355,7 @@ actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=1 \
 actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
 ```
 
-参考 [msProbe-VeRL框架Megatron引擎采集训练侧数据](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/user_guide/dump/verl_megatron_consistency_preprocess_dump.md) 修改训练代码，将训练输入调整为单 prompt，推理侧工具使能已集成到 Vllm-ascend 官仓中可直接使用，统一训练和推理阶段的输入，同时修改配置，确保 prefill 阶段的数据具备可比性。
+参考 [msProbe-VeRL框架Megatron引擎采集训练侧数据](../user_guide/dump/verl_megatron_consistency_preprocess_dump.md) 修改训练代码，将训练输入调整为单 prompt，推理侧工具使能已集成到 Vllm-ascend 官仓中可直接使用，统一训练和推理阶段的输入，同时修改配置，确保 prefill 阶段的数据具备可比性。
 
 训练侧：verl/workers/actor/megatron_actor.py
 
