@@ -30,7 +30,7 @@
 
 ![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/vpp_layer_calc.png)
 
-使用[Megatron模型并行可视化](https://gitcode.com/Ascend/msprobe/blob/master/docs/zh/user_guide/accuracy_compare/trend_visualization_instruct.md#megatron%E6%A8%A1%E5%9E%8B%E5%B9%B6%E8%A1%8C%E5%8F%AF%E8%A7%86%E5%8C%96)辅助工具画出切分图（该工具目前不支持 EP、CP 并行：EP 无需处理，CP 可先归并到 DP 中再查看）：
+使用[Megatron模型并行可视化](../user_guide/accuracy_compare/trend_visualization_instruct.md#megatron模型并行可视化)辅助工具画出切分图（该工具目前不支持 EP、CP 并行：EP 无需处理，CP 可先归并到 DP 中再查看）：
 
 ![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/parallel_split_viz.png)
 

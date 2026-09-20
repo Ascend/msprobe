@@ -311,23 +311,23 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
       def column_name() -> str: # 算法结果展示的列名，需要保证唯一
           # 以下为示例
           return "MaxAbsError"
-   
+
       def compare(n_value: torch.Tensor, b_value: torch.Tensor): # 进行比对的算法实现
           # 以下为示例
           diff = torch.abs(n_value - b_value)
           max_abs = diff.max()
           return max_abs.item()
       ```
-   
+
       **参数说明**
-   
+
       | 参数名          | 说明                             |
       |--------------|--------------------------------|
       | n_value      | target_path侧对应的单条数据，类型是`torch.Tensor`  |
       | b_value      | golden_path侧对应的单条数据, 类型是`torch.Tensor` |
 
       **返回值说明**
-      
+
       算法比对结果：支持`int`、`float`、`str`三种类型。当算法比对结果不满足约束或者算法执行异常时，算法比对结果会被置为`unsupported`
 
 ### 输出说明
@@ -400,7 +400,7 @@ $N$: NPU侧tensor
 
 $B$: Bench侧tensor
 
-RE(Relative Error，相对误差): $\vert\frac {N-B} {B}\vert$
+RE(Relative Error, 相对误差): $\vert\frac {N-B} {B}\vert$
 
 真实数据模式：
 

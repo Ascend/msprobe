@@ -203,7 +203,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
     - 在`Megatron`、`DeepSpeed`类模型中，`overlap`参数（如`overlap-param-gather`、`overlap-grad-reduce`等）存在较高风险，可先关闭该类参数。
     - 在`FSDP`框架下使用混合精度出现的`NaN`问题，建议优先排查TorchNPU框架导致的内存踩踏，可尝试切换TorchNPU版本。
-    - `FA`（`npu_fusion_attention`）融合算子功能复杂，使用时易出现传参规范错误的问题，可先关闭`FA`分支，定界是否为`FA`导致。若定界确实为`FA`分支导致后，请参照[FA官网文档](https://gitcode.com/Ascend/op-plugin/blob/master/docs/zh/custom_APIs/torch_npu/torch_npu-npu_fusion_attention.md)来排查是否存在使用规范错误。
+    - `FA`（`npu_fusion_attention`）融合算子功能复杂，使用时易出现传参规范错误的问题，可先关闭`FA`分支，定界是否为`FA`导致。若定界确实为`FA`分支导致后，请参照[FA官网文档](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/zh/custom_APIs/torch_npu/torch_npu-npu_fusion_attention.md)来排查是否存在使用规范错误。
     - 确保打开了`Inf`/`NaN`模式或者非饱和模式，参照[附录-非饱和模式](#53-非饱和模式)。
 
 ##### 2.3.1.2 首Step Loss差异
@@ -297,9 +297,9 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 1. [精度采集工具](#43-精度采集工具)改`异步dump`，具体操作为在`config.json`文件中加入`async_dump: true`的配置项，同时采集开启流同步无`NaN`+不开流同步有`NaN`的两组训练中最先出现`NaN`的`tensor`数据。对于异步`dump`仍影响问题复现的，使用手动挂`Hook`或者`print`的方式采集数据。
 2. 分析`tensor`差异特征是否满足内存踩踏的规律性，一般内存踩踏时踩踏区域较为规整，如为按整倍踩（如`2048`）、按行踩、按列踩等。
-3. 使用`profiling`结合`insight`工具查看计算并行关系，具体操作参考[profiling使用文档](https://gitcode.com/Ascend/msprof/blob/master/docs/zh/quick_start/msprof_quick_start.md)和[insight使用文档](https://gitcode.com/Ascend/msinsight/blob/master/docs/zh/user_guide/overview.md)。
+3. 使用`profiling`结合`insight`工具查看计算并行关系，具体操作参考[profiling使用文档](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/zh/quick_start/msprof_quick_start.md)和[insight使用文档](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/zh/user_guide/overview.md)。
 4. 添加`ptr`内存地址打印，针对`NaN`出现的位置侵入式修改PyTorch或TorchNPU源码添加打印。
-5. 使用[算子检测工具](https://gitcode.com/Ascend/mssanitizer/blob/master/docs/zh/quick_start/mssanitizer_quick_start.md)排查算子流水内（不同指令间执行）、流水间（算子搬运操作）和核间（`aicube`和`aivector`并行）的实现是否存在异常，来判断该算子是否存在内存踩踏。
+5. 使用[算子检测工具](https://gitcode.com/Ascend/mssanitizer/blob/26.2.0/docs/zh/quick_start/mssanitizer_quick_start.md)排查算子流水内（不同指令间执行）、流水间（算子搬运操作）和核间（`aicube`和`aivector`并行）的实现是否存在异常，来判断该算子是否存在内存踩踏。
 6. 若以上排查仍未能定位根因，可进一步参考更详细的内存问题定位指南。
 
 ##### 2.3.2.2 算子确定性问题
@@ -637,7 +637,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
     mini_batch_num = train_batch_size/train_ppo_mini_batch_size
     ```
 
-    - 需保证梯度累计步骤数gac =1， 计算公式为：
+    - 需保证梯度累积步骤数gac =1， 计算公式为：
 
     ```python
     gac = train_ppo_mini_batch_size*n_resp_per_prompt/train_ppo_micro_batch_size_per_gpu/DP
@@ -1408,7 +1408,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 
 ### 4.4 分级可视化工具
 
-对于精度采集工具在NPU和标杆上采集保存的dump数据，可通过分级可视化工具进行画图比对，能够更清晰的还原图结构，实现模型各个层级的精度数据比对，方便用户理解模型结构，分析精度问题。
+对于精度采集工具在NPU和标杆上采集保存的dump数据，可通过分级可视化工具进行画图比对，能够更清晰地还原图结构，实现模型各个层级的精度数据比对，方便用户理解模型结构，分析精度问题。
 
 **使用说明**
 
@@ -1654,7 +1654,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 ### 4.9 非工具手段补充
 
 在某些情况下（如使用工具报错、使用工具后问题不复现、使用工具采集较慢），可以尝试进行手动挂hook。
-此方法基于PyTorch原生hook，可以获取到整网block粒度的数据。其在功能上相较于精度工具更加轻量，且可以自由的加入各种判断，非常灵活。但是无法获取到通信前后的数据，需要找到相关位置才能进行输出。
+此方法基于PyTorch原生hook，可以获取到整网block粒度的数据。其在功能上相较于精度工具更加轻量，且可以自由加入各种判断，非常灵活。但是无法获取到通信前后的数据，需要找到相关位置才能进行输出。
 手动挂hook的样例代码如下：
 
 ```python
@@ -1717,7 +1717,7 @@ for name, module in model.named_modules():
 
 硬件引起的精度很少见，但是是最难定位的。如果某个精度问题，可以排查到跟某个机器强绑定，并且能稳定复现，目前是可以较快排查到的。但是如果不能稳定复现，并且不跟特定机器绑定就难以定位。
 
-1. 多bit翻转：此情况根因主要是因为硬件存在电压不稳定的问题，从而导致数值不稳定。目前没有相关的dfx能检测到这个情况。唯一的排查方法只能对aicore进行重复多次的压测，才能排查出来。
+1. 多bit翻转：此情况根因主要是硬件存在电压不稳定的问题，从而导致数值不稳定。目前没有相关的dfx能检测到这个情况。唯一的排查方法只能对aicore进行重复多次的压测，才能排查出来。
 2. 电源故障：电源故障所引发的故障也是多个局点遇到的问题，本质上是电源不稳定导致的数值异常。此问题在IBMC的日志存在明显的报错，较好排查。
 
 ### 5.2 模型超参数

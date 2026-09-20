@@ -9,7 +9,7 @@
 | **Hybrid AgentLoop**（默认） | 推理和训练共享同一组 NPU（`hybrid_engine`）    | `LLMServerClient` + `GlobalRequestLoadBalancer`，通过 `AgentLoopManager` 同步调度      |
 | **Fully Async**              | Rollouter 和 Trainer 各自独立 NPU 池，完全解耦 | `FullyAsyncRollouter` + `MessageQueue` + `FullyAsyncTrainer` + `ParameterSynchronizer` |
 
-本文针对verl的上述异步架构，以verl v0.8.0 为例，介绍训推一致性比对数据采集的适配方案。
+本文针对verl的上述异步架构，以verl v0.8.0和vllm_ascend 0.18.0为例，介绍训推一致性比对数据采集的适配方案。
 
 verl v0.9.0.dev引入V1 Trainer，相关适配方法请参见《[verl V1 Trainer训推一致性比对数据采集](./verl_v1_trainer_consistency_preprocess_dump.md)》。
 
@@ -293,13 +293,13 @@ FSDP 的 `forward_backward_batch` 存在显式的 `for i, micro_batch in enumera
     +       dump_phase = os.environ.get("DUMP_PHASE", "log_prob")  # "all" | "log_prob" | "update_actor"
     +       phase = "log_prob" if forward_only else "update_actor"
     +       should_dump = dump_phase == "all" or dump_phase == phase
-
+    
             for micro_batch in micro_batches:
     +           if self._debugger is not None and should_dump:
     +               self._debugger.start(model=self.module)
                 with ctx:
                     loss, meta_info = self.forward_step(micro_batch, loss_function=loss_function, forward_only=forward_only)
-
+    
                     if not forward_only:
                         if scaler is not None:
                             scaler.scale(loss).backward()
@@ -591,7 +591,7 @@ class LLMServerClient:
             ...
 +           vllm_request_id = uuid4().hex
             output: TokenOutput = await server.generate.remote(
--                request_id=uuid4().hex,  # use new request_id for each turn
+-               request_id=uuid4().hex,  # use new request_id for each turn
 +               request_id=vllm_request_id,  # use new request_id for each turn
                 ...
             )
@@ -668,7 +668,7 @@ vLLM Server (request_id)
 ### 关联步骤
 
 1. **选取推理 step**：在 `dispatch_log.jsonl` 中找到合适的 `step`和`request_id`( `phase`为 `prefill`，且`requests`数量为1的)，注意，vllm ≥ v0.14.0的版本会给外部传入的 request_id 追加 8
-  字符随机后缀，生成格式 {original_request_id}-{8hex}，选取时需要去掉后缀，才能与训练侧 `request_id` 匹配。
+    字符随机后缀，生成格式 {original_request_id}-{8hex}，选取时需要去掉后缀，才能与训练侧 `request_id` 匹配。
 2. **定位训练 step**：在 `update_actor_log.jsonl` 中搜索同一 `request_id`，找到 `step` 和 `rank`
 3. **读取 dump 数据**：根据 step 序号和`rank`序号读取对应的 `dump.json`
 4. **进行训推一致性比对**

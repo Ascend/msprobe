@@ -34,7 +34,7 @@
 
 **环境准备**<a name="环境准备"></a>
 
-1. 准备一台基于昇腾NPU的训练服务器（如Atlas A2 系列产品），并安装NPU驱动和固件。
+1. 准备一台基于昇腾NPU的训练服务器（如Atlas A2系列产品），并安装NPU驱动和固件。
 
 2. 安装昇腾NPU驱动和配套版本的CANN软件（包含Toolkit和ops包）并配置环境变量，具体请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》。
 
@@ -72,9 +72,9 @@
        "step": [0,1],
        "level": "L1",
        "async_dump": false,
-   
+
        "statistics": {
-           "scope": [], 
+           "scope": [],
            "list": [],
            "tensor_list": [],
            "data_mode": ["all"]
@@ -175,7 +175,7 @@ dump_path参数指定的路径下会出现如下目录结构，可以根据需�
    *                        msprobe compare ends successfully.                        *
    ************************************************************************************
    ```
-   
+
 3. 比对结果文件分析。
 
    compare会在./compare_result/accuracy_compare生成如下文件。
@@ -191,7 +191,7 @@ dump_path参数指定的路径下会出现如下目录结构，可以根据需�
 - 完成[环境准备](#环境准备)。
 
 - 以MindSpore框架内，不同版本下的cell模块比对场景为例，参见[精度数据采集](#精度数据采集)，完成不同框架版本的cell模块dump，其中不同框架版本以MindSpore 2.6.0和MindSpore 2.7.0为例。
-  
+
   分级可视化构图要求dump数据时config.json配置文件的"level"参数配置为"L0"或"mix"，本样例以配置"mix"为例，重新采集精度数据。
 
 **执行比对**
@@ -242,7 +242,7 @@ dump_path参数指定的路径下会出现如下目录结构，可以根据需�
 import numpy as np
 import mindspore
 mindspore.set_device("Ascend")
-import mindspore.mint as mint   
+import mindspore.mint as mint
 import mindspore.dataset as ds
 from mindspore import nn
 from msprobe.mindspore import PrecisionDebugger
