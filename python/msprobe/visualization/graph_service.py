@@ -818,7 +818,10 @@ def _run_with_progress(param, args, config: ProgressConfig):
         if config.use_monitor_thread:
             manager = Manager()
             progress_dict = manager.dict()
-            pbar_info = PbarInfo(progress_dict=progress_dict, **config.pbar_info_kwargs)
+            # current_stage_dict 复用同一个 Manager 创建的 dict，避免每次实例化 PbarInfo 都新建 Manager 服务进程
+            pbar_info = PbarInfo(
+                progress_dict=progress_dict, current_stage_dict=manager.dict(), **config.pbar_info_kwargs
+            )
             ranks = config.get_ranks(args)
         else:
             pbar_info = PbarInfo(**config.pbar_info_kwargs)
@@ -1081,6 +1084,7 @@ class PbarInfo:
         self,
         pbar=None,
         progress_dict=None,
+        current_stage_dict=None,
         task_id=None,
         step=0,
         step_total=1,
@@ -1093,14 +1097,20 @@ class PbarInfo:
         self.step_total = step_total
         self.total = GraphConst.PBAR_TOTAL * step_total
         self.stage_total = stage_total * step_total  # 有几个阶段
-        self.current_stage_dict = Manager().dict()  # 当前阶段，进程共享
+        # 当前阶段，进程共享。多进程场景由 _run_with_progress 传入与 progress_dict 同源（同一个 Manager）
+        # 的 dict；此处不再新建 Manager，避免每次实例化都泄漏一个 Manager 服务进程。
+        self.current_stage_dict = current_stage_dict if current_stage_dict is not None else {}
         self.stage_progress = round(self.total / self.stage_total, 2)  # 每个阶段的最大进度
         self.stop_monitor = False
         self.wait_monitor = False
         self.continue_monitor = True
 
     def __deepcopy__(self, memo):
-        new_obj = PbarInfo()
+        # 用 object.__new__ 绕过 __init__，避免每次 deepcopy 都新建一个 Manager 服务进程（孤儿进程泄漏）。
+        # deepcopy 只需复制引用（progress_dict/current_stage_dict 为跨进程共享的 Manager dict），
+        # 传入子进程的副本不应携带主进程的 pbar 对象。
+        new_obj = object.__new__(PbarInfo)
+        new_obj.pbar = None
         new_obj.progress_dict = self.progress_dict
         new_obj.task_id = self.task_id
         new_obj.step = self.step
