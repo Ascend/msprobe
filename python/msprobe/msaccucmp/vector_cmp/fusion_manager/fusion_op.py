@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 FusionOp class. This class mainly involves the fusion op info.
 """
+
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
@@ -30,8 +30,7 @@ class OutputDesc:
     The class for fusion op output desc
     """
 
-    def __init__(self: any, origin_name: str, origin_output_index: int, origin_format: str,
-                 origin_shape: list) -> None:
+    def __init__(self: any, origin_name: str, origin_output_index: int, origin_format: str, origin_shape: list) -> None:
         self.origin_name = origin_name
         self.origin_output_index = origin_output_index
         self.origin_format = origin_format
@@ -143,8 +142,12 @@ class FusionOp:
         origin_output_index = self.output_desc[real_index].origin_output_index
         if origin_output_index is None:
             origin_output_index = index
-        return Tensor(origin_name, origin_output_index, self.output_desc[real_index].origin_format,
-                      self.output_desc[real_index].origin_shape)
+        return Tensor(
+            origin_name,
+            origin_output_index,
+            self.output_desc[real_index].origin_format,
+            self.output_desc[real_index].origin_shape,
+        )
 
     def get_input_tensor(self: any, index: int) -> Tensor:
         """
@@ -165,15 +168,17 @@ class FusionOp:
 
         input_op_name = input_op_info[ConstManager.INPUT_OP_NAME_INDEX].strip()
         if not input_op_name:
-            message = 'The input information (%s) is invalid. The input operator name is empty.' \
-                      % self.input_list[index]
+            message = (
+                'The input information (%s) is invalid. The input operator name is empty.' % self.input_list[index]
+            )
             log.print_error_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_JSON_FILE_ERROR, message)
 
         input_op_index = input_op_info[ConstManager.INPUT_INDEX_INDEX].strip()
         if not RegManager.match_pattern(RegManager.NUMBER_PATTERN, input_op_index):
-            message = 'The input information (%s) is invalid. The input index only supports numbers.' \
-                      % self.input_list[index]
+            message = (
+                'The input information (%s) is invalid. The input index only supports numbers.' % self.input_list[index]
+            )
             log.print_error_log(message)
             raise CompareError(CompareError.MSACCUCMP_INVALID_JSON_FILE_ERROR, message)
 

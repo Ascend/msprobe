@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 This class mainly involves generate dump data function.
 """
+
 import os
 import time
 
@@ -31,7 +31,7 @@ from msprobe.infer.offline.compare.msquickcmp.common.utils import AccuracyCompar
 from msprobe.infer.utils.check.rule import Rule
 
 
-class DumpData(object):
+class DumpData(object):  # pylint: disable=useless-object-inheritance
     """
     Class for generate dump data.
     """
@@ -51,7 +51,7 @@ class DumpData(object):
             logger.error(f"path '{input_path}' not exists")
             raise AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PATH_ERROR)
 
-        if extentions and not any([input_path.endswith(extention) for extention in extentions]):
+        if extentions and not any([input_path.endswith(extention) for extention in extentions]):  # pylint: disable=use-a-generator
             logger.error(f"path '{input_path}' not ends with extention {extentions}")
             raise AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PATH_ERROR)
 

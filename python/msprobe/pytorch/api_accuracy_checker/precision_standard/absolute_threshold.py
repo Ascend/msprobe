@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -15,15 +14,18 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=attribute-defined-outside-init
+# pylint: disable=duplicate-code
 
-import numpy as np
 
-from msprobe.pytorch.api_accuracy_checker.compare.algorithm import check_inf_nan_value, check_norm_value, \
-    check_small_value
+from msprobe.pytorch.api_accuracy_checker.compare.algorithm import (
+    check_inf_nan_value,
+    check_norm_value,
+    check_small_value,
+)
 from msprobe.pytorch.api_accuracy_checker.precision_standard.base_standard import BaseCompare
 from msprobe.pytorch.api_accuracy_checker.precision_standard.standard_config import StandardConfig
 from msprobe.core.common.const import CompareConst
-
 
 
 class AbsolutethdCompare(BaseCompare):
@@ -57,7 +59,7 @@ class AbsolutethdCompare(BaseCompare):
         _compute_metrics(): Computes the comparison metrics.
 
     Note:
-        This class assumes that the input data is a dictionary containing 'bench_output', 'device_output', 
+        This class assumes that the input data is a dictionary containing 'bench_output', 'device_output',
         'compare_column' and 'dtype'.
         The 'dtype' should be a PyTorch data type.
 
@@ -65,8 +67,9 @@ class AbsolutethdCompare(BaseCompare):
         BaseCompare: The base class for comparison classes.
         StandardConfig: The class containing standard configuration values.
     """
+
     def __init__(self, input_data):
-        super(AbsolutethdCompare, self).__init__(input_data)
+        super(AbsolutethdCompare, self).__init__(input_data)  # pylint: disable=super-with-arguments
         self.compare_algorithm = CompareConst.ABSOLUTE_THRESHOLD
 
     def _get_rtol(self):
@@ -96,12 +99,13 @@ class AbsolutethdCompare(BaseCompare):
         self.normal_value_mask = self._get_normal_value_mask(self.both_finite_mask, self.small_value_mask)
 
     def _compute_metrics(self):
-        inf_nan_error_ratio = check_inf_nan_value(self.inf_nan_mask, self.bench_output, self.device_output, self.dtype,
-                                                  self.rtol)
+        inf_nan_error_ratio = check_inf_nan_value(
+            self.inf_nan_mask, self.bench_output, self.device_output, self.dtype, self.rtol
+        )
         rel_err_ratio = check_norm_value(self.normal_value_mask, self.rel_err, self.rtol)
         abs_err_ratio = check_small_value(self.abs_err, self.small_value_mask, self.small_value_atol)
         return {
             "inf_nan_error_ratio": inf_nan_error_ratio,
             "rel_err_ratio": rel_err_ratio,
-            "abs_err_ratio": abs_err_ratio
+            "abs_err_ratio": abs_err_ratio,
         }

@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -45,11 +44,11 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     ground_truth_norm = np.linalg.norm(ground_truth_dump_data, axis=-1, keepdims=True)
     if my_output_norm <= ConstManager.FLOAT_EPSILON and ground_truth_norm < ConstManager.FLOAT_EPSILON:
         return "1.0", ""
-    elif my_output_norm ** 0.5 <= ConstManager.FLOAT_EPSILON:
+    elif my_output_norm**0.5 <= ConstManager.FLOAT_EPSILON:
         message = 'Cannot compare by Cosine Similarity. All the data is zero in ' + args.my_output_dump_file + '.'
         log.print_warn_log(message)
         return ConstManager.NAN, message
-    elif ground_truth_norm ** 0.5 <= ConstManager.FLOAT_EPSILON:
+    elif ground_truth_norm**0.5 <= ConstManager.FLOAT_EPSILON:
         message = 'Cannot compare by Cosine Similarity. All the data is zero in ' + args.ground_truth_dump_file + '.'
         log.print_warn_log(message)
         return ConstManager.NAN, message

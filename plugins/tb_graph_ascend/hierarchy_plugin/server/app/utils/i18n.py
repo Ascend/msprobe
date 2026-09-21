@@ -1,3 +1,4 @@
+# -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
@@ -5,12 +6,13 @@
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#          http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# ==============================================================================
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
 
 # 语言切换
 ZH = "zh"
@@ -81,7 +83,6 @@ language = {
         "circularReferenceError2": " 已存在于路径中",
         "invalidTag": "无效标签: ",
         "pathMayNotInSecureDirectory": "该路径可能不在安全目录内",
-        "loadConfigFileError": "读取配置文件失败",
         "convertParamsError": "转换参数错误,请检查参数",
     },
     EN: {
@@ -149,7 +150,6 @@ language = {
         "circularReferenceError2": " already exists in the path",
         "invalidTag": "Invalid tag: ",
         "pathMayNotInSecureDirectory": "The path may not be within a secure directory",
-        "loadConfigFileError": "load config file failed",
         "convertParamsError": "convert params error, please check the params",
     },
 }

@@ -1,3 +1,19 @@
+# -------------------------------------------------------------------------
+# This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
+#
+# MindStudio is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#
+#          http://license.coscl.org.cn/MulanPSL2
+#
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+
 import os
 import random
 import re
@@ -18,7 +34,7 @@ class Const:
         "python_random": random,
         "numpy_random": np.random,
         "torch_random": torch,
-        "tensor_random": torch.Tensor
+        "tensor_random": torch.Tensor,
     }
 
     CSV_HEADER = [['api_name', 'stack']]
@@ -75,16 +91,12 @@ def rename_csv(old_csv_path, rank_id):
 
 def check_arguments(seed, is_deterministic, is_enhanced):
     if is_int(seed):
-        if seed < 0 or seed > 2 ** 32 - 1:
+        if seed < 0 or seed > 2**32 - 1:
             logger.error("The seed must be between 0 and 2**32 - 1.")
-            raise MsprobeException(
-                MsprobeException.INVALID_PARAM_ERROR,
-                "the seed must be between 0 and 2**32 - 1."
-            )
+            raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "the seed must be between 0 and 2**32 - 1.")
     else:
         logger.error("The seed must be integer.")
-        raise MsprobeException(
-            MsprobeException.INVALID_PARAM_ERROR, "the seed must be integer.")
+        raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "the seed must be integer.")
     if not isinstance(is_deterministic, bool):
         logger.error("The is_deterministic must be bool.")
         raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "the is_deterministic must be bool.")

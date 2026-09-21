@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -14,11 +13,13 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 """
 Function:
 This file mainly involves the const value.
 """
+
 import os
 import stat
 import numpy as np
@@ -73,7 +74,7 @@ class DD:
     FORMAT_FRACTAL_ZN_RNN = 44
     FORMAT_YUV = 45
     FORMAT_YUV_A = 46
-    FORMAT_MAX = 0xff
+    FORMAT_MAX = 0xFF
 
     # DataType 类型
     DT_UNDEFINED = 0
@@ -121,6 +122,7 @@ class ConstManager:
     """
     The class for const manager
     """
+
     # common const
     LINUX_FILE_NAME_MAX_LEN = 255
     LINUX_PATH_MAX_LEN = 4096
@@ -142,12 +144,11 @@ class ConstManager:
     INVALID_FILE_TYPE = 0
     TRAD_MODE = 0
 
-
     # overflow
     OVERFLOW_MIN_VALUE = 5.96e-8
     OVERFLOW_MAX_VALUE = 65504
     MAGIC_KEY_WORD = 'magic'
-    MAGIC_NUM = 0x5a5a5a5a
+    MAGIC_NUM = 0x5A5A5A5A
     INVALID_ID = 65535
     STATUS_LEN = 4
 
@@ -193,7 +194,7 @@ class ConstManager:
         "MeanAbsoluteError",
         "RootMeanSquareError",
         "MaxRelativeError",
-        "MeanRelativeError"
+        "MeanRelativeError",
     ]
     ALGORITHM_FILE_NAME_PATTERN = r"^alg_([A-Za-z0-9_]+)\.py[c]?$"
     BOOL_ALGORITHM = ('CosineSimilarity', 'RelativeEuclideanDistance')
@@ -205,7 +206,7 @@ class ConstManager:
         "MeanAbsoluteError",
         "RootMeanSquareError",
         "MaxRelativeError",
-        "MeanRelativeError"
+        "MeanRelativeError",
     ]
 
     COMPARE_ARGUMENT_COUNT = 3
@@ -268,15 +269,19 @@ class ConstManager:
     RIGHT_TYPE = 'Right'
 
     VECTOR_COMPARE_HEADER = [
-        "OpType", "NPUDump", "DataType", "Address",
-        "GroundTruth", "DataType", "Address", "TensorIndex"
+        "OpType",
+        "NPUDump",
+        "DataType",
+        "Address",
+        "GroundTruth",
+        "DataType",
+        "Address",
+        "TensorIndex",
     ]
     MY_OUTPUT_ADDRESS_INDEX = 3
     GROUND_TRUTH_ADDRESS_INDEX = 6
 
-    MAPPING_FILE_HEADER = [
-        "Index", "OpType", "NPUDump", "GroundTruth", "TensorIndex", "NPUDumpPath", "GroundTruthPath"
-    ]
+    MAPPING_FILE_HEADER = ["Index", "OpType", "NPUDump", "GroundTruth", "TensorIndex", "NPUDumpPath", "GroundTruthPath"]
 
     STRING_TO_FORMAT_MAP = {
         "NCHW": DD.FORMAT_NCHW,
@@ -405,8 +410,14 @@ class ConstManager:
     NUMPY_FILE_NAME = 'op_name.output_index.timestamp.npy'
 
     QUANT_OP_NANE_SUFFIX_LIST = [
-        "_quant_layer", "_anti_quant_layer", "AscendQuant", "AscendWeightQuant",
-        "AntiQuant", "_quant", "_weight_quant", "_anti_quant"
+        "_quant_layer",
+        "_anti_quant_layer",
+        "AscendQuant",
+        "AscendWeightQuant",
+        "AntiQuant",
+        "_quant",
+        "_weight_quant",
+        "_anti_quant",
     ]
 
     DEQUANT_OP_NANE_SUFFIX_LIST = ["_dequant_layer", "AscendDequant", "_dequant"]
@@ -441,28 +452,43 @@ class ConstManager:
     DHA_ATOMIC_ADD_STATUS_SIZE = 256
     L2_ATOMIC_ADD_STATUS_SIZE = 256
     AI_CORE_STATUS_SIZE = 1024
-    OVERFLOW_CHECK_SIZE = \
-        DHA_ATOMIC_ADD_INFO_SIZE + L2_ATOMIC_ADD_INFO_SIZE + AI_CORE_INFO_SIZE + DHA_ATOMIC_ADD_STATUS_SIZE \
-        + L2_ATOMIC_ADD_STATUS_SIZE + AI_CORE_STATUS_SIZE
-    ACC_TYPE = {
-        0: "AIC",
-        1: "AIV",
-        2: "AICPU",
-        3: "SDMA"
-    }
+    OVERFLOW_CHECK_SIZE = (
+        DHA_ATOMIC_ADD_INFO_SIZE
+        + L2_ATOMIC_ADD_INFO_SIZE
+        + AI_CORE_INFO_SIZE
+        + DHA_ATOMIC_ADD_STATUS_SIZE
+        + L2_ATOMIC_ADD_STATUS_SIZE
+        + AI_CORE_STATUS_SIZE
+    )
+    ACC_TYPE = {0: "AIC", 1: "AIV", 2: "AICPU", 3: "SDMA"}
     OVERFLOW_DEBUG = ('magic', 'version', 'acc_list')
     ACC_DEBUG = ('valid', 'acc_type', 'rsv', 'data_len', 'data')
     AIC_AIV_DEBUG = (
-        'model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
-        'thread_id', 'pc_start', 'para_base', 'core_id', 'block_id', 'status'
+        'model_id',
+        'stream_id',
+        'task_id',
+        'task_type',
+        'context_id',
+        'thread_id',
+        'pc_start',
+        'para_base',
+        'core_id',
+        'block_id',
+        'status',
     )
     SDMA_DEBUG = (
-        'model_id', 'stream_id', 'task_id', 'task_type', 'context_id',
-        'thread_id', 'src_addr', 'dst_addr', 'channel_id', 'status'
+        'model_id',
+        'stream_id',
+        'task_id',
+        'task_type',
+        'context_id',
+        'thread_id',
+        'src_addr',
+        'dst_addr',
+        'channel_id',
+        'status',
     )
-    AICPU_DEBUG = (
-        'model_id', 'stream_id', 'task_id', 'task_type', 'context_id', 'cpu_id', 'thread_id', 'status'
-    )
+    AICPU_DEBUG = ('model_id', 'stream_id', 'task_id', 'task_type', 'context_id', 'cpu_id', 'thread_id', 'status')
     DEBUG_INFO_MAP = {
         "AIC": AIC_AIV_DEBUG,
         "AIV": AIC_AIV_DEBUG,
@@ -482,13 +508,7 @@ class ConstManager:
     HCCL = "HCCL"
     FFTSPLUS = "FFTSPLUS"
 
-    TASK_TYPE_MAP = {
-        AICORE: '0',
-        AICPU: '1',
-        DEBUG: '2',
-        HCCL: '3',
-        FFTSPLUS: '4'
-    }
+    TASK_TYPE_MAP = {AICORE: '0', AICPU: '1', DEBUG: '2', HCCL: '3', FFTSPLUS: '4'}
     # task mode
     NORMAL_MODE = 0
     AUTOMATIC_MODE = 1
@@ -501,7 +521,6 @@ class ConstManager:
     INVALID_THREAD_ID = 2
     INVALID_SLICE_X = 3
 
-
     OLD_FILE_FIELD_NUM = 4
     NEW_FILE_FIELD_NUM = 9
     # FFTS/FFTS+ MODE Field
@@ -513,7 +532,7 @@ class ConstManager:
     MAX_WALK_FILE_NUM = 1000
     MAX_WALK_DIR_DEEP_NUM = 50
 
-    SPECIAL_CHAR = ["\n", "\r", "\u007F", "\b", "\f", "\t", "\u000B", "%08", "%0a", "%0b", "%0c", "%0d", "%7f"]
+    SPECIAL_CHAR = ["\n", "\r", "\u007f", "\b", "\f", "\t", "\u000b", "%08", "%0a", "%0b", "%0c", "%0d", "%7f"]
 
     @property
     def max_top_n(self: any) -> int:

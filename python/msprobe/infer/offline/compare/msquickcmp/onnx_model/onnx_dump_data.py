@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 This class is used to generate GUP dump data of the ONNX model.
 """
+
 import os
 import re
 import time
@@ -91,7 +91,7 @@ class OnnxDumpData(DumpData):
 
     @staticmethod
     def _check_input_shape_fix_value(op_name, model_shape, input_shape):
-        message = "fixed input tensor dim not equal to model input dim." "tensor_name:%s, %s vs %s" % (
+        message = "fixed input tensor dim not equal to model input dim.tensor_name:%s, %s vs %s" % (
             op_name,
             str(input_shape),
             str(model_shape),
@@ -138,11 +138,9 @@ class OnnxDumpData(DumpData):
             input_map[temp.name] = npy_data
         input_map = {**input_map, **output_map}
         return input_map
-    
+
     def generate_dump_data(self, npu_dump_path=None, om_parser=None):
-        self._modify_model_add_outputs_nodes(
-            self.model_with_inputs, self.dump_model_with_inputs_path
-        )
+        self._modify_model_add_outputs_nodes(self.model_with_inputs, self.dump_model_with_inputs_path)
         session = self._load_session(self.dump_model_with_inputs_path)
         dump_bins = self._run_model(session, self.inputs_map)
         augment_inputs_map = self.get_input_map(self.inputs_map, dump_bins)
@@ -217,24 +215,18 @@ class OnnxDumpData(DumpData):
         del onnx_model.graph.output[:]
 
         onnx_model.graph.output.extend(
-            onnx.ValueInfoProto(name=tensor_name)
-            for node in onnx_model.graph.node
-            for tensor_name in node.output
+            onnx.ValueInfoProto(name=tensor_name) for node in onnx_model.graph.node for tensor_name in node.output
         )
-        
+
         model_size = onnx_model.ByteSize()
         save_external_flag = model_size < 0 or model_size > MAX_PROTOBUF
-        
+
         logger.debug(f"Modified model has size over 2G: {save_external_flag}")
-        
-        onnx.save_model(
-            onnx_model, 
-            save_path,
-            save_as_external_data=save_external_flag
-        )
-        
+
+        onnx.save_model(onnx_model, save_path, save_as_external_data=save_external_flag)
+
         logger.info(f"Modified model has being saved successfully at: {os.path.abspath(save_path)}")
-        
+
     def _get_inputs_tensor_info(self):
         inputs_tensor_info = []
         input_tensor_names = [item.name for item in self.model_with_inputs_session.get_inputs()]
@@ -245,14 +237,15 @@ class OnnxDumpData(DumpData):
             tensor_type = input_item.type
             tensor_shape = tuple(input_item.shape)
             # skip extend inputs add by custom op
-            if tensor_name in self.extend_inputs_map.keys():
+            if tensor_name in self.extend_inputs_map.keys():  # pylint: disable=consider-iterating-dictionary
                 continue
 
             if utils.check_dynamic_shape(tensor_shape):
                 if not self.input_shapes:
                     logger.error(
                         f"The dynamic shape {tensor_shape} are not supported. "
-                        f"Please set '--input_shape' to fix the dynamic shape.")
+                        f"Please set '--input_shape' to fix the dynamic shape."
+                    )
                     raise utils.AccuracyCompareException(utils.ACCURACY_COMPARISON_INVALID_PARAM_ERROR)
             if self.input_shapes and tensor_name in self.input_shapes:
                 input_shape = self.input_shapes.get(tensor_name)
@@ -307,8 +300,9 @@ class OnnxDumpData(DumpData):
             raise utils.AccuracyCompareException(utils.ACCURACY_COMPARISON_INDEX_OUT_OF_BOUNDS_ERROR)
         for i, tensor_info in enumerate(inputs_tensor_info):
             convert_bin_file_to_npy(aipp_input[i], os.path.join(self.output_path, "input"), self.cann_path)
-            aipp_output_path = (os.path.join(self.output_path, "input", aipp_input[i].rsplit("/", 1)[1]) +
-                                ".output.0.npy")
+            aipp_output_path = (
+                os.path.join(self.output_path, "input", aipp_input[i].rsplit("/", 1)[1]) + ".output.0.npy"
+            )
             aipp_output_path = load_file_to_read_common_check(aipp_output_path)
             aipp_output = np.load(aipp_output_path)
             nchw_prod = np.prod(tensor_info["shape"])
@@ -338,7 +332,7 @@ class OnnxDumpData(DumpData):
         res_idx = 0
         file_name_map = []
         for node in old_onnx_model.graph.node:
-            #存储onnx的输入dump数据
+            # 存储onnx的输入dump数据
             for i, node_input in enumerate(node.input):
                 file_name = self._generate_dump_data_file_name("input_" + node.name, i)
                 if len(file_name) > MAX_FILE_NAME_LEN:

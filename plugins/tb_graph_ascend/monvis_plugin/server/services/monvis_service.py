@@ -1,3 +1,4 @@
+# -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
@@ -5,12 +6,13 @@
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#          http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# ==============================================================================
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
 
 from tensorboard.util import tb_logging
 from ..repositories.monvis_repo import MonvisRepo
@@ -85,7 +87,6 @@ class MonvisService:
             return {"success": False, "error": f"internal error: {Utils.replace_paths_with_filenames(str(e))}"}
 
     def get_heatmap_data(self, metric, stat, dimension, value, tags):
-
         if not all([metric, stat, dimension in ["step", "rank", "module_name"], value]):
             return {"success": False, "error": "Invalid parameters"}
 

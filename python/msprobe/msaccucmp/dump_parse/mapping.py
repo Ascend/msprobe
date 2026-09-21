@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 This file mainly involves the mapping function.
 """
+
 import os
 import csv
 
@@ -33,8 +33,7 @@ def _handle_csv_object(csv_object: any, mapping_file_path: str) -> dict:
         if len(item) == 2:
             hash_to_file_name_map[item[0]] = item[1]
         else:
-            log.print_error_log(
-                'The content (%s) of the mapping file "%r" is invalid.' % (item, mapping_file_path))
+            log.print_error_log('The content (%s) of the mapping file "%r" is invalid.' % (item, mapping_file_path))
     return hash_to_file_name_map
 
 
@@ -49,12 +48,13 @@ def read_mapping_file(mapping_file_path: str) -> dict:
         return hash_to_file_name_map
     check_file_size(mapping_file_path, ConstManager.ONE_HUNDRED_MB)
     try:
-        with open(mapping_file_path, "r") as mapping_file:
+        with open(mapping_file_path, "r") as mapping_file:  # pylint: disable=unspecified-encoding
             csv_object = csv.reader(mapping_file)
             return _handle_csv_object(csv_object, mapping_file_path)
     except csv.Error:
-        log.print_error_log('Failed to read csv object. The content of the mapping file "%r" is invalid.'
-                            % mapping_file_path)
+        log.print_error_log(
+            'Failed to read csv object. The content of the mapping file "%r" is invalid.' % mapping_file_path
+        )
     except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
         log.print_open_file_error(mapping_file_path, error)
     finally:

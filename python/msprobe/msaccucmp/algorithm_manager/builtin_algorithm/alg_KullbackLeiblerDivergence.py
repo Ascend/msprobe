@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -59,8 +58,10 @@ def compare(my_output_dump_data: any, ground_truth_dump_data: any, args: Algorit
     is_my_output_all_zero = np.all(my_output_dump_data_pdf == 0)
     is_ground_truth_all_zero = np.all(ground_true_dump_data_pdf == 0)
     if is_my_output_all_zero and is_ground_truth_all_zero:
-        message = 'Cannot compare by KL Divergence. All the data is zero in %r and %r.' \
-                  % (args.my_output_dump_file, args.ground_truth_dump_file)
+        message = 'Cannot compare by KL Divergence. All the data is zero in %r and %r.' % (
+            args.my_output_dump_file,
+            args.ground_truth_dump_file,
+        )
         log.print_warn_log(message)
         return ConstManager.NAN, message
     if is_my_output_all_zero:

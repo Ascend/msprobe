@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 This file mainly involves the common function.
 """
+
 import os
 import re
 import math
@@ -49,8 +49,8 @@ def sanitize_csv_value(value: str, errors='strict'):
 
     sanitized_value = value
     try:
-        float(value) # in case value is a digit but in str format
-    except ValueError as e: # not digit
+        float(value)  # in case value is a digit but in str format
+    except ValueError as e:  # not digit
         if not MALICIOUS_CSV_PATTERN.search(value):
             pass
         elif errors == 'replace':
@@ -100,18 +100,24 @@ def check_shape_valid_in_nz(shape: list, tensor_shape: list, is_convert_mode: bo
         origin_shape.append(tensor_shape[index])
     origin_shape.append(tensor_shape[-2] * tensor_shape[-3])
     origin_shape.append(tensor_shape[-1] * tensor_shape[-4])
-    is_invalid_shape = shape[-1] > origin_shape[-1] or \
-                     shape[-1] <= origin_shape[-1] - 16 or \
-                     shape[-2] > origin_shape[-2] or \
-                     shape[-2] <= origin_shape[-2] - 16
+    is_invalid_shape = (
+        shape[-1] > origin_shape[-1]
+        or shape[-1] <= origin_shape[-1] - 16
+        or shape[-2] > origin_shape[-2]
+        or shape[-2] <= origin_shape[-2] - 16
+    )
     if len(shape) != len(origin_shape) or is_invalid_shape:
-        error_msg = 'The target shape %s is invalid. The recommended shape is %s.' \
-            % (convert_shape_to_string(shape), convert_shape_to_string(origin_shape))
+        error_msg = 'The target shape %s is invalid. The recommended shape is %s.' % (
+            convert_shape_to_string(shape),
+            convert_shape_to_string(origin_shape),
+        )
         _raise_exception_by_convert_mode(is_convert_mode, error_msg)
     for index in range(len(origin_shape) - 2):
         if shape[index] != origin_shape[index]:
-            error_msg = 'The target shape %s is invalid, the recommended shape is %s.' \
-                % (convert_shape_to_string(shape), convert_shape_to_string(origin_shape))
+            error_msg = 'The target shape %s is invalid, the recommended shape is %s.' % (
+                convert_shape_to_string(shape),
+                convert_shape_to_string(origin_shape),
+            )
             _raise_exception_by_convert_mode(is_convert_mode, error_msg)
 
 
@@ -262,10 +268,12 @@ def _raise_exception_by_convert_mode(is_convert_mode: bool, error_msg: str):
         raise CompareError(CompareError.MSACCUCMP_INVALID_FRACTAL_NZ_DUMP_DATA_ERROR, error_msg)
 
 
-def _write_sorted_result(result_file: str, sorted_result_line: list, header_list: list, table_header_info: str,
-                         csv_file: bool) -> None:
-    with os.fdopen(os.open(result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w',
-                   newline="") as fp_write:
+def _write_sorted_result(
+    result_file: str, sorted_result_line: list, header_list: list, table_header_info: str, csv_file: bool
+) -> None:
+    with os.fdopen(
+        os.open(result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w', newline=""
+    ) as fp_write:
         for item in sorted_result_line:
             if len(item) < 2:
                 log.print_error_log('Failed to write sorted result')
@@ -303,7 +311,7 @@ def _get_header_and_data(csv_file: bool, fp_read: any) -> (str, list, list):
 
 def _sort_result_file_exec(result_file: str, csv_file: bool = True) -> None:
     check_file_size(result_file, ConstManager.ONE_HUNDRED_MB)
-    with open(result_file, 'r') as fp_read:
+    with open(result_file, 'r') as fp_read:  # pylint: disable=unspecified-encoding
         table_header_info, header_list, origin_result_line = _get_header_and_data(csv_file, fp_read)
         sorted_result_line = sorted(origin_result_line, key=lambda s: s[0])
     _write_sorted_result(result_file, sorted_result_line, header_list, table_header_info, csv_file)
@@ -318,7 +326,8 @@ def check_file_size(file_path: str, size_limit: int, is_raise=False) -> None:
     if file_size > size_limit:
         log.print_warn_log(
             'The size (%d) of %r exceeds %dMB, it may task more time to run, please wait.'
-            % (file_size, file_path, size_limit / 1024 / 1024))
+            % (file_size, file_path, size_limit / 1024 / 1024)
+        )
         if is_raise:
             raise CompareError("%r file size (%d) exceeds %d" % (file_path, file_size, size_limit))
 
@@ -349,8 +358,16 @@ def ceiling_divide(left: int, right: int) -> int:
 
 ResultInfo = collections.namedtuple(
     "ResultInfo",
-    ["op_name", "dump_match", "result_list",
-     "ret", "input_list", "input_result_list",
-     "output_result_list", "is_ffts",
-     "op_name_origin_output_index_map", "npu_vs_npu"])
-
+    [
+        "op_name",
+        "dump_match",
+        "result_list",
+        "ret",
+        "input_list",
+        "input_result_list",
+        "output_result_list",
+        "is_ffts",
+        "op_name_origin_output_index_map",
+        "npu_vs_npu",
+    ],
+)

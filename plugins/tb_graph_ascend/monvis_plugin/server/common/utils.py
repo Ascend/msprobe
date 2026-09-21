@@ -1,3 +1,4 @@
+# -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
@@ -5,12 +6,15 @@
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#          http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# ==============================================================================
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
+
 import json
 import os
 import re
@@ -23,7 +27,7 @@ MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024
 FILE_PATH_MAX_LENGTH = 4096
 PERM_GROUP_WRITE = 0o020
 PERM_OTHER_WRITE = 0o002
-FILE_EXTENSION=".trend.db"
+FILE_EXTENSION = ".trend.db"
 
 
 class Utils:
@@ -77,8 +81,8 @@ class Utils:
             unit_index += 1
 
         return f"{size_bytes:.{decimal_places}f} {units[unit_index]}"
-    
-    def replace_paths_with_filenames(error_msg: str) -> str:
+
+    def replace_paths_with_filenames(error_msg: str) -> str:  # pylint: disable=no-self-argument
         """
         将错误信息中的所有绝对路径替换为【仅文件名】
         例如：/a/b/c/main.py → main.py
@@ -87,10 +91,12 @@ class Utils:
             return ""
 
         # 匹配 Linux/mac/Windows 绝对路径（精准不误杀）
-        path_pattern = r'(?:' \
-                    r'/[^\\/\n\r]+(?:/[^\\/\n\r]+)*|' \
-                    r'[A-Za-z]:[\\/][^\\/\n\r]+(?:[\\/][^\\/\n\r]+)*' \
-                    r')'
+        path_pattern = (
+            r'(?:'
+            r'/[^\\/\n\r]+(?:/[^\\/\n\r]+)*|'
+            r'[A-Za-z]:[\\/][^\\/\n\r]+(?:[\\/][^\\/\n\r]+)*'
+            r')'
+        )
 
         # 匹配到路径后，替换成该路径的文件名
         def replace_path(match):
@@ -115,27 +121,26 @@ class Utils:
                 )
             # 安全检查：文件存在性验证
             if not os.path.exists(real_path):
-                raise FileNotFoundError(f"File or directory does not exist,please check the path and ensure it exists.")
+                raise FileNotFoundError("File or directory does not exist,please check the path and ensure it exists.")
             # 安全验证：禁止符号链接文件
             if os.path.islink(file_path):
-                raise PermissionError(f"Symbolic links are not allowed,Use a real file path instead.")
+                raise PermissionError("Symbolic links are not allowed,Use a real file path instead.")
             # 安全验证：文件类型检查（防御TOCTOU攻击）
             # 文件类型
             if not is_dir and not os.path.isfile(real_path):
                 raise PermissionError(
-                    f"Path is not a regular file."
-                    "make sure the path points to a valid file (not a directory or device)."
+                    "Path is not a regular file.make sure the path points to a valid file (not a directory or device)."
                 )
             # 目录类型
             if is_dir and not Path(real_path).is_dir():
                 raise PermissionError(
-                    f"Expected a directory, but it does not exist or is not a directory."
+                    "Expected a directory, but it does not exist or is not a directory."
                     "Please check the path and ensure it is a valid directory."
                 )
             # 可读性检查
             if not st.st_mode & stat.S_IRUSR:
                 raise PermissionError(
-                    f"Current user lacks read permission on file or directory"
+                    "Current user lacks read permission on file or directory"
                     "Run 'chmod u+r \"<path>\"' to grant read access"
                 )
             # 文件大小校验
@@ -152,21 +157,20 @@ class Utils:
                 # 如果是root用户，跳过后续权限检查
                 if current_uid == 0:
                     logger.warning(
-                        """Security Warning: Do not run this tool as root. 
-                                   Running with elevated privileges may compromise system security. 
+                        """Security Warning: Do not run this tool as root.
+                                   Running with elevated privileges may compromise system security.
                                    Use a regular user account."""
                     )
                     return True, None
                 # 属主检查
                 if st.st_uid != current_uid:
                     raise PermissionError(
-                        f"File or directory is not owned by current user,"
-                        "Run 'chown <user> \"<path>\"' to fix ownership."
+                        "File or directory is not owned by current user,Run 'chown <user> \"<path>\"' to fix ownership."
                     )
                 # group和其他用户不可写检查
                 if st.st_mode & PERM_GROUP_WRITE or st.st_mode & PERM_OTHER_WRITE:
                     raise PermissionError(
-                        f"File has insecure permissions: group or others have write access. "
+                        "File has insecure permissions: group or others have write access. "
                         "Run 'chmod go-w \"<path>\"' to remove write permissions for group and others."
                     )
             return True, None

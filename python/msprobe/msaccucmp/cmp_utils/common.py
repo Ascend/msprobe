@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -59,7 +58,7 @@ def get_data_type_by_dtype(dtype: any) -> any:
     """
     if dtype == np.double:
         return DD.DT_DOUBLE
-    for (key, value) in list(ConstManager.DATA_TYPE_TO_DTYPE_MAP.items()):
+    for key, value in list(ConstManager.DATA_TYPE_TO_DTYPE_MAP.items()):
         if dtype == value.get(ConstManager.DTYPE_KEY):
             return key
     message = "The dtype({}) does not support.".format(str(dtype))
@@ -74,7 +73,7 @@ def get_dtype_by_data_type(data_type: any) -> any:
     :return: the dtype
     """
     if data_type not in ConstManager.DATA_TYPE_TO_DTYPE_MAP:
-        message = "The output data type ({}) does not support." .format(str(data_type))
+        message = "The output data type ({}) does not support.".format(str(data_type))
         log.print_error_log(message)
         raise CompareError(CompareError.MSACCUCMP_INVALID_DATA_TYPE_ERROR, message)
     dtype = ConstManager.DATA_TYPE_TO_DTYPE_MAP.get(data_type).get(ConstManager.DTYPE_KEY)

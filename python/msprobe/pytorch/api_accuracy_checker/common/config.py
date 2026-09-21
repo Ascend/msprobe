@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -23,10 +22,21 @@ from msprobe.core.common.utils import is_int
 from msprobe.pytorch.dump.pt_config import ACCCheckConfig
 
 
-AccCheckConfig = namedtuple('AccCheckConfig', ['forward_content', 'backward_content',
-                                               'result_csv_path', 'details_csv_path',
-                                         'save_error_data', 'is_continue_acc_check', 'real_data_path', 'white_list',
-                                         'black_list', 'error_data_path'])
+AccCheckConfig = namedtuple(
+    'AccCheckConfig',
+    [
+        'forward_content',
+        'backward_content',
+        'result_csv_path',
+        'details_csv_path',
+        'save_error_data',
+        'is_continue_acc_check',
+        'real_data_path',
+        'white_list',
+        'black_list',
+        'error_data_path',
+    ],
+)
 
 
 class Config:
@@ -48,7 +58,7 @@ class Config:
             'black_list': list,
             'error_data_path': str,
             'precision': int,
-            'quantization_api_list': list
+            'quantization_api_list': list,
         }
         if key not in validators:
             raise ValueError(f"{key} must be one of {validators.keys()}")
@@ -87,7 +97,6 @@ class CheckerConfig:
         self.white_list = task_config.white_list
         self.black_list = task_config.black_list
         self.error_data_path = task_config.error_data_path
-    
 
     def get_acc_check_config(self, **config_params):
         return AccCheckConfig(
@@ -100,5 +109,5 @@ class CheckerConfig:
             real_data_path=config_params.get('real_data_path'),
             white_list=self.white_list.copy() if self.white_list else [],
             black_list=self.black_list.copy() if self.black_list else [],
-            error_data_path=config_params.get('error_data_path')
+            error_data_path=config_params.get('error_data_path'),
         )

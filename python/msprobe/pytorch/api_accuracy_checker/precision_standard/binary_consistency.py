@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -44,8 +43,9 @@ class BinaryCompare(BaseCompare):
         BaseCompare: The base class for comparison classes.
         compare_bool_tensor: The function used to compare boolean tensors.
     """
-    def __init__(self, input_data):
-        super(BinaryCompare, self).__init__(input_data)
+
+    def __init__(self, input_data):  # pylint: disable=useless-parent-delegation
+        super(BinaryCompare, self).__init__(input_data)  # pylint: disable=super-with-arguments
 
     def _pre_compare(self):
         pass
@@ -64,6 +64,4 @@ class BinaryCompare(BaseCompare):
         """
         error_rate, _, _ = compare_bool_tensor(self.bench_output, self.device_output)
 
-        return {
-            "error_rate": error_rate
-        }
+        return {"error_rate": error_rate}

@@ -1,3 +1,19 @@
+# -------------------------------------------------------------------------
+# This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
+#
+# MindStudio is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#
+#          http://license.coscl.org.cn/MulanPSL2
+#
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+
 #!/bin/bash
 # uninstall.sh - 卸载脚本
 
@@ -6,7 +22,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
-change_flag='n'  
+change_flag='n'
 
 # 打印彩色信息
 info() {
@@ -29,12 +45,12 @@ validate_install_dir() {
         error "Specified directory does not exist: $base_dir"
         exit 1
     fi
-    
+
     # 构建完整的模块目录路径
     INSTALL_MODULE_DIR="$base_dir/tools/operator_cmp"
-    
+
     info "Checking for operator_cmp at: $INSTALL_MODULE_DIR"
-    
+
     # 检查模块目录是否存在，如果不存在则跳过
     if [[ ! -d "$INSTALL_MODULE_DIR" ]]; then
         return 2  # 返回2表示目录不存在，需要跳过
@@ -63,7 +79,7 @@ check_write_permission() {
 perform_uninstall() {
     info "Uninstalling mindstudio-accucmp..."
     info "Install path: $INSTALL_MODULE_DIR"
-    
+
     # 删除目录
     rm -rf "$INSTALL_MODULE_DIR"
     rc=$?
@@ -91,16 +107,16 @@ main() {
     # 再向上三层到达 base_dir (compare -> operator_cmp -> tools -> test_cann)
     local _script_dir=$(cd "$(dirname "$0")" && pwd)
     local _install_dir=$(cd "${_script_dir}/../../.." && pwd)
-    
+
     info "Script directory: ${_script_dir}"
     info "INSTALL_DIR: ${_install_dir}"
-    
+
     local _cann_uninstall="${_install_dir}/cann_uninstall.sh"
-    
+
     # 验证安装目录
     validate_install_dir "${_install_dir}"
     local _validate_result=$?
-    
+
     # 如果目录不存在，直接跳过卸载
     if [ ${_validate_result} -eq 2 ]; then
         info "Nothing to uninstall, exiting"
@@ -110,7 +126,7 @@ main() {
         fi
         exit 0
     fi
-    
+
     # 如果验证失败（其他错误），退出
     if [ ${_validate_result} -ne 0 ]; then
         exit 1
@@ -119,7 +135,7 @@ main() {
     if ! check_write_permission; then
         exit 1
     fi
-    
+
     # 执行卸载
     if perform_uninstall; then
         info "Uninstall completed!"

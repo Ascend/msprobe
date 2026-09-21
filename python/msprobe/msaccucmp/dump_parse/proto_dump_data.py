@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -32,6 +31,7 @@ class EnumEncoder(json.JSONEncoder):
 
 class RepeatedField(list):
     """模仿 protobuf repeated 字段，支持 add()"""
+
     def __init__(self, cls_type):
         super().__init__()
         self._cls_type = cls_type
@@ -99,7 +99,7 @@ class OriginalOp:
         }
 
 
-class OpOutput():
+class OpOutput:
     def __init__(self):
         self.data_type = 0
         self.format = 0
@@ -129,7 +129,7 @@ class OpOutput():
         }
 
 
-class OpInput():
+class OpInput:
     def __init__(self):
         self.data_type = 0
         self.format = 0
@@ -194,7 +194,7 @@ class DumpData:
         self.op_name = ""
         self.attr = RepeatedField(OpAttr)
         self.space = RepeatedField(Workspace)
-    
+
     @classmethod
     def from_dict(cls, data: Dict):
         obj = cls()
@@ -244,7 +244,7 @@ def _handle_repeated_field(attr: Any, key: str, value_list: list) -> None:
     if cls_type:
         for item in value_list:
             # 保持原行为：使用 add() 创建子对象
-            sub_obj = attr.add()  
+            sub_obj = attr.add()
             # 只有 dict 才递归填充，否则跳过（与原行为一致）
             if isinstance(item, dict):
                 fill_dump_data(sub_obj, item)

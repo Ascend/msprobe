@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -14,35 +13,38 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 """
 Function:
 FusionOpComparison class. This class mainly involves the compare function.
 """
+
 import collections
 
 from vector_cmp.fusion_manager import fusion_rule_parser
 from cmp_utils import utils, utils_type
 from cmp_utils import log
-from vector_cmp.fusion_manager.compare_npu_vs_npu import NpuVsNpuComparison
+from vector_cmp.fusion_manager.compare_npu_vs_npu import NpuVsNpuComparison  # pylint: disable=ungrouped-imports
 from vector_cmp.fusion_manager import compare_result
 from dump_parse.dump import DumpType
 from overflow.overflow_detection import OverflowDetection
-from vector_cmp.range_manager.range_manager import RangeManager
+from vector_cmp.range_manager.range_manager import RangeManager  # pylint: disable=ungrouped-imports
 from vector_cmp.fusion_manager.fusion_op import FusionOp
 from vector_cmp.fusion_manager.fusion_op import Tensor
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager  # pylint: disable=ungrouped-imports
 from conversion.tensor_conversion import TensorConversion
-from cmp_utils.constant.compare_error import CompareError
-from dump_parse.dump_data_object import DumpDataObj
+from cmp_utils.constant.compare_error import CompareError  # pylint: disable=ungrouped-imports
+from dump_parse.dump_data_object import DumpDataObj  # pylint: disable=ungrouped-imports
 from dump_parse import dump_utils
-from cmp_utils import common
+from cmp_utils import common  # pylint: disable=ungrouped-imports
 
 
 class FusionOpComparison:
     """
     The class for fusion op compare
     """
+
     TIMESTAMP_INDEX = 0
     ORIGINAL_NAMES_INDEX = 2
 
@@ -56,10 +58,10 @@ class FusionOpComparison:
         self.left_dump_file_path = ''
         self.left_dump_data = None
         self.overflow_detection = arguments.get('overflow_detection', False)
-        self.is_ground_truth_gpu_or_cpu = \
-            True if utils.dump_path_contains_npy(arguments.get("golden_dump_path")) else False
-        self.is_my_dump_gpu_or_cpu = \
-            True if utils.dump_path_contains_npy(arguments.get("my_dump_path")) else False
+        self.is_ground_truth_gpu_or_cpu = (
+            True if utils.dump_path_contains_npy(arguments.get("golden_dump_path")) else False  # pylint: disable=simplifiable-if-expression
+        )
+        self.is_my_dump_gpu_or_cpu = True if utils.dump_path_contains_npy(arguments.get("my_dump_path")) else False  # pylint: disable=simplifiable-if-expression
         self.op_name_origin_output_index_map = {}
         self.max_cmp_size = arguments.get('max_cmp_size')
 
@@ -91,7 +93,8 @@ class FusionOpComparison:
         for fusion_op in self.fusion_op_list:
             try:
                 file_path_list, data_mode = self.compare_data.left_dump_info.get_op_dump_file(
-                    fusion_op.op_name, print_log=False)
+                    fusion_op.op_name, print_log=False
+                )
             except CompareError:
                 continue
             finally:
@@ -101,15 +104,15 @@ class FusionOpComparison:
                 timestamp = dump_utils.get_normal_timestamp(file_path)
             else:
                 timestamp = dump_utils.get_ffts_timestamp(file_path)
-            original_names = utils.get_string_from_list(
-                fusion_op.attr.original_op_names)
+            original_names = utils.get_string_from_list(fusion_op.attr.original_op_names)
             timestamp_list.append([timestamp, fusion_op, original_names])
         # sort by timestamp
         sort_timestamp_list = sorted(timestamp_list, key=lambda s: s[self.TIMESTAMP_INDEX])
         return sort_timestamp_list
 
-    def get_right_dump_data(self: any, fusion_op: FusionOp, index: int, is_input: bool = False,
-                            parse: bool = True, tensor_id: str = None) -> Tensor:
+    def get_right_dump_data(
+        self: any, fusion_op: FusionOp, index: int, is_input: bool = False, parse: bool = True, tensor_id: str = None
+    ) -> Tensor:
         """
         Get the right dump file path and data by left dump data
         :param fusion_op: the fusion op
@@ -131,27 +134,37 @@ class FusionOpComparison:
         if is_input and tensor_id:
             self.op_name_origin_output_index_map[tensor_id] = (compare_fusion_op.op_name, compare_index)
         left_data_type = ConstManager.INPUT if is_input else ConstManager.OUTPUT
-        log.print_info_log('[%s] Left(%s:%s:%d) <======> Right(%s:%s:%d)'
-                           % (fusion_op.op_name, fusion_op.op_name, left_data_type, index, origin_tensor.name,
-                              ConstManager.OUTPUT, origin_tensor.index))
+        log.print_info_log(
+            '[%s] Left(%s:%s:%d) <======> Right(%s:%s:%d)'
+            % (
+                fusion_op.op_name,
+                fusion_op.op_name,
+                left_data_type,
+                index,
+                origin_tensor.name,
+                ConstManager.OUTPUT,
+                origin_tensor.index,
+            )
+        )
         if not parse:
             index = None if self.compare_data.right_dump_info.type == DumpType.Offline else origin_tensor.index
             dump_file_list, _ = self.compare_data.right_dump_info.get_op_dump_file(origin_tensor.name, index)
             dump_file_path = dump_file_list[-1]
             origin_tensor.set_path(dump_file_path)
             return origin_tensor
-        dump_file_path, dump_data = self.compare_data.get_right_dump_data(
-            origin_tensor.name, origin_tensor.index)
+        dump_file_path, dump_data = self.compare_data.get_right_dump_data(origin_tensor.name, origin_tensor.index)
         origin_tensor.set_path(dump_file_path)
         if self.compare_data.right_dump_info.type == DumpType.Offline:
             if origin_tensor.index >= len(dump_data.output_data):
-                log.print_out_of_range_error(fusion_op.op_name, "output", origin_tensor.index,
-                                             '[0, %d)' % len(dump_data.output_data))
+                log.print_out_of_range_error(
+                    fusion_op.op_name, "output", origin_tensor.index, '[0, %d)' % len(dump_data.output_data)
+                )
                 raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
 
             origin_tensor.set_data(dump_data.output_data[origin_tensor.index])
-            origin_tensor.tensor_format = \
-                common.get_format_string(dump_data.output_data[origin_tensor.index].tensor_format)
+            origin_tensor.tensor_format = common.get_format_string(
+                dump_data.output_data[origin_tensor.index].tensor_format
+            )
             origin_tensor.shape = dump_data.output_data[origin_tensor.index].shape
 
         else:
@@ -170,13 +183,12 @@ class FusionOpComparison:
         result = None
 
         try:
-            if self.compare_rule.quant_fusion_rule_file_path == '' \
-                    and self.compare_rule.fusion_json_file_path == '':
-                npu_vs_npu_comparison = NpuVsNpuComparison(self.compare_data, self.fusion_op_list,
-                                                           self.algorithm_manager, self.overflow_detection)
+            if self.compare_rule.quant_fusion_rule_file_path == '' and self.compare_rule.fusion_json_file_path == '':
+                npu_vs_npu_comparison = NpuVsNpuComparison(
+                    self.compare_data, self.fusion_op_list, self.algorithm_manager, self.overflow_detection
+                )
                 return npu_vs_npu_comparison.compare()
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
-                AttributeError) as error:
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, AttributeError) as error:
             log.print_error_log('Failed to compare %s. %s' % (self.fusion_op_list[0].op_name, error))
             return CompareError.MSACCUCMP_UNKNOWN_ERROR, False, []
 
@@ -216,8 +228,7 @@ class FusionOpComparison:
         """
         log.print_start_to_compare_op(fusion_op.op_name)
         try:
-            self.left_dump_file_path, self.left_dump_data = \
-                self.compare_data.get_left_dump_data(fusion_op.op_name)
+            self.left_dump_file_path, self.left_dump_data = self.compare_data.get_left_dump_data(fusion_op.op_name)
         except CompareError as error:
             error.message = log.print_no_left_dump_file_error(fusion_op.op_name, fusion_op.op_type)
             raise error
@@ -239,10 +250,11 @@ class FusionOpComparison:
         dump_match = False
         cmp_result_list = []
         # compare each fusion op
-        fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager,
-                                                            overflow_detection=self.overflow_detection,
-                                                            dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu,
-                                                                                     self.is_my_dump_gpu_or_cpu])
+        fusion_op_result = compare_result.FusionOpComResult(
+            self.algorithm_manager,
+            overflow_detection=self.overflow_detection,
+            dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu, self.is_my_dump_gpu_or_cpu],
+        )
         ret = CompareError.MSACCUCMP_NONE_ERROR
 
         for fusion_op in self.fusion_op_list:
@@ -265,9 +277,17 @@ class FusionOpComparison:
             _result = fusion_op_result.get_result(fusion_op, result, error_msg)
 
             result_info = utils.ResultInfo(
-                fusion_op.op_name, dump_match, _result.result_list, ret,
-                fusion_op.input_list, _result.input_result_list, _result.output_result_list,
-                _result.is_ffts, self.op_name_origin_output_index_map, False)
+                fusion_op.op_name,
+                dump_match,
+                _result.result_list,
+                ret,
+                fusion_op.input_list,
+                _result.input_result_list,
+                _result.output_result_list,
+                _result.is_ffts,
+                self.op_name_origin_output_index_map,
+                False,
+            )
 
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
@@ -282,10 +302,12 @@ class FusionOpComparison:
         error_msg = []
         cmp_result_list = []
         ret = CompareError.MSACCUCMP_NONE_ERROR
-        fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager, right_to_left_map,
-                                                            self.overflow_detection,
-                                                            dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu,
-                                                                                     self.is_my_dump_gpu_or_cpu])
+        fusion_op_result = compare_result.FusionOpComResult(
+            self.algorithm_manager,
+            right_to_left_map,
+            self.overflow_detection,
+            dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu, self.is_my_dump_gpu_or_cpu],
+        )
         # compare each fusion op
         for fusion_op in self.fusion_op_list:
             single_op_cmp_result = compare_result.SingleOpCmpResult()
@@ -294,8 +316,7 @@ class FusionOpComparison:
                 continue
             result = None
             if fusion_op.is_inner_node():
-                warn_message = '[%s] The op is inner node for multi to multi relation.Skip the op.' \
-                               % fusion_op.op_name
+                warn_message = '[%s] The op is inner node for multi to multi relation.Skip the op.' % fusion_op.op_name
                 log.print_warn_log(warn_message)
                 error_msg.append(warn_message)
                 continue
@@ -316,9 +337,17 @@ class FusionOpComparison:
             _result = fusion_op_result.get_result(fusion_op, result, error_msg)
 
             result_info = utils.ResultInfo(
-                fusion_op.op_name, dump_match, _result.result_list, ret,
-                fusion_op.input_list, _result.input_result_list, _result.output_result_list,
-                _result.is_ffts, self.op_name_origin_output_index_map, False)
+                fusion_op.op_name,
+                dump_match,
+                _result.result_list,
+                ret,
+                fusion_op.input_list,
+                _result.input_result_list,
+                _result.output_result_list,
+                _result.is_ffts,
+                self.op_name_origin_output_index_map,
+                False,
+            )
 
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
@@ -327,9 +356,17 @@ class FusionOpComparison:
             single_op_cmp_result = compare_result.SingleOpCmpResult()
             _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
             result_info = utils.ResultInfo(
-                self.fusion_op_list[0].op_name, dump_match, _result.result_list, ret,
-                self.fusion_op_list[0].input_list, _result.input_result_list, _result.output_result_list,
-                _result.is_ffts, self.op_name_origin_output_index_map, False)
+                self.fusion_op_list[0].op_name,
+                dump_match,
+                _result.result_list,
+                ret,
+                self.fusion_op_list[0].input_list,
+                _result.input_result_list,
+                _result.output_result_list,
+                _result.is_ffts,
+                self.op_name_origin_output_index_map,
+                False,
+            )
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
         return dump_match, cmp_result_list, ret
@@ -340,20 +377,30 @@ class FusionOpComparison:
         single_op_cmp_result = compare_result.SingleOpCmpResult()
         error_msg.append("The fusion operator list is empty")
         _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
-        result_info = utils.ResultInfo(self.fusion_op_list[0].op_name, False, _result.result_list,
-                                       CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR, self.fusion_op_list[0].input_list,
-                                       _result.input_result_list, _result.output_result_list, _result.is_ffts,
-                                       self.op_name_origin_output_index_map, False)
+        result_info = utils.ResultInfo(
+            self.fusion_op_list[0].op_name,
+            False,
+            _result.result_list,
+            CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR,
+            self.fusion_op_list[0].input_list,
+            _result.input_result_list,
+            _result.output_result_list,
+            _result.is_ffts,
+            self.op_name_origin_output_index_map,
+            False,
+        )
         single_op_cmp_result.update_attr(result_info)
         return False, [single_op_cmp_result], CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR
 
     def _compare_for_l1_fusion(self: any, right_to_left_map: dict) -> (bool, list, int):
         timestamp_list = self.sort_l1_fusion_dump_file()
         error_msg = []
-        fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager, right_to_left_map,
-                                                            self.overflow_detection,
-                                                            dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu,
-                                                                                     self.is_my_dump_gpu_or_cpu])
+        fusion_op_result = compare_result.FusionOpComResult(
+            self.algorithm_manager,
+            right_to_left_map,
+            self.overflow_detection,
+            dump_is_cpu_or_gpu_data=[self.is_ground_truth_gpu_or_cpu, self.is_my_dump_gpu_or_cpu],
+        )
 
         if not timestamp_list:
             return self._compare_for_l1_fusion_not_timestamp(fusion_op_result)
@@ -396,9 +443,18 @@ class FusionOpComparison:
             # 2. write compare result to file
             _result = fusion_op_result.get_result(fusion_op, result, error_msg)
 
-            result_info = utils.ResultInfo(fusion_op.op_name, dump_match, _result.result_list, ret,
-                fusion_op.input_list, _result.input_result_list, _result.output_result_list,
-                _result.is_ffts, self.op_name_origin_output_index_map, False)
+            result_info = utils.ResultInfo(
+                fusion_op.op_name,
+                dump_match,
+                _result.result_list,
+                ret,
+                fusion_op.input_list,
+                _result.input_result_list,
+                _result.output_result_list,
+                _result.is_ffts,
+                self.op_name_origin_output_index_map,
+                False,
+            )
 
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
@@ -409,9 +465,17 @@ class FusionOpComparison:
             _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
 
             result_info = utils.ResultInfo(
-                self.fusion_op_list[0].op_name, dump_match, _result.result_list, ret,
-                self.fusion_op_list[0].input_list, _result.input_result_list, _result.output_result_list,
-                _result.is_ffts, self.op_name_origin_output_index_map, False)
+                self.fusion_op_list[0].op_name,
+                dump_match,
+                _result.result_list,
+                ret,
+                self.fusion_op_list[0].input_list,
+                _result.input_result_list,
+                _result.output_result_list,
+                _result.is_ffts,
+                self.op_name_origin_output_index_map,
+                False,
+            )
 
             single_op_cmp_result.update_attr(result_info)
             cmp_result_list.append(single_op_cmp_result)
@@ -420,31 +484,36 @@ class FusionOpComparison:
 
     def _find_pre_op(self: any, fusion_op: FusionOp, index: int = 0) -> any:
         input_tensor = fusion_op.get_input_tensor(index)
-        _, compare_fusion_op = \
-            self.compare_rule.fusion_info.get_fusion_op_list(input_tensor.name)
+        _, compare_fusion_op = self.compare_rule.fusion_info.get_fusion_op_list(input_tensor.name)
         compare_index = input_tensor.index
         return compare_fusion_op, compare_index
 
-    def _compare_by_one_tensor(self: any, fusion_op: FusionOp, index: int,
-                               is_input: bool, tensor: any, tensor_id: str) -> (list, list, list):
+    def _compare_by_one_tensor(
+        self: any, fusion_op: FusionOp, index: int, is_input: bool, tensor: any, tensor_id: str
+    ) -> (list, list, list):
         # 1. get ground truth dump data by original op name and index
         ground_truth_tensor = self.get_right_dump_data(fusion_op, index, is_input, tensor_id=tensor_id)
         if tensor.original_shape:
             ground_truth_tensor.shape = tensor.original_shape
         # 2. deserialize output data to array
         tensor_conversion = TensorConversion(fusion_op, self.format_manager, is_detail=False)
-        my_output_array, ground_truth_array, my_output_shape = \
-            tensor_conversion.get_my_output_and_ground_truth_data(self.compare_data, tensor, ground_truth_tensor)
+        my_output_array, ground_truth_array, my_output_shape = tensor_conversion.get_my_output_and_ground_truth_data(
+            self.compare_data, tensor, ground_truth_tensor
+        )
         my_output_dtype = my_output_array.dtype
         ground_truth_dtype = ground_truth_array.dtype
 
         # 3. compare by support algorithm
         result, compare_fail_message = self.algorithm_manager.compare(
-            my_output_array, ground_truth_array,
-            {'my_output_dump_file': self.left_dump_file_path,
-             'ground_truth_dump_file': ground_truth_tensor.path,
-             'shape_type': utils.get_shape_type(my_output_shape)},
-            self.max_cmp_size)
+            my_output_array,
+            ground_truth_array,
+            {
+                'my_output_dump_file': self.left_dump_file_path,
+                'ground_truth_dump_file': ground_truth_tensor.path,
+                'shape_type': utils.get_shape_type(my_output_shape),
+            },
+            self.max_cmp_size,
+        )
 
         return result, compare_fail_message, [my_output_shape, my_output_dtype, ground_truth_dtype]
 
@@ -453,13 +522,14 @@ class FusionOpComparison:
         match = False
         tensor_result_list = []
         # compare each tensor
-        for (index, tensor) in enumerate(tensor_list):
+        for index, tensor in enumerate(tensor_list):
             result = self._compare(fusion_op, index, is_input, tensor)
             # Check whether the current input/output data overflows
             overflow_result = ''
             if self.overflow_detection:
-                overflow_result = OverflowDetection.process_model_overflow_detection(fusion_op.op_name, index, is_input,
-                                                                                     tensor)
+                overflow_result = OverflowDetection.process_model_overflow_detection(
+                    fusion_op.op_name, index, is_input, tensor
+                )
             match = match or result.match
             # 4. merge result
             tensor_info = {
@@ -469,10 +539,11 @@ class FusionOpComparison:
                 "my_output_dtype": result.my_output_dtype,
                 "ground_truth_dtype": result.ground_truth_dtype,
                 "my_output_address": result.my_output_address,
-                "ground_truth_address": result.ground_truth_address
+                "ground_truth_address": result.ground_truth_address,
             }
-            tensor_result = compare_result.TensorResult(tensor_info, [result.algorithm_result, overflow_result],
-                                                        result.error_msg, tensor.is_ffts)
+            tensor_result = compare_result.TensorResult(
+                tensor_info, [result.algorithm_result, overflow_result], result.error_msg, tensor.is_ffts
+            )
             tensor_result_list.append(tensor_result)
         return match, tensor_result_list
 
@@ -484,7 +555,8 @@ class FusionOpComparison:
         ground_truth_dtype = "NaN"
         try:
             algorithm_result, error_msg, [shape, my_output_dtype, ground_truth_dtype] = self._compare_by_one_tensor(
-                fusion_op, index, is_input, tensor, tensor_id)
+                fusion_op, index, is_input, tensor, tensor_id
+            )
         except CompareError as compare_error:
             error_msg = self._handle_error_msg(compare_error, fusion_op, tensor_id)
             algorithm_result = self.algorithm_manager.make_nan_result()
@@ -493,12 +565,29 @@ class FusionOpComparison:
 
         CompareResult = collections.namedtuple(
             'Result',
-            ['tensor_id', 'shape', 'algorithm_result', 'error_msg', 'match', 'my_output_dtype', 'ground_truth_dtype',
-             'my_output_address', 'ground_truth_address'])
-        result = CompareResult(tensor_id, shape, algorithm_result, error_msg, match, my_output_dtype,
-                               ground_truth_dtype,
-                               my_output_address=utils.get_address_from_tensor(tensor),
-                               ground_truth_address=ConstManager.NAN)
+            [
+                'tensor_id',
+                'shape',
+                'algorithm_result',
+                'error_msg',
+                'match',
+                'my_output_dtype',
+                'ground_truth_dtype',
+                'my_output_address',
+                'ground_truth_address',
+            ],
+        )
+        result = CompareResult(
+            tensor_id,
+            shape,
+            algorithm_result,
+            error_msg,
+            match,
+            my_output_dtype,
+            ground_truth_dtype,
+            my_output_address=utils.get_address_from_tensor(tensor),
+            ground_truth_address=ConstManager.NAN,
+        )
         return result
 
     def _get_my_output_dump_path(self: any, fusion_op: FusionOp, table_content: list) -> (bool, str):
@@ -511,20 +600,19 @@ class FusionOpComparison:
         except IndexError as e:
             log.print_error_log("index out of bounds error when get op dump file, please check.")
             raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR) from e
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
-                AttributeError, CompareError):
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, AttributeError, CompareError):
             message = '[{0}] There is no left dump file for the op "{0}".'.format(fusion_op.op_name)
             log.print_warn_log(message)
-            table_content.append(self._make_mapping_table_content(
-                ConstManager.NAN, ConstManager.NAN, ConstManager.NAN, fusion_op))
+            table_content.append(
+                self._make_mapping_table_content(ConstManager.NAN, ConstManager.NAN, ConstManager.NAN, fusion_op)
+            )
         return False, ''
 
     def _get_ground_truth_dump_path(self: any, fusion_op: FusionOp, index: int, is_input: bool) -> (bool, str):
         ground_truth_tensor = None
         try:
             ground_truth_tensor = self.get_right_dump_data(fusion_op, index, is_input, parse=False)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
-                AttributeError, CompareError):
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, AttributeError, CompareError):
             message = '[{0}] There is no right dump file for the op "{0}".'.format(fusion_op.op_name)
             log.print_warn_log(message)
 
@@ -533,21 +621,23 @@ class FusionOpComparison:
         else:
             return ConstManager.NAN
 
-    def _parse_dump_file(self: any, fusion_op: FusionOp, my_output_dump_path: str,
-                         table_content: list) -> (bool, DumpDataObj):
+    def _parse_dump_file(
+        self: any, fusion_op: FusionOp, my_output_dump_path: str, table_content: list
+    ) -> (bool, DumpDataObj):
         try:
             return True, dump_utils.parse_dump_file(my_output_dump_path, self.compare_data.dump_version)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError,
-                AttributeError, CompareError):
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, AttributeError, CompareError):
             log.print_error_log("{} file parse error".format(my_output_dump_path))
-            table_content.append(self._make_mapping_table_content(
-                ConstManager.NAN, my_output_dump_path, ConstManager.NAN, fusion_op))
+            table_content.append(
+                self._make_mapping_table_content(ConstManager.NAN, my_output_dump_path, ConstManager.NAN, fusion_op)
+            )
         finally:
             pass
         return False, DumpDataObj()
 
-    def _make_mapping_table_content(self: any, tensor_id: str, my_output_dump_path: str, ground_truth_dump_path: str,
-                                    fusion_op: FusionOp) -> list:
+    def _make_mapping_table_content(
+        self: any, tensor_id: str, my_output_dump_path: str, ground_truth_dump_path: str, fusion_op: FusionOp
+    ) -> list:
         relation = fusion_rule_parser.get_relation_for_fusion(self.fusion_op_list)
         ground_truth_to_my_output_map = fusion_rule_parser.make_right_to_left_multi_map(self.fusion_op_list)
         if relation in (utils_type.FusionRelation.OneToOne, utils_type.FusionRelation.MultiToOne):
@@ -557,32 +647,42 @@ class FusionOpComparison:
             my_output_op_str = fusion_op.op_name
         else:
             my_output_op_str, ground_truth_op_str = fusion_rule_parser.make_left_and_right_string(
-                ground_truth_to_my_output_map)
+                ground_truth_to_my_output_map
+            )
         if fusion_op.op_type in [ConstManager.LEFT_TYPE, ConstManager.RIGHT_TYPE]:
             op_type = dump_utils.get_op_type_from_file_name(my_output_dump_path)
         else:
             op_type = fusion_op.op_type
         row_content = [
-            str(fusion_op.op_id), op_type, my_output_op_str, ground_truth_op_str,
-            tensor_id, my_output_dump_path, ground_truth_dump_path
+            str(fusion_op.op_id),
+            op_type,
+            my_output_op_str,
+            ground_truth_op_str,
+            tensor_id,
+            my_output_dump_path,
+            ground_truth_dump_path,
         ]
         RangeManager.adjust_data(row_content, fusion_op.attr.get_op_sequence())
         return row_content
 
-    def _make_mapping_by_input(self: any, fusion_op: FusionOp, input_tensor: any,
-                               my_output_dump_path: str, table_content: list) -> None:
+    def _make_mapping_by_input(
+        self: any, fusion_op: FusionOp, input_tensor: any, my_output_dump_path: str, table_content: list
+    ) -> None:
         if not self._check_dequant_op(fusion_op):
             for index, _ in enumerate(input_tensor):
                 tensor_id = "%s:%s:%d" % (fusion_op.op_name, ConstManager.INPUT, index)
                 ground_truth_dump_path = self._get_ground_truth_dump_path(fusion_op, index, is_input=True)
-                table_content.append(self._make_mapping_table_content(
-                    tensor_id, my_output_dump_path, ground_truth_dump_path, fusion_op))
+                table_content.append(
+                    self._make_mapping_table_content(tensor_id, my_output_dump_path, ground_truth_dump_path, fusion_op)
+                )
 
-    def _make_mapping_by_output(self: any, fusion_op: FusionOp, output_tensor: any,
-                                my_output_dump_path: str, table_content: list) -> None:
+    def _make_mapping_by_output(
+        self: any, fusion_op: FusionOp, output_tensor: any, my_output_dump_path: str, table_content: list
+    ) -> None:
         if fusion_op.op_type != 'AscendQuant':
             for index, _ in enumerate(output_tensor):
                 tensor_id = "%s:%s:%d" % (fusion_op.op_name, ConstManager.OUTPUT, index)
                 ground_truth_dump_path = self._get_ground_truth_dump_path(fusion_op, index, is_input=False)
-                table_content.append(self._make_mapping_table_content(
-                    tensor_id, my_output_dump_path, ground_truth_dump_path, fusion_op))
+                table_content.append(
+                    self._make_mapping_table_content(tensor_id, my_output_dump_path, ground_truth_dump_path, fusion_op)
+                )

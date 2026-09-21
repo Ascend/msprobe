@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -15,9 +14,9 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 import os
-import re
 from collections import namedtuple
 import importlib
 
@@ -36,8 +35,9 @@ from msprobe.core.common.file_utils import create_directory
 from msprobe.core.common.const import Const
 from msprobe.core.common.utils import CompareException
 
-ApiData = namedtuple('ApiData', ['name', 'args', 'kwargs', 'result', 'step', 'rank'],
-                     defaults=['unknown', None, None, None, 0, 0])
+ApiData = namedtuple(
+    'ApiData', ['name', 'args', 'kwargs', 'result', 'step', 'rank'], defaults=['unknown', None, None, None, 0, 0]
+)
 
 
 class DumpException(CompareException):
@@ -66,7 +66,7 @@ class SoftlinkCheckException(Exception):
 def check_need_convert(api_name):
     convert_type = None
     for key, value in Const.CONVERT_API.items():
-        if api_name not in value:
+        if api_name not in value:  # pylint: disable=no-else-continue
             continue
         else:
             convert_type = key
@@ -82,8 +82,11 @@ def cross_entropy_process(api_info_dict):
     Return api_info_dict:
         api_info_dict: Processed argument of the API.
     """
-    if 'input_args' in api_info_dict and len(api_info_dict['input_args']) > 1 \
-        and 'Min' in api_info_dict['input_args'][1]:
+    if (
+        'input_args' in api_info_dict
+        and len(api_info_dict['input_args']) > 1
+        and 'Min' in api_info_dict['input_args'][1]
+    ):
         if api_info_dict['input_args'][1]['Min'] <= 0:
             # The second argument in cross_entropy should be -100 or not less than 0
             api_info_dict['input_args'][1]['Min'] = 0
@@ -99,10 +102,7 @@ def histc_process(api_info_dict):
     return api_info_dict
 
 
-API_PROCESS_MAP = {
-    'cross_entropy': cross_entropy_process,
-    'histc': histc_process
-}
+API_PROCESS_MAP = {'cross_entropy': cross_entropy_process, 'histc': histc_process}
 
 
 def api_info_preprocess(api_name, api_info_dict):
@@ -297,8 +297,7 @@ def is_dtype_hif8(dtype):
 
     # 检查是否匹配 HiFloat8Tensor 的字符串表示
     return (
-            dtype_str == "<class 'torch_npu.utils.hif8_tensor.HiFloat8Tensor'>" or
-            dtype_str == "torch_npu.HiFloat8Tensor"
+        dtype_str == "<class 'torch_npu.utils.hif8_tensor.HiFloat8Tensor'>" or dtype_str == "torch_npu.HiFloat8Tensor"  # pylint: disable=consider-using-in
     )
 
 

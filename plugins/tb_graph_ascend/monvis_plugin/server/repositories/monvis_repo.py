@@ -1,3 +1,4 @@
+# -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
@@ -5,15 +6,16 @@
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#          http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# ==============================================================================
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+# bandit: disable=B608
 
-import re
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional
 from ..database.db_connection import DBConnection
 
 
@@ -57,8 +59,8 @@ class MonvisRepo:
     def query_metrics_stat(self) -> List[str]:
         """Get all available metrics from database."""
         query = """
-            SELECT * FROM global_stats 
-            ORDER BY ROWID DESC 
+            SELECT * FROM global_stats
+            ORDER BY ROWID DESC
             LIMIT 1
         """
         with self.conn as c:
@@ -69,8 +71,8 @@ class MonvisRepo:
     def query_global_stats(self) -> Dict[str, int]:
         """Get global statistics from database."""
         query = """
-        SELECT max_rank, min_step, max_step FROM global_stats 
-        ORDER BY ROWID DESC 
+        SELECT max_rank, min_step, max_step FROM global_stats
+        ORDER BY ROWID DESC
         LIMIT 1
         """
         cursor = self.conn.execute(query)
@@ -99,8 +101,8 @@ class MonvisRepo:
                 conditions.append(
                     """
                     mt.target_id IN (
-                        SELECT DISTINCT target_id 
-                        FROM trend_data 
+                        SELECT DISTINCT target_id
+                        FROM trend_data
                         WHERE metric_id = ?
                     )
                 """
@@ -110,7 +112,7 @@ class MonvisRepo:
         # 添加tag过滤条件（使用tag-target映射）
         cursor = self.conn.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='tag_target_mapping'
         """
         )
@@ -121,7 +123,7 @@ class MonvisRepo:
                 tag_conditions.append(
                     """
                     mt.target_id IN (
-                        SELECT ttm.target_id 
+                        SELECT ttm.target_id
                         FROM tag_target_mapping ttm
                         JOIN monitoring_tags mtags ON ttm.tag_id = mtags.tag_id
                         WHERE mtags.tag_name = ?
@@ -146,7 +148,7 @@ class MonvisRepo:
         # 检查是否存在monitoring_tags表
         cursor = self.conn.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='monitoring_tags'
         """
         )
@@ -162,7 +164,7 @@ class MonvisRepo:
                     # 检查是否存在tag_target_mapping表
                     cursor = self.conn.execute(
                         """
-                        SELECT name FROM sqlite_master 
+                        SELECT name FROM sqlite_master
                         WHERE type='table' AND name='tag_target_mapping'
                     """
                     )
@@ -172,7 +174,7 @@ class MonvisRepo:
                     if has_tag_mapping:
                         # 使用tag-target映射表进行高效查询
                         query = """
-                            SELECT DISTINCT mt.tag_name, mt.category 
+                            SELECT DISTINCT mt.tag_name, mt.category
                             FROM monitoring_tags mt
                             JOIN tag_target_mapping ttm ON mt.tag_id = ttm.tag_id
                             JOIN trend_data td ON ttm.target_id = td.target_id
@@ -182,7 +184,7 @@ class MonvisRepo:
                     else:
                         # 回退到原来的查询
                         query = """
-                            SELECT DISTINCT mt.tag_name, mt.category 
+                            SELECT DISTINCT mt.tag_name, mt.category
                             FROM monitoring_tags mt
                             WHERE mt.metric_id = ?
                         """
@@ -203,7 +205,7 @@ class MonvisRepo:
         # 检查是否存在tag_target_mapping表
         cursor = self.conn.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='tag_target_mapping'
         """
         )
@@ -217,7 +219,7 @@ class MonvisRepo:
             FROM trend_data t
             JOIN monitoring_targets m ON t.target_id = m.target_id
             WHERE t.metric_id = ? AND {condition}
-        """
+        """  # nosec B608
         params = (metric_id,) + params
 
         if has_tag_mapping and tags:
@@ -228,7 +230,7 @@ class MonvisRepo:
                 tag_conditions.append(
                     """
                     t.target_id IN (
-                        SELECT ttm.target_id 
+                        SELECT ttm.target_id
                         FROM tag_target_mapping ttm
                         JOIN monitoring_tags mtags ON ttm.tag_id = mtags.tag_id
                         WHERE mtags.tag_name = ?
@@ -258,12 +260,12 @@ class MonvisRepo:
             FROM trend_data t
             JOIN monitoring_targets m ON t.target_id = m.target_id
             WHERE t.metric_id = ? AND {condition}
-        """
+        """  # nosec B608
 
         # 检查是否存在tag_target_mapping表
         cursor = self.conn.execute(
             """
-            SELECT name FROM sqlite_master 
+            SELECT name FROM sqlite_master
             WHERE type='table' AND name='tag_target_mapping'
         """
         )
@@ -276,7 +278,7 @@ class MonvisRepo:
                 tag_conditions.append(
                     """
                     t.target_id IN (
-                        SELECT ttm.target_id 
+                        SELECT ttm.target_id
                         FROM tag_target_mapping ttm
                         JOIN monitoring_tags mtags ON ttm.tag_id = mtags.tag_id
                         WHERE mtags.tag_name = ?

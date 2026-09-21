@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 Quant Filter class, process the fusion json file
 """
+
 import re
 
 from cmp_utils import log
@@ -42,8 +42,9 @@ class QuantFilter:
         self._op_list = op_list
         self._op_output_type_map = {}  # structure like {op_name: [out1_type, out2_type]}
         self._quant_name_pattern = r"_quant_layer|/AscendQuant|/AscendWeightQuant|\.quant|\.weight_quant"
-        self._dequant_name_pattern = \
+        self._dequant_name_pattern = (
             r"_dequant_layer|_anti_quant_layer|/AscendDequant|/AntiQuant|\.dequant|\.anti_quant"
+        )
 
     @staticmethod
     def _check_out_type(op_name: str, name_type: int, in_pairs: bool, output_node: any) -> int:
@@ -52,8 +53,9 @@ class QuantFilter:
 
         # Not matched type, treat as a normal op
         if _out_type is None:
-            log.print_warn_log("[{}] this op looks like a quantization op, but it does not have proper output type"
-                               .format(op_name))
+            log.print_warn_log(
+                "[{}] this op looks like a quantization op, but it does not have proper output type".format(op_name)
+            )
             if in_pairs:
                 _out_type = QuantFilter.MIDDLE_OP
             else:
@@ -91,7 +93,6 @@ class QuantFilter:
 
         # fetch ops in order
         for op in self._op_list:
-
             _op_name = op.op_name
 
             # check name type using regex
@@ -128,16 +129,16 @@ class QuantFilter:
                 continue
             last_colon_index = _input.rfind(':')
             _input_name = _input[:last_colon_index]
-            if _input[last_colon_index + 1:].isdigit():
-                _input_out_index = int(_input[last_colon_index + 1:])
+            if _input[last_colon_index + 1 :].isdigit():
+                _input_out_index = int(_input[last_colon_index + 1 :])
             else:
-                log.print_warn_log("[{}] the input operator of op with index {} is invalid."
-                                   .format(op.op_name, _input))
+                log.print_warn_log("[{}] the input operator of op with index {} is invalid.".format(op.op_name, _input))
                 continue
             _out_list = self._op_output_type_map.get(_input_name)
             if _out_list is None or len(_out_list) <= _input_out_index:
-                log.print_warn_log("[{}] the input operator of op {} does not exist in previous graph."
-                                   .format(op.op_name, _input_name))
+                log.print_warn_log(
+                    "[{}] the input operator of op {} does not exist in previous graph.".format(op.op_name, _input_name)
+                )
                 continue
             _input_out_type = _out_list[_input_out_index]
             if _input_out_type in (QuantFilter.QUANT_OP, QuantFilter.MIDDLE_OP):

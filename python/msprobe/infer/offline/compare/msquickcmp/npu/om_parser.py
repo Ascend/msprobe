@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 This class is used to om fusion parser.
 """
+
 import itertools
 import json
 from typing import Union, List
@@ -79,7 +79,7 @@ LAYOUT_OBJECT = "layout"
 SPECIAL_OPS_TYPE = ("Cast", "TransData")
 
 
-class OmParser(object):
+class OmParser(object):  # pylint: disable=useless-object-inheritance
     """
     This class is used to parse om model.
     """
@@ -283,7 +283,7 @@ class OmParser(object):
 
         atc_cmd_with_range_split = atc_cmd_split[:input_shape_pos]
         atc_cmd_with_range_split += [INPUT_SHAPE_RANGE, input_shape_range_args]
-        atc_cmd_with_range_split += atc_cmd_split[input_shape_pos + 2:]
+        atc_cmd_with_range_split += atc_cmd_split[input_shape_pos + 2 :]
         atc_cmd_with_range = " ".join(atc_cmd_with_range_split)
 
         if not self.shape_range:  # Only print once, just if shape_range is False
@@ -301,14 +301,14 @@ class OmParser(object):
                 DynamicArgumentEnum.DYM_DIMS,
             ]:
                 continue
-            for operator in graph.get(OP_OBJECT):
-                yield operator
+            for operator in graph.get(OP_OBJECT):  # pylint: disable=use-yield-from
+                yield operator  # pylint: disable=use-yield-from
 
     def _gen_operator_list_from_subgraph(self):
         for graph in self.json_object.get(GRAPH_OBJECT):
             if graph.get(NAME_OBJECT) in self.subgraph_name:
-                for operator in graph.get(OP_OBJECT):
-                    yield operator
+                for operator in graph.get(OP_OBJECT):  # pylint: disable=use-yield-from
+                    yield operator  # pylint: disable=use-yield-from
                 return
 
     def _get_data_input_desc(self):

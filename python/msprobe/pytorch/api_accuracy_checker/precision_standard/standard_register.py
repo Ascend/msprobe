@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,8 +18,14 @@
 import torch
 from typing import Callable
 from msprobe.pytorch.api_accuracy_checker.common.utils import is_dtype_fp8_or_hif8
-from msprobe.pytorch.api_accuracy_checker.compare.compare_utils import absolute_standard_api, binary_standard_api, \
-    ulp_standard_api, thousandth_standard_api, accumulative_error_standard_api, BINARY_COMPARE_UNSUPPORT_LIST
+from msprobe.pytorch.api_accuracy_checker.compare.compare_utils import (
+    absolute_standard_api,
+    binary_standard_api,
+    ulp_standard_api,
+    thousandth_standard_api,
+    accumulative_error_standard_api,
+    BINARY_COMPARE_UNSUPPORT_LIST,
+)
 from msprobe.core.common.const import CompareConst
 
 
@@ -32,7 +37,7 @@ class StandardRegistry:
     It allows for dynamic registration of comparison functions based on the standard category.
 
     Attributes:
-        comparison_functions (dict): A dictionary mapping standard categories to their corresponding comparison 
+        comparison_functions (dict): A dictionary mapping standard categories to their corresponding comparison
         functions.
         standard_categories (dict): A dictionary mapping standard names to their corresponding API categories.
 
@@ -48,6 +53,7 @@ class StandardRegistry:
     See Also:
         BaseCompare: The base class for comparison classes.
     """
+
     def __init__(self):
         self.comparison_functions = {}
         self.api_standard_function_map = {
@@ -55,7 +61,7 @@ class StandardRegistry:
             CompareConst.BINARY_CONSISTENCY: binary_standard_api,
             CompareConst.ULP_COMPARE: ulp_standard_api,
             CompareConst.THOUSANDTH_STANDARD: thousandth_standard_api,
-            CompareConst.ACCUMULATIVE_ERROR_COMPARE: accumulative_error_standard_api
+            CompareConst.ACCUMULATIVE_ERROR_COMPARE: accumulative_error_standard_api,
         }
 
     def register(self, standard: str, func: Callable) -> None:
@@ -91,22 +97,30 @@ class StandardRegistry:
             in_dtype (type): The data type of the input tensor.
 
         Returns:
-            str: The name of the standard category that matches the API name and data type, or 'benchmark' if no match 
+            str: The name of the standard category that matches the API name and data type, or 'benchmark' if no match
             is found.
 
         Note:
-        This method assumes that the api_standard_function_map is properly populated with standard categories and 
+        This method assumes that the api_standard_function_map is properly populated with standard categories and
         their corresponding API functions.
-        The BINARY_COMPARE_UNSUPPORT_LIST should be defined and contain all data types that are not supported for 
+        The BINARY_COMPARE_UNSUPPORT_LIST should be defined and contain all data types that are not supported for
         binary comparison.
         """
         if is_dtype_fp8_or_hif8(out_dtype):
             return CompareConst.ULP_COMPARE
         if is_dtype_fp8_or_hif8(in_dtype):
             return CompareConst.ABSOLUTE_THRESHOLD
-        if out_dtype in ("torch.float16", "torch.bfloat16", "torch.float32", "torch.float64",
-        torch.float16, torch.bfloat16, torch.float32, torch.float64):
-            return CompareConst.BENCHMARK  
+        if out_dtype in (
+            "torch.float16",
+            "torch.bfloat16",
+            "torch.float32",
+            "torch.float64",
+            torch.float16,
+            torch.bfloat16,
+            torch.float32,
+            torch.float64,
+        ):
+            return CompareConst.BENCHMARK
         if str(out_dtype) not in BINARY_COMPARE_UNSUPPORT_LIST:
             return CompareConst.BINARY_CONSISTENCY
         for name, category in self.api_standard_function_map.items():

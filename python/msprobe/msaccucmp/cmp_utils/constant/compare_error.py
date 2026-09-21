@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -25,6 +24,7 @@ class CompareError(Exception):
     """
     The class for compare error
     """
+
     MSACCUCMP_NONE_ERROR = 0
     MSACCUCMP_UNKNOWN_ERROR = 1
     MSACCUCMP_NO_DUMP_FILE_ERROR = 2

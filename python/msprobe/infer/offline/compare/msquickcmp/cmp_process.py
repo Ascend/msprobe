@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -14,6 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 """
 Function:
@@ -33,8 +33,11 @@ from msprobe.infer.offline.compare.msquickcmp.adapter_cli.args_adapter import Cm
 from msprobe.infer.offline.compare.msquickcmp.atc import atc_utils
 from msprobe.infer.offline.compare.msquickcmp.common import utils
 from msprobe.infer.offline.compare.msquickcmp.common.convert import convert_npy_to_bin
-from msprobe.infer.offline.compare.msquickcmp.common.utils import AccuracyCompareException, \
-    get_shape_to_directory_name, OPTYPE_WHITWLIST
+from msprobe.infer.offline.compare.msquickcmp.common.utils import (
+    AccuracyCompareException,
+    get_shape_to_directory_name,
+    OPTYPE_WHITWLIST,
+)
 from msprobe.infer.offline.compare.msquickcmp.net_compare.net_compare import NetCompare
 from msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data import NpuDumpData
 from msprobe.infer.offline.compare.msquickcmp.npu.om_parser import OmParser
@@ -65,6 +68,7 @@ def _generate_golden_data_model(args, npu_dump_npy_path):
     model_name, extension = utils.get_model_name_and_extension(args.golden_path)
     if ".onnx" == extension:
         from msprobe.infer.offline.compare.msquickcmp.onnx_model.onnx_dump_data import OnnxDumpData
+
         return OnnxDumpData(args, npu_dump_npy_path), extension
     elif ".om" == extension:
         return NpuDumpData(arguments=args, is_golden=True), extension
@@ -108,7 +112,7 @@ def _read_and_process_csv(csv_path, process_func, node_output_show_list):
     if Rule.input_file().check(csv_path):
         with ms_open(csv_path, 'r', max_size=TENSOR_MAX_SIZE) as f:
             reader = csv.reader(f)
-            rows = [row for row in reader]
+            rows = [row for row in reader]  # pylint: disable=unnecessary-comprehension
         if len(rows) < 1:
             logger.error("csv is empty, please check.")
             raise AccuracyCompareException(utils.ACCURACY_COMPARISON_EMPTY_CSV_ERROR)
@@ -147,11 +151,13 @@ def _process_is_npu_and_is_precision_error_ops(header, rows, node_output_name_li
             if optype in OPTYPE_WHITWLIST or cosine_similarity.lower() == 'nan':
                 row.append(NO)
                 continue
-            if _is_row_precision_error(cosine_similarity,
-                                       relative_euclidean_distance,
-                                       kullback_leibler_divergence,
-                                       root_mean_square_error,
-                                       mean_relative_error):
+            if _is_row_precision_error(
+                cosine_similarity,
+                relative_euclidean_distance,
+                kullback_leibler_divergence,
+                root_mean_square_error,
+                mean_relative_error,
+            ):
                 row.append(YES)
             else:
                 row.append(NO)
@@ -162,16 +168,20 @@ def _process_is_npu_and_is_precision_error_ops(header, rows, node_output_name_li
     return rows
 
 
-def _is_row_precision_error(cosine_similarity,
-                            relative_euclidean_distance,
-                            kullback_leibler_divergence,
-                            root_mean_square_error,
-                            mean_relative_error):
-    return (float(cosine_similarity) < COSINE_SIMILARITY or
-            relative_euclidean_distance > RELATIVE_EUCLIDEAN_DISTANCE or
-            kullback_leibler_divergence > KULLBACK_LEIBLER_DIVERGENCE or
-            root_mean_square_error > ROOT_MEAN_SQUARE_ERROR or
-            mean_relative_error > MEAN_RELATIVE_ERROR)
+def _is_row_precision_error(
+    cosine_similarity,
+    relative_euclidean_distance,
+    kullback_leibler_divergence,
+    root_mean_square_error,
+    mean_relative_error,
+):
+    return (
+        float(cosine_similarity) < COSINE_SIMILARITY
+        or relative_euclidean_distance > RELATIVE_EUCLIDEAN_DISTANCE
+        or kullback_leibler_divergence > KULLBACK_LEIBLER_DIVERGENCE
+        or root_mean_square_error > ROOT_MEAN_SQUARE_ERROR
+        or mean_relative_error > MEAN_RELATIVE_ERROR
+    )
 
 
 def _is_output_node(groundtruth, onnxnode_output_name_list):
@@ -214,7 +224,7 @@ def run_om_model_compare(args):
         golden_json_path = atc_utils.convert_model_to_json(args.cann_path, args.golden_path, args.output_path)
 
     temp_om_parser = OmParser(output_json_path)
-    use_aipp = True if temp_om_parser.get_aipp_config_content() else False
+    use_aipp = True if temp_om_parser.get_aipp_config_content() else False  # pylint: disable=simplifiable-if-expression
 
     npu_dump = NpuDumpData(args, is_golden=False)
     # generate npu inputs data
@@ -247,8 +257,9 @@ def run_om_model_compare(args):
 
     node_output_show_list = None
     if model_extension == ".onnx":
-        node_output_show_list = _get_model_output_node_name_list(golden_dump.model_with_inputs_session,
-                                                                 golden_dump.origin_model)
+        node_output_show_list = _get_model_output_node_name_list(
+            golden_dump.model_with_inputs_session, golden_dump.origin_model
+        )
     _append_column_to_csv(args.output_path, node_output_show_list)
 
 
@@ -266,7 +277,7 @@ def _get_model_output_node_name_list(model_with_inputs_session, origin_model):
 def _find_previous_node(graph, output_name):
     # 遍历所有节点
     for node in graph.node:
-        if output_name in [output for output in node.output]:
+        if output_name in [output for output in node.output]:  # pylint: disable=unnecessary-comprehension
             # 找到目标输出节点
             return node.name
     return None
@@ -313,7 +324,7 @@ def csv_sum(original_out_path):
         logger.error(f"Error, file {xlsx_file_summary} already exists!")
         os.remove(xlsx_file_summary)
 
-    with ms_open(xlsx_file_summary, 'wb') as fp_write:
+    with ms_open(xlsx_file_summary, 'wb'):
         with pd.ExcelWriter(xlsx_file_summary) as writer:
             for i, csv_file in enumerate(csv_file_list):
                 if Rule.input_file().check(csv_file):

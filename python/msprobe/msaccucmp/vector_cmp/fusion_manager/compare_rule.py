@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -21,24 +20,26 @@ VectorComparison class. This class mainly involves the compare function.
 """
 
 import os
-from cmp_utils import utils, utils_type, path_check
+from cmp_utils import path_check
 from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from vector_cmp.fusion_manager.fusion_rule_parser import merge_fusion_rule
 from vector_cmp.fusion_manager.fusion_rule_parser import merge_close_and_open_fusion_rule
 from vector_cmp.fusion_manager.fusion_op import FusionOp
 from vector_cmp.fusion_manager.fusion_op import OpAttr
-from cmp_utils.constant.const_manager import ConstManager
+from cmp_utils.constant.const_manager import ConstManager  # pylint: disable=ungrouped-imports
 from dump_parse.dump import CompareData, DumpInfo
-from cmp_utils.constant.compare_error import CompareError
-from dump_parse import dump_utils
+from cmp_utils.constant.compare_error import CompareError  # pylint: disable=ungrouped-imports
+from dump_parse import dump_utils  # pylint: disable=ungrouped-imports
 
 
 class CompareRule:
     """
     The class for compare rule
     """
-    def __init__(self: any, fusion_json_file_path: str, quant_fusion_rule_file_path: str,
-                 close_fusion_rule_file_path: str = '') -> None:
+
+    def __init__(
+        self: any, fusion_json_file_path: str, quant_fusion_rule_file_path: str, close_fusion_rule_file_path: str = ''
+    ) -> None:
         self.fusion_json_file_path = self._get_real_path_with_default(fusion_json_file_path)
         self.quant_fusion_rule_file_path = self._get_real_path_with_default(quant_fusion_rule_file_path)
         self.close_fusion_rule_file_path = self._get_real_path_with_default(close_fusion_rule_file_path)

@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 This class mainly involves the advisor result function.
 """
+
 import os
 
 from advisor.advisor_const import AdvisorConst
@@ -48,8 +48,9 @@ class AdvisorResult:
         result_file = os.path.join(out_path, "advisor_summary.txt")
         try:
             path_check.check_write_path_secure(result_file)
-            with os.fdopen(os.open(result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
-                           'w+') as output_file:
+            with os.fdopen(
+                os.open(result_file, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w+'
+            ) as output_file:
                 output_file.truncate(0)
                 message_list = [message + AdvisorConst.NEW_LINE for message in message_list]
                 output_file.writelines(message_list)
@@ -66,7 +67,7 @@ class AdvisorResult:
         message_list = [
             AdvisorConst.DETECTION_TYPE + AdvisorConst.COLON + self.advisor_type,
             AdvisorConst.OPERATOR_INDEX + AdvisorConst.COLON + self.operator_index,
-            AdvisorConst.ADVISOR_SUGGEST + AdvisorConst.COLON + self.advisor_message
+            AdvisorConst.ADVISOR_SUGGEST + AdvisorConst.COLON + self.advisor_message,
         ]
         for message in message_list:
             log.print_info_log(message)

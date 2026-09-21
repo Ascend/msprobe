@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 This file mainly involves the common function.
 """
+
 import itertools
 import multiprocessing
 import os
@@ -27,12 +27,12 @@ import uuid
 import numpy as np
 
 from cmp_utils import log, path_check
-from dump_parse import dump_utils, mapping
-from cmp_utils.constant.compare_error import CompareError
+from dump_parse import mapping
+from cmp_utils.constant.compare_error import CompareError  # pylint: disable=ungrouped-imports
 from cmp_utils.constant.const_manager import ConstManager
 from vector_cmp.compare_detail.detail import DetailInfo
-from cmp_utils.file_utils import FileUtils
-from cmp_utils.multi_process.progress import Progress
+from cmp_utils.file_utils import FileUtils  # pylint: disable=ungrouped-imports
+from cmp_utils.multi_process.progress import Progress  # pylint: disable=ungrouped-imports
 
 
 class MinMaxValue:
@@ -50,9 +50,12 @@ class MinMaxValue:
         """
         Get min/max absolute error and min/max relative error
         """
-        return "MinAbsoluteError:%.6f\nMaxAbsoluteError:%.6f\nMinRelativeError:%.6f\nMaxRelativeError:%.6f" \
-               % (self._min_absolute_error, self._max_absolute_error,
-                  self._min_relative_error, self._max_relative_error)
+        return "MinAbsoluteError:%.6f\nMaxAbsoluteError:%.6f\nMinRelativeError:%.6f\nMaxRelativeError:%.6f" % (
+            self._min_absolute_error,
+            self._max_absolute_error,
+            self._min_relative_error,
+            self._max_relative_error,
+        )
 
     def set_min_absolute_error(self: any, value: any) -> None:
         """
@@ -126,8 +129,12 @@ class TopN:
         for i, index in enumerate(index_list):
             # variable row value,for example,[17866338,"22 16 32 98",-0.866699,-0.000017,0.866682,51349.906250]
             row = [
-                index, " ".join((str(x) for x in dim_list[i])), left_list[i], right_list[i],
-                absolute_error_list[i], relative_error_list[i]
+                index,
+                " ".join((str(x) for x in dim_list[i])),
+                left_list[i],
+                right_list[i],
+                absolute_error_list[i],
+                relative_error_list[i],
             ]
             top_n_original_list.append(row)
         if error_type == "absolute":
@@ -183,27 +190,39 @@ class DetailWriter:
         # add index, n,c,h,w or id, my output value, ground truth value, absolute error, relative error to line
         if not is_bool:
             if np.isnan(relative_error) or np.isinf(relative_error):
-                line = '%d,%s,%.6f\t,%.6f\t,%.6f\t,-\n' \
-                       % (index, " ".join((str(x) for x in cur_dim)), my_output_value,
-                          ground_truth_value, absolute_error)
+                line = '%d,%s,%.6f\t,%.6f\t,%.6f\t,-\n' % (
+                    index,
+                    " ".join((str(x) for x in cur_dim)),
+                    my_output_value,
+                    ground_truth_value,
+                    absolute_error,
+                )
             else:
-                line = '%d,%s,%.6f\t,%.6f\t,%.6f\t,%.6f\t\n' \
-                       % (index, " ".join((str(x) for x in cur_dim)), my_output_value,
-                          ground_truth_value, absolute_error, relative_error)
+                line = '%d,%s,%.6f\t,%.6f\t,%.6f\t,%.6f\t\n' % (
+                    index,
+                    " ".join((str(x) for x in cur_dim)),
+                    my_output_value,
+                    ground_truth_value,
+                    absolute_error,
+                    relative_error,
+                )
         else:
-            line = '%d,%s,%s\t,%s\t,-\t,-\n' \
-                   % (index, " ".join((str(x) for x in cur_dim)), my_output_value,
-                      ground_truth_value)
+            line = '%d,%s,%s\t,%s\t,-\t,-\n' % (
+                index,
+                " ".join((str(x) for x in cur_dim)),
+                my_output_value,
+                ground_truth_value,
+            )
         # write line to file
         file_stream.write(line)
 
     @staticmethod
-    def _replace_inf_and_nan(nd_array: any) -> any:
-        if np.isinf(nd_array).any():
-            inf_index = np.isinf(nd_array)
-            nd_array[inf_index] = np.nan
-            return np.nan_to_num(nd_array)
-        return np.nan_to_num(nd_array)
+    def _replace_inf_and_nan(np_array: any) -> any:
+        if np.isinf(np_array).any():
+            inf_index = np.isinf(np_array)
+            np_array[inf_index] = np.nan
+            return np.nan_to_num(np_array)
+        return np.nan_to_num(np_array)
 
     @staticmethod
     def _calculate_str_length(headers: list, data: list) -> list:
@@ -260,8 +279,9 @@ class DetailWriter:
         new_file_name = self._handle_too_long_file_name(old_file_name, ConstManager.NPY_SUFFIX)
         new_file_path = os.path.join(self.output_path, new_file_name)
         FileUtils.save_array_to_file(new_file_path, my_output_data.reshape(dim), np_save=True)
-        log.print_write_result_info("%s after shape conversion" % self.detail_info.tensor_id.get_tensor_id(),
-                                    new_file_name)
+        log.print_write_result_info(
+            "%s after shape conversion" % self.detail_info.tensor_id.get_tensor_id(), new_file_name
+        )
         # check whether the types of my_output_data and ground_truth_data are Boolean.
         self._check_dtype_is_bool(my_output_data, ground_truth_data)
         # transform dim shape to list
@@ -283,7 +303,7 @@ class DetailWriter:
             return
         # prepare task pool
         cpu_count = int((multiprocessing.cpu_count() + 1) / 2)
-        pool = multiprocessing.Pool(cpu_count)
+        pool = multiprocessing.Pool(cpu_count)  # pylint: disable=consider-using-with
 
         # allocate all tasks evenly by multi-processing number
         task_list = []
@@ -294,14 +314,18 @@ class DetailWriter:
 
         # make a listen process to listen the print progress
         comm_queue = multiprocessing.Manager().Queue()
-        listen_proc = multiprocessing.Process(target=self._listen_and_print,
-                                              args=(comm_queue,))
+        listen_proc = multiprocessing.Process(target=self._listen_and_print, args=(comm_queue,))
         listen_proc.start()
 
         # apply tasks
         for task in task_list:
-            pool.apply_async(self._multi_process_group_write,
-                             args=(task, comm_queue,))
+            pool.apply_async(
+                self._multi_process_group_write,
+                args=(
+                    task,
+                    comm_queue,
+                ),
+            )
         # wait till done
         pool.close()
         pool.join()
@@ -344,19 +368,25 @@ class DetailWriter:
             # make header, should do once
             file_path = self._make_detail_output_file(task_index * self.detail_info.max_line)
             # create file IO pointer
-            detail_output_file = os.fdopen(os.open(file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
-                                           'w')
+            detail_output_file = os.fdopen(os.open(file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w')
             detail_output_file.write(self.detail_info.make_detail_header())
-        
+
             # write detail results one by one
             for offset, dim in enumerate(dim_list):
                 index = task_index * self.detail_info.max_line + offset
-                self._write_one_detail(index, detail_output_file, dim, my_output_data[offset],
-                                       ground_truth_data[offset], absolute_error[offset], relative_error[offset],
-                                       is_bool=arg_group[6])
-        
+                self._write_one_detail(
+                    index,
+                    detail_output_file,
+                    dim,
+                    my_output_data[offset],
+                    ground_truth_data[offset],
+                    absolute_error[offset],
+                    relative_error[offset],
+                    is_bool=arg_group[6],
+                )
+
             detail_output_file.close()
-        
+
             # add the write count to the shared queue
             queue.put(len(dim_list))
 
@@ -382,8 +412,10 @@ class DetailWriter:
 
     def _match_detail_file_name(self: any, file_name: str) -> bool:
         name = self.detail_info.tensor_id.get_file_prefix()
-        return file_name == ("%s_summary.txt" % name) or (file_name.startswith("%s_" % name) and (
-                file_name.endswith(ConstManager.CSV_SUFFIX) or file_name.endswith(ConstManager.NPY_SUFFIX)))
+        return file_name == ("%s_summary.txt" % name) or (
+            file_name.startswith("%s_" % name)
+            and (file_name.endswith(ConstManager.CSV_SUFFIX) or file_name.endswith(ConstManager.NPY_SUFFIX))
+        )
 
     def _make_detail_output_file(self: any, file_index: int = 0) -> str:
         # make file name based on the index，then return the path
@@ -393,28 +425,46 @@ class DetailWriter:
 
         return file_path
 
-    def _array_calculate(self: any, my_output_data: any, ground_truth_data: any, dim_list: list,
-                         is_bool: bool = False) -> any:
+    def _array_calculate(
+        self: any, my_output_data: any, ground_truth_data: any, dim_list: list, is_bool: bool = False
+    ) -> any:
         self._total_num = len(my_output_data)
         absolute_error, relative_error = self._cal_err(my_output_data, ground_truth_data, is_bool)
         # find the index of top n error values
         top_n = self.detail_info.top_n
         if len(absolute_error) < top_n:
             top_n = len(absolute_error) - 1
-        absolute_top_n_index, relative_top_n_index = self._get_error_top_n_index(absolute_error, relative_error, top_n,
-                                                                                 is_bool)
+        absolute_top_n_index, relative_top_n_index = self._get_error_top_n_index(
+            absolute_error, relative_error, top_n, is_bool
+        )
         # record top n lines in calculator
-        self._set_top_n_list("absolute", absolute_top_n_index, dim_list,
-                             (my_output_data[absolute_top_n_index], ground_truth_data[absolute_top_n_index],
-                              absolute_error[absolute_top_n_index], relative_error[absolute_top_n_index]))
-        self._set_top_n_list("relative", relative_top_n_index, dim_list,
-                             (my_output_data[relative_top_n_index], ground_truth_data[relative_top_n_index],
-                              absolute_error[relative_top_n_index], relative_error[relative_top_n_index]))
+        self._set_top_n_list(
+            "absolute",
+            absolute_top_n_index,
+            dim_list,
+            (
+                my_output_data[absolute_top_n_index],
+                ground_truth_data[absolute_top_n_index],
+                absolute_error[absolute_top_n_index],
+                relative_error[absolute_top_n_index],
+            ),
+        )
+        self._set_top_n_list(
+            "relative",
+            relative_top_n_index,
+            dim_list,
+            (
+                my_output_data[relative_top_n_index],
+                ground_truth_data[relative_top_n_index],
+                absolute_error[relative_top_n_index],
+                relative_error[relative_top_n_index],
+            ),
+        )
 
         # return the generator of compute result, to save memory
-        return self._separate_group_generator(dim_list,
-                                              (my_output_data, ground_truth_data, absolute_error, relative_error),
-                                              is_bool)
+        return self._separate_group_generator(
+            dim_list, (my_output_data, ground_truth_data, absolute_error, relative_error), is_bool
+        )
 
     def _cal_err(self: any, my_output_data: any, ground_truth_data: any, is_bool: bool) -> tuple:
         if not is_bool:
@@ -454,11 +504,25 @@ class DetailWriter:
         for i in index_list:
             top_n_dims.append(dim_list[i])
         if error_type == "absolute":
-            self.top_n.set_absolute_top_n_list(index_list, top_n_dims, top_n_data_group[0], top_n_data_group[1],
-                                               top_n_data_group[2], top_n_data_group[3], error_type)
+            self.top_n.set_absolute_top_n_list(
+                index_list,
+                top_n_dims,
+                top_n_data_group[0],
+                top_n_data_group[1],
+                top_n_data_group[2],
+                top_n_data_group[3],
+                error_type,
+            )
         else:
-            self.top_n.set_relative_top_n_list(index_list, top_n_dims, top_n_data_group[0], top_n_data_group[1],
-                                               top_n_data_group[2], top_n_data_group[3], error_type)
+            self.top_n.set_relative_top_n_list(
+                index_list,
+                top_n_dims,
+                top_n_data_group[0],
+                top_n_data_group[1],
+                top_n_data_group[2],
+                top_n_data_group[3],
+                error_type,
+            )
 
     def _check_dtype_is_bool(self: any, my_output_data: any, ground_truth_data: any) -> None:
         is_bool = my_output_data.dtype == np.bool_ and ground_truth_data.dtype == np.bool_
@@ -475,8 +539,7 @@ class DetailWriter:
                 top_n_file.write(self.detail_info.make_detail_header())
                 for line in top_n_list:
                     top_n_file.write(line)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError) as error:
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, KeyError, IOError) as error:
             log.print_error_log('Failed to write top n file. %s' % error)
             raise CompareError(CompareError.MSACCUCMP_WRITE_FILE_ERROR) from error
 
@@ -505,8 +568,11 @@ class DetailWriter:
         self._show_top_n("Relative Error", relative_top_n)
 
     def _write_detail_summary_file(self: any, is_bool: bool = False) -> None:
-        content = "TotalCount:%d\n%s%s\n" \
-                  % (self._total_num, self.detail_info.get_detail_info(), self.min_max_value.get_min_and_max_value())
+        content = "TotalCount:%d\n%s%s\n" % (
+            self._total_num,
+            self.detail_info.get_detail_info(),
+            self.min_max_value.get_min_and_max_value(),
+        )
         if is_bool:
             log.print_warn_log('Boolean data does not support calculate Relative Error or Absolute Error!')
             content = content.replace('nan', '-')
@@ -515,22 +581,29 @@ class DetailWriter:
         summary_file_path = os.path.join(self.output_path, new_file_name)
         path_check.check_write_path_secure(summary_file_path)
         try:
-            with os.fdopen(os.open(summary_file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
-                           'w') as summary_file:
+            with os.fdopen(
+                os.open(summary_file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'w'
+            ) as summary_file:
                 summary_file.write(content)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError) as error:
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, KeyError, IOError) as error:
             log.print_error_log('Failed to write detail summary file. %s' % error)
             raise CompareError(CompareError.MSACCUCMP_WRITE_FILE_ERROR) from error
 
     def _handle_too_long_file_name(self: any, file_name: str, suffix: str, file_index: int = 0) -> str:
         if len(file_name) >= ConstManager.LINUX_FILE_NAME_MAX_LEN:
             tensor_type_index = self.detail_info.tensor_id.get_tensor_type_index()
-            new_file_name = "%s%s%s" % (self.dump_file_name.replace('/', '_').replace('.', '_'),
-                                        tensor_type_index, suffix)
+            new_file_name = "%s%s%s" % (
+                self.dump_file_name.replace('/', '_').replace('.', '_'),
+                tensor_type_index,
+                suffix,
+            )
             if ConstManager.CSV_SUFFIX == suffix:
-                new_file_name = "%s%s_%s%s" % (self.dump_file_name.replace('/', '_').replace('.', '_'),
-                                               tensor_type_index, file_index, suffix)
+                new_file_name = "%s%s_%s%s" % (
+                    self.dump_file_name.replace('/', '_').replace('.', '_'),
+                    tensor_type_index,
+                    file_index,
+                    suffix,
+                )
             if len(new_file_name) >= ConstManager.LINUX_FILE_NAME_MAX_LEN:
                 value = ''.join(str(uuid.uuid3(uuid.NAMESPACE_DNS, file_name)).split('-'))
                 new_file_name = "%s%s" % (value, suffix)
@@ -541,12 +614,12 @@ class DetailWriter:
     def _save_op_mapping_file(self: any, old_file_name: str, new_file_name: str) -> None:
         single_op_mapping_path = os.path.join(self.output_path, ConstManager.SIMPLE_OP_MAPPING_FILE_NAME)
         try:
-            with os.fdopen(os.open(single_op_mapping_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
-                           'a+') as mapping_file:
+            with os.fdopen(
+                os.open(single_op_mapping_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), 'a+'
+            ) as mapping_file:
                 content = "%s,%s\n" % (new_file_name, old_file_name)
                 mapping_file.write(content)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError) as error:
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, KeyError, IOError) as error:
             log.print_error_log('Failed to save mapping file. %s' % error)
             raise CompareError(CompareError.MSACCUCMP_WRITE_FILE_ERROR) from error
 
@@ -573,8 +646,9 @@ class DetailWriter:
             os.remove(mapping_file_path)
         # save other compare result records.
         if hash_to_file_name_map:
-            with os.fdopen(os.open(mapping_file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES),
-                           "w") as output_file:
+            with os.fdopen(
+                os.open(mapping_file_path, ConstManager.WRITE_FLAGS, ConstManager.WRITE_MODES), "w"
+            ) as output_file:
                 for key, value in hash_to_file_name_map.items():
                     content = "%s,%s\n" % (key, value)
                     output_file.write(content)

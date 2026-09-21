@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -23,7 +22,7 @@ This class mainly involves the analysis_fusion_rule function.
 
 import uuid
 
-from cmp_utils import utils, utils_type
+from cmp_utils import utils_type
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.file_utils import FileUtils
@@ -98,7 +97,8 @@ def _get_original_op_names_before_quant(fusion_op_info: FusionOp, quant_fusion_r
     for op_name in fusion_op_info.attr.original_op_names:
         if op_name in quant_fusion_rule.op_name_to_fusion_op_name_map:
             op_list = quant_fusion_rule.fusion_op_name_to_op_map.get(
-                quant_fusion_rule.op_name_to_fusion_op_name_map.get(op_name))
+                quant_fusion_rule.op_name_to_fusion_op_name_map.get(op_name)
+            )
             _get_original_op_names_by_op_list(op_list, tmp_original_op_names)
     return tmp_original_op_names
 
@@ -145,7 +145,8 @@ def _get_output_desc_before_quant(fusion_op_info: FusionOp, quant_fusion_rule: a
             log.print_warn_log('The name "%s" is not in quant fusion rule.' % origin_name)
             continue
         op_list = quant_fusion_rule.fusion_op_name_to_op_map.get(
-            quant_fusion_rule.op_name_to_fusion_op_name_map.get(origin_name))
+            quant_fusion_rule.op_name_to_fusion_op_name_map.get(origin_name)
+        )
         _make_output_desc_by_op_list(output_desc, op_list, tmp_output_desc)
     return tmp_output_desc
 
@@ -158,12 +159,10 @@ def merge_fusion_rule(offline_fusion_rule: any, quant_fusion_rule: any) -> any:
     :return the merged fusion rule
     """
     merge_map = {}
-    for (_, fusion_op_list) in list(
-            offline_fusion_rule.fusion_op_name_to_op_map.items()):
+    for _, fusion_op_list in list(offline_fusion_rule.fusion_op_name_to_op_map.items()):
         for fusion_op in fusion_op_list:
             # get the quant fusion rule original op names, and deduplication
-            tmp_original_op_names = _get_original_op_names_before_quant(
-                fusion_op, quant_fusion_rule)
+            tmp_original_op_names = _get_original_op_names_before_quant(fusion_op, quant_fusion_rule)
             # replace original op names
             if len(tmp_original_op_names) > 0:
                 fusion_op.attr.original_op_names = list(tmp_original_op_names)
@@ -196,41 +195,52 @@ def _make_open_fusion_original_op_names(fusion_op: FusionOp, close_fusion_origin
             if op_name not in original_op_names:
                 original_op_names.append(op_name)
         else:
-            log.print_warn_log('There is no original operator associated with the operator "%s" '
-                               'in original op names.' % origin_op_name)
+            log.print_warn_log(
+                'There is no original operator associated with the operator "%s" in original op names.' % origin_op_name
+            )
     return original_op_names
 
 
 def _get_close_fusion_origin_output_index(op_list: list, output_desc: OutputDesc) -> bool:
     for close_op in op_list:
         for index, close_output_desc in enumerate(close_op.output_desc):
-            if output_desc.origin_name == close_output_desc.origin_name \
-                    and output_desc.origin_output_index == close_output_desc.origin_output_index:
+            if (
+                output_desc.origin_name == close_output_desc.origin_name
+                and output_desc.origin_output_index == close_output_desc.origin_output_index
+            ):
                 output_desc.origin_output_index = index
                 return True
     return False
 
 
-def _make_open_fusion_output_desc(fusion_op: FusionOp, close_fusion_origin_to_op_map: dict,
-                                  close_fusion_rule: any) -> None:
+def _make_open_fusion_output_desc(
+    fusion_op: FusionOp, close_fusion_origin_to_op_map: dict, close_fusion_rule: any
+) -> None:
     for output_index, output_desc in enumerate(fusion_op.output_desc):
         if not output_desc.origin_name:
             continue
         if output_desc.origin_name in close_fusion_origin_to_op_map:
             op_name = close_fusion_origin_to_op_map.get(output_desc.origin_name)
             op_list = close_fusion_rule.fusion_op_name_to_op_map.get(
-                close_fusion_rule.op_name_to_fusion_op_name_map.get(op_name))
+                close_fusion_rule.op_name_to_fusion_op_name_map.get(op_name)
+            )
             if not _get_close_fusion_origin_output_index(op_list, output_desc):
-                log.print_warn_log('There is no valid output desc associated with "%s:output:%d".'
-                                   % (fusion_op.op_name, output_index))
+                log.print_warn_log(
+                    'There is no valid output desc associated with "%s:output:%d".' % (fusion_op.op_name, output_index)
+                )
             output_desc.origin_name = op_name
         else:
-            log.print_warn_log('There is no valid output desc associated with "%s:output:%d".'
-                               % (fusion_op.op_name, output_index))
+            log.print_warn_log(
+                'There is no valid output desc associated with "%s:output:%d".' % (fusion_op.op_name, output_index)
+            )
 
 
-def _check_unity_onnx_op(delete_open_fusion_op_name_to_op_name: list, delete_close_fusion_op_name_to_op_name: list,
-                         fusion_op: FusionOp, close_fusion_origin_to_op_map: list) -> bool:
+def _check_unity_onnx_op(
+    delete_open_fusion_op_name_to_op_name: list,
+    delete_close_fusion_op_name_to_op_name: list,
+    fusion_op: FusionOp,
+    close_fusion_origin_to_op_map: list,
+) -> bool:
     if fusion_op.attr.original_op_names[0] in delete_open_fusion_op_name_to_op_name:
         return False
     delete_open_fusion_op_name_to_op_name.append(fusion_op.attr.original_op_names[0])
@@ -238,11 +248,10 @@ def _check_unity_onnx_op(delete_open_fusion_op_name_to_op_name: list, delete_clo
         return True
     if close_fusion_origin_to_op_map.get(fusion_op.attr.original_op_names[0]) in delete_close_fusion_op_name_to_op_name:
         return False
-    delete_close_fusion_op_name_to_op_name.append(close_fusion_origin_to_op_map.get(
-        fusion_op.attr.original_op_names[0]))
+    delete_close_fusion_op_name_to_op_name.append(
+        close_fusion_origin_to_op_map.get(fusion_op.attr.original_op_names[0])
+    )
     return True
-
-
 
 
 def merge_close_and_open_fusion_rule(open_fusion_rule: any, close_fusion_rule: any) -> any:
@@ -263,12 +272,17 @@ def merge_close_and_open_fusion_rule(open_fusion_rule: any, close_fusion_rule: a
         delete_fusion_op_name_list.append(value)
         merged_fusion_rule.op_name_to_fusion_op_name_map[key] = value
         for fusion_op in open_fusion_rule.fusion_op_name_to_op_map.get(value):
-            if not _check_unity_onnx_op(delete_open_fusion_op_name_to_op_name, delete_close_fusion_op_name_to_op_name,
-                                        fusion_op, close_fusion_origin_to_op_map):
+            if not _check_unity_onnx_op(
+                delete_open_fusion_op_name_to_op_name,
+                delete_close_fusion_op_name_to_op_name,
+                fusion_op,
+                close_fusion_origin_to_op_map,
+            ):
                 continue
             # make new original op names
-            fusion_op.attr.original_op_names = _make_open_fusion_original_op_names(fusion_op,
-                                                                                   close_fusion_origin_to_op_map)
+            fusion_op.attr.original_op_names = _make_open_fusion_original_op_names(
+                fusion_op, close_fusion_origin_to_op_map
+            )
             # make new output desc
             _make_open_fusion_output_desc(fusion_op, close_fusion_origin_to_op_map, close_fusion_rule)
             if value in merged_fusion_rule.fusion_op_name_to_op_map:
@@ -304,7 +318,7 @@ class FusionRuleParser:
             output_desc = OutputDesc(name, None, "", [])
             output_desc_list.append(output_desc)
         else:
-            for (index, _) in enumerate(output_desc_list):
+            for index, _ in enumerate(output_desc_list):
                 if output_desc_list[index].origin_name == "":
                     output_desc_list[index].origin_name = name
 
@@ -373,8 +387,10 @@ class FusionRuleParser:
         """
         self._check_key_exist(json_object, key)
         if not isinstance(json_object[key], list):
-            log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not an array.'
-                                % (self.json_path, key))
+            log.print_error_log(
+                'The content of the json file "%r" is invalid. The "%s" element is not an array.'
+                % (self.json_path, key)
+            )
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
 
     def check_string_object_valid(self: any, json_object: any, key: str) -> None:
@@ -385,8 +401,10 @@ class FusionRuleParser:
         """
         self._check_key_exist(json_object, key)
         if not isinstance(json_object[key], str):
-            log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not a string.'
-                                % (self.json_path, key))
+            log.print_error_log(
+                'The content of the json file "%r" is invalid. The "%s" element is not a string.'
+                % (self.json_path, key)
+            )
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
 
     def get_fusion_op_list(self: any, op_name: str) -> (list, FusionOp):
@@ -443,8 +461,10 @@ class FusionRuleParser:
         # data layer has no input layer
         if ConstManager.INPUT_OBJECT in op_object:
             if not isinstance(op_object[ConstManager.INPUT_OBJECT], list):
-                log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not '
-                                    'an array.' % (self.json_path, ConstManager.INPUT_OBJECT))
+                log.print_error_log(
+                    'The content of the json file "%r" is invalid. The "%s" element is not '
+                    'an array.' % (self.json_path, ConstManager.INPUT_OBJECT)
+                )
                 raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
             for item in op_object[ConstManager.INPUT_OBJECT]:
                 if item == "" and len(op_object[ConstManager.INPUT_OBJECT]) == 1:
@@ -463,7 +483,8 @@ class FusionRuleParser:
         origin_output_format = self._get_string_value_in_attr(output_desc_attr, ConstManager.ORIGIN_FORMAT_OBJECT)
         if origin_output_format == '':
             origin_output_format = self._get_string_value_in_attr(
-                output_desc_attr, ConstManager.GE_ORIGIN_FORMAT_OBJECT)
+                output_desc_attr, ConstManager.GE_ORIGIN_FORMAT_OBJECT
+            )
         origin_output_shape = self._get_origin_shape_in_attr(output_desc_attr)
         return OutputDesc(origin_name, origin_output_index, origin_output_format, origin_output_shape)
 
@@ -473,22 +494,24 @@ class FusionRuleParser:
         if ConstManager.OUTPUT_DESC_OBJECT in op_object:
             default_index = 0
             for output_desc_object in op_object[ConstManager.OUTPUT_DESC_OBJECT]:
-
                 d_type = ""
                 if ConstManager.D_TYPE in output_desc_object:
                     d_type = output_desc_object.get(ConstManager.D_TYPE)
 
                 if ConstManager.ATTR_OBJECT in output_desc_object:
                     output_desc = self._parse_output_desc_in_attr(
-                        output_desc_object[ConstManager.ATTR_OBJECT], default_index)
+                        output_desc_object[ConstManager.ATTR_OBJECT], default_index
+                    )
                     output_desc.set_data_type(d_type)
                     output_desc_list.append(output_desc)
                 default_index += 1
         return output_desc_list
 
     def _is_rename_node(self: any, fusion_op: FusionOp) -> bool:
-        return len(fusion_op.attr.original_op_names) == 1 and \
-               self.op_name_to_fusion_op_name_map.get(fusion_op.op_name) == fusion_op.attr.original_op_names[0]
+        return (
+            len(fusion_op.attr.original_op_names) == 1
+            and self.op_name_to_fusion_op_name_map.get(fusion_op.op_name) == fusion_op.attr.original_op_names[0]
+        )
 
     def _parse_attr(self: any, op_object: any, op_name: str) -> (OpAttr, bool):
         # check attr element is valid
@@ -534,8 +557,9 @@ class FusionRuleParser:
         fusion_op = FusionOp(0, name, input_list, op_object[ConstManager.TYPE_OBJECT], output_desc_list, attr)
         if fusion_op_name in self.fusion_op_name_to_op_map:
             fusion_op.op_id = self.fusion_op_name_to_op_map.get(fusion_op_name)[0].op_id
-            fusion_op_name_list = \
-                [_fusion_op.op_name for _fusion_op in self.fusion_op_name_to_op_map.get(fusion_op_name)]
+            fusion_op_name_list = [
+                _fusion_op.op_name for _fusion_op in self.fusion_op_name_to_op_map.get(fusion_op_name)
+            ]
             if name not in fusion_op_name_list:
                 self.fusion_op_name_to_op_map.get(fusion_op_name).append(fusion_op)
                 self.op_list.append(fusion_op)
@@ -581,7 +605,8 @@ class FusionRuleParser:
                 self._check_key_exist(value_value, ConstManager.LIST_TYPE_OBJECT)
                 if ConstManager.INT_TYPE_OBJECT in value_value[ConstManager.LIST_TYPE_OBJECT]:
                     self.check_array_object_valid(
-                        value_value[ConstManager.LIST_TYPE_OBJECT], ConstManager.INT_TYPE_OBJECT)
+                        value_value[ConstManager.LIST_TYPE_OBJECT], ConstManager.INT_TYPE_OBJECT
+                    )
                     value = value_value[ConstManager.LIST_TYPE_OBJECT][ConstManager.INT_TYPE_OBJECT]
                 break
         return value
@@ -623,13 +648,16 @@ class FusionRuleParser:
     def _check_int_object_valid(self: any, json_object: any, key: str) -> None:
         self._check_key_exist(json_object, key)
         if not isinstance(json_object[key], int):
-            log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not a integer.'
-                                % (self.json_path, key))
+            log.print_error_log(
+                'The content of the json file "%r" is invalid. The "%s" element is not a integer.'
+                % (self.json_path, key)
+            )
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)
 
     def _check_bool_object_valid(self: any, json_object: any, key: str) -> None:
         self._check_key_exist(json_object, key)
         if not isinstance(json_object[key], bool):
-            log.print_error_log('The content of the json file "%r" is invalid. The "%s" element is not a bool.'
-                                % (self.json_path, key))
+            log.print_error_log(
+                'The content of the json file "%r" is invalid. The "%s" element is not a bool.' % (self.json_path, key)
+            )
             raise CompareError(CompareError.MSACCUCMP_PARSER_JSON_FILE_ERROR)

@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -29,6 +28,7 @@ class RegManager:
     """
     The class for reg manager
     """
+
     NUMBER_PATTERN = r"^[0-9]+$"
 
     # mapping of built in algorithms to numbers, the indexes correspond one-to-one to the list above
@@ -41,12 +41,18 @@ class RegManager:
     QUANT_DUMP_PATTERN = r"^([A-Za-z0-9_-]+\.[0-9]+)\.[0-9]{1,255}\.quant$"
 
     # Offline
-    OFFLINE_DUMP_PATTERN = r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+" \
-                           r"(\.[0-9]+)?\.[0-9]{1,255}(\.[0-9]+\.[0-9]+\.[0-9]+)?(\.[0-9]+)?"
-    OFFLINE_NUMPY_PATTERN = r"^([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[0-9]+" \
-                            r"\.[0-9]{1,255})\.[0-9]+\.\b(npy|data|bin|txt)\b$"
-    OFFLINE_FFTS_DUMP_PATTERN = r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+" \
-                                r"(\.[0-9]+)?\.[0-9]{1,255}\.[0-9]+\.[0-9]+\.[0-9]+"
+    OFFLINE_DUMP_PATTERN = (
+        r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+"
+        r"(\.[0-9]+)?\.[0-9]{1,255}(\.[0-9]+\.[0-9]+\.[0-9]+)?(\.[0-9]+)?"
+    )
+    OFFLINE_NUMPY_PATTERN = (
+        r"^([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[0-9]+"
+        r"\.[0-9]{1,255})\.[0-9]+\.\b(npy|data|bin|txt)\b$"
+    )
+    OFFLINE_FFTS_DUMP_PATTERN = (
+        r"^[A-Za-z0-9_-]+\.([A-Za-z0-9_-]+)\.[0-9]+"
+        r"(\.[0-9]+)?\.[0-9]{1,255}\.[0-9]+\.[0-9]+\.[0-9]+"
+    )
 
     # Standard
     NUMPY_DUMP_PATTERN = r"^([\.A-Za-z0-9_-]+\.[0-9]+)\.[0-9]{1,255}\.npy$"
@@ -95,4 +101,4 @@ class RegManager:
     @staticmethod
     def get_matchs(pattern: str, value: any) -> list:
         re_pattern = re.compile(pattern)
-        return [match for match in re.finditer(re_pattern, value)]
+        return [match for match in re.finditer(re_pattern, value)]  # pylint: disable=unnecessary-comprehension

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -15,25 +14,42 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=attribute-defined-outside-init
+# pylint: disable=duplicate-code
 
-import math
+
 from collections import namedtuple
 import numpy as np
 
 from msprobe.pytorch.api_accuracy_checker.precision_standard.standard_config import StandardConfig
 from msprobe.pytorch.api_accuracy_checker.precision_standard.base_standard import BaseCompare, BasePrecisionCompare
-from msprobe.pytorch.api_accuracy_checker.compare.algorithm import calc_ratio, get_small_value_err_ratio, get_rel_err, \
-    get_rmse, get_error_balance, get_max_rel_err, get_mean_rel_err
-from msprobe.pytorch.api_accuracy_checker.compare.compare_utils import ApiPrecisionCompareColumn, check_inf_or_nan, \
-    is_inf_or_nan
+from msprobe.pytorch.api_accuracy_checker.compare.algorithm import (
+    calc_ratio,
+    get_small_value_err_ratio,
+    get_rel_err,
+    get_rmse,
+    get_error_balance,
+    get_max_rel_err,
+    get_mean_rel_err,
+)
+from msprobe.pytorch.api_accuracy_checker.compare.compare_utils import (
+    ApiPrecisionCompareColumn,
+    check_inf_or_nan,
+    is_inf_or_nan,
+)
 from msprobe.core.common.const import CompareConst
 
 
-BenchmarkInfNanConsistency = namedtuple('BenchmarkInfNanConsistency', ['small_value_inf_nan_consistency', 
-                                                                           'rmse_inf_nan_consistency', 
-                                                                           'max_rel_inf_nan_consistency', 
-                                                                           'mean_rel_inf_nan_consistency', 
-                                                                           'eb_inf_nan_consistency'])
+BenchmarkInfNanConsistency = namedtuple(
+    'BenchmarkInfNanConsistency',
+    [
+        'small_value_inf_nan_consistency',
+        'rmse_inf_nan_consistency',
+        'max_rel_inf_nan_consistency',
+        'mean_rel_inf_nan_consistency',
+        'eb_inf_nan_consistency',
+    ],
+)
 
 
 class BenchmarkCompare(BaseCompare):
@@ -57,19 +73,19 @@ class BenchmarkCompare(BaseCompare):
         small_value_atol (float): The absolute tolerance for small values.
         small_value_mask (np.ndarray): A mask indicating where values are small.
         rel_err (np.ndarray): The relative error between the benchmark and device outputs.
-        abs_err_greater_mask (np.ndarray): A mask indicating where absolute error is greater than the small value 
+        abs_err_greater_mask (np.ndarray): A mask indicating where absolute error is greater than the small value
         tolerance.
 
     Methods:
-        _get_abs_err_greater_mask(small_value_atol): Calculates a mask where absolute error is greater than the small 
+        _get_abs_err_greater_mask(small_value_atol): Calculates a mask where absolute error is greater than the small
         value tolerance.
         _compute_rel_err(): Computes the relative error between the benchmark and device outputs.
         _pre_compare(): Prepares the comparison by calculating various metrics.
         _compute_metrics(): Computes the accuracy metrics.
 
     Note:
-        This class assumes that the input data is a dictionary containing 'bench_output', 'device_output', 
-        'compare_column' and 'dtype'. 
+        This class assumes that the input data is a dictionary containing 'bench_output', 'device_output',
+        'compare_column' and 'dtype'.
         The data type should be a PyTorch data type.
 
     See Also:
@@ -78,17 +94,17 @@ class BenchmarkCompare(BaseCompare):
     """
 
     def __init__(self, input_data):
-        super(BenchmarkCompare, self).__init__(input_data)
+        super(BenchmarkCompare, self).__init__(input_data)  # pylint: disable=super-with-arguments
         self.compare_algorithm = CompareConst.BENCHMARK
 
     def _get_abs_err_greater_mask(self, small_value_atol):
         abs_err_greater_mask = np.greater(self.abs_err, small_value_atol)
         return abs_err_greater_mask
-    
+
     def _compute_rel_err(self):
         rel_err = get_rel_err(self.abs_err, self.abs_bench_with_eps, self.small_value_mask, self.inf_nan_mask)
         return rel_err
-    
+
     def _pre_compare(self):
         self.abs_bench, self.abs_bench_with_eps = self.stat_abs_bench_with_eps()
         self.both_finite_mask, self.inf_nan_mask = self.stat_finite_and_infinite_mask()
@@ -108,7 +124,7 @@ class BenchmarkCompare(BaseCompare):
         3. Error Balance (EB): A measure of the balance between the errors in the benchmark and device outputs.
         4. Maximum Relative Error: The maximum relative error between the benchmark and device outputs.
         5. Mean Relative Error: The mean relative error between the benchmark and device outputs.
-        
+
         Returns:
         dict: A dictionary containing the computed error metrics.
             The dictionary has the following keys:
@@ -129,7 +145,7 @@ class BenchmarkCompare(BaseCompare):
             "max_rel_error": max_rel_error,
             "mean_rel_error": mean_rel_error,
             "rmse": rmse,
-            "eb": eb
+            "eb": eb,
         }
 
 
@@ -147,7 +163,7 @@ class BenchmarkPrecisionCompare(BasePrecisionCompare):
         elif CompareConst.WARNING in status_list:
             compare_result = CompareConst.WARNING
         return compare_result
-    
+
     def _calc_ratio(self, column_name):
         npu_value, gpu_value = self._get_and_convert_values(column_name)
         if is_inf_or_nan(npu_value) or is_inf_or_nan(gpu_value):
@@ -157,33 +173,39 @@ class BenchmarkPrecisionCompare(BasePrecisionCompare):
 
     def _compute_ratio(self):
         compare_message = ""
-        small_value_err_ratio, small_value_inf_nan_consistency, small_value_message = \
-            self._calc_ratio(ApiPrecisionCompareColumn.SMALL_VALUE_ERROR_RATE)
+        small_value_err_ratio, small_value_inf_nan_consistency, small_value_message = self._calc_ratio(
+            ApiPrecisionCompareColumn.SMALL_VALUE_ERROR_RATE
+        )
         compare_message += small_value_message
         rmse_ratio, rmse_inf_nan_consistency, rmse_message = self._calc_ratio(ApiPrecisionCompareColumn.RMSE)
         compare_message += rmse_message
-        max_rel_err_ratio, max_rel_inf_nan_consistency, max_rel_message = \
-            self._calc_ratio(ApiPrecisionCompareColumn.MAX_REL_ERR)
+        max_rel_err_ratio, max_rel_inf_nan_consistency, max_rel_message = self._calc_ratio(
+            ApiPrecisionCompareColumn.MAX_REL_ERR
+        )
         compare_message += max_rel_message
-        mean_rel_err_ratio, mean_rel_inf_nan_consistency, mean_rel_message = \
-            self._calc_ratio(ApiPrecisionCompareColumn.MEAN_REL_ERR)
+        mean_rel_err_ratio, mean_rel_inf_nan_consistency, mean_rel_message = self._calc_ratio(
+            ApiPrecisionCompareColumn.MEAN_REL_ERR
+        )
         compare_message += mean_rel_message
         eb_ratio, eb_inf_nan_consistency, eb_message = self._calc_ratio(ApiPrecisionCompareColumn.EB)
         compare_message += eb_message
-        
+
         metrics = {
             CompareConst.SMALL_VALUE_ERR_RATIO: small_value_err_ratio,
             CompareConst.RMSE_RATIO: rmse_ratio,
             CompareConst.MAX_REL_ERR_RATIO: max_rel_err_ratio,
             CompareConst.MEAN_REL_ERR_RATIO: mean_rel_err_ratio,
             CompareConst.EB_RATIO: eb_ratio,
-            CompareConst.COMPARE_MESSAGE: compare_message
+            CompareConst.COMPARE_MESSAGE: compare_message,
         }
-        
-        return metrics, \
-               BenchmarkInfNanConsistency(small_value_inf_nan_consistency, rmse_inf_nan_consistency, 
-                                          max_rel_inf_nan_consistency, mean_rel_inf_nan_consistency,
-                                          eb_inf_nan_consistency)
+
+        return metrics, BenchmarkInfNanConsistency(
+            small_value_inf_nan_consistency,
+            rmse_inf_nan_consistency,
+            max_rel_inf_nan_consistency,
+            mean_rel_inf_nan_consistency,
+            eb_inf_nan_consistency,
+        )
 
     def _get_threshold(self, metric):
         return StandardConfig.get_benchmark_ratio_threshold(metric, api_name=self.api_name)
@@ -202,17 +224,32 @@ class BenchmarkPrecisionCompare(BasePrecisionCompare):
         max_rel_err_ratio = metrics.get(CompareConst.MAX_REL_ERR_RATIO)
         mean_rel_err_ratio = metrics.get(CompareConst.MEAN_REL_ERR_RATIO)
         eb_ratio = metrics.get(CompareConst.EB_RATIO)
-        
-        small_value_err_status = self._get_single_metric_status(small_value_err_ratio, CompareConst.SMALL_VALUE) \
-                                        if inf_nan_consistency.small_value_inf_nan_consistency else CompareConst.ERROR
-        rmse_status = self._get_single_metric_status(rmse_ratio, CompareConst.RMSE)  \
-                                        if inf_nan_consistency.rmse_inf_nan_consistency else CompareConst.ERROR
-        max_rel_err_status = self._get_single_metric_status(max_rel_err_ratio, CompareConst.MAX_REL_ERR) \
-                                        if inf_nan_consistency.max_rel_inf_nan_consistency else CompareConst.ERROR
-        mean_rel_err_status = self._get_single_metric_status(mean_rel_err_ratio, CompareConst.MEAN_REL_ERR) \
-                                        if inf_nan_consistency.mean_rel_inf_nan_consistency else CompareConst.ERROR
-        eb_status = self._get_single_metric_status(eb_ratio, CompareConst.EB) \
-                                        if inf_nan_consistency.eb_inf_nan_consistency else CompareConst.ERROR
+
+        small_value_err_status = (
+            self._get_single_metric_status(small_value_err_ratio, CompareConst.SMALL_VALUE)
+            if inf_nan_consistency.small_value_inf_nan_consistency
+            else CompareConst.ERROR
+        )
+        rmse_status = (
+            self._get_single_metric_status(rmse_ratio, CompareConst.RMSE)
+            if inf_nan_consistency.rmse_inf_nan_consistency
+            else CompareConst.ERROR
+        )
+        max_rel_err_status = (
+            self._get_single_metric_status(max_rel_err_ratio, CompareConst.MAX_REL_ERR)
+            if inf_nan_consistency.max_rel_inf_nan_consistency
+            else CompareConst.ERROR
+        )
+        mean_rel_err_status = (
+            self._get_single_metric_status(mean_rel_err_ratio, CompareConst.MEAN_REL_ERR)
+            if inf_nan_consistency.mean_rel_inf_nan_consistency
+            else CompareConst.ERROR
+        )
+        eb_status = (
+            self._get_single_metric_status(eb_ratio, CompareConst.EB)
+            if inf_nan_consistency.eb_inf_nan_consistency
+            else CompareConst.ERROR
+        )
         status_list = [small_value_err_status, rmse_status, max_rel_err_status, mean_rel_err_status]
         compare_result = self.get_final_status(status_list)
         status_dict = {
@@ -220,7 +257,7 @@ class BenchmarkPrecisionCompare(BasePrecisionCompare):
             CompareConst.RMSE_STATUS: rmse_status,
             CompareConst.MAX_REL_ERR_STATUS: max_rel_err_status,
             CompareConst.MEAN_REL_ERR_STATUS: mean_rel_err_status,
-            CompareConst.EB_STATUS: eb_status
+            CompareConst.EB_STATUS: eb_status,
         }
         metrics.update(status_dict)
         metrics.update({CompareConst.COMPARE_RESULT: compare_result})

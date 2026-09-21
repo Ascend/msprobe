@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,15 +18,16 @@
 Function:
 This FusionOpComResult class. This file mainly involves the get_result function.
 """
+
 import collections
 
 from vector_cmp.fusion_manager import fusion_rule_parser
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
-from vector_cmp.range_manager.range_manager import RangeManager
+from vector_cmp.range_manager.range_manager import RangeManager  # pylint: disable=ungrouped-imports
 from algorithm_manager.algorithm_manager import AlgorithmManager
-from vector_cmp.fusion_manager.fusion_op import FusionOp
-from cmp_utils.constant.compare_error import CompareError
+from vector_cmp.fusion_manager.fusion_op import FusionOp  # pylint: disable=ungrouped-imports
+from cmp_utils.constant.compare_error import CompareError  # pylint: disable=ungrouped-imports
 
 
 class TensorResult:
@@ -109,8 +109,13 @@ class FusionOpComResult:
     The class for fusion op compare result
     """
 
-    def __init__(self: any, algorithm_manager: AlgorithmManager, ground_truth_to_my_output_map: any = None,
-                 overflow_detection: bool = False, dump_is_cpu_or_gpu_data: list = None) -> None:
+    def __init__(
+        self: any,
+        algorithm_manager: AlgorithmManager,
+        ground_truth_to_my_output_map: any = None,
+        overflow_detection: bool = False,
+        dump_is_cpu_or_gpu_data: list = None,
+    ) -> None:
         self.algorithm_manager = algorithm_manager
         self.ground_truth_to_my_output_map = ground_truth_to_my_output_map
         self.overflow_detection = overflow_detection
@@ -142,8 +147,9 @@ class FusionOpComResult:
             output_result_list.append(result)
         return input_result_list, output_result_list
 
-    def get_result(self: any, fusion_op: FusionOp, tensor_result: any, error_msg: list,
-                   no_dump_file: bool = False) -> any:
+    def get_result(
+        self: any, fusion_op: FusionOp, tensor_result: any, error_msg: list, no_dump_file: bool = False
+    ) -> any:
         """
         Get fusion op compare result list
         :param fusion_op: the fusion op
@@ -160,33 +166,45 @@ class FusionOpComResult:
         if tensor_result:
             for item in tensor_result:
                 current_tensor_info = [
-                    str(fusion_op.op_id), item.get_op_type(),
-                    my_output_op, str(item.get_my_output_dtype()),
-                    str(item.get_my_output_address()), ground_truth_op,
-                    str(item.get_ground_truth_dtype()), str(item.get_ground_truth_address())
+                    str(fusion_op.op_id),
+                    item.get_op_type(),
+                    my_output_op,
+                    str(item.get_my_output_dtype()),
+                    str(item.get_my_output_address()),
+                    ground_truth_op,
+                    str(item.get_ground_truth_dtype()),
+                    str(item.get_ground_truth_address()),
                 ]
                 self._pre_handle_result(current_tensor_info)
                 result = current_tensor_info + item.get_result()
                 if item.is_ffts:
                     is_ffts = True
-                    input_result_list, output_result_list = \
-                        self._process_input_and_output(result, input_result_list, output_result_list)
+                    input_result_list, output_result_list = self._process_input_and_output(
+                        result, input_result_list, output_result_list
+                    )
                 RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
                 log.print_info_log('[{}] Result: {}'.format(fusion_op.op_name, " ".join(result)))
                 result_list.append(result)
         else:
             current_tensor_info = [
-                str(fusion_op.op_id), fusion_op.get_real_op_type(),
-                my_output_op, ConstManager.NAN, ConstManager.NAN,
-                ground_truth_op, ConstManager.NAN, ConstManager.NAN,
-                ConstManager.NAN, ConstManager.NAN
+                str(fusion_op.op_id),
+                fusion_op.get_real_op_type(),
+                my_output_op,
+                ConstManager.NAN,
+                ConstManager.NAN,
+                ground_truth_op,
+                ConstManager.NAN,
+                ConstManager.NAN,
+                ConstManager.NAN,
+                ConstManager.NAN,
             ]
             self._pre_handle_result(current_tensor_info)
             if self.overflow_detection:
                 # using 'NaN' as an overflow detection for 'no tensor_result'
                 # and insert it after the column 'Shape'.
-                result = current_tensor_info + ['NaN'] + self.algorithm_manager.make_nan_result() \
-                         + [",".join(error_msg)]
+                result = (
+                    current_tensor_info + ['NaN'] + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+                )
             else:
                 result = current_tensor_info + self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
             RangeManager.adjust_data(result, fusion_op.attr.get_op_sequence())
@@ -212,16 +230,22 @@ class FusionOpComResult:
                 log.print_info_log('[%s:%d] Result: %s' % (op_info.op_name, op_info.index, " ".join(result)))
                 result_list.append(result)
         else:
-            result = op_info.get_result() + [ConstManager.NAN] + [ConstManager.NAN] + \
-                     self.algorithm_manager.make_nan_result() + [",".join(error_msg)]
+            result = (
+                op_info.get_result()
+                + [ConstManager.NAN]
+                + [ConstManager.NAN]
+                + self.algorithm_manager.make_nan_result()
+                + [",".join(error_msg)]
+            )
             log.print_info_log('[%s:%d] Result: %s' % (op_info.op_name, op_info.index, " ".join(result)))
             result_list.append(result)
         return result_list
 
     def _make_my_output_op_and_ground_truth_op(self: any, fusion_op: FusionOp, no_dump_file: bool) -> (str, str):
         if self.ground_truth_to_my_output_map:
-            my_output_op, ground_truth_op = fusion_rule_parser. \
-                make_left_and_right_string(self.ground_truth_to_my_output_map)
+            my_output_op, ground_truth_op = fusion_rule_parser.make_left_and_right_string(
+                self.ground_truth_to_my_output_map
+            )
         else:
             my_output_op, ground_truth_op = self._make_ops_without_map(fusion_op, no_dump_file)
         return my_output_op, ground_truth_op
@@ -260,6 +284,7 @@ class SingleOpCmpResult:
     """
     The class for single op result
     """
+
     def __init__(self: any) -> None:
         self.op_name = ""
         self.dump_match = False
@@ -322,5 +347,5 @@ class SingleOpCmpResult:
             output_result = self.get_pre_op_output(pre_op_name, pre_op_index, result_mapping)
             if not output_result:
                 continue
-            origin_result = self.result_list[index][:ConstManager.TENSOR_INDEX + 1]
-            self.result_list[index] = origin_result + output_result[ConstManager.TENSOR_INDEX + 1:]
+            origin_result = self.result_list[index][: ConstManager.TENSOR_INDEX + 1]
+            self.result_list[index] = origin_result + output_result[ConstManager.TENSOR_INDEX + 1 :]

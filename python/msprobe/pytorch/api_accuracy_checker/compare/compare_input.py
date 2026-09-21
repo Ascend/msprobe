@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -31,9 +30,10 @@ class CompareInput:
         rel_err_orign (float or array-like, optional): The original relative error values. Defaults to None.
 
     Methods:
-        __init__(bench_output, device_output, compare_column, dtype, rel_err_orign): 
+        __init__(bench_output, device_output, compare_column, dtype, rel_err_orign):
         Initializes an instance of CompareInput.
     """
+
     def __init__(self, bench_output, device_output, compare_column, dtype=None, rel_err_orign=None):
         self.bench_output = bench_output
         self.device_output = device_output

@@ -1,3 +1,4 @@
+# -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
@@ -5,12 +6,13 @@
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#          http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# ==============================================================================
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
 import os
 from tensorboard.util import tb_logging
 
@@ -158,7 +160,7 @@ class DbGraphService(GraphServiceStrategy):
             micro_step = meta_data.get("microStep")
             if rank is None or step is None or micro_step is None:
                 return {"success": False, "error": GraphUtils.t("rankStepNullError")}
-            is_filter_unmatch_nodes = True if UN_MATCHED_VALUE in values else False
+            is_filter_unmatch_nodes = True if UN_MATCHED_VALUE in values else False  # pylint: disable=simplifiable-if-expression
             if is_filter_unmatch_nodes:
                 values.remove(UN_MATCHED_VALUE)
 
@@ -205,7 +207,7 @@ class DbGraphService(GraphServiceStrategy):
             return {"success": False, "error": GraphUtils.t("searchNodeError"), "data": None}
 
     def update_hierarchy_data(self, graph_type):
-        if graph_type == NPU or graph_type == BENCH:
+        if graph_type == NPU or graph_type == BENCH:  # pylint: disable=consider-using-in
             hierarchy = LayoutHierarchyModel.update_hierarchy_data(graph_type)
             return {"success": True, "data": hierarchy}
         else:
@@ -249,7 +251,7 @@ class DbGraphService(GraphServiceStrategy):
                 return {"success": False, "error": GraphUtils.t("rankStepNullError")}
             task = self.config_info.get("task")
             # 根据任务类型计算误差
-            if task == "md5" or task == "summary" or task == "all":
+            if task == "md5" or task == "summary" or task == "all":  # pylint: disable=consider-using-in
                 if is_match_children:
                     graph_data = self.repo.query_node_and_sub_nodes(npu_node_name, bench_node_name, rank, step)
                     match_result = MatchNodesController.process_task_add_child_layer(
@@ -284,7 +286,7 @@ class DbGraphService(GraphServiceStrategy):
             if not match_node_links:
                 return {"success": False, "error": GraphUtils.t("matchNodeLinksNullError")}
             # 根据任务类型计算误差
-            if task == "md5" or task == "summary":
+            if task == "md5" or task == "summary":  # pylint: disable=consider-using-in
                 match_result = MatchNodesController.process_task_add_child_layer_by_config(
                     graph_data, match_node_links, task
                 )
@@ -307,7 +309,7 @@ class DbGraphService(GraphServiceStrategy):
             task = self.config_info.get("task")
 
             # 根据任务类型计算误差
-            if task == "md5" or task == "summary" or task == "all":
+            if task == "md5" or task == "summary" or task == "all":  # pylint: disable=consider-using-in
                 if is_unmatch_children:
                     # DB：当前节点及其所有的子节点信息
                     graph_data = self.repo.query_node_and_sub_nodes(npu_node_name, bench_node_name, rank, step)
@@ -401,7 +403,7 @@ class DbGraphService(GraphServiceStrategy):
             if not update_db_res:
                 return {"success": False, "error": GraphUtils.t("updateDatabaseFailed")}
             return {"success": True}
-        except Exception as e:
+        except Exception:
             return {"success": False, "error": GraphUtils.t("updateColorFailed"), "data": None}
 
     def save_matched_relations(self, meta_data):

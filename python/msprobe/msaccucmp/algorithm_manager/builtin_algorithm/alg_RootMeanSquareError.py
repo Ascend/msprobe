@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 Root Mean Square Error algorithm. This file mainly involves the compare function.
 """
+
 import numpy as np
 
 from algorithm_manager.algorithm_parameter import AlgorithmParameter

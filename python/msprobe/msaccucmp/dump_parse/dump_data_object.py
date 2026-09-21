@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -45,7 +44,7 @@ def _deserialize_dump_data_to_array(data, data_type, shape: list = None) -> any:
             cnt *= ii
         cur_type = common.get_dtype_by_data_type(data_type)
         cur_byte = np.dtype(cur_type).itemsize
-        result = np.frombuffer(data[:cur_byte * cnt], dtype=cur_type)
+        result = np.frombuffer(data[: cur_byte * cnt], dtype=cur_type)
     else:
         result = np.frombuffer(data, dtype=common.get_dtype_by_data_type(data_type))
     if data_type in ConstManager.UNPACK_DTYPE:
@@ -73,13 +72,13 @@ def _deserialize_dump_data_fp_low_to_array(data, data_type, shape: list = None) 
             cnt *= ii
         cur_byte = 1
         if cur_type == "float8_e4m3fn":
-            result = np.frombuffer(data[:cur_byte * cnt], dtype=np.uint8)
+            result = np.frombuffer(data[: cur_byte * cnt], dtype=np.uint8)
             result = np.array([float8e4m3fn_to_float32(ele) for ele in result])
         elif cur_type == "hifloat8":
-            result = np.frombuffer(data[:cur_byte * cnt], dtype=np.uint8)
+            result = np.frombuffer(data[: cur_byte * cnt], dtype=np.uint8)
             result = np.array([hifloat8_to_float32(ele) for ele in result])
         elif cur_type == "float8_e5m2":
-            result = np.frombuffer(data[:cur_byte * cnt], dtype=np.uint8)
+            result = np.frombuffer(data[: cur_byte * cnt], dtype=np.uint8)
             result = np.array([float8e5m2_to_float32(ele) for ele in result])
     else:
         result = np.frombuffer(data, dtype=np.uint8)
@@ -88,10 +87,10 @@ def _deserialize_dump_data_fp_low_to_array(data, data_type, shape: list = None) 
         if cur_type == "hifloat8":
             result = np.array(hifloat8_to_float32(result))
         if cur_type == "float8_e5m2":
-            result = np.array(float8e5m2_to_float32(result))          
+            result = np.array(float8e5m2_to_float32(result))
     return result
- 
- 
+
+
 def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool) -> None:
     """
     replace the input or output object of DumpDataObj to DumpyTensor
@@ -103,7 +102,7 @@ def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool
     for index, tensor in enumerate(dump_data_object_data):
         if not (hasattr(tensor, "shape") and tensor.shape) and tensor.size:
             log.print_info_log(f"Tensor shape is empty, using size {tensor.size} as shape")
-            tensor.shape.append(tensor.size) # Ignore dtype size, just set a value large enough
+            tensor.shape.append(tensor.size)  # Ignore dtype size, just set a value large enough
         if tensor.data_type == DD.DT_UNDEFINED and tensor.size:
             tensor.shape.Clear()
             tensor.shape.append(tensor.size)
@@ -111,9 +110,19 @@ def build_dump_tensor(dump_data_object_data: list, is_input: bool, is_ffts: bool
             data_to_np = _deserialize_dump_data_fp_low_to_array(tensor.data, tensor.data_type, list(tensor.shape.dim))
         else:
             data_to_np = _deserialize_dump_data_to_array(tensor.data, tensor.data_type, list(tensor.shape.dim))
-        dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, list(tensor.shape.dim),
-                                 data_to_np, tensor.size, list(tensor.original_shape.dim),
-                                 tensor.address, tensor.sub_format, is_input, is_ffts)
+        dump_tensor = DumpTensor(
+            index,
+            tensor.data_type,
+            tensor.format,
+            list(tensor.shape.dim),
+            data_to_np,
+            tensor.size,
+            list(tensor.original_shape.dim),
+            tensor.address,
+            tensor.sub_format,
+            is_input,
+            is_ffts,
+        )
         dump_data_object_data[index] = dump_tensor
 
 
@@ -127,9 +136,18 @@ def build_nano_dump_tensor(dump_data_object_data: list, is_input: bool) -> None:
     """
     for index, tensor in enumerate(dump_data_object_data):
         data_to_np = _deserialize_dump_data_to_array(tensor.data, tensor.data_type, tensor.shape_dims)
-        dump_tensor = DumpTensor(index, tensor.data_type, tensor.format, tensor.shape_dims,
-                                 data_to_np, tensor.size, tensor.original_shape_dims,
-                                 tensor.address, is_input=is_input, is_ffts=False)
+        dump_tensor = DumpTensor(
+            index,
+            tensor.data_type,
+            tensor.format,
+            tensor.shape_dims,
+            data_to_np,
+            tensor.size,
+            tensor.original_shape_dims,
+            tensor.address,
+            is_input=is_input,
+            is_ffts=False,
+        )
         dump_data_object_data[index] = dump_tensor
 
 
@@ -139,10 +157,20 @@ class DumpTensor:
     Include the data detail: index, data_type, tensor_format, shape, data, size, original_shape
     """
 
-    def __init__(self: any, index: int = None, data_type: int = None, tensor_format: int = None,
-                 shape: list = None, data: np.ndarray = None, size: int = None, original_shape: list = None,
-                 address: int = None, sub_format: int = 0, is_input: bool = False, is_ffts: bool = False) -> None:
-
+    def __init__(
+        self: any,
+        index: int = None,
+        data_type: int = None,
+        tensor_format: int = None,
+        shape: list = None,
+        data: np.ndarray = None,
+        size: int = None,
+        original_shape: list = None,
+        address: int = None,
+        sub_format: int = 0,
+        is_input: bool = False,
+        is_ffts: bool = False,
+    ) -> None:
         self.index = index
         self.data_type = data_type
         self.tensor_format = tensor_format
@@ -170,6 +198,7 @@ class DumpDataObj:
     The class of DumpDataObject, replace the class DumpData or NanoDumpData.
     Include dump_file information
     """
+
     def __init__(self, dump_data=DumpData(), nano_dump_data=None) -> None:
         if nano_dump_data:
             self.version = nano_dump_data.version_id
@@ -190,12 +219,12 @@ class DumpDataObj:
             self.op_name = dump_data.op_name
             self.dump_time = dump_data.dump_time
             self.buffer = dump_data.buffer
-            self.space = [_space_data for _space_data in dump_data.space]
+            self.space = [_space_data for _space_data in dump_data.space]  # pylint: disable=unnecessary-comprehension
             self.attr = json.loads(dump_data.attr[0].value) if dump_data.attr else None
-            self.input_data = [_input_data for _input_data in dump_data.input]
-            self.output_data = [_output_data for _output_data in dump_data.output]
+            self.input_data = [_input_data for _input_data in dump_data.input]  # pylint: disable=unnecessary-comprehension
+            self.output_data = [_output_data for _output_data in dump_data.output]  # pylint: disable=unnecessary-comprehension
 
-            is_ffts = False if self.get_ffts_mode is None else True
+            is_ffts = False if self.get_ffts_mode is None else True  # pylint: disable=simplifiable-if-expression
             build_dump_tensor(self.output_data, is_input=False, is_ffts=is_ffts)
             build_dump_tensor(self.input_data, is_input=True, is_ffts=is_ffts)
 
@@ -267,7 +296,8 @@ class DumpDataObj:
             return True
         else:
             log.print_error_log(
-                f"The output_data shape {output_data.shape[-1]} doesn't match the shape in dump file {shape}")
+                f"The output_data shape {output_data.shape[-1]} doesn't match the shape in dump file {shape}"
+            )
             raise CompareError(CompareError.MSACCUCMP_UNMATCH_DATA_SHAPE_ERROR)
 
     def get_output_data(self: any) -> list:
@@ -291,7 +321,7 @@ class DumpDataObj:
             if self.check_shape_match(output.data, output_shape[index]):
                 output_data_list.append(output.data.reshape(output_shape[index]))
         return output_data_list
-    
+
     def calculate_auto_mode_shape(self: any, thread_id: int, tensor_type: str) -> list:
         """
         calculate the output data shape of auto mode
@@ -302,7 +332,7 @@ class DumpDataObj:
             attr_name = "input_tensor_slice"
         elif tensor_type == ConstManager.OUTPUT:
             attr_name = "output_tensor_slice"
-        if self.attr is not None and self.attr[attr_name]:
+        if self.attr is not None and self.attr[attr_name]:  # pylint: disable=possibly-used-before-assignment
             for output in self.attr[attr_name][thread_id]:
                 output_index = []
                 for addr in output:

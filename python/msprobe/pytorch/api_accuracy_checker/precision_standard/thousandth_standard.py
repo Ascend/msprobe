@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -24,8 +23,8 @@ from msprobe.pytorch.api_accuracy_checker.precision_standard.base_standard impor
 class ThousandthStdCompare(BaseCompare):
     """
     Thousandth standard comparison class for calculating accuracy metrics.
-    
-    A subclass of BaseCompare, specifically designed to compare the relative error 
+
+    A subclass of BaseCompare, specifically designed to compare the relative error
     between benchmark and device outputs, focusing on errors within a thousandth (0.001) threshold.
 
     Attributes:
@@ -35,6 +34,7 @@ class ThousandthStdCompare(BaseCompare):
     Methods:
         _compute_metrics(): Computes the relative error metrics, specifically the thousandth error ratio.
     """
+
     def __init__(self, input_data):
         super().__init__(input_data)
         self.rel_err_orign = input_data.rel_err_orign
@@ -45,11 +45,11 @@ class ThousandthStdCompare(BaseCompare):
 
     def _compute_metrics(self):
         """
-        Computes the relative error metrics for the comparison, specifically focusing on errors within a thousandth 
+        Computes the relative error metrics for the comparison, specifically focusing on errors within a thousandth
         (0.001) threshold.
 
         This method calculates the proportion of relative errors that are within the thousandth threshold.
-        It uses the `get_rel_err_ratio` function to determine the ratio of relative errors that are less than or 
+        It uses the `get_rel_err_ratio` function to determine the ratio of relative errors that are less than or
         equal to the
         specified threshold defined in `CompareConst.THOUSAND_RATIO_THRESHOLD`.
 
@@ -60,6 +60,4 @@ class ThousandthStdCompare(BaseCompare):
         """
         rel_err_thousandth, _ = get_rel_err_ratio(self.rel_err_orign, CompareConst.THOUSAND_RATIO_THRESHOLD)
 
-        return {
-            'rel_err_thousandth': rel_err_thousandth
-        }
+        return {'rel_err_thousandth': rel_err_thousandth}

@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -50,7 +49,8 @@ class OverflowDetection:
             overflow_result = OverflowDetection._judge_overflow_data_by_array(tensor_data_array)
             if overflow_result == 'YES':
                 log.print_warn_log(
-                    "{} operator {}:{} is overflow.".format(op_name, 'input' if is_input else 'output', index))
+                    "{} operator {}:{} is overflow.".format(op_name, 'input' if is_input else 'output', index)
+                )
             return overflow_result
         return ConstManager.NAN
 
@@ -58,7 +58,7 @@ class OverflowDetection:
     def _judge_overflow_data_by_array(tensor_data: any) -> str:
         if tensor_data is not None:
             absolute_value_data = np.absolute(tensor_data)
-            up_overflow_flag = (absolute_value_data.max() >= ConstManager.OVERFLOW_MAX_VALUE)
+            up_overflow_flag = absolute_value_data.max() >= ConstManager.OVERFLOW_MAX_VALUE
             if up_overflow_flag:
                 return 'YES'
             return 'NO'
@@ -93,16 +93,25 @@ class OverflowDetection:
 
     def _get_tensor_data_info(self: any, tensor_type: str, tensor_list: list, dump_file_path: str) -> list:
         tensor_data_info = []
-        for (index, tensor) in enumerate(tensor_list):
+        for index, tensor in enumerate(tensor_list):
             if tensor and tensor.data_type == DD.DT_FLOAT16:
                 log.print_info_log('Start to parse the data of %s:%d in "%r".' % (tensor_type, index, dump_file_path))
                 array = tensor.data
                 tensor_data_info.append(
-                    {"tensor_type": tensor_type, "index": str(index), "tensor_data": array, "tensor_info": tensor,
-                     "dump_file_path": dump_file_path})
+                    {
+                        "tensor_type": tensor_type,
+                        "index": str(index),
+                        "tensor_data": array,
+                        "tensor_info": tensor,
+                        "dump_file_path": dump_file_path,
+                    }
+                )
         if len(tensor_data_info) == 0:
-            log.print_warn_log("The {} data type of {} operator is not float16. "
-                               "The overflow check supports only float16.".format(tensor_type, self.op_name))
+            log.print_warn_log(
+                "The {} data type of {} operator is not float16. The overflow check supports only float16.".format(
+                    tensor_type, self.op_name
+                )
+            )
         return tensor_data_info
 
     def _check_overflow_tensor(self: any, input_data: list, output_data: list) -> None:
@@ -113,13 +122,12 @@ class OverflowDetection:
         if len(tensor_list) == 0:
             dump_file_list, dump_mode = self.left_dump_info.get_op_dump_file(self.op_name)
             dump_file_path = dump_file_list[-1]
-            log.print_warn_log('There is no %s in "%r".' % (
-                tensor_type, dump_file_path))
+            log.print_warn_log('There is no %s in "%r".' % (tensor_type, dump_file_path))
             return
         for item in tensor_list:
             tensor_data = item.get("tensor_data")
             absolute_value_data = np.absolute(tensor_data)
-            up_overflow_flag = (absolute_value_data.max() >= ConstManager.OVERFLOW_MAX_VALUE)
+            up_overflow_flag = absolute_value_data.max() >= ConstManager.OVERFLOW_MAX_VALUE
             if up_overflow_flag:
                 self.overflow_tensor_list.append(item)
 
@@ -134,7 +142,7 @@ class OverflowDetection:
                 tensor_index_info.append(tensor_index)
                 tensor_index_len.append(len(tensor_index))
             spacing_distance = max(tensor_index_len)
-            if spacing_distance < 20:
+            if spacing_distance < 20:  # pylint: disable=consider-using-max-builtin
                 spacing_distance = 20
             format_line = "".join(['{:<', str(spacing_distance), '}', '{:<', str(spacing_distance), '}'])
             log.print_info_log(format_line.format("TensorIndex", "Overflow"))

@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 convert format from NDC1HWC0 to NCDHW.
 """
+
 import numpy as np
 from cmp_utils import log
 from cmp_utils.constant.compare_error import CompareError

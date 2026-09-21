@@ -1,3 +1,19 @@
+# -------------------------------------------------------------------------
+# This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
+#
+# MindStudio is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#
+#          http://license.coscl.org.cn/MulanPSL2
+#
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+
 # From PyTorch:
 
 # Copyright (c) 2025      Huawei Technologies Co., Ltd
@@ -88,9 +104,14 @@ import warnings
 
 import mindspore as ms
 from mindspore.ops.operations import _inner_ops as inner
-from torch.nn.modules.module import (_global_backward_pre_hooks, _global_backward_hooks,
-                                     _global_is_full_backward_hook, _global_forward_pre_hooks,
-                                     _global_forward_hooks, _global_forward_hooks_always_called)
+from torch.nn.modules.module import (
+    _global_backward_pre_hooks,
+    _global_backward_hooks,
+    _global_is_full_backward_hook,
+    _global_forward_pre_hooks,
+    _global_forward_hooks,
+    _global_forward_hooks_always_called,
+)
 from torch.utils.hooks import RemovableHandle
 
 from msprobe.mindspore.common.utils import is_backward_hook_output_a_view
@@ -103,12 +124,19 @@ def _call_impl(self, *args, **kwargs):
 
     # If we don't have any hooks, we want to skip the rest of the logic in
     # this function, and just call forward.
-    if not (self._backward_hooks or self._backward_pre_hooks or self._forward_hooks or self._forward_pre_hooks
-            or _global_backward_pre_hooks or _global_backward_hooks
-            or _global_forward_hooks or _global_forward_pre_hooks):
+    if not (
+        self._backward_hooks
+        or self._backward_pre_hooks
+        or self._forward_hooks
+        or self._forward_pre_hooks
+        or _global_backward_pre_hooks
+        or _global_backward_hooks
+        or _global_forward_hooks
+        or _global_forward_pre_hooks
+    ):
         return forward_call(*args, **kwargs)
 
-    try:
+    try:  # pylint: disable=too-many-nested-blocks
         result = None
         called_always_called_hooks = set()
 
@@ -142,8 +170,9 @@ def _call_impl(self, *args, **kwargs):
 
         bw_hook = None
         if self._backward_hooks:
-            bw_hook = inner.CellBackwardHook(self.__class__.__name__ + "(" + str(id(self)) + ")",
-                                             self, self._backward_hooks)
+            bw_hook = inner.CellBackwardHook(
+                self.__class__.__name__ + "(" + str(id(self)) + ")", self, self._backward_hooks
+            )
             bw_hook.register_backward_hook()
             args = apply_backward_hook_on_tensors(bw_hook, args)
 
@@ -167,14 +196,17 @@ def _call_impl(self, *args, **kwargs):
 
         if bw_hook:
             if not isinstance(result, (ms.Tensor, tuple)):
-                warnings.warn("For backward hooks to be called,"
-                              " module output should be a Tensor or a tuple of Tensors"
-                              f" but received {type(result)}")
+                warnings.warn(
+                    "For backward hooks to be called,"
+                    " module output should be a Tensor or a tuple of Tensors"
+                    f" but received {type(result)}"
+                )
             result = apply_backward_hook_on_tensors(bw_hook, result)
 
         if self._backward_pre_hooks:
-            bw_pre_hook = inner.CellBackwardHook(self.__class__.__name__ + "(" + str(id(self)) + ")",
-                                                 self, self._backward_pre_hooks)
+            bw_pre_hook = inner.CellBackwardHook(
+                self.__class__.__name__ + "(" + str(id(self)) + ")", self, self._backward_pre_hooks
+            )
             bw_pre_hook.register_backward_pre_hook()
             result = apply_backward_hook_on_tensors(bw_pre_hook, result)
 
@@ -191,8 +223,10 @@ def _call_impl(self, *args, **kwargs):
                     if hook_result is not None:
                         result = hook_result
                 except Exception as e:
-                    warnings.warn("global module forward hook with ``always_call=True`` raised an exception "
-                                  f"that was silenced as another error was raised in forward: {str(e)}")
+                    warnings.warn(
+                        "global module forward hook with ``always_call=True`` raised an exception "
+                        f"that was silenced as another error was raised in forward: {str(e)}"
+                    )
                     continue
 
         for hook_id, hook in self._forward_hooks.items():
@@ -206,8 +240,10 @@ def _call_impl(self, *args, **kwargs):
                     if hook_result is not None:
                         result = hook_result
                 except Exception as e:
-                    warnings.warn("module forward hook with ``always_call=True`` raised an exception "
-                                  f"that was silenced as another error was raised in forward: {str(e)}")
+                    warnings.warn(
+                        "module forward hook with ``always_call=True`` raised an exception "
+                        f"that was silenced as another error was raised in forward: {str(e)}"
+                    )
                     continue
         # raise exception raised in try block
         raise
@@ -242,7 +278,7 @@ def _get_backward_pre_hooks(self):
 
 
 def _get_backward_hooks(self):
-    if (_global_is_full_backward_hook is True):
+    if _global_is_full_backward_hook is True:
         self._backward_hooks.update(_global_backward_hooks)
 
 
@@ -256,5 +292,5 @@ def apply_backward_hook_on_tensors(cell_backward_hook, args):
             is_tuple = False
         hooked_args = cell_backward_hook(*args)
         if is_tuple and len(args) == 1:
-            hooked_args = (hooked_args, )
+            hooked_args = (hooked_args,)
     return hooked_args

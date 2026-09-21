@@ -247,7 +247,7 @@ test.describe('PrecisionSiderTest', () => {
     await overflowCheckBoxes.high.check();
     await expect(nodeCountLabel).toContainText('(41)');
     await overflowCheckBoxes.high.uncheck();
-    await overflowCheckBoxes.ciritical.check();
+    await overflowCheckBoxes.critical.check();
     await expect(nodeCountLabel).toContainText('(1)');
     await panel.getByText('Tensor.__mul__.144.forward').click();
     await expect(mainPage.mainArea).toHaveScreenshot('overflowWithCriticalLevel.png', {

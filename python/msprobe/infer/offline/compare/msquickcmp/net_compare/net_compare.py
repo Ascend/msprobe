@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,19 +18,25 @@
 Function:
 This class mainly involves the accuracy_network_compare function.
 """
+
 import csv
 import os
 import stat
 import re
 import sys
-import subprocess
+import subprocess  # nosec B404
 
 import numpy as np
 
 from msprobe.core.common.log import logger
 from msprobe.core.common.file_utils import check_value_is_valid
-from msprobe.infer.offline.compare.msquickcmp.common.utils import check_file_size_valid, AccuracyCompareException, \
-    ACCURACY_COMPARISON_NET_OUTPUT_ERROR, ACCURACY_COMPARISON_INVALID_DATA_ERROR, MAX_READ_FILE_SIZE_4G
+from msprobe.infer.offline.compare.msquickcmp.common.utils import (
+    check_file_size_valid,
+    AccuracyCompareException,
+    ACCURACY_COMPARISON_NET_OUTPUT_ERROR,
+    ACCURACY_COMPARISON_INVALID_DATA_ERROR,
+    MAX_READ_FILE_SIZE_4G,
+)
 from msprobe.infer.utils.file_open_check import ms_open
 from msprobe.infer.utils.check.rule import Rule
 from msprobe.infer.utils.util import load_file_to_read_common_check, filter_cmd
@@ -48,7 +53,7 @@ GROUND_TRUTH_TAG = "GroundTruth"
 MIN_ELEMENT_NUM = 3
 
 
-class NetCompare(object):
+class NetCompare(object):  # pylint: disable=useless-object-inheritance
     """
     Class for compare the entire network
     """
@@ -59,7 +64,7 @@ class NetCompare(object):
         self.output_json_path = output_json_path
         self.golden_json_path = golden_json_path
         self.arguments = arguments
-        self.python_version = sys.executable.split('/')[-1]
+        self.python_version = sys.executable.split('/')[-1]  # pylint: disable=use-maxsplit-arg
 
         if self.golden_json_path:
             check_file_size_valid(self.golden_json_path, MAX_READ_FILE_SIZE_4G)
@@ -116,8 +121,15 @@ class NetCompare(object):
                 writer.writerow(line)
             else:
                 new_content = [
-                    line[0], "NaN", "Node_Output", "NaN", "NaN",
-                    npu_file_name, "NaN", golden_file_name, "[]"
+                    line[0],
+                    "NaN",
+                    "Node_Output",
+                    "NaN",
+                    "NaN",
+                    npu_file_name,
+                    "NaN",
+                    golden_file_name,
+                    "[]",
                 ]
                 new_content.extend(result)
                 new_content.extend([""])
@@ -133,9 +145,17 @@ class NetCompare(object):
             when invalid msaccucmp command throw exception
         """
         msaccucmp_cmd = [
-            self.python_version, msaccucmp.__file__, "compare", "-m",
-            self.npu_dump_data_path, "-g",
-            self.cpu_dump_data_path, "-f", self.output_json_path, "-out", self.arguments.output_path
+            self.python_version,
+            msaccucmp.__file__,
+            "compare",
+            "-m",
+            self.npu_dump_data_path,
+            "-g",
+            self.cpu_dump_data_path,
+            "-f",
+            self.output_json_path,
+            "-out",
+            self.arguments.output_path,
         ]
 
         if self.golden_json_path is not None:
@@ -143,9 +163,11 @@ class NetCompare(object):
 
         msaccucmp_cmd = filter_cmd(msaccucmp_cmd)
         status_code, _, _ = self.execute_msaccucmp_command(msaccucmp_cmd)
-        if status_code == 2 or status_code == 0:
-            logger.info(f"Finish compare the files in directory {self.npu_dump_data_path} "
-                        f"with those in directory {self.cpu_dump_data_path}.")
+        if status_code == 2 or status_code == 0:  # pylint: disable=consider-using-in
+            logger.info(
+                f"Finish compare the files in directory {self.npu_dump_data_path} "
+                f"with those in directory {self.cpu_dump_data_path}."
+            )
         else:
             logger.error(f"Failed to execute command: {' '.join(msaccucmp_cmd)}")
             raise AccuracyCompareException(ACCURACY_COMPARISON_INVALID_DATA_ERROR)
@@ -160,28 +182,39 @@ class NetCompare(object):
         file_index = 0
         logger.info("=================================compare Node_output=================================")
         logger.info("start to compare the Node_output at now, compare result is:")
-        logger.warning("The comparison of Node_output may be incorrect in certain scenarios. "
-                       "If the precision is abnormal, "
-                       "please check whether the mapping between the comparison data is correct.")
+        logger.warning(
+            "The comparison of Node_output may be incorrect in certain scenarios. "
+            "If the precision is abnormal, "
+            "please check whether the mapping between the comparison data is correct."
+        )
         for dir_path, _, files in os.walk(npu_net_output_data_path):
             for each_file in sorted(files):
                 if each_file.endswith(".npy"):
                     npu_dump_file[file_index] = os.path.join(dir_path, each_file)
                     npu_dump_file[file_index] = load_file_to_read_common_check(npu_dump_file.get(file_index))
                     npu_data = np.load(npu_dump_file.get(file_index))
-                    golden_net_output_info[file_index] = \
-                            load_file_to_read_common_check(golden_net_output_info.get(file_index))
+                    golden_net_output_info[file_index] = load_file_to_read_common_check(
+                        golden_net_output_info.get(file_index)
+                    )
                     golden_data = np.load(golden_net_output_info.get(file_index))
                     np.save(npu_dump_file.get(file_index), npu_data.reshape(golden_data.shape))
                     msaccucmp_cmd = [
-                        self.python_version, self.msaccucmp_command_file_path, "compare", "-m",
-                        npu_dump_file.get(file_index), "-g", golden_net_output_info.get(file_index)
+                        self.python_version,
+                        self.msaccucmp_command_file_path,  # pylint: disable=no-member
+                        "compare",
+                        "-m",
+                        npu_dump_file.get(file_index),
+                        "-g",
+                        golden_net_output_info.get(file_index),
                     ]
                     status, compare_result, header = self.execute_msaccucmp_command(msaccucmp_cmd, True)
-                    if status == 2 or status == 0:
-                        self.save_net_output_result_to_csv(npu_dump_file.get(file_index),
-                                                           golden_net_output_info.get(file_index),
-                                                           compare_result, header)
+                    if status == 2 or status == 0:  # pylint: disable=consider-using-in
+                        self.save_net_output_result_to_csv(
+                            npu_dump_file.get(file_index),
+                            golden_net_output_info.get(file_index),
+                            compare_result,
+                            header,
+                        )
                         logger.info(f"Compare Node_output:{file_index} completely.")
                     else:
                         logger.error(f"Failed to execute command: {' '.join(msaccucmp_cmd)}")
@@ -231,13 +264,8 @@ class NetCompare(object):
         header = []
 
         logger.info(f"Execute command:{' '.join(cmd)}")
-        process = subprocess.Popen(
-            cmd,
-            shell=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1
+        process = subprocess.Popen(  # pylint: disable=consider-using-with  # nosec B603
+            cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
         )
 
         try:

@@ -1,6 +1,6 @@
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
-# Copyright (c) 2025-2026 Huawei Technologies Co.,Ltd.
+# This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
@@ -35,7 +35,6 @@ cross_dtype_mapping = {
     "torch.int64": "int",
     "UInt64": "int",
     "torch.uint64": "int",
-
     "Float16": "float",
     "torch.float16": "float",
     "Float32": "float",
@@ -44,10 +43,8 @@ cross_dtype_mapping = {
     "torch.float64": "float",
     "BFloat16": "float",
     "torch.bfloat16": "float",
-
     "Bool": "bool",
     "torch.bool": "bool",
-
     "Complex64": "complex",
     "torch.complex64": "complex",
     "Complex128": "complex",
@@ -56,8 +53,9 @@ cross_dtype_mapping = {
 
 
 def check_dump_json_str(op_data, op_name):
-    input_list = op_data.get(Const.INPUT_ARGS, None) if op_data.get(Const.INPUT_ARGS, None) else op_data.get(
-        Const.INPUT, None)
+    input_list = (
+        op_data.get(Const.INPUT_ARGS, None) if op_data.get(Const.INPUT_ARGS, None) else op_data.get(Const.INPUT, None)
+    )
     input_kwargs = op_data.get(Const.INPUT_KWARGS, None)
     output_list = op_data.get(Const.OUTPUT, None)
 
@@ -121,7 +119,9 @@ def check_configuration_param(config):
 def check_consistent_param(consistent_check: bool, backend: str):
     if consistent_check:
         if backend not in [Const.FSDP, Const.MEGATRON]:
-            logger.error(f"If the 'consistent_check' parameter is specified, "
-                         f"the 'backend' parameter must be set to '{Const.FSDP}' or '{Const.MEGATRON}'. "
-                         f"Current 'backend' parameter is {backend}.")
+            logger.error(
+                f"If the 'consistent_check' parameter is specified, "
+                f"the 'backend' parameter must be set to '{Const.FSDP}' or '{Const.MEGATRON}'. "
+                f"Current 'backend' parameter is {backend}."
+            )
             raise CompareException(CompareException.INVALID_PARAM_ERROR)

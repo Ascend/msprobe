@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -20,6 +19,7 @@ Function:
 FormatManager class.
 This class mainly involves the execute_format_convert function.
 """
+
 import os
 import sys
 import importlib
@@ -27,7 +27,7 @@ from functools import reduce
 
 import numpy as np
 
-from cmp_utils import utils, utils_type, path_check
+from cmp_utils import utils, path_check
 from cmp_utils import log
 from cmp_utils import common
 from cmp_utils.reg_manager import RegManager
@@ -81,14 +81,14 @@ class FormatManager:
     @staticmethod
     def _add_format_file_to_list(file_path: str, support_format_list: list) -> bool:
         if os.path.isfile(file_path):
-            _, match = RegManager.match_group(RegManager.FORMAT_CONVERT_FILE_NAME_PATTERN,
-                                              os.path.basename(file_path))
+            _, match = RegManager.match_group(RegManager.FORMAT_CONVERT_FILE_NAME_PATTERN, os.path.basename(file_path))
             if match is not None:
                 support_format_list.append(match.group(1))
                 return True
-            log.print_warn_log("The file '%s' does not match 'convert_{src_format}_to_{dest_format}.py in '%s', "
-                               "please check the file." % (os.path.basename(file_path),
-                                                           os.path.dirname(file_path)))
+            log.print_warn_log(
+                "The file '%s' does not match 'convert_{src_format}_to_{dest_format}.py in '%s', "
+                "please check the file." % (os.path.basename(file_path), os.path.dirname(file_path))
+            )
         return False
 
     def execute_format_convert(self: any, src_to_dest: SrcToDest, data: any, args: dict) -> np.ndarray:
@@ -110,13 +110,14 @@ class FormatManager:
         try:
             if args.get("group") < 2:
                 new_array = self.support_format_map.get(module_name)(
-                    src_to_dest.src_shape, src_to_dest.dest_shape, data)
+                    src_to_dest.src_shape, src_to_dest.dest_shape, data
+                )
             else:
                 new_array = self.support_format_map.get(module_name)(
-                    src_to_dest.src_shape, src_to_dest.dest_shape, data, args.get("group"))
+                    src_to_dest.src_shape, src_to_dest.dest_shape, data, args.get("group")
+                )
         except Exception as err:
-            log.print_error_log("Failed to execute '%s' in '%s'. %s"
-                                % (self.CONVERT_FUNC_NAME, module_name, str(err)))
+            log.print_error_log("Failed to execute '%s' in '%s'. %s" % (self.CONVERT_FUNC_NAME, module_name, str(err)))
             raise CompareError(CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR) from err
         finally:
             pass
@@ -135,16 +136,20 @@ class FormatManager:
 
     def _make_support_format_by_path(self: any, dir_path: str, support_format_list: list) -> None:
         if not os.path.exists(dir_path):
-            log.print_warn_log("There is no '%s' in '%s', please check the custom path."
-                               % (self.CUSTOM_FORMAT_CONVERT_DIR_NAME, os.path.dirname(dir_path)))
+            log.print_warn_log(
+                "There is no '%s' in '%s', please check the custom path."
+                % (self.CUSTOM_FORMAT_CONVERT_DIR_NAME, os.path.dirname(dir_path))
+            )
             return
         one_match = False
         for item in os.listdir(dir_path):
             if self._add_format_file_to_list(os.path.join(dir_path, item), support_format_list):
                 one_match = True
         if not one_match:
-            log.print_warn_log("There is no legal 'convert_{src_format}_to_{dest_format}.py' file in '%s', "
-                               "please check the path." % dir_path)
+            log.print_warn_log(
+                "There is no legal 'convert_{src_format}_to_{dest_format}.py' file in '%s', "
+                "please check the path." % dir_path
+            )
 
     def _make_support_format(self: any) -> None:
         """
@@ -153,8 +158,7 @@ class FormatManager:
         dir_path = os.path.join(os.path.dirname(__file__), self.BUILT_IN_FORMAT_CONVERT_DIR_NAME)
         self._make_support_format_by_path(dir_path, self.built_in_support_format)
         if self.custom_path:
-            ret = path_check.check_path_valid(
-                self.custom_path, True, False, path_check.PathType.Directory)
+            ret = path_check.check_path_valid(self.custom_path, True, False, path_check.PathType.Directory)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
 
@@ -165,15 +169,16 @@ class FormatManager:
 
     def _get_module(self: any, format_name: str, dir_name: str, module_type: str) -> (bool, any):
         if dir_name is self.BUILT_IN_FORMAT_CONVERT_DIR_NAME:
-            format_module = importlib.import_module('%s.%s.%s' % ("format_manager",
-                                                                  dir_name, format_name))
+            format_module = importlib.import_module('%s.%s.%s' % ("format_manager", dir_name, format_name))
         if dir_name is self.CUSTOM_FORMAT_CONVERT_DIR_NAME:
             format_module = importlib.import_module('%s.%s' % (dir_name, format_name))
 
         # check exist convert attr
-        if not hasattr(format_module, self.CONVERT_FUNC_NAME):
-            log.print_warn_log("[%s] The file '%s' has no attribute '%s'. Please check the file."
-                               % (module_type, str(format_module.__file__), self.CONVERT_FUNC_NAME))
+        if not hasattr(format_module, self.CONVERT_FUNC_NAME):  # pylint: disable=possibly-used-before-assignment
+            log.print_warn_log(
+                "[%s] The file '%s' has no attribute '%s'. Please check the file."
+                % (module_type, str(format_module.__file__), self.CONVERT_FUNC_NAME)
+            )
             return False, format_module
         return True, format_module
 
@@ -181,22 +186,39 @@ class FormatManager:
         format_func = getattr(format_module, self.CONVERT_FUNC_NAME)
         # check convert is function
         if not callable(format_func):
-            log.print_warn_log("[%s] The '%s' in %s is not function. Please check the file." %
-                               (module_type, self.CONVERT_FUNC_NAME, str(format_module.__file__)))
+            log.print_warn_log(
+                "[%s] The '%s' in %s is not function. Please check the file."
+                % (module_type, self.CONVERT_FUNC_NAME, str(format_module.__file__))
+            )
             return False, ''
 
         # check argument count of convert
-        if format_func.__code__.co_argcount != self.CONVERT_ARG_COUNT \
-                and 'to_FRACTAL_Z' not in format_module.__name__:
-            log.print_warn_log("[%s] The argument count (%d) of '%s' in %s is not %d. Please check the file." %
-                               (module_type, format_func.__code__.co_argcount, self.CONVERT_FUNC_NAME,
-                                str(format_module.__file__), self.CONVERT_ARG_COUNT))
+        if format_func.__code__.co_argcount != self.CONVERT_ARG_COUNT and 'to_FRACTAL_Z' not in format_module.__name__:
+            log.print_warn_log(
+                "[%s] The argument count (%d) of '%s' in %s is not %d. Please check the file."
+                % (
+                    module_type,
+                    format_func.__code__.co_argcount,
+                    self.CONVERT_FUNC_NAME,
+                    str(format_module.__file__),
+                    self.CONVERT_ARG_COUNT,
+                )
+            )
             return False, ''
-        if format_func.__code__.co_argcount != self.TO_FRACTAL_Z_FUNC_ARG_COUNT \
-                and 'to_FRACTAL_Z' in format_module.__name__:
-            log.print_warn_log("[%s] The argument count (%d) of '%s' in %s is not %d. Please check the file." %
-                               (module_type, format_func.__code__.co_argcount, self.CONVERT_FUNC_NAME,
-                                str(format_module.__file__), self.TO_FRACTAL_Z_FUNC_ARG_COUNT))
+        if (
+            format_func.__code__.co_argcount != self.TO_FRACTAL_Z_FUNC_ARG_COUNT
+            and 'to_FRACTAL_Z' in format_module.__name__
+        ):
+            log.print_warn_log(
+                "[%s] The argument count (%d) of '%s' in %s is not %d. Please check the file."
+                % (
+                    module_type,
+                    format_func.__code__.co_argcount,
+                    self.CONVERT_FUNC_NAME,
+                    str(format_module.__file__),
+                    self.TO_FRACTAL_Z_FUNC_ARG_COUNT,
+                )
+            )
             return False, ''
         return True, format_func
 
@@ -214,10 +236,12 @@ class FormatManager:
         """
         Make support format map
         """
-        self._make_support_format_map_by_list(self.built_in_support_format, self.BUILT_IN_FORMAT_CONVERT_DIR_NAME,
-                                              ConstManager.BUILTIN)
-        self._make_support_format_map_by_list(self.custom_support_format, self.CUSTOM_FORMAT_CONVERT_DIR_NAME,
-                                              ConstManager.CUSTOM)
+        self._make_support_format_map_by_list(
+            self.built_in_support_format, self.BUILT_IN_FORMAT_CONVERT_DIR_NAME, ConstManager.BUILTIN
+        )
+        self._make_support_format_map_by_list(
+            self.custom_support_format, self.CUSTOM_FORMAT_CONVERT_DIR_NAME, ConstManager.CUSTOM
+        )
         if not self.support_format_map:
             log.print_error_log("There is no support format conversion.")
             raise CompareError(CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR)
@@ -226,7 +250,8 @@ class FormatManager:
         if not isinstance(value, np.ndarray):
             log.print_error_log(
                 "The return value of '%s' in '%s' is not numpy.ndarray. Please check the return value."
-                % (self.CONVERT_FUNC_NAME, format_name))
+                % (self.CONVERT_FUNC_NAME, format_name)
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_CONVERT_FUNC_ERROR)
 
 
@@ -254,8 +279,10 @@ class ShapeConversion:
         if 0 in array.shape:
             return array.reshape(shape)
         if size != len(array):
-            log.print_error_log("The length(%d) is not match with the shape %s."
-                                % (len(array), utils.convert_shape_to_string(src_to_dest.src_shape)))
+            log.print_error_log(
+                "The length(%d) is not match with the shape %s."
+                % (len(array), utils.convert_shape_to_string(src_to_dest.src_shape))
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR)
         return array.reshape(shape)
 
@@ -285,22 +312,27 @@ class ShapeConversion:
         if src_to_dest.src_format == DD.FORMAT_ND:
             return self.reshape(src_to_dest, array)
         # if format and shape is not match, return
-        if src_to_dest.src_format == DD.FORMAT_NCHW \
-                or src_to_dest.src_format == DD.FORMAT_HWCN \
-                or src_to_dest.src_format == DD.FORMAT_NHWC:
+        if (  # pylint: disable=consider-using-in
+            src_to_dest.src_format == DD.FORMAT_NCHW
+            or src_to_dest.src_format == DD.FORMAT_HWCN
+            or src_to_dest.src_format == DD.FORMAT_NHWC
+        ):
             if len(src_to_dest.src_shape) != ConstManager.FOUR_DIMS_LENGTH:
                 return self.reshape(src_to_dest, array)
         # src and dest format are the same, no need to convert
         if src_to_dest.src_format == src_to_dest.dest_format:
             return self.reshape(src_to_dest, array)
         # if convert FRACTAL_NZ to ND and the array is not equal to dest shape, no need to convert.
-        if src_to_dest.src_format == DD.FORMAT_FRACTAL_NZ \
-                and src_to_dest.dest_format == DD.FORMAT_ND \
-                and len(src_to_dest.dest_shape) > 2:
+        if (
+            src_to_dest.src_format == DD.FORMAT_FRACTAL_NZ
+            and src_to_dest.dest_format == DD.FORMAT_ND
+            and len(src_to_dest.dest_shape) > 2
+        ):
             if len(array) != self.get_convert_fractal_nz_to_nd_dest_shape_length(src_to_dest):
                 log.print_warn_log(
                     "Cannot convert FRACTAL_NZ to ND, the reason is the length "
-                    "of array is not equal to the length of dest shape.")
+                    "of array is not equal to the length of dest shape."
+                )
                 return self.reshape(src_to_dest, array)
         if src_to_dest.src_format == DD.FORMAT_FRACTAL_NZ:
             utils.check_shape_valid_in_nz(src_to_dest.dest_shape, src_to_dest.src_shape, is_convert_mode=False)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -27,52 +26,55 @@ import contextlib
 import types
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Set, Tuple, Type
+from typing import Callable, Dict, List, Optional, Set
 
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn as nn  # pylint: disable=consider-using-from-import
 
 from msprobe.core.common.file_utils import create_directory
 
 
 # 数据结构
 
+
 @dataclass
 class TensorDiff:
-    max_abs:  float
+    max_abs: float
     mean_abs: float
-    max_rel:  float
+    max_rel: float
     allclose: bool
-    shape:    tuple
+    shape: tuple
 
     def __str__(self):
         ok = 'OK' if self.allclose else '!!'
-        return (f'[{ok}] max_abs={self.max_abs:.3e}  '
-                f'mean_abs={self.mean_abs:.3e}  '
-                f'max_rel={self.max_rel:.3e}  shape={self.shape}')
+        return (
+            f'[{ok}] max_abs={self.max_abs:.3e}  '
+            f'mean_abs={self.mean_abs:.3e}  '
+            f'max_rel={self.max_rel:.3e}  shape={self.shape}'
+        )
 
 
 @dataclass
 class ModuleDiff:
-    name:        str
-    fwd_input:   Optional[List[TensorDiff]] = None
-    fwd_output:  Optional[List[TensorDiff]] = None
-    grad_input:  Optional[List[TensorDiff]] = None
+    name: str
+    fwd_input: Optional[List[TensorDiff]] = None
+    fwd_output: Optional[List[TensorDiff]] = None
+    grad_input: Optional[List[TensorDiff]] = None
     grad_output: Optional[List[TensorDiff]] = None
-    note:        str = ''
+    note: str = ''
 
 
 @dataclass
 class CompareResult:
-    loss_eager:    float
+    loss_eager: float
     loss_compiled: float
-    diffs:         List[ModuleDiff] = field(default_factory=list)
-    cast_dtype:    Optional[torch.dtype] = None
+    diffs: List[ModuleDiff] = field(default_factory=list)
+    cast_dtype: Optional[torch.dtype] = None
 
     @property
     def loss_diff(self):
         import math
+
         if math.isnan(self.loss_eager):
             return float('nan')
         return abs(self.loss_eager - self.loss_compiled)
@@ -81,11 +83,11 @@ class CompareResult:
     def all_pass(self):
         def _ok(diffs):
             return diffs is None or all(d.allclose for d in diffs)
+
         return all(
-            d.note.startswith('SKIP') or d.note == 'IGNORED' or (
-                _ok(d.fwd_input) and _ok(d.fwd_output) and
-                _ok(d.grad_input) and _ok(d.grad_output)
-            )
+            d.note.startswith('SKIP')
+            or d.note == 'IGNORED'
+            or (_ok(d.fwd_input) and _ok(d.fwd_output) and _ok(d.grad_input) and _ok(d.grad_output))
             for d in self.diffs
         )
 
@@ -99,7 +101,7 @@ class _GradSlot:
 # 内部工具
 # ─────────────────────────────────────────────────────────────
 
-_WRAP_ATTR   = '_pc_wrapped'
+_WRAP_ATTR = '_pc_wrapped'
 _IGNORE_ATTR = '_pc_ignored'
 
 
@@ -147,8 +149,7 @@ def _materialize_grad_slots(x):
     return x
 
 
-def _register_tensor_grad_hooks(handles: list, store: _TensorStore,
-                                name: str, key: str, value):
+def _register_tensor_grad_hooks(handles: list, store: _TensorStore, name: str, key: str, value):
     entry = store.bwd.setdefault(name, {'grad_input': None, 'grad_output': None})
     slots = _build_grad_slots(value)
     entry[key] = slots
@@ -166,15 +167,14 @@ def _register_tensor_grad_hooks(handles: list, store: _TensorStore,
 
 def _cmp_tensor(a: torch.Tensor, b: torch.Tensor) -> TensorDiff:
     if a.shape != b.shape:
-        return TensorDiff(float('inf'), float('inf'), float('inf'), False,
-                          (tuple(a.shape), tuple(b.shape)))
+        return TensorDiff(float('inf'), float('inf'), float('inf'), False, (tuple(a.shape), tuple(b.shape)))
     diff = (a - b).abs()
     return TensorDiff(
-        max_abs  = diff.max().item(),
-        mean_abs = diff.mean().item(),
-        max_rel  = (diff / (a.abs() + 1e-8)).max().item(),
-        allclose = torch.allclose(a, b, atol=1e-4, rtol=1e-3),
-        shape    = tuple(a.shape),
+        max_abs=diff.max().item(),
+        mean_abs=diff.mean().item(),
+        max_rel=(diff / (a.abs() + 1e-8)).max().item(),
+        allclose=torch.allclose(a, b, atol=1e-4, rtol=1e-3),
+        shape=tuple(a.shape),
     )
 
 
@@ -210,15 +210,14 @@ def _normalize_name(name: str) -> str:
 
 
 def _is_orig_mod_node(name: str) -> bool:
-    return name == '_orig_mod' or name.endswith('._orig_mod') or \
-           name == 'module' or name.endswith('.module')
+    return name == '_orig_mod' or name.endswith('._orig_mod') or name == 'module' or name.endswith('.module')
 
 
 class _TensorStore:
     def __init__(self):
-        self.fwd_in:  Dict[str, list]  = {}
-        self.fwd_out: Dict[str, list]  = {}
-        self.bwd:     Dict[str, dict]  = {}
+        self.fwd_in: Dict[str, list] = {}
+        self.fwd_out: Dict[str, list] = {}
+        self.bwd: Dict[str, dict] = {}
 
     def clear(self):
         self.fwd_in.clear()
@@ -226,10 +225,13 @@ class _TensorStore:
         self.bwd.clear()
 
 
-def _register_hooks(model: nn.Module, store: _TensorStore,
-                    scoped_prefixes: Optional[Set[str]],
-                    ignored_prefixes: Set[str],
-                    capture_input: bool) -> list:
+def _register_hooks(
+    model: nn.Module,
+    store: _TensorStore,
+    scoped_prefixes: Optional[Set[str]],
+    ignored_prefixes: Set[str],
+    capture_input: bool,
+) -> list:
     handles = []
     for raw_name, module in model.named_modules():
         if not raw_name or _is_orig_mod_node(raw_name):
@@ -237,19 +239,21 @@ def _register_hooks(model: nn.Module, store: _TensorStore,
         name = _normalize_name(raw_name)
 
         if scoped_prefixes is not None:
-            if not any(name == p or name.startswith(p + '.') or p == ''
-                       for p in scoped_prefixes):
+            if not any(name == p or name.startswith(p + '.') or p == '' for p in scoped_prefixes):
                 continue
 
         if any(name == p or name.startswith(p + '.') for p in ignored_prefixes):
             continue
 
         if capture_input:
+
             def make_pre(n):
                 @torch.compiler.disable
                 def hook(mod, inp):
                     store.fwd_in[n] = _to_f32_cpu(inp)
+
                 return hook
+
             handles.append(module.register_forward_pre_hook(make_pre(name)))
 
         def make_fwd(n):
@@ -258,6 +262,7 @@ def _register_hooks(model: nn.Module, store: _TensorStore,
                 store.fwd_out[n] = _to_f32_cpu(out)
                 _register_tensor_grad_hooks(handles, store, n, 'grad_input', inp)
                 _register_tensor_grad_hooks(handles, store, n, 'grad_output', out)
+
             return hook
 
         handles.append(module.register_forward_hook(make_fwd(name)))
@@ -271,11 +276,12 @@ def _remove_hooks(handles: list):
 
 # single_pass 模式相关
 
-def _register_single_pass_hooks(compiled_model: nn.Module,
-                                 store: _TensorStore,
-                                 ignored_prefixes: Set[str],
-                                 capture_input: bool):
+
+def _register_single_pass_hooks(
+    compiled_model: nn.Module, store: _TensorStore, ignored_prefixes: Set[str], capture_input: bool
+):
     from torch._dynamo.eval_frame import OptimizedModule
+
     handles = []
     sv_map: Dict[str, dict] = {}
 
@@ -284,10 +290,10 @@ def _register_single_pass_hooks(compiled_model: nn.Module,
             continue
 
         if isinstance(mod, OptimizedModule):
-            orig_mod    = mod._orig_mod
+            orig_mod = mod._orig_mod
             cast_dtype_ = None
         elif isinstance(mod, _CastWrapper) and isinstance(mod.module, OptimizedModule):
-            orig_mod    = mod.module._orig_mod
+            orig_mod = mod.module._orig_mod
             cast_dtype_ = mod.cast_dtype
         else:
             continue
@@ -304,6 +310,7 @@ def _register_single_pass_hooks(compiled_model: nn.Module,
                 sv['inp_orig'] = tuple(inp)
                 if capture_input:
                     store.fwd_in[n] = _to_f32_cpu(inp)
+
             return hook
 
         def make_fwd(n, om, sv, cd):
@@ -312,26 +319,33 @@ def _register_single_pass_hooks(compiled_model: nn.Module,
                 orig_inp = sv.get('inp_orig', inp)
                 device_type = 'npu' if hasattr(torch, 'npu') and torch.npu.is_available() else 'cuda'
                 with torch.no_grad():
-                    with (torch.autocast(device_type=device_type, dtype=cd)
-                          if cd is not None else contextlib.nullcontext()):
-                        eager_out = om(*[x.detach() if isinstance(x, torch.Tensor) else x
-                                         for x in orig_inp])
+                    with (
+                        torch.autocast(device_type=device_type, dtype=cd)
+                        if cd is not None
+                        else contextlib.nullcontext()
+                    ):
+                        eager_out = om(*[x.detach() if isinstance(x, torch.Tensor) else x for x in orig_inp])
                 store.fwd_out[n] = _cmp_list(
                     _to_f32_cpu(eager_out),
                     _to_f32_cpu(compiled_out),
                 )
 
-                c_out = compiled_out if isinstance(compiled_out, torch.Tensor) else \
-                        next((t for t in compiled_out if isinstance(t, torch.Tensor)), None)
+                c_out = (
+                    compiled_out
+                    if isinstance(compiled_out, torch.Tensor)
+                    else next((t for t in compiled_out if isinstance(t, torch.Tensor)), None)
+                )
                 if c_out is not None and c_out.requires_grad:
                     c_out.retain_grad()
                     sv['c_out'] = c_out
+
             return hook
 
         def make_bwd(n, om, sv):
             @torch.compiler.disable
             def hook(m, grad_in, grad_out):
                 pass
+
             return hook
 
         handles.append(mod.register_forward_pre_hook(make_pre(name, _saved)))
@@ -343,10 +357,11 @@ def _register_single_pass_hooks(compiled_model: nn.Module,
 
 # cast_dtype 相关
 
+
 class _CastWrapper(nn.Module):
     def __init__(self, module: nn.Module, cast_dtype: torch.dtype):
         super().__init__()
-        self.module    = module
+        self.module = module
         self.cast_dtype = cast_dtype
 
     @torch.compiler.disable
@@ -359,6 +374,8 @@ class _CastWrapper(nn.Module):
 # Graph dump
 
 _gd_counter = 0
+# 状态通过 orig_fn.__globals__.update 注入，此模块级定义仅为静态检查占位
+_gd_state = {}
 
 
 def _gd_next_name():
@@ -371,10 +388,10 @@ def _gd_next_name():
 def _gd_write(dump_dir, prefix, graph_name, src):
     safe = graph_name.replace(" ", "_")
     content = f"# === {graph_name} ===\n{src}\n"
-    digest = hashlib.md5(content.encode()).hexdigest()[:8]
+    digest = hashlib.md5(content.encode()).hexdigest()[:8]  # nosec B324
     path = os.path.join(dump_dir, f"{prefix}.{safe}.{digest}.py")
     if not os.path.exists(path):
-        with open(path, "w") as f:
+        with open(path, "w") as f:  # pylint: disable=unspecified-encoding
             f.write(content)
     return path
 
@@ -386,7 +403,8 @@ def _graph_dump_ctx(dump_dir: str):
     create_directory(dump_dir)
 
     import torch._dynamo.utils as du
-    orig_fn   = du.lazy_format_graph_code
+
+    orig_fn = du.lazy_format_graph_code
     orig_code = orig_fn.__code__
 
     def _patched_lazy_format_graph_code(name, gm, maybe_id=None, **kwargs):
@@ -394,23 +412,26 @@ def _graph_dump_ctx(dump_dir: str):
         for kw in _KW:
             if kw.lower() in name.lower():
                 try:
-                    src  = gm.print_readable(print_output=False)
-                    path = _gd_write(_gd_dump_dir, _gd_next_name(), name.strip(), src)
+                    src = gm.print_readable(print_output=False)
+                    path = _gd_write(_gd_state["dump_dir"], _gd_next_name(), name.strip(), src)
                     print(f"  [graph_dump] {name.strip():30s} -> {path}")
                 except Exception as e:
                     print(f"  [graph_dump] 捕获失败: {e}")
                 break
-        return _gd_orig_fn(name, gm, maybe_id=maybe_id, **kwargs)
+        return _gd_state["orig_fn"](name, gm, maybe_id=maybe_id, **kwargs)
 
     orig_impl = types.FunctionType(
-        orig_code, orig_fn.__globals__,
-        orig_fn.__name__, orig_fn.__defaults__, orig_fn.__closure__,
+        orig_code,
+        orig_fn.__globals__,
+        orig_fn.__name__,
+        orig_fn.__defaults__,
+        orig_fn.__closure__,
     )
     orig_fn.__globals__.update(
-        _gd_dump_dir  = dump_dir,
-        _gd_orig_fn   = orig_impl,
-        _gd_next_name = _gd_next_name,
-        _gd_write     = _gd_write,
+        _gd_dump_dir=dump_dir,
+        _gd_orig_fn=orig_impl,
+        _gd_next_name=_gd_next_name,
+        _gd_write=_gd_write,
     )
     orig_fn.__code__ = _patched_lazy_format_graph_code.__code__
     try:
@@ -421,28 +442,29 @@ def _graph_dump_ctx(dump_dir: str):
 
 # PrecisionChecker
 
+
 class PrecisionChecker:
     """精度对比工具，支持 wrap/ignore/cast_dtype/capture_input 等功能"""
 
     def __init__(
         self,
-        backend:       str                    = 'aot_eager',
-        threshold:     float                  = 1e-4,
-        dump_graphs:   bool                   = False,
-        graph_dir:     str                    = './graph_dump',
-        cast_dtype:    Optional[torch.dtype]  = None,
-        capture_input: bool                   = True,
-        single_pass:   bool                   = True,
+        backend: str = 'aot_eager',
+        threshold: float = 1e-4,
+        dump_graphs: bool = False,
+        graph_dir: str = './graph_dump',
+        cast_dtype: Optional[torch.dtype] = None,
+        capture_input: bool = True,
+        single_pass: bool = True,
     ):
-        self.backend       = backend
-        self.threshold     = threshold
-        self.dump_graphs   = dump_graphs
-        self.graph_dir     = graph_dir
-        self.cast_dtype    = cast_dtype
+        self.backend = backend
+        self.threshold = threshold
+        self.dump_graphs = dump_graphs
+        self.graph_dir = graph_dir
+        self.cast_dtype = cast_dtype
         self.capture_input = capture_input
-        self.single_pass   = single_pass
+        self.single_pass = single_pass
         self._wrapped_ids: Dict[int, str] = {}
-        self._ignored_ids: Set[int]       = set()
+        self._ignored_ids: Set[int] = set()
 
     # wrap API
 
@@ -453,22 +475,20 @@ class PrecisionChecker:
         setattr(module, _WRAP_ATTR, True)
         return module
 
-    def wrap_by_policy(self, model: nn.Module,
-                       module_types: tuple) -> nn.Module:
+    def wrap_by_policy(self, model: nn.Module, module_types: tuple) -> nn.Module:
         for mod_name, mod in model.named_modules():
             if isinstance(mod, tuple(module_types)):
                 _ = self.wrap(mod, name=mod_name)
         return model
 
-    def wrap_all_children(self, model: nn.Module,
-                          depth: int = 1) -> nn.Module:
+    def wrap_all_children(self, model: nn.Module, depth: int = 1) -> nn.Module:
         _CONTAINERS = (nn.ModuleList, nn.ModuleDict, nn.Sequential)
 
         def _recurse(mod: nn.Module, prefix: str, remaining: int):
             for cname, child in mod.named_children():
                 full_name = f'{prefix}.{cname}' if prefix else cname
                 if isinstance(child, _CONTAINERS):
-                    _ = _recurse(child, full_name, remaining)
+                    _ = _recurse(child, full_name, remaining)  # pylint: disable=assignment-from-no-return
                 elif remaining <= 0 or not any(True for _ in child.named_children()):
                     _ = self.wrap(child, name=full_name)
                 else:
@@ -484,8 +504,7 @@ class PrecisionChecker:
         setattr(module, _IGNORE_ATTR, True)
         return module
 
-    def ignore_by_policy(self, model: nn.Module,
-                         module_types: tuple) -> nn.Module:
+    def ignore_by_policy(self, model: nn.Module, module_types: tuple) -> nn.Module:
         for _, mod in model.named_modules():
             if isinstance(mod, tuple(module_types)):
                 _ = self.ignore(mod)
@@ -495,10 +514,13 @@ class PrecisionChecker:
 
     def _save_rng_state(self):
         cpu_state = torch.get_rng_state()
-        cuda_state = torch.cuda.get_rng_state_all() if torch.cuda.is_available() and torch.cuda.is_initialized() else None
+        cuda_state = (
+            torch.cuda.get_rng_state_all() if torch.cuda.is_available() and torch.cuda.is_initialized() else None
+        )
         npu_state = None
         try:
-            import torch_npu
+            import torch_npu  # noqa: F401  # 副作用导入：注册 torch.npu 后端
+
             if torch.npu.is_available() and torch.npu.is_initialized():
                 npu_state = torch.npu.get_rng_state_all()
         except (ImportError, AttributeError):
@@ -514,14 +536,19 @@ class PrecisionChecker:
 
     def _compute_grad_input(self, compiled_model, name, sv, sp_store):
         from torch._dynamo.eval_frame import OptimizedModule
+
         c_out = sv.get('c_out')
         orig_inp = sv.get('inp_orig')
         orig_mod = None
         for raw, mod in compiled_model.named_modules():
-            if _normalize_name(raw) == name and isinstance(mod, OptimizedModule):
+            if _normalize_name(raw) == name and isinstance(mod, OptimizedModule):  # pylint: disable=no-else-break
                 orig_mod = mod._orig_mod
                 break
-            elif _normalize_name(raw) == name and isinstance(mod, _CastWrapper) and isinstance(mod.module, OptimizedModule):
+            elif (
+                _normalize_name(raw) == name
+                and isinstance(mod, _CastWrapper)
+                and isinstance(mod.module, OptimizedModule)
+            ):
                 orig_mod = mod.module._orig_mod
                 break
         if c_out is None or c_out.grad is None or orig_inp is None or orig_mod is None:
@@ -560,7 +587,9 @@ class PrecisionChecker:
                 comp_gin = []
 
             sp_store.bwd[name] = {
-                'grad_input': _cmp_list(_to_f32_cpu(eager_gin), _to_f32_cpu(comp_gin)) if eager_gin and comp_gin else None,
+                'grad_input': _cmp_list(_to_f32_cpu(eager_gin), _to_f32_cpu(comp_gin))
+                if eager_gin and comp_gin
+                else None,
                 'grad_output': None,
             }
         except Exception:
@@ -598,31 +627,34 @@ class PrecisionChecker:
     def install(self, model: nn.Module) -> nn.Module:
         if not self.single_pass:
             raise RuntimeError("install() 仅支持 single_pass=True")
-        self._install_model = model
+        self._install_model = model  # pylint: disable=attribute-defined-outside-init
         ignored_prefixes = self._collect_prefixes(model, _IGNORE_ATTR)
 
         _ = self._wrap_and_compile_modules(model, in_place=True)
 
-        self._sp_store = _TensorStore()
+        self._sp_store = _TensorStore()  # pylint: disable=attribute-defined-outside-init
         torch._dynamo.reset()
-        self._sp_handles, self._sp_sv_map = _register_single_pass_hooks(
-            model, self._sp_store, ignored_prefixes, self.capture_input,
+        self._sp_handles, self._sp_sv_map = _register_single_pass_hooks(  # pylint: disable=attribute-defined-outside-init
+            model,
+            self._sp_store,
+            ignored_prefixes,
+            self.capture_input,
         )
-        self._install_ignored_prefixes = ignored_prefixes
-        self._install_loss_c: Optional[float] = None
+        self._install_ignored_prefixes = ignored_prefixes  # pylint: disable=attribute-defined-outside-init
+        self._install_loss_c: Optional[float] = None  # pylint: disable=attribute-defined-outside-init
         return model
 
     def record_loss(self, loss: torch.Tensor):
-        self._install_loss_c = loss.item() if isinstance(loss, torch.Tensor) else float(loss)
+        self._install_loss_c = loss.item() if isinstance(loss, torch.Tensor) else float(loss)  # pylint: disable=attribute-defined-outside-init
 
     def collect(self, loss: Optional[torch.Tensor] = None) -> 'CompareResult':
         if loss is not None:
             self.record_loss(loss)
 
-        model           = self._install_model
+        model = self._install_model
         ignored_prefixes = self._install_ignored_prefixes
-        sv_map          = self._sp_sv_map
-        sp_store        = self._sp_store
+        sv_map = self._sp_sv_map
+        sp_store = self._sp_store
 
         for name, sv in sv_map.items():
             self._compute_grad_input(model, name, sv, sp_store)
@@ -634,25 +666,22 @@ class PrecisionChecker:
 
     # compare
 
-    def compare(self, fn: Callable[[nn.Module], torch.Tensor],
-                model: nn.Module) -> CompareResult:
+    def compare(self, fn: Callable[[nn.Module], torch.Tensor], model: nn.Module) -> CompareResult:
         if self.single_pass:
             return self._compare_single_pass(fn, model)
         return self._compare_two_pass(fn, model)
 
     def _compare_two_pass(self, fn, model):
-        eager_model   = self._build_eager_cast(model)
+        eager_model = self._build_eager_cast(model)
         compiled_model = self._build_compiled(model)
 
-        scoped_prefixes  = self._collect_prefixes(model, _WRAP_ATTR)
+        scoped_prefixes = self._collect_prefixes(model, _WRAP_ATTR)
         ignored_prefixes = self._collect_prefixes(model, _IGNORE_ATTR)
 
         e_store = _TensorStore()
         c_store = _TensorStore()
-        h_e = _register_hooks(eager_model,    e_store, scoped_prefixes,
-                               ignored_prefixes, self.capture_input)
-        h_c = _register_hooks(compiled_model, c_store, scoped_prefixes,
-                               ignored_prefixes, self.capture_input)
+        h_e = _register_hooks(eager_model, e_store, scoped_prefixes, ignored_prefixes, self.capture_input)
+        h_c = _register_hooks(compiled_model, c_store, scoped_prefixes, ignored_prefixes, self.capture_input)
 
         rng_state = self._save_rng_state()
 
@@ -675,6 +704,7 @@ class PrecisionChecker:
         _remove_hooks(h_c)
 
         from torch._dynamo.eval_frame import OptimizedModule
+
         wrapper_names = {
             _normalize_name(raw)
             for raw, mod in compiled_model.named_modules()
@@ -683,12 +713,12 @@ class PrecisionChecker:
         if isinstance(compiled_model, OptimizedModule):
             wrapper_names.add('')
 
-        diffs = self._build_diffs(e_store, c_store, wrapper_names,
-                                  ignored_prefixes)
+        diffs = self._build_diffs(e_store, c_store, wrapper_names, ignored_prefixes)
         return CompareResult(loss_e, loss_c, diffs, self.cast_dtype)
 
     def _compare_single_pass(self, fn, model):
         from torch._dynamo.eval_frame import OptimizedModule
+
         compiled_model = self._build_compiled(model)
         ignored_prefixes = self._collect_prefixes(model, _IGNORE_ATTR)
 
@@ -699,6 +729,7 @@ class PrecisionChecker:
                 warmup_loss.backward()
         except Exception as e:
             import warnings
+
             warnings.warn(f"Warmup forward failed: {e}")
 
         compiled_model.zero_grad()
@@ -706,7 +737,10 @@ class PrecisionChecker:
 
         sp_store = _TensorStore()
         handles, sv_map = _register_single_pass_hooks(
-            compiled_model, sp_store, ignored_prefixes, self.capture_input,
+            compiled_model,
+            sp_store,
+            ignored_prefixes,
+            self.capture_input,
         )
 
         optimized_modules = []
@@ -718,6 +752,7 @@ class PrecisionChecker:
 
         if not optimized_modules:
             import warnings
+
             warnings.warn(
                 f"single_pass mode: no OptimizedModule found after warmup. "
                 f"Checked {len(list(compiled_model.named_modules()))} modules."
@@ -747,19 +782,19 @@ class PrecisionChecker:
         W = 72
         dtype_tag = f'  cast_dtype={result.cast_dtype}' if result.cast_dtype else ''
         import math
-        print(f"\n{'='*W}")
-        if math.isnan(result.loss_eager):
-            print(f"  Loss  compiled={result.loss_compiled:.6f}"
-                  f"  (single_pass, eager loss not computed){dtype_tag}")
-        else:
-            print(f"  Loss  eager={result.loss_eager:.6f}  "
-                  f"compiled={result.loss_compiled:.6f}  "
-                  f"diff={result.loss_diff:.3e}{dtype_tag}")
-        print(f"{'='*W}")
 
-        sections = [('FORWARD INPUT',  'fwd_input'),
-                    ('FORWARD OUTPUT', 'fwd_output'),
-                    ('BACKWARD',       'bwd')]
+        print(f"\n{'=' * W}")
+        if math.isnan(result.loss_eager):
+            print(f"  Loss  compiled={result.loss_compiled:.6f}  (single_pass, eager loss not computed){dtype_tag}")
+        else:
+            print(
+                f"  Loss  eager={result.loss_eager:.6f}  "
+                f"compiled={result.loss_compiled:.6f}  "
+                f"diff={result.loss_diff:.3e}{dtype_tag}"
+            )
+        print(f"{'=' * W}")
+
+        sections = [('FORWARD INPUT', 'fwd_input'), ('FORWARD OUTPUT', 'fwd_output'), ('BACKWARD', 'bwd')]
 
         for title, key in sections:
             if key == 'fwd_input' and not self.capture_input:
@@ -781,14 +816,13 @@ class PrecisionChecker:
             if not rows:
                 continue
             print(f"\n  {title}")
-            print(f"  {'-'*68}")
+            print(f"  {'-' * 68}")
             for flag, name, detail in rows:
                 print(f"  {flag:4s}  {name:52s}  {detail}")
 
-        print(f"\n{'='*W}")
-        print(f"  RESULT: {'ALL PASS' if result.all_pass else 'FAILED'}"
-              f"  (atol=1e-4 rtol=1e-3)")
-        print(f"{'='*W}\n")
+        print(f"\n{'=' * W}")
+        print(f"  RESULT: {'ALL PASS' if result.all_pass else 'FAILED'}  (atol=1e-4 rtol=1e-3)")
+        print(f"{'=' * W}\n")
 
         if csv_path:
             self._write_csv_report(result, csv_path)
@@ -801,71 +835,119 @@ class PrecisionChecker:
         with open(csv_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
 
-            writer.writerow([
-                'module_name', 'check_type', 'tensor_index', 'status',
-                'max_abs_diff', 'mean_abs_diff', 'max_rel_diff', 'shape', 'note'
-            ])
+            writer.writerow(
+                [
+                    'module_name',
+                    'check_type',
+                    'tensor_index',
+                    'status',
+                    'max_abs_diff',
+                    'mean_abs_diff',
+                    'max_rel_diff',
+                    'shape',
+                    'note',
+                ]
+            )
 
             loss_status = 'PASS' if result.all_pass else 'FAIL'
             if math.isnan(result.loss_eager):
-                writer.writerow([
-                    'LOSS', 'loss', 0, loss_status,
-                    'N/A', 'N/A', 'N/A',
-                    f'compiled={result.loss_compiled:.6f}',
-                    'single_pass mode'
-                ])
+                writer.writerow(
+                    [
+                        'LOSS',
+                        'loss',
+                        0,
+                        loss_status,
+                        'N/A',
+                        'N/A',
+                        'N/A',
+                        f'compiled={result.loss_compiled:.6f}',
+                        'single_pass mode',
+                    ]
+                )
             else:
-                writer.writerow([
-                    'LOSS', 'loss', 0, loss_status,
-                    f'{result.loss_diff:.6e}', 'N/A', 'N/A',
-                    f'eager={result.loss_eager:.6f} compiled={result.loss_compiled:.6f}',
-                    ''
-                ])
+                writer.writerow(
+                    [
+                        'LOSS',
+                        'loss',
+                        0,
+                        loss_status,
+                        f'{result.loss_diff:.6e}',
+                        'N/A',
+                        'N/A',
+                        f'eager={result.loss_eager:.6f} compiled={result.loss_compiled:.6f}',
+                        '',
+                    ]
+                )
 
             for d in result.diffs:
                 if d.note:
                     status = 'SKIP' if d.note.startswith('SKIP') or d.note == 'IGNORED' else 'WARN'
-                    writer.writerow([
-                        d.name, 'note', 0, status,
-                        '', '', '', '', d.note
-                    ])
+                    writer.writerow([d.name, 'note', 0, status, '', '', '', '', d.note])
                     continue
 
                 if self.capture_input and d.fwd_input is not None:
                     for idx, td in enumerate(d.fwd_input):
-                        writer.writerow([
-                            d.name, 'fwd_input', idx,
-                            'PASS' if td.allclose else 'FAIL',
-                            f'{td.max_abs:.6e}', f'{td.mean_abs:.6e}',
-                            f'{td.max_rel:.6e}', str(td.shape), ''
-                        ])
+                        writer.writerow(
+                            [
+                                d.name,
+                                'fwd_input',
+                                idx,
+                                'PASS' if td.allclose else 'FAIL',
+                                f'{td.max_abs:.6e}',
+                                f'{td.mean_abs:.6e}',
+                                f'{td.max_rel:.6e}',
+                                str(td.shape),
+                                '',
+                            ]
+                        )
 
                 if d.fwd_output is not None:
                     for idx, td in enumerate(d.fwd_output):
-                        writer.writerow([
-                            d.name, 'fwd_output', idx,
-                            'PASS' if td.allclose else 'FAIL',
-                            f'{td.max_abs:.6e}', f'{td.mean_abs:.6e}',
-                            f'{td.max_rel:.6e}', str(td.shape), ''
-                        ])
+                        writer.writerow(
+                            [
+                                d.name,
+                                'fwd_output',
+                                idx,
+                                'PASS' if td.allclose else 'FAIL',
+                                f'{td.max_abs:.6e}',
+                                f'{td.mean_abs:.6e}',
+                                f'{td.max_rel:.6e}',
+                                str(td.shape),
+                                '',
+                            ]
+                        )
 
                 if d.grad_input is not None:
                     for idx, td in enumerate(d.grad_input):
-                        writer.writerow([
-                            d.name, 'grad_input', idx,
-                            'PASS' if td.allclose else 'FAIL',
-                            f'{td.max_abs:.6e}', f'{td.mean_abs:.6e}',
-                            f'{td.max_rel:.6e}', str(td.shape), ''
-                        ])
+                        writer.writerow(
+                            [
+                                d.name,
+                                'grad_input',
+                                idx,
+                                'PASS' if td.allclose else 'FAIL',
+                                f'{td.max_abs:.6e}',
+                                f'{td.mean_abs:.6e}',
+                                f'{td.max_rel:.6e}',
+                                str(td.shape),
+                                '',
+                            ]
+                        )
 
                 if d.grad_output is not None:
                     for idx, td in enumerate(d.grad_output):
-                        writer.writerow([
-                            d.name, 'grad_output', idx,
-                            'PASS' if td.allclose else 'FAIL',
-                            f'{td.max_abs:.6e}', f'{td.mean_abs:.6e}',
-                            f'{td.max_rel:.6e}', str(td.shape), ''
-                        ])
+                        writer.writerow(
+                            [
+                                d.name,
+                                'grad_output',
+                                idx,
+                                'PASS' if td.allclose else 'FAIL',
+                                f'{td.max_abs:.6e}',
+                                f'{td.mean_abs:.6e}',
+                                f'{td.max_rel:.6e}',
+                                str(td.shape),
+                                '',
+                            ]
+                        )
 
     # 内部方法
 
@@ -879,11 +961,9 @@ class PrecisionChecker:
     def _build_eager_cast(self, model: nn.Module) -> nn.Module:
         if not self.cast_dtype:
             return model
-        eager_model  = deepcopy(model)
+        eager_model = deepcopy(model)
         orig_modules = dict(model.named_modules())
-        wrapped_names = {n
-                         for n, m in orig_modules.items()
-                         if getattr(m, _WRAP_ATTR, False) and n != ''}
+        wrapped_names = {n for n, m in orig_modules.items() if getattr(m, _WRAP_ATTR, False) and n != ''}
         for name, orig_mod in orig_modules.items():
             if not getattr(orig_mod, _WRAP_ATTR, False):
                 continue
@@ -892,23 +972,19 @@ class PrecisionChecker:
             if name == '':
                 return _CastWrapper(eager_model, self.cast_dtype)
             parent_name, _, child_name = name.rpartition('.')
-            parent = eager_model if parent_name == '' else \
-                     eager_model.get_submodule(parent_name)
-            child  = eager_model.get_submodule(name)
+            parent = eager_model if parent_name == '' else eager_model.get_submodule(parent_name)
+            child = eager_model.get_submodule(name)
             setattr(parent, child_name, _CastWrapper(child, self.cast_dtype))
         return eager_model
 
     def _build_compiled(self, model: nn.Module) -> nn.Module:
         return self._wrap_and_compile_modules(model, in_place=False)
 
-    def _build_diffs(self, e: _TensorStore, c: _TensorStore,
-                     wrapper_names: Set[str],
-                     ignored_prefixes: Set[str]) -> List[ModuleDiff]:
+    def _build_diffs(
+        self, e: _TensorStore, c: _TensorStore, wrapper_names: Set[str], ignored_prefixes: Set[str]
+    ) -> List[ModuleDiff]:
         all_names = sorted(
-            set(e.fwd_out) | set(c.fwd_out) |
-            set(e.fwd_in)  | set(c.fwd_in)  |
-            set(e.bwd)     | set(c.bwd)      |
-            ignored_prefixes
+            set(e.fwd_out) | set(c.fwd_out) | set(e.fwd_in) | set(c.fwd_in) | set(e.bwd) | set(c.bwd) | ignored_prefixes
         )
         diffs = []
         for name in all_names:
@@ -920,9 +996,7 @@ class PrecisionChecker:
                 continue
 
             # Check if this module is inside a compiled wrapper (hooks can't fire inside fused graph)
-            in_compiled = any(
-                name.startswith(w + '.') for w in wrapper_names if w
-            )
+            in_compiled = any(name.startswith(w + '.') for w in wrapper_names if w)
 
             if name in e.fwd_out and name in c.fwd_out:
                 d.fwd_output = _cmp_list(e.fwd_out[name], c.fwd_out[name])
@@ -939,13 +1013,13 @@ class PrecisionChecker:
                     d.fwd_input = _cmp_list(e.fwd_in[name], c.fwd_in[name])
 
             if name in e.bwd and name in c.bwd:
-                d.grad_input  = _cmp_list(
+                d.grad_input = _cmp_list(
                     _materialize_grad_slots(e.bwd[name]['grad_input']),
-                    _materialize_grad_slots(c.bwd[name]['grad_input'])
+                    _materialize_grad_slots(c.bwd[name]['grad_input']),
                 )
                 d.grad_output = _cmp_list(
                     _materialize_grad_slots(e.bwd[name]['grad_output']),
-                    _materialize_grad_slots(c.bwd[name]['grad_output'])
+                    _materialize_grad_slots(c.bwd[name]['grad_output']),
                 )
             elif name in e.bwd and name not in c.bwd:
                 if name in wrapper_names:
@@ -958,12 +1032,8 @@ class PrecisionChecker:
             diffs.append(d)
         return diffs
 
-    def _build_diffs_single_pass(self, store: _TensorStore,
-                                  ignored_prefixes: Set[str]) -> List[ModuleDiff]:
-        all_names = sorted(
-            set(store.fwd_out) | set(store.fwd_in) |
-            set(store.bwd)     | ignored_prefixes
-        )
+    def _build_diffs_single_pass(self, store: _TensorStore, ignored_prefixes: Set[str]) -> List[ModuleDiff]:
+        all_names = sorted(set(store.fwd_out) | set(store.fwd_in) | set(store.bwd) | ignored_prefixes)
         diffs = []
         for name in all_names:
             d = ModuleDiff(name=name)
@@ -977,19 +1047,20 @@ class PrecisionChecker:
                 inp = store.fwd_in[name]
                 if inp is not None:
                     if isinstance(inp, list):
-                        d.fwd_input = [TensorDiff(0.0, 0.0, 0.0, True, tuple(t.shape))
-                                       for t in inp
-                                       if isinstance(t, torch.Tensor)]
+                        d.fwd_input = [
+                            TensorDiff(0.0, 0.0, 0.0, True, tuple(t.shape)) for t in inp if isinstance(t, torch.Tensor)
+                        ]
                     elif isinstance(inp, torch.Tensor):
                         d.fwd_input = [TensorDiff(0.0, 0.0, 0.0, True, tuple(inp.shape))]
             if name in store.bwd:
-                d.grad_input  = store.bwd[name].get('grad_input')
+                d.grad_input = store.bwd[name].get('grad_input')
                 d.grad_output = store.bwd[name].get('grad_output')
             diffs.append(d)
         return diffs
 
 
 # 报告格式化工具
+
 
 def _fmt_list(val) -> str:
     if val is None:

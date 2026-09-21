@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -41,8 +40,9 @@ class OverflowAdvisor:
         log.print_info_log('Start FP16 Overflow detection.')
         data_columns = self.analyze_data.columns.values
         if AdvisorConst.OVERFLOW not in data_columns:
-            log.print_warn_log('Input csv file does not contain %s columns, Skip FP16 Overflow detection.'
-                               % AdvisorConst.OVERFLOW)
+            log.print_warn_log(
+                'Input csv file does not contain %s columns, Skip FP16 Overflow detection.' % AdvisorConst.OVERFLOW
+            )
         else:
             overflow_df = self.analyze_data[self.analyze_data[AdvisorConst.OVERFLOW] == "YES"]
             # check overflow dataframe lines
@@ -51,8 +51,7 @@ class OverflowAdvisor:
                 return self.result
             overflow_df.reset_index(drop=True, inplace=True)
             index = overflow_df.at[0, AdvisorConst.INDEX]
-            self.result = AdvisorResult(True, AdvisorConst.OVERFLOW_DETECTION, str(index),
-                                        AdvisorConst.OVERFLOW_SUGGEST)
+            self.result = AdvisorResult(
+                True, AdvisorConst.OVERFLOW_DETECTION, str(index), AdvisorConst.OVERFLOW_SUGGEST
+            )
         return self.result
-
-

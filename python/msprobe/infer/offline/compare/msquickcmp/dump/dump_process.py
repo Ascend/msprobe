@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -14,6 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 """
 Function:
@@ -74,13 +74,14 @@ def dump_data(args, input_shape, original_out_path):
     _, extension = utils.get_model_name_and_extension(args.golden_path)
     if extension == ".onnx":
         from msprobe.infer.offline.compare.msquickcmp.onnx_model.onnx_dump_data import OnnxDumpData
+
         dumper = OnnxDumpData(args, npu_dump_npy_path=None)
         dumper.generate_inputs_data(npu_dump_data_path=None, use_aipp=False)
         dumper.generate_dump_data()
     elif extension == ".om":
         output_json_path = atc_utils.convert_model_to_json(args.cann_path, args.golden_path, args.output_path)
         om_parser = OmParser(output_json_path)
-        use_aipp = True if om_parser.get_aipp_config_content() else False
+        use_aipp = True if om_parser.get_aipp_config_content() else False  # pylint: disable=simplifiable-if-expression
 
         args.target_path = args.golden_path
         dumper = NpuDumpData(args, is_golden=False)

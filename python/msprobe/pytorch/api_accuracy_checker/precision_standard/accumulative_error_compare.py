@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -15,11 +14,15 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
-import numpy as np
 
-from msprobe.pytorch.api_accuracy_checker.compare.algorithm import check_inf_nan_value, check_norm_value, \
-    check_small_value, get_error_balance
+from msprobe.pytorch.api_accuracy_checker.compare.algorithm import (
+    check_inf_nan_value,
+    check_norm_value,
+    check_small_value,
+    get_error_balance,
+)
 from msprobe.pytorch.api_accuracy_checker.precision_standard.base_standard import BaseCompare
 from msprobe.pytorch.api_accuracy_checker.precision_standard.standard_config import StandardConfig
 from msprobe.core.common.const import CompareConst
@@ -56,7 +59,7 @@ class AccumulativeErrorCompare(BaseCompare):
         _compute_metrics(): Computes the comparison metrics.
 
     Note:
-        This class assumes that the input data is a dictionary containing 'bench_output', 'device_output', 
+        This class assumes that the input data is a dictionary containing 'bench_output', 'device_output',
         'compare_column' and 'dtype'.
         The 'dtype' should be a PyTorch data type.
 
@@ -64,8 +67,9 @@ class AccumulativeErrorCompare(BaseCompare):
         BaseCompare: The base class for comparison classes.
         StandardConfig: The class containing standard configuration values.
     """
+
     def __init__(self, input_data):
-        super(AccumulativeErrorCompare, self).__init__(input_data)
+        super(AccumulativeErrorCompare, self).__init__(input_data)  # pylint: disable=super-with-arguments
         self.compare_algorithm = CompareConst.ACCUMULATIVE_ERROR_COMPARE
 
     def _get_bound(self):
@@ -85,18 +89,19 @@ class AccumulativeErrorCompare(BaseCompare):
             7. Creates a mask for small values based on the benchmark values and finite mask.
             8. Creates a mask for normal values by excluding small values from the finite mask.
         """
-        self.abs_bench, self.abs_bench_with_eps = self.stat_abs_bench_with_eps()
-        self.both_finite_mask, self.inf_nan_mask = self.stat_finite_and_infinite_mask()
-        self.abs_err = self.stat_abs_error()
-        self.bound = self._get_bound()
-        self.rel_err = self._get_rel_err(self.abs_err, self.abs_bench_with_eps)
-        self.small_value, self.small_value_atol = self.get_small_value_threshold()
-        self.small_value_mask = self.stat_small_value_mask(self.abs_bench, self.both_finite_mask, self.small_value)
-        self.normal_value_mask = self._get_normal_value_mask(self.both_finite_mask, self.small_value_mask)
+        self.abs_bench, self.abs_bench_with_eps = self.stat_abs_bench_with_eps()  # pylint: disable=attribute-defined-outside-init
+        self.both_finite_mask, self.inf_nan_mask = self.stat_finite_and_infinite_mask()  # pylint: disable=attribute-defined-outside-init
+        self.abs_err = self.stat_abs_error()  # pylint: disable=attribute-defined-outside-init
+        self.bound = self._get_bound()  # pylint: disable=attribute-defined-outside-init
+        self.rel_err = self._get_rel_err(self.abs_err, self.abs_bench_with_eps)  # pylint: disable=attribute-defined-outside-init
+        self.small_value, self.small_value_atol = self.get_small_value_threshold()  # pylint: disable=attribute-defined-outside-init
+        self.small_value_mask = self.stat_small_value_mask(self.abs_bench, self.both_finite_mask, self.small_value)  # pylint: disable=attribute-defined-outside-init
+        self.normal_value_mask = self._get_normal_value_mask(self.both_finite_mask, self.small_value_mask)  # pylint: disable=attribute-defined-outside-init
 
     def _compute_metrics(self):
-        inf_nan_error_ratio = check_inf_nan_value(self.inf_nan_mask, self.bench_output, self.device_output, self.dtype,
-                                                  self.bound)
+        inf_nan_error_ratio = check_inf_nan_value(
+            self.inf_nan_mask, self.bench_output, self.device_output, self.dtype, self.bound
+        )
         rel_err_ratio = check_norm_value(self.normal_value_mask, self.rel_err, self.bound)
         abs_err_ratio = check_small_value(self.abs_err, self.small_value_mask, self.bound)
         eb = get_error_balance(self.bench_output, self.device_output)
@@ -104,5 +109,5 @@ class AccumulativeErrorCompare(BaseCompare):
             "inf_nan_error_ratio": inf_nan_error_ratio,
             "rel_err_ratio": rel_err_ratio,
             "abs_err_ratio": abs_err_ratio,
-            "eb": eb
+            "eb": eb,
         }

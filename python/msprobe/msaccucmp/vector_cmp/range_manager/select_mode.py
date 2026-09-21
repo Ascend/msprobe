@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -24,8 +23,8 @@ This class mainly involves functions for selecting operators.
 from cmp_utils.reg_manager import RegManager
 from cmp_utils import log
 from vector_cmp.fusion_manager.compare_rule import CompareRule
-from cmp_utils.constant.compare_error import CompareError
-from vector_cmp.range_manager import range_manager
+from cmp_utils.constant.compare_error import CompareError  # pylint: disable=ungrouped-imports
+from vector_cmp.range_manager import range_manager  # pylint: disable=ungrouped-imports
 
 
 class SelectMode(range_manager.RangeManager):
@@ -46,8 +45,10 @@ class SelectMode(range_manager.RangeManager):
             if not value:
                 continue
             if not RegManager.match_pattern(RegManager.NUMBER_PATTERN, value):
-                log.print_error_log('The index (%s) is invalid, just supports '
-                                    '"index_1, index_2, ...", the value is zero or a positive number.' % input_str)
+                log.print_error_log(
+                    'The index (%s) is invalid, just supports '
+                    '"index_1, index_2, ...", the value is zero or a positive number.' % input_str
+                )
                 raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
             input_operators.append(int(value))
         selected_operators = list(set(input_operators))

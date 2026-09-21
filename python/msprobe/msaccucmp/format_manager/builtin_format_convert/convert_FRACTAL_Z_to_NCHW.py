@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -14,11 +13,13 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 """
 Function:
 convert format from FRACTAL_Z to NCHW.
 """
+
 import numpy as np
 
 
@@ -44,4 +45,9 @@ def convert(shape_from: list, shape_to: list, array: any) -> any:
     # transpose the shape from (c1,h,w,no,ni,c0) to (no,ni,c1,c0,h,w)
     tmp_input_tensor = np.transpose(tmp_input_tensor, (3, 4, 0, 5, 1, 2))
     tmp_input_tensor = tmp_input_tensor.reshape((axis_no * axis_ni, axis_c1 * axis_c0, axis_h, axis_w))
-    return tmp_input_tensor[:n_pad, :c_pad, :, :, ]
+    return tmp_input_tensor[
+        :n_pad,
+        :c_pad,
+        :,
+        :,
+    ]

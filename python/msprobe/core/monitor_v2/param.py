@@ -1,3 +1,21 @@
+# -------------------------------------------------------------------------
+# This file is part of the MindStudio project.
+# Copyright (c) 2026 Huawei Technologies Co.,Ltd.
+#
+# MindStudio is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#
+#          http://license.coscl.org.cn/MulanPSL2
+#
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
+# MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+# bandit: disable=B110
+# bandit: disable=B112
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -27,8 +45,7 @@ class ParamMonitorV2(BaseMonitorV2, ABC):
         self._step_patched = False
 
     @abstractmethod
-    def _compute_metrics(self, tag2tensor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-        ...
+    def _compute_metrics(self, tag2tensor: Dict[str, Any]) -> Dict[str, Dict[str, Any]]: ...
 
     def set_config(self, config: Dict[str, Any]) -> None:
         super().set_config(config)
@@ -36,7 +53,7 @@ class ParamMonitorV2(BaseMonitorV2, ABC):
         self._eps = float(config.get("eps", 1e-8))
         self.param_distribution = bool(config.get("param_distribution", True))
 
-    def start(self, model: Any = None, optimizer: Any = None, **context: Any) -> None:
+    def start(self, model: Any = None, optimizer: Any = None, **context: Any) -> None:  # pylint: disable=arguments-differ
         self.set_context(**context)
         if self._optimizer is not None:
             return
@@ -62,8 +79,8 @@ class ParamMonitorV2(BaseMonitorV2, ABC):
         pre_hook = getattr(self._optimizer, "register_step_pre_hook", None)
         post_hook = getattr(self._optimizer, "register_step_post_hook", None)
         if callable(pre_hook) and callable(post_hook):
-            self._step_hook_handles.append(pre_hook(self._on_pre_step))
-            self._step_hook_handles.append(post_hook(self._on_post_step))
+            self._step_hook_handles.append(pre_hook(self._on_pre_step))  # pylint: disable=not-callable
+            self._step_hook_handles.append(post_hook(self._on_post_step))  # pylint: disable=not-callable
             return
         if self._step_patched or not hasattr(self._optimizer, "step"):
             return
@@ -82,7 +99,7 @@ class ParamMonitorV2(BaseMonitorV2, ABC):
         for handle in self._step_hook_handles:
             try:
                 handle.remove()
-            except Exception:
+            except Exception:  # nosec B110
                 pass
         self._step_hook_handles.clear()
         if self._step_patched and self._optimizer is not None and self._orig_step is not None:
@@ -104,7 +121,7 @@ class ParamMonitorV2(BaseMonitorV2, ABC):
             try:
                 if param.numel() == 0:
                     continue
-            except Exception:
+            except Exception:  # nosec B112
                 continue
             if not FmkAdp.is_tensor(param):
                 continue

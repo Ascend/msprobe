@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -14,6 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 """
 Function:
@@ -41,28 +41,30 @@ class NodeAdvisor:
         log.print_info_log('Start Global Consistency detection.')
         data_columns = self.analyze_data.columns.values
         if AdvisorConst.COSINE_SIMILARITY not in data_columns:
-            log.print_warn_log('Input csv file does not contain %s columns, Skip Global Consistency detection.'
-                               % AdvisorConst.COSINE_SIMILARITY)
+            log.print_warn_log(
+                'Input csv file does not contain %s columns, Skip Global Consistency detection.'
+                % AdvisorConst.COSINE_SIMILARITY
+            )
             return self.result
         else:
             have_cos_df = self.analyze_data.dropna(subset=[AdvisorConst.COSINE_SIMILARITY])
             # check cosine dataframe lines
             if have_cos_df.shape[0] == 0:
-                log.print_warn_log('After analysis, input csv file %s column, does not have valid value. '
-                                   'May all values be NAN, please check.'
-                                   % AdvisorConst.COSINE_SIMILARITY)
+                log.print_warn_log(
+                    'After analysis, input csv file %s column, does not have valid value. '
+                    'May all values be NAN, please check.' % AdvisorConst.COSINE_SIMILARITY
+                )
                 return self.result
             cos_df = have_cos_df.reset_index(drop=True, inplace=False)
             err_cos_df = have_cos_df[have_cos_df[AdvisorConst.COSINE_SIMILARITY] < AdvisorConst.ACCURACY_THRESHOLD]
             if err_cos_df.shape[0] == 0:
-                return AdvisorResult(True, AdvisorConst.CONSISTENCY_DETECTION,
-                                     AdvisorConst.NO_ERROR_OP, AdvisorConst.CONSISTENCY_SUGGEST)
+                return AdvisorResult(
+                    True, AdvisorConst.CONSISTENCY_DETECTION, AdvisorConst.NO_ERROR_OP, AdvisorConst.CONSISTENCY_SUGGEST
+                )
             err_cos_df.reset_index(drop=True, inplace=True)
             index = err_cos_df.at[0, AdvisorConst.INDEX]
             cos_df_len = cos_df.shape[0]
             last_line_cos = cos_df.at[cos_df_len - 1, AdvisorConst.COSINE_SIMILARITY]
             if last_line_cos < AdvisorConst.ACCURACY_THRESHOLD:
-                return AdvisorResult(True, AdvisorConst.CONSISTENCY_DETECTION,
-                                     str(index), AdvisorConst.PROBLEM_SUGGEST)
-            return AdvisorResult(True, AdvisorConst.CONSISTENCY_DETECTION,
-                                 str(index), AdvisorConst.DEVIATION_SUGGEST)
+                return AdvisorResult(True, AdvisorConst.CONSISTENCY_DETECTION, str(index), AdvisorConst.PROBLEM_SUGGEST)
+            return AdvisorResult(True, AdvisorConst.CONSISTENCY_DETECTION, str(index), AdvisorConst.DEVIATION_SUGGEST)

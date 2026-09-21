@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -18,7 +17,7 @@
 from enum import Enum
 
 
-class Arg(object):
+class Arg(object):  # pylint: disable=useless-object-inheritance
     def __init__(self, benchmark_arg, atc_arg, msquickcmp_arg):
         self.atc_arg = atc_arg
         self.benchmark_arg = benchmark_arg

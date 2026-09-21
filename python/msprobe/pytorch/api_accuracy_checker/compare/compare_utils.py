@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -31,8 +30,13 @@ from msprobe.pytorch.common.log import logger
 current_time = time.strftime("%Y%m%d%H%M%S")
 API_PRECISION_COMPARE_RESULT_FILE_NAME = "api_precision_compare_result_" + current_time + ".csv"
 API_PRECISION_COMPARE_DETAILS_FILE_NAME = "api_precision_compare_details_" + current_time + ".csv"
-BENCHMARK_COMPARE_SUPPORT_LIST = ['torch.float16', 'torch.bfloat16', 'torch.float32', "torch.float8_e4m3fn", 
-                                  "torch.float8_e5m2"]
+BENCHMARK_COMPARE_SUPPORT_LIST = [
+    'torch.float16',
+    'torch.bfloat16',
+    'torch.float32',
+    "torch.float8_e4m3fn",
+    "torch.float8_e5m2",
+]
 API_PRECISION_COMPARE_UNSUPPORT_LIST = ['torch.float64', 'torch.complex64', 'torch.complex128']
 ULP_COMPARE_SUPPORT_LIST = ['torch.float16', 'torch.bfloat16', 'torch.float32']
 BINARY_COMPARE_UNSUPPORT_LIST = BENCHMARK_COMPARE_SUPPORT_LIST + API_PRECISION_COMPARE_UNSUPPORT_LIST
@@ -49,84 +53,45 @@ accumulative_error_standard_api = apis.get('AccumulativeErrorStandard')
 
 
 DETAIL_TEST_ROWS = [
-            [
-            "API Name", "Bench Dtype", "DEVICE Dtype", "Shape",
-            "余弦相似度",
-            "最大绝对误差",
-            "双百指标",
-            "双千指标",
-            "双万指标",
-            "二进制一致错误率",
-            "误差均衡性",
-            "均方根误差",
-            "小值域错误占比",
-            "相对误差最大值",
-            "相对误差平均值",
-            "inf/nan错误率",
-            "相对误差错误率",
-            "绝对误差错误率",
-            "ULP误差最大值",
-            "ULP误差平均值",
-            "ULP误差大于阈值占比",
-            "Status",
-            "Message"
-            ]
-        ]
+    [
+        "API Name",
+        "Bench Dtype",
+        "DEVICE Dtype",
+        "Shape",
+        "余弦相似度",
+        "最大绝对误差",
+        "双百指标",
+        "双千指标",
+        "双万指标",
+        "二进制一致错误率",
+        "误差均衡性",
+        "均方根误差",
+        "小值域错误占比",
+        "相对误差最大值",
+        "相对误差平均值",
+        "inf/nan错误率",
+        "相对误差错误率",
+        "绝对误差错误率",
+        "ULP误差最大值",
+        "ULP误差平均值",
+        "ULP误差大于阈值占比",
+        "Status",
+        "Message",
+    ]
+]
 
 
 precision_configs = {
-    torch.float16: {
-        'small_value': [
-            1e-3
-        ],
-        'small_value_atol': [
-            1e-5
-        ]
-    },
-    torch.bfloat16: {
-        'small_value': [
-            1e-3
-        ],
-        'small_value_atol': [
-            1e-5
-        ]
-    },
-    torch.float32: {
-        'small_value': [
-            1e-6
-        ],
-        'small_value_atol': [
-            1e-9
-        ]
-    }
+    torch.float16: {'small_value': [1e-3], 'small_value_atol': [1e-5]},
+    torch.bfloat16: {'small_value': [1e-3], 'small_value_atol': [1e-5]},
+    torch.float32: {'small_value': [1e-6], 'small_value_atol': [1e-9]},
 }
 
 
 ULP_PARAMETERS = {
-    torch.float16: {
-        'min_eb': [
-            -14
-        ],
-        'exponent_num': [
-            10
-        ]
-    },
-    torch.bfloat16: {
-        'min_eb': [
-            -126
-        ],
-        'exponent_num': [
-            7
-        ]
-    },
-    torch.float32: {
-        'min_eb': [
-            -126
-        ],
-        'exponent_num': [
-            23
-        ]
-    }
+    torch.float16: {'min_eb': [-14], 'exponent_num': [10]},
+    torch.bfloat16: {'min_eb': [-126], 'exponent_num': [7]},
+    torch.float32: {'min_eb': [-126], 'exponent_num': [23]},
 }
 
 
@@ -168,39 +133,67 @@ class ApiPrecisionCompareColumn:
     FORWWARD_STATUS = 'Forward Test Success'
     BACKWARD_STATUS = 'Backward Test Success'
     MESSAGE = 'Message'
-    
+
     @staticmethod
     def to_required_columns():
-        return [ApiPrecisionCompareColumn.API_NAME, ApiPrecisionCompareColumn.DEVICE_DTYPE, 
-                ApiPrecisionCompareColumn.SMALL_VALUE_ERROR_RATE, ApiPrecisionCompareColumn.RMSE, 
-                ApiPrecisionCompareColumn.MAX_REL_ERR, ApiPrecisionCompareColumn.MEAN_REL_ERR,
-                ApiPrecisionCompareColumn.EB, ApiPrecisionCompareColumn.ERROR_RATE, 
-                ApiPrecisionCompareColumn.INF_NAN_ERROR_RATIO, ApiPrecisionCompareColumn.REL_ERR_RATIO, 
-                ApiPrecisionCompareColumn.ABS_ERR_RATIO, ApiPrecisionCompareColumn.MEAN_ULP_ERR, 
-                ApiPrecisionCompareColumn.ULP_ERR_PROPORTION, ApiPrecisionCompareColumn.REL_ERR_THOUSANDTH]
+        return [
+            ApiPrecisionCompareColumn.API_NAME,
+            ApiPrecisionCompareColumn.DEVICE_DTYPE,
+            ApiPrecisionCompareColumn.SMALL_VALUE_ERROR_RATE,
+            ApiPrecisionCompareColumn.RMSE,
+            ApiPrecisionCompareColumn.MAX_REL_ERR,
+            ApiPrecisionCompareColumn.MEAN_REL_ERR,
+            ApiPrecisionCompareColumn.EB,
+            ApiPrecisionCompareColumn.ERROR_RATE,
+            ApiPrecisionCompareColumn.INF_NAN_ERROR_RATIO,
+            ApiPrecisionCompareColumn.REL_ERR_RATIO,
+            ApiPrecisionCompareColumn.ABS_ERR_RATIO,
+            ApiPrecisionCompareColumn.MEAN_ULP_ERR,
+            ApiPrecisionCompareColumn.ULP_ERR_PROPORTION,
+            ApiPrecisionCompareColumn.REL_ERR_THOUSANDTH,
+        ]
 
     @staticmethod
     def get_detail_csv_title():
-        return [ApiPrecisionCompareColumn.API_NAME, 
-                ApiPrecisionCompareColumn.SMALL_VALUE_ERROR_RATIO, ApiPrecisionCompareColumn.SMALL_VALUE_ERROR_STATUS, 
-                ApiPrecisionCompareColumn.RMSE_RATIO, ApiPrecisionCompareColumn.RMSE_STATUS, 
-                ApiPrecisionCompareColumn.MAX_REL_ERR_RATIO, ApiPrecisionCompareColumn.MAX_REL_ERR_STATUS, 
-                ApiPrecisionCompareColumn.MEAN_REL_ERR_RATIO, ApiPrecisionCompareColumn.MEAN_REL_ERR_STATUS, 
-                ApiPrecisionCompareColumn.EB_RATIO, ApiPrecisionCompareColumn.EB_STATUS, 
-                ApiPrecisionCompareColumn.INF_NAN_ERROR_RATIO, ApiPrecisionCompareColumn.INF_NAN_ERROR_RATIO_STATUS, 
-                ApiPrecisionCompareColumn.REL_ERR_RATIO, ApiPrecisionCompareColumn.REL_ERR_RATIO_STATUS, 
-                ApiPrecisionCompareColumn.ABS_ERR_RATIO, ApiPrecisionCompareColumn.ABS_ERR_RATIO_STATUS, 
-                ApiPrecisionCompareColumn.ERROR_RATE, ApiPrecisionCompareColumn.ERROR_RATE_STATUS, 
-                ApiPrecisionCompareColumn.MEAN_ULP_ERR, ApiPrecisionCompareColumn.ULP_ERR_PROPORTION, 
-                ApiPrecisionCompareColumn.ULP_ERR_PROPORTION_RATIO, ApiPrecisionCompareColumn.ULP_ERR_STATUS,
-                ApiPrecisionCompareColumn.REL_ERR_THOUSANDTH, ApiPrecisionCompareColumn.REL_ERR_THOUSANDTH_STATUS,
-                ApiPrecisionCompareColumn.FINAL_RESULT, ApiPrecisionCompareColumn.ALGORITHM, 
-                ApiPrecisionCompareColumn.MESSAGE]
-    
+        return [
+            ApiPrecisionCompareColumn.API_NAME,
+            ApiPrecisionCompareColumn.SMALL_VALUE_ERROR_RATIO,
+            ApiPrecisionCompareColumn.SMALL_VALUE_ERROR_STATUS,
+            ApiPrecisionCompareColumn.RMSE_RATIO,
+            ApiPrecisionCompareColumn.RMSE_STATUS,
+            ApiPrecisionCompareColumn.MAX_REL_ERR_RATIO,
+            ApiPrecisionCompareColumn.MAX_REL_ERR_STATUS,
+            ApiPrecisionCompareColumn.MEAN_REL_ERR_RATIO,
+            ApiPrecisionCompareColumn.MEAN_REL_ERR_STATUS,
+            ApiPrecisionCompareColumn.EB_RATIO,
+            ApiPrecisionCompareColumn.EB_STATUS,
+            ApiPrecisionCompareColumn.INF_NAN_ERROR_RATIO,
+            ApiPrecisionCompareColumn.INF_NAN_ERROR_RATIO_STATUS,
+            ApiPrecisionCompareColumn.REL_ERR_RATIO,
+            ApiPrecisionCompareColumn.REL_ERR_RATIO_STATUS,
+            ApiPrecisionCompareColumn.ABS_ERR_RATIO,
+            ApiPrecisionCompareColumn.ABS_ERR_RATIO_STATUS,
+            ApiPrecisionCompareColumn.ERROR_RATE,
+            ApiPrecisionCompareColumn.ERROR_RATE_STATUS,
+            ApiPrecisionCompareColumn.MEAN_ULP_ERR,
+            ApiPrecisionCompareColumn.ULP_ERR_PROPORTION,
+            ApiPrecisionCompareColumn.ULP_ERR_PROPORTION_RATIO,
+            ApiPrecisionCompareColumn.ULP_ERR_STATUS,
+            ApiPrecisionCompareColumn.REL_ERR_THOUSANDTH,
+            ApiPrecisionCompareColumn.REL_ERR_THOUSANDTH_STATUS,
+            ApiPrecisionCompareColumn.FINAL_RESULT,
+            ApiPrecisionCompareColumn.ALGORITHM,
+            ApiPrecisionCompareColumn.MESSAGE,
+        ]
+
     @staticmethod
     def get_result_csv_title():
-        return [ApiPrecisionCompareColumn.API_NAME, ApiPrecisionCompareColumn.FORWWARD_STATUS, 
-                ApiPrecisionCompareColumn.BACKWARD_STATUS, ApiPrecisionCompareColumn.MESSAGE]
+        return [
+            ApiPrecisionCompareColumn.API_NAME,
+            ApiPrecisionCompareColumn.FORWWARD_STATUS,
+            ApiPrecisionCompareColumn.BACKWARD_STATUS,
+            ApiPrecisionCompareColumn.MESSAGE,
+        ]
 
 
 CompareMessage = {
@@ -211,15 +204,15 @@ CompareMessage = {
 def check_dtype_comparable(x, y):
     if x.dtype in Const.FLOAT_TYPE:
         if y.dtype in Const.FLOAT_TYPE:
-            return True 
-        return False 
+            return True
+        return False
     if x.dtype in Const.BOOL_TYPE:
         if y.dtype in Const.BOOL_TYPE:
-            return True 
-        return False 
+            return True
+        return False
     if x.dtype in Const.INT_TYPE:
         if y.dtype in Const.INT_TYPE:
-            return True 
+            return True
         return False
     logger.warning(f"Compare: Unexpected dtype {x.dtype}, {y.dtype}")
     return False
@@ -263,4 +256,3 @@ def check_inf_or_nan(x, y, column_name):
         return handle_infinity(x, y, column_name)
     else:
         return handle_nan(x, y, column_name)
-    

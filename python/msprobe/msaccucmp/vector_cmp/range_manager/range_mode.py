@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -25,8 +24,8 @@ from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils import log
 from vector_cmp.fusion_manager.compare_rule import CompareRule
-from cmp_utils.constant.compare_error import CompareError
-from vector_cmp.range_manager import range_manager
+from cmp_utils.constant.compare_error import CompareError  # pylint: disable=ungrouped-imports
+from vector_cmp.range_manager import range_manager  # pylint: disable=ungrouped-imports
 
 
 class RangeMode(range_manager.RangeManager):
@@ -52,8 +51,9 @@ class RangeMode(range_manager.RangeManager):
             if index == ConstManager.END_INDEX and value == '-1':
                 continue
             if not RegManager.match_pattern(RegManager.NUMBER_PATTERN, value):
-                log.print_error_log('The range (%s) is invalid, just supports '
-                                    '"start,end,step", the value is number.' % input_str)
+                log.print_error_log(
+                    'The range (%s) is invalid, just supports "start,end,step", the value is number.' % input_str
+                )
                 raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
             cur_range[index] = int(value)
         return (x for x in cur_range)

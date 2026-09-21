@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -17,7 +16,6 @@
 # -------------------------------------------------------------------------
 
 # 定义比对算法及比对标准
-import math
 import torch
 import numpy as np
 
@@ -27,7 +25,7 @@ from msprobe.pytorch.api_accuracy_checker.common.utils import is_dtype_fp8
 from msprobe.core.common.const import CompareConst
 
 
-#cos
+# cos
 def cosine_sim(bench_output, device_output):
     msg = ""
     n_value = device_output.reshape(-1)
@@ -62,7 +60,7 @@ def cosine_sim(bench_output, device_output):
         return cos, cos > 0.99, msg
 
 
-#rmse
+# rmse
 def get_rmse(abs_err, inf_nan_mask):
     masked_ae = np.where(inf_nan_mask, 0, abs_err)
     mse = np.mean(np.square(masked_ae))
@@ -72,7 +70,7 @@ def get_rmse(abs_err, inf_nan_mask):
     return rmse
 
 
-#误差均衡性
+# 误差均衡性
 def get_error_balance(bench_data, device_data):
     larger_count = np.sum(np.greater(device_data - bench_data.astype(device_data.dtype), 0))
     smaller_count = np.sum(np.less(device_data - bench_data.astype(device_data.dtype), 0))
@@ -81,7 +79,7 @@ def get_error_balance(bench_data, device_data):
     return error_balance
 
 
-#小值域错误占比
+# 小值域错误占比
 def get_small_value_err_ratio(small_value_mask, abs_err_greater_mask):
     err_mask = np.logical_and(small_value_mask, abs_err_greater_mask)
     small_value_err_num = np.sum(err_mask)
@@ -112,12 +110,12 @@ def get_max_abs_err(abs_err):
     return max_abs_err, bool_result
 
 
-#相对误差最大值
+# 相对误差最大值
 def get_max_rel_err(rel_err):
     return np.max(rel_err) if np.max(rel_err) >= 0 else 0
 
 
-#相对误差均值
+# 相对误差均值
 def get_mean_rel_err(rel_err):
     non_negative_rel_err = rel_err[rel_err >= 0]
     return np.mean(non_negative_rel_err) if non_negative_rel_err.size > 0 else 0
@@ -161,7 +159,7 @@ def check_inf_nan_value(inf_nan_mask, bench_output, device_output, dtype, rtol):
         bench_output：golden输出
         device_output：npu输出
         dtype：npu输出的dtype
-    输出： 
+    输出：
         inf_nan_err_ratio：npu输出和golden输出的inf、nan不一致的比例
     '''
     _, abs_gpu_with_eps = get_abs_bench_with_eps(bench_output, dtype)
@@ -189,7 +187,7 @@ def check_small_value(abs_err, small_value_mask, small_value_atol):
         abs_err：npu输出和golden输出的绝对误差
         normal_value_mask：npu输出和golden输出的正常值mask
         atol：绝对误差的阈值
-    输出： 
+    输出：
         abs_err_ratio：npu输出和golden输出的绝对误差不满足阈值的比例
     '''
     greater_mask = np.greater(abs_err, small_value_atol)
@@ -205,7 +203,7 @@ def check_norm_value(normal_value_mask, rel_err, rtol):
         rel_err：npu输出和golden输出的相对误差
         normal_value_mask：npu输出和golden输出的正常值mask
         rtol：相对误差的阈值
-    输出： 
+    输出：
         rel_err_ratio：npu输出和golden输出的相对误差不满足阈值的比例
     '''
     err_mask = np.greater(rel_err, rtol)
@@ -237,30 +235,31 @@ def calc_ulp_err_fp8(bench_output, device_output):
     x = np.float64(bench_output)
     hi_fp8 = np.float64(device_output)
 
-    ex = np.log2(abs(x) + 2**(-1000))
+    ex = np.log2(abs(x) + 2 ** (-1000))
     ex[ex < -22] = -22
     exponent = np.floor(ex)  # Exponent
 
     eabs = np.abs(exponent)
-    wm = np.zeros_like(x)                       # Mantissa width Init
+    wm = np.zeros_like(x)  # Mantissa width Init
     wm[eabs <= 15] = 1
     wm[eabs <= 7] = 2
     wm[eabs <= 3] = 3
-    ulp_err = (hi_fp8 - x) * 2 ** (-exponent + wm)         # for wm = 1~3
+    ulp_err = (hi_fp8 - x) * 2 ** (-exponent + wm)  # for wm = 1~3
 
-    s_ex = ex * np.where(x >= 0, 1, -1)         
-    eh = np.log2(abs(hi_fp8) + 2**(-1000))
-    
+    s_ex = ex * np.where(x >= 0, 1, -1)
+    eh = np.log2(abs(hi_fp8) + 2 ** (-1000))
+
     s_eh = eh * np.where(hi_fp8 >= 0, 1, -1)
-    ulp_err1 = s_eh - s_ex                      # for wm = 0
+    ulp_err1 = s_eh - s_ex  # for wm = 0
 
-    ulp_err[wm == 0] = ulp_err1[wm == 0]        # Merge 2 cases
+    ulp_err[wm == 0] = ulp_err1[wm == 0]  # Merge 2 cases
     return ulp_err
 
 
 def calc_ulp_err(bench_output, device_output, eb, exponent_num, data_type):
-    return (device_output.astype(data_type) - bench_output).astype(data_type) * \
-            np.exp2(-eb + exponent_num).astype(data_type)
+    return (device_output.astype(data_type) - bench_output).astype(data_type) * np.exp2(-eb + exponent_num).astype(
+        data_type
+    )
 
 
 def calc_ratio(x, y, dtype):

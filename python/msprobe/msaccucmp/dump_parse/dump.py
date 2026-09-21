@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,19 +18,20 @@
 Function:
 This file mainly involves the dump function.
 """
+
 import re
 import os
 from enum import Enum
 from enum import unique
 
-from cmp_utils import utils, utils_type, path_check
+from cmp_utils import path_check
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.reg_manager import RegManager
 from cmp_utils.constant.compare_error import CompareError
 from dump_parse.ffts_parser import FFTSParser
 from dump_parse import dump_utils, mapping
-from dump_parse.dump_data_object import DumpDataObj, DumpTensor
+from dump_parse.dump_data_object import DumpDataObj
 
 
 @unique
@@ -39,6 +39,7 @@ class DumpType(Enum):
     """
     The enum for dump type
     """
+
     Offline = 0
     Standard = 1
     Quant = 2
@@ -50,8 +51,9 @@ class DumpInfo:
     The class for dump info
     """
 
-    def __init__(self: any, dump_path: str, dump_version: int, ffts: bool = False,
-                 fusion_json_file_path: str = "") -> None:
+    def __init__(
+        self: any, dump_path: str, dump_version: int, ffts: bool = False, fusion_json_file_path: str = ""
+    ) -> None:
         self.path = dump_path
         self.type = None
         self.op_name_to_file_map = {}
@@ -119,9 +121,10 @@ class DumpInfo:
         if self.type == DumpType.Quant and output_index is None:
             output_index = 0
         dump_file_list, dump_mode = self.get_op_dump_file(op_name, output_index)
-        dump_data_list = [dump_utils.parse_dump_file(dump_file_path,
-                                                     self.dump_version) for dump_file_path in dump_file_list]
-        if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:
+        dump_data_list = [
+            dump_utils.parse_dump_file(dump_file_path, self.dump_version) for dump_file_path in dump_file_list
+        ]
+        if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:  # pylint: disable=consider-using-in
             ffts_parser = FFTSParser(dump_file_list, dump_data_list)
             dump_file_path, dump_data = ffts_parser.parse_ffts
         else:
@@ -149,11 +152,11 @@ class DumpInfo:
         _, match = RegManager.match_group(pattern, item)
         if match is None:
             if item in self.hash_to_file_name_map.values():
-                msg = 'The file name \"{}\" in the file \"{}\" is invalid. It only supports {}' \
-                    .format(item, os.path.join(self.path, ConstManager.MAPPING_FILE_NAME), info)
+                msg = 'The file name "{}" in the file "{}" is invalid. It only supports {}'.format(
+                    item, os.path.join(self.path, ConstManager.MAPPING_FILE_NAME), info
+                )
             else:
-                msg = 'The file name \"{}\" in the path \"{}\"is invalid, only supports {}' \
-                    .format(item, self.path, info)
+                msg = 'The file name "{}" in the path "{}"is invalid, only supports {}'.format(item, self.path, info)
             log.print_warn_log(msg)
             raise CompareError(CompareError.MSACCUCMP_DUMP_FILE_ERROR)
         return match.group(1), expect
@@ -168,15 +171,19 @@ class DumpInfo:
     def _check_file_match_pattern(self: any, item: str) -> (any, DumpType):
         if item.endswith(ConstManager.NUMPY_SUFFIX):
             return self._match_dump_pattern(
-                RegManager.NUMPY_DUMP_PATTERN, item, ConstManager.NUMPY_FILE_NAME, DumpType.Numpy)
+                RegManager.NUMPY_DUMP_PATTERN, item, ConstManager.NUMPY_FILE_NAME, DumpType.Numpy
+            )
         if item.endswith(ConstManager.STANDARD_SUFFIX):
             return self._match_dump_pattern(
-                RegManager.STANDARD_DUMP_PATTERN, item, ConstManager.STANDARD_FILE_NAME, DumpType.Standard)
+                RegManager.STANDARD_DUMP_PATTERN, item, ConstManager.STANDARD_FILE_NAME, DumpType.Standard
+            )
         if item.endswith(ConstManager.QUANT_SUFFIX):
             return self._match_dump_pattern(
-                RegManager.QUANT_DUMP_PATTERN, item, ConstManager.QUANT_FILE_NAME, DumpType.Quant)
+                RegManager.QUANT_DUMP_PATTERN, item, ConstManager.QUANT_FILE_NAME, DumpType.Quant
+            )
         return self._match_dump_pattern(
-            RegManager.OFFLINE_DUMP_PATTERN, item, ConstManager.OFFLINE_FILE_NAME, DumpType.Offline)
+            RegManager.OFFLINE_DUMP_PATTERN, item, ConstManager.OFFLINE_FILE_NAME, DumpType.Offline
+        )
 
     def _handle_one_file(self: any, file_path: str) -> None:
         item = os.path.basename(file_path)
@@ -184,12 +191,12 @@ class DumpInfo:
         if item.isdigit() or (item_name.isdigit() and item_extension == ".npy"):
             mapping_file_path = os.path.join(self.path, ConstManager.MAPPING_FILE_NAME)
             if not os.path.exists(mapping_file_path):
-                log.print_warn_log('The file name \"{}\" corresponding mapping file \"{}\" is not exist.'
-                                   .format(item, mapping_file_path))
+                log.print_warn_log(
+                    'The file name "{}" corresponding mapping file "{}" is not exist.'.format(item, mapping_file_path)
+                )
                 return
             if self.hash_to_file_name_map and not self.hash_to_file_name_map.get(item):
-                log.print_warn_log('The file name \"{}\" in the file \"{}\" is not exist.'
-                                   .format(item, mapping_file_path))
+                log.print_warn_log('The file name "{}" in the file "{}" is not exist.'.format(item, mapping_file_path))
                 return
             item = self.hash_to_file_name_map.get(item)
         try:
@@ -200,7 +207,7 @@ class DumpInfo:
             pass
         if not self.ffts:
             op_name = handle_op_name(match, self.fusion_json_file_path)
-        # if real op name contain '_lxslice' field, the op will not be added to map
+            # if real op name contain '_lxslice' field, the op will not be added to map
             if ConstManager.FFTS_MANUAL_MODE_FIELD in op_name:
                 return
             self._check_task_type(op_name, item)
@@ -213,8 +220,9 @@ class DumpInfo:
             self.type = current_dump_type
         else:
             if self.type != current_dump_type:
-                log.print_error_log('Not all files in the path "%r" are of the same type, such as "%s".'
-                                    % (self.path, item))
+                log.print_error_log(
+                    'Not all files in the path "%r" are of the same type, such as "%s".' % (self.path, item)
+                )
                 raise CompareError(CompareError.MSACCUCMP_DUMP_FILE_ERROR)
         if op_name in self.op_name_to_file_map:
             self.op_name_to_file_map.get(op_name).append(file_path)
@@ -266,15 +274,21 @@ class CompareData:
     The class for compare data, left dump data and right dump data
     """
 
-    def __init__(self: any, left_dump_path: str, right_dump_path: str, dump_version: int,
-                 ffts: bool = False, fusion_json_file_path: str = "") -> None:
+    def __init__(
+        self: any,
+        left_dump_path: str,
+        right_dump_path: str,
+        dump_version: int,
+        ffts: bool = False,
+        fusion_json_file_path: str = "",
+    ) -> None:
         self.left_dump_info = DumpInfo(left_dump_path, dump_version, ffts, fusion_json_file_path)
         self.right_dump_info = DumpInfo(right_dump_path, dump_version, ffts, fusion_json_file_path)
         self.dump_version = dump_version
 
-    def check_arguments_valid(self: any, fusion_json_file_path: str,
-                              quant_fusion_rule_file_path: str,
-                              close_fusion_rule_file_path: str) -> None:
+    def check_arguments_valid(
+        self: any, fusion_json_file_path: str, quant_fusion_rule_file_path: str, close_fusion_rule_file_path: str
+    ) -> None:
         """
         Check arguments valid, if invalid, throw exception
         :param fusion_json_file_path: the fusion json file path
@@ -284,14 +298,18 @@ class CompareData:
         self.left_dump_info.check_arguments_valid()
         self.right_dump_info.check_arguments_valid()
         left_type = self.left_dump_info.type
-        info = 'When the left %s and the right %s,' \
-               % (self.left_dump_info.get_data_info(), self.right_dump_info.get_data_info())
+        info = 'When the left %s and the right %s,' % (
+            self.left_dump_info.get_data_info(),
+            self.right_dump_info.get_data_info(),
+        )
         if left_type == DumpType.Offline:
-            self._check_left_type_offline_valid(info, fusion_json_file_path, quant_fusion_rule_file_path,
-                                                close_fusion_rule_file_path)
+            self._check_left_type_offline_valid(
+                info, fusion_json_file_path, quant_fusion_rule_file_path, close_fusion_rule_file_path
+            )
         elif left_type == DumpType.Quant:
-            self._check_left_type_quant_valid(info, fusion_json_file_path, quant_fusion_rule_file_path,
-                                              close_fusion_rule_file_path)
+            self._check_left_type_quant_valid(
+                info, fusion_json_file_path, quant_fusion_rule_file_path, close_fusion_rule_file_path
+            )
         elif left_type == DumpType.Standard:
             log.print_error_log('%s this scenario cannot be compared.' % info)
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_TYPE_ERROR)
@@ -322,8 +340,13 @@ class CompareData:
         """
         return self.left_dump_info.is_standard_quant() and self.right_dump_info.is_standard_origin()
 
-    def _check_offline_standard_valid(self: any, info: str, fusion_json_file_path: str,
-                                      quant_fusion_rule_file_path: str, close_fusion_rule_file_path: str) -> None:
+    def _check_offline_standard_valid(
+        self: any,
+        info: str,
+        fusion_json_file_path: str,
+        quant_fusion_rule_file_path: str,
+        close_fusion_rule_file_path: str,
+    ) -> None:
         if fusion_json_file_path == "":
             log.print_error_log('%s the -f parameter is required.' % info)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
@@ -337,8 +360,13 @@ class CompareData:
             log.print_error_log('%s there is no need to enter the -q parameter.' % info)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
-    def _check_offline_quant_valid(self: any, info: str, fusion_json_file_path: str,
-                                   quant_fusion_rule_file_path: str, close_fusion_rule_file_path: str) -> None:
+    def _check_offline_quant_valid(
+        self: any,
+        info: str,
+        fusion_json_file_path: str,
+        quant_fusion_rule_file_path: str,
+        close_fusion_rule_file_path: str,
+    ) -> None:
         if not self.left_dump_info.quant:
             log.print_error_log('%s this scenario cannot be compared.' % info)
             raise CompareError(CompareError.MSACCUCMP_INVALID_DUMP_TYPE_ERROR)
@@ -349,8 +377,13 @@ class CompareData:
             log.print_error_log('%s there is no need to enter the -q or -cf parameter.' % info)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
-    def _check_left_type_offline_valid(self: any, info: str, fusion_json_file_path: str,
-                                       quant_fusion_rule_file_path: str, close_fusion_rule_file_path: str) -> None:
+    def _check_left_type_offline_valid(
+        self: any,
+        info: str,
+        fusion_json_file_path: str,
+        quant_fusion_rule_file_path: str,
+        close_fusion_rule_file_path: str,
+    ) -> None:
         right_type = self.right_dump_info.type
         if right_type == DumpType.Offline:
             if self.left_dump_info.quant != self.right_dump_info.quant:
@@ -366,14 +399,21 @@ class CompareData:
                 log.print_error_log('%s there is no need to enter the -q parameter.' % info)
                 raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
         elif right_type == DumpType.Standard:
-            self._check_offline_standard_valid(info, fusion_json_file_path, quant_fusion_rule_file_path,
-                                               close_fusion_rule_file_path)
+            self._check_offline_standard_valid(
+                info, fusion_json_file_path, quant_fusion_rule_file_path, close_fusion_rule_file_path
+            )
         elif right_type == DumpType.Quant:
-            self._check_offline_quant_valid(info, fusion_json_file_path, quant_fusion_rule_file_path,
-                                            close_fusion_rule_file_path)
+            self._check_offline_quant_valid(
+                info, fusion_json_file_path, quant_fusion_rule_file_path, close_fusion_rule_file_path
+            )
 
-    def _check_left_type_quant_valid(self: any, info: str, fusion_json_file_path: str,
-                                     quant_fusion_rule_file_path: str, close_fusion_rule_file_path: str) -> None:
+    def _check_left_type_quant_valid(
+        self: any,
+        info: str,
+        fusion_json_file_path: str,
+        quant_fusion_rule_file_path: str,
+        close_fusion_rule_file_path: str,
+    ) -> None:
         right_type = self.right_dump_info.type
         if close_fusion_rule_file_path != "":
             log.print_error_log('%s there is no need to enter the -cf parameter.' % info)
@@ -396,23 +436,21 @@ def handle_op_name(file_op_name: str, fusion_json_file_path: str) -> str:
         return file_op_name
 
     # filter field '_lxsliceX' and '_sgt_field'
-    if ConstManager.FFTS_MANUAL_MODE_FIELD not in file_op_name \
-            and ConstManager.SGT_FIELD not in file_op_name:
+    if ConstManager.FFTS_MANUAL_MODE_FIELD not in file_op_name and ConstManager.SGT_FIELD not in file_op_name:
         return file_op_name
 
     # field '_lxsliceX' at the end of name
     if ConstManager.FFTS_MANUAL_MODE_FIELD in file_op_name:
-        first_match = RegManager.get_matchs(
-            RegManager.FFTS_MANUAL_FIELD_PATTERN, file_op_name)[0]
-        file_op_name = \
-            file_op_name[:first_match.start() - 1] if first_match.end() == first_match.endpos else file_op_name
+        first_match = RegManager.get_matchs(RegManager.FFTS_MANUAL_FIELD_PATTERN, file_op_name)[0]
+        file_op_name = (
+            file_op_name[: first_match.start() - 1] if first_match.end() == first_match.endpos else file_op_name
+        )
 
     # filter field '_sgt_field'
     if ConstManager.SGT_FIELD in file_op_name:
         # field '_sgt_graph' in the name
-        end_match = RegManager.get_matchs(
-            RegManager.SGT_FLIED_PATTERN, file_op_name)[-1]
-        file_op_name = file_op_name[end_match.end() + 1:] if end_match.end() != end_match.endpos else file_op_name
+        end_match = RegManager.get_matchs(RegManager.SGT_FLIED_PATTERN, file_op_name)[-1]
+        file_op_name = file_op_name[end_match.end() + 1 :] if end_match.end() != end_match.endpos else file_op_name
     return file_op_name
 
 
@@ -420,4 +458,3 @@ def process_op_name(name):
     re_pattern = re.compile(RegManager.LXSLICE_PATTERN)
     op_name = re_pattern.sub("", name)
     return op_name
-

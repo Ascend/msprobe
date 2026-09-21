@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -52,8 +51,7 @@ class TensorId:
         if ret != CompareError.MSACCUCMP_NONE_ERROR:
             raise CompareError(ret)
         if self.tensor_type not in ConstManager.SUPPORT_DETAIL_TYPE:
-            log.print_only_support_error('detail type', self.tensor_type,
-                                         ConstManager.SUPPORT_DETAIL_TYPE)
+            log.print_only_support_error('detail type', self.tensor_type, ConstManager.SUPPORT_DETAIL_TYPE)
             raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
 
     def get_tensor_id(self: any) -> str:
@@ -105,8 +103,9 @@ class DetailInfo:
         self.tensor_id.check_arguments_valid()
         const_manager = ConstManager()
         if self.top_n < const_manager.min_top_n or self.top_n > const_manager.max_top_n:
-            log.print_out_of_range_error('', 'top n', self.top_n,
-                                         '[%d, %d]' % (const_manager.min_top_n, const_manager.max_top_n))
+            log.print_out_of_range_error(
+                '', 'top n', self.top_n, '[%d, %d]' % (const_manager.min_top_n, const_manager.max_top_n)
+            )
             raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
 
     def get_detail_op(self: any, fusion_rule: FusionRuleParser) -> (FusionOp, list):
@@ -117,8 +116,7 @@ class DetailInfo:
         """
         fusion_op_list, fusion_op = fusion_rule.get_fusion_op_list(self.tensor_id.op_name)
         # get the map for {original_op_names, op_list}
-        right_to_left_map = fusion_rule_parser.make_right_to_left_multi_map(
-            fusion_op_list)
+        right_to_left_map = fusion_rule_parser.make_right_to_left_multi_map(fusion_op_list)
         my_output_ops_str, ground_truth_ops_str = fusion_rule_parser.make_left_and_right_string(right_to_left_map)
         # if right ops is empty, mark '*' indicates that the left op is a
         # new operator, and there is no operator on the right that matches it
@@ -151,8 +149,9 @@ class DetailInfo:
         :param ground_truth_format: ground truth format
         """
         if tensor_format != ground_truth_format:
-            log.print_error_log("NPUDump tensor format not match Ground truth tensor format!"
-                                "Cannot be directly compared.")
+            log.print_error_log(
+                "NPUDump tensor format not match Ground truth tensor format!Cannot be directly compared."
+            )
             raise CompareError(CompareError.MSACCUCMP_INVALID_FORMAT_ERROR)
         if common.contain_depth_dimension(tensor_format):
             self.detail_format = 'N C D H W'
@@ -178,5 +177,8 @@ class DetailInfo:
         """
         Get detail_info
         """
-        return "NPUDump:%s\nGroundTruth:%s\nFormat:%s\n" % (self.my_output_ops, self.ground_truth_ops,
-                                                            self.detail_format)
+        return "NPUDump:%s\nGroundTruth:%s\nFormat:%s\n" % (
+            self.my_output_ops,
+            self.ground_truth_ops,
+            self.detail_format,
+        )

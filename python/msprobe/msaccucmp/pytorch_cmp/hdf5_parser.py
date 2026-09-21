@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,11 +18,12 @@
 Function:
 This file is used to parse the HDF5 file format.
 """
+
 import re
 from enum import Enum
 import collections
 
-from cmp_utils import utils, utils_type, path_check
+from cmp_utils import utils, utils_type
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
@@ -33,6 +33,7 @@ class DataSetType(Enum):
     """
     The enum for pytorch dump data type
     """
+
     TENSOR = 0
     VEC_TENSOR = 1
     VEC_I64 = 2
@@ -62,6 +63,7 @@ class Hdf5Parser:
     """
     The class for HDF5 file parse
     """
+
     MAX_OP_NUM = 1000000
     DATASET_PATH_PATTERN = r"(/[a-zA-Z0-9_]*)(/[0-9]*)(/[a-z]*)"
     INPUT = "/input"
@@ -91,8 +93,7 @@ class Hdf5Parser:
         try:
             self.file_handle = _open_h5py_file(self.file_path, model)
             return CompareError.MSACCUCMP_NONE_ERROR
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError):
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, KeyError, IOError):
             self.file_handle = None
             log.print_error_log("Open {} failed!".format(self.file_path))
             return CompareError.MSACCUCMP_OPEN_FILE_ERROR
@@ -106,8 +107,7 @@ class Hdf5Parser:
         if self.file_handle is not None:
             try:
                 self.file_handle.close()
-            except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                    MemoryError):
+            except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError):
                 log.print_error_log("Close {} failed!".format(self.file_path))
                 return
             self.file_handle = None
@@ -123,10 +123,8 @@ class Hdf5Parser:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
         try:
             attrs = self.file_handle[dataset_path].attrs
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError) as err:
-            log.print_error_log("Read dataset attr:{} failed!"
-                                .format(dataset_path))
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, KeyError, IOError) as err:
+            log.print_error_log("Read dataset attr:{} failed!".format(dataset_path))
             raise CompareError(CompareError.MSACCUCMP_PARSE_DUMP_FILE_ERROR) from err
         if attrs:
             return True, attrs.get(attr_type)
@@ -144,10 +142,8 @@ class Hdf5Parser:
             if self._dataset_path_valid(dataset_path):
                 return self.file_handle[dataset_path][()]
             return []
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError) as err:
-            log.print_error_log("Read dataset:{} failed!"
-                                .format(dataset_path))
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, KeyError, IOError) as err:
+            log.print_error_log("Read dataset:{} failed!".format(dataset_path))
             raise CompareError(CompareError.MSACCUCMP_PARSE_DUMP_FILE_ERROR) from err
         finally:
             pass
@@ -204,8 +200,7 @@ class Hdf5Parser:
         _, _, order, _ = dataset_path.split('/', 3)
         all_ext_opname = self.get_ext_opname_group_by_order(int(order))
         for item in all_ext_opname:
-            if item.startswith("{}:".format(op_name)) and \
-                    dataset_path in self.ext_opname_dataset_map.get(item, []):
+            if item.startswith("{}:".format(op_name)) and dataset_path in self.ext_opname_dataset_map.get(item, []):
                 return True
         return False
 
@@ -213,8 +208,7 @@ class Hdf5Parser:
         """
         Check whether the file is empty.
         """
-        return self.file_handle is None \
-               or self.file_handle.keys()
+        return self.file_handle is None or self.file_handle.keys()
 
     def is_load_mode(self: any) -> bool:
         """
@@ -224,8 +218,7 @@ class Hdf5Parser:
 
     def _check_value(self: any, op_order_list: list) -> None:
         if len(op_order_list) > self.MAX_OP_NUM:
-            log.print_error_log("The number of ops in {} exceeds the range!"
-                                .format(self.file_path))
+            log.print_error_log("The number of ops in {} exceeds the range!".format(self.file_path))
             raise CompareError(CompareError.MSACCUCMP_INDEX_OUT_OF_BOUNDS_ERROR)
 
     def _get_mapping_set(self: any, op_name: str) -> list:
@@ -267,10 +260,8 @@ class Hdf5Parser:
         try:
             if self._is_multimap(op_name, mapping_set):
                 return self._gen_ext_opname_map_special(op_name, mapping_set)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError):
-            log.print_error_log("construct order_ext_map by {} failed:!"
-                                .format(op_name))
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, KeyError, IOError):
+            log.print_error_log("construct order_ext_map by {} failed:!".format(op_name))
             return order_ext_opname_map
 
         # sort by the order of the op executed multi times
@@ -314,8 +305,7 @@ class Hdf5Parser:
         self.ext_opname_dataset_map[ext_opname].append(curr_group_path)
         if self.device_type and self.device_type != utils_type.DeviceType.CPU.value:
             return
-        attr_ok, device_type = self.get_dump_data_attr(curr_group_path,
-                                                       utils_type.DatasetAttr.DeviceType.name)
+        attr_ok, device_type = self.get_dump_data_attr(curr_group_path, utils_type.DatasetAttr.DeviceType.name)
         if attr_ok:
             self.device_type = device_type
 
@@ -351,10 +341,8 @@ class Hdf5Parser:
                 for next_group_name in self.file_handle[curr_group_path].keys():
                     next_group_path = "{}/{}".format(curr_group_path, next_group_name)
                     self._parse_dataset_recursively(ext_opname, next_group_path)
-        except (OSError, SystemError, ValueError, TypeError, RuntimeError,
-                MemoryError, KeyError, IOError):
-            log.print_error_log("parse_dataset failed, group path is:{}!"
-                                .format(curr_group_path))
+        except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError, KeyError, IOError):
+            log.print_error_log("parse_dataset failed, group path is:{}!".format(curr_group_path))
         finally:
             pass
 

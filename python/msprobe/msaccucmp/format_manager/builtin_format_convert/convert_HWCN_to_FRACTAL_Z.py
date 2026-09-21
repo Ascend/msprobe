@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -14,11 +13,13 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 """
 Function:
 convert format from HWCN to FRACTAL_Z.
 """
+
 from itertools import product
 import numpy as np
 
@@ -68,22 +69,27 @@ def convert(shape_from: list, shape_to: list, array: any, group: int = 1) -> any
     # Specific multiplying algorithm to get e_multi
     e_multi = min(lcm(lcm(c_ori, ConstManager.C0_AXIS) // c_ori, lcm(n_ori, ConstManager.N0_AXIS) // n_ori), group)
     array_to = np.zeros(
-        (_get_count_for_axis(shape_from, ceil(group, e_multi), e_multi),
-         ceil(ceil(e_multi * n_ori, ConstManager.N0_AXIS) * ConstManager.N0_AXIS, ConstManager.N0_AXIS),
-         ConstManager.N0_AXIS,
-         ConstManager.C0_AXIS), dtype=array_shape.dtype)
+        (
+            _get_count_for_axis(shape_from, ceil(group, e_multi), e_multi),
+            ceil(ceil(e_multi * n_ori, ConstManager.N0_AXIS) * ConstManager.N0_AXIS, ConstManager.N0_AXIS),
+            ConstManager.N0_AXIS,
+            ConstManager.C0_AXIS,
+        ),
+        dtype=array_shape.dtype,
+    )
     # convert hwcn to gc1hwn1n0c0
-    for g_axis, h_axis, w_axis, c_axis, n_axis in \
-            product(range(group), range(kh_axis), range(kw_axis), range(c_ori), range(n_ori)):
+    for g_axis, h_axis, w_axis, c_axis, n_axis in product(
+        range(group), range(kh_axis), range(kw_axis), range(c_ori), range(n_ori)
+    ):
         e_val = g_axis % e_multi
         dst_c = e_val * c_ori + c_axis
         dst_n = e_val * n_ori + n_axis
         src_n = g_axis * n_ori + n_axis
-        array_to[_get_axis([g_axis, h_axis, w_axis],
-                            {'e_multi': e_multi, 'kh_axis': kh_axis, 'kw_axis': kw_axis},
-                            dst_c, w_axis)][dst_n // ConstManager.N0_AXIS][
-            dst_n % ConstManager.N0_AXIS][dst_c % ConstManager.C0_AXIS] = \
-            array_shape[h_axis][w_axis][c_axis][src_n]
+        array_to[
+            _get_axis(
+                [g_axis, h_axis, w_axis], {'e_multi': e_multi, 'kh_axis': kh_axis, 'kw_axis': kw_axis}, dst_c, w_axis
+            )
+        ][dst_n // ConstManager.N0_AXIS][dst_n % ConstManager.N0_AXIS][dst_c % ConstManager.C0_AXIS] = array_shape[
+            h_axis
+        ][w_axis][c_axis][src_n]
     return array_to
-
-

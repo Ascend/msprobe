@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -14,11 +13,13 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 """
 Function:
 NpuVsNpuComparison class. This class mainly involves the compare function.
 """
+
 import numpy as np
 
 from cmp_utils import utils
@@ -30,11 +31,11 @@ from algorithm_manager.algorithm_manager import AlgorithmManager
 from vector_cmp.fusion_manager.fusion_op import FusionOp
 from vector_cmp.fusion_manager.fusion_op import Tensor
 from vector_cmp.fusion_manager import compare_result
-from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.compare_error import CompareError  # pylint: disable=ungrouped-imports
 from overflow.overflow_detection import OverflowDetection
-from dump_parse.ffts_parser import FFTSParser
+from dump_parse.ffts_parser import FFTSParser  # pylint: disable=ungrouped-imports
 from dump_parse import dump_utils
-from conversion.tensor_conversion import ConvertSingleTensorFormat 
+from conversion.tensor_conversion import ConvertSingleTensorFormat  # pylint: disable=ungrouped-imports
 
 
 class NpuVsNpuComparison:
@@ -42,26 +43,35 @@ class NpuVsNpuComparison:
     The class for npu vs npu comparison
     """
 
-    def __init__(self: any, compare_data: CompareData, fusion_op_list: list, algorithm_manager: AlgorithmManager,
-                 overflow_detection: bool = False) -> None:
+    def __init__(
+        self: any,
+        compare_data: CompareData,
+        fusion_op_list: list,
+        algorithm_manager: AlgorithmManager,
+        overflow_detection: bool = False,
+    ) -> None:
         self.compare_data = compare_data
         self.fusion_op_list = fusion_op_list
         self.algorithm_manager = algorithm_manager
         self.op_name = fusion_op_list[0].op_name
         self.overflow_detection = overflow_detection
-        self.enable_padding_restore = True # 预留用于控制是否开启补齐恢复
+        self.enable_padding_restore = True  # 预留用于控制是否开启补齐恢复
         self._tensor_converter = ConvertSingleTensorFormat()
 
-    def check_tensor_valid(self: any, my_output_tensor_list: any, ground_truth_tensor_list: any,
-                           tensor_type: str) -> (int, str):
+    def check_tensor_valid(
+        self: any, my_output_tensor_list: any, ground_truth_tensor_list: any, tensor_type: str
+    ) -> (int, str):
         """
         check tensor valid
         """
         # check the length is same
         if len(my_output_tensor_list) != len(ground_truth_tensor_list):
             message = log.print_not_match_error(
-                self.op_name, 'number of %s' % tensor_type, str(len(my_output_tensor_list)),
-                str(len(ground_truth_tensor_list)))
+                self.op_name,
+                'number of %s' % tensor_type,
+                str(len(my_output_tensor_list)),
+                str(len(ground_truth_tensor_list)),
+            )
             return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
         if len(my_output_tensor_list) != 0:
             # check each tensor format and shape valid
@@ -104,46 +114,64 @@ class NpuVsNpuComparison:
         error_msg = []
         try:
             my_output_dump_data = self._get_dump_data(
-                self.fusion_op_list[0], self.compare_data.left_dump_info.path,
-                self.compare_data.left_dump_info.op_name_to_task_mode_map, ConstManager.LEFT_TYPE)
+                self.fusion_op_list[0],
+                self.compare_data.left_dump_info.path,
+                self.compare_data.left_dump_info.op_name_to_task_mode_map,
+                ConstManager.LEFT_TYPE,
+            )
         except CompareError as error:
             error_msg.append(error.message)
             fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager)
             _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg)
             result_info = utils.ResultInfo(
-                self.fusion_op_list[0].op_name, True, _result.result_list, error.code,
-                [], _result.input_result_list, _result.output_result_list, _result.is_ffts,
-                {}, True)
+                self.fusion_op_list[0].op_name,
+                True,
+                _result.result_list,
+                error.code,
+                [],
+                _result.input_result_list,
+                _result.output_result_list,
+                _result.is_ffts,
+                {},
+                True,
+            )
             single_op_cmp_result.update_attr(result_info)
             return error.code, True, [single_op_cmp_result]
 
         ground_truth_dump_data = self._get_dump_data(
-            self.fusion_op_list[1], self.compare_data.right_dump_info.path,
-            self.compare_data.right_dump_info.op_name_to_task_mode_map, ConstManager.RIGHT_TYPE)
+            self.fusion_op_list[1],
+            self.compare_data.right_dump_info.path,
+            self.compare_data.right_dump_info.op_name_to_task_mode_map,
+            ConstManager.RIGHT_TYPE,
+        )
 
         compare_vector_result = []
         # check npu input data valid
         input_ret, input_error_msg = self.check_tensor_valid(
-            my_output_dump_data.data.input_data, ground_truth_dump_data.data.input_data, ConstManager.INPUT)
+            my_output_dump_data.data.input_data, ground_truth_dump_data.data.input_data, ConstManager.INPUT
+        )
         if input_ret == CompareError.MSACCUCMP_NONE_ERROR:
             # compare input
-            compare_vector_result += self._compare_by_tensor(my_output_dump_data, ground_truth_dump_data,
-                                                             ConstManager.INPUT)
+            compare_vector_result += self._compare_by_tensor(
+                my_output_dump_data, ground_truth_dump_data, ConstManager.INPUT
+            )
 
         # check npu output data valid
         output_ret, output_error_msg = self.check_tensor_valid(
-            my_output_dump_data.data.output_data, ground_truth_dump_data.data.output_data, ConstManager.OUTPUT)
+            my_output_dump_data.data.output_data, ground_truth_dump_data.data.output_data, ConstManager.OUTPUT
+        )
 
         if output_ret == CompareError.MSACCUCMP_NONE_ERROR:
             # compare output
-            compare_vector_result += self._compare_by_tensor(my_output_dump_data, ground_truth_dump_data,
-                                                             ConstManager.OUTPUT)
+            compare_vector_result += self._compare_by_tensor(
+                my_output_dump_data, ground_truth_dump_data, ConstManager.OUTPUT
+            )
 
         if not my_output_dump_data.data.ffts_file_check:
             msg = "This is a FFTS+ mode dump data, The number of files does not match the number of thread"
             error_msg.append(msg)
         # if no input and output, result is NaN
-        if input_ret != CompareError.MSACCUCMP_NONE_ERROR and output_ret != CompareError.MSACCUCMP_NONE_ERROR:
+        if input_ret != CompareError.MSACCUCMP_NONE_ERROR and output_ret != CompareError.MSACCUCMP_NONE_ERROR:  # pylint: disable=consider-using-in
             error_msg.append(input_error_msg)
             error_msg.append(output_error_msg)
             compare_vector_result = None
@@ -153,9 +181,17 @@ class NpuVsNpuComparison:
         _result = fusion_op_result.get_result(self.fusion_op_list[0], compare_vector_result, error_msg)
 
         result_info = utils.ResultInfo(
-            my_output_dump_data.name, True, _result.result_list, output_ret,
-            [], _result.input_result_list, _result.output_result_list, _result.is_ffts,
-            {}, True)
+            my_output_dump_data.name,
+            True,
+            _result.result_list,
+            output_ret,
+            [],
+            _result.input_result_list,
+            _result.output_result_list,
+            _result.is_ffts,
+            {},
+            True,
+        )
 
         single_op_cmp_result.update_attr(result_info)
 
@@ -173,37 +209,49 @@ class NpuVsNpuComparison:
             message = '[%s] There is no the my output dump file for the op "%s".' % (self.op_name, self.op_name)
             log.print_warn_log(message)
             error_msg.append(message)
-        fusion_op_result = compare_result.FusionOpComResult(self.algorithm_manager,
-                                                            overflow_detection=self.overflow_detection)
+        fusion_op_result = compare_result.FusionOpComResult(
+            self.algorithm_manager, overflow_detection=self.overflow_detection
+        )
         _result = fusion_op_result.get_result(self.fusion_op_list[0], None, error_msg, no_dump_file=True)
 
         result_info = utils.ResultInfo(
-            self.fusion_op_list[0].op_name, False, _result.result_list,
+            self.fusion_op_list[0].op_name,
+            False,
+            _result.result_list,
             CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR,
-            self.fusion_op_list[0].input_list, _result.input_result_list,
-            _result.output_result_list, _result.is_ffts, {}, True)
+            self.fusion_op_list[0].input_list,
+            _result.input_result_list,
+            _result.output_result_list,
+            _result.is_ffts,
+            {},
+            True,
+        )
 
         single_op_cmp_result.update_attr(result_info)
 
         return CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR, False, [single_op_cmp_result]
 
-    def _get_dump_data(self: any, fusion_op: FusionOp, dump_path: str,
-                       op_name_to_task_mode_map, dump_type: str) -> Tensor:
+    def _get_dump_data(
+        self: any, fusion_op: FusionOp, dump_path: str, op_name_to_task_mode_map, dump_type: str
+    ) -> Tensor:
         """
         get dump data by fusion op output_desc
         """
         dump_file_list = fusion_op.output_desc
         if not dump_file_list:
             raise CompareError(CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR)
-        dump_data_list = [dump_utils.parse_dump_file(dump_file_path, self.compare_data.dump_version)
-                          for dump_file_path in dump_file_list]
+        dump_data_list = [
+            dump_utils.parse_dump_file(dump_file_path, self.compare_data.dump_version)
+            for dump_file_path in dump_file_list
+        ]
         dump_mode = op_name_to_task_mode_map.get(self.op_name)
-        if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:
+        if dump_mode == ConstManager.AUTOMATIC_MODE or dump_mode == ConstManager.MANUAL_MODE:  # pylint: disable=consider-using-in
             ffts_parser = FFTSParser(dump_file_list, dump_data_list)
             dump_file_path, dump_data = ffts_parser.parse_ffts
             log.print_info_log(
                 'The "%s" in the path "%s" is FFTS+ dump data. After process the output data, the file path is "%s".'
-                % (fusion_op.op_name, dump_path, dump_file_path))
+                % (fusion_op.op_name, dump_path, dump_file_path)
+            )
         else:
             dump_file_path = dump_file_list[-1]
             dump_data = dump_data_list[-1]
@@ -227,29 +275,39 @@ class NpuVsNpuComparison:
             # check the length of shape is the same
             if len(my_output_tensor.shape) != len(ground_truth_tensor.shape):
                 message = log.print_not_match_error(
-                    self.op_name, 'shape',
+                    self.op_name,
+                    'shape',
                     utils.convert_shape_to_string(my_output_tensor.shape),
-                    utils.convert_shape_to_string(ground_truth_tensor.shape), tensor_id)
+                    utils.convert_shape_to_string(ground_truth_tensor.shape),
+                    tensor_id,
+                )
                 return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
             # check each dim in shape is the same
             for my_output_dim, ground_truth_dim in zip(my_output_tensor.shape, ground_truth_tensor.shape):
                 if my_output_dim != ground_truth_dim:
                     message = log.print_not_match_error(
-                        self.op_name, 'shape',
+                        self.op_name,
+                        'shape',
                         utils.convert_shape_to_string(my_output_tensor.shape),
-                        utils.convert_shape_to_string(ground_truth_tensor.shape), tensor_id)
+                        utils.convert_shape_to_string(ground_truth_tensor.shape),
+                        tensor_id,
+                    )
                     return CompareError.MSACCUCMP_INVALID_DUMP_DATA_ERROR, message
         return CompareError.MSACCUCMP_NONE_ERROR, message
 
-    def _compare_by_one_tensor(self: any, my_output_dump_data: Tensor, ground_truth_dump_data: Tensor,
-                               my_output_tensor: any, ground_truth_tensor: any) -> (list, list):
+    def _compare_by_one_tensor(
+        self: any,
+        my_output_dump_data: Tensor,
+        ground_truth_dump_data: Tensor,
+        my_output_tensor: any,
+        ground_truth_tensor: any,
+    ) -> (list, list):
         error_msg = []
         tensor_id = f"{self.op_name}_TENSOR"
 
         # 1. deserialize output data to array
         if my_output_tensor and ground_truth_tensor:
             if self.enable_padding_restore:
-
                 restored_left = self._restore_tensor_data_if_needed(my_output_tensor)
                 restored_right = self._restore_tensor_data_if_needed(ground_truth_tensor)
 
@@ -259,8 +317,10 @@ class NpuVsNpuComparison:
 
                 # 若长度不一致，直接报 warning，方便定位问题
                 if my_output_data_array.shape != ground_truth_data_array.shape:
-                    message = f"[{tensor_id}] Shape mismatch after restore: " \
-                              f"{my_output_data_array.shape} vs {ground_truth_data_array.shape}"
+                    message = (
+                        f"[{tensor_id}] Shape mismatch after restore: "
+                        f"{my_output_data_array.shape} vs {ground_truth_data_array.shape}"
+                    )
                     log.print_warn_log(message)
                     raise CompareError(CompareError.MSACCUCMP_INVALID_SHAPE_ERROR, message)
             else:
@@ -268,14 +328,18 @@ class NpuVsNpuComparison:
                 ground_truth_data_array = ground_truth_tensor.data.flatten()
         else:
             return self.algorithm_manager.make_nan_result(), error_msg
-        
+
         try:
             # 2. compare by support algorithm
             algorithm_result, error_msg = self.algorithm_manager.compare(
-                my_output_data_array, ground_truth_data_array,
-                {'my_output_dump_file': my_output_dump_data.path,
-                 'ground_truth_dump_file': ground_truth_dump_data.path,
-                 'shape_type': utils.get_shape_type(my_output_tensor.shape)})
+                my_output_data_array,
+                ground_truth_data_array,
+                {
+                    'my_output_dump_file': my_output_dump_data.path,
+                    'ground_truth_dump_file': ground_truth_dump_data.path,
+                    'shape_type': utils.get_shape_type(my_output_tensor.shape),
+                },
+            )
         except CompareError as compare_error:
             if isinstance(compare_error, CompareError):
                 error_msg.append(compare_error.message)
@@ -283,8 +347,9 @@ class NpuVsNpuComparison:
 
         return algorithm_result, error_msg
 
-    def _compare_by_tensor(self: any, my_output_dump_data: Tensor, ground_truth_dump_data: Tensor,
-                           tensor_type: str) -> list:
+    def _compare_by_tensor(
+        self: any, my_output_dump_data: Tensor, ground_truth_dump_data: Tensor, tensor_type: str
+    ) -> list:
         tensor_result_list = []
         if tensor_type == ConstManager.INPUT:
             my_output_tensor_list = my_output_dump_data.data.input_data
@@ -296,20 +361,27 @@ class NpuVsNpuComparison:
             is_input = False
         # compare each tensor
         for index, (my_output_tensor, ground_truth_tensor) in enumerate(
-                zip(my_output_tensor_list, ground_truth_tensor_list)):
+            zip(my_output_tensor_list, ground_truth_tensor_list)
+        ):
             tensor_id = '%s:%s:%d' % (my_output_dump_data.name, tensor_type, index)
-            log.print_info_log('[%s] compare %s %s for %s.'
-                               % (self.fusion_op_list[0].op_name,
-                                  common.get_format_string(my_output_tensor.tensor_format),
-                                  utils.convert_shape_to_string(my_output_tensor.shape),
-                                  tensor_id))
-            algorithm_result, error_msg = self._compare_by_one_tensor(my_output_dump_data, ground_truth_dump_data,
-                                                                      my_output_tensor, ground_truth_tensor)
+            log.print_info_log(
+                '[%s] compare %s %s for %s.'
+                % (
+                    self.fusion_op_list[0].op_name,
+                    common.get_format_string(my_output_tensor.tensor_format),
+                    utils.convert_shape_to_string(my_output_tensor.shape),
+                    tensor_id,
+                )
+            )
+            algorithm_result, error_msg = self._compare_by_one_tensor(
+                my_output_dump_data, ground_truth_dump_data, my_output_tensor, ground_truth_tensor
+            )
             # Check whether the current input/output data overflows
             overflow_result = ''
             if self.overflow_detection:
-                overflow_result = OverflowDetection.process_model_overflow_detection(my_output_dump_data.name,
-                                                                                     index, is_input, my_output_tensor)
+                overflow_result = OverflowDetection.process_model_overflow_detection(
+                    my_output_dump_data.name, index, is_input, my_output_tensor
+                )
             my_output_tensor_dtype = utils.get_data_type(my_output_tensor.data_type)
             ground_truth_tensor_dtype = utils.get_data_type(ground_truth_tensor.data_type)
             my_output_tensor_address = utils.get_address_from_tensor(my_output_tensor)
@@ -324,9 +396,11 @@ class NpuVsNpuComparison:
                 "my_output_dtype": my_output_tensor_dtype,
                 "ground_truth_dtype": ground_truth_tensor_dtype,
                 "my_output_address": my_output_tensor_address,
-                "ground_truth_address": ground_truth_tensor_address
+                "ground_truth_address": ground_truth_tensor_address,
             }
             tensor_result_list.append(
                 compare_result.TensorResult(
-                    tensor_info, [algorithm_result, overflow_result], error_msg, my_output_tensor.is_ffts))
+                    tensor_info, [algorithm_result, overflow_result], error_msg, my_output_tensor.is_ffts
+                )
+            )
         return tensor_result_list

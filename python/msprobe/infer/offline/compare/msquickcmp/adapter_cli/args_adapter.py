@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -14,6 +13,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 import os
 
@@ -22,18 +22,19 @@ CANN_PATH = os.environ.get('ASCEND_TOOLKIT_HOME', "/usr/local/Ascend/ascend-tool
 
 
 class CmpArgsAdapter:
-    def __init__(self,
-                 golden_path,
-                 target_path,
-                 input_data="",
-                 cann_path=CANN_PATH,
-                 output_path="./output",
-                 input_shape="",
-                 rank="0",
-                 output_size="",
-                 dym_shape_range="",
-                 onnx_fusion_switch=True
-                 ):
+    def __init__(
+        self,
+        golden_path,
+        target_path,
+        input_data="",
+        cann_path=CANN_PATH,
+        output_path="./output",
+        input_shape="",
+        rank="0",
+        output_size="",
+        dym_shape_range="",
+        onnx_fusion_switch=True,
+    ):
         self.golden_path = golden_path
         self.target_path = target_path
         self.input_data = input_data

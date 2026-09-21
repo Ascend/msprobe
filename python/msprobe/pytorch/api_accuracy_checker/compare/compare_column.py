@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -22,12 +21,28 @@ from msprobe.pytorch.common.log import logger
 
 class CompareColumn:
     __slots__ = [
-        'bench_type', 'npu_type', 'shape', 'cosine_sim', 'max_abs_err', 'rel_err_hundredth',
-        'rel_err_ten_thousandth', 'inf_nan_error_ratio', 'rel_err_ratio', 'abs_err_ratio', 
-        'small_value_err_ratio', 'max_rel_error', 'mean_rel_error', 'rmse', 'eb', 'max_ulp_error', 
-        'mean_ulp_error', 'ulp_error_proportion', 'error_rate', 'rel_err_thousandth'
+        'bench_type',
+        'npu_type',
+        'shape',
+        'cosine_sim',
+        'max_abs_err',
+        'rel_err_hundredth',
+        'rel_err_ten_thousandth',
+        'inf_nan_error_ratio',
+        'rel_err_ratio',
+        'abs_err_ratio',
+        'small_value_err_ratio',
+        'max_rel_error',
+        'mean_rel_error',
+        'rmse',
+        'eb',
+        'max_ulp_error',
+        'mean_ulp_error',
+        'ulp_error_proportion',
+        'error_rate',
+        'rel_err_thousandth',
     ]
-    
+
     def __init__(self):
         self.bench_type = CompareConst.SPACE
         self.npu_type = CompareConst.SPACE
@@ -69,24 +84,64 @@ class CompareColumn:
             setattr(self, key, value)
 
     def to_column_value(self, is_pass, message):
-        return [self.bench_type, self.npu_type, self.shape, self.cosine_sim, self.max_abs_err, self.rel_err_hundredth,
-                self.rel_err_thousandth, self.rel_err_ten_thousandth, self.error_rate, self.eb, self.rmse, 
-                self.small_value_err_ratio, self.max_rel_error, self.mean_rel_error, self.inf_nan_error_ratio, 
-                self.rel_err_ratio, self.abs_err_ratio, self.max_ulp_error, self.mean_ulp_error, 
-                self.ulp_error_proportion, is_pass, message]
+        return [
+            self.bench_type,
+            self.npu_type,
+            self.shape,
+            self.cosine_sim,
+            self.max_abs_err,
+            self.rel_err_hundredth,
+            self.rel_err_thousandth,
+            self.rel_err_ten_thousandth,
+            self.error_rate,
+            self.eb,
+            self.rmse,
+            self.small_value_err_ratio,
+            self.max_rel_error,
+            self.mean_rel_error,
+            self.inf_nan_error_ratio,
+            self.rel_err_ratio,
+            self.abs_err_ratio,
+            self.max_ulp_error,
+            self.mean_ulp_error,
+            self.ulp_error_proportion,
+            is_pass,
+            message,
+        ]
 
 
 class ApiPrecisionOutputColumn:
     __slots__ = [
-                'api_name', 'small_value_err_ratio', 'small_value_err_status', 'rmse_ratio', 'rmse_status', 
-                'max_rel_err_ratio', 'max_rel_err_status', 'mean_rel_err_ratio', 'mean_rel_err_status', 'eb_ratio', 
-                'eb_status', 'inf_nan_error_ratio', 'inf_nan_error_ratio_status', 'rel_err_ratio', 
-                'rel_err_ratio_status', 'abs_err_ratio', 'abs_err_ratio_status', 'error_rate', 'error_rate_status', 
-                'mean_ulp_err', 'ulp_err_proportion', 'ulp_err_proportion_ratio', 'ulp_err_status', 
-                'rel_err_thousandth', 'rel_err_thousandth_status', 'compare_result', 'compare_algorithm', 
-                'compare_message'
-                ]
-    
+        'api_name',
+        'small_value_err_ratio',
+        'small_value_err_status',
+        'rmse_ratio',
+        'rmse_status',
+        'max_rel_err_ratio',
+        'max_rel_err_status',
+        'mean_rel_err_ratio',
+        'mean_rel_err_status',
+        'eb_ratio',
+        'eb_status',
+        'inf_nan_error_ratio',
+        'inf_nan_error_ratio_status',
+        'rel_err_ratio',
+        'rel_err_ratio_status',
+        'abs_err_ratio',
+        'abs_err_ratio_status',
+        'error_rate',
+        'error_rate_status',
+        'mean_ulp_err',
+        'ulp_err_proportion',
+        'ulp_err_proportion_ratio',
+        'ulp_err_status',
+        'rel_err_thousandth',
+        'rel_err_thousandth_status',
+        'compare_result',
+        'compare_algorithm',
+        'compare_message',
+    ]
+
     def __init__(self):
         self.api_name = CompareConst.SPACE
         self.small_value_err_ratio = CompareConst.SPACE
@@ -136,11 +191,33 @@ class ApiPrecisionOutputColumn:
             setattr(self, key, value)
 
     def to_column_value(self):
-        return [self.api_name, self.small_value_err_ratio, self.small_value_err_status, self.rmse_ratio, 
-                self.rmse_status, self.max_rel_err_ratio, self.max_rel_err_status, self.mean_rel_err_ratio, 
-                self.mean_rel_err_status, self.eb_ratio, self.eb_status, self.inf_nan_error_ratio, 
-                self.inf_nan_error_ratio_status, self.rel_err_ratio, self.rel_err_ratio_status, self.abs_err_ratio, 
-                self.abs_err_ratio_status, self.error_rate, self.error_rate_status, self.mean_ulp_err, 
-                self.ulp_err_proportion, self.ulp_err_proportion_ratio, self.ulp_err_status, self.rel_err_thousandth, 
-                self.rel_err_thousandth_status, self.compare_result, self.compare_algorithm, self.compare_message]
-        
+        return [
+            self.api_name,
+            self.small_value_err_ratio,
+            self.small_value_err_status,
+            self.rmse_ratio,
+            self.rmse_status,
+            self.max_rel_err_ratio,
+            self.max_rel_err_status,
+            self.mean_rel_err_ratio,
+            self.mean_rel_err_status,
+            self.eb_ratio,
+            self.eb_status,
+            self.inf_nan_error_ratio,
+            self.inf_nan_error_ratio_status,
+            self.rel_err_ratio,
+            self.rel_err_ratio_status,
+            self.abs_err_ratio,
+            self.abs_err_ratio_status,
+            self.error_rate,
+            self.error_rate_status,
+            self.mean_ulp_err,
+            self.ulp_err_proportion,
+            self.ulp_err_proportion_ratio,
+            self.ulp_err_status,
+            self.rel_err_thousandth,
+            self.rel_err_thousandth_status,
+            self.compare_result,
+            self.compare_algorithm,
+            self.compare_message,
+        ]

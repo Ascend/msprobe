@@ -1,3 +1,4 @@
+# -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
@@ -5,15 +6,16 @@
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#          http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# ==============================================================================
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
 
 from ..utils.graph_utils import GraphUtils
-from ..utils.constant import ADD_MATCH_KEYS, MODULE, NPU, BENCH
+from ..utils.constant import MODULE, NPU, BENCH
 from ..utils.global_state import GraphState
 
 from msprobe.visualization.builder.msprobe_adapter import MatchedNodeCalculator
@@ -60,7 +62,6 @@ class MatchNodesController:
 
     @staticmethod
     def process_task_delete(graph_data, npu_node_name, bench_node_name, task):
-
         opposite_npu_node_name = GraphUtils.get_opposite_node_name(npu_node_name)
         opposite_bench_node_name = GraphUtils.get_opposite_node_name(bench_node_name)
         if task == "md5":
@@ -68,7 +69,7 @@ class MatchNodesController:
             opposite_result = MatchNodesController.process_md5_task_delete(
                 graph_data, opposite_npu_node_name, opposite_bench_node_name
             )
-        elif task == "summary" or task == "all":
+        elif task == "summary" or task == "all":  # pylint: disable=consider-using-in
             match_result = MatchNodesController.process_summary_task_delete(graph_data, npu_node_name, bench_node_name)
             opposite_result = MatchNodesController.process_summary_task_delete(
                 graph_data, opposite_npu_node_name, opposite_bench_node_name
@@ -89,7 +90,7 @@ class MatchNodesController:
                 match_result = MatchNodesController.process_md5_task_add(graph_data, npu_node_name, bench_node_name)
             elif task == "summary":
                 match_result = MatchNodesController.process_summary_task_add(graph_data, npu_node_name, bench_node_name)
-            match_results.append(match_result)
+            match_results.append(match_result)  # pylint: disable=possibly-used-before-assignment
         return match_results
 
     @staticmethod
@@ -445,7 +446,7 @@ class MatchNodesController:
         ):
             return {
                 "success": False,
-                "error": f"{GraphUtils.t('operationFailed')}{npu_node_name,bench_node_name}{GraphUtils.t('nodeUnmatchError')}",
+                "error": f"{GraphUtils.t('operationFailed')}{npu_node_name, bench_node_name}{GraphUtils.t('nodeUnmatchError')}",
             }
         npu_node_data = graph_data.get("NPU", {}).get("node", {}).get(npu_node_name)
         bench_node_data = graph_data.get("Bench", {}).get("node", {}).get(bench_node_name)

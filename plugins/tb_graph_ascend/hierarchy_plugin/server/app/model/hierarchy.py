@@ -1,3 +1,4 @@
+# -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
@@ -5,12 +6,13 @@
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#          http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# ==============================================================================
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
 from tensorboard.util import tb_logging
 from ..utils.global_state import GraphState
 from ..utils.constant import NPU_PREFIX, BENCH_PREFIX, NPU, SINGLE, UNEXPAND_NODE, MODULE, DataType
@@ -108,7 +110,7 @@ class Hierarchy:
                 self.current_hierarchy[subnode_name] = render_info
             target_node["expand"] = True
         else:
-            target_node["expand"] = False if node_name != self.root_name else True  # 根节点默认展开
+            target_node["expand"] = False if node_name != self.root_name else True  # pylint: disable=simplifiable-if-expression  # 根节点默认展开
 
     def process_select_expand(self, node_name):
         # DB：逻辑
@@ -121,7 +123,6 @@ class Hierarchy:
         # 递归展开父节点
         while not parent_node or not parent_node.get("expand", False):
             if not parent_node:  # 如果父节点不存在图中，则初始化父节点
-
                 render_info = self.get_basic_rende_info(parent_node_name, up_nodes.get(parent_node_name))
                 self.current_hierarchy[parent_node_name] = render_info
             try:

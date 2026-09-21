@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,26 +18,26 @@
 Function:
 This file mainly involves the common function.
 """
-import re
+
 import os
 
 from functools import wraps
-import numpy as np
 from dump_parse.proto_dump_data import DumpData
 
 from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
 from cmp_utils.reg_manager import RegManager
 from cmp_utils import log
-from dump_parse.big_dump_data import DumpDataHandler
-from dump_parse.dump_data_object import DumpDataObj, DumpTensor
-from dump_parse.nano_dump_data import NanoDumpData, NanoDumpDataParser, NanoDumpDataHandler
+from dump_parse.big_dump_data import DumpDataHandler  # pylint: disable=ungrouped-imports
+from dump_parse.dump_data_object import DumpDataObj
+from dump_parse.nano_dump_data import NanoDumpData, NanoDumpDataHandler
 
 
 class SortMode:
     """
     The class of sort mode
     """
+
     hash_to_file_name_map = {}
 
     def __init__(self, parameter):
@@ -50,6 +49,7 @@ class SortMode:
         @param wrap_function: file name
         @return: Basis of sorted
         """
+
         @wraps(wrap_function)
         def inner(*args, **kwargs):
             file_path = wrap_function(*args, **kwargs)
@@ -59,8 +59,7 @@ class SortMode:
                 log.print_warn_log('The file_name is invalid, failed to sort')
                 return ConstManager.INVALID_SORT_MODE
             file_split = file_name.split('.')
-            if self.parameter == ConstManager.NORMAL_MODE or \
-                    self.parameter == ConstManager.FFTS_TIMESTAMP:
+            if self.parameter == ConstManager.NORMAL_MODE or self.parameter == ConstManager.FFTS_TIMESTAMP:  # pylint: disable=consider-using-in
                 return self._parameter_timestamp(file_split, file_name)
             elif self.parameter == ConstManager.AUTOMATIC_MODE:
                 return self._parameter_auto(file_split, file_name)
@@ -69,6 +68,7 @@ class SortMode:
             else:
                 log.print_warn_log('The sort mode parameter is invalid, failed to sort')
                 return ConstManager.INVALID_SORT_MODE
+
         return inner
 
     @staticmethod
@@ -77,8 +77,7 @@ class SortMode:
         # 2.9.1670205071724946.4.487.0.0
         slice_x = file_split[1][-1]
         if not slice_x.isdigit():
-            log.print_warn_log(
-                'The file name \"{}\"\'s slice_x is invalid.'.format(file_name))
+            log.print_warn_log('The file name "{}"\'s slice_x is invalid.'.format(file_name))
             return ConstManager.INVALID_SLICE_X
         return int(slice_x)
 
@@ -86,22 +85,19 @@ class SortMode:
     def _parameter_auto(file_split, file_name):
         thread_id = file_split[-2]
         if not thread_id.isdigit():
-            log.print_warn_log(
-                'The file name \"{}\"\'s thread_id is invalid.'.format(file_name))
+            log.print_warn_log('The file name "{}"\'s thread_id is invalid.'.format(file_name))
             return ConstManager.INVALID_THREAD_ID
         return int(thread_id)
 
     def _parameter_timestamp(self, file_split, file_name):
         if self.parameter == ConstManager.FFTS_TIMESTAMP:
             timestamp = file_split[4]
-        elif file_name.endswith(
-                (ConstManager.STANDARD_SUFFIX, ConstManager.NUMPY_SUFFIX, ConstManager.QUANT_SUFFIX)):
+        elif file_name.endswith((ConstManager.STANDARD_SUFFIX, ConstManager.NUMPY_SUFFIX, ConstManager.QUANT_SUFFIX)):
             timestamp = file_split[2]
         else:
             timestamp = file_split[-1]
         if not check_valid_timestamp(timestamp):
-            log.print_warn_log(
-                'The file name \"{}\"\'s timestamp is invalid.'.format(file_name))
+            log.print_warn_log('The file name "{}"\'s timestamp is invalid.'.format(file_name))
             return ConstManager.INVALID_TIMESTAMP
         return int(timestamp)
 
@@ -155,7 +151,7 @@ def sort_dump_file_list(dump_file_type: int, dump_file_list: list) -> list:
     """
     if dump_file_type == ConstManager.NORMAL_MODE:
         dump_file_list.sort(key=get_normal_timestamp)
-    elif dump_file_type == ConstManager.AUTOMATIC_MODE or dump_file_type == ConstManager.MANUAL_MODE:
+    elif dump_file_type == ConstManager.AUTOMATIC_MODE or dump_file_type == ConstManager.MANUAL_MODE:  # pylint: disable=consider-using-in
         dump_file_list.sort(key=get_ffts_timestamp)
         if dump_file_type == ConstManager.AUTOMATIC_MODE:
             dump_file_list.sort(key=get_ffts_auto)

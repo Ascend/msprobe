@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,6 +18,7 @@
 Function:
 This file mainly involves the common function definition.
 """
+
 from enum import Enum
 
 
@@ -26,6 +26,7 @@ class ShapeType(Enum):
     """
     The enum for shape type
     """
+
     Scalar = 0
     Vector = 1
     Matrix = 2
@@ -36,6 +37,7 @@ class FusionRelation(Enum):
     """
     The enum for fusion relation
     """
+
     OneToOne = 0
     MultiToOne = 1
     OneToMulti = 2
@@ -47,6 +49,7 @@ class DatasetAttr(Enum):
     """
     The enum for pytorch dump data attribute
     """
+
     DataType = 0
     DeviceType = 1
     FormatType = 2
@@ -58,6 +61,7 @@ class DeviceType(Enum):
     """
     The enum for device type
     """
+
     GPU = 1
     NPU = 10
     CPU = 0

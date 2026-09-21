@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,8 +18,10 @@
 Function:
 MultiConvertProcess class. This class mainly involves the process function.
 """
+
 import os
 import multiprocessing
+
 try:
     import psutil
 except ImportError:
@@ -37,6 +38,7 @@ class MultiConvertProcess:
     """
     The class for multi process for convert
     """
+
     MAX_MULTI = 4
     MULTI_THREAD_RESULT_COUNT = 2
     MULTI_THREAD_RETURN_CODE_INDEX = 0
@@ -70,8 +72,9 @@ class MultiConvertProcess:
         if return_code != CompareError.MSACCUCMP_NONE_ERROR:
             error_file_path = os.path.join(self._output_path, ConstManager.CONVERT_FAILED_FILE_LIST_NAME)
             if os.path.exists(error_file_path):
-                log.print_info_log('The list of files that failed to be converted has been written to "%r".'
-                                   % error_file_path)
+                log.print_info_log(
+                    'The list of files that failed to be converted has been written to "%r".' % error_file_path
+                )
 
         return return_code
 
@@ -98,17 +101,16 @@ class MultiConvertProcess:
             cur_ret = result[self.MULTI_THREAD_RETURN_CODE_INDEX]
             if cur_ret != CompareError.MSACCUCMP_NONE_ERROR:
                 error_file_path = os.path.join(self._output_path, ConstManager.CONVERT_FAILED_FILE_LIST_NAME)
-                FileUtils.save_data_to_file(error_file_path, "%s\n" % result[self.MULTI_THREAD_ERROR_FILE_INDEX],
-                                            'a+', delete=False)
+                FileUtils.save_data_to_file(
+                    error_file_path, "%s\n" % result[self.MULTI_THREAD_ERROR_FILE_INDEX], 'a+', delete=False
+                )
 
     def _do_multi_process(self: any, file_list: list) -> int:
         cpu_count = int((multiprocessing.cpu_count() + 1) / 2)
-        pool = multiprocessing.Pool(cpu_count)
+        pool = multiprocessing.Pool(cpu_count)  # pylint: disable=consider-using-with
         all_task = []
         for cur_path in file_list:
-            task = pool.apply_async(self._process_func,
-                                    args=(cur_path,),
-                                    callback=self._handle_result_callback)
+            task = pool.apply_async(self._process_func, args=(cur_path,), callback=self._handle_result_callback)
             all_task.append(task)
         pool.close()
         pool.join()

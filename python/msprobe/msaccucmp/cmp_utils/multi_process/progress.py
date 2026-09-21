@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,18 +18,19 @@
 Function:
 Progress class. This class mainly involves the print_progress function.
 """
+
 import time
 import math
 
 from cmp_utils import log
 from cmp_utils.constant.const_manager import ConstManager
-from cmp_utils.constant.compare_error import CompareError
 
 
 class Progress:
     """
     The class for progress
     """
+
     PROGRESS_GREATER_THAN_COUNT = 50
     PROGRESS_GREATER_THAN = '>'
     INTERVAL_TIME_SECOND = 1
@@ -70,9 +70,10 @@ class Progress:
             denominator = ConstManager.MAX_PROGRESS // self.PROGRESS_GREATER_THAN_COUNT
         if denominator != 0:
             greater_than_count = math.floor(progress / denominator)
-        progress_info = '%s%s' % (self.PROGRESS_GREATER_THAN * greater_than_count,
-                                  ' ' * (self.PROGRESS_GREATER_THAN_COUNT - greater_than_count))
-        if current_time - self.last_progress_time >= self.INTERVAL_TIME_SECOND \
-                or progress == ConstManager.MAX_PROGRESS:
+        progress_info = '%s%s' % (
+            self.PROGRESS_GREATER_THAN * greater_than_count,
+            ' ' * (self.PROGRESS_GREATER_THAN_COUNT - greater_than_count),
+        )
+        if current_time - self.last_progress_time >= self.INTERVAL_TIME_SECOND or progress == ConstManager.MAX_PROGRESS:
             log.print_info_log('[ %s %d%%]' % (progress_info, progress))
             self.last_progress_time = current_time

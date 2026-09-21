@@ -1,6 +1,5 @@
-# coding=utf-8
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -40,8 +39,7 @@ def filter_special_chars(func):
 def _setting_config(message: str) -> str:
     pid = os.getpid()
     cur_format = '%(asctime)s (' + str(pid) + ') - [%(levelname)s] %(message)s'
-    logging.basicConfig(format=cur_format, datefmt="%Y-%m-%d %H:%M:%S",
-                        level=logging.INFO)
+    logging.basicConfig(format=cur_format, datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO)
     return message
 
 
@@ -83,8 +81,7 @@ def print_no_left_dump_file_error(op_name: str, op_type: str, is_error: bool = F
     :param is_error: the log lever is error
     :return: message
     """
-    message = '[%s] There is no dump file for my output operator "%s". The type is %s.' \
-          % (op_name, op_name, op_type)
+    message = '[%s] There is no dump file for my output operator "%s". The type is %s.' % (op_name, op_name, op_type)
     if is_error:
         print_error_log(message)
     else:
@@ -187,9 +184,11 @@ def print_cannot_compare_warning(op_name: str, left_shape: str, right_shape: str
     :return message
     """
     prefix = '[%s] ' % op_name if op_name else ''
-    message = '%sDue to the different shapes on the left and right,the left dump data%s can not ' \
-              'be compared to the right dump data%s. Please check the batch of the dump data or ' \
-              'the shape may be changed due to optimization.' % (prefix, left_shape, right_shape)
+    message = (
+        '%sDue to the different shapes on the left and right,the left dump data%s can not '
+        'be compared to the right dump data%s. Please check the batch of the dump data or '
+        'the shape may be changed due to optimization.' % (prefix, left_shape, right_shape)
+    )
     print_warn_log(message)
     return message
 
@@ -201,8 +200,9 @@ def print_npu_path_valid_message(npu_dump_dir: str, dump_file_path_format: str) 
     :param dump_file_path_format : correct dump file path format
     :return message
     """
-    message = "The {0} does not match the path format," \
-              "please save dump files in the {1} path format".format(npu_dump_dir, dump_file_path_format)
+    message = "The {0} does not match the path format,please save dump files in the {1} path format".format(
+        npu_dump_dir, dump_file_path_format
+    )
     print_error_log(message)
     return message
 
@@ -218,8 +218,7 @@ def print_out_of_range_error(op_name: str, index_type: str, index: int, range_st
     prefix = ''
     if op_name:
         prefix = '[%s] ' % op_name
-    message = '%sThe %s index (%d) is out of range %s. Please check the index.' % \
-          (prefix, index_type, index, range_str)
+    message = '%sThe %s index (%d) is out of range %s. Please check the index.' % (prefix, index_type, index, range_str)
     print_error_log(message)
 
 
@@ -230,8 +229,11 @@ def print_skip_inner_op_msg(op_name: str, is_error: bool) -> None:
     :param is_error: the log lever is error
     :return message
     """
-    message = '[%s] The op "%s" is inner node for multi to multi relation. Skip the op "%s".' \
-          % (op_name, op_name, op_name)
+    message = '[%s] The op "%s" is inner node for multi to multi relation. Skip the op "%s".' % (
+        op_name,
+        op_name,
+        op_name,
+    )
     if is_error:
         print_error_log(message)
     else:
@@ -243,8 +245,10 @@ def print_deprecated_warning(file_name: str) -> None:
     Print deprecated warning
     :param file_name: the file name
     """
-    message = 'Note that "%s" will be deprecated in a future release. It'\
-              ' is recommended to use the next-generation "msaccucmp.py".' % file_name
+    message = (
+        'Note that "%s" will be deprecated in a future release. It'
+        ' is recommended to use the next-generation "msaccucmp.py".' % file_name
+    )
     print_warn_log(message)
 
 

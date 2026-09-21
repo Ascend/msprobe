@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -15,6 +14,7 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# pylint: disable=duplicate-code
 
 import os
 import math
@@ -29,9 +29,17 @@ else:
     IS_GPU = False
 
 from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check_utils import hf_32_standard_api
-from msprobe.pytorch.api_accuracy_checker.common.utils import check_object_type, get_full_data_path, \
-    CompareException, get_module_and_atttribute_name, get_attribute, is_dtype_fp8, is_dtype_hif8, is_hifloat8_tensor, \
-    is_dtype_fp8_or_hif8
+from msprobe.pytorch.api_accuracy_checker.common.utils import (
+    check_object_type,
+    get_full_data_path,
+    CompareException,
+    get_module_and_atttribute_name,
+    get_attribute,
+    is_dtype_fp8,
+    is_dtype_hif8,
+    is_hifloat8_tensor,
+    is_dtype_fp8_or_hif8,
+)
 from msprobe.core.common.file_utils import FileChecker, load_npy
 from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.common.utils import load_pt
@@ -41,22 +49,38 @@ from msprobe.core.common.const import Const, FileCheckConst, CompareConst
 TORCH_TYPE = ["torch.device", "torch.dtype"]
 TENSOR_DATA_LIST = ["torch.Tensor", "torch.nn.parameter.Parameter"]
 FLOAT_TYPE = [
-            'torch.float32', 
-            'torch.float', 
-            'torch.float64', 
-            'torch.double', 
-            'torch.float16',
-            'torch.half', 
-            'torch.bfloat16',
-            'torch.float8_e4m3fn',
-            'torch.float8_e5m2',
-            'torch_npu.HiFloat8Tensor'
-            ]
+    'torch.float32',
+    'torch.float',
+    'torch.float64',
+    'torch.double',
+    'torch.float16',
+    'torch.half',
+    'torch.bfloat16',
+    'torch.float8_e4m3fn',
+    'torch.float8_e5m2',
+    'torch_npu.HiFloat8Tensor',
+]
 NUMPY_TYPE = [
-            "numpy.int8", "numpy.int16", "numpy.int32", "numpy.int64", "numpy.uint8", "numpy.uint16", "numpy.uint32",
-            "numpy.uint64", "numpy.float16", "numpy.float32", "numpy.float64", "numpy.float128", "numpy.complex64", 
-            "numpy.complex128", "numpy.complex256", "numpy.bool_", "numpy.string_", "numpy.bytes_", "numpy.unicode_"
-            ]
+    "numpy.int8",
+    "numpy.int16",
+    "numpy.int32",
+    "numpy.int64",
+    "numpy.uint8",
+    "numpy.uint16",
+    "numpy.uint32",
+    "numpy.uint64",
+    "numpy.float16",
+    "numpy.float32",
+    "numpy.float64",
+    "numpy.float128",
+    "numpy.complex64",
+    "numpy.complex128",
+    "numpy.complex256",
+    "numpy.bool_",
+    "numpy.string_",
+    "numpy.bytes_",
+    "numpy.unicode_",
+]
 
 
 def gen_data(info, api_name, need_grad, convert_type, real_data_path=None):
@@ -100,7 +124,7 @@ def gen_data(info, api_name, need_grad, convert_type, real_data_path=None):
                 data = torch_npu.HiFloat8Tensor.to_hifloat8(data)
     elif data_type.startswith("numpy"):
         if data_type not in NUMPY_TYPE:
-            raise Exception("{} is not supported now".format(data_type))
+            raise Exception("{} is not supported now".format(data_type))  # pylint: disable=broad-exception-raised
         data = info.get("value")
         try:
             module_name, attribute_name = get_module_and_atttribute_name(data_type)
@@ -160,7 +184,7 @@ def gen_random_tensor(info, convert_type):
     low = info.get('Min_except_inf_nan', low_origin)
     high_origin = info.get('Max')
     high = info.get('Max_except_inf_nan', high_origin)
-    
+
     low_info = [low, low_origin]
     high_info = [high, high_origin]
     data_dtype = info.get('dtype')
@@ -196,9 +220,9 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type):
     Function Description:
         Based on API basic information, generate int or float tensor
     Parameter:
-        low_info: [low, low_origin], low is the minimum value in the tensor removed inf and nan, 
+        low_info: [low, low_origin], low is the minimum value in the tensor removed inf and nan,
         low_origin is the original minimum value in the tensor
-        high_info: [high, high_origin], high is the maximum value in the tensor removed inf and nan, 
+        high_info: [high, high_origin], high is the maximum value in the tensor removed inf and nan,
         high_origin is the original maximum value in the tensor
         shape:The shape of Tensor
         data_dtype: The data type of Tensor
@@ -212,23 +236,23 @@ def gen_common_tensor(low_info, high_info, shape, data_dtype, convert_type):
     high, high_origin = high_info[0], high_info[1]
     module_name, attribute_name = get_module_and_atttribute_name(data_dtype)
     dtype = get_attribute(module_name, attribute_name)
-    if data_dtype in FLOAT_TYPE: 
+    if data_dtype in FLOAT_TYPE:
         if math.isnan(high):
             tensor = torch.full(shape, float('nan'), dtype=dtype)
             return tensor
-        #high_origin为新版json中的属性，只有当high_origin不为None,且high为inf或-inf时，原tensor全为inf或-inf
+        # high_origin为新版json中的属性，只有当high_origin不为None,且high为inf或-inf时，原tensor全为inf或-inf
         if high_origin and high in [float(CompareConst.INF), float(CompareConst.NEG_INF)]:
             tensor = torch.full(shape, high, dtype=dtype)
             tensor[-1] = low
             return tensor
-        
+
         low_scale, high_scale = low, high
         if is_dtype_hif8(dtype):
             finfo_dtype = torch.float32
         else:
             finfo_dtype = dtype
         dtype_finfo = torch.finfo(finfo_dtype)
-        #适配老版json high和low为inf或-inf的情况，取dtype的最大值或最小值进行放缩
+        # 适配老版json high和low为inf或-inf的情况，取dtype的最大值或最小值进行放缩
         if high == float(CompareConst.INF):
             high_scale = dtype_finfo.max
         elif high == float(CompareConst.NEG_INF):
@@ -309,7 +333,7 @@ def gen_args(args_info, api_name, func_options):
     """
     check_object_type(args_info, list)
     args_result = []
-    
+
     need_grad = func_options.get('need_grad', True)
     convert_type = func_options.get('convert_type', None)
     real_data_path = func_options.get('real_data_path', None)
@@ -318,7 +342,7 @@ def gen_args(args_info, api_name, func_options):
     if depth > Const.MAX_DEPTH:
         logger.error("The depth of args is too large, please check the input args.")
         raise CompareException(CompareException.RECURSION_LIMIT_ERROR)
-    
+
     for arg in args_info:
         if isinstance(arg, (list, tuple)):
             func_options['depth'] = depth + 1
@@ -364,7 +388,9 @@ def gen_kwargs(api_info, api_name, convert_type=None, real_data_path=None):
                 kwargs_params[key] = gen_atten_mask(value, convert_type, real_data_path)
             else:
                 kwargs_params[key] = gen_data(value, api_name, True, convert_type, real_data_path)
-        elif value.get('type') in TENSOR_DATA_LIST or (value.get('type') is not None and value.get('type').startswith("numpy")):
+        elif value.get('type') in TENSOR_DATA_LIST or (
+            value.get('type') is not None and value.get('type').startswith("numpy")
+        ):
             kwargs_params[key] = gen_data(value, api_name, True, convert_type, real_data_path)
         elif value.get('type') in TORCH_TYPE:
             gen_torch_kwargs(kwargs_params, key, value)
@@ -456,12 +482,7 @@ def gen_api_params(api_info, api_name, need_grad=True, convert_type=None, real_d
         error_info = f"convert_type params not support {convert_type}."
         raise CompareException(CompareException.INVALID_PARAM_ERROR, error_info)
     kwargs_params = gen_kwargs(api_info, api_name, convert_type, real_data_path)
-    func_options = {
-        'need_grad': need_grad,
-        'convert_type': convert_type,
-        'real_data_path': real_data_path,
-        'depth': 0
-    }
+    func_options = {'need_grad': need_grad, 'convert_type': convert_type, 'real_data_path': real_data_path, 'depth': 0}
     if api_info.get("input_args"):
         args_params = gen_args(api_info.get("input_args"), api_name, func_options)
     else:

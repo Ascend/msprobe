@@ -1,3 +1,4 @@
+# -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2026 Huawei Technologies Co.,Ltd.
 #
@@ -5,16 +6,17 @@
 # You can use this software according to the terms and conditions of the Mulan PSL v2.
 # You may obtain a copy of Mulan PSL v2 at:
 #
-#          http://license.coscl.org.cn/MulanPSL2
+#          http://license.coscl.org.cn/MulanPSL2
 #
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
 # EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-# ==============================================================================
+# See the Mulan PSL v2 for more details.
+# -------------------------------------------------------------------------
+# bandit: disable=B608
 
 import os
 import json
-import time
 import sqlite3
 from tensorboard.util import tb_logging
 
@@ -41,7 +43,7 @@ class GraphRepoDB(GraphRepo):
         conn = self._initialize_db_connection()
         if not conn:
             return {}
-        query = f"SELECT * FROM tb_config"
+        query = "SELECT * FROM tb_config"
         try:
             with conn as c:
                 cursor = c.execute(query)
@@ -74,7 +76,7 @@ class GraphRepoDB(GraphRepo):
             return {}
         graph_type = graph_type if graph_type != SINGLE else NPU
         query = """
-        SELECT 
+        SELECT
             node_name,
             up_node,
             sub_nodes,
@@ -82,14 +84,14 @@ class GraphRepoDB(GraphRepo):
             matched_node_link,
             precision_index,
             overflow_level,
-            matched_distributed 
-        FROM 
-            tb_nodes 
-        WHERE   
+            matched_distributed
+        FROM
+            tb_nodes
+        WHERE
             step = ?
-            AND rank = ? 
-            AND data_source = ? 
-            AND up_node = '' 
+            AND rank = ?
+            AND data_source = ?
+            AND up_node = ''
         """
         try:
             with conn as c:
@@ -117,9 +119,9 @@ class GraphRepoDB(GraphRepo):
         query = """
             WITH RECURSIVE parent_chain AS (
                 SELECT child.id, child.node_name, child.up_node, child.data_source, child.rank, child.step, 0 AS level
-                FROM 
+                FROM
                     tb_nodes child
-                WHERE  
+                WHERE
                     child.step = ?
                     AND child.rank = ?
                     AND child.data_source = ?
@@ -127,26 +129,26 @@ class GraphRepoDB(GraphRepo):
 
                 UNION ALL
 
-                SELECT 
-                    parent.id, 
-                    parent.node_name, 
+                SELECT
+                    parent.id,
+                    parent.node_name,
                     parent.up_node,
-                    parent.data_source, 
-                    parent.rank, 
-                    parent.step, 
+                    parent.data_source,
+                    parent.rank,
+                    parent.step,
                     pc.level + 1
-                FROM 
+                FROM
                     tb_nodes parent
-                INNER JOIN parent_chain pc 
+                INNER JOIN parent_chain pc
                     ON parent.data_source = pc.data_source
                     AND parent.node_name  = pc.up_node
                     AND parent.rank = pc.rank
                     AND parent.step = pc.step
-                WHERE 
-                    pc.up_node IS NOT NULL 
+                WHERE
+                    pc.up_node IS NOT NULL
                     AND pc.up_node != ''
                 )
-            SELECT 
+            SELECT
                 tb_nodes.id,
                 tb_nodes.data_source,
                 tb_nodes.node_name,
@@ -157,17 +159,17 @@ class GraphRepoDB(GraphRepo):
                 tb_nodes.precision_index,
                 tb_nodes.overflow_level,
                 tb_nodes.matched_distributed
-            FROM 
+            FROM
                 tb_nodes
-            WHERE 
+            WHERE
                 id IN (SELECT id FROM parent_chain)
             ORDER BY (
-                SELECT 
-                    level 
-                FROM 
-                    parent_chain pc 
-                WHERE 
-                    pc.node_name = tb_nodes.node_name) 
+                SELECT
+                    level
+                FROM
+                    parent_chain pc
+                WHERE
+                    pc.node_name = tb_nodes.node_name)
                 ASC
         """
         try:
@@ -191,7 +193,7 @@ class GraphRepoDB(GraphRepo):
         if not conn:
             return {}
         query = """
-            SELECT 
+            SELECT
                 id,
                 node_name,
                 node_type,
@@ -249,7 +251,7 @@ class GraphRepoDB(GraphRepo):
         query = """
             WITH RECURSIVE descendants AS (
             -- 初始节点选择
-            SELECT 
+            SELECT
                 id,
                 node_name,
                 node_type,
@@ -268,7 +270,7 @@ class GraphRepoDB(GraphRepo):
             UNION ALL
 
             -- 递归部分
-            SELECT 
+            SELECT
                 child.id,
                 child.node_name,
                 child.node_type,
@@ -283,15 +285,15 @@ class GraphRepoDB(GraphRepo):
                 child.rank
             FROM descendants d
             JOIN json_each(d.sub_nodes) AS je          -- 将 sub_nodes JSON 数组展开为多行
-            JOIN tb_nodes child 
+            JOIN tb_nodes child
                 ON child.node_name = je.value         -- 子节点名称匹配
                 AND child.step = d.step
                 AND child.rank = d.rank
                 AND child.data_source = d.data_source
-            WHERE 
+            WHERE
                 d.sub_nodes IS NOT NULL               -- 父节点的 sub_nodes 不为 NULL
                 AND d.sub_nodes != ''               -- 不是空
-                AND d.sub_nodes != '[]' 
+                AND d.sub_nodes != '[]'
                 AND json_type(d.sub_nodes) = 'array'  -- 确保是合法 JSON 数组
         )
         SELECT * FROM descendants
@@ -332,7 +334,7 @@ class GraphRepoDB(GraphRepo):
         if not conn:
             return {}
         query = """
-            SELECT 
+            SELECT
                 id,
                 node_name,
                 node_type,
@@ -341,17 +343,15 @@ class GraphRepoDB(GraphRepo):
                 data_source,
                 input_data,
                 output_data,
-                matched_node_link 
-            FROM 
-                tb_nodes 
-            WHERE 
+                matched_node_link
+            FROM
+                tb_nodes
+            WHERE
                 step = ?
                 AND rank = ?
                 AND data_source = ?
-                AND node_name IN ({}) 
-            """.format(
-            ",".join(["?"] * len(match_node_links))
-        )
+                AND node_name IN ({})
+            """.format(",".join(["?"] * len(match_node_links)))  # nosec B608
         try:
             with conn as c:
                 npu_node_names = list(match_node_links.keys())
@@ -375,7 +375,7 @@ class GraphRepoDB(GraphRepo):
             return {}
         graph_type = graph_type if graph_type != SINGLE else NPU
         query = """
-            SELECT 
+            SELECT
                 node_name,
                 up_node,
                 sub_nodes,
@@ -384,13 +384,13 @@ class GraphRepoDB(GraphRepo):
                 matched_node_link,
                 precision_index,
                 overflow_level,
-                matched_distributed 
-            FROM 
-                tb_nodes 
-            WHERE  
+                matched_distributed
+            FROM
+                tb_nodes
+            WHERE
                 step = ?
                 AND rank = ?
-                AND data_source = ? 
+                AND data_source = ?
                 AND up_node = ?
             ORDER BY
                 node_order ASC
@@ -417,16 +417,16 @@ class GraphRepoDB(GraphRepo):
             return {}
         graph_type = graph_type if graph_type != SINGLE else NPU
         query = """
-            SELECT 
+            SELECT
                 n.*,
-                d.stack_info 
-            FROM      
+                d.stack_info
+            FROM
                 tb_nodes n
             JOIN tb_stack d ON n.stack_id = d.id
-            WHERE 
+            WHERE
                 n.step = ?
-                AND n.rank = ? 
-                AND n.data_source = ? 
+                AND n.rank = ?
+                AND n.data_source = ?
                 AND n.node_name = ?
         """
         try:
@@ -452,11 +452,11 @@ class GraphRepoDB(GraphRepo):
         if not conn:
             return []
         query = """
-            SELECT 
+            SELECT
                 node_name
-            FROM 
-                tb_nodes 
-            WHERE 
+            FROM
+                tb_nodes
+            WHERE
                 step = ?
                 AND rank = ?
                 AND (? = -1 OR micro_step_id = ?)
@@ -489,14 +489,14 @@ class GraphRepoDB(GraphRepo):
             # 查询数据库
             # 单次查询：获取 node_name 和 matched_node_link
             query = """
-                SELECT 
+                SELECT
                     node_name,
                     data_source
-                FROM 
-                    tb_nodes 
-                WHERE 
+                FROM
+                    tb_nodes
+                WHERE
                     step = ?
-                    AND rank = ? 
+                    AND rank = ?
                     AND (? = -1 OR micro_step_id = ?)
                 ORDER BY
                     node_order ASC
@@ -549,15 +549,15 @@ class GraphRepoDB(GraphRepo):
             # 查询数据库
             # 单次查询：获取 node_name 和 matched_node_link
             query = """
-                SELECT 
+                SELECT
                     node_name,
                     data_source,
-                    matched_node_link 
-                FROM 
-                    tb_nodes 
-                WHERE 
+                    matched_node_link
+                FROM
+                    tb_nodes
+                WHERE
                     step = ?
-                    AND rank = ? 
+                    AND rank = ?
                     AND (? = -1 OR micro_step_id = ?)
                 ORDER BY
                     node_order ASC
@@ -616,14 +616,14 @@ class GraphRepoDB(GraphRepo):
         if not conn:
             return {}
         query = """
-            SELECT 
+            SELECT
                 node_name,
-                matched_node_link 
-            FROM 
-                tb_nodes 
-            WHERE 
+                matched_node_link
+            FROM
+                tb_nodes
+            WHERE
                 step = ?
-                AND rank = ? 
+                AND rank = ?
                 AND modified = 1
                 AND matched_node_link IS NOT NULL
                 AND matched_node_link != '[]'
@@ -674,15 +674,15 @@ class GraphRepoDB(GraphRepo):
         if len(placeholders) > 0:
             conditions.append(f"({'OR'.join(placeholders)})")
         query = f"""
-            SELECT 
+            SELECT
                 node_name, precision_index, matched_node_link
             FROM
-                tb_nodes 
-            WHERE 
+                tb_nodes
+            WHERE
                 {" AND ".join(conditions)}
             ORDER BY
                 node_order ASC
-        """
+        """  # nosec B608
         try:
             with conn as c:
                 cursor = c.execute(query, (step, rank, micro_step, micro_step, *params))
@@ -717,20 +717,20 @@ class GraphRepoDB(GraphRepo):
         conditions.append("(? = -1 OR micro_step_id = ?)")
         placeholders = ", ".join(["?"] * len(values))
         query = f"""
-            SELECT 
+            SELECT
                 node_name, overflow_level
             FROM
-                tb_nodes 
-            WHERE 
+                tb_nodes
+            WHERE
                 step = ?
-                AND rank = ? 
+                AND rank = ?
                 AND data_source = 'NPU'
                 AND (? = -1 OR micro_step_id = ?)
                 AND (sub_nodes = '' OR sub_nodes IS NULL OR sub_nodes = '[]')
                 AND overflow_level IN ({placeholders})
             ORDER BY
                 node_order ASC
-        """
+        """  # nosec B608
         try:
             with conn as c:
                 cursor = c.execute(query, (step, rank, micro_step, micro_step, *values))
@@ -749,17 +749,17 @@ class GraphRepoDB(GraphRepo):
         if not conn:
             return {}
         query = """
-            SELECT 
-                node_name, 
+            SELECT
+                node_name,
                 matched_node_link,
                 output_data,
                 precision_index,
                 sub_nodes
-            FROM 
-                tb_nodes 
-            WHERE 
+            FROM
+                tb_nodes
+            WHERE
                 step = ?
-                AND rank = ? 
+                AND rank = ?
                 AND data_source = ?
         """
         try:
@@ -779,9 +779,9 @@ class GraphRepoDB(GraphRepo):
         if not conn:
             return False
         query = """
-            UPDATE 
-                tb_config 
-            SET 
+            UPDATE
+                tb_config
+            SET
                 node_colors = ?
             WHERE
                 id=1
@@ -817,17 +817,17 @@ class GraphRepoDB(GraphRepo):
                 for node in nodes_info
             ]
             query = """
-                UPDATE tb_nodes 
-                SET 
+                UPDATE tb_nodes
+                SET
                     matched_node_link = ?,
                     input_data = ?,
                     output_data = ?,
                     precision_index = ?,
                     modified= 1
-                WHERE 
+                WHERE
                     step = ?
-                    AND rank = ? 
-                    AND data_source = ? 
+                    AND rank = ?
+                    AND data_source = ?
                     AND node_name = ?
             """
             with conn as c:
@@ -842,7 +842,7 @@ class GraphRepoDB(GraphRepo):
         if not conn:
             return False
         query = """
-            UPDATE 
+            UPDATE
                 tb_nodes
             SET
                 precision_index = ?

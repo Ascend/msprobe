@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # -------------------------------------------------------------------------
-#  This file is part of the MindStudio project.
+# This file is part of the MindStudio project.
 # Copyright (c) 2025 Huawei Technologies Co.,Ltd.
 #
 # MindStudio is licensed under Mulan PSL v2.
@@ -19,12 +18,13 @@
 Function:
 This class mainly involves common function.
 """
+
 import enum
 import itertools
 import os
 import re
 import shutil
-import subprocess
+import subprocess  # nosec B404
 
 import numpy as np
 
@@ -78,7 +78,7 @@ class AccuracyCompareException(Exception):
     """
 
     def __init__(self, error_info):
-        super(AccuracyCompareException, self).__init__()
+        super(AccuracyCompareException, self).__init__()  # pylint: disable=super-with-arguments
         self.error_info = error_info
 
 
@@ -213,9 +213,7 @@ def check_device_param_valid(device):
     check device param valid.
     """
     if not device.isdigit() or int(device) > MAX_DEVICE_ID:
-        logger.error(
-            "Please enter a valid number for device, the device id should be" " in [0, 255], now is %s." % device
-        )
+        logger.error("Please enter a valid number for device, the device id should be in [0, 255], now is %s." % device)
         raise AccuracyCompareException(ACCURACY_COMPARISON_INVALID_DEVICE_ERROR)
 
 
@@ -389,8 +387,9 @@ def get_shape_not_match_message(shape_error_type, value):
     message = ""
     if shape_error_type == InputShapeError.FORMAT_NOT_MATCH:
         message = (
-            "Input shape \"{}\" format mismatch,the format like: "
-            "input_name1:1,224,224,3;input_name2:3,300".format(value)
+            "Input shape \"{}\" format mismatch,the format like: input_name1:1,224,224,3;input_name2:3,300".format(
+                value
+            )
         )
     if shape_error_type == InputShapeError.VALUE_TYPE_NOT_MATCH:
         message = "Input shape \"{}\" value not number".format(value)
@@ -490,15 +489,20 @@ def parse_input_shape_to_list(input_shape):
                 if dim.isdigit():
                     shape_list_int.append(int(dim))
                 else:
-                    raise ValueError("The input of --input_shape parameter is unreasonable, " \
-                                     "because the tensor shape is not digit.")
+                    raise ValueError(
+                        "The input of --input_shape parameter is unreasonable, because the tensor shape is not digit."
+                    )
             for dim_int in shape_list_int:
                 if dim_int < 0:
-                    raise ValueError("The input of --input_shape parameter is unreasonable, " \
-                                     "possibly because the upper bound is smaller than 0.")
-                prompt = "The --input_shape %r is larger than expected. " \
-                         "Attempting to input such a shape could potentially impact system performance.\n" \
-                         "Please confirm your awareness of the risks associated with this action ([y]/n): " % tensor
+                    raise ValueError(
+                        "The input of --input_shape parameter is unreasonable, "
+                        "possibly because the upper bound is smaller than 0."
+                    )
+                prompt = (
+                    "The --input_shape %r is larger than expected. "
+                    "Attempting to input such a shape could potentially impact system performance.\n"
+                    "Please confirm your awareness of the risks associated with this action ([y]/n): " % tensor
+                )
                 if dim_int > DYM_SHAPE_END_MAX and not dym_shape_range_interaction(prompt):
                     raise ValueError("The dim of --input_shape %r is too large." % (str(dim_int)))
 
@@ -553,23 +557,28 @@ def parse_dym_shape_range(dym_shape_range):
                 end_str = content_split[1]
                 step_str = content_split[2] if len(content_split) == 3 else "1"
                 if not start_str.isdigit() or not end_str.isdigit() or not step_str.isdigit():
-                    raise ValueError(f"--dym-shape parameter should be digit.")
+                    raise ValueError("--dym-shape parameter should be digit.")
                 start = int(start_str)
                 end = int(end_str)
                 step = int(step_str)
                 if start > end or start < 0:
-                    raise ValueError("The input of --dym-shape parameter is unreasonable, " \
-                                     "possibly because the upper bound of the shape is greater than the lower bound" \
-                                     "or the upper bound is smaller than 0.")
+                    raise ValueError(
+                        "The input of --dym-shape parameter is unreasonable, "
+                        "possibly because the upper bound of the shape is greater than the lower bound"
+                        "or the upper bound is smaller than 0."
+                    )
                 if step <= 0:
                     raise ValueError(f"Step in --dym-shape parameter should be greater than 0, now is {step}.")
-                prompt = "The --dym-shape-range %r is larger than expected. " \
-                         "Attempting to input such a shape could potentially impact system performance.\n" \
-                         "Please confirm your awareness of the risks associated with this action ([y]/n): " % content
+                prompt = (
+                    "The --dym-shape-range %r is larger than expected. "
+                    "Attempting to input such a shape could potentially impact system performance.\n"
+                    "Please confirm your awareness of the risks associated with this action ([y]/n): " % content
+                )
                 if (end - start) / step > DYM_SHAPE_END_MAX and not dym_shape_range_interaction(prompt):
-                    raise ValueError("--dym-shape-range is too large, start: %r, end: %r, step: %r" % (str(start), \
-                                                                                                       str(end),
-                                                                                                       str(step)))
+                    raise ValueError(
+                        "--dym-shape-range is too large, start: %r, end: %r, step: %r"
+                        % (str(start), str(end), str(step))
+                    )
                 ranges = [str(i) for i in range(start, end + 1, step)]
             elif "-" in content:
                 ranges = content.split("-")
@@ -624,7 +633,7 @@ def execute_command(cmd, info_need=True):
     """
     if info_need:
         logger.info('Execute command:%s' % " ".join(cmd))
-    process = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)  # pylint: disable=consider-using-with  # nosec B603
     ais_bench_logs = ""
     try:
         while process.poll() is None:
@@ -658,7 +667,7 @@ def load_npy_from_buffer(raw_data, dtype, shape):
     no_dump_data = None
     try:
         return np.frombuffer(raw_data, dtype=dtype).reshape(shape)
-    except Exception as e:
+    except Exception:
         return no_dump_data
 
 
