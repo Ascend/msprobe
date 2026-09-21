@@ -15,106 +15,79 @@
 # -------------------------------------------------------------------------
 
 import importlib.util
-import os
+from pathlib import Path
 import sys
+import types
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import torch
-
-_MODULE_NAME = "msprobe.pytorch.aclgraph_dump._meta"
-_EXPECTED_OP_NAMES = [
-    "my_ns::acl_save",
-    "my_ns::acl_tensor_save",
-    "my_ns::acl_stat",
-]
-
-
-def _load_meta_module():
-    module = sys.modules.get(_MODULE_NAME)
-    if module is not None:
-        return module
-    module_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "..", "..", "..", "..",
-        "python", "msprobe", "pytorch", "aclgraph_dump", "_meta.py",
-    )
-    spec = importlib.util.spec_from_file_location(_MODULE_NAME, os.path.realpath(module_path))
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[_MODULE_NAME] = module
-    assert spec.loader is not None
-    try:
-        spec.loader.exec_module(module)
-    except Exception:
-        sys.modules.pop(_MODULE_NAME, None)
-        raise
-    return module
+from torch._subclasses.fake_tensor import FakeTensorMode
 
 
 class TestAclGraphDumpMeta(unittest.TestCase):
-    def setUp(self):
-        self.module = _load_meta_module()
+    def test_import_uses_existing_meta_kernels(self):
+        # Model the dispatch registrations installed by the C++ extension.
+        # A unique namespace keeps this test independent of any loaded extension.
+        namespace = "aclgraph_meta_test_" + uuid4().hex
+        library = torch.library.Library(namespace, "DEF")
+        self.addCleanup(library._destroy)
+        library.define("acl_save(Tensor x, str path) -> Tensor")
+        library.define(
+            "acl_tensor_save(Tensor x, str path, str api_name, "
+            "bool is_call_start=False, Tensor? switch=None) -> Tensor"
+        )
+        library.define("acl_stat(Tensor x, Tensor? stats, str tag, Tensor? switch=None) -> Tensor")
+        library.impl("acl_save", lambda x, path: torch.empty_like(x, device="meta"), "Meta")
+        library.impl("acl_tensor_save", lambda x, *args: x, "Meta")
+        library.impl("acl_stat", lambda x, *args: x, "Meta")
+        ops = getattr(torch.ops, namespace)
 
-    def test_register_fake_called_with_ns_op_names(self):
-        """register_fake must use 'ns::op' naming, not 'ns.op'."""
-        recorded_names = []
+        module_name = "msprobe.pytorch.aclgraph_dump"
+        module_path = (
+            Path(__file__).resolve().parents[4]
+            / "python/msprobe/pytorch/aclgraph_dump/__init__.py"
+        )
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        fake_lib = types.ModuleType("msprobe.lib")
+        fake_lib.aclgraph_dump_ext = types.ModuleType("aclgraph_dump_ext")
+        fake_log = types.ModuleType("msprobe.core.common.log")
+        fake_log.logger = MagicMock()
+        modules = {
+            module_name: module,
+            "msprobe.lib": fake_lib,
+            "msprobe.core.common.log": fake_log,
+            "torch_npu": types.ModuleType("torch_npu"),
+        }
+        with patch.dict(sys.modules, modules), \
+                patch.object(torch.ops, "my_ns", ops), \
+                patch("torch.fx.node.has_side_effect") as mark_side_effect, \
+                patch.object(torch.library, "register_fake") as register_fake:
+            spec.loader.exec_module(module)
+            register_fake.assert_not_called()
+            fake_log.logger.warning.assert_not_called()
+            self.assertEqual(
+                [call.args[0] for call in mark_side_effect.call_args_list],
+                [ops.acl_save.default, ops.acl_tensor_save.default, ops.acl_stat.default],
+            )
+            self._check_outputs(module, torch.empty(4, 3, device="meta"))
+            with FakeTensorMode():
+                self._check_outputs(module, torch.empty(4, 3))
 
-        def fake_register(op_name):
-            recorded_names.append(op_name)
-
-            def decorator(func):
-                return func
-
-            return decorator
-
-        with patch.object(torch.library, "register_fake", side_effect=fake_register):
-            self.module._register_meta()
-
-        self.assertEqual(recorded_names, _EXPECTED_OP_NAMES)
-        for op_name in recorded_names:
-            self.assertNotIn(".", op_name)
-            self.assertIn("::", op_name)
-
-    def test_fake_implementations_behaviour(self):
-        """Captured fake functions should return valid meta results."""
-        captured = {}
-
-        def fake_register(op_name):
-            def decorator(func):
-                captured[op_name] = func
-                return func
-
-            return decorator
-
-        with patch.object(torch.library, "register_fake", side_effect=fake_register):
-            self.module._register_meta()
-
-        self.assertEqual(set(captured), set(_EXPECTED_OP_NAMES))
-
-        x = torch.randn(4, 3)
-        result = captured["my_ns::acl_save"](x, "/tmp/path")
-        self.assertEqual(result.device.type, "meta")
-        self.assertEqual(tuple(result.size()), tuple(x.size()))
-        self.assertEqual(tuple(result.stride()), tuple(x.stride()))
-        self.assertEqual(result.dtype, x.dtype)
-
-        stats = torch.zeros(4)
-        switch = torch.tensor([1.0])
-        self.assertIs(captured["my_ns::acl_tensor_save"](x, "/tmp/path", "api", False, switch), x)
-        self.assertIs(captured["my_ns::acl_stat"](x, stats, "tag", switch), x)
-
-    def test_register_failure_logs_warning_instead_of_raising(self):
-        def fake_register(op_name):
-            raise RuntimeError(f"schema not found for {op_name}")
-
-        with patch.object(torch.library, "register_fake", side_effect=fake_register), \
-                patch.object(self.module, "logger") as mock_logger:
-            self.module._register_meta()
-
-        mock_logger.warning.assert_called_once()
-        warning_msg = mock_logger.warning.call_args[0][0]
-        self.assertIn("fake", warning_msg)
-        self.assertIn("schema not found", warning_msg)
+    def _check_outputs(self, module, x):
+        for op, args in (
+            (module.acl_save, ("unused",)),
+            (module.acl_tensor_save, ("unused", "api")),
+            (module.acl_stat, ("tag",)),
+        ):
+            with self.subTest(op=op.__name__, device=x.device):
+                result = op(x, *args)
+                self.assertEqual(result.shape, x.shape)
+                self.assertEqual(result.stride(), x.stride())
+                self.assertEqual(result.dtype, x.dtype)
+                self.assertEqual(result.device, x.device)
 
 
 if __name__ == "__main__":

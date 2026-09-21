@@ -19,16 +19,12 @@ import torch
 import torch_npu  # noqa: F401 - registers the PrivateUse1 backend
 from torch.fx.node import has_side_effect
 
-# Import the C++ extension to register TORCH_LIBRARY implementations.
+# Import the C++ extension to register TORCH_LIBRARY implementations, including
+# Meta kernels used by both meta tensors and FakeTensor tracing.
 try:
     from msprobe.lib import aclgraph_dump_ext  # pylint: disable=no-name-in-module
 except Exception as exc:
     raise RuntimeError(f"Failed to import msprobe.lib.aclgraph_dump_ext: {exc}")
-
-# Register Python fake implementation for meta tensors.
-from ._meta import _register_meta  # noqa: E402
-
-_register_meta()
 
 has_side_effect(torch.ops.my_ns.acl_save.default)
 has_side_effect(torch.ops.my_ns.acl_tensor_save.default)
