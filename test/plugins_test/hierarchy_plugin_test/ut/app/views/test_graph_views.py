@@ -287,6 +287,108 @@ def test_convert_to_graph_errors(monkeypatch, tmp_path):
     assert b"converted" in resp.get_data()
 
 
+@pytest.mark.parametrize("output_path", ["../outside", "", None, 123])
+def test_convert_to_graph_rejects_invalid_output_path(output_path, monkeypatch):
+    def fail_if_called(data):
+        pytest.fail("conversion must not start for an unsafe output path")
+
+    monkeypatch.setattr(
+        GraphServiceStrategy, "convert_to_graph", staticmethod(fail_if_called)
+    )
+    payload = {
+        "npu_path": "npu",
+        "bench_path": "",
+        "output_path": output_path,
+    }
+
+    response = GraphView.convert_to_graph.__wrapped__(
+        make_request(method="POST", data=json.dumps(payload))
+    )
+
+    result = json.loads(response.get_data())
+    assert result["success"] is False
+    assert "output_path" in result["error"]
+
+
+def test_convert_to_graph_rejects_absolute_output_path(tmp_path, monkeypatch):
+    def fail_if_called(data):
+        pytest.fail("conversion must not start for an absolute output path")
+
+    monkeypatch.setattr(
+        GraphServiceStrategy, "convert_to_graph", staticmethod(fail_if_called)
+    )
+    payload = {
+        "npu_path": "npu",
+        "bench_path": "",
+        "output_path": str(tmp_path.parent / "outside"),
+    }
+
+    response = GraphView.convert_to_graph.__wrapped__(
+        make_request(method="POST", data=json.dumps(payload))
+    )
+
+    result = json.loads(response.get_data())
+    assert result["success"] is False
+    assert "output_path" in result["error"]
+
+
+def test_convert_to_graph_rejects_output_symlink_escape(tmp_path, monkeypatch):
+    outside = tmp_path.parent / "outside"
+    outside.mkdir(exist_ok=True)
+    link = tmp_path / "outside_link"
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except OSError as error:
+        pytest.skip(f"symbolic links are unavailable: {error}")
+
+    def fail_if_called(data):
+        pytest.fail("conversion must not follow an output symlink outside logdir")
+
+    monkeypatch.setattr(
+        GraphServiceStrategy, "convert_to_graph", staticmethod(fail_if_called)
+    )
+    payload = {
+        "npu_path": "npu",
+        "bench_path": "",
+        "output_path": "outside_link/build",
+    }
+
+    response = GraphView.convert_to_graph.__wrapped__(
+        make_request(method="POST", data=json.dumps(payload))
+    )
+
+    result = json.loads(response.get_data())
+    assert result["success"] is False
+    assert "output_path" in result["error"]
+
+
+def test_convert_to_graph_allows_nested_output_path(tmp_path, monkeypatch):
+    captured = {}
+
+    def capture(data):
+        captured.update(data)
+        return {"success": True}
+
+    monkeypatch.setattr(
+        GraphServiceStrategy, "convert_to_graph", staticmethod(capture)
+    )
+    payload = {
+        "npu_path": "npu",
+        "bench_path": "",
+        "output_path": "results/build_123",
+    }
+
+    response = GraphView.convert_to_graph.__wrapped__(
+        make_request(method="POST", data=json.dumps(payload))
+    )
+
+    result = json.loads(response.get_data())
+    assert result["success"] is True
+    assert captured["output_path"] == os.path.realpath(
+        os.path.join(str(tmp_path), "results", "build_123")
+    )
+
+
 def test_get_convert_progress():
     req = make_request()
     resp = GraphView.get_convert_progress.__wrapped__(req)

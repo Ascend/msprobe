@@ -44,8 +44,8 @@ class GraphView:
 
         try:
             # 添加白名单校验
-            if filename != "index.html" and filename != "index.js":
-                raise exceptions.NotFound("404 Not Found") from e
+            if filename not in ("index.html", "index.js"):
+                raise exceptions.NotFound("404 Not Found")
             current_dir = Path(__file__).resolve().parent
             server_dir = current_dir.parent.parent
             dir_path = (server_dir / "static").resolve()
@@ -87,6 +87,7 @@ class GraphView:
         overflow_check = data.get("overflow_check", False)
         fuzzy_match = data.get("fuzzy_match", False)
         logdir = GraphState.get_global_value("logdir")
+        output_path_success, abs_output_path = GraphUtils.safe_resolve_path(logdir, data.get("output_path"))
         # npu_path必须存在，且必须通过安全路径校验
         abs_npu_path = os.path.join(logdir, npu_path)
         npu_path_success, _ = GraphUtils.safe_check_load_file_path(abs_npu_path, True)
@@ -94,6 +95,11 @@ class GraphView:
         def _convert():
             # ## 入参校验
             result = {"success": True}
+            if not output_path_success:
+                return {
+                    "success": False,
+                    "error": f'output_path {GraphUtils.t("convertParamsError")}',
+                }
             if not npu_path_success:
                 return {"success": False, "error": f'npu_path {GraphUtils.t("convertParamsError")}'}
             # bench_path可以为''，如果不为空，必须通过安全路径校验
@@ -126,7 +132,7 @@ class GraphView:
                 data["npu_path"] = abs_npu_path
                 data["bench_path"] = abs_bench_path if bench_path else ""
                 data["layer_mapping"] = abs_layer_mapping if layer_mapping else ""
-                data["output_path"] = os.path.join(logdir, data["output_path"])
+                data["output_path"] = abs_output_path
                 data["is_print_compare_log"] = is_print_compare_log
                 data["overflow_check"] = overflow_check
                 data["fuzzy_match"] = fuzzy_match
@@ -326,7 +332,7 @@ class GraphView:
         data = GraphUtils.safe_json_loads(request.get_data().decode("utf-8"), {})
         meta_data = data.get("metaData")
         strategy = GraphView._get_strategy(meta_data)
-        save_result = strategy.save_data(meta_data)
+        save_result = strategy.save_data(meta_data)  # pylint: disable=no-member
         return http_util.Respond(request, json.dumps(save_result), "application/json")
 
     # 更新颜色信息
