@@ -333,6 +333,26 @@ class GraphUtils:
         return value
 
     @staticmethod
+    def safe_resolve_path(base_dir, relative_path):
+        """Resolve a user-supplied relative path and confine it to base_dir."""
+        try:
+            if not isinstance(relative_path, str) or not relative_path.strip():
+                raise ValueError("Path must be a non-empty string")
+            if os.path.isabs(relative_path):
+                raise ValueError("Absolute paths are not allowed")
+            if len(relative_path) > FILE_PATH_MAX_LENGTH:
+                raise ValueError("Path length exceeds limit")
+
+            real_base_dir = os.path.realpath(base_dir)
+            real_path = os.path.realpath(os.path.join(real_base_dir, relative_path))
+            if os.path.commonpath([real_path, real_base_dir]) != real_base_dir:
+                raise ValueError("Path is outside the allowed directory")
+            return True, real_path
+        except (OSError, TypeError, ValueError) as error:
+            logger.error(error)
+            return False, error
+
+    @staticmethod
     def is_relative_to(path, base):
         abs_path = os.path.abspath(path)
         abs_base = os.path.abspath(base)
