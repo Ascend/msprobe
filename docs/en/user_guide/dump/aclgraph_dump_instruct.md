@@ -105,6 +105,10 @@ When performing precision alignment in **PyTorch ACLGraph** mode, the overall st
 `AclGraphDumper` is used for network-wide collection of intermediate data. It currently supports statistical value collection at the module level, API level, and module + API level. The results include information such as tensor shapes, data types, and statistical values.
 The initialization and `start` call of `AclGraphDumper` must be completed before model graph compilation (such as `torch.npu.graph` or `torch.compile`).
 
+> [!NOTE]
+>
+> Using network-wide collection makes the graph capture phase slower. This is because the tool inserts collection nodes into the ACLGraph during capture (for statistics computation or tensor data preparation). As the collection scope grows, more nodes are added to the graph, and the capture phase takes longer accordingly; the more modules/APIs are collected, the more noticeable the impact. After capture, these collection nodes become part of the graph and execute on every replay to collect data.
+
 #### Interfaces
 
 **Prototype**

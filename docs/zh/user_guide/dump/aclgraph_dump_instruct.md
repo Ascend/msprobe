@@ -106,6 +106,10 @@
 `AclGraphDumper` 用于采集整网中间数据，支持 module 级别、API 级别以及 module+API 混合级别采集。`statistics` 任务输出张量形状、数据类型和统计值；`tensor` 任务输出 Tensor 真实数据。
 `AclGraphDumper` 的初始化与 `start` 调用需在模型编图（如`torch.npu.graph`或`torch.compile`）之前完成。
 
+> [!NOTE]
+>
+> 使用整网采集会使图 capture（编图）阶段变慢。这是因为工具会在编图过程中向 ACLGraph 中插入采集节点（用于统计值计算或 Tensor 数据准备等），图中节点数量随采集范围增大而增多，capture 阶段耗时相应增加，采集的 module/API 数量越多，影响越明显。编图完成后，这些采集节点会作为图的一部分在每次 replay 时执行，以完成数据采集。
+
 #### 接口说明
 
 **函数原型**
