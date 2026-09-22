@@ -412,4 +412,4 @@ CANN 8.5.0 以下（不含 8.5.0）可能出现 `Allocate SQ failed`，这是老
 
 **3. 运行时出现提示信息：`[WARNING]: Invalid statistics detected. Please use tensor mode to collect the affected data.`**
 
-当统计量场景涉及低精度数据类型时，由于无法采集相关低精度信息，系统会触发此提示。若需要解决该问题，建议切换至真实数据模式进行数据采集，具体操作可参考[Tensor 整网采集](#tensor-整网采集)。
+统计结果中存在取值为 null 的统计量（即部分统计量无法计算，如 min、max、mean、norm 记录为 null）时，系统会触发此提示。导致统计量无法计算的原因不限于低精度数据类型，一些预分配 Tensor（如通过 torch.empty 创建的 Tensor）也会导致该问题。若需要进一步分析受影响的数据，建议切换至真实数据模式进行数据采集，具体操作可参见[Tensor 整网采集](#tensor-整网采集)。
