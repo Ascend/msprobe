@@ -13,10 +13,4 @@
 | 开源软件 | -            | cmake/config.ini                 | <https://gitee.com/mirrors/re2/repository/archive/2019-12-01.tar.gz> | 开源软件下载                 |
 | 开源软件 | -            | cmake/config.ini                 | <https://gitcode.com/openeuler/libboundscheck.git>           | 开源软件下载                 |
 | 开源软件 | -            | plugins/tb_graph_ascend/setup.py | <pmail_mindstudio@huawei.com>                                | MindStudio官方邮箱           |
-| 开源软件 | -            | plugins/tb_graph_ascend/setup.py | <https://gitcode.com/Ascend/msprobe/tree/26.0.0/plugins/tb_graph_ascend> | 代码仓地址                   |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://npms.io>                                            | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://github.com/webcomponents/shadycss/issues/193>       | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <http://jsbin.com/temexa/4>                                  | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://developer.mozilla.org/>                             | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://github.com/vaadin/vaadin-time-picker/issues/145>    | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <http://codepen.io/shyndman/pen/>                            | 构建引入，注释               |
+| 开源软件 | -            | plugins/tb_graph_ascend/setup.py | <https://gitcode.com/Ascend/msprobe/tree/master/plugins/tb_graph_ascend> | 代码仓地址                   |
