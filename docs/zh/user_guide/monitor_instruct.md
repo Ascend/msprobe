@@ -18,7 +18,7 @@ Monitor训练状态轻量化监测工具，能够在较低性能损耗下收集�
 ## 快速入门
 
 根据需求监测相应对象。比如在loss上扬，grad norm正常的异常训练过程中，优先考虑监测模型前向过程；在grad norm异常的训练过程中，监测权重和激活值的梯度。
-推荐使用方式：权重梯度的监测性能损耗小（20B dense模型全量权重梯度监测，时间增加<1%，内存增加<1%），可以长期开启。激活值监测性能损耗大，在必要时开启或者仅监测部分。  
+推荐使用方式：权重梯度的监测性能损耗小（20B dense模型全量权重梯度监测，时间增加<1%，内存增加<1%），可以长期开启。激活值监测性能损耗大，在必要时开启或者仅监测部分。
 
 ### 配置文件准备
 
@@ -42,19 +42,19 @@ Monitor训练状态轻量化监测工具，能够在较低性能损耗下收集�
 
 ```diff
 # Megatron-LM(core_r0.6.0)  training.py
-model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider, model_type) 
+model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider, model_type)
 ...
 # 紧跟着model、optimizer定义完成后即插入monitor工具
 +from msprobe.pytorch import TrainerMon
 +monitor = TrainerMon(
-+    config_file_path="./monitor_config.json",
++    config_file_path="./config.json",
 +    params_have_main_grad=True,  # 权重是否使用main_grad，通常megatron类为True，其他为False，默认为True。
-+) 
++)
 +monitor.set_monitor(
 +    model,
 +    grad_acc_steps=args.global_batch_size//args.data_parallel_size//args.micro_batch_size,
 +    optimizer=optimizer
-+) 
++)
 ```
 
 deepspeed与accelerate、transformers同时使用时，optimizer传值方式为`optimizer=optimizer.optimizer`，若未使用deepspeed，单独使用accelerate、transformers，optimizer传值方式为`optimizer=optimizer`。
@@ -86,26 +86,26 @@ class Trainer:
 
 ```diff
 # Megatron-LM(core_r0.6.0)  training.py
-model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider, model_type) 
+model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider, model_type)
 ...
 # 紧跟着model、optimizer定义完成后即插入monitor工具
 +from msprobe.mindspore import TrainerMon
 +monitor = TrainerMon(
-+    config_file_path="./monitor_config.json",
++    config_file_path="./config.json",
 +    process_group=None,
 +    params_have_main_grad=True,  # 权重是否使用main_grad，通常megatron为True，其他为False，默认为True。
-+) 
++)
 # 挂载监测对象
 +monitor.set_monitor(
 +    model,
 +    grad_acc_steps=args.global_batch_size//args.data_parallel_size//args.micro_batch_size,
 +    optimizer=optimizer
-+) 
++)
 ```
 
 ### 注意事项
 
-若框架为FSDP1，请先保证model包裹FSDP时设置use_orig_params=True。
+若框架为FSDP1，请先保证model被FSDP包裹时设置use_orig_params=True。
 
 ## 训练状态监测工具功能介绍
 
@@ -132,13 +132,13 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
 - 该功能可开启权重监测，工具配置示例：
 
 ```json
-{  
+{
     "targets": {
     },
     "param_distribution": true,
     "format": "csv",
     "ops": ["norm", "min", "max", "nans"]
-}  
+}
 ```
 
 `targets`中指定module包含的所有权重都会被监测。`targets`为空时，默认监测全部module。
@@ -149,13 +149,13 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
 - 该功能可开启权重梯度监测，监测聚合前后的权重梯度，工具配置示例：
 
 ```json
-{  
+{
     "targets": {
     },
     "wg_distribution": true,
     "format": "csv",
     "ops": ["norm", "min", "max", "nans"]
-}  
+}
 ```
 
 `targets`中指定module包含的所有权重梯度都会被监测。`targets`为空时，默认监测全部module。
@@ -166,7 +166,7 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
 - 该功能可开启激活值监测，工具配置示例：
 
 ```json
-{  
+{
     "targets": {
     },
     "xy_distribution": true,
@@ -175,10 +175,10 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
     "all_xy": true,
     "format": "csv",
     "ops": ["norm", "min", "max", "nans"]
-}  
+}
 ```
 
-`all_xy`为true表示监测全量module激活值，若需要对指定模块设置监测对象，在`targets`中进行配置，配置方式参考 [指定监测对象](#指定监测对象) 。
+`all_xy`为true表示监测全量module激活值，若需要对指定模块设置监测对象，在`targets`中进行配置，配置方式参考[指定监测对象](#指定监测对象) 。
 
 设置`xy_distribution`为true表示开启激活值监测功能，默认值为false。
 
@@ -189,34 +189,34 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
 - 该功能可开启优化器状态监测，工具配置示例：
 
 ```json
-{  
+{
     "targets": {
     },
     "mv_distribution": true,
     "format": "csv",
     "ops": ["norm", "min", "max", "nans"]
-}  
+}
 ```
 
 `targets`中指定module包含的所有优化器状态都会被监测。`targets`为空时，默认监测全部module。
 设置`mv_distribution`为true表示开启优化器状态监测功能（1st moment noted as `m`, 2nd moment noted as `v`），默认值为false。[什么是mv](https://arxiv.org/pdf/1412.6980)
 
-本工具针对分布式计算框架megatron和deepspeed框架做了适配，暂不支持其他框架。
+本工具针对分布式计算框架megatron和deepspeed做了适配，暂不支持其他框架。
 
 ### 采集module堆栈信息
 
 - 该功能可采集module堆栈详细信息，工具配置示例：
 
 ```json
-{  
+{
     "targets": {
     },
     "format": "csv",
     "stack_info": true
-}  
+}
 ```
 
-开启 `stack_info` 后会采集监测的第一个 step 的所有 module 的堆栈信息，输出格式仅支持 csv 。
+开启 `stack_info` 后会采集监测的第一个 step 的所有 module 的堆栈信息，输出格式仅支持 csv。
 
 ### 指定监测对象
 
@@ -321,9 +321,9 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 
 | 配置项 | 可选/必选 | 类型 | 说明 |
 |--------|--------|------|------|
-| **l2_targets** | 必选 | Dict[str, List[str]] | 指定需要监测的模型层配置<br>**支持的hook类型**：<br> • `attention_hook`：监测注意力层<br>&nbsp;&nbsp;▪️ 采集指标：`entropy` `softmax_max`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `linear_hook`：监测线性层<br>&nbsp;&nbsp;▪️ 采集指标：`sr`, `kernel_norm`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名, 不配置表示不采集<br>&nbsp;&nbsp;▪️ 配置空列表会自动识别符合条件的层（包含`weight`或`wg`2D参数属性的层）<br>• `moe_router_weight_hook`：监测MoE路由权重层<br>&nbsp;&nbsp;▪️ 采集指标：`router_weight_similarity`<br>&nbsp;&nbsp;▪️ 配置为MoE路由线性层（如`router.gate`），需通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `moe_router_logit_hook`：监测MoE路由输出logits<br>&nbsp;&nbsp;▪️ 采集指标：`per_token_expert_entropy`<br>&nbsp;&nbsp;▪️ 配置为MoE路由线性层（如`router.gate`），需通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集 |
+| **l2_targets** | 必选 | Dict[str, List[str]] | 指定需要监测的模型层配置<br>**支持的hook类型**：<br> • `attention_hook`：监测注意力层<br>&nbsp;&nbsp;▪️ 采集指标：`entropy` `softmax_max`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `linear_hook`：监测线性层<br>&nbsp;&nbsp;▪️ 采集指标：`sr`, `kernel_norm`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名，不配置表示不采集<br>&nbsp;&nbsp;▪️ 配置空列表会自动识别符合条件的层（包含`weight`或`wg`2D参数属性的层）<br>• `moe_router_weight_hook`：监测MoE路由权重层<br>&nbsp;&nbsp;▪️ 采集指标：`router_weight_similarity`<br>&nbsp;&nbsp;▪️ 配置为MoE路由线性层（如`router.gate`），需通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `moe_router_logit_hook`：监测MoE路由输出logits<br>&nbsp;&nbsp;▪️ 采集指标：`per_token_expert_entropy`<br>&nbsp;&nbsp;▪️ 配置为MoE路由线性层（如`router.gate`），需通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集 |
 | **recording_l2_features** | 可选 | bool | 是否开启L2层特征数据采集，默认为false表示不采集 |
-| **sa_order** | 可选 | str | 计算`attention_hook`内指标时，指定Attention输入(Q，K)的张量维度排列顺序，支持"s,b,h,d"和"b,s,h,d", 默认为"s,b,h,d"表示输入维度顺序为**s**equence_len​->**b**atch_size​->num_**h**eads​->head_**d**im  |
+| **sa_order** | 可选 | str | 计算`attention_hook`内指标时，指定Attention输入(Q,K)的张量维度排列顺序，支持"s,b,h,d"和"b,s,h,d", 默认为"s,b,h,d"表示输入维度顺序为**s**equence_len​->**b**atch_size​->num_**h**eads​->head_**d**im  |
 
 #### L2可解释特征监测指标说明
 
@@ -338,7 +338,7 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 
 ### mbs粒度梯度监测
 
-当配置梯度监测任务时，工具默认`global_batch_size`粒度进行梯度监测。当需要监测`micro_batch_size`粒度梯度信息时，在配置文件中配置`monitor_mbs_grad`为`true`，配置示例如下：
+当配置梯度监测任务时，工具默认以`global_batch_size`粒度进行梯度监测。当需要监测`micro_batch_size`粒度梯度信息时，在配置文件中配置`monitor_mbs_grad`为`true`，配置示例如下：
 
 ```json
 {
@@ -364,7 +364,7 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 | 异常告警         |解释| rule_name | args是否可选                                                            |
 |--------------|----|-----------|---------------------------------------------------------------------|
 | 历史均值偏离告警    |将当前数值与历史均值比较。如果相对偏差超过阈值，会在打印信息中提示用户指标偏离。当前仅对`norm`和`mean`指标生效。| AnomalyTurbulence | 否，必须传入threshold。当指标超过`(1+threshold)*avg`时，识别为偏离历史均值。 |
-| nan值/极大值告警   |根据是否提供threshold来判断nan值或极大值| AnomalyNan  | 是， 若未配置args或未配置threshold，则默认检测nan，若提供threshold，则检测nan值以及绝对值超过阈值的极大值 |
+| nan值/极大值告警   |根据是否提供threshold来判断nan值或极大值| AnomalyNan  | 是，若未配置args或未配置threshold，则默认检测nan，若提供threshold，则检测nan值以及绝对值超过阈值的极大值 |
 
 除此之外，我们在alert中支持dump配置项，如果打开"`dump`"选项，则会将异常信息落盘到目录`monitor_output/anomaly_detected`。
 
@@ -412,7 +412,7 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
         "vpp_stage": 0,
         "call_id": 112,
         "tag_name": "0:1.self_attention.core_attention_flash_0/rank0/input_grad",
-        "message": "Rule AnomalyTurbulence reports anomaly signal in ('0:1.self_attention.core_attention_flash_0/rank0/input_grad', 'min') at step 1.",
+        "message": "Rule AnomalyTurbulence reports anomaly signal in ('0:1.self_attention.core_attention_flash_0/rank0/input_grad', 'norm') at step 1.",
         "group_mates": [0, 1]
     },
     ...
@@ -423,7 +423,7 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 
 **异常事件排序**
 
-当模型训练过程中出现较多异常数据，需要对异常事件排序。工具提供topk的异常排序能力，按照api的执行顺序进行排序，便于定界首次异常点。异常分析命令示例：
+当模型训练过程中出现较多异常数据，需要对异常事件排序。工具提供topk的异常排序能力，按照api的执行顺序进行排序，便于定位首次异常点。异常分析命令示例：
 
 ```shell
 python3 -m msprobe.core.monitor.anomaly_processor -d $MONITOR_OUTPUT_DIR/anomaly_detected
@@ -488,15 +488,15 @@ csv2tensorboard_by_step(
 | 场景2: 进入动态启停模式，初始不启动监测                         | 动态 | 1.配置环境变量：`export DYNAMIC_MONITOR=True` <br/> 2.配置config.json中`dynamic_on: false`或不设置该字段                                                                                    | 初始状态下无监测，不进行数据采集和保存                                                                  |
 | 场景3: 进入动态启停模式，初始即启动监测                         | 动态 | 1.配置环境变量：`export DYNAMIC_MONITOR=True` <br/> 2.配置config.json中`dynamic_on: true`                                                                                            | 根据初始配置在第1步（初始计数为0）开启监测并保存，采集`collect_times`次数后结束监测                                   |
 | 场景4: 进入动态启停模式，初始暂不启动监测，训练中途启动                 | 动态 | 1.配置环境变量：`export DYNAMIC_MONITOR=True` <br/> 2.开始时配置config.json中`dynamic_on: false`或不设置该字段<br/>3.训练中途修改config.json中`dynamic_on: true`                                      | 训练中途根据最新配置在下一步开启监测并保存，采集`collect_times`次数后结束监测                                         |
-| 场景5: 进入动态启停模式，监测还未结束时中途修改config.json采集配置      | 动态 | 1.配置环境变量：`export DYNAMIC_MONITOR=True` <br/> 2.期间配置`dynamic_on: true`启动采集<br/>3.在采集还未达到`collect_times`次数前，中途修改config.json配置                                                | 更新前按旧配置采集并保存，更新后下一步以最新config.json采集且`collect_times`重新从0开始计数。此功能可配合中途`collect_times`改0来实现提前停止监测。 
-| 场景6: 进入动态启停模式，在根据`collect_times`结束监测后，需重新启动监测 | 动态 | 1.配置环境变量：`export DYNAMIC_MONITOR=True` <br/> 2.期间`dynamic_on: true`启动采集<br/>3.采集达到`collect_times`次数后结束监测，程序自动改`dynamic_on:false`<br/>4.配置config.json中`dynamic_on:true`重启监测 | 更新前按旧配置采集并保存，中途停止监测后无采集，重启后下一步以最新config.json重启采集且`collect_times`重新从0开始计数。               
+| 场景5: 进入动态启停模式，监测还未结束时中途修改config.json采集配置      | 动态 | 1.配置环境变量：`export DYNAMIC_MONITOR=True` <br/> 2.期间配置`dynamic_on: true`启动采集<br/>3.在采集还未达到`collect_times`次数前，中途修改config.json配置                                                | 更新前按旧配置采集并保存，更新后下一步以最新config.json采集且`collect_times`重新从0开始计数。此功能可配合中途`collect_times`改0来实现提前停止监测。
+| 场景6: 进入动态启停模式，在根据`collect_times`结束监测后，需重新启动监测 | 动态 | 1.配置环境变量：`export DYNAMIC_MONITOR=True` <br/> 2.期间`dynamic_on: true`启动采集<br/>3.采集达到`collect_times`次数后结束监测，程序自动改`dynamic_on:false`<br/>4.配置config.json中`dynamic_on:true`重启监测 | 更新前按旧配置采集并保存，中途停止监测后无采集，重启后下一步以最新config.json重启采集且`collect_times`重新从0开始计数。
 
 ### 功能重载
 
 此功能将在2026年废弃。请使用[动态启停](#动态启停)功能代替。
 
 - 统计量
-可以在训练过程中修改`TrainerMon`实例的`ops`属性, 调整监测的统计量。
+可以在训练过程中修改`TrainerMon`实例的`ops`属性，调整监测的统计量。
 
 ```python
 if {some condition}:
@@ -504,7 +504,7 @@ if {some condition}:
 ```
 
 - 训练过程中开关激活值监测
-激活值监测的性能损耗较大, 推荐仅在必要时开启, 比如发现loss出现尖刺, 根据loss的异常开启激活值监测.
+激活值监测的性能损耗较大，推荐仅在必要时开启，比如发现loss出现尖刺，根据loss的异常开启激活值监测。
 
 ```python
 if {some condition}:
@@ -513,7 +513,7 @@ if {some condition}:
 
 ## 输出结果
 
-### 输出路径 
+### 输出路径
 
 通过环境变量`MONITOR_OUTPUT_DIR`设置monitor输出路径，默认为`./monitor_output/`。
 
@@ -521,13 +521,13 @@ if {some condition}:
 export MONITOR_OUTPUT_DIR=/xxx/output_dir
 ```
 
-### 输出格式 
+### 输出格式
 
 通过可选配置项`format`指定，当前仅支持`csv`（默认值）。
 
 - **csv**
-  监测结果写入csv文件中，可以通过`ndigits`字段设置小数位数。  
-  表头为 vpp_stage | name | step | micro_step(optional) | *ops |。 
+  监测结果写入csv文件中，可以通过`ndigits`字段设置小数位数。
+  表头为 vpp_stage | name | step | micro_step(optional) | *ops |。
   仅在激活值监测的输出文件中包含micro_step。
   激活值监测的name为`<module_name>.<input or output>`, 其他任务的name为`<param_name>`。
 
@@ -568,7 +568,7 @@ TrainerMon.set_monitor(model, grad_acc_steps, optimizer, dp_group=None, tp_group
 | grad_acc_steps  | 必选      | 梯度累积步数。                                               |
 | optimizer       | 必选      | 需要patch的优化器。                                          |
 | dp_group        | 可选      | 数据并行的通信组。<br>dp域通信后，且没有使用分布式优化器时，group内所有rank的梯度相同，落盘数据冗余。<br>提供dp_group后，工具仅保留每个dp_group的第一个rank的梯度。 |
-| tp_group        | 可选      | 张量并行的通信组。<br/>tp域通信后，group内部分参数所有rank的梯度相同，落盘数据冗余。<br/>提供tp_group后，工具仅保留每个tp_group中冗余参数在第一个rank的梯度。<br/>当前适配Megatron core_r0.6.0, 通过权重属性"tensor_model_parallel"判断是否冗余。 |
+| tp_group        | 可选      | 张量并行的通信组。<br/>tp域通信后，group内部分参数所有rank的梯度相同，落盘数据冗余。<br/>提供tp_group后，工具仅保留每个tp_group中冗余参数在第一个rank的梯度。<br/>当前适配Megatron core_r0.6.0，通过权重属性"tensor_model_parallel"判断是否冗余。 |
 | start_iteration | 可选      | 训练的起始iteration，影响工具计数。**仅PyTorch场景支持此参数**。 |
 
 - csv输出件转tensorboard输出件
@@ -583,7 +583,7 @@ csv2tensorboard_by_step(monitor_path, time_start, time_end, process_num=1, data_
 | time_start     | 必选      | 起始时间戳。搭配time_end一起使用。指定一个时间范围，会对这个范围内的文件进行转换。左闭右闭的区间。 |
 | time_end       | 必选      | 结束时间戳。搭配time_start一起使用。指定一个时间范围，会对这个范围内的文件进行转换。左闭右闭的区间。 |
 | process_num    | 可选      | 指定拉起的进程个数，默认为1，更多的进程个数可以加速转换。    |
-| data_type_list | 可选      | 指定需要转换的数据类型, 数据类型应来自输出件文件前缀，所有类型数据：<br/> ["actv", "actv_grad", "exp_avg", "exp_avg_sq", "grad_unreduced", "grad_reduced", "param_origin", "param_updated"]。<br/>不指定就转换全部数据。 |
+| data_type_list | 可选      | 指定需要转换的数据类型，数据类型应来自输出件文件前缀，所有类型数据：<br/> ["actv", "actv_grad", "exp_avg", "exp_avg_sq", "grad_unreduced", "grad_reduced", "param_origin", "param_updated"]。<br/>不指定就转换全部数据。 |
 | output_dirpath | 可选      | 指定转换后的输出路径，默认输出到"{curtime}_csv2tensorboard_by_step"文件夹，其中curtime为自动获取的当前时间戳。 |
 
 - 在模型任意位置获取当前参数**梯度**统计量
@@ -606,13 +606,13 @@ TrainerMon.generate_xy_metrics() -> tuple[dict, dict]
 
 具体使用方式如下：
 
-```python 
+```python
 actv, actv_grad = monitor.generate_xy_metrics()
 ```
 
-- 老版接口说明， **将在2026年废弃**：
+- 老版接口说明，**将在2026年废弃**：
 
-```python 
+```python
 TrainerMon.set_wrapped_optimizer(optimizer) -> None
 ```
 
@@ -620,7 +620,7 @@ TrainerMon.set_wrapped_optimizer(optimizer) -> None
 | --------- | --------- | ----------------------------------------- |
 | optimizer | 必选      | megatron、deepspeed创建好的混合精度优化器 |
 
-```python 
+```python
 TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_group, start_iteration) -> None
 ```
 
@@ -630,7 +630,7 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 | grad_acc_steps  | 必选      | 梯度累积步数。                                               |
 | optimizer       | 可选      | 需要patch的优化器。                                          |
 | dp_group        | 可选      | 数据并行的通信组。<br>dp域通信后，且没有使用分布式优化器时，group内所有rank的梯度相同，落盘数据冗余。<br>提供dp_group后，工具仅保留每个dp_group的第一个rank的梯度。 |
-| tp_group        | 可选      | 张量并行的通信组。<br/>tp域通信后，group内部分参数所有rank的梯度相同，落盘数据冗余。<br/>提供tp_group后，工具仅保留每个tp_group中冗余参数在第一个rank的梯度。<br/>当前适配Megatron core_r0.6.0, 通过权重属性"tensor_model_parallel"判断是否冗余。 |
+| tp_group        | 可选      | 张量并行的通信组。<br/>tp域通信后，group内部分参数所有rank的梯度相同，落盘数据冗余。<br/>提供tp_group后，工具仅保留每个tp_group中冗余参数在第一个rank的梯度。<br/>当前适配Megatron core_r0.6.0，通过权重属性"tensor_model_parallel"判断是否冗余。 |
 | start_iteration | 可选      | 训练的起始iteration，影响工具计数。**仅PyTorch场景支持此参数**。 |
 
 具体接口变更说明如下：
@@ -638,17 +638,17 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 | 变更               | 说明                                                         |
 | ------------------ | ------------------------------------------------------------ |
 | 初始化接口统一精简 | TrainerMon.__init__(config_file_path, process_group=None, params_have_main_grad=True) |
-| 主调接口修改       | 从monitor_gnorm_with_ad(...)改名为set_monitor(...)， 且此时optimizer从可选项改为必传项 |
-| 优化器包装接口废除 | set_wrapped_optimizer接口废除， optimizer传入由set_monitor主调完成 |
+| 主调接口修改       | 从monitor_gnorm_with_ad(...)改名为set_monitor(...)，且此时optimizer从可选项改为必传项 |
+| 优化器包装接口废除 | set_wrapped_optimizer接口废除，optimizer传入由set_monitor主调完成 |
 
 ## 详细配置
 
 ```json
-{  
-    "targets": {  
-        "language_model.encoder.layers.0": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}  
+{
+    "targets": {
+        "language_model.encoder.layers.0": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}
     },
-    "dynamic_on": false,  
+    "dynamic_on": false,
     "start_step": 0,
     "collect_times": 100000000,
     "step_interval": 1,
@@ -675,35 +675,35 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
     "step_count_per_record": 1,
     "append_output": [],
     "squash_name": false
-}  
+}
 ```
 
 下面详细解释各个字段：
 
 | 字段名字                | 可选/必选 | 解释                                                                                                                                                                                                                                                                                                                                                                              |
 | ----------------------- | -------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| "targets"               | 可选     | 指定需要监测的模型层和监测对象， 例如transformer的第0层language_model.encoder.layers.0，可选择监测input、output、input_grad、output_grad。如果不清楚模型结构， 可以将 "print_struct" 字段设置为 true， 监测工具会打印模型中torch module的名字和详细结构，并在第1个step后退出。未配置时默认为全量监测。                                                                                                                                                                   |
-| "input"                 | 可选     | "tuple[2]:0"的意思是目标module的前向input参数为长度为2的tuple， 我们关心的是tuple第0个元素。                                                                                                                                                                                                                                                                                                                |
+| "targets"               | 可选     | 指定需要监测的模型层和监测对象，例如transformer的第0层language_model.encoder.layers.0，可选择监测input、output、input_grad、output_grad。如果不清楚模型结构，可以将 "print_struct" 字段设置为 true，监测工具会打印模型中torch module的名字和详细结构，并在第1个step后退出。未配置时默认为全量监测。                                                                                                                                                                   |
+| "input"                 | 可选     | "tuple[2]:0"的意思是目标module的前向input参数为长度为2的tuple，我们关心的是tuple第0个元素。                                                                                                                                                                                                                                                                                                                |
 | "output"                | 必选     | "tensor"的意思是目标module的前向output参数类型为tensor                                                                                                                                                                                                                                                                                                                                        |
-| "input_grad"            | 可选     | "tuple[2]:0"的意思是目标module的后向input_grad参数是长度为2的tuple， 我们关心的是tuple的第0个元素。                                                                                                                                                                                                                                                                                                          |
-| "output_grad"           | 必选     | "tuple[1]:0"的意思是目标module的后向output_grad参数是长度为1的tuple， 我们关心的是tuple的第0个元素。                                                                                                                                                                                                                                                                                                        |
+| "input_grad"            | 可选     | "tuple[2]:0"的意思是目标module的后向input_grad参数是长度为2的tuple，我们关心的是tuple的第0个元素。                                                                                                                                                                                                                                                                                                          |
+| "output_grad"           | 必选     | "tuple[1]:0"的意思是目标module的后向output_grad参数是长度为1的tuple，我们关心的是tuple的第0个元素。                                                                                                                                                                                                                                                                                                        |
 | "dynamic_on"            | 可选     | 在动态启停时使用，true代表打开监测，false代表关闭监测，默认值为false，且达到collect_times之后会自动将该值置为false，待下次修改为true时重启。                                                                                                                                                                                                                                                                                       |
 | "collect_times"         | 可选     | 设置采集次数，达到该次数后停止监测，默认值为100000000，目的是一直采集。                                                                                                                                                                                                                                                                                                                                        |
 | "start_step"            | 可选     | 设置开始采集step，模型训练达到start_step后开始监测采集，默认值为0，表示从step0开始监测采集。注：在动态启停模式下该设置不生效，只会从下一步开始监测采集。                                                                                                                                                                                                                                                                                          |
 | "step_interval"         | 可选     | 设置采集step间隔，默认值为1，表示每个step均采集监测数据。                                                                                                                                                                                                                                                                                                                                               |
 | "print_struct"          | 可选     | 设置为true后监测工具会打印每张卡模型中module的名字和详细结构，并在第1个step后退出。不填默认为false。                                                                                                                                                                                                                                                                                                                    |
-| "module_ranks"          | 可选     | 用于在分布式训练场景中希望控制在哪些rank开启module监测。如果不填，则默认在所有rank开启。 列表内rank要求为int类型。                                                                                                                                                                                                                                                                                                            |
-| "ur_distribution"       | 可选     | 若为true则会统计adam优化器指定模块（targets中指定）参数的update和ratio向量的数值分布，并展示在heatmap里。默认为false。<br/>依赖histc算子， 需要CANN8.0.rc2以上版本， 否则会有严重的性能问题。**仅PyTorch场景支持此参数**。                                                                                                                                                                                         |
-| "xy_distribution"       | 可选     | 若为true则会监测指定module（targets中指定）的输入输出张量。 默认为false。                                                                                                                                                                                                                                                                                                                                |
+| "module_ranks"          | 可选     | 用于在分布式训练场景中希望控制在哪些rank开启module监测。如果不填，则默认在所有rank开启。列表内rank要求为int类型。                                                                                                                                                                                                                                                                                                            |
+| "ur_distribution"       | 可选     | 若为true则会统计adam优化器指定模块（targets中指定）参数的update和ratio向量的数值分布，并展示在heatmap里。默认为false。<br/>依赖histc算子，需要CANN8.0.RC2以上版本，否则会有严重的性能问题。**仅PyTorch场景支持此参数**。                                                                                                                                                                                         |
+| "xy_distribution"       | 可选     | 若为true则会监测指定module（targets中指定）的输入输出张量。默认为false。                                                                                                                                                                                                                                                                                                                                |
 | "all_xy"                | 可选     | 开启xy_distribution后生效，若为true，监测所有module。默认为false。<br/>与targets同时生效，all_xy配置为true时，若targets配置module_xx和指定对象，则module_xx按targets配置生效，其他module则监测全部对象，包含input、output、input_grad、output_grad。                                                                                                                                                                                         |
 | "forward_only"          | 可选     | 开启xy_distribution后生效，若为true，仅监测指定module的前向，targets中的input_grad、output_grad不生效。默认为false。                                                                                                                                                                                                                                                                                         |
 | "backward_only"         | 可选     | 开启xy_distribution后生效，若为true，仅监测指定module的反向，targets中的input、output不生效。默认为false。                                                                                                                                                                                                                                                                                                   |
-| "mv_distribution"       | 可选     | 若为true则会监测指定模块中的参数的优化器状态， 默认为false。                                                                                                                                                                                                                                                                                                 |
-| "wg_distribution"       | 可选     | 若为true则会监测指定模块的参数梯度， 默认为false。                                                                                                                                                                                                                                                                                                                                                  |
+| "mv_distribution"       | 可选     | 若为true则会监测指定模块中的参数的优化器状态，默认为false。                                                                                                                                                                                                                                                                                                 |
+| "wg_distribution"       | 可选     | 若为true则会监测指定模块的参数梯度，默认为false。                                                                                                                                                                                                                                                                                                                                                  |
 | "monitor_mbs_grad" | 可选     | 若为true则会监测mbs粒度梯度统计量，默认为false。                                                                                                                                                                                                                                                                                                                                                  |
-| "param_distribution"    | 可选     | 若为true则会监测指定模块的参数， 默认为false。                                                                                                                                                                                                                                                                                                                                                    |
-| "alert"                 | 可选     | "rules": 指定自动报警的异常检测机制及其相应的阈值。目前实现的异常检测是AnomalyTurbulence， 如果统计标量超出历史均值的指定浮动范围（threshold 0.5意味着上浮或者下浮50%）则在控制台打印报警信息。当"dump"字段配置为true表示异常事件写入文件，默认为false。**仅PyTorch场景支持此参数**。                                                                                                                                                                                                   |
-| "cc_distribution"       | 可选     | 其中"enable"字段控制通信监测模块的开关，仅支持在多卡训练时开启；需要监测通信算子时，务必尽量早地实例化`TrainerMon`, 因为监测通过劫持原始func后挂hook实现，部分加速库初始化时会保存原始function，避免监测失效。"cc_codeline"字段指定监测的代码行，如:`train.py\\[23\\]`，默认为空列表，不特别指定；"cc_pre_hook"字段控制是否监测通信输入； 模块会在第二个optimize.step之前打印通信日志，包括通信api的调用栈、输入dtype、通信group。 "cc_log_only"为true时，仅打印日志，不监测通信的输入输出，并在打印后中断训练。可以根据通信日志设置"cc_codeline"，规避与训练过程不相关的通信，比如一些时间、metrics的同步。 |
+| "param_distribution"    | 可选     | 若为true则会监测指定模块的参数，默认为false。                                                                                                                                                                                                                                                                                                                                                    |
+| "alert"                 | 可选     | "rules": 指定自动报警的异常检测机制及其相应的阈值。目前实现的异常检测是AnomalyTurbulence，如果统计标量超出历史均值的指定浮动范围（threshold 0.5意味着上浮或者下浮50%）则在控制台打印报警信息。当"dump"字段配置为true表示异常事件写入文件，默认为false。**仅PyTorch场景支持此参数**。                                                                                                                                                                                                   |
+| "cc_distribution"       | 可选     | 其中"enable"字段控制通信监测模块的开关，仅支持在多卡训练时开启；需要监测通信算子时，务必尽量早地实例化`TrainerMon`, 因为监测通过劫持原始func后挂hook实现，部分加速库初始化时会保存原始function，避免监测失效。"cc_codeline"字段指定监测的代码行，如：`train.py\\[23\\]`，默认为空列表，不特别指定；"cc_pre_hook"字段控制是否监测通信输入；模块会在第二个optimize.step之前打印通信日志，包括通信api的调用栈、输入dtype、通信group。 "cc_log_only"为true时，仅打印日志，不监测通信的输入输出，并在打印后中断训练。可以根据通信日志设置"cc_codeline"，规避与训练过程不相关的通信，比如一些时间、metrics的同步。 |
 | "mg_direction"         | 可选 | 若为true则会计算权重梯度和动量方向一致的比例，默认为false。                                                                                                                                                                                                                                                                                                                                              |
 | "format"                | 可选     | 数据落盘格式，仅支持"csv"（默认值）。                                                                                                                                                                                                                                                                    |
 | "ops"                   | 可选     | 类型为list，与ur_distribution、xy_distribution、mv_distribution、wg_distribution、mg_direction、cc_distribution配合，监测所选张量的统计指标，目前支持"min"、"max"、"norm"、"mean"、"zeros"、"nans"。其中，zeros代表监测所选张量的元素小于eps的比例，nans代表张量中nan的数量。当ops中无有效指标时，默认监测norm指标。                                                                                                                                            |

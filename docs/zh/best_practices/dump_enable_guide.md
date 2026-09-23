@@ -33,7 +33,7 @@ original_linear = F.linear
 # 替换functional中的linear，使用*args和**kwargs适配所有参数
 def custom_linear(*args, **kwargs):
     print("="*50)
-    print("调用F.linear,调用栈如下:")
+    print("调用F.linear，调用栈如下：")
     traceback.print_stack()
     # 将接收的参数原封不动地传给原始函数
     return original_linear(*args, **kwargs)
@@ -155,4 +155,4 @@ compute_ref_log_prob
     +   actor_rollout_ref.rollout.engine_kwargs.sglang.disable_cuda_graph=True
     ```
 
-2. verl中使用ray自动纳管npu会导致卡不可见，需要设置环境变量`export RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES=1`。
+2. verl中使用ray自动纳管NPU会导致卡不可见，需要设置环境变量`export RAY_EXPERIMENTAL_NOSET_ASCEND_RT_VISIBLE_DEVICES=1`。

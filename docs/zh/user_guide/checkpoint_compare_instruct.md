@@ -6,7 +6,7 @@
 
 Checkpoint比对（ckpt Compare，Checkpoint Compare）可比较两个不同的checkpoint，评估模型相似度。
 
-当前支持Megatron-LM、MindSpeed（PyTorch&MindTorch）的ckpt比较。支持TP、PP、EP、VPP模型并行；支持megatron.core、megatron.legacy、TransformerEngine的模型实现。
+当前支持Megatron-LM、MindSpeed（PyTorch&MindTorch）的ckpt比较，支持TP、PP、EP、VPP模型并行；支持megatron.core、megatron.legacy、TransformerEngine的模型实现。
 
 ## 使用前准备
 
@@ -74,7 +74,7 @@ Checkpoint比对结果以json文件输出，内容如下示例：
 ```json
 {
     "decoder.layers.0.input_layernorm.weight": {
-        "l2": 0.0, 
+        "l2": 0.0,
         "cos": 0.999999,
         "numel": 128,
         "shape": [
@@ -82,7 +82,7 @@ Checkpoint比对结果以json文件输出，内容如下示例：
         ]
     },
     "decoder.layers.0.pre_mlp_layernorm.weight": {
-        "l2": 0.012, 
+        "l2": 0.012,
         "cos": 0.98,
         "numel": 128,
         "shape": [
@@ -95,6 +95,6 @@ Checkpoint比对结果以json文件输出，内容如下示例：
 统计量 | 解释 |
 |-------|---------|
 | l2 | 欧氏距离，$\|\|a-b\|\|_2$。 |
-| cos | 余弦相似度， $\frac{<a,b>}{\|\|a\|\|_2\|\|b\|\|_2}$。 |
+| cos | 余弦相似度，$\frac{<a,b>}{\|\|a\|\|_2\|\|b\|\|_2}$。 |
 | numel | 参数的元素个数。 |
 | shape | 参数的shape。 |

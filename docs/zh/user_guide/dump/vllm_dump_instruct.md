@@ -70,7 +70,7 @@ vllm serve Qwen/Qwen2.5-0.5B-Instruct \
 
 1. 修改vllm-ascend代码
 
-   找到vllm-ascend框架`NPUModelRunner`类所属文件： vllm_ascend/worker/model_runner_v1.py
+   找到vllm-ascend框架`NPUModelRunner`类所属文件：vllm_ascend/worker/model_runner_v1.py
 
    - 修改`NPUModelRunner`类的`execute_model`方法中的`self._start_dump_data`所有调用点。
 
@@ -96,14 +96,14 @@ vllm serve Qwen/Qwen2.5-0.5B-Instruct \
        +    def _start_dump_data(self, **kwargs) -> None:
                if self.debugger is None or self._debugger_started:
                    return
-       -       self.debugger.start(self.model)    
+       -       self.debugger.start(self.model)
        +       self.debugger.start(self.model, **kwargs)
                self._debugger_started = True
        ```
 
 2. request_id配置
 
-    vllm会在request_id前加上`chatcmpl-`前缀，curl请求指定request_id为`<REQ_ID>`，需要config.json配置request_id为`chatcmpl-<REQ_ID>`
+    vLLM会在request_id前加上`chatcmpl-`前缀，curl请求指定request_id为`<REQ_ID>`，需要config.json配置request_id为`chatcmpl-<REQ_ID>`。
 
     在当前目录下创建`config.json`文件，用于配置dump参数。内容示例如下：
 
@@ -260,7 +260,7 @@ acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
           if hasattr(self, "debugger"):
               self.debugger.start(model=self.model)
           ################################ msprobe ################################
-    
+
           try:
               ...
               return output
@@ -288,7 +288,7 @@ acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
     ```shell
     #!/bin/bash
     export TORCHDYNAMO_DISABLE=1
-    
+
     vllm serve Qwen/Qwen2.5-0.5B-Instruct \
       --dtype float16 \
       --enforce-eager \

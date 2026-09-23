@@ -2,13 +2,13 @@
 
 ## 摘要
 
-在强化学习系统的开发与部署中，训练与推理阶段的行为偏差——即“训推不一致”——往往是导致训练loss震荡、收敛缓慢甚至reward崩溃的隐性根源。本文首先介绍训推一致性的背景与定义，指出导致训推不一致的本质原因。随后，聚焦训推对齐核心技术：介绍msprobe精度工具以及在训推一致对齐场景下的工具能力。最后，通过一次真实场景的实战案例复盘，展示如何因训推不一致引发训练曲线剧烈波动，以及reward崩溃。通过对齐手段恢复训练稳定性、提升整体训练精度的的全过程。本文旨在为强化学习实践者提供一套可落地的稳定性分析框架与解决思路，让模型不仅在训练环境中“游刃有余”，更在推理部署中“表里如一”。
+在强化学习系统的开发与部署中，训练与推理阶段的行为偏差——即“训推不一致”——往往是导致训练loss震荡、收敛缓慢甚至reward崩溃的隐性根源。本文首先介绍训推一致性的背景与定义，指出导致训推不一致的本质原因。随后，聚焦训推对齐核心技术：介绍msprobe精度工具以及在训推一致对齐场景下的工具能力。最后，通过一次真实场景的实战案例复盘，展示如何因训推不一致引发训练曲线剧烈波动，以及reward崩溃。通过对齐手段恢复训练稳定性、提升整体训练精度的全过程。本文旨在为强化学习实践者提供一套可落地的稳定性分析框架与解决思路，让模型不仅在训练环境中“游刃有余”，更在推理部署中“表里如一”。
 
 ## 1. 训推一致性的背景与意义
 
 ### 1.1 什么是训推不一致？
 
-**训推不一致**指的是 Rollout（推理）引擎与训练引擎之间存在的​**数值不一致性**​。即使两个引擎使用完全相同的模型权重，针对相同的 Token 序列，它们计算出的对数概率也可能存在细微差异。该差异映射到模型行为，可以总结为行为策略（behavior policy）和参考策略（reference policy）不一致。
+**训推不一致**指的是 Rollout（推理）引擎与训练引擎之间存在的​**数值不一致性**，即使两个引擎使用完全相同的模型权重，针对相同的 Token 序列，它们计算出的对数概率也可能存在细微差异。该差异映射到模型行为，可以总结为行为策略（behavior policy）和参考策略（reference policy）不一致。
 
 行为策略：实际负责生成 rollout 的策略，也就是“你在什么分布下采样到了这些数据”。在现代 LLM-RL 系统里，它对应的是推理引擎里的那套实现（vLLM / SGLang 等），在异步框架下往往还是多个 worker 策略的混合分布。
 
@@ -16,21 +16,21 @@
 
 目标策略：训练目标里要优化的策略，也就是“你想让模型变成什么样”。典型地就是 PPO / GRPO 里的“新策略”（new policy）。
 
-在最经典、理想化的设定里，我们通常期望​**行为策略**​**​=​**​**参考策略** 。但在现实系统中，受异步更新、不同推理 / 训练后端、MoE 路由波动甚至硬件数值差异等因素影响，二者往往会出现不同程度的偏离。
+在最经典、理想化的设定里，我们通常期望​**行为策略​=​参考策略**。但在现实系统中，受异步更新、不同推理 / 训练后端、MoE 路由波动甚至硬件数值差异等因素影响，二者往往会出现不同程度的偏离。
 
 ### 1.2 为什么训推一致性难以保证？
 
 #### (1)训练侧与推理侧的框架差异
 
-如下图所示: 训练侧使用Megatron vs vLLM推理,整体框架的差异，导致训推结果不一致
+如下图所示：训练侧使用Megatron vs vLLM推理，整体框架的差异，导致训推结果不一致。
 
 ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/framework_diff.png)
 
-进一步展开来看，框架内部，对于相同语义模型层，实现思路也不同，导致结果不能完全对齐
+进一步展开来看，框架内部，对于相同语义模型层，实现思路也不同，导致结果不能完全对齐。
 
 ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/layer_impl_diff.png)
 
-针对同样操作，如layernorm，训练可能使用小算子拼接实现，推理使用融合算子实现，两者在精度上也可能有细微差异
+针对同样操作，如layernorm，训练可能使用小算子拼接实现，推理使用融合算子实现，两者在精度上也可能有细微差异。
 
 ```makeup
 # PyTorch 标准实现（训练）
@@ -81,7 +81,7 @@ y = fused_rms_norm(x, weight)
 ## 2. 训推对齐排查思路及工具
 
 本章节以主流VeRL框架举例，介绍基于该框架下的强化学习训练训推对齐排查思路及MindStudio工具链相关的精度工具。
-目前主流RL算法是基于**On-Policy**前提展开的，**On-Policy**理论要求采样数据的行为策略与梯度计算的目标策略基本保持一致，才能确保梯度估计是无偏的，从而使训练过程更平稳。在强化学习中采样我们称之为**rollout**推理，梯度计算则对应**actor**训练，当推理与训练策略保持一致，即称为训推一致。 训推一致性的主要指标为​**logp_diff_mean**​，当**logp_diff_mean**异常时表示强化学习中训练和推理存在一定程度的差异，需进行训推差异的根因查找，其计算公式为：
+目前主流RL算法是基于**On-Policy**前提展开的，**On-Policy**理论要求采样数据的行为策略与梯度计算的目标策略基本保持一致，才能确保梯度估计是无偏的，从而使训练过程更平稳。在强化学习中采样我们称之为**rollout**推理，梯度计算则对应**actor**训练，当推理与训练策略保持一致，即称为训推一致。训推一致性的主要指标为​**logp_diff_mean**​，当**logp_diff_mean**异常时表示强化学习中训练和推理存在一定程度的差异，需进行训推差异的根因查找，其计算公式为：
 ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/logp_diff_formula.png)
 其中M为response_mask。
 
@@ -155,14 +155,14 @@ y = fused_rms_norm(x, weight)
 
 1. 保证训练`batch`未被拆分
 
-   * 需保证每轮训练中用于梯度更新的`mini<span> batch`个数`mini_batch_num`= `1`，计算公式为:
+   * 需保证每轮训练中用于梯度更新的`mini<span> batch`个数`mini_batch_num`= `1`，计算公式为：
 
    ```makeup
    mini_batch_num = train_batch_size/train_ppo_mini_batch_size
    ​
    ```
 
-   * 需保证梯度累积步骤数gac =1， 计算公式为：
+   * 需保证梯度累积步骤数gac =1，计算公式为：
 
    ```makeup
    gac = train_ppo_mini_batch_size*n_resp_per_prompt/train_ppo_micro_batch_size_per_gpu/DP
@@ -205,7 +205,7 @@ y = fused_rms_norm(x, weight)
    有如下两种实现对齐的方案：
 
 * **方案1：将训练变单`prompt`。**
-* ​**方案2：将推理的prefill带上`response`**​，具体为推理做完`prefill`和`decode`拿到完整的`prompt`+`response`后，设`max_response`=`1`重做一次`prefill`(`prompt`+`response`) 。
+* ​**方案2：将推理的prefill带上`response`**​，具体为推理做完`prefill`和`decode`拿到完整的`prompt`+`response`后，设`max_response`=`1`重做一次`prefill`(`prompt`+`response`)。
 
 由于后者存在重复推理影响性能，因此本指南优先以前方案1进行操作。
 
@@ -242,7 +242,7 @@ def compute_log_prob(self, data: DataProto, calculate_entropy=False) -> torch.Te
 +            if "responses" in data.batch:
 +                responses_len = data.batch["responses"].size(1)
 +                data.batch["input_ids"] = data.batch["input_ids"][:, :-responses_len]
-+               data.batch["attention_mask"] = data.batch["attention_mask"][:, :-responses_len]
++                data.batch["attention_mask"] = data.batch["attention_mask"][:, :-responses_len]
 +                if data.batch["position_ids"].dim() == 3:
 +                    data.batch["position_ids"] = data.batch["position_ids"][:, :, :-responses_len]
 +                else:
@@ -337,7 +337,7 @@ Routing Replay有R2/R3两种变体。
 
 作用：主要减少策略陈旧性对路由的影响。
 
-（2）Rollout Routing Replay (R3): :对应verl中开关`actor_rollout_ref.actor.megatron.router_replay.mode="R3"`
+（2）Rollout Routing Replay (R3)：对应verl中开关`actor_rollout_ref.actor.megatron.router_replay.mode="R3"`
 
 机制：在序列生成过程中捕捉推理引擎的路由分布，并将其直接重放到训练引擎中。
 
@@ -349,13 +349,13 @@ Routing Replay有R2/R3两种变体。
 数据采集能力可以使用MindStudio团队提供的msprobe工具。msProbe工具通过在模型脚本中添加`PrecisionDebugger`接口并启动训练的方式，采集模型在运行过程中的精度数据。
 **功能特点**
 
-* ​**多粒度数据采集**​：支持L0(模块级)、L1(API级)以及mix(L0+L1)的不同粒度的数据采集
-* ​**多种dump模式**​：提供statistics、tensor、acc_check、structure、overflow_check等多种采集模式
-* ​**灵活的配置选项**​：通过config.json文件可以精确控制采集范围
+* ​**多粒度数据采集**​：支持L0(模块级)、L1（API级）以及mix(L0+L1)的不同粒度的数据采集。
+* ​**多种dump模式**​：提供statistics、tensor、acc_check、structure、overflow_check等多种采集模式。
+* ​**灵活的配置选项**​：通过config.json文件可以精确控制采集范围。
 
 **使用说明**
 
-1. 使用精度采集工具需要先配置config.json文件 对于采集统计值来说，最常用的两种配置如下：
+1. 使用精度采集工具需要先配置config.json文件，对于采集统计值来说，最常用的两种配置如下：
 
    * 采集指定步的统计量
 
@@ -428,7 +428,7 @@ Routing Replay有R2/R3两种变体。
 
 #### 2.2.6 自动化比对能力
 
-对于训推一致的比对，除了`shape`之外，还存在较多的模块层级名称不一致，以`qwen2.5-0.5b`为例，若推理使用`vllm`后端、训练使用`fsdp`后端，双方对应的模块名称如下：
+对于训推一致的比对，除了`shape`之外，还存在较多的模块层级名称不一致，以`qwen2.5-0.5b`为例，若推理使用`vLLM`后端、训练使用`FSDP`后端，双方对应的模块名称如下：
 ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/module_name_mapping.png)
 
 可见存在如下差异：
@@ -472,7 +472,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 整体思路：
 
 1. 缩小规模复现，整体512卡场景logp_diff 3.5，缩小至双机32卡测试，发现`logp_diff 0.7`，依旧很大。
-2. 剥离强化学习训练流程，独立执行训练和推理，使用相同输入分别执行，采集dump数据
+2. 剥离强化学习训练流程，独立执行训练和推理，使用相同输入分别执行，采集dump数据。
 3. 优先尝试减层，比如先排查dense层，训推各减层至1层；确保dense层对齐后，再加层，比较moe层，完成训推对齐。
 
 #### 3.1.3 定位流程
@@ -519,7 +519,8 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
     ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/yarn_rotary_embedding_init.png)
 
-    YarnRotaryEmbedding入参与推理做对比，发现参与计算的original_max_position_embeddings=1024实际外层配置为4096，即original_max_position_embeddings的期望值是4096，实际传入的是1024
+    YarnRotaryEmbedding入参与推理做对比，发现参与计算的original_max_position_embeddings=1024实际外层配置为4096，即original_max_position_embeddings的期望值是4096，实际传入的是1024。
+
     进一步确认，发现是MindSpeed对`YarnRotaryEmbedding`的适配与megatron存在差异。
 
     ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/mindspeed_yarn_impl_1.png)
@@ -566,7 +567,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
    linear和matmul这两个算子不应该有精度问题，我们初步怀疑这两个算子在输入就已经不一致了（​**虽然在统计值上表现一致**​），于是我们进行单算子复现，发现输入一致，这两个算子输出是一致的，我们比对输入和权重，发现权重完全一致，输入存在对不上的情况。
 
-   接着继续往前找该输入的来源，在推理和训练中找到了相应的api输出，具体结果如下，具体表现为输入一致，输出也一致。紧接着继续往前找该输入的来源，在推理和训练中找到了相应的api输出，具体结果如下，具体表现为输入一致，输出也一致。
+   接着继续往前找该输入的来源，在推理和训练中找到了相应的API输出，具体结果如下，具体表现为输入一致，输出也一致。
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/upstream_api_output_1.png)
 
@@ -582,7 +583,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/fused_op_compare.png)
 
-   因为工具原因没采到这两个融合算子的输入输出，只能往前找输入的q，k，v的来源。先排查q的一致性，q的来源如下：
+   因为工具原因没采到这两个融合算子的输入输出，只能往前找输入的q、k、v的来源。先排查q的一致性，q的来源如下：
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/q_source_code.png)
 
@@ -600,7 +601,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 2. npu_lightning_indexer算子输入输出排查
 
-   根据采集的结果，我们对输入的query，key，weights和输出topk_indices通过逐元素进行比对，比对结果差异较大。
+   根据采集的结果，我们对输入的query、key、weights和输出topk_indices通过逐元素进行比对，比对结果差异较大。
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_input_output_diff.png)
 
@@ -626,7 +627,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_scaled_diff.png)
 
-   接下来再来定位lighting_indexer的输入的q，推理和训练的调用位置如下：
+   接下来再来定位lightning_indexer的输入的q，推理和训练的调用位置如下：
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_q_source_code.png)
 
@@ -660,13 +661,13 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/rotate_activation_call.png)
 
-   经过此操作，训练和推理的q完全对不齐全了，如下图所示：
+   经过此操作，训练和推理的q完全对不齐了，如下图所示：
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/q_after_rotate_diff.png)
 
    k也是同理，训练和推理对于q和k，主要有两点差异，对q_pe和k_pe执行rope操作时，训练是先使用fp32进行计算，最后转成bfloat16，推理全程用的是bfloat16，训练会有精度丢失。
 
-   对于npu_lighting_indexer算子的输入weights，训练和推理的操作也不一致，操作对比如下：
+   对于npu_lightning_indexer算子的输入weights，训练和推理的操作也不一致，操作对比如下：
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_ops_compare.png)
 

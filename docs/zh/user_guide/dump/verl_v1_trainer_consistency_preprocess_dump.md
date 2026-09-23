@@ -256,7 +256,7 @@ prompt-only改动均未发生变化。
 
 **说明**：将训练输入裁剪为prompt-only，使训练侧输入与推理侧第一段prefill输入保持一致。
 
-Fully Async仍使用padded DataProto，与基线文档的[Fully Async模式prompt-only改动](./verl_async_consistency_preprocess_dump.md#fully-async-模式)改动保持一致。
+Fully Async仍使用padded DataProto，与基线文档的[Fully Async模式prompt-only改动](./verl_async_consistency_preprocess_dump.md#fully-async-模式)保持一致。
 
 ## 数据关联
 

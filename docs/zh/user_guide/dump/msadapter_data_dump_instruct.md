@@ -63,10 +63,10 @@ msProbe工具通过在MSAdapter模型训练脚本中添加`PrecisionDebugger`接
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
-    
+
     # 导入工具的数据采集接口
     from msprobe.mindspore import PrecisionDebugger
-    
+
     # 在模型训练开始前实例化PrecisionDebugger
     debugger = PrecisionDebugger(config_path='./config.json')
 
@@ -77,7 +77,7 @@ msProbe工具通过在MSAdapter模型训练脚本中添加`PrecisionDebugger`接
             super().__init__()
             self.linear1 = nn.Linear(in_features=8, out_features=4)
             self.linear2 = nn.Linear(in_features=4, out_features=2)
-    
+
         def forward(self, x):
             x1 = self.linear1(x)
             x2 = self.linear2(x1)
@@ -95,13 +95,13 @@ msProbe工具通过在MSAdapter模型训练脚本中添加`PrecisionDebugger`接
     if __name__ == "__main__":
         data = (torch.randn(10, 8), torch.randn(10, 8), torch.randn(10, 8))
         grad_fn = ms.value_and_grad(train_step, grad_position=0)
-    
+
         for inputs in data:
             # 开启数据 dump
             debugger.start(model=net)
-    
+
             out, grad = grad_fn(inputs)
-    
+
             # 停止数据 dump
             debugger.stop()
             # 更新 step 信息
@@ -187,10 +187,10 @@ dump接口详细介绍请参见[接口介绍](#接口介绍)章节。
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
-    
+
     # 导入工具的数据采集接口
     from msprobe.mindspore import PrecisionDebugger, seed_all
-    
+
     # 在模型训练开始前固定随机性
     seed_all()
     # 在模型训练开始前实例化PrecisionDebugger
@@ -203,7 +203,7 @@ dump接口详细介绍请参见[接口介绍](#接口介绍)章节。
             super().__init__()
             self.linear1 = nn.Linear(in_features=8, out_features=4)
             self.linear2 = nn.Linear(in_features=4, out_features=2)
-    
+
         def forward(self, x):
             x1 = self.linear1(x)
             x2 = self.linear2(x1)
@@ -221,13 +221,13 @@ dump接口详细介绍请参见[接口介绍](#接口介绍)章节。
     if __name__ == "__main__":
         data = (torch.randn(10, 8), torch.randn(10, 8), torch.randn(10, 8))
         grad_fn = ms.value_and_grad(train_step, grad_position=0)
-    
+
         for inputs in data:
             # 开启数据 dump
             debugger.start(model=net)
-    
+
             out, grad = grad_fn(inputs)
-    
+
             # 停止数据 dump
             debugger.stop()
             # 更新 step 信息
@@ -295,7 +295,7 @@ MSAdapter场景下，dump输出文件的目录结构示例如下：
 
 * `dump_tensor_data`：保存采集到的张量数据。
 
-* `dump.json`： 保存API或Module输入输出数据的统计量信息。包含dump数据的API名称或Module名称，各数据的dtype、 shape、max、min、mean、L2norm（L2范数，平方根）统计信息以及当配置 summary_mode="md5" 时的CRC-32 数据。
+* `dump.json`： 保存API或Module输入输出数据的统计量信息，包含dump数据的API名称或Module名称，各数据的dtype、shape、max、min、mean、L2norm（L2范数，平方根）统计信息以及当配置 summary_mode="md5" 时的CRC-32 数据。
 
 * `dump_error_info.log`：仅在dump工具报错时拥有此记录日志，用于记录dump错误日志。
 
@@ -323,9 +323,9 @@ npy 文件名的前缀含义如下：
 #### L0级别
 
 L0级别的dump.json文件中包含了模块的输入输出、参数以及参数梯度数据。以 Conv2d 模块为例，网络中模块调用代码为：
-`output = self.conv2(input) # self.conv2 = torch.nn.Conv2d(64, 128, 5, padding=2, bias=True)`  
+`output = self.conv2(input) # self.conv2 = torch.nn.Conv2d(16, 32, 5, padding=2, bias=True)`
 
-dump.json文件中包含以下数据名称：  
+dump.json文件中包含以下数据名称：
 
 * `Module.conv2.Conv2d.forward.0`：模块的前向数据，其中input_args为模块的输入数据（位置参数），input_kwargs为模块的输入数据（关键字参数），output为模块的输出数据，parameters为模块的参数数据，包括权重（weight）和偏置（bias）。
 
@@ -333,7 +333,7 @@ dump.json文件中包含以下数据名称：
 
 * `Module.conv2.Conv2d.backward.0`：模块的反向数据，其中input为模块反向的输入梯度（对应前向输出的梯度），output为模块的反向输出梯度（对应前向输入的梯度）。
 
-**说明**：当dump时传入的model参数为List[torch.nn.Module]或Tuple[torch.nn.Module]时，模块级数据的命名中包含该模块在列表中的索引index，命名格式为`{Module}.{index}.*`，*表示以上三种模块级数据的命名格式，例如：`Module.0.conv1.Conv2d.forward.0`。     
+**说明**：当dump时传入的model参数为List[torch.nn.Module]或Tuple[torch.nn.Module]时，模块级数据的命名中包含该模块在列表中的索引index，命名格式为`{Module}.{index}.*`，*表示以上三种模块级数据的命名格式，例如：`Module.0.conv1.Conv2d.forward.0`。
 
 ```json
 {
@@ -492,9 +492,9 @@ dump.json文件中包含以下数据名称：
 #### L1级别
 
 L1级别的dump.json文件中包含了API的输入输出数据。以relu API为例，网络中API调用代码为：
-`output = torch.nn.functional.relu(input)`  
+`output = torch.nn.functional.relu(input)`
 
-dump.json文件中包含以下数据名称：  
+dump.json文件中包含以下数据名称：
 
 * `Functional.relu.0.forward`：API的前向数据，其中input_args为API的输入数据（位置参数），input_kwargs为API的输入数据（关键字参数），output为API的输出数据。
 
@@ -585,12 +585,12 @@ dump.json文件中包含以下数据名称：
    ]
   }
  }
-}  
+}
 ```
 
 #### mix级别
 
-mix级别的dump.json文件同时包括L0和L1级别的dump数据，文件格式与上述示例相同。  
+mix级别的dump.json文件同时包括L0和L1级别的dump数据，文件格式与上述示例相同。
 
 ## 附录
 
@@ -672,7 +672,7 @@ PrecisionDebugger.start(model=None, token_range=None)
 
   对于复杂模型，如果仅需要监测一部分（如model.A，model.A extends torch.nn.Module），传入需要监测的部分（如model.A）即可。
 
-  注意：传入的当前层不会被dump，工具只会dump传入层的子层级。如传入了model.A，A本身不会被dump，而是会dump A.x, A.x.xx等。
+  注意：传入的当前层不会被dump，工具只会dump传入层的子层级。如传入了model.A，A本身不会被dump，而是会dump A.x、A.x.xx等。
 
 - **token_range** (Tuple[int, int])：可选参数，指定推理模型采集时的token循环始末范围，支持传入[int, int]类型，代表[start, end]，范围包含边界，默认未配置。
 

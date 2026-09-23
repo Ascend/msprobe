@@ -14,13 +14,13 @@ VL 模型从 H20 + transformers 推理框架迁移到昇腾 + vLLM 推理框架�
 
 | 确认项                          | 确认结果                                                                                                                      |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| transformers 版本排查            | NPU 的 transformers 版本与 GPU 的版本不同；NPU 上的 vLLM 版本要求 transformers 必须大于指定版本，无法降低 NPU 侧版本                      |
-| 旋转位置编码误差                | 经过旋转位置编码后余弦相似度接近 1，优先级低                                                          |
-| sliding_window 确认             | 确认没有使用该特性                                                                                                            |
-| decode_layer 对比（Att 和 mlp）   | 各层余弦相似度均接近 1，msprobe 的统计信息找不到差异，需要再采集 tensor； |
-| GPU 和 NPU 的模型配置对比          | 确认一致                                                                                                                      |
-| NPU + transformers 的推理和 GPU 对比 | 优先级低                                                                                                                      |
-| NPU 两卡使用 H20 的 input_embeds   | 结果会变好，不会出现乱码，但内容和 H20 还是有差距                                                                             |
+| transformers 版本排查            | NPU 的 transformers 版本与 GPU 的版本不同；NPU 上的 vLLM 版本要求 transformers 必须大于指定版本，无法降低 NPU 侧版本     。                 |
+| 旋转位置编码误差                | 经过旋转位置编码后余弦相似度接近 1，优先级低。                                                          |
+| sliding_window 确认             | 确认没有使用该特性。                                                                                                            |
+| decode_layer 对比（Att 和 MLP）   | 各层余弦相似度均接近 1，msprobe 的统计信息找不到差异，需要再采集 Tensor。 |
+| GPU 和 NPU 的模型配置对比          | 确认一致。                                                                                                                      |
+| NPU + transformers 的推理和 GPU 对比 | 优先级低。                                                                                                                      |
+| NPU 两卡使用 H20 的 input_embeds   | 结果会变好，不会出现乱码，但内容和 H20 还是有差距。                                                                             |
 
 ### 正向定位：从第 7 个字符的 logits 往前看
 

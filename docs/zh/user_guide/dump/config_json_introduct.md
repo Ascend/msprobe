@@ -6,7 +6,7 @@
   ```shell
   pip show mindstudio-probe
   ```
-  
+
   假如msProbe的安装路径为：`/usr/local/lib/python3.11/site-packages`，则`config.json`文件位于：`/usr/local/lib/python3.11/site-packages/msprobe`路径下。
 
 ## 参数介绍
@@ -17,7 +17,7 @@
 
 | 参数                | 可选/必选 | 解释                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |-------------------| -------- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| task              | 可选     | dump的任务类型，str类型。可选参数：<br/>&#8226; "statistics"：仅采集统计信息。<br/>&#8226; "tensor"：采集统计信息和完全复刻整网的真实数据。<br/>&#8226; "acc_check"：精度预检，仅PyTorch场景支持，采集数据时勿选。<br/>&#8226; "nan_check"：NaN/Inf检测（检测寄存器状态是否为NaN或Inf），仅PyTorch场景支持。<br/>&#8226; "structure"：仅采集模型结构以及调用栈信息，不采集具体数据。<br/>默认值为"statistics"。<br/>根据task参数取值的不同，可以配置不同场景参数，详细介绍请参见：<br/>&#8226; [task配置为statistics](#task配置为statistics)<br/>&#8226; [task配置为tensor](#task配置为tensor)<br/>&#8226; [task配置为acc_check](#task配置为acc_check)<br/>&#8226; [task配置为nan_check](#task配置为nan_check)<br/>&#8226; [task配置为structure](#task配置为structure)<br/>&#8226; [task配置为exception_dump](#task配置为exception_dump)<br/>配置示例："task": "tensor"。                                           |
+| task              | 可选     | dump的任务类型，str类型。可选参数：<br/>&#8226; "statistics"：仅采集统计信息。<br/>&#8226; "tensor"：采集统计信息和完全复刻整网的真实数据。<br/>&#8226; "acc_check"：精度预检，仅PyTorch场景支持，采集数据时勿选。<br/>&#8226; "nan_check"：NaN/Inf检测（检测寄存器状态是否为NaN或Inf），仅PyTorch场景支持。<br/>&#8226; "structure"：仅采集模型结构以及调用栈信息，不采集具体数据。<br/>exception_dump"：在指定目录下生成包含异常dump相关设置的中间文件。<br/>默认值为"statistics"。<br/>根据task参数取值的不同，可以配置不同场景参数，详细介绍请参见：<br/>&#8226; [task配置为statistics](#task配置为statistics)<br/>&#8226; [task配置为tensor](#task配置为tensor)<br/>&#8226; [task配置为acc_check](#task配置为acc_check)<br/>&#8226; [task配置为nan_check](#task配置为nan_check)<br/>&#8226; [task配置为structure](#task配置为structure)<br/>&#8226; [task配置为exception_dump](#task配置为exception_dump)<br/>配置示例："task": "tensor"。 |
 | dump_path         | 必选     | 设置dump数据目录路径，str类型。<br/>配置示例："dump_path": "./dump_path"。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | rank              | 可选     | 指定对某张卡上的数据进行采集，list[Union[int, str]]类型，默认未配置（表示采集所有卡的数据），应配置元素为≥ 0的整数、类似"0"的单个数字字符串或类似"4-6"的范围字符串，且须配置实际可用的Rank ID。<br/>&#8226; PyTorch场景：Rank ID从0开始计数，最大取值为所有节点可用卡总数-1，若所配置的值大于实际训练所运行的卡的Rank ID，则dump数据为空，比如当前环境Rank ID为0到7，实际训练运行0到3卡，此时若配置Rank ID为4或不存在的10等其他值，dump数据为空。<br/>&#8226; MindSpore场景：所有节点的Rank ID均从0开始计数，最大取值为每个节点可用卡总数-1，config.json配置一次rank参数对所有节点同时生效。静态图L0级别dump暂不支持指定rank。<br/>单卡训练时，rank必须为[]，即空列表，不能指定rank。<br/>配置示例："rank": [1, "0", "4-6"]。 |
 | step              | 可选     | 指定采集某个step的数据，list[Union[int, str]]类型。默认未配置，表示采集所有step数据。采集特定step时，须指定为训练脚本中存在的step，可逐个配置，也可以指定单个数字字符串（如"0"）或范围字符串（如"4-6"）。<br/>配置示例："step": [0, 1, "2", "4-6"]。 |
@@ -53,7 +53,7 @@
     "extra_info": true,
 
     "statistics": {
-        "scope": [], 
+        "scope": [],
         "list": [],
         "tensor_list": [],
         "data_mode": ["all"],
@@ -124,9 +124,9 @@
 | data_mode    | 可选    | dump数据过滤，list[str]类型。详细配置方法请参见[data_mode参数配置说明](#data_mode参数配置说明)。                                                                                                                                                                                                                  |
 | summary_mode | 可选    | 控制dump文件输出的模式，支持PyTorch、MSAdapter、MindSpore动态图。可选参数：<br/>&#8226; md5：dump输出包含CRC-32值以及API统计信息的dump.json文件，用于验证数据的完整性。<br/>&#8226; statistics：dump仅输出包含API统计信息的dump.json文件。<br/>&#8226; xor：仅PyTorch场景支持。dump输出仅包含XOR二进制校验值（字段名为md5），不输出max、min、mean、L2norm统计信息。<br/>默认值为statistics。 |
 | bench_path   | 可选    | 自动控制在PyTorch确定性问题定位时进行md5实时差异分析，即dump存在差异的md5数据，str类型，默认未配置本参数。<br/>需要在bench_path参数传入提前预置的md5数据路径（即在上一次dump操作时，summary_mode参数配置为md5），并且本次dump时同样配置summary_mode为md5。<br/>配置本参数后，dump会判断本次任务中每个tensor与预置的md5数据的差异，识别到差异节点后，进行真实数据dump。<br/>配置示例："bench_path": "./bench_dump_path"。    |
-| diff_nums    | 可选    | 最大差异次数，int类型，默认为1，仅PyTorch md5实时差异分析场景支持（即配置bench_path）。 表示第N次差异出现后，不再进行差异分析。过程中检测到差异对应的输入输出数据均dump。<br/>配置为-1时，表示持续检测差异直到训练结束。<br/>配置示例："diff_nums": 3。                                                                                                                            |
-| slice        | 可选    | 对tensor进行切片, list[dict]类型。详细配置方法请参见[slice参数配置说明](#slice参数配置说明)。                                                                                                                                                                                                                     |
-| request_id   | 可选    | 指定request_id对tensor的第0维进行切片， str类型，默认未配置。详细配置方法请参见[request_id参数配置说明](#request_id参数配置说明)。                                                                                                                                                                                            |
+| diff_nums    | 可选    | 最大差异次数，int类型，默认为1，仅PyTorch md5实时差异分析场景支持（即配置bench_path）。表示第N次差异出现后，不再进行差异分析。过程中检测到差异对应的输入输出数据均dump。<br/>配置为-1时，表示持续检测差异直到训练结束。<br/>配置示例："diff_nums": 3。                                                                                                                            |
+| slice        | 可选    | 对tensor进行切片，list[dict]类型。详细配置方法请参见[slice参数配置说明](#slice参数配置说明)。                                                                                                                                                                                                                     |
+| request_id   | 可选    | 指定request_id对tensor的第0维进行切片，str类型，默认未配置。详细配置方法请参见[request_id参数配置说明](#request_id参数配置说明)。                                                                                                                                                                                            |
 
 ### task配置为acc_check
 
@@ -360,10 +360,10 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 - MindSpore静态图场景
 
   str或list[str]类型。
-  
+
   - L2级别jit_level=O0/O1：支持上述"md5"和"statistics"参数的同时额外支持配置统计项列表，可选统计项为max、min、mean、l2norm、count、negative zero count、zero count、positive zero count、nan count、negative inf count、positive inf count、hash、md5，可从中任意选取组合搭配。其中，hash统计项在MindSpore 2.7.0及以前版本计算MD5值，在以后版本计算SHA1值。
   - L0级别jit_level=O0/O1：仅支持上述"statistics"参数和max、min、mean、l2norm中任意组合搭配的统计项列表。
-  
+
   配置示例："summary_mode": ["max", "min"]。
 
 **说明**：PyTorch、MSAdapter以及MindSpore动态图场景，"summary_mode"配置为"md5"时，所使用的校验算法为CRC-32算法；MindSpore静态图场景，"summary_mode"配置为"md5"时，所使用的校验算法为MD5算法。
@@ -380,7 +380,7 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
   - `size`：切片触发条件，仅当目标维度的长度等于size时，切片规则才生效。取值≥0，未配置时表示不限制目标维度的长度（即任何长度下切片规则均生效）。
   - `begin`：在目标维度上的切片起始索引（闭区间，包含该索引）。未配置时默认值为0。
   - `end`：在目标维度上的切片终止索引（开区间，不包含该索引）。未配置时表示切片至目标维度末尾（包含最后一个索引）。
- 
+
 **配置示例**：
 
  | 配置字段 | 配置示例 | 说明                              |

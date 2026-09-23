@@ -366,8 +366,8 @@ dump.json is at ./dump_path/step*
   * ①在非分布式场景下，如单进程训练或单卡训练中，训练进程没有`rank`信息，此时数据保存在`proc{pid}`，比对、分级可视化和溢出检测功能支持该目录下的数据解析。
   * ②在大模型训练过程中，可能既存在`rank`目录又存在`proc`目录，原因是一些进程可能仅在CPU上完成一些数据预处理操作，没有`rank`信息，此时目录名称为`proc{pid}`，这部分数据一般不存在精度问题，比对、分级可视化和溢出检测等功能将不会支持该目录下的数据解析。
 * `dump_tensor_data`：保存采集到的张量数据。
-* `dump.json`：保存API或Module前反向数据的统计量信息。包含dump数据的API名称或Module名称，各数据的dtype、shape、max、min、mean、L2norm（L2范数，平方根）统计信息，以及根据`summary_mode`配置输出的校验值（`md5`对应CRC-32字段`md5`，`xor`对应XOR校验字段`md5`）。具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
-  * 当Tensor的数据格式为NZ格式时，dump.json中max、min、mean、L2norm（L2范数，平方根）统计信息均为`null`。且仅当Tensor的数据类型为torch.float32、torch.float16、torch.bfloat16中的一种时，才会计算mean、L2norm统计信息，其它数据类型仅计算max、min统计信息。
+* `dump.json`：保存API或Module前反向数据的统计量信息，包含dump数据的API名称或Module名称，各数据的dtype、shape、max、min、mean、L2norm（L2范数，平方根）统计信息，以及根据`summary_mode`配置输出的校验值（`md5`对应CRC-32字段`md5`，`xor`对应XOR校验字段`md5`）。具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
+  * 当Tensor的数据格式为NZ格式时，dump.json中max、min、mean、L2norm（L2范数，平方根）统计信息均为`null`，且仅当Tensor的数据类型为torch.float32、torch.float16、torch.bfloat16中的一种时，才会计算mean、L2norm统计信息，其它数据类型仅计算max、min统计信息。
   * 当`summary_mode`配置为`xor`时，dump.json仅输出XOR校验值，不输出max、min、mean、L2norm统计信息。加速算子不可用时自动回退到通用实现。
   * 当task配置为`"nan_check"`时，dump.json中各API数据将包含`is_nan`字段，取值为0或1，0代表无溢出状态，1代表有溢出状态（该模式下不保存API中数据的统计值）。
 
@@ -396,8 +396,8 @@ pt文件保存的前缀和PyTorch对应关系如下：
 
 #### L0级别
 
-L0级别的dump.json文件包括模块的前反向的输入输出，以及模块的参数和参数梯度。以PyTorch的Conv2d模块为例，网络中模块调用代码为:
-`output = self.conv2(input) # self.conv2 = torch.nn.Conv2d(64, 128, 5, padding=2, bias=True)`
+L0级别的dump.json文件包括模块的前反向的输入输出，以及模块的参数和参数梯度。以PyTorch的Conv2d模块为例，网络中模块调用代码为：
+`output = self.conv2(input) # self.conv2 = torch.nn.Conv2d(16, 32, 5, padding=2, bias=True)`
 
 dump.json文件中包含以下数据名称：
 
@@ -663,7 +663,7 @@ dump.json文件如下：
           "Min": -0.00012117840378778055,
           "Mean": 2.0098118724831693e-08,
           "Norm": 0.006532244384288788,
-          "requires_grad": false, 
+          "requires_grad": false,
           "data_name": "Functional.relu.0.backward.output.0.pt"
         }
       ]
@@ -841,7 +841,7 @@ __main__:
 >
 > ```python
 > import torch
-> 
+>
 > def add_and_mul(a, b, c):
 >     """计算 (a + b) * c"""
 >     return (a + b) * c
@@ -898,7 +898,7 @@ debugger.start(model=None, token_range=None, rank_id=None, scheduled_tokens=None
 
   对于复杂模型，如果仅需要监测一部分（如model.A，model.A extends torch.nn.Module），传入需要监测的部分（如model.A）即可。
 
-  注意：传入的当前层不会被dump，工具只会dump传入层的子层级。如传入了model.A，A本身不会被dump，而是会dump A.x, A.x.xx等。
+  注意：传入的当前层不会被dump，工具只会dump传入层的子层级。如传入了model.A，A本身不会被dump，而是会dump A.x、A.x.xx等。
 
 - token_range：指定推理模型采集时的token循环始末范围，支持传入[int, int]类型，代表[start, end]，范围包含边界，默认未配置。
 
@@ -912,7 +912,7 @@ debugger.start(model=None, token_range=None, rank_id=None, scheduled_tokens=None
 
   配置示例：`debugger.start(rank_id=self.gpu_id)`
 
-- scheduled_tokens: 指定当前调度每个请求占用的token数，dict类型。key是str，表示请求id，value是int, value>=0，表示该请求占用的token数。配置示例：`debugger.start(scheduled_tokens={"chatcmpl-req-0": 10, "chatcmpl-req-1": 15})`。
+- scheduled_tokens: 指定当前调度每个请求占用的token数，dict类型。key是str，表示请求id，value是int，value>=0，表示该请求占用的token数。配置示例：`debugger.start(scheduled_tokens={"chatcmpl-req-0": 10, "chatcmpl-req-1": 15})`。
   配合[request_id配置](./config_json_introduct.md#request_id参数配置说明)可以实现指定请求id采集数据。
 
 **返回值说明**
@@ -1041,7 +1041,7 @@ save(variable, name, save_backward=True)
 
 | 参数名称      | 可选/必选 | 参数含义                                                     |
 | ------------- | --------- | ------------------------------------------------------------ |
-| variable      | 必选      | 需要保存的变量，支持数据类型：dict, list, tuple, torch.tensor, int, float, str。 |
+| variable      | 必选      | 需要保存的变量，支持数据类型：dict、list、tuple、torch.tensor、int、float、str。 |
 | name          | 必选      | 指定的名称，支持数据类型：str。                              |
 | save_backward | 可选      | 是否保存反向数据，支持数据类型：boolean。                    |
 
@@ -1095,7 +1095,7 @@ debugger.register_custom_api(module, api, api_prefix)
 
 - module：必选，API所属的包，即传入torch。
 - api：必选，API的名称，str类型，即传入"matmul"。
-- api_prefix：可选，[dump.json](#dumpjson文件说明)中api名的前缀，默认为包名的字符串格式, 即"torch"。
+- api_prefix：可选，[dump.json](#dumpjson文件说明)中api名的前缀，默认为包名的字符串格式，即"torch"。
 
 **返回值说明**
 
@@ -1220,7 +1220,7 @@ seed_all(seed=1234, mode=False, rm_dropout=False, is_enhanced=False)
 
 当前工具dump功能默认不会固定随机性，若希望每次采集的数据保持一致，建议在dump数据前调用seed_all接口。
 
-seed_all函数可固定随机数的范围如下表:
+seed_all函数可固定随机数的范围如下表：
 
 | API                                      | 固定随机数                                      |
 |------------------------------------------|--------------------------------------------|

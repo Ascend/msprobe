@@ -426,7 +426,7 @@ npy文件名的前缀含义如下：
 ##### L0级别
 
 L0级别的dump.json文件包括模块的前反向的输入输出，以及模块的参数和参数梯度。
-以MindSpore的Conv2d模块为例，dump.json文件中使用的模块调用代码为：`output = self.conv2(input) # self.conv2 = mindspore.nn.Conv2d(64, 128, 5, pad_mode='same', has_bias=True)`。
+以MindSpore的Conv2d模块为例，dump.json文件中使用的模块调用代码为：`output = self.conv2(input) # self.conv2 = mindspore.nn.Conv2d(16, 32, 5, pad_mode='same', has_bias=True)`。
 
 dump.json文件中包含以下数据名称：
 
@@ -672,7 +672,7 @@ dump.json文件中包含以下数据名称：
    ]
   }
  }
-}  
+}
 ```
 
 ##### mix级别
@@ -768,9 +768,9 @@ start(model=None, token_range=None, rank_id=None)
 
   注意：通常情况下，用户无需手动配置rank_id参数，工具默认通过mindspore.communication.get_rank接口（下面简称get_rank接口）可自动获取多卡多进程的唯一rank ID；
   然而，在某些特殊场景下，get_rank接口可能无法正确获取唯一的rank ID。例如，在推理框架sglang的DP推理场景中，各DP worker之间是独立的分布式集群，导致get_rank接口返回重复的rank ID，进而引发dump结果中rank文件夹同名覆盖的问题，造成dump数据丢失。
-  
+
   针对此类特殊场景，可通过配置rank_id参数为rank文件夹命名，但需要保证rank_id在各个进程中唯一。该值通常可在模型脚本或训练推理框架中获取，例如推理框架sglang中的self.gpu_id，其在每个进程中均保持唯一性。
-  
+
   配置示例：`debugger.start(rank_id=self.gpu_id)`
 
 **返回值说明**

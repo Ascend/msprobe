@@ -18,7 +18,7 @@
 
 ![](../figures/cases/ascend_qwen25_omni_determinism_troubleshooting/dump_compare_cross_entropy_2.png)
 
-尝试通过 to cpu 后进行对齐。to cpu 后第一步 loss 一致，grad_norm 仍偶现不一致，且经过几步后会累积到 loss 不一致。
+尝试通过 to CPU 后进行对齐。to CPU 后第一步 loss 一致，grad_norm 仍偶现不一致，且经过几步后会累积到 loss 不一致。
 
 ![](../figures/cases/ascend_qwen25_omni_determinism_troubleshooting/tocpu_align_loss_gradnorm_1.png)
 
@@ -26,7 +26,7 @@
 
 ![](../figures/cases/ascend_qwen25_omni_determinism_troubleshooting/tocpu_align_loss_gradnorm_3.png)
 
-继续分析发现 grad_norm 差异来源：grad_norm 差异来源为第 0 步 rank3 上的 embed_token 反向存在偶现的差异，前向完全一致。
+继续分析发现 grad_norm 差异来源为第 0 步 rank3 上的 embed_token 反向存在偶现的差异，前向完全一致。
 
 ![](../figures/cases/ascend_qwen25_omni_determinism_troubleshooting/gradnorm_diff_embed_tokens_backward.png)
 
@@ -58,7 +58,7 @@ plog 中底层 aclnn 算子 deterministic 为 0，中途操作部分为 1 部分
 
 ![](../figures/cases/ascend_qwen25_omni_determinism_troubleshooting/search_use_deterministic_algorithms.png)
 
-发现第 40 行有一个 fix_rand。点开看到，除了 trainer 中的 seed_all(mode=True) 外，业务代码中自定义了 fix_randn 对 randn 接口进行了装饰 wrap，该 wrap 内重复进行了 seed_all() 且没带 mode。
+发现第 40 行有一个 fix_randn。点开看到，除了 trainer 中的 seed_all(mode=True) 外，业务代码中自定义了 fix_randn 对 randn 接口进行了装饰 wrap，该 wrap 内重复进行了 seed_all() 且没带 mode。
 
 ![](../figures/cases/ascend_qwen25_omni_determinism_troubleshooting/fix_randn_wrap_code.png)
 

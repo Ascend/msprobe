@@ -4,7 +4,7 @@
 
 verl在NPU和标杆服务器上训练时，采集到训练日志，训练日志中包含真实超参的配置信息，如：训练优化器学习率、KL散度等。
 
-verl超参比对（Verl Hyperparameter Compare）可比较两个不同服务器上训练日志中采集到真实超参配置，通过筛选出仅与配置相关的部分，保存为config配置文件，并比较两个配置文件参数配置。通过辅助用户高效比对真实超参值配置，加速定位因配置差异所引发的训练或推理精度问题。
+verl超参比对（Verl Hyperparameter Compare）可比较两个不同服务器上训练日志中采集到的真实超参配置，通过筛选出仅与配置相关的部分，保存为config配置文件，并比较两个配置文件的参数配置。通过辅助用户高效比对真实超参值配置，加速定位因配置差异所引发的训练或推理精度问题。
 
 verl关键超参校验（Verl Hyperparameter Verify）可根据训练日志筛选出仅与配置相关的部分，保存为config配置文件，输出关键超参的实际生效值并判断是否满足关键超参要求。
 
@@ -60,7 +60,7 @@ msprobe config_check -vc NPU_log/training.log bench_log/training.log -o ./compar
 
 - bench_config.json：标杆日志中提取的config配置信息。
 - NPU_config.json：NPU日志中提取的config配置信息。
-- hyper_params_compare.csv：比对结果，由于超参中profiler、ray相关的配置信息与训练本身无关，此csv文件中不包含超参与profiler、ray相关的配置比对。里面会有1个sheet页，sheet中会包含超参名称，NPU生效值，bench生效值，是否一致。
+- hyper_params_compare.csv：比对结果，由于超参中profiler、ray相关的配置信息与训练本身无关，此csv文件中不包含超参与profiler、ray相关的配置比对。里面会有1个sheet页，sheet中会包含超参名称、NPU生效值、bench生效值、是否一致。
 
 verl超参比对结果文件hyper_params_compare.csv，内容如下示例：
 
@@ -73,7 +73,7 @@ verl超参比对结果文件hyper_params_compare.csv，内容如下示例：
 
 | 统计值      | 解释                                                         |
 | ----------- | ------------------------------------------------------------ |
-| 超参名称    | verl日志中涉及的配置信息中真实超参名称                       |
+| 超参名称    | verl日志中涉及的配置信息中的真实超参名称                       |
 | NPU生效值   | 对应超参名称在NPU训练日志中对应的真实值                      |
 | bench生效值 | 对应超参名称在标杆训练日志中对应的真实值                     |
 | 是否一致    | NPU生效值和bench生效值是否一致，如果一致则为“是”，反之为“否”，当结果为否时，需要用户进一步确认排查是否因为该超参不一致导致的精度差异 |

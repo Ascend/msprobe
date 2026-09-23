@@ -11,7 +11,7 @@
 * 推理运行分为 prefill 和 k 个 decode 两个步骤：
 
   1. 在 prefill 步骤时，推理输入为 prompt。
-  2. 在 k 个 decode 步骤时，kv cache 加上上一个 decode 得到的输出 token ，最终输出推理的 response。
+  2. 在 k 个 decode 步骤时，kv cache 加上上一个 decode 得到的输出 token 最终输出推理的 response。
 
 * 训练运行时，输入为 prompt 加上推理输出的 response，最终输出 logits。
 
@@ -25,15 +25,15 @@
 
 1. 保证训练中的batch size维度未被拆分。
 
-   1. 需保证每轮训练中用于梯度更新的mini batch个数mini_batch_num = 1
+   1. 需保证每轮训练中用于梯度更新的mini batch个数mini_batch_num = 1。
 
       计算公式为：mini_batch_num = train_batch_size / train_ppo_mini_batch_size
       - train_batch_size: 训练中总的样本数。
       - train_ppo_mini_batch_size: 每个 mini batch 的样本数量。
 
-   2. 需保证梯度累积步骤数gac (Gradient Accumulation Steps) = 1
+   2. 需保证梯度累积步骤数gas (Gradient Accumulation Steps) = 1。
 
-      计算公式为：gac = train_ppo_mini_batch_size * n_resp_per_prompt / train_ppo_micro_batch_size_per_gpu / DP
+      计算公式为：gas = train_ppo_mini_batch_size * n_resp_per_prompt / train_ppo_micro_batch_size_per_gpu / DP
       - train_ppo_mini_batch_size: 每个 mini batch 的样本数量。
       - n_resp_per_prompt: 每个提示（prompt）下的响应数。
       - train_ppo_micro_batch_size_per_gpu: 每个GPU上处理的 micro batch 大小。

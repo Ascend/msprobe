@@ -52,7 +52,7 @@ set_ge_dump_config(
 | ------------------ | --------- | ------------------------------------------------------------ |
 | dump_path          | 可选      | dump数据的存放路径。默认为"./"。                             |
 | dump_mode          | 可选      | data dump模式，用于指定dump算子输入还是输出数据。可选值有"input", "output", "all"。默认为"all"，dump输入与输出数据。 |
-| fusion_switch_file | 可选      | 是否关闭融合dump功能。默认为None，开启融合。                 |
+| fusion_switch_file | 可选      | 融合开关配置文件路径，用于指定关闭哪些算子融合。默认为None，开启融合。                 |
 | dump_token         | 可选      | 指定token进行dump。格式：[1,2,5] 代表dump第1、2、5个token数据。默认为None，dump全量数据。 |
 | dump_layer         | 可选      | 指定layer进行dump。格式：["Add", "Conv_1"] 代表dump Add和Conv_1两层数据。默认为None，dump全量数据。 |
 | compiler_config    | 可选      | 图编译配置（CompilerConfig对象）。默认为None，返回新创建的图编译配置。 |

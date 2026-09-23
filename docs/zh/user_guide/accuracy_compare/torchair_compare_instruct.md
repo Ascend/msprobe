@@ -2,7 +2,7 @@
 
 ## 简介
 
-torchair图模式整网算子精度比对通过采集torchair图模式下模型中间算子的输入、输出数据，对比两次推理结果是否一致，从而判断模型在不同算子上的精度是否一致。torch图模式（torchair）整网算子精度比对主要支持GE数据与FX数据的比对以及GE开关融合数据的比对。
+torchair图模式整网算子精度比对通过采集torchair图模式下模型中间算子的输入、输出数据，对比两次推理结果是否一致，从而判断模型在不同算子上的精度是否一致。torch图模式（torchair）整网算子精度比对主要支持GE数据与FX数据的比对以及GE开/关融合数据的比对。
 
 **基本概念**
 参见《[基于torch图模式（torchair）推理场景](../dump/torchair_dump_instruct.md#基本概念)》。
@@ -17,7 +17,7 @@ torchair图模式整网算子精度比对通过采集torchair图模式下模型�
 
 - 两次GE dump或两次FX dump间，请指定不同的dump数据保存路径，否则会导致数据混乱，无法区分的问题，从而影响数据比对和分析。
 
-## GE融合模式（默认） dump数据与FX dump数据精度比对
+## GE融合模式（默认）dump数据与FX dump数据精度比对
 
 dump数据采集方式、接口参数、示例以及结果目录结构参见《[基于torch图模式（torchair）推理场景](../dump/torchair_dump_instruct.md)》中的[GE融合模式dump数据](../dump/torchair_dump_instruct.md#ge融合模式dump数据)与[FX模式dump数据](../dump/torchair_dump_instruct.md#fx模式dump数据)。
 

@@ -8,7 +8,7 @@
 
 - 比对函数均通过单独创建精度比对脚本执行，可支持单卡和多卡场景的精度数据比对。
 
-- 工具性能：比对数据量较小时（单份文件小于 10 GB），比对速度 0.1 GB/s；比对数据量较大时，速度 0.3 GB/s。 推荐环境配置：独占环境，CPU 核心数 192，固态硬盘（IO 速度参考：固态硬盘 > 500 MB/s，机械硬盘 60 ~ 170 MB/s）。用户环境性能弱于标准约束或非独占使用的比对速度酌情向下浮动。比对速度的计算方式：两份比对文件大小/比对耗时。
+- 工具性能：比对数据量较小时（单份文件小于 10 GB），比对速度 0.1 GB/s；比对数据量较大时，速度 0.3 GB/s。推荐环境配置：独占环境，CPU 核心数 192，固态硬盘（IO 速度参考：固态硬盘 > 500 MB/s，机械硬盘 60 ~ 170 MB/s）。用户环境性能弱于标准约束或非独占使用的比对速度酌情向下浮动。比对速度的计算方式：两份比对文件大小/比对耗时。
 
 **使用场景**
 
@@ -65,10 +65,10 @@ msprobe compare -tp <target_path> -gp <golden_path> [options]
 | -dm或--data_mapping                 | 可选     | 自定义映射关系比对。需要指定自定义映射文件*.yaml。自定义映射文件的格式请参见[自定义映射文件（data_mapping）](#自定义映射文件data_mapping)。仅[API和模块无法自动匹配场景](#api和模块无法自动匹配场景)需要配置。仅支持逐卡比对。                                           |
 | -cm或--cell_mapping                 | 可选     | 不同平台、不同配置的模块比对。配置该参数时表示开启不同平台、不同配置的模块比对功能，可以指定自定义映射文件*.yaml，不指定映射文件表示不映射比对。自定义映射文件的格式请参见[自定义映射文件（cell_mapping）](#自定义映射文件cell_mapping)。仅[不同平台、不同配置下的模块比对场景](#不同平台不同配置下的模块比对)需要配置。 |
 | -da或--diff_analyze                 | 可选     | 自动识别网络中首差异节点，支持md5、统计量等dump数据。支持单卡/多卡场景。通过直接配置该参数开启，默认未配置，表示关闭。                                                                                                                  |
-| -tensor_log或--is_print_compare_log | 可选     | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。通过直接配置该参数开启，默认未配置，表示关闭。                                                                                                            |
+| -tensor_log或--is_print_compare_log | 可选     | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的Tensor数据。通过直接配置该参数开启，默认未配置，表示关闭。                                                                                                            |
 | --consistent_check | 可选     | 配置是否开启verl训推一致性比对。通过直接配置该参数开启，默认未配置，表示关闭。仅[verl训推一致性比对场景](#verl训推一致性比对场景)需要配置。                                                                                                   |
 | --backend | 可选     | verl训推一致性比对时指定的训练后端，取值为fsdp或megatron。须先配置--consistent_check，如不配置--consistent_check，单独配置--backend不生效。                                                                             |
-| --config | 可选     | Tensor后处理配置文件路径，指定yaml格式的校准文件。用于量化场景下对dump的tensor进行矩阵乘校准。配置文件格式请参见[matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml)。仅PyTorch场景支持。 |
+| --config | 可选     | Tensor后处理配置文件路径，指定yaml格式的校准文件。用于量化场景下对dump的Tensor进行矩阵乘校准。配置文件格式请参见[matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml)。仅PyTorch场景支持。 |
 
 ### 使用示例
 
@@ -181,7 +181,7 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 **说明**：
 
-- 目前支持fsdp后端和megatron后端的dump采集的训推L0级别tensor数据的比对。支持的模型为Qwen3-30B，Qwen3-32B，Qwen3-4B，Qwen2.5-0.5B。
+- 目前支持fsdp后端和megatron后端的dump采集的训推L0级别Tensor数据的比对。支持的模型为Qwen3-30B、Qwen3-32B、Qwen3-4B、Qwen2.5-0.5B。
 - verl训推一致性场景dump需要保存训练和推理两份数据，注意需保证两次dump的路径不同，否则会导致dump数据覆盖。比对时，-tp参数需指定为训练数据，-gp参数需指定为推理数据。
 - verl相关详细介绍请参考[VERL 官方仓库](https://github.com/verl-project/verl)
 
@@ -234,9 +234,9 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 #### Tensor 后处理场景
 
-某些场景（如量化感知训练）下，dump 出的 tensor 是反量化后的结果，并非原始 tensor。例如反量化过程在原始 tensor 基础上右乘了一个旋转矩阵，导致 dump 出的 tensor 与基准 tensor 存在系统性偏差。
+某些场景（如量化感知训练）下，dump 出的 Tensor 是反量化后的结果，并非原始 Tensor。例如反量化过程在原始 Tensor 基础上右乘了一个旋转矩阵，导致 dump 出的 Tensor 与基准 Tensor 存在系统性偏差。
 
-为了还原出原始 tensor 进行精度比对，可以在比对流程中插入 tensor 后处理步骤，对指定算子 dump 出的 tensor 乘以校准 tensor（如旋转矩阵的逆矩阵），抵消旋转的影响。
+为了还原出原始 Tensor 进行精度比对，可以在比对流程中插入 Tensor 后处理步骤，对指定算子 dump 出的 Tensor 乘以校准 Tensor（如旋转矩阵的逆矩阵），抵消旋转的影响。
 
 支持三种矩阵乘模式：
 
@@ -254,7 +254,7 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 配置方式：
 
-1. 创建校准配置文件（yaml 格式，如名为matmul_sample.yaml），参考 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 模板。校准 tensor 文件支持 `.pt` 和 `.npy` 格式，路径支持使用绝对路径或相对路径。
+1. 创建校准配置文件（yaml 格式，如名为matmul_sample.yaml），参考 [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) 模板。校准 Tensor 文件支持 `.pt` 和 `.npy` 格式，路径支持使用绝对路径或相对路径。
 
    配置示例（右乘模式）：
 
@@ -291,7 +291,7 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 > [!NOTE]
 >
-> 仅在**真实数据模式**下生效（即 dump 时 config.json 中 `task` 配置为 `"tensor"`）。统计数据模式和 MD5 模式下不生效。 用户自定义比对算法Python文件只能用来进行精度比对，执行精度比对时会被运行，文件安全性和传入参数的安全性由用户保证。
+> 仅在**真实数据模式**下生效（即 dump 时 config.json 中 `task` 配置为 `"tensor"`）。统计数据模式和 MD5 模式下不生效。用户自定义比对算法Python文件只能用来进行精度比对，执行精度比对时会被运行，文件安全性和传入参数的安全性由用户保证。
 
 配置方式：
 
@@ -324,7 +324,7 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
       | 参数名          | 说明                             |
       |--------------|--------------------------------|
       | n_value      | target_path侧对应的单条数据，类型是`torch.Tensor`  |
-      | b_value      | golden_path侧对应的单条数据, 类型是`torch.Tensor` |
+      | b_value      | golden_path侧对应的单条数据，类型是`torch.Tensor` |
 
       **返回值说明**
 
@@ -370,7 +370,7 @@ PyTorch 精度比对是以 CPU 或 GPU 的计算结果为标杆，通过计算�
 
 三种模式表示采集的不同类型数据。数据采集操作请参见《[PyTorch场景精度数据采集](../dump/pytorch_data_dump_instruct.md)》。
 
-真实数据模式：数据采集时配置config.json中task字段为"tensor"，落盘统计量和全量tensor。
+真实数据模式：数据采集时配置config.json中task字段为"tensor"，落盘统计量和全量Tensor。
 
 统计数据模式：数据采集时配置config.json中task字段为"statistics"，summary_mode字段为"statistics"，仅落盘统计量。
 
@@ -396,9 +396,9 @@ MD5模式：数据采集时配置config.json中task字段为"statistics"，summa
 
 #### 比对指标计算公式
 
-$N$: NPU侧tensor
+$N$: NPU侧Tensor
 
-$B$: Bench侧tensor
+$B$: Bench侧Tensor
 
 RE(Relative Error, 相对误差): $\vert\frac {N-B} {B}\vert$
 
@@ -446,7 +446,7 @@ error标记情况：
 2. 一个API或模块的One Thousandth Err Ratio的input/parameters > 0.9同时output < 0.6（真实数据模式）（仅标记output）（使用输入进行计算）。
 3. 一个API或模块的input的norm值相对误差 < 0.1 且 output 的norm值相对误差 > 0.5（统计数据模式）（仅标记output）（使用输入进行计算）。
 4. 一个API或模块的Requires_grad（计算梯度）不一致（真实数据模式、统计数据模式）。
-5. 一个API或模块的非tensor标量参数不一致（真实数据模式、统计数据模式）。
+5. 一个API或模块的非Tensor标量参数不一致（真实数据模式、统计数据模式）。
 6. 一个API或模块的CRC-32值不一致（md5模式）。
 7. 一个API或模块的dtype不一致（真实数据模式、统计数据模式）。
 8. 一个API或模块的shape不一致（真实数据模式、统计数据模式）
@@ -543,7 +543,7 @@ msprobe merge_result -i ./input_dir -o ./output_dir -config ./config.yaml
 2. rank*列为多卡数据。
 3. 不同比对指标的数据通过不同sheet页呈现。
 4. 如果一个API或module在某张卡上找不到数据，汇总结果中将空白呈现。
-5. 如果比对指标值为N/A，unsupported，Nan，表示无法计算该比对指标值，汇总结果将以”NPU:’NPU max值‘  Bench:’Bench max值‘“呈现。
+5. 如果比对指标值为N/A、unsupported、Nan，表示无法计算该比对指标值，汇总结果将以“NPU:'NPU max值' Bench:'Bench max值'”呈现。
 6. 针对图示案例，此处NPU:N/A、Bench:N/A表示output为None。
 
 <br>

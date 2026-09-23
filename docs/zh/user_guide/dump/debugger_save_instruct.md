@@ -32,11 +32,11 @@ L0、L1、mix级别的dump能力存在盲区，网络中的非API或module的输
 
 #### 配置文件说明
 
-通用配置（细节详见[通用配置说明](./config_json_introduct.md#通用配置) ）：
+通用配置（细节详见[通用配置说明](./config_json_introduct.md#通用配置)）：
 
 | 参数       | 可选/必选 | 解释                                                         |
 | ---------- | --------- | ------------------------------------------------------------ |
-| task       | 必选      | dump 的任务类型，str 类型。 单点保存场景仅支持传入"statistics", "tensor"。 |
+| task       | 必选      | dump 的任务类型，str 类型。单点保存场景仅支持传入"statistics", "tensor"。 |
 | level      | 必选      | dump 级别，str 类型，根据不同级别采集不同数据。单点保存场景传入"debug"。 |
 | dump_path  | 必选      | 设置 dump 数据目录路径，str 类型。                           |
 | rank       | 可选      | 指定对某张卡上的数据进行采集，list[Union[int, str]] 类型。   |
@@ -47,7 +47,7 @@ L0、L1、mix级别的dump能力存在盲区，网络中的非API或module的输
 
 | 参数         | 可选/必选 | 解释                                                         |
 | ------------ | --------- | ------------------------------------------------------------ |
-| summary_mode | 可选      | 控制 dump 文件输出的模式，str 类型。支持传入"statistics", "md5"。 详细介绍请参见[statistics任务子配置项说明](./config_json_introduct.md#task配置为statistics)。 |
+| summary_mode | 可选      | 控制 dump 文件输出的模式，str 类型。支持传入"statistics", "md5"。详细介绍请参见[statistics任务子配置项说明](./config_json_introduct.md#task配置为statistics)。 |
 
 "tensor" 任务无子配置项。
 
@@ -191,7 +191,7 @@ if __name__ == "__main__":
 save(save_dir: str, name: str, data: Union[Tensor, List, Tuple, Dict])
 ```
 
-**参数说明**:
+**参数说明**
 
 - `save_dir`: 数据保存目录路径
 - `name`: 数据标识名称（将作为文件名前缀）
@@ -199,7 +199,7 @@ save(save_dir: str, name: str, data: Union[Tensor, List, Tuple, Dict])
   - `mindspore.Tensor` 单个张量
   - `List/Tuple/Dict` 嵌套结构（会自动展开保存）
 
-**使用示例**:
+**使用示例**
 
 ```python
 from msprobe.mindspore import save
@@ -216,18 +216,18 @@ class Net(nn.Cell):
 save_grad(save_dir: str, name: str, data: Tensor) -> Tensor
 ```
 
-**参数说明**:
+**参数说明**
 
 - `save_dir`: 梯度保存目录路径
 - `name`: 梯度标识名称（将作为文件名前缀）
 - `data`: 必须是 `mindspore.Tensor`类型
 
-**特别注意**:
+**特别注意**
 
 - 必须接收返回值并传回原计算图
 - 此操作不会影响计算精度
 
-**使用示例**:
+**使用示例**
 
 ```python
 from msprobe.mindspore import save_grad
@@ -244,13 +244,13 @@ class Net(nn.Cell):
 step()
 ```
 
-**功能说明**:
+**功能说明**
 
 - 递增训练步数计数器
-- 控制数据保存到不同的step目录（如step0/, step1/等）
+- 控制数据保存到不同的step目录（如step0/，step1/等）
 - 如果不调用，所有数据会保存到同一个step目录
 
-**使用示例**:
+**使用示例**
 
 ```python
 from msprobe.mindspore import save, step
@@ -265,9 +265,9 @@ for epoch in range(epochs):
 
 ### 动态图场景（PyTorch&MindSpore）
 
-* **"task" 配置为 "statistics" 场景** ：在 dump 目录下会生成包含变量统计值信息的 `debug.json` 文件。
+* **"task" 配置为 "statistics" 场景**：在 dump 目录下会生成包含变量统计值信息的 `debug.json` 文件。
   `debug.json` 中统计值的key命名格式为 `{variable_name}{grad_flag}.{count}.debug`。
-* **"task" 配置为 "tensor" 场景** ：除了在 dump 目录下生成包含变量统计值信息的 `debug.json` 文件外，还会在 dump 子目录 `dump_tensor_data` 中保存张量二进制文件，文件名称格式为 `{variable_name}{grad_flag}.{count}.debug.{indexes}.{file_suffix}`。
+* **"task" 配置为 "tensor" 场景**：除了在 dump 目录下生成包含变量统计值信息的 `debug.json` 文件外，还会在 dump 子目录 `dump_tensor_data` 中保存张量二进制文件，文件名称格式为 `{variable_name}{grad_flag}.{count}.debug.{indexes}.{file_suffix}`。
 
   - variable_name： 传入save接口的变量名称。
   - grad_flag： 反向数据标识，反向数据为"_grad"，正向数据为""。

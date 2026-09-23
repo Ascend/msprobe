@@ -81,7 +81,7 @@
     + dumper.start(model)
       static_input = torch.randn(N, D_in).npu()
       static_target = torch.randn(N, D_out).npu()
-    
+
       g = torch.npu.NPUGraph()
       # 编图
       with torch.npu.graph(g):
@@ -103,7 +103,7 @@
 
 #### 功能说明
 
-`AclGraphDumper` 用于采集整网中间数据，支持 module 级别、API 级别以及 module+API 混合级别采集。`statistics` 任务输出张量形状、数据类型和统计值；`tensor` 任务输出 Tensor 真实数据。
+`AclGraphDumper` 用于采集整网中间数据，支持 module 级别、API 级别以及 module+API 混合级别采集。`statistics` 任务输出Tensor形状、数据类型和统计值；`tensor` 任务输出 Tensor 真实数据。
 `AclGraphDumper` 的初始化与 `start` 调用需在模型编图（如`torch.npu.graph`或`torch.compile`）之前完成。
 
 > [!NOTE]
@@ -309,27 +309,27 @@ tensor_dump
 
 ### 快速入门
 
-下面示例展示如何在前向过程中保存某个张量：
+下面示例展示如何在前向过程中保存某个Tensor：
 
 ```diff
   import torch
   import torch_npu
- 
+
 + from msprobe.pytorch import acl_save
- 
- 
+
+
   class ToyModel(torch.nn.Module):
       def __init__(self):
           super().__init__()
           self.linear = torch.nn.Linear(8, 4)
- 
+
       def forward(self, x):
           y = self.linear(x)
-+         # 保存中间张量
++         # 保存中间Tensor
 +         acl_save(y, "./dump/linear_out.pt")
           return y
- 
- 
+
+
   if __name__ == "__main__":
       model = ToyModel().to("npu:0")
       x = torch.randn(2, 8, device="npu:0")
@@ -340,7 +340,7 @@ tensor_dump
 
 #### 功能说明
 
-`acl_save` 用于保存张量数据，调用后会生成 `.pt` 文件。
+`acl_save` 用于保存Tensor数据，调用后会生成 `.pt` 文件。
 
 #### 接口说明
 
@@ -354,12 +354,12 @@ acl_save(x: torch.Tensor, path: str) -> torch.Tensor
 
 | 参数名 | 可选/必选 | 说明 |
 | --- | --- | --- |
-| x | 必选 | 待保存张量，torch.Tensor类型。 |
+| x | 必选 | 待保存Tensor，torch.Tensor类型。 |
 | path | 必选 | 保存路径（支持相对/绝对路径），str类型。实际落盘文件名会在该路径文件名基础上追加序号，格式为 `{base}_{seq}.pt`。例如传入 `./dump/act.pt`，实际落盘为 `./dump/act_0.pt`、`./dump/act_1.pt`。 |
 
 **返回值**
 
-返回一个与输入形状一致的张量，仅用于触发保存操作。
+返回一个与输入形状一致的Tensor，仅用于触发保存操作。
 
 #### 使用示例
 
@@ -367,7 +367,7 @@ acl_save(x: torch.Tensor, path: str) -> torch.Tensor
 
     ```python
     from msprobe.pytorch import acl_save
-    
+
     logits = model(x)
     acl_save(logits, "./dump/logits.pt")
     ```
@@ -375,7 +375,7 @@ acl_save(x: torch.Tensor, path: str) -> torch.Tensor
 2. 多卡场景下的单点采集
 
    ```python
-   # 多卡场景需要区分rank，使用参考如下。
+   # 多卡场景需要区分rank，使用方法参考如下。
    # 需要保证“./dump/rank{torch.distributed.get_rank()}”目录已创建，否则会出现目录不存在问题。
    acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
    ```

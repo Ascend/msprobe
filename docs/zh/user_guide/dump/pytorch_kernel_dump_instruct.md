@@ -2,7 +2,7 @@
 
 ## 简介
 
-本文主要介绍kernel级精度数据采集的配置示例和采集结果介绍，msProbe数据采集功能的详细使用参考《[PyTorch场景精度数据采集](./pytorch_data_dump_instruct.md)》。
+本文主要介绍kernel级精度数据采集的配置示例和采集结果，msProbe数据采集功能的详细介绍请参见《[PyTorch场景精度数据采集](./pytorch_data_dump_instruct.md)》。
 
 ## 使用前准备
 

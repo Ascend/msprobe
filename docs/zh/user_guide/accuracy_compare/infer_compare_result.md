@@ -9,8 +9,8 @@
 ```sh
 {output_path}/{timestamp}/{input_name-input_shape}  # {input_name-input_shape}用来区分动态shape时不同的模型实际输入，静态shape时没有该层
 ├-- dump_data
-│   ├-- npu                          # npu dump数据目录
-│   │   ├-- {timestamp}              # 模型所有npu dump的算子输出，dump为False情况下没有该目录
+│   ├-- npu                          # NPU dump数据目录
+│   │   ├-- {timestamp}              # 模型所有NPU dump的算子输出，dump为False情况下没有该目录
 │   │   │   └-- 0                    # Rank设备ID号
 │   │   │       └-- {om_model_name}  # 模型名称
 │   │   │           └-- 1            # 模型ID号
@@ -49,14 +49,14 @@
   |------------------------:|---------:|---------:|--------:|------------:|---------:|-----------:|----:|-------:|---------------:|--:|----------------:|----------------:|-------:|-------:|-------:|
   |                      Sub|Sub_26Mul_28| float16 |    NaN |Sub_26,Mul_28|   float32|Sub_26Mul_28:output:0|[1,1,1,108]|NO|      1|...|         0.000364|                 |NO      |NO      |NO      |
 
-如上所示的结果文件中主要关注以下几项:
+如上所示的结果文件中主要关注以下几项：
 
  - [x] [NPUDump]：这个对应OM模型中的算子，由于融合规则，可能会对应多个GPU/CPU算子。
  - [x] [DataType]：一共有两个，一个是NPU侧的数据类型，一个是CPU/GPU侧的数据类型，二者有所不同，可能会有精度损失问题。
  - [x] [GroundTruth]：OM算子所对应的ONNX模型算子。
  - [x] [Overflow]：数据是否出现上溢出或下溢出。
- - [x] [CompareFailReason]：比对失败原因，误差可能会因为除零非法或者不对应等原因造成无法计算，变为NaN值，会列出详细原因。
- - [x] [IsNpuOps]：用于过滤是否为npu独有节点。
+ - [x] [CompareFailReason]：比对失败原因，误差可能会因为非法除零或者不对应等原因造成无法计算，变为NaN值，会列出详细原因。
+ - [x] [IsNpuOps]：用于过滤是否为NPU独有节点。
  - [x] [IsOutputNode]：用于过滤是否为模型的整网输出节点。
  - [x] [IsPrecisionError]：用于过滤是否为精度异常的节点。
  - [x] [CosineSimilarity]...[MeanRelativeError]：这是各类误差比对类型结果，主要需要看是否某一项超过精度阈值（即某项异常），若超过则需要重点关注。各比对算法说明如下：

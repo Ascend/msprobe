@@ -16,7 +16,7 @@ Kimi2.5 模型出现 log_prob 指标首 step 差异较大的现象。对于强�
 
 1. 缩小规模复现：整体数百卡场景下 log_prob 指标差异较大，缩小至双机多卡测试后差异仍然明显。
 2. 训练、推理阶段使用相同输入分别执行，采集 dump 数据。
-3. 优先尝试减层，先排查 dense 层，训推各减层至 1 层；确保 dense 层对齐后，再加层比较 moe 层，完成训推对齐。
+3. 优先尝试减层，先排查 dense 层，训推各减层至 1 层；确保 dense 层对齐后，再加层比较 MoE 层，完成训推对齐。
 
 ### 推理阶段 dump
 
@@ -44,27 +44,27 @@ Kimi2.5 模型出现 log_prob 指标首 step 差异较大的现象。对于强�
 
 ## 问题根因
 
-**1. 首先，第一个不一致模块 MLA 输出**
+1. 首先，第一个不一致模块 MLA 输出
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/mla_output_diff.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/mla_output_diff.png)
 
-**2. 向前追溯**
+2. 向前追溯
 
-推理侧：
+    推理侧：
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/infer_mla_impl_code.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/infer_mla_impl_code.png)
 
-训练侧：
+    训练侧：
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_mla_impl_code_1.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_mla_impl_code_1.png)
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_mla_impl_code_2.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_mla_impl_code_2.png)
 
-训练代码实现：
+    训练代码实现：
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_composed_ops_code.png)
+    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_composed_ops_code.png)
 
-**3. cos 和 sin 的计算均来自于 freqs，向上追溯 freqs 来源**
+3. cos 和 sin 的计算均来自于 freqs，向上追溯 freqs 来源
 
     ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/freqs_source_code_1.png)
 

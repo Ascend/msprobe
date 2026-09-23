@@ -233,6 +233,6 @@ ${dump_path}
 各级目录及文件说明：
 
 - rank{ID}：设备 ID，每张卡的数据保存在对应的 rank{ID} 目录下。
-- dump.json：保存 API 或 Module 前反向数据的统计量信息。包含 dump 数据的 API 名称或 Module 名称，各数据的 dtype、shape、max、min、mean、L2norm（L2 范数）统计信息，以及根据 summary_mode 配置输出的校验值（md5 对应 CRC-32 字段，xor 对应 XOR 校验字段）。具体介绍请参见《[PyTorch场景精度数据采集](../../user_guide/dump/pytorch_data_dump_instruct.md#dumpjson文件说明)》的dump.json 文件说明章节。
+- dump.json：保存 API 或 Module 前反向数据的统计量信息，包含 dump 数据的 API 名称或 Module 名称，各数据的 dtype、shape、max、min、mean、L2norm（L2 范数）统计信息，以及根据 summary_mode 配置输出的校验值（md5 对应 CRC-32 字段，xor 对应 XOR 校验字段）。具体介绍请参见《[PyTorch场景精度数据采集](../../user_guide/dump/pytorch_data_dump_instruct.md#dumpjson文件说明)》的dump.json 文件说明章节。
 - stack.json：API/Module 的调用栈信息。
 - construct.json：分层分级结构信息，level 配置为 L1 时，construct.json 内容为空。

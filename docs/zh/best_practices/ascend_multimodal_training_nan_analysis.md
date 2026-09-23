@@ -12,14 +12,14 @@
 
 有如下实验尝试：
 
-- 把 embedding 的 require grad 关掉的话，NaN 问题消失，说明大概率反向梯度更新问题。
+- 把 embedding 的 requires_grad 关掉的话，NaN 问题消失，说明大概率是反向梯度更新问题。
 - 开启 LAUNCH_BLOCKING=1 问题依旧，说明不是同步问题。
 
 ## 定位过程
 
 ### dump embedding tensor数据
 
-发现 embed grad 出现 NaN 时，其中一个 rank 上的输入为空，shape: [0]，相应的反向输入 shape 为 [0, 4096]，输出疑似未初始化的内存。模型训练开启的 dsp（distributed sequence parallel）特性会对输入做切分，可能使某张卡上没有 token 输入。随机数据有几率复现：
+发现 embed grad 出现 NaN 时，其中一个 rank 上的输入为空，shape: [0]，相应的反向输入 shape 为 [0, 4096]，输出疑似未初始化的数据。模型训练开启的 dsp（distributed sequence parallel）特性会对输入做切分，可能使某张卡上没有 token 输入。随机数据有几率复现：
 
 ![](../figures/cases/ascend_multimodal_training_nan_analysis/embed_grad_empty_input.png)
 
