@@ -2,11 +2,13 @@
 
 ## System Security Hardening
 
-It is recommended that you enable address space layout randomization (ASLR) (level 2) by running the following commands as user `root`:
+- This repository provides VS Code and devcontainer configurations for development and debugging. Use them only to develop and debug this repository in a secure debugging environment. Review the configuration security and adjust it to your actual requirements.
 
-```bash
-echo 2 > /proc/sys/kernel/randomize_va_space
-```
+- It is recommended that you enable address space layout randomization (ASLR) (level 2) by running the following commands as user `root`:
+
+  ```bash
+  echo 2 > /proc/sys/kernel/randomize_va_space
+  ```
 
 ## User Account Recommendations
 

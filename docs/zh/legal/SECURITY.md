@@ -2,11 +2,13 @@
 
 ## 系统安全加固
 
-建议用户在系统中配置开启ASLR（级别2），又称**全随机地址空间布局随机化**，可参考以下方式进行配置（使用root用户执行）：
+- 本仓提供VS Code及devcontainer配置，便于开发和调试；仅限在安全的调试环境中对本仓进行开发和调试使用。请自行检查配置安全性，并根据实际需求进行调整。
 
-```bash
-echo 2 > /proc/sys/kernel/randomize_va_space
-```
+- 建议用户在系统中配置开启ASLR（级别2），又称**全随机地址空间布局随机化**，可参考以下方式进行配置（使用root用户执行）：
+
+  ```bash
+  echo 2 > /proc/sys/kernel/randomize_va_space
+  ```
 
 ## 运行用户建议
 
