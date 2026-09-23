@@ -18,12 +18,3 @@
 | 开源软件 | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://gitee.com/ascend/tools/tree/master/ais-bench_workload/tool/ais_bench>  | whl 安装失败时提示用户手工下载 aclruntime/ais_bench |
 | 开源软件 | -            | plugins/tb_graph_ascend/setup.py | <pmail_mindstudio@huawei.com>                                | MindStudio官方邮箱           |
 | 开源软件 | -            | plugins/tb_graph_ascend/setup.py | <https://gitcode.com/Ascend/msprobe/tree/master/plugins/tb_graph_ascend> | 代码仓地址                   |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://npms.io>                                            | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://github.com/webcomponents/shadycss/issues/193>       | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <http://jsbin.com/temexa/4>                                  | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://developer.mozilla.org/>                             | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <https://github.com/vaadin/vaadin-time-picker/issues/145>    | 构建引入，注释               |
-| 开源软件 | -            | 非源码引入，只是在构建产物中包含 | <http://codepen.io/shyndman/pen/>                            | 构建引入，注释               |
-| 开源软件 | -            | torch_npu_url.json              | <https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/x86_64/download.pytorch.org/whl/cpu/>  | 下载 torch 安装包           |
-| 开源软件 | -            | torch_npu_url.json              | <https://inst.obs.cn-north-4.myhuaweicloud.com/env/mirror/aarch64/download.pytorch.org/whl/cpu/> | 下载 torch 安装包           |
-| 开源软件 | -            | torch_npu_url.json              | <https://gitcode.com/Ascend/pytorch/releases/download/v26.1.0-beta.1-pytorch2.7.1/>              | 下载 torch_npu 安装包       |
