@@ -21,10 +21,10 @@ NPU推理结果为1260（错误答案）：
 
 排查版本发现GPU与NPU存在较大差异：
 
-* GPU vllm版本为0.1.4（较老）且使用图模式，mode为V0
-* NPU vllm及vllm-ascend版本为0.9.1且使用enforce_eager=True，mode为V0
+* GPU vLLM版本为0.1.4（较老）且使用图模式，mode为V0。
+* NPU vllm及vllm-ascend版本为0.9.1且使用enforce_eager=True，mode为V0。
 
-由于GPU版本较老，优先升级0.8.1版本且使用enforce_eager=True开启单算子模式，即与NPU对齐
+由于GPU版本较老，优先升级0.8.1版本且使用enforce_eager=True开启单算子模式，即与NPU对齐。
 
 发现GPU改为0.9.1版本+单算子模式下也存在badcase的回答错误：
 ![](../figures/cases/ascend_tora_inference_diff_localization/gpu_091_eager_badcase.png)
@@ -133,7 +133,6 @@ attn_output = self.attn(q, k, v)  # Attention
             v_descale=layer._v_scale.expand(descale_shape),
         )
 output, _ = self.o_proj(attn_output)
-output, _ = self.o_proj(attn_output)
 ```
 
 * 091进入Attention外的torch.ops._C.rotary_embedding
@@ -176,7 +175,7 @@ sin = freqs.sin()
 cache = torch.cat((cos, sin), dim=-1)
 ```
 
-发现max_position_embedding值与base值在两个版本上存在差异
+发现max_position_embeddings值与base值在两个版本上存在差异
 
 ## 修复与根因
 
@@ -184,8 +183,8 @@ cache = torch.cat((cos, sin), dim=-1)
 
 在模型文件中，将hf config.json如下属性做改动：
 
-* hf config.json中max_position_embedding的值16384改为8192
-* hf config.json中rope_theta 的值1000000改为10000
+* hf config.json中max_position_embeddings的值16384改为8192
+* hf config.json中rope_theta的值1000000改为100000
   ![](../figures/cases/ascend_tora_inference_diff_localization/config_json_fix.png)
 
 **结果验证：**
@@ -200,7 +199,7 @@ NPU做badcase验证，精度达标：
 
 **根因总结：**
 
-计算`rotary_embdding`的初始化`cos_sin_cache`时，存在差异，导致`rotary_embdding output`不一致：
+计算`rotary_embedding`的初始化`cos_sin_cache`时，存在差异，导致`rotary_embedding output`不一致：
 
-* `max_position_embeddings`差异，`014`为`8192`（没传入，默认`8192`），`091`为`16384`（根据hf model路径中的`max_position_embedding`自动赋值）
-* `base`差异，`014`为`10000`（没传入，默认`10000`）， `091`是`100000`（根据hf model路径中的`rope_theta`自动赋值）
+* `max_position_embeddings`差异，`014`为`8192`（没传入，默认`8192`），`091`为`16384`（根据hf model路径中的`max_position_embeddings`自动赋值）
+* `base`差异，`014`为`10000`（没传入，默认`10000`），`091`是`100000`（根据hf model路径中的`rope_theta`自动赋值）

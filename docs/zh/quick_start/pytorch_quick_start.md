@@ -222,7 +222,7 @@ python3 ${HOME}/precision_sample.py --gpu 0
 
 > 默认使用 0 号卡。若该卡不可用或需指定其他卡，请将 `--gpu 0` 中的数字替换为目标卡 ID。
 
-当日志输出如下信息时，表明 step0/step1 精度数据采集已完成。此时后续训练迭代（step 2、3、4 等）仍会继续执行，可按 `Ctrl + C` 安全终止进程以节省时间，提前终止不会影响已采集的 step0/step1 数据完整性：
+当日志输出如下信息时，表明 step0/step1 精度数据采集已完成。此时后续训练迭代（step 2、3、4 等）仍会继续执行，可按 `Ctrl+C` 安全终止进程以节省时间，提前终止不会影响已采集的 step0/step1 数据完整性：
 
 ```text
 2026-07-15 02:08:30 (2596) [INFO] dump.json is at /root/msprobe_dump_npu/step1.

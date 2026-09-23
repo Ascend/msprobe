@@ -52,7 +52,7 @@ L0 初步采集到的现象如下：
 * 在 **DDP 域 1** 上会偶现少量梯度异常
 * 异常随后会逐步传播到其他域
 
-但这也导致了对结果一直存疑，无法断定（这块时期打印较多，没有截图与日志保存）
+但这也导致了对结果一直存疑，无法断定（这块时期打印较多，没有截图与日志保存）。
 
 此时我们仍然只能得到一个初步猜测，尚无法完全确认异常链路，因此继续进行 **mix 采集**。
 
@@ -82,7 +82,7 @@ L0 初步采集到的现象如下：
 
 ![](../figures/cases/ascend_mova_model_nan_analysis/mix_dump_first_nan.png)
 
-首 个 `NaN` 出现在：
+首个 `NaN` 出现在：
 
 ```python
 __mul__.5643.forward
@@ -235,7 +235,7 @@ reciprocal() * other
 
 因此，最终可以基本确认该问题与以下因素相关：
 
-* `accelerate` 开启 **offload**
+* `accelerate` 开启 `offload`
 * FSDP 训练过程中存在 **NPU 与 CPU 间的数据搬运**
 * 某些场景下**流同步未正确完成**
 * 导致后续使用到未完成搬运或未完成归约的数据，最终引发 `NaN`
@@ -269,5 +269,5 @@ reciprocal() * other
 
 ## 后续建议
 
-1.重点检查 accelerate + FSDP +offload场景下的同步机制
-2.若条件允许，可进一步对accelerate 封装链路进行源码级分析，确认offload场景下同步异常落点。
+1. 重点检查 accelerate + FSDP +offload场景下的同步机制。
+2. 若条件允许，可进一步对accelerate 封装链路进行源码级分析，确认offload场景下同步异常落点。

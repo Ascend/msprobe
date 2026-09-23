@@ -78,7 +78,7 @@ vllm_ascend: 0.13.0rc1
 
 去除 response_format 参数，其余参数保持不变，验证是否结构化输出导致了问题。主要采样参数如下：
 
-```bash
+```json
 "temperature": 0.3,
 "top_p": 0.8,
 "top_k": 20,
@@ -115,7 +115,7 @@ vllm_ascend: 0.13.0rc1
 
 着重关注异常回复中的第 2 个 token。其原始 logits 满足输出预期（Pxx），说明 Qwen2.5 模型本身推理正常，但结构化后的 logits 中丢失了有效字符 `P` 的内容，变成 `" "`、`"\n"` 等无意义 token。这再次证实了是结构化输出导致的问题。
 
-接下来，对 apply_grammar_bitmask 函数进行分析。从代码中可以看出，结构化的本质是使用 grammar_bitmask Numpy 数组对原始 logits 进行掩码操作。因此，采集了"万人研究"后若干 token 的 grammar_bitmask 数据。
+接下来，对 apply_grammar_bitmask 函数进行分析。从代码中可以看出，结构化的本质是使用 grammar_bitmask numpy 数组对原始 logits 进行掩码操作。因此，采集了"万人研究"后若干 token 的 grammar_bitmask 数据。
 
 apply_grammar_bitmask 函数源码如下：
 

@@ -73,7 +73,7 @@ msprobe graph_visualize -tp <target_path> -o <output_path> [-oc] [-tensor_log] [
 | -------------------------------------- | --------- | ------------------------------------------------------------ |
 | -tp或--target_path                     | 必选      | 指定待调试侧比对路径，str类型。工具根据路径格式自动进行单rank构建、多rank批量构建或多step批量构建。 |
 | -o或--output_path                      | 必选      | 配置构图结果文件存盘目录，str类型。文件名称基于时间戳自动生成，格式为：`build_{timestamp}.vis.db`。 |
-| -oc或--overflow_check                  | 可选      | 是否开启溢出检测模式，开启后会在输出db文件中（`build_{timestamp}.vis.db`）对每个溢出节点进行标记溢出等级。配置该参数表示开启，默认未配置表示关闭。 |
+| -oc或--overflow_check                  | 可选      | 是否开启溢出检测模式，开启后会在输出db文件中（`build_{timestamp}.vis.db`）对每个溢出节点进行溢出等级标记。配置该参数表示开启，默认未配置表示关闭。 |
 | -tensor_log或--is_print_compare_log    | 可选      | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。配置该参数表示开启，默认未配置表示关闭。 |
 | -progress_log或--is_print_progress_log | 可选      | 配置是否开启任务详细进度的日志打印。配置该参数表示开启，默认未配置表示关闭。 |
 
@@ -256,7 +256,7 @@ dump配置请参考[dump配置示例](../dump/config_json_introduct.md#task配�
 
 - 当前支持的模型并行切分策略：Tensor Parallelism（TP）、Pipeline Parallelism（PP）、Virtual Pipeline Parallelism（VPP），暂不支持Context Parallelism（CP）和Expert Parallelism（EP）。
 - 当前支持基于Megatron、MindSpeed-LLM套件的模型进行图合并，其他套件的模型图合并效果有待验证；
-- 当前仅支持msProbe工具dump的statistics数据, level需指定L0或者mix；
+- 当前仅支持msProbe工具dump的statistics数据，level需指定L0或者mix；
 - 图合并比对时要确保Data Parallelism（DP）切分一致，例如rank=8 tp=1 pp=8的配置，dp=1，图合并将得到一张图，rank=8 tp=1 pp=4的配置，dp=2，图合并将得到两张图，暂不支持数量不一致的图进行比对。
 
 **命令格式**
@@ -314,7 +314,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path --r
 
 **示例4：不同pp和tp切分下的图合并比对**
 
-当前示例比对场景为：target_path侧8卡，pp=8，golden_path侧8卡，tp=8
+当前示例比对场景为：target_path侧8卡，pp=8，golden_path侧8卡，tp=8。
 
 ```bash
 msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path --rank_size 8 8 --tp 1 8 --pp 8 1
@@ -324,7 +324,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path --r
 
 **示例1：不同tp切分下的图合并构建（默认db格式）**
 
-当前示例比对场景为：target_path侧8卡，tp=8，不指定golden_path
+当前示例比对场景为：target_path侧8卡，tp=8，不指定golden_path。
 
 ```bash
 msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 8 --pp 1
@@ -332,7 +332,7 @@ msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 8 
 
 **示例2：不同tp切分下的图合并构建（输出json格式）**
 
-当前示例比对场景为：target_path侧8卡，tp=8
+当前示例比对场景为：target_path侧8卡，tp=8。
 
 指定`--file_type json`后，在`output_path`会得到与`target_path`格式相同的json文件，即dump.json、stack.json和construct.json，并且文件中的数据已经过合并，可用于精度比对或者分级可视化比对。
 
@@ -342,7 +342,7 @@ msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 8 
 
 **示例3：不同vpp切分下的图合并构建（默认db格式）**
 
-当前示例场景为：target_path侧8卡，pp=8，vpp=2，不指定golden_path
+当前示例场景为：target_path侧8卡，pp=8，vpp=2，不指定golden_path。
 
 ```bash
 msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 1 --pp 8 --vpp 2

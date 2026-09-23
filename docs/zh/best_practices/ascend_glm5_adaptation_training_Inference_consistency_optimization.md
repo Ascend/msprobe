@@ -123,7 +123,7 @@
 
 这张图展示了 GLM5 注意力层的完整前向计算流，分为两大块：
 
-- 左侧：MLA（Multi-Latent Attention）主分支，实现低秩隐式注意力，是稠密计算的核心。
+- 左侧：MLA（Multi-head Latent Attention）主分支，实现低秩隐式注意力，是稠密计算的核心。
 - 右侧：DSA（DeepSeek Sparse Attention）的 Indexer + Top-k 分支，实现长序列关键 Token 筛选，是稀疏优化的核心。两者共享同一个输入 `hidden`，最终协同影响注意力的计算范围和结果。
 
 #### MLA 计算流
@@ -151,7 +151,7 @@ RMSNorm
 ```plain
 compressed q → Linear(up project + rope project) → Q上采样
     ↓
-Split → q_nope（无位置信息部分） + q_pe（位置信息部分）
+Split → q_nope(无位置信息部分) + q_pe(位置信息部分)
     ↓
 q_pe → RoPE & View → 旋转位置编码
 ```
@@ -181,8 +181,8 @@ Select + cached_compress_kv → KV缓存更新
 **4) 隐式注意力计算（MQA 模式）**
 
 ```plain
-Q分支：q_nope → cat + q_rope_head_dim → q_absorb
-K分支：k_nope → cat + k_rope_head_dim → k_absorb
+Q分支: q_nope → cat + q_rope_head_dim → q_absorb
+K分支: k_nope → cat + k_rope_head_dim → k_absorb
     ↓
 Attention(MQA) → O_attn
     ↓
@@ -275,9 +275,9 @@ topk_indices → Select → 从MLA的KV中只保留Top-k Token
 调整模型切分：
 
 ```plain
-TP： 16 -> 8
-DP： 4  -> 8
-EP： 64 -> 64
+TP: 16 -> 8
+DP: 4  -> 8
+EP: 64 -> 64
 ```
 
 发现在新的切分策略下，"cudagraph_batch_sizes": [8,16,32,64,128,192,256,384] 也可以正常放下。
@@ -367,7 +367,7 @@ actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
 
 基于 msProbe 工具排查与定位思路：
 
-完成数据采集后，首先需要确定比对的标杆。vllm-ascend 接 GLM-5 模型服务化启动后，以单推理对 aime2025 数据集做评测任务，对标 GLM-5 论文输出条件，表明单推理没有大的精度问题，可暂时作为训练侧的标杆，但最终还是要参考权威源码与技术报告为准。
+完成数据采集后，首先需要确定比对的标杆。vllm-ascend 接 GLM-5 模型服务化启动后，以单推理对 aime2025 数据集做评测任务，对标 GLM-5 论文输出条件，表明单推理没有大的精度问题，可暂时作为训练侧的标杆，但最终还是要以权威源码与技术报告为准。
 
 读取 construction.json 文件进行模块级数据比对。先保证 layer.0.input_layernorm 输入数据完全一致，再逐模块逐层校验，定位训练与推理输出首次出现不一致的位置。
 
@@ -375,7 +375,7 @@ actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
 
 #### 差异点一：FFN 激活函数的框架实现不一致
 
-通过 msProbe 采集的数据按照算子执行序依次比对，排查到 layers.0 的 MLP 模块激活函数输出不一致。
+通过 msProbe 采集的数据按照算子执行顺序依次比对，排查到 layers.0 的 MLP 模块激活函数输出不一致。
 
 推理侧：
 
@@ -398,7 +398,7 @@ actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
 
 #### 差异点二：indexer_k_norm
 
-继续往下排查，发现推理侧 indexer_k_norm 存在先升 fp32、再降 bf16 的操作，训练侧是 bf16 实现。
+继续往下排查，发现推理侧 indexer_k_norm 存在先升 FP32、再降 BF16 的操作，训练侧是 BF16 实现。
 
 推理侧：
 

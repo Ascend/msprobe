@@ -73,7 +73,7 @@ msprobe graph_visualize -tp <target_path> -o <output_path> [-oc] [-tensor_log] [
 | -------------------------------------- | --------- | ------------------------------------------------------------ |
 | -tp或--target_path                     | 必选      | 指定待调试侧比对路径，str类型。工具根据路径格式自动进行单rank构建、多rank批量构建或多step批量构建，str类型。 |
 | -o或--output_path                      | 必选      | 配置构图结果文件存盘目录，str类型。文件名称基于时间戳自动生成，格式为：`build_{timestamp}.vis.db`。 |
-| -oc或--overflow_check                  | 可选      | 是否开启溢出检测模式，开启后会在输出db文件中（`build_{timestamp}.vis.db`）对每个溢出节点进行标记溢出等级。配置该参数表示开启，默认未配置表示关闭。 |
+| -oc或--overflow_check                  | 可选      | 是否开启溢出检测模式，开启后会在输出db文件中（`build_{timestamp}.vis.db`）对每个溢出节点标记溢出等级。配置该参数表示开启，默认未配置表示关闭。 |
 | -tensor_log或--is_print_compare_log    | 可选      | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。配置该参数表示开启，默认未配置表示关闭。 |
 | -progress_log或--is_print_progress_log | 可选      | 配置是否开启任务详细进度的日志打印。配置该参数表示开启，默认未配置表示关闭。 |
 
@@ -149,7 +149,7 @@ msprobe graph_visualize -tp <target_path> -gp <golden_path> -o <output_path> [-l
 | -gp或--golden_path    | 可选，但在双图比对场景必选     | 指定标杆侧比对路径，str类型。如果不配置此项则进行单图构建。                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | -o或--output_path     | 必选     | 配置构图结果文件存盘目录，str类型。文件名称基于时间戳自动生成，格式为：`compare_{timestamp}.vis.db`。                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | -lm或--layer_mapping  | 可选     | 跨套件比对，例如同一个模型分别使用了DeepSpeed和Megatron套件的比对场景。配置该参数时表示开启跨套件Layer层的比对功能，指定模型代码中的Layer层后，可以识别对应dump数据中的模块或API。需要指定自定义映射文件*.yaml。自定义映射文件的格式请参见[自定义映射文件（Layer）](#自定义映射文件layer)，如何配置自定义映射文件请参考[模型分级可视化如何配置layer mapping映射文件](../../examples/layer_mapping_example.md)。配置该参数后，将仅按节点名称进行比对，忽略节点的type和shape。<br/><br/>模块节点命名格式：**{Module}.{module_name}.{class_name}.{forward/backward}.{调用次数}**。<br/>&#8226; 若module_name不同，则-lm参数需要指定自定义映射文件，例如`-lm mapping.yaml`。<br/>&#8226; 若module_name相同，class_name不同，则直接配置-lm参数即可，例如`-lm`。<br/>&#8226; 若module_name和class_name均相同，则无需配置-lm参数。<br/><br/>可参考的实际案例：[MindSpeed&LLamaFactory数据采集和自动比对](../../examples/mindspeed_llamafactory_mapping_example.md)。 |
-| -oc或--overflow_check | 可选     | 是否开启溢出检测模式，开启后会在输出db文件中（`compare_{timestamp}.vis.db`）对每个溢出节点进行标记溢出等级。配置该参数表示开启，默认未配置表示关闭。                                                                                                                                                                                                                                                                                                                                                                                               |
+| -oc或--overflow_check | 可选     | 是否开启溢出检测模式，开启后会在输出db文件中（`compare_{timestamp}.vis.db`）对每个溢出节点标记溢出等级。配置该参数表示开启，默认未配置表示关闭。                                                                                                                                                                                                                                                                                                                                                                                               |
 | -fm或--fuzzy_match    | 可选     | 是否开启模糊匹配。配置该参数表示开启，默认未配置表示关闭。模糊匹配与默认匹配的区别详见[匹配说明](#匹配说明)。                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | -tensor_log或--is_print_compare_log    | 可选                       | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。配置该参数表示开启，默认未配置表示关闭。 |
 | -progress_log或--is_print_progress_log | 可选 | 配置是否开启任务详细进度的日志打印。配置该参数表示开启，默认未配置表示关闭。 |
@@ -276,8 +276,8 @@ msprobe graph_visualize -tp <target_path> [-gp <golden_path>] -o <output_path> [
 | -tensor_log或--is_print_compare_log    | 可选                   | 配置是否开启单个模块或API的日志打印，仅支持msProbe工具dump的tensor数据。配置该参数表示开启，默认未配置表示关闭。 |
 | -progress_log或--is_print_progress_log | 可选 | 配置是否开启任务详细进度的日志打印。配置该参数表示开启，默认未配置表示关闭。 |
 | --rank_size                   | 可选，仅图合并场景必选 | 模型实际训练所用加速卡的数量，list[int]类型。`rank_size=tp*pp*cp*dp`，由于暂不支持CP合并，图合并功能中默认cp=1。                                                                                                                             |
-| --tp                          | 可选，仅图合并场景必选 | 张量并行大小，list[int]类型。实际训练脚本中需指定`--tensor-model-parallel-size T`，其中`T`表示张量模型并行大小，即**图合并所需的参数tp**, `tp=T`。                                                                                                  |
-| --pp                          | 可选，仅图合并场景必选 | 流水线并行的阶段数，list[int]类型。实际训练脚本中需指定`--pipeline-model-parallel-size P`，其中`P`表示流水线并行的阶段数，即**图合并所需的参数pp**, `pp=P`。                                                                                            |
+| --tp                          | 可选，仅图合并场景必选 | 张量并行大小，list[int]类型。实际训练脚本中需指定`--tensor-model-parallel-size T`，其中`T`表示张量模型并行大小，即**图合并所需的参数tp**，`tp=T`。                                                                                                  |
+| --pp                          | 可选，仅图合并场景必选 | 流水线并行的阶段数，list[int]类型。实际训练脚本中需指定`--pipeline-model-parallel-size P`，其中`P`表示流水线并行的阶段数，即**图合并所需的参数pp**，`pp=P`。                                                                                            |
 | --vpp                         | 可选 | 虚拟流水线并行阶段数，list[int]类型。虚拟流水线并行依赖流水线并行，实际训练脚本中需指定`--num-layers-per-virtual-pipeline-stage V`，其中`V`表示每个虚拟流水线阶段的层数；指定`--num-layers L`，其中`L`表示模型总层数，**图合并所需的参数vpp**=`L/V/P`。vpp参数可以不配置，默认vpp=1代表未开启虚拟流水线并行。 |
 | --order                       | 可选 | 模型并行维度的排序顺序，list[str]类型。Megatron默认为`tp-cp-ep-dp-pp`。如果使用msProbe工具dump数据指定level为L0并且实际训练脚本中的order非默认值（例如实际训练脚本中指定`--use-tp-pp-dp-mapping`），请传入修改后的order。dump数据指定level为mix则无需修改。                         |
 | --file_type                   | 可选 | 输出文件格式，str类型。可选`db`和`json`，默认值为`db`。<br>1. 单图构建、双图比对、图合并比对场景：**仅支持db格式**，不支持json格式；<br>2. 图合并构建场景：**支持db和json两种格式**，选择json可输出合并后的json结构文件，用于精度比对或分级可视化。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -411,7 +411,7 @@ tensorboard --logdir out_path --bind_all
    ```bash
    tensorboard --logdir out_path
    ```
-   
+
     按住CTRL单击链接即可。
 
 ## 浏览器查看
@@ -444,7 +444,7 @@ tensorboard --logdir out_path --bind_all
 
 | 编号 | 说明                                                         |
 | ---- | ------------------------------------------------------------ |
-| 1    | “数据选择”功能。可切换目录、Step、Rank和MicroStep。其中MicroStep是指在一次完整的权重更新前执行的多次前向和反向传播过程，一次完整的训练迭代（step）可以进一步细分为多个更小的步骤（micro step）。其中分级可视化工具通过识别模型首层结构中一次完整的前向和反向作为一次micro step。 |
+| 1    | “数据选择”功能。可切换目录、Step、Rank和MicroStep。其中MicroStep是指在一次完整的权重更新前执行的多次前向和反向传播过程，一次完整的训练迭代（step）可以进一步细分为多个更小的步骤（micro step）。其中分级可视化工具将模型首层结构中一次完整的前向和反向作为一次micro step。 |
 | 2    | “精度误差筛选和溢出检测筛选”功能。详见[精度筛选和溢出筛选](#精度筛选和溢出筛选)。 |
 | 3    | “节点匹配”功能。详见[手动选择节点匹配](#手动选择节点匹配)。  |
 | 4    | “节点搜索”功能。详见[名称搜索](#名称搜索)。                  |
@@ -700,7 +700,7 @@ yaml文件中只需配置待调试侧与标杆侧模型代码中功能一致但�
 │   |   ├── rank0
 │   |   │   ├── dump_tensor_data（仅配置dump的task参数选择tensor时存在）
 |   |   |   |    ├── Tensor.permute.1.forward.pt
-|   |   |   |    ├── MyModule.0.forward.input.pt  
+|   |   |   |    ├── MyModule.0.forward.input.pt
 |   |   |   |    ...
 |   |   |   |    └── Function.linear.5.backward.output.pt
 │   |   |   ├── dump.json             # 数据信息
@@ -729,7 +729,7 @@ yaml文件中只需配置待调试侧与标杆侧模型代码中功能一致但�
 
 2. 模糊匹配
 
-   Module节点dump名称一致，两个匹配上的Module节点，忽略各自节点下所有api的dump调用次数，按照**名称一致且保持Module节点内的调用顺序一致的前提下**进行匹配。
+   Module节点dump名称一致，两个匹配上的Module节点，忽略各自节点下所有api的dump调用次数，按照**名称一致且保持Module节点内的调用顺序一致**进行匹配。
 
    ![fuzzy_match_pt.png](../../figures/visualization/fuzzy_match_pt.png)
 

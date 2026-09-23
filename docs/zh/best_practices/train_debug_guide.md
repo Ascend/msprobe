@@ -146,7 +146,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 |torch.cuda.manual_seed_all(seed)| 设置所有`GPU`的随机种子。|
 |torch_npu.npu.manual_seed(seed)| 设置当前`NPU`的随机种子。|
 |torch_npu.npu.manual_seed_all(seed)| 设置所有`NPU`的随机种子。|
-|torch.backends.cudnn.enable=False| 关闭`cuDNN`。|
+|torch.backends.cudnn.enabled=False| 关闭`cuDNN`。|
 |torch.backends.cudnn.benchmark=False |`cuDNN`确定性选择算法。|
 |torch.backends.cudnn.deterministic=True| `cuDNN`仅使用确定性的卷积算法。|
 
@@ -416,12 +416,12 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 若以上现象皆未触发，则直接跳转[reward排查](#2332-reward排查)，否则针对推理本身与标杆进行数据采集与比对分析。
 
-强化学习中的推理框架一般采用`vLLM`（昇腾上使用`vLLM-Ascend`代替）或`SGlang`，对应的排查步骤如下：
+强化学习中的推理框架一般采用`vLLM`（昇腾上使用`vLLM-Ascend`代替）或`SGLang`，对应的排查步骤如下：
 
 **数据采集：**
 
 - 对于`vLLM-Ascend`框架的推理数据采集参考[vLLM-Ascend精度数据采集](https://docs.vllm.ai/projects/ascend/zh-cn/latest/developer_guide/performance_and_debug/msprobe_guide.html)。
-- 对于`SGlang`框架的推理数据采集参考[SGlang精度数据采集](../user_guide/dump/sglang_eager_dump_instruct.md)。
+- 对于`SGLang`框架的推理数据采集参考[SGLang精度数据采集](../user_guide/dump/sglang_eager_dump_instruct.md)。
 
 注意在使用[精度采集工具](#43-精度采集工具)时采集配置需指定`level`为`mix`或`L0`，即需至少包含`Module`级别数据，保证后续可做逐层比对。基础配置config.json样例如下：
 
@@ -446,7 +446,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 - 同框架推理（如`vLLM-Ascend` vs `vLLM`）
     数据采集后可参考[首Step Loss差异章节](#2312-首step-loss差异)中的第2点分析思路进行比对。
-- 跨框架推理（如`vLLM-Ascend` vs `SGlang`）
+- 跨框架推理（如`vLLM-Ascend` vs `SGLang`）
     数据采集后NPU会与标杆存在大量的层级名称/结构差异，优先以分级可视化工具进行比对，并通过[分级可视化工具](#44-分级可视化工具)的`点点匹配`功能，对因模块名称差异导致未自动匹配的节点进行手动对齐，方便后续进行对比分析。
 
     <img src="https://raw.gitcode.com/user-images/assets/7898473/1c469d88-ebc5-45eb-b19d-6d40f1568755/image.png" alt="Your image title" width="800"/>
@@ -542,7 +542,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 - 现象1 — 检查权重对象：
    一般发生此种现象，代表**某些层权重未同步**，`resharding`过程中通常存在截断、偏移、指针分离等问题。若某层在`parameters`属性中注册的`weight`指针与其实际计算使用的`weight`指针出现分离，会导致即使打印`named_parameters()`里的权重正常更新，但实际计算使用权重无变化。若首步推理权重无变化，在`safetensors`模式下权重仍为初始化加载的正常权重，在首步（甚至前几步）不会表现出明显异常，但在`dummy`模式下，将导致推理侧权重仍为随机初始化权重，直接表现为推理输出乱码。
 
-- 现象2  — 检查权重读写/切分：
+- 现象2 — 检查权重读写/切分：
    一般发生此种现象，**代表权重已进行同步，但同步成错误值**。读写可切换`disk`和`hccl`两种读写配置看是否存在差异，或查看切分检查`TP/PP`等配置是否对齐等。
 
 ##### 2.3.3.5 训推一致排查
@@ -631,13 +631,13 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 1. 保证训练`batch`未被拆分
 
-    - 需保证每轮训练中用于梯度更新的`mini batch`个数`mini_batch_num`= `1`，计算公式为:
+    - 需保证每轮训练中用于梯度更新的`mini batch`个数`mini_batch_num`= `1`，计算公式为：
 
     ```python
     mini_batch_num = train_batch_size/train_ppo_mini_batch_size
     ```
 
-    - 需保证梯度累积步骤数gac =1， 计算公式为：
+    - 需保证梯度累积步骤数gac =1，计算公式为：
 
     ```python
     gac = train_ppo_mini_batch_size*n_resp_per_prompt/train_ppo_micro_batch_size_per_gpu/DP
@@ -675,7 +675,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
     有如下两种实现对齐的方案：
 
     - **方案1：将训练变单`prompt`。**
-    - **方案2：将推理的prefill带上`response`**，具体为推理做完`prefill`和`decode`拿到完整的`prompt`+`response`后，设`max_response`=`1`重做一次`prefill`(`prompt`+`response`)  。
+    - **方案2：将推理的prefill带上`response`**，具体为推理做完`prefill`和`decode`拿到完整的`prompt`+`response`后，设`max_response`=`1`重做一次`prefill`(`prompt`+`response`)。
 
     由于后者存在重复推理影响性能，因此本指南优先以前方案1进行操作。
 
@@ -692,7 +692,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
         self, micro_batch, temperature, calculate_entropy=False
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """..."""
-            response_length = micro_batch["responses"].size(-1)
+    -        response_length = micro_batch["responses"].size(-1)
     +        if "responses" in micro_batch and micro_batch["responses"] is not None:
     +            response_length = micro_batch["responses"].size(-1)
     +        else:
@@ -792,7 +792,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 **比对详情**
 
-对于训推一致的比对，除了`shape`之外，还存在较多的模块层级名称不一致，以`qwen2.5-0.5b`为例，若推理使用`vllm`后端、训练使用`fsdp`后端，双方对应的模块名称如下：
+对于训推一致的比对，除了`shape`之外，还存在较多的模块层级名称不一致，以`qwen2.5-0.5b`为例，若推理使用`vLLM`后端、训练使用`FSDP`后端，双方对应的模块名称如下：
 
 <img src="https://raw.gitcode.com/user-images/assets/7898473/3d0f7c0d-0f33-4850-af39-ec9b83792dad/image.png" alt="Your image title" width="800"/>
 
@@ -877,7 +877,8 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
     如上图模型中的`linear`层，替换到`CPU`运行的具体操作主要是在`forward`函数中将其输入替换到`CPU`上，根据`PyTorch`内部机制，就可将该`API`的前反向均在`CPU`侧运行。
 
      ```python
-        # 替换self.linear_1到CPU运行 class ModuleOP(nn.Module):
+    # 替换self.linear_1到CPU运行
+    class ModuleOP(nn.Module):
         def __init__(self) -> None:
             super().__init__()
             self.linear = nn.Linear(in_features=2, out_features=2)
@@ -961,7 +962,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/880aab30-4973-43fb-a0cb-8e2914a63299/image.png 'image.png')
 
-**解决方案**：在NPU中的input_layernorm也放到residual后面。
+**解决方案**：将NPU中的input_layernorm也放到residual后面。
 
 **结果**：对齐模型结构后Loss对齐。
 
@@ -1018,7 +1019,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/a66e4909-82f0-437e-8fc4-f5b8d046d488/image.png 'image.png')
 
-    按照官网说明，此时attention mask按照规则本该为[maxSq, maxSkv] ，即[3577, 3577]，但实际客户代码中使用[query.shape[0], key.shape[0]，即 [5079, 5079]，使用规范错误，导致算子底层执行计算时会按行读取，导致出现0、1的数值错位，最终导致梯度溢出。
+    按照官网说明，此时attention mask按照规则本该为[maxSq, maxSkv]，即[3577, 3577]，但实际客户代码中使用[query.shape[0], key.shape[0]]，即 [5079, 5079]，使用规范错误，导致算子底层执行计算时会按行读取，导致出现0、1的数值错位，最终导致梯度溢出。
 
 **解决方案**：修正FA训练时传入的attention_mask。
 
@@ -1195,13 +1196,13 @@ GPU上运行结果：
 1. 打开确定性（计算确定性+通信确定性）、设随机种子、关闭Dropout、固定数据集读取顺序
     通过msprobe工具中的seed_all来自动实现以上目的（除数据集读取之外）：
 
-    ```bash
+    ```python
     from msprobe.pytorch import seed_all
     seed_all(mode=True)
     ```
 
     打开后精度比对结果有改善，部分卡结果一致，但仍有部分卡的反向存在差异，且重复训练每次对应的卡和位置随机不固定。
-2. 使用精度采集工具采集第0步mix级别数据，设置"summary_mode"为"md5"以凸显微小差异, config.json配置如下:：
+2. 使用精度采集工具采集第0步mix级别数据，设置"summary_mode"为"md5"以凸显微小差异，config.json配置如下：
 
     ```json
     {
@@ -1275,7 +1276,7 @@ msprobe工具包安装请参考[msProbe工具安装指南](../install_guide/mspr
 |分级可视化工具| 可将dump工具采集的精度数据进行解析，还原模型图结构，实现模型各层级精度比对，方便用户理解模型结构和分析精度问题|
 |精度比对工具| 可将dump工具在NPU和标杆上采集的精度数据进行各种维度评测指标的精度比对|
 |趋势可视化工具|  针对dump/monitor采集的数据，进行全局分卡、分层、分步数的趋势可视化分析|
-|精度预检工具| 通过采样模型训练中使用的算子API和输入shape, dtype及数值分布或者真实输入数据，伪造输入张量或者使用真实输入数据在GPU和NPU分别运行并比对结果|
+|精度预检工具| 通过采样模型训练中使用的算子API和输入shape，dtype及数值分布或者真实输入数据，伪造输入张量或者使用真实输入数据在GPU和NPU分别运行并比对结果|
 
 msprobe工具包内的工具分为数据采集和数据比对两大类，整体使用逻辑如下：
 
@@ -1289,7 +1290,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 - 数据分析：
   - 分级可视化工具，对dump保存的文件进行解析，还原模型图结构，实现模型各个层级的精度数据比对或溢出分析。
   - 精度比对工具，比对dump保存的文件并计算各种误差指标。
-  - 趋势可视化工具， 针对dump或monitor保存的数据进行全局分卡、分层、分步数的趋势分析。
+  - 趋势可视化工具，针对dump或monitor保存的数据进行全局分卡、分层、分步数的趋势分析。
   - 精度预检工具，通过dump保存的文件中算子API的 shape、值域等信息构造一致的输入数据并在NPU、标杆上与CPU进行三方比对。
 
 ### 4.3 精度采集工具
@@ -1361,7 +1362,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
     debugger插入说明如下：
     - 采集前统一建议使用seed_all()固定随机性，必要时加入mode=True参数打开确定性，放置位置越靠前越好。
     - PrecisionDebugger初始化位置放在训练开始前的位置，勿放入循环代码中重复定义。
-    - debugger.start()放在要抓取的操作forward前的位置，代码里一般放是在调用model.forward()前或者train_step()前， 若想要采集"L0"或"mix"级别数据，须传入model。
+    - debugger.start()放在要抓取的操作forward前的位置，代码里一般是放在调用model.forward()前或者train_step()前，若想要采集"L0"或"mix"级别数据，须传入model。
     - debugger.stop()需放在loss.backward之后的位置，代码里一般是放在调用loss.backward()后或者train_step()后。
     - debugger.step()需放在一个迭代结束的位置，且必须在stop函数之后的位置调用。
 
@@ -1375,7 +1376,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
     - stack.json可查看dump中API对应的调用栈。
     - construct.json为模型结构文件。
     - dump_tensor_data下存具体tensor值。
-    - 只有采集"task"为"tensor"时， dump_tensor_data下才会有内容。
+    - 只有采集"task"为"tensor"时，dump_tensor_data下才会有内容。
     - 只有采集"level"为"L0"和"mix"时，construct.json内才会有内容。
 
 4. dump.json统计量结果详解
@@ -1455,7 +1456,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 分级可视化工具构图后比对时可按照如下方法进行比对：
 
 - 比对模型结构：
-  在左边侧栏勾选灰色的无匹配节点， 选取后会出现所有节点匹配不上的列表，点击节点查看网络中具体信息。
+  在左边侧栏勾选灰色的无匹配节点，选取后会出现所有节点匹配不上的列表，点击节点查看网络中具体信息。
 
   ![image.png](../figures/visualization/vis_unmatch_info.png 'image.png')
 
@@ -1563,15 +1564,15 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
     seed_all(mode=True)
     # 监测工具初始化
     monitor = TrainerMon(
-            config_file_path="./monitor_config.json",
-            process_group=mpu.get_pipeline_model_parallel_group(),
-            params_have_main_grad=True  # megatron=True，deepspeed=False
+        config_file_path="./monitor_config.json",
+        process_group=mpu.get_pipeline_model_parallel_group(),
+        params_have_main_grad=True  # megatron=True，deepspeed=False
        )
-       # 挂载监测对象
-       monitor.set_monitor(
-            model[0],
-            grad_acc_steps=args.global_batch_size // args.data_parallel_size // args.micro_batch_size,
-            optimizer=optimizer
+    # 挂载监测对象
+    monitor.set_monitor(
+        model[0],
+        grad_acc_steps=args.global_batch_size // args.data_parallel_size // args.micro_batch_size,
+        optimizer=optimizer
         )
     ```
 
@@ -1631,10 +1632,10 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
       ```
 
       说明：
-      - model：初始化好的模型。不传或缺省就不会采集权重和数据集
-      - shell_path：训练脚本路径，类型为列表，传入一个或多个训练配置/启动脚本。不传或缺省就不会采集超参
-      - output_zip_path：输出zip包的路径，不传默认为"./config_check_pack.zip"
-      - fmk: 可选参数，训练框架，可选"pytorch”或“mindspore"，默认未配置，表示传入"pytorch"
+      - model：初始化好的模型。不传或缺省就不会采集权重和数据集。
+      - shell_path：训练脚本路径，类型为列表，传入一个或多个训练配置/启动脚本。不传或缺省就不会采集超参。
+      - output_zip_path：输出zip包的路径，不传默认为"./config_check_pack.zip"。
+      - fmk：可选参数，训练框架，可选"pytorch"或"mindspore"，默认未配置，表示传入"pytorch"。
 
       对比三方库版本（通过git安装的库除外），可以分别在NPU和标杆上设"pip data"为true进行信息采集。采集完成后会得到一个zip包，里面包括各项影响精度的配置。
 2. 将两个zip包传到同一个环境下，使用如下命令进行比对：
@@ -1718,7 +1719,7 @@ for name, module in model.named_modules():
 硬件引起的精度很少见，但是是最难定位的。如果某个精度问题，可以排查到跟某个机器强绑定，并且能稳定复现，目前是可以较快排查到的。但是如果不能稳定复现，并且不跟特定机器绑定就难以定位。
 
 1. 多bit翻转：此情况根因主要是硬件存在电压不稳定的问题，从而导致数值不稳定。目前没有相关的dfx能检测到这个情况。唯一的排查方法只能对aicore进行重复多次的压测，才能排查出来。
-2. 电源故障：电源故障所引发的故障也是多个局点遇到的问题，本质上是电源不稳定导致的数值异常。此问题在IBMC的日志存在明显的报错，较好排查。
+2. 电源故障：电源故障所引发的故障也是多个局点遇到的问题，本质上是电源不稳定导致的数值异常。此问题在iBMC的日志存在明显的报错，较好排查。
 
 ### 5.2 模型超参数
 

@@ -80,7 +80,7 @@ acc_check执行结果在-o参数指定路径下生成，包括 `accuracy_checkin
 msprobe acc_check -api_info ./dump_path/step{step_number}/rank{rank_number}/dump.json -save_error_data
 ```
 
-数据默认会保存到`./ut_error_data{timestamp}`路径下，如有需要，用户可以通过 error_data_path 参数来配置保存路径。error_data_path 参数可在 [config.json](../../../../python/msprobe/config.json) 文件或 [config.yaml](../../../../python/msprobe/pytorch/api_accuracy_checker/config.yaml) 文件配置。config.json 文件需要在 acc_check 操作时通过 -config 参数指定；config.yaml文件配置请参见[config.yaml文件说明](#configyaml文件说明)。
+数据默认会保存到`./ut_error_data{timestamp}`路径下，如有需要，用户可以通过 error_data_path 参数来配置保存路径。error_data_path 参数可在 [config.json](../../../../python/msprobe/config.json) 文件或 [config.yaml](../../../../python/msprobe/pytorch/api_accuracy_checker/config.yaml) 文件中配置。config.json 文件需要在 acc_check 操作时通过 -config 参数指定；config.yaml文件配置请参见[config.yaml文件说明](#configyaml文件说明)。
 
 #### config.yaml文件说明
 
@@ -124,7 +124,7 @@ acc_check过程支持 API 预检黑名单和白名单，通过如下文件配置
 
 #### API输出后处理配置说明
 
-为适配部分 API 在真实场景中的变长输出（例如尾部 padding 区域携带无效值），acc_check 在比对前支持按规则对 cpu 侧和 device 侧输出分别做后处理。后处理配置文件为 [api_output_postprocess.yaml](../../../../python/msprobe/core/common/output_postprocess/api_output_postprocess.yaml)。
+为适配部分 API 在真实场景中的变长输出（例如尾部 padding 区域携带无效值），acc_check 在比对前支持按规则对 CPU 侧和 device 侧输出分别做后处理。后处理配置文件为 [api_output_postprocess.yaml](../../../../python/msprobe/core/common/output_postprocess/api_output_postprocess.yaml)。
 
 执行时，框架会在统一后处理入口中通过 `backend`（`cpu` 或 `device`）选择对应侧规则；未命中配置的 API 会直接跳过对应侧后处理逻辑。
 
@@ -468,7 +468,7 @@ Forward Test Success 和 Backward Test Success 是否通过测试是由 `api_pre
 | 双千指标                 | 双千精度指标。是指 NPU 的 Tensor 中的元素逐个与对应的标杆数据对比，相对误差小于千分之一的个数占总元素个数的比例。测试通过标准为相对误差大于千分之一的个数占总元素个数的比例小于千分之一。仅 conv1d 和 conv2d 使用该指标。双千指标法指标。                                                                                                                                                                                                                                                    |
 | 双千指标判定结果         | 双千指标判定结果。双千指标大于 0.999 标记为 pass，否则标记为 error。                                                                                                                                                                                                                                                                                                                                            |
 | 比对结果                 | 综合所有指标的最终结果。如果比对指标中有 error，则标记为 error，在 Message 字段中提示该 API 比对结果不符合标准的指标；有 warning，则标记为 warning，在 Message 字段中提示该 API 比对结果不符合标准的指标；否则标记为 pass；SKIP 表示跳过该 API 的计算，跳过原因在 Message 字段中提示，包括：该 API 的某个参数的反向不计算梯度，没有任何计算过程，其他信息均为空，或该 API 的数据类型不支持使用新精度标准进行比对（如 float64），或该 API 不支持精度预检，或该 API 被黑名单过滤或不在白名单上，或运行错误等。                                                                           |
-| 比对算法                 | API 使用的比对算法，为标杆比对法、二进制一致法、绝对阈值法和 ULP 误差比对法中的一种。                                                                                                                                                                                                                                                                                                                                        |
+| 比对算法                 | API 使用的比对算法，为标杆比对法、二进制一致法、绝对阈值法、ULP 误差比对法和双千指标法中的一种。                                                                                                                                                                                                                                                                                                                                        |
 | Message                  | 提示信息。                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ## 附录

@@ -17,18 +17,18 @@ verl v0.9.0.dev引入V1 Trainer，相关适配方法请参见《[verl V1 Trainer
 
 ### 基础配置
 
-前置操作首先参照 《[fsdp训练后端verl训推一致性比对数据采集](./verl_fsdp_consistency_preprocess_dump.md#前置操作)》 或 《[megatron训练后端verl训推一致性比对数据采集](./verl_megatron_consistency_preprocess_dump.md#前置操作)》， 根据实际训练后端做选择。
+前置操作首先参照 《[fsdp训练后端verl训推一致性比对数据采集](./verl_fsdp_consistency_preprocess_dump.md#前置操作)》 或 《[megatron训练后端verl训推一致性比对数据采集](./verl_megatron_consistency_preprocess_dump.md#前置操作)》，根据实际训练后端做选择。
 
 此外，当前场景下还需做以下调整：
 
-- 在当前异步rollout模式下，要使能vllm的dump功能，需要在vllm的`additional_config`中添加`dump_config_path`参数，指向msprobe的推理侧配置文件。**注意**：`/home/config_generate.json` 为示例路径，实际部署时需根据实际配置文件路径修改。
-- 训练侧需关闭 `val_before_train` ，避免训练前验证调用`generate_sequence`接口，对 dump 结果造成干扰。
+- 在当前异步rollout模式下，要使能vLLM的dump功能，需要在vllm的`additional_config`中添加`dump_config_path`参数，指向msprobe的推理侧配置文件。**注意**：`/home/config_generate.json` 为示例路径，实际部署时需根据实际配置文件路径修改。
+- 训练侧需关闭 `val_before_train`，避免训练前验证调用`generate_sequence`接口，对 dump 结果造成干扰。
 
 ```diff
 export DUMP_ON=1              # 启用训练侧 msprobe 采集
 export PROMPTS_ONLY=1         # 仅计算 prompt 部分（必要，一致性仅支持 prefill）
 
-# 启动入口为 main_ppo 
+# 启动入口为 main_ppo
 python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.use_dynamic_bsz=False \
@@ -55,7 +55,6 @@ python3 -m verl.experimental.fully_async_policy.fully_async_main \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.use_dynamic_bsz=False \
 +   actor_rollout_ref.rollout.enforce_eager=True \
-+   algorithm.rollout_correction.bypass_mode=False \
 +   algorithm.rollout_correction=null \
 +   '+actor_rollout_ref.rollout.engine_kwargs.vllm.additional_config={dump_config_path:"/home/config_generate.json"}' \
 +   trainer.val_before_train=False \
@@ -127,7 +126,7 @@ python3 -m verl.experimental.fully_async_policy.fully_async_main \
 
 **文件**：`vllm_ascend/worker/model_runner_v1.py`
 
-**说明**：`dump_cfg` 读取、`PrecisionDebugger` 初始化、`debugger.start/stop/step` 调用均为 vllm-ascend 上游已有逻辑。本方案在此之上仅增加 **DispatchLogger** 初始化和 **log_step** 调用。
+**说明**：`dump_cfg` 读取、`PrecisionDebugger` 初始化、`debugger.start/stop/step` 调用均为 vllm-ascend 上游已有逻辑。本方案在此之上仅增加 `DispatchLogger` 初始化和 `log_step` 调用。
 
 `__init__` 中增加的改动：
 初始化 `DispatchLogger`，将 dump 路径指向 PID 子目录，并记录当前进程的分布式 rank。
@@ -162,7 +161,7 @@ class NPUModelRunner(GPUModelRunner):
 
 `execute_model()` 方法内部有多处 `self.debugger.stop()` 调用（分布在不同 return 路径），**每一处** `self.debugger.stop()` 之前都必须插入 `self._dispatch_logger.log_step(...)` 调用，才能覆盖所有return分支。
 
-在每次模型前向完成后，调用 `DispatchLogger.log_step()` 记录该 step 的调度信息（包括涉及的请求 request、各请求分配的 token 数量，以及各请求在 prefill 与 decode 阶段的调度情况），随后执行 msprobe 的 stop/step 完成本轮 tensor dump。 `model_runner_v1.py` 中全局搜索 `self.debugger.stop()`，插入`log_step` 调用，以其中一处为例：
+在每次模型前向完成后，调用 `DispatchLogger.log_step()` 记录该 step 的调度信息（包括涉及的请求 request、各请求分配的 token 数量，以及各请求在 prefill 与 decode 阶段的调度情况），随后执行 msprobe 的 stop/step 完成本轮 tensor dump。`model_runner_v1.py` 中全局搜索 `self.debugger.stop()`，插入`log_step` 调用，以其中一处为例：
 
 ```diff
     def execute_model(self, ...):
@@ -177,7 +176,7 @@ class NPUModelRunner(GPUModelRunner):
 
 ### 推理侧：调度日志记录
 
-**文件**： `vllm_ascend/worker/dispatch_logger.py`（请在目录下创建该文件）
+**文件**：`vllm_ascend/worker/dispatch_logger.py`（请在目录下创建该文件）
 
 **功能**：在每次 `execute_model` 调用时，记录该 step 的调度元数据（step 序号、phase、该 step 调度的所有 request_id 及各分配的 token 数），写入 `dispatch_log.jsonl`。每条 JSONL 记录含 `pid`、`rank`、`step`、`phase`、`requests[]` 等字段，用于后续与 msprobe 的 `step_N/dump.json` 和训练侧的 `update_actor_log.jsonl` 做关联。
 
@@ -293,13 +292,13 @@ FSDP 的 `forward_backward_batch` 存在显式的 `for i, micro_batch in enumera
     +       dump_phase = os.environ.get("DUMP_PHASE", "log_prob")  # "all" | "log_prob" | "update_actor"
     +       phase = "log_prob" if forward_only else "update_actor"
     +       should_dump = dump_phase == "all" or dump_phase == phase
-    
+
             for micro_batch in micro_batches:
     +           if self._debugger is not None and should_dump:
     +               self._debugger.start(model=self.module)
                 with ctx:
                     loss, meta_info = self.forward_step(micro_batch, loss_function=loss_function, forward_only=forward_only)
-    
+
                     if not forward_only:
                         if scaler is not None:
                             scaler.scale(loss).backward()
@@ -356,6 +355,8 @@ Megatron 的 `forward_backward_batch` 没有显式的 micro_batch 循环——�
 3. `forward_step`（`MegatronEngineWithLMHead` 类）
 
     在 `forward_fn` 调用之前插入 debugger.start；在调用之后插入 debugger.stop/step/_log_update_actor_step。
+
+    以默认未打开use_fused_kernels为例，即actor_rollout_ref.model.use_fused_kernels为False。
 
     ```diff
     class MegatronEngineWithLMHead(MegatronEngine):

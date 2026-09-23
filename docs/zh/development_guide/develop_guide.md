@@ -12,7 +12,7 @@ msProbe 提供 AI 任务运行精度数据的采集、预检与比对等能力�
 | 预检能力 | `msprobe acc_check`、`msprobe multi_acc_check`               |
 | 比对能力 | `msprobe compare、msprobe compare -m atb、offline_model`、`msprobe graph_visualize`等 |
 | 溢出检测 | `msprobe overflow_check`                                     |
-| 扩展功能 | 训练前配置检查、训练状态监测、 checkpoint比对、趋势可视化等  |
+| 扩展功能 | 训练前配置检查、训练状态监测、checkpoint比对、趋势可视化等  |
 | 文档资料 | 安装指南、快速入门、功能说明、数据文件参考、扩展功能         |
 
 ## 2. 代码目录
@@ -63,7 +63,7 @@ cd ./artifacts
 pip install ./mindstudio_probe*.whl
 ```
 
-编译工具包时还可以选择编译的功能模块，通过--include-mod参数配置，详见《[msProbe工具安装指南](../install_guide/msprobe_install_guide.md)》
+编译工具包时还可以选择编译的功能模块，通过--include-mod参数配置，详见《[msProbe工具安装指南](../install_guide/msprobe_install_guide.md)》。
 
 安装完成后，建议立即校验：
 

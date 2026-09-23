@@ -16,7 +16,7 @@
 
 **{Module}.{module_name}.{class_name}.{forward/backward}.{调用次数}**
 
-**layer mapping主要是针对module_name的映射**
+**layer mapping主要是针对module_name的映射。**
 
 #### 命名示例
 
@@ -55,7 +55,7 @@
 
 ### 构建layer_mapping配置文件
 
-准备一个命名为mapping.yaml的文件，建立**module_name**的映射关系
+准备一个命名为mapping.yaml的文件，建立**module_name**的映射关系。
 
 #### 顶层模块映射
 
@@ -101,7 +101,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output -lm ./ma
 
 ### 继续配置
 
-展开节点过程中，如果发现还有未匹配节点，则继续配置mapping.yaml
+展开节点过程中，如果发现还有未匹配节点，则继续配置mapping.yaml。
 
 ![no_mapping1.png](../figures/visualization/no_mapping1.png)
 

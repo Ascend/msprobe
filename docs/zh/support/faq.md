@@ -10,7 +10,7 @@
 
 工具引入同步导致计算结果变化：
 
-工具采集统计量数据时，会涉及到将device上的tensor计算后的统计量信息通过item的时候传到CPU侧，再落盘到json文件中，item操作是一个同步的操作，可能会导致模型的计算结果出现变化。**一般的现象是模型计算出现NaN，且在未使用工具时问题会复现，使用工具后问题不再出现。**
+工具采集统计量数据时，会涉及到将device上的tensor计算后的统计量信息通过item传到CPU侧，再落盘到json文件中，item操作是一个同步的操作，可能会导致模型的计算结果出现变化。**一般的现象是模型计算出现NaN，且在未使用工具时问题会复现，使用工具后问题不再出现。**
 
 ASCEND_LAUNCH_BLOCKING是一个环境变量，用于控制在PyTorch训练或在线推理场景中算子的执行模式。当设置为“1”时，算子将采用同步模式运行。因此如果出现加工具后计算结果变化，可以设置ASCEND_LAUNCH_BLOCKING为1，如果结果仍然发生变化，则说明是由于同步引起的结果改变。这个时候需要复现问题现象完成问题定位，推荐使用msProbe工具的异步dump功能，具体使用方式可查看[config配置](../user_guide/dump/config_json_introduct.md)中的async_dump字段。
 
@@ -105,13 +105,13 @@ if __name__ == "__main__":
    ```python
    import torch
    from torch import relu    # 此时relu地址已经确定，无法修改
-   
+
    from msprobe.pytorch import PrecisionDebugger
-   
+
    debugger = PrecisionDebugger(dump_path="./dump_data")
    x = torch.randn(10)
    debugger.start()    # 此时会对torch下面的API进行patch，但已无法对import进来的API进行patch
-   x = relu(x)          
+   x = relu(x)
    debugger.stop()
    ```
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
      该信息说明module挂载了被PyTorch框架废弃的register_backward_hook，这与工具使用的register_full_backward_hook接口会产生冲突，故工具会跳过该module的反向数据采集。
    - 如果您希望所有module数据都能采集下来，可以将模型中使用的register_backward_hook接口改为PyTorch框架推荐的register_full_backward_pre_hook或register_full_backward_hook接口。
 
-5. 在vllm场景下进行数据dump时，发现报错：`RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and npu:0!`
+5. 在vLLM场景下进行数据dump时，发现报错：`RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and npu:0!`
    - 这是因为工具的debugger实例化早于LLM实例化导致的，解决方法就需要将debugger的实例化移至LLM实例化之后进行，可参考下方示例：
 
    ```python
@@ -134,12 +134,12 @@ if __name__ == "__main__":
       "The capital of France is",
       "The future of AI is",
    ]
-   
+
    sampling_params = SamplingParams(temperature=0.8, top_p=0.95)
    llm = LLM(model="Qwen/Qwen2.5-0.5B-Instruct")
-   
+
    debugger = PrecisionDebugger("./config.json")    # debugger实例化晚于LLM实例化
-   
+
    debugger.start()
    outputs = llm.generate(prompts, sampling_params)
    debugger.stop()
@@ -163,11 +163,11 @@ if __name__ == "__main__":
 
 4. Dropout算子，CPU和NPU的随机应该不一样，为什么结果比对是一致的？
 
-   答：这个结果是正常的，工具对该算子有特殊处理，只判定位置为0的位置比例大约和设定p值相当。
+   答：这个结果是正常的，工具对该算子有特殊处理，只判定置为0的位置比例大约和设定p值相当。
 
 5. 为什么浮点型数据bench和CPU的dtype不一致？
 
-   答：对于fp16的数据，CPU会上升一个精度fp32去计算，这是和算子那边对齐的精度结论，CPU用更高精度去计算会更接近真实值。
+   答：对于fp16的数据，CPU会提升一个精度fp32去计算，这是和算子那边对齐的精度结论，CPU用更高精度去计算会更接近真实值。
 
 6. Tensor魔法函数具体对应什么操作？
 
@@ -235,20 +235,20 @@ npu_scaled_masked_softmax融合算子工具已支持dump，本例仅供参考。
     答：会，同一个目录多次dump，会覆盖上一次结果，可以使用dump_path参数修改dump目录。
 
 2. 如何dump算子级的数据？
-   
+
    答：需要配置level为L2模式。
 
 3. 工具比对发现NPU和标杆数据的API无法完全对齐？
 
-    答：torch版本和硬件差异属于正常情况。
+    答：PyTorch版本和硬件差异属于正常情况。
 
 ### 异常情况
 
-1. HCCL报错： error code: EI0006。
+1. HCCL报错：error code: EI0006。
 
     CANN软件版本较低导致不兼容。升级新版CANN软件版本即可。
 
-2. torch_npu._C._clear_overflow_npu() RuntimeError NPU error，error code is 107002。
+2. torch_npu._C._clear_overflow_npu() RuntimeError NPU error, error code is 107002.
 
     如果运行溢出检测功能遇到这个报错，采取以下解决方法：
 
@@ -270,7 +270,7 @@ npu_scaled_masked_softmax融合算子工具已支持dump，本例仅供参考。
 
     带1.0/1.1/1.2后缀的npy是正常现象，例如，当输入数据为[[tensor1, tensor2, tensor3]]会生成这样的后缀。
 
-4. dump指定反向API的kernel级别的数据报错：NameError：name 'torch_npu' is not defined。
+4. dump指定反向API的kernel级别的数据报错：NameError: name 'torch_npu' is not defined。
 
    答：如果是NPU环境，请安装TorchNPU；如果是GPU环境，暂不支持dump指定API的kernel级别的数据。
 

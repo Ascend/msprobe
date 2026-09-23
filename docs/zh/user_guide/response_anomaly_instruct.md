@@ -30,37 +30,37 @@ Response Anomaly使用以下配置文件：
    # 全局配置
    window_size: 128
    stride: 64
-   
+
    # rare-character 生僻字
    rare_character:
      explogp_sum_thresh: 0.4  # 单token topk的logprob exp总和，当小于阈值时，则可能为生僻字
      category_thresh: 2  # 单token的topk的类别统计，与explogp_sum_thresh综合判定
      top1_logp_thresh: -6 # 当没有词表信息时，使用top1 的logp进行判定
-   
+
    # garbled 乱码
    garbled:
      top1_logp_thresh: -5 # 当window_ratio比例符合，但加上类别检测后其比例不符合时，如果其logprob超过该阈值，也可考虑为乱码
      window_ratio: 0.2 # 满足条件的字符占序列长度的比例
      window_thresh: 2 # 满足条件的窗口数
-   
+
    # repetition 重复
    repetition:
      trajectory:   # 轨迹检测 N-gram
        n: 3
        distinct_n_thresh: 0.2  # n-gram阈值
        logp_thresh: -0.2  # top1的logprob阈值
-   
-     acf:   
+
+     acf:
        acf_threshold: 0.65  # 自相关阈值
        logp_thresh: -0.2  # top1的logprob阈值
-   
+
      single_window_thresh: 14  # 当只有一个方法检出时，检出重复的窗口数需要超出该阈值才会退出，可根据需要修改
      multi_window_thresh: 2 # 当acf和trajectory两个方法同时检出时，检出重复的窗口数需超出该阈值才会退出，可根据需要修改
    ```
 
 2. 配置 mtype_config.json 和 token_id 与字符类别的映射文件。
 
-   - mtype_config.json主要保存模型名称和对应的 BOS、EOS 的 token_id ，用于后续检测中交叉验证用户调用的模型。
+   - mtype_config.json主要保存模型名称和对应的 BOS、EOS 的 token_id，用于后续检测中交叉验证用户调用的模型。
    - token_id 与字符类别的映射文件主要保存模型 token_id 对应的类别，用于后续生僻字和乱码的检测。
 
    > [!NOTE]
@@ -79,7 +79,7 @@ Response Anomaly使用以下配置文件：
    | --model-path | 必选      | 模型所在路径。                                               |
    | --model-name | 必选      | 模型名称，决定映射文件的命名和 mtype_config.json 里的 key，请根据实际模型填写，格式如下：<br>&#8226; 命名规范：模型名称分隔符请选择`-_.`，如`Qwen3-30B-A3B`、`glm-4.7-FP8`。<br>&#8226; msProbe会将模型名称转为小写，并将模型名称中符号`-_.`均转为`-`。<br>&#8226; 请与后续[analyze_output_anomaly](#41-analyze_output_anomaly)接口的 model_configs 参数传入的模型名称保持一致。 |
 
-   成功执行脚本后，生成的 mtype_config.json 会直接替换 response_anomaly/configs 目录下原本的文件内容， token_id 与字符类别的映射文件会生成在 response_anomaly/token2category 目录下。
+   成功执行脚本后，生成的 mtype_config.json 会直接替换 response_anomaly/configs 目录下原本的文件内容，token_id 与字符类别的映射文件会生成在 response_anomaly/token2category 目录下。
 
 ### 3.2 启动检测
 
@@ -90,28 +90,28 @@ Response Anomaly使用以下配置文件：
    ```diff
    from vllm import LLM, SamplingParams
    +from msprobe.response_anomaly import analyze_output_anomaly
-   
+
    # 定义输入提示
    prompts = "Hello, my name is"
-   
+
    # 设置采样参数
    topk = 20 # 采集topk logprobs
    sampling_params = SamplingParams(temperature=0.8, top_p=0.95,logprobs=topk,prompt_logprobs=1)
-   
+
    # 初始化模型
    llm = LLM(model="/home/Qwen3-30B-A3B")
-   
+
    # 执行推理
    outputs = llm.generate(prompts, sampling_params)
-   
+
    +topk_logprobs = [
    +    {token_id:logprobs[token_id].logprob for token_id in logprobs}
    +        for logprobs in outputs[0].outputs[0].logprobs
    +]
    +tokens = outputs[0].outputs[0].token_ids
-   
+
    +model_configs = 'Qwen3-30B-A3B'
-   
+
    +# 调用接口，执行推理异常检测
    +result = analyze_output_anomaly([topk_logprobs], [tokens], [model_configs])
    +# 打印输出异常检测结果
@@ -144,7 +144,7 @@ analyze_output_anomaly(topk_logprobs, tokens, model_configs)
 - **tokens** (`List[List[int]]`)：必选参数，每条请求获取的 tokens 序列。
 - **model_configs** (`List[Any]`)：必选参数，每条请求的模型名称。
   - 请与 --model-name 参数配置的模型名称保持一致。
-  - 若为同一模型服务的多个请求，如拉起 Qwen3-30B-A3B 模型服务，输入3条推理数据，model_configs 应为['Qwen3-30B-A3B']*3
+  - 若为同一模型服务的多个请求，如拉起 Qwen3-30B-A3B 模型服务，输入3条推理数据，model_configs 应为['Qwen3-30B-A3B']*3。
 
 > [!NOTE]
 >

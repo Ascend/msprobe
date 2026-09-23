@@ -23,7 +23,7 @@ msProbe工具通过在ATB模型运行前，执行ATB dump模块加载脚本的�
 
 * **Kernel**：ATB Operation调用的底层算子。名称中往往以“Kernel”结束，例如RmsNormKernel、AddBF16Kernel等。
 
-* **op**：广义上的执行算子。包括layer级Operation、非layer级Operation以及Kernel。
+* **op**：广义上的执行算子，包括layer级Operation、非layer级Operation以及Kernel。
 
 ## 使用前准备
 
@@ -95,11 +95,11 @@ msProbe工具通过在ATB模型运行前，执行ATB dump模块加载脚本的�
 
 ### 功能说明
 
-ATB dump功能用于ATB模型运行过程中的精度数据采集，包括模型结构信息、输入/输出Tensor的真实数据或统计量数据。并且支持在模型运行过程中修改dump配置文件，实现动态dump。
+ATB dump功能用于ATB模型运行过程中的精度数据采集，包括模型结构信息、输入/输出Tensor的真实数据或统计量数据，并且支持在模型运行过程中修改dump配置文件，实现动态dump。
 
 **注意事项**
 
-* 为了减小dump模块解析配置文件带来的性能开销，在解析到配置文件中的"dump_enable"参数为true前，模块会处于睡眠状态，每间隔一定数量的op执行，才读取一次配置文件。这将可能导致初次将"dump_enable"参数改true后，部分op的精度数据丢失。因此，建议在采集精度数据前唤醒dump模块，进入调试状态，具体唤醒操作可参见[使用示例](#使用示例)中的“4. 唤醒ATB dump模块”步骤说明，或者在模型运行前，就将"dump_enable"参数设true，直接进入调试状态。
+* 为了减小dump模块解析配置文件带来的性能开销，在解析到配置文件中的"dump_enable"参数为true前，模块会处于睡眠状态，每间隔一定数量的op执行，才读取一次配置文件。这将可能导致初次将"dump_enable"参数值改为true后，部分op的精度数据丢失。因此，建议在采集精度数据前唤醒dump模块，进入调试状态，具体唤醒操作可参见[使用示例](#使用示例)中的“4. 唤醒ATB dump模块”步骤说明，或者在模型运行前，就将"dump_enable"参数值设为true，直接进入调试状态。
 
 * dump模块进入调试状态后，每隔5秒解析一次配置文件。因此配置文件的修改可能在5秒后才可生效。
 
@@ -136,12 +136,12 @@ dump配置文件为JSON格式的文本文件，各配置参数介绍如下：
 | --- | --------- | --- |
 | task         | 可选 | 指定dump任务，str类型，默认为"tensor"。可选值：<br/> "tensor"：采集op的输入/输出Tensor的真实数据；<br/> "statistics"：采集op的输入/输出Tensor的统计量数据；<br/> "all"：采集op的输入/输出Tensor的真实数据与统计量数据。 |
 | dump_enable  | 可选 | 指定是否允许dump数据，bool类型，默认为false。可选值：<br/> true：允许采集op的输入/输出Tensor的真实数据或统计量数据；<br/> false：不允许采集op的输入/输出Tensor的真实数据或统计量数据。 |
-| exec_range   | 可选 | 指定需dump数据的op执行轮次范围，str类型，默认为"0,0"。可选值：<br/> "all"：dump op所有执行轮次的精度数据；<br/> "none"：op所有执行轮次的精度数据都不dump；<br/> "\<起始轮次\>,\<终止轮次\>"： dump op从起始轮次到终止轮次间的精度数据，包括起始轮次与终止轮次。<br/> **配置示例**："exec_range": "0,2"，表示dump op第1、2、3次执行时的精度数据（第N次执行的exec_range值为N-1）。|
+| exec_range   | 可选 | 指定需dump数据的op执行轮次范围，str类型，默认为"0,0"。可选值：<br/> "all"：dump op所有执行轮次的精度数据；<br/> "none"：op所有执行轮次的精度数据都不dump；<br/> "\<起始轮次\>,\<终止轮次\>"：dump op从起始轮次到终止轮次间的精度数据，包括起始轮次与终止轮次。<br/> **配置示例**："exec_range": "0,2"，表示dump op第1、2、3次执行时的精度数据（第N次执行的exec_range值为N-1）。|
 | ids          | 可选 | 指定需dump数据的op的ID，str类型，默认为""，表示dump所有layer级Operation的精度数据。需满足"\<ID1\>,\<ID2\>"格式，指定一个或多个ID。<br/> **配置示例**：<br/> "ids": "0"，表示dump ID为0的op的精度数据；<br/> "ids": "2_1"，表示dump ID为2的op下的ID为1的op的精度数据；<br/> "ids": "0,2_1"，表示dump ID为0的op以及ID为2的op下的ID为1的op的精度数据。 |
 | op_name      | 可选 | 指定需dump数据的op的名称，str类型，默认为""，表示dump所有layer级Operation的精度数据。需满足"\<opName1\>,\<opName2\>"格式，指定一个或多个op名称。<br/> **配置示例**：<br/> "op_name": "word"，表示dump名称以"word"开头的op的精度数据（不区分大小写）。 |
 | save_child   | 可选 | 指定是否dump op下的子op的精度数据，bool类型，默认为false。可选值：<br/> true：dump 指定op及内部子op的精度数据；<br/> false：仅dump 指定op的精度数据。 |
 | device       | 可选 | 指定需dump数据的device ID，str类型，默认为""，表示dump 所有device上的精度数据。需满足"\<deviceID1\>,\<deviceID2\>"格式，指定一个或多个device ID。<br/> **配置示例**：<br/> "device": "0"，表示dump device0上的精度数据。 |
-| filter_level | 可选 | 指定dump op的输入/输出Tensor的真实数据时的过滤等级，int类型，默认为1。该参数仅在指定layer级Operation，且"save_child"为true时生效。可选值：<br/> 0：采集op的输入/输出Tensor的真实数据时，不进行数据过滤；<br/> 1：采集op的输入/输出Tensor的真实数据时，相同Tensor仅保存一次；<br/> 2：在1基础上，过滤Kernel的输入/输出Tensor。<br/> **注意**：若Tensor文件名中包含参数名称，无论是否存在相同Tensor，均会保存完整数据。 |
+| filter_level | 可选 | 指定dump op的输入/输出Tensor的真实数据时的过滤等级，int类型，默认为1。该参数仅在指定layer级Operation，且"save_child"为true时生效。可选值：<br/> 0：采集op的输入/输出Tensor的真实数据时，不进行数据过滤；<br/> 1：采集op的输入/输出Tensor的真实数据时，相同Tensor仅保存一次；<br/> 2：在1的基础上，过滤Kernel的输入/输出Tensor。<br/> **注意**：若Tensor文件名中包含参数名称，无论是否存在相同Tensor，均会保存完整数据。 |
 
 dump配置文件示例如下：
 
@@ -251,7 +251,7 @@ dump配置文件示例如下：
 ATB dump输出文件的目录结构示例如下：
 
 ```ColdFusion
-├── outputPath  # 执行模块加载脚本时执行的输出路径
+├── outputPath  # 执行模块加载脚本时指定的输出路径
 │   ├── atb_dump_data  # 工具自动创建的固定目录
 │   |   ├── data  # 工具自动创建的固定目录，存放op的输入/输出数据
 │   |   │   ├── 0_39943  # device ID与进程号
@@ -305,7 +305,7 @@ ATB dump输出文件的目录结构示例如下：
 | Op Type         | op类型。 |
 | Op Id           | op ID号，由父op ID和本身ID组成。例如2_0。 |
 | Input/Output    | 输入Tensor还是输出Tensor。 |
-| Index           | Tensor索引（可能包含参数名）。例如0，2_value。 |
+| Index           | Tensor索引（可能包含参数名）。例如0、2_value。 |
 | Dtype           | Tensor的数据类型。例如bf16。 |
 | Format          | Tensor的数据格式。例如nd。 |
 | Shape           | Tensor形状。例如36x128。 |

@@ -76,7 +76,7 @@ Cannot find any anomaly node, no need to generate analyze file.
 
 **异常计算节点判定**
 
-当某个计算节点的输入值正常，即Max或Min中不存在inf或nan，而输出值存在异常时认为从此节点开始产生了溢出，并有可能向后传递。
+当某个计算节点的输入值正常，即Max或Min中不存在inf或nan，而输出值存在异常时，认为从此节点开始产生了溢出，并有可能向后传递。
 
 **异常通信节点判定**
 
@@ -84,7 +84,7 @@ Cannot find any anomaly node, no need to generate analyze file.
 
 对于有向节点，当src节点的input存在异常时，通常认为传入的数据中本身就存在异常，因此考虑异常节点发生在src节点所在rank的上一个或多个计算节点中；当src节点的input正常而output存在异常值，或dst节点的output存在异常值时，考虑是通信节点本身的操作产生了异常数据。
 
-对于无向节点，当节点input存在异常时，认为传入的数据中本身就存在异常，因此考虑异常节点发生在src节点所在rank的上一个或多个计算节点中；当input正常而output异常时，考虑是通信节点本身的操作产生了异常数据。
+对于无向节点，当节点input存在异常时，认为传入的数据中本身就存在异常，因此考虑异常节点发生在该节点所在rank的上一个或多个计算节点中；当input正常而output异常时，考虑是通信节点本身的操作产生了异常数据。
 
 **顺序判定**
 

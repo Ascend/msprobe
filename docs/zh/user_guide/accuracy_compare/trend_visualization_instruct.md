@@ -69,7 +69,7 @@ msprobe data2db --db <db_path> --data <data_path> [--format <format>] [--mapping
 
 **使用示例**
 
-解析`/data/dump_path`下的数据文件， 自动识别monitor数据和dump数据，将解析所得db格式的SQLite数据库文件放在`/data/db_path`路径下。单进程执行，以微迭代计数，且不使用mapping。
+解析`/data/dump_path`下的数据文件，自动识别monitor数据和dump数据，将解析所得db格式的SQLite数据库文件放在`/data/db_path`路径下。单进程执行，以微迭代计数，且不使用mapping。
 
 ```shell
 msprobe data2db --data /data/dump_path --db /data/db_path
@@ -130,7 +130,7 @@ tensorboard --logdir out_path --bind_all
    tensorboard --logdir out_path --bind_all
    ```
 
-   最后，在浏览器窗口输入`http://10.123.156.78:6008`
+   最后，在浏览器窗口输入`http://10.123.156.78:6008`。
 
    **说明**：如果当前服务器开启了防火墙，则此方法无效，需要关闭防火墙，或者尝试后续方法。
 
@@ -209,7 +209,7 @@ tensorboard --logdir out_path --bind_all
 
 | 编号 | 说明 |
 |--|--|
-|1|选择需要展示数据基本范围，依次选择指标、统计量、维度和维度值，具体见[选择参数范围](#选择参数范围) 。选择完毕即会加载对应热力图。|
+|1|选择需要展示数据基本范围，依次选择指标、统计量、维度和维度值，具体见[选择参数范围](#选择参数范围)。选择完毕即会加载对应热力图。|
 |2|可选，点击选择标签，在下拉框中选择或输入需要筛选的标签值，通过标签筛选仅显示相关Module Name的数据。可多选，标签类型见[选择参数范围](#选择参数范围)。|
 |3|可选，点击热力图模式下拉框，切换为渐变模式或分段模式。<br/>&#8226; 渐变模式：精度数据按渐变颜色展示，颜色由蓝色渐变到红色，数值越小，颜色越蓝。<br/>&#8226; 分段模式：精度数据按不同颜色分段展示。|
 |4|可选，拖动热力条，调整热力图展示的数值范围。|
@@ -226,7 +226,7 @@ tensorboard --logdir out_path --bind_all
 |指标|dump数据场景：<br/>&#8226; forward：前向过程数据，张量属于dump.json中以"forward.X"为后缀的网络层（X为编号）或".forward"为后缀的算子API。<br/>&#8226; backward：反向过程数据，张量属于dump.json中以"backward.X"为后缀的网络层（X为编号）或".backward"为后缀的算子API。<br/>&#8226; recompute：重计算过程数据，张量属于dump.json中"is_recompute"属性为True的网络层或算子API。<br/>&#8226; parameters_grad：参数梯度数据，张量属于dump.json中以"parameters_grad"为后缀的网络层数据。<br> monitor数据场景：<br/>&#8226; 根据monitor数据文件前缀自动提取，支持项包括["actv", "actv_grad", "exp_avg", "exp_avg_sq", "grad_unreduced", "grad_reduced", "param_origin", "param_updated"]。|
 |统计量|&#8226; dump数据场景: 固定为 "norm"、"max"、"mean"、"min"，分别表示2范数、最大值、均值、最小值。<br/>&#8226; monitor数据场景：根据csv文件内容自动提取，当列包含有效数据时，自动提取该列列名作为统计量选项。|
 |维度|包含以下可选项：<br/>&#8226; Step：通过热力图查看单个step下所有数据（X轴为Rank，Y轴为Module Name），点选查看单个张量目标在Step维度下的趋势折线图。<br/>&#8226;  Rank：通过热力图查看单个rank下所有数据（X轴为Step，Y轴为Module Name），点选查看单个张量目标在Rank维度下的趋势折线图。<br/>&#8226; Module Name：通过热力图查看单个张量目标的所有数据（X轴为Step，Y轴为Rank），点选查看单个张量目标在Module Name维度下的趋势折线图。|
-|标签|通过设置标签，可以将热力图和折线图展示的数据范围限制在满足标签的数据范围内（例如特定层，特定模块类型），包含以下可选类型：<br/>&#8226; default类标签：标识张量目标属于网络层数据，如"Module", "Cell"，dump数据场景下特有，区分网络层数据和算子API数据；网络层参数张量还会提取出"parameters"默认标签，用于按参数类型筛选数据。<br/>&#8226; layer类标签：从网络层名中提取的形如xxx.N的标签，其中xxx为字符串，N为整数，代表网络层编号，如"layers.0"。<br/>&#8226; index类标签：张量所属输入输出位置，例如输入中第0个张量标记为"input.0"。<br/>&#8226;  module类标签：从网络层名中提取的字符串标签，代表网络层类型，如"TransformerLayer"。<br/>&#8226;  function类标签：未提取出layer类标签的算子API名。<br/>示例：<br/>&#8226; 对于monitor数据场景下采集全名为`module.decoder.layers.0.input_layernorm.weight`的监测对象，将会提取出以下标签：module类标签：`module`、`decoder`、`input_layernorm`、`weight`，layer类标签：`layers.0`。<br/>&#8226; 对于dump数据场景下采集全名为`Module.blocks.0.fsdp_wrapped_module.norm.1.WanLayerNorm`的监测对象，若其包含一个输入和一个输出张量，将会提取出以下标签：default类标签：`Module`，module类标签：`fsdp_wrapped_module`、`WanLayerNorm`，layer类标签：`blocks.0`、`norm.1`，index类标签：`input.0`、`output.0`。|
+|标签|通过设置标签，可以将热力图和折线图展示的数据范围限制在满足标签的数据范围内（例如特定层，特定模块类型），包含以下可选类型：<br/>&#8226; default类标签：标识张量目标属于网络层数据，如"Module"、"Cell"，dump数据场景下特有，区分网络层数据和算子API数据；网络层参数张量还会提取出"parameters"默认标签，用于按参数类型筛选数据。<br/>&#8226; layer类标签：从网络层名中提取的形如xxx.N的标签，其中xxx为字符串，N为整数，代表网络层编号，如"layers.0"。<br/>&#8226; index类标签：张量所属输入输出位置，例如输入中第0个张量标记为"input.0"。<br/>&#8226;  module类标签：从网络层名中提取的字符串标签，代表网络层类型，如"TransformerLayer"。<br/>&#8226;  function类标签：未提取出layer类标签的算子API名。<br/>示例：<br/>&#8226; 对于monitor数据场景下采集全名为`module.decoder.layers.0.input_layernorm.weight`的监测对象，将会提取出以下标签：module类标签：`module`、`decoder`、`input_layernorm`、`weight`，layer类标签：`layers.0`。<br/>&#8226; 对于dump数据场景下采集全名为`Module.blocks.0.fsdp_wrapped_module.norm.1.WanLayerNorm`的监测对象，若其包含一个输入和一个输出张量，将会提取出以下标签：default类标签：`Module`，module类标签：`fsdp_wrapped_module`、`WanLayerNorm`，layer类标签：`blocks.0`、`norm.1`，index类标签：`input.0`、`output.0`。|
 
 #### 展示折线图
 
@@ -287,7 +287,7 @@ Megatron框架中的模型并行会将模型切分在不同节点rank上。分�
 
 **输出说明**
 
-`plot_model_parallelism`接口调用成功后，在配置的输出路径`output_path`中，生成一个`png`文件, 格式为`ws{world_size}_ln{num_layers}_tp{tensor_parallel_size}_pp{pipeline_parallel_size}_vpp{virtual_pipeline_parallel_size}.png`。其中`virtual_pipeline_parallel_size`为根据`num_layers_per_virtual_pipeline_stage`等传入参数计算出来的虚拟流水线并行分组大小。
+`plot_model_parallelism`接口调用成功后，在配置的输出路径`output_path`中，生成一个`png`文件，格式为`ws{world_size}_ln{num_layers}_tp{tensor_parallel_size}_pp{pipeline_parallel_size}_vpp{virtual_pipeline_parallel_size}.png`。其中`virtual_pipeline_parallel_size`为根据`num_layers_per_virtual_pipeline_stage`等传入参数计算出来的虚拟流水线并行分组大小。
 
 浏览png文件，如下图所示：
 
@@ -297,7 +297,7 @@ Megatron框架中的模型并行会将模型切分在不同节点rank上。分�
 
 | 字段         | 说明 |
 | -------------- | --------- |
-| Model Parallelism Configuration | 用户设置或计算得来的并行配置信息，包括：<br> Total Layers：模型的总层数，即脚本中的`num_layers`； <br> DP：数据并行分组大小，通过传入并行参数计算得来；<br> TP：张量并行分组大小，即脚本中的`tensor_parallel_size`； <br> PP：流水线并行分组大小，即脚本中的`pipeline_parallel_size`；<br> VPP：虚拟流水线并行分组大小，即文件名中`virtual_pipeline_parallel_size`，通过传入并行参数计算得来。    |
+| Model Parallelism Configuration | 用户设置或计算得来的并行配置信息，包括：<br> Total Layers：模型的总层数，即脚本中的`num_layers`；<br> DP：数据并行分组大小，通过传入并行参数计算得来；<br> TP：张量并行分组大小，即脚本中的`tensor_parallel_size`；<br> PP：流水线并行分组大小，即脚本中的`pipeline_parallel_size`；<br> VPP：虚拟流水线并行分组大小，即文件名中`virtual_pipeline_parallel_size`，通过传入并行参数计算得来。    |
 | TP Group | 纵坐标，张量并行分组，形如`Group{num}: Rank{start}-{end}`，其中`num`为分组编号，`start`和`end`分别表示分组内第一个rank的编号和最后一个rank的编号。例如，`Group0: Rank0-3`表示第0个分组，其中包含rank0到rank3共4个rank。     |
 | Virtual Pipeline Stage | 横坐标，流水线并行阶段或虚拟流水线并行阶段，形如`Stage {num}`，其中`num`表示阶段编号。      |
 | Model Copies | 模型副本图例。数据并行中，以不同颜色标记输入数据不同的模型副本。      |
@@ -356,7 +356,7 @@ plot_model_parallelism(config: ParallelConfig) -> None
 
    答：趋势可视化工具并不区分标杆实验和对比实验，仅根据输入的精度数据文件路径进行对比。如需对比两组不同实验的精度数据文件，用户需手动将两组文件子目录移至同一目录，然后使用趋势可视化工具查看和对比。
 
-   例如：存在如下两组dump数据文件，dump_path1和dump_path2:
+   例如存在如下两组dump数据文件，dump_path1和dump_path2：
 
    ```shell
    ├── dump_path1

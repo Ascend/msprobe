@@ -9,10 +9,10 @@ msProbe精度比对工具主要用于如下场景：
   - 通过对同一个网络模型，在两个不同版本的MindSpore静态图环境下，输入相同的训练数据，在分别得到kernel dump数据后，对这两个kernel dump数据进行全量自动比对，从而快速定位不同版本之间的精度问题。
   - 通过对同一个网络模型，在两个不同版本的MindSpore动态图环境下，输入相同的训练数据，在分别得到cell dump数据后，对这两个cell dump数据进行全量自动比对，从而快速定位不同版本之间的精度问题。
 - MindSpore与PyTorch跨框架比对
-  - 通过对同一个网络模型，在整网环境下分别在MindSpore动态图和PyTorch环境下获得API dump数据，以PyTorch数据作为标杆，进行自动比对，从而实现跨框架的精度对比。
-  - 通过对同一个网络模型，在整网环境下分别在MindSpore动态图和PyTorch环境下获得cell dump数据，由用户指定可以比对的cell list，以PyTorch数据作为标杆，进行自动比对，从而实现跨框架的精度对比。
-  - 通过对同一个网络模型，在整网环境下分别在MindSpore动态图和PyTorch环境下获得API或模块dump数据，由用户指定可以比对的API或模块，以PyTorch数据作为标杆，进行自动比对，从而实现跨框架的精度对比。
-  - 通过对同一个网络模型，在整网环境下分别在MindSpore动态图和PyTorch环境下获得API或模块dump数据，由用户指定可以比对的模型代码中的Layer层，以PyTorch数据作为标杆，进行自动比对，从而实现跨框架的精度对比。
+  - 通过对同一个网络模型，在整网环境下分别在MindSpore动态图和PyTorch环境下获得API dump数据，以PyTorch数据作为标杆，进行自动比对，从而实现跨框架的精度比对。
+  - 通过对同一个网络模型，在整网环境下分别在MindSpore动态图和PyTorch环境下获得cell dump数据，由用户指定可以比对的cell list，以PyTorch数据作为标杆，进行自动比对，从而实现跨框架的精度比对。
+  - 通过对同一个网络模型，在整网环境下分别在MindSpore动态图和PyTorch环境下获得API或模块dump数据，由用户指定可以比对的API或模块，以PyTorch数据作为标杆，进行自动比对，从而实现跨框架的精度比对。
+  - 通过对同一个网络模型，在整网环境下分别在MindSpore动态图和PyTorch环境下获得API或模块dump数据，由用户指定可以比对的模型代码中的Layer层，以PyTorch数据作为标杆，进行自动比对，从而实现跨框架的精度比对。
 
 ## 使用前准备
 
@@ -63,7 +63,7 @@ msprobe compare -tp <target_path> -gp <golden_path> [options]
    ```shell
    msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output
    ```
-   
+
    多卡场景(-tp和-gp需填写到step层级，即rank的上一层)：
 
    ```shell
@@ -203,7 +203,7 @@ layer_mapping可以从Layer层识别整网的API和Cell，简化配置。
     │   |   |   └── construct.json
     │   ├── ...
     ```
-   
+
 2. 执行如下示例命令进行比对：
 
    ```shell
@@ -224,7 +224,7 @@ layer_mapping可以从Layer层识别整网的API和Cell，简化配置。
     │   |   ├── compare_result_rank_20250805043414.csv
     ```
 
-output目录下生成两个graph和pynative两个文件夹，每个文件夹下生成对应step的比对结果。
+output目录下生成graph和pynative两个文件夹，每个文件夹下生成对应step的比对结果。
 
 #### 首差异算子节点识别
 
@@ -232,11 +232,11 @@ output目录下生成两个graph和pynative两个文件夹，每个文件夹下�
 
 #### 动态图单点数据比对场景
 
-单点数据比对场景：CPU、 NPU 环境的网络中单点保存的数据比对。
+单点数据比对场景：CPU、NPU 环境的网络中单点保存的数据比对。
 
 单点数据比对支持单卡比对和多卡比对。多机场景需要每个设备单独执行比对操作。
 
-1. 参见《[单点保存工具](../dump/debugger_save_instruct.md)》完成 CPU、 NPU 的动态图场景单点数据采集。
+1. 参见《[单点保存工具](../dump/debugger_save_instruct.md)》完成 CPU、NPU 的动态图场景单点数据采集。
 
 2. 运行命令示例：
 
@@ -345,7 +345,7 @@ msprobe merge_result -i ./input_dir -o ./output_dir -config ./config.yaml
 <br>
 如何基于group信息查看分组数据：
 
-以Distributed.all_reduce.0.forward为例。这个API将多卡数据规约操作，输出为一个group内的规约结果，同一个group内的输出保持一致。<br>这个API中，rank0-3为一个group，Distributed.all_reduce.0.forward.input.group展示为tp-0-1-2-3，rank0-3输出一致；rank4-7为一个group，展示为tp-4-5-6-7，rank4-7输出一致。<br>group除了这种形式，还有如[0, 1, 2, 3]的呈现形式。
+以Distributed.all_reduce.0.forward为例。这个API将多卡数据进行规约操作，输出为一个group内的规约结果，同一个group内的输出保持一致。<br>这个API中，rank0-3为一个group，Distributed.all_reduce.0.forward.input.group展示为tp-0-1-2-3，rank0-3输出一致；rank4-7为一个group，展示为tp-4-5-6-7，rank4-7输出一致。<br>group除了这种形式，还有如[0, 1, 2, 3]的呈现形式。
 
 <br>
 常见通信API预期结果：
@@ -411,7 +411,7 @@ pt_outputs:
 
 - 自定义映射文件（API）需要满足ms_args/pt_args列表中的元素个数一致，ms_outputs/pt_outputs相同。
 
-- 须确保列表自定义映射文件（API）配置元素的合法性，比如ms_args/pt_args的API用到的参数只有3个参数，那么用户实际指定的参数序号只能包含0、1、2；另外参数序号列表中的值不能重复。
+- 须确保自定义映射文件（API）列表配置元素的合法性，比如ms_args/pt_args的API用到的参数只有3个参数，那么用户实际指定的参数序号只能包含0、1、2；另外参数序号列表中的值不能重复。
 
 文件内容示例：
 
@@ -430,7 +430,7 @@ ms_outputs:
 pt_outputs:
 - 0
 - 1
-# ms_args/pt_args和ms_outputs/pt_outputs参数的配置需要根据ms_api/pt_api的API入参和输出的顺序，例如Functional.abs API的入参为（a b c），那对应的ms_args为0 1 2，可根据实际需要选择，而Torch.abs的入参如果是（a b c），那么ms_args和pt_args配置一致即可，但如果Torch.abs的入参如果是（a c）或其他与Functional.abs不完全映射的值，那么ms_args和pt_args配置的序号需要与入参对应，Torch.abs（a c）的序号为0 1，Functional.abs（a b c）为0 1 2，只有a和c参数可以映射，那么ms_args配置为0 2，pt_args配置为0 1。ms_outputs/pt_outputs同理。
+# ms_args/pt_args和ms_outputs/pt_outputs参数的配置需要根据ms_api/pt_api的API入参和输出的顺序，例如Functional.abs API的入参为（a b c），那对应的ms_args为0 1 2，可根据实际需要选择，而Torch.abs的入参如果是（a b c），那么ms_args和pt_args配置一致即可，但如果Torch.abs的入参是（a c）或其他与Functional.abs不完全映射的值，那么ms_args和pt_args配置的序号需要与入参对应，Torch.abs（a c）的序号为0 1，Functional.abs（a b c）为0 1 2，只有a和c参数可以映射，那么ms_args配置为0 2，pt_args配置为0 1。ms_outputs/pt_outputs同理。
 ```
 
 ### 自定义映射文件（cell_mapping）

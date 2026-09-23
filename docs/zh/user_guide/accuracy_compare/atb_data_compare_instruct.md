@@ -7,9 +7,9 @@ msProbe工具提供ATB场景的精度比对功能，帮助定位精度问题发�
 
 **基本概念**
 
-* **余弦相似度**：两个非零向量之间夹角的余弦值。可以用于评估两个Tensor间的相似程度。
+* **余弦相似度**：两个非零向量之间夹角的余弦值，可以用于评估两个Tensor间的相似程度。
 
-* **欧氏距离**：在多维空间中两个点之间的绝对距离。可以用于评估两个Tensor间的相似程度。
+* **欧氏距离**：在多维空间中两个点之间的直线距离，可以用于评估两个Tensor间的相似程度。
 
 ## 使用前准备
 
@@ -82,16 +82,16 @@ msprobe compare -m atb -gp <goldenDataPath> -tp <targetDataPath> [-o <outputPath
 
 ### 输出说明
 
-ATB精度数据比对输出件为Excel表格文件。
+ATB精度数据比对输出Excel表格文件。
 
-**真实数据比对输出件介绍**
+**真实数据比对输出文件介绍**
 
 真实数据精度比对得到的Excel表格文件的各列含义介绍如下：
 
 | 列名 | 含义 |
 | --- | ---- |
-| Target Data Name          | 待比对数据名称，由op 名称、op ID、IO类型、索引组成。例如0_WordEmbedding/input.1。 |
-| Golden Data Name          | 标杆数据名称，由op 名称、op ID、IO类型、索引组成。例如0_WordEmbedding/input.1。 |
+| Target Data Name          | 待比对数据名称，由 OP 名称、OP ID、IO类型、索引组成。例如0_WordEmbedding/input.1。 |
+| Golden Data Name          | 标杆数据名称，由 OP 名称、OP ID、IO类型、索引组成。例如0_WordEmbedding/input.1。 |
 | Target Device and PID     | 采集待比对数据时的device ID和进程号。 |
 | Golden Device and PID     | 采集标杆数据时的device ID和进程号。 |
 | Target Execution Count    | 采集待比对数据时的op执行轮次。 |
@@ -115,14 +115,14 @@ ATB精度数据比对输出件为Excel表格文件。
 | Target Norm               | 待比对数据的所有元素的Norm值。 |
 | Golden Norm               | 标杆数据的所有元素的Norm值。 |
 
-**统计量数据比对输出件介绍**
+**统计量数据比对输出文件介绍**
 
 统计量精度比对得到的Excel表格文件的各列含义介绍如下：
 
 | 列名 | 含义 |
 | --- | ---- |
-| Target Data Name          | 待比对数据名称，由op 名称、op ID、IO类型、索引组成。例如0_WordEmbedding/input.1。 |
-| Golden Data Name          | 标杆数据名称，由op 名称、op ID、IO类型、索引组成。例如0_WordEmbedding/input.1。 |
+| Target Data Name          | 待比对数据名称，由 OP 名称、OP ID、IO类型、索引组成。例如0_WordEmbedding/input.1。 |
+| Golden Data Name          | 标杆数据名称，由 OP 名称、OP ID、IO类型、索引组成。例如0_WordEmbedding/input.1。 |
 | Target Device and PID     | 采集待比对数据时的device ID和进程号。 |
 | Golden Device and PID     | 采集标杆数据时的device ID和进程号。 |
 | Target Execution Count    | 采集待比对数据时的op执行轮次。 |

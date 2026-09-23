@@ -64,7 +64,7 @@
 
 5. **环境版本缺陷或差异**
 
-   一般体现为在某一类机器上精度正常，在其他机器或环境上突然异常，或更换环境版本后精度异常。例如x86换到arm架构出现精度异常，或更换CANN后精度异常。解决方案可以对齐环境依赖版本。
+   一般体现为在某一类机器上精度正常，在其他机器或环境上突然异常，或更换环境版本后精度异常。例如x86换到ARM架构出现精度异常，或更换CANN后精度异常。解决方案可以对齐环境依赖版本。
 
 ## 4. 模型精度问题定位思路
 
@@ -130,7 +130,7 @@
 
 #### 4.2.1 固定随机性
 
-复现需要固定存在随机性的步骤，保证实验可重复性。存在随机性的步骤包括模型参数初始化，dropout层等。
+复现需要固定存在随机性的步骤，保证实验可重复性。存在随机性的步骤包括模型参数初始化、dropout层等。
 涉及到的操作如下几项：
 
 - 固定随机种子，如np.random.seed、torch.manual_seed、torch_npu.npu.manual_seed等。
@@ -145,7 +145,7 @@
 - 通信确定性：
 `export HCCL_DETERMINISTIC=TRUE`
 
-针对以上**固定随机性**和**打开确定性**操作，msprobe工具包提供seed_all接口，在pytorch场景下快速固定网络中所有随机种子、Dropout层及算子计算和通信确定性。
+针对以上**固定随机性**和**打开确定性**操作，msprobe工具包提供seed_all接口，在PyTorch场景下快速固定网络中所有随机种子、Dropout层及算子计算和通信确定性。
 
 使用方式：
 
@@ -191,13 +191,13 @@ vLLM的推理流程分为两个主要阶段：prefill阶段和decode阶段。pre
 
 ##### 5.1.1.1 常用工具介绍
 
-vLLM场景的精度问题定位，主要使用msprobe工具下的dump和比对能力进行问题定位。由于vLLM涉及多种拉起方式，以vLLM0.9版本为例下面逐一介绍各种拉起方式下的工具使能。
+vLLM场景的精度问题定位，主要使用msprobe工具下的dump和比对能力进行问题定位。由于vLLM涉及多种拉起方式，以vLLM 0.9版本为例下面逐一介绍各种拉起方式下的工具使能。
 
 ###### 5.1.1.1.1 V0场景
 
 - **V0，离线模式，TP=1**
 
-    可直接通过以下方式获取model
+    可直接通过以下方式获取model：
 
     `model=llm.llm_engine.model_executor.driver_worker.worker.model_runner.get_model()`
 
@@ -213,7 +213,7 @@ vLLM场景的精度问题定位，主要使用msprobe工具下的dump和比对�
 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/28a7eec9-1a46-4d7a-a3e7-91237f55b1fb/image.png 'image.png')
 
-- **V0,在线模式，PP=1（TP、DP不限制且不设置--disable-frontend-multiprocessing)**
+- **V0，在线模式，PP=1（TP、DP不限制且不设置--disable-frontend-multiprocessing）**
 
     使用多进程客户端MQLLMEngineClient，存在进程间隔，都在子进程里
 
@@ -229,7 +229,7 @@ vLLM场景的精度问题定位，主要使用msprobe工具下的dump和比对�
 
 ###### 5.1.1.1.2 V1场景
 
-- **v1 engine，eager（enforce_eager=True)**
+- **v1 engine，eager（enforce_eager=True）**
 
 1. 添加初始化。
 
@@ -341,7 +341,7 @@ cd ./artifacts
 pip install ./mindstudio_probe*.whl
 ```
 
-需要注意的是
+需要注意的是：
 
 1. 编译环境需安装git、curl、GCC 7.5或以上版本、CMake 3.19.3或以上版本等第三方依赖软件；
 2. 若编译过程中因安全证书问题导致编译失败，在保证环境安全的情况下，可临时关闭安全证书验证。关闭证书校验的编译命令为`python3 build.py -e include-mod=atb_probe -e no-check=true`。
@@ -371,7 +371,7 @@ pip install ./mindstudio_probe*.whl
     | --- | --------- | --- |
     | task         | 可选 | 指定dump任务，str类型，默认为"tensor"。可选值：<br/> "tensor"：采集op的输入/输出Tensor的真实数据；<br/> "statistics"：采集op的输入/输出Tensor的统计量数据；<br/> "all"：采集op的输入/输出Tensor的真实数据与统计量数据。 |
     | dump_enable  | 可选 | 指定是否允许dump数据，bool类型，默认为false。可选值：<br/> true：允许采集op的输入/输出Tensor的真实数据或统计量数据；<br/> false：不允许采集op的输入/输出Tensor的真实数据或统计量数据。 |
-    | exec_range   | 可选 | 指定需dump数据的op执行轮次范围，str类型，默认为"0,0"。可选值：<br/> "all"：dump op所有执行轮次的精度数据；<br/> "none"：op所有执行轮次的精度数据都不dump；<br/> "\<起始轮次\>,\<终止轮次\>"： dump op从起始轮次到终止轮次间的精度数据，包括起始轮次与终止轮次。<br/> **配置示例**："exec_range": "0,2"，表示dump op第1、2、3执行时的精度数据（第N次执行的执行轮次为N-1）。|
+    | exec_range   | 可选 | 指定需dump数据的op执行轮次范围，str类型，默认为"0,0"。可选值：<br/> "all"：dump op所有执行轮次的精度数据；<br/> "none"：op所有执行轮次的精度数据都不dump；<br/> "\<起始轮次\>,\<终止轮次\>"：dump op从起始轮次到终止轮次间的精度数据，包括起始轮次与终止轮次。<br/> **配置示例**："exec_range": "0,2"，表示dump op第1、2、3执行时的精度数据（第N次执行的执行轮次为N-1）。|
     | ids          | 可选 | 指定需dump数据的op的ID，str类型，默认为""，表示dump所有layer级Operation的精度数据。需满足"\<ID1\>,\<ID2\>"格式，指定一个或多个ID。<br/> **配置示例**：<br/> "ids": "0"，表示dump ID为0的op的精度数据；<br/> "ids": "2_1"，表示dump ID为2的op下的ID为1的OP的精度数据；<br/> "ids": "0,2_1"，表示dump ID为0的op以及ID为2的op下的ID为1的OP的精度数据。 |
     | op_name      | 可选 | 指定需dump数据的op的名称，str类型，默认为""，表示dump所有layer级Operation的精度数据。需满足"\<opName1\>,\<opName2\>"格式，指定一个或多个op名称。<br/> **配置示例**：<br/> "op_name": "word"，表示dump名称以"word"开头的op的精度数据（不区分大小写）。 |
     | save_child   | 可选 | 指定是否dump op下的子op的精度数据，bool类型，默认为false。可选值：<br/> true：dump 指定op及内部子op的精度数据；<br/> false：仅dump 指定op的精度数据。 |
@@ -411,7 +411,7 @@ pip install ./mindstudio_probe*.whl
 
 **Layer级问题定位**
 
-将dump配置文件中的"ids"参数设置为""，"save_child"参数设置为false，即可仅dump所有Layer的输入/输出Tensor，dump输出件示例如下：
+将dump配置文件中的"ids"参数设置为""，"save_child"参数设置为false，即可仅dump所有Layer的输入/输出Tensor，dump输出结果文件示例如下：
 
 ![atb_dump_layer.png](https://raw.gitcode.com/user-images/assets/7898473/0e57b323-4901-46c4-b97a-0375eee853ae/atb_dump_layer.png 'atb_dump_layer.png')
 
@@ -423,7 +423,7 @@ pip install ./mindstudio_probe*.whl
 
 **OP级问题定位**
 
-将dump配置文件中的"ids"参数设置为发生精度问题的Layer ID，例如"5"，"save_child"参数设置为true，dump指定Layer下所有Operation与Kernel的输入/输出Tensor，dump输出件示例如下：
+将dump配置文件中的"ids"参数设置为发生精度问题的Layer ID，例如"5"，"save_child"参数设置为true，dump指定Layer下所有Operation与Kernel的输入/输出Tensor，dump输出结果文件示例如下：
 
 ![atb_dump_operation.png](https://raw.gitcode.com/user-images/assets/7898473/61db7d44-55f0-493b-a590-c31c60225bb9/atb_dump_operation.png 'atb_dump_operation.png')
 

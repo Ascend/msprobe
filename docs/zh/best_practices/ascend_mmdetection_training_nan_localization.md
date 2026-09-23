@@ -109,7 +109,7 @@ export HCCL_EXEC_TIMEOUT=3600
 
 当数据集中的分类标注不在规定范围内时，`data_info['instances'] = []`，而后续在 `pipeline -> pack_inputs -> DetDataSample.gt_instances.labels` 时，`gt_labels` 即为空。
 
-> DetDataSample 类定义: 在 `mmdet/structures/det_data_sample.py` 中定义了 `gt_instances` 属性（通过 setter getter 实现）。无论实例是否为空，只要你给它传了 `InstanceData()`，它就存在，`gt_instances.labels` 可以安全访问（可能是空 tensor）。
+> DetDataSample 类定义：在 `mmdet/structures/det_data_sample.py` 中定义了 `gt_instances` 属性（通过 setter getter 实现）。无论实例是否为空，只要你给它传了 `InstanceData()`，它就存在，`gt_instances.labels` 可以安全访问（可能是空 tensor）。
 
 数据打印进一步证实了这一判断：
 

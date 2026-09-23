@@ -16,7 +16,7 @@ UWC 将完整的权重同步链路解耦为三个相互独立、可单独开关�
 
 #### 阶段1：训练侧格式转换校验（Bridge）
 
-该阶段是验证 HF 格式与 mcore 格式之间的转换代码是否正确，确保“逻辑等价”。。
+该阶段是验证 HF 格式与 mcore 格式之间的转换代码是否正确，确保“逻辑等价”。
 
 该阶段包含两层防御机制：
 
@@ -27,7 +27,7 @@ UWC 将完整的权重同步链路解耦为三个相互独立、可单独开关�
 2. transformer 加载初始 HF 格式的模型权重，对同一输入执行一次前向传播，输出的 logits 为 G0；veRL 加载由 load_weights 转换而来的 mcore 格式模型权重，对同一输入执行一次前向传播（或 Rollout 阶段的前向计算），输出的 logits 为 G1。
    - 验证点：G0 vs G1
    - 含义：对比 G0 和 G1 是否一致。
-   - 目的：验证  load_weights 阶段的正确性。如果 load_weights 转换正确，且 HF 模型与 mcore 模型架构完全一致，那么 G0 ≈ G1（允许微小的浮点数精度差异，如 10⁻⁵ 级别）；如果 G0 和 G1 差异巨大，说明 load_weights 转换出错，或者模型架构、配置不匹配。
+   - 目的：验证 load_weights 阶段的正确性。如果 load_weights 转换正确，且 HF 模型与 mcore 模型架构完全一致，那么 G0 ≈ G1（允许微小的浮点数精度差异，如 10⁻⁵ 级别）；如果 G0 和 G1 差异巨大，说明 load_weights 转换出错，或者模型架构、配置不匹配。
 
 #### 阶段2：传输完整性校验（Transport）
 
@@ -44,10 +44,10 @@ UWC 将完整的权重同步链路解耦为三个相互独立、可单独开关�
 
 该阶段包含两层防御机制：
 
-1. dummy vs safetensors 差分测试：分别用 `load_format=dummy` 和 `load_format=safetensors` 加载模型并运行 RL 的首步推理，保存输出为  `dummy_rl_first_step_output.json` 和 `safetensors_rl_first_step_output.json`。
+1. dummy vs safetensors 差分测试：分别用 `load_format=dummy` 和 `load_format=safetensors` 加载模型并运行 RL 的首步推理，保存输出为 `dummy_rl_first_step_output.json` 和 `safetensors_rl_first_step_output.json`。
    - 验证点：`dummy_rl_first_step_output.json` vs `safetensors_rl_first_step_output.json`
    - 含义：对比使用 dummy 加载逻辑生成的输出和使用真实 safetensors 权重加载生成的输出。
-   - 目的：通过对比 dummy 输出和 safetensors 输出的是否不同，来判断是否正确加载模型；黑盒行为校验，判断是否发生漏同步。
+   - 目的：通过对比 dummy 输出和 safetensors 输出是否不同，来判断是否正确加载模型；黑盒行为校验，判断是否发生漏同步。
 2. data_ptr 指针偏移验证：启动 vLLM 服务，记录每个参数加载前的 data_ptr （ptr_before），触发 load_weights 记录每个参数加载后的 data_ptr （ptr_after）。
    - 验证点：ptr_before vs ptr_after
    - 含义：对比 load_weights 前后参数加载的权重是否相同。如果相同（但该层实际应该被更新），则判定该层漏同步，因此需要保证这些层的 ptr_before 和 ptr_after 均不同。

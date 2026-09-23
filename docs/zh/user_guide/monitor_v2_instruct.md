@@ -19,7 +19,7 @@
 
 **推荐启用策略**
 
-- 首先长期启用 `weight_grad` 作为底座监测；随后在问题发生时按需启用 `module` / `cc` ，并通过目标筛选降低开销。
+- 首先长期启用 `weight_grad` 作为底座监测；随后在问题发生时按需启用 `module` / `cc`，并通过目标筛选降低开销。
 
 ## 使用前准备
 
@@ -169,7 +169,7 @@ mon.stop()
 
 **使用示例**
 
-以下字段配置仅展示 `monitors.weight_grad`；需合并到完整配置，见[快速入门 > 准备配置文件](#quickstart-config)；微步展开。
+以下字段配置仅展示 `monitors.weight_grad`；需合并到完整配置，见[快速入门 > 准备配置文件](#quickstart-config)；微步展开配置如下。
 
 ```json
 {
@@ -255,7 +255,7 @@ mon.stop()
 
 配置字段说明：见[详细配置 > monitors.param](#config-param)。
 
-代码使用示例：见[PyTorch场景示例](#quickstart-pytorch)或[MindSpore场景示例](#quickstart-mindspore)。
+代码使能示例：见[PyTorch场景示例](#quickstart-pytorch)或[MindSpore场景示例](#quickstart-mindspore)。
 
 **输出说明**
 
@@ -396,7 +396,7 @@ mon.stop()
 
 - 功能说明：训练监测编排器；负责加载配置、初始化监测模块，并在每个 step 收集与写出监测结果。
 - 函数原型：
-  
+
   ```Python
   TrainerMonitorV2(config_path: str, fr: Optional[str] = None) -> TrainerMonitorV2
   ```
@@ -411,7 +411,7 @@ mon.stop()
 
 - 功能说明：启动监测。根据配置创建并启动 `monitors` 中启用的模块，并建立写出上下文。
 - 函数原型：
-  
+
   ```Python
   TrainerMonitorV2.start(model: Any = None, optimizer: Any = None, **context: Any) -> None
   ```
@@ -429,7 +429,7 @@ mon.stop()
 
 - 功能说明：推进一步训练 step，并触发本 step 的采集与写出（受 `start_step/stop_step/step_interval/collect_times` 控制）。
 - 函数原型：
-  
+
   ```Python
   TrainerMonitorV2.step() -> None
   ```
@@ -442,7 +442,7 @@ mon.stop()
 
 - 功能说明：停止监测并释放资源（移除监测模块内部注册/拦截，关闭 writer）。
 - 函数原型：
-  
+
   ```Python
   TrainerMonitorV2.stop() -> None
   ```

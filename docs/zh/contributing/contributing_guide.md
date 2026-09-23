@@ -162,8 +162,8 @@ python3 build.py test
 
 5. **代码审查**
 
-   1. 提交Pull Request后，您需要通知相关“负责人”（ Reviewers和Committers）进行内容审核。
-   2. 您需要根据反馈审核意见修改代码，并重新提交更新。此流程可能涉及多轮迭代，请保持积极响应和沟通。
+   1. 提交Pull Request后，您需要通知相关“负责人”（Reviewers和Committers）进行内容审核。
+   2. 您需要根据反馈的审核意见修改代码，并重新提交更新。此流程可能涉及多轮迭代，请保持积极响应和沟通。
 
    Pull Request流程中会提示相关的“负责人”，可在Pull Request流程中指定相关“负责人”，或通过[README](../../../README.md)中的建议与交流联系我们。
 
@@ -190,7 +190,7 @@ python3 build.py test
 提交信息应该清晰地描述更改的内容和原因：
 
 ```text
-<type>: <subject>
+<type>：<subject>
 
 <body>
 

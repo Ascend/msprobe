@@ -9,7 +9,7 @@ MindStudio Probe（msProbe）针对昇腾 AI 处理器提供全场景精度调�
 | 数据采集 | 通过 `config.json` 配置，完成 msProbe 精度数据采集操作 | [数据采集](dump/pytorch_data_dump_instruct.md) |
 | 分级可视化构图比对 | 将 msProbe 工具 dump 的精度数据进行解析，还原模型图结构，实现模型各个层级的精度数据比对 | [分级可视化构图比对](accuracy_compare/pytorch_visualization_instruct.md) |
 | 精度比对 | 将 msProbe 工具 dump 的精度数据进行精度比对，进而定位精度问题 | [精度比对](accuracy_compare/pytorch_accuracy_compare_instruct.md) |
-| 训练状态监测 | 收集和聚合模型训练过程中的网络层，优化器，通信算子的中间值，帮助诊断模型训练过程中计算，通信，优化器各部分出现的异常情况 | [训练状态监测](monitor_instruct.md) |
+| 训练状态监测 | 收集和聚合模型训练过程中的网络层、优化器、通信算子的中间值，帮助诊断模型训练过程中计算、通信、优化器各部分出现的异常情况 | [训练状态监测](monitor_instruct.md) |
 
 <details>
 <summary><b>展开更多功能</b></summary>
@@ -91,7 +91,7 @@ MindStudio Probe（msProbe）针对昇腾 AI 处理器提供全场景精度调�
 | 精度预检 | 在昇腾 NPU 上扫描训练模型中的所有 API，给出精度情况的诊断和分析 | [精度预检](accuracy_checker/mindspore_accuracy_checker_instruct.md) |
 | 分级可视化构图比对 | 将 msProbe 工具 dump 的精度数据进行解析，还原模型图结构，实现模型各个层级的精度数据比对 | [分级可视化构图比对](accuracy_compare/mindspore_visualization_instruct.md) |
 | 精度比对 | 将 msProbe 工具 dump 的精度数据进行精度比对，进而定位精度问题 | [精度比对](accuracy_compare/mindspore_accuracy_compare_instruct.md) |
-| 训练状态监测 | 收集和聚合模型训练过程中的网络层，优化器，通信算子的中间值，帮助诊断模型训练过程中计算，通信，优化器各部分出现的异常情况 | [训练状态监测](monitor_instruct.md) |
+| 训练状态监测 | 收集和聚合模型训练过程中的网络层、优化器、通信算子的中间值，帮助诊断模型训练过程中计算、通信、优化器各部分出现的异常情况 | [训练状态监测](monitor_instruct.md) |
 | checkpoint 比对 | 训练过程中或结束后，比较两个不同的 checkpoint，评估模型相似度 | [checkpoint 比对](checkpoint_compare_instruct.md) |
 | 趋势可视化 | 将 msProbe 工具数据采集或训练状态监测的统计量数据从迭代步数、节点 rank 和张量目标三个维度进行趋势可视化 | [趋势可视化](accuracy_compare/trend_visualization_instruct.md) |
 

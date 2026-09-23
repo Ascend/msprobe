@@ -205,7 +205,7 @@ slime 启动 SGLang 时须指定：
 
 训练阶段精度数据采集在 slime 的 Megatron 训练后端完成。在 `slime/backends/megatron_utils/actor.py` 中实例化 `PrecisionDebugger`，在 **old_log_prob 前向**前后调用 `start`、`stop` 接口，并在 stop 之后调用 `step()` 推进步数。`PrecisionDebugger` 接口更多介绍请参见《[PyTorch 场景精度数据采集](./pytorch_data_dump_instruct.md)》。
 
-以下展示训推一致性 dump 的代码修改方式（以 slime v0.2.2 为例）。修改步骤如下。
+以下展示训推一致性 dump 的代码修改方式（以 slime v0.2.2 为例）。修改步骤如下：
 
 1. 新增 `slime/backends/megatron_utils/consistent_dump_utils.py`
 
@@ -318,7 +318,7 @@ slime 启动 SGLang 时须指定：
 
 ### 4.3 推理阶段数据采集
 
-slime 框架推理侧使用 SGLang 引擎执行 rollout 生成。
+slime 框架推理侧使用 SGLang engine执行 rollout 生成。
 
 SGLang 从 0.5.11 版本起原生内置 msProbe 能力，因此低于 0.5.11 版本须按照本节操作进行侵入式修改，不低于 0.5.11 版本直接传配置参数。请根据 SGLang 版本选择操作方法：
 
@@ -327,7 +327,7 @@ SGLang 从 0.5.11 版本起原生内置 msProbe 能力，因此低于 0.5.11 版
 | **< 0.5.11** | 侵入式修改 `ModelRunner`，见下文。 |
 | **≥ 0.5.11** | 已原生内置msProbe工具，可直接在 `SGLANG_ARGS` 中指定参数 `--sglang-msprobe-dump-config` 进行精度数据采集。 |
 
-在 `sglang/srt/model_executor/model_runner.py` 中插入 `PrecisionDebugger` 接口。修改步骤如下。
+在 `sglang/srt/model_executor/model_runner.py` 中插入 `PrecisionDebugger` 接口。修改步骤如下：
 
 1. 在 `ModelRunner.__init__` 末尾实例化 debugger
 
@@ -378,7 +378,7 @@ SGLang 从 0.5.11 版本起原生内置 msProbe 能力，因此低于 0.5.11 版
 
 ### 5.1 环境变量配置
 
-slime 基于 Ray 启动训练 Worker 与推理引擎，环境变量须通过 `ray job submit` 的 `runtime-env-json` 的 `env_vars` 下发，才能保证 Ray 子进程同样生效。
+slime 基于 Ray 启动训练 Worker 与推理engine，环境变量须通过 `ray job submit` 的 `runtime-env-json` 的 `env_vars` 下发，才能保证 Ray 子进程同样生效。
 
 **训练侧**：
 
@@ -492,7 +492,7 @@ dump 模式建议关闭 eval、不保存 checkpoint，并将日志写入实验�
 - **stack.json**：API/Module 的调用栈信息。
 - **construct.json**：分层分级结构信息。
 
-**rank 对齐说明**：训推分离架构下，训练与推理运行在不同卡上，两侧 rank ID 通常无法一一对应（例如 4 卡场景：前 2 张卡跑推理、后 2 张卡跑训练，generate 侧 rank 目录可能从 `rank2` 起，与训练侧 `rank0` 不对齐）。因此可视化比对**只能按单卡逐 rank 进行**，须将路径指定到具体的 `rank` 目录，不能使用多卡批量比对。
+**rank 对齐说明**：训推分离架构下，训练与推理运行在不同卡上，两侧 rank ID 通常无法一一对应（例如 4 卡场景：前 2 张卡跑推理、后 2 张卡跑训练，训练侧 rank 目录可能从 `rank2` 起，与 generate 侧 `rank0` 不对齐）。因此可视化比对**只能按单卡逐 rank 进行**，须将路径指定到具体的 `rank` 目录，不能使用多卡批量比对。
 
 ## 7. msProbe 可视化比对
 

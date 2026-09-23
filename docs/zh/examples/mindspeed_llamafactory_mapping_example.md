@@ -24,7 +24,7 @@
     "async_dump": false,
 
     "statistics": {
-        "scope": [], 
+        "scope": [],
         "list": [],
         "tensor_list": [],
         "data_mode": ["all"],
@@ -47,11 +47,11 @@ LLamaFactory依赖Transformers的底层能力，msProbe工具采集功能将添�
 
 1. 在trainer.py文件中添加工具接口，初始化数据采集配置以及固定随机数：
 
-   ![llamafactory1.png](../figures/visualization/mindspeed_llamafactoary_img/llamafactory1.png)
+   ![llamafactory1.png](../figures/visualization/mindspeed_llamafactory_img/llamafactory1.png)
 
 2. 在trainer.py文件**训练循环逻辑位置**添加工具接口，控制数据采集的启动、停止和step计数：
 
-   ![llamafactory2.png](../figures/visualization/mindspeed_llamafactoary_img/llamafactory2.png)
+   ![llamafactory2.png](../figures/visualization/mindspeed_llamafactory_img/llamafactory2.png)
 
 3. 配置完成，启动模型训练脚本，数据将自动采集，落盘数据格式请参考[PyTorch场景精度数据采集-dump-结果文件介绍](../user_guide/dump/pytorch_data_dump_instruct.md#dump结果文件介绍)。
 
@@ -61,11 +61,11 @@ LLamaFactory依赖Transformers的底层能力，msProbe工具采集功能将添�
 
 1. 在training.py文件中添加工具接口，初始化数据采集配置以及固定随机数：
 
-   ![mindspeed1.png](../figures/visualization/mindspeed_llamafactoary_img/mindspeed1.png)
+   ![mindspeed1.png](../figures/visualization/mindspeed_llamafactory_img/mindspeed1.png)
 
 2. 在training.py文件**训练循环逻辑位置**添加工具接口，控制数据采集的启动、停止和step计数：
 
-   ![mindspeed2.png](../figures/visualization/mindspeed_llamafactoary_img/mindspeed2.png)
+   ![mindspeed2.png](../figures/visualization/mindspeed_llamafactory_img/mindspeed2.png)
 
 3. 配置完成，启动模型训练脚本，数据将自动采集，落盘数据格式请参考[PyTorch场景精度数据采集-dump-结果文件介绍](../user_guide/dump/pytorch_data_dump_instruct.md#dump结果文件介绍)。
 
@@ -246,24 +246,24 @@ Qwen2MLP:
 
 #### layer_mapping映射文件配置过程
 
-以Qwen2.5vl模型，NPU侧MindSpeed，Bench侧LLamaFactory为例。
+以Qwen2.5vl模型、NPU侧MindSpeed、Bench侧LLamaFactory为例。
 
 1. 模型结构打印
 
    参考[添加msProbe工具采集接口](#添加msprobe工具采集接口)章节，配置过程中会在模型文件中添加`debugger.start(model=model)`，针对`start接口`中的`model`进行`print(model)`即可打印模型结构。
 
-   打印的模型结构：[mindspeed-mm-qwen25vl.txt](../figures/visualization/mindspeed_llamafactoary_img/mindspeed-mm-qwen25vl.txt)，[llamafactory-qwen25vl.txt](../figures/visualization/mindspeed_llamafactoary_img/llamafactory-qwen25vl.txt)
+   打印的模型结构：[mindspeed-mm-qwen25vl.txt](../figures/visualization/mindspeed_llamafactory_img/mindspeed-mm-qwen25vl.txt)，[llamafactory-qwen25vl.txt](../figures/visualization/mindspeed_llamafactory_img/llamafactory-qwen25vl.txt)
 
 2. 基于模型结构由外到内进行layer mapping配置
 
 - 结构1
 
-   ![1.png](../figures/visualization/mindspeed_llamafactoary_img/1.png)
-   
+   ![1.png](../figures/visualization/mindspeed_llamafactory_img/1.png)
+
    ```yaml
    TopLayer: # 代表模型最顶层
      0.module: module # MindSpeed的model类型是list，msProbe采集会对其添加数字前缀，代表当前模型在list中的索引，因此要做0.module -> module的映射
-   
+
    Float16Module: # MindSpeed的Float16Module与LLamaFactory的Qwen2_5_VLForConditionalGeneration同级，对它们的子层进行映射
      module.image_encoder: visual # MindSpeed的Float16Module多了一个子层module，跨层级用"."分隔，配置为module.image_encoder
      module.text_decoder: model
@@ -271,8 +271,8 @@ Qwen2MLP:
 
 - 结构2
 
-   ![2.png](../figures/visualization/mindspeed_llamafactoary_img/2.png)
-   
+   ![2.png](../figures/visualization/mindspeed_llamafactory_img/2.png)
+
    ```yaml
    VisionModel: # MindSpeed的VisionModel与LLamaFactory的Qwen2_5_VisionPatchEmbed同级，对它们的子层进行映射
      encoder.patch_embed: patch_embed
@@ -283,8 +283,8 @@ Qwen2MLP:
 
 - 结构3
 
-   ![3.png](../figures/visualization/mindspeed_llamafactoary_img/3.png)
-   
+   ![3.png](../figures/visualization/mindspeed_llamafactory_img/3.png)
+
    ```yaml
    TransformerLayer: # MindSpeed的TransformerLayer与LLamaFactory的Qwen2_5_VLVisionBlock同级，对它们的子层进行映射
      input_layernorm: norm1
@@ -294,13 +294,13 @@ Qwen2MLP:
 
 - 结构4
 
-   ![4.png](../figures/visualization/mindspeed_llamafactoary_img/4.png)
-   
+   ![4.png](../figures/visualization/mindspeed_llamafactory_img/4.png)
+
    ```yaml
    Qwen2vlVitSelfAttention: # MindSpeed的Qwen2vlVitSelfAttention与LLamaFactory的Qwen2_5_VLVisionSdpaAttention同级，对它们的子层进行映射
      linear_qkv: qkv
      linear_proj: proj
-   
+
    MLP: # MindSpeed的MLP与LLamaFactory的Qwen2_5_VLMLP同级，对它们的子层进行映射
      linear_fc1: up_proj
      linear_fc2: down_proj
@@ -308,8 +308,8 @@ Qwen2MLP:
 
 - 结构5
 
-   ![5.png](../figures/visualization/mindspeed_llamafactoary_img/5.png)
-   
+   ![5.png](../figures/visualization/mindspeed_llamafactory_img/5.png)
+
    ```yaml
    MultimodalProjector: # MindSpeed的MultimodalProjector与LLamaFactory的Qwen2_5_VLPatchMerger同级，对它们的子层进行映射
      layernorm: ln_q
@@ -320,8 +320,8 @@ Qwen2MLP:
 
 - 结构6
 
-   ![6.png](../figures/visualization/mindspeed_llamafactoary_img/6.png)
-   
+   ![6.png](../figures/visualization/mindspeed_llamafactory_img/6.png)
+
    ```yaml
    MMGPTModel: # MindSpeed的MMGPTModel与LLamaFactory的Qwen2_5_VLModel同级，对它们的子层进行映射
      embedding.word_embeddings: embed_tokens
@@ -333,8 +333,8 @@ Qwen2MLP:
 
 - 结构7
 
-   ![7.png](../figures/visualization/mindspeed_llamafactoary_img/7.png)
-   
+   ![7.png](../figures/visualization/mindspeed_llamafactory_img/7.png)
+
    由于TransformerLayer和MLP层已经配置过，无法再重复配置，此处的节点映射可通过[手动选择节点匹配](#手动选择节点匹配)完成。
 
 ### 手动选择节点匹配

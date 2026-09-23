@@ -15,7 +15,7 @@
 
 - **权重同步滞后**：actor 更新后，vLLM engine 的权重尚未同步
 - **算子精度差异**：不同硬件（昇腾 NPU / GPU）或不同框架（vLLM / Megatron）的算子实现存在数值精度差异
-- **推理/训练模式差异**：dropout、flash attention 等在前向推理和训练时的行为不同
+- **推理/训练模式差异**：dropout、Flash Attention 等在前向推理和训练时的行为不同
 
 ### 1.2 功能定位
 
@@ -246,7 +246,7 @@ mask = np.load("prob_mask_step_10.npy")
 # 收集所有有效位置的 diff
 valid_diffs = diff[mask]
 
-print(f"有效 token 数: {len(valid_diffs)}")
+print(f"有效 token 数：{len(valid_diffs)}")
 print(f"mean: {valid_diffs.mean():.6f}")
 print(f"max:  {valid_diffs.max():.6f}")
 print(f"std:  {valid_diffs.std():.6f}")

@@ -159,7 +159,7 @@ dump_path参数指定的路径下会出现如下目录结构，可以根据需�
 
 2. 执行比对。
 
-   命令如下, 具体参数使用参见[参数说明](../user_guide/accuracy_compare/mindspore_accuracy_compare_instruct.md#参数说明)：
+   命令如下，具体参数使用参见[参数说明](../user_guide/accuracy_compare/mindspore_accuracy_compare_instruct.md#参数说明)：
 
    ```bash
    msprobe compare -tp /home/dump/dump_data_2.7.0/step0/proc1280779/dump.json -gp /home/dump/dump_data_2.6.0/step0/proc1280778/dump.json -o ./compare_result/accuracy_compare
@@ -204,7 +204,7 @@ dump_path参数指定的路径下会出现如下目录结构，可以根据需�
 
    dump_data_2.7.0目录路径为`/home/dump/dump_data_2.7.0`。
 
-2. 执行图构建比对, 具体参数使用参见[双图比对](../user_guide/accuracy_compare/mindspore_visualization_instruct.md#双图比对)的参数说明。
+2. 执行图构建比对，具体参数使用参见[双图比对](../user_guide/accuracy_compare/mindspore_visualization_instruct.md#双图比对)的参数说明。
 
    ```bash
    msprobe graph_visualize -tp /home/dump/dump_data_2.7.0 -gp /home/dump/dump_data_2.6.0 -o /home/dump/output
