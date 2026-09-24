@@ -320,12 +320,21 @@ slime 启动 SGLang 时须指定：
 
 slime 框架推理侧使用 SGLang engine执行 rollout 生成。
 
-SGLang 从 0.5.11 版本起原生内置 msProbe 能力，因此低于 0.5.11 版本须按照本节操作进行侵入式修改，不低于 0.5.11 版本直接传配置参数。请根据 SGLang 版本选择操作方法：
+SGLang 从 0.5.11 版本起原生内置 msProbe 能力：
+
+- 低于 0.5.11 版本：须侵入式插入 `PrecisionDebugger`。
+- 不低于 0.5.11 版本：虽内置了 dump 能力，但每次 forward（含 prefill 与 decode）均会触发内置的 `start/stop/step` 流程，不会跳过 slime 启动阶段的 dummy forward，导致 dummy forward 占掉靠前的 step（`step0`、`step1` 等）。
+
+因此两种版本都须对 `ModelRunner.forward()` 做少量修改以跳过 dummy forward。
+
+请根据 SGLang 版本选择操作方法：
 
 | SGLang 版本 | 操作方法 |
 |-------------|------|
-| **< 0.5.11** | 侵入式修改 `ModelRunner`，见下文。 |
-| **≥ 0.5.11** | 已原生内置msProbe工具，可直接在 `SGLANG_ARGS` 中指定参数 `--sglang-msprobe-dump-config` 进行精度数据采集。 |
+| **< 0.5.11** | 侵入式插入 `PrecisionDebugger` 并跳过 dummy forward，见下文 [SGLang 低于 0.5.11](#sglang-低于-0511侵入式插桩)。 |
+| **≥ 0.5.11** | 已原生内置 msProbe，在 `SGLANG_ARGS` 中指定 `--sglang-msprobe-dump-config`；但仍须修改 `forward()` 跳过 dummy forward，见下文 [SGLang 0.5.11 及以上](#sglang-0511-及以上内置-msprobe-并跳过-dummy-forward)。 |
+
+#### SGLang 低于 0.5.11（侵入式插桩）
 
 在 `sglang/srt/model_executor/model_runner.py` 中插入 `PrecisionDebugger` 接口。修改步骤如下：
 
@@ -372,6 +381,54 @@ SGLang 从 0.5.11 版本起原生内置 msProbe 能力，因此低于 0.5.11 版
              return output
     ```
 
+#### SGLang 0.5.11 及以上（内置 msProbe 并跳过 dummy forward）
+
+以 SGLang 0.5.13 版本为例，SGLang 内置 msProbe 的实现位于 `sglang/srt/model_executor/model_runner.py`：
+
+- `ModelRunner.__init__`（约 443~445 行）：`server_args.msprobe_dump_config` 非空时调用 `init_msprobe()`，实例化 `self.msprobe_debugger`；
+- `init_msprobe()`（约 603~618 行）：`seed_all(mode=True)` 后创建 `PrecisionDebugger(config_path=self.server_args.msprobe_dump_config)`；
+- `ModelRunner.forward()`（约 3407 行起）：每次前向**无条件**执行 `self.msprobe_debugger.start(...)` → 前向 → `self.msprobe_debugger.stop()` + `self.msprobe_debugger.step()`。
+
+内置实现每次 forward 都会推进 msProbe 步数。slime 启动 SGLang 时，探活调用 `/health_generate`（`input_ids=[0]`、`max_new_tokens=1`），会产生**两次** dummy forward：一次 1 个 token 的 EXTEND prefill 和一次 1 个 token 的 DECODE，二者分别占掉 `step0` 与 `step1`（故 `step0`、`step1` 的 shape 长度均为 1），正式 prefill 被推到 `step2` 及以后。解决办法与 < 0.5.11 相同：仅对 token 数 ≥ `MSPROBE_MIN_DUMP_TOKENS` 的 EXTEND 前向执行 `start/stop/step`，跳过 dummy forward。
+
+修改 `ModelRunner.forward()`：在 `start` 前增加判断，并将 `start/stop/step` 的触发条件从 `self.msprobe_debugger is not None` 改为 `_msprobe_dump`：
+
+```diff
+     def forward(self, forward_batch, ...):
+         self.forward_pass_id += 1
+
++        # [msProbe] 仅对 token 数 ≥ MSPROBE_MIN_DUMP_TOKENS 的 EXTEND 前向采集，
++        # 跳过启动阶段 MSPROBE_MIN_DUMP_TOKENS 个 token 的 dummy forward，避免其占掉 step0。
++        _msprobe_dump = False
++        if self.msprobe_debugger is not None:
++            _min_tokens = int(os.environ.get("MSPROBE_MIN_DUMP_TOKENS", "2"))
++            _num_tokens = (
++                forward_batch.input_ids.numel()
++                if forward_batch.input_ids is not None else 0
++            )
++            if forward_batch.forward_mode.is_extend(include_draft_extend_v2=True) \
++                    and _num_tokens >= _min_tokens:
++                _msprobe_dump = True
+
+         # Try msprob debugger
+-        if self.msprobe_debugger is not None:
++        if _msprobe_dump:
+             rank_id = (
+                 self.gpu_id if self.dp_size is not None and self.dp_size > 1 else None
+             )
+             self.msprobe_debugger.start(model=self.model, rank_id=rank_id)
+
+         ...
+         output = ...
+
+-        if self.msprobe_debugger is not None:
++        if _msprobe_dump:
+             self.msprobe_debugger.stop()
+             self.msprobe_debugger.step()
+
+         return output
+```
+
 ## 5. 启动命令
 
 训推一致性 dump 模式与正式训练隔离。启动前需先下发训练/推理侧环境变量，再按建议参数启动 slime。
@@ -402,29 +459,45 @@ slime 基于 Ray 启动训练 Worker 与推理engine，环境变量须通过 `ra
 | `MSPROBE_SEED` | 固定随机种子，保证多次运行结果可复现 |
 | `TORCHDYNAMO_DISABLE=1` | 遇 dynamo 报错时全局关闭 |
 
-**推理侧**（SGLang 版本 < 0.5.11，需侵入式插桩时）：
+**推理侧**：
+
+SGLang **< 0.5.11**（侵入式插桩）须下发：
 
 ```json
 {
   "env_vars": {
     "SGLANG_MSPROBE_DUMP": "1",
     "MSPROBE_GENERATE_CONFIG": "/path/to/config_generate.json",
-    "MSPROBE_MIN_DUMP_TOKENS": "2"
+    "MSPROBE_MIN_DUMP_TOKENS": "2",
+    "SGLANG_ENABLE_HEALTH_ENDPOINT_GENERATION": "0"
+  }
+}
+```
+
+SGLang **≥ 0.5.11**（内置 msProbe）仅须下发 `MSPROBE_MIN_DUMP_TOKENS` 与 `SGLANG_ENABLE_HEALTH_ENDPOINT_GENERATION`，采集配置通过启动参数 `--sglang-msprobe-dump-config` 指定（见 [5.2 启动参数建议](#52-启动参数建议)）：
+
+```json
+{
+  "env_vars": {
+    "MSPROBE_MIN_DUMP_TOKENS": "2",
+    "SGLANG_ENABLE_HEALTH_ENDPOINT_GENERATION": "0"
   }
 }
 ```
 
 | 变量 | 说明 |
 |------|------|
-| `SGLANG_MSPROBE_DUMP=1` | 推理侧 msProbe 开关 |
-| `MSPROBE_GENERATE_CONFIG` | 推理侧 config.json 路径 |
-| `MSPROBE_MIN_DUMP_TOKENS` | 过滤启动阶段约 1 个 token 的 dummy EXTEND forward，避免采集 warmup 探针请求（见下表） |
+| `SGLANG_MSPROBE_DUMP=1` | 推理侧 msProbe 开关（仅 < 0.5.11 侵入式插桩时使用） |
+| `MSPROBE_GENERATE_CONFIG` | 推理侧 config.json 路径（仅 < 0.5.11 侵入式插桩时使用） |
+| `MSPROBE_MIN_DUMP_TOKENS` | 过滤启动阶段 dummy forward（prefill 与 decode 各 1 个 token），避免其占掉 `step0`/`step1`（两种版本均须下发） |
+| `SGLANG_ENABLE_HEALTH_ENDPOINT_GENERATION=0` | 关闭 `/health` 端点的生成探测，避免msProbe采集不需要的/health请求阶段的数据 |
 
-因 SGLang engine 初始化时会执行一次约 **1 个 token** 的 dummy EXTEND forward（用于 warmup / 图编译探测），`MSPROBE_MIN_DUMP_TOKENS` 用于**过滤推理侧极短 EXTEND 前向**：
+因 slime 启动 SGLang 时，探活 `/health_generate`（`input_ids=[0]`、`max_new_tokens=1`）会产生 **1 个 token 的 dummy prefill** 与 **1 个 token 的 dummy decode** 两次前向，`MSPROBE_MIN_DUMP_TOKENS` 用于**过滤这些启动阶段的 dummy 前向**：
 
 | 前向类型 | 典型 token 数 | `MSPROBE_MIN_DUMP_TOKENS=2` 时 |
 |----------|--------------|-------------------------------|
-| 启动 dummy forward | 约 1 | **跳过**，不 dump |
+| 启动 dummy prefill（EXTEND） | 1 | **跳过**（token 数 < 阈值），不 dump |
+| 启动 dummy decode（DECODE） | 1 | **跳过**（非 EXTEND），不 dump |
 | 正式 rollout prefill | prompt 长度 | 采集，作为 generate `step0` |
 
 ### 5.2 启动参数建议
