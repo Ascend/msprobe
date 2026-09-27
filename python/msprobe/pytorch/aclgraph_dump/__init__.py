@@ -55,34 +55,23 @@ def acl_stat(x: torch.Tensor, tag: str, switch: torch.Tensor = None) -> torch.Te
     """
     acl_stat(tensor, tag) -> tensor
 
-    Collect min/max/mean/norm on device, then stash the statistics plus dtype
-    and shape into the host-side dictionary.
+    Check the switch in the host callback, then copy and compute statistics on CPU.
     """
-    # Keep statistics as an explicit custom-op input so graph replay preserves
-    # the producer-before-host-callback dependency.
-    disable_statistics = (
-        x.dtype in (torch.int8, torch.uint8) or x.is_quantized or (x.is_floating_point() and x.element_size() <= 1)
-    )
-    stats = None
-    if not disable_statistics:
-        if x.numel() == 0:
-            stats = torch.zeros(4, dtype=torch.float32, device=x.device)
-        else:
-            stat_tensor = torch.abs(x) if x.is_complex() else x
-            stat_tensor = stat_tensor.to(torch.float32)
-            stats = torch.stack(
-                (
-                    torch.amin(stat_tensor),
-                    torch.amax(stat_tensor),
-                    torch.mean(stat_tensor),
-                    torch.norm(stat_tensor),
-                )
-            )
-    return torch.ops.my_ns.acl_stat(x, stats, tag, switch)
+    torch.ops.my_ns.acl_stat(x, None, tag, switch)
+    return x
 
 
 def get_acl_stat_dict(clear: bool = False):
     return aclgraph_dump_ext.get_acl_stat_dict(clear)
+
+
+def set_acl_stat_switch(switch, enabled):
+    aclgraph_dump_ext.set_stat_switch(switch, enabled)
+
+
+def get_acl_stat_switch(switch):
+    """Read the requested Host state of an initialized statistics switch."""
+    return aclgraph_dump_ext.get_stat_switch(switch)
 
 
 __all__ = ["acl_save", "acl_tensor_save", "acl_stat", "get_acl_stat_dict"]

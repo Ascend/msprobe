@@ -35,6 +35,7 @@ def _build_aclgraph_dumper_import_env():
     )
     fake_aclgraph_dump.acl_stat = MagicMock(side_effect=lambda tensor, tag: tensor)
     fake_aclgraph_dump.get_acl_stat_dict = MagicMock(return_value={})
+    fake_aclgraph_dump.set_acl_stat_switch = MagicMock()
 
     fake_torch_npu = types.ModuleType("torch_npu")
     fake_torch_npu.npu = types.SimpleNamespace(synchronize=MagicMock())
@@ -627,6 +628,45 @@ class TestAclGraphDumper(unittest.TestCase):
             if module_name:
                 self.assertFalse(hasattr(module, "_msprobe_aclgraph_origin_forward"))
 
+    def test_module_statistics_are_not_collected_as_apis(self):
+        class NestedKwModel(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.child = KwModel()
+
+            def forward(self, x, bias=None):
+                return self.child(x, bias=bias)
+
+        def statistics(tensor, tag, switch=None):
+            values = tensor.float()
+            torch.stack((values.amin(), values.amax(), values.mean(), values.norm()))
+            return tensor
+
+        for level in ("L0", "L1", "mix"):
+            with self.subTest(level=level):
+                model = NestedKwModel()
+                dumper = self.make_dumper(level=level)
+                x = torch.ones(2, 8, dtype=torch.bfloat16)
+                bias = torch.full_like(x, 2)
+                dumper.start(model)
+                with patch.object(self.module, "acl_stat", side_effect=statistics) as collect:
+                    output = model(x, bias=bias)
+                torch.testing.assert_close(output, x + bias)
+                tags = [call.args[1] for call in collect.call_args_list]
+                api_tags = [tag for tag in tags if tag.startswith("Aten.")]
+                if level == "L0":
+                    self.assertFalse(api_tags)
+                else:
+                    self.assertTrue(api_tags)
+                    self.assertTrue(all(tag.startswith("Aten.add.") for tag in api_tags), api_tags)
+                module_tags = [tag for tag in tags if tag.startswith("Module.child.KwModel.")]
+                if level == "L1":
+                    self.assertFalse(module_tags)
+                else:
+                    self.assertEqual(len(module_tags), 3)
+                    self.assertTrue(any(".input_kwargs.bias" in tag for tag in module_tags))
+                self.assertFalse(dumper._is_dispatch_collecting())
+
     def test_patch_custom_api_if_configured_then_collects_indexed_inputs_and_outputs(self):
         target_module_name = "msprobe_custom_api_test_module"
         target_module = types.ModuleType(target_module_name)
@@ -660,11 +700,13 @@ class TestAclGraphDumper(unittest.TestCase):
         original_switch.to.return_value = device_switch
         dumper.switch = original_switch
         model = MagicMock()
-        model.parameters.return_value = iter([types.SimpleNamespace(device="npu:1", is_meta=False)])
+        device = types.SimpleNamespace(type="npu", index=1)
+        model.parameters.return_value = iter([types.SimpleNamespace(device=device, is_meta=False)])
 
         def check_switch_before_patch(_model):
             self.assertIs(dumper.switch, device_switch)
-            original_switch.to.assert_called_once_with("npu:1")
+            original_switch.to.assert_called_once_with(device)
+            self.aclgraph_dump_stub.set_acl_stat_switch.assert_called_once_with(device_switch, dumper.dump_enable)
 
         with patch.object(dumper, "_prepare_tensor_data_dir"), \
                 patch.object(dumper, "_patch", side_effect=check_switch_before_patch), \
@@ -786,6 +828,47 @@ class TestAclGraphDumper(unittest.TestCase):
         self.assertIn("toy.forward", dump_json["data"])
         self.assertEqual(mock_save_json.call_args.kwargs["indent"], 2)
         self.assertEqual(dumper.step_id, 1)
+
+    def test_disabled_statistics_skips_directories_and_resumes_at_next_step(self):
+        dumper = self.make_dumper(task="statistics")
+        dumper._running = True
+        dumper.dump_enable = False
+        with patch.object(dumper, "_refresh_dump_enable"), \
+                patch.object(dumper, "_synchronize") as mock_sync, \
+                patch.object(dumper, "_step_rank_dir", return_value="./dump/step1/rank0") as mock_dir, \
+                patch.object(self.module, "save_json") as mock_save:
+            dumper.step()
+            mock_sync.assert_not_called()
+            self.aclgraph_dump_stub.get_acl_stat_dict.assert_not_called()
+            mock_dir.assert_not_called()
+            mock_save.assert_not_called()
+            self.assertEqual(dumper.step_id, 1)
+
+            dumper.dump_enable = True
+            dumper.step()
+            mock_dir.assert_called_once()
+            self.assertEqual(mock_save.call_args.args[0], "./dump/step1/rank0/dump.json")
+            self.assertEqual(dumper.step_id, 2)
+
+    def test_switch_update_applies_to_next_forward_and_keeps_completed_statistics(self):
+        dumper = self.make_dumper(task="statistics")
+        dumper._running = True
+        dumper.dump_enable = False
+        def toggle():
+            dumper.dump_enable = not dumper.dump_enable
+        with patch.object(dumper, "_refresh_dump_enable", side_effect=toggle), \
+                patch.object(dumper, "_synchronize") as sync, \
+                patch.object(dumper, "_step_rank_dir", return_value="./dump/step1/rank0"), \
+                patch.object(self.module, "save_json") as save:
+            dumper.step()
+            sync.assert_not_called()
+            save.assert_not_called()
+            self.assertTrue(dumper.dump_enable)
+            dumper.step()
+            self.assertFalse(dumper.dump_enable)
+            sync.assert_called_once()
+            save.assert_called_once()
+            self.assertEqual(save.call_args.args[0], "./dump/step1/rank0/dump.json")
 
     def test_step_if_statistics_are_invalid_then_warn_and_save(self):
         dumper = self.make_dumper(level="L1", rank=[], rank_id=0)
@@ -1072,19 +1155,33 @@ class TestAclGraphDumpApi(unittest.TestCase):
         self.assertEqual(call.args[1:], ("tensor.pt", "linear", True, switch))
         self.assertIs(result, saved_tensor)
 
-    def test_acl_stat_computes_statistics_before_calling_custom_op(self):
+    def test_acl_stat_defers_statistics_until_callback(self):
         tensor = torch.arange(8, dtype=torch.int32)
         switch = torch.tensor(True)
 
-        result = self.module.acl_stat(tensor, "linear.input.0", switch)
+        with patch.object(torch, "amin", side_effect=AssertionError("statistics ran during capture")), \
+                patch.object(torch, "stack", side_effect=AssertionError("stack ran during capture")):
+            result = self.module.acl_stat(tensor, "linear.input.0", switch)
 
         call = self.fake_ops.acl_stat.call_args
         self.assertIs(call.args[0], tensor)
-        torch.testing.assert_close(call.args[1], torch.tensor([0.0, 7.0, 3.5, 11.832159]))
+        self.assertIsNone(call.args[1])
         self.assertEqual(call.args[2:], ("linear.input.0", switch))
         self.assertIs(result, tensor)
 
-    def test_acl_stat_skips_low_precision_statistics(self):
+    def test_acl_stat_preserves_noncontiguous_input_without_copy(self):
+        tensor = torch.arange(24).reshape(4, 6)[:, :4]
+
+        result = self.module.acl_stat(tensor, "linear.input.0")
+
+        call = self.fake_ops.acl_stat.call_args
+        self.assertIs(call.args[0], tensor)
+        self.assertFalse(call.args[0].is_contiguous())
+        torch.testing.assert_close(call.args[0], tensor)
+        self.assertIsNone(call.args[1])
+        self.assertIs(result, tensor)
+
+    def test_acl_stat_forwards_low_precision_without_reductions(self):
         tensors = [torch.arange(8, dtype=torch.int8), torch.arange(8, dtype=torch.uint8)]
         for dtype_name in ("float8_e4m3fn", "float8_e5m2", "float4_e2m1fn_x2"):
             dtype = getattr(torch, dtype_name, None)

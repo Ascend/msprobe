@@ -230,9 +230,17 @@ AclGraphDumper.step(dump: bool = True) -> None
 - 新开关值从后续 ACLGraph replay 开始生效。
 - 动态刷新仅更新 `dump_enable`；运行过程中修改 `task`、`level`、`list`、`custom_api` 或 `slice` 不会改变已捕获的图。
 
+`statistics` 和 `tensor` 共用 Host 动态开关。相邻且没有模型任务穿插的采集点合并为一个 Host 回调；回放时每组读取一次开关，关闭则直接返回，不复制 Tensor、不计算统计值、不保存数据。
+
+`tensor` 保留 Python 中的 `contiguous()`，由捕图流程管理连续化所需的设备内存；关闭采集时，图中已有的连续化操作仍会执行。`statistics` 保留原始 shape/stride，开启后才复制存储范围并在 CPU 上计算统计。
+
+采集回调通过 TaskQueue 按序提交。开关变化时先等待当前 stream 上的回调完成，再更新 Host 开关；后续 replay 使用新状态。持续关闭时，`statistics` 不增加采集专用同步，`tensor` 保留原有的 step 同步和文件归档检查。
+
+需要重新编译安装 `aclgraph_dump` C++ 扩展。捕获任务查询与销毁回调接口已在 CANN 9.1.0、torch_npu 2.10.0.post4 验证；更旧 CANN 及多 stream 并发切换尚未验证。
+
 > [!NOTE]
 >
-> 对于 `statistics` 任务，`dump_enable` 不控制 `dumper.step()` 接口的数据落盘。`dump_enable` 为 `false` 时，调用 `dumper.step()`，默认情况下工具仍会创建当前 step 的目录和 `dump.json`，其中 `data` 字段为空字典 `{}`。这是预期行为，不表示采集仍处于开启状态。调用 `dumper.step(dump=False)` 即可关闭数据落盘。
+> 对于 `statistics` 任务，`dump_enable=false` 时调用 `dumper.step()` 不创建 dump 目录或 `dump.json`，但 step 编号仍会递增。之后重新开启采集时，结果写入对应的 step 目录。`dumper.step(dump=False)` 也不落盘，且不递增 step 编号。
 
 ### 输出说明
 

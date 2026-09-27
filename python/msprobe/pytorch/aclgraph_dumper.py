@@ -24,7 +24,12 @@ from contextlib import nullcontext
 
 import torch
 
-from msprobe.pytorch.aclgraph_dump import acl_stat, acl_tensor_save, get_acl_stat_dict
+from msprobe.pytorch.aclgraph_dump import (
+    acl_stat,
+    acl_tensor_save,
+    get_acl_stat_dict,
+    set_acl_stat_switch,
+)
 from msprobe.pytorch.common.log import logger
 from msprobe.core.common.const import Const, FileCheckConst
 from msprobe.core.common.file_utils import create_directory, check_and_get_real_path, save_json, load_json
@@ -178,14 +183,16 @@ class AclGraphDumper:
             dump_enable,
         ) = self._load_msprobe_config(self.config_path)
         self.task = self._validate_task(config_task)
-        self.dump_path = self._validate_dump_path(config_dump_path)
+        self.dump_enable = self._validate_dump_enable(dump_enable)
+        self.dump_path = self._validate_dump_path(
+            config_dump_path, create=self.task != Const.STATISTICS or self.dump_enable
+        )
         self.list = self._validate_list(config_list)
         self.custom_api = self._validate_custom_api(config_custom_api)
         self.level = self._validate_level(config_level)
         self.rank = get_real_step_or_rank(config_rank, Const.RANK)
         self.rank_id = self._resolve_rank_id()
         self.slice_info = config_slice_info
-        self.dump_enable = self._validate_dump_enable(dump_enable)
         self.switch = torch.tensor([int(self.dump_enable)], dtype=torch.int32)
         self.step_id = 0
         self._running = False
@@ -235,11 +242,12 @@ class AclGraphDumper:
         )
 
     @staticmethod
-    def _validate_dump_path(dump_path):
+    def _validate_dump_path(dump_path, create=True):
         if not isinstance(dump_path, str):
             raise TypeError("dump_path must be a string")
         dump_path = check_and_get_real_path(dump_path, FileCheckConst.WRITE_ABLE, must_exist=False)
-        create_directory(dump_path)
+        if create:
+            create_directory(dump_path)
         return dump_path
 
     @staticmethod
@@ -270,6 +278,8 @@ class AclGraphDumper:
         *_, value = self._load_msprobe_config(self.config_path)
         self.dump_enable = self._validate_dump_enable(value)
         self.switch.fill_(int(self.dump_enable))
+        if self.switch.device.type == "npu":
+            set_acl_stat_switch(self.switch, self.dump_enable)
 
     @staticmethod
     def _validate_list(keywords):
@@ -646,13 +656,21 @@ class AclGraphDumper:
                 dispatch_mode = _AclTorchDispatchMode(dumper) if use_dispatch else nullcontext()  # pylint: disable=possibly-used-before-assignment
                 started = False
                 call_started = [False]
+                # Child module hooks run inside the root API dispatch mode in mix.
+                # Exclude collection operations while keeping model APIs visible.
                 if collect_module_data:
-                    collected = dumper._collect(
-                        module_dump_name, "input", args, mark_forward_start=not started, call_started=call_started
+                    collected = dumper._dc(
+                        dumper._collect,
+                        module_dump_name,
+                        "input",
+                        args,
+                        mark_forward_start=not started,
+                        call_started=call_started,
                     )
                     started = started or collected
                     if kwargs:
-                        collected = dumper._collect(
+                        collected = dumper._dc(
+                            dumper._collect,
                             module_dump_name,
                             "input_kwargs",
                             kwargs,
@@ -665,7 +683,8 @@ class AclGraphDumper:
                     output = __origin(*args, **kwargs)
 
                 if collect_module_data:
-                    dumper._collect(
+                    dumper._dc(
+                        dumper._collect,
                         module_dump_name,
                         "output",
                         output,
@@ -736,6 +755,8 @@ class AclGraphDumper:
         parameter = next(model.parameters(), None)
         if parameter is not None and not parameter.is_meta:
             self.switch = self.switch.to(parameter.device)
+            if parameter.device.type == "npu":
+                set_acl_stat_switch(self.switch, self.dump_enable)
         if self.task == Const.TENSOR:
             self._prepare_tensor_data_dir()
         self._patch(model)
@@ -747,12 +768,21 @@ class AclGraphDumper:
         if not self._running:
             return
 
-        self._refresh_dump_enable()
-        self._synchronize()
         if self.task == Const.TENSOR:
+            self._refresh_dump_enable()
+            self._synchronize()
             self._archive_tensor_data_dir()
             return
+        # Finish the previous forward before publishing the next switch value.
+        # Disabled callbacks need no D2H; step adds no extra synchronization.
+        if not self.dump_enable:
+            self._refresh_dump_enable()
+            if dump:
+                self.step_id += 1
+            return
+        self._synchronize()
         stats = dict(get_acl_stat_dict(clear=True))
+        self._refresh_dump_enable()
         if not dump:
             return
         statistic_names = ("min", "max", "mean", "norm")
