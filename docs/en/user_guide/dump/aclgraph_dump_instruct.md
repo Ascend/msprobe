@@ -98,6 +98,8 @@ When performing precision alignment in **PyTorch ACLGraph** mode, the overall st
     +   dumper.step()
     ```
 
+    For `statistics`, graph capture now inserts only collection callbacks. During replay, each callback checks `dump_enable` before copying tensor data or computing Min, Max, Mean, and Norm on the CPU. This reduces capture time. Enabled collection transfers the full tensor to the CPU and may take longer during replay than device-side reductions. Rebuild the `aclgraph_dump` C++ extension to use this path.
+
 ### Network-wide Collection
 
 #### Overview

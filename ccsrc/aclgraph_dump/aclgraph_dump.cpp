@@ -39,6 +39,7 @@
 
 #include "acl/acl.h"
 #include "acl/acl_rt.h"
+#include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/npu/Stream.h"
 
 namespace
@@ -88,23 +89,41 @@ struct TensorSaveTaskPayload
     bool is_call_start{false};
 };
 
+using StatSwitch = std::atomic<bool>;
+
+static size_t stat_storage_bytes(const at::Tensor& tensor)
+{
+    if (tensor.numel() == 0) return 0;
+    int64_t elements = 1;
+    for (int64_t i = 0; i < tensor.dim(); ++i)
+    {
+        elements += (tensor.size(i) - 1) * tensor.stride(i);
+    }
+    return static_cast<size_t>(elements) * tensor.element_size();
+}
+
 struct StatTaskPayload
 {
-    StatTaskPayload(at::Tensor stats_tensor, std::string tag, std::string dtype, std::vector<int64_t> shape,
-                    c10::optional<at::Tensor> switch_tensor)
-        : stats_tensor(std::move(stats_tensor)),
+    StatTaskPayload(const at::Tensor& tensor, std::string tag, c10::optional<at::Tensor> switch_tensor)
+        : device_ptr(tensor.numel() == 0 ? nullptr : tensor.const_data_ptr()),
+          nbytes(stat_storage_bytes(tensor)),
+          dtype(tensor.scalar_type()),
+          shape(tensor.sizes().begin(), tensor.sizes().end()),
+          strides(tensor.strides().begin(), tensor.strides().end()),
           tag(std::move(tag)),
-          dtype(std::move(dtype)),
-          shape(std::move(shape)),
           switch_tensor(std::move(switch_tensor))
     {
     }
 
-    at::Tensor stats_tensor;
-    std::string tag;
-    std::string dtype;
+    // Avoid retaining graph-pool Storage across replay.
+    const void* device_ptr{nullptr};
+    size_t nbytes{0};
+    at::ScalarType dtype{at::kFloat};
     std::vector<int64_t> shape;
+    std::vector<int64_t> strides;
+    std::string tag;
     c10::optional<at::Tensor> switch_tensor;
+    std::shared_ptr<StatSwitch> control;
 };
 
 struct StatRecord
@@ -122,6 +141,41 @@ static std::mutex g_call_index_mutex;
 static std::unordered_map<std::string, uint64_t> g_call_indices;
 static std::unordered_map<std::string, StatRecord> g_stat_entries;
 static std::vector<std::string> g_stat_entry_order;
+static std::unordered_map<const void*, std::shared_ptr<StatSwitch>> g_stat_switches;
+using StatSnapshot = std::vector<std::pair<aclrtStream, uint32_t>>;
+struct DumpTask
+{
+    StatTaskPayload* statistics{nullptr};
+    TensorSaveTaskPayload* tensor{nullptr};
+};
+struct DumpGroup
+{
+    std::vector<DumpTask> tasks;
+    std::shared_ptr<StatSwitch> control;
+};
+struct StatGraph
+{
+    std::vector<DumpGroup*> groups;
+    StatSnapshot snapshot;
+    aclrtStream source{nullptr};
+};
+static std::mutex g_stat_graph_mutex;
+static std::unordered_map<aclmdlRI, StatGraph> g_stat_graphs;
+
+static std::shared_ptr<StatSwitch> find_stat_switch(const c10::optional<at::Tensor>& value)
+{
+    if (!value.has_value() || !value->defined() || value->numel() == 0) return nullptr;
+    std::lock_guard<std::mutex> lock(g_stats_mutex);
+    auto it = g_stat_switches.find(value->const_data_ptr());
+    return it == g_stat_switches.end() ? nullptr : it->second;
+}
+
+static bool get_stat_switch(const at::Tensor& value)
+{
+    const auto control = find_stat_switch(value);
+    TORCH_CHECK(control, "Statistics switch has not been initialized");
+    return control->load(std::memory_order_acquire);
+}
 
 static void check_acl(aclError err, const char* msg)
 {
@@ -440,6 +494,8 @@ static at::Tensor copy_to_cpu(const at::Tensor& x)
 
 static bool is_switch_enabled_on_host(const c10::optional<at::Tensor>& switch_tensor)
 {
+    const auto control = find_stat_switch(switch_tensor);
+    if (control) return control->load(std::memory_order_acquire);
     if (!switch_tensor.has_value() || !switch_tensor->defined() || switch_tensor->numel() == 0)
     {
         return true;
@@ -498,57 +554,195 @@ static void acl_save_host_func(void* user_data)
     acl_save_raw_callback(*payload, final_path);
 }
 
-static void acl_stat_callback(const at::Tensor& stats_dev, const std::string& tag, const std::string& dtype,
-                              const std::vector<int64_t>& shape)
+static void update_invalid_stats(const std::string& tag, const std::string& dtype, const std::vector<int64_t>& shape)
 {
-    if (!stats_dev.defined())
+    const double invalid = std::nan("");
+    update_stats_map(tag, dtype, shape, invalid, invalid, invalid, invalid);
+}
+
+static void set_stat_switch(const at::Tensor& value, bool enabled)
+{
+    auto stream = c10_npu::getCurrentNPUStream().stream(false);
+    aclmdlRICaptureStatus status = ACL_MODEL_RI_CAPTURE_STATUS_NONE;
+    aclmdlRI graph = nullptr;
+    check_acl(aclmdlRICaptureGetInfo(stream, &status, &graph), "Failed to query capture status");
+    TORCH_CHECK(status == ACL_MODEL_RI_CAPTURE_STATUS_NONE, "Update statistics switch outside graph capture");
+    std::shared_ptr<StatSwitch> control;
     {
+        std::lock_guard<std::mutex> lock(g_stats_mutex);
+        auto& entry = g_stat_switches[value.const_data_ptr()];
+        if (!entry)
+        {
+            entry = std::make_shared<StatSwitch>(enabled);
+            return;
+        }
+        control = entry;
+    }
+    if (control->load(std::memory_order_acquire) == enabled) return;
+    // Complete queued callbacks with the old value before publishing the new one.
+    c10_npu::getCurrentNPUStream().synchronize();
+    control->store(enabled, std::memory_order_release);
+}
+
+static bool can_compute_statistics(at::ScalarType dtype)
+{
+    return dtype != at::kChar && dtype != at::kByte && !c10::isQIntType(dtype) &&
+           !(c10::isFloatingType(dtype) && c10::elementSize(dtype) <= 1);
+}
+
+static void compute_cpu_statistics(const at::Tensor& input, const std::string& tag)
+{
+    const std::string dtype = dtype_to_string(input);
+    const std::vector<int64_t> shape = shape_to_vector(input);
+    if (!can_compute_statistics(input.scalar_type()))
+    {
+        update_invalid_stats(tag, dtype, shape);
         return;
     }
-
-    at::Tensor stats_c = stats_dev.is_contiguous() ? stats_dev : stats_dev.contiguous();
-    auto out = at::empty_like(stats_c, stats_c.options().device(at::kCPU), at::MemoryFormat::Contiguous);
-    const size_t nbytes = static_cast<size_t>(out.numel()) * static_cast<size_t>(out.element_size());
-    if (nbytes == 0 || out.scalar_type() != at::kFloat || out.numel() < 4)
+    if (input.numel() == 0)
     {
+        update_stats_map(tag, dtype, shape, 0.0, 0.0, 0.0, 0.0);
         return;
     }
-
-    aclmdlRICaptureMode mode = ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
-    aclmdlRICaptureThreadExchangeMode(&mode);
-    auto memcpy_status = aclrtMemcpy(out.data_ptr(), nbytes, stats_c.data_ptr(), nbytes, ACL_MEMCPY_DEVICE_TO_HOST);
-    aclmdlRICaptureThreadExchangeMode(&mode);
-    if (memcpy_status != ACL_ERROR_NONE)
+    try
     {
-        ASCEND_LOGE("acl_stat device_to_host memcpy failed, tag=%s, status=%d", tag.c_str(),
-                    static_cast<int>(memcpy_status));
+        at::Tensor values = input.is_complex() ? at::abs(input) : input;
+        values = values.to(at::kFloat);
+        update_stats_map(tag, dtype, shape, at::amin(values).item<double>(), at::amax(values).item<double>(),
+                         at::mean(values).item<double>(), at::norm(values).item<double>());
+    }
+    catch (const std::exception& exc)
+    {
+        ASCEND_LOGE("acl_stat CPU statistics failed, tag=%s, error=%s", tag.c_str(), exc.what());
+        update_invalid_stats(tag, dtype, shape);
+    }
+}
+
+static void compute_stat_task(const StatTaskPayload& payload)
+{
+    if (!can_compute_statistics(payload.dtype))
+    {
+        update_invalid_stats(payload.tag, std::string(c10::toString(payload.dtype)), payload.shape);
         return;
     }
-
-    const float* p = out.const_data_ptr<float>();
-    update_stats_map(tag, dtype, shape, static_cast<double>(p[0]), static_cast<double>(p[1]), static_cast<double>(p[2]),
-                     static_cast<double>(p[3]));
+    const int64_t elements = static_cast<int64_t>(payload.nbytes / c10::elementSize(payload.dtype));
+    at::Tensor storage = at::empty({elements}, at::TensorOptions().dtype(payload.dtype).device(at::kCPU));
+    if (payload.nbytes != 0)
+    {
+        aclmdlRICaptureMode mode = ACL_MODEL_RI_CAPTURE_MODE_RELAXED;
+        aclmdlRICaptureThreadExchangeMode(&mode);
+        auto memcpy_status = aclrtMemcpy(storage.data_ptr(), payload.nbytes, payload.device_ptr, payload.nbytes,
+                                         ACL_MEMCPY_DEVICE_TO_HOST);
+        aclmdlRICaptureThreadExchangeMode(&mode);
+        if (memcpy_status != ACL_ERROR_NONE)
+        {
+            ASCEND_LOGE("acl_stat device_to_host memcpy failed, tag=%s, status=%d", payload.tag.c_str(),
+                        static_cast<int>(memcpy_status));
+            return;
+        }
+    }
+    compute_cpu_statistics(storage.as_strided(payload.shape, payload.strides), payload.tag);
 }
 
 static void acl_stat_host_func(void* user_data)
 {
-    // aclgraph replay may execute the same callback payload repeatedly, so we
-    // intentionally do not reclaim the payload here.
-    auto* payload = static_cast<StatTaskPayload*>(user_data);
-    if (payload == nullptr)
+    const auto* task = static_cast<StatTaskPayload*>(user_data);
+    if (task == nullptr) return;
+    if (is_switch_enabled_on_host(task->switch_tensor)) compute_stat_task(*task);
+}
+
+static void save_tensor_task(const TensorSaveTaskPayload& payload)
+{
+    const uint64_t call_idx = get_call_index(payload.api_name, payload.is_call_start);
+    const std::string final_path = build_indexed_tensor_path(payload.save.save_path, payload.api_name, call_idx);
+    validate_save_path(final_path);
+    acl_save_raw_callback(payload.save, final_path);
+}
+
+static void acl_tensor_save_host_func(void* user_data)
+{
+    const auto* payload = static_cast<TensorSaveTaskPayload*>(user_data);
+    if (payload == nullptr) return;
+    if (is_switch_enabled_on_host(payload->switch_tensor)) save_tensor_task(*payload);
+}
+
+static StatSnapshot stat_snapshot(aclmdlRI graph)
+{
+    uint32_t count = 0;
+    check_acl(aclmdlRIGetStreams(graph, nullptr, &count), "Get captured streams");
+    std::vector<aclrtStream> streams(count);
+    check_acl(aclmdlRIGetStreams(graph, streams.data(), &count), "Get captured streams");
+    StatSnapshot result;
+    for (const auto stream : streams)
     {
-        return;
+        uint32_t tasks = 0;
+        check_acl(aclmdlRIGetTasksByStream(stream, nullptr, &tasks), "Get captured tasks");
+        result.emplace_back(stream, tasks);
     }
-    if (is_switch_enabled_on_host(payload->switch_tensor))
+    return result;
+}
+
+static void forget_stat_graph(void* data)
+{
+    std::lock_guard<std::mutex> lock(g_stat_graph_mutex);
+    auto it = g_stat_graphs.find(data);
+    if (it == g_stat_graphs.end()) return;
+    for (auto* group : it->second.groups)
     {
-        if (payload->stats_tensor.defined())
+        for (const auto& task : group->tasks)
         {
-            acl_stat_callback(payload->stats_tensor, payload->tag, payload->dtype, payload->shape);
-            return;
+            delete task.statistics;
+            delete task.tensor;
         }
-        const double invalid = std::nan("");
-        update_stats_map(payload->tag, payload->dtype, payload->shape, invalid, invalid, invalid, invalid);
+        delete group;
     }
+    g_stat_graphs.erase(it);
+}
+
+static void dump_group_callback(void* data)
+{
+    const auto* group = static_cast<DumpGroup*>(data);
+    if (!group->control->load(std::memory_order_acquire)) return;
+    for (const auto& task : group->tasks)
+    {
+        if (task.statistics)
+            compute_stat_task(*task.statistics);
+        else
+            save_tensor_task(*task.tensor);
+    }
+}
+
+static int launch_dump_callback(aclrtStream stream, DumpTask task)
+{
+    const auto control = task.statistics ? task.statistics->control : find_stat_switch(task.tensor->switch_tensor);
+    aclmdlRICaptureStatus status = ACL_MODEL_RI_CAPTURE_STATUS_NONE;
+    aclmdlRI graph = nullptr;
+    check_acl(aclmdlRICaptureGetInfo(stream, &status, &graph), "Query dump capture");
+    if (status != ACL_MODEL_RI_CAPTURE_STATUS_ACTIVE || !control)
+    {
+        if (task.statistics) return aclrtLaunchHostFunc(stream, acl_stat_host_func, task.statistics);
+        return aclrtLaunchHostFunc(stream, acl_tensor_save_host_func, task.tensor);
+    }
+
+    std::lock_guard<std::mutex> lock(g_stat_graph_mutex);
+    auto snapshot = stat_snapshot(graph);
+    auto& state = g_stat_graphs[graph];
+    if (!state.groups.empty() && state.source == stream && state.snapshot == snapshot &&
+        state.groups.back()->control == control)
+    {
+        // No captured model task occurred between these observations.
+        state.groups.back()->tasks.push_back(task);
+        return 0;
+    }
+    if (state.groups.empty())
+        check_acl(aclmdlRIDestroyRegisterCallback(graph, forget_stat_graph, graph), "Register graph cleanup");
+
+    auto* group = new DumpGroup{{task}, control};
+    state.groups.push_back(group);
+    check_acl(aclrtLaunchHostFunc(stream, dump_group_callback, group), "Capture dump callback");
+    state.source = stream;
+    state.snapshot = stat_snapshot(graph);
+    return 0;
 }
 
 static at::Tensor acl_save_impl(const at::Tensor& x, const std::string& path)
@@ -578,23 +772,6 @@ static at::Tensor acl_save_impl(const at::Tensor& x, const std::string& path)
     return x;
 }
 
-static void acl_tensor_save_host_func(void* user_data)
-{
-    auto* payload = static_cast<TensorSaveTaskPayload*>(user_data);
-    if (payload == nullptr)
-    {
-        return;
-    }
-    if (!is_switch_enabled_on_host(payload->switch_tensor))
-    {
-        return;
-    }
-    const uint64_t call_idx = get_call_index(payload->api_name, payload->is_call_start);
-    const std::string final_path = build_indexed_tensor_path(payload->save.save_path, payload->api_name, call_idx);
-    validate_save_path(final_path);
-    acl_save_raw_callback(payload->save, final_path);
-}
-
 static at::Tensor acl_tensor_save_impl(const at::Tensor& x, const std::string& path, const std::string& api_name,
                                        bool is_call_start, const c10::optional<at::Tensor>& switch_tensor)
 {
@@ -611,18 +788,19 @@ static at::Tensor acl_tensor_save_impl(const at::Tensor& x, const std::string& p
     }
 
     ensure_acl_runtime_initialized();
-    auto stream = c10_npu::getCurrentNPUStream().stream();
+    auto stream = c10_npu::getCurrentNPUStream().stream(false);
     auto* payload = new TensorSaveTaskPayload(x, path, api_name, is_call_start, switch_tensor);
-    auto cb_status = aclrtLaunchHostFunc(stream, acl_tensor_save_host_func, payload);
-    if (cb_status != ACL_ERROR_NONE)
-    {
-        delete payload;
-        check_acl(cb_status, "aclrtLaunchHostFunc failed for acl_tensor_save");
-    }
+    at_npu::native::OpCommand::RunOpApi("acl_tensor_save",
+                                        [stream, payload]() -> int
+                                        {
+                                            const auto status = launch_dump_callback(stream, {nullptr, payload});
+                                            if (status != ACL_ERROR_NONE) delete payload;
+                                            return status;
+                                        });
     return x;
 }
 
-static at::Tensor acl_stat_impl(const at::Tensor& x, const c10::optional<at::Tensor>& stats_tensor,
+static at::Tensor acl_stat_impl(const at::Tensor& x, const c10::optional<at::Tensor>& /*stats_tensor*/,
                                 const std::string& tag, const c10::optional<at::Tensor>& switch_tensor)
 {
     if (!x.defined())
@@ -630,40 +808,35 @@ static at::Tensor acl_stat_impl(const at::Tensor& x, const c10::optional<at::Ten
         return x;
     }
 
-    const std::string dtype = dtype_to_string(x);
-    const std::vector<int64_t> shape = shape_to_vector(x);
     const auto dev_type = x.device().type();
 
     if (dev_type != at::DeviceType::PrivateUse1)
     {
         if (!is_switch_enabled_on_host(switch_tensor)) return x;
-        if (!stats_tensor.has_value() || !stats_tensor->defined())
-        {
-            const double invalid = std::nan("");
-            update_stats_map(tag, dtype, shape, invalid, invalid, invalid, invalid);
-            return x;
-        }
-        at::Tensor stats_cpu = stats_tensor->to(at::kCPU, /*non_blocking=*/false).contiguous();
-        if (!stats_cpu.defined() || stats_cpu.scalar_type() != at::kFloat || stats_cpu.numel() < 4)
-        {
-            return x;
-        }
-        const float* p = stats_cpu.const_data_ptr<float>();
-        update_stats_map(tag, dtype, shape, static_cast<double>(p[0]), static_cast<double>(p[1]),
-                         static_cast<double>(p[2]), static_cast<double>(p[3]));
+        compute_cpu_statistics(x, tag);
         return x;
     }
 
     ensure_acl_runtime_initialized();
-    auto stream = c10_npu::getCurrentNPUStream().stream();
-    at::Tensor stats_dev = stats_tensor.has_value() ? stats_tensor.value() : at::Tensor{};
-    auto* payload = new StatTaskPayload(stats_dev, tag, dtype, shape, switch_tensor);
-    auto cb_status = aclrtLaunchHostFunc(stream, acl_stat_host_func, payload);
-    if (cb_status != ACL_ERROR_NONE)
+    auto stream = c10_npu::getCurrentNPUStream().stream(false);
+    auto control = find_stat_switch(switch_tensor);
+    if (control && !control->load(std::memory_order_acquire))
     {
-        delete payload;
-        check_acl(cb_status, "aclrtLaunchHostFunc failed");
+        aclmdlRICaptureStatus status = ACL_MODEL_RI_CAPTURE_STATUS_NONE;
+        aclmdlRI graph = nullptr;
+        check_acl(aclmdlRICaptureGetInfo(stream, &status, &graph), "Failed to query capture status");
+        if (status == ACL_MODEL_RI_CAPTURE_STATUS_NONE) return x;
     }
+    auto* payload = new StatTaskPayload(x, tag, switch_tensor);
+    payload->control = std::move(control);
+    // Queue the launch behind the tensor producers without draining TaskQueue.
+    at_npu::native::OpCommand::RunOpApi("acl_stat",
+                                        [stream, payload]() -> int
+                                        {
+                                            const auto status = launch_dump_callback(stream, {payload, nullptr});
+                                            if (status != ACL_ERROR_NONE) delete payload;
+                                            return status;
+                                        });
     return x;
 }
 
@@ -776,4 +949,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 {
     m.doc() = "aclgraph_dump_ext: acl_save + acl_stat + host dict access";
     m.def("get_acl_stat_dict", &get_acl_stat_dict_impl, py::arg("clear") = false);
+    m.def("set_stat_switch", &set_stat_switch);
+    m.def("get_stat_switch", &get_stat_switch);
 }
