@@ -18,7 +18,8 @@ import unittest
 from unittest.mock import patch
 
 from msprobe.core.common.const import Const
-from msprobe.pytorch.dump.pt_config import parse_json_config, StatisticsConfig
+from msprobe.core.common.exceptions import MsprobeException
+from msprobe.pytorch.dump.pt_config import parse_json_config, NanCheckConfig, StatisticsConfig
 
 
 class TestPtConfig(unittest.TestCase):
@@ -74,3 +75,16 @@ class TestStatisticsConfig(unittest.TestCase):
             self.config._check_summary_mode()
         except Exception as e:
             self.fail(f"Unexpected exception raised: {e}")
+
+
+class TestNanCheckConfig(unittest.TestCase):
+    def test_check_mode_defaults_and_explicit_values(self):
+        for mode in (None, Const.NAN_CHECK_MODE_SLOT, Const.NAN_CHECK_MODE_ISNAN):
+            with self.subTest(mode=mode):
+                config = NanCheckConfig({} if mode is None else {"check_mode": mode})
+                self.assertEqual(config.check_mode, mode or Const.NAN_CHECK_MODE_ISNAN)
+
+    def test_check_mode_rejects_invalid_value(self):
+        with self.assertRaises(MsprobeException) as context:
+            NanCheckConfig({"check_mode": "invalid"})
+        self.assertIn("nan_check.check_mode must be one of", str(context.exception))

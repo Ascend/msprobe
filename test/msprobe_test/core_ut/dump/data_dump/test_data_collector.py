@@ -188,6 +188,17 @@ class TestDataCollector(unittest.TestCase):
             self.data_collector.module_processor.module_node
         )
 
+    def test_nan_check_isnan_uses_periodic_flush(self):
+        self.data_collector.config.task = Const.NAN_CHECK
+        self.data_collector.config.async_dump = False
+        with patch.object(self.data_collector.data_writer, "flush_data_periodically") as flush:
+            self.data_collector.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+            self.data_collector.handle_data("Tensor.add", {})
+            flush.assert_called_once()
+            self.data_collector.config.nan_check_mode = Const.NAN_CHECK_MODE_SLOT
+            self.data_collector.handle_data("Tensor.add", {})
+            flush.assert_called_once()
+
     def test_handle_data(self):
         with patch.object(DataCollector, "update_data") as mock_update_data, \
                 patch.object(DataCollector, "write_json") as mock_write_json, \

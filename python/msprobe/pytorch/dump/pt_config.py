@@ -17,6 +17,7 @@
 import os
 
 from msprobe.core.common.const import Const
+from msprobe.core.common.exceptions import MsprobeException
 from msprobe.core.common.file_utils import load_json
 from msprobe.core.dump.common_config import BaseConfig, CommonConfig
 from msprobe.pytorch.dump.api_dump.utils import get_ops
@@ -96,6 +97,12 @@ class NanCheckConfig(BaseConfig):
         self.check_config()
         self.tensor_list = json_config.get("tensor_list", [])
         self._check_str_list_config(self.tensor_list, "tensor_list")
+        self.check_mode = json_config.get("check_mode", Const.NAN_CHECK_MODE_ISNAN)
+        if self.check_mode not in Const.NAN_CHECK_MODE_LIST:
+            raise MsprobeException(
+                MsprobeException.INVALID_PARAM_ERROR,
+                f"nan_check.check_mode must be one of {Const.NAN_CHECK_MODE_LIST}, but got {self.check_mode}.",
+            )
 
 
 TaskDict = {

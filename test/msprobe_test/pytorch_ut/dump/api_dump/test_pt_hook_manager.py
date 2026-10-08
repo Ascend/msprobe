@@ -61,6 +61,16 @@ class TestPytorchHookManager(unittest.TestCase):
         result = self.manager._init_specific_components()
         self.assertIsNone(result)
 
+    def test_isnan_does_not_clear_overflow_registers(self):
+        self.mock_config.task = Const.NAN_CHECK
+        self.mock_config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        with patch('msprobe.pytorch.dump.api_dump.pt_hook_manager.torch') as mock_torch:
+            self.manager._on_forward_pre_hook()
+            mock_torch.ops.my_ns.npu_clear_over_flow.assert_not_called()
+            self.mock_config.nan_check_mode = Const.NAN_CHECK_MODE_SLOT
+            self.manager._on_forward_pre_hook()
+            mock_torch.ops.my_ns.npu_clear_over_flow.assert_called_once()
+
     def test_add_count(self):
         with patch('msprobe.pytorch.dump.api_dump.pt_hook_manager.HOOKModule.add_module_count') as mock_add:
             self.manager._add_count("test_layer")

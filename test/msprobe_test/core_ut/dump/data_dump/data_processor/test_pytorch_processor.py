@@ -14,7 +14,9 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
+import json
 import os
+import tempfile
 import unittest
 import zlib
 from unittest.mock import patch, MagicMock
@@ -45,6 +47,7 @@ from msprobe.core.dump.data_dump.data_processor.base import (
     ModuleBackwardInputsOutputs,
     ModuleForwardInputsOutputs,
 )
+from msprobe.core.dump.data_dump.json_writer import DataWriter
 
 
 class TestPytorchDataProcessor(unittest.TestCase):
@@ -777,7 +780,10 @@ class TestNanCheckDataProcessor(unittest.TestCase):
     def setUp(self):
         self.config = MagicMock()
         self.config.tensor_list = None
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_SLOT
+        self.config.data_mode = [Const.ALL]
         self.data_writer = MagicMock()
+        self.data_writer.dump_tensor_data_dir = tempfile.gettempdir()
         self.data_writer.cache_data = []
         self.data_writer.cache_debug = None
         self.data_writer.data_updated = False
@@ -802,17 +808,19 @@ class TestNanCheckDataProcessor(unittest.TestCase):
     def _create_processor(self):
         with (
             patch.object(
-                NanCheckDataProcessor, "_nan_overflow_ops_available", return_value=True
+                NanCheckDataProcessor, "_nan_check_ops_available", return_value=True
             ),
             patch.object(torch.npu, "current_device", return_value=0),
         ):
-            return NanCheckDataProcessor(self.config, self.data_writer)
+            processor = NanCheckDataProcessor(self.config, self.data_writer)
+            processor.update_api_or_module_name("Torch.test.0.forward")
+            return processor
 
     def test_ops_available_returns_false_when_gpu(self):
         with patch(
             "msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_gpu", True
         ):
-            self.assertFalse(NanCheckDataProcessor._nan_overflow_ops_available())
+            self.assertFalse(NanCheckDataProcessor._nan_check_ops_available(Const.NAN_CHECK_MODE_SLOT))
 
     def test_ops_available_returns_true_when_import_ok(self):
         with (
@@ -823,7 +831,7 @@ class TestNanCheckDataProcessor(unittest.TestCase):
             patch("importlib.import_module") as mock_import,
         ):
             mock_import.return_value = MagicMock()
-            self.assertTrue(NanCheckDataProcessor._nan_overflow_ops_available())
+            self.assertTrue(NanCheckDataProcessor._nan_check_ops_available(Const.NAN_CHECK_MODE_SLOT))
             mock_import.assert_called_once_with("msprobe.pytorch.nan_check")
 
     def test_ops_available_returns_false_when_import_fails(self):
@@ -834,11 +842,19 @@ class TestNanCheckDataProcessor(unittest.TestCase):
             ),
             patch("importlib.import_module", side_effect=ImportError()),
         ):
-            self.assertFalse(NanCheckDataProcessor._nan_overflow_ops_available())
+            self.assertFalse(NanCheckDataProcessor._nan_check_ops_available(Const.NAN_CHECK_MODE_SLOT))
+
+    def test_isnan_loads_aclgraph_dump_extension(self):
+        with (
+            patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_gpu", False),
+            patch("importlib.import_module") as mock_import,
+        ):
+            self.assertTrue(NanCheckDataProcessor._nan_check_ops_available(Const.NAN_CHECK_MODE_ISNAN))
+        mock_import.assert_called_once_with("msprobe.pytorch.aclgraph_dump")
 
     def test_init_raises_when_ops_unavailable(self):
         with patch.object(
-            NanCheckDataProcessor, "_nan_overflow_ops_available", return_value=False
+            NanCheckDataProcessor, "_nan_check_ops_available", return_value=False
         ):
             with self.assertRaises(MsprobeException) as ctx:
                 NanCheckDataProcessor(self.config, self.data_writer)
@@ -846,12 +862,30 @@ class TestNanCheckDataProcessor(unittest.TestCase):
 
     def test_init_sets_default_state(self):
         processor = self._create_processor()
+        self.assertEqual(processor._nan_check_mode, Const.NAN_CHECK_MODE_SLOT)
         self.assertIsNone(processor._nan_buffer)
         self.assertEqual(processor._nan_buffer_size, Const.NAN_CHECK_BUFFER_SIZE)
         self.assertEqual(processor._nan_buffer_offset, 0)
         self.assertFalse(processor._nan_overflow_runtime_warned)
         self.assertFalse(processor._nan_collect_runtime_warned)
         self.assertFalse(processor._nan_buffer_full_warned)
+        self.assertFalse(hasattr(processor, "_tensor_nan_results"))
+        self.assertFalse(hasattr(processor, "_isnan_runtime_warned"))
+        self.assertFalse(hasattr(processor, "_isnan_save_warned"))
+
+    def test_init_defaults_to_isnan_when_mode_is_absent(self):
+        del self.config.nan_check_mode
+        processor = self._create_processor()
+        self.assertEqual(processor._nan_check_mode, Const.NAN_CHECK_MODE_ISNAN)
+        for attribute in (
+            "_nan_buffer", "_nan_buffer_size", "_nan_buffer_offset", "_nan_buffer_full_warned",
+            "_nan_overflow_runtime_warned", "_nan_collect_runtime_warned",
+        ):
+            self.assertFalse(hasattr(processor, attribute), attribute)
+        self.data_writer.register_pre_flush_callback.assert_called_once_with(processor._flush_isnan_results)
+        # An empty isnan flush must not need any register-buffer state.
+        processor._flush_isnan_results()
+        self.data_writer._replace_nan_placeholders.assert_not_called()
 
     def test_init_registers_flush_callback(self):
         processor = self._create_processor()
@@ -979,6 +1013,7 @@ class TestNanCheckDataProcessor(unittest.TestCase):
             torch.ops.my_ns.npu_nan_test.assert_called_once()
             self.assertIs(torch.ops.my_ns.npu_nan_test.call_args[0][0], slot)
             self.assertIn(t1, torch.ops.my_ns.npu_nan_test.call_args[0][1])
+            torch.ops.my_ns.acl_tensor_save.assert_not_called()
 
     def test_maybe_collect_sets_warned_flag(self):
         proc = self._create_processor()
@@ -1009,6 +1044,167 @@ class TestNanCheckDataProcessor(unittest.TestCase):
         idx = proc._check_overflow()
         self.assertEqual(idx, 5)
         self.assertEqual(proc._nan_buffer_offset, 6)
+        torch.ops.my_ns.npu_over_flow.assert_called_once()
+
+    def test_isnan_finite_output_disables_saving_even_with_nan_input(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        mio = ModuleForwardInputsOutputs(
+            args=(torch.tensor([float("nan")]),), kwargs=None, output=torch.tensor([1.0, 2.0])
+        )
+        result = proc.analyze_forward_output("Torch.test.0.forward", None, mio)
+        self.assertNotIn(Const.IS_NAN, result["Torch.test.0.forward"])
+        self.assertFalse(hasattr(proc, "_nan_buffer"))
+        # An input NaN alone must leave the save switch disabled.
+        self.assertEqual(torch.ops.my_ns.acl_tensor_save.call_count, 2)
+        for call in torch.ops.my_ns.acl_tensor_save.call_args_list:
+            self.assertEqual(call.args[4].item(), 0)
+        torch.ops.my_ns.npu_nan_test.assert_not_called()
+
+    def test_isnan_automatically_saves_forward_tensors_with_acl_tensor_save(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        input_tensor = torch.arange(6.0).reshape(2, 3).t()
+        kwarg_tensor = torch.tensor([2.0])
+        output = torch.tensor([float("nan")])
+        mio = ModuleForwardInputsOutputs(args=(input_tensor,), kwargs={"weight": kwarg_tensor}, output=output)
+        for tensor_list_config in (None, [], ["unrelated_api"]):
+            with self.subTest(tensor_list=tensor_list_config):
+                self.config.tensor_list = tensor_list_config
+                proc = self._create_processor()
+                torch.ops.my_ns.acl_tensor_save.reset_mock()
+                with patch.object(proc, "_get_tensor_nan_flag", wraps=proc._get_tensor_nan_flag) as get_flag:
+                    proc.analyze_forward_output("Torch.test.0.forward", None, mio)
+                    self.assertEqual(get_flag.call_count, 1)
+                self.assertFalse(hasattr(proc, "_nan_buffer"))
+                torch.ops.my_ns.npu_over_flow.assert_not_called()
+                torch.ops.my_ns.npu_nan_test.assert_not_called()
+                calls = torch.ops.my_ns.acl_tensor_save.call_args_list
+                self.assertEqual(len(calls), 3)
+                expected = [(input_tensor, "input.0"), (kwarg_tensor, "input_kwargs.weight"), (output, "output.0")]
+                for index, (call, (tensor, suffix)) in enumerate(zip(calls, expected)):
+                    saved, path, api_name, is_start, switch = call.args
+                    torch.testing.assert_close(saved, tensor, equal_nan=True)
+                    self.assertTrue(saved.is_contiguous())
+                    self.assertEqual(path, os.path.join(proc.data_path, f"Torch.test.0.forward.{suffix}.pt"))
+                    self.assertEqual(api_name, "Torch.test.0.forward")
+                    self.assertEqual(is_start, index == 0)
+                    self.assertEqual(switch.dtype, torch.int64)
+                    self.assertEqual(switch.item(), 1)
+                    self.assertEqual(switch.numel(), 1)
+
+    def test_isnan_saving_respects_builtin_ignored_outputs(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        name = "NPU.npu_fusion_attention.0.forward"
+        proc.update_api_or_module_name(name)
+        input_tensor = torch.tensor([1.0])
+        outputs = tuple(torch.tensor([float("nan")]) for _ in range(7))
+        mio = ModuleForwardInputsOutputs(args=(input_tensor,), kwargs=None, output=outputs)
+
+        result = proc.analyze_forward_output(name, None, mio)[name][Const.OUTPUT]
+
+        self.assertIsNone(result[4])
+        self.assertIsNone(result[5])
+        calls = torch.ops.my_ns.acl_tensor_save.call_args_list
+        expected_suffixes = ["input.0", "output.0", "output.1", "output.2", "output.3", "output.6"]
+        self.assertEqual(len(calls), len(expected_suffixes))
+        for index, (call, suffix) in enumerate(zip(calls, expected_suffixes)):
+            self.assertEqual(call.args[1], os.path.join(proc.data_path, f"{name}.{suffix}.pt"))
+            self.assertEqual(call.args[3], index == 0)
+            self.assertEqual(call.args[4].item(), 1)
+        self.assertTrue(all(isinstance(tensor, torch.Tensor) for tensor in mio.output))
+
+    def test_isnan_saving_respects_ignored_forward_inputs(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        proc.ignore_rules = proc._normalize_ignore_rules({
+            Const.FORWARD: {"Torch": {"test_ignore": {Const.INPUT: [0, "ignored"]}}}
+        })
+        name = "Torch.test_ignore.0.forward"
+        proc.update_api_or_module_name(name)
+        ignored_tensor = torch.tensor([3.0])
+        input_tensor = torch.tensor([1.0])
+        kwarg_tensor = torch.tensor([2.0])
+        output_tensor = torch.tensor([float("nan")])
+        mio = ModuleForwardInputsOutputs(
+            args=(ignored_tensor, input_tensor),
+            kwargs={"ignored": ignored_tensor, "weight": kwarg_tensor},
+            output=output_tensor,
+        )
+
+        input_info = proc.analyze_forward_input(name, None, mio)[name]
+        proc.analyze_forward_output(name, None, mio)
+
+        self.assertIsNone(input_info[Const.INPUT_ARGS][0])
+        self.assertIsNone(input_info[Const.INPUT_KWARGS]["ignored"])
+        calls = torch.ops.my_ns.acl_tensor_save.call_args_list
+        expected = [(input_tensor, "input.1"), (kwarg_tensor, "input_kwargs.weight"), (output_tensor, "output.0")]
+        self.assertEqual(len(calls), len(expected))
+        for index, (call, (tensor, suffix)) in enumerate(zip(calls, expected)):
+            torch.testing.assert_close(call.args[0], tensor, equal_nan=True)
+            self.assertEqual(call.args[1], os.path.join(proc.data_path, f"{name}.{suffix}.pt"))
+            self.assertEqual(call.args[3], index == 0)
+            self.assertEqual(call.args[4].item(), 1)
+        self.assertIs(mio.args[0], ignored_tensor)
+        self.assertIs(mio.kwargs["ignored"], ignored_tensor)
+
+    def test_isnan_saving_respects_ignored_backward_tensors(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        proc.ignore_rules = proc._normalize_ignore_rules({
+            Const.BACKWARD: {"Torch": {"test": {Const.INPUT: [0], Const.OUTPUT: [0]}}}
+        })
+        name = "Torch.test.0.backward"
+        proc.update_api_or_module_name(name)
+        grad_input = (torch.tensor([1.0]), torch.tensor([float("nan")]))
+        grad_output = (torch.tensor([2.0]), torch.tensor([3.0]))
+        mio = ModuleBackwardInputsOutputs(grad_input=grad_input, grad_output=grad_output)
+
+        result = proc.analyze_backward(name, None, mio)[name]
+
+        self.assertIsNone(result[Const.INPUT][0])
+        self.assertIsNone(result[Const.OUTPUT][0])
+        calls = torch.ops.my_ns.acl_tensor_save.call_args_list
+        self.assertEqual(len(calls), 2)
+        for index, (call, tensor, suffix) in enumerate(zip(
+            calls, (grad_input[1], grad_output[1]), ("input.1", "output.1")
+        )):
+            torch.testing.assert_close(call.args[0], tensor, equal_nan=True)
+            self.assertEqual(call.args[1], os.path.join(proc.data_path, f"{name}.{suffix}.pt"))
+            self.assertEqual(call.args[3], index == 0)
+            self.assertEqual(call.args[4].item(), 1)
+        self.assertIs(mio.grad_input[0], grad_input[0])
+        self.assertIs(mio.grad_output[0], grad_output[0])
+
+    def test_isnan_saves_backward_tensors_with_grad_input_switch(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        proc.update_api_or_module_name("Torch.test.0.backward")
+        for input_value, output_value, expected in ((float("nan"), 1.0, 1), (1.0, float("nan"), 0)):
+            with self.subTest(expected=expected):
+                grad_input = torch.tensor([input_value])
+                grad_output = torch.tensor([output_value])
+                torch.ops.my_ns.acl_tensor_save.reset_mock()
+                mio = ModuleBackwardInputsOutputs(grad_input=(grad_input,), grad_output=(grad_output,))
+                proc.analyze_backward("Torch.test.0.backward", None, mio)
+                torch.ops.my_ns.npu_nan_test.assert_not_called()
+                calls = torch.ops.my_ns.acl_tensor_save.call_args_list
+                self.assertEqual(len(calls), 2)
+                for call, tensor, category in zip(calls, (grad_input, grad_output), ("input", "output")):
+                    torch.testing.assert_close(call.args[0], tensor, equal_nan=True)
+                    expected_path = os.path.join(proc.data_path, f"Torch.test.0.backward.{category}.0.pt")
+                    self.assertEqual(call.args[1], expected_path)
+                    self.assertEqual(call.args[4].item(), expected)
+
+    def test_isnan_does_not_save_integer_or_missing_output(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        for output in (torch.tensor([1, 2]), None):
+            with self.subTest(output=output):
+                mio = ModuleForwardInputsOutputs(args=None, kwargs=None, output=output)
+                proc.analyze_forward_output("Torch.test.0.forward", None, mio)
+                torch.ops.my_ns.acl_tensor_save.assert_not_called()
+                self.assertFalse(hasattr(proc, "_nan_buffer"))
 
     def test_check_overflow_returns_none_on_exception(self):
         proc = self._create_processor()
@@ -1096,8 +1292,123 @@ class TestNanCheckDataProcessor(unittest.TestCase):
         proc = self._create_processor()
         t = torch.randn(2, 2)
         result = proc._analyze_tensor(t, "suffix")
-        for stat_key in ("max", "min", "mean", "norm"):
+        for stat_key in (Const.MAX, Const.MIN, Const.MEAN, Const.NORM):
             self.assertNotIn(stat_key, result)
+        self.data_writer.append_stat_to_buffer.assert_not_called()
+        self.assertNotIn(Const.IS_NAN, result)
+
+    def test_isnan_tensor_records_only_nan_flag(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        cases = [
+            (torch.tensor([1.0, float("nan")]), 1),
+            (torch.tensor([1.0, 2.0]), 0),
+            (torch.tensor([float("inf")]), 0),
+            (torch.tensor([1, 2]), 0),
+            (torch.tensor([True, False]), 0),
+            (torch.empty(0), 0),
+            (torch.tensor([complex(1, float("nan"))]), 1),
+            (torch.empty(2, device="meta"), None),
+        ]
+        with patch.object(proc, "get_stat_info") as mock_stats:
+            records = [proc._analyze_tensor(tensor, "suffix") for tensor, _ in cases]
+            # Tensor-only records must also resolve when there is no API nan buffer entry.
+            proc._flush_isnan_results()
+            mock_stats.assert_not_called()
+        for record, (_, expected) in zip(records, cases):
+            with self.subTest(expected=expected, dtype=record["dtype"]):
+                self.assertEqual(record[Const.IS_NAN], expected)
+                self.assertFalse({Const.MAX, Const.MIN, Const.MEAN, Const.NORM} & record.keys())
+                self.assertNotIn(Const.TENSOR_STAT_INDEX, record)
+        self.data_writer.append_stat_to_buffer.assert_not_called()
+        self.assertFalse(proc._tensor_nan_results)
+
+    def test_isnan_input_records_snapshot_before_inplace_update(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        tensor = torch.tensor([float("nan")])
+        input_record = proc._analyze_tensor(tensor, "input")
+        tensor.zero_()
+        output_record = proc._analyze_tensor(tensor, "output")
+        proc._flush_isnan_results()
+        self.assertEqual(input_record[Const.IS_NAN], 1)
+        self.assertEqual(output_record[Const.IS_NAN], 0)
+
+    def test_isnan_failures_use_only_isnan_warning_state(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        with patch.object(proc, "_get_tensor_nan_flag", side_effect=RuntimeError("check failed")):
+            record = proc._analyze_tensor(torch.ones(1), "output")
+        self.assertIsNone(record[Const.IS_NAN])
+        self.assertTrue(proc._isnan_runtime_warned)
+        output = torch.tensor([float("nan")])
+        info = proc.analyze_element(output)
+        with patch.object(torch.ops.my_ns, "acl_tensor_save", side_effect=RuntimeError("save failed")):
+            proc._save_isnan_tensors(info, ModuleForwardInputsOutputs(args=None, kwargs=None, output=output))
+        self.assertTrue(proc._isnan_save_warned)
+        self.assertFalse(hasattr(proc, "_nan_overflow_runtime_warned"))
+        self.assertFalse(hasattr(proc, "_nan_collect_runtime_warned"))
+
+    def test_isnan_ndarray_records_no_other_statistics(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        proc = self._create_processor()
+        for values, expected in [([np.nan], 1), ([np.inf, 1.0], 0), ([1, 2], 0), ([], 0)]:
+            with self.subTest(values=values):
+                record = proc._analyze_ndarray(np.array(values), "input")
+                self.assertEqual(record[Const.IS_NAN], expected)
+                self.assertFalse({Const.MAX, Const.MIN, Const.MEAN, Const.NORM} & record.keys())
+
+    def test_isnan_forward_and_backward_flags_written_to_dump_json(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        self.config.data_mode = [Const.ALL]
+        self.config.extra_info = False
+        self.data_writer = DataWriter()
+        proc = self._create_processor()
+        forward_name = "Torch.test.0.forward"
+        backward_name = "Torch.test.0.backward"
+        forward_io = ModuleForwardInputsOutputs(
+            args=(torch.tensor([float("nan")]),),
+            kwargs={"weight": torch.tensor([float("inf")])},
+            output=(torch.tensor([3.0, 4.0]), torch.tensor([float("nan")])),
+        )
+        backward_io = ModuleBackwardInputsOutputs(
+            grad_output=(torch.tensor([float("nan")]),),
+            grad_input=(torch.tensor([1.0]),),
+        )
+        with (
+            tempfile.TemporaryDirectory() as dump_dir,
+            patch.object(proc, "_check_overflow", side_effect=AssertionError("isnan must not use slot detection")),
+            patch.object(proc, "_ensure_nan_buffer", side_effect=AssertionError("isnan must not allocate slots")),
+            patch.object(proc, "_flush_nan_buffer", side_effect=AssertionError("isnan must not flush slots")),
+        ):
+            proc.prepare_nan_buffer()
+            self.data_writer.dump_file_path = os.path.join(dump_dir, "dump.json")
+            self.data_writer.dump_tensor_data_dir = dump_dir
+            self.data_writer.initialize_json_file(task=Const.NAN_CHECK, level=Const.LEVEL_L1)
+            self.data_writer.update_data(proc.analyze_forward_input(forward_name, None, forward_io))
+            self.data_writer.update_data(proc.analyze_forward_output(forward_name, None, forward_io))
+            self.data_writer.write_json()
+            proc.update_api_or_module_name(backward_name)
+            self.data_writer.update_data(proc.analyze_backward(backward_name, None, backward_io))
+            self.data_writer.write_json()
+            with open(self.data_writer.dump_file_path, encoding="utf-8") as dump_file:
+                dump_data = json.load(dump_file)
+        forward = dump_data[Const.DATA][forward_name]
+        backward = dump_data[Const.DATA][backward_name]
+        self.assertNotIn(Const.IS_NAN, forward)
+        self.assertEqual(forward[Const.INPUT_ARGS][0][Const.IS_NAN], 1)
+        self.assertEqual(forward[Const.INPUT_KWARGS]["weight"][Const.IS_NAN], 0)
+        self.assertEqual([record[Const.IS_NAN] for record in forward[Const.OUTPUT]], [0, 1])
+        self.assertNotIn(Const.IS_NAN, backward)
+        self.assertEqual(backward[Const.INPUT][0][Const.IS_NAN], 0)
+        self.assertEqual(backward[Const.OUTPUT][0][Const.IS_NAN], 1)
+        serialized = json.dumps(dump_data)
+        for key in (Const.MAX, Const.MIN, Const.MEAN, Const.NORM, Const.TENSOR_STAT_INDEX, Const.IS_NAN_INDEX):
+            self.assertNotIn(f'"{key}"', serialized)
+        self.assertEqual(self.data_writer.stat_stack_list, [])
+        self.assertFalse(proc._tensor_nan_results)
+        self.assertFalse(hasattr(proc, "_nan_buffer"))
+        torch.ops.my_ns.npu_over_flow.assert_not_called()
 
     def test_store_nan_result_stores_index(self):
         proc = self._create_processor()

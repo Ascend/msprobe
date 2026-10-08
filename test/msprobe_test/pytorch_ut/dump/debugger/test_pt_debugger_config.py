@@ -15,13 +15,14 @@
 # -------------------------------------------------------------------------
 
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import torch
 
 from msprobe.core.common.const import Const
 from msprobe.core.common.exceptions import MsprobeException
 from msprobe.pytorch.dump.debugger.debugger_config import DebuggerConfig
+from msprobe.pytorch.dump.pt_config import NanCheckConfig
 
 
 class TestDebuggerConfig(unittest.TestCase):
@@ -46,6 +47,19 @@ class TestDebuggerConfig(unittest.TestCase):
         self.common_config.custom_op_namespaces = ["_C_ascend", "my_ns"]
         debugger = DebuggerConfig(self.common_config, self.task_config, None, None, None)
         self.assertEqual(debugger.custom_op_namespaces, ["_C_ascend", "my_ns"])
+
+    def test_nan_check_modes_and_default_data_mode(self):
+        self.common_config.task = Const.NAN_CHECK
+        with patch(
+            "msprobe.pytorch.dump.debugger.debugger_config._is_torch_npu_importable",
+            return_value=True,
+        ):
+            for mode in (None, Const.NAN_CHECK_MODE_SLOT, Const.NAN_CHECK_MODE_ISNAN):
+                with self.subTest(mode=mode):
+                    task_config = NanCheckConfig({} if mode is None else {"check_mode": mode})
+                    debugger = DebuggerConfig(self.common_config, task_config, None, None, None)
+                    self.assertEqual(debugger.nan_check_mode, mode or Const.NAN_CHECK_MODE_ISNAN)
+                    self.assertEqual(debugger.data_mode, [Const.ALL])
 
     def test_check_kwargs_with_invalid_task(self):
         self.common_config.task = "invalid_task"

@@ -17,7 +17,7 @@
 
 | 参数                | 可选/必选 | 解释                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |-------------------| -------- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| task              | 可选     | dump的任务类型，str类型。可选参数：<br/>&#8226; "statistics"：仅采集统计信息。<br/>&#8226; "tensor"：采集统计信息和完全复刻整网的真实数据。<br/>&#8226; "acc_check"：精度预检，仅PyTorch场景支持，采集数据时勿选。<br/>&#8226; "nan_check"：NaN/Inf检测（检测寄存器状态是否为NaN或Inf），仅PyTorch场景支持。<br/>&#8226; "structure"：仅采集模型结构以及调用栈信息，不采集具体数据。<br/>exception_dump"：在指定目录下生成包含异常dump相关设置的中间文件。<br/>默认值为"statistics"。<br/>根据task参数取值的不同，可以配置不同场景参数，详细介绍请参见：<br/>&#8226; [task配置为statistics](#task配置为statistics)<br/>&#8226; [task配置为tensor](#task配置为tensor)<br/>&#8226; [task配置为acc_check](#task配置为acc_check)<br/>&#8226; [task配置为nan_check](#task配置为nan_check)<br/>&#8226; [task配置为structure](#task配置为structure)<br/>&#8226; [task配置为exception_dump](#task配置为exception_dump)<br/>配置示例："task": "tensor"。 |
+| task              | 可选     | dump的任务类型，str类型。可选参数：<br/>&#8226; "statistics"：仅采集统计信息。<br/>&#8226; "tensor"：采集统计信息和完全复刻整网的真实数据。<br/>&#8226; "acc_check"：精度预检，仅PyTorch场景支持，采集数据时勿选。<br/>&#8226; "nan_check"：NaN检测（默认isnan模式），或显式配置slot模式检测寄存器溢出状态，仅PyTorch场景支持。<br/>&#8226; "structure"：仅采集模型结构以及调用栈信息，不采集具体数据。<br/>exception_dump"：在指定目录下生成包含异常dump相关设置的中间文件。<br/>默认值为"statistics"。<br/>根据task参数取值的不同，可以配置不同场景参数，详细介绍请参见：<br/>&#8226; [task配置为statistics](#task配置为statistics)<br/>&#8226; [task配置为tensor](#task配置为tensor)<br/>&#8226; [task配置为acc_check](#task配置为acc_check)<br/>&#8226; [task配置为nan_check](#task配置为nan_check)<br/>&#8226; [task配置为structure](#task配置为structure)<br/>&#8226; [task配置为exception_dump](#task配置为exception_dump)<br/>配置示例："task": "tensor"。 |
 | dump_path         | 必选     | 设置dump数据目录路径，str类型。<br/>配置示例："dump_path": "./dump_path"。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | rank              | 可选     | 指定对某张卡上的数据进行采集，list[Union[int, str]]类型，默认未配置（表示采集所有卡的数据），应配置元素为≥ 0的整数、类似"0"的单个数字字符串或类似"4-6"的范围字符串，且须配置实际可用的Rank ID。<br/>&#8226; PyTorch场景：Rank ID从0开始计数，最大取值为所有节点可用卡总数-1，若所配置的值大于实际训练所运行的卡的Rank ID，则dump数据为空，比如当前环境Rank ID为0到7，实际训练运行0到3卡，此时若配置Rank ID为4或不存在的10等其他值，dump数据为空。<br/>&#8226; MindSpore场景：所有节点的Rank ID均从0开始计数，最大取值为每个节点可用卡总数-1，config.json配置一次rank参数对所有节点同时生效。静态图L0级别dump暂不支持指定rank。<br/>单卡训练时，rank必须为[]，即空列表，不能指定rank。<br/>配置示例："rank": [1, "0", "4-6"]。 |
 | step              | 可选     | 指定采集某个step的数据，list[Union[int, str]]类型。默认未配置，表示采集所有step数据。采集特定step时，须指定为训练脚本中存在的step，可逐个配置，也可以指定单个数字字符串（如"0"）或范围字符串（如"4-6"）。<br/>配置示例："step": [0, 1, "2", "4-6"]。 |
@@ -180,6 +180,7 @@
         "list": [],
         "scope": [],
         "tensor_list": [],
+        "check_mode": "isnan",
         "data_mode": ["all"]
     }
 }
@@ -191,22 +192,27 @@
 
 **注意事项**
 
- - 使用前请确保使用编译时带有`--include-mod=nan_check`参数的msProbe工具包。
+ - `"isnan"`模式需要使用编译时带有`--include-mod=aclgraph_dump`参数的msProbe工具包；`"slot"`模式需要`--include-mod=nan_check`。
  - 该任务类型在昇腾NPU设备上运行，适配的CANN版本要求8.5.0及以上。
  - 采集config中level须配置为"L1"。
- - 使用前需设置环境变量：INF_NAN_MODE_FORCE_DISABLE=1。
- - 由于检测结果通过读取寄存器状态获得，因此可能出现tensor输出正常，但nan_check模式检测结果为溢出的情况，说明该API存在过程溢出（过程溢出为正常情况）。
- - 由于硬件底层不支持int64类型（通过软件实现），因此本接口获取的硬件寄存器状态无法保证在int64类型上的结果准确性。
+ - `check_mode`配置为`"slot"`时，使用前需设置环境变量：INF_NAN_MODE_FORCE_DISABLE=1。
+ - `check_mode`配置为`"slot"`时，由于检测结果通过读取寄存器状态获得，因此可能出现tensor输出正常，但nan_check模式检测结果为溢出的情况，说明该API存在过程溢出（过程溢出为正常情况）。
+ - `check_mode`配置为`"slot"`时，由于硬件底层不支持int64类型（通过软件实现），因此本接口获取的硬件寄存器状态无法保证在int64类型上的结果准确性。
+ - `"isnan"`模式只检测NaN，不检测Inf或API执行过程中的临时溢出。
+ - 默认使用`"isnan"`模式，在`dump.json`的每个输入、输出tensor记录中增加`is_nan`：`1`表示包含NaN，`0`表示不含NaN，`null`表示无法检测。默认`data_mode`为`["all"]`，反向过程同时记录`grad_input`和`grad_output`的检测结果。不计算`Max`、`Min`、`Mean`或`Norm`。
+ - `"isnan"`逐个标记输入、输出，不写API级`is_nan`或使用寄存器slot缓冲。输出标志的合并仅用于自动保存开关。Inf不会被标记为NaN；空tensor、整数和布尔tensor记录为`0`，FakeTensor和meta tensor记录为`null`。`"slot"`保留原有API级结果。
+ - `"isnan"`模式下，API输出检测到NaN时，自动以该标志作为`acl_tensor_save`的`switch`，将输入、输出tensor保存为`dump_tensor_data`目录中的`.pt`文件，无需配置`tensor_list`；反向同理采集`grad_input`和`grad_output`。标志为`0`时不保存，采集过程不触发NanTest异常。
 
 **参数说明**
 
-nan_check模式通过读取NPU寄存器状态，检测模型中的API运行时是否存在NaN或Inf的情况。
+nan_check模式支持读取NPU寄存器状态和检查API输出tensor两种检测路线。
 
 | 参数 | 可选/必选 | 解释 |
 | ---- | --------- | ---- |
 | scope | 可选 | PyTorch场景dump范围，list[str]类型，默认未配置（list也未配置时表示dump所有API的数据）。详细配置方法请参见[scope参数配置说明](#scope参数配置说明)。 |
 | list  | 可选 | 自定义采集的算子列表，list[str]类型，默认未配置（scope也未配置时表示dump所有API的数据）。详细配置方法请参见[list参数配置说明](#list参数配置说明)。 |
-| tensor_list | 可选 | 指定需要额外触发`npu_nan_test`的API关键字列表，`list[str]`类型。详细配置方法请参见[tensor_list参数配置说明](#tensor_list参数配置说明)。 |
+| check_mode | 可选 | 检测模式，str类型：`"isnan"`（默认）记录输入、输出的`is_nan`，输出含NaN时通过`acl_tensor_save`自动保存输入、输出；`"slot"`保留原有寄存器检测和`tensor_list`指定的详细采集。 |
+| tensor_list | 可选 | 仅在`"slot"`模式下指定需要额外触发`npu_nan_test`的API关键字列表，`list[str]`类型。`"isnan"`模式自动采集输出含NaN的API输入、输出，不受此列表限制。详细说明请参见[tensor_list参数配置说明](#tensor_list参数配置说明)。 |
 | data_mode | 可选 | dump数据过滤，list[str]类型。详细配置方法请参见[data_mode参数配置说明](#data_mode参数配置说明)。<br/><br/>**注意**：nan_check任务场景下，data_mode中指定"input"时，需同时配置"output"。
 
 ### task配置为structure
@@ -324,12 +330,9 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 
   - 配置示例："tensor_list": ["relu"]。
 
-- nan_check 任务下的特殊说明：`nan_check` 任务默认检测所有 API 是否存在 NaN/Inf 溢出。当需要进一步定位某个 API 内部的具体溢出位置时，可通过 `tensor_list` 指定需要深入分析的 API，当发生溢出时，工具会触发`Exception`，对这些 API 生成额外的详细数据文件，并落盘至当前目录下的 `extra-info` 子目录中，供 [Tensor 解析工具](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/maintenref/troubleshooting/troubleshooting_0532.html) 进行逐元素级分析。
-  - 匹配方式：匹配方式为子串匹配，不区分大小写。例如配置 `["truediv"]` 时，所有名称中包含 "truediv" 的 API（如 `truediv`、`__truediv__`）均会被命中。
-
-  - 使用建议
-    - `nan_check` 默认已覆盖全量 API 的基础溢出检测，仅在需要深入定位特定 API 的溢出根因时才建议配置 `tensor_list`，以控制额外开销。
-    - 配置时建议使用较具体的关键字（如 `truediv`、`softmax`），避免过短字符串导致误匹配。需要缩小范围时，可配合 `scope` 或 `list` 共同限制。
+- nan_check 任务下的特殊说明：默认`isnan`模式在API输出含NaN时自动采集该API的输入和输出，无需配置`tensor_list`。显式配置`slot`模式时，仍通过`tensor_list`按API名称子串选择需要详细采集的API。
+  - `isnan`模式通过`acl_tensor_save`保存`.pt`到`dump_tensor_data`，文件按API调用分组并标明输入、关键字参数或输出及其索引。`slot`模式仍通过`npu_nan_test`触发`Exception`并将数据写入`extra-info`，供 [Tensor 解析工具](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/maintenref/troubleshooting/troubleshooting_0532.html) 进行逐元素级分析。
+  - 可通过`scope`或`list`缩小检测范围；`tensor_list`仅限制`slot`模式的详细采集范围。
 
 ### data_mode参数配置说明
 

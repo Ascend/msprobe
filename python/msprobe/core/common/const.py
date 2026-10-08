@@ -192,6 +192,9 @@ class Const:  # pylint: disable=too-many-lines
     DUMP_PRECISION_HIGH = "high"
     DUMP_PRECISION_LOW = "low"
     NAN_CHECK = "nan_check"
+    NAN_CHECK_MODE_SLOT = "slot"
+    NAN_CHECK_MODE_ISNAN = "isnan"
+    NAN_CHECK_MODE_LIST = [NAN_CHECK_MODE_SLOT, NAN_CHECK_MODE_ISNAN]
     IS_NAN = "is_nan"
     TASK_LIST = [
         TENSOR,

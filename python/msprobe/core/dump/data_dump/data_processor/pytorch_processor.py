@@ -1027,33 +1027,43 @@ class KernelDumpDataProcessor(PytorchDataProcessor):
 
 class NanCheckDataProcessor(PytorchDataProcessor):
     @staticmethod
-    def _nan_overflow_ops_available():
+    def _nan_check_ops_available(check_mode):
         if is_gpu:
             return False
         try:
-            importlib.import_module("msprobe.pytorch.nan_check")
+            module = "aclgraph_dump" if check_mode == Const.NAN_CHECK_MODE_ISNAN else "nan_check"
+            importlib.import_module(f"msprobe.pytorch.{module}")
             return True
         except Exception:
             return False
 
     def __init__(self, config, data_writer):
         super().__init__(config, data_writer)
-        self._nan_overflow_runtime_warned = False
-        self._nan_collect_runtime_warned = False
-        self._nan_buffer_full_warned = False
-        if not self._nan_overflow_ops_available():
+        self._nan_check_mode = getattr(config, "nan_check_mode", Const.NAN_CHECK_MODE_ISNAN)
+        if not self._nan_check_ops_available(self._nan_check_mode):
+            module = "aclgraph_dump" if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN else "nan_check"
             raise MsprobeException(
                 MsprobeException.INTERFACE_USAGE_ERROR,
-                "Nan check requires torch.ops.my_ns.npu_over_flow, npu_clear_over_flow and npu_nan_test. "
-                "Please compile with nan_check support enabled.",
+                f"Nan check requires {module} support for {self._nan_check_mode} mode. "
+                f"Please compile with --include-mod={module}.",
             )
-        self._nan_buffer_size = Const.NAN_CHECK_BUFFER_SIZE
-        self._nan_buffer = None
-        self._nan_buffer_offset = 0
-        self.data_writer.register_pre_flush_callback(self._flush_nan_buffer)
+        if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN:
+            self._tensor_nan_results = {}
+            self._isnan_runtime_warned = False
+            self._isnan_save_warned = False
+            self.data_writer.register_pre_flush_callback(self._flush_isnan_results)
+        else:
+            self._nan_buffer_size = Const.NAN_CHECK_BUFFER_SIZE
+            self._nan_buffer = None
+            self._nan_buffer_offset = 0
+            self._nan_buffer_full_warned = False
+            self._nan_overflow_runtime_warned = False
+            self._nan_collect_runtime_warned = False
+            self.data_writer.register_pre_flush_callback(self._flush_nan_buffer)
 
     def prepare_nan_buffer(self):
-        self._ensure_nan_buffer()
+        if self._nan_check_mode == Const.NAN_CHECK_MODE_SLOT:
+            self._ensure_nan_buffer()
 
     def _ensure_nan_buffer(self):
         if self._nan_buffer is not None:
@@ -1108,6 +1118,64 @@ class NanCheckDataProcessor(PytorchDataProcessor):
                 normalized_tensor_list.append(common_tensor)
         return normalized_tensor_list
 
+    def _get_tensor_nan_flag(self, tensor):
+        tensor = self._normalize_nan_tensor(tensor)
+        if tensor is None:
+            return None
+        if tensor.numel() == 0 or not (tensor.is_floating_point() or tensor.is_complex()):
+            return False
+        tensor = tensor.detach()
+        if tensor.is_complex():
+            return torch.isnan(tensor).any()
+        return torch.isnan(torch.amax(tensor))
+
+    def _save_isnan_tensors(self, output_info, module_input_output):
+        try:
+            # Reuse pending per-tensor flags; the aggregate only controls saving.
+            flags = []
+            self._collect_tensors(output_info, flags)
+            if not flags:
+                return
+            switch = flags[0]
+            for flag in flags[1:]:
+                switch = torch.logical_or(switch, flag)
+            switch = switch.to(dtype=torch.int64).reshape(1)
+            if isinstance(module_input_output, ModuleForwardInputsOutputs):
+                tensors = {
+                    "input": self._apply_ignore_rules(module_input_output.args_tuple, Const.FORWARD, Const.INPUT),
+                    "input_kwargs": self._apply_ignore_rules(module_input_output.kwargs, Const.FORWARD, Const.INPUT),
+                    "output": self._apply_ignore_rules(module_input_output.output_tuple, Const.FORWARD, Const.OUTPUT),
+                }
+            else:
+                tensors = {
+                    "input": self._apply_ignore_rules(
+                        module_input_output.grad_input_tuple, Const.BACKWARD, Const.INPUT
+                    ),
+                    "output": self._apply_ignore_rules(
+                        module_input_output.grad_output_tuple, Const.BACKWARD, Const.OUTPUT
+                    ),
+                }
+            api_name = re.sub(r"[^A-Za-z0-9_.-]", "_", self.current_api_or_module_name)
+            call_started = False
+
+            def save_tensor(value, suffix_stack):
+                nonlocal call_started
+                if not isinstance(value, torch.Tensor):
+                    return
+                tensor = self._normalize_nan_tensor(value)
+                if tensor is None:
+                    return
+                suffix = re.sub(r"[^A-Za-z0-9_.-]", "_", Const.SEP.join(map(str, suffix_stack)))
+                path = os.path.join(self.data_path, f"{api_name}.{suffix}{Const.PT_SUFFIX}")
+                torch.ops.my_ns.acl_tensor_save(tensor.contiguous(), path, api_name, not call_started, switch)
+                call_started = True
+
+            self.recursive_apply_transform(tensors, save_tensor)
+        except Exception as e:
+            if not self._isnan_save_warned:
+                logger.warning(f"Nan check tensor saving failed ({e}); tensor collection will be skipped.")
+                self._isnan_save_warned = True
+
     def _maybe_collect_overflow_tensors(self, slot, module_input_output):
         if not self._should_collect_nan_tensors():
             return
@@ -1157,6 +1225,14 @@ class NanCheckDataProcessor(PytorchDataProcessor):
                 logger.debug(f"Nan check npu_over_flow failed ({e}).")
             return None
 
+    def _flush_isnan_results(self):
+        for results in self._tensor_nan_results.values():
+            flags = torch.stack([flag for _, flag in results]).cpu().tolist()
+            for (tensor_json, _), flag in zip(results, flags):
+                tensor_json[Const.IS_NAN] = int(flag)
+            self.data_writer.data_updated = True
+        self._tensor_nan_results.clear()
+
     def _flush_nan_buffer(self):
         if self._nan_buffer_offset == 0:
             return
@@ -1178,7 +1254,33 @@ class NanCheckDataProcessor(PytorchDataProcessor):
         if self.tensor_handler.is_dtensor(tensor):
             dtensor_info = self.tensor_handler.get_dtensor_info(tensor)
             tensor_json.update(dtensor_info)
+        if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN:
+            tensor_json[Const.IS_NAN] = None
+            try:
+                flag = self._get_tensor_nan_flag(tensor)
+                if isinstance(flag, torch.Tensor):
+                    tensor_json[Const.IS_NAN] = flag
+                    # Retain records so a mid-API flush also resolves uncached tensor metadata.
+                    self._tensor_nan_results.setdefault(flag.device, []).append((tensor_json, flag))
+                elif flag is not None:
+                    tensor_json[Const.IS_NAN] = int(flag)
+            except Exception as e:
+                if not self._isnan_runtime_warned:
+                    logger.warning(f"Nan check tensor isnan failed ({e}); tensor is_nan will be null.")
+                    self._isnan_runtime_warned = True
         return tensor_json
+
+    # pylint: disable-next=arguments-differ
+    def _analyze_ndarray(self, ndarray, suffix):
+        if self._nan_check_mode != Const.NAN_CHECK_MODE_ISNAN:
+            return super()._analyze_ndarray(ndarray, suffix)
+        nan_flag = int(np.isnan(ndarray).any()) if ndarray.dtype.kind in "biufc" else None
+        return {
+            "type": "numpy.ndarray",
+            "dtype": str(ndarray.dtype),
+            "shape": ndarray.shape,
+            Const.IS_NAN: nan_flag,
+        }
 
     def _store_nan_result(self, api_info_struct, name, module_input_output=None):
         slot_idx = self._check_overflow(module_input_output)
@@ -1190,11 +1292,17 @@ class NanCheckDataProcessor(PytorchDataProcessor):
     def analyze_forward_output(self, name, module, module_input_output):
         api_info_struct = super().analyze_forward_output(name, module, module_input_output)
         if name in api_info_struct:
-            self._store_nan_result(api_info_struct, name, module_input_output)
+            if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN:
+                self._save_isnan_tensors(api_info_struct[name].get(Const.OUTPUT), module_input_output)
+            else:
+                self._store_nan_result(api_info_struct, name, module_input_output)
         return api_info_struct
 
     def analyze_backward(self, name, module, module_input_output):
         api_info_struct = super().analyze_backward(name, module, module_input_output)
         if name in api_info_struct:
-            self._store_nan_result(api_info_struct, name, module_input_output)
+            if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN:
+                self._save_isnan_tensors(api_info_struct[name].get(Const.INPUT), module_input_output)
+            else:
+                self._store_nan_result(api_info_struct, name, module_input_output)
         return api_info_struct

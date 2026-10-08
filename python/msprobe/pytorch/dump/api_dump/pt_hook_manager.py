@@ -95,7 +95,7 @@ class PytorchHookManager(BaseHookManager):
         pass
 
     def _on_forward_pre_hook(self):
-        if self.config.task == Const.NAN_CHECK:
+        if self.config.task == Const.NAN_CHECK and self.config.nan_check_mode == Const.NAN_CHECK_MODE_SLOT:
             device = torch.device(torch.npu.current_device())
             torch.ops.my_ns.npu_clear_over_flow(device)
 
@@ -135,7 +135,11 @@ class PytorchHookManager(BaseHookManager):
 
         grad_fn = var.grad_fn
         if grad_fn is not None:
-            if hasattr(grad_fn, 'register_prehook') and self.config.task == Const.NAN_CHECK:
+            if (
+                hasattr(grad_fn, 'register_prehook')
+                and self.config.task == Const.NAN_CHECK
+                and self.config.nan_check_mode == Const.NAN_CHECK_MODE_SLOT
+            ):
 
                 def _nan_check_backward_prehook(_grad_outputs):
                     device = torch.device(torch.npu.current_device())

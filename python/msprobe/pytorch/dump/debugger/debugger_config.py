@@ -221,6 +221,8 @@ class DebuggerConfig:
     def _check_statistics_config(self, task_config):
         if self.task not in {Const.STATISTICS, Const.NAN_CHECK}:
             return
+        if self.task == Const.NAN_CHECK:
+            self.nan_check_mode = task_config.check_mode
         self.tensor_list = []
         if not hasattr(task_config, "tensor_list"):
             return

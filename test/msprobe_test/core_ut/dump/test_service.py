@@ -307,6 +307,19 @@ class TestBaseService(unittest.TestCase):
         kernel_config_path = os.path.join(expected_dir, f"kernel_config_{os.getpid()}.json")
         self.assertTrue(os.path.exists(kernel_config_path))
         self.assertEqual(self.service.config.kernel_config_path, kernel_config_path)
+
+    def test_isnan_creates_tensor_data_directory_without_tensor_list(self):
+        self.service.config.task = Const.NAN_CHECK
+        self.service.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        self.service.config.tensor_list = []
+        self.service.data_collector.tasks_need_tensor_data = []
+        self.service.dump_iter_dir = self.temp_dir.name
+        self.service._create_default_dirs(0)
+        paths = self.service.data_collector.update_dump_paths.call_args.args[0]
+        self.assertEqual(paths.dump_tensor_data_dir, os.path.join(self.temp_dir.name, "rank0", "dump_tensor_data"))
+        self.assertTrue(os.path.isdir(paths.dump_tensor_data_dir))
+        self.service.config.nan_check_mode = Const.NAN_CHECK_MODE_SLOT
+        self.assertFalse(self.service._need_tensor_data)
     
     def test_need_stop_service_conditions(self):
         self.service.current_iter = 4

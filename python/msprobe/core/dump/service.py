@@ -103,6 +103,7 @@ class BaseService(ABC):
         return bool(
             self.config.task in self.data_collector.tasks_need_tensor_data
             or (self.config.task == Const.STATISTICS and self.config.tensor_list)
+            or (self.config.task == Const.NAN_CHECK and self.config.nan_check_mode == Const.NAN_CHECK_MODE_ISNAN)
         )
 
     @property
