@@ -513,7 +513,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 3. freqs来源分析及排查。
 
-   cos和sin的计算均来自于freqs，向上追溯freqs来源，可以发现freqs实际为内部的`self.rotary_pos_emb`，该变量通过实例化的`YarnRotaryEmbedding`而得到，因此怀疑`YarnRotaryEmbedding`的实例化即传参有问题。
+   cos和sin的计算均来自于freqs，向上追溯freqs来源，可以发现freqs实际为内部的`self.rotary_pos_emb`，该变量通过实例化的`YarnRotaryEmbedding`而得到，因此怀疑`YarnRotaryEmbedding`的实例化时的传参有问题。
 
     ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/freqs_source_code.png)
 

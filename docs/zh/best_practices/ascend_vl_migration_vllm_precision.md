@@ -20,9 +20,9 @@ VL 模型从 H20 + transformers 推理框架迁移到昇腾 + vLLM 推理框架�
 | decode_layer 对比（Att 和 MLP）   | 各层余弦相似度均接近 1，msprobe 的统计信息找不到差异，需要再采集 Tensor。 |
 | GPU 和 NPU 的模型配置对比          | 确认一致。                                                                                                                      |
 | NPU + transformers 的推理和 GPU 对比 | 优先级低。                                                                                                                      |
-| NPU 两卡使用 H20 的 input_embeds   | 结果会变好，不会出现乱码，但内容和 H20 还是有差距。                                                                             |
+| NPU 两卡使用 H20 的 inputs_embeds   | 结果会变好，不会出现乱码，但内容和 H20 还是有差距。                                                                             |
 
-### 正向定位：从第 7 个字符的 logits 往前看
+### 正向定位：从第 7 个 token 的 logits 往前看
 
 进一步分析 step6 GPU 和 NPU 侧的数据，发现在 `Module.language_model.transformer.h.29.DecoderLayer.forward.0` 的输出 GPU 和 NPU 的差异较大。
 

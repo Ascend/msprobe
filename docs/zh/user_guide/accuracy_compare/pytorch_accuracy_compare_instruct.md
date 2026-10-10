@@ -645,7 +645,7 @@ input_args、input_kwargs和output使用统一的命名规则，当值是list类
     "return_indices": {
      "type": "bool",
      "value": false
-    },
+    }
    },
    "output": [
     {

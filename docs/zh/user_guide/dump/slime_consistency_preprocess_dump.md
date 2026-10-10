@@ -410,7 +410,7 @@ SGLang 从 0.5.11 版本起原生内置 msProbe 能力：
 +                    and _num_tokens >= _min_tokens:
 +                _msprobe_dump = True
 
-         # Try msprob debugger
+         # Try msProbe debugger
 -        if self.msprobe_debugger is not None:
 +        if _msprobe_dump:
              rank_id = (
