@@ -8,7 +8,7 @@ slime 框架采用"训练侧 Megatron + 推理侧 SGLang"的训推分离架构�
 
 本文介绍如何使用 msProbe 工具，在 slime 框架下完成上述两阶段的精度数据采集。
 
-如须定位精度差异的来源是训练还是推理阶段，建议在采集前完成训推一致性预处理，详细介绍请参见《[slime框架训推一致性预处理与数据采集](./slime_consistency_preprocess_dump.md)》。
+如需定位精度差异的来源是训练还是推理阶段，建议在采集前完成训推一致性预处理，详细介绍请参见《[slime框架训推一致性预处理与数据采集](./slime_consistency_preprocess_dump.md)》。
 
 ## 2. 环境准备
 

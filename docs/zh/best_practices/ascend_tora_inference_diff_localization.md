@@ -44,7 +44,7 @@ NPU推理结果为1260（错误答案）：
 
 #### 差异点2
 
-014 load embedding weight（32064,8192）时后（32000：，：）填充的是随机值（可能有极大值和nan），而091填充的是0
+014 load embedding weight（32064,8192）时，在（32000：，：）之后填充的是随机值（可能有极大值和nan），而091填充的是0
 ![](../figures/cases/ascend_tora_inference_diff_localization/embedding_weight_fill_diff.png)
 014的未知权重初始化：
 ![](../figures/cases/ascend_tora_inference_diff_localization/v014_unknown_weight_init.png)
@@ -135,7 +135,7 @@ attn_output = self.attn(q, k, v)  # Attention
 output, _ = self.o_proj(attn_output)
 ```
 
-* 091进入Attention外的torch.ops._C.rotary_embedding
+* 091进入Attention的torch.ops._C.rotary_embedding
 * 014进入PagedAttentionWithRoPE内的 pos_encoding_ops.rotary_embedding_neox
 
 左014，右091：

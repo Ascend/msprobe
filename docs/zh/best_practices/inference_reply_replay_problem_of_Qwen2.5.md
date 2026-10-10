@@ -6,7 +6,7 @@
 
 ## 问题现象
 
-在昇腾环境上，基于 vLLM 推理框架部署 Qwen2.5-7B-Instruct 模型后，某个推理用例偶现持续输出"\n、回复不终止的问题。问题回复如下图所示。
+在昇腾环境上，基于 vLLM 推理框架部署 Qwen2.5-7B-Instruct 模型后，某个推理用例偶现持续输出"\n"，回复不终止的问题。问题回复如下图所示。
 
 ![](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/bad_response.png)
 
@@ -53,7 +53,7 @@ export VLLM_EXECUTE_MODEL_TIMEOUT_SECONDS=380
 
 ### 定位环境
 
-试验发现，在 0.11.0、0.12.0、0.13.0 以及 0.14.0 版本的 vLLM 上，即使单卡部署，也均存在该问题，且问题现象一致。实际定位环境如下：
+实验发现，在 0.11.0、0.12.0、0.13.0 以及 0.14.0 版本的 vLLM 上，即使单卡部署，也均存在该问题，且问题现象一致。实际定位环境如下：
 
 ```bash
 NPU: Atlas 800I A2
@@ -183,7 +183,7 @@ class NPUModelRunner(GPUModelRunner):
 
 预期输出"万人研究\\\"PREDICT\\\"和..."中的"\\\"" token 因采样随机性被替换为"\""时，解码后端（xgrammar）会认为字符串变量已闭合，掩盖"PREDICT..."的输出，以保证回复内容为合法的 JSON 字符串。然而，从 Qwen2.5 模型推理角度看，prompt 中"万人研究"后还有大量有意义内容，不应停止推理。
 
-JSON 格式合法性（xgrammar）与回复内容完整性（Qwen2.5-7B-Instruct）之间的冲突，导致了持续输出"\n、回复不终止现象的发生。
+JSON 格式合法性（xgrammar）与回复内容完整性（Qwen2.5-7B-Instruct）之间的冲突，导致了持续输出"\n"，回复不终止现象的发生。
 
 ## 解决方案
 
