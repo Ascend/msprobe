@@ -17,7 +17,7 @@ The table below describes the common configuration parameters.
 
 | Parameter               | Required/Optional| Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |-------------------| -------- |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| task              | Optional    | Dump task type, which is of the string type. Value:<br>&#8226; "statistics": collects only statistics.<br>&#8226; "tensor": collects statistics and real data of the entire network.<br>&#8226; "acc_check": accuracy pre-check, which is supported only in PyTorch scenarios. Do not select this option during data collection.<br>&#8226; "nan_check": tensor NaN detection by default, or register overflow detection with explicit slot mode.<br>&#8226; "structure": collects only the model structure and call stack information.<br>The default value is "statistics".<br>You can configure scenario parameters based on the value of **task**.<br>&#8226; [task = statistics](#task--statistics)<br>&#8226; [task = tensor](#task--tensor)<br>&#8226; [task = acc_check](#task--acc_check)<br>&#8226; [task = nan_check](#task--nan_check)<br>&#8226; [task = structure](#task--structure)<br>&#8226; [task--exception_dump](#task--exception_dump)<br>Example: "task": "tensor"                                           |
+| task              | Optional    | Dump task type, which is of the string type. Value:<br>&#8226; "statistics": collects only statistics.<br>&#8226; "tensor": collects statistics and real data of the entire network.<br>&#8226; "acc_check": accuracy pre-check, which is supported only in PyTorch scenarios. Do not select this option during data collection.<br>&#8226; "nan_check": NaN or overflow detection (PyTorch only).<br>&#8226; "structure": collects only the model structure and call stack information.<br>The default value is "statistics".<br>You can configure scenario parameters based on the value of **task**.<br>&#8226; [task = statistics](#task--statistics)<br>&#8226; [task = tensor](#task--tensor)<br>&#8226; [task = acc_check](#task--acc_check)<br>&#8226; [task = nan_check](#task--nan_check)<br>&#8226; [task = structure](#task--structure)<br>&#8226; [task--exception_dump](#task--exception_dump)<br>Example: "task": "tensor"                                           |
 | dump_path         | Required    | Dump data directory, which is of the string type.<br>Example: "dump_path": "./dump_path"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | rank              | Optional    | Data collection on a specified rank, which is of the list[Union[int, str]] type. By default, this parameter is not set, indicating that data of all ranks is collected. The value must be an integer greater than or equal to 0 or a character string similar to "4-6", and the actual available rank ID must be configured.<br>&#8226; PyTorch: The rank ID starts from 0 and the maximum value is the total number of available ranks on all nodes minus 1. If the configured value is greater than the rank ID used for training, the dump data is empty. For example, if the rank IDs in the current environment range from 0 to 7 and the training uses ranks 0 to 3, configuring the rank ID to 4 or 10 (which does not exist) results in empty dump data.<br>&#8226; MindSpore: The rank ID starts from 0 and the maximum value is the total number of available ranks on each node minus 1. The rank configuration in the **config.json** file takes effect on all nodes at a time. Static graph L0 dump does not support rank configuration.<br>For single-rank training, **rank** must be an empty list, that is, **[]**.<br>Example: "rank": [1, "4-6"]                                                                                                                                                                                                                                                    |
 | step              | Optional    | Data of a specific step to be collected, which is of the list[Union[int, str]] type. By default, this parameter is not set, indicating that data of all steps is collected. To collect data of a specific step, specify a step existing in the training script. You can configure steps one by one or specify a range.<br>Example: "step": [0, 1, 2, "4-6"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -158,6 +158,8 @@ Supported scenarios:
 
 ### task = nan_check
 
+Detects NaN or overflow. Supported only for PyTorch on Ascend NPU with CANN 8.5.0 or later and `level` set to `"L1"`. See [check_mode Configuration](#check_mode-configuration) for detection scope and build requirements.
+
 **Examples**
 
 ```json
@@ -167,43 +169,37 @@ Supported scenarios:
     "rank": [],
     "step": [],
     "level": "L1",
-
     "nan_check": {
-      "list": [],
-      "scope": [],
-      "tensor_list": [],
-      "check_mode": "isnan",
-      "data_mode": ["all"]
+        "scope": [],
+        "list": [],
+        "check_mode": "isnan",
+        "tensor_list": [],
+        "data_mode": ["all"]
     }
 }
 ```
 
-Supported scenarios:
-
- - PyTorch
-
-**Notes**
-
- - Compile msProbe with `--include-mod=aclgraph_dump` for `isnan` mode, or `--include-mod=nan_check` for `slot` mode.
- - This task runs on Ascend NPU devices and requires CANN version 8.5.0 or higher.
- - The `level` in the collection `config` must be set to `L1`.
- - In `slot` mode, set `INF_NAN_MODE_FORCE_DISABLE=1` before use. Register detection may report intermediate overflow even when the output is finite, and cannot guarantee accurate results for int64 operations implemented in software.
- - The default `isnan` mode records `is_nan` for each input and output tensor in `dump.json`: `1` for NaN, `0` for no NaN, and `null` when detection is unavailable. It does not calculate `Max`, `Min`, `Mean`, or `Norm`. The default `data_mode` is `["all"]`.
- - Backward records include individual flags for both `grad_input` and `grad_output`. `isnan` does not write an API-level flag or use the register slot buffer. Output flags are combined only to control saving. `slot` retains the existing API-level result.
- - `isnan` detects NaN only, not Inf or intermediate overflow. Empty, integer, and boolean tensors report `0`; fake and meta tensors report `null`.
- - In `isnan` mode, the API output NaN flag is passed as the `switch` to `acl_tensor_save`. Inputs and outputs are automatically saved as `.pt` files under `dump_tensor_data` when the flag is nonzero, without configuring `tensor_list` or triggering a NanTest exception. Backward collection includes both `grad_input` and `grad_output`. A zero flag disables saving.
-
 **Parameters**
 
-`nan_check` supports tensor NaN detection (`isnan`, the default) and NPU register overflow detection (`slot`).
+All APIs are checked by default. Use `scope` or `list` to narrow the range.
 
 | Parameter | Required/Optional | Description |
 | ---- | --------- | ---- |
-| scope | Optional | Dump scope for PyTorch scenarios, of the type `list[str]`. By default, it is not specified (if neither scope nor list is set, all APIs are dumped). For details, see [scope Configuration](#scope-configuration). |
-| list  | Optional | Custom list of operators to collect, of the type `list[str]`. By default, it is not specified (if neither scope nor list is set, all APIs are dumped). For details, see [list Configuration](#list-configuration). |
-| check_mode | Optional | Detection mode, of type `str`. `"isnan"` (default) records input/output `is_nan` flags and automatically saves inputs and outputs through `acl_tensor_save` when an output contains NaN. `"slot"` preserves register detection and detailed collection selected by `tensor_list`. |
-| tensor_list | Optional | API keywords for additional `npu_nan_test` collection in `"slot"` mode, of type `list[str]`. `"isnan"` automatically collects inputs and outputs when an API output contains NaN, regardless of this list. See [tensor_list Configuration](#tensor_list-configuration). |
-| data_mode | Optional | Dump data filter, of the type `list[str]`. For details, see [data_mode Configuration](#data_mode-configuration).<br/><br/>**Note**: In `nan_check` task scenarios, when `input` is specified in data_mode, `output` must also be configured. |
+| scope | Optional | Detection range, of type `list[str]`. See [scope Configuration](#scope-configuration). |
+| list | Optional | APIs to check, of type `list[str]`. See [list Configuration](#list-configuration). |
+| check_mode | Optional | Detection mode, of type `str`, defaulting to `"isnan"`. See [check_mode Configuration](#check_mode-configuration). |
+| tensor_list | Optional | API keywords for detailed collection in `slot` mode only, of type `list[str]`. See [tensor_list Configuration](#tensor_list-configuration). |
+| data_mode | Optional | Data filter, of type `list[str]`, defaulting to `["all"]`. When specifying `"input"`, also include `"output"`. See [data_mode Configuration](#data_mode-configuration). |
+
+**Usage Example**
+
+For a complete example, see [nan_check Usage Example](./pytorch_nan_check_quickstart.md).
+
+**Results**
+
+- In `dump.json`, `isnan` records `is_nan` for each input and output tensor: `1` for NaN, `0` for no NaN, and `null` when detection is unavailable. Backward records include both `grad_input` and `grad_output`; no API-level flag is written.
+- In `isnan` mode, empty, integer, and boolean tensors report `0`; FakeTensor and meta tensors report `null`. `Max`, `Min`, `Mean`, and `Norm` are not calculated.
+- `slot` records results per API. Intermediate overflow may be detected even when output tensors are normal; detection accuracy is not guaranteed for int64 operations.
 
 ### task = structure
 
@@ -310,6 +306,24 @@ You can configure two module or API names within square brackets ([]). The list 
 
 Example: "scope": ["Module.conv1.Conv2d.forward.0", "Module.fc2.Linear.forward.0"], "scope": ["Cell.conv1.Conv2d.forward.0", "Cell.fc2.Dense.backward.0"], or "scope": ["Tensor.add.0.forward", "Functional.square.2.forward"]<br>The value depends on the value of `level`. When `level` is set to `L0`, the module name can be configured. When `level` is set to `L1`, the API name can be configured. When `level` is set to `mix`, the module name or API name can be configured.
 
+### check_mode Configuration
+
+Applies only to the PyTorch `nan_check` task. Type: `str`. Options:
+
+- `"isnan"` (default): Detects NaN in input and output tensors, but not Inf or intermediate overflow. When a forward output contains NaN, the API's inputs and outputs are automatically saved as `.pt` files under `dump_tensor_data`. Backward saving is triggered by NaN in `grad_input` and includes both `grad_input` and `grad_output`. No `tensor_list` configuration or deliberate exception is needed. Compile msProbe with the `--include-mod=aclgraph_dump` module.
+- `"slot"`: Reads NPU registers to detect NaN, Inf, or intermediate overflow in an API. Compile msProbe with the `--include-mod=nan_check` module and set `INF_NAN_MODE_FORCE_DISABLE=1` before running. Use `tensor_list` to select APIs for detailed collection.
+
+For example, replace the `nan_check` part of the configuration above with the following to enable register detection and detailed collection for `sqrt`:
+
+```json
+{
+    "nan_check": {
+        "check_mode": "slot",
+        "tensor_list": ["sqrt"]
+    }
+}
+```
+
 ### tensor_list Configuration
 
 - General behavior
@@ -318,9 +332,7 @@ Example: "scope": ["Module.conv1.Conv2d.forward.0", "Module.fc2.Linear.forward.0
 
   - Example: `"tensor_list": ["relu"]`
 
-- For `nan_check`, the default `isnan` mode automatically collects API inputs and outputs when the API output contains NaN. No `tensor_list` configuration is required. In explicit `slot` mode, `tensor_list` still selects APIs for detailed collection by matching name substrings.
-  - `isnan` uses `acl_tensor_save` to write `.pt` files under `dump_tensor_data`, grouped by API call and labeled with input/output names and indices. `slot` retains the `npu_nan_test` exception mechanism and writes data to `extra-info` for the [Tensor Parsing Tool](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/maintenref/troubleshooting/troubleshooting_0532.html).
-  - Use `scope` or `list` to narrow detection scope; `tensor_list` only limits detailed collection in `slot` mode.
+- For [nan_check](#task--nan_check), this parameter applies only to `slot` mode: API name substrings select APIs for detailed collection. On overflow, an exception is triggered and detailed data is saved under `extra-info` for the [Tensor Parsing Tool](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/maintenref/troubleshooting/troubleshooting_0532.html).
 
 ### data_mode Configuration
 

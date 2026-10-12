@@ -98,7 +98,7 @@ msProbe工具通过在训练脚本中添加`PrecisionDebugger`接口并启动训
 | 深度精度分析 | task="tensor"          | 采集完整数据，支持详细分析                                                                                                                                                                          |
 | 确定性问题分析 | task="statistics"<br>summary_mode="md5"          | 采集统计信息和tensor的CRC-32校验值，快速分析确定性问题                                                                                                                                                      |
 | 轻量确定性差异定位 | task="statistics"<br>summary_mode="xor"          | 仅采集XOR校验值；如需加速采集，可安装编译时包含`--include-mod=xor_checksum`的工具包，安装方法请参见[安装指南-源码安装](../../install_guide/msprobe_install_guide.md#23-源码安装)中的“xor_checksum加速算子”相关指导，优先使用C++加速算子执行，可带来数倍性能提升 |
-| NaN/Inf检测 | task="nan_check"      | 通过寄存器状态检测API运行中的NaN/Inf                                                                                                                                                                |
+| NaN或溢出检测 | task="nan_check" | 默认检测tensor中的NaN；`slot`模式检测寄存器中的NaN/Inf或过程溢出，见[完整使用示例](./pytorch_nan_check_quickstart.md)。 |
 
 ### 使用示例
 
@@ -369,7 +369,7 @@ dump.json is at ./dump_path/step*
 * `dump.json`：保存API或Module前反向数据的统计量信息，包含dump数据的API名称或Module名称，各数据的dtype、shape、max、min、mean、L2norm（L2范数，平方根）统计信息，以及根据`summary_mode`配置输出的校验值（`md5`对应CRC-32字段`md5`，`xor`对应XOR校验字段`md5`）。具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
   * 当Tensor的数据格式为NZ格式时，dump.json中max、min、mean、L2norm（L2范数，平方根）统计信息均为`null`，且仅当Tensor的数据类型为torch.float32、torch.float16、torch.bfloat16中的一种时，才会计算mean、L2norm统计信息，其它数据类型仅计算max、min统计信息。
   * 当`summary_mode`配置为`xor`时，dump.json仅输出XOR校验值，不输出max、min、mean、L2norm统计信息。加速算子不可用时自动回退到通用实现。
-  * 当task配置为`"nan_check"`时，dump.json中各API数据将包含`is_nan`字段，取值为0或1，0代表无溢出状态，1代表有溢出状态（该模式下不保存API中数据的统计值）。
+  * 当task为`"nan_check"`时，默认`isnan`模式为每个输入、输出tensor记录`is_nan`（`1`表示含NaN，`0`表示不含NaN，`null`表示无法检测）；`slot`模式按API记录寄存器检测结果。两种模式均不计算统计值，详见[nan_check配置](./config_json_introduct.md#task配置为nan_check)和[完整使用示例](./pytorch_nan_check_quickstart.md)。
 
 * `dump_error_info.log`：仅在dump工具报错时生成此记录日志，用于记录dump错误日志。
 * `stack.json`：API/Module的调用栈信息。

@@ -98,7 +98,7 @@ Select a proper task type according to your requirements. For details about task
 | In-depth precision analysis| task="tensor"          | Complete data collection and detailed analysis.  |
 | Deterministic issue analysis| task="statistics"<br>summary_mode="md5"          | Statistics and tensor CRC-32 values collected for quick analysis of deterministic issues.  |
 | Lightweight deterministic difference localization | task="statistics"<br>summary_mode="xor"          | Only XOR checksum values are collected. To accelerate collection, install the tool package compiled with the `--include-mod=xor_checksum` flag. For installation instructions, see [Install the basic tool package and xor_checksum](../../install_guide/msprobe_install_guide.md#install-xor-checksum). The C++ acceleration operator will be used preferentially, delivering several-fold performance improvement. |
-| NaN/Inf detection | task="nan_check"      | Detect NaN/Inf during API execution via register status. |
+| NaN or overflow detection | task="nan_check" | Detect tensor NaN by default; `slot` detects register NaN/Inf or intermediate overflow. See the [complete usage example](./pytorch_nan_check_quickstart.md). |
 
 ### Usage Example
 
@@ -369,7 +369,7 @@ The directory structure is as follows:
 * `dump.json`: stores statistical information for forward/backward data of APIs or Modules. It includes the API or Module name of the dumped data, statistical information for each data tensor such as `dtype`, `shape`, `max`, `min`, `mean`, `L2norm` (L2 norm, square root), as well as checksum values output based on the `summary_mode` configuration (`md5` corresponds to the CRC-32 field md5; `xor` corresponds to the XOR checksum field md5). For details, see [dump.json Description](#dumpjson-description).
   * When the tensor data format is NZ, the `max`, `min`, `mean`, and `L2norm` (L2 norm, square root) statistics in `dump.json` are all null. Additionally, `mean` and `L2norm` statistics are calculated only when the tensor data type is one of `torch.float32`, `torch.float16`, or `torch.bfloat16`; for other data types, only `max` and `min` statistics are calculated.
   * When `summary_mode` is set to `xor`, `dump.json` outputs only the XOR checksum value, without outputting `max`, `min`, `mean`, or `L2norm` statistics. If the acceleration operator is unavailable, the tool automatically falls back to the generic implementation.
-  * When `task` is set to `nan_check`, the data for each API in dump.json will include an `is_nan` field with a value of `0` or `1`, where `0` indicates no overflow status and `1` indicates an overflow status (statistics for API data are not saved in this mode).
+  * When `task` is `nan_check`, the default `isnan` mode records `is_nan` for each input and output tensor (`1` for NaN, `0` for no NaN, and `null` when detection is unavailable); `slot` records register detection results per API. Neither mode calculates statistics. See [nan_check Configuration](./config_json_introduct.md#task--nan_check) and the [complete usage example](./pytorch_nan_check_quickstart.md).
 
 * `dump_error_info.log`: Generated only when the dump tool encounters an error; used to record dump error logs.
 * `stack.json`: call stack information of APIs or modules.
