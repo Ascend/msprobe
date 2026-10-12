@@ -185,8 +185,8 @@ msProbe工具支持加载先前采集的模块级（L0）输入tensor数据，�
 
 1. 模块前向调用时，hook构造`full_forward_name`（格式与dump侧一致）。
 2. 与`load.modules`精确匹配，匹配成功则加载源dump中对应的`.pt`文件。
-3. 遍历模块forward的所有位置参数（args）和关键字参数（kwargs），将tensor类型的参数替换为源dump数据。
-4. 非tensor参数（如int、str、bool）自动跳过（dump侧未存储`.pt`文件）。
+3. 遍历模块forward的所有位置参数（args）和关键字参数（kwargs），递归地将其中tensor类型的参数替换为源dump数据；支持dict、list、tuple、namedtuple、dataclass等嵌套容器，容器内的tensor会被逐层展开并替换。
+4. 非tensor的叶子参数（如int、str、bool）自动跳过（dump侧未存储`.pt`文件）。
 5. 覆盖后的输入传递给模块forward执行。
 
 ### 注意事项
@@ -199,6 +199,17 @@ load侧加载的tensor文件路径与dump侧产出的文件命名严格一致，
 |----------|-------------|---------------|
 | 位置参数 args | `{full_forward_name}.input.{i}.pt` | `{load.path}/step{N}/rank{M}/dump_tensor_data/{full_forward_name}.input.{i}.pt` |
 | 关键字参数 kwargs | `{full_forward_name}.kwargs.{key}.pt` | `{load.path}/step{N}/rank{M}/dump_tensor_data/{full_forward_name}.kwargs.{key}.pt` |
+
+当位置参数或关键字参数本身是dict、list、tuple、namedtuple或dataclass等嵌套容器时，dump侧会递归展开容器，容器内的tensor按嵌套路径命名；load侧按相同路径加载。嵌套路径由dict键名、list/tuple下标、namedtuple/dataclass字段名用`.`拼接而成，例如：
+
+| 参数形态 | dump侧文件名示例 |
+|----------|-----------------|
+| 位置参数为dict | `{full_forward_name}.input.{i}.{key}.{subkey}.pt` |
+| 位置参数为list | `{full_forward_name}.input.{i}.{index}.pt` |
+| 位置参数为namedtuple/dataclass | `{full_forward_name}.input.{i}.{field}.pt` |
+| 关键字参数为dict | `{full_forward_name}.kwargs.{key}.{subkey}.pt` |
+
+例如模型某模块的forward参数为一个dict，其中`pixel_values`键对应`{"exterior": tensor}`，则该tensor的dump文件名为`Module.xxx.forward.0.input.0.pixel_values.exterior.pt`，load时按相同路径从源dump加载。
 
 dump侧的目录结构、文件命名规则请参见[PyTorch场景精度数据采集](./pytorch_data_dump_instruct.md#dump结果文件介绍)中的[dump结果文件介绍](./pytorch_data_dump_instruct.md#dump结果文件介绍)。
 

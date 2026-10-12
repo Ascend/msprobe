@@ -25,9 +25,11 @@ config.json load.modules, e.g.:
     "Module.blocks.0.attn.MultiHeadSelfAttention.forward.0"
 """
 
+import copy
 import glob
 import os
 import re
+from dataclasses import fields, is_dataclass
 
 import torch
 
@@ -202,13 +204,18 @@ class TensorLoader:
     def override_args(self, full_forward_name, args, kwargs):
         """Replace tensor-type positional args and kwargs with loaded tensors.
 
-        Non-tensor args/kwargs are left unchanged (no .pt file exists for them in
-        source dump). If a source .pt file is missing, warn and keep the original
-        value.
+        Supports nested dict/list/tuple/namedtuple/dataclass containers: tensors
+        inside them are overridden recursively, matching the flattening/naming
+        produced by the dump side (base.py recursive_apply_transform +
+        pytorch_processor analyze_single_element). Non-tensor leaf values
+        (int/str/bool/None, ...) are left unchanged (no .pt file exists for them
+        in source dump). If a source .pt file is missing, warn and keep the
+        original value.
 
-        Dump-side naming (base.py analyze_forward_input):
-            args:   {full_forward_name}.input.{i}.pt       (api_data_category="input")
-            kwargs: {full_forward_name}.kwargs.{key}.pt    (api_data_category="kwargs")
+        Dump-side naming:
+            args:   {full_forward_name}.input.{i}[.{nested_path}].pt
+            kwargs: {full_forward_name}.kwargs.{key}[.{nested_path}].pt
+        where nested_path is the flattened dict keys / list indices joined by ".".
 
         Args:
             full_forward_name: "Module.blocks.0.attn.MultiHeadSelfAttention.forward.0"
@@ -217,20 +224,82 @@ class TensorLoader:
         Returns:
             (new_args_tuple, new_kwargs_dict)
         """
-        new_args = list(args)
-        for i, arg in enumerate(args):
-            if isinstance(arg, torch.Tensor):
-                loaded = self._load_override_tensor(full_forward_name, Const.INPUT, i, arg)
-                if loaded is not None:
-                    new_args[i] = loaded
+        new_args = tuple(self._override_value(full_forward_name, Const.INPUT, [i], arg) for i, arg in enumerate(args))
+        new_kwargs = {
+            key: self._override_value(full_forward_name, Const.KWARGS, [key], val) for key, val in kwargs.items()
+        }
+        return new_args, new_kwargs
 
-        new_kwargs = dict(kwargs)
-        for key, val in kwargs.items():
-            if isinstance(val, torch.Tensor):
-                loaded = self._load_override_tensor(full_forward_name, Const.KWARGS, key, val)
-                if loaded is not None:
-                    new_kwargs[key] = loaded
-        return tuple(new_args), new_kwargs
+    def _override_value(self, full_forward_name, category, path, value):
+        """Recursively override tensors inside a (possibly nested) arg/kwarg value.
+
+        Mirrors the dump-side recursive_apply_transform traversal: a tensor is
+        loaded from source dump using a dotted suffix built from `path`; dict/list/
+        tuple/namedtuple/dataclass containers are rebuilt so non-tensor leaves are
+        preserved.
+
+        Args:
+            full_forward_name: full module forward name from hook.
+            category: Const.INPUT for positional args, Const.KWARGS for kwargs.
+            path: list of keys/indices from the arg/kwarg root down to `value`.
+                  The first element is the arg index or kwarg key.
+            value: current value (tensor, dict, list, tuple, or other leaf).
+        Returns:
+            value with tensors replaced by loaded tensors (or unchanged on failure).
+        """
+        if len(path) > Const.DUMP_MAX_DEPTH:
+            suffix = Const.SEP.join(str(p) for p in path)
+            logger.warning(
+                f"[load] nesting depth exceeds {Const.DUMP_MAX_DEPTH}, skip override for "
+                f"{full_forward_name}.{category}.{suffix}"
+            )
+            return value
+
+        if isinstance(value, torch.Tensor):
+            suffix = Const.SEP.join(str(p) for p in path)
+            loaded = self._load_override_tensor(full_forward_name, category, suffix, value)
+            return value if loaded is None else loaded
+
+        if isinstance(value, dict):
+            return {
+                key: self._override_value(full_forward_name, category, path + [key], item)
+                for key, item in value.items()
+            }
+
+        if isinstance(value, list):
+            return [self._override_value(full_forward_name, category, path + [i], item) for i, item in enumerate(value)]
+
+        if isinstance(value, tuple):
+            if hasattr(value, "_fields"):
+                # namedtuple: dump side flattens it as a dict keyed by field name,
+                # so recurse with field names and rebuild the same namedtuple type.
+                return type(value)(
+                    *[
+                        self._override_value(full_forward_name, category, path + [field], getattr(value, field))
+                        for field in value._fields
+                    ]
+                )
+            # plain tuple (or tuple subclass like torch.Size): dump side flattens
+            # it as a list keyed by index; preserve the original type on rebuild.
+            items = [
+                self._override_value(full_forward_name, category, path + [i], item) for i, item in enumerate(value)
+            ]
+            return type(value)(items)
+
+        if is_dataclass(value) and not isinstance(value, type):
+            # dataclass: dump side flattens it as a dict keyed by field name.
+            # Rebuild via shallow copy + object.__setattr__ so frozen / init=False /
+            # InitVar / nested dataclass variants are all handled (unlike
+            # dataclasses.replace, which fails on init=False fields).
+            new_value = copy.copy(value)
+            for field in fields(value):
+                field_value = getattr(value, field.name)
+                updated = self._override_value(full_forward_name, category, path + [field.name], field_value)
+                object.__setattr__(new_value, field.name, updated)
+            return new_value
+
+        # int / str / bool / None / other non-tensor leaf: no .pt file, keep unchanged
+        return value
 
     def _load_override_tensor(self, full_forward_name, category, suffix, current_tensor):
         """Load a single tensor from source dump, with cache, shape/dtype check, and error handling.

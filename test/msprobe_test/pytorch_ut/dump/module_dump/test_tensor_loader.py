@@ -16,6 +16,8 @@
 import os
 import tempfile
 import unittest
+from collections import namedtuple
+from dataclasses import dataclass, field
 
 import torch
 
@@ -275,6 +277,161 @@ class TestTensorLoaderOverrideArgs(unittest.TestCase):
         args, kwargs = self.loader.override_args(self.ffn, (), {})
         self.assertEqual(args, ())
         self.assertEqual(kwargs, {})
+
+
+SampleNT = namedtuple("SampleNT", ["proprio", "action"])
+
+
+@dataclass
+class SensorDataDC:
+    exterior: torch.Tensor
+    wrist_right: torch.Tensor
+
+
+@dataclass(frozen=True)
+class FrozenDC:
+    x: torch.Tensor
+    y: torch.Tensor
+
+
+@dataclass
+class InitFalseDC:
+    x: torch.Tensor
+    y: torch.Tensor = field(default=None, init=False)
+
+
+class TestTensorLoaderOverrideNested(unittest.TestCase):
+    """Tests for override_args recursively overriding tensors in nested containers."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.data_dir = os.path.join(self.tmpdir, "step0", "rank0", "dump_tensor_data")
+        os.makedirs(self.data_dir)
+        self.ffn = "Module.nested.NestedModule.forward.0"
+
+        def mk(v):
+            return torch.full((4,), float(v))
+
+        self.src = {
+            f"{Const.INPUT}.0.action": mk(1),
+            f"{Const.INPUT}.0.proprio": mk(2),
+            f"{Const.INPUT}.0.pixel_values.exterior": mk(3),
+            f"{Const.INPUT}.0.pixel_values.wrist_right": mk(4),
+            f"{Const.INPUT}.0.samples.0.proprio.value": mk(5),
+            f"{Const.INPUT}.0.samples.0.action.value": mk(6),
+            f"{Const.KWARGS}.pixel_values.exterior": mk(7),
+            f"{Const.KWARGS}.pixel_values.wrist_right": mk(8),
+            f"{Const.INPUT}.1.0": mk(9),
+            f"{Const.INPUT}.1.1": mk(10),
+            f"{Const.INPUT}.2.0": mk(11),
+            f"{Const.INPUT}.2.1": mk(12),
+            f"{Const.INPUT}.3.proprio": mk(13),
+            f"{Const.INPUT}.3.action": mk(14),
+            f"{Const.INPUT}.4.exterior": mk(15),
+            f"{Const.INPUT}.4.wrist_right": mk(16),
+            f"{Const.INPUT}.5.x": mk(17),
+            f"{Const.INPUT}.5.y": mk(18),
+            f"{Const.INPUT}.6.x": mk(19),
+            f"{Const.INPUT}.6.y": mk(20),
+        }
+        for suffix, tensor in self.src.items():
+            torch.save(tensor, os.path.join(self.data_dir, f"{self.ffn}.{suffix}.pt"))
+
+        cfg = FakeLoadConfig(self.tmpdir, [self.ffn])
+        self.loader = TensorLoader(cfg)
+        self.loader.update_step_rank(0, 0)
+
+    def test_override_nested_dict_arg(self):
+        data = {
+            "action": torch.zeros(4),
+            "proprio": torch.zeros(4),
+            "pixel_values": {"exterior": torch.zeros(4), "wrist_right": torch.zeros(4)},
+            "samples": [
+                {"proprio": {"value": torch.zeros(4)}, "action": {"value": torch.zeros(4)}},
+            ],
+        }
+        args, _ = self.loader.override_args(self.ffn, (data,), {})
+        out = args[0]
+        self.assertIsInstance(out, dict)
+        self.assertTrue(torch.equal(out["action"], self.src["input.0.action"]))
+        self.assertTrue(torch.equal(out["proprio"], self.src["input.0.proprio"]))
+        self.assertTrue(torch.equal(out["pixel_values"]["exterior"], self.src["input.0.pixel_values.exterior"]))
+        self.assertTrue(torch.equal(out["pixel_values"]["wrist_right"], self.src["input.0.pixel_values.wrist_right"]))
+        self.assertTrue(
+            torch.equal(out["samples"][0]["proprio"]["value"], self.src["input.0.samples.0.proprio.value"])
+        )
+        self.assertTrue(
+            torch.equal(out["samples"][0]["action"]["value"], self.src["input.0.samples.0.action.value"])
+        )
+        # original structure is rebuilt, not mutated in place
+        self.assertTrue(torch.equal(data["action"], torch.zeros(4)))
+
+    def test_override_nested_dict_kwarg(self):
+        pixel_values = {"exterior": torch.zeros(4), "wrist_right": torch.zeros(4)}
+        _, kwargs = self.loader.override_args(self.ffn, (), {"pixel_values": pixel_values})
+        self.assertTrue(torch.equal(kwargs["pixel_values"]["exterior"], self.src["kwargs.pixel_values.exterior"]))
+        self.assertTrue(torch.equal(kwargs["pixel_values"]["wrist_right"], self.src["kwargs.pixel_values.wrist_right"]))
+
+    def test_override_list_arg(self):
+        lst = [torch.zeros(4), torch.zeros(4)]
+        args, _ = self.loader.override_args(self.ffn, (None, lst), {})
+        self.assertIsInstance(args[1], list)
+        self.assertTrue(torch.equal(args[1][0], self.src["input.1.0"]))
+        self.assertTrue(torch.equal(args[1][1], self.src["input.1.1"]))
+
+    def test_override_tuple_arg_preserves_type(self):
+        tup = (torch.zeros(4), torch.zeros(4))
+        args, _ = self.loader.override_args(self.ffn, (None, None, tup), {})
+        self.assertIsInstance(args[2], tuple)
+        self.assertTrue(torch.equal(args[2][0], self.src["input.2.0"]))
+        self.assertTrue(torch.equal(args[2][1], self.src["input.2.1"]))
+
+    def test_override_torch_size_preserves_type(self):
+        size = torch.Size([2, 3])
+        args, _ = self.loader.override_args(self.ffn, (size,), {})
+        self.assertIsInstance(args[0], torch.Size)
+        self.assertEqual(tuple(args[0]), (2, 3))
+
+    def test_override_namedtuple_arg_preserves_type(self):
+        nt = SampleNT(proprio=torch.zeros(4), action=torch.zeros(4))
+        args, _ = self.loader.override_args(self.ffn, (None, None, None, nt), {})
+        self.assertIsInstance(args[3], SampleNT)
+        self.assertTrue(torch.equal(args[3].proprio, self.src["input.3.proprio"]))
+        self.assertTrue(torch.equal(args[3].action, self.src["input.3.action"]))
+
+    def test_override_dataclass_arg_preserves_type(self):
+        dc = SensorDataDC(exterior=torch.zeros(4), wrist_right=torch.zeros(4))
+        args, _ = self.loader.override_args(self.ffn, (None, None, None, None, dc), {})
+        self.assertIsInstance(args[4], SensorDataDC)
+        self.assertTrue(torch.equal(args[4].exterior, self.src["input.4.exterior"]))
+        self.assertTrue(torch.equal(args[4].wrist_right, self.src["input.4.wrist_right"]))
+
+    def test_override_frozen_dataclass(self):
+        dc = FrozenDC(x=torch.zeros(4), y=torch.zeros(4))
+        args, _ = self.loader.override_args(self.ffn, (None, None, None, None, None, dc), {})
+        self.assertIsInstance(args[5], FrozenDC)
+        self.assertTrue(torch.equal(args[5].x, self.src["input.5.x"]))
+        self.assertTrue(torch.equal(args[5].y, self.src["input.5.y"]))
+
+    def test_override_init_false_dataclass(self):
+        dc = InitFalseDC(x=torch.zeros(4))
+        dc.y = torch.zeros(4)
+        args, _ = self.loader.override_args(self.ffn, (None, None, None, None, None, None, dc), {})
+        self.assertIsInstance(args[6], InitFalseDC)
+        self.assertTrue(torch.equal(args[6].x, self.src["input.6.x"]))
+        self.assertTrue(torch.equal(args[6].y, self.src["input.6.y"]))
+
+    def test_non_tensor_leaf_preserved_in_nested(self):
+        data = {"meta": {"n": 5, "name": "x"}, "flags": [True, None]}
+        args, _ = self.loader.override_args(self.ffn, (data,), {})
+        self.assertEqual(args[0]["meta"]["n"], 5)
+        self.assertEqual(args[0]["meta"]["name"], "x")
+        self.assertEqual(args[0]["flags"], [True, None])
+
+    def test_missing_source_file_keeps_nested_original(self):
+        data = {"missing_key": torch.zeros(4)}
+        args, _ = self.loader.override_args(self.ffn, (data,), {})
+        self.assertTrue(torch.equal(args[0]["missing_key"], torch.zeros(4)))
 
 
 class TestTensorLoaderDisabled(unittest.TestCase):
