@@ -12,4 +12,4 @@
 | Open-source software| -      | cmake/config.ini                 | <https://gitee.com/mirrors/protobuf_source/repository/archive/v3.15.0.tar.gz>             | Open-source software download              |
 | Open-source software| -      | cmake/config.ini                 | <https://gitee.com/mirrors/re2/repository/archive/2019-12-01.tar.gz>                      | Open-source software download              |
 | Open-source software| -      | plugins/tb_graph_ascend/setup.py | <pmail_mindstudio@huawei.com>                                                             | Official email address of MindStudio      |
-| Open-source software| -      | plugins/tb_graph_ascend/setup.py | <https://gitcode.com/Ascend/mstt/tree/master/plugins/tensorboard-plugins/tb_graph_ascend> | Code repository address               |
+| Open-source software| -      | plugins/tb_graph_ascend/setup.py | <https://gitcode.com/Ascend/msprobe/tree/master/plugins/tb_graph_ascend> | Code repository address               |

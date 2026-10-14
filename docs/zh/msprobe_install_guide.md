@@ -24,7 +24,7 @@ Successfully installed mindstudio-probe-{version}
 
 1. 请参考[msProbe Release](https://gitcode.com/Ascend/msprobe/releases)下载msProbe的whl软件包和对应数字签名文件（.sha256）。
 
-   下载本软件即表示您同意《[华为企业业务最终用户许可协议（EULA）](https://e.huawei.com/cn/about/eula)》的条款和条件。
+   下载二进制软件即表示您同意《[软件许可协议2.0](https://www.hiascend.com/legal/softlicense)》的条款和条件。
 
 2. 验证whl包的完整性。
 
@@ -88,48 +88,48 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
-  
+
   pip install setuptools wheel
-  
+
   python3 setup.py bdist_wheel
   cd ./dist
   pip install ./mindstudio_probe*.whl
   ```
-  
+
 - 安装基础工具包和adump模块
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
-  
+
   pip install setuptools wheel
-  
+
   python3 setup.py bdist_wheel --include-mod=adump --no-check
   cd ./dist
   pip install ./mindstudio_probe*.whl
   ```
-  
+
 - 安装基础工具包和aclgraph_dump模块
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
-  
+
   pip install setuptools wheel
-  
+
   python3 setup.py bdist_wheel --include-mod=aclgraph_dump --no-check
   cd ./dist
   pip install ./mindstudio_probe*.whl
   ```
-  
+
 - 安装基础工具包和分级可视化插件
 
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
-  
+
   pip install setuptools wheel
-  
+
   python3 setup.py bdist_wheel --include-mod=tb_graph_ascend --no-check
   cd ./dist
   pip install ./mindstudio_probe*.whl
@@ -140,9 +140,9 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
-  
+
   pip install setuptools wheel
-  
+
   python3 setup.py bdist_wheel --include-mod=trend_analyzer --no-check
   cd ./dist
   pip install ./mindstudio_probe*.whl
@@ -153,9 +153,9 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
-  
+
   pip install setuptools wheel
-  
+
   python3 setup.py bdist_wheel --include-mod=tb_graph_ascend,trend_analyzer --no-check
   cd ./dist
   pip install ./mindstudio_probe*.whl
@@ -166,9 +166,9 @@ python3 setup.py bdist_wheel [--include-mod=<include_mode>] [--no-check]
   ```bash
   git clone https://gitcode.com/Ascend/msprobe.git -b 26.0.0
   cd msprobe
-  
+
   pip install setuptools wheel
-  
+
   python3 setup.py bdist_wheel --include-mod=atb_probe --no-check
   cd ./dist
   pip install ./mindstudio_probe*.whl
