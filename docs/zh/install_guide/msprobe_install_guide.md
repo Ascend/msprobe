@@ -30,7 +30,7 @@ Successfully installed mindstudio-probe-{version}
 
 1. 请参见[msProbe Release](https://gitcode.com/Ascend/msprobe/releases)下载msProbe的whl软件包和对应数字签名文件（.sha256）。
 
-   下载本软件即表示您同意《[华为企业业务最终用户许可协议（EULA）](https://e.huawei.com/cn/about/eula)》的条款和条件。
+   下载二进制软件即表示您同意《[软件许可协议2.0](https://www.hiascend.com/legal/softlicense)》的条款和条件。
 
 2. 验证whl包的完整性。
 

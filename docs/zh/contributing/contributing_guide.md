@@ -22,7 +22,7 @@
 
 ### 环境要求
 
-- 硬件环境请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)》
+- 硬件环境请参见《[昇腾产品形态说明](https://www.hiascend.com/document/detail/zh/Glossary/productform/hardwaredesc_0001.html)》
 - 需要提前安装CANN开源版本
 - Python 3.7.5及以上版本
 
