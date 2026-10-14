@@ -33,7 +33,7 @@ jobs:
     env:
       ARTIFACT_NAME: ${{ format('{0}-{1}', inputs.ARTIFACT_NAME, atomgit.run_number) }}
     select: selected_by_default
-    runs-on: [ self-hosted, cpu=32 ]
+    runs-on: [ self-hosted, default, cpu=32 ]
     container:
       image: swr.cn-north-4.myhuaweicloud.com/mindstudio-image/${{ inputs.IMAGE_FLAG }}
       options: --user root
