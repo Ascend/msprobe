@@ -42,19 +42,19 @@ Locate where the model and optimizer are defined and where training begins in th
 
 ```diff
 # Megatron-LM(core_r0.6.0)  training.py
-model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider, model_type) 
+model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider, model_type)
 ...
 # Insert the monitor tool immediately after the model and optimizer are defined.
 +from msprobe.pytorch import TrainerMon
 +monitor = TrainerMon(
-+    config_file_path="./monitor_config.json",
++    config_file_path="./config.json",
 +    params_have_main_grad=True,  # Whether to use main_grad for the weight. Generally, the value is True for Megatron and False for others. The default value is True.
-+) 
++)
 +monitor.set_monitor(
 +    model,
 +    grad_acc_steps=args.global_batch_size//args.data_parallel_size//args.micro_batch_size,
 +    optimizer=optimizer
-+) 
++)
 ```
 
 If DeepSpeed, Accelerate, and Transformers are used together, use `optimizer=optimizer.optimizer`. If DeepSpeed is not used and Accelerate and Transformers are used separately, use `optimizer=optimizer`.
@@ -86,21 +86,21 @@ class Trainer:
 
 ```diff
 # Megatron-LM(core_r0.6.0)  training.py
-model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider, model_type) 
+model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider, model_type)
 ...
 # Insert the monitor tool immediately after the model and optimizer are defined.
 +from msprobe.mindspore import TrainerMon
 +monitor = TrainerMon(
-+    config_file_path="./monitor_config.json",
++    config_file_path="./config.json",
 +    process_group=None,
 +    params_have_main_grad=True,  # Whether to use main_grad for weights. Generally, the value is True for Megatron and False for others. The default value is True.
-+) 
++)
 # Mount objects to be monitored.
 +monitor.set_monitor(
 +    model,
 +    grad_acc_steps=args.global_batch_size//args.data_parallel_size//args.micro_batch_size,
 +    optimizer=optimizer
-+) 
++)
 ```
 
 ### Precautions
@@ -132,13 +132,13 @@ The following table lists the tool functions.
 - This function can be used to monitor weights. The following is a configuration example:
 
 ```json
-{  
+{
     "targets": {
     },
     "param_distribution": true,
     "format": "csv",
     "ops": ["norm", "min", "max", "nans"]
-}  
+}
 ```
 
 All weights of the module specified in `targets` are monitored. If `targets` is empty, all modules are monitored by default.
@@ -149,13 +149,13 @@ You can set `param_distribution` to `true` to enable weight monitoring. The defa
 - This function can be used to monitor weight gradients before and after aggregation. The following is a configuration example:
 
 ```json
-{  
+{
     "targets": {
     },
     "wg_distribution": true,
     "format": "csv",
     "ops": ["norm", "min", "max", "nans"]
-}  
+}
 ```
 
 All weight gradients of the module specified in `targets` are monitored. If `targets` is empty, all modules are monitored by default.
@@ -166,7 +166,7 @@ You can set `wg_distribution` (weight grad, noted as `wg`) to `true` to enable w
 - This function can be used to monitor activations. The following is a configuration example:
 
 ```json
-{  
+{
     "targets": {
     },
     "xy_distribution": true,
@@ -175,7 +175,7 @@ You can set `wg_distribution` (weight grad, noted as `wg`) to `true` to enable w
     "all_xy": true,
     "format": "csv",
     "ops": ["norm", "min", "max", "nans"]
-}  
+}
 ```
 
 If `all_xy` is set to `true`, the activations of all modules are monitored. To set monitoring objects for a specified module, configure them in `targets`. For details, see [Specifying Monitoring Objects](#specifying-monitoring-objects).
@@ -189,13 +189,13 @@ Note: If both `forward_only` and `backward_only` are set to `true`, a warning is
 - This function can be used to monitor optimizer status. The following is a configuration example:
 
 ```json
-{  
+{
     "targets": {
     },
     "mv_distribution": true,
     "format": "csv",
     "ops": ["norm", "min", "max", "nans"]
-}  
+}
 ```
 
 All weight gradients of the module specified in `targets` are monitored. If `targets` is empty, all modules are monitored by default.
@@ -208,12 +208,12 @@ This tool is adapted to the distributed computing frameworks Megatron and DeepSp
 - This function can be used to collect detailed module stack information. The following is a configuration example:
 
 ```json
-{  
+{
     "targets": {
     },
     "format": "csv",
     "stack_info": true
-}  
+}
 ```
 
 After `stack_info` is enabled, the stack information of all modules in the first step is collected. The output format can only be .csv.
@@ -310,7 +310,9 @@ The tool provides a simple full mode to monitor module objects.
 {
     "l2_targets": {
         "attention_hook": ["0:0.self_attention.core_attention.flash_attention"],
-        "linear_hook": ["0:0.self_attention.linear_qkv", "0:1.self_attention.linear_qkv"]
+        "linear_hook": ["0:0.self_attention.linear_qkv", "0:1.self_attention.linear_qkv"],
+        "moe_router_weight_hook": ["0:0.mlp.router.gate"],
+        "moe_router_logit_hook": ["0:0.mlp.router.gate"]
     },
     "recording_l2_features": true,
     "sa_order": "b,s,h,d"
@@ -319,7 +321,7 @@ The tool provides a simple full mode to monitor module objects.
 
 | Configuration Item| Type| Description| Mandatory (Yes/No)|
 |--------|------|------|--------|
-| **l2_targets** | Dict[str, List[str]] | Specifies the model layer to be monitored.<br>Supported hook types:<br> · `attention_hook`: attention layer.<br>&nbsp;&nbsp;▪️ Metrics: `entropy`, `softmax_max`<br>&nbsp;&nbsp;▪️ The accurate layer name must be obtained by printing the model structure.<br>&nbsp;&nbsp;▪️ If this parameter is not set or is set to an empty list, no data is collected.<br>• `linear_hook`: linear layer<br>&nbsp;&nbsp;▪️ Metrics: `sr`, `kernel_norm`<br>&nbsp;&nbsp;▪️ The accurate layer name must be obtained by printing the model structure. If this parameter is not set, no data is collected.<br>&nbsp;&nbsp;▪️ If an empty list is configured, the system automatically identifies the layers that meet the conditions (including the layers with the `weight` or `wg 2D` attributes).| Yes|
+| **l2_targets** | Dict[str, List[str]] | Specifies the model layer to be monitored.<br>Supported hook types:<br> · `attention_hook`: attention layer.<br>&nbsp;&nbsp;▪️ Metrics: `entropy`, `softmax_max`<br>&nbsp;&nbsp;▪️ The accurate layer name must be obtained by printing the model structure.<br>&nbsp;&nbsp;▪️ If this parameter is not set or is set to an empty list, no data is collected.<br>• `linear_hook`: linear layer<br>&nbsp;&nbsp;▪️ Metrics: `sr`, `kernel_norm`<br>&nbsp;&nbsp;▪️ The accurate layer name must be obtained by printing the model structure. If this parameter is not set, no data is collected.<br>&nbsp;&nbsp;▪️ If an empty list is configured, the system automatically identifies the layers that meet the conditions (including the layers with the `weight` or `wg 2D` attributes).<br>• `moe_router_weight_hook`: MoE router weight layer.<br>&nbsp;&nbsp;▪️ Metrics: `router_weight_similarity`<br>&nbsp;&nbsp;▪️ Configure it as the MoE router linear layer (e.g., `router.gate`). The accurate layer name must be obtained by printing the model structure.<br>&nbsp;&nbsp;▪️ If this parameter is not set or is set to an empty list, no data is collected.<br>• `moe_router_logit_hook`: MoE router output logits.<br>&nbsp;&nbsp;▪️ Metrics: `per_token_expert_entropy`<br>&nbsp;&nbsp;▪️ Configure it as the MoE router linear layer (e.g., `router.gate`). The accurate layer name must be obtained by printing the model structure.<br>&nbsp;&nbsp;▪️ If this parameter is not set or is set to an empty list, no data is collected.| Yes|
 | **recording_l2_features** | bool | Specifies whether to enable L2 feature data collection. The default value is `false`, indicating that L2 feature data is not collected.| No|
 | **sa_order** | str | Specifies the tensor dimension sequence of the Attention input (Q, K) when calculating metrics in `attention_hook`. The value can be `s,b,h,d` or `b,s,h,d`. The default value is `s,b,h,d`, indicating that the input dimension sequence is `sequence_len​->batch_size​->num_heads​->head_dim`. | No|
 
@@ -331,6 +333,8 @@ The tool provides a simple full mode to monitor module objects.
 | **softmax_max**    | attention_hook    | $\max(\text{softmax}(QK^T/\sqrt{d}))$                                               | Reflects the focus degree of the attention mechanism. A **large value** indicates that there is a dominant attention token.                                    |
 | **sr(stable_rank)**            | linear_hook       | $\frac{\|W\|_F}{\|W\|_2}$ (Stable rank, Frobenius norm divided by spectral norm)                       | Evaluates the effective rank of the weight matrix. A **small value** indicates that the matrix is close to the low-rank unstable state. |
 | **kernel_norm**    | linear_hook       | $\|W\|_F$ (Frobenius norm)                                                         | Frobenius norm of the weight matrix, which reflects the amplification coefficient of the input in the space formed by the maximum singular vector of the matrix.                                                  |
+| **router_weight_similarity**    | moe_router_weight_hook       | $\text{mean}_{i\neq j}\cos(w_i, w_j)$: computes the cosine similarity between every pair of expert column vectors of the router weight and takes the mean                        | Measures the diversity of MoE router weights. A **high value (close to 1)** indicates that expert weights converge, and the router becomes merely nominal.                                                   |
+| **per_token_expert_entropy**    | moe_router_logit_hook       | $\text{mean}_i\left[-\sum_{j=1}^{n}s_{ij}\log s_{ij}\right]$: computes the entropy of the softmax routing distribution over experts for each token and takes the mean                          | Measures the determinism of routing decisions. A **low value** indicates that the router enters singleton mode and loses multi-expert collaboration capability.                                                   |
 
 ### mbs-Granularity Gradient Monitoring
 
@@ -408,7 +412,7 @@ During training, if an exception is detected, a message is displayed on the scre
         "vpp_stage": 0,
         "call_id": 112,
         "tag_name": "0:1.self_attention.core_attention_flash_0/rank0/input_grad",
-        "message": "Rule AnomalyTurbulence reports anomaly signal in ('0:1.self_attention.core_attention_flash_0/rank0/input_grad', 'min') at step 1.",
+        "message": "Rule AnomalyTurbulence reports anomaly signal in ('0:1.self_attention.core_attention_flash_0/rank0/input_grad', 'norm') at step 1.",
         "group_mates": [0, 1]
     },
     ...
@@ -419,7 +423,7 @@ During training, if an exception is detected, a message is displayed on the scre
 
 **Exception Sorting**
 
-If a large amount of abnormal data is generated during model training, you need to sort the abnormal events. The tool provides the topk exception sorting capability to sort exceptions based on the API execution sequence, facilitating the demarcation of the first exception point. Example of the exception analysis command:
+If a large amount of abnormal data is generated during model training, you need to sort the abnormal events. The tool provides the topk exception sorting capability to sort exceptions based on the API execution sequence, facilitating the location of the first exception point. Example of the exception analysis command:
 
 ```shell
 python3 -m msprobe.core.monitor.anomaly_processor -d $MONITOR_OUTPUT_DIR/anomaly_detected
@@ -602,13 +606,13 @@ TrainerMon.generate_xy_metrics() -> tuple[dict, dict]
 
 Usage:
 
-```python 
+```python
 actv, actv_grad = monitor.generate_xy_metrics()
 ```
 
 - Description of the old API, which will be deprecated in 2026:
 
-```python 
+```python
 TrainerMon.set_wrapped_optimizer(optimizer) -> None
 ```
 
@@ -616,7 +620,7 @@ TrainerMon.set_wrapped_optimizer(optimizer) -> None
 |-----------|-------------------------------|------|
 | optimizer | Mixed precision optimizer provided by Megatron and DeepSpeed| Yes   |
 
-```python 
+```python
 TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_group, start_iteration) -> None
 ```
 
@@ -640,11 +644,11 @@ The table below describes API changes.
 ## Detailed Configuration
 
 ```json
-{  
-    "targets": {  
-        "language_model.encoder.layers.0": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}  
+{
+    "targets": {
+        "language_model.encoder.layers.0": {"input": "tuple[2]:0", "output": "tensor", "input_grad":"tuple[2]:0", "output_grad":"tuple[1]:0"}
     },
-    "dynamic_on": false,  
+    "dynamic_on": false,
     "start_step": 0,
     "collect_times": 100000000,
     "step_interval": 1,
@@ -671,7 +675,7 @@ The table below describes API changes.
     "step_count_per_record": 1,
     "append_output": [],
     "squash_name": false
-}  
+}
 ```
 
 The table below describes the fields in detail.
@@ -689,7 +693,7 @@ The table below describes the fields in detail.
 | "step_interval"         | No    | Collection step interval. The default value is **1**, indicating that monitoring data is collected at each step.                                                                                                                                                                                                                                                                                                                                              |
 | "print_struct"          | No    | If this parameter is set to **true**, the monitoring tool prints the name and detailed structure of the module on each rank and exits after the first step. If this parameter is left blank, the default value **false** is used.                                                                                                                                                                                                                                                                                                                   |
 | "module_ranks"          | No    | Ranks on which module monitoring is enabled in distributed training scenarios. If this parameter is left blank, module monitoring is enabled on all ranks by default. The rank in the list must be of the int type.                                                                                                                                                                                                                                                                                                           |
-| "ur_distribution"       | No    | If this parameter is set to **true**, the value distribution of the `update` and `ratio` vectors of parameters of the specified module (specified in `targets`) of the Adam optimizer is collected and displayed in the heatmap. The default value is **false**.<br>CANN 8.0.rc2 or later must be used for the histc operator; otherwise, serious performance problems may occur. **This parameter is supported only in PyTorch scenarios.**                                                                                                                                                                                        |
+| "ur_distribution"       | No    | If this parameter is set to **true**, the value distribution of the `update` and `ratio` vectors of parameters of the specified module (specified in `targets`) of the Adam optimizer is collected and displayed in the heatmap. The default value is **false**.<br>CANN 8.0.RC2 or later must be used for the histc operator; otherwise, serious performance problems may occur. **This parameter is supported only in PyTorch scenarios.**                                                                                                                                                                                        |
 | "xy_distribution"       | No    | If this parameter is set to **true**, the input and output tensors of the specified module (specified in `targets`) are monitored. The default value is **false**.                                                                                                                                                                                                                                                                                                                               |
 | "all_xy"                | No    | This parameter is valid only when `xy_distribution` is enabled. If this parameter is set to **true**, all modules are monitored. The default value is **false**.<br>This parameter takes effect together with `targets`. When `all_xy` is set to **true** and `module_xx` and specified objects are configured in `targets`, `module_xx` takes effect based on the `targets` configuration. For other modules, all objects, including `input`, `output`, `input_grad`, and `output_grad`, are monitored.                                                                                                                                                                                        |
 | "forward_only"          | No    | This parameter is valid only when `xy_distribution` is enabled. If the value is **true**, only the forward propagation of the specified module is monitored, and `input_grad` and `output_grad` in `targets` do not take effect. The default value is **false**.                                                                                                                                                                                                                                                                                        |

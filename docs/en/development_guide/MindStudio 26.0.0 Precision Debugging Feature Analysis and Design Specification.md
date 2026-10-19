@@ -1,7 +1,5 @@
 # MindStudio 26.0.0 Precision Debugging Feature Analysis and Design Specification
 
-<!-- md-trans-meta sourceCommit=d04bd615f0a6704fd5647163e7531d767f227e36 translatedAt=2026-08-11T02:42:06.634Z pushedAt=2026-08-11T02:51:07.153Z -->
-
 <table>
     <tr>
         <td>Affiliated SIG Group:</td>
@@ -99,7 +97,7 @@ Feature Requirement List
     <tr>
         <td>3</td>
         <td>Inference Scenario Basic Capability Coverage Support</td>
-        <td>Supports basic capability coverage for mindie, vLLM, and SGLang.</td>
+        <td>Supports basic capability coverage for MindIE, vLLM, and SGLang</td>
     </tr>
     <tr>
         <td>4</td>
@@ -120,7 +118,7 @@ The following scenarios are primarily supported:
 
 - Precision Debugging tool msProbe training & general capability enhancement: MD5 real-time difference analysis dump, comparison result highlighting optimization, and monitor normalization and reconstruction
 - [Reinforcement Learning] Reinforcement learning training-inference consistency localization solution: supports training-inference data comparison in verl training-inference consistency scenarios, and supports fsdp and megatron backends
-- Inference scenario basic capability coverage support: supports basic capability coverage for MindIE, vlLM, and SGLang
+- Inference scenario basic capability coverage support: supports basic capability coverage for MindIE, vLLM, and SGLang
 - [Training-Inference Consistency] Data parsing and visual analysis capability enhancement: Visual analysis supports training data trend analysis
 
 # 4. Precision Debugging Tool msProbe Training & General Capability Enhancement
@@ -142,7 +140,10 @@ Not applicable.
 
 Requirement Background:
 During model training on NPUs, deterministic computation issues are a common challenge. The existing msProbe tool supports the MD5 dump function for entire-network output consistency checking, but it lacks real-time automated analysis capabilities. As a result, for data with unstable reproducibility, it is impossible to perform data collection at the first occurrence. This requirement aims to quickly capture the actual data of MD5 inconsistencies by inheriting real-time monitoring and difference analysis.
+However, it lacks real-time automated analysis capabilities, so for data with unstable reproducibility, it is impossible to perform data collection at the first occurrence. This requirement aims to quickly capture the actual MD5-inconsistent data by inheriting real-time monitoring and difference
+analysis.
 
+Requirement description and implementation plan:
 Requirement Description and Implementation Plan:
 A set of MD5 data for a model is pre-configured in advance. When the tool collects model data again, it can use the pre-configured MD5 data to determine the difference between each tensor in the current task and the pre-configured MD5 data. Once a divergent node is identified, the actual data is dumped.
 
@@ -295,7 +296,7 @@ Suggested Fix Directions
 
 This feature is required to support the following sub-scenario capabilities:
 
-1. Support for dynamic start/stop dump in vLLM scenarios
+1. Support dynamic start/stop of dump in the vLLM scenario
 2. Basic capability support for SGLang dynamic graph scenarios
 
 ## 6.2 Constraints

@@ -235,6 +235,80 @@ During `acc_check` operation, if the pre-check process is interrupted by issues 
 msprobe acc_check -api_info ./dump_path/step{step_number}/rank{rank_number}/dump.json -csv_path /home/xxx/ut/accuracy_checking_result_{timestamp}.csv
 ```
 
+### Custom Fusion Operator Integration
+
+Users can add custom fusion operator benchmark functions via a configuration file, without modifying the source code of the pre-check tool.
+
+**Integration Process**
+
+**Step 1: Write the Benchmark Function File**
+
+Create a Python file in the `bench_functions/` directory to implement the forward benchmark function of the fusion operator (CPU reference implementation). If necessary, also implement the backward benchmark function.
+
+Benchmark function specifications:
+
+- The function signature must match the input arguments of the NPU fusion operator, implemented using pure PyTorch operators without relying on NPU-specific operators.
+- The function name must start with `npu_`.
+- The returned result must be on the CPU.
+
+Reference template file `bench_functions/template.py`:
+
+```python
+import torch
+
+def npu_my_op_forward(x, weight, bias=None):
+    result = torch.matmul(x, weight.t())
+    if bias is not None:
+        result = result + bias
+    return result
+
+def npu_my_op_backward(grad_output, x, weight):
+    grad_x = torch.matmul(grad_output, weight)
+    grad_weight = torch.matmul(grad_output.t(), x)
+    return grad_x, grad_weight
+```
+
+**Step 2: Register the Fusion Operator in the Configuration File**
+
+Edit `bench_functions/fusion_operator_config.yaml` and add an operator entry:
+
+```yaml
+operators:
+  # Registered operators...
+
+  # Add custom operator
+  npu_my_op:
+    forward: npu_my_op_forward
+    backward: npu_my_op_backward      # Optional; leave empty if no backward
+    description: "Custom fusion operator example"
+```
+
+Configuration item description:
+
+| Configuration Item | Required | Description |
+|--------|------|------|
+| `forward` | Yes | Forward benchmark function name; must match the function name in the file under `bench_functions/` |
+| `backward` | No | Backward benchmark function name; can be left empty for operators that do not require backward computation |
+| `description` | No | Operator description, used only for documentation |
+
+**Step 3: Run the Pre-check**
+
+```bash
+msprobe acc_check -api_info ./dump.json
+```
+
+The pre-check tool automatically loads the benchmark functions from the configuration and performs accuracy comparison.
+
+**Working Principle**
+
+During the `acc_check` process, for APIs of the NPU type, the pre-check tool:
+
+1. When executing on the CPU, looks up the corresponding benchmark function via the `npu_custom_functions` registry and executes it to obtain the high-precision CPU result (benchmark data).
+2. When executing on the NPU, calls the actual NPU operator to obtain the result to be compared.
+3. Feeds both results into the comparator to compute accuracy metrics (cosine similarity, relative error, etc.) and finally produces a verdict.
+
+All registration information is centrally managed via `fusion_operator_config.yaml`, automatically loaded at tool startup, eliminating the need to write registration code manually.
+
 ## Pre-check Result Description
 
 The following is an example of the `accuracy_checking_result_{timestamp}.csv` and `accuracy_checking_details_{timestamp}.csv` files generated during accuracy pre-check:
@@ -394,7 +468,7 @@ Whether `Forward Test Success` and `Backward Test Success` pass the test is dete
 | Dual-1000 metric                | Dual-1000 precision metric: Proportion of elements in an NPU tensor whose relative error, compared element-wise against the corresponding benchmark data, is less than 0.1%. The test is passed if the ratio of the number of elements with the relative error greater than 0.1% to the total number of elements is less than 0.1%. This metric is used only for `conv1d` and `conv2d`.                                                                                                                                                                                                                                                     |
 | Dual-1000 metric determination result        | Criterion: If the dual-1000 metric is greater than 0.999, the result is marked as "pass"; otherwise, it is marked as "error".                                                                                                                                                                                                                                                                                                                                           |
 | Comparison result                | Final result of all metrics. If any metric in the comparison result is marked as `error`, the overall result is marked as `error`, and the `Message` field specifies the metric that does not meet the standard. If any metric is marked as `warning`, the overall result is marked as `warning`, and the `Message` field specifies the metric that does not meet the standard. If no metric is marked as `error` or `warning`, the overall result is marked as `pass`. `SKIP` indicates that the calculation of an API is skipped. The `Message` field provides the reason, such as: a certain API parameter is not involved in backward gradient computation, the API's data type (e.g. float64) is not supported by new precision comparison standards, the API does not support precision pre-check, is filtered by the blocklist (or not included in the trustlist), or encountered an error during execution.                                                                          |
-| Comparison algorithm                | Comparison algorithm used by the API. Options include: benchmark comparison, binary consistency, absolute threshold, or ULP error comparison.                                                                                                                                                                                                                                                                                                                                       |
+| Comparison algorithm                | Comparison algorithm used by the API. Options include: benchmark comparison, binary consistency, absolute threshold, ULP error comparison, or the Double-Thousand Metric method.                                                                                                                                                                                                                                                                                                                                       |
 | Message                  | Message.                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ## Appendix

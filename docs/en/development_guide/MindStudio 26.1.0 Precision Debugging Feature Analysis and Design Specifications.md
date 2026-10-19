@@ -1,7 +1,5 @@
 # MindStudio 26.1.0 Precision Debugging Feature Analysis and Design Specification
 
-<!-- md-trans-meta sourceCommit=d04bd615f0a6704fd5647163e7531d767f227e36 translatedAt=2026-08-11T02:43:33.335Z pushedAt=2026-08-11T02:51:07.164Z -->
-
 <table>
     <tr>
         <td>Affiliated SIG:</td>
@@ -351,7 +349,7 @@ N/A.
 
 - Torch framework adaptation development for the register overflow status read/clear operator
   - Requirement background: When encountering NaN issues that are unstable to reproduce, a tensor collection interface that is as lightweight as possible is required. The runtime can provide such an interface, but it needs to be wrapped as a torch interface.
-  - Requirement content: Encapsulate getfloatstatus and clearstatus as torch-callable interfaces.
+  - Requirement content: Encapsulate `getfloatstatus` and `clearstatus` as torch-callable interfaces.
 - Torch framework adaptation development for the stub kernel operator
   - Requirement Background: When encountering non-deterministically reproducible NaN issues, a tensor collection interface that is as lightweight as possible is required. The runtime can provide such an interface, but it needs to be encapsulated as a torch interface.
   - Requirement Description: Encapsulate the stub kernel as a torch-callable interface.

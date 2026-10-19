@@ -65,9 +65,10 @@ msprobe compare -tp <target_path> -gp <golden_path> [options]
 | `-dm` or `--data_mapping`                | No          | Custom mapping for comparison. You need to specify a custom mapping file in .yaml format. For details about the format of the custom mapping file, see [Data Mapping](#data-mapping). This parameter needs to be configured only in the [scenario where APIs and modules cannot be automatically matched](#apis-and-modules-cannot-be-automatically-matched). Only rank-by-rank comparison is supported.      |
 | `-cm` or `--cell_mapping`                | No   | Module comparison across different platforms and configurations. If this parameter is configured, module comparison across different platforms and configurations is enabled. You can specify a custom mapping file in .yaml format. If no mapping file is specified, the mapping-based comparison is not performed. For details about the format of the custom mapping file, see [Cell Mapping](#cell-mapping). This parameter needs to be configured only in the scenario of [module comparison across different platforms and configurations](#module-comparison-across-different-platforms-and-configurations)      |
 | `-da` or `--diff_analyze`                | No      | Automatically identifies the first different node on the network and supports dump data such as MD5 and statistics. Single-rank and multi-rank scenarios are supported. This function can be enabled by directly configuring this parameter. By default, this parameter is not configured, indicating that the function is disabled.      |
-| `-tensor_log` or `--is_print_compare_log`| No       | Whether to enable log printing for a single module or API. Only the tensor data dumped by msProbe is supported. This function can be enabled by directly configuring this parameter. By default, this parameter is not configured, indicating that the function is disabled.      |
+| -tensor_log or --is_print_compare_log | Optional     | Whether to enable log printing for a single module or API. Only the Tensor data dumped by msProbe is supported. Enable it by directly configuring this parameter. By default, it is not configured, indicating that it is disabled. |
 | `--consistent_check`| No        | Whether to enable verl training and inference consistency comparison. This function can be enabled by directly configuring this parameter. By default, this parameter is not configured, indicating that the function is disabled. This parameter needs to be configured only in the scenario of [verl training and inference consistency comparison](#verl-training-and-inference-consistency-comparison).      |
 | `--backend` | No     |Training backend specified during verl training and inference consistency comparison. The value can be `fsdp` or `megatron`. `--consistent_check` must be configured first. If `--consistent_check` is not configured, `--backend` does not take effect.         |
+| --config | No     | Path to the Tensor post-processing configuration file, which specifies a calibration file in yaml format. It is used to perform matrix multiplication calibration on the dumped Tensors in quantization scenarios. For the configuration file format, see [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml). Supported only in the PyTorch scenario. |
 
 ### Examples
 
@@ -77,7 +78,7 @@ This scenario includes comparison of API computation values in an NPU environmen
 
 Both single-rank and multi-rank scenarios are supported. The dump data of multiple ranks can be compared at the same time. In multi-server scenarios, you need to perform the comparison operation on each server separately.
 
-> [!NOTE] Invalid data cleanup instructions
+   > [!NOTE] Invalid data cleanup instructions
    >
    > - To accommodate variable-length outputs of certain APIs in real-world scenarios (e.g., invalid values in tail padding areas), the comparison supports cleaning invalid data from both sides' outputs according to configured rules before metric calculation.
    > - You can configure `compare_handlers` via [api_output_postprocess.yaml](../../../../python/msprobe/core/common/output_postprocess/api_output_postprocess.yaml) to clean invalid data for specified APIs before comparison.
@@ -178,15 +179,16 @@ Procedure:
 
 In this scenario, the training and inference data in the prefill phase of verl is compared.
 
-> [!NOTE]
->
-> - Currently, the L0 comparison of tensor data dumped by FSDP and Megatron backends is supported. The supported models include Qwen3-30B, Qwen3-32B, Qwen3-4B, and Qwen2.5-0.5B.
-> - In this scenario, both training and inference data need to be dumped. Ensure that the dump paths for the two types of data are different; otherwise, the dump data will be overwritten. During comparison, `-tp` must be set to training data, and `-gp` must be set to inference data.
-> - For details about verl, see the [official verl repository](https://github.com/verl-project/verl).
+**Note**:
+
+- Currently, the comparison of L0-level Tensor data for training and inference collected by dump with the fsdp and megatron backends is supported. The supported models are Qwen3-30B, Qwen3-32B, Qwen3-4B, and Qwen2.5-0.5B.
+- In the verl training-inference consistency scenario, dump needs to save two sets of data, one for training and one for inference. Note that the dump paths of the two runs must be different; otherwise, the dump data will be overwritten. During comparison, the -tp parameter must be specified as the training data, and the -gp parameter must be specified as the inference data.
+- For a detailed introduction to verl, see the [official VERL repository](https://github.com/verl-project/verl)
 
 1. Preprocess your model and dump the training and inference precision data.
    - verl < v0.7.0: See [Collecting Data for Verifying Data Consistency Between verl Training and Inference Based on FSDP](../dump/verl_fsdp_consistency_preprocess_dump.md) and [Collecting Data for Verifying Data Consistency Between verl Training and Inference Based on Megatron](../dump/verl_megatron_consistency_preprocess_dump.md).
-   - verl ≥ v0.7.0：See [Collecting Data for Asynchronous Training- Inference Consistency Comparison](../dump/verl_async_consistency_preprocess_dump.md).
+   - verl v0.7.0 to v0.8.0: see [Asynchronous Architecture verl Training-Inference Consistency Comparison Data Collection](../dump/verl_async_consistency_preprocess_dump.md).
+   - verl v0.9.0.dev: see [verl V1 Trainer Training-Inference Consistency Comparison Data Collection](../dump/verl_v1_trainer_consistency_preprocess_dump.md).
 
 2. Example command:
 
@@ -232,27 +234,27 @@ Single-point data comparison supports single-rank and multi-rank comparison. In 
 
 #### Tensor Post-processing Scenario
 
-In some scenarios (such as quantization-aware training), the dumped tensor is the de-quantized result rather than the original tensor. For example, if the de-quantization process right-multiplies the original tensor by a rotation matrix, the dumped tensor has a systematic deviation from the golden tensor.
+In some scenarios (such as quantization-aware training), the dumped Tensor is the de-quantized result rather than the original Tensor. For example, if the de-quantization process right-multiplies the original Tensor by a rotation matrix, the dumped Tensor has a systematic deviation from the benchmark Tensor.
 
-To restore the original tensor for precision comparison, you can insert a tensor post-processing step into the comparison flow, multiplying the tensors dumped by specified operators by calibration tensors (for example, the inverse of the rotation matrix) to cancel out the rotation effect.
+To restore the original Tensor for precision comparison, you can insert a Tensor post-processing step into the comparison flow, multiplying the Tensors dumped by specified operators by calibration Tensors (such as the inverse of the rotation matrix) to cancel out the rotation effect.
 
 Three matrix multiplication modes are supported:
 
 | Mode | Operation | Applicable Scenario |
-|------|-----------|----------------------|
+|------|------|----------|
 | `right_matmul` | `tensor * mat` | Right multiplication calibration |
 | `left_matmul` | `mat * tensor` | Left multiplication calibration |
-| `left_right_matmul` | `mat_left * tensor * mat_right` | Left and right multiplication calibration |
+| `left_right_matmul` | `mat_left * tensor * mat_right` | Left-right multiplication calibration |
 
 > [!NOTE]
 >
-> - Tensor post-processing takes effect only in **real data mode** (that is, `task` in config.json is set to `"tensor"` during dump). It does not take effect in statistics mode or MD5 mode.
-> - In the calibration configuration YAML file, if left multiplication, right multiplication, and left-and-right multiplication are configured at the same time, all of them take effect, but each takes effect only once.
+> - Tensor post-processing takes effect only in **real data mode** (that is, when `task` in `config.json` is configured as `"tensor"` during dump). It does not take effect in statistics mode or MD5 mode.
+> - In the calibration configuration yaml file, if left multiplication, right multiplication, and left-right multiplication are configured at the same time, they will all take effect, and will take effect only once.
 >
 
 Configuration method:
 
-1. Create a calibration configuration file (in YAML format, for example, named `matmul_sample.yaml`), referring to the [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) template. Calibration tensor files in `.pt` and `.npy` formats are supported, and both absolute and relative paths can be used.
+1. Create a calibration configuration file (in yaml format, for example named matmul_sample.yaml), referring to the [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml) template. The calibration Tensor file supports the `.pt` and `.npy` formats, and the path can be absolute or relative.
 
    Configuration example (right multiplication mode):
 
@@ -271,17 +273,62 @@ Configuration method:
          - "Add.0.forward.output.0.pt"
    ```
 
-   For configuration details of the left multiplication mode, right multiplication mode, and left-and-right multiplication mode, see the comments in [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml).
+   For configuration details of the left multiplication mode, the right multiplication mode, and the left-right multiplication mode, see the comments in [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml).
 
-2. Complete precision data dump on the CPU or GPU and NPU by referring to [PyTorch Precision Data Collection](../dump/pytorch_data_dump_instruct.md).
+2. Refer to [PyTorch Scenario Precision Data Collection](../dump/pytorch_data_dump_instruct.md) to complete the precision data dump between CPU or GPU and NPU.
 
-3. Run the comparison command and specify the calibration configuration file using `--config`:
+3. Run the comparison command, specifying the calibration configuration file through `--config`:
 
    ```shell
    msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output --config matmul_sample.yaml
    ```
 
-4. View the comparison results by referring to [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
+4. To view the comparison result, see [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
+
+#### Custom Algorithm Comparison Scenario
+
+In some scenarios, the built-in comparison algorithms cannot meet business requirements, and users can customize algorithms for comparison.
+
+> [!NOTE]
+>
+> Takes effect only in **real data mode** (that is, when `task` in config.json is configured as `"tensor"` during dump). It does not take effect in statistics mode or MD5 mode. The user-defined comparison algorithm Python file can only be used for precision comparison and will be executed when the precision comparison is performed. The security of the file and the security of the passed parameters are guaranteed by the user.
+
+Configuration method:
+
+1. Locate the msprobe installation path with the following command:
+
+   ```shell
+   python -c "import msprobe, os; print(os.path.dirname(msprobe.__file__))"
+   ```
+
+2. Enter the `core/compare/algorithm/custom_algorithm` directory (relative to the msprobe installation path) and create a .py file.
+
+   - The .py file must be named according to the rule "alg_{algorithm_name}.py", where algorithm_name is the algorithm name, and the algorithm name can contain only digits, lowercase letters, and underscore.
+   - The content of the .py file must satisfy the following rules:
+
+      ```python
+      import torch
+      def column_name() -> str: # The column name displayed for the algorithm result, which must be unique
+          # The following is an example
+          return "MaxAbsError"
+
+      def compare(n_value: torch.Tensor, b_value: torch.Tensor): # The implementation of the comparison algorithm
+          # The following is an example
+          diff = torch.abs(n_value - b_value)
+          max_abs = diff.max()
+          return max_abs.item()
+      ```
+
+      **Parameter Description**
+
+      | Parameter Name          | Description                             |
+      |--------------|--------------------------------|
+      | n_value      | A single data entry corresponding to the target_path side; the type is `torch.Tensor`  |
+      | b_value      | A single data entry corresponding to the golden_path side; the type is `torch.Tensor` |
+
+      **Return Value Description**
+
+      Algorithm comparison result: supports the `int`, `float`, and `str` types. When the algorithm comparison result does not satisfy the constraints or the algorithm execution is abnormal, the algorithm comparison result is set to `unsupported`
 
 ### Output Description
 
@@ -299,7 +346,7 @@ After the comparison is complete, the message `msprobe compare ends successfully
 
 - Single-point data comparison in dynamic graphs:
   
-  A `.csv` file is generated in the configured output path. The file name is automatically generated based on the timestamp in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.csv`. If `--xlsx` is specified, a `.xlsx` file is generated in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.xlsx`.
+   A `.csv` file is generated in the configured output path. The file name is automatically generated based on the timestamp in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.csv`. If `--xlsx` is specified, a `.xlsx` file is generated in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.xlsx`.
 
 ### Output File Description
 
@@ -323,7 +370,7 @@ API precision can be evaluated in three modes: real data mode, statistics mode, 
 
 The three modes indicate different types of collected data. For details about data collection, see [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
 
-Real data mode: During data collection, the `task` field in the `config.json` file is set to `tensor`, and statistics and full tensors are flushed.
+Real data mode: during data collection, configure the task field in config.json as "tensor" to dump statistics and full Tensors.
 
 Statistics mode: During data collection, the `task` field in the `config.json` file is set to `statistics`, and the `summary_mode` field is set to `statistics`. Only statistics are flushed.
 
@@ -349,11 +396,11 @@ There are four types of statistics: maximum value (max), minimum value (min), me
 
 #### Comparison Metric Calculation Formulas
 
-$N$: NPU tensor
+$N$: NPU-side Tensor
 
-$B$: Bench tensor
+$B$: Bench-side Tensor
 
-RE (relative error): $\vert\frac {N-B} {B}\vert$ 
+RE (Relative Error): $\vert\frac {N-B} {B}\vert$
 
 Real data mode:
 
@@ -399,7 +446,7 @@ Errors:
 2. (Real data mode) `One Thousandth Err Ratio` of an API or module's `input/parameters` is greater than 0.9 and `output` is less than 0.6. (Only the output is marked, and the input is used for calculation.)
 3. (Statistics mode) The relative error of the norm value of an API or module's `input` is less than 0.1, and that of `output` is greater than 0.5. (Only the output is marked, and the input is used for calculation.)
 4. (Real data/Statistics mode) `Requires_grad` (for gradient calculation) of an API or module is inconsistent.
-5. (Real data/Statistics mode) Non-tensor scalars of an API or module are inconsistent.
+5. A non-Tensor scalar parameter of an API or module is inconsistent (real data mode, statistics mode).
 6. (MD5 mode) The CRC-32 value of an API or module is inconsistent.
 7. (Real data/Statistics mode) `dtype` of an API or module is inconsistent.
 8. (Real data/Statistics mode) The shape of an API or module is inconsistent.
@@ -455,9 +502,9 @@ msprobe merge_result -i <input_dir> -o <output_dir> -config <config-path>
 | --------------------- |-------------------------------------------------------------------------------------------------------------------| -------- |
 | `-i` or `--input_dir`     | Directory for storing multi-rank comparison results, that is, the output directory of the comparison results generated by `compare`. The value is of the string type. All comparison results must be either actual data comparison results or statistical data comparison results; otherwise, the aggregated data may be incomplete.                                  | Yes      |
 | `-o` or `--output_dir`    | Directory for storing the data extraction and aggregation results. The value is of the string type. The file name is automatically generated based on the timestamp in the format of `multi_ranks_compare_merge_{timestamp}.xlsx`.<br>Note: Files with the same name as the result file in the `output` directory will be deleted and overwritten.| Yes      |
-| `-config` or `--config-path`| Path of the YAML file that specifies the APIs whose data needs to be aggregated and comparison metrics. The value is of the string type.<br>For details about the file, see [YAML File Description](#yaml-file-description) below.                                                | Yes      |
+| `-config` or `--config-path`| Path of the YAML file that specifies the APIs whose data needs to be aggregated and comparison metrics. The value is of the string type.<br>For details about the file, see "YAML File Description" below.                                                | Yes      |
 
-### YAML File Description
+**yaml File Description**
 
 The following uses the `config.yaml` file as an example:
 
@@ -496,7 +543,7 @@ The multi-rank data aggregation result is as follows:
 2. `rank*` contains multi-rank data.
 3. Data of different comparison metrics is displayed on different sheets.
 4. If no API or module data is found on a rank, the aggregation result will be blank.
-5. If the comparison metric value is `N/A`, `unsupported` or `NaN`, the comparison metric value cannot be calculated. In this case, the aggregation result will be displayed as `NPU: NPU Max. value Bench: Bench Max. value`.
+5. If the comparison metric value is N/A, unsupported, or Nan, it means the comparison metric value cannot be calculated, and the summary result will be presented as "NPU:'NPU max value' Bench:'Bench max value'".
 6. In the example shown in the figure, `NPU:N/A` and `Bench:N/A` indicate that the output is `None`.
 
 <br>
@@ -598,7 +645,7 @@ The following uses an API dump file as an example:
     "return_indices": {
      "type": "bool",
      "value": false
-    },
+    }
    },
    "output": [
     {

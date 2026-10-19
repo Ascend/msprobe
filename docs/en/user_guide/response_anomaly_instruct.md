@@ -1,7 +1,5 @@
 # Response Anomaly
 
-<!-- md-trans-meta sourceCommit=d04bd615f0a6704fd5647163e7531d767f227e36 translatedAt=2026-08-11T02:42:13.097Z pushedAt=2026-08-11T02:51:07.151Z -->
-
 ## 1 Introduction
 
 Response Anomaly is a feature provided by msProbe that leverages the token and logprobs sequences output by a model to detect, in real time and under non-intrusive, zero-reference-knowledge conditions, anomalous responses that may occur during inference. It performs online, real-time, high-accuracy anomaly detection for output crash failures—such as rare characters, garbled text, and repetitive output—in enterprise-grade GenAI inference services.
@@ -9,6 +7,10 @@ Response Anomaly is a feature provided by msProbe that leverages the token and l
 - Rare characters: Occasional output of meaningless characters that do not fit the conversational context.
 - Garbled text: The model continuously outputs rare characters, producing obvious nonsense; the text is meaningless and normal conversation cannot proceed.
 - Repetition: Repeated output of identical content.
+- NaN Value: nan/inf values appear in logprobs.
+
+> [!NOTE]
+> When nan/inf values appear in logprobs, NaN Value is returned directly, indicating that model inference is already abnormal, and rare character, garbled text, and repetition anomaly detection will not be performed.
 
 ## 2 Preparation Before Use
 
@@ -28,30 +30,30 @@ Response Anomaly uses the following configuration files:
    # Global configuration
    window_size: 128
    stride: 64
-   
+
    # Rare characters
    rare_character:
      explogp_sum_thresh: 0.4  # Sum of topk logprob exponentials of a single token. When below the threshold, the token may be a rare character.
      category_thresh: 2  # Topk category statistics of a single token, used together with explogp_sum_thresh for combined judgment.
      top1_logp_thresh: -6 # When vocabulary information is unavailable, use the top1 logp for judgment.
-   
+
    # Garbled text
    garbled:
      top1_logp_thresh: -5 # When the window_ratio condition is met but the category detection condition is not, if the logprob exceeds this threshold, it can also be considered garbled text.
      window_ratio: 0.2 # Ratio of characters meeting the condition to the sequence length.
      window_thresh: 2 # Number of windows meeting the condition.
-   
+
    # Repetition
    repetition:
      trajectory:   # Trajectory detection N-gram
        n: 3
        distinct_n_thresh: 0.2  # n-gram threshold
        logp_thresh: -0.2  # top1 logprob threshold
-   
-     acf:   
+
+     acf:
        acf_threshold: 0.65  # Autocorrelation threshold
        logp_thresh: -0.2  # top1 logprob threshold
-   
+
      single_window_thresh: 14  # When only one method detects a repetition, the number of detected repeated windows must exceed this threshold to trigger an exit. Adjust as needed.
      multi_window_thresh: 2 # When both the ACF and trajectory methods detect repetition simultaneously, the number of detected repeated windows must exceed this threshold to trigger an exit. Adjust as needed.
    ```
@@ -88,28 +90,28 @@ Response Anomaly uses the following configuration files:
    ```diff
    from vllm import LLM, SamplingParams
    +from msprobe.response_anomaly import analyze_output_anomaly
-   
+
    # Define the input prompt.
    prompts = "Hello, my name is"
-   
+
    # Set the sampling parameters.
    topk = 20 # Collect topk logprobs.
    sampling_params = SamplingParams(temperature=0.8, top_p=0.95,logprobs=topk,prompt_logprobs=1)
-   
+
    # Initialize the model.
    llm = LLM(model="/home/Qwen3-30B-A3B")
-   
+
    # Execute inference.
    outputs = llm.generate(prompts, sampling_params)
-   
+
    +topk_logprobs = [
    +    {token_id:logprobs[token_id].logprob for token_id in logprobs}
    +        for logprobs in outputs[0].outputs[0].logprobs
    +]
    +tokens = outputs[0].outputs[0].token_ids
-   
+
    +model_configs = 'Qwen3-30B-A3B'
-   
+
    +# Call the API to perform response anomaly detection.
    +result = analyze_output_anomaly([topk_logprobs], [tokens], [model_configs])
    +# Print the anomaly detection results.
@@ -155,7 +157,7 @@ Return result format: [[is_ill, ill_type], ...]
 Each request returns the following two parameters:
 
 - `is_ill`: bool type. Whether the output is anomalous. `True` indicates anomalous, and `False` indicates normal.
-- `ill_type`: int type, anomaly type. `0` indicates normal, `1` indicates rare characters, `2` indicates garbled text, and `3` indicates repetition.
+- `ill_type`: int type, anomaly type. `0` indicates normal, `1` indicates rare characters, `2` indicates garbled text, `3` indicates repetition, and `4` indicates NaN Value.
 
 **Call Example**
 

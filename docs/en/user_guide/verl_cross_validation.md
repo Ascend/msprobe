@@ -1,5 +1,4 @@
 # verl Training-Inference Cross-Instrumentation
-<!-- md-trans-meta sourceCommit=a8426a4012af02b7cd501d5d585adb0c841097a8 translatedAt=2026-08-11T02:42:10.823Z pushedAt=2026-08-11T02:51:07.149Z -->
 
 ## Feature Overview
 
@@ -23,7 +22,7 @@ Rollout Skip is a basic functionality provided by verl for skipping the inferenc
 
 Add the following parameters to the training launch command:
 
-```diff
+```bash
 python train.py \
   actor_rollout_ref.rollout.skip_rollout=True \
   actor_rollout_ref.rollout.skip_dump_dir="/tmp/rollout_dump"
@@ -88,10 +87,10 @@ Modify the file `verl/utils/rollout_skip.py` as follows:
 ```diff
  def wrap_generate_sequences(rolloutskip: RolloutSkip, rollout_wg):
      generate_sequences = rollout_wg.generate_sequences
- 
+
      def wrap_fn(batch, **kwargs):
          gen_batch_output = rolloutskip.try_load()
- 
+
          if gen_batch_output is None:
              # * 1. Generation
              gen_batch_output = generate_sequences(batch, **kwargs)
@@ -273,7 +272,7 @@ def wrap_generate_sequences(share_data: ShareDataTest, worker):
                 print(f"\033[32m{share_data.print_mark} Waiting for shared data...\033[0m", flush=True)
                 time.sleep(20)
                 gen_batch_output = share_data.try_load()
-                
+
         elif share_data.share_flag == "ckpt":
             # ckpt mode: Generate data and save to shared file.
             gen_batch_output = original_generate_sequences(*args, **kwargs)
@@ -281,7 +280,7 @@ def wrap_generate_sequences(share_data: ShareDataTest, worker):
         else:
             # Default mode: Execute directly.
             gen_batch_output = original_generate_sequences(*args, **kwargs)
-        
+
         # Add index.
         share_data._add_rollout_index()
         return gen_batch_output
@@ -343,8 +342,8 @@ Modify the file `verl/trainer/ppo/ray_trainer.py`:
          actor_output = self._update_actor(batch)
 +    if self.config.trainer.get("share_data", None):
 +        after_update_policy(
-+            share_data_manager, 
-+            self.actor_rollout_wg.load_checkpoint, 
++            share_data_manager,
++            self.actor_rollout_wg.load_checkpoint,
 +            self.actor_rollout_wg.save_checkpoint
 +        )
 ```

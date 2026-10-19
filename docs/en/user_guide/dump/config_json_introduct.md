@@ -17,10 +17,10 @@ The table below describes the common configuration parameters.
 
 | Parameter               | Required/Optional| Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 |-------------------| -------- |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| task              | Optional    | Dump task type, which is of the string type. Value:<br>&#8226; "statistics": collects only statistics.<br>&#8226; "tensor": collects statistics and real data of the entire network.<br>&#8226; "acc_check": accuracy pre-check, which is supported only in PyTorch scenarios. Do not select this option during data collection.<br>&#8226; "nan_check": NaN/InF detection.<br>&#8226; "structure": collects only the model structure and call stack information.<br>The default value is "statistics".<br>You can configure scenario parameters based on the value of **task**.<br>&#8226; [task = statistics](#task--statistics)<br>&#8226; [task = tensor](#task--tensor)<br>&#8226; [task = acc_check](#task--acc_check)<br>&#8226; [task = nan_check](#task--nan_check)<br>&#8226; [task = structure](#task--structure)<br>&#8226; [task--exception_dump](#task--exception_dump)<br>Example: "task": "tensor"                                           |
+| task              | Optional    | Dump task type, which is of the string type. Value:<br>&#8226; "statistics": collects only statistics.<br>&#8226; "tensor": collects statistics and real data of the entire network.<br>&#8226; "acc_check": accuracy pre-check, which is supported only in PyTorch scenarios. Do not select this option during data collection.<br>&#8226; "nan_check": NaN/InF detection.<br>&#8226; "structure": collects only the model structure and call stack information.<br>&#8226; "exception_dump": generates an intermediate file containing the exception dump settings in the specified directory.<br>The default value is "statistics".<br>You can configure scenario parameters based on the value of **task**.<br>&#8226; [task = statistics](#task--statistics)<br>&#8226; [task = tensor](#task--tensor)<br>&#8226; [task = acc_check](#task--acc_check)<br>&#8226; [task = nan_check](#task--nan_check)<br>&#8226; [task = structure](#task--structure)<br>&#8226; [task--exception_dump](#task--exception_dump)<br>Example: "task": "tensor" |
 | dump_path         | Required    | Dump data directory, which is of the string type.<br>Example: "dump_path": "./dump_path"                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| rank              | Optional    | Data collection on a specified rank, which is of the list[Union[int, str]] type. By default, this parameter is not set, indicating that data of all ranks is collected. The value must be an integer greater than or equal to 0 or a character string similar to "4-6", and the actual available rank ID must be configured.<br>&#8226; PyTorch: The rank ID starts from 0 and the maximum value is the total number of available ranks on all nodes minus 1. If the configured value is greater than the rank ID used for training, the dump data is empty. For example, if the rank IDs in the current environment range from 0 to 7 and the training uses ranks 0 to 3, configuring the rank ID to 4 or 10 (which does not exist) results in empty dump data.<br>&#8226; MindSpore: The rank ID starts from 0 and the maximum value is the total number of available ranks on each node minus 1. The rank configuration in the **config.json** file takes effect on all nodes at a time. Static graph L0 dump does not support rank configuration.<br>For single-rank training, **rank** must be an empty list, that is, **[]**.<br>Example: "rank": [1, "4-6"]                                                                                                                                                                                                                                                    |
-| step              | Optional    | Data of a specific step to be collected, which is of the list[Union[int, str]] type. By default, this parameter is not set, indicating that data of all steps is collected. To collect data of a specific step, specify a step existing in the training script. You can configure steps one by one or specify a range.<br>Example: "step": [0, 1, 2, "4-6"]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| rank              | Optional    | Data collection on a specified rank, which is of the list[Union[int, str]] type. By default, this parameter is not set, indicating that data of all ranks is collected. The value must be an integer greater than or equal to 0, a single-number string such as "0", or a range string such as "4-6", and the actual available rank ID must be configured.<br>&#8226; PyTorch: The rank ID starts from 0 and the maximum value is the total number of available ranks on all nodes minus 1. If the configured value is greater than the rank ID used for training, the dump data is empty. For example, if the rank IDs in the current environment range from 0 to 7 and the training uses ranks 0 to 3, configuring the rank ID to 4 or 10 (which does not exist) results in empty dump data.<br>&#8226; MindSpore: The rank ID starts from 0 and the maximum value is the total number of available ranks on each node minus 1. The rank configuration in the **config.json** file takes effect on all nodes at a time. Static graph L0 dump does not support rank configuration.<br>For single-rank training, **rank** must be an empty list, that is, **[]**.<br>Example: "rank": [1, "0", "4-6"] |
+| step              | Optional    | Data of a specific step to be collected, which is of the list[Union[int, str]] type. By default, this parameter is not set, indicating that data of all steps is collected. To collect data of a specific step, specify a step existing in the training script. You can configure steps one by one, or specify a single-number string (such as "0") or a range string (such as "4-6").<br>Example: "step": [0, 1, "2", "4-6"] |
 | level             | Optional| Dump level, which is of the string type. Data is collected at different levels. Value:<br>&#8226; "L0": dumps module-level precision data. For details, see [Module-Level Precision Data Dump](#module-level-precision-data-dump).<br>&#8226; "L1": dumps API-level precision data. This is the default value and is supported only in PyTorch, MSAdapter, and MindSpore dynamic graph scenarios.<br>&#8226; "L2": dumps kernel-level precision data in different scenarios. For details, see [Kernel Precision Data Collection in PyTorch](./pytorch_kernel_dump_instruct.md) and [Precision Data Collection in Static Graph Scenario](./mindspore_data_dump_instruct.md#precision-data-collection-in-static-graph-mode).<br>&#8226; "mix": dumps module-level and API-level precision data, that is, "L0" + "L1". This value is supported only in PyTorch, MSAdapter, and MindSpore dynamic graph scenarios.<br>&#8226; "debug": single-point saving. For details, see [Single-Point Saving Tool](./debugger_save_instruct.md).<br>Example: "level": "L1".|
 | async_dump        | Optional    | Asynchronous dump switch, which is of the bool type. **task** can be in tensor or statistics mode, and **level** can be **L0**, **L1**, **mix**, or **debug**. The value can be **true** (enabled) or **false** (disabled). The default value is **false**.<br>If this parameter is set to **true**, asynchronous dump is enabled. That is, the collected precision data is flushed to drive after the current step training is complete. During training, the tool does not trigger the synchronization operation.<br>This mode may cause OOM risk. When **task** is set to **tensor**, that is, the asynchronous dump mode of real data, [list](#task--tensor) must be configured to specify the tensor to be dumped.<br>In this mode, **summary_mode** does not support MD5 values or statistical calculation of complex tensors.                                                                                                                                                                                                                                                                                                                                                                        |
 | dump_enable       | Optional    | Dump switch, which is used to start or stop the **PrecisionDebugger** dump. The value is of the bool type. Value:<br>&#8226; **true**: enabled.<br>&#8226; **false**: disabled.<br>This parameter supports dynamic dump start or stop.<br>By default, this parameter is not set, indicating that data is not controlled and is dumped based on the static configuration.<br>For details, see [dump_enable Configuration Description](#dump_enable-configuration).<br>Example: "dump_enable": true                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -57,7 +57,9 @@ In the PyTorch scenario, to avoid the framework restriction that prevents in-pla
         "list": [],
         "tensor_list": [],
         "data_mode": ["all"],
-        "summary_mode": "statistics"
+        "summary_mode": "statistics",
+        "slice": [],
+        "request_id": ""
     }
 }
 ```
@@ -78,6 +80,8 @@ Supported scenarios:
 | device       | Optional     | Device used for calculating statistics. The value can be **device** or **host**. The default value is **host**. Using device for calculation has higher performance than using host. Only min, max, avg, and l2norm statistics are supported.<br>This parameter is supported only in the MindSpore static graph O0/O1 scenario.|
 | data_mode    | Optional     | Dump data filtering. The value is of the list[str] type. For details, see [data_mode Configuration](#data_mode-configuration).|
 | summary_mode | Optional     | Dump file output mode. PyTorch, MSAdapter, and MindSpore dynamic/static graphs, jit_level=O0/O1 are supported. For details, see [summary_mode Configuration](#summary_mode-configuration).|
+| slice        | Optional     | Slices a tensor. The value is of the list[dict] type. For details, see [slice Configuration](#slice-configuration).|
+| request_id   | Optional     | Specifies a `request_id` to slice the 0th dimension of the tensor. The value is of the string type and is not configured by default. For details, see [request_id Configuration](#request_id-configuration).|
 
 ### task = tensor
 
@@ -98,7 +102,9 @@ Supported scenarios:
         "data_mode": ["all"],
         "bench_path": "/home/bench_data_dump",
         "summary_mode": "md5",
-        "diff_nums": 5
+        "diff_nums": 5,
+        "slice": [],
+        "request_id": ""
     }
 }
 ```
@@ -118,7 +124,9 @@ Supported scenarios:
 | data_mode      | Optional    | Dump data filtering. The value is of the list[str] type. For details, see [data_mode Configuration](#data_mode-configuration).                                                                                                                                    |
 | summary_mode  | Optional| Dump file output mode. PyTorch, MSAdapter, and MindSpore dynamic graphs are supported. Value:<br>&#8226; "md5": The dump output contains the **dump.json** file that contains the CRC-32 value and API statistics, which is used to verify data integrity.<br>&#8226; "statistics": The dump output contains only the **dump.json** file that contains API statistics.<br>&#8226; "xor": supported only in the PyTorch scenario. The dump output contains only the XOR binary check value (labeled **md5**), and does not contain the max, min, mean, and L2norm statistics.<br>The default value is **statistics**.                            |
 | bench_path      | Optional    | Automatically controls the real-time MD5 difference analysis during PyTorch deterministic problem locating. That is, the MD5 data with differences is dumped. The value is of the string type. By default, this parameter is not configured.<br>**bench_path** must be set to the preset MD5 data path (that is, **summary_mode** is set to **md5** during the last dump operation), and **summary_mode** must also be set to **md5** during the current dump operation.<br>After this parameter is configured, the difference between each tensor in the current task and the preset MD5 data is checked. Once a discrepancy is identified, the actual data is dumped.<br>Example: "bench_path": "./bench_dump_path"|
-| diff_nums      | Optional    | Maximum number of differences. The value is of the integer type. The default value is **1**. This parameter is supported only in the PyTorch MD5 real-time difference analysis scenario (that is, **bench_path** is configured). After *N* differences occur, difference analysis is not performed. Input-output data associated with detected differences will be dumped during the process.<br>Setting it to **-1** enables continuous overflow/underflow monitoring till training completion.<br>Example: "diff_nums": 3|
+| diff_nums    | Optional    | Maximum number of differences. The value is of the integer type. The default value is **1**. This parameter is supported only in the PyTorch MD5 real-time difference analysis scenario (that is, **bench_path** is configured). After *N* differences occur, difference analysis is not performed. Input-output data associated with detected differences will be dumped during the process.<br>Setting it to **-1** enables continuous difference monitoring until training ends.<br>Example: "diff_nums": 3|
+| slice        | Optional     | Slices a tensor. The value is of the list[dict] type. For details, see [slice Configuration](#slice-configuration).|
+| request_id   | Optional     | Specifies a `request_id` to slice the 0th dimension of the tensor. The value is of the string type and is not configured by default. For details, see [request_id Configuration](#request_id-configuration).|
 
 ### task = acc_check
 
@@ -272,7 +280,9 @@ Supported scenarios:
 }
 ```
 
-> Note: `dump_enable` is configured only when dump needs to be dynamically enabled or disabled. During execution, you can change the value of `dump_enable` from `false` to `true` (or `true` to `false`) to dynamically enable or disable dump. Modifications to other fields in the JSON file also take effect.
+>[!NOTE]
+>
+>`dump_enable` is configured only when dump needs to be dynamically enabled or disabled. During execution, you can change the value of `dump_enable` from `false` to `true` (or `true` to `false`) to dynamically enable or disable dump. Modifications to other fields in the JSON file also take effect.
 
 Supported scenarios:
 
@@ -296,7 +306,7 @@ Supported scenarios:
 
 - In the MindSpore static graph O0/O1 scenario, `kernel_name` can be set to an operator name list, an operator type, or a regular expression of the operator name (when the string is in the "name-regex(xxx)" format).
 
-  Example: list: ["name-regex(Default/.+)"]
+  Example: "list": ["name-regex(Default/.+)"]
 
   All operators whose names start with **Default/** can be matched.
 
@@ -345,7 +355,7 @@ Example: "scope": ["Module.conv1.Conv2d.forward.0", "Module.fc2.Linear.forward.0
 
   Example: "summary_mode": "md5". To use lightweight XOR checksum, set "summary_mode": "xor".
 
-To reduce collection overhead in large-tensor scenarios, users are advised to use the msProbe package compiled with the `--include-mod=xor_checksum` flag. For details, see [Install the basic tool package and xor_checksum](../../install_guide/msprobe_install_guide.md#install-xor-checksum). When `summary_mode` is set to `xor`, the tool will first attempt to use the compiled C++ acceleration operator for device-side XOR checksum computation, which can significantly improve performance. In cases where the acceleration operator is unavailable, fails to load, or encounters runtime errors, the tool will automatically fall back to the generic implementation without disrupting the collection workflow.
+To reduce collection overhead in large-tensor scenarios, users are advised to use the msProbe package compiled with the `--include-mod=xor_checksum` flag. For details, see the "xor_checksum acceleration operator" section in [Installation Guide - Installation from Source](../../install_guide/msprobe_install_guide.md#23-installation-from-source). When `summary_mode` is set to `xor`, the tool will first attempt to use the compiled C++ acceleration operator for device-side XOR checksum computation, which can significantly improve performance. In cases where the acceleration operator is unavailable, fails to load, or encounters runtime errors, the tool will automatically fall back to the generic implementation without disrupting the collection workflow.
 
 - MindSpore static graph
 
@@ -357,3 +367,67 @@ To reduce collection overhead in large-tensor scenarios, users are advised to us
   Example: "summary_mode": ["max", "min"]
 
 **Note**: In the PyTorch, MSAdapter, and MindSpore dynamic graph scenarios, when **summary_mode** is set to **md5**, the CRC-32 algorithm is used. In the MindSpore static graph scenario, when **summary_mode** is set to **md5**, the MD5 algorithm is used.
+
+### slice Configuration
+
+- PyTorch
+
+  The value is of the list[dict] type.
+
+  - Slices a tensor. If this parameter is not configured, the default value is an empty list [], indicating that no slicing is performed.
+  - The keys available in the dict are ["dim", "size", "begin", "end"], and the values must be integers.
+  - `dim`: Index of the target dimension to be sliced. The value must be greater than or equal to 0. The default value is 0 if this parameter is not configured.
+  - `size`: Slicing trigger condition. The slicing rule takes effect only when the length of the target dimension equals `size`. The value must be greater than or equal to 0. If this parameter is not configured, the length of the target dimension is not restricted (that is, the slicing rule takes effect for any length).
+  - `begin`: Start index of the slice on the target dimension (inclusive). The default value is 0 if this parameter is not configured.
+  - `end`: End index of the slice on the target dimension (exclusive). If this parameter is not configured, the slice extends to the end of the target dimension (including the last index).
+
+**Examples**:
+
+| Configuration Field | Example | Description                              |
+|---------|---------|---------------------------------|
+| `begin` | `"slice": [{"begin": 10}]` | Removes the first 10 elements of dimension 0                    |
+| `begin` (negative) | `"slice": [{"begin": -10}]` | Keeps the last 10 elements of dimension 0                    |
+| `end` | `"slice": [{"end": 10}]` | Keeps the first 10 elements of dimension 0                    |
+| `end` (negative) | `"slice": [{"end": -10}]` | Removes the last 10 elements of dimension 0                    |
+| `begin` + `end` | `"slice": [{"begin": 10, "end": 20}]` | For dimension 0, keeps the data in the index range [10, 20) (10 elements in total)   |
+| `dim` + `begin` + `end` | `"slice": [{"dim": 1, "begin": 10, "end": 20}]` | For dimension 1, keeps the data in the index range [10, 20) (10 elements in total)   |
+| `size` + `begin` + `end` | `"slice": [{"size": 50, "begin": 10, "end": 20}]` | Keeps the data in the index range [10, 20) (10 elements in total) when the length of dimension 0 is 50 |
+| `dim` + `size` + `begin` + `end` | `"slice": [{"dim": 1, "size": 50, "begin": 10, "end": 20}]` | Keeps the data in the index range [10, 20) (10 elements in total) when the length of dimension 1 is 50 |
+
+>[!NOTE]
+>
+>In the PyTorch dynamic graph scenario, this parameter takes effect only for `statistics` and `tensor`, and supports `L0`, `L1`, and `mix`. In the PyTorch static graph scenario, this parameter takes effect only for `statistics`, and supports `L0`, `L1`, and `mix`.
+
+### request_id Configuration
+
+- PyTorch dynamic graph scenario
+
+  The value is of the string type.
+
+  - Specifies a `request_id` to slice the 0th dimension of the tensor. The value is of the string type and is not configured by default. This parameter takes precedence over the [slice configuration](#slice-configuration) and must be used together with the `scheduled_tokens` parameter of the PrecisionDebugger [start method](./pytorch_data_dump_instruct.md#start).
+
+**Examples**
+
+```json
+{
+    "task": "statistics",
+    "dump_path": "/home/data_dump",
+    "rank": [],
+    "step": [],
+    "level": "L1",
+
+    "statistics": {
+      "list": [],
+      "scope": [],
+      "tensor_list": [],
+      "data_mode": ["all"],
+      "request_id": "chatcmpl-req-0"
+    }
+}
+```
+
+`debugger` is an instance of the PrecisionDebugger class. If you add `debugger.start(scheduled_tokens={"chatcmpl-req-0": 10, "chatcmpl-req-1": 15})` after model initialization, only the data of the request `chatcmpl-req-0` is collected (that is, when the length of the 0th dimension of the tensor is 25, the tensor is sliced and the data in the index range [0,10) is kept).
+
+>[!NOTE]
+>
+>In the PyTorch dynamic graph scenario, this parameter takes effect only for `statistics` and `tensor`, and supports `L0`, `L1`, and `mix`.

@@ -301,6 +301,6 @@ The tool supports `npu_scaled_masked_softmax` dumping. This example is for refer
 
     - Comment out the type check that causes the error based on the error stack information.
 
-10. After msProbe is added, an error related to the AsStrided operator or compilation is reported, for example, `Failed to compile Op [AsStrided]`.
+10. After msProbe is added, an error related to the `AsStrided` operator or compilation is reported, for example, `Failed to compile Op [AsStrided]`.
 
      Comment out `- t` and `- transpose` under `Tensor:` in the `MindStudio-Probe/python/msprobe/pytorch/dump/api_dump/support_wrap_ops.yaml` file in the tool directory.

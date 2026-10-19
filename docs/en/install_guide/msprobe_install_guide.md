@@ -1,5 +1,7 @@
 # msProbe Installation Guide
 
+<br>
+
 ## 1. Installation Description
 
 Before using this tool, you need to install CANN. For details, see [CANN Quick Installation](https://www.hiascend.com/en/cann/download) to install the Ascend NPU driver and CANN software (including the Toolkit and ops), and configure environment variables.
@@ -11,7 +13,7 @@ If you need to upgrade this tool separately or use the latest version, you can i
 ### 2.1 Online Installation
 
 ```bash
-pip install mindstudio-probe==26.1.0.post1
+pip install mindstudio-probe
 ```
 
 If the following information is displayed, msProbe is successfully installed:
@@ -28,7 +30,7 @@ Successfully installed mindstudio-probe-{version}
 
 1. Download the msProbe `.whl` package and the corresponding digital signature file (`.sha256`) by referring to [msProbe Release](https://gitcode.com/Ascend/msprobe/releases).
 
-   Once you download this software, you agree to the terms and conditions of the [Huawei Enterprise End User License Agreement (EULA)](https://e.huawei.com/en/about/eula).
+   Once you download binary software, you agree to the terms and conditions of the [Software License Agreement 2.0](https://www.hiascend.com/en/legal/softlicense).
 
 2. Verify the integrity of the `.whl` package.
 
@@ -59,7 +61,7 @@ Successfully installed mindstudio-probe-{version}
    If the following information is displayed, msProbe is successfully installed:
 
    ```ColdFusion
-   Successfully installed mindstudio-probe-26.1.0.post1
+   Successfully installed mindstudio-probe-{version}
    ```
 
    To overwrite the existing installation, add `--force-reinstall` to the end of the command.
@@ -70,14 +72,37 @@ Successfully installed mindstudio-probe-{version}
 
 ### 2.3 Installation from Source
 
-**Description**
+To use the functions of the latest code or modify the source code to enhance functions, you can download the code of this repository, compile and package the tool by yourself, and complete the installation.
 
-The `build.py` script can be used to compile the `.whl` package of msProbe.
+#### 2.3.1 Environment Preparation
+
+Source code compilation uses the MindStudio standard build environment uniformly.
+
+- For daily development or when using a released image, see the [MindStudio Tool Development Environment Setup Guide](https://gitcode.com/Ascend/msot/blob/26.2.0/docs/en/common/dev_env_setup.md).
+- When you need to reproduce the environment from a basic operating system, perform source build verification, or run unit test verification, you must refer to the [MindStudio Unified Build Image Creation Guide](https://gitcode.com/Ascend/msot/blob/26.2.0/docs/en/common/docker_image_build_guide.md) to build the environment image on site from the openEuler base image.
+
+The source code compilation and unit test commands in the rest of this document are all run in the container of the specified image above or the on-site built environment image. The CANN software package version, GCC version, and Python version are subject to the unified image creation guide and are not maintained repeatedly in this repository.
+
+After the image is built, you must use the `ctr_in.py` command given in Chapter 7 of the unified image creation guide to start and enter the container in an interactive terminal. Do not use a plain `docker run` to create a container, and do not use `docker exec <container_name> bash -c '<command>'` as a substitute for the interactive environment; otherwise, the initialization of the Python, GCC, and CANN environments may be skipped.
+
+After entering the interactive container shell opened by `ctr_in.py`, run the following commands to clone this repository:
+
+```bash
+cd ~
+git clone https://gitcode.com/Ascend/msprobe.git -b 26.2.0
+cd ~/msprobe
+```
+
+#### 2.3.2 Performing the Build
+
+##### 2.3.2.1 Introduction to the Build Command
+
+Use the build.py script to compile the whl package of the msProbe tool.
 
 **Syntax**
 
 ```bash
-# Build command
+# Full build command
 python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-check=true|false]
 ```
 
@@ -87,16 +112,16 @@ python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-c
 | ------------- | :-------: | ------------------------------------------------------------ |
 | local             |   Optional    | Local build, i.e., reuse existing local dependencies without actively downloading third-party dependencies. |
 | -v / --version    |   Optional    | Specifies the build version number; defaults to reading from `pyproject.toml`. |
-| -e / --extra      |   Optional    |Extra build options in `KEY=VALUE` format, can be specified multiple times. Supported keys: <br/>&#8226; `include-mod`: Specifies optional modules. Possible values:<br/>&emsp;- `tb_graph_ascend`: Includes the model hierarchy visualization plugin when building the whl package. Depends on Node.js v20.19.3 and npm v10.8.2. For details, see [Graph Comparison in Hierarchical Visualization (PyTorch)](../user_guide/accuracy_compare/pytorch_visualization_instruct.md) or [Graph Comparison in Hierarchical Visualization (MindSpore)](../user_guide/accuracy_compare/mindspore_visualization_instruct.md). <br/>&emsp;- `trend_analyzer`: Includes the trend visualization plugin when building the whl package. Depends on Node.js v20.19.3 and npm v10.8.2. For details, see [Trend Visualization](../user_guide/accuracy_compare/trend_visualization_instruct.md).<br/>&emsp;- `atb_probe`: Includes the `atb_probe` module when building the whl package, used for data collection in ATB inference scenarios. The build environment requires git, curl, GCC 7.5 or higher, and CMake 3.19.3 or higher.<br/>&emsp;- `aclgraph_dump`: Includes the `aclgraph_dump` module when building the whl package, used to save `.pt` files via `acl_save` in aclgraph scenarios. <br/>&emsp;- `nan_check`: Includes the `nan_check` module when building the whl package, used for register overflow status monitoring. <br/>&emsp;- `xor_checksum`: Includes the XOR checksum acceleration operator when building the whl package, used to accelerate checksum value collection in PyTorch scenarios with `summary_mode=xor`, delivering several-fold performance improvement. <br/>By default, this parameter is not set, which means the base tool package is built.<br/>When specifying multiple modules, separate them with commas, e.g., `tb_graph_ascend,trend_analyzer`.<br/>When `atb_probe` is specified, the build environment requires git, curl, GCC 7.5 or higher, and CMake 3.19.3 or higher.<br/>The whl package generated with this parameter is only available for the Python version and processor architecture used at build time. <br/>&#8226; `no-check`: Skips certificate verification. The value is `true` or `false`. When `include-mod` specifies optional modules, third-party dependencies are downloaded, and certificate verification is performed during the download. Setting this parameter skips the certificate verification. |
+| -e / --extra      |   Optional    |Extra build options in `KEY=VALUE` format, can be specified multiple times. Supported keys: <br/>&#8226; `include-mod`: Specifies optional modules. Possible values:<br/>&emsp;- `all`: Includes all plugins. The environment must satisfy the dependencies of each component listed below.<br/>&emsp;- `tb_graph_ascend`: Includes the model hierarchy visualization plugin when building the whl package. Depends on Node.js v20.19.3 and npm v10.8.2. For details, see [Graph Comparison in Hierarchical Visualization (PyTorch)](../user_guide/accuracy_compare/pytorch_visualization_instruct.md) or [Graph Comparison in Hierarchical Visualization (MindSpore)](../user_guide/accuracy_compare/mindspore_visualization_instruct.md). <br/>&emsp;- `trend_analyzer`: Includes the trend visualization plugin when building the whl package. Depends on Node.js v20.19.3 and npm v10.8.2. For details, see [Trend Visualization](../user_guide/accuracy_compare/trend_visualization_instruct.md).<br/>&emsp;- `atb_probe`: Includes the `atb_probe` module when building the whl package, used for data collection in ATB inference scenarios. The build environment requires git, curl, GCC 7.5 or higher, and CMake 3.19.3 or higher.<br/>&emsp;- `aclgraph_dump`: Includes the `aclgraph_dump` module when building the whl package, used to save `.pt` files via `acl_save` in aclgraph scenarios. <br/>&emsp;- `nan_check`: Includes the `nan_check` module when building the whl package, used for register overflow status monitoring. <br/>&emsp;- `xor_checksum`: Includes the XOR checksum acceleration operator when building the whl package, used to accelerate checksum value collection in PyTorch scenarios with `summary_mode=xor`, delivering several-fold performance improvement. <br/>By default, this parameter is not set, which means the base tool package is built.<br/>When specifying multiple modules, separate them with commas, e.g., `tb_graph_ascend,trend_analyzer`.<br/>When `atb_probe` is specified, the build environment requires git, curl, GCC 7.5 or higher, and CMake 3.19.3 or higher.<br/>The whl package generated with this parameter is only available for the Python version and processor architecture used at build time. <br/>&#8226; `no-check`: Skips certificate verification. The value is `true` or `false`. When `include-mod` specifies optional modules, third-party dependencies are downloaded, and certificate verification is performed during the download. Setting this parameter skips the certificate verification. |
 
 > [!NOTE]
 >
 > - Building the base tool package (that is, without setting the `-e` parameter) does not require `torch` or `torch_npu`.
-> - To build the `aclgraph_dump`, `nan_check`, or `xor_checksum` module (or all modules with `include-mod=all`), `torch` and `torch_npu` must be installed in the build environment first; otherwise, the build fails because the torch headers and libraries cannot be found. Example command:
+> - To build the `aclgraph_dump`, `nan_check`, or `xor_checksum` module (or all functions with `include-mod=all`), `torch` and `torch_npu` must be installed in the build environment first; otherwise, the build fails because the torch headers and libraries cannot be found. Example installation command:
 >
 >   ```bash
 >   # Installing torch_npu automatically installs the compatible torch, so installing torch separately is not required.
->   # If the build environment is x86_64 and you want to reduce the download size, install the CPU-only torch first via `--index-url https://download.pytorch.org/whl/cpu` before installing torch_npu.
+>   # If the build environment is x86_64 and you want to reduce the download size, you can first install the CPU-only torch via --index-url https://download.pytorch.org/whl/cpu and then install torch_npu.
 >   # Version 2.7.1 is used as an example.
 >   pip3 install torch_npu==2.7.1.post4
 >   ```
@@ -109,132 +134,92 @@ python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-c
 >
 > - The `torch_npu` version must be compatible with the CANN version in the build image. For version compatibility, see [Ascend for PyTorch](https://gitcode.com/Ascend/pytorch).
 
-**Example**
+##### 2.3.2.2 Build Command Examples
 
-- Install the basic tool package.
+- Build the basic tool package.
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git -b master
-  cd msprobe
-
-  pip install uv
-
   python3 build.py
-  cd ./artifacts
-  pip install ./mindstudio_probe*.whl
   ```
 
-- Install the basic tool package with the specific version.
+- Build the basic tool package (with a custom version).
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git -b master
-  cd msprobe
-
-  pip install uv
-
-  python3 build.py
-  cd ./artifacts
-  pip install ./mindstudio_probe*.whl
+  python3 build.py -v 26.0.0
   ```
 
-- Install the basic tool package and the aclgraph_dump module.
+- Build the basic tool package and the aclgraph_dump module.
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git -b master
-  cd msprobe
-
-  pip install uv
-
   python3 build.py -e include-mod=aclgraph_dump -e no-check=true
-  cd ./artifacts
-  pip install ./mindstudio_probe*.whl
   ```
 
-- Install the basic tool package and the hierarchical visualization plugin.
+- Build the basic tool package and the hierarchical visualization plugin.
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git -b master
-  cd msprobe
-
-  pip install uv
-
   python3 build.py -e include-mod=tb_graph_ascend -e no-check=true
-  cd ./artifacts
-  pip install ./mindstudio_probe*.whl
   ```
 
-- Install the basic tool package and the trend visualization plugin.
+- Build the basic tool package and the trend visualization plugin.
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git -b master
-  cd msprobe
-
-  pip install uv
-
   python3 build.py -e include-mod=trend_analyzer -e no-check=true
-  cd ./artifacts
-  pip install ./mindstudio_probe*.whl
   ```
 
-- Install the basic tool package and the hierarchical visualization and trend visualization plugins.
+- Build the basic tool package and the hierarchical visualization and trend visualization plugins.
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git -b master
-  cd msprobe
-
-  pip install uv
-
   python3 build.py -e include-mod=tb_graph_ascend,trend_analyzer -e no-check=true
-  cd ./artifacts
-  pip install ./mindstudio_probe*.whl
   ```
 
-- Install the basic tool package and the atb_probe module.
+- Build the basic tool package and the atb_probe module.
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git -b master
-  cd msprobe
-
-  pip install uv
-
   python3 build.py -e include-mod=atb_probe -e no-check=true
-  cd ./artifacts
-  pip install ./mindstudio_probe*.whl
   ```
 
-- Install the basic tool package and the nan_check module.
+- Build the basic tool package and the nan_check module.
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git -b master
-  cd msprobe
-
-  pip install uv
-
   python3 build.py -e include-mod=nan_check -e no-check=true
-  cd ./artifacts
-  pip install ./mindstudio_probe*.whl
   ```
 
-<a id="install-xor-checksum"></a>
-
-- Install the basic tool package and the xor_checksum acceleration operator.
+- Build the basic tool package and the xor_checksum acceleration operator.
 
   ```bash
-  git clone https://gitcode.com/Ascend/msprobe.git -b master
-  cd msprobe
-
-  pip install uv
-
   python3 build.py -e include-mod=xor_checksum
-  cd ./artifacts
-  pip install ./mindstudio_probe*.whl
+  ```
+
+- Build the tool package with all functions.
+
+  ```bash
+  python3 build.py -e include-mod=all
   ```
 
 **Output Description**
 
+After a successful build, the installation package is generated in the `artifacts/` directory.
+
+#### 2.3.3 Running Unit Tests (Optional)
+
+This step is not mandatory for installation. To verify the basic functions of the code, you can run unit tests:
+
+```bash
+cd ~/msprobe
+python3 build.py test
+```
+
+#### 2.3.4 Installation
+
+Copy the installation package generated in the `artifacts/` directory to the runtime environment, and run the following command to install it:
+
+```bash
+pip install mindstudio_probe*.whl
+```
+
 If the following information is displayed, msProbe is successfully installed:
 
-```ColdFusion
+```text
 Successfully installed mindstudio-probe-{version}
 ```
 
@@ -260,7 +245,7 @@ pip uninstall mindstudio-probe
 
 If the following information is displayed, msProbe is successfully uninstalled:
 
-```ColdFusion
+```text
 Successfully uninstalled mindstudio-probe-{version}
 ```
 
@@ -268,7 +253,7 @@ Successfully uninstalled mindstudio-probe-{version}
 
 msProbe cannot be directly upgraded. You need to [uninstall](#4-uninstallation) msProbe and then [install](#2-installation-methods) it again.
 
-You can use the `pip show mindstudio-probe` command to view the version information of the current environment, and then select the version to upgrade to. When upgrading the version, you need to pay attention to the version compatibility relationship. Please refer to the [Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/master/release_notes_en.md).
+You can use the `pip show mindstudio-probe` command to view the version information of the current environment, and then select the version to upgrade to. When upgrading the version, you need to pay attention to the version compatibility relationship. Please refer to the [Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/26.2.0/release_notes.md).
 
 ## 6. Appendix
 
@@ -294,14 +279,14 @@ Example:
 
 ```ColdFusion
 Name: mindstudio-probe
-Version: 26.1.0.post1
+Version: 26.x.x
 Summary: Ascend MindStudio Probe Utils
 Home-page: https://gitcode.com/Ascend/MindStudio-Probe
 Author:
 Author-email: Ascend Team <pmail_mindstudio@xx.com>
 License-Expression: MulanPSL-2.0
-Location: /xxx/xxx/miniconda3/envs/xxx/lib/python3.x/site-packages
-Requires: einops, matplotlib, numpy, openpyxl, pandas, psutil, pytz, pyyaml, rich, skl2onnx, tensorboard, tqdm, wheel
+Location: /xxx/xxx/miniconda3/envs/xxx/lib/python3.x/site-packages/
+Requires: einops, matplotlib, numpy, openpyxl, pandas, psutil, pytz, pyyaml, skl2onnx, tensorboard, tqdm, wheel
 Required-by:
 ```
 

@@ -11,7 +11,7 @@ The supported modes and usage methods for different vLLM scenarios are as follow
 | `vllm-ascend` | NPU | ✅ | ✅ | See vLLM-Ascend's official [msProbe Debugging Guide](https://docs.vllm.ai/projects/ascend/en/latest/developer_guide/performance_and_debug/msprobe_guide.html). |
 | Native vLLM | GPU | ✅ | ❌ | Add the `PrecisionDebugger` API to `GPUModelRunner`. For details, see the following sections |
 
-For details about performance changes in dump statistics mode and data volume collected in dump tensor mode, see [Dump Baseline](../../baseline/pytorch_data_dump_perf_baseline.md).
+For details about performance changes in dump `statistics` mode and data volume collected in dump `tensor` mode, see [Dump Baseline](../../baseline/pytorch_data_dump_perf_baseline.md).
 
 **Note**:
 
@@ -21,7 +21,8 @@ For details about performance changes in dump statistics mode and data volume co
 * Typically, `execute_model` takes a long time. You are advised to wrap the logic after `start` in a `try...finally` block, and call `stop` and `step` inside the `finally` clause. If wrapping the logic is inconvenient, you may also call `stop` and `step` before each `return` statement. Otherwise, result files such as `dump.json` may become incomplete.
 * To collect `L0` or `mix` data, the `model` parameter needs to be passed to `start`. To collect only `L1` data, you can directly call `start()`.
 * If a dynamo-related error occurs, set `export TORCHDYNAMO_DISABLE=1` on NPU to disable dynamo globally.
-* The tool provides a fixed API support list. If you need to delete or add dump APIs, manually modify [support_wrap_ops.yaml](../../../../python/msprobe/pytorch/dump/api_dump/support_wrap_ops.yaml). The following is an example:
+* The tool provides a fixed API support list. If you need to delete or add dump
+  APIs, manually modify [support_wrap_ops.yaml](../../../../python/msprobe/pytorch/dump/api_dump/support_wrap_ops.yaml). The following is an example:
 
   ```yaml
   functional:  # functional indicates the operator type. Find the corresponding type and delete or add APIs in the following format:
@@ -44,11 +45,11 @@ Only data of models implemented based on the PyTorch framework can be collected.
 
 Currently, data collection and result analysis for low-precision scenarios (fp8/fp4) are not supported in graph mode. When collecting data with vLLM in graph mode, it is recommended to use conventional precision configurations such as fp16, bf16, or fp32.
 
-## Quick Start
+## vllm-ascend Scenario
 
-The following describes how to use the tool in vLLM scenarios.
+### Eager Mode
 
-### vLLM-Ascend
+#### Quick Start
 
 In this scenario, you can directly use msProbe capabilities by simply using `--additional-config` to pass the dump configuration file path. The following is an example provided in the official document:
 
@@ -61,13 +62,108 @@ vllm serve Qwen/Qwen2.5-0.5B-Instruct \
   --additional-config '{"dump_config_path": "/data/msprobe_config.json"}'
 ```
 
-Note:
+>[!NOTE]
+>
+>This method is applicable to `vllm-ascend` that has integrated msProbe capabilities. You do not need to manually modify the `GPUModelRunner` implementation.
 
-* This method is applicable to vLLM Ascend that has integrated msProbe capabilities. You do not need to manually modify the `GPUModelRunner` implementation.
-  
-#### vLLM-Ascend Single-Point Collection
+#### Collecting Data for a Specified request_id
 
-After completing full-network data collection and locating potentially abnormal operators via PrecisionDebugger in graph mode, you can use the `acl_save` interface to perform single-point saving of specific tensors for finer-grained layer-by-layer analysis.
+1. Modify the vllm-ascend code.
+
+   Find the file to which the `NPUModelRunner` class of the vllm-ascend framework belongs: vllm_ascend/worker/model_runner_v1.py
+
+   - Modify all call sites of `self._start_dump_data` in the `execute_model` method of the `NPUModelRunner` class.
+
+       ```diff
+       class NPUModelRunner(GPUModelRunner):
+           ...
+           def execute_model(
+               self,
+               scheduler_output: "SchedulerOutput",
+               intermediate_tensors: IntermediateTensors | None = None,
+           ) -> ModelRunnerOutput | IntermediateTensors | None:
+               ...
+       -       self._start_dump_data()
+       +       self._start_dump_data(scheduled_tokens=scheduler_output.num_scheduled_tokens)
+       ```
+
+   - Modify the `_start_dump_data` method of the `NPUModelRunner` class.
+
+       ```diff
+       class NPUModelRunner(GPUModelRunner):
+           ...
+       -    def _start_dump_data(self) -> None:
+       +    def _start_dump_data(self, **kwargs) -> None:
+               if self.debugger is None or self._debugger_started:
+                   return
+       -       self.debugger.start(self.model)
+       +       self.debugger.start(self.model, **kwargs)
+               self._debugger_started = True
+       ```
+
+2. Configure request_id.
+
+    vLLM adds the `chatcmpl-` prefix to the request_id. If a curl request specifies the request_id `<REQ_ID>`, `request_id` must be configured as `chatcmpl-<REQ_ID>` in config.json.
+
+    Create a `config.json` file in the current directory to configure dump parameters. The following is an example:
+
+    ```json
+    {
+       "task": "statistics",
+       "dump_path": "/home/data_dump",
+       "rank": [],
+       "step": [],
+       "level": "mix",
+       "async_dump": false,
+       "statistics": {
+          "scope": [],
+          "list": [],
+          "data_mode": [
+             "all"
+          ],
+          "summary_mode": "statistics",
+          "request_id": "chatcmpl-req-0"
+       }
+    }
+    ```
+
+    For details about the `config.json` file and configuration examples, see [Configuration File Introduction](./config_json_introduct.md).
+
+3. Start the vLLM service and begin data collection.
+
+   When starting the service, enable eager mode and set `export VLLM_DISABLE_REQUEST_ID_RANDOMIZATION=1` to disable random request_id. The following is an example:
+
+   ```shell
+   #!/bin/bash
+   export TORCHDYNAMO_DISABLE=1
+   export VLLM_DISABLE_REQUEST_ID_RANDOMIZATION=1
+   vllm serve Qwen/Qwen2.5-0.5B-Instruct \
+     --dtype float16 \
+     --enforce-eager \
+     --host 0.0.0.0 \
+     --port 8000 \
+     --additional-config '{"dump_config_path": "./config.json"}'
+   ```
+
+   After the service is started, send an inference request and specify request_id `req-0` through `-H "X-Request-ID: req-0"`. Dump is automatically triggered during request execution:
+
+   ```shell
+   curl http://127.0.0.1:8000/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -H "X-Request-ID: req-0" \
+     -d '{
+           "model": "Qwen/Qwen2.5-0.5B-Instruct",
+           "messages": [{"role": "user", "content": "Explain gravity in one sentence."}],
+           "max_tokens": 32,
+           "temperature": 0
+         }'
+   ```
+
+### ACLGraph Mode
+
+#### Single-Point Collection
+
+After completing full-network data collection and locating potentially abnormal operators via `PrecisionDebugger` in graph mode, you can use the `acl_save` interface to perform single-point saving of specific tensors for finer-grained layer-by-layer analysis.
 
 **Usage**: In the model's forward code, simply call `acl_save(tensor, path)` on the tensor you wish to save.
 
@@ -91,9 +187,13 @@ In multi-rank scenarios, save paths should be distinguished by rank:
 acl_save(tensor, f'./dump/rank{torch.distributed.get_rank()}/tensor.pt')
 ```
 
-For more detailed information on the acl_save interface and full-network collection solutions in graph mode, refer to [ACLGraph Data Collection](./aclgraph_dump_instruct.md).
+For detailed information about the `acl_save` API, see [ACLGraph Data Collection](./aclgraph_dump_instruct.md#single-point-collection).
 
-### Native vLLM
+#### Full-Network Collection
+
+For the full-network collection solution in graph mode, see [ACLGraph Data Collection](./aclgraph_dump_instruct.md#network-wide-collection).
+
+## Community vLLM
 
 The following uses a simple example to show how to use msProbe to collect precision data in `GPUModelRunner` of the native vLLM framework.
 
@@ -160,7 +260,7 @@ The following uses a simple example to show how to use msProbe to collect precis
           if hasattr(self, "debugger"):
               self.debugger.start(model=self.model)
           ################################ msprobe ################################
-  
+
           try:
               ...
               return output
@@ -188,7 +288,7 @@ The following uses a simple example to show how to use msProbe to collect precis
     ```shell
     #!/bin/bash
     export TORCHDYNAMO_DISABLE=1
-    
+
     vllm serve Qwen/Qwen2.5-0.5B-Instruct \
       --dtype float16 \
       --enforce-eager \

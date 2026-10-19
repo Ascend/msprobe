@@ -70,16 +70,15 @@ Example of `result_{timestamp}.csv`:
 | Parameter| Description|
 |------|------|
 | Index | ID of an operator in a network model.|
-| OpSequence | Sequence in which an operator runs during comparison on some operators. That is, ID of the operator in the network-wide information file specified by **-fr**.|
+| OpSequence | Sequence in which an operator runs during comparison on some operators, that is, the ID of the operator in the network-wide information file specified by the **-fr** parameter. |
 | OpType | Operator type. It is used to obtain the operator type when **-fr** is specified.|
 | NPUDump | Operator name of the **My Output** model.|
 | DataType | Data type of operators on the **NPU Dump** side.|
-| Address | Memory address of the dump tensor, which detects memory faults of an operator. The address can be extracted only for network-wide comparison of dump data files generated during network running on the Ascend AI Processor.|
+| Address | Memory address of the dump Tensor, used to determine memory issues of the operator. The address can be extracted only for network-wide comparison of dump data files generated during network running on the Ascend AI Processor. |
 | GroundTruth | Operator name of the **Ground Truth** model.|
 | DataType | Data type of operators on the **Ground Truth** side.|
 | TensorIndex | Input ID and output ID of the operator that generates the dump data based on the Ascend AI Processor.|
 | Shape | Shape of the compared tensor.|
-| OverFlow | Overflow operator. **YES** indicates that overflow occurs on an operator. **NO** indicates that no overflow occurs on the operator. **NaN** indicates that overflow detection is not performed. This option is displayed when **-overflow_detection** is set.|
 | CosineSimilarity | Result of the cosine similarity comparison. The value ranges from **-1** to **1**. A value closer to **1** indicates higher similarity.|
 | MaxAbsoluteError | Result of the maximum absolute error comparison. The value ranges from **0** to infinity. A value closer to **0** indicates higher similarity.|
 | AccumulatedRelativeError | Result of the accumulated relative error comparison. The value ranges from **0** to infinity. A value closer to **0** indicates higher similarity.|

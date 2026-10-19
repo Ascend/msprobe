@@ -426,7 +426,7 @@ The table below describes prefixes of the .npy file name.
 ##### L0 Level
 
 The **dump.json** file at the L0 level contains the forward and backward inputs and outputs of a module, as well as parameters and parameter gradients.
-Take the Conv2d module of MindSpore as an example. The module invocation code used in **dump.json** is `output = self.conv2(input) # self.conv2 = mindspore.nn.Conv2d(64, 128, 5, pad_mode='same', has_bias=True)`.
+Take the Conv2d module of MindSpore as an example. The module invocation code used in **dump.json** is `output = self.conv2(input) # self.conv2 = mindspore.nn.Conv2d(16, 32, 5, pad_mode='same', has_bias=True)`.
 
 The **dump.json** file contains the following data:
 

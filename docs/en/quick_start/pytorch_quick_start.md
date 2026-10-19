@@ -1,7 +1,5 @@
 # msProbe PyTorch Quick Start
 
-<!-- md-trans-meta sourceCommit=d8769dcb657f88517a1877f5ff6691464e86ec45 translatedAt=2026-08-11T11:42:51.498Z pushedAt=2026-08-11T11:47:06.110Z -->
-
 <br>
 
 ## 1. Overview
@@ -59,7 +57,7 @@ source /dev/stdin <<< "$(dev_id=$(lspci -n -D | grep -o '19e5:d[0-9a-f]\{3\}' | 
 
 If `[PASS]` is output after command execution, it indicates success; if `[FAIL]` is output, possible causes are as follows:
 
-1. The hardware is not within the scope of this tutorial: this learning environment only supports Ascend 310P, A2, A3, and 950 products. Please switch to a compatible hardware environment and retry.
+1. The hardware is outside the scope supported by this tutorial: this learning environment supports only Atlas inference products, Atlas A2 products, Atlas A3 products, and Ascend 950PR&950DT products. Please switch to a compatible hardware environment and try again;
 2. Underlying environment anomaly: `lspci` is not installed, or the current user cannot query the NPU PCI ID via `lspci -n -D`. Contact the environment administrator to verify the underlying environment.
 
 #### 2.1.3 Host: Pull the Image
@@ -278,7 +276,7 @@ This quick start is intended for experiencing the core functionality of msProbe.
 
 ```bash
 cd ~
-git clone --depth 1 --single-branch https://gitcode.com/Ascend/msprobe.git -b master
+git clone --depth 1 --single-branch https://gitcode.com/Ascend/msprobe.git
 cp -rf ~/msprobe/examples/quick_start/gpu_dump ~/msprobe_dump_gpu
 ```
 

@@ -411,7 +411,7 @@ Note: "Prototype" is for documentation purposes only, where `Any/Optional/Dict/T
 
 - Function: Starts monitoring, that is, creates and starts the modules enabled in `monitors` based on the configuration, and establishes the write context.
 - Prototype:
-  
+
   ```Python
   TrainerMonitorV2.start(model: Any = None, optimizer: Any = None, **context: Any) -> None
   ```
@@ -429,7 +429,7 @@ Note: "Prototype" is for documentation purposes only, where `Any/Optional/Dict/T
 
 - Function: Advances the training step and triggers the collection and writing of the current step (controlled by `start_step/stop_step/step_interval/collect_times`).
 - Prototype:
-  
+
   ```Python
   TrainerMonitorV2.step() -> None
   ```
@@ -442,7 +442,7 @@ Note: "Prototype" is for documentation purposes only, where `Any/Optional/Dict/T
 
 - Function: Stops monitoring and releases resources (removes internal registration/interception operations within monitoring modules and closes the writer).
 - Prototype:
-  
+
   ```Python
   TrainerMonitorV2.stop() -> None
   ```

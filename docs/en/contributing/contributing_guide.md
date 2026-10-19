@@ -1,7 +1,5 @@
 # Contributing to MindStudio Probe
 
-<!-- md-trans-meta sourceCommit=d04bd615f0a6704fd5647163e7531d767f227e36 translatedAt=2026-08-11T02:41:31.264Z pushedAt=2026-08-11T02:51:07.147Z -->
-
 Thank you for considering contributing to MindStudio Probe (msProbe)! We welcome all forms of contributions, including bug fixes, feature enhancements, documentation improvements, and even just feedback. Whether you are an experienced developer or participating in an open-source project for the first time, your help is invaluable.
 
 You can support this project in several ways:
@@ -24,7 +22,7 @@ Additionally, you can explore the project's development plans and roadmap by bro
 
 ### Environment Requirements
 
-- For hardware environment, see *[Ascend Product Form Description](https://www.hiascend.com/document/detail/en/AscendFAQ/ProduTech/productform/hardwaredesc_0001.html)*
+- For hardware environment, see *[Ascend Product Form Description](https://www.hiascend.com/document/detail/en/Glossary/productform/hardwaredesc_0001.html)*
 - The open-source version of CANN must be installed in advance.
 - Python 3.7.5 or later
 
@@ -83,8 +81,7 @@ Before submitting code, ensure all tests pass:
 
 ```bash
 # Python unit tests
-cd test/msprobe_test
-bash run_test.sh
+python3 build.py test
 ```
 
 #### Adding Tests
@@ -105,7 +102,7 @@ After running the tests, the code coverage report is generated in the `./report`
 If your changes affect how users interact with the product, please update the relevant documentation:
 
 - User Guide: `docs/en/`
-- API Documentation: docstrings in code comments
+- API Documentation: doc strings in code comments
 - Sample Code: `samples/`
 
 #### Documentation Standards
@@ -166,8 +163,8 @@ Before submitting a PR, please ensure that:
 5. **Code Review**
 
    1. After submitting the PR, you need to notify the relevant Assignees (Reviewers and Committers) to review the content.
+   2. You need to revise the code based on the review feedback and resubmit the update. This process may involve multiple rounds of iteration, so please stay responsive and communicative.
 
-   2. You need to modify the code based on the review feedback and resubmit the update. This process may involve multiple rounds of iteration, so please remain responsive and communicative.
    The PR process will prompt the relevant Assignees. You can designate the relevant Assignees during the PR process, or contact us through the suggestions and communication channels in [README](../../../README_EN.md).
 
 6. **Code Merging**
@@ -248,5 +245,7 @@ The documentation under the docs directory of the msProbe tool is licensed under
 ## Acknowledgments
 
 Thank you for contributing to msProbe. Your efforts make this project more powerful and user-friendly. We look forward to your participation!
+
+If you have any questions or need assistance, please feel free to ask in [Issues](https://gitcode.com/Ascend/msprobe/issues) or contact us through other community channels.
 
 If you have any questions or need assistance, please feel free to ask in [Issues](https://gitcode.com/Ascend/msprobe/issues) or contact us through other community channels.

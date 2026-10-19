@@ -323,9 +323,9 @@ The table below describes prefixes of the .npy file name.
 #### L0 Level
 
 The **dump.json** file at the L0 level contains the inputs, outputs, parameters, and parameter gradients of a module. The following uses the Conv2d module as an example. The module invocation code is:
-`output = self.conv2(input) # self.conv2 = torch.nn.Conv2d(64, 128, 5, padding=2, bias=True)`  
+`output = self.conv2(input) # self.conv2 = torch.nn.Conv2d(16, 32, 5, padding=2, bias=True)`
 
-The **dump.json** file contains the following data: 
+The **dump.json** file contains the following data:
 
 * `Module.conv2.Conv2d.forward.0`: module forward data. **input_args** is the input data (position parameter), **input_kwargs** is the input data (keyword parameter), **output** is the output data of the module, and **parameters** is module parameters, including weight and bias.
 
@@ -333,7 +333,7 @@ The **dump.json** file contains the following data:
 
 * `Module.conv2.Conv2d.backward.0`: module backward data. **input** indicates the backward input gradient (corresponding to the forward output gradient), and **output** indicates the backward output gradient (corresponding to the forward input gradient).
 
-**Note**: When the model parameter passed during dump is **List[torch.nn.Module]** or **Tuple[torch.nn.Module]**, the module-level data name contains the index of the module in the list. The naming format is `{Module}.{index}.*`, where ***** indicates the naming format of the preceding three types of module-level data, for example, `Module.0.conv1.Conv2d.forward.0`.    
+**Note**: When the model parameter passed during dump is **List[torch.nn.Module]** or **Tuple[torch.nn.Module]**, the module-level data name contains the index of the module in the list. The naming format is `{Module}.{index}.*`, where ***** indicates the naming format of the preceding three types of module-level data, for example, `Module.0.conv1.Conv2d.forward.0`.
 
 ```json
 {
@@ -492,9 +492,9 @@ The **dump.json** file contains the following data:
 #### L1 Level
 
 The **dump.json** file at the L1 level contains the input and output data of an API. The following uses the **relu** API as an example. The API invocation code is:
-`output = torch.nn.functional.relu(input)`  
+`output = torch.nn.functional.relu(input)`
 
-The **dump.json** file contains the following data: 
+The **dump.json** file contains the following data:
 
 * `Functional.relu.0.forward`: API forward data. **input_args** is the input data (position parameter), **input_kwargs** is the input data (keyword parameter), and **output** is the output data of the API.
 
@@ -585,12 +585,12 @@ The **dump.json** file contains the following data:
    ]
   }
  }
-}  
+}
 ```
 
 #### mix Level
 
-The **dump.json** file at the mix level contains both L0 and L1 dump data. The file format is the same as that in the preceding examples. 
+The **dump.json** file at the mix level contains both L0 and L1 dump data. The file format is the same as that in the preceding examples.
 
 ## Appendixes
 

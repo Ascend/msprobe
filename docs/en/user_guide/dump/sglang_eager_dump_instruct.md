@@ -1,10 +1,9 @@
 # Precision Data Collection in SGLang (SGLang Version < 0.5.11)
 
-<!-- md-trans-meta sourceCommit=d04bd615f0a6704fd5647163e7531d767f227e36 translatedAt=2026-08-13T02:00:21.209Z pushedAt=2026-08-13T02:12:06.192Z -->
-
 ## Introduction
 
-The msProbe tool collects precision data during model execution by adding the `PrecisionDebugger` interface to the core class `ModelRunner`, which is responsible for model forward propagation execution in the SGLang framework, and starting inference.
+The msProbe tool collects precision data during model execution by adding the `PrecisionDebugger` interface to the core class `ModelRunner`, 
+which is responsible for model forward propagation execution in the SGLang framework, and starting inference.
 
 For the performance overhead of the dump "statistics" mode and the amount of data collected in the "tensor" mode, see [dump baseline](../../baseline/pytorch_data_dump_perf_baseline.md).
 
@@ -299,7 +298,9 @@ The following uses a simple example to show how to use msProbe for precision dat
 
        - Background Description
 
-         After SGLang enables PD disaggregation deployment, the prefill stage forcibly adopts the `follow_bootstrap_room` scheduling rule, which relies on `bootstrap_room` to assign requests to different ranks. The scheduling rule is `target_dp_rank = bootstrap_room % dp_size`. The default SGLang Router service automatically generates the `bootstrap_room` value randomly, and this value currently cannot be configured through startup parameters. When `dp-size` > 1 and multiple requests are processed in a single batch, the random value causes requests to be assigned to different ranks in a disordered manner, which leads to inconsistent data collection across multiple runs and unreproducible experiments.
+         After SGLang enables PD disaggregation deployment, the prefill stage forcibly adopts the `follow_bootstrap_room` scheduling rule, which relies on `bootstrap_room` to assign requests to different ranks. 
+         The scheduling rule is `target_dp_rank = bootstrap_room % dp_size`. The default SGLang Router service automatically generates the `bootstrap_room` value randomly. 
+         This value currently cannot be configured through startup parameters. When `dp-size` > 1 and multiple requests are processed in a single batch, the random value causes requests to be assigned to different ranks in a disordered manner, which leads to inconsistent data collection across multiple runs and unreproducible experiments.
 
          Therefore, it is necessary to manually modify `bootstrap_room` to a fixed value, lock the rank assignment for requests, unify the scheduling rule, and ensure fixed data collection and reproducible results.
 

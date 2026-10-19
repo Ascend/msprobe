@@ -6,7 +6,7 @@ This document describes how to quickly get started with the precision debugging 
 
 For foundation models developed based on Ascend or migrated from GPU to Ascend NPU, training issues such as precision overflow/underflow, loss divergence, or non-convergent loss may arise. Since metrics such as the training loss cannot accurately locate the failed module, msProbe is recommended for rapid fault demarcation.
 
-### Usage Process
+**Usage Process**
 
 When using msProbe for model precision debugging, perform the following operations:
 
@@ -32,9 +32,9 @@ When using msProbe for model precision debugging, perform the following operatio
 
 This Quick Start guide focuses on rapid onboarding for precision data collection and precision comparison. For usage details of other tool functions, please refer to the relevant documentation.
 
-### Environment Setup
+**Environment Setup**<a name="environment-setup"></a>
 
-1. Prepare a training server equipped with Ascend NPUs (such as Atlas A2 training servers) and install the NPU driver and firmware.
+1. Prepare a training server equipped with Ascend NPUs (such as Atlas A2 products) and install the NPU driver and firmware.
 
 2. Install the CANN Toolkit and OPS (operator package) of the matching version and configure CANN environment variables. For details, see [CANN Software Installation Guide](https://www.hiascend.com/en/cann/download).
 
@@ -72,9 +72,9 @@ Data Collection
        "step": [0,1],
        "level": "L1",
        "async_dump": false,
-   
+
        "statistics": {
-           "scope": [], 
+           "scope": [],
            "list": [],
            "tensor_list": [],
            "data_mode": ["all"]
@@ -115,7 +115,7 @@ Data Collection
    If the following information is displayed in the log, the data is successfully collected. You can view the data after the collection is complete.
 
    ```txt
-   The aip tensor hook function is successfully mounted to the model.
+   The api statistics hook function is successfully mounted to the model.
    msprobe: debugger.start() is set successfully
    Dump switch is turned on at step 0.
    Dump data will be saved in /home/dump/dump_data/step0.
@@ -159,7 +159,7 @@ Performing Comparison
 
 2. Perform the comparison.
 
-   The command is as follows:
+   The command is as follows. For details about parameters, see [Parameter Description](../user_guide/accuracy_compare/mindspore_accuracy_compare_instruct.md#parameters):
 
    ```bash
    msprobe compare -tp /home/dump/dump_data_2.7.0/step0/proc1280779/dump.json -gp /home/dump/dump_data_2.6.0/step0/proc1280778/dump.json -o ./compare_result/accuracy_compare
@@ -204,7 +204,7 @@ Performing Comparison
 
    The path of the `dump_data_2.7.0` directory is `/home/dump/dump_data_2.7.0`.
 
-2. Perform graph comparison. For details, see [Dual Graph Comparison](../user_guide/accuracy_compare/mindspore_visualization_instruct.md#dual-graph-comparison).
+2. Perform graph construction comparison. For details about parameters, see [Dual Graph Comparison](../user_guide/accuracy_compare/mindspore_visualization_instruct.md#dual-graph-comparison).
 
    ```bash
    msprobe graph_visualize -tp /home/dump/dump_data_2.7.0 -gp /home/dump/dump_data_2.6.0 -o /home/dump/output
@@ -242,7 +242,7 @@ Performing Comparison
 import numpy as np
 import mindspore
 mindspore.set_device("Ascend")
-import mindspore.mint as mint   
+import mindspore.mint as mint
 import mindspore.dataset as ds
 from mindspore import nn
 from msprobe.mindspore import PrecisionDebugger

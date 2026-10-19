@@ -26,14 +26,14 @@ To ensure that the training forward shape matches the inference prefill shape, t
 1. Ensure that the batch size in training is not split.
 
    1. Ensure that the number of mini batches used for gradient update in each training epoch is **mini_batch_num = 1**.
-   
+
       Formula: **mini_batch_num = train_batch_size/train_ppo_mini_batch_size**
       - **train_batch_size**: total number of samples in training.
       - **train_ppo_mini_batch_size**: number of samples in each mini batch.
    
-   2. Ensure **gac (Gradient Accumulation Steps) = 1**.
+   2. Ensure **gas (Gradient Accumulation Steps) = 1**.
    
-      Formula: **gac = train_ppo_mini_batch_size * n_resp_per_prompt/train_ppo_micro_batch_size_per_gpu / DP**
+      Formula: **gas = train_ppo_mini_batch_size * n_resp_per_prompt/train_ppo_micro_batch_size_per_gpu / DP**
       - **train_ppo_mini_batch_size**: number of samples in each mini batch.
       - **n_resp_per_prompt**: number of responses per prompt.
       - **train_ppo_micro_batch_size_per_gpu**: size of the micro batch processed on each GPU.
@@ -90,7 +90,7 @@ To delete the response from the training input, you need to modify **verl/worker
 +            response_length = 0
          multi_modal_inputs = {}
          ...
- 
+
      @GPUMemoryLogger(role="dp actor", logger=logger)
      def compute_log_prob(self, data: DataProto, calculate_entropy=False) -> torch.Tensor:
          """..."""
@@ -113,12 +113,12 @@ To delete the response from the training input, you need to modify **verl/worker
 +                if "rollout_log_probs" in data.batch:
 +                    data.batch["rollout_log_probs"] = None
 +                if "response_mask" in data.batch:
-+                    data.batch["response_mask"] = None         
++                    data.batch["response_mask"] = None
 + 
          
          micro_batch_size = data.meta_info["micro_batch_size"]
          ...
- 
+
      @GPUMemoryLogger(role="dp actor", logger=logger)
      def update_policy(self, data: DataProto):
          # make sure we are in training mode
@@ -143,7 +143,7 @@ To delete the response from the training input, you need to modify **verl/worker
 +                    data.batch["rollout_log_probs"] = None
 +                if "response_mask" in data.batch:
 +                    data.batch["response_mask"] = None
-+ 
++
          select_keys = [
              "responses",
              "response_mask",
@@ -159,11 +159,11 @@ To delete the response from the training input, you need to modify **verl/worker
                      # Weights are computed centrally in trainer and added when algorithm.rollout_is=True
                      rollout_is_weights = model_inputs.get("rollout_is_weights", None)
 
-+                    # Modification to update_policy                    
++                    # Modification to update_policy
 +                    if response_mask is None:
 +                        prompt_mask = torch.ones_like(log_prob, dtype=torch.bool)
 +                        response_mask = prompt_mask
-+ 
++
                      # gpg -> verl.trainer.ppo.core_algos.compute_policy_loss_gpg
                      # clip_cov -> verl.trainer.ppo.core_algos.compute_policy_loss_clip_cov
                      policy_loss_fn = get_policy_loss_fn(loss_mode)
@@ -195,7 +195,7 @@ Modify code as highlighted in the following example:
      This worker can be instantiated as a standalone actor or a standalone rollout or a standalone reference policy
      or a hybrid engine based on the config.rollout
      """
- 
+
      def __init__(self, config: DictConfig, role: str, **kwargs):
          ...
          # normalize rollout config
@@ -219,7 +219,7 @@ Modify code as highlighted in the following example:
 +            self.dump_path_prefix = self.debugger.config.dump_path
 +        else:
 +            self.debugger = None
- 
+
      ...
      @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="actor"))
      @DistProfiler.annotate(color="red", role="actor_update")
@@ -240,7 +240,7 @@ Modify code as highlighted in the following example:
              delta_time = timer.last
              global_num_tokens = data.meta_info["global_token_num"]
              ...
-     
+
      @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="rollout"))
      @DistProfiler.annotate(color="red", role="rollout_generate")
      def generate_sequences(self, prompts: DataProto):

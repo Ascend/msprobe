@@ -6,7 +6,7 @@ In the inference scenario of Torch graph mode (TorchAir), precision data collect
 
 ## Basic Concepts
 
-- [TorchAir](https://gitcode.com/Ascend/torchair/blob/master/docs/en/ascend_ir/api/torchair/compiler_config.md): backend of the Torch graph mode, which is used to compile the Torch model into an executable program on the Ascend AI Processor, including computational graph conversion and optimization.
+- [TorchAir](https://gitcode.com/Ascend/torchair/blob/26.2.0/docs/en/ascend_ir/api/torchair/compiler_config.md): backend of the Torch graph mode, which is used to compile the Torch model into an executable program on the Ascend AI Processor, including computational graph conversion and optimization.
 - Graph Engine (GE): core component of the Ascend AI computing platform. As the control center for computational graph build and execution, GE provides the following functions:
     - Graph optimization: optimizes the neural network computational graph to improve execution efficiency.
     - Graph build management: converts models of different frameworks into a unified internal representation, providing a basis for graph optimization and execution.
@@ -52,7 +52,7 @@ set_ge_dump_config(
 | ------------------ | --------------------------------------------------------------------------------- | -------------------------------------- |
 | dump_path          | No| Path for storing dump data. The default value is **"./"**.                                                               |
 | dump_mode          | No| Data dump mode, specifying whether the operator input or output is dumped. The value can be **input**, **output**, or **all**. The default value is **all**, indicating that both the input and output data are dumped.|
-| fusion_switch_file | No| Whether to disable dump in fusion mode. The default value is **None**, indicating that fusion is enabled.                                                             |
+| fusion_switch_file | No| Path to the fusion switch configuration file, used to specify which operator fusions to disable. The default value is **None**, indicating that fusion is enabled.                                                             |
 | dump_token         | No| Token for dump. The format **[1,2,5]** indicates that the data of the first, second, and fifth tokens is dumped. The default value is **None**, indicating that all data is dumped.          |
 | dump_layer         | No| Layer for dump. The format **["Add", "Conv_1"]** indicates that the data of the Add and Conv_1 layers is dumped. The default value is **None**, indicating that all data is dumped.          |
 | compiler_config    | No| Graph build configuration (CompilerConfig object). The default value is **None**, indicating that the newly created graph build configuration is returned.                    |
@@ -229,7 +229,7 @@ When a version earlier than TorchNPU 7.1.0 is used, the result file directory st
 
 In addition to operations in [Dumping Data in GE Fusion Mode](#dumping-data-in-ge-fusion-mode), pass the configuration file for disabling operator fusion through the `fusion_switch_file` parameter of the `set_ge_dump_config` API. The following is an example of tool usage:
 
-- Create the `fusion_switch.json` file for disabling operator fusion. For details about operator fusion patterns, see [Operator Fusion Pattern Settings (fusion_switch_file)](https://gitcode.com/Ascend/torchair/blob/master/docs/en/ascend_ir/features/advanced/fusion_switch_file.md).
+- Create the `fusion_switch.json` file for disabling operator fusion. For details about operator fusion patterns, see [Operator Fusion Pattern Settings (fusion_switch_file)](https://gitcode.com/Ascend/torchair/blob/26.2.0/docs/en/ascend_ir/features/advanced/fusion_switch_file.md).
 
   ```json
   {

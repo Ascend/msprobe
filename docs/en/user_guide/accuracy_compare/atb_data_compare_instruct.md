@@ -9,7 +9,7 @@ msProbe supports precision comparison in ATB scenarios to help locate precision 
 
 * **Cosine similarity**: cosine of the angle between two non-zero vectors. It can be used to evaluate the similarity between two tensors.
 
-* **Euclidean distance**: absolute distance between two points in a multi-dimensional space. It can be used to evaluate the similarity between two tensors.
+* **Euclidean distance**: straight-line distance between two points in a multi-dimensional space. It can be used to evaluate the similarity between two tensors.
 
 ## Preparations
 
@@ -84,7 +84,7 @@ msprobe compare -m atb -gp <goldenDataPath> -tp <targetDataPath> [-o <outputPath
 
 The output of ATB precision data comparison is an Excel file.
 
-**Output Description of Real Data Comparison**
+**Output File Description of Real Data Comparison**
 
 The table below describes the Excel file obtained after real data precision comparison.
 

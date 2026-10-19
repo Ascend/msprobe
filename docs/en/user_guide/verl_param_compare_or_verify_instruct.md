@@ -1,14 +1,12 @@
-# verl Hyperparameter Comparison and Key Hyperparameter Verification
-
-<!-- md-trans-meta sourceCommit=d04bd615f0a6704fd5647163e7531d767f227e36 translatedAt=2026-08-11T02:41:22.074Z pushedAt=2026-08-11T02:51:07.143Z -->
+# Verl Hyperparameter Comparison and Key Hyperparameter Verification
 
 ## Introduction
 
 When verl performs training on NPU and benchmark servers, training logs are collected. These training logs contain hyperparameter configurations, such as the training optimizer's learning rate and KL divergence.
 
-verl Hyperparameter Compare compares the actual hyperparameter configurations collected from training logs on two different servers. It filters out only the configuration-related portions, saves them as configuration files, and compares the parameter configurations of the two files. By assisting users in efficiently comparing actual hyperparameter configurations, it accelerates the identification of training or inference precision issues caused by configuration discrepancies.
+Verl Hyperparameter Compare compares the actual hyperparameter configurations collected from the training logs on two different servers. By filtering out only the configuration-related parts, it saves them as config files and compares the parameter configurations of the two config files. By assisting users in efficiently comparing actual hyperparameter values, it accelerates the localization of training or inference precision issues caused by configuration differences.
 
-verl Hyperparameter Verify filters out only the configuration-related parts from training logs, saves them as configuration files, outputs the effective values of key hyperparameters, and determines whether the key hyperparameter requirements are met.
+Verl Hyperparameter Verify filters out only the configuration-related parts from training logs, saves them as configuration files, outputs the effective values of key hyperparameters, and determines whether the key hyperparameter requirements are met.
 
 ## Preparation Before Use
 
@@ -62,7 +60,7 @@ Three files are generated in the comparison result output path:
 
 - `bench_config.json`: Configuration extracted from the benchmark log.
 - `NPU_config.json`: Configuration extracted from the NPU log.
-- `hyper_params_compare.csv`: Comparison result. Since the profiler and ray-related hyperparameter configuration is irrelevant to the training itself, this CSV file does not include comparisons of hyperparameters related to profiler and ray. It contains one sheet page, which includes the hyperparameter name, effective values on NPU and benchmark, and consistency.
+- hyper_params_compare.csv: the comparison result. Since the profiler- and ray-related configuration information in the hyperparameters is unrelated to the training itself, this csv file does not include the comparison of configurations related to the hyperparameters, profiler, and ray. It contains one sheet, which includes the hyperparameter name, the NPU effective value, the bench effective value, and whether they are consistent.
 
 The following is the example content of `hyper_params_compare.csv`:
 
@@ -75,7 +73,7 @@ Glossary of terms in the comparison result:
 
 | Term      | Explanation                                                                                                                                                                                                                                                                                             |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hyperparameter Name    | Actual hyperparameter name in the configuration involved in the verl log.                                                                                                                                                                                                               |
+| Hyperparameter Name    | The actual hyperparameter name in the configuration information involved in the verl log                       |
 | NPU Effective Value    | Actual value corresponding to the hyperparameter name in the NPU training log.                                                                                                                                                                                                                      |
 | Benchmark Effective Value  | Actual value corresponding to the hyperparameter name in the benchmark training log.                                                                                                                                                                                                                |
 | Consistency            | Whether the NPU effective value and the benchmark effective value are consistent. If consistent, the value is "Yes"; otherwise, it is "No". When the result is "No", further confirmation and investigation are required to determine whether the precision discrepancy is caused by this hyperparameter inconsistency. |
@@ -140,6 +138,6 @@ Glossary of terms in the verification result:
 | Item      | Explanation|
 |------------|-----|
 | Key Parameter Name | Name of the key hyperparameter in the YAML configuration file |
-| Benchmark Effective Value | Required value of the key hyperparameter |
+| Bench Effective Value | Required value of the key hyperparameter |
 | Target Effective Value | Actual value of the key hyperparameter in the training log |
-| Consistency    | Whether the effective value matches the required value. "Yes" indicates consistency, and "No" indicates inconsistency. When the result is "No", further confirmation is needed to verify whether this critical parameter needs to be adjusted to align with the benchmark's effective value. |
+| Consistent    | Whether the actual effective value is consistent with the required value. If consistent, it is "Yes"; otherwise it is "No". When the result is "No", the user needs to further confirm whether the configuration of this key parameter should be adjusted to be consistent with the bench effective value|

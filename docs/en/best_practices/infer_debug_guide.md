@@ -1,6 +1,6 @@
 # Foundation Model Inference Accuracy Debugging Guide
 
-## Introduction
+## 1. Overview
 
 Ensuring inference accuracy for large language models (LLMs) on Ascend NPUs aims to achieve semantic equivalence with their GPU-based counterparts. This is typically assessed through downstream task evaluation or direct comparison with GPU outputs. In practice, accuracy issues often stem from model structure errors, improper parameter configurations, or operator calculation deviations. These issues typically manifest as abnormal behaviors such as incoherent output (gibberish), unexpected generation interruption, repetitive generations, or significant deviation from expected results. Accuracy issues in model inference can be classified into two categories: **model accuracy issues** and **numerical precision issues**. These two types differ in their causes and impacts, and therefore require differentiated analysis and handling strategies.
 
@@ -10,21 +10,31 @@ Ensuring inference accuracy for large language models (LLMs) on Ascend NPUs aims
 
 This guide is designed to help you effectively distinguish between normal computational deviations and genuine accuracy issues, and to accurately locate their root causes. To achieve this, it systematically describes the application scenarios and operational workflows of a dedicated toolset for accuracy issue diagnosis. The goal is to empower you to efficiently identify potential risks, either independently or with the support of technical documentation.
 
-## 1. Common Inference Accuracy Issues
+## 2. Common Inference Accuracy Issues
 
 Accuracy issues in LLM inference typically manifest as model outputs that deviate from expectations. These symptoms can be classified into the following types:
 
 1. Garbled characters in model responses: A large number of abnormal symbols such as �, \<unk\>, and â€™ are displayed in outputs, or a segment of characters in another language is suddenly inserted.
 
+    ![image.png](../figures/wiki/infer_debug_guide/garbled_characters_example.png)
+
 2. Repeated model responses: A model is stuck in a certain part and repeatedly generates the same or similar text segments.
+
+    ![image.png](../figures/wiki/infer_debug_guide/repeated_responses_example.png)
 
 3. Semantic or logical errors: The output uses fluent language but the reasoning is either incoherent or broken.
 
+    ![image.png](../figures/wiki/infer_debug_guide/semantic_or_logical_errors_example.png)
+
 4. Inconsistency and jitter: The outputs vary greatly among multiple requests.
+
+    ![image.png](../figures/wiki/infer_debug_guide/inconsistency_and_jitter_example.png)
 
 5. Dataset evaluation discrepancy: The evaluation accuracy falls below the benchmark.
 
-## 2. Common Causes of Model Inference Accuracy Issues
+    ![image.png](../figures/wiki/infer_debug_guide/dataset_evaluation_discrepancy_example.png)
+
+## 3. Common Causes of Model Inference Accuracy Issues
 
 Common accuracy issues in LLM inference can be classified into accuracy errors and practice errors. In inference deployment, practice errors are the primary cause of accuracy issues. The causes of practice errors are as follows:
 
@@ -54,15 +64,15 @@ Common accuracy issues in LLM inference can be classified into accuracy errors a
 
 5. Environment version defects or differences
 
-Generally, accuracy may be normal on one type of server but suddenly become abnormal on other servers or in other environments, or after an environment version change. For example, accuracy may become abnormal when an x86 architecture is switched to an Arm architecture, or after CANN is replaced. For the solutions, see the requirements of different environment versions.
+   Generally, accuracy may be normal on one type of server but suddenly become abnormal on other servers or in other environments, or after an environment version change. For example, accuracy may become abnormal when an x86 architecture is switched to an Arm architecture, or after CANN is replaced. For the solutions, see the requirements of different environment versions.
 
-## 3. Locating Model Accuracy Issues Troubleshooting
+## 4. Locating Model Accuracy Issues Troubleshooting
 
 The following figure shows the overall process of locating model inference accuracy issues.
 
 ![image.png](../figures/wiki/infer_debug_guide/model_accuracy_issue_locating_roadmap.png)
 
-## 3.1 Checklist
+### 4.1 Checklist
 
 In scenarios where a benchmark is available, it is critical to ensure that your configuration aligns with the benchmark setup. For model inference that involves benchmarking, two specific scenarios are typically considered:
 
@@ -73,52 +83,52 @@ In the following description, these two scenarios are essentially a comparison b
 
 - Comparison of inference hyperparameters and environment variables
 
-You can use Beyond Compare to compare inference hyperparameters and environment variable settings in the inference logs or startup scripts in both scenarios.
+    You can use Beyond Compare to compare inference hyperparameters and environment variable settings in the inference logs or startup scripts in both scenarios.
 
 - Comparison of third-party library versions
 
-Check whether the versions of third-party libraries such as MindIE, vLLM, and Transformers are consistent with those in the benchmark version by `git branch`.
+    Check whether the versions of third-party libraries such as MindIE, vLLM, and Transformers are consistent with those in the benchmark version by `git branch`.
 
-Check whether the versions of third-party libraries such as PyTorch and torch_npu are consistent with those in the benchmark version by `pip list`.
+    Check whether the versions of third-party libraries such as PyTorch and torch_npu are consistent with those in the benchmark version by `pip list`.
 
 - Data reading check
 
-Check the input data of model inference. Generally, you can directly print the input data in the code for checking. For example, in vLLM, you can obtain the original input text through `output.prompt` in the output of `llm.generate`.
+    Check the input data of model inference. Generally, you can directly print the input data in the code for checking. For example, in vLLM, you can obtain the original input text through `output.prompt` in the output of `llm.generate`.
 
 - Model configuration check
 
-You can print model configurations of both scenarios for comparison.
+    You can print model configurations of both scenarios for comparison.
 
-Example:
+    Example:
 
-```python
-from vllm import LLM
+    ```python
+    from vllm import LLM
 
-#Initialize a model.
-llm = LLM(
-    model="/path/to/your/model", # Or Hugging Face model name
-    dtype="float16"
-)
+    #Initialize a model.
+    llm = LLM(
+        model="/path/to/your/model", # Or Hugging Face model name
+        dtype="float16"
+    )
 
-#View the model configuration.
-print("Model configuration (Model Config)")
-print("=" * 50)
-print(llm.llm_engine.model_config)
-```
+    #View the model configuration.
+    print("Model configuration (Model Config)")
+    print("=" * 50)
+    print(llm.llm_engine.model_config)
+    ```
 
-Output:
+    Output:
 
-```python
-Model configuration (Model Config)
-==================================================
-ModelConfig(model='meta-llama/Llama-2-7b-hf', tokenizer='meta-llama/Llama-2-7b-hf', tokenizer_mode=auto, trust_remote_code=True, dtype=torch.float16, seed=0, skip_tokenizer_init=False, use_v2_block_manager=False, ...
-```
+    ```python
+    Model configuration (Model Config)
+    ==================================================
+    ModelConfig(model='meta-llama/Llama-2-7b-hf', tokenizer='meta-llama/Llama-2-7b-hf', tokenizer_mode=auto, trust_remote_code=True, dtype=torch.float16, seed=0, skip_tokenizer_init=False, use_v2_block_manager=False, ...
+    ```
 
-### 3.2 Preparations for Reproducing a Problem
+### 4.2 Preparations for Reproducing a Problem
 
 After ensuring that the preceding information is consistent, you need to reproduce a problem. To minimize variables during fault localization, you should fix randomness and enable operator determinism.
 
-#### 3.2.1 Fixing Randomness
+#### 4.2.1 Fixing Randomness
 
 To reproduce a problem, you need to fix the random operations to ensure experimental reproducibility. These operations include model parameter initialization and dropout layers.
 The involved operations are as follows:
@@ -126,7 +136,7 @@ The involved operations are as follows:
 - Fix the random seed, such as `np.random.seed`, `torch.manual_seed`, and `torch_npu.npu.manual_seed`.
 - Disable the dropout layer.
 
-#### 3.2.2 Enabling Determinism
+#### 4.2.2 Enabling Determinism
 
 During problem reproduction, you are advised to enable operator computation determinism and communication determinism. Both of them need to be fixed as early as possible before the code starts training.
 
@@ -153,15 +163,15 @@ Parameter description:
 |rm_dropout |Switch for controlling dropout invalidation or validation. After this function is enabled, the dropout probability is automatically set to `0`. The value can be `True` (default) or `False`. |     No |
 |is_enhanced|(Optional) Switch for enhancing randomness fixing. The value can be `True` or `False` (default), for example, `is_enhanced=True`. After it is enabled, the status of the built-in random number generators of PyTorch, NumPy, and Python is further fixed. When the same random API is executed multiple times in the same process or different processes, the random values generated each time can be the same. This helps achieve strict reproducibility in more complex random scenarios.|No|
 
-### 3.3 Selecting Bad Cases
+### 4.3 Selecting Bad Cases
 
 In model inference accuracy localization, two different models may exhibit different performance on the same dataset. For example, in a problem scenario, a model may answer a question incorrectly on a dataset evaluation, whereas the benchmark scenario produces the correct answer. Such an instance is referred to as a bad case.
 
 Once a bad case is identified, subsequent issues can be localized as single-case problems. The subsequent operations will be described in the following section.
 
-## 4. Accurate Issue Locating by Scenario
+## 5. Accurate Issue Locating by Scenario
 
-### 4.1 Reproducible Accuracy Issues in Single-Case Scenarios
+### 5.1 Reproducible Accuracy Issues in Single-Case Scenarios
 
 In model inference, reproducible single-case accuracy issues typically refer to an extremely stable bad case. The details are as follows:
 
@@ -171,62 +181,67 @@ Fixed parameters: `Temperature=0`, `Top_p=1`, fixed `Seed` fixed, and consistent
 
 Incorrect output: For example, the model consistently answers "Shanghai" instead of the correct answer, "Beijing".
 
-#### 4.1.1 Locating Accuracy Issues in vLLM Scenarios
+#### 5.1.1 Locating Accuracy Issues in vLLM Scenarios
 
 vLLM is a high-performance model inference framework developed by the team at UC Berkeley. It uses innovative memory management and scheduling policies to address the problems of low memory utilization, insufficient throughput, and low concurrent processing efficiency in traditional inference frameworks when deploying foundation models. The core advantages of vLLM lie in its unique memory management mechanism (PagedAttention) and Continuous Batching technology. These two innovations enable memory utilization to reach nearly 100% and the throughput to be 24 times that of traditional frameworks, making vLLM particularly suitable for real-time inference scenarios with high concurrency and low latency. The inference process of vLLM is divided into two main phases: prefill and decode. The prefill phase processes input prompts and generates the initial KV Cache, while the decode phase generates output tokens one by one and continuously updates the KV Cache. Throughout the process, vLLM uses its PagedAttention and Continuous Batching features to efficiently utilize memory resources and fully schedule computing resources.
 
-##### 4.1.1.1 Tool Usage
+The core advantages of vLLM lie in its unique memory management mechanism (PagedAttention) and Continuous Batching technology. These two innovations enable memory utilization to reach nearly 100% and the throughput to be 24 times that of traditional frameworks, making vLLM particularly suitable for real-time inference scenarios with high concurrency and low latency.
 
 To locate accuracy issues in vLLM scenarios, the dump and comparison capabilities of the msProbe tool are mainly used. vLLM involves multiple startup modes. The following describes how to enable the tool in each startup mode, using vLLM 0.9 as an example.
 
-###### 4.1.1.1.1 V0 Scenario
+##### 5.1.1.1 Tool Usage
+
+To locate accuracy issues in vLLM scenarios, the dump and comparison capabilities of the msProbe tool are mainly used. vLLM involves multiple startup modes. The following describes how to enable the tool in each startup mode, using vLLM 0.9 as an example.
+
+###### 5.1.1.1.1 V0 Scenario
 
 - V0, offline mode, TP = 1
 
-Obtain the model:
-`model=llm.llm_engine.model_executor.driver_worker.worker.model_runner.get_model()`
+    Obtain the model:
 
-![get_model](../figures/wiki/infer_debug_guide/get_model.png)
+    `model=llm.llm_engine.model_executor.driver_worker.worker.model_runner.get_model()`
 
-For details about the configuration file, see [Configuration File Introduction](../user_guide//dump/config_json_introduct.md). For details about msProbe interfaces, see [Precision Data Collection in PyTorch](../user_guide/dump/pytorch_data_dump_instruct.md). You can set the `token_range` parameter in the `start` interface to control the token data to be collected.
+    ![image.png](../figures/wiki/infer_debug_guide/get_model.png)
+
+    For details about the configuration file, see [Configuration File Introduction](../user_guide//dump/config_json_introduct.md). For details about msProbe interfaces, see [Precision Data Collection in PyTorch](../user_guide/dump/pytorch_data_dump_instruct.md). You can set the `token_range` parameter in the `start` interface to control the token data to be collected.
 
 - V0, offline mode, TP > 1
 
-The multiprocessing executor `MultiprocessingDistributedExecutor` is used, which introduces a process interval. In this setup, rank 0 resides in the main process, while all other ranks are in subprocesses.
+    The multiprocessing executor `MultiprocessingDistributedExecutor` is used, which introduces a process interval. In this setup, rank 0 resides in the main process, while all other ranks are in subprocesses.
 
-Tool adding position: For data collection on rank 0, the tool can be directly added to the outermost layer of the `generate` function called by LLM. For data collection on other ranks, the tool needs to be added to the `_run_worker_process` function of the subprocess (`vllm/executor/multiproc_worker_utils.py`).
+    Tool adding position: For data collection on rank 0, the tool can be directly added to the outermost layer of the `generate` function called by LLM. For data collection on other ranks, the tool needs to be added to the `_run_worker_process` function of the subprocess (`vllm/executor/multiproc_worker_utils.py`).
 
-![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger1.png)
+    ![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger1.png)
 
 - V0, online mode, PP = 1 (TP and DP not limited; `--disable-frontend-multiprocessing` not set)
 
-The multi-process client `MQLLMEngineClient` is used, causing a process interval. All ranks are in subprocesses.
+    The multi-process client `MQLLMEngineClient` is used, causing a process interval. All ranks are in subprocesses.
 
-Tool adding position: `run_engine_loop` function of the `MQLLMEngine` class in the subprocess (`vllm/engine/multiprocessing/engine.py`)
+    Tool adding position: `run_engine_loop` function of the `MQLLMEngine` class in the subprocess (`vllm/engine/multiprocessing/engine.py`)
 
-![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger2.png)
+    ![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger2.png)
 
 - V0, online mode, PP > 1 or `--disable-frontend-multiprocessing` specified
 
-The multiprocessing executor `MultiprocessingDistributedExecutor` is used, which introduces a process interval. In this setup, rank 0 resides in the main process, while all other ranks are in subprocesses.
+    The multiprocessing executor `MultiprocessingDistributedExecutor` is used, which introduces a process interval. In this setup, rank 0 resides in the main process, while all other ranks are in subprocesses.
 
-Tool adding position: See "V0, online, TP > 1" mode.
+    Tool adding position: See "V0, online, TP > 1" mode.
 
-###### 4.1.1.1.2 V1 Scenario
+###### 5.1.1.1.2 V1 Scenario
 
 - `v1 engine`, `eager(enforce_eager=True)`
 
-1. Add initialization
+1. Add initialization.
 
     NPU: `NPUModelRunner.init` function in `vllm_ascend/worker/model_runner_v1.py`:
 
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/84fc8c8a-897e-4ac6-b791-aaf55654eda2/image.png 'image.png')
+    ![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger_npu_init.png)
 
     GPU: `GPUModelRunner.init` function in `vllm/v1/worker/gpu_model_runner.py`
 
     ![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger3.png)
 
-2. Add the tool enabling code
+2. Add the tool enabling code.
 
     Add the corresponding code according to the configuration (L0/L1).
 
@@ -243,64 +258,71 @@ Tool adding position: See "V0, online, TP > 1" mode.
             self.debugger.start()
     ```
 
-    NPU: `NPUModelRunner.execute_model` function in `vllm_ascend/worker/model_runner_v1.py`:
+NPU: `NPUModelRunner.execute_model` function in `vllm_ascend/worker/model_runner_v1.py`:
 
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/d3105c07-5c6c-430d-8db5-81121fdf91ca/image.png 'image.png')
+![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger_npu_execute_model.png)
 
-    Disable the function (place the code before the `return` statement in the `execute_model` function):
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/c12564be-8976-49db-98dc-e09313dda74e/image.png 'image.png')
+Disable the function (place the code before the `return` statement in the `execute_model` function):
 
-    GPU->vllm/v1/worker/gpu_model_runner.py  GPUModelRunner.execute_model
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/aa33f488-d3e1-4d5b-b3cb-439a23bdf0cc/image.png 'image.png')
+![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger_npu_execute_model_disable.png)
 
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/2fafa44e-8a21-4488-8762-76e5e21eccfd/image.png 'image.png')
+GPU->vllm/v1/worker/gpu_model_runner.py  GPUModelRunner.execute_model
 
-##### 4.1.1.2 Locating Process
+![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger_gpu_execute_model_1.png)
+
+![image.png](../figures/wiki/infer_debug_guide/add_PrecisionDebugger_gpu_execute_model_2.png)
+
+##### 5.1.1.2 Locating Process
 
 Generally, there are three phases for locating accuracy problems that can be reproduced in a single case.
 
 ![image.png](../figures/wiki/infer_debug_guide/three_phases_of_the_location_procedure.png)
 
-##### 4.1.1.2.1 Pre-locating Operations
+###### 5.1.1.2.1 Pre-locating Operations
 
 The accuracy benchmark may come from either a GPU or a historical version of the NPU baseline that is known to have normal accuracy.
 
-For details about model configuration check and randomness fixing, refer to [Checklist](#31-checklist) and [Preparations for Reproducing a Problem](#32-preparations-for-reproducing-a-problem). In the vLLM scenario, you also need to fix sampling randomness (`temperature` = `0`).
+For details about model configuration check and randomness fixing, refer to [Checklist](#41-checklist) and [Preparations for Reproducing a Problem](#42-preparations-for-reproducing-a-problem). In the vLLM scenario, you also need to fix sampling randomness (`temperature` = `0`).
+
 ![image.png](../figures/wiki/infer_debug_guide/temperature.png)
 
-###### 4.1.1.2.2 Locating Operations
+###### 5.1.1.2.2 Locating Operations
 
 - Confirming the first different token
 
-You can print the output token ID sequence of the test case in vLLM. The following uses the V1 scenario as an example.
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/1151539d-5ad6-494a-b872-8e504eefe829/image.png 'image.png')
+    You can print the output token ID sequence of the test case in vLLM. The following uses the V1 scenario as an example.
 
-Then, you can easily compare the position of the first different token in the problem scenario with that in the benchmark scenario.
+    ![image.png](../figures/wiki/infer_debug_guide/print_output_token_ids.png)
+
+    After the printing is added, the position of the first different token between the problem scenario and the benchmark scenario can be easily compared.
 
 - Using msProbe to dump data
 
-For details about how to enable the msProbe dump feature, see [Tool Usage](#4121-tool-usage). The mix level and statistics mode are recommended for data dump. The data in the following format can be obtained.
+    For details about how to use the msProbe dump feature, see [Tool Usage](#5111-tool-usage). The mix level and statistics mode are recommended for data dump. The data in the following format can be obtained:
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/f5c9ea68-a488-41c1-a57a-3166a251edae/image.png 'image.png')
+    ![image.png](../figures/wiki/infer_debug_guide/dump_data_format_example.png)
 
-##### 4.1.1.2.3 Analysis of the Result
+###### 5.1.1.2.3 Analysis of the Result
 
 After the data dump, two files are obtained, one for the problem scenario and the other for the benchmark scenario.
+
 You can use [msProbe](../user_guide/accuracy_compare/pytorch_accuracy_compare_instruct.md) to compare the data. The following is an example:
+
 `msprobe compare -tp <target_path> -gp <golden_path> [options]`
+
 After the comparison is complete, a comparison table is generated. In the table, you can view the differences (`diff`) of four statistics. By examining the larger `diff`, you can locate the suspicious operator.
 
-![image.png](https://raw.gitcode.com/user-images/assets/7898473/3ed1667c-40e6-44c3-af62-51b39c463f68/image.png 'image.png')
+![image.png](../figures/wiki/infer_debug_guide/accuracy_comparison_table.png)
 
 As shown in the preceding figure, matmul is the suspicious operator. You can reproduce the problem on this operator.
 
-#### 4.1.2 Locating Accuracy Problems in MindIE Scenarios
+#### 5.1.2 Locating Accuracy Problems in MindIE Scenarios
 
 Mind Inference Engine (MindIE) is an inference acceleration suite provided by Ascend for various AI scenarios. Through layered open AI capabilities, it supports diverse AI service needs and empowers a large number of models by leveraging the compute of Ascend hardware. MindIE supports multiple mainstream AI frameworks and is compatible with different types of Ascend AI processors, providing multi-layer programming APIs to help users quickly build inference services based on the Ascend platform.
 
 Currently, MindIE is often used together with the [Ascend Transformer Boost (ATB)](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/acce/ascendtb/ascendtb_0001.html) acceleration library to achieve optimal inference performance. The following uses MindIE + ATB as an example to describe how to locate accuracy problems in MindIE scenarios.
 
-##### 4.1.2.1 Tool Usage
+##### 5.1.2.1 Tool Usage
 
 The following describes how to use the dump and comparison functions of the msProbe tool to locate accuracy problems in the MindIE scenario.
 
@@ -309,7 +331,7 @@ The following describes how to use the dump and comparison functions of the msPr
 Currently, the WHL msProbe installation package capable of dumping accuracy data for the ATB model can only be obtained by compiling the source code. The compilation and installation procedure is as follows:
 
 ```shell
-git clone https://gitcode.com/Ascend/msprobe.git -b master
+git clone https://gitcode.com/Ascend/msprobe.git -b 26.2.0
 cd msprobe
 
 pip install uv
@@ -383,7 +405,7 @@ Notes:
 
 For details about how to use the dump and comparison functions, see the [ATB Precision Data Collection](../user_guide//dump/atb_data_dump_instruct.md) and [ATB Data Precision Comparison](../user_guide/accuracy_compare/atb_data_compare_instruct.md).
 
-##### 4.1.2.2 Locating Process
+##### 5.1.2.2 Locating Process
 
 If a precision issue cannot be located, you can narrow down the scope hierarchically: first identify the problematic layer, and then locate the specific op within that layer. Here, an op includes both operation and kernel under the layer.
 
@@ -391,11 +413,11 @@ If a precision issue cannot be located, you can narrow down the scope hierarchic
 
 Set the `ids` parameter in the dump configuration file to `""` and `save_child` to `false` to dump only the input and output tensors of all layers. The following is an example of the dump output.
 
-![atb_dump_layer.png](https://raw.gitcode.com/user-images/assets/7898473/0e57b323-4901-46c4-b97a-0375eee853ae/atb_dump_layer.png 'atb_dump_layer.png')
+![atb_dump_layer.png](../figures/wiki/infer_debug_guide/atb_dump_layer.png)
 
 Compare the dump data between a layer with a precision issue and a layer without any precision issue. Then, identify the earliest layer where the precision issue first appears. The following is an example of the comparison result.
 
-![atb_compare_layer.png](https://raw.gitcode.com/user-images/assets/7898473/baf5ebd9-8923-4991-8dd6-0204b1724e6c/atb_compare_layer.png 'atb_compare_layer.png')
+![atb_compare_layer.png](../figures/wiki/infer_debug_guide/atb_compare_layer.png)
 
 As shown in the preceding figure, the first layer where a precision problem occurs is `5_Prefill_layer`.
 
@@ -403,11 +425,11 @@ As shown in the preceding figure, the first layer where a precision problem occu
 
 In the dump configuration file, set the `ids` parameter to the ID of the layer where a precision issue occurs (e.g., `5`) and set `save_child` to `true` to dump the input and output tensors of all operations and kernels under the specified layer. The following is an example of the dump output.
 
-![atb_dump_operation.png](https://raw.gitcode.com/user-images/assets/7898473/61db7d44-55f0-493b-a590-c31c60225bb9/atb_dump_operation.png 'atb_dump_operation.png')
+![atb_dump_operation.png](../figures/wiki/infer_debug_guide/atb_dump_operation.png)
 
 Compare op-level dump data from a normal run and a problematic run to pinpoint the operator likely causing the precision issue. The following is an example of the comparison result.
 
-![atb_compare_operation.png](https://raw.gitcode.com/user-images/assets/7898473/86e3190b-a5f2-41b2-a151-8b8b422dddd5/atb_compare_operation.png 'atb_compare_operation.png')
+![atb_compare_operation.png](../figures/wiki/infer_debug_guide/atb_compare_operation.png)
 
 As shown in the preceding figure, the `0_AddBF16Kernel` operator may have a precision issue.
 
