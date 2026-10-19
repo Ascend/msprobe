@@ -21,10 +21,10 @@ import shutil
 import unittest
 import argparse
 import numpy as np
-from msprobe.mindspore.compare.ms_graph_compare import GraphMSComparator
+from msprobe.mindspore.compare.ms_graph_compare import GraphMSComparator, npy_data_read
 
 base_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                        f'test_ms_graph_compare')
+                        'test_ms_graph_compare.0.0.4.16.version')
 
 
 def generate_npy_data(path):
@@ -51,6 +51,29 @@ def generate_csv_data(path):
         writer = csv.writer(csvfile)
         writer.writerow(name_list)
         writer.writerow(data)
+
+
+class TestNpyDataRead(unittest.TestCase):
+
+    def test_full_path_with_dots_in_parent_directory(self):
+        file_name = 'op_type.op_1.0.0.1721724968854345.input.0.DefaultFormat.npy'
+        for parent in ('runner_00416', '0.0.4.16.version'):
+            with self.subTest(parent=parent):
+                data_path = os.path.abspath(os.path.join(parent, 'rank_0', 'mnist', '0', '0'))
+                full_path = os.path.join(data_path, file_name)
+                self.assertEqual(
+                    npy_data_read(data_path, [full_path], {}),
+                    [[full_path, 'op_1.0.input.0', 1721724968854345]],
+                )
+
+    def test_full_path_uses_filename_mapping(self):
+        data_path = os.path.abspath(os.path.join('0.0.4.16.version', 'rank_0', 'mnist', '0', '0'))
+        full_path = os.path.join(data_path, '0.npy')
+        mapping = {'0.npy': 'op_type.op_1.0.0.1721724968854345.input.0.DefaultFormat.npy'}
+        self.assertEqual(
+            npy_data_read(data_path, [full_path], mapping),
+            [[full_path, 'op_1.0.input.0', 1721724968854345]],
+        )
 
 
 class TestMsGraphCompare(unittest.TestCase):

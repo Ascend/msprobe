@@ -46,18 +46,22 @@ class RowData:
 
 
 def get_name_dict(name: str) -> dict:
-    compare_pattern = re.compile(r'^([^.]+)\.([^.]+)\.([^.]+)\.([^.]+)\.(\d+(?:\.\d+)*)\.'
-                                 r'((?:in|out)put(?:\.\d+)*)\.([^.]+)\.([^.]+)\.npy$')
+    compare_pattern = re.compile(
+        r'^([^.]+)\.([^.]+)\.([^.]+)\.([^.]+)\.(\d+(?:\.\d+)*)\.'
+        r'((?:in|out)put(?:\.\d+)*)\.([^.]+)\.([^.]+)\.npy$'
+    )
     match = compare_pattern.match(name)
     if match:
-        return {'op_type': match.group(1),
-                'op_name': match.group(2),
-                'task_id': match.group(3),
-                'stream_id': match.group(4),
-                'timestamp': match.group(5).split(Const.SEP)[0],
-                'input_output_index': match.group(6),
-                'slot': match.group(7),
-                'format': match.group(8)}
+        return {
+            'op_type': match.group(1),
+            'op_name': match.group(2),
+            'task_id': match.group(3),
+            'stream_id': match.group(4),
+            'timestamp': match.group(5).split(Const.SEP)[0],
+            'input_output_index': match.group(6),
+            'slot': match.group(7),
+            'format': match.group(8),
+        }
     return {}
 
 
@@ -65,10 +69,8 @@ def npy_data_read(data_path, npy_file_list, mapping_dict):
     data_list = []
     compare_key_elements = ['op_name', 'task_id', 'input_output_index', 'slot']
     for data in npy_file_list:
-        if data in mapping_dict:
-            name_dict = get_name_dict(mapping_dict[data])
-        else:
-            name_dict = get_name_dict(data)
+        file_name = os.path.basename(data)
+        name_dict = get_name_dict(mapping_dict.get(file_name, file_name))
         if not name_dict:
             continue
         compare_key = Const.SEP.join([name_dict.get(element) for element in compare_key_elements])
@@ -82,8 +84,12 @@ def statistic_data_read(statistic_file_list, statistic_file_path):
     data_list = []
     statistic_data_list = []
     header_index = {
-        'Data Type': None, 'Shape': None,
-        'Max Value': None, 'Min Value': None, 'Avg Value': None, 'L2Norm Value': None
+        'Data Type': None,
+        'Shape': None,
+        'Max Value': None,
+        'Min Value': None,
+        'Avg Value': None,
+        'L2Norm Value': None,
     }
     for statistic_file in statistic_file_list:
         content = read_csv(statistic_file, as_pd=False)
@@ -96,15 +102,13 @@ def statistic_data_read(statistic_file_list, statistic_file_path):
                 header_index[value] = index
         statistic_data_list.extend(content[1:])
 
-    for key in header_index.keys():
-        if header_index[key] is None:
+    for key, index in header_index.items():
+        if index is None:
             logger.warning(f"Data_path {statistic_file_path} has no key {key}.")
 
     for data in statistic_data_list:
-        '''
-        13列分别是OpType, OpName, TaskId, StreamId, TimeStamp, IO, Slot, DataSize, 
-        DataType, Shape, MaxValue, MinValue, L2NormValue
-        '''
+        # 13列分别是OpType, OpName, TaskId, StreamId, TimeStamp, IO, Slot, DataSize,
+        # DataType, Shape, MaxValue, MinValue, L2NormValue
         if len(data) < 13:
             logger.error(f'Dump file {statistic_file_path} has been modified into incorrect format!')
             raise CompareException(f'Dump file {statistic_file_path} has been modified into incorrect format!')
@@ -112,11 +116,11 @@ def statistic_data_read(statistic_file_list, statistic_file_path):
         op_name = f"{compare_key}"
         timestamp = int(data[4])
         result_data = [op_name, compare_key, timestamp]
-        for key in header_index.keys():
-            if header_index[key] is None:
+        for key, index in header_index.items():
+            if index is None:
                 result_data.append(np.nan)
             else:
-                result_data.append(data[header_index[key]])
+                result_data.append(data[index])
         csv_file = f"{statistic_file_path}"
         result_data.append(csv_file)
         data_list.append(result_data)
@@ -189,11 +193,11 @@ class GraphMSComparator:
         self.npu_rank_step_dict = self.generate_rank_step_path(self.base_npu_path)
         self.bench_rank_step_dict = self.generate_rank_step_path(self.base_bench_path)
         self.common_rank_step = sorted(
-            set(self.npu_rank_step_dict.keys()).intersection(self.bench_rank_step_dict.keys()))
+            set(self.npu_rank_step_dict.keys()).intersection(self.bench_rank_step_dict.keys())
+        )
 
     @staticmethod
     def compare_ops(compare_result_db, mode):
-
         def npy_mode_compute(row):
             result_dict = RowData(GraphMode.NPY_MODE)()
 
@@ -275,15 +279,18 @@ class GraphMSComparator:
                     result_dict[diff_metric] = result_dict[npu_metric] - result_dict[bench_metric]
 
                 for rel_metric, diff_metric, bench_metric in relative_error_metrics:
-                    result_dict[rel_metric] = calculate_relative_error(result_dict[diff_metric],
-                                                                       result_dict[bench_metric])
+                    result_dict[rel_metric] = calculate_relative_error(
+                        result_dict[diff_metric], result_dict[bench_metric]
+                    )
 
                 magnitude_diff = result_dict[CompareConst.MAX_DIFF] / (
-                        max(result_dict[CompareConst.NPU_MAX], result_dict[CompareConst.BENCH_MAX]) + 1e-10)
+                    max(result_dict[CompareConst.NPU_MAX], result_dict[CompareConst.BENCH_MAX]) + 1e-10
+                )
                 if np.isnan(result_dict[CompareConst.NPU_MAX]) and np.isnan(result_dict[CompareConst.BENCH_MAX]):
                     magnitude_diff = 0
-                result_dict[CompareConst.ACCURACY] = CompareConst.YES if \
-                    magnitude_diff <= CompareConst.MAGNITUDE else CompareConst.NO
+                result_dict[CompareConst.ACCURACY] = (
+                    CompareConst.YES if magnitude_diff <= CompareConst.MAGNITUDE else CompareConst.NO
+                )
 
             return pd.Series(result_dict)
 
@@ -349,8 +356,8 @@ class GraphMSComparator:
             bench_mode, data_list = generate_data_name(bench_data_path)
             bench_data_list.extend(data_list)
 
-        if npu_mode == GraphMode.ERROR_MODE or bench_mode == GraphMode.ERROR_MODE:
-            logger.warning(f"Data path: npu_data_path or bench_data_path does not exist.")
+        if GraphMode.ERROR_MODE in (npu_mode, bench_mode):
+            logger.warning("Data path: npu_data_path or bench_data_path does not exist.")
             return [], ''
         if npu_mode != bench_mode:
             logger.error(f"NPU mode {npu_mode} not equal to MATCH mode {bench_mode}.")
@@ -360,18 +367,36 @@ class GraphMSComparator:
             npu_data_df = pd.DataFrame(npu_data_list, columns=[CompareConst.NPU_NAME, 'Compare Key', 'TimeStamp'])
             bench_data_df = pd.DataFrame(bench_data_list, columns=[CompareConst.BENCH_NAME, 'Compare Key', 'TimeStamp'])
         else:
-            npu_data_df = pd.DataFrame(npu_data_list,
-                                       columns=[CompareConst.NPU_NAME, 'Compare Key', 'TimeStamp',
-                                                CompareConst.NPU_DTYPE, CompareConst.NPU_SHAPE,
-                                                CompareConst.NPU_MAX, CompareConst.NPU_MIN,
-                                                CompareConst.NPU_MEAN, CompareConst.NPU_NORM,
-                                                CompareConst.NPU_CSV_FILE])
-            bench_data_df = pd.DataFrame(bench_data_list,
-                                         columns=[CompareConst.BENCH_NAME, 'Compare Key', 'TimeStamp',
-                                                  CompareConst.BENCH_DTYPE, CompareConst.BENCH_SHAPE,
-                                                  CompareConst.BENCH_MAX, CompareConst.BENCH_MIN,
-                                                  CompareConst.BENCH_MEAN, CompareConst.BENCH_NORM,
-                                                  CompareConst.BENCH_CSV_FILE])
+            npu_data_df = pd.DataFrame(
+                npu_data_list,
+                columns=[
+                    CompareConst.NPU_NAME,
+                    'Compare Key',
+                    'TimeStamp',
+                    CompareConst.NPU_DTYPE,
+                    CompareConst.NPU_SHAPE,
+                    CompareConst.NPU_MAX,
+                    CompareConst.NPU_MIN,
+                    CompareConst.NPU_MEAN,
+                    CompareConst.NPU_NORM,
+                    CompareConst.NPU_CSV_FILE,
+                ],
+            )
+            bench_data_df = pd.DataFrame(
+                bench_data_list,
+                columns=[
+                    CompareConst.BENCH_NAME,
+                    'Compare Key',
+                    'TimeStamp',
+                    CompareConst.BENCH_DTYPE,
+                    CompareConst.BENCH_SHAPE,
+                    CompareConst.BENCH_MAX,
+                    CompareConst.BENCH_MIN,
+                    CompareConst.BENCH_MEAN,
+                    CompareConst.BENCH_NORM,
+                    CompareConst.BENCH_CSV_FILE,
+                ],
+            )
 
             npu_float_type = [CompareConst.NPU_MAX, CompareConst.NPU_MIN, CompareConst.NPU_MEAN, CompareConst.NPU_NORM]
             npu_float_data_df = npu_data_df[npu_float_type].astype(str)
@@ -379,8 +404,10 @@ class GraphMSComparator:
             npu_data_df[npu_float_type] = npu_float_data_df.astype(float)
 
             bench_float_type = [
-                CompareConst.BENCH_MAX, CompareConst.BENCH_MIN,
-                CompareConst.BENCH_MEAN, CompareConst.BENCH_NORM
+                CompareConst.BENCH_MAX,
+                CompareConst.BENCH_MIN,
+                CompareConst.BENCH_MEAN,
+                CompareConst.BENCH_NORM,
             ]
             bench_float_data_df = bench_data_df[bench_float_type].astype(str)
             transform_special_string_into_float(bench_float_data_df)
@@ -397,7 +424,6 @@ class GraphMSComparator:
         return compare_result_df, npu_mode
 
     def generate_rank_step_path(self, base_path):
-
         def generate_rank_step_id(path_with_rank_step):
             split_path = path_with_rank_step.split("/")
             rank_id = -1
