@@ -21,6 +21,7 @@ This class mainly involves the main function.
 """
 
 import csv
+from importlib.util import find_spec
 import os
 import stat
 import time
@@ -44,12 +45,6 @@ from msprobe.infer.offline.compare.msquickcmp.npu.om_parser import OmParser
 from msprobe.infer.utils.file_open_check import ms_open
 from msprobe.infer.utils.check.rule import Rule
 from msprobe.infer.utils.constants import TENSOR_MAX_SIZE
-
-try:
-    import acl
-except ImportError:
-    acl = None
-    logger.error("Please verify that the CANN environment is properly configured.")
 
 WRITE_MODES = stat.S_IWUSR | stat.S_IRUSR
 READ_WRITE_FLAGS = os.O_RDWR | os.O_CREAT
@@ -199,6 +194,8 @@ def _append_column_to_csv(csv_path, node_output_show_list=None):
 
 
 def cmp_process(args: CmpArgsAdapter):
+    if not find_spec('acl'):
+        logger.error("Please verify that the CANN environment is properly configured.")
     args.golden_path = os.path.realpath(args.golden_path)
     args.target_path = os.path.realpath(args.target_path)
     args.cann_path = os.path.realpath(args.cann_path)
