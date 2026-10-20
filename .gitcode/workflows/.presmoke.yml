@@ -33,7 +33,7 @@ jobs:
     env:
       ARTIFACT_NAME: ${{ format('{0}-{1}', inputs.ARTIFACT_NAME, atomgit.run_number) }}
     select: selected_by_default
-    runs-on: [ self-hosted, default, cpu=32 ]
+    runs-on: [ self-hosted, default, npu=4 ]
     container:
       image: swr.cn-north-4.myhuaweicloud.com/mindstudio-image/${{ inputs.IMAGE_FLAG }}
       options: --user root
@@ -61,5 +61,5 @@ jobs:
           git diff --name-only $BASE_COMMIT HEAD > /tmp/modify_files.txt
 
           git clone https://gitcode.com/mnhdxnh/att_smoke_new.git /presmoke/.
-          
+
           bash /presmoke/run_pr_smoke.sh -g pull/${{ inputs.pr_id }}/head:pr_${{ inputs.pr_id }} -b ${{ inputs.TARGET_BRANCH }} -m all
