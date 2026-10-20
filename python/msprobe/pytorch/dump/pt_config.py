@@ -19,6 +19,7 @@ import os
 from msprobe.core.common.const import Const
 from msprobe.core.common.exceptions import MsprobeException
 from msprobe.core.common.file_utils import load_json
+from msprobe.core.common.log import logger
 from msprobe.core.dump.common_config import BaseConfig, CommonConfig
 from msprobe.pytorch.dump.api_dump.utils import get_ops
 from msprobe.core.common.utils import is_int
@@ -59,6 +60,9 @@ class ACCCheckConfig(BaseConfig):
             raise Exception("%s must be a list type" % key)  # pylint: disable=W0719
         if not all(isinstance(item, str) for item in filter_list):
             raise Exception("All elements in %s must be string type" % key)  # pylint: disable=W0719
+        if not cls.WrapApi:
+            logger.warning(f"The wrap api list in support_wrap_ops.yaml is empty, skip validating {key}.")
+            return
         invalid_api = [item for item in filter_list if item not in cls.WrapApi]
         if invalid_api:
             raise Exception("Invalid api in %s: %s" % (key, invalid_api))  # pylint: disable=W0719

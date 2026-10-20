@@ -77,7 +77,7 @@ if not is_gpu:
         )
     if mindspeed_enable:
         _api_types.get(Const.PT_FRAMEWORK).update({Const.PT_API_TYPE_MINDSPEED: ((mindspeed.ops,), (mindspeed.ops,))})
-        mindspeed_op_list = load_yaml(_supported_api_list_path[0]).get(Const.PT_API_TYPE_MINDSPEED)
+        mindspeed_op_list = (load_yaml(_supported_api_list_path[0]) or {}).get(Const.PT_API_TYPE_MINDSPEED) or []
         mindspeed_op_file_list = [op.split(Const.SEP)[0] + Const.PY_SUFFIX for op in mindspeed_op_list]
         dynamic_import_op(mindspeed.ops, mindspeed_op_file_list)
 

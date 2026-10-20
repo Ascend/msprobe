@@ -161,6 +161,8 @@ For details about more APIs, see [API Description](#api-description).
     - conv3d
   ```
 
+  Note: The file is organized by operator category (for example, `functional`, `tensor`, `torch`, and `torch_npu`). **Categories are independent of each other and can be deleted or left empty as a whole.** A deleted or empty category is treated as "do not collect APIs of this category" and does not affect other categories. Do not change an API list under a category to a scalar value (for example, `functional: conv1d`); a non-list value causes the category to be ignored.
+
   Scenario where an API is deleted: The code logic of some models may involve native API type verification. When the tool performs the dump operation, the API type encapsulated by the model may be different from the native API type. In this case, the verification may fail. For details, see [Exceptions](../../support/faq.md#exception-handling) in *FAQs*.
 
 - To collect the precision data of a custom API, register the API with the tool first. For details about the registration method, see [register_custom_api](#register_custom_api).
@@ -663,7 +665,7 @@ The **dump.json** file is as follows:
           "Min": -0.00012117840378778055,
           "Mean": 2.0098118724831693e-08,
           "Norm": 0.006532244384288788,
-          "requires_grad": false, 
+          "requires_grad": false,
           "data_name": "Functional.relu.0.backward.output.0.pt"
         }
       ]
@@ -841,7 +843,7 @@ __main__:
 >
 > ```python
 > import torch
-> 
+>
 > def add_and_mul(a, b, c):
 >     """计算 (a + b) * c"""
 >     return (a + b) * c
@@ -893,23 +895,23 @@ debugger.start(model=None, token_range=None, rank_id=None)
 **Parameters**
 
 - **model**: model whose module-level data needs to be collected. The input can be of the **torch.nn.Module**, **list[torch.nn.Module]**, or **Tuple[torch.nn.Module]** type. By default, this parameter is not configured.
-  
+
   This parameter must be set in this API when **level** is set to **L0** or **mix**, or **token_range** is not **None**.
 
   For a complex model, if only part of the model needs to be monitored (for example, **model.A** and **model.A extends torch.nn.Module**), pass the part to be monitored (**model.A**).
-  
+
   Note: The input layer is not dumped. The tool dumps only the sub-layers of the input layer. For example, if **model.A** is passed, **A** is not dumped, but **A**.*x* or **A**.*x.xx* is dumped.
 
 - **token_range**: token range during inference model data collection. The type is **[int, int]**, indicating **[start, end]** of a range. By default, this parameter is not configured.
-  
+
 - **rank_id**: user-defined rank ID. The value is an integer greater than or equal to 0. By default, this parameter is not configured. The tool obtains the rank ID via the **torch.distributed.get_rank** API.
   After this parameter is configured, *{ID}* in the name of the rank folder of the dump results is the value of this parameter.
 
   Note: By default, the tool automatically obtains the unique rank ID using the **torch.distributed.get_rank** API (**get_rank**) in the multi-rank multi-process scenario.
   However, in some special scenarios, **get_rank** may fail to obtain the unique rank ID. For example, in the SGLang DP inference scenario, DP workers are independent, distributed clusters. As a result, **get_rank** returns duplicate rank IDs, causing the rank folders of the dump results to be overwritten and dump data to be lost.
-  
+
   To solve this problem, you can set **rank_id** to name the rank folder, but ensure that rank ID is unique in each process. The value can be obtained from the model script or training/inference framework. For example, **self.gpu_id** in the SGLang inference framework is unique in each process.
-  
+
   Example: `debugger.start(rank_id=self.gpu_id)`
 
 **Returns**

@@ -34,16 +34,19 @@ def _get_attr(module, attr_name):
 
 class ApiWrapper:
     def __init__(
-        self, api_types: Dict[str, Dict[str, Any]],
+        self,
+        api_types: Dict[str, Dict[str, Any]],
         api_list_paths: Union[str, List[str], Tuple[str]],
-        blacklist: Union[List[str], Tuple[str]] = None
+        blacklist: Union[List[str], Tuple[str]] = None,
     ):
         self.api_types = api_types
         if not isinstance(api_list_paths, (list, tuple)):
             api_list_paths = [api_list_paths] * len(self.api_types)
         elif len(api_list_paths) != len(self.api_types):
-            raise RuntimeError("The number of api_list_paths must be equal to the number of frameworks in 'api_types', "
-                               "when api_list_paths is a list or tuple.")
+            raise RuntimeError(
+                "The number of api_list_paths must be equal to the number of frameworks in 'api_types', "
+                "when api_list_paths is a list or tuple."
+            )
         self.api_list_paths = api_list_paths
         self.blacklist = blacklist if blacklist else []
         self.api_names = self._get_api_names()
@@ -88,9 +91,11 @@ class ApiWrapper:
             api_name_with_prefix = prefix + Const.SEP + str(api_name.split(Const.SEP)[-1])
             enable_wrap, args, kwargs = self.deal_with_self_kwargs(api_name_with_prefix, api_func, args, kwargs)
             if not enable_wrap:
-                logger.warning(f'Cannot collect precision data of {api_name_with_prefix}. '
-                               'It may be fixed by passing the value of "self" '
-                               'as a positional argument instead of a keyword argument. ')
+                logger.warning(
+                    f'Cannot collect precision data of {api_name_with_prefix}. '
+                    'It may be fixed by passing the value of "self" '
+                    'as a positional argument instead of a keyword argument. '
+                )
                 return api_func(*args, **kwargs)
             return api_instance(*args, **kwargs)
 
@@ -101,15 +106,16 @@ class ApiWrapper:
 
         return api_function
 
-    def wrap_api(
-        self, api_templates, hook_build_func: Optional[Callable]
-    ):
-        api_types_num = sum([len(v) for v in self.api_types.values()])
+    # pylint: disable=too-many-nested-blocks
+    def wrap_api(self, api_templates, hook_build_func: Optional[Callable]):
+        api_types_num = sum(len(v) for v in self.api_types.values())
         if not isinstance(api_templates, (list, tuple)):
             api_templates = [api_templates] * api_types_num
         elif len(api_templates) != api_types_num:
-            raise RuntimeError("The number of api_templates must be equal to the number of api_types, "
-                               "when api_templates is a list or tuple.")
+            raise RuntimeError(
+                "The number of api_templates must be equal to the number of api_types, "
+                "when api_templates is a list or tuple."
+            )
 
         self.wrapped_api_functions.clear()
         index = 0
@@ -132,16 +138,11 @@ class ApiWrapper:
                         if not existed:
                             api_source[_get_attr(module, api_name)] = [module]
                             ori_apis.append(_get_attr(module, api_name))
-                    
                     wrapped_functions[api_name] = []
                     for ori_api in ori_apis:
                         if callable(ori_api):
                             wrapped_api = self.wrap_api_func(
-                                api_name,
-                                ori_api,
-                                name_prefix,
-                                hook_build_func,
-                                api_template
+                                api_name, ori_api, name_prefix, hook_build_func, api_template
                             )
                             wrapped_functions[api_name].append((api_source.get(ori_api, []), wrapped_api))
                 wrapped_functions_in_framework[api_type] = wrapped_functions
@@ -152,11 +153,11 @@ class ApiWrapper:
         api_names = dict()
 
         for index, framework in enumerate(self.api_types.keys()):
-            api_list = load_yaml(self.api_list_paths[index])
+            api_list = load_yaml(self.api_list_paths[index]) or {}
             valid_names = dict()
             for api_type, api_modules in self.api_types.get(framework, {}).items():
                 key_in_file = Const.SUPPORT_API_DICT_KEY_MAP.get(framework, {}).get(api_type)
-                api_from_file = api_list.get(key_in_file, [])
+                api_from_file = api_list.get(key_in_file) or []
                 names = set()
                 for api_name in api_from_file:
                     if f'{key_in_file}.{api_name}' in self.blacklist:
@@ -213,7 +214,7 @@ class ApiRegistry:
                             setattr(sub_module, sub_op, api_attr)
                     else:
                         setattr(api_group, api, api_attr)
- 
+
     @staticmethod
     def register_custom_api(module, api_name, api_prefix, hook_build_func, api_template):
         def wrap_api_func(api_name, api_func, prefix, hook_build_func, api_template):
@@ -223,8 +224,11 @@ class ApiRegistry:
             api_function.__name__ = api_name
             return api_function
 
-        setattr(module, api_name,
-                wrap_api_func(api_name, getattr(module, api_name), api_prefix, hook_build_func, api_template))
+        setattr(
+            module,
+            api_name,
+            wrap_api_func(api_name, getattr(module, api_name), api_prefix, hook_build_func, api_template),
+        )
 
     def register_all_api(self):
         self.all_api_registered = True

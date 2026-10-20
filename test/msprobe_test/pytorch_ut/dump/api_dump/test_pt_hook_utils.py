@@ -56,9 +56,90 @@ class TestUtils(unittest.TestCase):
                 }
             )
 
+    def test_get_ops_with_missing_category(self):
+        # 用户按文档修改 support_wrap_ops.yaml 后只保留部分分类，缺失的分类按空处理，不应抛异常
+        yaml_content = {
+            'functional': ['func1', 'func2'],
+            'tensor': ['tensor_op1'],
+            'torch': ['torch_op1', 'torch_op2']
+        }
+        with patch('msprobe.pytorch.dump.api_dump.utils.load_yaml') as mock_load:
+            mock_load.return_value = yaml_content
+            result = get_ops()
+        self.assertEqual(result, {'func1', 'func2', 'tensor_op1', 'torch_op1', 'torch_op2'})
+
+    def test_get_ops_with_missing_category_warns(self):
+        # 缺失的分类按空处理时需打出 WARNING 日志，方便用户定位
+        yaml_content = {
+            'functional': ['func1'],
+            'tensor': ['tensor_op1'],
+            'torch': ['torch_op1']
+        }
+        with patch('msprobe.pytorch.dump.api_dump.utils.load_yaml') as mock_load:
+            mock_load.return_value = yaml_content
+            with patch('msprobe.pytorch.dump.api_dump.utils.logger.warning') as mock_warning:
+                result = get_ops()
+        self.assertEqual(result, {'func1', 'tensor_op1', 'torch_op1'})
+        mock_warning.assert_called_once_with(
+            "[msprobe] support_wrap_ops.yaml has no 'torch_npu' category, treated as empty"
+        )
+
+    def test_get_ops_with_none_category(self):
+        # 分类存在但无条目（如 "functional:" 后为空）时 YAML 解析为 None，按空处理
+        yaml_content = {
+            'functional': None,
+            'tensor': ['tensor_op1'],
+            'torch': ['torch_op1', 'torch_op2'],
+            'torch_npu': ['npu_op1']
+        }
+        with patch('msprobe.pytorch.dump.api_dump.utils.load_yaml') as mock_load:
+            mock_load.return_value = yaml_content
+            result = get_ops()
+        self.assertEqual(result, {'tensor_op1', 'torch_op1', 'torch_op2', 'npu_op1'})
+
+    def test_get_ops_with_non_list_category(self):
+        # 分类值不是列表（误写成标量）时忽略该分类，避免按字符拆分
+        yaml_content = {
+            'functional': 'conv1d',
+            'tensor': ['tensor_op1'],
+            'torch': ['torch_op1', 'torch_op2'],
+            'torch_npu': ['npu_op1']
+        }
+        with patch('msprobe.pytorch.dump.api_dump.utils.load_yaml') as mock_load:
+            mock_load.return_value = yaml_content
+            result = get_ops()
+        self.assertEqual(result, {'tensor_op1', 'torch_op1', 'torch_op2', 'npu_op1'})
+
+    def test_get_ops_with_non_list_category_warns(self):
+        # 分类值不是列表时忽略该分类，并打出 WARNING 日志
+        yaml_content = {
+            'functional': 'conv1d',
+            'tensor': ['tensor_op1'],
+            'torch': ['torch_op1', 'torch_op2'],
+            'torch_npu': ['npu_op1']
+        }
+        with patch('msprobe.pytorch.dump.api_dump.utils.load_yaml') as mock_load:
+            mock_load.return_value = yaml_content
+            with patch('msprobe.pytorch.dump.api_dump.utils.logger.warning') as mock_warning:
+                result = get_ops()
+        self.assertEqual(result, {'tensor_op1', 'torch_op1', 'torch_op2', 'npu_op1'})
+        mock_warning.assert_called_once_with(
+            "[msprobe] 'functional' in support_wrap_ops.yaml is not a list, ignored"
+        )
+
+    def test_get_ops_with_empty_yaml(self):
+        # 整个 yaml 文件为空时 safe_load 返回 None，返回空集合而非抛异常
+        with patch('msprobe.pytorch.dump.api_dump.utils.load_yaml') as mock_load:
+            mock_load.return_value = None
+            result = get_ops()
+        self.assertEqual(result, set())
+
+
     @patch('msprobe.pytorch.dump.api_dump.utils.inspect')
     def test_dynamic_import_op_success(self, mock_inspect):
-        mock_func = lambda x: x
+        def mock_func(x):
+            return x
+
         mock_inspect.getmembers = MagicMock()
         mock_inspect.getmembers.return_value = [['test_func', mock_func]]
 
