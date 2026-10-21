@@ -557,6 +557,15 @@ class TestAccCheckFunctions(unittest.TestCase):
         # add 只有一份被保留，mul 也保留
         self.assertEqual(len(res), 2)
 
+    def test_preprocess_forward_content_missing_input_args(self):
+        # 只有输出、没有输入的前向条目应被当作“无输入”参与去重，而不是抛出 KeyError
+        content = {
+            "Tensor.to.15": {"output": [{"type": "torch.Tensor"}]},
+            "Tensor.to.32": {"output": [{"type": "torch.Tensor"}]},
+        }
+        res = preprocess_forward_content(content)
+        self.assertEqual(len(res), 1)
+
     @patch("msprobe.pytorch.api_accuracy_checker.acc_check.acc_check.logger")
     def test_preprocess_forward_content_keyerror(self, mock_logger):
         content = {"bad": {"input_args": [{}], "input_kwargs": {}}}

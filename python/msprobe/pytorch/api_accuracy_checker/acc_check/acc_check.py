@@ -445,10 +445,10 @@ def preprocess_forward_content(forward_content):
         if key not in arg_cache:
             filtered_new_args = [
                 {k: v for k, v in arg.items() if k not in ['Max', 'Min']}
-                for arg in value['input_args']
+                for arg in value.get('input_args', [])
                 if isinstance(arg, dict)
             ]
-            arg_cache[key] = (filtered_new_args, value['input_kwargs'])
+            arg_cache[key] = (filtered_new_args, value.get('input_kwargs', {}))
 
         filtered_new_args, new_kwargs = arg_cache[key]
 
