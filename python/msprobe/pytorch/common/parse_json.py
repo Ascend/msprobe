@@ -25,8 +25,9 @@ def parse_json_info_forward_backward(json_path):
     real_data_path = dump_json.get("dump_data_dir")
     dump_data = dump_json.get("data")
     if dump_data is None:
-        raise ParseJsonException(ParseJsonException.InvalidDumpJson, 
-                                 "something wrong with dump, no data found in dump.json")
+        raise ParseJsonException(
+            ParseJsonException.InvalidDumpJson, "something wrong with dump, no data found in dump.json"
+        )
     if not dump_data:
         logger.warning("data field is empty, no overflow data found.")
 
@@ -35,22 +36,12 @@ def parse_json_info_forward_backward(json_path):
     for data_name, data_item in dump_data.items():
         if "Module" in data_name:
             continue
-        if "forward" in data_name:
-            api_name = parse_data_name_with_pattern(data_name, "forward", json_path)
-            forward_data.update({api_name: data_item})
-        elif "backward" in data_name:
-            api_name = parse_data_name_with_pattern(data_name, "backward", json_path)
-            backward_data.update({api_name: data_item})
+        name_struct = data_name.split('.')
+        if name_struct[-1] == "forward":
+            forward_data.update({'.'.join(name_struct[:-1]): data_item})
+        elif name_struct[-1] == "backward":
+            backward_data.update({'.'.join(name_struct[:-1]): data_item})
         else:
-            raise ParseJsonException(ParseJsonException.UnexpectedNameStruct,
-                                     f"{data_name} in file {json_path}.")
+            raise ParseJsonException(ParseJsonException.UnexpectedNameStruct, f"{data_name} in file {json_path}.")
 
     return forward_data, backward_data, real_data_path
-
-
-def parse_data_name_with_pattern(data_name, pattern, json_path):
-    name_struct = data_name.split('.')
-    if not name_struct[-1] == pattern:
-        raise ParseJsonException(ParseJsonException.UnexpectedNameStruct, f"{data_name} in file {json_path}")
-    api_name = '.'.join(name_struct[:-1])
-    return api_name

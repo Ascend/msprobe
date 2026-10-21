@@ -22,7 +22,6 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock, mock_open
 
 from msprobe.core.common.exceptions import ParseJsonException
-from msprobe.pytorch.common.parse_json import parse_data_name_with_pattern
 from msprobe.pytorch.common.parse_json import parse_json_info_forward_backward
 
 
@@ -39,14 +38,6 @@ class TestParseJson(TestCase):
     def tearDown(self) -> None:
         shutil.rmtree(self.output_path, ignore_errors=True)
 
-    def test_parse_data_name_with_pattern_exception(self):
-        invalid_data_name = "matmul.unforward"
-        pattern = "forward"
-        json_path = "test/test.json"
-
-        with self.assertRaises(ParseJsonException):
-            parse_data_name_with_pattern(invalid_data_name, pattern, json_path)
-
     def test_parse_json_info_forward_backward_no_dump_data_exception(self):
         no_dump_data_json = os.path.join(self.input_dir, 'common', 'test_no_dump_data.json')
         with self.assertRaises(ParseJsonException):
@@ -62,3 +53,9 @@ class TestParseJson(TestCase):
         no_fb_data_json = os.path.join(self.input_dir, 'common', 'test_no_fb_data.json')
         with self.assertRaises(ParseJsonException):
             parse_json_info_forward_backward(no_fb_data_json)
+
+    def test_parse_json_info_forward_backward_mha_forward_in_name(self):
+        mha_json = os.path.join(self.input_dir, 'common', 'test_mha_backward.json')
+        forward_data, backward_data, _ = parse_json_info_forward_backward(mha_json)
+        self.assertEqual(forward_data, {})
+        self.assertIn('Functional.multi_head_attention_forward.103', backward_data)
