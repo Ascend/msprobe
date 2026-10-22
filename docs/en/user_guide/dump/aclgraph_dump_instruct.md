@@ -53,11 +53,12 @@ When performing precision alignment in **PyTorch ACLGraph** mode, the overall st
 
     | Configuration Item | Optional/Mandatory | Description |
     | --- | --- | --- |
-    | `task` | Optional | Collection task type, string. The default value is `statistics`. Full-network `aclgraph dump` currently only supports `statistics`. |
+    | `task` | Optional | Collection task type, string. The default value is `statistics`. Supports `statistics` and `tensor`: `statistics` collects statistical values; `tensor` collects real tensor data. |
     | `dump_path` | Mandatory | Dump result output directory, string. The tool checks and creates this directory. |
     | `rank` | Optional | Specifies the rank(s) to collect, list[int \| str]. The default value is empty, meaning all ranks are collected. Strings only support the `start-end` range format. Full-network collection is not enabled for non-target ranks. |
     | `level` | Optional | Root-level collection level, string. Supports `L0`, `L1`, and `mix`. The default value is `L0`.<br>`L0` collects module input/output statistics; `L1` collects API input/output statistics; and `mix` collects both module and API statistics. |
     | `list` | Optional | Module name keyword filter list, list[str]. The default value is empty, meaning all modules are collected. |
+    | `custom_api` | Optional | Full import path list of custom Python APIs, list[str]. Supported only by the `tensor` task. For details, see [Custom API Collection](#custom-api-collection). |
     | `seq_len` | Optional | Takes effect only for `statistics`, integer. The default value is `0`, meaning statistics are computed on the full tensor. When `seq_len > 0` and the tensor is large enough, statistics are computed only on the leading `seq_len` slice, which can be used to skip padding tail data in graph mode. |
 
 2. After completing the file configuration (`config.json`), the following example shows how to use the network-wide collection function:
@@ -80,7 +81,7 @@ When performing precision alignment in **PyTorch ACLGraph** mode, the overall st
     + dumper.start(model)
       static_input = torch.randn(N, D_in).npu()
       static_target = torch.randn(N, D_out).npu()
-    
+
       g = torch.npu.NPUGraph()
       # Graph compilation
       with torch.npu.graph(g):
@@ -151,6 +152,40 @@ AclGraphDumper.step(dump: bool = True) -> None
 
 If collection has not been started, it returns directly.
 
+### Custom API Collection
+
+For Python APIs that cannot be automatically identified through module hooks or PyTorch dispatch, you can configure the full import path in `tensor.custom_api`. This capability is supported only by the `tensor` task.
+
+```json
+{
+    "task": "tensor",
+    "dump_path": "./tensor_dump",
+    "level": "L1",
+    "tensor": {
+        "custom_api": [
+            "my_package.ops.reshape_and_cache"
+        ]
+    }
+}
+```
+
+`AclGraphDumper.start()` parses and wraps the target API before graph capture, and recursively collects tensors from its positional arguments, keyword arguments, and return values. The following requirements must be met when configuring:
+
+- The configured value must be the full import path of an importable and callable object.
+- During graph capture, the API must be invoked through the object corresponding to this path; function references copied to other variables before `start()` will not be wrapped.
+- `custom_api` takes effect at `start()`; modifying the configuration at runtime does not re-wrap APIs.
+- The inputs, keyword arguments, and outputs of a custom API share the same replay call index.
+
+The dumped file names are prefixed with the full import path configured in `custom_api`. For example, when `my_package.ops.reshape_and_cache` is configured, the dumped files are named as follows:
+
+```text
+my_package.ops.reshape_and_cache.0.input.0.pt
+my_package.ops.reshape_and_cache.0.input_kwargs.value_cache.pt
+my_package.ops.reshape_and_cache.0.output.pt
+```
+
+The full import path prefix distinguishes methods with the same name under different modules or classes, preventing data from being mixed up or misattributed; the call index is counted independently per full import path.
+
 ### Output Description
 
 **Single-Rank Scenario**
@@ -205,22 +240,22 @@ The following example shows how to save a tensor during the forward pass:
 ```diff
   import torch
   import torch_npu
- 
+
 + from msprobe.pytorch import acl_save
- 
- 
+
+
   class ToyModel(torch.nn.Module):
       def __init__(self):
           super().__init__()
           self.linear = torch.nn.Linear(8, 4)
- 
+
       def forward(self, x):
           y = self.linear(x)
 +         # Save the intermediate tensor
 +         acl_save(y, "./dump/linear_out.pt")
           return y
- 
- 
+
+
   if __name__ == "__main__":
       model = ToyModel().to("npu:0")
       x = torch.randn(2, 8, device="npu:0")
@@ -258,7 +293,7 @@ Return a tensor with the same shape as the input, used only to trigger the save 
 
     ```python
     from msprobe.pytorch import acl_save
-    
+
     logits = model(x)
     acl_save(logits, "./dump/logits.pt")
     ```

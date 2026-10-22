@@ -173,6 +173,8 @@ AclGraphDumper.step(dump: bool = True) -> None
 {api_name}.{call_index}.{input|input_kwargs|output}[.{index}].pt
 ```
 
+其中 `{api_name}` 为采集对象名称：module/API 采集使用采集点名称（如 `linear`）；自定义 API 采集使用 `custom_api` 中配置的完整导入路径，详见[自定义 API 采集](#自定义-api-采集)。
+
 目录中的进程标识按运行场景区分：多卡场景使用 `rank{rank_id}`，单卡场景使用 `rank0`；若单卡场景未初始化分布式环境，则使用 `pid{pid}`。
 
 采集过程中，`dump_tensor_data` 目录分为以下两类（以下 `{process_dir}` 表示上述进程标识）：
@@ -203,10 +205,20 @@ AclGraphDumper.step(dump: bool = True) -> None
 
 `AclGraphDumper.start()` 会在编图前解析并包装目标 API，递归采集其位置参数、关键字参数和返回值中的 Tensor。配置时需满足以下要求：
 
-- 配置值必须是可导入、可调用对象的完整路径。
+- 配置值必须是可导入、可调用对象的完整导入路径。
 - 模型编图时必须通过该路径对应的对象调用 API；在 `start()` 前已复制到其他变量的函数引用不会被包装。
 - `custom_api` 在 `start()` 时生效，运行过程中修改该配置不会重新包装 API。
 - 自定义 API 的输入、关键字参数和输出共享同一个 replay 调用序号。
+
+自定义 API 采集的落盘文件名以配置的完整导入路径为前缀。例如配置 `my_package.ops.reshape_and_cache` 时，落盘文件形如：
+
+```text
+my_package.ops.reshape_and_cache.0.input.0.pt
+my_package.ops.reshape_and_cache.0.input_kwargs.value_cache.pt
+my_package.ops.reshape_and_cache.0.output.pt
+```
+
+完整导入路径前缀可区分不同模块或不同类下的同名方法，避免同名方法的数据混入同一组文件名、按文件名取数时数据错位；调用序号按完整导入路径独立计数。
 
 ### 动态启停
 

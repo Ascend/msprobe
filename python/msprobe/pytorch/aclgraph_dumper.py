@@ -717,7 +717,7 @@ class AclGraphDumper:
             owner, attr_name, origin = self._resolve_custom_api(target)
             if hasattr(origin, "_msprobe_aclgraph_origin"):
                 continue
-            setattr(owner, attr_name, self._make_custom_api_wrapper(origin, attr_name))
+            setattr(owner, attr_name, self._make_custom_api_wrapper(origin, target))
 
     def _make_custom_api_wrapper(self, origin, api_name):
         @functools.wraps(origin)

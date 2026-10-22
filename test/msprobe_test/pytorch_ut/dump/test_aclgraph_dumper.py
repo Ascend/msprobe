@@ -686,12 +686,51 @@ class TestAclGraphDumper(unittest.TestCase):
 
         self.assertTrue(torch.equal(output, torch.full((1,), 2.0)))
         self.assertEqual(self.aclgraph_dump_stub.acl_tensor_save.call_count, 3)
+        full_name = f"{target_module_name}.reshape_and_cache"
         calls = self.aclgraph_dump_stub.acl_tensor_save.call_args_list
-        self.assertEqual([call.args[2] for call in calls], ["reshape_and_cache"] * 3)
+        self.assertEqual([call.args[2] for call in calls], [full_name] * 3)
         self.assertEqual([call.args[3] for call in calls], [True, False, False])
-        self.assertIn("reshape_and_cache.input.0", calls[0].args[1])
-        self.assertIn("reshape_and_cache.input_kwargs.value_cache", calls[1].args[1])
-        self.assertIn("reshape_and_cache.output", calls[2].args[1])
+        self.assertIn(f"{full_name}.input.0", calls[0].args[1])
+        self.assertIn(f"{full_name}.input_kwargs.value_cache", calls[1].args[1])
+        self.assertIn(f"{full_name}.output", calls[2].args[1])
+
+    def test_patch_custom_api_if_same_method_name_then_distinguished_by_full_path(self):
+        target_module_name = "msprobe_custom_api_same_name_test_module"
+        target_module = types.ModuleType(target_module_name)
+
+        class BackendA:
+            def forward(self, x):
+                return x + 1
+
+        class BackendB:
+            def forward(self, x):
+                return x + 2
+
+        target_module.BackendA = BackendA
+        target_module.BackendB = BackendB
+        dumper = self.make_dumper(task="tensor")
+        name_a = f"{target_module_name}.BackendA.forward"
+        name_b = f"{target_module_name}.BackendB.forward"
+        dumper.custom_api = [name_a, name_b]
+        dumper._tensor_data_dir_path = "./tensor_data"
+        dumper._running = True
+
+        with patch.dict(sys.modules, {target_module_name: target_module}):
+            dumper._patch_custom_api()
+            output_a = BackendA().forward(torch.ones(1))
+            output_b = BackendB().forward(torch.ones(1))
+
+        self.assertTrue(torch.equal(output_a, torch.full((1,), 2.0)))
+        self.assertTrue(torch.equal(output_b, torch.full((1,), 3.0)))
+        calls = self.aclgraph_dump_stub.acl_tensor_save.call_args_list
+        self.assertEqual(len(calls), 4)
+        self.assertEqual([call.args[2] for call in calls], [name_a, name_a, name_b, name_b])
+        self.assertEqual([call.args[3] for call in calls], [True, False, True, False])
+        paths = [call.args[1] for call in calls]
+        self.assertIn(f"./tensor_data/{name_a}.input.1.pt", paths)
+        self.assertIn(f"./tensor_data/{name_a}.output.pt", paths)
+        self.assertIn(f"./tensor_data/{name_b}.input.1.pt", paths)
+        self.assertIn(f"./tensor_data/{name_b}.output.pt", paths)
 
     def test_start_initializes_switch_device_before_patching_model(self):
         dumper = self.make_dumper(task="tensor", keywords=["layers.0"])
