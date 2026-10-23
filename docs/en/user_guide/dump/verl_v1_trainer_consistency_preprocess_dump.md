@@ -67,7 +67,7 @@ Fully Async continues to use the preparatory operations of the [baseline documen
 | File | Modification Type | Description | Corresponding Section |
 | --- | --- | --- | --- |
 | `vllm_ascend/worker/dispatch_logger.py` | New | Record the request ID of each collection step on the inference side | [[Baseline Document] Inference Side: Dispatch Logging](./verl_async_consistency_preprocess_dump.md#inference-side-dispatch-logging) |
-| `vllm_ascend/worker/model_runner_v1.py` | Modified | Initialize DispatchLogger, and synchronously record the dispatch log and msprobe step | [[Baseline Document] Inference Side: Collecting During vLLM Model Execution](./verl_async_consistency_preprocess_dump.md#inference-side-collecting-during-vllm-model-execution) |
+| `vllm_ascend/worker/model_runner_v1.py` | Modified | Initialize DispatchLogger, and synchronously record the dispatch log and msProbe step | [[Baseline Document] Inference Side: Collecting During vLLM Model Execution](./verl_async_consistency_preprocess_dump.md#inference-side-collecting-during-vllm-model-execution) |
 | `verl/workers/engine/fsdp/transformer_impl.py` | Modified | FSDP training-side collection and request ID logging | [[Baseline Document] Training Side: FSDP Backend](./verl_async_consistency_preprocess_dump.md#fsdp) |
 | `verl/workers/engine/megatron/transformer_impl.py` | Modified | Megatron training-side collection and request ID logging | [[Baseline Document] Training Side: Megatron Backend](./verl_async_consistency_preprocess_dump.md#megatron) |
 | `verl/workers/rollout/llm_server.py` | Modified | `LLMServerClient` injects request_id | [[Baseline Document] Request ID](./verl_async_consistency_preprocess_dump.md#request-id) |

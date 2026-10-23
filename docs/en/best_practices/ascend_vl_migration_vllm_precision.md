@@ -20,7 +20,7 @@ After the VL model was migrated from the H20 + transformers inference framework 
 | decode_layer comparison (Att and MLP) | The cosine similarity of each layer is close to 1; the statistical information of msProbe cannot find a difference, so tensor needs to be collected further. |
 | Model configuration comparison between GPU and NPU | Confirmed to be consistent. |
 | NPU + transformers inference compared with GPU | Low priority. |
-| Tow NPUs using the H20 inputs_embeds | The result improves, with no garbled text, but the content still differs from H20. |
+| Two NPUs using the H20 inputs_embeds | The result improves, with no garbled text, but the content still differs from H20. |
 
 ### Forward Localization: Look Backward from the `logits` of the 7th Token
 

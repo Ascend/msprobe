@@ -2,7 +2,7 @@
 
 ## 简介
 
-《[fsdp训练后端verl训推一致性比对数据采集](./verl_fsdp_consistency_preprocess_dump.md)》和 《[megatron训练后端verl训推一致性比对数据采集](./verl_megatron_consistency_preprocess_dump.md)》最初针对 verl v0.7.0 以下版本的 SPMD (Single Program Multiple Data) rollout 架构设计。自 v0.7 起，verl 主仓移除了 SPMD 模式，全面转向异步调度架构，采集方案需要随之变动。当前 verl 有两种异步 rollout 模式：
+《[fsdp训练后端verl训推一致性比对数据采集](./verl_fsdp_consistency_preprocess_dump.md)》和 《[megatron训练后端verl训推一致性比对数据采集](./verl_megatron_consistency_preprocess_dump.md)》最初针对 verl v0.7.0 以下版本的 SPMD (Single-Program Multiple-Data) rollout 架构设计。自 v0.7 起，verl 主仓移除了 SPMD 模式，全面转向异步调度架构，采集方案需要随之变动。当前 verl 有两种异步 rollout 模式：
 
 | 模式                         | 资源分配                                       | 架构                                                                                   |
 | ---------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |

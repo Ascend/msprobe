@@ -33,7 +33,7 @@ If you choose to compile and install msProbe, you must configure `--include-mod=
   - For details about how to collect data in the MindSpore framework, see [Precision Data Collection in MindSpore](../dump/mindspore_data_dump_instruct.md).
 - monitor data (output `format` set to `csv`)
   - For details about the collection method, see [Lightweight Training Status Monitoring Tool](../monitor_instruct.md).
-  
+
 **Constraints**
 
 - The PyTorch and MindSpore frameworks are supported.
@@ -171,12 +171,12 @@ This plugin supports scanning and switching between multiple `.trend.db` databas
 
 - **Auto Scanning**: The plugin automatically scans all .trend.db files in the `logdir` directory upon startup.
 - **Dynamic Switching**: You can switch between different database files in real time using the frontend dropdown menu.
-- `Auto Refresh`: The page automatically refreshes after switching databases to display data from the newly selected database.
+- **Auto Refresh**: The page automatically refreshes after switching databases to display data from the newly selected database.
 
 ##### Usage
 
 1. Prepare multiple database files.
-   
+
    Place multiple .trend.db files in the TensorBoard `logdir` directory, for example:
 
    ```bash
@@ -187,7 +187,7 @@ This plugin supports scanning and switching between multiple `.trend.db` databas
    ```
 
 2. Select a database file.
-   
+
    - Open your browser and navigate to `http://localhost:6006`.
    - Select the "Trend Analyzer" tab from the top navigation bar.
    - In the left control panel, locate the "Select Database File" dropdown menu.
@@ -278,7 +278,7 @@ The number of ranks should be less than or equal to 1024 and the number of model
     ```
 
     For details about the parameters, see [plot_model_parallelism](#plot_model_parallelism).
-    
+
 2. Run the following command to start the conversion.
 
     ```shell
@@ -295,13 +295,13 @@ View the PNG file.
 
 The table below describes the PNG file.
 
-| Field        | Description| 
+| Field        | Description|
 | -------------- | --------- |
-| Model Parallelism Configuration | Parallel configuration set or calculated by the user, including:<br> `Total Layers`: total number of layers in a model, corresponding to `num_layers` in the script.<br> `DP`: data parallel group size, calculated based on the input parallel parameters.<br> `TP`: tensor parallel group size, corresponding to `tensor_parallel_size` in the script.<br> `PP`: pipeline parallel group size, corresponding to `pipeline_parallel_size` in the script.<br> `VPP`: virtual pipeline parallel group size, corresponding to `virtual_pipeline_parallel_size` in the file name, calculated based on the input parallel parameters.   |                 
-| TP Group | Vertical coordinate, tensor parallel group, in the format of `Group{num}: Rank{start}-{end}`. `num` indicates the group ID, and `start` and `end` indicate the IDs of the first and last ranks in the group, respectively. For example, `Group0: Rank0-3` indicates group 0, which contains four ranks: rank0 to rank3.    |                 
-| Virtual Pipeline Stage | Horizontal coordinate, pipeline parallel stage or virtual pipeline parallel stage, in the format of `Stage {num}`. `num` indicates the stage ID.     |                 
-| Model Copies | Model replica legend. In data parallelism, different model replicas of input data are marked in different colors.     |                 
-| `Embed`/ `L{start}-{end}`/ `Out`  | Text in the color matrix, indicating model layers contained in a stage of a tensor parallel group.<br>  `Embed`: first stage of the model, which usually contains the embedding layer.<br> `L{start}-{end}`: model layers from start to end. For example, `L1-3` indicates that the current stage contains the first, second, and third model layers of the entire model.<br> `Out`: last stage of the model, which usually contains the output layer.<br> If multiple stage definitions are met, use a plus sign (+) to connect them.   |                 
+| Model Parallelism Configuration | Parallel configuration set or calculated by the user, including:<br> `Total Layers`: total number of layers in a model, corresponding to `num_layers` in the script.<br> `DP`: data parallel group size, calculated based on the input parallel parameters.<br> `TP`: tensor parallel group size, corresponding to `tensor_parallel_size` in the script.<br> `PP`: pipeline parallel group size, corresponding to `pipeline_parallel_size` in the script.<br> `VPP`: virtual pipeline parallel group size, corresponding to `virtual_pipeline_parallel_size` in the file name, calculated based on the input parallel parameters.   |
+| TP Group | Vertical coordinate, tensor parallel group, in the format of `Group{num}: Rank{start}-{end}`. `num` indicates the group ID, and `start` and `end` indicate the IDs of the first and last ranks in the group, respectively. For example, `Group0: Rank0-3` indicates group 0, which contains four ranks: rank0 to rank3.    |
+| Virtual Pipeline Stage | Horizontal coordinate, pipeline parallel stage or virtual pipeline parallel stage, in the format of `Stage {num}`. `num` indicates the stage ID.     |
+| Model Copies | Model replica legend. In data parallelism, different model replicas of input data are marked in different colors.     |
+| `Embed`/ `L{start}-{end}`/ `Out`  | Text in the color matrix, indicating model layers contained in a stage of a tensor parallel group.<br>  `Embed`: first stage of the model, which usually contains the embedding layer.<br> `L{start}-{end}`: model layers from start to end. For example, `L1-3` indicates that the current stage contains the first, second, and third model layers of the entire model.<br> `Out`: last stage of the model, which usually contains the output layer.<br> If multiple stage definitions are met, use a plus sign (+) to connect them.   |
 
 ## Appendixes
 
@@ -353,7 +353,7 @@ None
 ## FAQ
 
 1. How to use the trend visualization tool to compare the precision data files of two different experiments?
-   
+
    The trend visualization tool does not distinguish between benchmark experiments and comparison experiments. It only compares the precision data files based on their input paths. To compare the precision data files of two different experiments, you need to manually move the subdirectories of the two groups of files to the same directory and then use the trend visualization tool to view and compare the files.
 
    Assume there are two dump data files: `dump_path1` and `dump_path2`.

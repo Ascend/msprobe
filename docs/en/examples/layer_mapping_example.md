@@ -92,7 +92,7 @@ The layers beneath this layer are named `layers` on both the NPU and GPU. Since 
 Run the following command to specify `-lm`:
 
 ```bash
-msprobe graph_visualize -i ./compare.json -o ./output -lm ./mapping.yaml
+msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output -lm ./mapping.yaml
 ```
 
 It can be seen that all the layers configured in the `mapping.yaml` file are matched, except the `language_model` layer (which is only on the NPU and has no matching layer on the GPU).

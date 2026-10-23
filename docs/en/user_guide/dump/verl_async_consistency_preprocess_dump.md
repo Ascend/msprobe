@@ -2,7 +2,7 @@
 
 ## Introduction
 
-*[Collecting Data for Verifying Data Consistency Between verl Training and Inference Based on FSDP](./verl_fsdp_consistency_preprocess_dump.md)* and *[Collecting Data for Verifying Data Consistency Between verl Training and Inference Based on Megatron](./verl_megatron_consistency_preprocess_dump.md)* were originally designed for the Single Program Multiple Data (SPMD) rollout architecture in verl versions below v0.7.0. Starting from v0.7, verl has removed SPMD mode from its main repository and fully transitioned to an asynchronous scheduling architecture, requiring corresponding changes to the collection scheme. Currently, verl has two asynchronous rollout modes:
+*[Collecting Data for Verifying Data Consistency Between verl Training and Inference Based on FSDP](./verl_fsdp_consistency_preprocess_dump.md)* and *[Collecting Data for Verifying Data Consistency Between verl Training and Inference Based on Megatron](./verl_megatron_consistency_preprocess_dump.md)* were originally designed for the Single-Program Multiple-Data (SPMD) rollout architecture in verl versions below v0.7.0. Starting from v0.7, verl has removed SPMD mode from its main repository and fully transitioned to an asynchronous scheduling architecture, requiring corresponding changes to the collection scheme. Currently, verl has two asynchronous rollout modes:
 
 | Mode                         | Resource Allocation                                       | Architecture                                                                                   |
 | ---------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -161,7 +161,7 @@ Changes added at each return point in `execute_model`:
 
 The `execute_model()` method contains multiple `self.debugger.stop()` calls (distributed across different return paths). Before each `self.debugger.stop()` call, a `self._dispatch_logger.log_step(...)` call must be inserted to cover all return branches.
 
-After each model forward pass completes, call `DispatchLogger.log_step()` to record the scheduling information for that step (including the requests involved, the number of tokens allocated to each request, and the scheduling status of each request during the prefill and decode phases), then execute msProbe's `stop`/`step` to complete the current round of tensor dump. Globally search for `self.debugger.stop()` in `model_runner_v1.py` and insert the `log_step` call. For example:
+After each model forward pass completes, call `DispatchLogger.log_step()` to record the scheduling information for that step (including the requests involved, the number of tokens allocated to each request, and the scheduling status of each request during the prefill and decode phases), then execute msProbe's `stop`/`step` to complete the current round of Tensor dump. Globally search for `self.debugger.stop()` in `model_runner_v1.py` and insert the `log_step` call. For example:
 
 ```diff
     def execute_model(self, ...):

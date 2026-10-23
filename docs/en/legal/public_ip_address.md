@@ -13,8 +13,8 @@
 | Open-source software | -            | cmake/config.ini                 | <https://gitee.com/mirrors/re2/repository/archive/2019-12-01.tar.gz> | Open-source software download                 |
 | Open-source software | -            | cmake/config.ini                 | <https://gitcode.com/openeuler/libboundscheck.git>           | Open-source software download                 |
 | Open-source software | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://aisbench.obs.myhuaweicloud.com/packet/ais_bench_infer/0.0.2/ait/>  |  aclruntime/ais_bench WHL package |
-| Open-source software | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://aisbench.obs.myhuaweicloud.com/packet/ais_bench_infer/0.0.2/ait/hash_info/>  | sha256 file of aclruntime |
-| Open-source software | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://aisbench.obs.myhuaweicloud.com/packet/ais_bench_infer/0.0.2/ait/hash_info/>  | sha256 file of ais_bench |
+| Open-source software | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://aisbench.obs.myhuaweicloud.com/packet/ais_bench_infer/0.0.2/ait/hash_info/>  | SHA256 file of aclruntime |
+| Open-source software | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://aisbench.obs.myhuaweicloud.com/packet/ais_bench_infer/0.0.2/ait/hash_info/>  | SHA256 file of ais_bench |
 | Open-source software | -            | python/msprobe/infer/offline/compare/msquickcmp/config.ini  | <https://gitee.com/ascend/tools/tree/master/ais-bench_workload/tool/ais_bench>  | If WHL package fails to be installed, a message is displayed to ask you to manually download  aclruntime/ais_bench. |
 | Open-source software | -            | plugins/tb_graph_ascend/setup.py | <pmail_mindstudio@huawei.com>                                | Official MindStudio email           |
 | Open-source software | -            | plugins/tb_graph_ascend/setup.py | <https://gitcode.com/Ascend/msprobe/tree/master/plugins/tb_graph_ascend> | Code repository address                   |

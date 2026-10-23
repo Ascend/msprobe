@@ -65,10 +65,10 @@ msprobe compare -tp <target_path> -gp <golden_path> [options]
 | `-dm` or `--data_mapping`                | No          | Custom mapping for comparison. You need to specify a custom mapping file in .yaml format. For details about the format of the custom mapping file, see [Data Mapping](#data-mapping). This parameter needs to be configured only in the [scenario where APIs and modules cannot be automatically matched](#apis-and-modules-cannot-be-automatically-matched). Only rank-by-rank comparison is supported.      |
 | `-cm` or `--cell_mapping`                | No   | Module comparison across different platforms and configurations. If this parameter is configured, module comparison across different platforms and configurations is enabled. You can specify a custom mapping file in .yaml format. If no mapping file is specified, the mapping-based comparison is not performed. For details about the format of the custom mapping file, see [Cell Mapping](#cell-mapping). This parameter needs to be configured only in the scenario of [module comparison across different platforms and configurations](#module-comparison-across-different-platforms-and-configurations)      |
 | `-da` or `--diff_analyze`                | No      | Automatically identifies the first different node on the network and supports dump data such as MD5 and statistics. Single-rank and multi-rank scenarios are supported. This function can be enabled by directly configuring this parameter. By default, this parameter is not configured, indicating that the function is disabled.      |
-| -tensor_log or --is_print_compare_log | Optional     | Whether to enable log printing for a single module or API. Only the Tensor data dumped by msProbe is supported. Enable it by directly configuring this parameter. By default, it is not configured, indicating that it is disabled. |
+| `-tensor_log` or `--is_print_compare_log` | Optional     | Whether to enable log printing for a single module or API. Only the Tensor data dumped by msProbe is supported. Enable it by directly configuring this parameter. By default, it is not configured, indicating that it is disabled. |
 | `--consistent_check`| No        | Whether to enable verl training and inference consistency comparison. This function can be enabled by directly configuring this parameter. By default, this parameter is not configured, indicating that the function is disabled. This parameter needs to be configured only in the scenario of [verl training and inference consistency comparison](#verl-training-and-inference-consistency-comparison).      |
 | `--backend` | No     |Training backend specified during verl training and inference consistency comparison. The value can be `fsdp` or `megatron`. `--consistent_check` must be configured first. If `--consistent_check` is not configured, `--backend` does not take effect.         |
-| --config | No     | Path to the Tensor post-processing configuration file, which specifies a calibration file in yaml format. It is used to perform matrix multiplication calibration on the dumped Tensors in quantization scenarios. For the configuration file format, see [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml). Supported only in the PyTorch scenario. |
+| `--config` | No     | Path to the Tensor post-processing configuration file, which specifies a calibration file in yaml format. It is used to perform matrix multiplication calibration on the dumped Tensors in quantization scenarios. For the configuration file format, see [matmul.yaml](../../../../python/msprobe/core/compare/tensor_postprocess/matmul.yaml). Supported only in the PyTorch scenario. |
 
 ### Examples
 
@@ -102,7 +102,7 @@ Both single-rank and multi-rank scenarios are supported. The dump data of multip
    ```shell
    msprobe compare -tp /target_dump/step0 -gp /golden_dump/step0 -o ./output
    ```
-   
+
 3. View the comparison results by referring to [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
 
 #### APIs and Modules Cannot Be Automatically Matched
@@ -141,7 +141,7 @@ If there are APIs and modules that cannot be automatically matched, you can prov
 
 #### First Mismatched Operator Node Identification
 
-In this scenario, the first mismatched operator node with precision issues is identified by analyzing the data saved by `msprobe dump` in the XPU and NPU environments.
+In this scenario, the first mismatched operator node with precision issues is identified by analyzing the data saved by `msprobe dump` in the CPU or GPU and NPU environments.
 
 Single-rank and multi-rank scenarios are supported. The dump data of multiple ranks can be compared at the same time.
 
@@ -205,7 +205,7 @@ In this scenario, the training and inference data in the prefill phase of verl i
    ```
 
    Considering the randomness of data splitting during training and inference in the multi-rank verl scenario, the training and inference dump data may be unevenly distributed across different ranks. In this case, single-rank comparison must be used. If the training and inference dump data on each rank is in one-to-one correspondence, you can directly specify the rank parent directory (step level) for multi-rank comparison.
-   
+
 3. View the comparison results by referring to [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
 
 #### Single-Point Data Comparison in Dynamic Graphs
@@ -345,7 +345,7 @@ After the comparison is complete, the message `msprobe compare ends successfully
   Multiple `.json` files are generated in the configured output path. The file names are automatically generated based on the timestamp in the format of `compare_result_rank{rank_id}_{timestamp}.json` and `diff_analyze_{timestamp}.json`.
 
 - Single-point data comparison in dynamic graphs:
-  
+
    A `.csv` file is generated in the configured output path. The file name is automatically generated based on the timestamp in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.csv`. If `--xlsx` is specified, a `.xlsx` file is generated in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.xlsx`.
 
 ### Output File Description
@@ -667,7 +667,7 @@ The following uses an API dump file as an example:
   }
 ```
 
-The initial name is `Functional.max_pool2d.0.forward. input_args` is a list with a length of 5. The 0th item is followed by `Tensor`, and the naming ends. The 1st to 4th items are followed by `int`, and the naming ends. According to the naming rules, the following names can be obtained:
+The initial name is `Functional.max_pool2d.0.forward, input_args` is a list with a length of 5. The 0th item is followed by `Tensor`, and the naming ends. The 1st to 4th items are followed by `int`, and the naming ends. According to the naming rules, the following names can be obtained:
 
 ```ColdFusion
 Functional.max_pool2d.0.forward.input.0

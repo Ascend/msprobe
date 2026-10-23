@@ -67,7 +67,7 @@ After kernel-level data collection is successful, the following files are genera
 ```ColdFusion
 ├── /home/data_dump/
 │   ├── step0
-│ │ ├── 20241201103000        # Date and time format, indicating 10:30:00, 2024-12-01.
+│   │   ├── 20241201103000        # Date and time format, indicating 10:30:00, 2024-12-01.
 │   │   │   ├── 0             # Device ID
 │   │   │   │   ├──{op_type}.{op_name}.{task_id}.{stream_id}.{timestamp}    # Kernel-layer operator data
 │   │   │  ...

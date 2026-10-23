@@ -203,7 +203,7 @@ If no mapping is specified in dynamic graph mode, the comparison defaults to int
     │   |   |   └── construct.json
     │   ├── ...
     ```
-   
+
 2. Run the following example command to perform the comparison.
 
    ```shell
@@ -211,7 +211,7 @@ If no mapping is specified in dynamic graph mode, the comparison defaults to int
    ```
 
     - `/target_dump` indicates the dump file directory to be compared. In the preceding example, `/target_dump` is the parent directory of the `graph` and `pynative` directories dumped from the side to be compared in dynamic and static graph modes.
-    - `/golden_dump` indicates the dump file directory on the benchmark side. In the preceding example, `/golden_dump/target_dump` is the parent directory of the `graph` and `pynative` directories dumped from the benchmark side in dynamic and static graph modes.
+    - `/golden_dump` indicates the dump file directory on the benchmark side. In the preceding example, `/golden_dump` is the parent directory of the `graph` and `pynative` directories dumped from the benchmark side in dynamic and static graph modes.
 
 3. Check data comparison results at L0/Mix level in dynamic/static graph scenarios. By default, `.csv` files are output. If `--xlsx` is specified, `.xlsx` files are output.
 
@@ -430,7 +430,7 @@ ms_outputs:
 pt_outputs:
 - 0
 - 1
-# ms_args/pt_args and ms_outputs/pt_outputs must be configured based on the input and output index of ms_api/pt_api. For example, if the input parameter of Functional.abs is (a b c), the corresponding ms_args is 0 1 2, which can be selected as required. If the input parameter of Torch.abs is (ab c), the ms_args and pt_args configurations must be the same. However, if the input parameter of Torch.abs is (a c) or other values that do not completely map to Functional.abs, the index configured for ms_args and pt_args must correspond to the input parameter. The index of Torch.abs (a c) is 0 1, and that of Functional.abs (a b c) is 0 1 2. As only the a and c parameters can be mapped, set ms_args to 0 2 and pt_args to 0 1. The same rule applies to ms_outputs/pt_outputs.
+# ms_args/pt_args and ms_outputs/pt_outputs must be configured based on the input and output index of ms_api/pt_api. For example, if the input parameter of Functional.abs is (a b c), the corresponding ms_args is 0 1 2, which can be selected as required. If the input parameter of Torch.abs is (a b c), the ms_args and pt_args configurations must be the same. However, if the input parameter of Torch.abs is (a c) or other values that do not completely map to Functional.abs, the index configured for ms_args and pt_args must correspond to the input parameter. The index of Torch.abs (a c) is 0 1, and that of Functional.abs (a b c) is 0 1 2. As only the a and c parameters can be mapped, set ms_args to 0 2 and pt_args to 0 1. The same rule applies to ms_outputs/pt_outputs.
 ```
 
 ### Cell Mapping

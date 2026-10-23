@@ -243,7 +243,7 @@ _调测类特性，对性能影响不敏感，不涉及_
   - 需求内容：支持slime训推一致性场景下的训练和推理数据采集，内容如下
     1. 本需求只支持prefill阶段的推理与训练采集，基于的前置条件为需保证推理与训练数据的shape控制在合理范围内，参考前置方案如下：
       a. 改训练为单prompt，保证两边token维度一致
-      b. 推理设置max_responese_len为1，此时训练token维度为K（prompt），推理为K+1（prompt+1responese）
+      b. 推理设置max_response_len为1，此时训练token维度为K（prompt），推理为K+1（prompt+1response）
 
 - 训推权重同步比对系统性解决方案
   - 需求背景：在强化学习训推一体场景中，训练侧与推理侧需要保持模型权重一致，但由于参数更新、权重同步流程、格式转换等环节存在差异，容易出现训推权重不一致问题。当前权重同步类问题定位效率较低，缺少系统化分析方案。
@@ -387,8 +387,8 @@ _调测类特性，对性能影响不敏感，不涉及_
 该特性需要支持以下几个子场景能力：
 
 1. 精度比对支持自定义比对算法
-2. 分析迁移支持到pytorch2.9/pytorch2.10
-3. msprobe支持pytorch2.10
+2. 分析迁移支持到PyTorch 2.9/PyTorch 2.10
+3. msProbe支持PyTorch 2.10
 4. monitor支持L2新指标：router权重相似度、逐token专家熵
 5. dump支持L0下dump inplace操作计算前模块输入
 6. torch_npu.atb.xx算子补充采集
@@ -528,7 +528,7 @@ _调测类特性，对性能影响不敏感，不涉及_
        - 支持同时启用 `"statistics"` 和 `"tensor"` 两种模式，同时输出统计信息和真实数据。
 
 - aclgraph场景支持低精数据格式采集
-  - 需求背景：大模型推理场景中，为降低显存占用和提升计算吞吐，越来越多的模型采用 fp8/fp4 等低精度数据格式进行推理。在 ACLGraph 图模式下进行精度对齐时，msprobe 的 aclgraph_dump 工具提供了整网统计采集（AclGraphDumper）和单点 Tensor 落盘（acl_save）两种能力。当前工具仅支持 fp16/bf16/fp32 等常规精度的数据采集与分析，当模型使用 fp8/fp4 低精度数据格式时，需要在 aclgraph_dump 中扩展对 fp8/fp4低精度数据格式的采集支持，提升工具在低精度推理场景下的易用性与准确性。
+  - 需求背景：大模型推理场景中，为降低显存占用和提升计算吞吐，越来越多的模型采用 fp8/fp4 等低精度数据格式进行推理。在 ACLGraph 图模式下进行精度对齐时，msprobe 的 aclgraph_dump 工具提供了整网统计采集（AclGraphDumper）和单点 Tensor 落盘（acl_save）两种能力。当前工具仅支持 FP16/BF16/FP32 等常规精度的数据采集与分析，当模型使用 fp8/fp4 低精度数据格式时，需要在 aclgraph_dump 中扩展对 fp8/fp4低精度数据格式的采集支持，提升工具在低精度推理场景下的易用性与准确性。
   - 需求内容：aclgraph_dump 工具扩展对低精度数据格式（fp8/fp4）的采集能力，在整网统计采集（AclGraphDumper）和单点采集（acl_save）中支持对 fp8/fp4 格式 Tensor 的正确处理
 
 - 动态图多batch支持指定request采集

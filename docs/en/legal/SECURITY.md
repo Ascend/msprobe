@@ -4,7 +4,7 @@
 
 - This repository provides VS Code and devcontainer configurations for development and debugging. Use them only to develop and debug this repository in a secure debugging environment. Review the configuration security and adjust it to your actual requirements.
 
-- It is recommended that you enable address space layout randomization (ASLR) (level 2) by running the following commands as user `root`:
+- It is recommended that you enable Address Space Layout Randomization (ASLR) (level 2) by running the following commands as user `root`:
 
   ```bash
   echo 2 > /proc/sys/kernel/randomize_va_space
@@ -75,7 +75,7 @@ msProbe supports building from source. During the build process, the system down
    Application scenario: When you need to analyze the model precision, you can add the `dump` API of msProbe to the model training script to collect data during training. After the training is complete, the precision data file is directly output. The data file contains the API data, model structure, and stack information of API calls. This helps you quickly locate the API with precision problems in the model.
 
    Risk warning: Using this function will generate precision data locally. You need to protect the related precision data files. Use this function when you need to analyze model precision, and disable it after the analysis is complete.
-   
+
 4. To prevent remote code injection attacks, set the `--trust-remote-code` parameter to `False` if it is used.
 
 ## Public Network Address Statement

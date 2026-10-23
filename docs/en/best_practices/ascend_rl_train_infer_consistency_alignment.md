@@ -324,7 +324,7 @@ As shown in the above code, the single-prompt training mode is switched on and o
 
 #### 2.2.2 Routing Replay
 
-In a typical RL process, an efficient inference engine (such as SGLang) is used for data sampling, and then the data is fed into the training framework for model optimization. For standard dense models, this framework difference may only bring slight numerical errors; but in MoE models, this problem is sharply amplified. The core lies in the MoE (Routing Mechanism): a slight environmental or implementation difference may cause the model to select a completely different expert combination for the same input token, thus going to a completely different computation path. This inconsistency in routing decisions may lead to unstable RL training of MoE models. It makes the "experience" obtained from the inference stage completely different for the training stage, so the optimization signal is distorted, ultimately leading to disastrous consequences.
+In a typical RL process, an efficient inference engine (such as SGLang) is used for data sampling, and then the data is fed into the training framework for model optimization. For standard dense models, this framework difference may only bring slight numerical errors; but in MoE models, this problem is sharply amplified. The core lies in the MoE of Routing Mechanism: a slight environmental or implementation difference may cause the model to select a completely different expert combination for the same input token, thus going to a completely different computation path. This inconsistency in routing decisions may lead to unstable RL training of MoE models. It makes the "experience" obtained from the inference stage completely different for the training stage, so the optimization signal is distorted, ultimately leading to disastrous consequences.
 ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/moe_routing_inconsistency.png)
 
 Therefore, in the training-inference consistency alignment process, routing replay also needs to be enabled for MoE models.
@@ -473,7 +473,7 @@ Overall idea:
 
 1. Reproduce at a reduced scale: the overall 512-rank scenario has logp_diff 3.5; when reduced to a two-node 32-rank test, `logp_diff 0.7` is still very large.
 2. Strip away the RL training process, execute training and inference independently, and use the same input to execute them separately and collect dump data.
-3. First try to reduce layers, for example troubleshoot the dense layer first, reducing both training and inference to 1 layer; after ensuring the dense layer is aligned, add layers and compare the moe layer to complete the training-inference alignment.
+3. First try to reduce layers, for example troubleshoot the dense layer first, reducing both training and inference to 1 layer; after ensuring the dense layer is aligned, add layers and compare the MoE layer to complete the training-inference alignment.
 
 #### 3.1.3 Localization Process
 
@@ -595,7 +595,7 @@ Fix the input prompt, `batchsize=1`, `response=1`, ensure that training and infe
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/topk_indices_diff.png)
 
-   The process of `topk_indice`s being called in training and inference is as follows. Since msProbe does not collect the input and output of lightning_indexer, modify the following code to re-collect dump data, with the dump level being tensor+mix.
+   The process of `topk_indices` being called in training and inference is as follows. Since msProbe does not collect the input and output of lightning_indexer, modify the following code to re-collect dump data, with the dump level being tensor+mix.
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/indexer_dump_code_mod.png)
 

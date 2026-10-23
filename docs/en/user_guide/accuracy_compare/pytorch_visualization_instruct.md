@@ -411,7 +411,7 @@ If the link is inaccessible (for example, the server cannot be directly connecte
    ```bash
    tensorboard --logdir out_path
    ```
-   
+
     Hold `CTRL` and click the link.
 
 ## Viewing Results in Browser
@@ -557,7 +557,7 @@ After the conversion is complete, you can click "Load File" to view the graph st
 
 If the conversion fails, exception logs will be displayed on the page. Troubleshoot the issue based on the exception logs. If the issue persists, submit an issue on the "Issues" page of the repository for help.
 
-![vis_dump_to_vis_failed.png](../../figures/visualization/vis_dump_to_vis_faild.png)
+![vis_dump_to_vis_failed.png](../../figures/visualization/vis_dump_to_vis_failed.png)
 
 ## Graph Comparison Description
 

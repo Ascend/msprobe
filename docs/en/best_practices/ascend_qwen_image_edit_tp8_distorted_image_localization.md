@@ -13,7 +13,7 @@ Adapting the Qwen-Image-Edit model on the NPU based on Megatron, mainly used for
 
 ## Localization Process
 
-According to the symptoms, different configurations on the NPU cause the problem, so TP1 and TP8 were compared on the NPU first to locate the cause of the model precision difference. The tool used is msprobe (the toolkit of the precision debugging part under the MindStudio toolchain, mainly including functions such as precision collection, precision comparison, and visualization analysis; it currently adapts the [PyTorch](https://gitee.com/link?target=https%3A%2F%2Fpytorch.org%2F) and [MindSpore](https://gitee.com/link?target=https%3A%2F%2Fwww.mindspore.cn%2F) frameworks).
+According to the symptoms, different configurations on the NPU cause the problem, so TP1 and TP8 were compared on the NPU first to locate the cause of the model precision difference. The tool used is msProbe (the toolkit of the precision debugging part under the MindStudio toolchain, mainly including functions such as precision collection, precision comparison, and visualization analysis; it currently adapts the [PyTorch](https://gitee.com/link?target=https%3A%2F%2Fpytorch.org%2F) and [MindSpore](https://gitee.com/link?target=https%3A%2F%2Fwww.mindspore.cn%2F) frameworks).
 
 The problem localization process is as follows: data collection → hierarchical visualization graph comparison → code localization and solution.
 
@@ -31,7 +31,7 @@ The hierarchical visualization graph supports data comparison of different split
 msprobe graph_visualize -tp tp8_data -gp tp1_data -o output_path
 ```
 
-The execution process varies with the model size; a relatively large-scale model takes about several minutes to build the graph. After it ends, an XXX.vis.db file is generated under the output folder, and then tensorboard is used for visual comparison:
+The execution process varies with the model size; a relatively large-scale model takes about several minutes to build the graph. After it ends, an XXX.vis.db file is generated under the output folder, and then TensorBoard is used for visual comparison:
 
 ```bash
 tensorboard --logdir out_path --bind_all --port [optional, port number]

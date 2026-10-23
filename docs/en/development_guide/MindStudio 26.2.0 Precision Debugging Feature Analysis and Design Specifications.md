@@ -243,7 +243,7 @@ N/A.
   - Requirement content: Support training and inference data collection in the slime training-inference consistency scenario, as follows:
     1. This requirement only supports inference and training collection in the prefill phase. The prerequisite is to ensure that the shapes of the inference and training data are kept within a reasonable range. Refer to the following prerequisite solution:
       a. Change training to a single prompt to ensure that the token dimensions on both sides are consistent
-      b. Set max_responese_len to 1 for inference; at this point the training token dimension is K (prompt), and the inference token dimension is K+1 (prompt+1responese)
+      b. Set max_response_len to 1 for inference; at this point the training token dimension is K (prompt), and the inference token dimension is K+1 (prompt+1response)
 
 - Systematic solution for training-inference weight synchronization comparison
   - Requirement background: In the reinforcement learning training-inference integrated scenario, the training side and the inference side need to keep the model weights consistent. However, due to differences in parameter updates, weight synchronization processes, and format conversions, training-inference weight inconsistency issues are prone to occur. Current localization efficiency for weight synchronization issues is low, and a systematic analysis solution is lacking.
@@ -387,8 +387,8 @@ N/A.
 This feature needs to support the following sub-scenario capabilities:
 
 1. Precision comparison supports custom comparison algorithms
-2. Analysis migration supports to pytorch2.9/pytorch2.10
-3. msprobe supports pytorch2.10
+2. Analysis migration supports to PyTorch 2.9/PyTorch 2.10
+3. msProbe supports PyTorch 2.10
 4. monitor supports new L2 metrics: router weight similarity and per-token expert entropy
 5. dump supports dumping the module input before the inplace operation under L0
 6. Supplementary collection of torch_npu.atb.xx operators
@@ -528,7 +528,7 @@ N/A.
        - Supports enabling both `"statistics"` and `"tensor"` modes at the same time, outputting both statistical information and real data.
 
 - The aclgraph scenario supports low-precision data format collection
-  - Requirement background: In large model inference scenarios, to reduce memory usage and improve computation throughput, more and more models use low-precision data formats such as fp8/fp4 for inference. When performing precision alignment in ACLGraph mode, the msprobe aclgraph_dump tool provides two capabilities: full-network statistical collection (AclGraphDumper) and single-point Tensor disk write (acl_save). The current tool only supports the collection and analysis of data at conventional precisions such as fp16/bf16/fp32. When the model uses fp8/fp4 low-precision data formats, it is necessary to extend support for collecting fp8/fp4 low-precision data formats in aclgraph_dump, improving the tool's usability and accuracy in low-precision inference scenarios.
+  - Requirement background: In large model inference scenarios, to reduce memory usage and improve computation throughput, more and more models use low-precision data formats such as fp8/fp4 for inference. When performing precision alignment in ACLGraph mode, the msprobe aclgraph_dump tool provides two capabilities: full-network statistical collection (AclGraphDumper) and single-point Tensor disk write (acl_save). The current tool only supports the collection and analysis of data at conventional precisions such as FP16/BF16/FP32. When the model uses fp8/fp4 low-precision data formats, it is necessary to extend support for collecting fp8/fp4 low-precision data formats in aclgraph_dump, improving the tool's usability and accuracy in low-precision inference scenarios.
   - Requirement content: The aclgraph_dump tool extends the collection capability for low-precision data formats (fp8/fp4), supporting correct processing of fp8/fp4 format Tensors in full-network statistical collection (AclGraphDumper) and single-point collection (acl_save)
 
 - Dynamic graph multi-batch supports collection for a specified request

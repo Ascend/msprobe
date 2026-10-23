@@ -52,7 +52,7 @@ First, the appropriate dump configuration parameters need to be determined accor
 
 Next, in the vLLM service startup script, add the `--additional-config '{"dump_config_path": "/xxx/msprobe_config.json"}'` parameter to pass in the dump configuration file path.
 
-Finally, start the vLLM service and send a request. After the response ends, check the dump directory to confirm whether the Dump succeeded; the directory structure and the `dump.jso`n content are shown in the figure below.
+Finally, start the vLLM service and send a request. After the response ends, check the dump directory to confirm whether the Dump succeeded; the directory structure and the `dump.json` content are shown in the figure below.
 
 ![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/dump_result_directory.png) ![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/content_of_dump_dot_json.png)
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This function scans all MindSpore Mint APIs in a trained MindSpore mode, along with MindSpore APIs ported in the MSAdapter scenario running on Ascend NPUs, and then outputs diagnostic and analytical insights regarding precision. The tool takes the dump results of all APIs in the model as input, constructs corresponding API unit tests, compares NPU output against a high-precision CPU benchmark, and calculates precision metrics to identify APIs with precision issues on the NPU. It supports both random generation mode and real data mode.
+This function scans all MindSpore Mint APIs in a trained MindSpore model, along with MindSpore APIs ported in the MSAdapter scenario running on Ascend NPUs, and then outputs diagnostic and analytical insights regarding precision. The tool takes the dump results of all APIs in the model as input, constructs corresponding API unit tests, compares NPU output against a high-precision CPU benchmark, and calculates precision metrics to identify APIs with precision issues on the NPU. It supports both random generation mode and real data mode.
 
 **Concepts**
 
@@ -82,7 +82,7 @@ Create a `dump.json` file in the current directory to simulate the dump output f
               "Norm": 64.0
              }
             ]
-           }}
+           }}}
 ```
 
 ### Running the Command

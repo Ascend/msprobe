@@ -175,7 +175,7 @@ Performing Comparison
    *                        msprobe compare ends successfully.                        *
    ************************************************************************************
    ```
-   
+
 3. Analyze the comparison result file.
 
    `compare` generates the following file in `./compare_result/accuracy_compare`:
@@ -191,7 +191,7 @@ Prerequisites
 - Complete procedures listed in [Environment Setup](#environment-setup).
 
 - The following example illustrates cell comparison between different MindSpore versions (e.g. MindSpore 2.6.0 and 2.7.0). For details about how to dump cell data, see [Precision Data Collection](#precision-data-collection).
-  
+
   For hierarchical visualization, the `level` parameter in the `config.json` file must be set to `L0` or `mix` during a data dump. In this example, `mix` is used to re-collect precision data.
 
 Performing Comparison
@@ -223,7 +223,7 @@ Performing Comparison
    After the preceding command is executed, the following log is displayed:
 
    ```txt
-   TensorBoard 2.20.0 at http://ubuntu:6006/ (Press CTRL+C to quit)
+   TensorBoard 2.20.0 at http://ubuntu:6008/ (Press CTRL+C to quit)
    ```
 
    Open a browser in any OS and access `http://ubuntu:6008/`, where `ubuntu` should be replaced with the IP address of your server, for example, `http://192.168.1.10:6008/`.

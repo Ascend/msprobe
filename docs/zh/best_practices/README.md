@@ -25,7 +25,7 @@
 - 引擎&加速库
   - [基于昇腾的复杂dump数据分析GradNorm NaN定位实践](./ascend_complex_dump_gradnorm_nan_analysis.md)
   - [基于昇腾的Kimi2.5训推一致性优化](./ascend_kimi2_5_train_infer_consistency_optimization.md)
-  - [基于昇腾的GLM5适配与训推一致性优化](./ascend_glm5_adaptation_training_Inference_consistency_optimization.md)
+  - [基于昇腾的GLM-5适配与训推一致性优化](./ascend_glm5_adaptation_training_Inference_consistency_optimization.md)
   - [强化学习训推一致性排查](./ascend_rl_train_infer_consistency_alignment.md)
 - 非昇腾软件栈问题
   - [基于昇腾的Qwen2.5-omni框架迁移Loss差异定位](./ascend_qwen2_5_omni_loss_diff_localization.md)

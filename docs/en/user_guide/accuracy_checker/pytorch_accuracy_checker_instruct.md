@@ -180,7 +180,7 @@ Constraints:
 
 - The handler script must be placed under the [output_postprocess](../../../../python/msprobe/core/common/output_postprocess/) directory.
 - If the handler execution fails or returns `None`, the framework will automatically fall back to the original `output`.
-  
+
 ### Using `multi_acc_check` for Multi-thread Pre-check
 
 **Function**
@@ -215,7 +215,7 @@ msprobe multi_acc_check -api_info ./dump_path/step{step_number}/rank{rank_number
 
 **Output Description**
 
-After the `multi_acc_check` pre-check is performed, two CSV files are generated for each device. For details, see [Pre-check Result Description](#pre-check-result-comparison).
+After the `multi_acc_check` pre-check is performed, two CSV files are generated for each device. For details, see [Pre-check Result Description](#pre-check-result-description).
 
 ### Resumable Check
 

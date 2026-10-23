@@ -203,7 +203,7 @@ After determining the step to be analyzed, perform the following steps:
 
     - In Megatron and DeepSpeed models, `overlap` parameters (such as `overlap-param-gather` and `overlap-grad-reduce`) have high risks. You can disable these parameters first.
     - If a NaN error occurs when mixed precision is used in the FSDP framework, you are advised to first check for memory corruption caused by the TorchNPU framework by switching the TorchNPU version.
-    - The FA (`npu_fusion_attention`) fusion operator is complex, and parameter passing errors may occur during its use. You can disable the FA branch to determine whether the fault is caused by FA. If it is, check whether there are usage errors by referring to the [official FA documentation](https://gitcode.com/Ascend/op-plugin/blob/master/docs/en/custom_APIs/torch_npu/torch_npu-npu_fusion_attention.md).
+    - The FA (`npu_fusion_attention`) fusion operator is complex, and parameter passing errors may occur during its use. You can disable the FA branch to determine whether the fault is caused by FA. If it is, check whether there are usage errors by referring to the [official FA documentation](https://gitcode.com/Ascend/op-plugin/blob/26.2.0/docs/en/custom_APIs/torch_npu/torch_npu-npu_fusion_attention.md).
     - Ensure that the Inf/NaN mode or non-saturation mode is enabled. For details, see [Appendix - Non-Saturation Mode](#53-non-saturation-mode).
 
 ##### 2.3.1.2 First Step Loss Difference
@@ -297,9 +297,9 @@ Memory corruption usually occurs in precision issues that are characterized by o
 
 1. Enable asynchronous dump. Specifically, add `async_dump: true` to `config.json` of the [precision collection tool](#43-precision-collection-tool). In addition, collect tensor data from the first NaN occurrence in two training runs: one with stream synchronization (no NaN) and one without (NaN present). If `async dump` still affects reproduction, manually mount hooks or use `print` statements.
 2. Analyze whether the tensor difference pattern suggests memory corruption (e.g., regular corruption patterns: multiples of 2048, row-aligned, column-aligned).
-3. Use msProf in conjunction with msInsight to examine the computation parallelism. For detailed instructions, refer to the [msProf User Guide](https://gitcode.com/Ascend/msprof/blob/master/docs/en/quick_start/msprof_quick_start.md) and [msInsight User Guide](https://gitcode.com/Ascend/msinsight/blob/master/docs/en/user_guide/overview.md).
+3. Use msProf in conjunction with msInsight to examine the computation parallelism. For detailed instructions, refer to the [msProf User Guide](https://gitcode.com/Ascend/msprof/blob/26.2.0/docs/en/quick_start/msprof_quick_start.md) and [msInsight User Guide](https://gitcode.com/Ascend/msinsight/blob/26.2.0/docs/en/user_guide/overview.md).
 4. Add pointer address printing. For NaN occurrence locations, intrusively modify PyTorch or TorchNPU source code to add prints.
-5. Use the [operator detection tool](https://gitcode.com/Ascend/mssanitizer/blob/master/docs/en/quick_start/mssanitizer_quick_start.md) to check whether the operator's implementation (intra-pipeline for instruction execution, inter-pipeline for operator transfers, and inter-core for `aicube` and `aivector` parallelism) has anomalies indicating memory corruption.
+5. Use the [operator detection tool](https://gitcode.com/Ascend/mssanitizer/blob/26.2.0/docs/en/quick_start/mssanitizer_quick_start.md) to check whether the operator's implementation (intra-pipeline for instruction execution, inter-pipeline for operator transfers, and inter-core for `aicube` and `aivector` parallelism) has anomalies indicating memory corruption.
 6. If the root cause is still not found, refer to a more detailed memory issue debugging guide.
 
 ##### 2.3.2.2 Operator Determinism Issues
@@ -950,7 +950,7 @@ Result: Aligned loss.
 
 #### 3.1.3 Model Structure Inconsistency
 
-Case: An MOE model migrated from GPU to NPU showed loss misalignment.
+Case: An MoE model migrated from GPU to NPU showed loss misalignment.
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9cd35663-a6f7-4056-88a3-29051af73e60/image.png 'image.png')
 
@@ -1366,7 +1366,7 @@ Instructions
     - Place `debugger.stop()` after `loss.backward()` (usually placed after `loss.backward()` or `train_step()`).
     - Place `debugger.step()` at the end of an iteration and call it after the `stop` function.
 
-3. Output format: 
+3. Output format:
     The result is saved in the path specified by `dump_path` in the `config.json` file. The overall format is as follows:
 
     ![image.png](../figures/wiki/train_debug_guide/output_format.PNG)

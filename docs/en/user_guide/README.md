@@ -19,10 +19,10 @@ MindStudio Probe (msProbe) provides full-scenario precision debugging capabiliti
 | Pre-training Configuration Check | Before training or precision comparison, compare the configuration differences between two environments that may affect training precision. | [Pre-training Configuration Check](config_check_instruct.md) |
 | Data Loading | Load the collected module-level input tensors to override the actual model input and isolate the accumulated errors of the preceding sequence. | [Data Loading](dump/pytorch_data_load_instruct.md) |
 | Precision Pre-check | Scan all APIs of the training model on the Ascend NPU, and provide diagnosis and analysis of the precision situation. | [Precision Pre-check](accuracy_checker/pytorch_accuracy_checker_instruct.md) |
-| Compilation Precision Comparison | Perform eager and compile module-by-module precision comparison for models with `torch.compile` enabled, to localize forward, backward, or loss differences introduced by compilation. | [Compilation Precision Comparison](accuracy_compare/pytorch_compile_accuracy_compare_instruct.md) |
+| Compilation Precision Comparison | Perform eager and compile module-by-module precision comparison for models with `torch.compile` enabled, to localize forward, backward, or Loss differences introduced by compilation. | [Compilation Precision Comparison](accuracy_compare/pytorch_compile_accuracy_compare_instruct.md) |
 | checkpoint Comparison | During or after training, compare two different checkpoints and evaluate model similarity. | [checkpoint Comparison](checkpoint_compare_instruct.md) |
 | Network-wide First Overflow Node Analysis | In multi-rank scenarios, find the node where Nan or Inf first appears through dump data. | [Network-wide First Overflow Node Analysis](overflow_check/overflow_check_instruct.md) |
-| Trend Visualization | Visualize the trend of the statistical data from msProbe data collection or training status monitoring from the three dimensions of iteration step, node rank, and tensor target. | [Trend Visualization](accuracy_compare/trend_visualization_instruct.md) |
+| Trend Visualization | Visualize the trend of the statistical data from msProbe data collection or training status monitoring from the three dimensions of iteration step, node rank, and Tensor target. | [Trend Visualization](accuracy_compare/trend_visualization_instruct.md) |
 
 </details><br>
 
@@ -71,7 +71,7 @@ MindStudio Probe (msProbe) provides full-scenario precision debugging capabiliti
 |---|---|---|
 | Data Collection | By loading the ATB dump module before the ATB model runs, implement the collection of precision data during the ATB model running. | [Data Collection](dump/atb_data_dump_instruct.md) |
 | Precision Comparison | Perform precision comparison on the precision data dumped by ATB, and then localize precision problems. | [Precision Comparison](accuracy_compare/atb_data_compare_instruct.md) |
-| Data Conversion | Convert the precision data dumped by ATB into numpy (.npy) or PyTorch tensor (.pt) format files. | [Data Conversion](dump/data_parse_instruct.md) |
+| Data Conversion | Convert the precision data dumped by ATB into numpy (.npy) or PyTorch Tensor (.pt) format files. | [Data Conversion](dump/data_parse_instruct.md) |
 
 ## Offline Model Inference Scenario
 
@@ -93,7 +93,7 @@ MindStudio Probe (msProbe) provides full-scenario precision debugging capabiliti
 | Precision Comparison | Perform precision comparison on the precision data dumped by the msProbe tool, and then localize precision problems. | [Precision Comparison](accuracy_compare/mindspore_accuracy_compare_instruct.md) |
 | Training Status Monitoring | Collect and aggregate the intermediate values of the network layer, optimizer, and communication operators during model training, to help diagnose anomalies in the computation, communication, and optimizer parts during model training. | [Training Status Monitoring](monitor_instruct.md) |
 | Checkpoint Comparison | During or after training, compare two different checkpoints and evaluate model similarity. | [Checkpoint Comparison](checkpoint_compare_instruct.md) |
-| Trend Visualization | Visualize the trend of the statistical data from msProbe data collection or training status monitoring from the three dimensions of iteration step, node rank, and tensor target. | [Trend Visualization](accuracy_compare/trend_visualization_instruct.md) |
+| Trend Visualization | Visualize the trend of the statistical data from msProbe data collection or training status monitoring from the three dimensions of iteration step, node rank, and Tensor target. | [Trend Visualization](accuracy_compare/trend_visualization_instruct.md) |
 
 ## MSAdapter Scenario
 

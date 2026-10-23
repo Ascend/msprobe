@@ -31,7 +31,7 @@ msprobe config_check -vc <NPU_log> <bench_log> [-o <compare_result>]
 | Parameter                | Mandatory/Optional | Description                                                     |
 | ------------------- | ------------------ | ------------------------------------------------------------ |
 | `-vc` or `--verl-compare` | Mandatory          | Performs the comparison operation. `NPU_log` and `bench_log` are the paths to the two verl training logs to be compared. For detailed path configuration, see [Log Path Description](#log_path). |
-| `-o` or `--output`        | Optional           | Output path for the comparison result. Defaults to `./verl_param_compare_resul`t under the current execution directory. A custom folder path may also be specified.|
+| `-o` or `--output`        | Optional           | Output path for the comparison result. Defaults to `./verl_param_compare_result` under the current execution directory. A custom folder path may also be specified.|
 
 **Log Path Description**<a name="log_path"></a>
 
@@ -60,7 +60,7 @@ Three files are generated in the comparison result output path:
 
 - `bench_config.json`: Configuration extracted from the benchmark log.
 - `NPU_config.json`: Configuration extracted from the NPU log.
-- hyper_params_compare.csv: the comparison result. Since the profiler- and ray-related configuration information in the hyperparameters is unrelated to the training itself, this csv file does not include the comparison of configurations related to the hyperparameters, profiler, and ray. It contains one sheet, which includes the hyperparameter name, the NPU effective value, the bench effective value, and whether they are consistent.
+- `hyper_params_compare.csv`: the comparison result. Since the profiler- and ray-related configuration information in the hyperparameters is unrelated to the training itself, this csv file does not include the comparison of configurations related to the hyperparameters, profiler, and ray. It contains one sheet, which includes the hyperparameter name, the NPU effective value, the bench effective value, and whether they are consistent.
 
 The following is the example content of `hyper_params_compare.csv`:
 

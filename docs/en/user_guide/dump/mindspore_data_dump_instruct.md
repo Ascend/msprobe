@@ -41,7 +41,7 @@ For details, see [Dynamic Graph Quick Start](mindspore_dump_quick_start.md).
 
 ### Overview
 
-In static graph mode with `ms_backend(jit_level=O0/O1)` set, msProbe supports data collection at L0 and L2 levels, and does not support `ge_backend(jit_level=O)`.
+In static graph mode with `ms_backend(jit_level=O0/O1)` set, msProbe supports data collection at L0 and L2 levels, and does not support `ge_backend(jit_level=O2)`.
 
 - **L0 level (cell level)**: collects data of `cell` objects. This level is applicable to the scenario where a specific network module needs to be analyzed. Only MindSpore 2.7.0 and later versions support this feature.
 
@@ -768,9 +768,9 @@ start(model=None, token_range=None, rank_id=None)
 
   Note: By default, the tool automatically obtains the unique rank ID using the **mindspore.communication.get_rank** API (**get_rank**) in the multi-rank multi-process scenario.
   However, in some special scenarios, **get_rank** may fail to obtain the unique rank ID. For example, in the SGLang DP inference scenario, DP workers are independent, distributed clusters. As a result, **get_rank** returns duplicate rank IDs, causing the rank folders of the dump results to be overwritten and dump data to be lost.
-  
+
   To solve this problem, you can set **rank_id** to name the rank folder, but ensure that rank ID is unique in each process. The value can be obtained from the model script or training/inference framework. For example, **self.gpu_id** in the SGLang inference framework is unique in each process.
-  
+
   Example: `debugger.start(rank_id=self.gpu_id)`
 
 **Returns**

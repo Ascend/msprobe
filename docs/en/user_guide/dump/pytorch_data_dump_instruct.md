@@ -893,23 +893,23 @@ debugger.start(model=None, token_range=None, rank_id=None, scheduled_tokens=None
 **Parameters**
 
 - **model**: model whose module-level data needs to be collected. The input can be of the **torch.nn.Module**, **list[torch.nn.Module]**, or **Tuple[torch.nn.Module]** type. By default, this parameter is not configured.
-  
+
   This parameter must be set in this API when **level** is set to **L0** or **mix**, or **token_range** is not **None**.
 
   For a complex model, if only part of the model needs to be monitored (for example, **model.A** and **model.A extends torch.nn.Module**), pass the part to be monitored (**model.A**).
-  
+
   Note: The passed layer is not dumped; the tool dumps only the sub-layers of the passed layer. For example, if **model.A** is passed, **A** itself is not dumped; instead, **A**.*x*, **A**.*x.xx*, etc. are dumped.
 
 - **token_range**: token range during inference model data collection. The type is **[int, int]**, indicating **[start, end]** of a range. By default, this parameter is not configured.
-  
+
 - **rank_id**: user-defined rank ID. The value is an integer greater than or equal to 0. By default, this parameter is not configured. The tool obtains the rank ID via the **torch.distributed.get_rank** API.
   After this parameter is configured, *{ID}* in the name of the rank folder of the dump results is the value of this parameter.
 
   Note: By default, the tool automatically obtains the unique rank ID using the **torch.distributed.get_rank** API (**get_rank**) in the multi-rank multi-process scenario.
   However, in some special scenarios, **get_rank** may fail to obtain the unique rank ID. For example, in the SGLang DP inference scenario, DP workers are independent, distributed clusters. As a result, **get_rank** returns duplicate rank IDs, causing the rank folders of the dump results to be overwritten and dump data to be lost.
-  
+
   To solve this problem, you can set **rank_id** to name the rank folder, but ensure that rank ID is unique in each process. The value can be obtained from the model script or training/inference framework. For example, **self.gpu_id** in the SGLang inference framework is unique in each process.
-  
+
   Example: `debugger.start(rank_id=self.gpu_id)`
 
 - **scheduled_tokens**: specifies the number of tokens occupied by each request in the current scheduling. The value is of the dict type: the key is a str representing the request ID, and the value is an int greater than or equal to 0, representing the number of tokens occupied by the request. Configuration example: `debugger.start(scheduled_tokens={"chatcmpl-req-0": 10, "chatcmpl-req-1": 15})`.
@@ -1041,7 +1041,7 @@ save(variable, name, save_backward=True)
 
 | Parameter         | Description    | Support Data Type                                          | Required (Yes/No)|
 |---------------|----------|--------------------------------------------------|------|
-| variable      | Required      | The variable to be saved. Supported data types: dict, list, tuple, torch.tensor, int, float, str. |
+| variable      | Required      | The variable to be saved. Supported data types: dict, list, tuple, torch.tensor, int, float, str. | Yes   |
 | name          | Specified name.   | str                                              | Yes   |
 | save_backward | Whether to save backward data.| boolean                                          | No   |
 
@@ -1095,7 +1095,7 @@ debugger.register_custom_api(module, api, api_prefix)
 
 - **module**: (required) package to which the API belongs, that is, **torch**.
 - **api**: (required) API name, which is of the str type, that is, **matmul**.
-- api_prefix: Optional. The prefix of the API name in [dump.json](#dumpjson-description), which defaults to the string form of the package name, that is, "torch".
+- **api_prefix**: Optional. The prefix of the API name in [dump.json](#dumpjson-description), which defaults to the string form of the package name, that is, "torch".
 
 **Returns**
 

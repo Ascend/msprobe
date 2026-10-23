@@ -150,8 +150,8 @@ The two training processes exchange data through a shared data directory, enabli
 
 ### Constraints
 
-- Currently support the verl reinforcement learning framework.
-- Require two training processes to use the same configuration and data, and both training processes must be able to be launched simultaneously.
+- Currently supports the verl reinforcement learning framework.
+- Requires two training processes to use the same configuration and data, and both training processes must be able to be launched simultaneously.
 - The shared data path must be accessible and have sufficient storage space.
 
 ### Parameter Description
@@ -375,7 +375,7 @@ python train.py \
 
 - Inference phase: Execute inference and save rollout data
 - Training phase: Load the checkpoint of training process B
-  
+
 Training process B (`rollout` mode):
 
 ```bash

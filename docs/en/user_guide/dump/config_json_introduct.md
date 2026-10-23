@@ -385,10 +385,10 @@ To reduce collection overhead in large-tensor scenarios, users are advised to us
 
 | Configuration Field | Example | Description                              |
 |---------|---------|---------------------------------|
-| `begin` | `"slice": [{"begin": 10}]` | Removes the first 10 elements of dimension 0                    |
+| `begin` | `"slice": [{"begin": 10}]` | Remove the first 10 elements of dimension 0                    |
 | `begin` (negative) | `"slice": [{"begin": -10}]` | Keeps the last 10 elements of dimension 0                    |
 | `end` | `"slice": [{"end": 10}]` | Keeps the first 10 elements of dimension 0                    |
-| `end` (negative) | `"slice": [{"end": -10}]` | Removes the last 10 elements of dimension 0                    |
+| `end` (negative) | `"slice": [{"end": -10}]` | Remove the last 10 elements of dimension 0                    |
 | `begin` + `end` | `"slice": [{"begin": 10, "end": 20}]` | For dimension 0, keeps the data in the index range [10, 20) (10 elements in total)   |
 | `dim` + `begin` + `end` | `"slice": [{"dim": 1, "begin": 10, "end": 20}]` | For dimension 1, keeps the data in the index range [10, 20) (10 elements in total)   |
 | `size` + `begin` + `end` | `"slice": [{"size": 50, "begin": 10, "end": 20}]` | Keeps the data in the index range [10, 20) (10 elements in total) when the length of dimension 0 is 50 |

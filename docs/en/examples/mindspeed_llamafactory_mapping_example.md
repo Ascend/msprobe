@@ -24,7 +24,7 @@ The configurations used in this example are described as follows. For more confi
     "async_dump": false,
 
     "statistics": {
-        "scope": [], 
+        "scope": [],
         "list": [],
         "tensor_list": [],
         "data_mode": ["all"],
@@ -83,7 +83,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path -lm
 
 For details about the parameters, see [Hierarchical Visualization Overview](../user_guide/accuracy_compare/pytorch_visualization_instruct.md#hierarchical-visualization-overview).
 
-For model comparison scenarios that involve both the MindSpeed and LlamaFactory frameworks, the `-lm` parameter is mandatory. The following content describes how to configure the `layer_mapping.yaml` file required by this parameter.
+For model comparison scenarios that involve both the MindSpeed and LLamaFactory frameworks, the `-lm` parameter is mandatory. The following content describes how to configure the `layer_mapping.yaml` file required by this parameter.
 
 After model comparison in hierarchical visualization mode is complete, you can use TensorBoard to view the model structure and precision comparison result on the browser page. For details, see [Starting TensorBoard](../user_guide/accuracy_compare/pytorch_visualization_instruct.md#starting-tensorboard) and [Viewing Results in a Browser](../user_guide/accuracy_compare/pytorch_visualization_instruct.md#viewing-results-in-browser).
 
@@ -246,7 +246,7 @@ Qwen2MLP:
 
 #### layer_mapping Configuration
 
-The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench side are used as examples.
+The Qwen2.5vl model, MindSpeed on the NPU side, and LLamaFactory on the Bench side are used as examples.
 
 1. Print model structures.
 
@@ -259,11 +259,11 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 - Structure 1
 
    ![1.png](../figures/visualization/mindspeed_llamafactory_img/1.png)
-   
+
    ```yaml
    TopLayer: # Top layer of the model
      0.module: module  # The model type of MindSpeed is list. msProbe adds a numeric prefix to represent the index of the current model in the list. Therefore, a mapping from 0.module to module is required.
-   
+
    Float16Module: # Float16Module of MindSpeed is at the same level as Qwen2_5_VLForConditionalGeneration of LLamaFactory. Map their sub-layers.
      module.image_encoder: visual # Float16Module of MindSpeed has an additional sub-layer module. Cross-layer elements are separated by periods (.), such as module.image_encoder.
      module.text_decoder: model
@@ -272,7 +272,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 - Structure 2
 
    ![2.png](../figures/visualization/mindspeed_llamafactory_img/2.png)
-   
+
    ```yaml
    VisionModel: # VisionModel of MindSpeed is at the same level as Qwen2_5_VisionPatchEmbed of LLamaFactory. Map their sub-layers.
      encoder.patch_embed: patch_embed
@@ -284,7 +284,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 - Structure 3
 
    ![3.png](../figures/visualization/mindspeed_llamafactory_img/3.png)
-   
+
    ```yaml
    TransformerLayer: # TransformerLayer of MindSpeed is at the same level as Qwen2_5_VLVisionBlock of LLamaFactory. Map their sub-layers.
      input_layernorm: norm1
@@ -295,12 +295,12 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 - Structure 4
 
    ![4.png](../figures/visualization/mindspeed_llamafactory_img/4.png)
-   
+
    ```yaml
    Qwen2vlVitSelfAttention: # Qwen2vlVitSelfAttention of MindSpeed is at the same level as Qwen2_5_VLVisionSdpaAttention of LLamaFactory. Map their sub-layers.
      linear_qkv: qkv
      linear_proj: proj
-   
+
    MLP: # MLP of MindSpeed is at the same level as Qwen2_5_VLMLP of LLamaFactory. Map their sub-layers.
      linear_fc1: up_proj
      linear_fc2: down_proj
@@ -309,7 +309,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 - Structure 5
 
    ![5.png](../figures/visualization/mindspeed_llamafactory_img/5.png)
-   
+
    ```yaml
    MultimodalProjector: # MultimodalProjector of MindSpeed is at the same level as Qwen2_5_VLPatchMerger of LLamaFactory. Map their sub-layers.
      layernorm: ln_q
@@ -321,7 +321,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 - Structure 6
 
    ![6.png](../figures/visualization/mindspeed_llamafactory_img/6.png)
-   
+
    ```yaml
    MMGPTModel: # MMGPTModel of MindSpeed is at the same level as Qwen2_5_VLModel of LLamaFactory. Map their sub-layers.
      embedding.word_embeddings: embed_tokens
@@ -334,7 +334,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 - Structure 7
 
    ![7.png](../figures/visualization/mindspeed_llamafactory_img/7.png)
-   
+
    The TransformerLayer and MLP layers have already been configured and cannot be modified. You can [Manually Selecting Nodes for Mapping](#selecting-nodes-for-mapping).
 
 ### Selecting Nodes for Mapping

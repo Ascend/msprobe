@@ -25,7 +25,7 @@ The following cases are classified into basic cases and the two major scenarios 
 - Engines & Acceleration Libraries
   - [GradNorm NaN Localization Based on Complex Dump Data Analysis on Ascend](./ascend_complex_dump_gradnorm_nan_analysis.md)
   - [Kimi2.5 Training-Inference Consistency Optimization on Ascend](./ascend_kimi2_5_train_infer_consistency_optimization.md)
-  - [GLM5 Adaptation and Training-Inference Consistency Optimization on Ascend](./ascend_glm5_adaptation_training_Inference_consistency_optimization.md)
+  - [GLM-5 Adaptation and Training-Inference Consistency Optimization on Ascend](./ascend_glm5_adaptation_training_Inference_consistency_optimization.md)
   - [RL Training-Inference Consistency Troubleshooting](./ascend_rl_train_infer_consistency_alignment.md)
 - Non-Ascend Software Stack Issues
   - [Loss Difference Localization for Qwen2.5-omni Migration on Ascend](./ascend_qwen2_5_omni_loss_diff_localization.md)

@@ -121,7 +121,7 @@ In the following description, these two scenarios are essentially a comparison b
     ```python
     Model configuration (Model Config)
     ==================================================
-    ModelConfig(model='meta-llama/Llama-2-7b-hf', tokenizer='meta-llama/Llama-2-7b-hf', tokenizer_mode=auto, trust_remote_code=True, dtype=torch.float16, seed=0, skip_tokenizer_init=False, use_v2_block_manager=False, ...
+    ModelConfig(model='meta-llama/Llama-2-7b-hf', tokenizer='meta-llama/Llama-2-7b-hf', tokenizer_mode=auto, trust_remote_code=True, dtype=torch.float16, seed=0, skip_tokenizer_init=False, use_v2_block_manager=False, ...)
     ```
 
 ### 4.2 Preparations for Reproducing a Problem

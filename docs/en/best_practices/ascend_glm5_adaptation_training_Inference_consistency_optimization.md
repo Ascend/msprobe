@@ -1,4 +1,4 @@
-# GLM5 Adaptation and Train-Inference Consistency Optimization on Ascend
+# GLM-5 Adaptation and Train-Inference Consistency Optimization on Ascend
 
 ## Case Introduction
 
@@ -12,8 +12,8 @@ Use the RL framework verl to deliver the GLM-5 model. After training for a certa
 
 ### Phased Planning
 
-1. Get the vllm-ascend single-inference model running, with the precision meeting the requirements and the single-inference evaluation score reproducing the paper; clarify the vllm and vllm-ascend versions.
-2. Adapt MindSpeed-RL and megatron-bridge; clarify each version and the tokenizer version used by transformer.
+1. Get the vllm-ascend single-inference model running, with the precision meeting the requirements and the single-inference evaluation score reproducing the paper; clarify the vLLM and vllm-ascend versions.
+2. Adapt MindSpeed-RL and Megatron-Bridge; clarify each version and the tokenizer version used by transformer.
 3. Connect training and inference on the verl framework, get the reduced-layer end-to-end run working, and clarify the verl version.
 4. Verify whether the weight saving and resumable training functions work properly.
 5. Align the training-inference differences and verify the precision.
@@ -45,7 +45,7 @@ This document uses the [dapo-math-17k](https://huggingface.co/datasets/BytedTsin
 
 ### Partial Model Structure of the Training Engine and Inference Engine
 
-Before the localization process - precision alignment - training-inference consistency troubleshooting, it is necessary to first understand the structures with which the training engine and the inference engine respectively implement the Attention module computation in the GLM5 model.
+Before the localization process - precision alignment - training-inference consistency troubleshooting, it is necessary to first understand the structures with which the training engine and the inference engine respectively implement the Attention module computation in the GLM-5 model.
 
 #### Training-Side Megatron
 
@@ -121,7 +121,7 @@ Before the localization process - precision alignment - training-inference consi
 
 #### Dual-Branch Linkage of MLA + DSA
 
-This figure shows the complete forward computation flow of the GLM5 attention layer, which is divided into two major parts:
+This figure shows the complete forward computation flow of the GLM-5 attention layer, which is divided into two major parts:
 
 - Left: the Multi-head Latent Attention (MLA) main branch, which implements low-rank latent attention and is the core of the dense computation.
 - Right: the Indexer + Top-k branch of DeepSeek Sparse Attention (DSA), which implements key token selection for long sequences and is the core of the sparse optimization. The two share the same input `hidden` and ultimately jointly affect the computation range and result of attention.
@@ -422,7 +422,7 @@ At the same time, it was found that the `eps` input parameter of `k_norm` is inc
 
 #### Difference 3: RoPE Mode—Half/Interleave
 
-On the inference side, Lightning Index RoPE adopts a Half precision fusion implementation, while the training side uses a native interleave small-operator implementation; the two modes are inconsistent. Because the public Triton-Ascend implementation could not be obtained during the GLM5 adaptation development stage, `HAS_TRITON=False` was manually configured during adaptation. Moreover, GLM5 and DeepSeekV32 reuse the `sfa_v1.py` file, which causes the RoPE logic of the Indexer to default to the half precision branch, inconsistent with the interleave implementation specification specified in the technical report. After confirmation from multiple parties, the inference side's q and k were replaced with the `torch_npu.npu_interleave_rope(x, cos, sin)` implementation; after verification, the output was completely identical to the Megatron small-operator result. After the modification, the training experiment was rerun, and the metric `training/rollout_probs_diff_mean` was observed to drop further.
+On the inference side, Lightning Index RoPE adopts a Half precision fusion implementation, while the training side uses a native interleave small-operator implementation; the two modes are inconsistent. Because the public Triton-Ascend implementation could not be obtained during the GLM-5 adaptation development stage, `HAS_TRITON=False` was manually configured during adaptation. Moreover, GLM-5 and DeepSeek-V3.2 reuse the `sfa_v1.py` file, which causes the RoPE logic of the Indexer to default to the half precision branch, inconsistent with the interleave implementation specification specified in the technical report. After confirmation from multiple parties, the inference side's q and k were replaced with the `torch_npu.npu_interleave_rope(x, cos, sin)` implementation; after verification, the output was completely identical to the Megatron small-operator result. After the modification, the training experiment was rerun, and the metric `training/rollout_probs_diff_mean` was observed to drop further.
 
 Training side (small-operator implementation of the interleave format):
 

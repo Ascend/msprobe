@@ -59,7 +59,7 @@ If an abnormal node exists, the `anomaly_analyze_{timestamp}.json` file is gener
 {
   "rank_0": [ // Rank ID
     {
-      "op_name": "Tensor.op_name.0.forward,"  // Node name
+      "op_name": "Tensor.op_name.0.forward",  // Node name
       "data_info": {
         "input_args": [],  // input_args
         "input_kwargs": {},  // input_kwargs

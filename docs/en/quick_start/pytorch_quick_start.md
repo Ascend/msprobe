@@ -520,7 +520,7 @@ cat > ~/config.json << EOF
 EOF
 ```
 
-Refer to [Section 2.2.2](#212-host-automatically-identify-and-configure-image-environment-variables) to write the training code into `~/precision_sample.py`, then start training and data collection:
+Refer to [Section 2.2.2](#222-prepare-model-training-code) to write the training code into `~/precision_sample.py`, then start training and data collection:
 
 ```bash
 python3 ${HOME}/precision_sample.py --gpu 0

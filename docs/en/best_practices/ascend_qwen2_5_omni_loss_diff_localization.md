@@ -2,7 +2,7 @@
 
 ## Background
 
-When migrating the Qwen2.5-omni training service based on the LLaMA-Factory framework from the GPU to the Ascend platform, the problem of misaligned loss and training result errors under the same framework is encountered. Such cross-platform precision differences directly affect the effect evaluation after model migration. This document records the systematic troubleshooting process of this problem: by gradually excluding factors such as LayerNorm, GELU, and learning rate, it was finally confirmed that the cause is the network's sensitivity to subtle accumulated errors, rather than an Ascend software stack problem, providing a reference for precision alignment troubleshooting in similar framework migrations.
+When migrating the Qwen2.5-omni training service based on the LLaMA-Factory framework from the GPU to the Ascend platform, the problem of misaligned Loss and training result errors under the same framework is encountered. Such cross-platform precision differences directly affect the effect evaluation after model migration. This document records the systematic troubleshooting process of this problem: by gradually excluding factors such as LayerNorm, GELU, and learning rate, it was finally confirmed that the cause is the network's sensitivity to subtle accumulated errors, rather than an Ascend software stack problem, providing a reference for precision alignment troubleshooting in similar framework migrations.
 
 ## Symptoms
 

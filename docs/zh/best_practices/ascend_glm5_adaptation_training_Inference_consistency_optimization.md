@@ -1,4 +1,4 @@
-# 基于昇腾的GLM5适配与训推一致性优化
+# 基于昇腾的GLM-5适配与训推一致性优化
 
 ## 案例简介
 
@@ -23,8 +23,8 @@
 
 | 组件 | 配套版本 | 备注（commit） |
 | --- | --- | --- |
-| python | 3.11 | |
-| pytorch | 2.9.0 | |
+| Python | 3.11 | |
+| PyTorch | 2.9.0 | |
 | vllm | v0.17.0 | commit b31e932 |
 | vllm-ascend | v0.17.0rc1 | commit e20f0b1 |
 | verl | 0.7.0 | commit 0c06358 |
@@ -45,7 +45,7 @@
 
 ### 训练引擎与推理引擎部分模型结构
 
-在进行定位过程-精度对齐-训推一致性排查前，需先了解训练引擎和推理引擎分别实现GLM5模型中Attention模块计算的结构。
+在进行定位过程-精度对齐-训推一致性排查前，需先了解训练引擎和推理引擎分别实现GLM-5模型中Attention模块计算的结构。
 
 #### 训练侧 Megatron
 
@@ -121,7 +121,7 @@
 
 #### 整体结构：MLA + DSA 双分支联动
 
-这张图展示了 GLM5 注意力层的完整前向计算流，分为两大块：
+这张图展示了 GLM-5 注意力层的完整前向计算流，分为两大块：
 
 - 左侧：MLA（Multi-head Latent Attention）主分支，实现低秩隐式注意力，是稠密计算的核心。
 - 右侧：DSA（DeepSeek Sparse Attention）的 Indexer + Top-k 分支，实现长序列关键 Token 筛选，是稀疏优化的核心。两者共享同一个输入 `hidden`，最终协同影响注意力的计算范围和结果。
@@ -422,7 +422,7 @@ actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
 
 #### 差异点三：rope 模式 - half/interleave
 
-Lightning Index 推理侧 RoPE 采用 Half 精度融合实现，训练侧基于 Interleave 小算子原生实现，二者模式不一致。因 GLM5 适配开发阶段暂无法获取公网 Triton-Ascend 实现，适配时手动配置 HAS_TRITON=False；且 GLM5 与 DeepSeekV32 复用 sfa_v1.py 文件，导致 Indexer 的 RoPE 逻辑默认走 half 精度分支，与技术报告指定的 Interleave 实现规范不符。多方确认后，将推理侧 q、k 替换为 torch_npu.npu_interleave_rope(x, cos, sin) 实现，经过验算输出与 Megatron 小算子结果完全一致。修改后重新跑训练实验，观察指标 training/rollout_probs_diff_mean 进一步下降。
+Lightning Index 推理侧 RoPE 采用 Half 精度融合实现，训练侧基于 Interleave 小算子原生实现，二者模式不一致。因 GLM-5 适配开发阶段暂无法获取公网 Triton-Ascend 实现，适配时手动配置 HAS_TRITON=False；且 GLM-5 与 DeepSeek-V3.2 复用 sfa_v1.py 文件，导致 Indexer 的 RoPE 逻辑默认走 half 精度分支，与技术报告指定的 Interleave 实现规范不符。多方确认后，将推理侧 q、k 替换为 torch_npu.npu_interleave_rope(x, cos, sin) 实现，经过验算输出与 Megatron 小算子结果完全一致。修改后重新跑训练实验，观察指标 training/rollout_probs_diff_mean 进一步下降。
 
 训练使用小算子实现 interleave 格式：
 

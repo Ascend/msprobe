@@ -450,9 +450,9 @@ from msprobe.pytorch.monitor.csv2tb import csv2tensorboard_by_step
 #     ["actv", "actv_grad", "exp_avg", "exp_avg_sq", "grad_unreduced", "grad_reduced", "param_origin", "param_updated"]
 # output_dirpath specifies the output directory. By default, the result is saved to the {curtime}_csv2tensorboard_by_step folder. curtime is the current timestamp that is automatically obtained.
 csv2tensorboard_by_step(
-    monitor_path="~/monitor_output,"  # Mandatory
-    time_start="Dec03_21-34-40,"  # Mandatory
-    time_end="Dec03_21-34-42,"  # Mandatory
+    monitor_path="~/monitor_output",  # Mandatory
+    time_start="Dec03_21-34-40",  # Mandatory
+    time_end="Dec03_21-34-42",  # Mandatory
     process_num=8,
     data_type_list=["param_origin"]
 )
@@ -526,7 +526,7 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
 You can specify the output format by setting `format`, which supports `csv` (default value) only.
 
 - **csv**:
-  The monitoring result is written into a .csv file. You can set the number of decimal places by using the `ndigits` field. 
+  The monitoring result is written into a .csv file. You can set the number of decimal places by using the `ndigits` field.
   The header is `vpp_stage | name | step | micro_step(optional) | *ops |`.
   `micro_step` is contained only in the output file of activation monitoring.
   `name` of activation monitoring is `<module_name>.<input or output>`, and `name` of other tasks is `<param_name>`.
