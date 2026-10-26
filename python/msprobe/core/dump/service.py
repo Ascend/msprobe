@@ -47,6 +47,11 @@ class BaseService(ABC):
         self.current_pid = os.getpid()
         self.dump_iter_dir = None
         self.should_stop_service = False
+        # load-only: step()-driven step count used to keep the load step advancing
+        # after should_stop_service freezes loop (see _sync_tensor_loader); advanced
+        # in step() before the should_stop_service early return so it stays 1:1 with
+        # training steps regardless of how many times start() is called per step
+        self._load_step_count = 0
         self.hooked_modules = []
         self.ori_customer_func = {}
         self.debug_variable_counter = None
@@ -123,6 +128,44 @@ class BaseService(ABC):
         """Toggle JitDump switch. MindSpore subclass overrides."""
         pass
 
+    def _sync_tensor_loader(self, rank_id=None):
+        """Keep the tensor loader aligned with the current step/rank on every start().
+
+        Load-specific: module hooks (including the load override) stay mounted on
+        ranks/steps excluded by the dump rank/step filters, so the loader must be
+        refreshed before those filters' early returns in start(). This helper is
+        deliberately independent of the generic first_start rank resolution:
+        self.current_rank and Runtime.current_rank stay owned by that block, and
+        the rank used here only falls back to a local resolution while unset.
+        """
+        module_processor = getattr(self, 'module_processor', None)
+        tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
+        if tensor_loader is None:
+            return
+        rank = self.current_rank
+        if rank is None:
+            # filtered ranks/steps may return before the first_start block
+            # resolves self.current_rank; resolve locally for the loader only
+            if rank_id is not None:
+                rank = rank_id
+            else:
+                try:
+                    rank = self._get_current_rank()
+                except DistributedNotInitializedError:
+                    rank = None
+        step = self.current_iter
+        if self.should_stop_service:
+            # step() returns before loop += 1 once should_stop_service is set, so
+            # current_iter freezes at the first step past the dump range; use the
+            # step()-driven load counter instead (robust to repeated start() calls
+            # within one training step, unlike a per-start increment)
+            step = self.init_step + self._load_step_count
+        else:
+            # keep the counter aligned with the authoritative source while it still
+            # advances (also self-heals after a config reload resets the flag)
+            self._load_step_count = self.loop
+        tensor_loader.update_step_rank(step, rank)
+
     def start(self, model=None, token_range=None, rank_id=None, scheduled_tokens=None):
         """Common start flow."""
         self._process_iteration()
@@ -131,6 +174,10 @@ class BaseService(ABC):
             return
         if self._is_debug_level:
             return
+        # load-specific: refresh tensor loader state before any dump-filter early
+        # return below (module hooks incl. load override stay mounted on filtered
+        # ranks/steps); generic rank resolution stays in the first_start block.
+        self._sync_tensor_loader(rank_id)
         if model:
             self.model = model
         if self._is_need_module_hook and self.model not in self.hooked_modules:
@@ -166,17 +213,12 @@ class BaseService(ABC):
             Runtime.is_running = False
             return
 
-        # update tensor loader with current step/rank (called after current_rank is set in first_start block)
-        # Must be before the load-only check below so active flag is set before any logs.
-        module_processor = getattr(self, 'module_processor', None)
-        if module_processor and getattr(module_processor, 'tensor_loader', None):
-            module_processor.tensor_loader.update_step_rank(self.current_iter, self.current_rank)
-
         # load-only mode: dump_after_load=false, only override, no dump.
         # If load.step specifies specific steps and current step is not in range,
         # skip entirely — no override, no log, no overhead.
         load_config = getattr(self.config, 'load_config', None)
         if load_config and load_config.is_enabled and not load_config.dump_after_load:
+            module_processor = getattr(self, 'module_processor', None)
             tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
             if tensor_loader and not tensor_loader.active:
                 Runtime.is_running = False
@@ -203,26 +245,22 @@ class BaseService(ABC):
         if not self._is_dump_enabled:
             self._disable_dump_runtime()
             return
+        # load is independent of the dump step/rank filters and of the dump
+        # stop-service state: hooks (incl. load override) keep running there,
+        # so unhit-module reporting must run there too.
+        load_config = getattr(self.config, 'load_config', None)
+        if load_config and load_config.is_enabled:
+            module_processor = getattr(self, 'module_processor', None)
+            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
+            # load-only mode and current step not in load.step range: skip stop logic silently
+            if not load_config.dump_after_load and tensor_loader and not tensor_loader.active:
+                return
+            if tensor_loader and tensor_loader.active:
+                tensor_loader.check_unhit()
         if self._is_debug_level or self.should_stop_service:
             return
         if self._is_no_dump_step or self._is_no_dump_rank:
             return
-        # load-only mode: if current step is not in load.step range, skip stop logic silently
-        load_config = getattr(self.config, 'load_config', None)
-        if load_config and load_config.is_enabled and not load_config.dump_after_load:
-            module_processor = getattr(self, 'module_processor', None)
-            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
-            if tensor_loader and not tensor_loader.active:
-                return
-            # check unhit modules before stop
-            if tensor_loader:
-                tensor_loader.check_unhit()
-        # for dump_after_load=true mode, also check unhit modules
-        if load_config and load_config.is_enabled and load_config.dump_after_load:
-            module_processor = getattr(self, 'module_processor', None)
-            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
-            if tensor_loader and tensor_loader.active:
-                tensor_loader.check_unhit()
         self.logger.info_on_rank_0(
             f"{Const.TOOL_NAME}: debugger.stop() is set successfully. "
             "Please set debugger.start() to turn on the dump switch again. "
@@ -236,6 +274,9 @@ class BaseService(ABC):
 
     def step(self):
         """Common step flow."""
+        # load-only: advance before the early return below so the load step keeps
+        # tracking training steps once should_stop_service freezes loop
+        self._load_step_count += 1
         if self.should_stop_service:
             return
         self._flush_dump_result()

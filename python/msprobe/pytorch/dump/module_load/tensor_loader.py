@@ -72,6 +72,8 @@ class TensorLoader:
         self.active = True
         # track which modules have been hit by should_override
         self._hit_modules = set()
+        # one-time warning flag for the unsynced-state guard in should_override
+        self._warned_unsynced = False
 
     def validate_modules(self, model):
         """Validate module paths in load.modules against model's named_modules().
@@ -163,7 +165,8 @@ class TensorLoader:
         return "", parts[0]
 
     def update_step_rank(self, current_step, current_rank):
-        """Called by service at each start() to inform loader of current step/rank.
+        """Called by service at each start() (via _sync_tensor_loader, before any
+        dump-filter early return) to inform loader of current step/rank.
 
         Clears the tensor cache so each step reloads from source.
         Also sets active flag based on whether current step is in load.step range.
@@ -196,6 +199,18 @@ class TensorLoader:
         Returns:
             bool
         """
+        if self._current_step is None:
+            # Loader state was never synced by service.start(). A synced loader
+            # always has an int step (rank may legitimately be None in single-card
+            # runs), so step None means unsynced. Warn once and skip override
+            # instead of building bogus source paths (e.g. stepNone/proc{pid}).
+            if not self._warned_unsynced:
+                logger.warning(
+                    "[load] step/rank state not initialized (update_step_rank never called), "
+                    "skip override for configured modules"
+                )
+                self._warned_unsynced = True
+            return False
         hit = full_forward_name in self.modules
         if hit:
             self._hit_modules.add(full_forward_name)
@@ -349,7 +364,9 @@ class TensorLoader:
         Directory naming matches dump-side _create_default_dirs:
             - rank is not None (distributed): rank{N}
             - rank is None (single-card): proc{pid}, auto-discovered via glob
-              (source dump pid differs between runs)
+              (source dump pid differs between runs); when no proc* dir exists
+              the error is classified by the source layout (missing step dir /
+              distributed rank* source / genuine proc* absence) for diagnosability
         """
         step = self._current_step
         rank = self._current_rank
@@ -360,12 +377,25 @@ class TensorLoader:
             step_dir = os.path.join(self.path, f"step{step}")
             proc_dirs = glob.glob(os.path.join(step_dir, f"{Const.PROC}*"))
             if not proc_dirs:
-                logger.error(
-                    f"[load] no proc* directory found in {step_dir}. "
-                    "Please verify load.path is a valid dump directory with step{N}/proc{pid}/ structure. "
-                    "Source dump pid differs from current process, auto-discovery failed."
-                )
                 rank_subdir = f"{Const.PROC}{os.getpid()}"  # fallback (will likely miss)
+                if not os.path.isdir(step_dir):
+                    logger.error(
+                        f"[load] step directory not found: {step_dir}. "
+                        "Source dump has no such step; check load.path and step alignment "
+                        "(load.step / source dump step range)."
+                    )
+                elif glob.glob(os.path.join(step_dir, f"{Const.RANK}*")):
+                    logger.error(
+                        f"[load] current process has no rank (single-card or distributed not "
+                        f"initialized) but source dump {step_dir} uses rank{{N}} directories; "
+                        "check the run mode or load.path."
+                    )
+                else:
+                    logger.error(
+                        f"[load] no proc* directory found in {step_dir}. "
+                        "Please verify load.path is a valid dump directory with step{N}/proc{pid}/ structure. "
+                        "Source dump pid differs from current process, auto-discovery failed."
+                    )
             else:
                 rank_subdir = os.path.basename(proc_dirs[0])
                 if len(proc_dirs) > 1:

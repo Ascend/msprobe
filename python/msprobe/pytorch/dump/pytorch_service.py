@@ -128,3 +128,20 @@ class PytorchService(BaseService):
         ModuleProcessor.reset_module_stats()
         HOOKModule.reset_module_stats()
         reset_dist_collect_func()
+
+    def step(self):
+        """Pytorch step flow.
+
+        Load-specific: once should_stop_service is set, the generic step() returns
+        before _reset_status, so the module call counter would keep accumulating
+        across steps and the load-side forward names (forward.N) would drift away
+        from the source dump naming. Reset the counter at the step boundary so
+        the load override stays call-index aligned in late steps. The dump path
+        is unaffected: after should_stop_service the dump hooks return at the
+        Runtime gate before touching the counter.
+        """
+        super().step()
+        if self.should_stop_service:
+            load_config = getattr(self.config, 'load_config', None)
+            if load_config and load_config.is_enabled:
+                ModuleProcessor.module_count = {}

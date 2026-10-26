@@ -18,6 +18,7 @@ import tempfile
 import unittest
 from collections import namedtuple
 from dataclasses import dataclass, field
+from unittest.mock import patch
 
 import torch
 
@@ -50,6 +51,9 @@ class TestTensorLoaderShouldOverride(unittest.TestCase):
             "Module.blocks.1.mlp.MLP.forward.0",
         ])
         self.loader = TensorLoader(cfg)
+        # sync state first: in production should_override only runs after
+        # service.start() synced the loader (unsynced loaders skip override)
+        self.loader.update_step_rank(0, 0)
 
     def test_exact_match(self):
         self.assertTrue(
@@ -452,6 +456,86 @@ class TestTensorLoaderDisabled(unittest.TestCase):
         args, kwargs = loader.override_args("Module.any.Thing.forward.0", (orig,), {"k": orig})
         self.assertTrue(torch.equal(args[0], orig))
         self.assertTrue(torch.equal(kwargs["k"], orig))
+
+
+class TestTensorLoaderUnsyncedGuard(unittest.TestCase):
+    """Tests for the unsynced-state guard in should_override.
+
+    A synced loader always has an int step (rank may legitimately be None in
+    single-card runs), so step None means update_step_rank was never called:
+    warn once and skip override instead of building bogus source paths.
+    """
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        cfg = FakeLoadConfig(self.tmpdir, ["Module.head.Linear.forward.0"])
+        self.loader = TensorLoader(cfg)
+        # no update_step_rank() call: _current_step stays None
+
+    @patch("msprobe.pytorch.dump.module_load.tensor_loader.logger")
+    def test_unsynced_should_override_returns_false(self, mock_logger):
+        self.assertFalse(self.loader.should_override("Module.head.Linear.forward.0"))
+
+    @patch("msprobe.pytorch.dump.module_load.tensor_loader.logger")
+    def test_unsynced_warns_once(self, mock_logger):
+        self.loader.should_override("Module.head.Linear.forward.0")
+        self.loader.should_override("Module.head.Linear.forward.0")
+        self.loader.should_override("Module.head.Linear.forward.0")
+        self.assertEqual(mock_logger.warning.call_count, 1)
+        self.assertIn("not initialized", mock_logger.warning.call_args[0][0])
+
+    def test_synced_single_card_rank_none_still_overrides(self):
+        """rank=None is legitimate once synced (single-card): guard must not trigger."""
+        self.loader.update_step_rank(0, None)
+        self.assertTrue(self.loader.should_override("Module.head.Linear.forward.0"))
+
+
+class TestTensorLoaderBuildPathErrors(unittest.TestCase):
+    """Tests for _build_pt_path error classification when the source layout
+    does not match the current run (no proc* dir found with rank=None)."""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    @patch("msprobe.pytorch.dump.module_load.tensor_loader.logger")
+    def test_step_dir_missing_message(self, mock_logger):
+        """Source has no such step dir: error must point at step alignment, not pid."""
+        cfg = FakeLoadConfig(self.tmpdir, ["m"])
+        loader = TensorLoader(cfg)
+        loader.update_step_rank(3, None)  # step3 does not exist in tmpdir
+        path = loader._build_pt_path("Module.head.Linear.forward.0", Const.INPUT, 0)
+        mock_logger.error.assert_called_once()
+        msg = mock_logger.error.call_args[0][0]
+        self.assertIn("step directory not found", msg)
+        self.assertIn("step3", msg)
+        self.assertIn(f"proc{os.getpid()}", path)  # fallback subdir
+
+    @patch("msprobe.pytorch.dump.module_load.tensor_loader.logger")
+    def test_rank_dirs_but_rank_none_message(self, mock_logger):
+        """Current rank unknown but source uses rank{N} dirs (distributed dump):
+        error must point at the run-mode mismatch, not pid."""
+        os.makedirs(os.path.join(self.tmpdir, "step0", "rank0", "dump_tensor_data"))
+        cfg = FakeLoadConfig(self.tmpdir, ["m"])
+        loader = TensorLoader(cfg)
+        loader.update_step_rank(0, None)
+        loader._build_pt_path("Module.head.Linear.forward.0", Const.INPUT, 0)
+        mock_logger.error.assert_called_once()
+        msg = mock_logger.error.call_args[0][0]
+        self.assertIn("current process has no rank", msg)
+        self.assertIn("rank{N} directories", msg)
+
+    @patch("msprobe.pytorch.dump.module_load.tensor_loader.logger")
+    def test_no_proc_dir_empty_step_dir_message_preserved(self, mock_logger):
+        """Genuine single-card mismatch (step dir exists, no proc*, no rank*):
+        original auto-discovery failure message is preserved."""
+        os.makedirs(os.path.join(self.tmpdir, "step0"))
+        cfg = FakeLoadConfig(self.tmpdir, ["m"])
+        loader = TensorLoader(cfg)
+        loader.update_step_rank(0, None)
+        loader._build_pt_path("Module.head.Linear.forward.0", Const.INPUT, 0)
+        mock_logger.error.assert_called_once()
+        msg = mock_logger.error.call_args[0][0]
+        self.assertIn("no proc* directory found", msg)
 
 
 if __name__ == "__main__":

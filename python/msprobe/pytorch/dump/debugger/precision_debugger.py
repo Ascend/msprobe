@@ -79,14 +79,10 @@ class PrecisionDebugger(BasePrecisionDebugger):
     def start(cls, model=None, token_range=None, rank_id=None, scheduled_tokens=None):
         instance = cls._instance_with_reload()
 
-        # Check if load-only mode and current step is not in load.step range.
-        # If so, skip all start logic (no custom op registration, no service.start, no logs).
-        load_config = getattr(instance.config, 'load_config', None)
-        if load_config and load_config.is_enabled and not load_config.dump_after_load:
-            module_processor = getattr(instance.service, 'module_processor', None)
-            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
-            if tensor_loader and not tensor_loader.active:
-                return
+        # No load-only guard on tensor_loader.active here: service.start() syncs the
+        # tensor loader on every step and silently skips steps outside load.step itself.
+        # Guarding here would starve the loader of syncs once a step outside load.step
+        # flips active off, silently disabling load for later steps in load.step.
 
         # 延迟注册：在 start() 时再次扫描自定义算子
         # 这样即使用户先创建 debugger 再 enable_custom_op() 也能正常工作
@@ -101,16 +97,8 @@ class PrecisionDebugger(BasePrecisionDebugger):
     @classmethod
     @ThreadSafe.synchronized
     def stop(cls):
-        # Check if load-only mode and current step is not in load.step range.
-        # If so, skip stop logic entirely (no logs, no overhead).
-        instance = cls._get_instance()
-        load_config = getattr(instance.config, 'load_config', None)
-        if load_config and load_config.is_enabled and not load_config.dump_after_load:
-            module_processor = getattr(instance.service, 'module_processor', None)
-            tensor_loader = getattr(module_processor, 'tensor_loader', None) if module_processor else None
-            if tensor_loader and not tensor_loader.active:
-                return
-
+        # No load-only guard here either: service.stop() silently skips steps
+        # outside load.step (see the note in start()).
         cls._run_with_reload(lambda inst: inst.service.stop())
 
     @classmethod
