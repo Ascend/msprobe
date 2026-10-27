@@ -103,15 +103,19 @@ class BuildManager:
 
         self.mod_list = []
         if 'include-mod' in self.extra:
-            raw = self.extra['include-mod']
-            if raw == 'all':
+            raw = self.extra['include-mod'].strip()
+            if raw.lower() == 'all':
                 self.mod_list = list(MOD_LIST_RANGE)
             else:
-                mods = raw.split(',')
-                self.mod_list = [m for m in mods if m in MOD_LIST_RANGE]
+                mods = [m.strip() for m in raw.split(',')]
+                if any(not m for m in mods):
+                    raise ValueError(f"Invalid include-mod value: '{raw}'. Empty module entries are not allowed")
                 invalid_mods = [m for m in mods if m not in MOD_LIST_RANGE]
                 if invalid_mods:
-                    logging.warning("Unknown modules ignored: %s", invalid_mods)
+                    raise ValueError(
+                        f"Unknown modules in include-mod: {invalid_mods}. Valid: {sorted(MOD_LIST_RANGE)} or 'all'"
+                    )
+                self.mod_list = mods
 
         self.no_check = self.extra.get('no-check', 'false').lower() == 'true'
         self.only_down_deps = self.extra.get('only_down_deps', 'false').lower() == 'true'
