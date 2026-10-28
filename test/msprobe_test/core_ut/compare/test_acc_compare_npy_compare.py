@@ -71,7 +71,7 @@ class TestNpyDataCheck(unittest.TestCase):
             np.array([1, np.nan], dtype=float), np.array([1, 2], dtype=float)
         )
         self.assertTrue(error_flag)
-        self.assertEqual(error_message, "The position of inf or nan in NPU and bench Tensor do not match.\n")
+        self.assertEqual(error_message, "The positions of inf/nan or signs of inf in NPU and bench Tensor do not match.\n")
 
     def test_data_check_normal_no_false_positive(self):
         error_flag, error_message = npy_data_check(
@@ -86,6 +86,34 @@ class TestNpyDataCheck(unittest.TestCase):
         )
         self.assertFalse(error_flag)
         self.assertEqual(error_message, "")
+
+    def test_opposite_infinity_signs_are_rejected(self):
+        for dtype in (np.float16, np.float32, np.float64):
+            for sign in (-1, 1):
+                with self.subTest(dtype=dtype, sign=sign):
+                    n_value = np.array([1, sign * np.inf], dtype=dtype)
+                    b_value = np.array([1, -sign * np.inf], dtype=dtype)
+                    error_flag, error_message = npy_data_check(n_value, b_value)
+                    self.assertTrue(error_flag)
+                    self.assertIn("sign", error_message)
+                    self.assertEqual(n_value[1], sign * np.inf)
+                    self.assertEqual(b_value[1], -sign * np.inf)
+
+    def test_aligned_signed_infinities_and_nan_are_normalized(self):
+        n_value = np.array([1.0, np.inf, -np.inf, np.nan])
+        b_value = n_value.copy()
+        self.assertEqual(npy_data_check(n_value, b_value), (False, ""))
+        np.testing.assert_array_equal(n_value, [1.0, 0.0, 0.0, 0.0])
+        np.testing.assert_array_equal(b_value, [1.0, 0.0, 0.0, 0.0])
+
+    def test_infinity_sign_mismatch_does_not_normalize_other_values(self):
+        n_value = np.array([np.inf, -np.inf, np.nan, 2.0])
+        b_value = np.array([np.inf, np.inf, np.nan, 2.0])
+        original_n, original_b = n_value.copy(), b_value.copy()
+        error_flag, _ = npy_data_check(n_value, b_value)
+        self.assertTrue(error_flag)
+        np.testing.assert_array_equal(n_value, original_n)
+        np.testing.assert_array_equal(b_value, original_b)
 
 
 class TestStatisticsDataCheck(unittest.TestCase):

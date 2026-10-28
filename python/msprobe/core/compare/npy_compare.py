@@ -61,7 +61,11 @@ def handle_inf_nan(n_value, b_value):
     n_invalid = np.any(n_inf) or np.any(n_nan)
     b_invalid = np.any(b_inf) or np.any(b_nan)
     if n_invalid or b_invalid:
-        if np.array_equal(n_inf, b_inf) and np.array_equal(n_nan, b_nan):
+        if (
+            np.array_equal(n_inf, b_inf)
+            and np.array_equal(n_nan, b_nan)
+            and np.array_equal(n_value_convert[n_inf], b_value_convert[b_inf])
+        ):
             n_value[n_inf] = 0
             b_value[b_inf] = 0
             n_value[n_nan] = 0
@@ -96,7 +100,7 @@ def npy_data_check(n_value, b_value):
             return True, 'Numpy data is unreadable, please check!'
         # handle_inf_nan 会返回'Nan'或ndarray类型，使用类型判断是否存在无法处理的nan/inf数据
         if not isinstance(n_value, np.ndarray) or not isinstance(b_value, np.ndarray):
-            error_message += "The position of inf or nan in NPU and bench Tensor do not match.\n"
+            error_message += "The positions of inf/nan or signs of inf in NPU and bench Tensor do not match.\n"
     if error_message == "":
         error_flag = False
     else:
@@ -227,7 +231,7 @@ class ValidateTensor:
                 CompareConst.NAN,
                 CompareConst.NAN,
                 True,
-                "The position of inf or nan in NPU and bench Tensor do not match.",
+                "The positions of inf/nan or signs of inf in NPU and bench Tensor do not match.",
             )
 
         return result
