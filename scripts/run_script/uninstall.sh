@@ -1,3 +1,4 @@
+#!/bin/sh
 # -------------------------------------------------------------------------
 # This file is part of the MindStudio project.
 # Copyright (c) 2026 Huawei Technologies Co.,Ltd.
@@ -14,7 +15,6 @@
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
 
-#!/bin/bash
 # uninstall.sh - 卸载脚本
 
 # 颜色定义
@@ -26,22 +26,22 @@ change_flag='n'
 
 # 打印彩色信息
 info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    printf "${GREEN}[INFO]${NC} %s\n" "$1"
 }
 
 warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    printf "${YELLOW}[WARN]${NC} %s\n" "$1"
 }
 
 error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    printf "${RED}[ERROR]${NC} %s\n" "$1"
 }
 
 # 验证安装目录
 validate_install_dir() {
     local base_dir="$1"
     # 检查目录是否存在
-    if [[ ! -d "$base_dir" ]]; then
+    if [ ! -d "$base_dir" ]; then
         error "Specified directory does not exist: $base_dir"
         exit 1
     fi
@@ -52,11 +52,11 @@ validate_install_dir() {
     info "Checking for operator_cmp at: $INSTALL_MODULE_DIR"
 
     # 检查模块目录是否存在，如果不存在则跳过
-    if [[ ! -d "$INSTALL_MODULE_DIR" ]]; then
+    if [ ! -d "$INSTALL_MODULE_DIR" ]; then
         return 2  # 返回2表示目录不存在，需要跳过
     fi
 
-    if [[ ! -w "$(dirname "$INSTALL_MODULE_DIR")" ]]; then
+    if [ ! -w "$(dirname "$INSTALL_MODULE_DIR")" ]; then
         chmod +w "$(dirname "$INSTALL_MODULE_DIR")"
         change_flag='y'
     fi
@@ -65,7 +65,7 @@ validate_install_dir() {
 }
 
 check_write_permission() {
-    if [[ ! -w "$INSTALL_MODULE_DIR" ]]; then
+    if [ ! -w "$INSTALL_MODULE_DIR" ]; then
         error "No permission to delete $INSTALL_MODULE_DIR"
         error "Current user: $(whoami)"
         error "Please run uninstall with a user that has permissions"
@@ -88,7 +88,7 @@ perform_uninstall() {
         chmod -w "$(dirname "$INSTALL_MODULE_DIR")"
     fi
 
-    if [ $rc -eq 0 ]; then
+    if [ "$rc" -eq 0 ]; then
         info "mindstudio-accucmp has been successfully removed"
         return 0
     else
@@ -118,7 +118,7 @@ main() {
     local _validate_result=$?
 
     # 如果目录不存在，直接跳过卸载
-    if [ ${_validate_result} -eq 2 ]; then
+    if [ "${_validate_result}" -eq 2 ]; then
         info "Nothing to uninstall, exiting"
         rm -rf "${_install_dir}/share/info/operator_cmp"
         if [ -f "${_cann_uninstall}" ]; then
@@ -128,7 +128,7 @@ main() {
     fi
 
     # 如果验证失败（其他错误），退出
-    if [ ${_validate_result} -ne 0 ]; then
+    if [ "${_validate_result}" -ne 0 ]; then
         exit 1
     fi
 
