@@ -198,7 +198,7 @@ stages:
         if: ${{ jobs.Detect_file_changes.outputs.need_build == 'yes' }}
         uses: .gitcode/workflows/.presmoke.yml
         with:
-          IMAGE_FLAG: "mindstudio-st-msporbe:26.1.0-0707"
+          IMAGE_FLAG: "mindstudio-st-msporbe:26.2.0-1020"
           runs_on_arch: "arm64"
           ARTIFACT_NAME: "msprobe-run-arm-test"
 

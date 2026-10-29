@@ -60,6 +60,5 @@ jobs:
           BASE_COMMIT=$(git merge-base origin/${{ inputs.TARGET_BRANCH }} new_${{ inputs.pr_id }})
           git diff --name-only $BASE_COMMIT HEAD > /tmp/modify_files.txt
 
-          git clone https://gitcode.com/mnhdxnh/att_smoke_new.git /presmoke/.
-
-          bash /presmoke/run_pr_smoke.sh -g pull/${{ inputs.pr_id }}/head:pr_${{ inputs.pr_id }} -b ${{ inputs.TARGET_BRANCH }} -m all
+          git clone --recurse-submodules -b main https://gitcode.com/mnhdxnh/att_smoke_new.git /presmoke
+          bash /presmoke/prepare_deps.sh
