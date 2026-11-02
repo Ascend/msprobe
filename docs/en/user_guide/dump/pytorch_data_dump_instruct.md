@@ -93,12 +93,12 @@ The **config.json** file is the configuration file for precision data collection
 Select a proper task type according to your requirements. For details about task configuration items, see [Configuration File Introduction](./config_json_introduct.md#parameters).
 
 | Debugging Requirement  | Recommended Configuration       | Description             |
-| ------ | --------------- | --------------- |
+| ------ | --------------- |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Preliminary precision analysis| task="statistics"      | Low resource usage and fast statistics collection. |
 | In-depth precision analysis| task="tensor"          | Complete data collection and detailed analysis.  |
 | Deterministic issue analysis| task="statistics"<br>summary_mode="md5"          | Statistics and tensor CRC-32 values collected for quick analysis of deterministic issues.  |
-| Lightweight deterministic difference localization | task="statistics"<br>summary_mode="xor"          | Only XOR checksum values are collected. To accelerate collection, install the tool package compiled with the `--include-mod=xor_checksum` flag. For installation instructions, see [Install the basic tool package and xor_checksum](../../install_guide/msprobe_install_guide.md#install-xor-checksum). The C++ acceleration operator will be used preferentially, delivering several-fold performance improvement. |
-| NaN or overflow detection | task="nan_check" | Detect tensor NaN by default; `slot` detects register NaN/Inf or intermediate overflow. See the [complete usage example](./pytorch_nan_check_quickstart.md). |
+| Lightweight deterministic difference localization | task="statistics"<br>summary_mode="xor"          | Only XOR checksum values are collected. To accelerate collection, you can install the tool package compiled with `--include-mod=xor_checksum`. For installation instructions, see the "xor_checksum acceleration operator" guidance in [Installation Guide - Installation from Source](../../install_guide/msprobe_install_guide.md#23-installation-from-source). The C++ acceleration operator is used preferentially, delivering several-fold performance improvement. |
+| NaN or overflow detection | task="nan_check" | Detects NaN in tensors by default. The `slot` mode detects NaN/Inf or intermediate overflow in registers. For a complete usage example, see [Nan Check Quick Start](./pytorch_nan_check_quickstart.md). |
 
 ### Usage Example
 
@@ -161,11 +161,11 @@ For details about more APIs, see [API Description](#api-description).
     - conv3d
   ```
 
-  Note: The file is organized by operator category (for example, `functional`, `tensor`, `torch`, and `torch_npu`). **Categories are independent of each other and can be deleted or left empty as a whole.** A deleted or empty category is treated as "do not collect APIs of this category" and does not affect other categories. Do not change an API list under a category to a scalar value (for example, `functional: conv1d`); a non-list value causes the category to be ignored.
+  Note: This file is organized by operator category (`functional`, `tensor`, `torch`, `torch_npu`, and so on). **The categories are independent of each other and can be deleted or left empty as a whole.** A deleted or empty category is treated as "do not collect APIs of this category" and does not affect other categories. Do not change the API list under a category into a scalar value (for example, `functional: conv1d`); a category in non-list format is ignored.
 
   Scenario where an API is deleted: The code logic of some models may involve native API type verification. When the tool performs the dump operation, the API type encapsulated by the model may be different from the native API type. In this case, the verification may fail. For details, see [Exceptions](../../support/faq.md#exception-handling) in *FAQs*.
 
-- To collect the precision data of a custom API, register the API with the tool first. For details about the registration method, see [register_custom_api](#register_custom_api).
+- To collect the precision data of a custom API, register the API with the tool first. For details about the registration method, see [Batch Registration of User-Defined APIs](#batch-registration-of-user-defined-apis) or [register_custom_api](#register_custom_api).
 
 - For APIs supported by this tool for dumping (see [support_wrap_ops.yaml](../../../../python/msprobe/pytorch/dump/api_dump/support_wrap_ops.yaml)), filtering rules can be configured to ignore specific inputs or outputs of these APIs. For detailed instructions, refer to [API Input/Output Filtering](#api-inputoutput-filtering).
 
@@ -331,7 +331,7 @@ The directory structure is as follows:
 <details>
 <summary><b>Click to see the directory structure.</b></summary>
 
-```text
+```txt
 ├── dump_path
 │   ├── step0
 │   |   ├── rank0
@@ -368,10 +368,10 @@ The directory structure is as follows:
   * In non-distributed scenarios, such as single-process training or single-rank training, the training process does not have `rank` information. In this case, data is stored in `proc{pid}`. The comparison, hierarchical visualization, and overflow/underflow detection functions support data parsing in this directory.
   * During foundation model training, both the `rank` and `proc` directories may exist. The reason is that some processes may only complete some data preprocessing operations on CPU and do not have `rank` information. In this case, the directory name is `proc{pid}`. Generally, the data does not have precision problems. The comparison, hierarchical visualization, and overflow/underflow detection functions do not support data parsing in this directory.
 * `dump_tensor_data`: stores collected tensor data.
-* `dump.json`: stores statistical information for forward/backward data of APIs or Modules. It includes the API or Module name of the dumped data, statistical information for each data tensor such as `dtype`, `shape`, `max`, `min`, `mean`, `L2norm` (L2 norm, square root), as well as checksum values output based on the `summary_mode` configuration (`md5` corresponds to the CRC-32 field md5; `xor` corresponds to the XOR checksum field md5). For details, see [dump.json Description](#dumpjson-description).
-  * When the tensor data format is NZ, the `max`, `min`, `mean`, and `L2norm` (L2 norm, square root) statistics in `dump.json` are all null. Additionally, `mean` and `L2norm` statistics are calculated only when the tensor data type is one of `torch.float32`, `torch.float16`, or `torch.bfloat16`; for other data types, only `max` and `min` statistics are calculated.
+* `dump.json`: stores statistical information for forward and backward data of APIs or Modules, including the API or Module name of the dumped data, statistical information for each data tensor such as `dtype`, `shape`, `max`, `min`, `mean`, `L2norm` (L2 norm, square root), as well as checksum values output based on the `summary_mode` configuration (`md5` corresponds to the CRC-32 field `md5`; `xor` corresponds to the XOR checksum field `md5`). For details, see [dump.json Description](#dumpjson-description).
+  * When the Tensor data format is NZ, the `max`, `min`, `mean`, and `L2norm` (L2 norm, square root) statistics in `dump.json` are all `null`, and the `mean` and `L2norm` statistics are calculated only when the Tensor data type is one of `torch.float32`, `torch.float16`, or `torch.bfloat16`; for other data types, only the `max` and `min` statistics are calculated.
   * When `summary_mode` is set to `xor`, `dump.json` outputs only the XOR checksum value, without outputting `max`, `min`, `mean`, or `L2norm` statistics. If the acceleration operator is unavailable, the tool automatically falls back to the generic implementation.
-  * When `task` is `nan_check`, the default `isnan` mode records `is_nan` for each input and output tensor (`1` for NaN, `0` for no NaN, and `null` when detection is unavailable); `slot` records register detection results per API. Neither mode calculates statistics. See [nan_check Configuration](./config_json_introduct.md#task--nan_check) and the [complete usage example](./pytorch_nan_check_quickstart.md).
+  * When `task` is set to `nan_check`, the default `isnan` mode records `is_nan` for each input and output tensor (`1` indicates that the tensor contains NaN, `0` indicates that it does not, and `null` indicates that detection is not possible). The `slot` mode records register detection results for each API. Neither mode calculates statistics. For details, see [nan_check Configuration](./config_json_introduct.md#task--nan_check) and [Nan Check Quick Start](./pytorch_nan_check_quickstart.md).
 
 * `dump_error_info.log`: Generated only when the dump tool encounters an error; used to record dump error logs.
 * `stack.json`: call stack information of APIs or modules.
@@ -398,8 +398,8 @@ The table below describes the mapping between the prefix of the .pt file and PyT
 
 #### L0 Level
 
-The **dump.json** file at the L0 level contains the forward and backward inputs and outputs of a module, as well as parameters and parameter gradients. Take Conv2d module of PyTorch as an example. The module invocation code is:
-`output = self.conv2(input) # self.conv2 = torch.nn.Conv2d(64, 128, 5, padding=2, bias=True)`
+The **dump.json** file at the L0 level contains the forward and backward inputs and outputs of a module, as well as the parameters and parameter gradients. Taking the Conv2d module of PyTorch as an example, the module invocation code in the network is:
+`output = self.conv2(input) # self.conv2 = torch.nn.Conv2d(16, 32, 5, padding=2, bias=True)`
 
 The **dump.json** file contains the following data:
 
@@ -845,7 +845,7 @@ __main__:
 > import torch
 >
 > def add_and_mul(a, b, c):
->     """计算 (a + b) * c"""
+>     """Compute (a + b) * c"""
 >     return (a + b) * c
 > # After enabling the tool here, add_and_mul will be dumped by default.
 > ```
@@ -889,7 +889,7 @@ Starts precision data collection. This API is added to the position following mo
 **Prototype**
 
 ```Python
-debugger.start(model=None, token_range=None, rank_id=None)
+debugger.start(model=None, token_range=None, rank_id=None, scheduled_tokens=None)
 ```
 
 **Parameters**
@@ -900,7 +900,7 @@ debugger.start(model=None, token_range=None, rank_id=None)
 
   For a complex model, if only part of the model needs to be monitored (for example, **model.A** and **model.A extends torch.nn.Module**), pass the part to be monitored (**model.A**).
 
-  Note: The input layer is not dumped. The tool dumps only the sub-layers of the input layer. For example, if **model.A** is passed, **A** is not dumped, but **A**.*x* or **A**.*x.xx* is dumped.
+  Note: The passed layer is not dumped; the tool dumps only the sub-layers of the passed layer. For example, if **model.A** is passed, **A** itself is not dumped; instead, **A**.*x*, **A**.*x.xx*, etc. are dumped.
 
 - **token_range**: token range during inference model data collection. The type is **[int, int]**, indicating **[start, end]** of a range. By default, this parameter is not configured.
 
@@ -913,6 +913,9 @@ debugger.start(model=None, token_range=None, rank_id=None)
   To solve this problem, you can set **rank_id** to name the rank folder, but ensure that rank ID is unique in each process. The value can be obtained from the model script or training/inference framework. For example, **self.gpu_id** in the SGLang inference framework is unique in each process.
 
   Example: `debugger.start(rank_id=self.gpu_id)`
+
+- **scheduled_tokens**: specifies the number of tokens occupied by each request in the current scheduling. The value is of the dict type: the key is a str representing the request ID, and the value is an int greater than or equal to 0, representing the number of tokens occupied by the request. Configuration example: `debugger.start(scheduled_tokens={"chatcmpl-req-0": 10, "chatcmpl-req-1": 15})`.
+  Combined with the [request_id Configuration](./config_json_introduct.md#request_id-configuration), data collection for a specified request ID can be implemented.
 
 **Returns**
 
@@ -1040,7 +1043,7 @@ save(variable, name, save_backward=True)
 
 | Parameter         | Description    | Support Data Type                                          | Required (Yes/No)|
 |---------------|----------|--------------------------------------------------|------|
-| variable      | Variable to be saved. | dict, list, tuple, torch.tensor, int, float, str | Yes   |
+| variable      | Required      | The variable to be saved. Supported data types: dict, list, tuple, torch.tensor, int, float, str. | Yes   |
 | name          | Specified name.   | str                                              | Yes   |
 | save_backward | Whether to save backward data.| boolean                                          | No   |
 
@@ -1094,7 +1097,7 @@ debugger.register_custom_api(module, api, api_prefix)
 
 - **module**: (required) package to which the API belongs, that is, **torch**.
 - **api**: (required) API name, which is of the str type, that is, **matmul**.
-- **api_prefix**: (optional) prefix of the API name in [dump.json](#dumpjson-description). The default value is the string format of the package name, that is, **torch**.
+- api_prefix: Optional. The prefix of the API name in [dump.json](#dumpjson-description), which defaults to the string form of the package name, that is, "torch".
 
 **Returns**
 
@@ -1219,7 +1222,7 @@ In the preceding script, the same randomness API is executed twice, and the gene
 
 By default, the dump function of the tool does not fix randomness. To ensure that the data collected each time is consistent, it is advised to call the **seed_all** API before dumping data.
 
-The following table lists the range of random numbers that can be fixed by **seed_all**.
+The ranges of random numbers that can be fixed by the seed_all function are shown in the following table:
 
 | API                                      | Fixed Random Number                                     |
 |------------------------------------------|--------------------------------------------|

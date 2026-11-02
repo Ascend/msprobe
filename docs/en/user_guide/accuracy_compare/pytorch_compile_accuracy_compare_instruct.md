@@ -1,7 +1,5 @@
 # Compilation Accuracy Comparison in PyTorch
 
-<!-- md-trans-meta sourceCommit=d04bd615f0a6704fd5647163e7531d767f227e36 translatedAt=2026-08-11T02:44:02.908Z pushedAt=2026-08-11T02:51:07.170Z -->
-
 ## Overview
 
 `PrecisionChecker` is a tool for **module-by-module precision comparison between eager mode and compile mode** in PyTorch models. When enabling `torch.compile` for a model leads to issues such as loss fluctuation, convergence degradation, or inconsistent inference outputs, this tool helps pinpoint the source of discrepancies module by module.

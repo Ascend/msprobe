@@ -74,7 +74,7 @@ The checkpoint comparison result is exported to a JSON file. The following is an
 ```json
 {
     "decoder.layers.0.input_layernorm.weight": {
-        "l2": 0.0, 
+        "l2": 0.0,
         "cos": 0.999999,
         "numel": 128,
         "shape": [
@@ -82,7 +82,7 @@ The checkpoint comparison result is exported to a JSON file. The following is an
         ]
     },
     "decoder.layers.0.pre_mlp_layernorm.weight": {
-        "l2": 0.012, 
+        "l2": 0.012,
         "cos": 0.98,
         "numel": 128,
         "shape": [

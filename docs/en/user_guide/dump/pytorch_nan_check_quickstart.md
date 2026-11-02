@@ -1,6 +1,6 @@
 # nan_check Usage Example
 
-This example collects one forward and backward computation:
+This example collects one forward and backward computation.
 
 - Taking a square root of a negative value makes the loss NaN. Use the saved files to identify the API and its input.
 - Run on a single PyTorch NPU with the default `isnan` mode.
@@ -11,8 +11,8 @@ This example collects one forward and backward computation:
 
 Prepare the following before building:
 
-1. Install CANN ≥ 8.5.0. See [CANN Installation](https://www.hiascend.com/zh/cann/download).
-2. Install compatible PyTorch and TorchNPU versions. See [TorchNPU Installation](https://www.hiascend.com/zh/developer/software/ai-frameworks/pytorch/download).
+1. Install CANN (≥ 8.5.0) by referring to [CANN Installation](https://www.hiascend.com/en/cann/download).
+2. Install matching PyTorch and TorchNPU by referring to [TorchNPU Installation](https://www.hiascend.com/en/developer/software/ai-frameworks/pytorch/download).
 3. Prepare a compiler supporting C++17, Make, and CMake ≥ 3.19.3.
 
 After completing the prerequisites, build with:
@@ -29,13 +29,13 @@ python3 build.py -e include-mod=aclgraph_dump
 
 After building, choose either way to use msProbe.
 
-**Install the wheel**: Install msProbe and its Python dependencies into the current Python environment.
+**Install the wheel package**: Install msProbe and its Python dependencies into the current Python environment.
 
 ```bash
 pip install artifacts/mindstudio_probe*.whl
 ```
 
-**Use the source with PYTHONPATH**: In the locally cloned `msprobe` directory, install the Python dependencies declared in `pyproject.toml`, then add the local `python` directory to Python's module search path. The built extension is loaded from `python/msprobe/lib`; this option does not install the msProbe wheel above.
+**Use the source with PYTHONPATH**: In the locally cloned `msprobe` directory, install the Python dependencies declared in `pyproject.toml`, then add the local `python` directory to Python's module search path. The built extension is loaded from `python/msprobe/lib`. This option does not install the msProbe wheel package above.
 
 ```bash
 pip install wheel einops "numpy>=1.23.0" "pandas>=1.3.5" pyyaml tqdm \
@@ -44,7 +44,7 @@ pip install wheel einops "numpy>=1.23.0" "pandas>=1.3.5" pyyaml tqdm \
 export PYTHONPATH="$PWD/python:$PYTHONPATH"
 ```
 
-## 2. Collect Data
+## 2. Data Collection
 
 Create `config.json` and the `repro_nan.py` below in the locally cloned `msprobe` directory, and run there. The default is already `isnan`; no additional detection-mode or `tensor_list` configuration is needed:
 
@@ -56,7 +56,7 @@ Create `config.json` and the `repro_nan.py` below in the locally cloned `msprobe
 }
 ```
 
-To select devices, steps, or an API range, see `rank`, `step`, `scope`, `list`, `data_mode`, and other fields in the [complete configuration example and parameter descriptions](./config_json_introduct.md#task--nan_check). This example uses their defaults.
+To select ranks, steps, or an API range, see `rank`, `step`, `scope`, `list`, `data_mode`, and other fields in the [complete configuration example and parameter descriptions](./config_json_introduct.md#task--nan_check). This example uses their default settings.
 
 Create `repro_nan.py`. Green `+` lines are tool additions; remove the leading `+` before saving:
 
@@ -95,7 +95,7 @@ x.grad: [0.25, nan]
 
 ## 3. Saved Files
 
-The saved-file format and values below are illustrative and expected; process IDs, API indices, and collection indices depend on the actual run. The tree omits `sum` and backward API files. `proc<pid>` identifies the process; distributed execution uses `rank<ID>`.
+The saved-file format and values below are illustrative and expected; process IDs, API indices, and collection indices depend on the actual run. The tree omits `sum` and backward API files. `proc<pid>` identifies the process, and distributed execution uses `rank<ID>`.
 
 ```text
 nan_check_dump/
@@ -131,7 +131,7 @@ An excerpt of `dump.json`, keeping only the relevant tensor fields for these two
 
 `is_nan` belongs to each tensor: `0` means no NaN, `1` means NaN, and `null` means detection is unavailable. When a forward output contains NaN, its inputs and outputs are automatically saved as `.pt` files. `stack.json` stores groups of API-name lists and call-stack lists.
 
-## 4. Read Files and Locate the Cause
+## 4. File Reading and Cause Location
 
 This command reads the latest collection and prints the `sqrt` flags, saved inputs and outputs, and matching call stack:
 
@@ -156,7 +156,7 @@ for api_names, frames in stack.values():
 PY
 ```
 
-An excerpt of the processing output; actual paths and line numbers vary:
+An excerpt of the processing output is as follows. Actual paths and line numbers vary.
 
 ```text
 Torch.sqrt.0.forward input= 0 output= 1

@@ -1,8 +1,6 @@
 # Foundation Model Training Accuracy Debugging Guide
 
-## 1 Accuracy Issue Overview
-
----
+## 1. Accuracy Issue Overview
 
 ### 1.1 Definition
 
@@ -54,17 +52,14 @@ This document focuses on the mainstream migration scenario, which involves a ben
 
 - Compared to the benchmark, the loss difference during training is small, but the downstream task performance is poor, as shown in the following figure.
 
-    ![image](../figures/wiki/train_debug_guide/NPU_CPU_train_100_step.png)
+    ![image.png](../figures/wiki/train_debug_guide/NPU_CPU_train_100_step.png)
 
 It is worth noting that even when the same type of problem occurs, the root causes are often complex and vary from case to case. For details, see [Root Causes](#51-root-cause-introduction). This document describes the overall fault locating approach and standard process for identifying model training accuracy issues, along with the usage of the training accuracy tools involved. It is designed to help users quickly become familiar with and master the accuracy locating process.
 
 ## 2. Steps for Locating Accuracy Issues
 
----
 The following figure shows the overall process of locating model training accuracy issues.
-
-![image](../figures/wiki/train_debug_guide/overall_accuracy_troubleshooting_process.png)
-
+ ![image.png](../figures/wiki/train_debug_guide/overall_accuracy_troubleshooting_process.png)
 It mainly describes the specific steps for locating accuracy issues in the migration scenario, helping you better understand the principles and methods of using the tool and apply them to other more specific and complex scenarios.
 
 ### 2.1 Checklist
@@ -73,7 +68,7 @@ Before locating benchmark accuracy issues, eliminate the interference of other n
 In addition, issue locating is primarily performed based on comparison between the benchmark device and the NPU device. Therefore, the prerequisite for locating is to have both the benchmark and NPU training environments ready.
 
 - Comparison of training hyperparameters and environment variables
- You can use Beyond Compare to compare the training hyperparameters and environment variables in the training logs or startup scripts of the two devices, or use the [script comparison tool](#32-scenario-specific-debugging-cases) to perform automatic comparison. For details about common training hyperparameters, see [Model Hyperparameters](#52-model-hyperparameters).
+ You can use Beyond Compare to compare the training hyperparameters and environment variables in the training logs or startup scripts of the two devices, or use the [script comparison tool](#48-script-comparison-tool) to perform automatic comparison. For details about common training hyperparameters, see [Model Hyperparameters](#52-model-hyperparameters).
 - Comparison of third-party library versions
  Use `git branch` to check whether the versions of third-party libraries such as MindSpeed-LLM, Megatron and DeepSpeed are consistent with those of the benchmark.
   Use `pip list` to check whether the versions of third-party libraries such as PyTorch and TorchNPU are consistent with those of the benchmark. Alternatively, you can use the [script comparison tool](#48-script-comparison-tool) to perform automatic comparison.
@@ -107,15 +102,15 @@ During problem reproduction, you are advised to enable operator computation dete
 
 - Computation determinism:
 
-```python
-torch.use_deterministic_algorithms(True)
-```
+    ```python
+    torch.use_deterministic_algorithms(True)
+    ```
 
 - Communication determinism:
 
-```bash
-export HCCL_DETERMINISTIC=TRUE
-```
+    ```bash
+    export HCCL_DETERMINISTIC=TRUE
+    ```
 
 Note: Some operators do not support deterministic computation. For such cases, see [Operator Determinism Issues](#2322-operator-determinism-issues) for troubleshooting.
 
@@ -151,7 +146,7 @@ The following table lists the random seeds that can be fixed by `seed_all`.
 |torch.cuda.manual_seed_all(seed)| Sets the random seed of all GPUs.|
 |torch_npu.npu.manual_seed(seed)| Sets the random seed of the current NPU.|
 |torch_npu.npu.manual_seed_all(seed)| Sets the random seed of all NPUs.|
-|torch.backends.cudnn.enable=False| Disables cuDNN.|
+|torch.backends.cudnn.enabled=False| Disables cuDNN.|
 |torch.backends.cudnn.benchmark=False |Selects deterministic algorithm of cuDNN.|
 |torch.backends.cudnn.deterministic=True| `cuDNN` uses only the deterministic convolution algorithm.|
 
@@ -173,14 +168,13 @@ You are advised to use msProbe provided by the Ascend MindStudio Training Tools 
 
 After the [checklist](#21-checklist) has been confirmed and the issue can be stably reproduced, follow the figure below to locate the issue.
 
-![image](../figures/wiki/train_debug_guide/stable_reproduction_scenario_locating.png)
+![image.png](../figures/wiki/train_debug_guide/stable_reproduction_scenario_locating.png)
 
 ##### 2.3.1.1 Overflow or NaN
 
 Symptom
 
 If other non-operator factors are excluded according to the [checklist](#21-checklist) and the randomness is fixed, check whether the loss NaN or gradient overflow occurs more frequently than that in the benchmark. Generally, the loss scale continuously decreases.
-
 <img src="https://raw.gitcode.com/user-images/assets/7898473/a5183818-b00b-4f5b-bb23-9b8277f0b004/image.png" alt="image.png" width="650"/>
 
 Troubleshooting
@@ -214,13 +208,13 @@ After determining the step to be analyzed, perform the following steps:
 
 ##### 2.3.1.2 First Step Loss Difference
 
-Symptom
+**Symptom**
 
 After other non-operator factors are excluded according to the [checklist](#21-checklist) and the randomness is fixed, the loss for the first step or first several steps differs between GPU and NPU, with an average relative error exceeding 1%, as shown in the following figure.
 
 <img src="https://raw.gitcode.com/user-images/assets/7898473/deb21294-900a-4411-9857-890ae31950cd/image.png" alt="image.png" width="400"/>
 
-Troubleshooting
+**Troubleshooting**
 
 Do as follows:
 
@@ -239,32 +233,31 @@ Do as follows:
 
 ##### 2.3.1.3 Loss Difference in Long-Term Stable Training
 
-Symptom
+**Symptom**
 
 After other non-operator factors are excluded according to the [checklist](#21-checklist) and the randomness is fixed, loss can be aligned at the early stage of GPU and NPU training, but it cannot be aligned in the later stage of training. The average relative error in the later stage is greater than 1%, as shown in the following figure.
 
 <img src="https://raw.gitcode.com/user-images/assets/7898473/de267ea9-69ba-4f15-a179-54efc1a48528/image.png" alt="image.png" width="400"/>
 
-Troubleshooting
+**Troubleshooting**
 
 1. Select a tool and collect data based on the actual situation.
 
-   - Use the [Precision collection tool](#43-precision-collection-tool), applicable to scenarios where the number of steps is determined, for example, if loss or grad norm changes significantly during the process.
+    - Use the [Precision collection tool](#43-precision-collection-tool), applicable to scenarios where the number of steps is determined, for example, if loss or grad norm changes significantly during the process.
 
-        (1) Determine the number of steps to be collected (take the smaller step number of the two).
+        1) Determine the number of steps to be collected (take the smaller step number of the two).
 
             - loss jump: Collect the backward data of the previous step and the forward data of the current step.
             - Grad norm jump: Collect the backward data of the current step.
 
-        (2) Determine the data volume to be collected.
+        2) Determine the data volume to be collected.
 
             - For a small-scale model, directly collect `mix` (or API- and module-level) statistics.
             - For a large-scale model, collect module-level statistics first, locate the module, and then collect API-level statistics internally.
 
-        (3) After identifying suspicious operators through visualization or comparison tool, collect the specific `tensor` values for further single-operator analysis.
+        3) After identifying suspicious operators through visualization or comparison tool, collect the specific `tensor` values for further single-operator analysis.
 
-   - Use the [Training status monitoring tool](#46-training-status-monitoring-tool), applicable to large-scale scenarios where the number of dump steps to be collected is uncertain.
-
+    - Use the [Training status monitoring tool](#46-training-status-monitoring-tool), applicable to large-scale scenarios where the number of dump steps to be collected is uncertain.
         - If grad norm becomes abnormal first and then loss becomes abnormal, collect gradient data during training.
         - If loss is abnormal, collect activations and weight data during training.
 
@@ -283,11 +276,11 @@ Troubleshooting
 
 If the issue cannot be stably reproduced after the [checklist](#21-checklist) has been confirmed and the pre-operations for reproducing the issue have been completed, follow the figure below to locate the issue.
 
-![image](../figures/wiki/train_debug_guide/unstable_reproduction_scenario_locating.png)
+![image.png](../figures/wiki/train_debug_guide/unstable_reproduction_scenario_locating.png)
 
 ##### 2.3.2.1 Memory Corruption
 
-Symptom
+**Symptom**
 
 Memory corruption usually occurs in precision issues that are characterized by overflow or NaN. It can be further classified into the following two types:
 
@@ -300,7 +293,7 @@ Memory corruption usually occurs in precision issues that are characterized by o
 
 - However, memory corruption inside an operator cannot be avoided even with stream synchronization. This is more likely with non-integral block sizes, complex computation, or data type changes in core-based and UB-based computation.
 
-Troubleshooting
+**Troubleshooting**
 
 1. Enable asynchronous dump. Specifically, add `async_dump: true` to `config.json` of the [precision collection tool](#43-precision-collection-tool). In addition, collect tensor data from the first NaN occurrence in two training runs: one with stream synchronization (no NaN) and one without (NaN present). If `async dump` still affects reproduction, manually mount hooks or use `print` statements.
 2. Analyze whether the tensor difference pattern suggests memory corruption (e.g., regular corruption patterns: multiples of 2048, row-aligned, column-aligned).
@@ -311,11 +304,11 @@ Troubleshooting
 
 ##### 2.3.2.2 Operator Determinism Issues
 
-Issue Description
+**Symptom**
 
 If results still differ between repeated training runs after using the tool's automatic fixing function and enabling stream synchronization, use the precision collection tool with `md5` mode to collect data from two repeated runs to identify the first anomalous operator. If the operator is a special random operator or has fixed position with small result variations, suspect an operator determinism issue.
 
-Troubleshooting
+**Troubleshooting**
 
 Use the precision collection tool with `md5` mode to collect data from two repeated training runs. Compare to find the first operator with consistent input but inconsistent output:
 
@@ -335,11 +328,11 @@ If the operator is a special random operator or has fixed position with small va
 
 ##### 2.3.2.3 Hardware Issues
 
-**Issue Description**
+**Symptom**
 
 For large-scale cluster training, occasional hardware faults (e.g., multi-bit flipping, power supply issues) may cause loss spikes or divergence. These issues typically disappear after switching devices.
 
-Troubleshooting
+**Troubleshooting**
 
 For large cluster tasks, use hardware stress testing to identify anomalous nodes:
 
@@ -347,31 +340,31 @@ For large cluster tasks, use hardware stress testing to identify anomalous nodes
 - Operator stress testing: If instability occurs with a specific operator that cannot be reproduced in isolation, run single-operator stress tests on grouped single nodes.
 - Command stress testing: Use the `ascend-dmi` command to repeatedly stress-test `aicore`:
 
- ```bash
- ascend-dmi -dg -i aicore -s -sc 60 -q
- ```
+    ```bash
+    ascend-dmi -dg -i aicore -s -sc 60 -q
+    ```
 
-Additionally, gradually disable related communication links to debug hardware-related communication issues:
+    Additionally, gradually disable related communication links to debug hardware-related communication issues:
 
 - Disable RoCE:
 
- ```bash
- export HCCL_INTRA_ROCE_ENABLE=0
- ```
+    ```bash
+    export HCCL_INTRA_ROCE_ENABLE=0
+    ```
 
 - Disable PCIe:
 
- ```bash
- export HCCL_INTRA_PCIE_ENABLE=0
- ```
+    ```bash
+    export HCCL_INTRA_PCIE_ENABLE=0
+    ```
 
 ##### 2.3.2.4 Training Framework Debugging
 
-**Issue Description**
+**Symptom**
 
 For models using frameworks like Megatron or DeepSpeed, certain high-risk factors can be checked specifically.
 
-Troubleshooting
+**Troubleshooting**
 
 - Megatron
     - Remove `overlap` parameters (common when training is normal but inference results are abnormal). For example, `overlap_param_gather` once caused incorrect checkpoint saving due to incomplete communication.
@@ -383,11 +376,11 @@ Troubleshooting
 
 ##### 2.3.2.5 Training Phase/Model Phase/Version Debugging
 
-**Issue Description**
+**Symptom**
 
 If the root cause is still not found after all the above debugging steps, narrow down the scope by checking the training phase, model phase, or version.
 
-Troubleshooting
+**Troubleshooting**
 
 - Training phase debugging
     - Disable the optimizer or set learning rate to 0 to demarcate forward/backward issues.
@@ -397,11 +390,11 @@ Troubleshooting
     - Move to CPU: when unsure which operator causes the issue, use binary search to move parts of the network to CPU (if testing cost permits).
     - If the issue occurs during backward, freeze gradients using binary search.
 - Version debugging
- If the issue is clearly tied to a specific version but the root cause cannot be identified, use binary search on versions to identify the problematic change. For CANN, replace operator implementation with the corresponding version by replacing the merged .so file. For PyTorch, compile packages with specific changes. However, this method is less effective when many changes are included in a short period or a single change has broad impact.
+    If the issue is clearly tied to a specific version but the root cause cannot be identified, use binary search on versions to identify the problematic change. For CANN, replace operator implementation with the corresponding version by replacing the merged SO file. For PyTorch, compile packages with specific changes. However, this method is less effective when many changes are included in a short period or a single change has broad impact.
 
 #### 2.3.3 Reinforcement Learning (RL) Scenario
 
-**Issue Description**
+**Symptom**
 
 After ruling out non-operator factors, if RL training shows decreased `reward` relative to the benchmark or an increasing `logp_diff`, accuracy debugging is required.
 
@@ -409,7 +402,7 @@ After ruling out non-operator factors, if RL training shows decreased `reward` r
 
 The figure below shows the overall debugging process.
 
-![image](../figures/wiki/train_debug_guide/reinforcement_learning_process.png)
+![image.png](../figures/wiki/train_debug_guide/reinforcement_learning_process.png)
 
 ##### 2.3.3.1 Basic Inference Debugging
 
@@ -452,12 +445,11 @@ When using the precision collection tool, set the collection level to `mix` or `
 Data comparison:
 
 - Same framework (e.g., vLLM-Ascend vs vLLM)
- Refer to analysis point 2 in [First Step Loss Difference](#2312-first-step-loss-difference).
-
+    Refer to analysis point 2 in [First Step Loss Difference](#2312-first-step-loss-difference).
 - Different frameworks (e.g., vLLM-Ascend vs SGLang)
- NPU and benchmark will have many layer name/structure differences. Use the [hierarchical visualization tool](#44-hierarchical-visualization-tool) with the "point-to-point matching" feature to manually align nodes that are not automatically matched.
+    NPU and benchmark will have many layer name/structure differences. Use the [hierarchical visualization tool](#44-hierarchical-visualization-tool) with the "point-to-point matching" feature to manually align nodes that are not automatically matched.
 
-   ![docs_en_figures_visualization_vis_match_info](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)
+    ![image.png](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)
 
 For more details, refer to [Foundation Model Inference Accuracy Debugging Guide](./infer_debug_guide.md).
 
@@ -469,15 +461,15 @@ Check `reward` if the following condition is met:
 
 - First-step inference results are consistent (or instrumented), but `reward` differs significantly.
 
-If not triggered, see [Basic Training Debugging](#2333-basic-training-debugging). If triggered, compare the `reward` calculation logic with the benchmark.
+    If not triggered, see [Basic Training Debugging](#2333-basic-training-debugging). If triggered, compare the `reward` calculation logic with the benchmark.
 
-`reward` debugging depends on the dataset type.
+    `reward` debugging depends on the dataset type.
 
-|Dataset Type| Scoring Method| Corresponding Logic| Next Step|
-| --- | --- | --- | --- |
-|Math| Rule-based| Highly structured math answers; efficient rule-based scoring typically uses string matching.| Align rule-based scoring code with benchmark.|
-|Code| Sandbox-based| Correctness cannot be determined by string matching; sandbox execution with test cases is required.|   Align sandbox execution and test case logic with benchmark.|
-|General| Model-based| No single correct answer (e.g., chat, copywriting); uses a reward model learned from human preferences.| 1. Check if the scoring model has randomness enabled.<br>2. Refer to [First Step Loss Difference](#2312-first-step-loss-difference) for data collection and comparison.|
+    |Dataset Type| Scoring Method| Corresponding Logic| Next Step|
+    | --- | --- | --- | --- |
+    |Math| Rule-based| Highly structured math answers; efficient rule-based scoring typically uses string matching.| Align rule-based scoring code with benchmark.|
+    |Code| Sandbox-based| Correctness cannot be determined by string matching; sandbox execution with test cases is required.|   Align sandbox execution and test case logic with benchmark.|
+    |General| Model-based| No single correct answer (e.g., chat, copywriting); uses a reward model learned from human preferences.| 1. Check if the scoring model has randomness enabled.<br>2. Refer to [First Step Loss Difference](#2312-first-step-loss-difference) for data collection and comparison.|
 
 ##### 2.3.3.3 Basic Training Debugging
 
@@ -487,7 +479,7 @@ Check the training module if the following condition is met:
 
 - First-step inference results are consistent (or instrumented) and `reward` is normal, but `pg_loss` or `gnorm` differs significantly from the benchmark.
 
-If not triggered, proceed to [Resharding Weight Synchronization](#2334-resharding-weight-synchronization). Otherwise, compare the first step of forward/backward training with the benchmark.
+    If not triggered, proceed to [Resharding Weight Synchronization](#2334-resharding-weight-synchronization). Otherwise, compare the first step of forward/backward training with the benchmark.
 
 **Prerequisites**
 
@@ -495,27 +487,27 @@ In verl training, data shuffling or reorganization improves generalization and h
 
 - Dataset `shuffle`: Randomly shuffles batches after reading.
 
-  ```bash
-  data.shuffle=False  # Must be disabled.
+  ```python
+  data.shuffle=False  # must be disabled
   ```
 
 - `balance_batch`: Exchanges sequences across DP domains in the global batch to balance tokens per rank.
 
-  ```bash
-  The trainer.balance_batch=False  # Must match benchmark; must be disabled for training-inference alignment.
+  ```python
+  trainer.balance_batch=False  # keep consistent when comparing with the baseline; must be disabled for training-inference consistency comparison
   ```
 
 - `use_dynamic_bsz`: Dynamically adjusts micro-batch sizes based on `max_token_len` to prevent uneven token distribution.
 
-  ```bash
-  actor_rollout_ref.actor.use_dynamic_bsz=False  # Must match benchmark; must be disabled for training-inference alignment.
+  ```python
+  actor_rollout_ref.actor.use_dynamic_bsz=False  # keep consistent when comparing with the baseline; must be disabled for training-inference consistency comparison
   ```
 
 Training backends in RL typically use FSDP or Megatron (MindSpeed/MindSpeed-LLM with patches on Ascend).
 
 Data Collection
 
-- FSDP backend: The collection file in verl is `verl/workers/fsdp_workers.py`. Refer to [verl (FSDP)](./dump_enable_guide.md#verl-fsdp) for insertion points.
+- FSDP backend: The collection file in verl is `verl/workers/fsdp_workers.py`. Refer to [verl (FSDP)](./dump_enable_guide.md#236-verl-fsdp-backend) for insertion points.
 - Megatron backend: The collection file in verl is `verl/workers/megatron_workers.py`. Insertion is similar to FSDP.
 
 Data Analysis
@@ -557,17 +549,15 @@ If neither condition is met, proceed to [Training-Inference Consistency Debuggin
 
 Mainstream RL algorithms are based on the `On-Policy` assumption, which requires that the behavioral policy for sampling (`rollout` inference) and the target policy for gradient computation (`actor` training) remain consistent to ensure unbiased gradient estimates and training stability. This consistency is referred to as training-inference consistency.
 The main metric for training-inference consistency is `logp_diff`. Anomalous `logp_diff` indicates a discrepancy between training and inference, requiring root cause analysis. The formula is:
-
 <img src="https://raw.gitcode.com/user-images/assets/7898473/98058476-f95a-44ff-b5d0-7dfb79c1066c/image.png" alt="Your image title" width="400"/>
-
 where `M` is `response_mask`.
 
 In verl:
 
 - Enabling `logp_diff` monitoring:
 
-  ```bash
-  actor_rollout_ref.rollout.calculate_log_probs=True  # The default value is False.
+  ```python
+  actor_rollout_ref.rollout.calculate_log_probs=True  # default value is False
   ```
 
 - `logp_diff` implementation:
@@ -583,12 +573,12 @@ Check training-inference consistency if:
 
 - `logp_diff` is unusually large (>0.01) or differs significantly from the benchmark.
 
-If not triggered, proceed to [Long-term Training Debugging](#2336-long-term-training-debugging). Otherwise:
+    If not triggered, proceed to [Long-term Training Debugging](#2336-long-term-training-debugging). Otherwise:
 
 - Large `logp_diff` in the first step
- Refer to [Training-Inference Consistency Comparison](#23352-training-inference-consistency-comparison) for comparing NPU data at step 0 (assuming checks in sections 2.3.3.1–2.3.3.4 passed without issues).
+    Refer to [Training-Inference Consistency Comparison](#23352-training-inference-consistency-comparison) for comparing NPU data at step 0 (assuming checks in sections 2.3.3.1–2.3.3.4 passed without issues).
 - Normal `logp_diff` initially but increasing later
- Forcibly set `LR` to `0` and observe `logp_diff` changes:
+    Forcibly set `LR` to `0` and observe `logp_diff` changes:
     - Still abnormal → issue unrelated to training backward; likely inference-side.
         - Refer to [KV Cache Debugging](#23351-kv-cache-debugging) to check KV cache read/write logic in decode.
         - Refer to [Training-Inference Consistency Comparison](#23352-training-inference-consistency-comparison) to compare NPU data at training steps that cause breakdown.
@@ -659,25 +649,25 @@ Prerequisites for training-inference comparison:
 
     Corresponding hyperparameters in verl:
 
-    ```bash
+    ```python
     data.train_batch_size=${train_batch_size}
     actor_rollout_ref.actor.ppo_mini_batch_size=${train_ppo_mini_batch_size}
     actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=${train_ppo_micro_batch_size_per_gpu}
-    actor_rollout_ref.actor.ppo_epochs=1  # Default to 1.
+    actor_rollout_ref.actor.ppo_epochs=1  # default value is 1
     actor_rollout_ref.rollout.n=${n_resp_per_prompt}
     ```
 
 2. Disable padding and dynamic batching in training:
 
-    ```bash
+    ```python
     actor_rollout_ref.model.use_remove_padding=True
     actor_rollout_ref.actor.use_dynamic_bsz=False
     ```
 
-3. Identical partition strategies (TP, PP, CP, etc.) between training and inference
+3. Make sure partition strategies (TP, PP, CP, etc.) between training and inference are identical.
 4. Inference runs prefill only (hyperparameter in verl script):
 
-    ```bash
+    ```python
     data.max_response_length=1
     ```
 
@@ -702,7 +692,7 @@ Prerequisites for training-inference comparison:
         self, micro_batch, temperature, calculate_entropy=False
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """..."""
-            response_length = micro_batch["responses"].size(-1)
+    -        response_length = micro_batch["responses"].size(-1)
     +        if "responses" in micro_batch and micro_batch["responses"] is not None:
     +            response_length = micro_batch["responses"].size(-1)
     +        else:
@@ -804,7 +794,7 @@ Comparison Details
 
 For training-inference consistency comparison, many module name mismatches exist. For example, with `qwen2.5-0.5b`, inference uses vLLM and training uses FSDP.
 
-![image](../figures/wiki/train_debug_guide/vllm_infer_fsdp_train.png)
+![image.png](../figures/wiki/train_debug_guide/vllm_infer_fsdp_train.png)
 
 Differences:
 
@@ -833,7 +823,7 @@ Visual Comparison Tool Adaptation
 
 The hierarchical visualization tool provides a "point-to-point matching" feature. Users can select and match two (gray) nodes manually in the browser interface for matching. This currently only supports `statistics` data mode.
 
-![docs_en_figures_visualization_vis_match_info](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)
+![image.png](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)
 
 ##### 2.3.3.6 Long-term Training Debugging
 
@@ -881,13 +871,14 @@ The three fixes:
         def forward(self, x):
             x1 = self.linear(x)
             r1 = self.relu(x1)
-           return r1
+            return r1
     ```
 
     As shown in the `linear` layer, the input of the `forward` function is moved to CPU. According to the internal mechanism of PyTorch, the forward and backward operations of the API can be performed on CPU.
 
      ```python
-        # Replace self.linear_1 with CPU to run class ModuleOP(nn.Module):
+    # Replace self.linear_1 with CPU to run
+    class ModuleOP(nn.Module):
         def __init__(self) -> None:
             super().__init__()
             self.linear = nn.Linear(in_features=2, out_features=2)
@@ -896,9 +887,9 @@ The three fixes:
         def forward(self, x):
             # Move the input to CPU and make modifications accordingly.
             x = x.cpu()
-           self.linear.cpu()
-            x1 = self.linear(x)  # Run on CPU.
-            x1 = x1.npu() # Move the output back to NPU.
+            self.linear.cpu()
+            x1 = self.linear(x)  # run on CPU
+            x1 = x1.npu()  # move the output back to NPU
             r1 = self.relu(x1)
             return r1
      ```
@@ -928,6 +919,7 @@ Case: A speech recognition model showed significant WER differences after migrat
 Debugging method:
 
 Compare NPU and benchmark training configurations (startup scripts or logs).
+
 Found that NPU used FSDP while GPU used DDP. Training Loss differences were small, but downstream metrics differed significantly.
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/5b506a50-f3c3-406e-9c8e-a1e878709b64/image.png 'image.png')
@@ -936,7 +928,7 @@ Solution: Align GPU configurations.
 
 Result: WER dropped and aligned with GPU.
 
-#### 3.1.2  Data Inconsistency
+#### 3.1.2 Data Inconsistency
 
 Case: An LLM migrated from LLama-Factory NPU (benchmark) to ModelLink NPU showed loss misalignment.
 
@@ -965,6 +957,7 @@ Case: An MOE model migrated from GPU to NPU showed loss misalignment.
 Debugging method:
 
 Compare model structure implementations.
+
 Found that residual ordering differed: NPU applied `residual` after `input_layernorm`, while GPU applied it before.
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/880aab30-4973-43fb-a0cb-8e2914a63299/image.png 'image.png')
@@ -1019,11 +1012,12 @@ Debugging method:
     ```
 
     The overflow disappears. It is confirmed that the issue is introduced by the FA branch, but the performance deteriorates significantly. Further investigation is needed to determine the cause of the FA precision issue.
-
 3. Analyze the specific usage of the FA operator in the code by referring to its official documentation.
-    This issue occurs in a variable-length scenario. The original input has a batch size of 2, with `seq_len=3577` for input sequence 1 and `seq_len=1502` for input sequence 2. Both sequences are padded to a length of 3577. The original input shape is [2, 3577, 32, 128]. Before FA computation, `batch_size` and `seq_len` are flattened, giving a shape of [7154, 32, 128]. The padding is then removed in the next step, reducing the input lengths for Q and KV to [5079, 32, 128].
+    This issue occurs in a variable-length scenario. The original input has a batch size of 2, with `seq_len=3577` for input sequence 1 and `seq_len=1502` for input sequence 2. Both sequences are padded to a length of 3577. The original input shape is [2, 3577, 32, 128].
 
-    ![atten_mask](../figures/wiki/train_debug_guide/atten_mask.png)
+    Before FA computation, `batch_size` and `seq_len` are flattened, giving a shape of [7154, 32, 128]. The padding is then removed in the next step, reducing the input lengths for Q and KV to [5079, 32, 128].
+
+    ![image.png](../figures/wiki/train_debug_guide/atten_mask.png)
 
     According to the official documentation, the attention mask should follow the rule [`maxSq`, `maxSkv`], i.e., [3577, 3577]. However, the customer's code actually uses [`query.shape[0]`, `key.shape[0]`], which evaluates to [5079, 5079]. This incorrect usage causes the operator to read row-wise during execution, resulting in numerical misalignment of 0s and 1s, ultimately leading to gradient overflow.
 
@@ -1034,14 +1028,16 @@ Debugging method:
 ##### 3.2.1.2 First Step Loss Difference
 
 Case: A speech model showed loss misalignment from the first step.
+
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/64e451db-52a8-41b8-820c-b55c378769de/image.png 'image.png')
 
 Debugging method:
 
 1. Collect step 0 data at `mix` level with the precision collection tool. For details about `config.json`, see section [3.2.1.1](#3211-overflow-or-nan).
- The following provides an example of adding the precision collection tool to the code:
+    The following provides an example of adding the precision collection tool to the code:
 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/0434a5a0-46fe-45f0-98e9-a05884141ad8/image.png 'image.png')
+
 2. Use the hierarchical visualization tool to analyze differences.
     The visualization command is as follows:
 
@@ -1051,7 +1047,7 @@ Debugging method:
 
     A `.vis` file is generated in the output directory. Use TensorBoard to open the visualization page.
 
-    ![visualization_page](../figures/wiki/train_debug_guide/visualization_page.png)
+    ![image.png](../figures/wiki/train_debug_guide/visualization_page.png)
 
     The GELU operator appears in red, signaling potential precision issues.
 3. Use the precision comparison tool for comparison.
@@ -1100,8 +1096,7 @@ The loss initially aligned but diverged later at a step with a large ID. Since t
 
      ![image.png](https://raw.gitcode.com/user-images/assets/7898473/f42a70bb-0abb-4ad4-b59e-c547c831d444/image.png 'image.png')
 
-2. After the collection, the `grad_unreduced-xx-xx.csv` and `grad_reduced-xx-xx.csv` files of each rank can be obtained.
-`xx` indicates the step ID. The following shows the gradient data of each layer before reduction from step 360.
+2. After the collection, the `grad_unreduced-xx-xx.csv` and `grad_reduced-xx-xx.csv` files of each rank can be obtained. `xx` indicates the step ID. The following shows the gradient data of each layer before reduction from step 360.
 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/8b62626a-e35e-42c1-a2a2-178be0c0815c/image.png 'image.png')
 
@@ -1111,9 +1106,9 @@ The loss initially aligned but diverged later at a step with a large ID. Since t
 
     Therefore, it is suspected that the gradient of the embedding layer is numerically less stable in BF16 than FP32.
 
-    Solution: Apply gradient clipping to the embedding layer.
+Solution: Apply gradient clipping to the embedding layer.
 
-    Result: Loss converged normally without spikes.
+Result: Loss converged normally without spikes.
 
 #### 3.2.2 Unstable Reproduction Scenarios
 
@@ -1153,6 +1148,7 @@ Debugging method:
     Compared with the gradient data without NaNs when stream synchronization is enabled, all parameters except the `weight` and `bias` of the `input_layernorm` and `post_attention_layernorm` layers match.
 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/2b958529-a687-42da-84c8-6f26a49979d4/image.png 'image.png')
+
     The corresponding dump APIs are `Functional.layer_norm.10` and `Functional.layer_norm.11`.
 5. Analyze the code:
     `post_attention_layernorm` is continuously called twice for both the image and text.
@@ -1200,7 +1196,7 @@ Debugging method:
 1. Enable determinism (computation and communication), set random seeds, disable dropout, and fix data reading order.
     These operations (except for dataset reading) can be done by using `seed_all` of the msProbe tool.
 
-    ```bash
+    ```python
     from msprobe.pytorch import seed_all
     seed_all(mode=True)
     ```
@@ -1227,18 +1223,18 @@ Debugging method:
 
     Compare the data collected twice. The input of `masked_fill.23` is abnormal first.
 
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/23f89bbd-8f60-44ca-a777-575602508164/image.png 'image.png')
+    ![image.png](../figures/wiki/train_debug_guide/masked_fill_23.png)
 
     Trace input source to MMCV's MSDA operator based on the `stack.json` call stack and code in the dump result.
 
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/46e01b68-e868-4574-9f06-91e29abba68c/image.png 'image.png')
+    ![image.png](../figures/wiki/train_debug_guide/msda.PNG)
 
     It is confirmed with the operator support personnel that the MSDA operator does not support deterministic computing. It is recommended that the operator be replaced with small operators.
     After replacement, `grid_sample` output still differed when the input of `masked_fill.23` was the same.
 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/7f726fa8-2cce-4a44-8789-20a17071775c/image.png 'image.png')
 
-Confirm with the `grid_sample` operator technical support that the operator does not support deterministic computing.
+    Confirm with the `grid_sample` operator technical support that the operator does not support deterministic computing.
 
 Solution: Replace MSDA with small operators; move `grid_sample` to CPU.
 
@@ -1251,6 +1247,7 @@ Case: In a cluster with nearly 5,000 ranks, the loss remains unmatched, and nume
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/8562b38b-a85e-4b44-99de-89e70595c56b/image.png 'image.png')
 
 Due to the large size of the cluster, hardware stress testing is prioritized to identify faulty nodes.
+
 Divide the 4,800 ranks into 100 groups of *(3 × 16 ranks)* tasks to run the same training task. Enable fixed randomness and deterministic computing to check whether any group is abnormal based on the final loss curve. If an abnormal group is found, perform the `dmi` stress testing on the group.
 Run the `ascend-dmi -dg -i aicore -s -sc 60 -q` command to perform a stress testing and check the result.
 
@@ -1262,7 +1259,6 @@ The detection result shows that there are faulty nodes. Rule out these nodes, an
 
 ## 4. msProbe Usage
 
----
 This section describes how to install and use msProbe package. For details, see the [latest msProbe documentation](https://gitcode.com/Ascend/msprobe).
 
 ### 4.1 Installation
@@ -1286,10 +1282,10 @@ The msProbe package contains two parts: data collection and data comparison. The
 
 - Data collection
   - Precision collection tool, applicable to scenarios where the problem step is known:
-    - Collect statistics first.
-        - For small-scale models, directly collect mix-level (API + module) statistics.
-        - For large-scale models, collect module-level statistics first,then API-level within suspicious modules.
-    - After identifying suspicious operators via statistics, collect specific tensor values.
+      - Collect statistics first.
+              - For small-scale models, directly collect mix-level (API + module) statistics.
+              - For large-scale models, collect module-level statistics first,then API-level within suspicious modules.
+      - After identifying suspicious operators via statistics, collect specific tensor values.
   - Training status monitoring tool, suitable for large-scale scenarios where the problem step is uncertain.
 - Data analysis:
   - Hierarchical visualization tool: parse the saved files and reconstructs model graph for precision comparison or overflow analysis of each model layer.
@@ -1325,7 +1321,7 @@ Instructions
 
     - Collecting  tensors for specified steps
 
-      ```bash
+      ```json
       {
           "task": "tensor",
           "dump_path": "/home/data_dump",
@@ -1354,9 +1350,9 @@ Instructions
     ...
     debugger = PrecisionDebugger(config_path="./config.json")
     # Training step loop
-    for step in ...:
+    for step in …:
         debugger.start(model=model)
-        output = model(data) # Module forward, which may also be named train_step(...)
+        output = model(data) # the module's forward location, which may also be named train_step(…)
         # Operations such as loss calculation...
         loss.backward()
         debugger.stop()
@@ -1370,10 +1366,10 @@ Instructions
     - Place `debugger.stop()` after `loss.backward()` (usually placed after `loss.backward()` or `train_step()`).
     - Place `debugger.step()` at the end of an iteration and call it after the `stop` function.
 
-3. Output format
+3. Output format: 
     The result is saved in the path specified by `dump_path` in the `config.json` file. The overall format is as follows:
 
-    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/239c76c4-241e-442f-ab09-0f00c61285a5/image.png 'image.png')
+    ![image.png](../figures/wiki/train_debug_guide/output_format.PNG)
 
     Notes:
     - `dump.json`: statistics, typically including `Max`, `Min`, `Mean`, and `Norm`.
@@ -1402,9 +1398,9 @@ The following figure shows a typical scenario where the loss of the first few st
 
     - If the model scale is small (e.g., single-server 16-rank training), directly use the precision collection tool to capture `mix`-level statistics for steps 0 and 1. Then, use the comparison tool and hierarchical visualization tool to analyze and locate suspicious operators.
     - If the model scale is large, first consider reducing the scale. If reduction is not feasible, follow the steps below:
-        (1) Use the precision collection tool to collect `L0`-level statistics for steps 0 and 1 to locate suspicious modules.
-        (2) For suspicious modules, use the `list` parameter in the `config.json` file to restrict collection to that module.
-        (3) Collect `L1`-level statistics within the restricted module to locate suspicious operators.
+        1) Use the precision collection tool to collect `L0`-level statistics for steps 0 and 1 to locate suspicious modules.
+        2) For suspicious modules, use the `list` parameter in the `config.json` file to restrict collection to that module.
+        3) Collect `L1`-level statistics within the restricted module to locate suspicious operators.
 
     In addition, for some issues with fixed randomness, you can set `summary_mode` to `md5` during statistics collection to more accurately display minor differences.
 
@@ -1433,7 +1429,7 @@ Instructions
       Once graph construction completes, a `.vis.db` file is generated with an auto-generated timestamp-based name: `build_{timestamp}.vis.db`.
 
 2. Visualization
-
+    The visualization is performed as follows.
     - If direct server connection is available:
 
       ```bash
@@ -1451,17 +1447,18 @@ Instructions
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/6d5e914f-4841-4486-83a2-40a3f20e6bff/image.png 'image.png')
 
 3. Browser analysis
-Enter the address and port number in a browser to open the visualization interface.
+    Enter the address and port number in a browser to open the visualization interface.
 
 How to Use
 
 Note: The hierarchical visualization tool can only be used when the precision collection tool is configured with `L0` or `mix` level, meaning a `construct.json` model structure file must exist in the dump results.
+
 When comparing graphs, follow these methods:
 
 - Model structure comparison:
   In the left sidebar, check gray unmatched nodes. A list of all unmatched nodes will appear. Click a node to view its specific information in the network.
 
-  ![image.png](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)
+  ![image.png](../figures/visualization/vis_unmatch_info.png 'image.png')
 
   Clicking a missing node expands stack trace and input/output information. Locate the corresponding code using the stack trace:
   - If some model steps are missing after migration, add them.
@@ -1470,19 +1467,19 @@ When comparing graphs, follow these methods:
   ![image.png](../figures/wiki/train_debug_guide/visualization_page1.png)
 
 - Node precision comparison
- In addition to unmatched nodes, the left sidebar allows filtering by precision risk level to highlight high-risk nodes. After visualization, darker colors indicate larger precision differences and higher suspicion.
-  Besides prioritizing nodes by color depth, also check the first node where a precision difference appears.
+    In addition to unmatched nodes, the left sidebar allows filtering by precision risk level to highlight high-risk nodes. After visualization, darker colors indicate larger precision differences and higher suspicion.
+    Besides prioritizing nodes by color depth, also check the first node where a precision difference appears.
 
-  ![image.png](../figures/wiki/train_debug_guide/docs_en_figures_visualization_vis_match_info.png)
+    ![image.png](../figures/visualization/vis_precision_info.png 'image.png')
 
 - For communication operator issues, right-click a node and select data sending or receiving to view data from other ranks.
 
-![image.png](../figures/wiki/train_debug_guide/right-click_a_node.png)
+    ![image.png](../figures/wiki/train_debug_guide/right-click_a_node.png)
 
 - Overflow analysis
- Overflow levels can be filtered in the left sidebar. Overflow detection nodes of a specific level are sorted sequentially. Start debugging from the darkest-colored nodes. Click a filter item to jump to the corresponding node.
+    Overflow levels can be filtered in the left sidebar. Overflow detection nodes of a specific level are sorted sequentially. Start debugging from the darkest-colored nodes. Click a filter item to jump to the corresponding node.
 
-    ![image.png](../figures/wiki/train_debug_guide/visualization_vis_overflow_check.PNG)
+    ![image.png](../figures/visualization/vis_overflow_check.png 'image.png')
 
     Overflow levels:
     - `medium`: Abnormal input, normal output. Low priority; check last.
@@ -1491,11 +1488,12 @@ When comparing graphs, follow these methods:
 
 For more details, see the following figure.
 
-![image.png](../figures/visualization/vis_show_info.png 'image.png')
+ ![image.png](../figures/visualization/vis_show_info.png 'image.png')
 
 ### 4.5 Precision Comparison Tool
 
 For statistics or tensor data collected and saved on NPU and the benchmark using the precision collection tool, the precision comparison tool can be used for precision comparison across various evaluation metrics in addition to the visualization tool.
+
 Instructions
 
 1. Comparison command:
@@ -1566,15 +1564,15 @@ Instructions
     seed_all(mode=True)
     # Monitor initialization
     monitor = TrainerMon(
-            config_file_path="./monitor_config.json",
-            process_group=mpu.get_pipeline_model_parallel_group(),
-            params_have_main_grad=True  # megatron=True, deepspeed=False
+        config_file_path="./monitor_config.json",
+        process_group=mpu.get_pipeline_model_parallel_group(),
+        params_have_main_grad=True  # megatron=True, deepspeed=False
        )
-       # Mount objects to be monitored.
-       monitor.set_monitor(
-            model[0],
-            grad_acc_steps=args.global_batch_size // args.data_parallel_size // args.micro_batch_size,
-            optimizer=optimizer
+    # Mount objects to be monitored.
+    monitor.set_monitor(
+        model[0],
+        grad_acc_steps=args.global_batch_size // args.data_parallel_size // args.micro_batch_size,
+        optimizer=optimizer
         )
     ```
 
@@ -1588,7 +1586,7 @@ Instructions
     - Weights: `param_xx-xx.csv`
     The following is an example when the preceding items are collected:
 
-        ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9ae12b93-113f-4ff9-a6a8-6ec05bbaae84/image.png 'image.png')
+    ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9ae12b93-113f-4ff9-a6a8-6ec05bbaae84/image.png 'image.png')
 
 How to Use
 
@@ -1763,7 +1761,7 @@ When Inf/NaN mode, also known as non-saturation mode, is enabled, an overflow re
 export INF_NAN_MODE_ENABLE=1
 ```
 
-To check whether this mode is enabled, check for the environment variable in the shell script or print it in the Python training script:
+If you are not sure whether this mode is enabled, check whether this environment variable exists in your shell script, or print it in the training Python script for verification, as shown below:
 
 ```python
 import os
@@ -1771,4 +1769,4 @@ inf_nan_mode = os.environ.get("INF_NAN_MODE_ENABLE", False)
 print(f"******INF_NAN_MODE is {inf_nan_mode}******")
 ```
 
-Note: Some products may not implement this mode. Refer to actual product documentation.
+Note: Some products do not implement this mode. The actual situation prevails.

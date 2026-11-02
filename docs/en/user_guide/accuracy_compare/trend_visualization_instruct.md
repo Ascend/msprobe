@@ -209,8 +209,8 @@ By selecting the metric, statistic, display dimension, and dimension value on th
 
 | No.| Description|
 |--|--|
-|1|Select a data range to be displayed by selecting the metric, statistics, dimension, and dimension value in sequence. For details, see [Item Description](#item-description). After selection, the corresponding heat map is loaded.|
-|2|(Optional) Select a label from the drop-down list box or enter a label to be filtered. Only the data of the related module name is displayed. Multiple labels can be selected. For details about the label types, see [Item Description](#item-description)|
+|1|Select a data range to be displayed by selecting the metric, statistics, dimension, and dimension value in sequence. For details, see "Item Description". After selection, the corresponding heat map is loaded.|
+|2|(Optional) Select a label from the drop-down list box or enter a label to be filtered. Only the data of the related module name is displayed. Multiple labels can be selected. For details about the label types, see "Item Description"|
 |3|(Optional) Select a heat map mode from the drop-down list box, including:<br>&#8226; Gradient mode: Precision data is displayed using a gradient from blue to red. Smaller values appear bluer.<br>&#8226; Segmentation mode: Precision data is displayed in different colors.|
 |4|(Optional) Drag the heat bar to adjust the value range displayed in the heat map.|
 |5|(Optional) Drag the slider on the X-axis or Y-axis of the heat map to adjust the axis range.|
@@ -219,14 +219,14 @@ By selecting the metric, statistic, display dimension, and dimension value on th
 
 When the dimension is set to `Step` and parallelism strategies are applied to a Megatron model, refer to [Parallelism Visualization of a Megatron Model](#parallelism-visualization-of-a-megatron-model) to understand how the network layer data collected under each rank maps to the actual network-wide location.
 
-### Item Description
+**Item Description**
 
 |Item|Description|
 |--|--|
 |Metric|dump data:<br>&#8226;`forward`: forward process data. The tensor belongs to a network layer with the suffix `forward.X` (*X* indicates the ID) or an operator API with the suffix `.forward` in the `dump.json` file.<br>&#8226;`backward`: backward process data. The tensor belongs to a network layer with the suffix `backward.X` (*X* indicates the ID) or an operator API with the suffix `.backward` in the `dump.json` file.<br>&#8226; `recompute`: recomputation process data. The tensor belongs to a network layer or operator API with the `is_recompute` attribute set to `True` in the `dump.json` file.<br>&#8226; `parameters_grad`: parameter gradient data. The tensor belongs to network layer data with the suffix `parameters_grad` in the `dump.json` file.<br> monitor data:<br>&#8226; Automatically extracted based on the prefix of the monitor data file. Supported items include `["actv", "actv_grad", "exp_avg", "exp_avg_sq", "grad_unreduced", "grad_reduced", "param_origin", "param_updated"]`.|
 |Statistic|&#8226; dump data: The value is fixed to `norm`, `max`, `mean`, or `min`, indicating the L2 norm, maximum value, mean, or minimum value, respectively.<br>&#8226; monitor data: Automatically extracted based on the content of the .csv file. If a column contains valid data, the column name is automatically extracted as a statistical option.|
 |Dimension|The options are as follows:<br>&#8226; `Step`: Display all data of a single step in a heatmap (the X axis represents `Rank`, and the Y axis represents `Module Name`). You can click to view the trend line chart of a single tensor target in the `step` dimension.<br>&#8226; `Rank`: Display all data of a single rank in a heatmap (the X axis represents `Step`, and the Y axis represents `Module Name`). You can click to view the trend line chart of a single tensor target in the `rank` dimension.<br>&#8226; `Module Name`: Display all data of a single tensor target in a heatmap (the X axis represents `Step`, and the Y axis represents `Rank`). You can click to view the trend line chart of a single tensor target in the `Module Name` dimension.|
-|Label|By setting tags, the data range displayed in heatmaps and line charts can be restricted to data that satisfies the tag criteria (e.g., specific layers, specific module types). The following tag types are supported<br/>&#8226; `default`: Indicate that the tensor target belongs to network layer data, such as `Module` or `Cell`. These are specific to dump data scenarios and distinguish between network layer data and operator API data.<br/>&#8226; `layer`: Labels extracted from network layer names in the format `xxx.N`, where `xxx` is a string and `N` is an integer representing the network layer index, e.g., `layers.0`.<br/>&#8226; `index`: Indicate the input/output position to which a tensor belongs. For example, the 0-th input tensor is tagged as `input.0`.<br/>&#8226; `module`: String tags extracted from network layer names that represent the network layer type, e.g `TransformerLayer`.<br/>&#8226; `function`: Operator API names for which no layer tag could be extracted.<br/>Examples: <br/>&#8226; For a monitored object with the full name `module.decoder.layers.0.input_layernorm.weight` collected in a monitor data scenario, the following labels will be extracted: module labels: `module`, `decoder`, `input_layernorm`, `weight`; `layer` label: `layers.0`.<br/>&#8226; For a monitored object with the full name `Module.blocks.0.fsdp_wrapped_module.norm.1.WanLayerNorm` collected in a dump data scenario, if it contains one input and one output tensor, the following labels will be extracted: `default` label: `Module`; module labels: `fsdp_wrapped_module`, `WanLayerNorm`; `layer` labels: `blocks.0`, `norm.1`; `index` labels: `input.0`, `output.0`.|
+|Label|By setting tags, the data range displayed in heatmaps and line charts can be restricted to data that satisfies the tag criteria (e.g., specific layers, specific module types). The following tag types are supported<br/>&#8226; `default`: Indicate that the tensor target belongs to network layer data, such as `Module` or `Cell`. These are specific to dump data scenarios and distinguish between network layer data and operator API data. The network layer parameter tensor will also extract the default label `parameters`, which is used to filter data by parameter type.<br/>&#8226; `layer`: Labels extracted from network layer names in the format `xxx.N`, where `xxx` is a string and `N` is an integer representing the network layer index, e.g., `layers.0`.<br/>&#8226; `index`: Indicate the input/output position to which a tensor belongs. For example, the 0-th input tensor is tagged as `input.0`.<br/>&#8226; `module`: String tags extracted from network layer names that represent the network layer type, e.g `TransformerLayer`.<br/>&#8226; `function`: Operator API names for which no layer tag could be extracted.<br/>Examples: <br/>&#8226; For a monitored object with the full name `module.decoder.layers.0.input_layernorm.weight` collected in a monitor data scenario, the following labels will be extracted: module labels: `module`, `decoder`, `input_layernorm`, `weight`; `layer` label: `layers.0`.<br/>&#8226; For a monitored object with the full name `Module.blocks.0.fsdp_wrapped_module.norm.1.WanLayerNorm` collected in a dump data scenario, if it contains one input and one output tensor, the following labels will be extracted: `default` label: `Module`; module labels: `fsdp_wrapped_module`, `WanLayerNorm`; `layer` labels: `blocks.0`, `norm.1`; `index` labels: `input.0`, `output.0`.|
 
 #### Line Chart
 
@@ -263,7 +263,7 @@ The number of ranks should be less than or equal to 1024 and the number of model
 
     ```python
     from msprobe.core.common.megatron_utils import ParallelConfig, plot_model_parallelism
-    
+
     config = ParallelConfig(
         world_size=32,
         num_layers=48,
@@ -350,7 +350,7 @@ Parameters need to be passed during instance initialization when a ParallelConfi
 
 None
 
-# FAQ
+## FAQ
 
 1. How to use the trend visualization tool to compare the precision data files of two different experiments?
    

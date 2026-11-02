@@ -47,11 +47,11 @@ Take Transformers 4.49.0 as an example. Use `pip3 show Transformers` to obtain `
 
 1. Add required APIs to the `trainer.py` file to initialize data collection configurations and fix random numbers.
 
-   ![llamafactory1.png](../figures/visualization/mindspeed_llamafactoary_img/llamafactory1.png)
+   ![llamafactory1.png](../figures/visualization/mindspeed_llamafactory_img/llamafactory1.png)
 
 2. Add required APIs to the logic position of a training iteration in the `trainer.py` file to control the start, stop, and step counting of data collection.
 
-   ![llamafactory2.png](../figures/visualization/mindspeed_llamafactoary_img/llamafactory2.png)
+   ![llamafactory2.png](../figures/visualization/mindspeed_llamafactory_img/llamafactory2.png)
 
 3. After the configuration is complete, start the model training script. Data will be automatically collected. For details about the format of the flushed data, see [Dump Result File](../user_guide/dump/pytorch_data_dump_instruct.md#dump-result-file) in *Precision Data Collection in PyTorch*.
 
@@ -61,11 +61,11 @@ Open the `training.py` file. The MindSpeed-MM path is `mindspeed_mm/training.py`
 
 1. Add required APIs to the `training.py` file to initialize data collection configurations and fix random numbers.
 
-   ![mindspeed1.png](../figures/visualization/mindspeed_llamafactoary_img/mindspeed1.png)
+   ![mindspeed1.png](../figures/visualization/mindspeed_llamafactory_img/mindspeed1.png)
 
 2. Add required APIs to the logic position of a training iteration in the `training.py` file to control the start, stop, and step counting of data collection.
 
-   ![mindspeed2.png](../figures/visualization/mindspeed_llamafactoary_img/mindspeed2.png)
+   ![mindspeed2.png](../figures/visualization/mindspeed_llamafactory_img/mindspeed2.png)
 
 3. After the configuration is complete, start the model training script. Data will be automatically collected. For details about the format of the flushed data, see [Dump Result File](../user_guide/dump/pytorch_data_dump_instruct.md#dump-result-file) in *Precision Data Collection in PyTorch*.
 
@@ -252,13 +252,13 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 
    `debugger.start(model=model)` is added to the model file, as described in [Adding msProbe Collection APIs](#adding-msprobe-collection-apis). To print model structures, add `print(model)` to `model` under `start`.
 
-   Printed model structures: [mindspeed-mm-qwen25vl.txt](../figures/visualization/mindspeed_llamafactoary_img/mindspeed-mm-qwen25vl.txt), [llamafactory-qwen25vl.txt](../figures/visualization/mindspeed_llamafactoary_img/llamafactory-qwen25vl.txt)
+   Printed model structures: [mindspeed-mm-qwen25vl.txt](../figures/visualization/mindspeed_llamafactory_img/mindspeed-mm-qwen25vl.txt), [llamafactory-qwen25vl.txt](../figures/visualization/mindspeed_llamafactory_img/llamafactory-qwen25vl.txt)
 
 2. Configure layer mapping from outer to inner layers based on model structures.
 
 - Structure 1
 
-   ![1.png](../figures/visualization/mindspeed_llamafactoary_img/1.png)
+   ![1.png](../figures/visualization/mindspeed_llamafactory_img/1.png)
    
    ```yaml
    TopLayer: # Top layer of the model
@@ -271,7 +271,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 
 - Structure 2
 
-   ![2.png](../figures/visualization/mindspeed_llamafactoary_img/2.png)
+   ![2.png](../figures/visualization/mindspeed_llamafactory_img/2.png)
    
    ```yaml
    VisionModel: # VisionModel of MindSpeed is at the same level as Qwen2_5_VisionPatchEmbed of LLamaFactory. Map their sub-layers.
@@ -283,7 +283,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 
 - Structure 3
 
-   ![3.png](../figures/visualization/mindspeed_llamafactoary_img/3.png)
+   ![3.png](../figures/visualization/mindspeed_llamafactory_img/3.png)
    
    ```yaml
    TransformerLayer: # TransformerLayer of MindSpeed is at the same level as Qwen2_5_VLVisionBlock of LLamaFactory. Map their sub-layers.
@@ -294,7 +294,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 
 - Structure 4
 
-   ![4.png](../figures/visualization/mindspeed_llamafactoary_img/4.png)
+   ![4.png](../figures/visualization/mindspeed_llamafactory_img/4.png)
    
    ```yaml
    Qwen2vlVitSelfAttention: # Qwen2vlVitSelfAttention of MindSpeed is at the same level as Qwen2_5_VLVisionSdpaAttention of LLamaFactory. Map their sub-layers.
@@ -308,7 +308,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 
 - Structure 5
 
-   ![5.png](../figures/visualization/mindspeed_llamafactoary_img/5.png)
+   ![5.png](../figures/visualization/mindspeed_llamafactory_img/5.png)
    
    ```yaml
    MultimodalProjector: # MultimodalProjector of MindSpeed is at the same level as Qwen2_5_VLPatchMerger of LLamaFactory. Map their sub-layers.
@@ -320,7 +320,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 
 - Structure 6
 
-   ![6.png](../figures/visualization/mindspeed_llamafactoary_img/6.png)
+   ![6.png](../figures/visualization/mindspeed_llamafactory_img/6.png)
    
    ```yaml
    MMGPTModel: # MMGPTModel of MindSpeed is at the same level as Qwen2_5_VLModel of LLamaFactory. Map their sub-layers.
@@ -333,7 +333,7 @@ The Qwen2.5vl model, MindSpeed on the NPU side, and LlamaFactory on the Bench si
 
 - Structure 7
 
-   ![7.png](../figures/visualization/mindspeed_llamafactoary_img/7.png)
+   ![7.png](../figures/visualization/mindspeed_llamafactory_img/7.png)
    
    The TransformerLayer and MLP layers have already been configured and cannot be modified. You can [Manually Selecting Nodes for Mapping](#selecting-nodes-for-mapping).
 

@@ -31,9 +31,9 @@ To ensure that the training forward shape matches the inference prefill shape, t
       - `train_batch_size`: total number of samples in training.
       - `train_ppo_mini_batch_size`: number of samples in each mini batch.
 
-   2. Ensure `gac (Gradient Accumulation Steps) = 1`.
+   2. Ensure `gas (Gradient Accumulation Steps) = 1`.
 
-      Formula: `gac` = `train_ppo_mini_batch_size` * `n_resp_per_prompt`/`train_ppo_micro_batch_size_per_gpu`/`DP`
+      Formula: `gas` = `train_ppo_mini_batch_size` * `n_resp_per_prompt`/`train_ppo_micro_batch_size_per_gpu`/`DP`
       - `train_ppo_mini_batch_size`: number of samples in each mini batch.
       - `n_resp_per_prompt`: number of responses per prompt.
       - `train_ppo_micro_batch_size_per_gpu`: size of the micro batch processed on each GPU.

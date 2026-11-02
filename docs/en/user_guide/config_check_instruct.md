@@ -64,7 +64,7 @@ msprobe config_check -d [<*.sh> <*.yaml>] [-o <output_file_path>]
 
 | Parameter           | Required/Optional| Description|
 |---------------|-------|----------------------------------------------|
-| **-d** or **--dump**  | Required | Data collection mode. You can choose whether to pass the path of the shell script or YAML configuration file for starting training. The shell script and YAML configuration file can be passed at the same time, to collect training hyperparameters, environment variables, and third-party library versions. By default, neither of them is passed, indicating that only environment variables and third-party library information are collected. Both the shell script and YAML configuration file can be used to collect training hyperparameters, depending on the location of the file where training hyperparameters are included.|
+| **-d** or **--dump**  | Required | Data collection mode. You can choose whether to pass the path of the shell script or YAML configuration file for starting training. The shell script and YAML configuration file can be passed at the same time, to collect training hyperparameters, environment variables, and third-party library versions. By default, neither of them is passed, indicating that only environment variables and third-party library versions are collected. Both the shell script and YAML configuration file can be used to collect training hyperparameters, depending on the location of the file where training hyperparameters are included.|
 | **-o** or **--output**| Optional   | Output path of the collection result file. By default, the output result file is a package named **config_check_pack.zip**. You can customize the file name and add the result file name to the end of the path. The file name extension must be `.zip`.|
 
 **Example**
@@ -104,7 +104,7 @@ after the **megatron_adaptor** function in **pretrain_gpt.py** of MindSpeed-LLM 
 
 **Example**
 
-1. 
+1.
    Add the following code to the beginning of the first Python script executed in the training process:
 
    ```Python

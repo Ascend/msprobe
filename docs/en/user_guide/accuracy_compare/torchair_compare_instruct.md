@@ -2,7 +2,7 @@
 
 ## Overview
 
-In TorchAir mode (Torch graph mode), the input and output data of intermediate operators of a model is collected to check whether two inference results are consistent, thereby determining whether model precision is consistent on different operators. In this mode, network-wide operator precision comparison supports the comparison between GE data and FX data and data comparison in GE fusion mode.
+In TorchAir mode (Torch graph mode), the input and output data of intermediate operators of a model is collected to check whether two inference results are consistent, thereby determining whether model precision is consistent on different operators. In this mode, network-wide operator precision comparison supports the comparison between GE data and FX data and data comparison in GE fusion mode enabled or disabled.
 
 **Concepts**
 For details, see [Inference in TorchAir Mode](../dump/torchair_dump_instruct.md#basic-concepts).

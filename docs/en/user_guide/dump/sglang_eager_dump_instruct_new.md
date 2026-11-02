@@ -1,10 +1,9 @@
 # Precision Data Collection in SGLang (SGLang Version >= 0.5.11)
 
-<!-- md-trans-meta sourceCommit=39b2fc369098168c030fb85ace3bf05ce60a34c5 translatedAt=2026-08-11T02:42:49.202Z pushedAt=2026-08-11T02:51:07.156Z -->
-
 ## Introduction
 
-The msProbe tool collects precision data during model execution by adding the `PrecisionDebugger` interface to the `ModelRunner` class, which is the core class responsible for model forward propagation in the SGLang framework, and then launching inference.
+msProbe adds the `PrecisionDebugger` interface to the `ModelRunner` core class that handles model forward propagation execution in the SGLang framework and starts inference to
+collect precision data during model execution.
 
 For the performance inflation of the dump "statistics" mode and the data volume collected in the "tensor" mode, refer to the [dump baseline](../../baseline/pytorch_data_dump_perf_baseline.md).
 
@@ -23,7 +22,7 @@ If the current SGLang version is earlier than 0.5.11, you need to enable msProbe
     - conv3d
   ```
 
-Scenarios for deleting APIs: Some model code logic includes native API type validation. When the tool performs a dump operation, the API encapsulation for a model may differ from the model's native API type, which may cause validation failures. For details, see [FAQs](../../support/faq.md).
+  Scenarios for deleting APIs: Some model code logic includes native API type validation. When the tool performs a dump operation, the API encapsulation for a model may differ from the model's native API type, which may cause validation failures. For details, see [FAQs](../../support/faq.md).
 
 ## Preparations Before Use
 
@@ -115,7 +114,7 @@ The following simple example demonstrates how to use msProbe for precision data 
 
     For a detailed introduction to configuration files, see *[Configuration File Introduction](./config_json_introduct.md)*.
 
-2. Enable msProbe in the SGLang framework.
+2. Enable msProbe in the SGLang framework
 
     Specify the configuration file path `--msprobe-dump-config`. For details, see *[For MindStudio-probe(msProbe) dump](https://github.com/sgl-project/sglang/blob/main/docs/docs/advanced_features/server_arguments.mdx#for-mindstudio-probemsprobe-dump)*.
 
@@ -128,10 +127,10 @@ The following simple example demonstrates how to use msProbe for precision data 
       ```shell
       # Enabling CPU Affinity
       export SGLANG_SET_CPU_AFFINITY=1
-      
+
       # When using msProbe for dump, prevent the Router from sending health check requests that trigger model forward.
       export SGLANG_ENABLE_HEALTH_ENDPOINT_GENERATION=0
-      
+
       # PIP: recommended to config first Prefill Server IP
       # PORT: one free port
       # all sglang servers need to be config the same PIP and PORT,
@@ -159,7 +158,7 @@ The following simple example demonstrates how to use msProbe for precision data 
       ```shell
       # When using msProbe for dump, prevent the Router from sending health check requests that trigger model forward
       export SGLANG_ENABLE_HEALTH_ENDPOINT_GENERATION=0
-      
+
       # PIP: recommended to config first Prefill Server IP
       # PORT: one free port
       # all sglang servers need to be config the same PIP and PORT,

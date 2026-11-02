@@ -52,7 +52,7 @@ set_ge_dump_config(
 | ------------------ | --------------------------------------------------------------------------------- | -------------------------------------- |
 | dump_path          | No| Path for storing dump data. The default value is **"./"**.                                                               |
 | dump_mode          | No| Data dump mode, specifying whether the operator input or output is dumped. The value can be **input**, **output**, or **all**. The default value is **all**, indicating that both the input and output data are dumped.|
-| fusion_switch_file | No| Whether to disable dump in fusion mode. The default value is **None**, indicating that fusion is enabled.                                                             |
+| fusion_switch_file | No| Path to the fusion switch configuration file, used to specify which operator fusions to disable. The default value is **None**, indicating that fusion is enabled.                                                             |
 | dump_token         | No| Token for dump. The format **[1,2,5]** indicates that the data of the first, second, and fifth tokens is dumped. The default value is **None**, indicating that all data is dumped.          |
 | dump_layer         | No| Layer for dump. The format **["Add", "Conv_1"]** indicates that the data of the Add and Conv_1 layers is dumped. The default value is **None**, indicating that all data is dumped.          |
 | compiler_config    | No| Graph build configuration (CompilerConfig object). The default value is **None**, indicating that the newly created graph build configuration is returned.                    |

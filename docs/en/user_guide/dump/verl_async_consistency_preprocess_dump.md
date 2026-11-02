@@ -1,7 +1,5 @@
 # Collecting Data for Asynchronous verl Training-Inference Consistency Comparison
 
-<!-- md-trans-meta sourceCommit=d04bd615f0a6704fd5647163e7531d767f227e36 translatedAt=2026-08-11T02:43:16.180Z pushedAt=2026-08-11T02:51:07.161Z -->
-
 ## Introduction
 
 *[Collecting Data for Verifying Data Consistency Between verl Training and Inference Based on FSDP](./verl_fsdp_consistency_preprocess_dump.md)* and *[Collecting Data for Verifying Data Consistency Between verl Training and Inference Based on Megatron](./verl_megatron_consistency_preprocess_dump.md)* were originally designed for the Single Program Multiple Data (SPMD) rollout architecture in verl versions below v0.7.0. Starting from v0.7, verl has removed SPMD mode from its main repository and fully transitioned to an asynchronous scheduling architecture, requiring corresponding changes to the collection scheme. Currently, verl has two asynchronous rollout modes:
@@ -11,7 +9,9 @@
 | **Hybrid AgentLoop** (default) | Inference and training share the same NPU group (`hybrid_engine`) | `LLMServerClient` + `GlobalRequestLoadBalancer`, synchronously scheduled via `AgentLoopManager` |
 | **Fully Async**              | Rollouter and Trainer each have independent NPU pools, fully decoupled | `FullyAsyncRollouter` + `MessageQueue` + `FullyAsyncTrainer` + `ParameterSynchronizer`         |
 
-This document uses verl v0.8.0 as an example to demonstrate how to collect data for training-inference consistency comparison in an asynchronous way.
+This document targets the preceding asynchronous architecture of verl and uses verl v0.8.0 and vllm_ascend 0.18.0 as examples to describe the adaptation scheme for collecting training-inference consistency comparison data.
+
+verl v0.9.0.dev introduces the V1 Trainer. For the related adaptation method, see [Collecting Data for verl V1 Trainer Training-Inference Consistency Comparison](./verl_v1_trainer_consistency_preprocess_dump.md).
 
 ## Preparations
 
@@ -55,7 +55,6 @@ python3 -m verl.experimental.fully_async_policy.fully_async_main \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.use_dynamic_bsz=False \
 +   actor_rollout_ref.rollout.enforce_eager=True \
-+   algorithm.rollout_correction.bypass_mode=False \
 +   algorithm.rollout_correction=null \
 +   '+actor_rollout_ref.rollout.engine_kwargs.vllm.additional_config={dump_config_path:"/home/config_generate.json"}' \
 +   trainer.val_before_train=False \
@@ -127,7 +126,7 @@ Both the inference side and the training side need to provide their own msProbe 
 
 **File**: `vllm_ascend/worker/model_runner_v1.py`
 
-**Note**: The reading of `dump_cfg`, initialization of `PrecisionDebugger`, and calls to `debugger.start/stop/step` are all existing upstream logic in vllm-ascend. On top of this, the current solution only adds **DispatchLogger** initialization and **log_step** calls.
+**Note**: The reading of `dump_cfg`, initialization of `PrecisionDebugger`, and calls to `debugger.start/stop/step` are all existing upstream logic in vllm-ascend. On top of this, the current solution only adds `DispatchLogger` initialization and `log_step` calls.
 
 Changes added in `__init__`:
 Initialize `DispatchLogger`, point the dump path to a PID subdirectory, and record the distributed rank of the current process.
@@ -356,6 +355,8 @@ Megatron's `forward_backward_batch` does not have an explicit micro_batch loop �
 3. `forward_step` (`MegatronEngineWithLMHead` class)
 
     Insert `debugger.start` before the `forward_fn` call; insert `debugger.stop/step/_log_update_actor_step` after the call.
+
+    Taking the default configuration where `use_fused_kernels` is disabled as an example, that is, `actor_rollout_ref.model.use_fused_kernels` is set to `False`.
 
     ```diff
     class MegatronEngineWithLMHead(MegatronEngine):
@@ -667,7 +668,8 @@ Through the `request_id` injected in the pipeline as described in [Request ID](#
 
 ### How to Do
 
-1. **Select an inference step**: Find a suitable `step` and `request_id` in `dispatch_log.jsonl` (where `phase` is `prefill` and the number of `requests` is 1). Note that vLLM ≥ v0.14.0 appends an 8-character random suffix to the externally passed `request_id` in the format of `{original_request_id}-{8hex}`. When selecting, you must remove the suffix to match the `request_id` on the training side.
+1. **Select an inference step**: Find a suitable `step` and `request_id` in `dispatch_log.jsonl` (where `phase` is `prefill` and the number of `requests` is 1). Note that vLLM ≥ v0.14.0 appends an 8-character random suffix to the externally passed `request_id` in the format of `{original_request_id}-{8hex}`.
+    When selecting, you must remove the suffix to match the `request_id` on the training side.
 2. **Locate the training step**: Search for the same `request_id` in `update_actor_log.jsonl` to find the target `step` and `rank`.
 3. **Read the dump data**: Read the corresponding `dump.json` based on the step sequence number and `rank` sequence number.
 4. **Perform training-inference consistency comparison**.

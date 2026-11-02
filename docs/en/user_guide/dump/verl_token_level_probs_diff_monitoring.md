@@ -1,7 +1,5 @@
 # Training-Inference Consistency Monitoring: Token-Level probs_diff Monitoring
 
-<!-- md-trans-meta sourceCommit=d04bd615f0a6704fd5647163e7531d767f227e36 translatedAt=2026-08-11T02:43:13.955Z pushedAt=2026-08-11T02:51:07.158Z -->
-
 ## 1. Overview
 
 ### 1.1 Background
@@ -17,7 +15,7 @@ In theory, if the model weights used by both paths are identical, the probabilit
 
 - **Weight synchronization delay**: After the actor is updated, the vLLM engine's weights have not yet been synchronized.
 - **Operator precision differences**: Numerical precision differences exist in operator implementations across different hardware (Ascend NPU/GPU) or different frameworks (vLLM/Megatron).
-- **Inference/training mode differences**: Dropout, flash attention, and other parts behave differently during forward inference and training.
+- **Inference/training mode differences**: dropout, Flash Attention, etc. behave differently during forward inference and training
 
 ### 1.2 Positioning
 

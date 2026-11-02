@@ -105,7 +105,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from msprobe.pytorch import PrecisionDebugger, seed_all
+from msprobe.pytorch import PrecisionDebugger
 # Instantiate PrecisionDebugger before model training.
 debugger = PrecisionDebugger(dump_path="dump_path", level="debug")
 

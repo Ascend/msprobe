@@ -75,7 +75,7 @@ Or
 
 **Output Description**
 
-After the dump is complete, the message "msprobe ends successfully" is displayed. The output result is stored in the configured output path. If no output path is configured, the result is stored in the output folder in the current path by default.
+After the dump is complete, the message `msprobe ends successfully.` is displayed. The output result is stored in the configured output path. If no output path is configured, the result is stored in the output folder in the current path by default.
 
 ## Output File Description
 

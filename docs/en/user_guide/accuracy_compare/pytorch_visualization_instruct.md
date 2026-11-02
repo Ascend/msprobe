@@ -346,7 +346,17 @@ msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 8 
 msprobe graph_visualize -tp ./target_path -o ./output_path --rank_size 8 --tp 1 --pp 8 --vpp 2
 ```
 
-In all the preceding examples, the formats of `target_path` and `golden_path` must meet the multi-rank or multi-step format requirements listed in [Dump File Requirements for Graph Construction in Hierarchical Visualization](#dump-file-requirements-for-graph-construction-in-hierarchical-visualization).
+> In all the preceding examples, the formats of `target_path` and `golden_path` must meet the multi-rank or multi-step format requirements listed in [Dump File Requirements for Graph Construction in Hierarchical Visualization](#dump-file-requirements-for-graph-construction-in-hierarchical-visualization).
+
+### Custom Comparison Algorithm
+
+In certain scenarios, the built-in comparison algorithm cannot meet service requirements, and you can customize an algorithm for comparison.
+
+> [!NOTE]
+>
+> Only takes effect in **real-data mode** (i.e., `task` in config.json is configured as `"tensor"` when dumping). It does not take effect in statistics mode or MD5 mode. The user-customized comparison algorithm Python file is only used for accuracy comparison; it is executed when accuracy comparison runs, and the security of the file and the passed parameters is the user's responsibility.
+
+Refer to [Custom Comparison Algorithm Scenarios in PyTorch Accuracy Comparison](./pytorch_accuracy_compare_instruct.md#custom-algorithm-comparison-scenario) for the configuration method to complete the custom comparison algorithm, and then use the hierarchical visualization commands in this section to visually compare the dumped data.
 
 ## Starting TensorBoard
 
@@ -564,7 +574,7 @@ A node represents an API or module and typically contains multiple inputs and ou
 
 Errors:
 
-1. (Real data/Statistics mode) The maximum or minimum NPU value of an API or module contains `nan`, `inf`, or `-inf`. If the same phenomenon occurs in Bench metrics , ignore this error.
+1. (Real data/Statistics mode) The maximum or minimum NPU value of an API or module contains `nan`, `inf`, or `-inf`. If the same phenomenon occurs in Bench metrics, ignore this error.
 2. (Real data mode) `One Thousandth Err Ratio` of an API or module's `input/parameters` is greater than 0.9 and `output` is less than 0.6. (Only the output is marked, and the input is used for calculation.)
 3. (Statistics mode) The relative error of the norm value of an API or module's `input` is less than 0.1, and that of `output` is greater than 0.5. (Only the output is marked, and the input is used for calculation.)
 4. (Real data/Statistics mode) `Requires_grad` (for gradient calculation) of an API or module is inconsistent.
@@ -690,7 +700,7 @@ The path must contain folders named in the format of `step{number}`. Each `step`
 │   |   ├── rank0
 │   |   │   ├── dump_tensor_data (available only when `task` is set to `tensor`)
 |   |   |   |    ├── Tensor.permute.1.forward.pt
-|   |   |   |    ├── MyModule.0.forward.input.pt  
+|   |   |   |    ├── MyModule.0.forward.input.pt
 |   |   |   |    ...
 |   |   |   |    └── Function.linear.5.backward.output.pt
 │   |   |   ├── dump.json             # Data information
@@ -719,11 +729,11 @@ The path must contain folders named in the format of `step{number}`. Each `step`
 
 2. Fuzzy matching
 
-   - For module nodes with identical dump names, matching is performed based on the consistent name and the call sequence within the module node, ignoring the call count of individual APIs under each node.
+   For module nodes with identical dump names, matching is performed based on the consistent name and the call sequence within the module node, ignoring the call count of individual APIs under each node.
 
-  ![fuzzy_match_pt.png](../../figures/visualization/fuzzy_match_pt.png)
+   ![fuzzy_match_pt.png](../../figures/visualization/fuzzy_match_pt.png)
 
-  Dump names follow the format `Name + Number of calls` (e.g., in `Torch.matmul.2.forward`, `matmul` is the name and `2` is the call count).
+   Dump names follow the format `Name + Number of calls` (e.g., in `Torch.matmul.2.forward`, `matmul` is the name and `2` is the call count).
 
 ## FAQs
 
