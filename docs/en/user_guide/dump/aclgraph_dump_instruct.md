@@ -50,7 +50,7 @@ When performing precision alignment in **PyTorch ACLGraph** mode, the overall st
 
     | Configuration Item | Optional/Mandatory | Description |
     | --- | --- | --- |
-    | `task` | Optional | Collection task type, string. Supports `statistics` and `tensor`; the default value is `statistics`. `statistics` collects statistical values, and `tensor` collects real tensor data. |
+    | `task` | Optional | Collection task type, string. Supports `statistics`, `tensor`, and `nan_check`; the default value is `statistics`. `statistics` collects statistical values, `tensor` collects real tensor data, and `nan_check` detects NaN and saves affected tensors. |
     | `dump_path` | Mandatory | Dump result output directory, string. The tool checks and creates this directory. |
     | `rank` | Optional | Specifies the rank(s) to collect, list[int \| str]. The default value is empty, meaning all ranks are collected. Strings only support the `start-end` range format. Full-network collection is not enabled for non-target ranks. |
     | `dump_enable` | Optional | Collection switch, bool. The default value is `true`. Modifying this field at runtime dynamically enables or disables collection. For details, see [Dynamic Enable/Disable](#dynamic-enabledisable). |
@@ -146,9 +146,36 @@ AclGraphDumper.step(dump: bool = True) -> None
 
 | Name | Type | Description | Mandatory |
 | --- | --- | --- | --- |
-| `dump` | bool | Whether to write the current statistical results to `dump.json`; takes effect only for the `statistics` task. `True`: clear statistics and write to disk, and `step_id` increments by 1; `False`: only clear statistics without writing to disk, and `step_id` does not increment (can be used during the `dummy_run` warm-up phase). For the `tensor` task, the `.pt` files generated in the current step are archived and `step_id` advances. | No |
+| `dump` | bool | Whether to write the current statistical results to `dump.json`; takes effect for the `statistics` and `nan_check` tasks. `True`: clear statistics and write to disk, and `step_id` increments by 1; `False`: only clear statistics without writing to disk, and `step_id` does not increment (can be used during the `dummy_run` warm-up phase). For the `tensor` task, the `.pt` files generated in the current step are archived and `step_id` advances. | No |
 
 If collection has not been started, it returns directly.
+
+### NaN Detection and Automatic Tensor Saving
+
+Set `task` to `nan_check` before graph capture and use the same `start(model)` / `step()` interface:
+
+```json
+{
+  "task": "nan_check",
+  "dump_path": "./nan_dump",
+  "level": "L1",
+  "nan_check": {"list": [], "detail": true}
+}
+```
+
+ACLGraph capture records detection and collection nodes for replay. Discard warmup results with `step(dump=False)`; `step()` does not write an empty `dump.json` when no collection data is available.
+
+Detection, metadata collection, and saving compose existing operators directly. These nodes remain available for ACLGraph capture and replay after `torch.compile`, without registering another custom operator.
+
+Supports `L0` (modules), `L1` (APIs), and `mix`, plus `list` and `rank` filters. If any output tensor contains NaN, all input and output tensors of that call are saved; input detection results do not control saving. `nan_check.detail` is a boolean that defaults to `true`. With `detail: false`, only the matching call's input/output `.pt` files are saved, without generating `dump.json`. With `detail: true`, `dump.json` records each selected input and output tensor's `dtype`, `shape`, and `is_nan` (0/1); saved tensors link to `.pt` files through `data_name`. Positional inputs are under `input_args`, keyword inputs under `input_kwargs`, and outputs under `output`. Unavailable detection results have `is_nan: null`. Inf is not NaN. Graph mode supports only `check_mode: "isnan"`; detection covers the full tensor, while `slice` remains specific to `statistics`.
+
+Set `detail` before compilation/capture; only `dump_enable` can change dynamically at runtime.
+
+L1 treats return values and Tensor arguments marked writable by the schema as post-operation outputs, without checking the same output Tensor twice. L0 inputs and inputs of writable L1 calls are snapshotted before execution to preserve values preceding inplace changes. Calls whose API names contain `empty` are skipped.
+
+Call `step()` after each replay. Tensor files are archived under `dump_path/step{step_id}/{rank-or-pid}/dump_tensor_data/`; only `detail: true` generates `dump.json`. After warmup, `step(dump=False)` clears results and generated NaN files without advancing the step.
+
+Floating-point tensors are reduced on device before applying `isnan`. Aggregated output flags control saving all inputs and outputs of the call. With `detail: false`, `acl_stat` is not called to record results. With `detail: true`, input and output flags are transferred separately, and zero-element views carry dtype and shape. All inputs and outputs of matching calls are transferred in full and saved by `acl_tensor_save`, reusing the existing C++ primitives and interfaces. Input snapshots and strided tensor conversion require device-side copies. Disabling `dump_enable` skips callback collection, while captured checks and copy nodes still execute.
 
 ### Tensor Network-wide Collection
 

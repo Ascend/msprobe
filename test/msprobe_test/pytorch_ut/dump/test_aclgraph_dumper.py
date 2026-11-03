@@ -18,6 +18,7 @@ import importlib
 import importlib.util
 import os
 import sys
+import tempfile
 import types
 import unittest
 from unittest.mock import MagicMock, PropertyMock, patch
@@ -31,9 +32,9 @@ def _build_aclgraph_dumper_import_env():
     fake_aclgraph_dump = types.ModuleType("msprobe.pytorch.aclgraph_dump")
     fake_aclgraph_dump.acl_save = MagicMock(side_effect=lambda tensor, path: tensor)
     fake_aclgraph_dump.acl_tensor_save = MagicMock(
-        side_effect=lambda tensor, path, api_name, is_call_start=False, switch=None: tensor
+        side_effect=lambda tensor, path, api_name, is_call_start=False, switch=None, **kwargs: tensor
     )
-    fake_aclgraph_dump.acl_stat = MagicMock(side_effect=lambda tensor, tag: tensor)
+    fake_aclgraph_dump.acl_stat = MagicMock(side_effect=lambda tensor, tag, switch=None, **kwargs: tensor)
     fake_aclgraph_dump.get_acl_stat_dict = MagicMock(return_value={})
     fake_aclgraph_dump.set_acl_stat_switch = MagicMock()
 
@@ -90,14 +91,15 @@ def _load_aclgraph_dump_api_module(pytorch_pkg_dir):
         side_effect=lambda tensor, path, api_name, is_call_start=False, switch=None: tensor
     )
     acl_tensor_save_op.default = MagicMock()
-    acl_stat_op = MagicMock(side_effect=lambda tensor, stats, tag, switch=None: tensor)
+    acl_stat_op = MagicMock(
+        side_effect=lambda tensor, stats, tag, switch=None: tensor
+    )
     acl_stat_op.default = MagicMock()
     fake_ops = types.SimpleNamespace(
         acl_save=acl_save_op,
         acl_tensor_save=acl_tensor_save_op,
         acl_stat=acl_stat_op,
     )
-
     modules_patcher = patch.dict(
         sys.modules,
         {
@@ -187,11 +189,6 @@ class TestAclGraphDumper(unittest.TestCase):
         self.AclGraphDumper = self.module.AclGraphDumper
         self.aclgraph_dump_stub = aclgraph_dump_stub
         self.torch_npu_stub = torch_npu_stub
-        self.aclgraph_dump_stub.acl_stat.reset_mock(side_effect=False)
-        self.aclgraph_dump_stub.acl_stat.side_effect = lambda tensor, tag, switch=None: tensor
-        self.aclgraph_dump_stub.get_acl_stat_dict.reset_mock(side_effect=False)
-        self.aclgraph_dump_stub.get_acl_stat_dict.return_value = {}
-        self.torch_npu_stub.npu.synchronize.reset_mock()
 
     def tearDown(self):
         sys.modules.pop("msprobe.pytorch.aclgraph_dumper", None)
@@ -200,11 +197,11 @@ class TestAclGraphDumper(unittest.TestCase):
         self._modules_patcher.stop()
 
     def make_dumper(self, dump_path="./dump", keywords=None, level="mix", rank=None, rank_id=0,
-                    task="statistics", slice_info=None):
+                    task="statistics", slice_info=None, detail=False):
         with patch.object(
             self.AclGraphDumper,
             "_load_msprobe_config",
-            return_value=(task, dump_path, keywords or [], [], level, rank, slice_info or [], True),
+            return_value=(task, dump_path, keywords or [], [], level, rank, slice_info or [], detail, True),
         ), \
                 patch.object(self.AclGraphDumper, "_resolve_config_path", return_value="./config.json"), \
                 patch.object(self.AclGraphDumper, "_get_config_signature", return_value=(1, 1)), \
@@ -232,6 +229,297 @@ class TestAclGraphDumper(unittest.TestCase):
         )
         self.assertEqual([tensor for _, tensor in result], [tensor_a, tensor_b, tensor_c, tensor_d])
         self.assertEqual(list(self.module._iter_tensors("abc")), [])
+
+    def test_nan_check_config_defaults_and_detail_mode(self):
+        config = {"task": "nan_check", "dump_path": "./dump"}
+        with patch.object(self.module, "check_and_get_real_path", return_value="config.json"), \
+                patch.object(self.module, "load_json", return_value=config):
+            self.assertTrue(self.AclGraphDumper._load_msprobe_config("config.json")[-2])
+            config["nan_check"] = {}
+            self.assertTrue(self.AclGraphDumper._load_msprobe_config("config.json")[-2])
+            for value in (False, True):
+                config["nan_check"] = {"detail": value}
+                self.assertIs(self.AclGraphDumper._load_msprobe_config("config.json")[-2], value)
+            for value in ("true", 1, None):
+                config["nan_check"] = {"detail": value}
+                with self.subTest(detail=value), self.assertRaisesRegex(TypeError, "nan_check.detail"):
+                    self.AclGraphDumper._load_msprobe_config("config.json")
+            config["nan_check"] = {"check_mode": "slot"}
+            with self.assertRaises(ValueError):
+                self.AclGraphDumper._load_msprobe_config("config.json")
+
+    def test_nan_check_l0_l1_and_mix_reuse_collection_without_recursion(self):
+        for level in ("L0", "L1", "mix"):
+            for detail in (False, True):
+                with self.subTest(level=level, detail=detail):
+                    dumper = self.make_dumper(task="nan_check", level=level, detail=detail)
+                    model = OnlyRootModel()
+                    self.aclgraph_dump_stub.acl_stat.reset_mock()
+                    self.aclgraph_dump_stub.acl_tensor_save.reset_mock()
+                    dumper.start(model)
+                    x = torch.tensor([1., float("nan")])
+                    torch.testing.assert_close(model(x), x.relu(), equal_nan=True)
+                    calls = self.aclgraph_dump_stub.acl_stat.call_args_list
+                    expected = 2 if level == "mix" else 1
+                    flags = [call for call in calls if not call.args[1].startswith(self.module.NAN_STATS_PREFIX)]
+                    metadata = [call for call in calls if call.args[1].startswith(self.module.NAN_STATS_PREFIX)]
+                    self.assertEqual(len(flags), expected * 2 if detail else 0)
+                    self.assertTrue(all(call.args[0].numel() == 1 for call in flags))
+                    self.assertTrue(all(call.args[0].numel() == 0 for call in metadata))
+                    self.assertEqual(len(calls), expected * 4 if detail else 0)
+                    self.assertEqual(self.aclgraph_dump_stub.acl_tensor_save.call_count, expected * 2)
+
+    def test_nan_check_step_cleans_warmup_and_archives_files(self):
+        for detail in (False, True):
+            with self.subTest(detail=detail), tempfile.TemporaryDirectory() as directory:
+                dumper = self.make_dumper(task="nan_check", dump_path=directory, level="L0", detail=detail)
+                dumper.start(OnlyRootModel())
+                with patch.object(dumper, "_refresh_dump_enable"), \
+                        patch.object(self.module, "save_json") as save:
+                    with open(os.path.join(dumper._tensor_data_dir_path, "warmup.pt"), "wb"):
+                        pass
+                    dumper.step(dump=False)
+                    save.assert_not_called()
+                    self.assertEqual(dumper.step_id, 0)
+                    self.assertEqual(os.listdir(dumper._tensor_data_dir_path), [])
+                filename = "Module.__root__.OnlyRootModel.output.0.pt"
+                with open(os.path.join(dumper._tensor_data_dir_path, filename), "wb") as handle:
+                    handle.write(b"nan")
+                self.aclgraph_dump_stub.get_acl_stat_dict.return_value = {
+                    "Module.__root__.OnlyRootModel.0.forward.output": {"max": 1},
+                    f"{self.module.NAN_STATS_PREFIX}Module.__root__.OnlyRootModel.0.forward.output": {
+                        "dtype": "Float", "shape": [2, 0],
+                    },
+                } if detail else {}
+                destination = dumper._step_tensor_data_dir()
+                with patch.object(dumper, "_refresh_dump_enable"), \
+                        patch.object(self.module, "save_json") as save:
+                    dumper.step()
+                if detail:
+                    result = save.call_args.args[1]
+                    self.assertEqual(result["task"], "nan_check")
+                    record = result["data"]["Module.__root__.OnlyRootModel.forward.0"]["output"][0]
+                    self.assertEqual(record["is_nan"], 1)
+                    self.assertNotIn(self.module.Const.MAX, record)
+                    self.assertEqual(record["data_name"], filename)
+                    self.assertEqual(result["dump_data_dir"], destination)
+                else:
+                    save.assert_not_called()
+                self.assertTrue(os.path.isfile(os.path.join(destination, filename)))
+                self.assertEqual(os.listdir(dumper._tensor_data_dir_path), [])
+                self.assertEqual(dumper.step_id, 1)
+
+    def test_nan_check_does_not_write_empty_steps(self):
+        dumper = self.make_dumper(task="nan_check", detail=True)
+        dumper._running = True
+        with patch.object(dumper, "_refresh_dump_enable"), patch.object(self.module, "save_json") as save:
+            dumper.step()
+        save.assert_not_called()
+        self.assertEqual(dumper.step_id, 1)
+
+    def test_nan_check_uses_scalar_flags_and_preserves_strided_inputs(self):
+        dumper = self.make_dumper(task="nan_check", slice_info=[{"end": 1}], detail=True)
+        dumper._tensor_data_dir_path = "nan_tensors"
+        samples = (
+            (torch.tensor([1., float("nan")]), True),
+            (torch.tensor([[1., float("nan")], [2., 3.]]).t(), True),
+            (torch.tensor([float("inf"), -float("inf"), 1.]), False),
+            (torch.tensor([complex(1., float("nan"))]), True),
+            (torch.tensor([complex(float("nan"), 1.)]), True),
+            (torch.empty(0), False),
+            (torch.ones(3, dtype=torch.int64), False),
+            (torch.ones(3, dtype=torch.bool), False),
+            (torch.tensor(float("nan"), requires_grad=True), True),
+        )
+        for x, expected in samples:
+            with self.subTest(dtype=x.dtype, shape=x.shape), \
+                    patch.object(torch, "isnan", wraps=torch.isnan) as isnan:
+                dumper._collect("scope", "output", x, mark_forward_start=True)
+                call, info = self.aclgraph_dump_stub.acl_stat.call_args_list[-2:]
+                self.assertFalse(call.args[0].requires_grad)
+                self.assertEqual(call.args[0].numel(), 1)
+                self.assertEqual(bool(call.args[0]), expected)
+                self.assertEqual(info.args[0].dtype, x.dtype)
+                self.assertEqual(info.args[0].shape, (*x.shape, 0))
+                self.assertEqual(info.args[0].numel(), 0)
+                self.assertTrue(all(item.args[0].numel() == 1 for item in isnan.call_args_list))
+                save = self.aclgraph_dump_stub.acl_tensor_save.call_args
+                self.assertEqual(save.args[0].data_ptr(), x.data_ptr())
+                self.assertEqual(save.args[0].shape, x.shape)
+                self.assertTrue(save.args[1].startswith("nan_tensors"))
+
+    def test_nan_check_skips_empty_keyword_apis(self):
+        dumper = self.make_dumper(task="nan_check", level="L1", detail=True)
+        dumper._tensor_data_dir_path = "nan_tensors"
+        x = torch.ones(2)
+        with self.module._AclTorchDispatchMode(dumper):
+            torch.empty(2)
+            torch.empty_like(x)
+            torch.empty_strided((2,), (1,))
+            x.new_empty(2)
+            x.new_empty_strided((2,), (1,))
+        result = torch.full((2,), float("nan"))
+        for schema_name in ("npu::empty_with_format", "npu::empty_with_swapped_memory", "aten::_empty_affine_quantized"):
+            function = FakeFunc(schema_name.replace("::", ".") + ".default", result=result,
+                                schema_name=schema_name)
+            output = self.module._AclTorchDispatchMode(dumper).__torch_dispatch__(function, (), (), {})
+            self.assertIs(output, result)
+            self.assertEqual(len(function.calls), 1)
+        self.aclgraph_dump_stub.acl_stat.assert_not_called()
+        self.aclgraph_dump_stub.acl_tensor_save.assert_not_called()
+
+    def test_nan_check_collects_nan_created_by_dtype_view(self):
+        for detail in (False, True):
+            with self.subTest(detail=detail):
+                dumper = self.make_dumper(task="nan_check", level="L1", detail=detail)
+                dumper._tensor_data_dir_path = "nan_tensors"
+                self.aclgraph_dump_stub.acl_stat.reset_mock()
+                self.aclgraph_dump_stub.acl_tensor_save.reset_mock()
+                x = torch.tensor([-1], dtype=torch.int32)
+                with self.module._AclTorchDispatchMode(dumper):
+                    output = x.view(torch.float32)
+                self.assertTrue(torch.isnan(output).all())
+                calls = self.aclgraph_dump_stub.acl_tensor_save.call_args_list
+                saves = [call for call in calls if "Aten.view" in call.args[2]]
+                save, = [call for call in saves if ".output" in call.args[1]]
+                self.assertEqual(len(saves), 2)
+                self.assertEqual(save.args[0].data_ptr(), output.data_ptr())
+                self.assertTrue(bool(save.args[4]))
+                self.assertEqual(self.aclgraph_dump_stub.acl_stat.call_count, len(calls) * 2 if detail else 0)
+
+    def test_nan_check_collects_mutated_output_arguments(self):
+        dumper = self.make_dumper(task="nan_check", level="L1", detail=True)
+        dumper._tensor_data_dir_path = "nan_tensors"
+        mode = self.module._AclTorchDispatchMode(dumper)
+        for return_type in ("()", "Tensor"):
+            schema = torch._C.parse_schema(f"test::compute(Tensor input, Tensor(a!) result) -> {return_type}")
+
+            def compute(input_tensor, result):
+                result.fill_(float("nan"))
+                return input_tensor.clone() if return_type == "Tensor" else None
+
+            for keyword_output in (False, True):
+                with self.subTest(return_type=return_type, keyword_output=keyword_output):
+                    self.aclgraph_dump_stub.acl_stat.reset_mock()
+                    x, out = torch.ones(2), torch.zeros(2)
+                    args, kwargs = ((x,), {"result": out}) if keyword_output else ((x, out), {})
+                    operation = MagicMock(side_effect=compute, _schema=schema, overloadname="default")
+                    result = mode.__torch_dispatch__(operation, (), args, kwargs)
+                    operation.assert_called_once_with(*args, **kwargs)
+                    self.assertEqual(result is None, return_type == "()")
+                    calls = [call for call in self.aclgraph_dump_stub.acl_stat.call_args_list
+                             if not call.args[1].startswith(self.module.NAN_STATS_PREFIX) and ".output" in call.args[1]]
+                    self.assertEqual([bool(call.args[0]) for call in calls],
+                                     [True] if return_type == "()" else [False, True])
+                    self.assertTrue(all(".output." in call.args[1] for call in calls))
+
+    def test_nan_check_save_gate_uses_only_post_operation_outputs(self):
+        dumper = self.make_dumper(task="nan_check", level="L1", detail=True)
+        dumper._tensor_data_dir_path = "nan_tensors"
+        out = torch.full((2,), float("nan"))
+        view = out.view(2)
+        cases = (
+            ("nan_to_num", torch.tensor([float("nan"), 2.]), torch.nan_to_num, False),
+            ("fill_", torch.tensor([float("nan"), 2.]), lambda x: x.fill_(0), False),
+            ("out", torch.ones(2), lambda x: torch.add(x, x, out=view), False),
+        )
+        for name, x, operation, expected in cases:
+            with self.subTest(operator=name):
+                self.aclgraph_dump_stub.acl_stat.reset_mock()
+                with self.module._AclTorchDispatchMode(dumper):
+                    operation(x)
+                flags = [call for call in self.aclgraph_dump_stub.acl_stat.call_args_list
+                         if not call.args[1].startswith(self.module.NAN_STATS_PREFIX) and ".output" in call.args[1]]
+                self.assertEqual([bool(call.args[0]) for call in flags], [expected])
+                self.assertTrue(all(".output" in call.args[1] for call in flags))
+
+    def test_nan_check_saves_all_call_tensors_when_any_output_has_nan(self):
+        class Model(torch.nn.Module):
+            def forward(self, x, other=None):
+                return (torch.ones_like(x), x + other, *(torch.ones_like(x) for _ in range(5)))
+
+        for detail in (False, True):
+            with self.subTest(detail=detail):
+                self.aclgraph_dump_stub.acl_stat.reset_mock()
+                self.aclgraph_dump_stub.acl_tensor_save.reset_mock()
+                dumper = self.make_dumper(task="nan_check", level="L0", detail=detail)
+                model = Model()
+                dumper.start(model)
+                model(torch.ones(2), other=torch.full((2,), float("nan")))
+                saves = self.aclgraph_dump_stub.acl_tensor_save.call_args_list
+                expected = [False, True, False, True, *([False] * 5)]
+                self.assertEqual(len(saves), len(expected))
+                self.assertTrue(all(bool(call.args[4]) for call in saves))
+                self.assertEqual([call.args[3] for call in saves], [True, *([False] * 8)])
+                self.assertEqual([bool(torch.isnan(call.args[0]).any()) for call in saves], expected)
+                flags = [call for call in self.aclgraph_dump_stub.acl_stat.call_args_list
+                         if not call.args[1].startswith(self.module.NAN_STATS_PREFIX)]
+                self.assertEqual([bool(call.args[0]) for call in flags], expected if detail else [])
+
+    def test_nan_check_preserves_inplace_inputs_and_does_not_save_for_input_nan_only(self):
+        dumper = self.make_dumper(task="nan_check", level="L1", detail=True)
+        dumper._tensor_data_dir_path = "nan_tensors"
+        for creates_nan in (False, True):
+            with self.subTest(creates_nan=creates_nan):
+                self.aclgraph_dump_stub.acl_stat.reset_mock()
+                self.aclgraph_dump_stub.acl_tensor_save.reset_mock()
+                x = torch.ones(2) if creates_nan else torch.full((2,), float("nan"))
+                before = x.clone()
+                with self.module._AclTorchDispatchMode(dumper):
+                    if creates_nan:
+                        x.add_(float("nan"))
+                    else:
+                        x.nan_to_num_()
+                saves = self.aclgraph_dump_stub.acl_tensor_save.call_args_list
+                self.assertEqual(len(saves), 2)
+                torch.testing.assert_close(saves[0].args[0], before, equal_nan=True)
+                torch.testing.assert_close(saves[1].args[0], x, equal_nan=True)
+                self.assertTrue(all(bool(call.args[4]) == creates_nan for call in saves))
+                flags = [call for call in self.aclgraph_dump_stub.acl_stat.call_args_list
+                         if not call.args[1].startswith(self.module.NAN_STATS_PREFIX)]
+                self.assertEqual([bool(call.args[0]) for call in flags], [not creates_nan, creates_nan])
+
+    def test_nan_check_json_input_flags_and_all_saved_references_follow_output_gate(self):
+        stats = {}
+        cases = ((1, 0, 0, 0), (0, 1, 1, 0), (0, 0, 0, 1))
+        paths = ("input.0", "input_kwargs.other", "output.0", "output.1")
+        for index, flags in enumerate(cases):
+            for io_path, flag in zip(paths, flags):
+                key = f"Aten.add.{index}.forward.{io_path}"
+                stats[key] = {"max": flag}
+                stats[f"{self.module.NAN_STATS_PREFIX}{key}"] = {"dtype": "Float", "shape": [2, 0]}
+        stats["Aten.sum.0.forward.output"] = {"max": None}
+        stats[f"{self.module.NAN_STATS_PREFIX}Aten.sum.0.forward.output"] = {"dtype": "Float", "shape": [0]}
+        dumper = self.make_dumper(task="nan_check", detail=True)
+        data = dumper._convert_stats_to_dump_data(dumper._convert_nan_stats(stats))
+        for index in range(3):
+            call = data[f"Aten.add.{index}.forward"]
+            records = [call["input_args"][0], call["input_kwargs"]["other"], *call["output"]]
+            self.assertEqual([item["is_nan"] for item in records], list(cases[index]))
+            self.assertTrue(all(("data_name" in item) == (index > 0) for item in records))
+            for item in records:
+                self.assertEqual(item["dtype"], "torch.float32")
+                self.assertEqual(item["shape"], [2])
+                self.assertEqual(set(item), {"type", "dtype", "shape", "is_nan"} | ({"data_name"} if index > 0 else set()))
+            if index > 0:
+                self.assertEqual([item["data_name"] for item in records], [
+                    f"Aten.add.{io_path}.{index - 1}.pt"
+                    for io_path in paths
+                ])
+        scalar = data["Aten.sum.0.forward"]["output"][0]
+        self.assertEqual(scalar["shape"], [])
+        self.assertIsNone(scalar["is_nan"])
+        self.assertNotIn("data_name", scalar)
+
+    def test_nan_check_records_inputs_without_tensor_outputs_without_saving(self):
+        dumper = self.make_dumper(task="nan_check", detail=True)
+        dumper._tensor_data_dir_path = "nan_tensors"
+        inputs = dumper._snapshot_nan_inputs((torch.tensor([float("nan")]),), {}, False)
+        dumper._collect_nan_check("scope", None, inputs)
+        flags = [call for call in self.aclgraph_dump_stub.acl_stat.call_args_list
+                 if not call.args[1].startswith(self.module.NAN_STATS_PREFIX)]
+        self.assertEqual([bool(call.args[0]) for call in flags], [True])
+        self.assertFalse(bool(self.aclgraph_dump_stub.acl_tensor_save.call_args.args[4]))
 
     def test_is_collectable_tensor_if_tensor_variants_then_pass(self):
         self.assertFalse(self.module._is_collectable_tensor(torch.empty(2, device="meta")))
@@ -263,10 +551,10 @@ class TestAclGraphDumper(unittest.TestCase):
         with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json") as mock_real_path, \
                 patch.object(self.module, "load_json", return_value=config):
-            task, dump_path, module_list, custom_api, level, rank, slice_info, dump_enable = self.AclGraphDumper._load_msprobe_config(None)
+            task, dump_path, module_list, custom_api, level, rank, slice_info, detail, dump_enable = self.AclGraphDumper._load_msprobe_config(None)
 
-        self.assertEqual((task, dump_path, module_list, custom_api, level, rank, slice_info, dump_enable),
-                         ("statistics", "./dump_dir", ["linear"], [], "L1", [0], [], True))
+        self.assertEqual((task, dump_path, module_list, custom_api, level, rank, slice_info, detail, dump_enable),
+                         ("statistics", "./dump_dir", ["linear"], [], "L1", [0], [], False, True))
         mock_real_path.assert_called_once()
 
         config = {
@@ -276,7 +564,7 @@ class TestAclGraphDumper(unittest.TestCase):
         }
         with patch.object(self.module, "check_and_get_real_path", return_value="/tmp/config.json"), \
                 patch.object(self.module, "load_json", return_value=config):
-            _, _, _, _, level, _, _, _ = self.AclGraphDumper._load_msprobe_config("./config.json")
+            _, _, _, _, level, _, _, _, _ = self.AclGraphDumper._load_msprobe_config("./config.json")
         self.assertEqual(level, "L0")
 
         with self.assertRaises(TypeError):
@@ -294,9 +582,9 @@ class TestAclGraphDumper(unittest.TestCase):
 
         with patch.object(self.module, "check_and_get_real_path", return_value="/tmp/config.json"), \
                 patch.object(self.module, "load_json", return_value={"task": 1, "dump_path": "./x", "level": "L0"}):
-            task, dump_path, module_list, custom_api, level, rank, slice_info, dump_enable = self.AclGraphDumper._load_msprobe_config("./config.json")
-        self.assertEqual((task, dump_path, module_list, custom_api, level, rank, slice_info, dump_enable),
-                         (1, "./x", [], [], "L0", None, [], True))
+            task, dump_path, module_list, custom_api, level, rank, slice_info, detail, dump_enable = self.AclGraphDumper._load_msprobe_config("./config.json")
+        self.assertEqual((task, dump_path, module_list, custom_api, level, rank, slice_info, detail, dump_enable),
+                         (1, "./x", [], [], "L0", None, [], False, True))
 
         with self.assertRaises(TypeError):
             self.AclGraphDumper._validate_dump_path(1)
@@ -517,15 +805,17 @@ class TestAclGraphDumper(unittest.TestCase):
         x = torch.randn(2, 8)
         bias = torch.randn(2, 8)
 
-        with patch.object(self.module, "_is_collectable_tensor", return_value=True):
-            output = model(x, bias=bias)
-
-        self.assertTrue(torch.equal(output, x + bias))
-        tags = [call.args[1] for call in self.aclgraph_dump_stub.acl_stat.call_args_list]
-        self.assertTrue(any(".input." in tag for tag in tags))
-        self.assertTrue(any("input_kwargs" in tag for tag in tags))
-        self.assertTrue(any(tag.endswith(".output") or ".output." in tag for tag in tags))
-        self.assertTrue(hasattr(model, "_msprobe_aclgraph_origin_forward"))
+        for args, kwargs in (((x,), {"bias": bias}), ((), {"x": x, "bias": bias})):
+            with self.subTest(keyword_only=not args):
+                self.aclgraph_dump_stub.acl_stat.reset_mock()
+                output = model(*args, **kwargs)
+                self.assertTrue(torch.equal(output, x + bias))
+                tags = [call.args[1] for call in self.aclgraph_dump_stub.acl_stat.call_args_list]
+                self.assertEqual(len(tags), 3)
+                self.assertEqual(sum(self.module.FORWARD_START_MARKER in tag for tag in tags), 1)
+                self.assertEqual(any(".input." in tag for tag in tags), bool(args))
+                self.assertTrue(any("input_kwargs" in tag for tag in tags))
+                self.assertTrue(any(tag.endswith(".output") or ".output." in tag for tag in tags))
 
         origin_forward = model._msprobe_aclgraph_origin_forward
         dumper._patch(model)
@@ -594,15 +884,22 @@ class TestAclGraphDumper(unittest.TestCase):
 
         def fake_collect(scope, io_name, value, mark_forward_start=False, call_started=None):
             collected_calls.append((scope, io_name, mark_forward_start, value))
-            return io_name != "output"
+            return any(True for _ in self.module._iter_tensors(value))
 
-        with patch.object(dumper, "_collect", side_effect=fake_collect):
-            result = mode.__torch_dispatch__(func, (), args=(tensor,), kwargs={"alpha": tensor})
-
-        self.assertIs(result, tensor)
-        self.assertEqual([call[1] for call in collected_calls], ["input", "input_kwargs", "output"])
-        self.assertTrue(collected_calls[0][2])
-        self.assertFalse(collected_calls[1][2])
+        cases = (
+            ((tensor,), {"alpha": tensor}, ["input", "input_kwargs", "output"], [True, False, False]),
+            ((), {"alpha": tensor}, ["input_kwargs", "output"], [True, False]),
+            ((None,), {"alpha": tensor}, ["input", "input_kwargs", "output"], [True, True, False]),
+            ((None,), {}, ["input", "output"], [True, True]),
+        )
+        for args, kwargs, io_names, markers in cases:
+            with self.subTest(io_names=io_names, markers=markers), \
+                    patch.object(dumper, "_collect", side_effect=fake_collect):
+                collected_calls.clear()
+                result = mode.__torch_dispatch__(func, (), args=args, kwargs=kwargs)
+                self.assertIs(result, tensor)
+                self.assertEqual([call[1] for call in collected_calls], io_names)
+                self.assertEqual([call[2] for call in collected_calls], markers)
 
     def test_collect_if_dispatch_on_nested_model_then_pass(self):
         model = ToyModel()
@@ -1106,7 +1403,7 @@ class TestAclGraphDumper(unittest.TestCase):
         with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "load_json", return_value=config):
-            _, _, _, _, _, _, slice_info, _ = self.AclGraphDumper._load_msprobe_config(None)
+            _, _, _, _, _, _, slice_info, _, _ = self.AclGraphDumper._load_msprobe_config(None)
         self.assertEqual(slice_info, [{"dim": 0, "size": 100, "begin": 0, "end": 50}])
 
     def test_load_msprobe_config_without_slice_info(self):
@@ -1121,7 +1418,7 @@ class TestAclGraphDumper(unittest.TestCase):
         with patch.object(self.AclGraphDumper, "_default_config_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "check_and_get_real_path", return_value="/tmp/default.json"), \
                 patch.object(self.module, "load_json", return_value=config):
-            _, _, _, _, _, _, slice_info, _ = self.AclGraphDumper._load_msprobe_config(None)
+            _, _, _, _, _, _, slice_info, _, _ = self.AclGraphDumper._load_msprobe_config(None)
         self.assertEqual(slice_info, [])
 
     def test_load_msprobe_config_with_invalid_slice_info(self):
@@ -1180,6 +1477,7 @@ class TestAclGraphDumpApi(unittest.TestCase):
 
         self.assertIs(self.fake_ops.acl_save.call_args.args[0], tensor)
         self.assertIs(result, tensor)
+
 
     def test_acl_tensor_save_makes_tensor_contiguous_and_forwards_arguments(self):
         tensor = torch.arange(24).reshape(4, 6)[:, :4]

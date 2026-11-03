@@ -54,6 +54,7 @@ except Exception:
 
 
 FORWARD_START_MARKER = "__msprobe_fwd_start__"
+NAN_STATS_PREFIX = "__msprobe_nan_stats__."
 
 
 def _iter_tensors(value, prefix=""):
@@ -63,16 +64,6 @@ def _iter_tensors(value, prefix=""):
     if isinstance(value, dict):
         for key, sub in value.items():
             next_prefix = f"{prefix}.{key}" if prefix else str(key)
-            yield from _iter_tensors(sub, next_prefix)
-        return
-    if isinstance(value, tuple):
-        for idx, sub in enumerate(value):
-            next_prefix = f"{prefix}.{idx}" if prefix else str(idx)
-            yield from _iter_tensors(sub, next_prefix)
-        return
-    if isinstance(value, list):
-        for idx, sub in enumerate(value):
-            next_prefix = f"{prefix}.{idx}" if prefix else str(idx)
             yield from _iter_tensors(sub, next_prefix)
         return
     if isinstance(value, Iterable) and not isinstance(value, (str, bytes, bytearray)):
@@ -121,34 +112,38 @@ if TorchDispatchMode is not None:
 
         def __torch_dispatch__(self, func, types, args=(), kwargs=None):
             kwargs = kwargs if kwargs is not None else {}
-            if _in_fake_mode((args, kwargs)):
-                return func(*args, **kwargs)
-            if self._dumper._should_skip_dispatch_func(func):
+            dumper = self._dumper
+            if (
+                dumper._is_dispatch_collecting()
+                or _in_fake_mode((args, kwargs))
+                or dumper._should_skip_dispatch_func(func)
+            ):
                 return func(*args, **kwargs)
 
-            if self._dumper._is_dispatch_collecting():
+            op_name = dumper._op_name_from_dispatch_func(func)
+            if not dumper._should_collect_api(op_name):
                 return func(*args, **kwargs)
 
-            op_name = self._dumper._op_name_from_dispatch_func(func)
-            should_collect = self._dumper._should_collect_api(op_name)
-            started = False
-            call_started = [False]
-            if should_collect:
-                collected = self._dumper._dc(
-                    self._dumper._collect,
-                    op_name,
-                    "input",
-                    args,
-                    mark_forward_start=not started,
-                    call_started=call_started,
+            schema = None
+            if dumper.task == Const.NAN_CHECK:
+                if "empty" in op_name:
+                    return func(*args, **kwargs)
+                schema = getattr(func, "_schema", None)
+                nan_inputs = dumper._dc(
+                    dumper._snapshot_nan_inputs, args, kwargs, schema is not None and schema.is_mutable
                 )
-                started = started or collected
-                if kwargs:
-                    collected = self._dumper._dc(
-                        self._dumper._collect,
+
+            call_started = [False]
+            started = False
+            if dumper.task != Const.NAN_CHECK:
+                for io_name, value in (("input", args), ("input_kwargs", kwargs)):
+                    if not value:
+                        continue
+                    collected = dumper._dc(
+                        dumper._collect,
                         op_name,
-                        "input_kwargs",
-                        kwargs,
+                        io_name,
+                        value,
                         mark_forward_start=not started,
                         call_started=call_started,
                     )
@@ -156,15 +151,31 @@ if TorchDispatchMode is not None:
 
             output = func(*args, **kwargs)
 
-            if should_collect:
-                self._dumper._dc(
-                    self._dumper._collect,
-                    op_name,
-                    "output",
-                    output,
-                    mark_forward_start=not started,
-                    call_started=call_started,
-                )
+            collected_output = output
+            if schema is not None:
+                seen = {id(tensor) for _, tensor in _iter_tensors(output)}
+                written_outputs = []
+                for index, arg in enumerate(schema.arguments):
+                    if arg.alias_info is None or not arg.alias_info.is_write:
+                        continue
+                    value = args[index] if index < len(args) else kwargs.get(arg.name)
+                    for _, tensor in _iter_tensors(value):
+                        if id(tensor) not in seen:
+                            written_outputs.append(tensor)
+                            seen.add(id(tensor))
+                if written_outputs:
+                    collected_output = tuple(written_outputs) if output is None else (output, *written_outputs)
+            if dumper.task == Const.NAN_CHECK:
+                dumper._dc(dumper._collect_nan_check, op_name, collected_output, nan_inputs)
+                return output
+            dumper._dc(
+                dumper._collect,
+                op_name,
+                "output",
+                collected_output,
+                mark_forward_start=not started,
+                call_started=call_started,
+            )
             return output
 
 
@@ -180,9 +191,12 @@ class AclGraphDumper:
             config_level,
             config_rank,
             config_slice_info,
+            detail,
             dump_enable,
         ) = self._load_msprobe_config(self.config_path)
         self.task = self._validate_task(config_task)
+        self.dump_tensor = self.task in (Const.TENSOR, Const.NAN_CHECK)
+        self.detail = self.task == Const.NAN_CHECK and detail
         self.dump_enable = self._validate_dump_enable(dump_enable)
         self.dump_path = self._validate_dump_path(
             config_dump_path, create=self.task != Const.STATISTICS or self.dump_enable
@@ -230,6 +244,13 @@ class AclGraphDumper:
         level = json_config.get("level", Const.LEVEL_L0)
         slice_info = task_config.get("slice", [])
         check_slice_info(slice_info)
+        detail = False
+        if task == Const.NAN_CHECK:
+            detail = task_config.get("detail", True)
+            if not isinstance(detail, bool):
+                raise TypeError("nan_check.detail must be a boolean")
+            if task_config.get("check_mode", Const.NAN_CHECK_MODE_ISNAN) != Const.NAN_CHECK_MODE_ISNAN:
+                raise ValueError("ACLGraph nan_check only supports check_mode=isnan")
         return (
             task,
             json_config.get("dump_path"),
@@ -238,6 +259,7 @@ class AclGraphDumper:
             level,
             json_config.get(Const.RANK),
             slice_info,
+            detail,
             json_config.get("dump_enable", True),
         )
 
@@ -252,8 +274,8 @@ class AclGraphDumper:
 
     @staticmethod
     def _validate_task(task):
-        if task not in (Const.STATISTICS, Const.TENSOR):
-            raise ValueError(f"task must be one of {[Const.STATISTICS, Const.TENSOR]}")
+        if task not in (Const.STATISTICS, Const.TENSOR, Const.NAN_CHECK):
+            raise ValueError(f"task must be one of {[Const.STATISTICS, Const.TENSOR, Const.NAN_CHECK]}")
         return task
 
     @staticmethod
@@ -320,8 +342,7 @@ class AclGraphDumper:
             return None
 
     def _step_rank_dir(self):
-        rank_name = f"rank{self.rank_id}" if self.rank_id is not None else f"pid{os.getpid()}"
-        path = os.path.join(self.dump_path, f"step{self.step_id}", rank_name)
+        path = os.path.join(self.dump_path, f"step{self.step_id}", self._rank_dir_name())
         create_directory(path)
         return path
 
@@ -475,15 +496,25 @@ class AclGraphDumper:
 
     @classmethod
     def _build_tensor_record(cls, record):
-        return {
+        result = {
             Const.TYPE: Const.TENSOR_TYPE,
             Const.DTYPE: cls._normalize_dtype(record.get("dtype")),
             Const.SHAPE: record.get("shape"),
-            Const.MAX: record.get("max"),
-            Const.MIN: record.get("min"),
-            Const.MEAN: record.get("mean"),
-            Const.NORM: record.get("norm"),
         }
+        if Const.IS_NAN in record:
+            result[Const.IS_NAN] = record[Const.IS_NAN]
+            if record.get("data_name"):
+                result["data_name"] = record["data_name"]
+        else:
+            result.update(
+                {
+                    Const.MAX: record.get("max"),
+                    Const.MIN: record.get("min"),
+                    Const.MEAN: record.get("mean"),
+                    Const.NORM: record.get("norm"),
+                }
+            )
+        return result
 
     @classmethod
     def _assign_nested_value(cls, container, path_parts, value):
@@ -548,19 +579,9 @@ class AclGraphDumper:
             op_entry = dump_data.setdefault(op_name, {})
             tensor_record = cls._build_tensor_record(record)
 
-            if io_name == "input":
-                container = op_entry.setdefault(Const.INPUT_ARGS, {})
-                cls._assign_nested_value(container, path_parts or ["0"], tensor_record)
-                continue
-
-            if io_name == "input_kwargs":
-                container = op_entry.setdefault(Const.INPUT_KWARGS, {})
-                cls._assign_nested_value(container, path_parts or ["0"], tensor_record)
-                continue
-
-            if io_name == "output":
-                container = op_entry.setdefault(Const.OUTPUT, {})
-                cls._assign_nested_value(container, path_parts or ["0"], tensor_record)
+            container_name = Const.INPUT_ARGS if io_name == "input" else io_name
+            container = op_entry.setdefault(container_name, {})
+            cls._assign_nested_value(container, path_parts or ["0"], tensor_record)
 
         for op_entry in dump_data.values():
             if Const.INPUT_ARGS in op_entry:
@@ -570,6 +591,8 @@ class AclGraphDumper:
         return dump_data
 
     def _collect(self, module_name, io_name, value, mark_forward_start=False, call_started=None):
+        if self.task == Const.NAN_CHECK:
+            return self._collect_nan_check(module_name, value)
         has_collected = False
         has_marked = False
         call_started = [False] if call_started is None else call_started
@@ -598,6 +621,88 @@ class AclGraphDumper:
                 acl_stat(stat_tensor, tag, self._switch_for_tensor(stat_tensor))
             has_collected = True
         return has_collected
+
+    @staticmethod
+    def _snapshot_nan_inputs(args, kwargs, clone):
+        # Mutating calls need the original inputs after their output decides saving.
+        return [
+            (io_name, suffix, tensor.detach().clone() if clone else tensor.detach())
+            for io_name, value in (("input", args), ("input_kwargs", kwargs))
+            for suffix, tensor in _iter_tensors(value)
+            if _is_collectable_tensor(tensor)
+        ]
+
+    @staticmethod
+    def _nan_flag(tensor):
+        if tensor.numel() == 0 or not (tensor.is_floating_point() or tensor.is_complex()):
+            return torch.zeros((), dtype=torch.bool, device=tensor.device)
+        if tensor.is_complex():
+            return torch.isnan(torch.amax(tensor.real)) | torch.isnan(torch.amax(tensor.imag))
+        return torch.isnan(torch.amax(tensor))
+
+    def _collect_nan_check(self, module_name, output, inputs=()):
+        outputs = [
+            (suffix, tensor.detach()) for suffix, tensor in _iter_tensors(output) if _is_collectable_tensor(tensor)
+        ]
+        tensors = [*inputs, *(("output", suffix, tensor) for suffix, tensor in outputs)]
+        if not tensors:
+            return False
+        reference = outputs[0][1] if outputs else tensors[0][2]
+        flags = [self._nan_flag(tensor).to(reference.device) for _, tensor in outputs]
+        switch = self._switch_for_tensor(reference)
+        hit = flags[0] if flags else torch.zeros((), dtype=torch.bool, device=reference.device)
+        for flag in flags[1:]:
+            hit = torch.logical_or(hit, flag)
+        save_switch = torch.logical_and(hit, switch)
+        scope = self._module_scope(module_name)
+        for index, (io_name, suffix, tensor) in enumerate(tensors):
+            tensor = tensor.to(hit.device)
+            tail = f".{suffix}" if suffix else ""
+            if self.detail:
+                start = f".{FORWARD_START_MARKER}" if index == 0 else ""
+                flag = flags[index - len(inputs)] if io_name == "output" else self._nan_flag(tensor)
+                acl_stat(flag, f"{scope}.{io_name}{start}{tail}", switch)
+                # An empty view carries dtype/shape without transferring tensor data.
+                acl_stat(tensor.unsqueeze(-1)[..., :0], f"{NAN_STATS_PREFIX}{scope}.{io_name}{start}{tail}", switch)
+            name = self._safe_file_stem(f"{scope}.{io_name}{tail}")
+            acl_tensor_save(tensor, self._tensor_save_path(name), f"__msprobe_nan__.{scope}", index == 0, save_switch)
+        return True
+
+    def _convert_nan_stats(self, stats):
+        result = {}
+        saved_counts = {}
+        saved_indices = {}
+        nan_calls = {
+            key.rsplit(".forward.", 1)[0]
+            for key, record in stats.items()
+            if not key.startswith(NAN_STATS_PREFIX)
+            and key.rsplit(".forward.", 1)[-1].split(".", 1)[0] == "output"
+            and record.get("max")
+        }
+        for key, info in stats.items():
+            if not key.startswith(NAN_STATS_PREFIX):
+                continue
+            key = key[len(NAN_STATS_PREFIX) :]
+            dtype = info["dtype"]
+            torch_dtype = getattr(torch, dtype.lower(), None)
+            if isinstance(torch_dtype, torch.dtype):
+                dtype = str(torch_dtype)
+            flag = stats.get(key, {}).get("max")
+            record = {
+                "dtype": dtype,
+                "shape": info["shape"][:-1],
+                Const.IS_NAN: int(flag) if flag is not None else None,
+            }
+            call, io_path = key.rsplit(".forward.", 1)
+            scope = call.rsplit(".", 1)[0]
+            if call in nan_calls:
+                if call not in saved_indices:
+                    saved_indices[call] = saved_counts.get(scope, 0)
+                    saved_counts[scope] = saved_indices[call] + 1
+                name = self._safe_file_stem(f"{scope}.{io_path}")
+                record["data_name"] = f"{name}.{saved_indices[call]}{Const.PT_SUFFIX}"
+            result[key] = record
+        return result
 
     def _collect_custom_api(self, api_name, io_name, value, call_started):
         """Collect a patched Python API as one replay-time indexed call."""
@@ -656,24 +761,20 @@ class AclGraphDumper:
                 dispatch_mode = _AclTorchDispatchMode(dumper) if use_dispatch else nullcontext()  # pylint: disable=possibly-used-before-assignment
                 started = False
                 call_started = [False]
+                nan_inputs = ()
+                if collect_module_data and dumper.task == Const.NAN_CHECK:
+                    nan_inputs = dumper._dc(dumper._snapshot_nan_inputs, args, kwargs, True)
                 # Child module hooks run inside the root API dispatch mode in mix.
                 # Exclude collection operations while keeping model APIs visible.
-                if collect_module_data:
-                    collected = dumper._dc(
-                        dumper._collect,
-                        module_dump_name,
-                        "input",
-                        args,
-                        mark_forward_start=not started,
-                        call_started=call_started,
-                    )
-                    started = started or collected
-                    if kwargs:
+                if collect_module_data and dumper.task != Const.NAN_CHECK:
+                    for io_name, value in (("input", args), ("input_kwargs", kwargs)):
+                        if not value:
+                            continue
                         collected = dumper._dc(
                             dumper._collect,
                             module_dump_name,
-                            "input_kwargs",
-                            kwargs,
+                            io_name,
+                            value,
                             mark_forward_start=not started,
                             call_started=call_started,
                         )
@@ -683,14 +784,17 @@ class AclGraphDumper:
                     output = __origin(*args, **kwargs)
 
                 if collect_module_data:
-                    dumper._dc(
-                        dumper._collect,
-                        module_dump_name,
-                        "output",
-                        output,
-                        mark_forward_start=not started,
-                        call_started=call_started,
-                    )
+                    if dumper.task == Const.NAN_CHECK:
+                        dumper._dc(dumper._collect_nan_check, module_dump_name, output, nan_inputs)
+                    else:
+                        dumper._dc(
+                            dumper._collect,
+                            module_dump_name,
+                            "output",
+                            output,
+                            mark_forward_start=not started,
+                            call_started=call_started,
+                        )
                 return output
 
             module.forward = wrapped_forward
@@ -757,7 +861,7 @@ class AclGraphDumper:
             self.switch = self.switch.to(parameter.device)
             if parameter.device.type == "npu":
                 set_acl_stat_switch(self.switch, self.dump_enable)
-        if self.task == Const.TENSOR:
+        if self.dump_tensor:
             self._prepare_tensor_data_dir()
         self._patch(model)
         self._running = True
@@ -784,22 +888,35 @@ class AclGraphDumper:
         stats = dict(get_acl_stat_dict(clear=True))
         self._refresh_dump_enable()
         if not dump:
+            if self.dump_tensor:
+                for name in os.listdir(self._tensor_data_dir_path):
+                    os.remove(os.path.join(self._tensor_data_dir_path, name))
             return
-        statistic_names = ("min", "max", "mean", "norm")
-        if any(
-            any(record.get(name) is None for name in statistic_names)
+        if self.task == Const.NAN_CHECK:
+            if not self.detail:
+                self._archive_tensor_data_dir()
+                return
+            if not stats:
+                self.step_id += 1
+                return
+            stats = self._convert_nan_stats(stats)
+        elif any(
+            any(record.get(name) is None for name in ("min", "max", "mean", "norm"))
             for key, record in stats.items()
             if self._parse_stat_key(key) is not None
         ):
             logger.warning("Invalid statistics detected. Please use tensor mode to collect the affected data.")
 
         dump_json = {
-            "task": Const.STATISTICS,
+            "task": self.task,
             "level": self.level,
             "framework": Const.PT_FRAMEWORK,
-            "dump_data_dir": None,
+            "dump_data_dir": self._step_tensor_data_dir() if self.dump_tensor else None,
             "data": self._convert_stats_to_dump_data(stats),
         }
         file_path = os.path.join(self._step_rank_dir(), "dump.json")
         save_json(file_path, dump_json, indent=2)
-        self.step_id += 1
+        if self.dump_tensor:
+            self._archive_tensor_data_dir()
+        else:
+            self.step_id += 1

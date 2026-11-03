@@ -166,7 +166,7 @@ Supported scenarios:
 
 ### task = nan_check
 
-Detects NaN or overflow. This task supports only PyTorch scenarios on Ascend NPUs, requires CANN 8.5.0 or later, and requires `level` to be `"L1"`. For the applicable scenarios and build requirements of each detection mode, see [check_mode Configuration](#check_mode-configuration).
+With `PrecisionDebugger`, this task detects NaN or overflow, supports only PyTorch scenarios on Ascend NPUs, requires CANN 8.5.0 or later, and requires `level` to be `"L1"`. For the applicable scenarios and build requirements of each detection mode, see [check_mode Configuration](#check_mode-configuration). For `AclGraphDumper`, see [ACLGraph Configuration](#aclgraph-configuration) below.
 
 **Examples**
 
@@ -208,6 +208,30 @@ For a complete usage example, see [nan_check Usage Example](./pytorch_nan_check_
 - `isnan` records `is_nan` for each input and output tensor in `dump.json`: `1` indicates that the tensor contains NaN, `0` indicates that it does not, and `null` indicates that detection is not possible. In the backward pass, the results include `grad_input` and `grad_output`, and no API-level flag is recorded.
 - `isnan` records `0` for empty, integer, and Boolean tensors and `null` for FakeTensors and meta tensors. It does not calculate `Max`, `Min`, `Mean`, or `Norm`.
 - `slot` records the detection result for each API. Intermediate overflow may still be detected when the output tensor is normal. Detection results for int64 operations are not guaranteed to be accurate.
+
+#### ACLGraph Configuration
+
+`AclGraphDumper` records NaN results for inputs and outputs separately. If any output tensor contains NaN, all inputs and outputs of that call are saved. Supported `level` values are `"L0"`, `"L1"`, and `"mix"`.
+
+```json
+{
+    "task": "nan_check",
+    "dump_path": "/home/data_dump",
+    "level": "L1",
+    "nan_check": {
+        "list": [],
+        "detail": true
+    }
+}
+```
+
+| Parameter | Required/Optional | Description |
+| ---- | --------- | ---- |
+| list | Optional | Module/API name keywords, of type `list[str]`. Defaults to `[]`, which does not restrict the range. |
+| check_mode | Optional | Detection mode, of type `str`. Only `"isnan"` is supported and is the default. Inf is not detected. |
+| detail | Optional | Boolean, defaults to `true`. If any output tensor contains NaN, both modes save all inputs and outputs of that call as `.pt` files. With `true`, `dump.json` also records input and output `dtype`, `shape`, and `is_nan` separately; saved tensors link to files through `data_name`. With `false`, no `dump.json` is generated. |
+
+For usage and output directories, see [ACLGraph Data Dump](./aclgraph_dump_instruct.md#nan-detection-and-automatic-tensor-saving).
 
 ### task = structure
 
