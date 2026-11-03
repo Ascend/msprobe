@@ -215,7 +215,6 @@ stages:
 
       PreSmoke_msprobe:
         name: PreSmoke_msprobe
-        continue-on-error: true
         if: ${{ jobs.Detect_file_changes.outputs.need_build == 'yes' }}
         uses: .gitcode/workflows/.presmoke.yml
         with:

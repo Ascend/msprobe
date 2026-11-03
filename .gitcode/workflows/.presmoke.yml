@@ -28,8 +28,6 @@ on:
 jobs:
   JOB_smoke:
     name: JOB_smoke
-    # l0_ascend_msprof_communication 用例需要双卡 NPU，单卡 runner 上失败属环境限制，不阻断流水线
-    continue-on-error: true
     env:
       ARTIFACT_NAME: ${{ format('{0}-{1}', inputs.ARTIFACT_NAME, atomgit.run_number) }}
     select: selected_by_default
@@ -61,4 +59,6 @@ jobs:
           git diff --name-only $BASE_COMMIT HEAD > /tmp/modify_files.txt
 
           git clone --recurse-submodules -b main https://gitcode.com/mnhdxnh/att_smoke_new.git /presmoke
+          
           bash /presmoke/prepare_deps.sh
+          bash /presmoke/run_pr_smoke.sh -g pull/${{ inputs.pr_id }}/head:pr_${{ inputs.pr_id }} -b ${{ inputs.TARGET_BRANCH }} -m all
