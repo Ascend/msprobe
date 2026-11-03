@@ -50,7 +50,7 @@ When performing precision alignment in **PyTorch ACLGraph** mode, the overall st
 
     | Configuration Item | Optional/Mandatory | Description |
     | --- | --- | --- |
-    | `task` | Optional | Collection task type, string. Supports `statistics`, `tensor`, and `nan_check`; the default value is `statistics`. `statistics` collects statistical values, `tensor` collects real tensor data, and `nan_check` detects NaN and saves affected tensors. |
+    | `task` | Optional | Collection task type (`str`). Values:<br/>&#8226; `statistics`: collects statistics; see the example in this section.<br/>&#8226; `tensor`: collects tensor data; see [Tensor Network-wide Collection](#tensor-network-wide-collection).<br/>&#8226; `nan_check`: detects NaN and saves all inputs and outputs of a call if any output contains NaN; see [Automatic NaN Detection](#automatic-nan-detection).<br/>Defaults to `statistics`. |
     | `dump_path` | Mandatory | Dump result output directory, string. The tool checks and creates this directory. |
     | `rank` | Optional | Specifies the rank(s) to collect, list[int \| str]. The default value is empty, meaning all ranks are collected. Strings only support the `start-end` range format. Full-network collection is not enabled for non-target ranks. |
     | `dump_enable` | Optional | Collection switch, bool. The default value is `true`. Modifying this field at runtime dynamically enables or disables collection. For details, see [Dynamic Enable/Disable](#dynamic-enabledisable). |
@@ -150,9 +150,9 @@ AclGraphDumper.step(dump: bool = True) -> None
 
 If collection has not been started, it returns directly.
 
-### NaN Detection and Automatic Tensor Saving
+### Automatic NaN Detection
 
-Set `task` to `nan_check` before graph capture and use the same `start(model)` / `step()` interface:
+Set `task` to `nan_check` and use the same `start(model)` / `step()` interface:
 
 ```json
 {
@@ -163,19 +163,27 @@ Set `task` to `nan_check` before graph capture and use the same `start(model)` /
 }
 ```
 
+**Parameters**
+
+| Parameter | Required/Optional | Description |
+| ---- | --------- | ---- |
+| list | Optional | Module/API name keywords, of type `list[str]`. Defaults to `[]`, which does not restrict the range. |
+| check_mode | Optional | A `str` that only accepts `"isnan"`. Omitting it is equivalent to setting `"isnan"`: both detect only NaN, without detecting Inf or intermediate overflow. Other values raise an error. |
+| detail | Optional | A `bool` that defaults to `true` and controls whether `dump.json` is also generated. Both values save all inputs and outputs when any output contains NaN. See [nan_check Task Output](#nan_check-task). |
+
 ACLGraph capture records detection and collection nodes for replay. Discard warmup results with `step(dump=False)`; `step()` does not write an empty `dump.json` when no collection data is available.
 
 Detection, metadata collection, and saving compose existing operators directly. These nodes remain available for ACLGraph capture and replay after `torch.compile`, without registering another custom operator.
 
-Supports `L0` (modules), `L1` (APIs), and `mix`, plus `list` and `rank` filters. If any output tensor contains NaN, all input and output tensors of that call are saved; input detection results do not control saving. `nan_check.detail` is a boolean that defaults to `true`. With `detail: false`, only the matching call's input/output `.pt` files are saved, without generating `dump.json`. With `detail: true`, `dump.json` records each selected input and output tensor's `dtype`, `shape`, and `is_nan` (0/1); saved tensors link to `.pt` files through `data_name`. Positional inputs are under `input_args`, keyword inputs under `input_kwargs`, and outputs under `output`. Unavailable detection results have `is_nan: null`. Inf is not NaN. Graph mode supports only `check_mode: "isnan"`; detection covers the full tensor, while `slice` remains specific to `statistics`.
+Supports `L0` (modules), `L1` (APIs), and `mix`, plus `list` and `rank` filters. If any output tensor contains NaN, all input and output tensors of that call are saved; input detection results do not control saving. Detection covers the full tensor, while `slice` remains specific to `statistics`.
 
-Set `detail` before compilation/capture; only `dump_enable` can change dynamically at runtime.
+Non-empty FP8/FP4 tensors keep their original dtype and shape, with `is_nan: null`; NaN reductions are skipped for these types. Unknown flags do not trigger saving. If another output in the same call contains NaN, all original inputs and outputs are still saved, including FP8/FP4 tensors. Integer, bool, and empty tensors have `is_nan: 0`.
 
 L1 treats return values and Tensor arguments marked writable by the schema as post-operation outputs, without checking the same output Tensor twice. L0 inputs and inputs of writable L1 calls are snapshotted before execution to preserve values preceding inplace changes. Calls whose API names contain `empty` are skipped.
 
 Call `step()` after each replay. Tensor files are archived under `dump_path/step{step_id}/{rank-or-pid}/dump_tensor_data/`; only `detail: true` generates `dump.json`. After warmup, `step(dump=False)` clears results and generated NaN files without advancing the step.
 
-Floating-point tensors are reduced on device before applying `isnan`. Aggregated output flags control saving all inputs and outputs of the call. With `detail: false`, `acl_stat` is not called to record results. With `detail: true`, input and output flags are transferred separately, and zero-element views carry dtype and shape. All inputs and outputs of matching calls are transferred in full and saved by `acl_tensor_save`, reusing the existing C++ primitives and interfaces. Input snapshots and strided tensor conversion require device-side copies. Disabling `dump_enable` skips callback collection, while captured checks and copy nodes still execute.
+Supported floating-point tensors are reduced on device before applying `isnan`. Aggregated output flags control saving all inputs and outputs of the call. With `detail: false`, `acl_stat` is not called to record results. With `detail: true`, input and output flags are transferred separately, and zero-element views carry dtype and shape. All inputs and outputs of matching calls are transferred in full and saved by `acl_tensor_save`, reusing the existing C++ primitives and interfaces. Input snapshots and strided tensor conversion require device-side copies. Disabling `dump_enable` skips callback collection, while captured checks and copy nodes still execute.
 
 ### Tensor Network-wide Collection
 
@@ -332,6 +340,68 @@ tensor_dump
 `.pt` files can be read using `torch.load`.
 
 The `tensor` task does not generate `dump.json`.
+
+#### nan_check Task
+
+Results are stored under `dump_path/step{step_id}/{process_dir}/`. Distributed runs use `rank{rank_id}`; runs without an initialized distributed environment use `pid{pid}`.
+
+- `detail: true` (default): `dump.json` records each input and output tensor's `dtype`, `shape`, and `is_nan`. A value of `1` means NaN is present, `0` means no NaN, and `null` means detection is unavailable.
+- Positional inputs are under `input_args`, keyword inputs under `input_kwargs`, and outputs under `output`.
+- If any output tensor contains NaN, all inputs and outputs are saved under `dump_tensor_data/`, and JSON records link to the files through `data_name`. Calls without a NaN output do not have `data_name` fields.
+- `detail: false`: only saves the matching calls' `.pt` files, without generating `dump.json`.
+
+In this example, the second input and output of `Aten.add` contain NaN, so both inputs and the output are saved:
+
+```text
+nan_dump
+└── step0
+    └── rank0
+        ├── dump.json
+        └── dump_tensor_data
+            ├── Aten.add.input.0.0.pt
+            ├── Aten.add.input.1.0.pt
+            └── Aten.add.output.0.pt
+```
+
+Example `dump.json` content (`dump_data_dir` is the actual save path):
+
+```json
+{
+  "task": "nan_check",
+  "level": "L1",
+  "framework": "pytorch",
+  "dump_data_dir": "/path/to/nan_dump/step0/rank0/dump_tensor_data",
+  "data": {
+    "Aten.add.0.forward": {
+      "input_args": [
+        {
+          "type": "torch.Tensor",
+          "dtype": "torch.float32",
+          "shape": [2],
+          "is_nan": 0,
+          "data_name": "Aten.add.input.0.0.pt"
+        },
+        {
+          "type": "torch.Tensor",
+          "dtype": "torch.float32",
+          "shape": [2],
+          "is_nan": 1,
+          "data_name": "Aten.add.input.1.0.pt"
+        }
+      ],
+      "output": [
+        {
+          "type": "torch.Tensor",
+          "dtype": "torch.float32",
+          "shape": [2],
+          "is_nan": 1,
+          "data_name": "Aten.add.output.0.pt"
+        }
+      ]
+    }
+  }
+}
+```
 
 ### Comparison Description
 

@@ -166,7 +166,7 @@
 
 ### task配置为nan_check
 
-`PrecisionDebugger`检测NaN或溢出，仅支持PyTorch昇腾NPU场景，要求CANN 8.5.0及以上，`level`须为`"L1"`。不同检测方式的适用范围和构建要求见[check_mode参数配置说明](#check_mode参数配置说明)。`AclGraphDumper`的配置见下方[ACLGraph场景](#aclgraph场景)。
+`PrecisionDebugger`检测NaN或溢出，仅支持PyTorch昇腾NPU场景，要求CANN 8.5.0及以上，`level`须为`"L1"`。不同检测方式的适用范围和构建要求见[check_mode参数配置说明](#check_mode参数配置说明)。`AclGraphDumper`的配置和输出说明见[aclgraph_dump使用指南：NaN自动检测](./aclgraph_dump_instruct.md#nan-自动检测)。
 
 **配置示例**
 
@@ -208,30 +208,6 @@
 - `isnan`在`dump.json`中为每个输入、输出tensor记录`is_nan`：`1`表示含NaN，`0`表示不含NaN，`null`表示无法检测；反向包含`grad_input`和`grad_output`的检测结果，不记录API级标志。
 - `isnan`对空、整数和布尔tensor记录`0`，对FakeTensor和meta tensor记录`null`，不计算`Max`、`Min`、`Mean`或`Norm`。
 - `slot`按API记录检测结果。输出tensor正常时仍可能检测到过程溢出；int64运算的检测结果不保证准确。
-
-#### ACLGraph场景
-
-`AclGraphDumper`分别记录输入和输出的NaN检测结果，输出中任一Tensor含NaN时保存该调用的全部输入、输出Tensor。支持`level`为`"L0"`、`"L1"`或`"mix"`。
-
-```json
-{
-    "task": "nan_check",
-    "dump_path": "/home/data_dump",
-    "level": "L1",
-    "nan_check": {
-        "list": [],
-        "detail": true
-    }
-}
-```
-
-| 参数 | 可选/必选 | 解释 |
-| ---- | --------- | ---- |
-| list | 可选 | 待检测module/API的名称关键字，`list[str]`类型，默认为`[]`，表示不限制范围。 |
-| check_mode | 可选 | 检测方式，`str`类型，仅支持`"isnan"`，默认`"isnan"`，不检测Inf。 |
-| detail | 可选 | `bool`类型，默认为`true`。输出中任一Tensor含NaN时，两档均保存该调用全部输入、输出Tensor为`.pt`；`true`额外在`dump.json`中分别记录输入和输出的`dtype`、`shape`、`is_nan`，保存的Tensor通过`data_name`关联文件；`false`不生成`dump.json`。 |
-
-使用方式和输出目录见[ACLGraph数据采集说明](./aclgraph_dump_instruct.md#nan-自动检测与落盘)。
 
 ### task配置为structure
 
@@ -342,7 +318,7 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 
 ### check_mode参数配置说明
 
-仅用于PyTorch `nan_check`任务，`str`类型，可选：
+以下说明适用于`PrecisionDebugger`的PyTorch `nan_check`任务，`str`类型，可选：
 
 - `"isnan"`（默认）：检测输入、输出tensor中的NaN，不检测Inf或过程溢出。前向输出含NaN时，将该API的输入、输出自动保存为`dump_tensor_data`目录下的`.pt`文件；反向由`grad_input`中的NaN触发，保存`grad_input`和`grad_output`。无需配置`tensor_list`，采集时不主动触发异常。编译msProbe时须包含`--include-mod=aclgraph_dump`模块。
 - `"slot"`：读取NPU寄存器状态，检测API中的NaN、Inf或过程溢出。编译msProbe时须包含`--include-mod=nan_check`模块，并在运行前设置`INF_NAN_MODE_FORCE_DISABLE=1`。详细采集范围由`tensor_list`指定。

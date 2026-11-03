@@ -50,7 +50,7 @@
 
     | 配置项         | 可选/必选 | 说明                                                                                                                     |
     |-------------| -- |------------------------------------------------------------------------------------------------------------------------|
-    | `task`      | 可选 | 采集任务类型，str类型。支持 `statistics`、`tensor` 和 `nan_check`，默认值为 `statistics`。`nan_check` 检测 NaN，默认自动保存含 NaN 的 Tensor。                    |
+    | `task` | 可选 | 采集任务类型，str类型。可选值：<br/>&#8226; `statistics`：采集统计信息，配置示例见本节。<br/>&#8226; `tensor`：采集 Tensor 真实数据，配置示例见[Tensor 整网采集](#tensor-整网采集)。<br/>&#8226; `nan_check`：检测 NaN，输出中任一 Tensor 含 NaN 时保存该调用的全部输入和输出，配置示例见[NaN 自动检测](#nan-自动检测)。<br/>默认值为 `statistics`。 |
     | `dump_path` | 必选 | dump 结果输出目录，str类型。工具会检查并创建该目录。                                                                                         |
     | `rank`      | 可选 | 指定采集的 rank，list[int \|str]类型。默认值为空，表示采集所有 rank；字符串仅支持 `"start-end"` 范围格式。非目标 rank 不开启整网采集。                             |
     | `dump_enable` | 可选 | 采集开关，bool类型，默认值为 `true`。运行过程中修改该字段可动态启停采集，详细说明请参见[动态启停](#动态启停)。                                              |
@@ -150,9 +150,9 @@ AclGraphDumper.step(dump: bool = True) -> None
 
 若未启动采集则直接返回。
 
-### NaN 自动检测与落盘
+### NaN 自动检测
 
-在编图前将 `task` 配置为 `nan_check`，使用相同的 `start(model)` / `step()` 接口：
+将 `task` 配置为 `nan_check`，使用相同的 `start(model)` / `step()` 接口：
 
 ```json
 {
@@ -166,17 +166,23 @@ AclGraphDumper.step(dump: bool = True) -> None
 }
 ```
 
+**参数说明**
+
+| 参数 | 可选/必选 | 解释 |
+| ---- | --------- | ---- |
+| list | 可选 | 待检测 module/API 的名称关键字，`list[str]` 类型，默认为 `[]`，表示不限制范围。 |
+| check_mode | 可选 | `str` 类型，仅支持 `"isnan"`。省略时与显式设置 `"isnan"` 等效，均只检测 NaN，不检测 Inf 或过程溢出；其他取值会报错。 |
+| detail | 可选 | `bool` 类型，默认为 `true`，控制是否额外生成 `dump.json`。两档均在输出含 NaN 时保存该调用全部输入和输出，详见[nan_check 任务输出](#nan_check-任务)。 |
+
 - ACLGraph 捕获时记录检测与采集节点，后续由 replay 执行。预热结果使用 `step(dump=False)` 清理，`step()` 无采集数据时不生成空 `dump.json`。
 - 检测、元信息记录和保存直接组合已有算子，经 `torch.compile` 后仍可进行 ACLGraph 捕获和重放，无需新增自定义算子。
 - 支持 `L0`（module）、`L1`（API）和 `mix`，可用 `list` 和 `rank` 缩小范围。该次调用的输出中任一 Tensor 含 NaN 时，保存全部输入和输出 Tensor；输入的检测结果不控制保存。
-- `nan_check.detail` 为布尔值，默认为 `true`；设置为 `false` 时，仅保存命中调用的输入和输出 `.pt`，不生成 `dump.json`。
-- 设置 `detail: true` 时，分别将采集范围内输入和输出的 `dtype`、`shape`、`is_nan`（0/1）写入 `dump.json`，保存的 Tensor 通过 `data_name` 关联 `.pt`。输入位于 `input_args` 和 `input_kwargs`，输出位于 `output`。检测结果不可用时，`is_nan` 为 `null`。Inf 不视为 NaN，图模式仅支持 `check_mode: "isnan"`。
-- `detail` 必须在编图前确定，运行中仅 `dump_enable` 可动态切换。
+- 非空 FP8/FP4 Tensor 保留原始 dtype 和 shape，`is_nan` 记录为 `null`，不执行不支持的 NaN 归约；未知标志不触发保存。同次调用的其他输出含 NaN 时，仍保存全部原始输入、输出，包括 FP8/FP4 Tensor。整数、bool 和空 Tensor 的 `is_nan` 为 `0`。
 - L1 将返回值和 schema 标注为可写的 Tensor 入参作为执行后输出，同一个 Tensor 不重复计入输出。L0 输入和 L1 可写调用的输入会在执行前保留快照，以记录 inplace 修改前的值。直接跳过 API 名称包含 `empty` 的调用。
 - 每次 replay 后调用 `step()`，结果位于 `dump_path/step{step_id}/{rank或pid}/`，真实数据在该目录的 `dump_tensor_data/`；仅 `detail: true` 时生成 `dump.json`。
 - 预热后调用 `step(dump=False)` 会清理本轮结果及已生成的 NaN 文件，不推进 step。检测覆盖完整 Tensor，`slice` 仅适用于 `statistics`。
 
-浮点 Tensor 先在设备上归约为标量，再做 `isnan`。输出检测标志合并后控制该调用全部输入、输出的保存。`detail: false` 不调用 `acl_stat` 记录结果；`detail: true` 分别回传输入和输出的检测标志，通过零元素视图记录 dtype 和 shape。命中调用的输入和输出由 `acl_tensor_save` 完整回传并保存，复用现有 C++ 原语及接口。输入快照和非连续 Tensor 的连续化会产生设备侧拷贝。动态关闭 `dump_enable` 会跳过回调采集，图内检测和拷贝节点仍会执行。
+支持检测的浮点 Tensor 先在设备上归约为标量，再做 `isnan`。输出检测标志合并后控制该调用全部输入、输出的保存。`detail: false` 不调用 `acl_stat` 记录结果；`detail: true` 分别回传输入和输出的检测标志，通过零元素视图记录 dtype 和 shape。命中调用的输入和输出由 `acl_tensor_save` 完整回传并保存，复用现有 C++ 原语及接口。输入快照和非连续 Tensor 的连续化会产生设备侧拷贝。动态关闭 `dump_enable` 会跳过回调采集，图内检测和拷贝节点仍会执行。
 
 ### Tensor 整网采集
 
@@ -345,6 +351,68 @@ tensor_dump
 `.pt` 文件可通过 `torch.load` 读取。
 
 `tensor` 任务不生成 `dump.json`。
+
+#### nan_check 任务
+
+结果位于 `dump_path/step{step_id}/{process_dir}/`。分布式场景使用 `rank{rank_id}`，未初始化分布式环境时使用 `pid{pid}`。
+
+- `detail: true`（默认）：`dump.json` 分别记录每个输入和输出的 `dtype`、`shape`、`is_nan`；`1` 表示含 NaN，`0` 表示不含 NaN，`null` 表示无法检测。
+- 位置参数位于 `input_args`，关键字参数位于 `input_kwargs`，输出位于 `output`。
+- 输出中任一 Tensor 含 NaN 时，全部输入和输出保存到 `dump_tensor_data/`，JSON 通过 `data_name` 关联文件；未命中的调用不包含 `data_name`。
+- `detail: false`：仅保存上述命中调用的 `.pt` 文件，不生成 `dump.json`。
+
+以下示例中，`Aten.add` 的第二个输入及输出含 NaN，两个输入和输出均保存：
+
+```text
+nan_dump
+└── step0
+    └── rank0
+        ├── dump.json
+        └── dump_tensor_data
+            ├── Aten.add.input.0.0.pt
+            ├── Aten.add.input.1.0.pt
+            └── Aten.add.output.0.pt
+```
+
+对应的 `dump.json` 内容示例（`dump_data_dir` 为实际保存路径）：
+
+```json
+{
+  "task": "nan_check",
+  "level": "L1",
+  "framework": "pytorch",
+  "dump_data_dir": "/path/to/nan_dump/step0/rank0/dump_tensor_data",
+  "data": {
+    "Aten.add.0.forward": {
+      "input_args": [
+        {
+          "type": "torch.Tensor",
+          "dtype": "torch.float32",
+          "shape": [2],
+          "is_nan": 0,
+          "data_name": "Aten.add.input.0.0.pt"
+        },
+        {
+          "type": "torch.Tensor",
+          "dtype": "torch.float32",
+          "shape": [2],
+          "is_nan": 1,
+          "data_name": "Aten.add.input.1.0.pt"
+        }
+      ],
+      "output": [
+        {
+          "type": "torch.Tensor",
+          "dtype": "torch.float32",
+          "shape": [2],
+          "is_nan": 1,
+          "data_name": "Aten.add.output.0.pt"
+        }
+      ]
+    }
+  }
+}
+```
 
 ### 比对说明
 

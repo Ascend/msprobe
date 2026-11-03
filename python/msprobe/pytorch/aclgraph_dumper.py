@@ -636,6 +636,8 @@ class AclGraphDumper:
     def _nan_flag(tensor):
         if tensor.numel() == 0 or not (tensor.is_floating_point() or tensor.is_complex()):
             return torch.zeros((), dtype=torch.bool, device=tensor.device)
+        if tensor.is_floating_point() and tensor.element_size() <= 1:
+            return None
         if tensor.is_complex():
             return torch.isnan(torch.amax(tensor.real)) | torch.isnan(torch.amax(tensor.imag))
         return torch.isnan(torch.amax(tensor))
@@ -648,10 +650,14 @@ class AclGraphDumper:
         if not tensors:
             return False
         reference = outputs[0][1] if outputs else tensors[0][2]
-        flags = [self._nan_flag(tensor).to(reference.device) for _, tensor in outputs]
+        flags = []
+        for _, tensor in outputs:
+            flag = self._nan_flag(tensor)
+            flags.append(flag.to(reference.device) if flag is not None else None)
+        known_flags = [flag for flag in flags if flag is not None]
         switch = self._switch_for_tensor(reference)
-        hit = flags[0] if flags else torch.zeros((), dtype=torch.bool, device=reference.device)
-        for flag in flags[1:]:
+        hit = known_flags[0] if known_flags else torch.zeros((), dtype=torch.bool, device=reference.device)
+        for flag in known_flags[1:]:
             hit = torch.logical_or(hit, flag)
         save_switch = torch.logical_and(hit, switch)
         scope = self._module_scope(module_name)
@@ -661,9 +667,10 @@ class AclGraphDumper:
             if self.detail:
                 start = f".{FORWARD_START_MARKER}" if index == 0 else ""
                 flag = flags[index - len(inputs)] if io_name == "output" else self._nan_flag(tensor)
-                acl_stat(flag, f"{scope}.{io_name}{start}{tail}", switch)
                 # An empty view carries dtype/shape without transferring tensor data.
-                acl_stat(tensor.unsqueeze(-1)[..., :0], f"{NAN_STATS_PREFIX}{scope}.{io_name}{start}{tail}", switch)
+                metadata = tensor.unsqueeze(-1)[..., :0]
+                acl_stat(flag if flag is not None else metadata, f"{scope}.{io_name}{start}{tail}", switch)
+                acl_stat(metadata, f"{NAN_STATS_PREFIX}{scope}.{io_name}{start}{tail}", switch)
             name = self._safe_file_stem(f"{scope}.{io_name}{tail}")
             acl_tensor_save(tensor, self._tensor_save_path(name), f"__msprobe_nan__.{scope}", index == 0, save_switch)
         return True

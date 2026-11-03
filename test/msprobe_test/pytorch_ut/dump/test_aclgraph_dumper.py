@@ -320,7 +320,7 @@ class TestAclGraphDumper(unittest.TestCase):
     def test_nan_check_uses_scalar_flags_and_preserves_strided_inputs(self):
         dumper = self.make_dumper(task="nan_check", slice_info=[{"end": 1}], detail=True)
         dumper._tensor_data_dir_path = "nan_tensors"
-        samples = (
+        samples = [
             (torch.tensor([1., float("nan")]), True),
             (torch.tensor([[1., float("nan")], [2., 3.]]).t(), True),
             (torch.tensor([float("inf"), -float("inf"), 1.]), False),
@@ -330,15 +330,28 @@ class TestAclGraphDumper(unittest.TestCase):
             (torch.ones(3, dtype=torch.int64), False),
             (torch.ones(3, dtype=torch.bool), False),
             (torch.tensor(float("nan"), requires_grad=True), True),
-        )
+        ]
+        for dtype_name in ("float8_e4m3fn", "float8_e5m2", "float8_e4m3fnuz", "float8_e5m2fnuz",
+                           "float8_e8m0fnu", "float4_e2m1fn_x2"):
+            dtype = getattr(torch, dtype_name, None)
+            if dtype is not None:
+                low = torch.zeros(4, dtype=torch.uint8).view(dtype)
+                with patch.object(torch.Tensor, "unsqueeze", side_effect=AssertionError("unexpected flag view")):
+                    self.assertIsNone(dumper._nan_flag(low))
+                samples.append((low, None))
+                samples.append((torch.empty(0, dtype=torch.uint8).view(dtype), False))
         for x, expected in samples:
             with self.subTest(dtype=x.dtype, shape=x.shape), \
                     patch.object(torch, "isnan", wraps=torch.isnan) as isnan:
                 dumper._collect("scope", "output", x, mark_forward_start=True)
                 call, info = self.aclgraph_dump_stub.acl_stat.call_args_list[-2:]
                 self.assertFalse(call.args[0].requires_grad)
-                self.assertEqual(call.args[0].numel(), 1)
-                self.assertEqual(bool(call.args[0]), expected)
+                if expected is None:
+                    self.assertIs(call.args[0], info.args[0])
+                    isnan.assert_not_called()
+                else:
+                    self.assertEqual(call.args[0].numel(), 1)
+                    self.assertEqual(bool(call.args[0]), expected)
                 self.assertEqual(info.args[0].dtype, x.dtype)
                 self.assertEqual(info.args[0].shape, (*x.shape, 0))
                 self.assertEqual(info.args[0].numel(), 0)
@@ -347,6 +360,31 @@ class TestAclGraphDumper(unittest.TestCase):
                 self.assertEqual(save.args[0].data_ptr(), x.data_ptr())
                 self.assertEqual(save.args[0].shape, x.shape)
                 self.assertTrue(save.args[1].startswith("nan_tensors"))
+                self.assertEqual(bool(save.args[4]), bool(expected))
+
+    def test_nan_check_unknown_flags_preserve_output_gate_and_original_tensors(self):
+        dtype = getattr(torch, "float8_e4m3fn", None)
+        if dtype is None:
+            self.skipTest("FP8 dtype unavailable")
+        low = torch.zeros(4, dtype=torch.uint8).view(dtype)
+        for detail in (False, True):
+            for nan in (False, True):
+                with self.subTest(detail=detail, nan=nan):
+                    dumper = self.make_dumper(task="nan_check", detail=detail)
+                    dumper._tensor_data_dir_path = "nan_tensors"
+                    self.aclgraph_dump_stub.acl_stat.reset_mock()
+                    self.aclgraph_dump_stub.acl_tensor_save.reset_mock()
+                    other = torch.tensor(float("nan") if nan else 1.)
+                    dumper._collect_nan_check("scope", (low, other), [("input", "0", low)])
+                    saves = self.aclgraph_dump_stub.acl_tensor_save.call_args_list
+                    self.assertEqual(len(saves), 3)
+                    self.assertTrue(all(bool(call.args[4]) == nan for call in saves))
+                    self.assertEqual([call.args[0].dtype for call in saves], [dtype, dtype, other.dtype])
+                    calls = self.aclgraph_dump_stub.acl_stat.call_args_list
+                    self.assertEqual(len(calls), 6 if detail else 0)
+                    if detail:
+                        self.assertIn(self.module.FORWARD_START_MARKER, calls[0].args[1])
+                        self.assertEqual(bool(calls[4].args[0]), nan)
 
     def test_nan_check_skips_empty_keyword_apis(self):
         dumper = self.make_dumper(task="nan_check", level="L1", detail=True)
@@ -481,7 +519,7 @@ class TestAclGraphDumper(unittest.TestCase):
 
     def test_nan_check_json_input_flags_and_all_saved_references_follow_output_gate(self):
         stats = {}
-        cases = ((1, 0, 0, 0), (0, 1, 1, 0), (0, 0, 0, 1))
+        cases = ((1, 0, 0, 0), (0, 1, 1, 0), (0, 0, 0, 1), (None, 0, None, 1), (None, None, None, None))
         paths = ("input.0", "input_kwargs.other", "output.0", "output.1")
         for index, flags in enumerate(cases):
             for io_path, flag in zip(paths, flags):
@@ -492,16 +530,17 @@ class TestAclGraphDumper(unittest.TestCase):
         stats[f"{self.module.NAN_STATS_PREFIX}Aten.sum.0.forward.output"] = {"dtype": "Float", "shape": [0]}
         dumper = self.make_dumper(task="nan_check", detail=True)
         data = dumper._convert_stats_to_dump_data(dumper._convert_nan_stats(stats))
-        for index in range(3):
+        for index, flags in enumerate(cases):
             call = data[f"Aten.add.{index}.forward"]
             records = [call["input_args"][0], call["input_kwargs"]["other"], *call["output"]]
-            self.assertEqual([item["is_nan"] for item in records], list(cases[index]))
-            self.assertTrue(all(("data_name" in item) == (index > 0) for item in records))
+            hit = any(flags[2:])
+            self.assertEqual([item["is_nan"] for item in records], list(flags))
+            self.assertTrue(all(("data_name" in item) == hit for item in records))
             for item in records:
                 self.assertEqual(item["dtype"], "torch.float32")
                 self.assertEqual(item["shape"], [2])
-                self.assertEqual(set(item), {"type", "dtype", "shape", "is_nan"} | ({"data_name"} if index > 0 else set()))
-            if index > 0:
+                self.assertEqual(set(item), {"type", "dtype", "shape", "is_nan"} | ({"data_name"} if hit else set()))
+            if hit:
                 self.assertEqual([item["data_name"] for item in records], [
                     f"Aten.add.{io_path}.{index - 1}.pt"
                     for io_path in paths
