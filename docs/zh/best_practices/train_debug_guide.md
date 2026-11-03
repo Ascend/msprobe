@@ -585,7 +585,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
     - 变正常 → 判定`resharding`仍存在未检出问题
         - 需在[resharding权重同步排查](#2334-resharding权重同步排查)的基础上进行加强验证，具体为采集具体计算时的权重与保存的权重进行对比看是否出现数值差异。
 
-###### <span style="font-size:16px;">2.3.3.5.1 kv cache排查</span>
+###### 2.3.3.5.1 kv cache排查
 
 推理流程中：
 
@@ -600,7 +600,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 1. 对比`NPU`与标杆的`kv cache`代码读写部分是否存在逻辑差异。
 2. 强制逐句清除`kv cache`缓存。
 
-###### <span style="font-size:16px;">2.3.3.5.2 训推一致比对</span>
+###### 2.3.3.5.2 训推一致比对
 
 目前训推一致比对只支持`prefill`阶段，所以需要先定界一致性差异只在`decode`阶段发生还是`prefill`阶段也存在，具体验证实验如下：
 

@@ -611,7 +611,7 @@ Fix the input prompt, `batchsize=1`, `response=1`, ensure that training and infe
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/infer_weights_proj_call.png)
 
-   We perform element-by-element comparison on the input *x*, weight, and output output, and the input *x*, weight, and output output can be fully aligned. The comparison results are as follows.
+   We perform element-by-element comparison on the input *x*, weight, and output `output`, and the input *x*, weight, and output `output` can be fully aligned. The comparison results are as follows.
 
    ![](../figures/cases/ascend_rl_train_infer_consistency_alignment/weights_proj_align_1.png)
 

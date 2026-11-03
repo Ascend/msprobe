@@ -223,10 +223,10 @@ Performing Comparison
    After the preceding command is executed, the following log is displayed:
 
    ```txt
-   TensorBoard 2.20.0 at http://ubuntu:6008/ (Press CTRL+C to quit)
+   TensorBoard 2.20.0 at http://ubuntu:6006/ (Press CTRL+C to quit)
    ```
 
-   Open a browser in any OS and access `http://ubuntu:6008/`, where `ubuntu` should be replaced with the IP address of your server, for example, `http://192.168.1.10:6008/`.
+   Open a browser in any OS and access `http://ubuntu:6006/`, where `ubuntu` should be replaced with the IP address of your server, for example, `http://192.168.1.10:6006/`.
 
    After the access is successful, the TensorBoard page is displayed, as shown in the following figure.
 

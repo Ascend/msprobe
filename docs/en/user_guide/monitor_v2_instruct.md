@@ -234,7 +234,7 @@ Collects statistics on the distribution of parameters before and after the optim
 
 **Precautions**
 
-- This function takes effect only when <idp:inline displayname="code" id="code1018513631318">optimizer</idp:inline> is provided (<idp:inline displayname="code" id="code131857619132">mon.start(model=..., optimizer=...)</idp:inline>).
+- This function takes effect only when `optimizer` is provided (`mon.start(model=..., optimizer=...)`).
 - `param_distribution` is enabled by default and can be disabled as required.
 
 **Example**
@@ -396,7 +396,7 @@ Note: "Prototype" is for documentation purposes only, where `Any/Optional/Dict/T
 
 - Function: Trains monitoring orchestrator, loads configurations, initializes the monitoring module, and collects and writes monitoring results in each step.
 - Prototype:
-  
+
   ```Python
   TrainerMonitorV2(config_path: str, fr: Optional[str] = None) -> TrainerMonitorV2
   ```
@@ -503,7 +503,7 @@ The table below list common fields that are applicable to most modules.
 | `monitor_mbs_grad` | No| bool | Whether to record micro-batch gradients. The default value is `false`.<br>In the PyTorch FSDP scenario, `weight_grad` automatically detects and collects gradients (`scope=unreduced`) before `reduce`. No separate `fsdp_grad` module is required.|
 | `micro_batch_number` | No| int | Number of micro-batches, with a higher priority than `grad_acc_steps`.|
 | `grad_acc_steps` | No| int | Number of gradient accumulation steps, which can be passed through `TrainerMonitorV2.start(..., grad_acc_steps=...)`.|
-| <idp:inline displayname="code" id="code8652331599">ops</idp:inline>/<idp:inline displayname="code" id="code106528335916">eps</idp:inline>| No| - | See description in the "common fields" table.|
+| `ops` / `eps`| No| - | See description in the "common fields" table.|
 
 Note: `weight_grad` records `unreduced` in the backward phase and captures and records `reduced` before `optimizer.step()` is called.
 
@@ -512,14 +512,14 @@ Note: `weight_grad` records `unreduced` in the backward phase and captures and r
 | Field| Mandatory (Yes/No)| Type| Description|
 | --- | --- | --- | --- |
 | `mv_distribution` | No| bool | Whether to collect momentum (m/v, typically `exp_avg/exp_avg_sq` of Adam). The default value is `true`.|
-| <idp:inline displayname="code" id="code1265519315590">ops</idp:inline>/<idp:inline displayname="code" id="code2655335597">eps</idp:inline>| No| - | See description in the "common fields" table.|
+| `ops` / `eps`| No| - | See description in the "common fields" table.|
 
 ### param (Parameter Distribution)<a id="config-param"></a>
 
 | Field                | Mandatory (Yes/No)| Type| Description                          |
 | -------------------- | --------- | ---- | ------------------------------ |
 | `param_distribution` | No     | bool | Whether to collect parameter distribution. The default value is `true`.|
-| <idp:inline displayname="code" id="code18655431596">ops</idp:inline>/<idp:inline displayname="code" id="code4655163125920">eps</idp:inline>       | No     | -    | See description in the "common fields" table.                  |
+| `ops` / `eps`       | No     | -    | See description in the "common fields" table.                  |
 
 Note: `param` collects parameter distribution before and after `optimizer.step()` and outputs `scope=param_origin/param_updated`.
 
