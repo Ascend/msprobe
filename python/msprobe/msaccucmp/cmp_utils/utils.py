@@ -188,16 +188,17 @@ def merge_dict(dict_dst: dict, dict_src: dict) -> None:
             dict_dst[key] = dict_src[key]
 
 
-def sort_result_file_by_index(result_file: str, csv_file: bool = True) -> None:
+def sort_result_file_by_index(result_file: str, csv_file: bool = True, index_to_sequence: dict = None) -> None:
     """
     Sort compare result
     :param result_file: output file path
     :param csv_file: the result is csv or not
+    :param index_to_sequence: optional display sequence for each original result index
     """
     try:
         # read result file and sort result
         if result_file:
-            _sort_result_file_exec(result_file, csv_file)
+            _sort_result_file_exec(result_file, csv_file, index_to_sequence)
     except (OSError, SystemError, ValueError, TypeError, RuntimeError, MemoryError) as error:
         log.print_open_file_error(result_file, error)
 
@@ -291,6 +292,7 @@ def _write_sorted_result(
             # write value to file
             for item in sorted_result_line:
                 fp_write.write(item[1])
+        fp_write.truncate()
 
 
 def _get_header_and_data(csv_file: bool, fp_read: any) -> (str, list, list):
@@ -309,11 +311,35 @@ def _get_header_and_data(csv_file: bool, fp_read: any) -> (str, list, list):
     return table_header_info, header_list, origin_result_line
 
 
-def _sort_result_file_exec(result_file: str, csv_file: bool = True) -> None:
+def _sort_result_lines_by_graph_sequence(origin_result_line: list, index_to_sequence: dict, csv_file: bool) -> list:
+    """Sort by graph position, preserving tensor order; only CSV rows get new indices."""
+    if not index_to_sequence:
+        message = 'The model graph order mapping is empty. Result indices will not be rewritten.'
+        log.print_error_log(message)
+        raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
+    sorted_result_line = sorted(
+        origin_result_line,
+        key=lambda result_line: (
+            (0, index_to_sequence[result_line[0]], result_line[0])
+            if result_line[0] in index_to_sequence
+            else (1, result_line[0], result_line[0])
+        ),
+    )
+    if csv_file:
+        for display_index, (_, row) in enumerate(sorted_result_line):
+            row[0] = str(display_index)
+    return sorted_result_line
+
+
+def _sort_result_file_exec(result_file: str, csv_file: bool = True, index_to_sequence: dict = None) -> None:
+    """None keeps Index ordering; an empty mapping is invalid; nonempty enables graph ordering."""
     check_file_size(result_file, ConstManager.ONE_HUNDRED_MB)
-    with open(result_file, 'r') as fp_read:  # pylint: disable=unspecified-encoding
+    with open(result_file, 'r', encoding='utf-8') as fp_read:
         table_header_info, header_list, origin_result_line = _get_header_and_data(csv_file, fp_read)
-        sorted_result_line = sorted(origin_result_line, key=lambda s: s[0])
+    if index_to_sequence is None:
+        sorted_result_line = sorted(origin_result_line, key=lambda result_line: result_line[0])
+    else:
+        sorted_result_line = _sort_result_lines_by_graph_sequence(origin_result_line, index_to_sequence, csv_file)
     _write_sorted_result(result_file, sorted_result_line, header_list, table_header_info, csv_file)
 
 

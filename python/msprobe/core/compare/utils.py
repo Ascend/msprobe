@@ -835,6 +835,15 @@ def _compare_parser(parser):
         help="<Optional> The close fusion rule file path.",
         required=False,
     )
+    parser.add_argument(
+        "-mgf",
+        "--model_graph_file",
+        dest="model_graph_file",
+        type=str,
+        default="",
+        help="<Optional> The target OM graph json file used only for offline data result ordering.",
+        required=False,
+    )
     # rank：ms静态图比对、推理离线模型一键式比对
     parser.add_argument(
         "--rank",

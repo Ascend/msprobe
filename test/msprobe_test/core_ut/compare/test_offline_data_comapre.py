@@ -19,11 +19,16 @@ import sys
 import unittest
 from unittest.mock import patch, MagicMock
 import argparse
+import io
+import tempfile
+from contextlib import redirect_stdout
+from pathlib import Path
 
 from msprobe.core.compare.offline_data_compare import (
     compare_offline_data_mode,
     call_msaccucmp,
-    _get_msaccucmp_script_path
+    _get_msaccucmp_script_path,
+    _replace_log_parameters,
 )
 from msprobe.core.common.utils import CompareException
 
@@ -32,6 +37,7 @@ class TestCompareOfflineDataMode(unittest.TestCase):
 
     @patch('msprobe.core.compare.offline_data_compare.call_msaccucmp')
     def test_compare_offline_data_mode_with_all_params(self, mock_call_msaccucmp):
+        mock_call_msaccucmp.return_value.returncode = 0
         args = argparse.Namespace(
             target_path="/path/to/target",
             golden_path="/path/to/golden",
@@ -61,6 +67,7 @@ class TestCompareOfflineDataMode(unittest.TestCase):
 
     @patch('msprobe.core.compare.offline_data_compare.call_msaccucmp')
     def test_compare_offline_data_mode_with_required_params_only(self, mock_call_msaccucmp):
+        mock_call_msaccucmp.return_value.returncode = 0
         args = argparse.Namespace(
             target_path="/path/to/target",
             golden_path="/path/to/golden",
@@ -86,7 +93,27 @@ class TestCompareOfflineDataMode(unittest.TestCase):
         self.assertNotIn('-out', call_args)
 
     @patch('msprobe.core.compare.offline_data_compare.call_msaccucmp')
+    def test_compare_offline_data_mode_with_model_graph_file(self, mock_call_msaccucmp):
+        mock_call_msaccucmp.return_value.returncode = 0
+        args = argparse.Namespace(
+            target_path="/path/to/target",
+            golden_path="/path/to/golden",
+            fusion_rule_file=None,
+            quant_fusion_rule_file=None,
+            close_fusion_rule_file=None,
+            model_graph_file="/path/to/target_model.json",
+            output_path=None
+        )
+
+        compare_offline_data_mode(args)
+
+        call_args = mock_call_msaccucmp.call_args[0][0]
+        self.assertIn('-mgf', call_args)
+        self.assertIn('/path/to/target_model.json', call_args)
+
+    @patch('msprobe.core.compare.offline_data_compare.call_msaccucmp')
     def test_compare_offline_data_mode_with_partial_params(self, mock_call_msaccucmp):
+        mock_call_msaccucmp.return_value.returncode = 0
         args = argparse.Namespace(
             target_path="/path/to/target",
             golden_path="/path/to/golden",
@@ -108,6 +135,7 @@ class TestCompareOfflineDataMode(unittest.TestCase):
 
     @patch('msprobe.core.compare.offline_data_compare.call_msaccucmp')
     def test_compare_offline_data_mode_with_none_values(self, mock_call_msaccucmp):
+        mock_call_msaccucmp.return_value.returncode = 0
         args = argparse.Namespace(
             target_path=None,
             golden_path=None,
@@ -130,6 +158,30 @@ class TestCompareOfflineDataMode(unittest.TestCase):
         self.assertNotIn('-cf', call_args)
         self.assertNotIn('-out', call_args)
         self.assertEqual(len(call_args), 0)
+
+    @patch('msprobe.core.compare.offline_data_compare.call_msaccucmp')
+    def test_compare_offline_data_mode_preserves_child_exit_behavior(self, mock_call_msaccucmp):
+        for model_graph_file in (None, "/path/to/target_model.json"):
+            for return_code in (0, 2, 3, 4, 6, 13, 17, 38, 43, 99):
+                with self.subTest(model_graph_file=model_graph_file, return_code=return_code):
+                    mock_call_msaccucmp.reset_mock()
+                    mock_call_msaccucmp.return_value.returncode = return_code
+                    args = argparse.Namespace(
+                        target_path="/path/to/target",
+                        golden_path="/path/to/golden",
+                        fusion_rule_file=None,
+                        quant_fusion_rule_file=None,
+                        close_fusion_rule_file=None,
+                        model_graph_file=model_graph_file,
+                        output_path=None,
+                    )
+
+                    self.assertIsNone(compare_offline_data_mode(args))
+
+                    expected_args = ['-m', args.target_path, '-g', args.golden_path]
+                    if model_graph_file:
+                        expected_args.extend(['-mgf', model_graph_file])
+                    mock_call_msaccucmp.assert_called_once_with(expected_args)
 
 
 class TestGetMsaccucmpScriptPath(unittest.TestCase):
@@ -165,7 +217,59 @@ class TestGetMsaccucmpScriptPath(unittest.TestCase):
         self.assertTrue(mock_exists.called)
 
 
+class TestReplaceLogParameters(unittest.TestCase):
+    def test_existing_short_options_are_still_translated(self):
+        self.assertEqual(
+            _replace_log_parameters('-m target -g golden -f fusion -q quant -cf close -out result'),
+            '-tp target -gp golden -fr fusion -qfr quant -cfr close -o result',
+        )
+
+    def test_long_options_and_existing_outer_options_are_preserved(self):
+        line = ('-mgf model -fr fusion -qfr quant -cfr close --fusion_rule_file fusion '
+                '--quant_fusion_rule_file quant --close_fusion_rule_file close -ffts')
+        self.assertEqual(_replace_log_parameters(line), line)
+
+
 class TestCallMsaccucmp(unittest.TestCase):
+    def test_real_child_fusion_conflict_survives_outer_log_forwarding(self):
+        inner_directory = str(Path(_get_msaccucmp_script_path()).parent)
+        child_source = (
+            "import os, sys\n"
+            f"sys.path.insert(0, {inner_directory!r})\n"
+            "from vector_cmp.fusion_manager.compare_rule import CompareRule\n"
+            "from cmp_utils.constant.compare_error import CompareError\n"
+            "values = {name: sys.argv[sys.argv.index(name) + 1] if name in sys.argv else '' "
+            "for name in ('-f', '-q', '-cf', '-mgf')}\n"
+            "rule = CompareRule(values['-f'], values['-q'], values['-cf'], values['-mgf'])\n"
+            "try:\n"
+            "    rule.check_arguments_valid(validate_model_graph_file="
+            "os.environ['MSPROBE_TEST_VALIDATE_GRAPH'] == '1')\n"
+            "except CompareError as error:\n"
+            "    sys.exit(error.code)\n"
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            child_script = Path(temp_dir) / 'fusion_conflict_child.py'
+            child_script.write_text(child_source, encoding='utf-8')
+            for option in ('-f', '-q', '-cf'):
+                for validate_graph in (True, False):
+                    with self.subTest(option=option, validate_graph=validate_graph):
+                        output = io.StringIO()
+                        with patch('msprobe.core.compare.offline_data_compare._get_msaccucmp_script_path',
+                                   return_value=str(child_script)), \
+                                patch.dict(os.environ, {'MSPROBE_TEST_VALIDATE_GRAPH': str(int(validate_graph))}), \
+                                redirect_stdout(output):
+                            process = call_msaccucmp(['-mgf', '/target/model.json', option, '/target/fusion.json'])
+                        self.assertEqual(process.returncode, 6)
+                        forwarded = output.getvalue()
+                        self.assertIn('outer msprobe -fr/--fusion_rule_file, -qfr/--quant_fusion_rule_file, '
+                                      '-cfr/--close_fusion_rule_file', forwarded)
+                        self.assertIn('inner msaccucmp --fusion_rule_file, --quant_fusion_rule_file, '
+                                      '--close_fusion_rule_file', forwarded)
+                        self.assertIn('This restriction also applies in detail/mapping mode.', forwarded)
+                        self.assertIn('msaccucmp execution failed with return code 6', forwarded)
+                        self.assertNotIn('inner msaccucmp -fr', forwarded)
+                        self.assertNotIn('Traceback', forwarded)
+
     @patch('msprobe.core.compare.offline_data_compare._get_msaccucmp_script_path')
     @patch('subprocess.Popen')
     @patch('msprobe.core.compare.offline_data_compare.logger')

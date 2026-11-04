@@ -170,7 +170,9 @@ class VectorComparison:
         """
         Check arguments valid, if invalid, throw exception
         """
-        self.compare_rule.check_arguments_valid()
+        self.compare_rule.check_arguments_valid(
+            validate_model_graph_file=not (self.detail_info or self.args.get("mapping"))
+        )
         exist = False
         path_type = path_check.PathType.File
         if self.detail_info:
@@ -201,6 +203,15 @@ class VectorComparison:
         self.check_arguments_valid()
         # 2. parse json file
         self.compare_rule.parse_fusion_rule(self.compare_data)
+        if self.detail_info or self.args.get("mapping"):
+            if self.compare_rule.model_graph_file_path:
+                log.print_warn_log(
+                    'The -mgf/--model_graph_file option only affects vector compare results '
+                    'and is ignored in detail/mapping mode. Fusion rule mutual exclusion still applies.'
+                )
+            self.args["index_to_graph_sequence"] = None
+        else:
+            self.args["index_to_graph_sequence"] = self.compare_rule.make_index_to_graph_sequence()
         if ConstManager.RANGE_MANAGER_KEY in self.args:
             self.args.get(ConstManager.RANGE_MANAGER_KEY).check_input_valid(
                 self.compare_rule.fusion_info.op_list[-1].attr.get_op_sequence()
@@ -216,8 +227,12 @@ class VectorComparison:
         return self._compare_vector()
 
     def _init_by_input_arguments(self, arguments) -> None:
+        model_graph_file = vars(arguments).get("model_graph_file", "")
         self.compare_rule = CompareRule(
-            arguments.fusion_rule_file, arguments.quant_fusion_rule_file, arguments.close_fusion_rule_file
+            arguments.fusion_rule_file,
+            arguments.quant_fusion_rule_file,
+            arguments.close_fusion_rule_file,
+            model_graph_file,
         )
         self.compare_data = dump.CompareData(
             os.path.realpath(arguments.my_dump_path),
@@ -248,6 +263,7 @@ class VectorComparison:
         self.args["my_dump_path"] = arguments.my_dump_path
         self.args["golden_dump_path"] = arguments.golden_dump_path
         self.args["max_cmp_size"] = arguments.max_cmp_size
+        self.args["index_to_graph_sequence"] = None
 
     def _init_by_input_parse(self) -> None:
         parse = argparse.ArgumentParser()
@@ -475,7 +491,11 @@ class VectorComparison:
 
     def _compare_vector(self: any) -> int:
         ret, dump_match = self._compare_by_multi_process()
-        utils.sort_result_file_by_index(self.output_path, self.args.get("csv"))
+        utils.sort_result_file_by_index(
+            self.output_path,
+            self.args.get("csv"),
+            self.args.get("index_to_graph_sequence"),
+        )
         if not dump_match:
             ret = CompareError.MSACCUCMP_NO_DUMP_FILE_ERROR
             if self.args.get("range"):

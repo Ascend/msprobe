@@ -28,7 +28,7 @@
 **命令格式**
 
 ```shell
-msprobe compare -m offline_data -tp <target_path> -gp <golden_path> [-fr <fusion_rule_file>] [-cfr <close_fusion_rule_file>] [-qfr <quant_fusion_rule_file>] [-o <output_path>]
+msprobe compare -m offline_data -tp <target_path> -gp <golden_path> [-fr <fusion_rule_file>] [-cfr <close_fusion_rule_file>] [-qfr <quant_fusion_rule_file>] [-mgf <model_graph_file>] [-o <output_path>]
 ```
 
 **参数说明**
@@ -42,6 +42,7 @@ msprobe compare -m offline_data -tp <target_path> -gp <golden_path> [-fr <fusion
 | -fr 或 --fusion_rule_file | 可选 | 全网层信息文件。<br><br>推理场景下：<br><br>通过使用ATC转换.om模型文件生成的json文件，文件包含整网算子的映射关系。<br>该参数指定的是默认开启算子融合功能情况下进行模型转换时生成的json文件；指定关闭算子融合功能情况下进行模型转换时生成的json文件使用-cfr参数。<br><br>训练场景下：<br><br>通过使用ATC转换.txt图文件生成的json文件。<br>单个数据文件比对时，该参数需指定具体的json文件；批量比对时，该参数可指定为多个json文件所在的目录。 |
 | -qfr 或 --quant_fusion_rule_file   | 可选  | 量化信息文件（昇腾模型压缩输出的json文件）。<br><br>通过AMCT量化生成的量化信息文件（*.json），文件包含整网量化算子映射关系，用于精度比对时算子匹配。<br><br>Caffe非量化原始模型 vs 量化离线模型场景时，与-fr参数二选一；Caffe非量化原始模型 vs 量化原始模型场景时，仅使用本参数。<br><br>仅推理场景支持本参数。 |
 | -cfr 或 --close_fusion_rule_file  | 可选 | 全网层信息文件（通过使用ATC转换.om模型文件生成的json文件，文件包含关闭算子融合功能情况下整网算子的映射关系）。<br><br> 仅推理场景支持本参数。 |
+| -mgf 或 --model_graph_file | 可选 | 用于OM与OM直接比对结果按目标侧OM模型图中的算子顺序排序，不参与两侧dump的算子匹配。<br><br>默认不指定时，结果按Index排序。模型图JSON可通过`atc --mode=1 --om=<model.om> --json=<model.json>`生成；部分未匹配的dump算子排列在末尾，全部未匹配时停止比对并提示检查图文件和名称格式。不能与-fr、-qfr或-cfr参数组合使用，该互斥限制在内部detail/mapping模式下同样有效。 |
 
 **使用示例**
 
@@ -55,9 +56,28 @@ msprobe compare -m offline_data -tp <target_path> -gp <golden_path> [-fr <fusion
    msprobe compare -m offline_data -tp ./data/target_path -gp ./data/golden_path -fr ./data/fusion_rule.json
    ```
 
+   普通OM与OM同名比对按目标OM图顺序输出时，执行：
+
+   ```shell
+   msprobe compare -m offline_data -tp ./data/target_path -gp ./data/golden_path -mgf ./data/target_model.json
+   ```
+
 **输出说明**
 
 默认情况下，比对命令执行完成后在命令执行的当前路径生成比对结果文件`result_{timestamp}.csv`。
+
+指定`-mgf`时，结果先按目标OM图JSON中的`graph`数组顺序，再按各图`op`数组顺序展示，节点`id`不参与排序。CSV第一列`Index`在排序后按每条结果行重新编号，严格为`0、1、2……`，列结构保持不变。算子匹配关系和精度值保持不变：
+
+- 每个图的匹配结果连续排列，图之间不交叉；图内op index指`op`数组下标，不是节点`id`。
+- 同一算子的多条Tensor结果保持原相对顺序，但每行的新`Index`不同。编号在整个CSV内连续，不在每个图重新从0开始。
+- 部分dump算子未匹配到图名称时，输出告警并将其放在末尾；全部未匹配时，停止本次比对，提示检查`-mgf`是否属于目标OM，以及dump与图JSON中的名称格式，不生成重新编号的结果。
+- 节点`id`缺失、重复或大小倒置不影响顺序。名称中的`/`、`.`替换为`_`；普通模式复用dump名称处理规则，去除符合规则的`_lxsliceX`和`_sgt_graph_N`字段；FFTS模式保留这些字段。非法JSON结构、规范化后的无效名称及同图或跨图重名均报错。
+
+该顺序用于沿模型图查看精度差异，不代表多流算子的实际执行时间顺序。适用于OM与OM按编译后名称直接匹配的dump，图侧名称处理遵循目标dump的普通/FFTS模式。若不同图节点经该规则变成同名，工具会报错以避免歧义。
+
+内部`msaccucmp.py`的detail/mapping模式不应用此排序，传入`-mgf`时会提示忽略其排序用途；与融合参数的互斥校验仍然有效。外层参数`-fr/-qfr/-cfr`对应内层`-f/-q/-cf`。
+
+未传`-mgf`时保持原有Index和CSV列结构。传入时，日志仍使用内部原编号，CSV中的Index为重新编号后的展示行号；Advisor中的Index对应最终CSV展示行号。新Index不是`--select/--range`的选择编号。
 
 ## 比对结果文件说明
 
@@ -69,7 +89,7 @@ msprobe compare -m offline_data -tp <target_path> -gp <golden_path> [-fr <fusion
 
 | 参数 | 说明 |
 |------|------|
-| Index | 网络模型中算子的ID。 |
+| Index | 默认表示原比对编号；指定-mgf时表示最终CSV的展示行号，从0逐行连续编号。 |
 | OpSequence | 部分算子比对时算子运行的序列，即-fr参数指定的全网层信息文件中算子的ID。 |
 | OpType | 算子类型。指定-fr参数时获取算子类型。 |
 | NPUDump | 表示My Output模型的算子名。 |

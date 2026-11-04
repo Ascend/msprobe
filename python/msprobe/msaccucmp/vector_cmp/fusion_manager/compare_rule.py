@@ -20,16 +20,17 @@ VectorComparison class. This class mainly involves the compare function.
 """
 
 import os
-from cmp_utils import path_check
+from cmp_utils import log, path_check
+from cmp_utils.constant.compare_error import CompareError
+from cmp_utils.constant.const_manager import ConstManager
+from dump_parse import dump_utils
+from dump_parse.dump import CompareData, DumpInfo
 from vector_cmp.fusion_manager.fusion_rule_parser import FusionRuleParser
 from vector_cmp.fusion_manager.fusion_rule_parser import merge_fusion_rule
 from vector_cmp.fusion_manager.fusion_rule_parser import merge_close_and_open_fusion_rule
 from vector_cmp.fusion_manager.fusion_op import FusionOp
 from vector_cmp.fusion_manager.fusion_op import OpAttr
-from cmp_utils.constant.const_manager import ConstManager  # pylint: disable=ungrouped-imports
-from dump_parse.dump import CompareData, DumpInfo
-from cmp_utils.constant.compare_error import CompareError  # pylint: disable=ungrouped-imports
-from dump_parse import dump_utils  # pylint: disable=ungrouped-imports
+from vector_cmp.fusion_manager.model_graph_order_parser import ModelGraphOrderParser
 
 
 class CompareRule:
@@ -38,12 +39,18 @@ class CompareRule:
     """
 
     def __init__(
-        self: any, fusion_json_file_path: str, quant_fusion_rule_file_path: str, close_fusion_rule_file_path: str = ''
+        self: any,
+        fusion_json_file_path: str,
+        quant_fusion_rule_file_path: str,
+        close_fusion_rule_file_path: str = '',
+        model_graph_file_path: str = '',
     ) -> None:
         self.fusion_json_file_path = self._get_real_path_with_default(fusion_json_file_path)
         self.quant_fusion_rule_file_path = self._get_real_path_with_default(quant_fusion_rule_file_path)
         self.close_fusion_rule_file_path = self._get_real_path_with_default(close_fusion_rule_file_path)
+        self.model_graph_file_path = self._get_real_path_with_default(model_graph_file_path)
         self.fusion_info = None
+        self.dump_ffts = False
 
     @staticmethod
     def _sort_file_by_timestamp(dump_info: DumpInfo) -> dict:
@@ -101,6 +108,7 @@ class CompareRule:
         Parse fusion rule
         :param compare_data: compare data
         """
+        self.dump_ffts = compare_data.left_dump_info.ffts
         if self.fusion_json_file_path != "":
             if self.quant_fusion_rule_file_path != "":
                 offline_fusion_rule = FusionRuleParser(self.fusion_json_file_path)
@@ -123,10 +131,70 @@ class CompareRule:
         else:
             self._make_npu_vs_npu_fusion_rule(compare_data)
 
-    def check_arguments_valid(self: any) -> None:
+    def make_index_to_graph_sequence(self: any) -> dict:
+        """Build a display-only mapping without changing fusion rules or operator IDs."""
+        if not self.model_graph_file_path:
+            return None
+
+        if self.fusion_info is None:
+            message = 'Fusion information is not initialized. Call parse_fusion_rule() first.'
+            log.print_error_log(message)
+            raise CompareError(CompareError.MSACCUCMP_UNKNOWN_ERROR, message)
+
+        op_name_to_sequence = ModelGraphOrderParser(self.model_graph_file_path, self.dump_ffts).parse()
+        index_to_sequence = {}
+        unmatched_count = 0
+
+        for fusion_op_list in self.fusion_info.fusion_op_name_to_op_map.values():
+            target_op = next(
+                (fusion_op for fusion_op in fusion_op_list if fusion_op.op_type == ConstManager.LEFT_TYPE), None
+            )
+            if target_op is None:
+                continue
+
+            # Target names already passed through DumpInfo's mode-dependent
+            # handle_op_name. Only escape lookup characters here, once.
+            target_name = target_op.op_name.replace('/', '_').replace('.', '_')
+            graph_sequence = op_name_to_sequence.get(target_name)
+            if graph_sequence is None:
+                unmatched_count += 1
+                continue
+
+            index_to_sequence[target_op.op_id] = graph_sequence
+
+        if not index_to_sequence:
+            message = (
+                'No target dump operator matches the model graph %r. Check that -mgf belongs to the target OM '
+                'and that dump and graph operator name formats agree (including FFTS naming fields). '
+                'Comparison is stopped before result sorting and CSV renumbering.' % self.model_graph_file_path
+            )
+            log.print_error_log(message)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
+
+        if unmatched_count > 0:
+            log.print_warn_log(
+                '%d target operator groups are not found in the model graph and will be placed last.' % unmatched_count
+            )
+        return index_to_sequence
+
+    def check_arguments_valid(self: any, validate_model_graph_file: bool = True) -> None:
         """
-        Check arguments valid, if invalid, throw exception
+        Check arguments; detail/mapping modes may skip the unused model graph file.
         """
+        if self.model_graph_file_path and (
+            self.fusion_json_file_path or self.quant_fusion_rule_file_path or self.close_fusion_rule_file_path
+        ):
+            # Inner long options survive the outer CLI's short-option log translation.
+            message = (
+                'The model graph file (-mgf/--model_graph_file) cannot be used with fusion rule files: '
+                'outer msprobe -fr/--fusion_rule_file, -qfr/--quant_fusion_rule_file, '
+                '-cfr/--close_fusion_rule_file (inner msaccucmp --fusion_rule_file, '
+                '--quant_fusion_rule_file, --close_fusion_rule_file). '
+                'This restriction also applies in detail/mapping mode.'
+            )
+            log.print_error_log(message)
+            raise CompareError(CompareError.MSACCUCMP_INVALID_PARAM_ERROR, message)
+
         if self.fusion_json_file_path:
             ret = path_check.check_path_valid(self.fusion_json_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
@@ -137,6 +205,11 @@ class CompareRule:
                 raise CompareError(ret)
         if self.close_fusion_rule_file_path:
             ret = path_check.check_path_valid(self.close_fusion_rule_file_path, True, False, path_check.PathType.File)
+            if ret != CompareError.MSACCUCMP_NONE_ERROR:
+                raise CompareError(ret)
+
+        if validate_model_graph_file and self.model_graph_file_path:
+            ret = path_check.check_path_valid(self.model_graph_file_path, True, False, path_check.PathType.File)
             if ret != CompareError.MSACCUCMP_NONE_ERROR:
                 raise CompareError(ret)
 

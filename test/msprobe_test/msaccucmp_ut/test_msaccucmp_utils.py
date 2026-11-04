@@ -20,6 +20,8 @@ from unittest import mock
 from unittest.mock import patch
 import struct
 import csv
+import tempfile
+from collections import Counter
 import pytest
 import numpy as np
 from google.protobuf.message import DecodeError
@@ -526,6 +528,105 @@ class TestUtilsMethods(unittest.TestCase):
         with mock.patch('builtins.open', side_effect=IOError):
             with mock.patch('os.path.getsize', return_value=1024):
                 utils.sort_result_file_by_index(result_file)
+
+    def test_sort_result_file_by_graph_sequence_renumbers_rows_and_preserves_stability(self):
+        result_reader = [
+            ['0', 'unmatched-first'],
+            ['1', 'mapped-input'],
+            ['2', 'unmatched-second'],
+            ['1', 'mapped-output'],
+        ]
+        mock_reader = mock.Mock(return_value=result_reader)
+        result_file = "/home/demo/graph_order.csv"
+        result_file_content = 'Index,Value\n'
+        written_rows = []
+        mock_writer = mock.Mock()
+        mock_writer.writerow.side_effect = lambda row: written_rows.append(list(row))
+        with mock.patch('builtins.open', mock.mock_open(read_data=result_file_content)):
+            with mock.patch('os.path.getsize', return_value=1024):
+                with mock.patch('os.open'), mock.patch('os.fdopen'):
+                    with mock.patch.object(csv, "reader", new=mock_reader), mock.patch.object(
+                        csv, "writer", return_value=mock_writer
+                    ):
+                        utils.sort_result_file_by_index(result_file, True, {1: 5})
+
+        self.assertEqual(
+            written_rows[1:],
+            [
+                ['0', 'mapped-input'],
+                ['1', 'mapped-output'],
+                ['2', 'unmatched-first'],
+                ['3', 'unmatched-second'],
+            ],
+        )
+        self.assertEqual(written_rows[0], ['Index', 'Value'])
+
+    def test_graph_csv_order_and_payload_with_multiple_graphs_and_tensors(self):
+        header = ['Index', 'NPUDump', 'TensorIndex', 'MaxAbsoluteError']
+        rows = [
+            ['0', 'graph1_A', 'output:0', '0.1'],
+            ['1', 'unmatched', 'output:0', '0.2'],
+            ['2', 'graph0_B', 'input:0', '0.3'],
+            ['3', 'graph0_A', 'output:0', '0.4'],
+            ['2', 'graph0_B', 'output:0', '0.5'],
+            ['4', 'graph1_B', 'output:0', '0.6'],
+        ]
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result_file = os.path.join(temp_dir, 'graph.csv')
+            with open(result_file, 'w', newline='', encoding='utf-8') as stream:
+                csv.writer(stream).writerows([header] + rows)
+            graph_sequence = {3: 0, 2: 1, 0: 2, 4: 3}
+            utils.sort_result_file_by_index(result_file, True, graph_sequence)
+            with open(result_file, newline='', encoding='utf-8') as stream:
+                actual = list(csv.reader(stream))
+            self.assertEqual(actual[0], header)
+            self.assertTrue(all(len(row) == len(header) for row in actual[1:]))
+            self.assertEqual([row[0] for row in actual[1:]], list(map(str, range(len(rows)))))
+            self.assertEqual([row[1] for row in actual[1:]],
+                             ['graph0_A', 'graph0_B', 'graph0_B', 'graph1_A', 'graph1_B', 'unmatched'])
+            self.assertEqual([row[2] for row in actual[2:4]], ['input:0', 'output:0'])
+            payload = Counter(tuple(row[1:]) for row in actual[1:])
+            self.assertEqual(payload, Counter(tuple(row[1:]) for row in rows))
+
+    def test_missing_graph_option_preserves_csv_indices(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result_file = os.path.join(temp_dir, 'graph.csv')
+            with open(result_file, 'w', newline='', encoding='utf-8') as stream:
+                csv.writer(stream).writerows([['Index', 'Value'], ['7', 'later'], ['3', 'earlier']])
+            utils.sort_result_file_by_index(result_file)
+            with open(result_file, newline='', encoding='utf-8') as stream:
+                self.assertEqual(list(csv.reader(stream)), [['Index', 'Value'], ['3', 'earlier'], ['7', 'later']])
+
+    def test_empty_graph_mapping_rejects_without_rewriting_csv_or_text(self):
+        for csv_file in (True, False):
+            with self.subTest(csv_file=csv_file), tempfile.TemporaryDirectory() as temp_dir:
+                result_file = os.path.join(temp_dir, 'result')
+                original = b'Index,Value\r\n7,later\r\n3,earlier\r\n' if csv_file else b'Index Value\n7 later\n3 earlier\n'
+                with open(result_file, 'wb') as stream:
+                    stream.write(original)
+                with self.assertRaises(CompareError) as error:
+                    utils.sort_result_file_by_index(result_file, csv_file, {})
+                self.assertEqual(error.exception.code, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+                with open(result_file, 'rb') as stream:
+                    self.assertEqual(stream.read(), original)
+
+    def test_graph_text_order_preserves_indices_and_tensor_stability(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result_file = os.path.join(temp_dir, 'graph.txt')
+            with open(result_file, 'w', encoding='utf-8') as stream:
+                stream.write('Index Value\n3 input\n7 first\n3 output\n')
+            utils.sort_result_file_by_index(result_file, False, {7: 0, 3: 1})
+            with open(result_file, encoding='utf-8') as stream:
+                self.assertEqual(stream.read(), 'Index Value\n7 first\n3 input\n3 output\n')
+
+    def test_graph_csv_renumbering_removes_old_trailing_bytes(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result_file = os.path.join(temp_dir, 'graph.csv')
+            with open(result_file, 'w', newline='', encoding='utf-8') as stream:
+                csv.writer(stream).writerows([['Index', 'Value'], ['7000', 'later'], ['3000', 'earlier']])
+            utils.sort_result_file_by_index(result_file, True, {3000: 0, 7000: 1})
+            with open(result_file, 'rb') as stream:
+                self.assertEqual(stream.read(), b'Index,Value\r\n0,earlier\r\n1,later\r\n')
 
     def test_get_shape_type1(self):
         shape_dim_array = [0]

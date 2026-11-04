@@ -140,6 +140,11 @@ class TestProcessOutputPathParameter(unittest.TestCase):
         self.assertIn('mapping_', main.output_path)
         self.assertTrue(main.output_path.endswith('.csv'))
 
+    @mock.patch('os.path.exists', return_value=True)
+    def test_missing_model_graph_file_defaults_to_empty(self, mock_exists):
+        main = self._make_main_with_arguments()
+        self.assertEqual(main.compare_rule.model_graph_file_path, '')
+
 
 class TestProcessSingleOpParameters(unittest.TestCase):
     def setUp(self):
@@ -717,8 +722,64 @@ class TestCompare(unittest.TestCase):
         args.max_cmp_size = 0
         self.args = args
 
+    def test_model_graph_path_validation_by_mode(self):
+        # Exercise both validation layers: unused graph paths must not block
+        # detail/mapping, while vector comparison must still reject them.
+        for mode in ('detail', 'mapping', 'vector'):
+            with self.subTest(mode=mode):
+                self.args.model_graph_file = '/home/demo/missing.json'
+                self.args.mapping = mode == 'mapping'
+                main = compare_vector.VectorComparison(arguments=self.args)
+                main.detail_info = mock.Mock() if mode == 'detail' else None
+                main.compare_data = mock.Mock()
+                main.format_manager = mock.Mock()
+                main.compare_rule.fusion_info = mock.Mock(input_nodes=[])
+                with mock.patch.object(main, '_filter_left_dump_is_npy_overflow'), \
+                        mock.patch('os.path.exists', return_value=False), \
+                        mock.patch('cmp_utils.path_check.check_output_path_valid', return_value=0), \
+                        mock.patch('cmp_utils.path_check.check_path_valid', return_value=3) as mock_path, \
+                        mock.patch.object(main.compare_rule, 'parse_fusion_rule'), \
+                        mock.patch.object(main.compare_rule, 'make_index_to_graph_sequence') as mock_sequence, \
+                        mock.patch('vector_cmp.vector_comparison.log.print_warn_log') as mock_warn, \
+                        mock.patch.object(main, '_compare_detail', return_value=0) as mock_detail, \
+                        mock.patch.object(main, '_make_table', return_value=0) as mock_mapping:
+                    if mode == 'vector':
+                        with self.assertRaises(CompareError) as error:
+                            main.compare()
+                        self.assertEqual(error.exception.code, CompareError.MSACCUCMP_INVALID_PATH_ERROR)
+                        mock_path.assert_called_once()
+                        mock_warn.assert_not_called()
+                    else:
+                        self.assertEqual(main.compare(), CompareError.MSACCUCMP_NONE_ERROR)
+                        mock_path.assert_not_called()
+                        mock_warn.assert_called_once_with(
+                            'The -mgf/--model_graph_file option only affects vector compare results '
+                            'and is ignored in detail/mapping mode. Fusion rule mutual exclusion still applies.'
+                        )
+                        self.assertIsNone(main.args['index_to_graph_sequence'])
+                        (mock_detail if mode == 'detail' else mock_mapping).assert_called_once()
+                    mock_sequence.assert_not_called()
+
+    def test_unmatched_model_graph_stops_before_vector_results(self):
+        self.args.model_graph_file = '/home/demo/wrong_model.json'
+        main = compare_vector.VectorComparison(arguments=self.args)
+        left_op = mock.Mock(op_id=7, op_name='dump_op', op_type='Left')
+        main.compare_rule.fusion_info = mock.Mock(fusion_op_name_to_op_map={'dump_op': [left_op]})
+        with mock.patch.object(main, 'check_arguments_valid'), \
+                mock.patch.object(main.compare_rule, 'parse_fusion_rule'), \
+                mock.patch('vector_cmp.fusion_manager.model_graph_order_parser.FileUtils.load_json_file',
+                           return_value={'graph': [{'op': [{'name': 'other_network_op'}]}]}), \
+                mock.patch.object(main, '_compare_vector') as mock_compare, \
+                mock.patch('vector_cmp.vector_comparison.utils.sort_result_file_by_index') as mock_sort:
+            with self.assertRaises(CompareError) as error:
+                main.compare()
+        self.assertEqual(error.exception.code, CompareError.MSACCUCMP_INVALID_PARAM_ERROR)
+        mock_compare.assert_not_called()
+        mock_sort.assert_not_called()
+
     def test_compare_with_detail(self):
         self.args.op_name = 'C2'
+        self.args.model_graph_file = '/home/demo/invalid.json'
         self.args.max_line = None
         self.args.topn = 20
         self.args.ignore_single_op_result = False
@@ -731,13 +792,21 @@ class TestCompare(unittest.TestCase):
         main.compare_rule.fusion_info = fusion_info
         with mock.patch.object(main, 'check_arguments_valid'), \
                 mock.patch.object(main.compare_rule, 'parse_fusion_rule'), \
+                mock.patch.object(main.compare_rule, 'make_index_to_graph_sequence') as mock_make_sequence, \
+                mock.patch('vector_cmp.vector_comparison.log.print_warn_log') as mock_warn, \
                 mock.patch.object(main, '_compare_detail',
                                   return_value=CompareError.MSACCUCMP_NONE_ERROR):
             ret = main.compare()
             self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+        mock_make_sequence.assert_not_called()
+        mock_warn.assert_called_once_with(
+            'The -mgf/--model_graph_file option only affects vector compare results '
+            'and is ignored in detail/mapping mode. Fusion rule mutual exclusion still applies.'
+        )
 
     def test_compare_with_mapping(self):
         self.args.mapping = True
+        self.args.model_graph_file = '/home/demo/invalid.json'
         main = compare_vector.VectorComparison(arguments=self.args)
         fusion_info = mock.MagicMock()
         fusion_info.input_nodes = []
@@ -745,10 +814,17 @@ class TestCompare(unittest.TestCase):
         main.compare_rule.fusion_info = fusion_info
         with mock.patch.object(main, 'check_arguments_valid'), \
                 mock.patch.object(main.compare_rule, 'parse_fusion_rule'), \
+                mock.patch.object(main.compare_rule, 'make_index_to_graph_sequence') as mock_make_sequence, \
+                mock.patch('vector_cmp.vector_comparison.log.print_warn_log') as mock_warn, \
                 mock.patch.object(main, '_make_table',
                                   return_value=CompareError.MSACCUCMP_NONE_ERROR):
             ret = main.compare()
             self.assertEqual(ret, CompareError.MSACCUCMP_NONE_ERROR)
+        mock_make_sequence.assert_not_called()
+        mock_warn.assert_called_once_with(
+            'The -mgf/--model_graph_file option only affects vector compare results '
+            'and is ignored in detail/mapping mode. Fusion rule mutual exclusion still applies.'
+        )
 
     def test_compare_with_no_range_manager(self):
  	    main = compare_vector.VectorComparison(arguments=self.args)

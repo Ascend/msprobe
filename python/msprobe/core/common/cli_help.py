@@ -284,6 +284,7 @@ _METAVAR_BY_DEST = {
     "fusion_rule_file": "<FILE>",
     "quant_fusion_rule_file": "<FILE>",
     "close_fusion_rule_file": "<FILE>",
+    "model_graph_file": "<FILE>",
     "dump_path": "<FILE_OR_DIR>",
     "target_path": "<DIR>",
     "golden_path": "<DIR>",

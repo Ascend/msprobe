@@ -136,6 +136,14 @@ def _add_fusion_rule_argument(compare_parser: argparse.ArgumentParser) -> None:
         default='',
         help='<Optional> the rule file path without fusion',
     )
+    compare_parser.add_argument(
+        '-mgf',
+        '--model_graph_file',
+        dest='model_graph_file',
+        default='',
+        type=safe_path_string,
+        help='<Optional> the target OM graph json file used only for result ordering',
+    )
 
 
 def _compare_parser(compare_parser: argparse.ArgumentParser) -> None:
