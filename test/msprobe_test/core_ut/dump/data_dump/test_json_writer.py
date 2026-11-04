@@ -17,6 +17,7 @@
 import csv
 import os
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from msprobe.core.common.const import Const
@@ -26,6 +27,18 @@ from msprobe.core.dump.data_dump.json_writer import DataWriter
 
 
 class TestDataWriter(unittest.TestCase):
+    @patch("msprobe.core.dump.data_dump.json_writer.save_json")
+    def test_nan_check_without_detail_does_not_create_or_cache_json(self, save):
+        writer = DataWriter()
+        writer.config = SimpleNamespace(nan_check_detail=False)
+        writer.register_pre_flush_callback(lambda: self.fail("unexpected metadata flush"))
+        writer.initialize_json_file(task=Const.NAN_CHECK, level=Const.LEVEL_L1)
+        writer.update_data({"Torch.add.0.forward": {Const.OUTPUT: []}})
+        writer.data_updated = True
+        writer.write_json()
+        save.assert_not_called()
+        self.assertEqual(writer.cache_data, {})
+
     def setUp(self):
         self.data_writer = DataWriter()
         self.data_content = {"task": "tensor", "level": "L1", "data": {"Tensor.add": 1}}

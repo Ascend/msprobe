@@ -1048,10 +1048,12 @@ class NanCheckDataProcessor(PytorchDataProcessor):
                 f"Please compile with --include-mod={module}.",
             )
         if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN:
+            self._nan_check_detail = getattr(config, "nan_check_detail", True)
             self._tensor_nan_results = {}
             self._isnan_runtime_warned = False
             self._isnan_save_warned = False
-            self.data_writer.register_pre_flush_callback(self._flush_isnan_results)
+            if self._nan_check_detail:
+                self.data_writer.register_pre_flush_callback(self._flush_isnan_results)
         else:
             self._nan_buffer_size = Const.NAN_CHECK_BUFFER_SIZE
             self._nan_buffer = None
@@ -1119,27 +1121,26 @@ class NanCheckDataProcessor(PytorchDataProcessor):
         return normalized_tensor_list
 
     def _get_tensor_nan_flag(self, tensor):
-        tensor = self._normalize_nan_tensor(tensor)
-        if tensor is None:
+        try:
+            tensor = self._normalize_nan_tensor(tensor)
+            if tensor is None:
+                return None
+            if tensor.numel() == 0 or not (tensor.is_floating_point() or tensor.is_complex()):
+                return False
+            if tensor.is_floating_point() and tensor.element_size() <= 1:
+                return None
+            tensor = tensor.detach()
+            if tensor.is_complex():
+                return torch.isnan(tensor).any()
+            return torch.isnan(torch.amax(tensor))
+        except Exception as e:
+            if not self._isnan_runtime_warned:
+                logger.warning(f"Nan check tensor isnan failed ({e}); tensor is_nan will be null.")
+                self._isnan_runtime_warned = True
             return None
-        if tensor.numel() == 0 or not (tensor.is_floating_point() or tensor.is_complex()):
-            return False
-        tensor = tensor.detach()
-        if tensor.is_complex():
-            return torch.isnan(tensor).any()
-        return torch.isnan(torch.amax(tensor))
 
     def _save_isnan_tensors(self, output_info, module_input_output):
         try:
-            # Reuse pending per-tensor flags; the aggregate only controls saving.
-            flags = []
-            self._collect_tensors(output_info, flags)
-            if not flags:
-                return
-            switch = flags[0]
-            for flag in flags[1:]:
-                switch = torch.logical_or(switch, flag)
-            switch = switch.to(dtype=torch.int64).reshape(1)
             if isinstance(module_input_output, ModuleForwardInputsOutputs):
                 tensors = {
                     "input": self._apply_ignore_rules(module_input_output.args_tuple, Const.FORWARD, Const.INPUT),
@@ -1155,6 +1156,20 @@ class NanCheckDataProcessor(PytorchDataProcessor):
                         module_input_output.grad_output_tuple, Const.BACKWARD, Const.OUTPUT
                     ),
                 }
+            flags = []
+            if self._nan_check_detail:
+                self._collect_tensors(output_info, flags)
+            elif output_info is not None:
+                trigger = "output" if isinstance(module_input_output, ModuleForwardInputsOutputs) else "input"
+                self._collect_tensors(tensors[trigger], flags)
+                flags = [self._get_tensor_nan_flag(tensor) for tensor in flags]
+                flags = [flag for flag in flags if isinstance(flag, torch.Tensor)]
+            if not flags:
+                return
+            switch = flags[0]
+            for flag in flags[1:]:
+                switch = torch.logical_or(switch, flag)
+            switch = switch.to(dtype=torch.int64).reshape(1)
             api_name = re.sub(r"[^A-Za-z0-9_.-]", "_", self.current_api_or_module_name)
             call_started = False
 
@@ -1167,6 +1182,11 @@ class NanCheckDataProcessor(PytorchDataProcessor):
                     return
                 suffix = re.sub(r"[^A-Za-z0-9_.-]", "_", Const.SEP.join(map(str, suffix_stack)))
                 path = os.path.join(self.data_path, f"{api_name}.{suffix}{Const.PT_SUFFIX}")
+                if tensor.is_floating_point() and tensor.element_size() <= 1:
+                    # Python serialization supports low-precision storages missing from C++ archives.
+                    if switch.item():
+                        save_pt(tensor.detach().to("cpu"), path)
+                    return
                 torch.ops.my_ns.acl_tensor_save(tensor.contiguous(), path, api_name, not call_started, switch)
                 call_started = True
 
@@ -1245,6 +1265,8 @@ class NanCheckDataProcessor(PytorchDataProcessor):
         self.data_writer.data_updated = True
 
     def _analyze_tensor(self, tensor, suffix):
+        if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN and not self._nan_check_detail:
+            return {}
         common_tensor = self.tensor_handler.convert_common_tensor(tensor)
         tensor_json = {}
         tensor_json.update({"type": self.tensor_handler.get_tensor_type(tensor)})
@@ -1256,24 +1278,21 @@ class NanCheckDataProcessor(PytorchDataProcessor):
             tensor_json.update(dtensor_info)
         if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN:
             tensor_json[Const.IS_NAN] = None
-            try:
-                flag = self._get_tensor_nan_flag(tensor)
-                if isinstance(flag, torch.Tensor):
-                    tensor_json[Const.IS_NAN] = flag
-                    # Retain records so a mid-API flush also resolves uncached tensor metadata.
-                    self._tensor_nan_results.setdefault(flag.device, []).append((tensor_json, flag))
-                elif flag is not None:
-                    tensor_json[Const.IS_NAN] = int(flag)
-            except Exception as e:
-                if not self._isnan_runtime_warned:
-                    logger.warning(f"Nan check tensor isnan failed ({e}); tensor is_nan will be null.")
-                    self._isnan_runtime_warned = True
+            flag = self._get_tensor_nan_flag(tensor)
+            if isinstance(flag, torch.Tensor):
+                tensor_json[Const.IS_NAN] = flag
+                # Retain records so a mid-API flush also resolves uncached tensor metadata.
+                self._tensor_nan_results.setdefault(flag.device, []).append((tensor_json, flag))
+            elif flag is not None:
+                tensor_json[Const.IS_NAN] = int(flag)
         return tensor_json
 
     # pylint: disable-next=arguments-differ
     def _analyze_ndarray(self, ndarray, suffix):
         if self._nan_check_mode != Const.NAN_CHECK_MODE_ISNAN:
             return super()._analyze_ndarray(ndarray, suffix)
+        if not self._nan_check_detail:
+            return {}
         nan_flag = int(np.isnan(ndarray).any()) if ndarray.dtype.kind in "biufc" else None
         return {
             "type": "numpy.ndarray",

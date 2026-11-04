@@ -781,6 +781,7 @@ class TestNanCheckDataProcessor(unittest.TestCase):
         self.config = MagicMock()
         self.config.tensor_list = None
         self.config.nan_check_mode = Const.NAN_CHECK_MODE_SLOT
+        self.config.nan_check_detail = True
         self.config.data_mode = [Const.ALL]
         self.data_writer = MagicMock()
         self.data_writer.dump_tensor_data_dir = tempfile.gettempdir()
@@ -1061,6 +1062,31 @@ class TestNanCheckDataProcessor(unittest.TestCase):
             self.assertEqual(call.args[4].item(), 0)
         torch.ops.my_ns.npu_nan_test.assert_not_called()
 
+    def test_isnan_without_detail_only_checks_trigger_tensors(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        self.config.nan_check_detail = False
+        proc = self._create_processor()
+        self.data_writer.register_pre_flush_callback.assert_not_called()
+        for backward in (False, True):
+            for nan in (False, True):
+                with self.subTest(backward=backward, nan=nan):
+                    other = torch.tensor([float("nan")])
+                    trigger = torch.tensor([float("nan") if nan else 1.])
+                    torch.ops.my_ns.acl_tensor_save.reset_mock()
+                    with patch.object(proc, "_get_tensor_nan_flag", wraps=proc._get_tensor_nan_flag) as get_flag:
+                        if backward:
+                            mio = ModuleBackwardInputsOutputs(grad_input=(trigger,), grad_output=(other,))
+                            proc.analyze_backward("Torch.test.0.backward", None, mio)
+                        else:
+                            mio = ModuleForwardInputsOutputs(args=(other,), kwargs=None, output=trigger)
+                            proc.analyze_forward_input("Torch.test.0.forward", None, mio)
+                            proc.analyze_forward_output("Torch.test.0.forward", None, mio)
+                        self.assertEqual(get_flag.call_count, 1)
+                    calls = torch.ops.my_ns.acl_tensor_save.call_args_list
+                    self.assertEqual(len(calls), 2)
+                    self.assertTrue(all(bool(call.args[4].item()) == nan for call in calls))
+                    self.assertFalse(proc._tensor_nan_results)
+
     def test_isnan_automatically_saves_forward_tensors_with_acl_tensor_save(self):
         self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
         input_tensor = torch.arange(6.0).reshape(2, 3).t()
@@ -1310,6 +1336,12 @@ class TestNanCheckDataProcessor(unittest.TestCase):
             (torch.tensor([complex(1, float("nan"))]), 1),
             (torch.empty(2, device="meta"), None),
         ]
+        for name in ("float8_e4m3fn", "float8_e5m2", "float8_e4m3fnuz", "float8_e5m2fnuz",
+                     "float8_e8m0fnu", "float4_e2m1fn_x2"):
+            dtype = getattr(torch, name, None)
+            if dtype is not None:
+                cases.extend(((torch.zeros(4, dtype=torch.uint8).view(dtype), None),
+                              (torch.empty(0, dtype=torch.uint8).view(dtype), 0)))
         with patch.object(proc, "get_stat_info") as mock_stats:
             records = [proc._analyze_tensor(tensor, "suffix") for tensor, _ in cases]
             # Tensor-only records must also resolve when there is no API nan buffer entry.
@@ -1322,6 +1354,31 @@ class TestNanCheckDataProcessor(unittest.TestCase):
                 self.assertNotIn(Const.TENSOR_STAT_INDEX, record)
         self.data_writer.append_stat_to_buffer.assert_not_called()
         self.assertFalse(proc._tensor_nan_results)
+        self.assertFalse(proc._isnan_runtime_warned)
+
+    def test_isnan_low_precision_does_not_block_other_outputs(self):
+        dtype = getattr(torch, "float8_e4m3fn", None)
+        if dtype is None:
+            self.skipTest("FP8 dtype unavailable")
+        for size in (0, 4):
+            low = torch.zeros(size, dtype=torch.uint8).view(dtype)
+            self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+            for detail in (False, True):
+                for nan in (False, True):
+                    with self.subTest(detail=detail, nan=nan):
+                        self.config.nan_check_detail = detail
+                        proc = self._create_processor()
+                        other = torch.tensor([float("nan") if nan else 1.])
+                        mio = ModuleForwardInputsOutputs(args=(low,), kwargs=None, output=(low, other))
+                        torch.ops.my_ns.acl_tensor_save.reset_mock()
+                        with patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.save_pt") as save_low:
+                            proc.analyze_forward_output("Torch.test.0.forward", None, mio)
+                            self.assertEqual(save_low.call_count, 2 if nan else 0)
+                            self.assertTrue(all(call.args[0].dtype == dtype for call in save_low.call_args_list))
+                        calls = torch.ops.my_ns.acl_tensor_save.call_args_list
+                        self.assertEqual(len(calls), 1)
+                        self.assertEqual(calls[0].args[0].dtype, other.dtype)
+                        self.assertTrue(all(bool(call.args[4].item()) == nan for call in calls))
 
     def test_isnan_input_records_snapshot_before_inplace_update(self):
         self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
@@ -1337,7 +1394,7 @@ class TestNanCheckDataProcessor(unittest.TestCase):
     def test_isnan_failures_use_only_isnan_warning_state(self):
         self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
         proc = self._create_processor()
-        with patch.object(proc, "_get_tensor_nan_flag", side_effect=RuntimeError("check failed")):
+        with patch.object(torch, "amax", side_effect=RuntimeError("check failed")):
             record = proc._analyze_tensor(torch.ones(1), "output")
         self.assertIsNone(record[Const.IS_NAN])
         self.assertTrue(proc._isnan_runtime_warned)
@@ -1348,6 +1405,39 @@ class TestNanCheckDataProcessor(unittest.TestCase):
         self.assertTrue(proc._isnan_save_warned)
         self.assertFalse(hasattr(proc, "_nan_overflow_runtime_warned"))
         self.assertFalse(hasattr(proc, "_nan_collect_runtime_warned"))
+
+    def test_isnan_detection_failure_does_not_block_other_outputs(self):
+        self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        amax = torch.amax
+        for detail in (False, True):
+            self.config.nan_check_detail = detail
+            for backward in (False, True):
+                for bad_first in (False, True):
+                    with self.subTest(detail=detail, backward=backward, bad_first=bad_first):
+                        proc = self._create_processor()
+                        bad = torch.tensor([1.0])
+                        nan = torch.tensor([float("nan")])
+                        other = torch.tensor([2.0])
+                        trigger = (bad, nan) if bad_first else (nan, bad)
+
+                        def check(tensor):
+                            if tensor.data_ptr() == bad.data_ptr():
+                                raise RuntimeError("check failed")
+                            return amax(tensor)
+
+                        torch.ops.my_ns.acl_tensor_save.reset_mock()
+                        with patch.object(torch, "amax", side_effect=check):
+                            if backward:
+                                mio = ModuleBackwardInputsOutputs(grad_input=trigger, grad_output=(other,))
+                                proc.analyze_backward("Torch.test.0.backward", None, mio)
+                            else:
+                                mio = ModuleForwardInputsOutputs(args=(other,), kwargs=None, output=trigger)
+                                proc.analyze_forward_output("Torch.test.0.forward", None, mio)
+                        calls = torch.ops.my_ns.acl_tensor_save.call_args_list
+                        self.assertEqual(len(calls), 3)
+                        self.assertTrue(all(call.args[4].item() == 1 for call in calls))
+                        self.assertTrue(proc._isnan_runtime_warned)
+                        self.assertFalse(proc._isnan_save_warned)
 
     def test_isnan_ndarray_records_no_other_statistics(self):
         self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN

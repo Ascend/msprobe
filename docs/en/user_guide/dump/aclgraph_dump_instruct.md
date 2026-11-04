@@ -152,7 +152,7 @@ If collection has not been started, it returns directly.
 
 ### Automatic NaN Detection
 
-Set `task` to `nan_check` and use the same `start(model)` / `step()` interface:
+Set `task` to `nan_check` in the configuration file to check the model's intermediate results for NaN. Call `start(model)` to start collection and `step()` after each replay to save the results:
 
 ```json
 {
@@ -168,22 +168,18 @@ Set `task` to `nan_check` and use the same `start(model)` / `step()` interface:
 | Parameter | Required/Optional | Description |
 | ---- | --------- | ---- |
 | list | Optional | Module/API name keywords, of type `list[str]`. Defaults to `[]`, which does not restrict the range. |
-| check_mode | Optional | A `str` that only accepts `"isnan"`. Omitting it is equivalent to setting `"isnan"`: both detect only NaN, without detecting Inf or intermediate overflow. Other values raise an error. |
-| detail | Optional | A `bool` that defaults to `true` and controls whether `dump.json` is also generated. Both values save all inputs and outputs when any output contains NaN. See [nan_check Task Output](#nan_check-task). |
+| check_mode | Optional | Detection method, of type `str`. Defaults to `"isnan"`, which is currently the only supported value. Detects NaN, but not Inf or overflow during computation. |
+| detail | Optional | Whether to generate `dump.json`, of type `bool`. Defaults to `true`. Set it to `false` if you only need tensor files. See [nan_check Task Output](#nan_check-task) for file formats. |
 
-ACLGraph capture records detection and collection nodes for replay. Discard warmup results with `step(dump=False)`; `step()` does not write an empty `dump.json` when no collection data is available.
+Choose the collection scope with `level`: `L0` checks modules, `L1` checks APIs, and `mix` checks both. Use `list` to select names and `rank` to select devices.
 
-Detection, metadata collection, and saving compose existing operators directly. These nodes remain available for ACLGraph capture and replay after `torch.compile`, without registering another custom operator.
+If any output of a call contains NaN, all inputs and outputs of that call are saved. If only an input contains NaN and the outputs are normal, no tensor files are saved. Inplace and `out=` operations are also supported; saved data includes the inputs before modification and the results afterward. APIs whose names contain `empty` are skipped.
 
-Supports `L0` (modules), `L1` (APIs), and `mix`, plus `list` and `rank` filters. If any output tensor contains NaN, all input and output tensors of that call are saved; input detection results do not control saving. Detection covers the full tensor, while `slice` remains specific to `statistics`.
+After each replay, call `step()` and check `dump_path/step{step_id}/{rank-or-pid}/`. The `dump_tensor_data/` directory contains the input and output `.pt` files. With `detail` enabled, `dump.json` also shows whether each tensor contains NaN. An empty `dump.json` is not generated when no collection data is available.
 
-Non-empty FP8/FP4 tensors keep their original dtype and shape, with `is_nan: null`; NaN reductions are skipped for these types. Unknown flags do not trigger saving. If another output in the same call contains NaN, all original inputs and outputs are still saved, including FP8/FP4 tensors. Integer, bool, and empty tensors have `is_nan: 0`.
+NaN detection is not yet supported for non-empty FP8/FP4 tensors. Their dtype and shape are kept in `dump.json`, with `is_nan` set to `null`. They do not trigger saving. If another output contains NaN, the tool still attempts to save all inputs and outputs of the call, including FP8/FP4 tensors. Integer, bool, and empty tensors have `is_nan: 0`.
 
-L1 treats return values and Tensor arguments marked writable by the schema as post-operation outputs, without checking the same output Tensor twice. L0 inputs and inputs of writable L1 calls are snapshotted before execution to preserve values preceding inplace changes. Calls whose API names contain `empty` are skipped.
-
-Call `step()` after each replay. Tensor files are archived under `dump_path/step{step_id}/{rank-or-pid}/dump_tensor_data/`; only `detail: true` generates `dump.json`. After warmup, `step(dump=False)` clears results and generated NaN files without advancing the step.
-
-Supported floating-point tensors are reduced on device before applying `isnan`. Aggregated output flags control saving all inputs and outputs of the call. With `detail: false`, `acl_stat` is not called to record results. With `detail: true`, input and output flags are transferred separately, and zero-element views carry dtype and shape. All inputs and outputs of matching calls are transferred in full and saved by `acl_tensor_save`, reusing the existing C++ primitives and interfaces. Input snapshots and strided tensor conversion require device-side copies. Disabling `dump_enable` skips callback collection, while captured checks and copy nodes still execute.
+NaN detection checks the full tensor; the `slice` setting does not apply. Detection and keeping the original inputs add computation and memory overhead. Turning off `dump_enable` at runtime stops saving results but does not remove detection and data-copy overhead.
 
 ### Tensor Network-wide Collection
 

@@ -60,6 +60,16 @@ class TestDebuggerConfig(unittest.TestCase):
                     debugger = DebuggerConfig(self.common_config, task_config, None, None, None)
                     self.assertEqual(debugger.nan_check_mode, mode or Const.NAN_CHECK_MODE_ISNAN)
                     self.assertEqual(debugger.data_mode, [Const.ALL])
+                    self.assertTrue(debugger.nan_check_detail)
+
+    def test_nan_check_without_detail_disables_extra_info(self):
+        self.common_config.task = Const.NAN_CHECK
+        with patch(
+            "msprobe.pytorch.dump.debugger.debugger_config._is_torch_npu_importable", return_value=True
+        ):
+            config = DebuggerConfig(self.common_config, NanCheckConfig({"detail": False}), None, None, None)
+        self.assertFalse(config.nan_check_detail)
+        self.assertFalse(config.extra_info)
 
     def test_check_kwargs_with_invalid_task(self):
         self.common_config.task = "invalid_task"

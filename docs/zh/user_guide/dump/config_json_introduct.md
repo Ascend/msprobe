@@ -196,6 +196,7 @@
 | scope | 可选 | 检测范围，`list[str]`类型，见[scope参数配置说明](#scope参数配置说明)。 |
 | list | 可选 | 待检测API列表，`list[str]`类型，见[list参数配置说明](#list参数配置说明)。 |
 | check_mode | 可选 | 检测方式，`str`类型，默认`"isnan"`，见[check_mode参数配置说明](#check_mode参数配置说明)。 |
+| detail | 可选 | `bool`类型，默认为`true`，仅`check_mode: "isnan"`（含默认模式）支持。`true`记录输入、输出的检测结果到`dump.json`；`false`仅在输出含NaN时保存该调用的输入、输出Tensor，不生成`dump.json`及调用栈、结构JSON。`slot`模式显式配置此字段会报错。 |
 | tensor_list | 可选 | 仅用于`slot`模式，指定需要详细采集的API关键字，`list[str]`类型，见[tensor_list参数配置说明](#tensor_list参数配置说明)。 |
 | data_mode | 可选 | 数据过滤，`list[str]`类型，默认`["all"]`。指定`"input"`时须同时配置`"output"`，见[data_mode参数配置说明](#data_mode参数配置说明)。 |
 
@@ -205,9 +206,11 @@
 
 **结果说明**
 
-- `isnan`在`dump.json`中为每个输入、输出tensor记录`is_nan`：`1`表示含NaN，`0`表示不含NaN，`null`表示无法检测；反向包含`grad_input`和`grad_output`的检测结果，不记录API级标志。
+- `isnan`在`detail: true`时在`dump.json`中为每个输入、输出tensor记录`is_nan`：`1`表示含NaN，`0`表示不含NaN，`null`表示无法检测。
 - `isnan`对空、整数和布尔tensor记录`0`，对FakeTensor和meta tensor记录`null`，不计算`Max`、`Min`、`Mean`或`Norm`。
 - `slot`按API记录检测结果。输出tensor正常时仍可能检测到过程溢出；int64运算的检测结果不保证准确。
+
+非空FP8/FP4 Tensor跳过不支持的NaN归约，`detail: true`时保留dtype和shape，`is_nan`记录为`null`。未知结果不触发保存；同次调用的其他输出含NaN时，仍尝试保存全部原始输入和输出Tensor。整数、bool和空Tensor记录`0`。
 
 ### task配置为structure
 

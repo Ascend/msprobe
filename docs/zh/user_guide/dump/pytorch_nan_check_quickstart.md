@@ -5,44 +5,11 @@
 - 负数开平方使 loss 变为 NaN，再从落盘文件找到产生 NaN 的 API 和输入值。
 - 使用单卡 PyTorch NPU、默认 `isnan` 模式。
 
-采集由`config.json`控制，`PrecisionDebugger`启动和结束目标计算的采集；`dump.json`记录每个tensor的检测标志，`.pt`保存原始tensor，`stack.json`用于回到调用代码。
+先在`config.json`中配置采集范围，再用`PrecisionDebugger.start()`和`stop()`包住要检查的代码。运行后，查看`dump.json`中的NaN检测结果；需要看具体的输入、输出数据时，读取`.pt`文件；需要找调用位置时，查看`stack.json`。
 
 ## 1. 构建
 
-构建前完成以下准备：
-
-1. 安装 CANN（CANN ≥ 8.5.0），参见[CANN 快速安装](https://www.hiascend.com/zh/cann/download)。
-2. 安装配套 PyTorch 和 TorchNPU，参见[TorchNPU 快速安装](https://www.hiascend.com/zh/developer/software/ai-frameworks/pytorch/download)。
-3. 准备支持 C++17 的编译器、Make 和 CMake ≥ 3.19.3。
-
-完成上述准备后，执行以下构建命令：
-
-```bash
-# 以下 source 命令中的路径按实际 CANN 安装路径调整
-source /usr/local/Ascend/ascend-toolkit/set_env.sh
-git clone https://gitcode.com/Ascend/msprobe.git
-cd msprobe
-pip install uv
-# 本例使用默认 isnan，tensor 自动落盘需要 aclgraph_dump 模块
-python3 build.py -e include-mod=aclgraph_dump
-```
-
-构建后任选一种方式使用。
-
-**安装wheel**：将msProbe及其Python依赖安装到当前Python环境。
-
-```bash
-pip install artifacts/mindstudio_probe*.whl
-```
-
-**通过PYTHONPATH使用源码**：在本地克隆的`msprobe`目录中，安装`pyproject.toml`声明的Python依赖，再将本地`python`目录加入Python模块查找路径。构建生成的扩展从`python/msprobe/lib`加载，此方式不安装上面的msProbe wheel。
-
-```bash
-pip install wheel einops "numpy>=1.23.0" "pandas>=1.3.5" pyyaml tqdm \
-    "openpyxl>=3.0.6" matplotlib "tensorboard>=2.11.2" \
-    "skl2onnx>=1.14.1" packaging pytz psutil
-export PYTHONPATH="$PWD/python:$PYTHONPATH"
-```
+本例需要`aclgraph_dump`模块，编译时添加`-e include-mod=aclgraph_dump`。环境准备、编译和安装步骤请参见[安装指南](../../install_guide/msprobe_install_guide.md)。
 
 ## 2. 运行采集
 
@@ -57,6 +24,8 @@ export PYTHONPATH="$PWD/python:$PYTHONPATH"
 ```
 
 需要指定采集卡、step或API范围时，可在[完整配置示例及参数说明](./config_json_introduct.md#task配置为nan_check)中查看`rank`、`step`、`scope`、`list`、`data_mode`等字段；本例沿用默认值。
+
+`nan_check.detail`默认为`true`，同时记录JSON和保存命中调用的Tensor。仅需Tensor文件时，配置`"nan_check": {"detail": false}`；此时不生成`dump.json`、`stack.json`和`construct.json`。`detail`仅适用于默认的`isnan`模式，不能与`slot`同时配置。
 
 创建 `repro_nan.py`，绿色 `+` 行是工具新增代码，保存时去掉行首的 `+`：
 
@@ -112,7 +81,7 @@ nan_check_dump/
             └── ...
 ```
 
-`dump.json` 节选，只保留这两个 API 的相关 tensor 字段：
+`dump.json`中，`sqrt`和`add`的部分检测结果如下：
 
 ```json
 {
@@ -130,6 +99,8 @@ nan_check_dump/
 ```
 
 `is_nan` 是每个 tensor 的标志：`0` 不含 NaN，`1` 含 NaN，`null` 无法检测。前向输出含 NaN 时，输入、输出自动保存为 `.pt`；`stack.json` 按“API 名列表、调用栈列表”分组保存。
+
+非空FP8/FP4 Tensor的检测结果为`null`，整数、bool和空Tensor为`0`。未知标志不触发保存；同次调用的其他输出含NaN时，仍保存全部原始输入和输出Tensor。
 
 ## 4. 读取文件并定位原因
 

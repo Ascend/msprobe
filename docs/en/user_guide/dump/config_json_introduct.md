@@ -196,6 +196,7 @@ By default, all APIs are detected. Use `scope` or `list` to narrow the range.
 | scope | Optional | Detection scope, of the type `list[str]`. For details, see [scope Configuration](#scope-configuration). |
 | list | Optional | List of APIs to detect, of the type `list[str]`. For details, see [list Configuration](#list-configuration). |
 | check_mode | Optional | Detection mode, of the type `str`. The default value is `"isnan"`. For details, see [check_mode Configuration](#check_mode-configuration). |
+| detail | Optional | A `bool` that defaults to `true`, supported only by `check_mode: "isnan"` (including the default mode). With `true`, input/output detection results are recorded in `dump.json`. With `false`, only tensors from calls with a NaN output are saved; dump, stack, and structure JSON files are not generated. Explicitly setting this field in `slot` mode raises an error. |
 | tensor_list | Optional | Used only in `slot` mode to specify the keywords of APIs to collect in detail, of the type `list[str]`. For details, see [tensor_list Configuration](#tensor_list-configuration). |
 | data_mode | Optional | Data filter, of the type `list[str]`. The default value is `["all"]`. If `"input"` is specified, `"output"` must also be configured. For details, see [data_mode Configuration](#data_mode-configuration). |
 
@@ -205,9 +206,11 @@ For a complete usage example, see [nan_check Usage Example](./pytorch_nan_check_
 
 **Result Description**
 
-- `isnan` records `is_nan` for each input and output tensor in `dump.json`: `1` indicates that the tensor contains NaN, `0` indicates that it does not, and `null` indicates that detection is not possible. In the backward pass, the results include `grad_input` and `grad_output`, and no API-level flag is recorded.
+- With `detail: true`, `isnan` records `is_nan` for each input and output tensor in `dump.json`: `1` indicates that the tensor contains NaN, `0` indicates that it does not, and `null` indicates that detection is not possible.
 - `isnan` records `0` for empty, integer, and Boolean tensors and `null` for FakeTensors and meta tensors. It does not calculate `Max`, `Min`, `Mean`, or `Norm`.
 - `slot` records the detection result for each API. Intermediate overflow may still be detected when the output tensor is normal. Detection results for int64 operations are not guaranteed to be accurate.
+
+Non-empty FP8/FP4 tensors skip unsupported NaN reductions. With `detail: true`, their dtype and shape are retained and `is_nan` is `null`. Unknown results do not trigger saving; a NaN in another output still causes all original input/output tensors to be submitted for saving. Integer, bool, and empty tensors record `0`.
 
 ### task = structure
 

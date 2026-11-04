@@ -5,44 +5,11 @@ This example collects one forward and backward computation.
 - Taking a square root of a negative value makes the loss NaN. Use the saved files to identify the API and its input.
 - Run on a single PyTorch NPU with the default `isnan` mode.
 
-`config.json` controls collection, and `PrecisionDebugger` starts and ends collection around the target computation. `dump.json` records per-tensor detection flags, `.pt` files store raw tensors, and `stack.json` points back to the calling code.
+Configure collection in `config.json`, then call `PrecisionDebugger.start()` before the code you want to check and `stop()` afterward. After the run, check `dump.json` for the NaN detection results, read the `.pt` files for the input and output data, and check `stack.json` for the call locations.
 
 ## 1. Build
 
-Prepare the following before building:
-
-1. Install CANN (≥ 8.5.0) by referring to [CANN Installation](https://www.hiascend.com/en/cann/download).
-2. Install matching PyTorch and TorchNPU by referring to [TorchNPU Installation](https://www.hiascend.com/en/developer/software/ai-frameworks/pytorch/download).
-3. Prepare a compiler supporting C++17, Make, and CMake ≥ 3.19.3.
-
-After completing the prerequisites, build with:
-
-```bash
-# Adjust the path in the source command below to your CANN installation
-source /usr/local/Ascend/ascend-toolkit/set_env.sh
-git clone https://gitcode.com/Ascend/msprobe.git
-cd msprobe
-pip install uv
-# Default isnan mode requires aclgraph_dump for automatic tensor saving
-python3 build.py -e include-mod=aclgraph_dump
-```
-
-After building, choose either way to use msProbe.
-
-**Install the wheel package**: Install msProbe and its Python dependencies into the current Python environment.
-
-```bash
-pip install artifacts/mindstudio_probe*.whl
-```
-
-**Use the source with PYTHONPATH**: In the locally cloned `msprobe` directory, install the Python dependencies declared in `pyproject.toml`, then add the local `python` directory to Python's module search path. The built extension is loaded from `python/msprobe/lib`. This option does not install the msProbe wheel package above.
-
-```bash
-pip install wheel einops "numpy>=1.23.0" "pandas>=1.3.5" pyyaml tqdm \
-    "openpyxl>=3.0.6" matplotlib "tensorboard>=2.11.2" \
-    "skl2onnx>=1.14.1" packaging pytz psutil
-export PYTHONPATH="$PWD/python:$PYTHONPATH"
-```
+This example requires the `aclgraph_dump` module. Add `-e include-mod=aclgraph_dump` when building. For environment setup, build, and installation steps, see the [Installation Guide](../../install_guide/msprobe_install_guide.md).
 
 ## 2. Data Collection
 
@@ -57,6 +24,8 @@ Create `config.json` and the `repro_nan.py` below in the locally cloned `msprobe
 ```
 
 To select ranks, steps, or an API range, see `rank`, `step`, `scope`, `list`, `data_mode`, and other fields in the [complete configuration example and parameter descriptions](./config_json_introduct.md#task--nan_check). This example uses their default settings.
+
+`nan_check.detail` defaults to `true`, recording JSON results and saving tensors from matching calls. To save tensor files only, set `"nan_check": {"detail": false}`; `dump.json`, `stack.json`, and `construct.json` are then omitted. `detail` is supported only by the default `isnan` mode and cannot be configured with `slot`.
 
 Create `repro_nan.py`. Green `+` lines are tool additions; remove the leading `+` before saving:
 
@@ -112,7 +81,7 @@ nan_check_dump/
             └── ...
 ```
 
-An excerpt of `dump.json`, keeping only the relevant tensor fields for these two APIs:
+Here are some of the detection results for `sqrt` and `add` in `dump.json`:
 
 ```json
 {
@@ -130,6 +99,8 @@ An excerpt of `dump.json`, keeping only the relevant tensor fields for these two
 ```
 
 `is_nan` belongs to each tensor: `0` means no NaN, `1` means NaN, and `null` means detection is unavailable. When a forward output contains NaN, its inputs and outputs are automatically saved as `.pt` files. `stack.json` stores groups of API-name lists and call-stack lists.
+
+Non-empty FP8/FP4 tensors have a detection result of `null`; integer, bool, and empty tensors record `0`. Unknown flags do not trigger saving. If another output in the same call contains NaN, all original input and output tensors are still submitted for saving.
 
 ## 4. File Reading and Cause Location
 

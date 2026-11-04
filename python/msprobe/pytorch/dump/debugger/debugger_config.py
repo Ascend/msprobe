@@ -223,6 +223,9 @@ class DebuggerConfig:
             return
         if self.task == Const.NAN_CHECK:
             self.nan_check_mode = task_config.check_mode
+            self.nan_check_detail = task_config.detail
+            if not self.nan_check_detail:
+                self.extra_info = False
         self.tensor_list = []
         if not hasattr(task_config, "tensor_list"):
             return

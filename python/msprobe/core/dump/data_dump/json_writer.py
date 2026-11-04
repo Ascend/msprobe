@@ -55,6 +55,9 @@ class DataWriter:
     def _is_extra_info_enabled(self):
         return getattr(getattr(self, "config", None), "extra_info", True)
 
+    def _is_json_enabled(self):
+        return getattr(getattr(self, "config", None), "nan_check_detail", True) is not False
+
     @recursion_depth_decorator("JsonWriter: DataWriter._replace_crc32_placeholders")
     def _replace_crc32_placeholders(self, data, crc32_results):
         """
@@ -178,6 +181,8 @@ class DataWriter:
         return results
 
     def initialize_json_file(self, **kwargs):
+        if not self._is_json_enabled():
+            return
         if kwargs["level"] == Const.LEVEL_DEBUG and not self.cache_debug:
             # debug level case only create debug.json
             debug_dict = copy.deepcopy(kwargs)
@@ -273,6 +278,8 @@ class DataWriter:
             logger.warning(f"[FallbackError] Failed to write error log: {e}")
 
     def update_data(self, new_data):
+        if not self._is_json_enabled():
+            return
         with lock:
             if not isinstance(new_data, dict) or len(new_data.keys()) != 1:
                 logger.warning(f"The data info({new_data}) should be a dict with only one outer key.")
@@ -387,6 +394,8 @@ class DataWriter:
         return result
 
     def write_json(self):
+        if not self._is_json_enabled():
+            return
         with lock:
             for cb in self._pre_flush_callbacks:
                 cb()
