@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch
 
 from msprobe.core.common.const import Const
 from msprobe.core.common.runtime import Runtime
+from msprobe.core.dump.custom_tag import CustomTagManager
 from msprobe.core.dump.hook_manager import BaseHookManager
 
 
@@ -84,6 +85,17 @@ class TestBaseHookManager(unittest.TestCase):
         BaseHookManager.hook_handle_dict = {}
         BaseHookManager.grad_hook_call = {}
 
+    @staticmethod
+    def _reset_api_call_counters():
+        """与 setUp 一致显式置空本线程的类级计数器。
+
+        pre-hook 仅在 inner_api_count 自增后等于 1(本线程第一次 API 调用)时才会
+        进入名称与自定义标签的登记分支, 置零可避免前序用例残留影响本用例。
+        """
+        tid = threading.get_ident()
+        BaseHookManager.inner_switch[tid] = False
+        BaseHookManager.inner_api_count[tid] = 0
+
     def test_init(self):
         self.assertEqual(self.manager.data_collector, self.mock_data_collector)
         self.assertEqual(self.manager.config, self.mock_config)
@@ -135,6 +147,87 @@ class TestBaseHookManager(unittest.TestCase):
         with patch.object(self.manager, '_no_grad_context') as mock_ctx:
             hook(module, args)
             self.mock_data_collector.forward_input_data_collect.assert_called_once()
+
+    @patch.object(BaseHookManager, "_should_execute_hook")
+    def test_forward_pre_hook_registers_custom_tag(self, mock_should_execute_hook):
+        self._reset_api_call_counters()  # 确保本次调用是本线程第一次 API 调用
+        Runtime.current_rank = None
+        mock_should_execute_hook.return_value = True
+        hook = self.manager._build_forward_pre_hook(Const.API, "api_name")
+        module = MagicMock()
+        module.msprobe_input_kwargs = {"kwarg": "value"}
+        args = (1, 2)
+
+        Runtime.is_running = True
+        self.mock_data_collector.data_processor.is_terminated = False
+        with patch.object(self.manager, '_no_grad_context'), \
+                patch.object(CustomTagManager, 'record_tags') as mock_record:
+            CustomTagManager.push("ut_api_tag")
+            try:
+                hook(module, args)
+            finally:
+                CustomTagManager.pop()
+
+            mock_record.assert_called_once()
+            names, label = mock_record.call_args[0]
+            self.assertEqual(label, "ut_api_tag")
+            self.assertEqual(len(names), 2)  # 前向名 + 反向名
+            self.assertTrue(any(n.endswith(Const.FORWARD) for n in names))
+            self.assertTrue(any(n.endswith(Const.BACKWARD) for n in names))
+
+    @patch.object(BaseHookManager, "_should_execute_hook")
+    def test_forward_pre_hook_without_tag_registers_nothing(self, mock_should_execute_hook):
+        self._reset_api_call_counters()  # 确保本次调用是本线程第一次 API 调用
+        Runtime.current_rank = None
+        mock_should_execute_hook.return_value = True
+        hook = self.manager._build_forward_pre_hook(Const.API, "api_name")
+        module = MagicMock()
+        module.msprobe_input_kwargs = {"kwarg": "value"}
+        args = (1, 2)
+
+        Runtime.is_running = True
+        self.mock_data_collector.data_processor.is_terminated = False
+        with patch.object(self.manager, '_no_grad_context'), \
+                patch.object(CustomTagManager, 'record_tags') as mock_record:
+            hook(module, args)
+            mock_record.assert_not_called()  # 无活跃标签时零登记
+
+    @patch.object(BaseHookManager, "_should_execute_hook")
+    def test_forward_pre_hook_tag_after_untagged_call_registers_once(self, mock_should_execute_hook):
+        # 覆盖真实 step 场景: 本线程首个 API 调用发生在标签作用域外(如投影内部的
+        # F.linear), 该调用完整结束后才进入 with tag 执行第二个 API 调用。
+        self._reset_api_call_counters()  # 确保本次调用是本线程第一次 API 调用
+        Runtime.current_rank = None
+        mock_should_execute_hook.return_value = True
+        pre_hook = self.manager._build_forward_pre_hook(Const.API, "untagged_api")
+        forward_hook = self.manager._build_forward_hook(Const.API, "untagged_api")
+        tagged_pre_hook = self.manager._build_forward_pre_hook(Const.API, "tagged_api")
+        module = MagicMock()
+        module.msprobe_input_kwargs = {"kwarg": "value"}
+        args = (1, 2)
+
+        Runtime.is_running = True
+        self.mock_data_collector.data_processor.is_terminated = False
+        with patch.object(self.manager, '_no_grad_context'), \
+                patch.object(CustomTagManager, 'record_tags') as mock_record:
+            # 第一次 API 调用: 无活跃标签(发生在标签作用域之前)
+            pre_hook(module, args)
+            mock_record.assert_not_called()
+            # 走完 forward_hook 使 inner_api_count 回落到 0, 与真实 step 中一次完整调用一致
+            forward_hook(module, args, {"kwarg": "value"}, MagicMock())
+            self.assertEqual(BaseHookManager.inner_api_count[threading.get_ident()], 0)
+
+            # 第二次 API 调用: push 标签后执行
+            CustomTagManager.push("ut_api_tag")
+            try:
+                tagged_pre_hook(module, args)
+            finally:
+                CustomTagManager.pop()
+
+            mock_record.assert_called_once()  # 仅带标签的第二次调用发生登记
+            names, label = mock_record.call_args[0]
+            self.assertEqual(label, "ut_api_tag")
+            self.assertTrue(any("tagged_api" in n for n in names))
 
     @patch.object(BaseHookManager, "_should_execute_hook")
     def test_forward_hook_behavior(self, mock_should_execute_hook):

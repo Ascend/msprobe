@@ -25,6 +25,7 @@ import torch
 from torch.utils.checkpoint import _StopRecomputationError
 
 import msprobe.pytorch.dump.module_dump.module_processor as mp
+from msprobe.core.dump.custom_tag import CustomTagManager
 from msprobe.core.dump.data_dump.scope import ModuleRangeScope
 from msprobe.pytorch.dump.module_dump.module_processor import (
     ModuleProcessor,
@@ -783,3 +784,121 @@ class TestModuleProcessorTwo(unittest.TestCase):
         bw_hook = MagicMock()
         bw_hook.setup_output_hook.return_value = output
         ModuleProcessor.module_bw_hook_kernels[f"module:test_module:forward:0"] = bw_hook
+
+    def test_build_module_hook_registers_custom_tag(self):
+        """前向预钩子在标签作用域内登记前向名/反向名/基名"""
+        processor = ModuleProcessor(ModuleRangeScope([], []))
+
+        class MockHookSet:
+            def __init__(self):
+                self.backward_hook = MagicMock()
+                self.module_forward_pre_hook = MagicMock()
+
+        def mock_build_data_hook(scope_type, full_name):
+            return MockHookSet()
+
+        # module_name 带尾部分隔符，还原真实场景
+        ModuleProcessor.enable_module_dump = True  # 打开模块级 dump 逻辑，否则 pre_hook 提前返回
+        hook = processor.build_module_hook("Module.linear.Linear.", mock_build_data_hook)
+        module = DummyModule()
+        args = (1, 2, 3)
+        kwargs = {"key": "value"}
+
+        # hook 闭包在调用时从 module_processor 模块全局解析 Runtime，默认指向真实 Runtime
+        # （is_running 默认 False），会导致 pre_hook 提前返回、record_tags 不被调用。
+        # 此处 patch 为本文件 stub（is_running=True），保证测试不依赖进程内残留状态。
+        with patch.object(mp, 'Runtime', Runtime), patch.object(CustomTagManager, 'record_tags') as mock_record:
+            CustomTagManager.push("mod_tag")
+            try:
+                hook(module, args, kwargs)
+            finally:
+                CustomTagManager.pop()
+
+            mock_record.assert_called_once()
+            names, label = mock_record.call_args[0]
+            self.assertEqual(label, "mod_tag")
+            self.assertEqual(names, [
+                "Module.linear.Linear.forward.0",
+                "Module.linear.Linear.backward.0",
+                "Module.linear.Linear",  # 基名（module_name 去掉尾部分隔符，供 parameters_grad 兜底）
+            ])
+
+    def test_build_module_hook_without_tag_registers_nothing(self):
+        """无活跃标签时前向预钩子不登记任何条目"""
+        processor = ModuleProcessor(ModuleRangeScope([], []))
+
+        class MockHookSet:
+            def __init__(self):
+                self.backward_hook = MagicMock()
+                self.module_forward_pre_hook = MagicMock()
+
+        def mock_build_data_hook(scope_type, full_name):
+            return MockHookSet()
+
+        hook = processor.build_module_hook("Module.linear.Linear.", mock_build_data_hook)
+        module = DummyModule()
+        args = (1, 2, 3)
+        kwargs = {"key": "value"}
+
+        ModuleProcessor.enable_module_dump = True  # 打开模块级 dump 逻辑，确保真正走到登记分支
+        # 同 test_build_module_hook_registers_custom_tag：patch 掉 mp.Runtime，确保 hook
+        # 真正执行到登记分支（而非因 Runtime.is_running=False 提前返回导致假绿）
+        with patch.object(mp, 'Runtime', Runtime), patch.object(CustomTagManager, 'record_tags') as mock_record:
+            hook(module, args, kwargs)
+            mock_record.assert_not_called()  # 无活跃标签时零登记
+
+    @unittest.skipIf(not mp.torch_version_above_or_equal_21, "forward 安全包装仅在 torch>=2.1 安装")
+    def test_module_depth_released_when_forward_raises(self):
+        """标签块内模块 forward 抛异常被捕获后，并列模块仍按一级调用打标（深度泄漏回归）"""
+        processor = ModuleProcessor(ModuleRangeScope([], []))
+
+        class MockHookSet:
+            def __init__(self):
+                self.backward_hook = MagicMock()
+                self.module_forward_pre_hook = MagicMock()
+
+        def mock_build_data_hook(scope_type, full_name):
+            return MockHookSet()
+
+        class RaisingModule(torch.nn.Module):
+            def forward(self, *args, **kwargs):
+                raise RuntimeError("mock forward failure")
+
+        class SiblingModule(torch.nn.Module):
+            def forward(self, *args, **kwargs):
+                return args
+
+        raising = RaisingModule()
+        sibling = SiblingModule()
+
+        # 按注册循环的真实顺序：先 wrap forward，再构建 pre-hook
+        wrap_forward_with_hook_safety(raising)
+        wrap_forward_with_hook_safety(sibling)
+        pre_raising = processor.build_module_hook("Module.raising.RaisingModule.", mock_build_data_hook)
+        pre_sibling = processor.build_module_hook("Module.sibling.SiblingModule.", mock_build_data_hook)
+
+        args = (1, 2, 3)
+        kwargs = {}
+        with patch.object(mp, 'Runtime', Runtime), patch.object(CustomTagManager, 'record_tags') as mock_record:
+            CustomTagManager.push("scope")
+            try:
+                ModuleProcessor.enable_module_dump = True
+                # 模块 a：pre-hook 按一级调用登记标签，随后 forward 抛 RuntimeError
+                pre_raising(raising, args, kwargs)
+                with self.assertRaises(RuntimeError):
+                    raising.forward(*args, **kwargs)
+                # 修复点：异常路径已按名释放模块嵌套深度，作用域内应重新可见标签；
+                # 修复前 depth 残留为 1，此处的查询返回 None
+                self.assertEqual(CustomTagManager.get_current_tag(), "scope")
+                # 用户在同一标签块内捕获异常后继续调用并列模块：应正常登记
+                pre_sibling(sibling, args, kwargs)
+                names, label = mock_record.call_args[0]
+                self.assertEqual(label, "scope")
+                self.assertEqual(names, [
+                    "Module.sibling.SiblingModule.forward.0",
+                    "Module.sibling.SiblingModule.backward.0",
+                    "Module.sibling.SiblingModule",  # 基名（parameters_grad 兜底）
+                ])
+            finally:
+                ModuleProcessor.enable_module_dump = False
+                CustomTagManager.pop()

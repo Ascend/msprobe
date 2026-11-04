@@ -22,6 +22,7 @@ import threading
 from msprobe.core.common.const import Const
 from msprobe.core.common.log import logger
 from msprobe.core.common.megatron_utils import MegatronStepInfo, get_micro_step, is_megatron
+from msprobe.core.dump.custom_tag import CustomTagManager
 from msprobe.core.dump.data_dump.data_processor.factory import DataProcessorFactory
 from msprobe.core.dump.data_dump.json_writer import DataWriter
 from msprobe.core.dump.data_dump.scope import ScopeFactory
@@ -109,6 +110,7 @@ class DataCollector:
         self.optimizer_status_first_start = {Const.OPTIMIZER: True, Const.CLIP_GRAD: True}
         self.data_writer.reset_cache()
         self.backward_module_names.clear()
+        CustomTagManager.reset()
 
     def update_api_or_module_name(self, api_or_module_name):
         self.data_processor.update_api_or_module_name(api_or_module_name)
@@ -236,8 +238,37 @@ class DataCollector:
 
             self.data_writer.update_construct(self.module_processor.module_node)
 
+    def _attach_custom_tag(self, name, data_info):
+        """Attach the current custom tag to the dumped entries, if any.
+
+        Resolution order: the tag currently in effect (scope semantics, e.g. a
+        backward pass wrapped in ``with tag(...)``) takes precedence; otherwise
+        the tag registered for this entry name at forward time is used, which
+        propagates forward tags to backward and asynchronous entries. For
+        parameters_grad entries, whose names carry an independent backward
+        counter and therefore cannot be predicted at forward time, fall back to
+        the tag registered under the module base name (approximation when the
+        same module is called in differently-tagged regions within one step).
+        """
+        # Hot path, executed for every dumped entry. While the tag feature has
+        # never been used in this process, short-circuit here to skip the
+        # sticky-table lock lookup and the name parsing below entirely.
+        if not CustomTagManager._feature_used:
+            return
+        label = CustomTagManager.get_current_tag() or CustomTagManager.get_sticky_tag(name)
+        if not label:
+            parts = name.split(Const.SEP)
+            if len(parts) > 2 and Const.PARAMS_GRAD in parts:
+                label = CustomTagManager.get_sticky_tag(name.rsplit(Const.SEP, 2)[0])
+        if not label:
+            return
+        for entry in data_info.values():
+            if isinstance(entry, dict):
+                entry[Const.ALIAS] = label
+
     def handle_data(self, name, data_info, flush=False):
         if data_info:
+            self._attach_custom_tag(name, data_info)
             logger.debug(f"handle_data: saving data for {name} to cache")
             self.update_data(name, data_info)
         if self.config.async_dump:

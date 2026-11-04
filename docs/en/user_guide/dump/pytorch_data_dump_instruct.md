@@ -372,6 +372,7 @@ The directory structure is as follows:
   * When the Tensor data format is NZ, the `max`, `min`, `mean`, and `L2norm` (L2 norm, square root) statistics in `dump.json` are all `null`, and the `mean` and `L2norm` statistics are calculated only when the Tensor data type is one of `torch.float32`, `torch.float16`, or `torch.bfloat16`; for other data types, only the `max` and `min` statistics are calculated.
   * When `summary_mode` is set to `xor`, `dump.json` outputs only the XOR checksum value, without outputting `max`, `min`, `mean`, or `L2norm` statistics. If the acceleration operator is unavailable, the tool automatically falls back to the generic implementation.
   * When `task` is set to `nan_check`, the default `isnan` mode records `is_nan` for each input and output tensor (`1` indicates that the tensor contains NaN, `0` indicates that it does not, and `null` indicates that detection is not possible). The `slot` mode records register detection results for each API. Neither mode calculates statistics. For details, see [nan_check Configuration](./config_json_introduct.md#task--nan_check) and [Nan Check Quick Start](./pytorch_nan_check_quickstart.md).
+  * When the `tag` API is used during dump, the tagged entries in the `dump.json` file also contain an `alias` field. For details about the configuration, see [Custom Tag](#custom-tag).
 
 * `dump_error_info.log`: Generated only when the dump tool encounters an error; used to record dump error logs.
 * `stack.json`: call stack information of APIs or modules.
@@ -395,6 +396,8 @@ The table below describes the mapping between the prefix of the .pt file and PyT
 | Triton   | triton       |
 
 ### dump.json Description
+
+If the [tag](#tag) API is used, tagged entries also contain an `alias` field. For details, see [Custom Tag](#custom-tag).
 
 #### L0 Level
 
@@ -850,6 +853,72 @@ __main__:
 > # After enabling the tool here, add_and_mul will be dumped by default.
 > ```
 
+### Custom Tag
+
+**Function**
+
+Adds a user-defined custom tag to dump data entries using the tag API.
+
+After you wrap a code block with `with tag("tag_name")`, an `alias` field is injected into the dump data within the scope. This field marks the data of the same logical group with a unified name, facilitating subsequent data comparison and locating based on tags.
+
+**Example**
+
+`with` context usage:
+
+```diff
+  import torch.nn as nn
++ from msprobe.pytorch import PrecisionDebugger, tag
+
+  class DemoModel(nn.Module):
+      def __init__(self):
+          super().__init__()
+          self.q_proj = nn.Linear(64, 64)
+          self.attn_core = AttnCore()
+          self.o_proj = nn.Linear(64, 64)
+
+      def forward(self, x, mask):
+          q = self.q_proj(x)
++         # Annotate the attention computation segment
++         with tag("attn_seg", recursive=False):
++             attn = self.attn_core(q, mask)
+          return self.o_proj(attn)
+```
+
+In the preceding example, the forward, backward, and parameter gradient entries of `attn_core` carry `alias="attn_seg"`; in mix mode, the submodules and APIs executed inside `attn_core` are not tagged; `q_proj` and `o_proj` are not affected.
+
+**Tag Scope**
+
+When `recursive=False`, only the first-level entries directly called within the scope are tagged (modules called directly, plus free API operators at the same level as those modules; calls in plain Python function chains also count as direct calls). The submodules and internal APIs inside a called module are not tagged. When `recursive=True`, all nested levels within the scope are tagged.
+
+| Level | recursive=False (default) | recursive=True |
+| --- | --- | --- |
+| L0 | All modules directly called within the scope are tagged (multiple sibling calls all take effect, and calls in plain Python function chains also count as direct calls). Internal submodules are not tagged. | All levels within the scope are tagged. |
+| L1 | All APIs executed within the scope are tagged. | All APIs executed within the scope are tagged. |
+| mix | All modules directly called within the scope, plus the API calls at the same level as those modules (API operators not nested inside a called module; calls in plain Python function chains also count as direct calls), are tagged. Submodules and APIs inside a called module are not tagged. | All levels within the scope and all APIs executed within it are tagged. |
+
+In L1 mode, module calls are not hooked, so module boundaries cannot be perceived; all APIs executed within the scope (including those executed inside modules) are tagged. In L0/mix mode, a module call forms a nesting boundary, so the submodules and APIs inside a called module are not tagged when `recursive=False`.
+
+**Output Description**
+
+Tagged entries contain an extra `alias` field in dump.json:
+
+```json
+"Module.attn_core.AttnCore.forward.0": {
+    "alias": "attn_seg",
+    "input_args": [...],
+    "output": [...],
+    "parameters": {...}
+}
+```
+
+**Notes**
+
+- The tag name must be a string of 1 to 128 characters, containing only letters, digits, underscores (_), and hyphens (-). Otherwise, an exception is thrown.
+- Backward entries and parameter gradient entries automatically carry the tag of the corresponding forward entries. No extra operation is required.
+- Tag scopes support nesting. When nested, the inner tag takes precedence. The tag is a single value and is not merged.
+- To tag a function as a whole (for example, a loss function or a training step function), place `with tag(...)` at the beginning of the function body. The modules/APIs directly called in the function body are then tagged.
+- When the same module is called in multiple different tag scopes within one step, its forward/backward entries carry the corresponding tag by call index, and its parameter gradient (`parameters_grad`) entries carry the tag registered last.
+
 ## API Description
 
 ### PrecisionDebugger
@@ -1285,6 +1354,33 @@ None
 **Example**
 
 For details, see [Collecting Randomness APIs](#collecting-randomness-apis).
+
+### tag
+
+**Function**
+
+Creates a custom tag to add an `alias` field to dump data entries. The tag is used as a `with` context manager to tag a segment of calls.
+
+**Prototype**
+
+```python
+tag(label, recursive=False)
+```
+
+**Parameters**
+
+| Parameter | Description | Support Data Type | Required (Yes/No) |
+| --------- | ----------- | ----------------- | ----------------- |
+| label | Tag name. It must contain 1 to 128 characters, and only letters, digits, underscores (_), and hyphens (-) are supported. Otherwise, an exception is thrown. | str | Yes |
+| recursive | Whether to tag recursively. If **False**, only the first-level entries directly called within the tag scope are tagged. If **True**, all nested levels within the scope are tagged. | boolean | No |
+
+**Returns**
+
+A CustomTag object, which supports the context manager protocol (`with tag(...):`).
+
+**Example**
+
+For details, see [Custom Tag](#custom-tag).
 
 ## Supplementary Notes
 

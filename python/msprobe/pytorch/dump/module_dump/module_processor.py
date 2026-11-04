@@ -27,6 +27,7 @@ from msprobe.core.common.const import Const
 from msprobe.core.common.megatron_utils import wrap_megatron_step, get_micro_step, is_megatron
 from msprobe.core.common.runtime import Runtime
 from msprobe.core.common.utils import ModuleQueue, ThreadSafe
+from msprobe.core.dump.custom_tag import CustomTagManager
 from msprobe.core.dump.data_dump.scope import BaseScope, ModuleRangeScope, MixRangeScope
 from msprobe.pytorch.common.log import logger
 from msprobe.pytorch.common.utils import is_torch_nn_module, register_forward_pre_hook
@@ -81,6 +82,9 @@ def wrap_forward_with_hook_safety(module):
                         hook_fn(module, args, kwargs, exception_output)
                         break
             raise e
+        except BaseException:
+            CustomTagManager.leave_module_call()
+            raise
 
     if torch_version_above_or_equal_21:
         module.forward = wrapped_forward
@@ -289,6 +293,13 @@ class ModuleProcessor:
                 index = ModuleProcessor.set_and_get_calls_number(module_name)
                 full_forward_name = f'{module_name}{Const.FORWARD}{Const.SEP}{index}'
             full_backward_name = f'{module_name}{Const.BACKWARD}{Const.SEP}{index}'
+            custom_tag = CustomTagManager.get_current_tag()
+            if custom_tag:
+                # module_name 可能带尾部分隔符，先去掉得到基名。基名也登记：
+                # parameters_grad 条目在反向阶段以独立计数器命名，无法在前向时精确预测，
+                # 收数据时按基名兜底解析标签
+                module_base_name = module_name.rstrip(Const.SEP)
+                CustomTagManager.record_tags([full_forward_name, full_backward_name, module_base_name], custom_tag)
 
             logger.debug(f"module forward_pre_hook executed for {module_name}")
             self.set_construct_info_in_pre_hook(full_forward_name)
@@ -335,6 +346,9 @@ class ModuleProcessor:
                     bw_hook = BackwardHook(module, [backward_hook])
                 ModuleProcessor.module_bw_hook_kernels[full_forward_name] = bw_hook
                 args = bw_hook.setup_input_hook(args)
+            # module nesting starts here: nested submodules will observe
+            # depth > 0, so non-recursive tags only apply to this top-level call
+            CustomTagManager.enter_module_call()
             return (args, kwargs) if torch_version_above_or_equal_2 else args
 
         @ThreadSafe.synchronized
@@ -359,6 +373,7 @@ class ModuleProcessor:
             if bw_hook:
                 result = bw_hook.setup_output_hook(result)
 
+            CustomTagManager.leave_module_call()
             return result
 
         return forward_pre_hook

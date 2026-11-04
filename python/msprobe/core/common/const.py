@@ -94,6 +94,7 @@ class Const:  # pylint: disable=too-many-lines
     SEP = "."
     REGEX_PREFIX_MAX_LENGTH = 20
     REGEX_PREFIX_PATTERN = r"^[a-zA-Z0-9_-]+$"
+    CUSTOM_TAG_PATTERN = r"^[A-Za-z0-9_-]{1,128}$"
     REGEX_FORWARD_BACKWARD = r"\.(forward|backward)\."
     PY_MODULE_PATH_PATTERN = r"^[a-zA-Z_]\w*(\.[a-zA-Z_]\w*)*$"
     PY_IDENTIFIER_PATTERN = r"^[a-zA-Z_]\w*$"
@@ -560,6 +561,7 @@ class Const:  # pylint: disable=too-many-lines
     FORWARD_CALL_ORDER = "forward_call_order"
     BACKWARD_CALL_ORDER = "backward_call_order"
     SUFFIX = "suffix"
+    ALIAS = "alias"
 
     LAYER = "layer"
     MODULE_CLASS = "module_class"

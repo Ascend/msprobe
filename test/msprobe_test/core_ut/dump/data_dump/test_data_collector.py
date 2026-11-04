@@ -20,6 +20,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from msprobe.core.common.utils import Const
+from msprobe.core.dump.custom_tag import CustomTagManager
 from msprobe.core.dump.data_dump.data_collector import DataCollector
 from msprobe.pytorch.dump.debugger.debugger_config import DebuggerConfig
 from msprobe.pytorch.dump.pt_config import parse_json_config
@@ -531,3 +532,99 @@ class TestShouldCollectByRiskLevel(unittest.TestCase):
             mock_get.return_value = Const.RISK_LEVEL_FOCUS
             result = self.data_collector._should_collect_by_risk_level("Functional.unknown_api.0.forward")
             self.assertFalse(result)
+
+
+class TestDataCollectorCustomTag(unittest.TestCase):
+    """测试 _attach_custom_tag 三级标签解析与零污染语义"""
+
+    def setUp(self):
+        mock_json_data = {
+            "dump_path": "./ut_custom_tag_dump",
+        }
+        with patch("msprobe.pytorch.dump.pt_config.load_json", return_value=mock_json_data):
+            common_config, task_config = parse_json_config("./config.json", Const.STATISTICS)
+        config = DebuggerConfig(common_config, task_config, Const.STATISTICS, "./ut_custom_tag_dump", "L1")
+        self.data_collector = DataCollector(config)
+        self._clean_tag_state()
+
+    def tearDown(self):
+        self._clean_tag_state()
+
+    @staticmethod
+    def _clean_tag_state():
+        CustomTagManager.reset()
+        if hasattr(CustomTagManager._tls, "stack"):
+            del CustomTagManager._tls.stack
+
+    def test_scope_hit_writes_alias(self):
+        CustomTagManager.push("t1")
+        name = "Functional.gelu.0.forward"
+        data_info = {name: {"input_args": [], "output": []}}
+
+        self.data_collector._attach_custom_tag(name, data_info)
+        self.assertEqual(data_info[name][Const.ALIAS], "t1")
+
+    def test_sticky_exact_name_hit(self):
+        CustomTagManager.record_tags(["Functional.gelu.0.backward"], "t1")
+        name = "Functional.gelu.0.backward"
+        data_info = {name: {"input_args": [], "output": []}}
+
+        self.data_collector._attach_custom_tag(name, data_info)
+        self.assertEqual(data_info[name][Const.ALIAS], "t1")
+
+    def test_params_grad_base_name_fallback(self):
+        CustomTagManager.record_tags(["Module.linear.Linear"], "t1")
+        name = "Module.linear.Linear.parameters_grad.0"
+        data_info = {name: {"input_args": [], "output": []}}
+
+        self.data_collector._attach_custom_tag(name, data_info)
+        self.assertEqual(data_info[name][Const.ALIAS], "t1")
+
+    def test_params_grad_without_base_registration_misses(self):
+        # 只登记精确前向名（未登记基名）时，parameters_grad 条目不应命中
+        CustomTagManager.record_tags(["Module.linear.Linear.forward.0"], "t1")
+        name = "Module.linear.Linear.parameters_grad.0"
+        data_info = {name: {"input_args": [], "output": []}}
+
+        self.data_collector._attach_custom_tag(name, data_info)
+        self.assertNotIn(Const.ALIAS, data_info[name])
+
+    def test_scope_takes_precedence_over_sticky(self):
+        CustomTagManager.record_tags(["name_a"], "sticky_tag")
+        CustomTagManager.push("scope_tag")
+        data_info = {"name_a": {"input_args": []}}
+
+        self.data_collector._attach_custom_tag("name_a", data_info)
+        self.assertEqual(data_info["name_a"][Const.ALIAS], "scope_tag")
+
+    def test_no_tag_writes_no_alias(self):
+        name = "Tensor.sum.0.forward"
+        data_info = {name: {"input_args": [], "output": []}}
+
+        self.data_collector._attach_custom_tag(name, data_info)
+        self.assertNotIn(Const.ALIAS, data_info[name])  # 三级全 miss：零污染
+
+    def test_non_dict_entry_skipped(self):
+        CustomTagManager.push("t1")
+        data_info = {"name_a": [1, 2, 3]}
+
+        self.data_collector._attach_custom_tag("name_a", data_info)  # 不应抛出异常
+        self.assertEqual(data_info["name_a"], [1, 2, 3])
+
+    def test_reset_status_clears_sticky_table(self):
+        CustomTagManager.record_tags(["name_a"], "t1")
+
+        self.data_collector.reset_status()
+        self.assertIsNone(CustomTagManager.get_sticky_tag("name_a"))
+
+    def test_handle_data_attaches_and_caches(self):
+        CustomTagManager.push("t1")
+        name = "Functional.gelu.0.forward"
+        data_info = {name: {"input_args": []}}
+        self.data_collector.data_writer = MagicMock()
+
+        self.data_collector.handle_data(name, data_info)
+
+        # 落盘前标签已贴上，且数据被完整转交给 writer
+        self.data_collector.data_writer.update_data.assert_called_once_with(data_info)
+        self.assertEqual(data_info[name][Const.ALIAS], "t1")

@@ -372,6 +372,7 @@ dump.json is at ./dump_path/step*
   * 当Tensor的数据格式为NZ格式时，dump.json中max、min、mean、L2norm（L2范数，平方根）统计信息均为`null`，且仅当Tensor的数据类型为torch.float32、torch.float16、torch.bfloat16中的一种时，才会计算mean、L2norm统计信息，其它数据类型仅计算max、min统计信息。
   * 当`summary_mode`配置为`xor`时，dump.json仅输出XOR校验值，不输出max、min、mean、L2norm统计信息。加速算子不可用时自动回退到通用实现。
   * 当task为`"nan_check"`时，默认`isnan`模式为每个输入、输出tensor记录`is_nan`（`1`表示含NaN，`0`表示不含NaN，`null`表示无法检测）；`slot`模式按API记录寄存器检测结果。两种模式均不计算统计值，详见[nan_check配置](./config_json_introduct.md#task配置为nan_check)和[完整使用示例](./pytorch_nan_check_quickstart.md)。
+  * 当dump时使用了`tag`接口，`dump.json`文件中被标注的条目还会包含`alias`字段，详细配置请参见[自定义标签](#自定义标签)。
 
 * `dump_error_info.log`：仅在dump工具报错时生成此记录日志，用于记录dump错误日志。
 * `stack.json`：API/Module的调用栈信息。
@@ -850,6 +851,72 @@ __main__:
 > # 在此使能工具后，默认 dump 已经注册 add_and_mul
 > ```
 
+### 自定义标签
+
+**功能说明**
+
+通过[tag](#tag)接口为dump数据条目添加用户自定义标签。
+
+使用 with tag("标签名") 包裹代码块后，系统会在作用域内的dump数据中注入alias字段。该字段将同一逻辑分组的数据标记为统一名称，便于后续基于标签进行数据比对与定位。
+
+**使用示例**
+
+with上下文用法：
+
+```diff
+  import torch.nn as nn
++ from msprobe.pytorch import PrecisionDebugger, tag
+
+  class DemoModel(nn.Module):
+      def __init__(self):
+          super().__init__()
+          self.q_proj = nn.Linear(64, 64)
+          self.attn_core = AttnCore()
+          self.o_proj = nn.Linear(64, 64)
+
+      def forward(self, x, mask):
+          q = self.q_proj(x)
++         # 标注注意力计算段
++         with tag("attn_seg", recursive=False):
++             attn = self.attn_core(q, mask)
+          return self.o_proj(attn)
+```
+
+上述示例中，`attn_core`的前向（forward）、反向（backward）和参数梯度（parameters_grad）条目均带`alias="attn_seg"`；mix级别下`attn_core`内部执行的子模块与API不标注；`q_proj`、`o_proj`不受影响。
+
+**标签生效范围**
+
+recursive=False时，仅标注作用域内直接调用的一级条目（直接调用的模块，以及与这些模块同层级的游离API算子，纯Python函数链中的调用同属直接调用层），不标注被调用模块内部的子模块与API；recursive=True时，标注作用域内全部嵌套层级。
+
+| level | recursive=False（默认） | recursive=True |
+|-------|------------------------|----------------|
+| L0    | 标注作用域内直接调用的所有模块（多个并排调用的模块均生效，纯Python函数链中的调用同属直接调用层），内部子模块不标注 | 标注作用域内所有层级 |
+| L1    | 标注作用域内执行的所有API | 标注作用域内执行的所有API |
+| mix   | 标注作用域内直接调用的所有模块，以及与这些模块同层级的游离API（未嵌套在被调用模块内部的API调用，纯Python函数链中的调用同属直接调用层）；被调用模块内部的子模块与API不标注 | 标注作用域内所有层级和执行的所有API |
+
+L1级别不挂钩模块调用、无法感知模块边界，因此作用域内执行的API（包括模块内部执行的API）均标注；L0/mix级别模块调用会形成嵌套边界，非递归时被调用模块内部的子模块与API不标注。
+
+**输出说明**
+
+被标注条目在dump.json中额外包含`alias`字段，如下所示：
+
+```json
+"Module.attn_core.AttnCore.forward.0": {
+    "alias": "attn_seg",
+    "input_args": [...],
+    "output": [...],
+    "parameters": {...}
+}
+```
+
+**注意事项**
+
+- 标签名必须是1~128个字符的字符串，仅支持字母、数字、下划线（_）和连字符（-），否则抛出异常。
+- 反向（backward）条目和参数梯度（parameters_grad）条目自动携带对应前向条目的标签，无需额外处理。
+- 标签作用域支持嵌套，嵌套时内层标签优先生效，标签为单值、不叠加。
+- 如需为函数（如损失函数、训练step函数）整体打标，将`with tag(...)`写在函数体开头即可，函数体内直接调用的模块/API均会被标注。
+- 同一模块在同一步的多个不同标签作用域内被调用时，前向/反向条目按各自调用序号携带对应标签，其参数梯度（parameters_grad）条目携带最后一次登记的标签。
+
 ## 接口介绍
 
 ### PrecisionDebugger
@@ -1285,6 +1352,33 @@ output_path：指定随机性API的保存路径。可选参数，str类型，默
 **调用示例**
 
 请参见[采集随机性API](#采集随机性api)。
+
+### tag
+
+**功能说明**
+
+创建自定义标签，用于为dump数据条目添加`alias`标注字段，以`with`上下文管理器的形式标注一段调用。
+
+**函数原型**
+
+```python
+tag(label, recursive=False)
+```
+
+**参数说明**
+
+| 参数名 | 可选/必选 | 说明 |
+| --- | --- | --- |
+| label | 必选 | 标签名，str类型。须为1~128个字符，仅支持字母、数字、下划线（_）和连字符（-），否则抛出异常。 |
+| recursive | 可选 | 是否递归标注，bool类型，默认为False。False时仅标注作用域内直接调用的一级条目；True时标注作用域内全部嵌套层级。 |
+
+**返回值说明**
+
+返回CustomTag对象，支持上下文管理器协议（`with tag(...):`）。
+
+**调用示例**
+
+请参见[自定义标签](#自定义标签)。
 
 ## 补充说明
 

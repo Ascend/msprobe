@@ -25,6 +25,7 @@ from collections import defaultdict
 from msprobe.core.common.exceptions import DistributedNotInitializedError, MsprobeException
 from msprobe.core.common.runtime import Runtime
 from msprobe.core.common.utils import Const, ThreadSafe
+from msprobe.core.dump.custom_tag import CustomTagManager
 from msprobe.core.dump.data_dump.data_processor.base import ModuleBackwardInputsOutputs, ModuleForwardInputsOutputs
 
 
@@ -229,6 +230,9 @@ class BaseHookManager(ABC):
                 full_forward_name = api_name + str(self._get_count(api_name)) + Const.SEP + Const.FORWARD
                 full_backward_name = api_name + str(self._get_count(api_name)) + Const.SEP + Const.BACKWARD
                 module.full_forward_name = full_forward_name
+                custom_tag = CustomTagManager.get_current_tag()
+                if custom_tag:
+                    CustomTagManager.record_tags([full_forward_name, full_backward_name], custom_tag)
                 if kwargs is None:
                     kwargs = module.msprobe_input_kwargs.get(tid, {}) if hasattr(module, 'msprobe_input_kwargs') else {}
                 BaseHookManager.inner_switch[tid] = True

@@ -16,14 +16,15 @@
 
 import torch
 
-from msprobe.pytorch.dump.debugger.precision_debugger import PrecisionDebugger, module_dump, module_dump_end
-from msprobe.pytorch.reproducibility.random_reproducibility import random_save
-from .common.utils import seed_all
-from .torchair_dump import set_fx_dump_config, set_ge_dump_config
+from msprobe.pytorch.dump.debugger.precision_debugger import PrecisionDebugger, module_dump, module_dump_end  # noqa: F401
+from msprobe.pytorch.reproducibility.random_reproducibility import random_save  # noqa: F401
+from msprobe.pytorch.tag import tag  # noqa: F401
+from .common.utils import seed_all  # noqa: F401
+from .torchair_dump import set_fx_dump_config, set_ge_dump_config  # noqa: F401
 
 torch_version_above_or_equal_2 = torch.__version__.split('+')[0] >= '2.0'
 if torch_version_above_or_equal_2:
-    from msprobe.pytorch.monitor.module_hook import TrainerMon
+    from msprobe.pytorch.monitor.module_hook import TrainerMon  # noqa: F401
 
 try:
     from msprobe.pytorch.aclgraph_dump import acl_save  # noqa: F401
