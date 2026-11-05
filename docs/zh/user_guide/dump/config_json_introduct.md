@@ -345,7 +345,7 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 
   - 配置示例："tensor_list": ["relu"]。
 
-- [nan_check](#task配置为nan_check)任务仅在`slot`模式使用此参数：按API名称子串匹配需要详细采集的API，溢出时触发异常并将详细数据保存至`extra-info`，供[Tensor解析工具](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/maintenref/troubleshooting/troubleshooting_0532.html)解析。
+- [nan_check](#task配置为nan_check)任务仅在`slot`模式使用此参数：按API名称子串匹配需要详细采集的API，溢出时触发异常并将详细数据保存至`extra-info`，供[Tensor解析工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/msaicerr/Dump_files_parsing.md)解析。
 
 ### data_mode参数配置说明
 
