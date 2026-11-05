@@ -263,6 +263,74 @@ class TestCosineAlgorithm(unittest.TestCase):
         self.assertEqual(result, 0.0)
         self.assertEqual(err_msg, "")
 
+    def test_cosine_large_finite_vectors(self):
+        cases = (
+            ([1e200, 1e200], [1e200, 1e200], 1.0),
+            ([1e308, 1e308], [-1e308, -1e308], -1.0),
+            ([1e308, 0.0], [0.0, 1e308], 0.0),
+            ([1e308, 1e308], [1.0, 0.0], 2 ** -0.5),
+        )
+        for n_value, b_value, expected in cases:
+            with self.subTest(n_value=n_value, b_value=b_value):
+                with np.errstate(over="raise", invalid="raise"):
+                    result, err_msg = cosine_compare(np.array(n_value), np.array(b_value))
+                self.assertAlmostEqual(result, expected, places=12)
+                self.assertEqual(err_msg, "")
+
+    def test_cosine_small_nonzero_vectors(self):
+        for scale in (1e-20, 1e-200, np.nextafter(0.0, 1.0)):
+            for b_direction, expected in (([0.0, 1.0], 0.0), ([-1.0, 0.0], -1.0)):
+                with self.subTest(scale=scale, b_direction=b_direction):
+                    n_value = np.array([scale, 0.0])
+                    b_value = np.array(b_direction) * scale
+                    result, err_msg = cosine_compare(n_value, b_value)
+                    self.assertEqual(result, expected)
+                    self.assertEqual(err_msg, "")
+
+    def test_cosine_independent_of_positive_scaling(self):
+        for n_scale, b_scale in ((1e200, 1e-200), (1e-200, 1e200), (1e-200, 1e-200)):
+            with self.subTest(n_scale=n_scale, b_scale=b_scale):
+                n_value = np.array([3.0, 4.0]) * n_scale
+                b_value = np.array([4.0, 3.0]) * b_scale
+                result, err_msg = cosine_compare(n_value, b_value)
+                self.assertAlmostEqual(result, 0.96, places=12)
+                self.assertEqual(err_msg, "")
+
+    def test_cosine_zero_and_small_nonzero_are_not_both_zero(self):
+        for n_value, b_value, error in (
+            ([0.0, 0.0], [1e-200, 0.0], "Zero in npu"),
+            ([1e-200, 0.0], [0.0, 0.0], "Zero in Bench"),
+        ):
+            with self.subTest(error=error):
+                result, err_msg = cosine_compare(np.array(n_value), np.array(b_value))
+                self.assertEqual(result, CompareConst.NAN)
+                self.assertIn(error, err_msg)
+
+    def test_cosine_preserves_noncontiguous_inputs(self):
+        n_value = np.array([[3e200, 0.0], [4e200, 0.0]])[:, 0]
+        b_value = np.array([[4e-200, 0.0], [3e-200, 0.0]])[:, 0]
+        n_original, b_original = n_value.copy(), b_value.copy()
+        result, err_msg = cosine_compare(n_value, b_value)
+        self.assertAlmostEqual(result, 0.96, places=12)
+        self.assertEqual(err_msg, "")
+        np.testing.assert_array_equal(n_value, n_original)
+        np.testing.assert_array_equal(b_value, b_original)
+
+    def test_cosine_nonfinite_values_remain_uncomparable(self):
+        for value in (np.nan, np.inf, -np.inf):
+            with self.subTest(value=value):
+                result, err_msg = cosine_compare(np.array([value, 1.0]), np.array([1.0, 1.0]))
+                self.assertEqual(result, CompareConst.NAN)
+                self.assertIn("NaN", err_msg)
+
+    def test_cosine_stable_through_algorithm_scheduler(self):
+        results, err_msg = compare_ops_apply(
+            np.array([1e308, 1e308]), np.array([1e308, 1e308]), False, "",
+            column_names=[CompareConst.COSINE],
+        )
+        self.assertEqual(results, [1.0])
+        self.assertEqual(err_msg, "")
+
 
 class TestEuclideanDistanceAlgorithm(unittest.TestCase):
     def test_euclidean_normal(self):

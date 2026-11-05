@@ -16,9 +16,9 @@
 
 
 import numpy as np
-from msprobe.core.common.const import Const, CompareConst
+from msprobe.core.common.const import CompareConst
 from msprobe.core.common.utils import format_value
-from msprobe.core.compare.utils import validate_numpy, flatten_numpy
+from msprobe.core.compare.utils import flatten_numpy, validate_numpy
 
 
 def column_name() -> str:
@@ -31,17 +31,23 @@ def compare(n_value: np.ndarray, b_value: np.ndarray):
         return result, err
     n_value, b_value = flatten_numpy(n_value, b_value)
     with np.errstate(divide="ignore", invalid="ignore"):
+        n_scale = np.max(np.abs(n_value))
+        b_scale = np.max(np.abs(b_value))
+
+        if n_scale == 0 and b_scale == 0:
+            return 1.0, ""
+        if n_scale == 0:
+            return CompareConst.NAN, "Cannot compare by Cosine Similarity, All the data is Zero in npu dump data."
+        if b_scale == 0:
+            return CompareConst.NAN, "Cannot compare by Cosine Similarity, All the data is Zero in Bench dump data."
+
+        # Positive scaling preserves cosine and keeps finite nonzero vectors in a safe range.
+        # flatten_numpy returns float copies, so scaling does not modify the input tensors.
+        n_value /= n_scale
+        b_value /= b_scale
         num = np.dot(n_value, b_value)
         a_norm = np.linalg.norm(n_value)
         b_norm = np.linalg.norm(b_value)
-
-        if a_norm <= Const.FLOAT_EPSILON and b_norm <= Const.FLOAT_EPSILON:
-            return 1.0, ""
-        if a_norm <= Const.FLOAT_EPSILON:
-            return CompareConst.NAN, "Cannot compare by Cosine Similarity, All the data is Zero in npu dump data."
-        if b_norm <= Const.FLOAT_EPSILON:
-            return CompareConst.NAN, "Cannot compare by Cosine Similarity, All the data is Zero in Bench dump data."
-
         cos = num / (a_norm * b_norm)
         if np.isnan(cos):
             return CompareConst.NAN, "Cannot compare by Cosine Similarity, the dump data has NaN."
