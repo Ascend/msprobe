@@ -1160,8 +1160,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
             if self._nan_check_detail:
                 self._collect_tensors(output_info, flags)
             elif output_info is not None:
-                trigger = "output" if isinstance(module_input_output, ModuleForwardInputsOutputs) else "input"
-                self._collect_tensors(tensors[trigger], flags)
+                self._collect_tensors(tensors["output"], flags)
                 flags = [self._get_tensor_nan_flag(tensor) for tensor in flags]
                 flags = [flag for flag in flags if isinstance(flag, torch.Tensor)]
             if not flags:
@@ -1321,7 +1320,7 @@ class NanCheckDataProcessor(PytorchDataProcessor):
         api_info_struct = super().analyze_backward(name, module, module_input_output)
         if name in api_info_struct:
             if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN:
-                self._save_isnan_tensors(api_info_struct[name].get(Const.INPUT), module_input_output)
+                self._save_isnan_tensors(api_info_struct[name].get(Const.OUTPUT), module_input_output)
             else:
                 self._store_nan_result(api_info_struct, name, module_input_output)
         return api_info_struct

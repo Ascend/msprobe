@@ -48,6 +48,7 @@ from msprobe.core.dump.data_dump.data_processor.base import (
     ModuleForwardInputsOutputs,
 )
 from msprobe.core.dump.data_dump.json_writer import DataWriter
+from msprobe.core.dump.hook_manager import BaseHookManager
 
 
 class TestPytorchDataProcessor(unittest.TestCase):
@@ -1075,7 +1076,7 @@ class TestNanCheckDataProcessor(unittest.TestCase):
                     torch.ops.my_ns.acl_tensor_save.reset_mock()
                     with patch.object(proc, "_get_tensor_nan_flag", wraps=proc._get_tensor_nan_flag) as get_flag:
                         if backward:
-                            mio = ModuleBackwardInputsOutputs(grad_input=(trigger,), grad_output=(other,))
+                            mio = ModuleBackwardInputsOutputs(grad_input=(other,), grad_output=(trigger,))
                             proc.analyze_backward("Torch.test.0.backward", None, mio)
                         else:
                             mio = ModuleForwardInputsOutputs(args=(other,), kwargs=None, output=trigger)
@@ -1182,8 +1183,8 @@ class TestNanCheckDataProcessor(unittest.TestCase):
         })
         name = "Torch.test.0.backward"
         proc.update_api_or_module_name(name)
-        grad_input = (torch.tensor([1.0]), torch.tensor([float("nan")]))
-        grad_output = (torch.tensor([2.0]), torch.tensor([3.0]))
+        grad_input = (torch.tensor([1.0]), torch.tensor([3.0]))
+        grad_output = (torch.tensor([2.0]), torch.tensor([float("nan")]))
         mio = ModuleBackwardInputsOutputs(grad_input=grad_input, grad_output=grad_output)
 
         result = proc.analyze_backward(name, None, mio)[name]
@@ -1202,25 +1203,41 @@ class TestNanCheckDataProcessor(unittest.TestCase):
         self.assertIs(mio.grad_input[0], grad_input[0])
         self.assertIs(mio.grad_output[0], grad_output[0])
 
-    def test_isnan_saves_backward_tensors_with_grad_input_switch(self):
+    def test_isnan_backward_save_uses_computed_gradients_through_real_hook(self):
         self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
-        proc = self._create_processor()
-        proc.update_api_or_module_name("Torch.test.0.backward")
-        for input_value, output_value, expected in ((float("nan"), 1.0, 1), (1.0, float("nan"), 0)):
-            with self.subTest(expected=expected):
-                grad_input = torch.tensor([input_value])
-                grad_output = torch.tensor([output_value])
-                torch.ops.my_ns.acl_tensor_save.reset_mock()
-                mio = ModuleBackwardInputsOutputs(grad_input=(grad_input,), grad_output=(grad_output,))
-                proc.analyze_backward("Torch.test.0.backward", None, mio)
-                torch.ops.my_ns.npu_nan_test.assert_not_called()
-                calls = torch.ops.my_ns.acl_tensor_save.call_args_list
-                self.assertEqual(len(calls), 2)
-                for call, tensor, category in zip(calls, (grad_input, grad_output), ("input", "output")):
-                    torch.testing.assert_close(call.args[0], tensor, equal_nan=True)
-                    expected_path = os.path.join(proc.data_path, f"Torch.test.0.backward.{category}.0.pt")
-                    self.assertEqual(call.args[1], expected_path)
-                    self.assertEqual(call.args[4].item(), expected)
+        name = "Torch.test.0.backward"
+        for detail in (False, True):
+            for mode in ([Const.ALL], [Const.BACKWARD, Const.OUTPUT]):
+                for scenario in ("normal", "computed_nan", "incoming_nan"):
+                    with self.subTest(detail=detail, data_mode=mode, scenario=scenario):
+                        self.config.nan_check_detail = detail
+                        self.config.data_mode = mode
+                        proc = self._create_processor()
+                        manager = MagicMock()
+                        manager._should_execute_hook.return_value = True
+                        manager.data_collector.update_api_or_module_name.side_effect = proc.update_api_or_module_name
+                        manager.data_collector.backward_data_collect.side_effect = (
+                            lambda api_name, module, pid, io: proc.analyze_backward(api_name, module, io)
+                        )
+                        hook = BaseHookManager._build_backward_hook(manager, Const.API, name)
+                        value = -1.0 if scenario == "incoming_nan" else 0.0 if scenario == "computed_nan" else 1.0
+                        tensor = torch.tensor([value], requires_grad=True)
+                        output = torch.relu(tensor) if scenario == "incoming_nan" else torch.sqrt(tensor)
+                        output.grad_fn.register_hook(lambda gi, go: hook(None, gi, go))
+                        incoming = float("nan") if scenario == "incoming_nan" else 0.0 if scenario == "computed_nan" else 1.0
+                        torch.ops.my_ns.acl_tensor_save.reset_mock()
+                        output.backward(torch.tensor([incoming]))
+                        expected = scenario == "computed_nan"
+                        self.assertEqual(bool(torch.isnan(tensor.grad).any()), expected)
+                        calls = [call for call in torch.ops.my_ns.acl_tensor_save.call_args_list if call.args[4].item()]
+                        self.assertEqual(len(calls), 2 if expected else 0)
+                        if expected:
+                            for call, category, expected_tensor in zip(
+                                calls, ("input", "output"), (torch.tensor([incoming]), tensor.grad)
+                            ):
+                                self.assertEqual(call.args[1], os.path.join(proc.data_path, f"{name}.{category}.0.pt"))
+                                torch.testing.assert_close(call.args[0], expected_tensor, equal_nan=True)
+                        self.assertFalse(proc._isnan_save_warned)
 
     def test_isnan_does_not_save_integer_or_missing_output(self):
         self.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
@@ -1428,7 +1445,7 @@ class TestNanCheckDataProcessor(unittest.TestCase):
                         torch.ops.my_ns.acl_tensor_save.reset_mock()
                         with patch.object(torch, "amax", side_effect=check):
                             if backward:
-                                mio = ModuleBackwardInputsOutputs(grad_input=trigger, grad_output=(other,))
+                                mio = ModuleBackwardInputsOutputs(grad_input=(other,), grad_output=trigger)
                                 proc.analyze_backward("Torch.test.0.backward", None, mio)
                             else:
                                 mio = ModuleForwardInputsOutputs(args=(other,), kwargs=None, output=trigger)

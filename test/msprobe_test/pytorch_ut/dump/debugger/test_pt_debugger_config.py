@@ -21,6 +21,7 @@ import torch
 
 from msprobe.core.common.const import Const
 from msprobe.core.common.exceptions import MsprobeException
+from msprobe.core.dump.data_dump.data_processor.base import BaseDataProcessor
 from msprobe.pytorch.dump.debugger.debugger_config import DebuggerConfig
 from msprobe.pytorch.dump.pt_config import NanCheckConfig
 
@@ -70,6 +71,32 @@ class TestDebuggerConfig(unittest.TestCase):
             config = DebuggerConfig(self.common_config, NanCheckConfig({"detail": False}), None, None, None)
         self.assertFalse(config.nan_check_detail)
         self.assertFalse(config.extra_info)
+
+    def test_nan_check_backward_data_modes_require_output(self):
+        self.common_config.task = Const.NAN_CHECK
+        cases = (
+            ([Const.INPUT], False),
+            ([Const.BACKWARD, Const.INPUT], False),
+            ([Const.ALL], True),
+            ([Const.BACKWARD], True),
+            ([Const.OUTPUT], True),
+            ([Const.BACKWARD, Const.OUTPUT], True),
+        )
+        with patch(
+            "msprobe.pytorch.dump.debugger.debugger_config._is_torch_npu_importable", return_value=True
+        ):
+            for detail in (False, True):
+                for data_mode, valid in cases:
+                    with self.subTest(detail=detail, data_mode=data_mode):
+                        task_config = NanCheckConfig({"detail": detail, "data_mode": data_mode})
+                        if not valid:
+                            with self.assertRaisesRegex(MsprobeException, "without 'output'"):
+                                DebuggerConfig(self.common_config, task_config, None, None, None)
+                            continue
+                        config = DebuggerConfig(self.common_config, task_config, None, None, None)
+                        allowed = BaseDataProcessor._get_allowed_data_mode(config.data_mode)
+                        self.assertIn(Const.BACKWARD, allowed)
+                        self.assertIn(Const.OUTPUT, allowed)
 
     def test_check_kwargs_with_invalid_task(self):
         self.common_config.task = "invalid_task"
