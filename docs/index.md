@@ -16,8 +16,11 @@
 
 <span style="font-size:14px;">
 
-🔹 **[2026.03.28]**：[msprobe 仓库 ADump 模块日落下线通知](https://gitcode.com/Ascend/msprobe/discussions/2)
-🔹 **[2026.03.20]**：上线[大模型训练精度定位指南](./zh/best_practices/train_debug_guide.md)、[大模型推理精度定位指南](./zh/best_practices/infer_debug_guide.md)及[常用框架工具使能指南](./zh/best_practices/dump_enable_guide.md)
+🔹 **[2026.10.16]**：[MindStudio Probe 26.2.0 正式发布](https://gitcode.com/Ascend/msprobe/releases/tag_MindStudio_26.2.0.B110_001)：强化 Slime/VeRL 训推一致性分析，新增模块输入 Tensor 覆盖加载、自定义精度比对算法和 ACLGraph 整网采集能力<br>
+🔹 **[2026.07.27]**：[MindStudio Probe 26.1.0 正式发布](https://gitcode.com/Ascend/msprobe/releases/tag_MindStudio_26.1.0.B100_002)：新增整网 NaN 检测、PyTorch Inductor 自动精度比对、服务化推理异常感知，并增强自定义算子采集与 VeRL 超参校验能力<br>
+🔹 **[2026.04.29]**：[MindStudio Probe 26.0.0 正式发布](https://gitcode.com/Ascend/msprobe/releases/tag_MindStudio_26.0.0.B120_0012)：新增 VeRL 训推一致性比对、vLLM/SGLang 推理精度数据采集、vLLM 动态启停 dump 及随机行为检查与固定能力<br>
+🔹 **[2026.03.28]**：[msprobe 仓库 ADump 模块日落下线通知](https://gitcode.com/Ascend/msprobe/discussions/2)<br>
+🔹 **[2026.03.20]**：上线[大模型训练精度定位指南](./zh/best_practices/train_debug_guide.md)、[大模型推理精度定位指南](./zh/best_practices/infer_debug_guide.md)及[常用框架工具使能指南](./zh/best_practices/dump_enable_guide.md)<br>
 🔹 **[2025.12.31]**：MindStudio Probe 精度调试工具全面开源
 
 </span>

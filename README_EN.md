@@ -18,6 +18,9 @@ English | [简体中文](./README.md)
 
 <span style="font-size:14px;">
 
+🔹 **[2026.10.16]**: [MindStudio Probe 26.2.0 Released](https://gitcode.com/Ascend/msprobe/releases/tag_MindStudio_26.2.0.B110_001): Enhances Slime/VeRL train-inference consistency analysis and adds module-input Tensor override loading, custom accuracy comparison algorithms, and full-network ACLGraph collection.<br>
+🔹 **[2026.07.27]**: [MindStudio Probe 26.1.0 Released](https://gitcode.com/Ascend/msprobe/releases/tag_MindStudio_26.1.0.B100_002): Adds whole-network NaN detection, automatic PyTorch Inductor accuracy comparison, serving inference anomaly detection, and enhanced custom operator collection and VeRL hyperparameter validation.<br>
+🔹 **[2026.04.29]**: [MindStudio Probe 26.0.0 Released](https://gitcode.com/Ascend/msprobe/releases/tag_MindStudio_26.0.0.B120_0012): Adds VeRL train-inference consistency comparison, vLLM/SGLang inference accuracy data collection, dynamic dump enable/disable for vLLM, and random behavior checking and fixing.<br>
 🔹 **[2026.03.28]**: [End-of-Life Notice for the ADump Module in the msProbe Repository](https://gitcode.com/Ascend/msprobe/discussions/2)<br>
 🔹 **[2026.03.20]**: Released [Foundation Model Training Accuracy Debugging Guide](docs/en/best_practices/train_debug_guide.md), [Foundation Model Inference Accuracy Debugging Guide](docs/en/best_practices/infer_debug_guide.md), and [Enabling Tools for Common Frameworks](docs/en/best_practices/dump_enable_guide.md)<br>
 🔹 **[2025.12.31]**: MindStudio Probe Precision Debugging Tool Fully Open-Sourced
