@@ -326,7 +326,7 @@ Example: "scope": ["Module.conv1.Conv2d.forward.0", "Module.fc2.Linear.forward.0
 
   - Example: `"tensor_list": ["relu"]`
 
-- Special notes for `nan_check` tasks: `nan_check` detects NaN/Inf overflow for all APIs by default. When further localization of the exact overflow location within a specific API is required, you can specify the API for in-depth analysis via `tensor_list`. When overflow occurs, the tool will raise an `Exception` and generate additional detailed data files for these APIs, saving them to the `extra-info` subdirectory under the current directory. These files can be used with the [Tensor Parsing Tool](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/maintenref/troubleshooting/troubleshooting_0532.html) for element-level analysis.
+- Special notes for `nan_check` tasks: `nan_check` detects NaN/Inf overflow for all APIs by default. When further localization of the exact overflow location within a specific API is required, you can specify the API for in-depth analysis via `tensor_list`. When overflow occurs, the tool will raise an `Exception` and generate additional detailed data files for these APIs, saving them to the `extra-info` subdirectory under the current directory. These files can be used with the [Tensor Parsing Tool](https://gitcode.com/cann/oam-tools/blob/9.2.0/docs/en/msaicerr/Dump_files_parsing.md) for element-level analysis.
   - Matching mode: Substring matching, case-insensitive. For example, when [truediv] is configured, all APIs whose names contain `truediv` (e.g., `truediv`, `__truediv__`) will be matched.
 
   - Usage recommendations

@@ -41,7 +41,7 @@ This document describes how to compare the dump data of a non-quantized model ru
 
 ## Description of Fields in the Comparison Result File
 
-- The comparison result is stored in the `result_{timestamp}.csv` file. The meaning of the comparison result is the same as that of Model Accuracy Analyzer. For details about the meaning of each field, see [Parameters in a Complete Model Comparison Result](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/devaids/ModelAccuracyAnalyzer/atlasaccuracy_16_0064.html) in *Model Accuracy Analyzer User Guide*.
+- The comparison result is stored in the `result_{timestamp}.csv` file. The meaning of the comparison result is the same as that of Model Accuracy Analyzer. For details about the meaning of each field, see [Parameters in a Complete Model Comparison Result](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/920/devaids/ModelAccuracyAnalyzer/atlasaccuracy_16_0064.html) in *Model Accuracy Analyzer User Guide*.
 
 * The following table briefly describes the result.
 

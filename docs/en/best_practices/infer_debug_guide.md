@@ -320,7 +320,7 @@ As shown in the preceding figure, matmul is the suspicious operator. You can rep
 
 Mind Inference Engine (MindIE) is an inference acceleration suite provided by Ascend for various AI scenarios. Through layered open AI capabilities, it supports diverse AI service needs and empowers a large number of models by leveraging the compute of Ascend hardware. MindIE supports multiple mainstream AI frameworks and is compatible with different types of Ascend AI processors, providing multi-layer programming APIs to help users quickly build inference services based on the Ascend platform.
 
-Currently, MindIE is often used together with the [Ascend Transformer Boost (ATB)](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/910/acce/ascendtb/ascendtb_0001.html) acceleration library to achieve optimal inference performance. The following uses MindIE + ATB as an example to describe how to locate accuracy problems in MindIE scenarios.
+Currently, MindIE is often used together with the [Ascend Transformer Boost (ATB)](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/920/acce/ascendtb/ascendtb_0001.html) acceleration library to achieve optimal inference performance. The following uses MindIE + ATB as an example to describe how to locate accuracy problems in MindIE scenarios.
 
 ##### 5.1.2.1 Tool Usage
 

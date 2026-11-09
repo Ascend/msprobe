@@ -23,7 +23,7 @@ pip install mindstudio-probe
 
 Runtime environment and image:
 
-**Dockerfile to build the image**: You can build the image and environment based on the [Slime_ascend Dockerfile](https://gitcode.com/Ascend/slime-ascend/tree/main/docker/npu_docker).
+**Dockerfile to build the image**: You can build the image and environment based on the [Slime_ascend Dockerfile](https://gitcode.com/Ascend/slime-ascend/tree/v0.2.2/docker/npu_docker/v0.2.2).
 
 ## 3. Training-Inference Consistency Preprocessing
 
