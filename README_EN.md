@@ -45,6 +45,8 @@ msProbe provides three core capabilities around model precision debugging, cover
 
 ## 🚀 Quick Start
 
+Start with the [minimal PyTorch example](docs/en/quick_start/pytorch_minimal_quick_start.md) to install, instrument, dump, compare, and inspect results on CPU without downloading a model or dataset. The example pins `mindstudio-probe==26.2.0`.
+
 For a 10-minute one-stop experience of the complete workflow of data collection, NPU/GPU precision comparison, and graph comparison in hierarchical visualization mode, see [msProbe Quick Start](docs/en/quick_start/pytorch_quick_start.md).
 
 ## 📦 Installation Guide
@@ -54,6 +56,8 @@ msProbe supports three installation methods: PyPI, WHL, and compilation from sou
 ## 📘 Usage Guide
 
 For detailed usage of the tool, see [msProbe Usage Guide](docs/en/user_guide/README.md).
+
+For example code and supported scenarios, see [msProbe Examples](examples/README_EN.md).
 
 ## 💡 Typical Cases
 

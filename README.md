@@ -45,6 +45,8 @@ msProbe 围绕模型精度调试提供三大核心能力，覆盖「数据采集
 
 ## 🚀 快速入门
 
+首次使用可参见《[PyTorch 场景最小示例](docs/zh/quick_start/pytorch_minimal_quick_start.md)》，在 CPU 上完成安装、埋点、dump、比对和结果解读。示例固定使用 `mindstudio-probe==26.2.0`，无需下载模型或数据集。
+
 10 分钟快速一站式体验数据采集、NPU/GPU 精度比对与分级可视化构图比对的完整流程，请参见《[msProbe 快速入门](docs/zh/quick_start/pytorch_quick_start.md)》。
 
 ## 📦 安装指南
@@ -54,6 +56,8 @@ msProbe 支持 PyPI 安装、WHL 安装、源码编译三种方式，具体请�
 ## 📘 使用指南
 
 工具的详细使用方法，请参见《[msProbe 使用指南](docs/zh/user_guide/README.md)》。
+
+示例代码及适用场景，请参见《[msProbe 示例](examples/README.md)》。
 
 ## 💡 典型案例
 

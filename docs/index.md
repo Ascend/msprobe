@@ -109,6 +109,7 @@ msProbe 使用指南 <zh/user_guide/README>
 :hidden:
 安装指南 <zh/install_guide/msprobe_install_guide>
 快速入门 <zh/quick_start/pytorch_quick_start>
+PyTorch 最小快速入门 <zh/quick_start/pytorch_minimal_quick_start>
 常见问题 <zh/support/faq>
 安全声明 <zh/legal/SECURITY>
 ```
