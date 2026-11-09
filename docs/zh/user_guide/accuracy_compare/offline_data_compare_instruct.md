@@ -66,6 +66,8 @@ msprobe compare -m offline_data -tp <target_path> -gp <golden_path> [-fr <fusion
 
 默认情况下，比对命令执行完成后在命令执行的当前路径生成比对结果文件`result_{timestamp}.csv`。
 
+不传 `-mgf` 时，最终结果按原 `Index` 升序排列。对于 OM 与 OM 同名直接比对，原编号按目标侧 dump 算子的时间戳顺序建立，标杆侧独有的算子随后补入；它不保证与模型图节点排列一致。传入 `-mgf` 才开启图排序，不能仅凭 CSV 的 `Index` 连续判断是否已开启。
+
 指定`-mgf`时，结果先按目标OM图JSON中的`graph`数组顺序，再按各图`op`数组顺序展示，节点`id`不参与排序。CSV第一列`Index`在排序后按每条结果行重新编号，严格为`0、1、2……`，列结构保持不变。算子匹配关系和精度值保持不变：
 
 - 每个图的匹配结果连续排列，图之间不交叉；图内op index指`op`数组下标，不是节点`id`。
@@ -110,3 +112,10 @@ msprobe compare -m offline_data -tp <target_path> -gp <golden_path> [-fr <fusion
 | MaxRelativeError | 表示最大相对误差。取值范围为0到无穷大，值越接近于0，表明越相近，值越大，表明差距越大。 |
 | MeanRelativeError | 表示平均相对误差。取值范围为0到无穷大，值越接近于0，表明越相近，值越大，表明差距越大。 |
 | CompareFailReason | 算子无法比对的原因。<br><br>若余弦相似度为1，则查看该算子的输入或输出Shape是否为空或全部为1，若为空或全部为1则算子的输入或输出为标量，提示：this tensor is scalar。 |
+
+**结果分析**
+
+1. 确认命令是否传入目标 OM 导出的 `-mgf` 图文件，并检查未匹配告警；结合 `NPUDump` 名称核对结果与图节点的顺序。没有 dump 的节点不产生 CSV 行，不能用行号直接对应图节点下标。
+2. 先检查 `NPUDump`、`GroundTruth`、`TensorIndex`、`DataType`、`Shape` 和 `CompareFailReason`，排除算子未匹配、Tensor 选错或无法比对的行，再判断数值误差。
+3. 沿已确认的图序逐层检查 `CosineSimilarity`、`MaxAbsoluteError` 和相对误差指标，阈值按模型、数据类型和业务要求确定；不要先按误差大小重排而丢失图序。
+4. 对首个可疑算子，核对其输入及上游输出：输入已不一致时继续向上游回溯，输入一致而输出异常时再重点检查该算子。结合模型图的数据依赖验证，CSV 中第一条异常行只是定位线索，不等同于根因。
