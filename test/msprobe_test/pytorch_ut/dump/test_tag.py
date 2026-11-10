@@ -80,24 +80,24 @@ class TestTag(unittest.TestCase):
             self.assertEqual(CustomTagManager.get_current_tag(), "outer")
         self.assertIsNone(CustomTagManager.get_current_tag())
 
-    # ------------------------------------------------------------ 递归开关
-    def test_default_tag_is_non_recursive(self):
-        # 默认 recursive=False：嵌套子模块内标签不可见（锚点语义）
+    # ------------------------------------------------------------ 锚点语义
+    def test_tag_is_non_recursive(self):
+        # 锚点语义（唯一行为）：嵌套子模块内标签不可见
         with tag("anchor"):
             CustomTagManager.enter_module_call()
             self.assertIsNone(CustomTagManager.get_current_tag())
             CustomTagManager.leave_module_call()
             self.assertEqual(CustomTagManager.get_current_tag(), "anchor")
 
-    def test_recursive_true_propagates_into_nested_modules(self):
-        with tag("dye", recursive=True):
-            CustomTagManager.enter_module_call()
-            self.assertEqual(CustomTagManager.get_current_tag(), "dye")
-            CustomTagManager.leave_module_call()
-            self.assertEqual(CustomTagManager.get_current_tag(), "dye")
+    def test_recursive_option_removed(self):
+        # 递归开关已移除：传入 recursive 参数直接 TypeError，用户无法打开递归
+        with self.assertRaises(TypeError):
+            tag("dye", recursive=True)
+        with self.assertRaises(TypeError):
+            tag("dye", recursive=False)
 
-    def test_recursive_scope_restores_state_on_exit(self):
-        with tag("dye", recursive=True):
+    def test_scope_restores_depth_snapshot_on_exit(self):
+        with tag("t1"):
             CustomTagManager.enter_module_call()
         # with 正常退出后，depth 快照恢复（泄漏被自愈），标签弹出
         self.assertIsNone(CustomTagManager.get_current_tag())

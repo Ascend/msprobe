@@ -40,23 +40,21 @@ class CustomTag:
             attn = self.attention(x)
             y = F.gelu(x)
 
-    By default the tag is non-recursive: only modules/APIs called directly
+    The tag acts as a call anchor: only the modules and APIs called directly
     inside the block carry it, while entries of nested submodules stay
-    untagged (the tag acts as a call anchor). Pass ``recursive=True`` to
-    propagate the tag to every nested submodule entry as well.
+    untagged - a tag never dyes the whole subtree, which keeps the tagged
+    boundary unambiguous for the tag-based comparison.
 
     Tags recorded inside the forward pass are propagated to the matching
     backward entries automatically.
     """
 
-    def __init__(self, label, recursive=False):
+    def __init__(self, label):
         _validate_label(label)
-        CustomTagManager.validate_recursive(recursive)
         self.label = label
-        self.recursive = recursive
 
     def __enter__(self):
-        CustomTagManager.push(self.label, self.recursive)
+        CustomTagManager.push(self.label)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -64,13 +62,12 @@ class CustomTag:
         return False
 
 
-def tag(label, recursive=False):
+def tag(label):
     """Create a custom tag, usable as a context manager.
 
     Args:
-        label (str): tag name attached to the dumped entries.
-        recursive (bool): if False (default), only modules/APIs called directly
-            inside the tag scope are tagged; nested submodules stay untagged.
-            If True, the tag propagates to every nested submodule entry.
+        label (str): tag name attached to the dumped entries. Only the
+            modules and APIs called directly inside the tag scope are
+            tagged; entries of nested submodules stay untagged.
     """
-    return CustomTag(label, recursive)
+    return CustomTag(label)

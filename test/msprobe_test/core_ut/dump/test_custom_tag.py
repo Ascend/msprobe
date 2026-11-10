@@ -113,8 +113,8 @@ class TestCustomTagManager(unittest.TestCase):
         t.join()
         self.assertEqual(result["tag"], "tag_a")  # 登记表对其他线程可见
 
-    # ------------------------------------------------------------ 递归控制
-    def test_non_recursive_tag_hidden_inside_nested_module(self):
+    # ------------------------------------------------------------ 锚点语义
+    def test_tag_hidden_inside_nested_module(self):
         CustomTagManager.push("anchor")
         self.assertEqual(CustomTagManager.get_current_tag(), "anchor")  # 窗口直接调用可见
         CustomTagManager.enter_module_call()
@@ -122,14 +122,12 @@ class TestCustomTagManager(unittest.TestCase):
         CustomTagManager.leave_module_call()
         self.assertEqual(CustomTagManager.get_current_tag(), "anchor")  # 回到一级恢复可见
 
-    def test_recursive_tag_visible_inside_nested_module(self):
-        CustomTagManager.push("dye", recursive=True)
-        CustomTagManager.enter_module_call()
-        CustomTagManager.enter_module_call()
-        self.assertEqual(CustomTagManager.get_current_tag(), "dye")  # 任意嵌套深度都可见
-        CustomTagManager.leave_module_call()
-        CustomTagManager.leave_module_call()
-        self.assertEqual(CustomTagManager.get_current_tag(), "dye")
+    def test_recursive_option_removed(self):
+        # 递归开关已移除：push 不接受 recursive 参数，任何嵌套深度都只有锚点语义
+        with self.assertRaises(TypeError):
+            CustomTagManager.push("dye", recursive=True)
+        with self.assertRaises(TypeError):
+            CustomTagManager.push("dye", recursive=False)
 
     def test_module_call_depth_counts_nesting(self):
         CustomTagManager.push("anchor")

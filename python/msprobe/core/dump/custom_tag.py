@@ -16,8 +16,6 @@
 
 import threading
 
-from msprobe.core.common.exceptions import MsprobeException
-
 
 class CustomTagManager:
     """Manager of user-defined custom tags.
@@ -36,19 +34,19 @@ class CustomTagManager:
       The table is cleared on every ``step()`` boundary, aligned with the
       lifecycle of the api/module call counters.
 
-    Recursion control:
+    Nesting control:
 
     - a thread-local module-nesting counter (``depth``) is maintained per tag
       scope. On ``push`` the counter is reset to 0 and the previous value is
       snapshotted (restored on ``pop``, which also heals counter imbalance
       caused by exceptions). Module hooks bracket each dumped module call
       with ``enter_module_call``/``leave_module_call``.
-    - for a non-recursive tag (default), ``get_current_tag`` returns the label
-      only while the nesting depth is 0, i.e. for modules and free APIs called
-      directly inside the ``with`` block. Entries nested inside a called module
-      (its submodules and its internal APIs) stay untagged, so the tag acts as
-      a call anchor instead of a dye. A recursive tag
-      (``tag(label, recursive=True)``) ignores the depth and behaves as before.
+    - ``get_current_tag`` returns the label only while the nesting depth is
+      0, i.e. for modules and free APIs called directly inside the ``with``
+      block. Entries nested inside a called module (its submodules and its
+      internal APIs) stay untagged, so the tag acts as a call anchor instead
+      of a dye. There is no recursive option: a tag dyeing the whole subtree
+      would make the tagged boundary ambiguous for the tag-based comparison.
     """
 
     _tls = threading.local()
@@ -62,24 +60,7 @@ class CustomTagManager:
     _feature_used = False
 
     @classmethod
-    def validate_recursive(cls, recursive):
-        """Validate the ``recursive`` switch of custom tags.
-
-        Rejects any non-bool value instead of silently coercing it:
-        bool("false") and bool(1) are both True, which would invert the
-        caller's intent.
-        """
-        if not isinstance(recursive, bool):
-            raise MsprobeException(
-                MsprobeException.INVALID_PARAM_ERROR,
-                "invalid recursive '{}': must be a bool (True or False), got {}.".format(
-                    recursive, type(recursive).__name__
-                ),
-            )
-
-    @classmethod
-    def push(cls, label, recursive=False):
-        cls.validate_recursive(recursive)
+    def push(cls, label):
         # Flip before touching the stack so the very first entry collected
         # inside this scope can never be missed by the hot-path short circuit.
         cls._feature_used = True
@@ -88,14 +69,14 @@ class CustomTagManager:
             stack = cls._tls.stack = []
         # snapshot the outer nesting depth so pop() can restore it; nesting is
         # re-counted from 0 inside this scope.
-        stack.append((label, recursive, getattr(cls._tls, "depth", 0)))
+        stack.append((label, getattr(cls._tls, "depth", 0)))
         cls._tls.depth = 0
 
     @classmethod
     def pop(cls):
         stack = getattr(cls._tls, "stack", None)
         if stack:
-            _, _, depth_snapshot = stack.pop()
+            _, depth_snapshot = stack.pop()
             # restore the snapshot directly: self-heals any depth imbalance
             # left behind by an exception inside the with block.
             cls._tls.depth = depth_snapshot
@@ -105,10 +86,9 @@ class CustomTagManager:
         stack = getattr(cls._tls, "stack", None)
         if not stack:
             return None
-        label, recursive, _ = stack[-1]
-        if not recursive and getattr(cls._tls, "depth", 0) > 0:
-            return None
-        return label
+        if getattr(cls._tls, "depth", 0) > 0:
+            return None  # inside a called module: not the direct-call layer
+        return stack[-1][0]
 
     @classmethod
     def enter_module_call(cls):

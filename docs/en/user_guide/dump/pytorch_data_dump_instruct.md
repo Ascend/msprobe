@@ -879,7 +879,7 @@ After you wrap a code block with `with tag("tag_name")`, an `alias` field is inj
       def forward(self, x, mask):
           q = self.q_proj(x)
 +         # Annotate the attention computation segment
-+         with tag("attn_seg", recursive=False):
++         with tag("attn_seg"):
 +             attn = self.attn_core(q, mask)
           return self.o_proj(attn)
 ```
@@ -888,15 +888,15 @@ In the preceding example, the forward, backward, and parameter gradient entries 
 
 **Tag Scope**
 
-When `recursive=False`, only the first-level entries directly called within the scope are tagged (modules called directly, plus free API operators at the same level as those modules; calls in plain Python function chains also count as direct calls). The submodules and internal APIs inside a called module are not tagged. When `recursive=True`, all nested levels within the scope are tagged.
+Only the first-level entries directly called within the scope are tagged (modules called directly, plus free API operators at the same level as those modules; calls in plain Python function chains also count as direct calls). The submodules and internal APIs inside a called module are not tagged. Recursive tagging is not supported: a tag is a call anchor rather than a dye, and it always marks only the modules/operators called directly at the outermost level of the scope.
 
-| Level | recursive=False (default) | recursive=True |
-| --- | --- | --- |
-| L0 | All modules directly called within the scope are tagged (multiple sibling calls all take effect, and calls in plain Python function chains also count as direct calls). Internal submodules are not tagged. | All levels within the scope are tagged. |
-| L1 | All APIs executed within the scope are tagged. | All APIs executed within the scope are tagged. |
-| mix | All modules directly called within the scope, plus the API calls at the same level as those modules (API operators not nested inside a called module; calls in plain Python function chains also count as direct calls), are tagged. Submodules and APIs inside a called module are not tagged. | All levels within the scope and all APIs executed within it are tagged. |
+| Level | Tagging Scope |
+| --- | --- |
+| L0 | All modules directly called within the scope are tagged (multiple sibling calls all take effect, and calls in plain Python function chains also count as direct calls). Internal submodules are not tagged. |
+| L1 | All APIs executed within the scope are tagged. |
+| mix | All modules directly called within the scope, plus the API calls at the same level as those modules (API operators not nested inside a called module; calls in plain Python function chains also count as direct calls), are tagged. Submodules and APIs inside a called module are not tagged. |
 
-In L1 mode, module calls are not hooked, so module boundaries cannot be perceived; all APIs executed within the scope (including those executed inside modules) are tagged. In L0/mix mode, a module call forms a nesting boundary, so the submodules and APIs inside a called module are not tagged when `recursive=False`.
+In L1 mode, module calls are not hooked, so module boundaries cannot be perceived; all APIs executed within the scope (including those executed inside modules) are tagged. In L0/mix mode, a module call forms a nesting boundary, so the submodules and APIs inside a called module are not tagged.
 
 **Output Description**
 
@@ -1364,7 +1364,7 @@ Creates a custom tag to add an `alias` field to dump data entries. The tag is us
 **Prototype**
 
 ```python
-tag(label, recursive=False)
+tag(label)
 ```
 
 **Parameters**
@@ -1372,7 +1372,6 @@ tag(label, recursive=False)
 | Parameter | Description | Support Data Type | Required (Yes/No) |
 | --------- | ----------- | ----------------- | ----------------- |
 | label | Tag name. It must contain 1 to 128 characters, and only letters, digits, underscores (_), and hyphens (-) are supported. Otherwise, an exception is thrown. | str | Yes |
-| recursive | Whether to tag recursively. If **False**, only the first-level entries directly called within the tag scope are tagged. If **True**, all nested levels within the scope are tagged. | boolean | No |
 
 **Returns**
 

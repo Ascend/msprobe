@@ -347,7 +347,7 @@ class ModuleProcessor:
                 ModuleProcessor.module_bw_hook_kernels[full_forward_name] = bw_hook
                 args = bw_hook.setup_input_hook(args)
             # module nesting starts here: nested submodules will observe
-            # depth > 0, so non-recursive tags only apply to this top-level call
+            # depth > 0, so tags only apply to this top-level call
             CustomTagManager.enter_module_call()
             return (args, kwargs) if torch_version_above_or_equal_2 else args
 
