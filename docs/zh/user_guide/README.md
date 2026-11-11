@@ -31,6 +31,7 @@ MindStudio Probe（msProbe）针对昇腾 AI 处理器提供全场景精度调�
 | 细分场景 | 功能项 | 功能说明 | 参考文档 |
 |---|---|---|---|
 | Eager/图模式 | 数据采集 | 完成 msProbe 精度数据采集操作 | [数据采集](dump/vllm_dump_instruct.md) |
+| Eager/图模式 | KV数据统计值采集 | 完成 KV 数据统计值的采集操作 | [数据采集](kv_collect.md) |
 | Eager/图模式（MRV2） | KV 出入口追踪 | 记录调度、执行计划与原生结果的 KV 边界信息 | [KV 出入口追踪](kv_trace.md) |
 | | 数据比对 | 将 msProbe 工具 dump 的精度数据进行精度比对，进而定位精度问题<br/>请参考分级可视化构图比对或精度比对 | [分级可视化构图比对](accuracy_compare/pytorch_visualization_instruct.md)<br>[精度比对](accuracy_compare/pytorch_accuracy_compare_instruct.md) |
 | torchair | 数据采集 | 通过 `set_ge_dump_config` 接口完成精度数据采集操作 | [数据采集](dump/torchair_dump_instruct.md) |
