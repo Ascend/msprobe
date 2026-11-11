@@ -64,6 +64,33 @@ from msprobe.core.common.utils import (CompareException,
                                        slice_by_config)
 from msprobe.core.common.decorator import recursion_depth_decorator
 from torchrec.sparse.jagged_tensor import JaggedTensor, KeyedJaggedTensor, KeyedTensor
+import json
+import os
+import tempfile
+import unittest
+from unittest.mock import MagicMock, patch
+
+from msprobe.core.common.const import CompareConst, Const
+from msprobe.core.common.exceptions import MsprobeException
+from msprobe.core.common.utils import (
+    CompareException,
+    ModuleQueue,
+    analyze_api_call_stack,
+    check_compare_param,
+    check_extern_input_list,
+    check_init_step,
+    check_process_num,
+    check_rank_id,
+    check_token_range,
+    get_dump_mode,
+    get_header_index,
+    get_real_step_or_rank,
+    get_stack_construct_by_dump_json_path,
+    get_step_or_rank_from_string,
+    load_stack_json,
+    md5_find,
+    replace_last_occurrence,
+)
 
 
 class TestUtils(TestCase):
@@ -831,3 +858,277 @@ class TestSliceByConfig(TestCase):
         result = slice_by_config(tensor, config)
         self.assertEqual(result.shape, (50, 3))
         torch.testing.assert_close(result, tensor[0:50])
+
+class TestModuleQueue(unittest.TestCase):
+    def test_find_last_short_name(self):
+        queue = ModuleQueue()
+        self.assertIsNone(queue.find_last("Module.a.forward.0"))
+
+    def test_find_last_prefix_is_module(self):
+        queue = ModuleQueue()
+        self.assertIsNone(queue.find_last("Module.a.b.c.d"))
+
+    def test_find_last_matched_parent(self):
+        queue = ModuleQueue()
+        parent = "Module.m1.m2.forward.0"
+        queue.add_name(parent)
+        self.assertEqual(queue.find_last("Module.m1.m2.Cell.forward.0"), parent)
+
+    def test_find_last_not_matched(self):
+        queue = ModuleQueue()
+        queue.add_name("Module.other.m2.forward.0")
+        self.assertIsNone(queue.find_last("Module.m1.m2.Cell.forward.0"))
+
+    def test_add_and_remove_name(self):
+        queue = ModuleQueue()
+        queue.add_name("name")
+        self.assertIn("name", queue.queue)
+        queue.remove_name("name")
+        self.assertNotIn("name", queue.queue)
+        queue.remove_name("missing")
+
+
+class TestMd5Find(unittest.TestCase):
+    def test_dump_json_list_with_md5(self):
+        data = {"op": {"api": [{"md5": "abc"}, {"max": 1}]}}
+        self.assertTrue(md5_find(data, Const.DUMP_JSON_FILE))
+
+    def test_dump_json_dict_with_md5(self):
+        data = {"op": {"api": {"md5": "abc"}}}
+        self.assertTrue(md5_find(data, Const.DUMP_JSON_FILE))
+
+    def test_dump_json_booleans_and_empty_entries(self):
+        data = {"op": {"api1": True, "api2": [], "api3": None}}
+        self.assertFalse(md5_find(data, Const.DUMP_JSON_FILE))
+
+    def test_debug_json_nested_dict(self):
+        self.assertTrue(md5_find({"a": {"b": {"md5": "abc"}}}, Const.DEBUG_JSON_FILE))
+
+    def test_debug_json_list(self):
+        self.assertTrue(md5_find([{"a": 1}, {"md5": "abc"}], Const.DEBUG_JSON_FILE))
+
+    def test_debug_json_plain_value(self):
+        self.assertFalse(md5_find("plain", Const.DEBUG_JSON_FILE))
+
+    def test_unknown_json_type(self):
+        self.assertFalse(md5_find({"md5": "abc"}, "unknown"))
+
+
+class TestHeaderAndParams(unittest.TestCase):
+    def test_get_header_index(self):
+        header = CompareConst.HEAD_OF_COMPARE_MODE[Const.ALL]
+        self.assertEqual(get_header_index(header[0], Const.ALL), 0)
+
+    def test_get_header_index_invalid_mode(self):
+        with self.assertRaises(CompareException):
+            get_header_index("any", "invalid_mode")
+
+    def test_get_header_index_invalid_name(self):
+        with self.assertRaises(CompareException):
+            get_header_index("not_in_header", Const.ALL)
+
+    def test_check_token_range(self):
+        check_token_range(None)
+        check_token_range([0, 5])
+        check_token_range((0, 5))
+        for value in ("abc", [1], [1, 2, 3], ["a", 1], [3, 2], [-1, 2]):
+            with self.subTest(value=value), self.assertRaises(MsprobeException):
+                check_token_range(value)
+
+    def test_check_init_step(self):
+        check_init_step(0)
+        check_init_step(10)
+        for value in (None, "1", -1):
+            with self.subTest(value=value), self.assertRaises(MsprobeException):
+                check_init_step(value)
+
+    def test_check_rank_id(self):
+        check_rank_id(None)
+        check_rank_id(0)
+        for value in ("1", -1):
+            with self.subTest(value=value), self.assertRaises(MsprobeException):
+                check_rank_id(value)
+
+    def test_check_process_num(self):
+        check_process_num(1)
+        for value in (0, -1, "1"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                check_process_num(value)
+        with patch.object(Const, "MAX_PROCESS_NUM", 1):
+            with self.assertRaises(ValueError):
+                check_process_num(2)
+
+    def test_check_extern_input_list(self):
+        check_extern_input_list([])
+        with self.assertRaises(Exception):
+            check_extern_input_list("not a list")
+        with patch.object(Const, "EXTERN_INPUT_LIST_MAX_LEN", 1):
+            with self.assertRaises(Exception):
+                check_extern_input_list([1, 2])
+
+
+class TestStepRankParsing(unittest.TestCase):
+    def test_get_step_or_rank_from_string(self):
+        self.assertEqual(get_step_or_rank_from_string("3", Const.STEP), [3])
+        self.assertEqual(get_step_or_rank_from_string("3-5", Const.STEP), [3, 4, 5])
+
+    def test_get_step_or_rank_from_string_invalid(self):
+        invalid_values = ("a", "1-a", "3-1", "1-2-3", "-1", str(10 ** 9))
+        for value in invalid_values:
+            with self.subTest(value=value), self.assertRaises(MsprobeException):
+                get_step_or_rank_from_string(value, Const.STEP)
+
+    def test_get_real_step_or_rank(self):
+        self.assertEqual(get_real_step_or_rank(None, Const.STEP), [])
+        self.assertEqual(get_real_step_or_rank([3, "1-2", 3], Const.STEP), [1, 2, 3])
+
+    def test_get_real_step_or_rank_invalid(self):
+        invalid_values = ("3", [1.5], [True], [10 ** 9], [1, 2, 3])
+        with patch.object(Const, "STEP_RANK_MAXIMUM_VALUE", 2):
+            for value in invalid_values:
+                with self.subTest(value=value), self.assertRaises(MsprobeException):
+                    get_real_step_or_rank(value, Const.STEP)
+        with self.assertRaises(MsprobeException):
+            get_real_step_or_rank([1], "invalid_obj")
+
+
+class TestStackJson(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self.tmp.name, "stack.json")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _write(self, data):
+        with open(self.path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+
+    def test_outer_layer_not_dict(self):
+        self._write([1, 2])
+        with self.assertRaises(MsprobeException):
+            load_stack_json(self.path)
+
+    def test_old_format(self):
+        data = {"api": "stack"}
+        self._write(data)
+        self.assertEqual(load_stack_json(self.path), data)
+
+    def test_new_format(self):
+        data = {
+            Const.NEW_STACK_FLAG: [["api1", "api2"], "stack1"],
+            "1": [["api3"], "stack3"],
+            "bad_not_list": "x",
+            "bad_length": [1, 2, 3],
+            "bad_api_list": ["api", "stack", "extra"],
+        }
+        self._write(data)
+        self.assertEqual(
+            load_stack_json(self.path),
+            {"api1": "stack1", "api2": "stack1", "api3": "stack3"},
+        )
+
+
+class TestGetDumpMode(unittest.TestCase):
+    def _call(self, npu_task, bench_task=None, md5_results=(False, False)):
+        bench_task = npu_task if bench_task is None else bench_task
+        tasks = [(npu_task, {}), (bench_task, {})]
+        with patch("msprobe.core.common.utils.load_json", return_value={}), \
+                patch("msprobe.core.common.utils.get_file_type", return_value=Const.DUMP_JSON_FILE), \
+                patch("msprobe.core.common.utils.check_dump_json_key", side_effect=tasks), \
+                patch("msprobe.core.common.utils.md5_find", side_effect=md5_results):
+            return get_dump_mode({"npu_path": "npu.json", "bench_path": "bench.json"})
+
+    def test_tensor_mode(self):
+        self.assertEqual(self._call(Const.TENSOR), Const.ALL)
+
+    def test_structure_mode(self):
+        self.assertEqual(self._call(Const.STRUCTURE), Const.STRUCTURE)
+
+    def test_statistics_md5_mode(self):
+        self.assertEqual(self._call(Const.STATISTICS, md5_results=(True, True)), Const.MD5)
+
+    def test_statistics_summary_mode(self):
+        self.assertEqual(self._call(Const.STATISTICS, md5_results=(False, False)), Const.SUMMARY)
+
+    def test_statistics_md5_mismatch(self):
+        with self.assertRaises(CompareException):
+            self._call(Const.STATISTICS, md5_results=(True, False))
+
+    def test_task_mismatch(self):
+        with self.assertRaises(CompareException):
+            self._call(Const.TENSOR, bench_task=Const.STRUCTURE)
+
+    def test_unsupported_task(self):
+        with self.assertRaises(CompareException):
+            self._call(Const.EXCEPTION_DUMP)
+
+
+class TestCompareParam(unittest.TestCase):
+    def test_invalid_output_path(self):
+        with self.assertRaises(CompareException):
+            check_compare_param({}, 123, Const.MD5, False)
+
+    def test_invalid_json_path(self):
+        params = {"npu_path": "npu.txt", "bench_path": "bench.json"}
+        with patch("msprobe.core.common.utils.check_file_or_directory_path"):
+            with self.assertRaises(CompareException):
+                check_compare_param(params, "output", Const.MD5, False)
+
+    def test_valid_param_with_stack(self):
+        params = {
+            "npu_path": "npu.json",
+            "bench_path": "bench.json",
+            "stack_path": "stack.json",
+        }
+        with patch("msprobe.core.common.utils.check_file_or_directory_path"), \
+                patch("msprobe.core.common.utils.FileOpen"), \
+                patch("msprobe.core.common.utils._check_json"):
+            check_compare_param(params, "output", Const.MD5, True)
+
+
+class TestStackConstruct(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = self.tmp.name
+        self.dump_json = os.path.join(self.base, "dump.json")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_empty_path(self):
+        with self.assertRaises(CompareException):
+            get_stack_construct_by_dump_json_path("")
+
+    def test_both_missing(self):
+        self.assertEqual(get_stack_construct_by_dump_json_path(self.dump_json), ({}, {}))
+
+    def test_one_missing(self):
+        with open(os.path.join(self.base, "stack.json"), "w", encoding="utf-8") as f:
+            json.dump({"a": 1}, f)
+        with self.assertRaises(CompareException):
+            get_stack_construct_by_dump_json_path(self.dump_json)
+
+    def test_both_present(self):
+        with open(os.path.join(self.base, "stack.json"), "w", encoding="utf-8") as f:
+            json.dump({"a": 1}, f)
+        with open(os.path.join(self.base, "construct.json"), "w", encoding="utf-8") as f:
+            json.dump({"b": 2}, f)
+        stack, construct = get_stack_construct_by_dump_json_path(self.dump_json)
+        self.assertEqual(stack, {"a": 1})
+        self.assertEqual(construct, {"b": 2})
+
+
+class TestMiscUtils(unittest.TestCase):
+    def test_replace_last_occurrence(self):
+        self.assertIsNone(replace_last_occurrence(None, "a", "b"))
+        self.assertEqual(replace_last_occurrence("abc", "z", "x"), "abc")
+        self.assertEqual(replace_last_occurrence("abcabc", "a", "x"), "abcxbc")
+
+    def test_analyze_api_call_stack(self):
+        stack = analyze_api_call_stack("test")
+        self.assertIn("File ", stack)
+
+    def test_analyze_api_call_stack_on_error(self):
+        with patch("msprobe.core.common.utils.inspect.stack", side_effect=RuntimeError("boom")):
+            self.assertEqual(analyze_api_call_stack("test"), Const.WITHOUT_CALL_STACK)

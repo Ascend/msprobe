@@ -32,6 +32,22 @@ from msprobe.visualization.db_utils import (  # 请替换为实际模块名
     node_columns,
     indexes
 )
+import json
+import os
+import sqlite3
+import tempfile
+import unittest
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+from msprobe.visualization.db_utils import (
+    DBActuator,
+    add_table_index,
+    create_insert_sql_from_dict,
+    create_table_sql_from_dict,
+    node_columns,
+    to_db,
+)
 
 
 class TestDatabaseFunctions(unittest.TestCase):
@@ -211,6 +227,155 @@ class TestDatabaseFunctions(unittest.TestCase):
         # 验证to_db被正确调用
         self.assertTrue(mock_to_db.called)
 
+
+
+class TestDbUtilsExtra(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.db_path = os.path.join(self.tmp.name, "test.db")
+        with open(self.db_path, "wb"):
+            pass
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _create_nodes_table(self):
+        conn = sqlite3.connect(self.db_path)
+        conn.execute(create_table_sql_from_dict("tb_nodes", node_columns))
+        conn.commit()
+        conn.close()
+
+    def test_invalid_identifiers(self):
+        with self.assertRaises(ValueError):
+            create_table_sql_from_dict("bad;drop", {"id": "TEXT"})
+        with self.assertRaises(ValueError):
+            create_table_sql_from_dict("tb", {"bad col": "TEXT"})
+        with self.assertRaises(ValueError):
+            create_insert_sql_from_dict("bad;drop", {"id": 1})
+        with self.assertRaises(ValueError):
+            create_insert_sql_from_dict("tb", {"bad col": 1})
+
+    def test_create_insert_sql_ignore(self):
+        sql = create_insert_sql_from_dict("tb", {"id": 1, "name": "x"}, ignore_insert=True)
+        self.assertIn("INSERT OR IGNORE INTO", sql)
+        sql = create_insert_sql_from_dict("tb", {"id": 1})
+        self.assertIn("INSERT INTO", sql)
+
+    def test_to_db(self):
+        create_table_sql = create_table_sql_from_dict("tb_nodes", {"id": "TEXT PRIMARY KEY", "value": "TEXT"})
+        insert_sql = create_insert_sql_from_dict("tb_nodes", {"id": None, "value": None})
+        to_db(self.db_path, create_table_sql, insert_sql, [("a", "1"), ("b", "2")])
+
+        conn = sqlite3.connect(self.db_path)
+        count = conn.execute("SELECT COUNT(*) FROM tb_nodes").fetchone()[0]
+        conn.close()
+        self.assertEqual(count, 2)
+
+    def test_to_db_with_pbar(self):
+        create_table_sql = create_table_sql_from_dict("tb_nodes", {"id": "TEXT PRIMARY KEY", "value": "TEXT"})
+        insert_sql = create_insert_sql_from_dict("tb_nodes", {"id": None, "value": None})
+        pbar_info = MagicMock()
+        with patch("msprobe.visualization.db_utils.update_shared_dict") as update_shared, \
+                patch("msprobe.visualization.db_utils.update_pbar_info") as update_pbar:
+            to_db(self.db_path, create_table_sql, insert_sql, [("a", "1")], pbar_info=pbar_info)
+        update_shared.assert_called_once()
+        update_pbar.assert_called_once()
+
+    def test_to_db_retries_on_lock(self):
+        create_table_sql = create_table_sql_from_dict("tb_nodes", {"id": "TEXT PRIMARY KEY"})
+        insert_sql = create_insert_sql_from_dict("tb_nodes", {"id": None})
+        fake_conn = MagicMock()
+        with patch("msprobe.visualization.db_utils.sqlite3.connect",
+                   side_effect=[sqlite3.OperationalError("database is locked"), fake_conn]), \
+                patch("msprobe.visualization.db_utils.time.sleep") as sleep:
+            to_db(self.db_path, create_table_sql, insert_sql, [("a",)])
+        sleep.assert_called_once()
+        fake_conn.commit.assert_called_once()
+
+    def test_to_db_sqlite_error(self):
+        create_table_sql = create_table_sql_from_dict("tb_nodes", {"id": "TEXT PRIMARY KEY"})
+        insert_sql = create_insert_sql_from_dict("tb_nodes", {"id": None})
+        with patch("msprobe.visualization.db_utils.sqlite3.connect", side_effect=sqlite3.Error("boom")):
+            with self.assertRaises(sqlite3.Error):
+                to_db(self.db_path, create_table_sql, insert_sql, [("a",)])
+
+    def test_add_table_index(self):
+        self._create_nodes_table()
+        add_table_index(self.db_path)
+        conn = sqlite3.connect(self.db_path)
+        indexes = conn.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()
+        conn.close()
+        self.assertIn(("index1",), indexes)
+
+    def test_query_distributed_nodes_info(self):
+        self._create_nodes_table()
+        conn = sqlite3.connect(self.db_path)
+        conn.execute(
+            "INSERT INTO tb_nodes (id, graph_id, node_order, node_name, node_type, micro_step_id, "
+            "modified, step, rank, data_source, is_distributed) VALUES "
+            "('1', 'g', 0, 'node1', 'api', 0, 0, 0, 0, 'NPU', 1)"
+        )
+        conn.commit()
+        conn.close()
+
+        with DBActuator(self.db_path) as db:
+            rows = db.query_distributed_nodes_info()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][0], "node1")
+
+    def test_query_distributed_nodes_info_without_connection(self):
+        db = object.__new__(DBActuator)
+        db.db_path = self.db_path
+        db.conn = None
+        self.assertEqual(db.query_distributed_nodes_info(), [])
+
+    def test_update_matched_distributed(self):
+        self._create_nodes_table()
+        conn = sqlite3.connect(self.db_path)
+        conn.execute(
+            "INSERT INTO tb_nodes (id, graph_id, node_order, node_name, node_type, micro_step_id, "
+            "modified, step, rank, data_source, is_distributed) VALUES "
+            "('1', 'g', 0, 'node1', 'api', 0, 0, 0, 0, 'NPU', 1)"
+        )
+        conn.commit()
+        conn.close()
+
+        node = SimpleNamespace(id="node1", matched_distributed=[1, 2])
+        skipped = SimpleNamespace(id="node2", matched_distributed=None)
+        with DBActuator(self.db_path) as db:
+            db.update_matched_distributed({0: {"node1": node, "node2": skipped}})
+
+        conn = sqlite3.connect(self.db_path)
+        value = conn.execute("SELECT matched_distributed FROM tb_nodes WHERE node_name='node1'").fetchone()[0]
+        conn.close()
+        self.assertEqual(json.loads(value), [1, 2])
+
+    def test_update_matched_distributed_without_connection(self):
+        db = object.__new__(DBActuator)
+        db.db_path = self.db_path
+        db.conn = None
+        db.update_matched_distributed({})
+
+    def test_update_matched_distributed_serialize_failure(self):
+        self._create_nodes_table()
+        node = SimpleNamespace(id="node1", matched_distributed=object())
+        with DBActuator(self.db_path) as db, \
+                patch("msprobe.visualization.db_utils.json.dumps", side_effect=TypeError("bad")):
+            db.update_matched_distributed({0: {"node1": node}})
+
+    def test_exit_closes_connection(self):
+        db = object.__new__(DBActuator)
+        db.db_path = self.db_path
+        db.conn = MagicMock()
+        self.assertFalse(db.__exit__(None, None, None))
+        db.conn.close.assert_called_once()
+
+    def test_init_connection_failure(self):
+        db = object.__new__(DBActuator)
+        db.db_path = self.db_path
+        with patch("msprobe.visualization.db_utils.sqlite3.connect", side_effect=sqlite3.Error("boom")):
+            with self.assertRaises(sqlite3.Error):
+                db._init_connection()
 
 if __name__ == '__main__':
     unittest.main()

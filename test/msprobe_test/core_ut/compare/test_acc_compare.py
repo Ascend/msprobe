@@ -34,6 +34,13 @@ from msprobe.core.common.utils import CompareException
 from msprobe.core.compare.acc_compare import ModeConfig, MappingConfig, MappingDict, Comparator, ParseData, \
     ProcessDf, Match, CreateTable, CalcStatsDiff
 from msprobe.core.compare.stats_diff_calc import ValType, ALL_TYPES
+import unittest
+
+import numpy as np
+import pandas as pd
+
+from msprobe.core.common.const import CompareConst, Const
+from msprobe.core.compare.acc_compare import CreateTable, MappingConfig, Match, ModeConfig
 
 
 npu_op_item_data_fuzzy = {
@@ -1835,6 +1842,165 @@ class TestCalcStatsDiffCalcSummaryDiff(unittest.TestCase):
         self.assertEqual(df.loc[0, "Mean diff"], CompareConst.N_A)
         self.assertEqual(df.loc[1, "Mean diff"], CompareConst.DIFF_FLAG)
 
+
+
+def _make_match_df(op_name, api_origin_name, call_direction="forward"):
+    return pd.DataFrame(
+        {
+            CompareConst.OP_NAME: [op_name],
+            Const.DTYPE: ["torch.float32"],
+            Const.SHAPE: ["1"],
+            Const.SUMMARY: ["[1.0, 2.0, 3.0, 4.0]"],
+            Const.STACK_INFO: [""],
+            Const.STATE: ["done"],
+            Const.API_ORIGIN_NAME: [api_origin_name],
+            Const.REQ_GRAD: [False],
+            Const.CALL_DIRECTION: [call_direction],
+            Const.SUFFIX: ["0"],
+            Const.LAYER: [0],
+            Const.CLASS: ["Linear"],
+            Const.MODULE_MAPPING: ["module"],
+        }
+    )
+
+
+class TestCreateTableExtra(unittest.TestCase):
+    def setUp(self):
+        self.create_table = CreateTable(ModeConfig())
+
+    def test_summary_list_str_to_list_nan(self):
+        self.assertEqual(
+            self.create_table.summary_list_str_to_list("nan"),
+            [CompareConst.NAN] * 4,
+        )
+
+    def test_summary_list_str_to_list_values(self):
+        result = self.create_table.summary_list_str_to_list(" [1.0, 2, -3e-05, 4] ")
+        self.assertEqual(result, [1.0, 2.0, -3e-05, 4.0])
+
+    def test_summary_list_str_to_list_quoted_values(self):
+        result = self.create_table.summary_list_str_to_list("['a', \"b\"]")
+        self.assertEqual(result, ["a", "b"])
+
+    def test_filter_numbers(self):
+        result = self.create_table.filter_numbers([1.0, 2, "3", np.float64(4)])
+        self.assertEqual(result, [1.0, 4.0])
+        self.assertEqual(self.create_table.filter_numbers(["a", None]), [])
+
+    def test_parse_statistic_str_without_semicolon(self):
+        self.assertEqual(
+            self.create_table.parse_statistic_str("[1.0, 2.0, 3.0, 4.0]"),
+            [1.0, 2.0, 3.0, 4.0],
+        )
+
+    def test_parse_statistic_str_with_semicolon(self):
+        result = self.create_table.parse_statistic_str("[1, 2, 3, 4];[5, 6, 7, 8]")
+        self.assertEqual(result, [5.0, 2.0, "3.0;7.0", "4.0;8.0"])
+
+    def test_parse_statistic_str_with_nan_part(self):
+        result = self.create_table.parse_statistic_str("nan;[1, 2, 3, 4]")
+        self.assertEqual(result, [CompareConst.NAN] * 4)
+
+    def test_parse_statistic_str_wrong_column_count(self):
+        result = self.create_table.parse_statistic_str("[1, 2];[3, 4]")
+        self.assertEqual(result, [CompareConst.NAN] * 4)
+
+    def test_set_summary_with_statistic_string(self):
+        self.assertEqual(
+            self.create_table.set_summary("[1.0, 2.0, 3.0, 4.0]"),
+            [1.0, 2.0, 3.0, 4.0],
+        )
+        self.assertEqual(
+            self.create_table.set_summary("nan"),
+            [CompareConst.NAN] * 4,
+        )
+
+    def test_fill_state_api_origin_name(self):
+        result = pd.DataFrame(
+            {
+                "state_x": [CompareConst.N_A, "done"],
+                "state_y": ["done", "done"],
+                "api_origin_name_x": [CompareConst.N_A, "train.api"],
+                "api_origin_name_y": ["bench.api", "bench.api"],
+            }
+        )
+        result = self.create_table.fill_state_api_origin_name(result)
+        self.assertEqual(result.loc[0, "state_x"], "done")
+        self.assertEqual(result.loc[0, "api_origin_name_x"], "train.api")
+        self.assertEqual(result.loc[1, "api_origin_name_x"], "train.api")
+
+    def test_fill_state_api_origin_name_without_mapping(self):
+        result = pd.DataFrame(
+            {
+                "state_x": [CompareConst.N_A],
+                "state_y": ["done"],
+                "api_origin_name_x": [CompareConst.N_A],
+                "api_origin_name_y": ["unknown.api"],
+            }
+        )
+        result = self.create_table.fill_state_api_origin_name(result)
+        self.assertEqual(result.loc[0, "api_origin_name_x"], "unknown.api")
+
+
+class TestConsistentMatch(unittest.TestCase):
+    def _match(self, backend, xlsx=False):
+        mode_config = ModeConfig(
+            consistent_check=True,
+            backend=backend,
+            dump_mode=Const.SUMMARY,
+            xlsx=xlsx,
+        )
+        return Match(mode_config, MappingConfig(), cross_frame=False)
+
+    def test_consistent_match_fsdp(self):
+        match = self._match(Const.FSDP)
+        npu_df = _make_match_df("npu.api", "train.api")
+        bench_df = _make_match_df("bench.api", "bench.api")
+        result = match.consistent_match(npu_df, bench_df)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result.loc[0, "op_name_x"], "npu.api")
+        self.assertEqual(result.loc[0, "op_name_y"], "bench.api")
+        self.assertNotIn("npu_pos", result.columns)
+        self.assertNotIn("bench_pos", result.columns)
+
+    def test_consistent_match_megatron(self):
+        match = self._match(Const.MEGATRON)
+        npu_df = _make_match_df("npu.api", "train.api")
+        bench_df = _make_match_df("bench.api", "bench.api")
+        result = match.consistent_match(npu_df, bench_df)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result.loc[0, "op_name_x"], "npu.api")
+        self.assertEqual(result.loc[0, "op_name_y"], "bench.api")
+
+    def test_consistent_match_fsdp_xlsx_separator(self):
+        match = self._match(Const.FSDP, xlsx=True)
+        npu_df = pd.concat(
+            [
+                _make_match_df("npu.api1", "train.api1"),
+                _make_match_df("npu.api2", "train.api2"),
+            ],
+            ignore_index=True,
+        )
+        bench_df = _make_match_df("bench.api", "bench.api")
+        result = match.consistent_match(npu_df, bench_df)
+        self.assertEqual(len(result), 1)
+        self.assertIn(";\n", result.loc[0, "op_name_x"])
+
+    def test_consistent_match_fsdp_unmatched(self):
+        match = self._match(Const.FSDP)
+        npu_df = _make_match_df("npu.api", "train.api")
+        bench_df = _make_match_df("bench.api", "bench.api", call_direction="backward")
+        result = match.consistent_match(npu_df, bench_df)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(set(result["op_name_y"]), {CompareConst.N_A, "bench.api"})
+
+    def test_consistent_match_unsupported_backend(self):
+        match = self._match("unsupported")
+        with self.assertRaises(ValueError):
+            match.consistent_match(
+                _make_match_df("npu.api", "train.api"),
+                _make_match_df("bench.api", "bench.api"),
+            )
 
 if __name__ == '__main__':
     unittest.main()

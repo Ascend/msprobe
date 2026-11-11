@@ -26,6 +26,14 @@ from msprobe.visualization.utils import GraphConst, ParallelParam
 from msprobe.visualization.graph.node_op import NodeOp
 from msprobe.visualization.graph.graph import Graph, BaseNode
 from msprobe.core.common.exceptions import MsprobeException
+import re
+import unittest
+from unittest.mock import MagicMock, patch
+
+from msprobe.core.common.const import Const
+from msprobe.visualization.builder.graph_merger import PPMerger, TPMerger
+from msprobe.visualization.graph.node_op import NodeOp
+from msprobe.visualization.utils import GraphConst, ParallelParam
 
 
 class TestGraphMerger(unittest.TestCase):
@@ -857,6 +865,155 @@ class TestVPPMerger(unittest.TestCase):
         self.assertEqual(no_layer_node.id, "Module.0.forward.0.conv.0")
         self.assertNotIn("layers.", no_layer_node.id)
 
+
+
+class TestGraphMergerExtra(unittest.TestCase):
+    def setUp(self):
+        self.build_graph_results = [MagicMock(rank=i) for i in range(4)]
+        self.parallel_param = ParallelParam(tp=1, pp=4, rank_size=4)
+        self.merger = PPMerger(self.build_graph_results, self.parallel_param, False)
+        self.merger.pbar_info = None
+
+    def test_slice_list_at_id(self):
+        nodes = [MagicMock(id="a.0"), MagicMock(id="b.0"), MagicMock(id="c.0")]
+        self.assertEqual(TPMerger._slice_list_at_id(nodes, "a", "b"), nodes[:2])
+        self.assertEqual(TPMerger._slice_list_at_id(nodes, "a", "missing"), [])
+        self.assertEqual(TPMerger._slice_list_at_id(nodes, "missing", "b"), [])
+
+    def test_compare_param_same_mean_and_norm(self):
+        base = {Const.MAX: 1, Const.MIN: 0, Const.MEAN: 0.5, Const.NORM: 1}
+        mean_diff = {Const.MAX: 1, Const.MIN: 0, Const.MEAN: 0.5000001, Const.NORM: 1}
+        norm_diff = {Const.MAX: 1, Const.MIN: 0, Const.MEAN: 0.5, Const.NORM: 2}
+        self.assertFalse(self.merger.compare_param_same(base, mean_diff))
+        self.assertTrue(self.merger.compare_param_same(base, mean_diff, has_uncertainty=True))
+        self.assertFalse(self.merger.compare_param_same(base, norm_diff, has_uncertainty=True))
+        min_diff = {Const.MAX: 1, Const.MIN: 1, Const.MEAN: 0.5, Const.NORM: 1}
+        self.assertFalse(self.merger.compare_param_same(base, min_diff))
+
+    def test_merge_nodes_missing_in_other_graph(self):
+        main_graph = MagicMock()
+        main_node = MagicMock(id="module.layers.0.forward", subnodes=[])
+        other_graph = MagicMock()
+        other_graph.get_node.return_value = None
+        with patch.object(self.merger, "compare_node_param_data") as compare:
+            self.merger._merge_nodes(main_graph, main_node, [other_graph])
+        compare.assert_not_called()
+
+    def test_merge_nodes_pp_merged(self):
+        self.merger.LAYERS_PATTERN = re.compile("layers")
+        main_graph = MagicMock()
+        main_node = MagicMock(id="module.layers.0.forward", subnodes=[])
+        main_node.upnode = MagicMock()
+        main_node.upnode.subnodes = []
+        other_node = MagicMock(id="module.layers.0.forward", rank=1)
+        other_graph = MagicMock()
+        other_graph.get_node.return_value = other_node
+        with patch.object(self.merger, "compare_node_param_data", return_value=(True, True)), \
+                patch.object(self.merger, "_mark_node_id_position_rank") as mark, \
+                patch.object(self.merger, "_add_node_to_main_graph") as add:
+            self.merger._merge_nodes(main_graph, main_node, [other_graph])
+        self.assertTrue(main_node.is_pp_merged)
+        mark.assert_called_once_with(other_node, 1)
+        add.assert_called_once_with(main_graph, other_node)
+        self.assertIs(other_node.upnode, main_node.upnode)
+        self.assertIn(other_node, main_node.upnode.subnodes)
+
+    def test_merge_nodes_forward_and_backward_branches(self):
+        self.merger.LAYERS_PATTERN = re.compile("layers")
+        main_graph = MagicMock()
+        forward_node = MagicMock(id="module.layers.0.forward.op", subnodes=[])
+        other_node = MagicMock()
+        other_node.output_data = "last_output"
+        other_graph = MagicMock()
+        other_graph.get_node.return_value = other_node
+        with patch.object(self.merger, "compare_node_param_data", return_value=(False, True)), \
+                patch.object(self.merger, "_merge_other_unique_nodes"):
+            self.merger._merge_nodes(main_graph, forward_node, [other_graph])
+        self.assertEqual(forward_node.output_data, "last_output")
+
+        main_graph.node_map.get.return_value = None
+        backward_node = MagicMock(id="module.layers.0.backward.op", subnodes=[])
+        other_node.input_data = "last_input"
+        with patch.object(self.merger, "compare_node_param_data", return_value=(True, False)), \
+                patch.object(self.merger, "_merge_other_unique_nodes"):
+            self.merger._merge_nodes(main_graph, backward_node, [other_graph])
+        self.assertEqual(backward_node.input_data, "last_input")
+
+    def test_merge_nodes_backward_forward_node_forces_pp_merge(self):
+        self.merger.LAYERS_PATTERN = re.compile("layers")
+        main_graph = MagicMock()
+        forward_node = MagicMock()
+        forward_node.is_pp_merged = True
+        main_graph.node_map.get.return_value = forward_node
+        main_node = MagicMock(id="module.layers.0.backward.op", subnodes=[])
+        main_node.upnode = MagicMock()
+        main_node.upnode.subnodes = []
+        other_node = MagicMock(rank=1)
+        other_graph = MagicMock()
+        other_graph.get_node.return_value = other_node
+        with patch.object(self.merger, "compare_node_param_data", return_value=(False, False)), \
+                patch.object(self.merger, "_mark_node_id_position_rank"), \
+                patch.object(self.merger, "_add_node_to_main_graph"):
+            self.merger._merge_nodes(main_graph, main_node, [other_graph])
+        self.assertTrue(main_node.is_pp_merged)
+
+    def test_merge_pp_graphs_short_results(self):
+        results = [MagicMock()]
+        self.assertEqual(self.merger.merge_pp_graphs(results), results)
+        self.assertEqual(self.merger.merge_pp_graphs([]), [])
+
+    def test_merge_pp_graphs(self):
+        main_node = MagicMock(op=NodeOp.module, id="layer")
+        graph = MagicMock()
+        graph.root.subnodes = [main_node]
+        result = MagicMock(graph=graph)
+        self.merger.unmerged_module = set()
+        with patch.object(self.merger, "_merge_nodes") as merge_nodes, \
+                patch.object(self.merger, "_sort_nodes") as sort_nodes, \
+                patch.object(self.merger, "_merge_root_unique_subnodes") as merge_root:
+            results = self.merger.merge_pp_graphs([result, MagicMock()])
+        self.assertEqual(results, [result])
+        merge_nodes.assert_called_once()
+        sort_nodes.assert_called_once()
+        merge_root.assert_called_once()
+
+    def test_merge_root_unique_subnodes_short_graphs(self):
+        self.merger._merge_root_unique_subnodes(MagicMock(), [MagicMock()])
+
+    def test_merge_root_unique_subnodes_no_layers(self):
+        self.merger.LAYERS_PATTERN = re.compile("layers")
+        main_graph_result = MagicMock()
+        main_graph_result.graph.root.subnodes = [MagicMock(id="module.other.0")]
+        self.merger._merge_root_unique_subnodes(main_graph_result, [MagicMock(), MagicMock()])
+
+    def test_merge_root_unique_subnodes_merges_nodes(self):
+        self.merger.LAYERS_PATTERN = re.compile("layers")
+        self.merger.MARK_PATTERN = re.compile(r"%(\d+)%(\d+)")
+
+        main_graph_result = MagicMock()
+        main_root = MagicMock()
+        main_root.subnodes = [MagicMock(id="module.layers.0.forward")]
+        main_graph_result.graph.root = main_root
+
+        other_root = MagicMock()
+        new_node = MagicMock(id="module.layers.1.forward", rank=1)
+        other_root.subnodes = [new_node]
+        other_graph = MagicMock()
+        other_graph.root = other_root
+
+        def mark(node, rank):
+            node.id = f"{node.id}%{rank}%0"
+
+        with patch.object(self.merger, "_mark_node_id_position_rank", side_effect=mark), \
+                patch.object(self.merger, "_add_node_to_main_graph"), \
+                patch.object(self.merger, "_update_node_id") as update:
+            self.merger._merge_root_unique_subnodes(
+                main_graph_result, [main_graph_result.graph, other_graph]
+            )
+
+        self.assertEqual(len(main_root.subnodes), 2)
+        update.assert_called_once()
+        self.assertEqual(new_node.pp_index, 1)
 
 if __name__ == '__main__':
     unittest.main()

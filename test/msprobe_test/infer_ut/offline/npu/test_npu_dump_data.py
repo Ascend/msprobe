@@ -28,6 +28,16 @@ from msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data import (
 )
 from msprobe.infer.offline.compare.msquickcmp.common import utils
 from msprobe.infer.offline.compare.msquickcmp.common.utils import AccuracyCompareException
+import os
+import stat
+import tempfile
+import unittest
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+
+from msprobe.infer.offline.compare.msquickcmp.common import utils
+from msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data import NpuDumpData
 
 DynamicArgInfo = namedtuple('DynamicArgInfo', ['atc_arg', 'benchmark_arg'])
 
@@ -659,6 +669,262 @@ class TestNpuDumpData(unittest.TestCase):
             os.makedirs(os.path.join(tmpdir, "input"), exist_ok=True)
             inst._generate_inputs_data_for_aipp(tmpdir)
 
+
+
+class TestNpuDumpDataExtra(unittest.TestCase):
+    def _build(self):
+        inst = object.__new__(NpuDumpData)
+        inst.target_path = "model.om"
+        inst.output_path = "/tmp/out"
+        inst.input_data = ""
+        inst.input_shape = ""
+        inst.output_size = ""
+        inst.device = "0"
+        inst.is_golden = False
+        inst.dump = True
+        inst.benchmark_input_path = ""
+        inst.om_parser = MagicMock()
+        inst.dynamic_input = MagicMock()
+        inst.python_version = "python3"
+        return inst
+
+    def test_collect_path_permissions(self):
+        inst = self._build()
+        with tempfile.TemporaryDirectory() as base:
+            sub_dir = os.path.join(base, "sub")
+            os.makedirs(sub_dir)
+            file_path = os.path.join(sub_dir, "file.bin")
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write("x")
+            modes = {}
+            inst._collect_path_permissions(base, modes)
+            self.assertIn(base, modes)
+            self.assertIn(sub_dir, modes)
+            self.assertIn(file_path, modes)
+
+            unchanged = dict(modes)
+            inst._collect_path_permissions(base, unchanged)
+            self.assertEqual(modes, unchanged)
+            inst._collect_path_permissions("", {})
+            inst._collect_path_permissions(os.path.join(base, "missing"), {})
+
+    def test_change_path_permissions_and_restore(self):
+        inst = self._build()
+        with tempfile.TemporaryDirectory() as base:
+            sub_dir = os.path.join(base, "sub")
+            os.makedirs(sub_dir)
+            file_path = os.path.join(sub_dir, "file.bin")
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write("x")
+
+            original_modes = inst._change_path_permissions([f"{base},{sub_dir}"])
+            self.assertIn(base, original_modes)
+            self.assertIn(sub_dir, original_modes)
+            self.assertIn(file_path, original_modes)
+            self.assertEqual(stat.S_IMODE(os.stat(base).st_mode), 0o750)
+            self.assertEqual(stat.S_IMODE(os.stat(file_path).st_mode), 0o640)
+
+            inst._change_path_permissions([], is_restore=True, original_modes=original_modes)
+            self.assertNotEqual(stat.S_IMODE(os.stat(file_path).st_mode), 0o640)
+
+    def test_change_path_permissions_restore_without_modes(self):
+        inst = self._build()
+        self.assertIsNone(inst._change_path_permissions([], is_restore=True, original_modes=None))
+
+    def test_change_path_permissions_restores_on_error(self):
+        inst = self._build()
+        with tempfile.TemporaryDirectory() as base:
+            file_a = os.path.join(base, "a.bin")
+            file_b = os.path.join(base, "b.bin")
+            for path in (file_a, file_b):
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write("x")
+            calls = []
+
+            def fake_chmod(path, mode):
+                calls.append((path, mode))
+                if len(calls) == 2:
+                    raise OSError("boom")
+
+            with patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.os.chmod", side_effect=fake_chmod):
+                with self.assertRaises(OSError):
+                    inst._change_path_permissions([f"{file_a},{file_b}"])
+            self.assertGreaterEqual(len(calls), 3)
+
+    def test_get_file_size(self):
+        inst = self._build()
+        with tempfile.TemporaryDirectory() as base:
+            bin_path = os.path.join(base, "a.bin")
+            with open(bin_path, "wb") as f:
+                f.write(b"abcd")
+            npy_path = os.path.join(base, "b.npy")
+            np.save(npy_path, np.array([1, 2, 3], dtype=np.float32))
+            npy_upper_path = os.path.join(base, "c.NPY")
+            with open(npy_upper_path, "wb") as f:
+                np.save(f, np.array([1, 2], dtype=np.float32))
+            inst.benchmark_input_path = f"{bin_path},{npy_path},{npy_upper_path}"
+            with patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.Rule.input_file"):
+                self.assertEqual(inst._get_file_size(), [4, 3, 2])
+
+    def test_get_file_size_invalid_suffix(self):
+        inst = self._build()
+        inst.benchmark_input_path = "a.txt"
+        with self.assertRaises(utils.AccuracyCompareException):
+            inst._get_file_size()
+
+    def test_get_file_size_npy_failure(self):
+        inst = self._build()
+        with tempfile.TemporaryDirectory() as base:
+            npy_path = os.path.join(base, "b.npy")
+            with open(npy_path, "wb") as f:
+                f.write(b"x")
+            inst.benchmark_input_path = npy_path
+            with patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.Rule.input_file"), \
+                    patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.np.load",
+                          side_effect=ValueError("bad")):
+                with self.assertRaises(utils.AccuracyCompareException):
+                    inst._get_file_size()
+
+    def test_shape_size_vs_file_size_file_count_mismatch(self):
+        inst = self._build()
+        with self.assertRaises(utils.AccuracyCompareException):
+            inst._shape_size_vs_file_size([1], [1, 2])
+
+    def test_shape_size_vs_file_size_shape_range(self):
+        inst = self._build()
+        inst.om_parser.shape_range = True
+        with self.assertRaises(utils.AccuracyCompareException):
+            inst._shape_size_vs_file_size([1, 2], [3])
+        inst._shape_size_vs_file_size([1, 3], [3])
+
+    def test_shape_size_vs_file_size_dynamic(self):
+        inst = self._build()
+        inst.om_parser.shape_range = False
+        inst.dynamic_input.is_dynamic_shape_scenario.return_value = True
+        inst._shape_size_vs_file_size([2], [1])
+        inst._shape_size_vs_file_size([1], [2])
+
+    def test_shape_size_vs_file_size_normal(self):
+        inst = self._build()
+        inst.om_parser.shape_range = False
+        inst.dynamic_input.is_dynamic_shape_scenario.return_value = False
+        inst._shape_size_vs_file_size([0, 2], [0, 2])
+        with self.assertRaises(utils.AccuracyCompareException):
+            inst._shape_size_vs_file_size([1], [2])
+
+    def test_compare_shape_vs_file(self):
+        inst = self._build()
+        inst.om_parser.contain_negative_1 = True
+        with patch.object(inst, "_get_file_size") as get_size:
+            inst._compare_shape_vs_file()
+        get_size.assert_not_called()
+
+        inst.om_parser.contain_negative_1 = False
+        inst.om_parser.get_aipp_config_content = "aipp"
+        inst.om_parser.get_shape_size.return_value = [1]
+        with patch.object(inst, "_get_file_size", return_value=[1]), \
+                patch.object(inst, "_shape_size_vs_file_size") as compare:
+            inst._compare_shape_vs_file()
+        compare.assert_not_called()
+
+        inst.om_parser.get_aipp_config_content = None
+        with patch.object(inst, "_get_file_size", return_value=[1]), \
+                patch.object(inst, "_shape_size_vs_file_size") as compare:
+            inst._compare_shape_vs_file()
+        compare.assert_called_once_with([1], [1])
+
+    def test_make_benchmark_cmd_for_shape_range(self):
+        inst = self._build()
+        inst.om_parser.get_net_output_count.return_value = 2
+        inst.output_size = ""
+        cmd = []
+        inst._make_benchmark_cmd_for_shape_range(cmd)
+        self.assertEqual(cmd, ["--outputSize", "90000000,90000000"])
+
+        inst.output_size = "10,20"
+        cmd = []
+        inst._make_benchmark_cmd_for_shape_range(cmd)
+        self.assertEqual(cmd, ["--outputSize", "10,20"])
+
+        for output_size in ("10", "10,abc", "10,-1"):
+            with self.subTest(output_size=output_size):
+                inst.output_size = output_size
+                with self.assertRaises(utils.AccuracyCompareException):
+                    inst._make_benchmark_cmd_for_shape_range([])
+
+    def test_convert_net_output_to_numpy(self):
+        inst = self._build()
+        with tempfile.TemporaryDirectory() as base:
+            np.array([1.0, 2.0], dtype=np.float32).tofile(os.path.join(base, "data_0"))
+            np.array([3.0, 4.0], dtype=np.float32).tofile(os.path.join(base, "data_1"))
+            inst.om_parser.get_net_output_data_info.return_value = {
+                0: [np.float32, (2,)],
+                1: [np.float32, (2,)],
+            }
+            with patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.Rule.input_file"):
+                inst._convert_net_output_to_numpy(base, "dump")
+            self.assertTrue(os.path.exists(os.path.join(base, "output_0")))
+            self.assertTrue(os.path.exists(os.path.join(base, "output_0.npy")))
+            self.assertTrue(os.path.exists(os.path.join(base, "output_1")))
+            self.assertTrue(os.path.exists(os.path.join(base, "output_1.npy")))
+
+    def test_generate_dump_data(self):
+        inst = self._build()
+        with patch.object(inst, "_check_input_path_param") as check, \
+                patch.object(inst, "benchmark_run", return_value=("dump", "net")) as run:
+            self.assertEqual(inst.generate_dump_data(), ("dump", "net"))
+        check.assert_called_once()
+        run.assert_called_once()
+
+    def test_get_expect_output_name(self):
+        inst = self._build()
+        inst.om_parser.get_expect_net_output_name.return_value = "output"
+        self.assertEqual(inst.get_expect_output_name(), "output")
+
+    def _run_benchmark(self, dump=True, dump_exist=True, net_exist=True):
+        inst = self._build()
+        inst.dump = dump
+        with tempfile.TemporaryDirectory() as base:
+            inst.output_path = base
+            with patch.dict("sys.modules", {"ais_bench": MagicMock()}), \
+                    patch.object(inst, "_compare_shape_vs_file"), \
+                    patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.create_directory"), \
+                    patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.os.path.exists",
+                          return_value=False), \
+                    patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.os.mknod"), \
+                    patch.object(inst, "_write_content_to_acl_json"), \
+                    patch.object(inst, "_change_path_permissions", return_value={}), \
+                    patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.utils."
+                          "get_model_name_and_extension", return_value=("model", "om")), \
+                    patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.utils."
+                          "get_dump_data_path",
+                          side_effect=([("dump_path", dump_exist), ("net_path", net_exist)]
+                                       if dump else [("net_path", net_exist)])), \
+                    patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.utils.execute_command") as execute, \
+                    patch("msprobe.infer.offline.compare.msquickcmp.npu.npu_dump_data.filter_cmd",
+                          side_effect=lambda cmd: cmd), \
+                    patch.object(inst, "_make_benchmark_cmd_for_shape_range"), \
+                    patch.object(inst, "_convert_net_output_to_numpy") as convert:
+                result = inst.benchmark_run()
+        return inst, result, execute, convert
+
+    def test_benchmark_run_with_dump(self):
+        _, result, execute, convert = self._run_benchmark(dump=True)
+        self.assertEqual(result, ("dump_path", "net_path"))
+        execute.assert_called_once()
+        convert.assert_called_once()
+
+    def test_benchmark_run_without_dump(self):
+        _, result, _, _ = self._run_benchmark(dump=False)
+        self.assertEqual(result, ("", "net_path"))
+
+    def test_benchmark_run_dump_missing(self):
+        with self.assertRaises(utils.AccuracyCompareException):
+            self._run_benchmark(dump=True, dump_exist=False)
+
+    def test_benchmark_run_net_output_missing(self):
+        with self.assertRaises(utils.AccuracyCompareException):
+            self._run_benchmark(dump=True, net_exist=False)
 
 if __name__ == '__main__':
     unittest.main()

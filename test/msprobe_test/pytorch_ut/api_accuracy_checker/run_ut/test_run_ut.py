@@ -45,6 +45,18 @@ from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check import (
     run_backward,
     preprocess_forward_content,
 )
+import unittest
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
+
+from msprobe.core.common.const import CompareConst
+from msprobe.pytorch.api_accuracy_checker.acc_check import acc_check as acc_check_module
+from msprobe.pytorch.api_accuracy_checker.acc_check.acc_check import (
+    acc_check,
+    do_save_error_data,
+    run_api_offline,
+)
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 forward_file = os.path.join(base_dir, "forward.json")
@@ -734,6 +746,136 @@ class TestDataGenerate(unittest.TestCase):
         self.assertEqual(kwargs["x"], 1)
         self.assertEqual(len(args), 1)
 
+
+
+class TestRunApiOffline(unittest.TestCase):
+    def _config(self):
+        config = MagicMock()
+        config.forward_content = {
+            "torch.add.0.forward": {},
+            "torch.mul.0.forward": {},
+            "torch.sub.0.forward": {},
+            "torch.div.0.forward": {},
+            "torch.pow.0.forward": {},
+            "torch.exp.0.forward": {},
+        }
+        config.black_list = []
+        config.white_list = []
+        config.save_error_data = False
+        config.real_data_path = "/data"
+        config.backward_content = {}
+        return config
+
+    def _run(self, config, api_name_set, side_effects):
+        compare = MagicMock()
+        compare.compare_output.return_value = (True, True)
+        with patch.object(acc_check_module, "CompareColumn") as column_cls, \
+                patch.object(acc_check_module, "check_op_str_pattern_valid"), \
+                patch.object(acc_check_module, "is_unsupported_api", side_effect=side_effects["unsupported"]), \
+                patch.object(acc_check_module, "extract_basic_api_segments",
+                             side_effect=side_effects["segments"]), \
+                patch.object(acc_check_module, "blacklist_and_whitelist_filter",
+                             side_effect=side_effects["filter"]), \
+                patch.object(acc_check_module, "run_torch_api", side_effect=side_effects["run"]), \
+                patch.object(acc_check_module, "record_skip_info") as record_skip, \
+                patch.object(acc_check_module, "do_save_error_data") as save_error, \
+                patch.object(acc_check_module, "is_gpu", False), \
+                patch.object(acc_check_module, "torch") as torch_mock, \
+                patch.object(acc_check_module, "gc") as gc_mock:
+            column = column_cls.return_value
+            column.to_column_value.return_value = "skip"
+            result = run_api_offline(config, compare, api_name_set)
+        return result, compare, record_skip, save_error, gc_mock, column
+
+    def test_run_api_offline_skip_paths_and_success(self):
+        config = self._config()
+        names = list(config.forward_content)
+        side_effects = {
+            "unsupported": [False, True, False, False, False, False],
+            "segments": [(None, "add"), (None, "mul"), (None, ""), (None, "sub"),
+                         (None, "div"), (None, "pow")],
+            "filter": [False] * 6,
+            "run": MagicMock(return_value=MagicMock()),
+        }
+        _, compare, record_skip, save_error, gc_mock, column = self._run(
+            config, {names[0]}, side_effects
+        )
+        # names[0] skipped by api_name_set, names[1] unsupported, names[2] empty api name,
+        # remaining three run normally and succeed.
+        self.assertEqual(record_skip.call_count, 2)
+        self.assertEqual(compare.compare_output.call_count, 3)
+        save_error.assert_not_called()
+        self.assertEqual(gc_mock.collect.call_count, 3)
+
+    def test_run_api_offline_filter_and_exception(self):
+        config = self._config()
+        config.save_error_data = True
+        names = list(config.forward_content)
+
+        def run_side_effect(*args, **kwargs):
+            if args[0] == names[3]:
+                raise RuntimeError("expected scalar type Long")
+            if args[0] == names[4]:
+                raise RuntimeError("other error")
+            return MagicMock()
+
+        side_effects = {
+            "unsupported": [False] * 6,
+            "segments": [(None, "add")] * 6,
+            "filter": [True, False, False, False, False, False],
+            "run": MagicMock(side_effect=run_side_effect),
+        }
+        _, compare, record_skip, save_error, gc_mock, _ = self._run(config, set(), side_effects)
+        self.assertEqual(record_skip.call_count, 3)
+        # names[0] filtered, names[3] and names[4] raise; names[1], names[2], names[5] run.
+        self.assertEqual(compare.compare_output.call_count, 3)
+        self.assertEqual(save_error.call_count, 3)
+        self.assertEqual(gc_mock.collect.call_count, 6)
+
+
+class TestAccCheckAndSave(unittest.TestCase):
+    def test_acc_check(self):
+        config = MagicMock()
+        config.result_csv_path = "result.csv"
+        config.details_csv_path = "details.csv"
+        config.save_error_data = False
+        csv_df = pd.DataFrame({"api": ["torch.add.0.forward"]})
+        compare = MagicMock()
+        compare.save_path_list = ["result"]
+        compare.detail_save_path_list = ["detail"]
+        with patch.object(acc_check_module, "Comparator", return_value=compare) as comparator, \
+                patch.object(acc_check_module, "read_csv", return_value=csv_df), \
+                patch.object(acc_check_module, "run_api_offline") as run_api:
+            acc_check(config)
+        comparator.assert_called_once()
+        run_api.assert_called_once()
+        compare.print_pretest_result.assert_called_once()
+
+    def test_acc_check_empty_csv(self):
+        config = MagicMock()
+        config.result_csv_path = "result.csv"
+        config.details_csv_path = "details.csv"
+        config.save_error_data = False
+        csv_df = pd.DataFrame(index=[0, 1])
+        compare = MagicMock()
+        with patch.object(acc_check_module, "Comparator", return_value=compare), \
+                patch.object(acc_check_module, "read_csv", return_value=csv_df), \
+                patch.object(acc_check_module, "run_api_offline") as run_api:
+            acc_check(config)
+        run_api.assert_called_once()
+
+    def test_do_save_error_data(self):
+        data_info = MagicMock()
+        data_info.in_fwd_data_list = [1, 2]
+        with patch.object(acc_check_module, "UtDataProcessor") as processor_cls:
+            processor = processor_cls.return_value
+            do_save_error_data("api", data_info, "/error", True, True)
+        processor.save_tensors_in_element.assert_not_called()
+
+        with patch.object(acc_check_module, "UtDataProcessor") as processor_cls:
+            processor = processor_cls.return_value
+            do_save_error_data("api", data_info, "/error", True, False)
+        self.assertGreaterEqual(processor.save_tensors_in_element.call_count, 2)
 
 if __name__ == '__main__':
     unittest.main()

@@ -278,7 +278,7 @@ class TestCosineAlgorithm(unittest.TestCase):
                 self.assertEqual(err_msg, "")
 
     def test_cosine_small_nonzero_vectors(self):
-        for scale in (1e-20, 1e-200, np.nextafter(0.0, 1.0)):
+        for scale in (1e-20, 1e-200, np.finfo(np.float64).tiny):
             for b_direction, expected in (([0.0, 1.0], 0.0), ([-1.0, 0.0], -1.0)):
                 with self.subTest(scale=scale, b_direction=b_direction):
                     n_value = np.array([scale, 0.0])

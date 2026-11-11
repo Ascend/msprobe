@@ -20,6 +20,12 @@ from unittest.mock import MagicMock, patch
 from msprobe.visualization.builder.graph_builder import GraphBuilder, Graph, GraphExportConfig
 from msprobe.visualization.graph.node_op import NodeOp
 from msprobe.visualization.graph.base_node import BaseNode
+import unittest
+from unittest.mock import MagicMock, patch
+
+from msprobe.core.common.const import Const
+from msprobe.visualization.builder.graph_builder import GraphBuilder, GraphJsonExporter
+from msprobe.visualization.graph.node_op import NodeOp
 
 
 class TestGraphBuilder(unittest.TestCase):
@@ -268,3 +274,135 @@ class TestGraphBuilder(unittest.TestCase):
             "line 184, in <module>, \n main()"
         ]
         self.assertFalse(GraphBuilder._is_recompute_by_stack_torch(stack_list2))
+
+class TestGraphBuilderExtra(unittest.TestCase):
+    def test_is_recompute_node_id(self):
+        self.assertTrue(GraphBuilder._is_recompute_node_id(["a"] * 8))
+        self.assertTrue(GraphBuilder._is_recompute_node_id(["Module", "x", "m", "y", "c", "forward", "0"]))
+        self.assertFalse(GraphBuilder._is_recompute_node_id(["Module", "0", "m", "1", "c", "forward", "0"]))
+        self.assertTrue(GraphBuilder._is_recompute_node_id(["Module", "x", "m", "c", "forward", "0"]))
+        self.assertFalse(GraphBuilder._is_recompute_node_id(["Module", "0", "m", "c", "forward", "0"]))
+        self.assertFalse(GraphBuilder._is_recompute_node_id(["Module", "0", "forward", "0"]))
+
+    def test_is_recompute_by_stack_torch(self):
+        self.assertFalse(GraphBuilder._is_recompute_by_stack_torch(None))
+        self.assertFalse(GraphBuilder._is_recompute_by_stack_torch([]))
+        self.assertFalse(GraphBuilder._is_recompute_by_stack_torch(["invalid"]))
+
+        torch_checkpoint = [
+            "File /usr/lib/torch/utils/checkpoint.py, line 10, in recompute_fn, x",
+        ]
+        self.assertTrue(GraphBuilder._is_recompute_by_stack_torch(torch_checkpoint))
+
+        megatron_stack = [
+            "File /workspace/megatron/core/checkpoint.py, line 10, in checkpoint_function_backward, x",
+            "File /usr/lib/torch/autograd/function.py, line 11, in apply, x",
+        ]
+        self.assertTrue(GraphBuilder._is_recompute_by_stack_torch(megatron_stack))
+
+        self.assertFalse(
+            GraphBuilder._is_recompute_by_stack_torch(
+                ["File /workspace/a.py, line 1, in forward, x"]
+            )
+        )
+
+    def test_get_recompute_map(self):
+        forward = MagicMock(id="Module.0.module.x.forward.4")
+        backward = MagicMock(id="Module.0.module.x.backward.4")
+        duplicate = MagicMock(id="Module.0.module.x.backward.4")
+        nodes = [forward, backward, duplicate]
+        with patch.object(GraphBuilder, "framework", Const.PT_FRAMEWORK), \
+                patch("msprobe.visualization.builder.graph_builder.NodeOp.get_node_op",
+                      return_value=NodeOp.module), \
+                patch.object(GraphBuilder, "_is_recompute_by_stack_torch", return_value=True), \
+                patch.object(GraphBuilder, "_is_recompute_node_id", return_value=True):
+            recompute_map, recompute_id_map = GraphBuilder._get_recompute_map(nodes, {})
+        self.assertEqual(recompute_map[forward.id], "Module.0.module.x")
+        self.assertEqual(recompute_map[backward.id], "Module.0.module.x")
+        self.assertEqual(recompute_id_map[duplicate.id], 2)
+
+        with patch.object(GraphBuilder, "framework", Const.PT_FRAMEWORK), \
+                patch("msprobe.visualization.builder.graph_builder.NodeOp.get_node_op",
+                      return_value=NodeOp.module), \
+                patch.object(GraphBuilder, "_is_recompute_by_stack_torch", return_value=False):
+            recompute_map, recompute_id_map = GraphBuilder._get_recompute_map(nodes, {})
+        self.assertEqual(recompute_map, {})
+        self.assertEqual(recompute_id_map, {})
+
+    def test_get_no_recompute_map(self):
+        root = MagicMock(id="root")
+        graph = MagicMock(root=root)
+        node1 = MagicMock(upnode=MagicMock(id="parent"))
+        node2 = MagicMock(upnode=MagicMock(id="parent"))
+        node_root = MagicMock(upnode=root)
+        id1 = "Module.0.module.x.forward.1"
+        id2 = "Module.0.module.x.forward.2"
+        id_root = "Module.0.module.y.forward.1"
+        graph.node_map = {id1: node1, id2: node2, id_root: node_root}
+        with patch("msprobe.visualization.builder.graph_builder.NodeOp.get_node_op",
+                   return_value=NodeOp.module):
+            result = GraphBuilder._get_no_recompute_map(graph, {"Module.0.module.x"})
+        self.assertEqual(result["Module.0.module.x"], [node2, node1])
+        self.assertNotIn("Module.0.module.y", result)
+
+    def test_handle_recompute_early_returns(self):
+        with patch.object(GraphBuilder, "_get_recompute_map", return_value=({}, {})):
+            GraphBuilder._handle_recompute(MagicMock(), {})
+
+        with patch.object(GraphBuilder, "_get_recompute_map",
+                          return_value=({"id": "prefix"}, {"id": 0})), \
+                patch.object(GraphBuilder, "_get_no_recompute_map", return_value={}):
+            GraphBuilder._handle_recompute(MagicMock(), {})
+
+    def test_handle_recompute_updates_parent(self):
+        node_id = "Module.0.module.x.forward.4"
+        recompute_node = MagicMock(id=node_id)
+        forward_upnode = MagicMock(id="Module.0.module.x.forward.9")
+        new_up_node = MagicMock()
+        new_up_node.subnodes = []
+        new_up_node.get_ancestors.return_value = []
+        no_recompute_node = MagicMock(upnode=forward_upnode)
+
+        graph = MagicMock()
+        graph.root.subnodes = [0, 1, 2, 3]
+        graph.node_map = {
+            node_id: recompute_node,
+            "Module.0.module.x.backward.9": new_up_node,
+        }
+        with patch.object(GraphBuilder, "_get_recompute_map",
+                          return_value=({node_id: "Module.0.module.x"}, {node_id: 2})), \
+                patch.object(GraphBuilder, "_get_no_recompute_map",
+                             return_value={"Module.0.module.x": [no_recompute_node]}):
+            GraphBuilder._handle_recompute(graph, {})
+
+        self.assertIs(recompute_node.upnode, new_up_node)
+        self.assertIn(recompute_node, new_up_node.subnodes)
+        self.assertEqual(len(graph.root.subnodes), 3)
+
+    def test_convert_entry(self):
+        entry = GraphJsonExporter._convert_entry({
+            Const.DATA_NAME: "x",
+            "full_op_name": "y",
+            Const.STATE: "z",
+            Const.REQ_GRAD: "True",
+            Const.SHAPE: "[1, 2]",
+            "dtype": "float32",
+        })
+        self.assertNotIn(Const.DATA_NAME, entry)
+        self.assertNotIn("full_op_name", entry)
+        self.assertNotIn(Const.STATE, entry)
+        self.assertTrue(entry[Const.REQ_GRAD])
+        self.assertEqual(entry[Const.SHAPE], [1, 2])
+
+        entry = GraphJsonExporter._convert_entry({
+            Const.REQ_GRAD: None,
+            Const.SHAPE: "invalid",
+            "dtype": "float32",
+        })
+        self.assertNotIn(Const.REQ_GRAD, entry)
+        self.assertEqual(entry[Const.SHAPE], [])
+
+        self.assertIsNone(GraphJsonExporter._convert_entry({"a": None, "b": None}))
+
+        entry = GraphJsonExporter._convert_entry({Const.REQ_GRAD: False})
+        self.assertFalse(entry[Const.REQ_GRAD])

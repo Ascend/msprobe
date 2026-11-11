@@ -22,6 +22,13 @@ from msprobe.response_anomaly.detector import (
     RepetitionCounters,
     _resolve_model_name,
 )
+import copy
+import json
+import os
+import tempfile
+import unittest
+
+from msprobe.response_anomaly.detector import ILLDetector
 
 
 class DetectorForTest(ILLDetector):
@@ -478,3 +485,165 @@ class TestBatchProcessing(unittest.TestCase):
         self.assertFalse(result[0][0])
         self.assertFalse(result[1][0])
         self.assertFalse(result[2][0])
+
+def _valid_config():
+    return {
+        "window_size": 128,
+        "stride": 64,
+        "rare_character": {
+            "explogp_sum_thresh": 0.5,
+            "category_thresh": 2,
+            "top1_logp_thresh": -5,
+        },
+        "garbled": {
+            "top1_logp_thresh": -5,
+            "window_ratio": 0.5,
+            "window_thresh": 1,
+        },
+        "repetition": {
+            "trajectory": {
+                "n": 3,
+                "distinct_n_thresh": 0.5,
+                "logp_thresh": -0.5,
+            },
+            "acf": {
+                "acf_threshold": 0.5,
+                "logp_thresh": -0.5,
+            },
+            "single_window_thresh": 1,
+            "multi_window_thresh": 1,
+        },
+    }
+
+
+class TestValidateConfig(unittest.TestCase):
+    def setUp(self):
+        self.detector = ILLDetector.__new__(ILLDetector)
+
+    def _assert_invalid(self, mutate):
+        config = copy.deepcopy(_valid_config())
+        mutate(config)
+        with self.assertRaises(ValueError):
+            self.detector._validate_config(config)
+
+    def test_valid_config(self):
+        self.detector._validate_config(_valid_config())
+
+    def test_invalid_window_size(self):
+        for value in (0, -1, "128", None):
+            with self.subTest(value=value):
+                self._assert_invalid(lambda c, v=value: c.update({"window_size": v}))
+
+    def test_invalid_stride(self):
+        for value in (0, -1, "64", None):
+            with self.subTest(value=value):
+                self._assert_invalid(lambda c, v=value: c.update({"stride": v}))
+
+    def test_window_size_smaller_than_stride(self):
+        self._assert_invalid(lambda c: c.update({"window_size": 10, "stride": 20}))
+
+    def test_invalid_rare_character(self):
+        cases = [
+            {"explogp_sum_thresh": -0.1},
+            {"explogp_sum_thresh": 1.1},
+            {"explogp_sum_thresh": "0.5"},
+            {"category_thresh": -1},
+            {"category_thresh": "2"},
+            {"top1_logp_thresh": 1},
+            {"top1_logp_thresh": "x"},
+        ]
+        for case in cases:
+            with self.subTest(case=case):
+                self._assert_invalid(lambda c, item=case: c["rare_character"].update(item))
+
+    def test_invalid_garbled(self):
+        cases = [
+            {"top1_logp_thresh": 1},
+            {"top1_logp_thresh": "x"},
+            {"window_ratio": -0.1},
+            {"window_ratio": 1.1},
+            {"window_thresh": -1},
+            {"window_thresh": "1"},
+        ]
+        for case in cases:
+            with self.subTest(case=case):
+                self._assert_invalid(lambda c, item=case: c["garbled"].update(item))
+
+    def test_invalid_repetition_trajectory(self):
+        cases = [
+            {"n": 0},
+            {"n": "3"},
+            {"distinct_n_thresh": -0.1},
+            {"distinct_n_thresh": 1.1},
+            {"logp_thresh": 1},
+        ]
+        for case in cases:
+            with self.subTest(case=case):
+                self._assert_invalid(lambda c, item=case: c["repetition"]["trajectory"].update(item))
+
+    def test_invalid_repetition_acf(self):
+        cases = [
+            {"acf_threshold": -0.1},
+            {"acf_threshold": 1.1},
+            {"logp_thresh": 1},
+        ]
+        for case in cases:
+            with self.subTest(case=case):
+                self._assert_invalid(lambda c, item=case: c["repetition"]["acf"].update(item))
+
+    def test_invalid_window_thresholds(self):
+        for key in ("single_window_thresh", "multi_window_thresh"):
+            for value in (-1, "1"):
+                with self.subTest(key=key, value=value):
+                    self._assert_invalid(lambda c, k=key, v=value: c["repetition"].update({k: v}))
+
+
+class TestGetTk2Cat(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.detector = ILLDetector.__new__(ILLDetector)
+        self.detector.mtype2token = {"qwen-7b": {"eos": [1, 2]}}
+        self.detector.mtype2vocab = {"qwen-7b": 100}
+        self.detector.tk2cat_path = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _write_tk2cat(self, name="qwen-7b_100.json"):
+        path = os.path.join(self.tmp.name, name)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"0": ["a"]}, f)
+
+    def test_none_model_config(self):
+        self.assertEqual(self.detector.get_tk2cat(1, None), (None, None))
+
+    def test_none_tk2cat_path(self):
+        self.detector.tk2cat_path = None
+        self.assertEqual(self.detector.get_tk2cat(1, "qwen7b"), (None, None))
+
+    def test_unknown_model_name(self):
+        self.assertEqual(self.detector.get_tk2cat(1, "unknown-model"), (None, None))
+
+    def test_token_map_missing(self):
+        self.detector.mtype2token = {"qwen-7b": None}
+        self.assertEqual(self.detector.get_tk2cat(1, "qwen7b"), (None, None))
+
+    def test_eos_not_matched(self):
+        self.assertEqual(self.detector.get_tk2cat(3, "qwen7b"), (None, None))
+
+    def test_eos_as_int(self):
+        self.detector.mtype2token = {"qwen-7b": {"eos": 1}}
+        self._write_tk2cat()
+        self.assertEqual(self.detector.get_tk2cat(1, "qwen7b"), ({"0": ["a"]}, 100))
+
+    def test_vocab_missing(self):
+        self.detector.mtype2vocab = {}
+        self.assertEqual(self.detector.get_tk2cat(1, "qwen7b"), (None, None))
+
+    def test_tk2cat_file_missing(self):
+        self.assertEqual(self.detector.get_tk2cat(1, "qwen7b"), (None, None))
+
+    def test_get_tk2cat_success(self):
+        self._write_tk2cat()
+        result = self.detector.get_tk2cat(1, "qwen7b")
+        self.assertEqual(result, ({"0": ["a"]}, 100))

@@ -46,6 +46,27 @@ from msprobe.pytorch.compile_accuracy_checker.precision_checker import (
     _WRAP_ATTR,
     _IGNORE_ATTR,
 )
+import contextlib
+import os
+import tempfile
+import unittest
+import warnings
+from unittest.mock import MagicMock, patch
+
+import torch
+import torch.nn as nn
+
+from msprobe.pytorch.compile_accuracy_checker.precision_checker import (
+    PrecisionChecker,
+    _CastWrapper,
+    _TensorStore,
+    _gd_next_name,
+    _gd_write,
+    _graph_dump_ctx,
+    _register_hooks,
+    _register_single_pass_hooks,
+    _remove_hooks,
+)
 
 
 class TestTensorDiff(unittest.TestCase):
@@ -835,6 +856,339 @@ class TestPrecisionCheckerCompare(unittest.TestCase):
         mock_two_pass.assert_called_once()
         mock_single_pass.assert_not_called()
 
+
+
+class FakeCompiledModel(nn.Module):
+    def __init__(self, child):
+        super().__init__()
+        self.sub = child
+
+    def forward(self, x):
+        return self.sub(x)
+
+
+class FakeOptimizedModule(nn.Module):
+    def __init__(self, module):
+        super().__init__()
+        self._orig_mod = module
+
+    def forward(self, *args, **kwargs):
+        return self._orig_mod(*args, **kwargs)
+
+
+class TestRegisterHooks(unittest.TestCase):
+    def test_register_hooks_capture_and_remove(self):
+        model = nn.Sequential(nn.Linear(2, 2), nn.ReLU())
+        store = _TensorStore()
+        handles = _register_hooks(model, store, None, set(), True)
+        model(torch.randn(3, 2, requires_grad=True))
+        self.assertIn("0", store.fwd_in)
+        self.assertIn("0", store.fwd_out)
+        self.assertIn("1", store.fwd_out)
+
+        _remove_hooks(handles)
+        store.clear()
+        model(torch.randn(3, 2))
+        self.assertEqual(store.fwd_in, {})
+
+    def test_register_hooks_scoped_and_ignored(self):
+        model = nn.Sequential(nn.Linear(2, 2), nn.ReLU())
+        store = _TensorStore()
+        handles = _register_hooks(model, store, {"0"}, {"1"}, False)
+        model(torch.randn(3, 2))
+        self.assertIn("0", store.fwd_out)
+        self.assertNotIn("1", store.fwd_out)
+        self.assertEqual(store.fwd_in, {})
+        _remove_hooks(handles)
+
+    def test_register_single_pass_hooks(self):
+        model = FakeCompiledModel(FakeOptimizedModule(nn.Linear(2, 2)))
+        store = _TensorStore()
+        with patch("torch._dynamo.eval_frame.OptimizedModule", FakeOptimizedModule):
+            handles, sv_map = _register_single_pass_hooks(model, store, set(), True)
+            model(torch.randn(2, 2, requires_grad=True))
+        self.assertIn("sub", sv_map)
+        self.assertIn("sub", store.fwd_in)
+        self.assertIsNotNone(store.fwd_out["sub"])
+        _remove_hooks(handles)
+
+    def test_register_single_pass_hooks_ignored(self):
+        model = nn.Module()
+        model.add_module("sub", FakeOptimizedModule(nn.Linear(2, 2)))
+        store = _TensorStore()
+        with patch("torch._dynamo.eval_frame.OptimizedModule", FakeOptimizedModule):
+            handles, sv_map = _register_single_pass_hooks(model, store, {"sub"}, True)
+        self.assertEqual(handles, [])
+        self.assertEqual(sv_map, {})
+
+    def test_register_single_pass_hooks_cast_wrapper(self):
+        model = FakeCompiledModel(_CastWrapper(FakeOptimizedModule(nn.Linear(2, 2)), torch.float32))
+        store = _TensorStore()
+        with patch("torch._dynamo.eval_frame.OptimizedModule", FakeOptimizedModule), \
+                patch("torch.autocast", return_value=contextlib.nullcontext()):
+            handles, sv_map = _register_single_pass_hooks(model, store, set(), False)
+            model(torch.randn(2, 2))
+        self.assertIn("sub", sv_map)
+        self.assertIsNotNone(store.fwd_out["sub"])
+        _remove_hooks(handles)
+
+
+class TestComputeGradInput(unittest.TestCase):
+    def test_early_return(self):
+        pc = PrecisionChecker()
+        store = _TensorStore()
+        with patch("torch._dynamo.eval_frame.OptimizedModule", FakeOptimizedModule):
+            pc._compute_grad_input(MagicMock(), "name", {}, store)
+        self.assertEqual(store.bwd["name"], {"grad_input": None, "grad_output": None})
+
+    def test_success(self):
+        pc = PrecisionChecker()
+        linear = nn.Linear(2, 2)
+        model = nn.Module()
+        model.add_module("sub", FakeOptimizedModule(linear))
+        x = torch.randn(2, 2, requires_grad=True)
+        c_out = linear(x)
+        c_out.retain_grad()
+        c_out.sum().backward()
+        sv = {"c_out": c_out, "inp_orig": (x,)}
+        store = _TensorStore()
+        with patch("torch._dynamo.eval_frame.OptimizedModule", FakeOptimizedModule), \
+                patch("torch._dynamo.reset"):
+            pc._compute_grad_input(model, "sub", sv, store)
+        self.assertIsNotNone(store.bwd["sub"]["grad_input"])
+
+    def test_success_with_cast_wrapper(self):
+        pc = PrecisionChecker()
+        linear = nn.Linear(2, 2)
+        model = nn.Module()
+        model.add_module("sub", _CastWrapper(FakeOptimizedModule(linear), torch.float32))
+        x = torch.randn(2, 2, requires_grad=True)
+        c_out = linear(x)
+        c_out.retain_grad()
+        c_out.sum().backward()
+        sv = {"c_out": c_out, "inp_orig": (x,)}
+        store = _TensorStore()
+        with patch("torch._dynamo.eval_frame.OptimizedModule", FakeOptimizedModule), \
+                patch("torch._dynamo.reset"):
+            pc._compute_grad_input(model, "sub", sv, store)
+        self.assertIn("grad_input", store.bwd["sub"])
+
+
+class TestGraphDump(unittest.TestCase):
+    def test_gd_next_name(self):
+        first = _gd_next_name()
+        second = _gd_next_name()
+        self.assertNotEqual(first, second)
+
+    def test_gd_write(self):
+        with tempfile.TemporaryDirectory() as base:
+            path = _gd_write(base, "prefix", "Captured Graph", "src")
+            self.assertTrue(os.path.exists(path))
+            self.assertIn("Captured_Graph", os.path.basename(path))
+            self.assertEqual(_gd_write(base, "prefix", "Captured Graph", "src"), path)
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn("# === Captured Graph ===", content)
+
+    def test_graph_dump_ctx_creates_dir_and_restores(self):
+        import torch._dynamo.utils as du
+
+        original_code = du.lazy_format_graph_code.__code__
+        with tempfile.TemporaryDirectory() as base:
+            dump_dir = os.path.join(base, "graphs")
+            with _graph_dump_ctx(dump_dir):
+                self.assertTrue(os.path.isdir(dump_dir))
+                self.assertIsNot(du.lazy_format_graph_code.__code__, original_code)
+        self.assertIs(du.lazy_format_graph_code.__code__, original_code)
+
+
+class TestWrapAndCompile(unittest.TestCase):
+    def test_wrap_child_not_in_place(self):
+        pc = PrecisionChecker()
+        linear = nn.Linear(2, 2)
+        pc.wrap(linear, "lin")
+        model = nn.Module()
+        model.add_module("lin", linear)
+        compiled = nn.Identity()
+        with patch("torch.compile", return_value=compiled):
+            result = pc._wrap_and_compile_modules(model)
+        self.assertIsNot(result, model)
+        self.assertIs(model.lin, linear)
+        self.assertIs(result.lin, compiled)
+
+    def test_wrap_child_in_place(self):
+        pc = PrecisionChecker()
+        linear = nn.Linear(2, 2)
+        pc.wrap(linear, "lin")
+        model = nn.Module()
+        model.add_module("lin", linear)
+        compiled = nn.Identity()
+        with patch("torch.compile", return_value=compiled):
+            result = pc._wrap_and_compile_modules(model, in_place=True)
+        self.assertIs(result, model)
+        self.assertIs(model.lin, compiled)
+
+    def test_wrap_root_and_cast(self):
+        pc = PrecisionChecker(cast_dtype=torch.float16)
+        model = nn.Sequential(nn.Linear(2, 2))
+        pc.wrap(model, "")
+        compiled = nn.Identity()
+        with patch("torch.compile", return_value=compiled) as compile_mock:
+            result = pc._wrap_and_compile_modules(model)
+        self.assertIs(result, compiled)
+        self.assertIsInstance(compile_mock.call_args[0][0], _CastWrapper)
+
+    def test_wrap_child_with_cast(self):
+        pc = PrecisionChecker(cast_dtype=torch.float16)
+        linear = nn.Linear(2, 2)
+        pc.wrap(linear, "lin")
+        model = nn.Module()
+        model.add_module("lin", linear)
+        compiled = nn.Identity()
+        with patch("torch.compile", return_value=compiled) as compile_mock:
+            result = pc._wrap_and_compile_modules(model, in_place=True)
+        self.assertIs(result.lin, compiled)
+        self.assertIsInstance(compile_mock.call_args[0][0], _CastWrapper)
+
+
+class TestInstallCollect(unittest.TestCase):
+    def test_install(self):
+        pc = PrecisionChecker(single_pass=True)
+        model = nn.Module()
+        with patch.object(pc, "_collect_prefixes", return_value=set()), \
+                patch.object(pc, "_wrap_and_compile_modules") as wrap, \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker."
+                      "_register_single_pass_hooks", return_value=(["h"], {"a": {}})) as register, \
+                patch("torch._dynamo.reset"):
+            result = pc.install(model)
+        self.assertIs(result, model)
+        wrap.assert_called_once_with(model, in_place=True)
+        register.assert_called_once()
+        self.assertEqual(pc._sp_handles, ["h"])
+
+    def test_install_requires_single_pass(self):
+        pc = PrecisionChecker(single_pass=False)
+        with self.assertRaises(RuntimeError):
+            pc.install(nn.Module())
+
+    def test_collect(self):
+        pc = PrecisionChecker()
+        pc._install_model = "model"
+        pc._install_ignored_prefixes = set()
+        pc._sp_sv_map = {"a": {}}
+        pc._sp_store = _TensorStore()
+        pc._sp_handles = ["h"]
+        pc._install_loss_c = 1.5
+        with patch.object(pc, "_compute_grad_input") as compute, \
+                patch.object(pc, "_build_diffs_single_pass", return_value=["d"]) as build, \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker._remove_hooks") as remove:
+            result = pc.collect()
+        compute.assert_called_once()
+        build.assert_called_once()
+        remove.assert_called_once_with(["h"])
+        self.assertEqual(result.loss_compiled, 1.5)
+        self.assertEqual(result.diffs, ["d"])
+
+    def test_collect_with_loss(self):
+        pc = PrecisionChecker()
+        pc._install_model = "model"
+        pc._install_ignored_prefixes = set()
+        pc._sp_sv_map = {}
+        pc._sp_store = _TensorStore()
+        pc._sp_handles = []
+        with patch.object(pc, "_build_diffs_single_pass", return_value=[]), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker._remove_hooks"):
+            result = pc.collect(torch.tensor(2.0))
+        self.assertEqual(result.loss_compiled, 2.0)
+
+
+class TestComparePaths(unittest.TestCase):
+    def test_compare_dispatch(self):
+        pc = PrecisionChecker(single_pass=True)
+        with patch.object(pc, "_compare_single_pass", return_value="single") as single, \
+                patch.object(pc, "_compare_two_pass", return_value="two") as two:
+            self.assertEqual(pc.compare(MagicMock(), MagicMock()), "single")
+        pc.single_pass = False
+        with patch.object(pc, "_compare_single_pass", return_value="single"), \
+                patch.object(pc, "_compare_two_pass", return_value="two"):
+            self.assertEqual(pc.compare(MagicMock(), MagicMock()), "two")
+
+    def test_compare_two_pass(self):
+        pc = PrecisionChecker(single_pass=False)
+        model = MagicMock()
+        eager_model = MagicMock()
+        compiled_model = MagicMock()
+        compiled_model.named_modules.return_value = []
+        fn = MagicMock(side_effect=[torch.tensor(1.0), torch.tensor(2.0)])
+        with patch.object(pc, "_build_eager_cast", return_value=eager_model), \
+                patch.object(pc, "_build_compiled", return_value=compiled_model), \
+                patch.object(pc, "_collect_prefixes", return_value=set()), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker._register_hooks",
+                      return_value=[]), \
+                patch.object(pc, "_save_rng_state", return_value=(1, None, None)), \
+                patch.object(pc, "_restore_rng_state"), \
+                patch.object(pc, "_build_diffs", return_value=["d"]), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker._remove_hooks"), \
+                patch("torch._dynamo.reset"):
+            result = pc._compare_two_pass(fn, model)
+        self.assertEqual(result.loss_eager, 1.0)
+        self.assertEqual(result.loss_compiled, 2.0)
+        self.assertEqual(result.diffs, ["d"])
+
+    def test_compare_two_pass_with_dump_graphs(self):
+        pc = PrecisionChecker(single_pass=False, dump_graphs=True, graph_dir="/tmp/g")
+        compiled_model = MagicMock()
+        compiled_model.named_modules.return_value = []
+        fn = MagicMock(side_effect=[torch.tensor(1.0), torch.tensor(2.0)])
+        with patch.object(pc, "_build_eager_cast", return_value=MagicMock()), \
+                patch.object(pc, "_build_compiled", return_value=compiled_model), \
+                patch.object(pc, "_collect_prefixes", return_value=set()), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker._register_hooks",
+                      return_value=[]), \
+                patch.object(pc, "_save_rng_state", return_value=(1, None, None)), \
+                patch.object(pc, "_restore_rng_state"), \
+                patch.object(pc, "_build_diffs", return_value=[]), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker._remove_hooks"), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker._graph_dump_ctx"), \
+                patch("torch._dynamo.reset"):
+            result = pc._compare_two_pass(fn, MagicMock())
+        self.assertEqual(result.loss_compiled, 2.0)
+
+    def test_compare_single_pass(self):
+        pc = PrecisionChecker(single_pass=True)
+        compiled_model = MagicMock()
+        compiled_model.named_modules.return_value = []
+        fn = MagicMock(side_effect=[torch.tensor(1.0, requires_grad=True), torch.tensor(3.0)])
+        with patch.object(pc, "_build_compiled", return_value=compiled_model), \
+                patch.object(pc, "_collect_prefixes", return_value=set()), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker."
+                      "_register_single_pass_hooks", return_value=([], {})), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker._remove_hooks"), \
+                patch.object(pc, "_build_diffs_single_pass", return_value=[]), \
+                patch("torch._dynamo.reset"):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                result = pc._compare_single_pass(fn, MagicMock())
+        self.assertEqual(result.loss_compiled, 3.0)
+        self.assertTrue(caught)
+
+    def test_compare_single_pass_warmup_failure(self):
+        pc = PrecisionChecker(single_pass=True)
+        compiled_model = MagicMock()
+        compiled_model.named_modules.return_value = []
+        fn = MagicMock(side_effect=[RuntimeError("boom"), torch.tensor(3.0)])
+        with patch.object(pc, "_build_compiled", return_value=compiled_model), \
+                patch.object(pc, "_collect_prefixes", return_value=set()), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker."
+                      "_register_single_pass_hooks", return_value=([], {})), \
+                patch("msprobe.pytorch.compile_accuracy_checker.precision_checker._remove_hooks"), \
+                patch.object(pc, "_build_diffs_single_pass", return_value=[]), \
+                patch("torch._dynamo.reset"):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                result = pc._compare_single_pass(fn, MagicMock())
+        self.assertEqual(result.loss_compiled, 3.0)
+        self.assertTrue(caught)
 
 if __name__ == '__main__':
     unittest.main()

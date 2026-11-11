@@ -35,6 +35,25 @@ from msprobe.core.compare.utils import ApiItemInfo, _compare_parser, check_and_r
     stack_column_process, table_value_is_valid, reorder_op_name_list, gen_op_item, ApiBatch, get_paired_dirs, \
     reorder_index, gen_api_batches, check_input_param_path, check_input_param_path_and_framework, compare_entry, \
     multi_ranks_compare, mp_logger_init, make_result_table, get_sorted_ranks
+import json
+import os
+import tempfile
+import unittest
+from unittest.mock import MagicMock, patch
+
+import torch
+
+from msprobe.core.common.const import Const
+from msprobe.core.common.utils import CompareException
+from msprobe.core.compare.utils import (
+    check_and_return_dir_contents,
+    check_input_param_path,
+    get_compare_framework,
+    load_pt_in_structure,
+    multi_statistics_compare,
+    parse_op_data,
+    split_tensors,
+)
 
 # test_read_op_1
 op_data = {
@@ -1491,3 +1510,132 @@ class TestExtractJson(unittest.TestCase):
         self.assertEqual(path, "/tmp/dump.json")
         mock_logger.error.assert_not_called()
         mock_logger.warning.assert_not_called()
+
+class TestParseOpData(unittest.TestCase):
+    def test_tensor_dict(self):
+        data = {"type": "torch.Tensor", "data_name": "a.pt", "shape": [1]}
+        self.assertEqual(parse_op_data(data), "a.pt")
+
+    def test_type_value_dict(self):
+        self.assertEqual(parse_op_data({"type": "int", "value": 3}), 3)
+
+    def test_nested_structure(self):
+        data = {
+            "a": [1, {"type": "int", "value": 2}],
+            "b": ({"type": "torch.Tensor", "data_name": "b.pt"},),
+        }
+        expected = {"a": [1, 2], "b": ("b.pt",)}
+        self.assertEqual(parse_op_data(data), expected)
+        self.assertIsInstance(parse_op_data(data)["b"], tuple)
+
+    def test_plain_values(self):
+        self.assertEqual(parse_op_data(1), 1)
+        self.assertEqual(parse_op_data("x"), "x")
+        self.assertIsNone(parse_op_data(None))
+        self.assertTrue(parse_op_data(True))
+
+
+class TestLoadPtInStructure(unittest.TestCase):
+    def test_no_data_dir_returns_original(self):
+        obj = {"a": "x.pt"}
+        self.assertEqual(load_pt_in_structure(obj, {}, "npu"), obj)
+
+    def test_load_pt_file_in_nested_structure(self):
+        obj = {"a": ["x.pt", {"b": ("y.pt",)}], "c": 1}
+        with patch("msprobe.core.compare.utils.load_pt_file", side_effect=lambda path, to_cpu: path) as load_pt:
+            result = load_pt_in_structure(obj, {"npu": "/data"}, "npu")
+        self.assertEqual(result["a"][0], "/data/x.pt")
+        self.assertEqual(result["a"][1]["b"], ("/data/y.pt",))
+        self.assertEqual(result["c"], 1)
+        self.assertEqual(load_pt.call_count, 2)
+
+    def test_load_failure_returns_none(self):
+        with patch("msprobe.core.compare.utils.load_pt_file", side_effect=OSError("boom")):
+            result = load_pt_in_structure("x.pt", {"npu": "/data"}, "npu")
+        self.assertIsNone(result)
+
+
+class TestCompareFramework(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.target = os.path.join(self.tmp.name, "target.json")
+        self.golden = os.path.join(self.tmp.name, "golden.json")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _write(self, path, data):
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+
+    def test_pytorch_framework(self):
+        self._write(self.target, {"framework": Const.PT_FRAMEWORK})
+        self._write(self.golden, {"framework": Const.PT_FRAMEWORK})
+        self.assertEqual(get_compare_framework(self.target, self.golden), Const.PT_FRAMEWORK)
+
+    def test_mindspore_framework(self):
+        self._write(self.target, {"framework": Const.MS_FRAMEWORK})
+        self._write(self.golden, {"framework": Const.PT_FRAMEWORK})
+        self.assertEqual(get_compare_framework(self.target, self.golden), Const.MS_FRAMEWORK)
+
+    def test_missing_framework_defaults_to_pytorch(self):
+        self._write(self.target, {})
+        self._write(self.golden, {})
+        self.assertEqual(get_compare_framework(self.target, self.golden), Const.PT_FRAMEWORK)
+
+    def test_unrecognized_framework(self):
+        self._write(self.target, {"framework": "unknown"})
+        self._write(self.golden, {"framework": Const.PT_FRAMEWORK})
+        with self.assertRaises(CompareException):
+            get_compare_framework(self.target, self.golden)
+
+
+class TestDirContents(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = self.tmp.name
+        for name in ("rank0", "rank1", "other"):
+            os.makedirs(os.path.join(self.base, name))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_returns_matched_dirs(self):
+        result = check_and_return_dir_contents(self.base, "rank", skip_wrong_dir=True)
+        self.assertEqual(sorted(result), ["rank0", "rank1"])
+
+    def test_skip_wrong_dir(self):
+        result = check_and_return_dir_contents(self.base, "rank", skip_wrong_dir=True)
+        self.assertEqual(sorted(result), ["rank0", "rank1"])
+
+    def test_raise_on_wrong_dir(self):
+        with self.assertRaises(CompareException):
+            check_and_return_dir_contents(self.base, "rank", skip_wrong_dir=False)
+
+
+class TestMiscCompareUtils(unittest.TestCase):
+    def test_split_tensors(self):
+        self.assertEqual(split_tensors("a;b;c"), ["a", "b", "c"])
+        self.assertEqual(split_tensors("a"), ["a"])
+
+    def test_check_input_param_path(self):
+        with patch("msprobe.core.compare.utils.check_file_or_directory_path") as check:
+            check_input_param_path({"npu_path": "npu", "bench_path": "bench"})
+        self.assertEqual(check.call_count, 2)
+
+    def test_multi_statistics_compare_success(self):
+        compare_func = MagicMock()
+        input_param_nr_list = [({"a": 1}, "rank0")]
+        with patch("msprobe.core.compare.utils.multiprocessing.Pool") as pool_cls:
+            pool = pool_cls.return_value.__enter__.return_value
+            multi_statistics_compare(compare_func, (compare_func, input_param_nr_list, "out", {}))
+        pool.apply_async.assert_called_once()
+
+    def test_multi_statistics_compare_failure(self):
+        compare_func = MagicMock()
+        input_param_nr_list = [({"a": 1}, "rank0")]
+        with patch("msprobe.core.compare.utils.multiprocessing.Pool") as pool_cls:
+            pool = pool_cls.return_value.__enter__.return_value
+            pool.apply_async.return_value.get.side_effect = RuntimeError("boom")
+            with self.assertRaises(CompareException):
+                multi_statistics_compare(compare_func, (compare_func, input_param_nr_list, "out", {}))

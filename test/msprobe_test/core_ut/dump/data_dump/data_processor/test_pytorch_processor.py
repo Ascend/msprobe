@@ -49,6 +49,21 @@ from msprobe.core.dump.data_dump.data_processor.base import (
 )
 from msprobe.core.dump.data_dump.json_writer import DataWriter
 from msprobe.core.dump.hook_manager import BaseHookManager
+import unittest
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+import torch
+
+from msprobe.core.common.const import Const
+from msprobe.core.common.exceptions import MsprobeException
+from msprobe.core.dump.data_dump.data_processor.pytorch_processor import (
+    DiffCheckDataProcessor,
+    KernelDumpDataProcessor,
+    PytorchDataProcessor,
+    TensorHandler,
+    TensorStatInfo,
+)
 
 
 class TestPytorchDataProcessor(unittest.TestCase):
@@ -1586,3 +1601,348 @@ class TestNanCheckDataProcessor(unittest.TestCase):
             with patch.object(proc, "_store_nan_result") as mock_store:
                 proc.analyze_backward("api", MagicMock(), mio)
                 mock_store.assert_not_called()
+
+class TestTensorHelpers(unittest.TestCase):
+    def setUp(self):
+        self.handler = TensorHandler()
+        self.processor = PytorchDataProcessor(MagicMock(), MagicMock())
+
+    def test_convert_common_tensor_dtensor(self):
+        tensor = MagicMock()
+        tensor.to_local.return_value = "local"
+        with patch.object(self.handler, "is_dtensor", return_value=True):
+            self.assertEqual(self.handler.convert_common_tensor(tensor), "local")
+
+    def test_convert_common_tensor_fake_and_nested(self):
+        tensor = MagicMock()
+        with patch.object(self.handler, "is_dtensor", return_value=False), \
+                patch.object(self.handler, "is_fake_tensor", return_value=True):
+            self.assertIs(self.handler.convert_common_tensor(tensor), tensor)
+
+        nested = MagicMock()
+        nested.values.return_value = "values"
+        with patch.object(self.handler, "is_dtensor", return_value=False), \
+                patch.object(self.handler, "is_fake_tensor", return_value=False), \
+                patch.object(self.handler, "is_nested_tensor", return_value=True):
+            self.assertEqual(self.handler.convert_common_tensor(nested), "values")
+
+    def test_convert_common_tensor_batched(self):
+        tensor = MagicMock()
+        with patch.object(self.handler, "is_dtensor", return_value=False), \
+                patch.object(self.handler, "is_fake_tensor", return_value=False), \
+                patch.object(self.handler, "is_nested_tensor", return_value=False), \
+                patch.object(self.handler, "is_batchedtensor", side_effect=[True, False]), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor."
+                      "torch._C._functorch.get_unwrapped", return_value="unwrapped"):
+            self.assertEqual(self.handler.convert_common_tensor(tensor), "unwrapped")
+
+    def test_get_tensor_type(self):
+        flags = {
+            "is_dtensor": Const.DTENSOR_TYPE,
+            "is_fake_tensor": Const.FAKE_TENSOR_TYPE,
+            "is_async_collective_tensor": Const.AC_TENSOR_TYPE,
+            "is_nested_tensor": Const.NESTED_TENSOR_TYPE,
+            "is_batchedtensor": Const.BATCHED_TENSOR_TYPE,
+            "is_gradtrackingtensor": Const.GRADTRACKING_TENSOR_TYPE,
+        }
+        all_flags = list(flags) + ["is_empty_data"]
+        for target, expected in flags.items():
+            with self.subTest(target=target):
+                patches = [
+                    patch.object(self.handler, flag, return_value=(flag == target))
+                    for flag in all_flags
+                ]
+                with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6]:
+                    self.assertEqual(self.handler.get_tensor_type(MagicMock()), expected)
+        with patch.object(self.handler, "is_dtensor", return_value=False), \
+                patch.object(self.handler, "is_fake_tensor", return_value=False), \
+                patch.object(self.handler, "is_async_collective_tensor", return_value=False), \
+                patch.object(self.handler, "is_nested_tensor", return_value=False), \
+                patch.object(self.handler, "is_batchedtensor", return_value=False), \
+                patch.object(self.handler, "is_gradtrackingtensor", return_value=False):
+            self.assertEqual(self.handler.get_tensor_type(MagicMock()), Const.TENSOR_TYPE)
+
+    def test_get_dtensor_info(self):
+        self.assertEqual(self.handler.get_dtensor_info(MagicMock()), {})
+
+        tensor = MagicMock()
+        tensor.device_mesh.mesh.tolist.return_value = [[0, 1]]
+        shard = MagicMock()
+        shard.is_shard.return_value = True
+        shard.dim = 1
+        replicate = MagicMock()
+        replicate.is_shard.return_value = False
+        replicate.is_replicate.return_value = True
+        partial = MagicMock()
+        partial.is_shard.return_value = False
+        partial.is_replicate.return_value = False
+        partial.is_partial.return_value = True
+        partial.reduce_op = "sum"
+        ignored = MagicMock()
+        ignored.is_shard.return_value = False
+        ignored.is_replicate.return_value = False
+        ignored.is_partial.return_value = False
+        tensor.placements = [shard, replicate, partial, ignored]
+
+        with patch.object(self.handler, "is_dtensor", return_value=True):
+            info = self.handler.get_dtensor_info(tensor)
+        self.assertEqual(info["device_mesh"], [[0, 1]])
+        self.assertEqual(
+            info["placements"],
+            [{"Shard": {"dim": 1}}, {"Replicate": {}}, {"Partial": {"reduce_op": "sum"}}],
+        )
+
+    def test_save_tensor_skips(self):
+        tensor = MagicMock()
+        with patch.object(self.handler, "convert_common_tensor", return_value=tensor), \
+                patch.object(self.handler, "is_batchedtensor", return_value=True), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.save_pt") as save_pt:
+            self.handler.save_tensor(tensor, "a.pt")
+        save_pt.assert_not_called()
+
+        with patch.object(self.handler, "convert_common_tensor", return_value=tensor), \
+                patch.object(self.handler, "is_batchedtensor", return_value=False), \
+                patch.object(self.handler, "is_gradtrackingtensor", return_value=False), \
+                patch.object(self.handler, "is_empty_data", return_value=True), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.save_pt") as save_pt:
+            self.handler.save_tensor(tensor, "a.pt")
+        save_pt.assert_not_called()
+
+        null_tensor = MagicMock()
+        null_tensor.device.type = "cpu"
+        null_tensor.untyped_storage.return_value.data_ptr.return_value = 0
+        with patch.object(self.handler, "convert_common_tensor", return_value=null_tensor), \
+                patch.object(self.handler, "is_batchedtensor", return_value=False), \
+                patch.object(self.handler, "is_gradtrackingtensor", return_value=False), \
+                patch.object(self.handler, "is_empty_data", return_value=False), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_float8_tensor",
+                      return_value=False), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_float4_tensor",
+                      return_value=False), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_hifloat8_tensor",
+                      return_value=False), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.save_pt") as save_pt:
+            self.handler.save_tensor(null_tensor, "a.pt")
+        save_pt.assert_not_called()
+
+    def test_save_tensor_normal(self):
+        tensor = torch.tensor([1.0, 2.0])
+        with patch.object(self.handler, "convert_common_tensor", return_value=tensor), \
+                patch.object(self.handler, "is_batchedtensor", return_value=False), \
+                patch.object(self.handler, "is_gradtrackingtensor", return_value=False), \
+                patch.object(self.handler, "is_empty_data", return_value=False), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_float8_tensor",
+                      return_value=False), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_float4_tensor",
+                      return_value=False), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_hifloat8_tensor",
+                      return_value=False), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.slice_by_config",
+                      return_value=tensor), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.save_pt") as save_pt, \
+                patch.object(self.handler, "free_tensor") as free_tensor:
+            self.handler.save_tensor(tensor, "a.pt")
+        save_pt.assert_called_once()
+        free_tensor.assert_called_once()
+
+    def test_analyze_p2pop(self):
+        arg = MagicMock()
+        arg.tensor = MagicMock()
+        arg.op = MagicMock()
+        arg.op.__name__ = "isend"
+        arg.peer = 1
+        arg.tag = 2
+        arg.group = MagicMock()
+        with patch.object(self.processor, "_analyze_tensor", return_value={"t": 1}), \
+                patch.object(PytorchDataProcessor, "process_group_hash", return_value="gid"):
+            result = self.processor._analyze_p2pop(arg, "suffix")
+        self.assertEqual(result["class_type"], "torch.distributed.P2POp")
+        self.assertEqual(result["tensor"], {"t": 1})
+        self.assertEqual(result["op"], "isend")
+        self.assertEqual(result["peer"], 1)
+        self.assertEqual(result["tag"], 2)
+        self.assertEqual(result["group_id"], "gid")
+
+    def test_analyze_p2pop_failure(self):
+        arg = MagicMock()
+        with patch.object(self.processor, "_analyze_tensor", side_effect=RuntimeError("boom")):
+            result = self.processor._analyze_p2pop(arg, "suffix")
+        self.assertEqual(result, {"class_type": "torch.distributed.P2POp"})
+
+    def test_analyze_and_save_tensor(self):
+        tensor = torch.tensor([1.0, 2.0])
+        self.processor.config.async_dump = False
+        self.processor.tensor_handler = MagicMock()
+        self.processor.tensor_handler.convert_common_tensor.return_value = tensor
+        self.processor.tensor_handler.is_gradtrackingtensor.return_value = False
+        self.processor.tensor_handler.is_batchedtensor.return_value = False
+        self.processor.tensor_handler.is_empty_data.return_value = False
+        with patch.object(self.processor, "get_save_file_path", return_value=("name.pt", "/p/name.pt")), \
+                patch.object(PytorchDataProcessor, "_analyze_tensor", return_value={"a": 1}), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_hifloat8_tensor",
+                      return_value=False):
+            result = self.processor._analyze_and_save_tensor(tensor, "suffix")
+        self.assertEqual(result["data_name"], "name.pt")
+        self.processor.tensor_handler.save_tensor.assert_called_once()
+
+    def test_analyze_and_save_tensor_async(self):
+        tensor = torch.tensor([1.0, 2.0])
+        self.processor.config.async_dump = True
+        self.processor._async_dump_cache = {}
+        self.processor.tensor_handler = MagicMock()
+        self.processor.tensor_handler.convert_common_tensor.return_value = tensor
+        self.processor.tensor_handler.is_gradtrackingtensor.return_value = False
+        self.processor.tensor_handler.is_batchedtensor.return_value = False
+        self.processor.tensor_handler.is_empty_data.return_value = False
+        with patch.object(self.processor, "get_save_file_path", return_value=("name.pt", "/p/name.pt")), \
+                patch.object(PytorchDataProcessor, "_analyze_tensor", return_value={"a": 1}):
+            self.processor._analyze_and_save_tensor(tensor, "suffix")
+        self.assertIn("/p/name.pt", self.processor._async_dump_cache)
+
+    def test_analyze_and_save_tensor_batched(self):
+        self.processor.tensor_handler = MagicMock()
+        self.processor.tensor_handler.convert_common_tensor.return_value = MagicMock()
+        self.processor.tensor_handler.is_gradtrackingtensor.return_value = False
+        self.processor.tensor_handler.is_batchedtensor.return_value = True
+        with patch.object(self.processor, "get_save_file_path", return_value=("name.pt", "/p/name.pt")), \
+                patch.object(PytorchDataProcessor, "_analyze_tensor", return_value={"a": 1}):
+            result = self.processor._analyze_and_save_tensor(MagicMock(), "suffix")
+        self.assertEqual(result, {"a": 1})
+
+    def test_analyze_and_save_ndarray(self):
+        string_array = np.array(["a", "b"])
+        self.processor.tensor_handler = MagicMock()
+        with patch.object(self.processor, "get_save_file_path", return_value=("a.pt", "/p/a.pt")), \
+                patch.object(PytorchDataProcessor, "_analyze_ndarray", return_value={}), \
+                patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.save_npy") as save_npy:
+            result = self.processor._analyze_and_save_ndarray(string_array, "suffix")
+        self.assertEqual(result["data_name"], "a.npy")
+        save_npy.assert_called_once()
+
+        number_array = np.array([1, 2])
+        with patch.object(self.processor, "get_save_file_path", return_value=("b.pt", "/p/b.pt")), \
+                patch.object(PytorchDataProcessor, "_analyze_ndarray", return_value={}):
+            result = self.processor._analyze_and_save_ndarray(number_array, "suffix")
+        self.assertEqual(result["data_name"], "b.pt")
+        self.processor.tensor_handler.save_tensor.assert_called_once()
+
+    def test_get_stat_info_xor_checksum(self):
+        self.processor.config.summary_mode = Const.XOR_CHECKSUM
+        with patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.xor_checksum",
+                   return_value=7):
+            stat = self.processor.get_stat_info(torch.tensor([1, 2, 3]))
+        self.assertEqual(stat.check_sum, 7)
+
+    def test_get_stat_info_complex_async(self):
+        self.processor.config.summary_mode = Const.SUMMARY
+        stat = self.processor.get_stat_info(torch.tensor([1 + 2j]), async_dump=True)
+        self.assertIsNone(stat.max)
+        self.assertIsNone(stat.min)
+        self.assertIsNone(stat.mean)
+
+    def test_get_stat_info_float8(self):
+        self.processor.config.summary_mode = Const.SUMMARY
+        with patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_float8_tensor",
+                   return_value=True):
+            stat = self.processor.get_stat_info(torch.tensor([1.0, 2.0]))
+        self.assertIsNone(stat.max)
+
+
+class TestDiffAndKernelForward(unittest.TestCase):
+    def test_diff_analyze_forward_input(self):
+        inst = object.__new__(DiffCheckDataProcessor)
+        inst.has_diff = True
+        with patch.object(PytorchDataProcessor, "analyze_forward_input", return_value={"a": 1}):
+            inst.analyze_forward_input("name", MagicMock(), MagicMock())
+        self.assertFalse(inst.has_diff)
+        self.assertEqual(inst.cached_api_info, {"a": 1})
+
+    def test_diff_analyze_forward_output_merge(self):
+        inst = object.__new__(DiffCheckDataProcessor)
+        inst.cached_api_info = {"name": {"a": 1}}
+        inst.handle_diff = MagicMock()
+        with patch.object(PytorchDataProcessor, "analyze_forward_output",
+                          return_value={"name": {"b": 2}}):
+            result = inst.analyze_forward_output("name", MagicMock(), MagicMock())
+        self.assertEqual(result, {"name": {"a": 1, "b": 2}})
+        inst.handle_diff.assert_called_once()
+
+    def test_diff_analyze_forward_output_replace(self):
+        inst = object.__new__(DiffCheckDataProcessor)
+        inst.cached_api_info = {"old": {}}
+        inst.handle_diff = MagicMock()
+        with patch.object(PytorchDataProcessor, "analyze_forward_output", return_value={"name": {}}):
+            result = inst.analyze_forward_output("name", MagicMock(), MagicMock())
+        self.assertEqual(result, {"name": {}})
+
+    def test_kernel_analyze_forward_input_disabled(self):
+        inst = object.__new__(KernelDumpDataProcessor)
+        inst.enable_kernel_dump = False
+        inst.analyze_forward_input("name", MagicMock(), MagicMock())
+
+    def test_kernel_analyze_forward_input_gpu(self):
+        inst = object.__new__(KernelDumpDataProcessor)
+        inst.enable_kernel_dump = True
+        with patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_gpu", True):
+            inst.analyze_forward_input("name", MagicMock(), MagicMock())
+        self.assertFalse(inst.enable_kernel_dump)
+
+    def test_kernel_analyze_forward_input_backward_success(self):
+        inst = object.__new__(KernelDumpDataProcessor)
+        inst.enable_kernel_dump = True
+        inst.config = MagicMock()
+        inst.config.is_backward_kernel_dump = True
+        inst.is_found_output_tensor = False
+        inst.clone_and_detach_tensor = MagicMock(side_effect=[("args",), {"kw": 1}])
+        inst.analyze_element = MagicMock()
+        inst.is_found_output_tensor = True
+        module = MagicMock()
+        module.forward.return_value = "output"
+        io = MagicMock()
+        io.args = (1,)
+        io.kwargs = {}
+        with patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_gpu", False):
+            inst.analyze_forward_input("name", module, io)
+        self.assertTrue(inst.enable_kernel_dump)
+        inst.analyze_element.assert_called_once()
+
+    def test_kernel_analyze_forward_input_backward_failure(self):
+        inst = object.__new__(KernelDumpDataProcessor)
+        inst.enable_kernel_dump = True
+        inst.config = MagicMock()
+        inst.config.is_backward_kernel_dump = True
+        inst.clone_and_detach_tensor = MagicMock(return_value=())
+        module = MagicMock()
+        module.forward.side_effect = MsprobeException(MsprobeException.INVALID_PARAM_ERROR)
+        io = MagicMock()
+        with patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_gpu", False):
+            inst.analyze_forward_input("name", module, io)
+        self.assertFalse(inst.enable_kernel_dump)
+
+    def test_kernel_analyze_forward_input_start_dump(self):
+        inst = object.__new__(KernelDumpDataProcessor)
+        inst.enable_kernel_dump = True
+        inst.config = MagicMock()
+        inst.config.is_backward_kernel_dump = False
+        inst.config.kernel_config_path = "/cfg"
+        with patch("msprobe.core.dump.data_dump.data_processor.pytorch_processor.is_gpu", False), \
+                patch.object(KernelDumpDataProcessor, "start_kernel_dump") as start:
+            inst.analyze_forward_input("name", MagicMock(), MagicMock())
+        start.assert_called_once_with("/cfg")
+
+    def test_kernel_analyze_forward_output(self):
+        inst = object.__new__(KernelDumpDataProcessor)
+        inst.enable_kernel_dump = False
+        inst.analyze_forward_output("name", MagicMock(), MagicMock())
+
+        inst.enable_kernel_dump = True
+        inst.config = MagicMock()
+        inst.config.is_backward_kernel_dump = True
+        inst.analyze_forward_output("name", MagicMock(), MagicMock())
+        self.assertTrue(inst.enable_kernel_dump)
+
+        inst.config.is_backward_kernel_dump = False
+        with patch.object(KernelDumpDataProcessor, "stop_kernel_dump") as stop:
+            inst.analyze_forward_output("name", MagicMock(), MagicMock())
+        stop.assert_called_once()
+        self.assertFalse(inst.enable_kernel_dump)

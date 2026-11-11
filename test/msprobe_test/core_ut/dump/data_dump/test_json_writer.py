@@ -24,6 +24,15 @@ from msprobe.core.common.const import Const
 from msprobe.core.common.utils import DumpPathAggregation
 from msprobe.core.common.file_utils import FileOpen, remove_path, load_json
 from msprobe.core.dump.data_dump.json_writer import DataWriter
+import concurrent.futures
+import os
+import tempfile
+import unittest
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+from msprobe.core.common.const import Const
+from msprobe.core.dump.data_dump.json_writer import DataWriter
 
 
 class TestDataWriter(unittest.TestCase):
@@ -247,3 +256,264 @@ class TestDataWriter(unittest.TestCase):
         result = self.data_writer.flush_stat_stack()
         self.assertEqual(result, [[1, 2, 3, 4], [5.5, 6.6, 7.7, 8.8]])
         self.assertEqual(self.data_writer.stat_stack_list, [])
+
+class TestPlaceholderReplacement(unittest.TestCase):
+    def setUp(self):
+        self.writer = DataWriter()
+
+    def test_replace_nan_placeholders(self):
+        data = {
+            "a": {Const.IS_NAN_INDEX: 1},
+            "b": [{Const.IS_NAN_INDEX: 0}],
+            "c": {Const.IS_NAN_INDEX: 5},
+        }
+        self.writer._replace_nan_placeholders(data, [False, True])
+        self.assertIs(data["a"][Const.IS_NAN], True)
+        self.assertNotIn(Const.IS_NAN_INDEX, data["a"])
+        self.assertIs(data["b"][0][Const.IS_NAN], False)
+        self.assertIsNone(data["c"][Const.IS_NAN])
+
+    def test_replace_crc32_placeholders(self):
+        data = {
+            "a": {Const.MD5_INDEX: 0},
+            "b": {Const.MD5_INDEX: 2},
+            "c": [{Const.MD5_INDEX: 1}],
+        }
+        self.writer._replace_crc32_placeholders(data, [11, 22])
+        self.assertEqual(data["a"][Const.MD5], 11)
+        self.assertIsNone(data["b"][Const.MD5])
+        self.assertEqual(data["c"][0][Const.MD5], 22)
+
+    def test_replace_stat_placeholders_default(self):
+        data = {
+            Const.TYPE: "torch.Tensor",
+            Const.DTYPE: "float32",
+            Const.SHAPE: [1],
+            Const.TENSOR_STAT_INDEX: 0,
+            "other": 1,
+        }
+        self.writer._replace_stat_placeholders(data, [[1.0, 2.0, 3.0, 4.0, 5]])
+        self.assertEqual(data[Const.MAX], 1.0)
+        self.assertEqual(data[Const.MIN], 2.0)
+        self.assertEqual(data[Const.MEAN], 3.0)
+        self.assertEqual(data[Const.NORM], 4.0)
+        self.assertEqual(data["other"], 1)
+        self.assertNotIn(Const.TENSOR_STAT_INDEX, data)
+
+    def test_replace_stat_placeholders_xor_mode(self):
+        self.writer.config = SimpleNamespace(summary_mode=Const.XOR_CHECKSUM)
+        data = {
+            Const.TYPE: "torch.Tensor",
+            Const.DTYPE: "float32",
+            Const.SHAPE: [1],
+            Const.TENSOR_STAT_INDEX: 0,
+        }
+        self.writer._replace_stat_placeholders(data, [[1.0, 2.0, 3.0, 4.0, 5]])
+        self.assertEqual(data[Const.MD5], 5)
+        self.assertNotIn(Const.MAX, data)
+
+    def test_replace_stat_placeholders_mindspore_extra_fields(self):
+        data = {
+            Const.TYPE: f"{Const.MS_FRAMEWORK}.Tensor",
+            Const.DTYPE: "float32",
+            Const.SHAPE: [1],
+            Const.TENSOR_STAT_INDEX: 0,
+            Const.LAYOUT: {"device_matrix": [1]},
+            Const.SHARD_SIZE: 2,
+        }
+        self.writer._replace_stat_placeholders(data, [[1.0, 2.0, 3.0, 4.0]])
+        self.assertEqual(data[Const.LAYOUT], {"device_matrix": [1]})
+        self.assertEqual(data[Const.SHARD_SIZE], 2)
+
+    def test_replace_stat_placeholders_negative_and_out_of_range(self):
+        negative = {Const.TENSOR_STAT_INDEX: -1, "x": 1}
+        self.writer._replace_stat_placeholders(negative, [[1, 2, 3, 4, 5]])
+        self.assertEqual(negative, {Const.TENSOR_STAT_INDEX: -1, "x": 1})
+
+        out_of_range = {
+            Const.TYPE: "torch.Tensor",
+            Const.DTYPE: "float32",
+            Const.SHAPE: [1],
+            Const.TENSOR_STAT_INDEX: 3,
+        }
+        self.writer._replace_stat_placeholders(out_of_range, [[1, 2, 3, 4, 5]])
+        self.assertIsNone(out_of_range[Const.MAX])
+
+
+class TestBuffersAndFlush(unittest.TestCase):
+    def setUp(self):
+        self.writer = DataWriter()
+
+    def test_append_and_flush_crc32(self):
+        future = concurrent.futures.Future()
+        index = self.writer.append_crc32_to_buffer(future)
+        self.assertEqual(index, 0)
+        future.set_result(42)
+        self.assertEqual(self.writer.flush_crc32_stack(), [42])
+        self.assertEqual(self.writer.flush_crc32_stack(), [])
+
+    def test_flush_stat_stack(self):
+        self.assertEqual(self.writer.flush_stat_stack(), [])
+
+        future = concurrent.futures.Future()
+        future.set_result(7)
+        failed = concurrent.futures.Future()
+        failed.set_exception(RuntimeError("boom"))
+        item = MagicMock()
+        item.item.return_value = 8.0
+
+        self.writer.stat_stack_list = [[future, item, 1, 2, 255], [failed, 1, 2, 3, 4]]
+        result = self.writer.flush_stat_stack()
+        self.assertEqual(result[0][:2], [7, 8.0])
+        self.assertEqual(result[0][4], "0x00000000000000ff")
+        self.assertIsNone(result[1][0])
+        self.assertEqual(self.writer.stat_stack_list, [])
+
+
+class TestWriteFlow(unittest.TestCase):
+    def setUp(self):
+        self.writer = DataWriter()
+        self.writer.config = SimpleNamespace(nan_check_detail=True, extra_info=True, summary_mode=None)
+
+    def test_write_json_returns_when_not_updated(self):
+        with patch.object(self.writer, "write_data_json") as write_data_json:
+            self.writer.write_json()
+        write_data_json.assert_not_called()
+
+    def test_write_json_with_stat_and_crc(self):
+        self.writer.cache_data = {
+            Const.DATA: {
+                "api": {
+                    Const.TYPE: "torch.Tensor",
+                    Const.DTYPE: "float32",
+                    Const.SHAPE: [1],
+                    Const.TENSOR_STAT_INDEX: 0,
+                    Const.MD5_INDEX: 0,
+                }
+            }
+        }
+        self.writer.stat_stack_list = [[1.0, 2.0, 3.0, 4.0, 5]]
+        future = concurrent.futures.Future()
+        future.set_result("crc")
+        self.writer.crc32_stack_list = [future]
+        callback = MagicMock()
+        self.writer.register_pre_flush_callback(callback)
+
+        with patch.object(self.writer, "write_data_json") as write_data_json, \
+                patch.object(self.writer, "write_stack_info_json") as write_stack_info_json, \
+                patch.object(self.writer, "write_construct_info_json") as write_construct_info_json, \
+                patch.object(self.writer, "write_debug_info_json") as write_debug_info_json:
+            self.writer.write_json()
+
+        callback.assert_called_once()
+        write_data_json.assert_called_once()
+        write_stack_info_json.assert_not_called()
+        write_construct_info_json.assert_not_called()
+        write_debug_info_json.assert_not_called()
+        api_data = self.writer.cache_data[Const.DATA]["api"]
+        self.assertEqual(api_data[Const.MD5], "crc")
+        self.assertEqual(api_data[Const.MAX], 1.0)
+        self.assertFalse(self.writer.data_updated)
+
+    def test_write_json_disabled(self):
+        self.writer.config = SimpleNamespace(nan_check_detail=False, extra_info=True)
+        self.writer.register_pre_flush_callback(lambda: self.fail("callback should not run"))
+        with patch.object(self.writer, "write_data_json") as write_data_json:
+            self.writer.write_json()
+        write_data_json.assert_not_called()
+
+    def test_flush_data_periodically(self):
+        with patch.object(self.writer, "write_json") as write_json:
+            self.writer.flush_data_periodically()
+            write_json.assert_not_called()
+
+            self.writer.cache_data = {Const.DATA: {"a": {}, "b": {}}}
+            self.writer.flush_size = 2
+            self.writer.flush_data_periodically()
+            write_json.assert_called_once()
+
+        with patch.object(self.writer, "write_json") as write_json:
+            self.writer.config = SimpleNamespace(summary_mode=Const.MD5)
+            self.writer.md5_flush_size = 2
+            self.writer.flush_data_periodically()
+            write_json.assert_called_once()
+
+        with patch.object(self.writer, "write_json") as write_json:
+            self.writer.config = SimpleNamespace(summary_mode=None)
+            self.writer.flush_size = 3
+            self.writer.flush_data_periodically()
+            write_json.assert_not_called()
+
+
+class TestWriteErrorLog(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self.tmp.name, "error.log")
+        self.writer = DataWriter()
+        self.writer.dump_error_info_path = self.path
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_write_error_log_deduplicates_same_type(self):
+        self.writer.write_error_log("first", "type1")
+        self.writer.write_error_log("second", "type1")
+        self.writer.write_error_log("third", "type2")
+        with open(self.path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("first", content)
+        self.assertNotIn("second", content)
+        self.assertIn("third", content)
+        self.assertIn("Call stack", content)
+
+    def test_write_error_log_fallback_on_failure(self):
+        with patch("msprobe.core.dump.data_dump.json_writer.FileOpen", side_effect=OSError("boom")), \
+                patch("msprobe.core.dump.data_dump.json_writer.logger.warning") as warning:
+            self.writer.write_error_log("message", "type")
+        warning.assert_called_once()
+
+
+class TestUpdateData(unittest.TestCase):
+    def setUp(self):
+        self.writer = DataWriter()
+        self.writer.config = SimpleNamespace(nan_check_detail=True, extra_info=True)
+
+    def test_update_data_invalid_inputs(self):
+        self.writer.update_data("not a dict")
+        self.writer.update_data({"a": {}, "b": {}})
+        self.writer.update_data({"a": {}})
+
+    def test_update_data_new_and_existing_keys(self):
+        self.writer.cache_data = {Const.DATA: {"existing": {"a": 1}}}
+        self.writer.update_data({"existing": {"b": 2}})
+        self.assertEqual(self.writer.cache_data[Const.DATA]["existing"], {"a": 1, "b": 2})
+
+        self.writer.update_data({"new": {"c": 3}})
+        self.assertEqual(self.writer.cache_data[Const.DATA]["new"], {"c": 3})
+
+    def test_update_data_module_key_moves_to_end(self):
+        module_key = f"{Const.MODULE}{Const.SEP}layer"
+        self.writer.cache_data = {Const.DATA: {module_key: {"a": 1}, "after": {}}}
+        self.writer.update_data({module_key: {"b": 2}})
+        self.assertEqual(self.writer.cache_data[Const.DATA][module_key], {"a": 1, "b": 2})
+        self.assertEqual(list(self.writer.cache_data[Const.DATA].keys())[-1], module_key)
+
+
+class TestReplaceProcWithRank(unittest.TestCase):
+    def test_replace_proc_with_rank(self):
+        writer = DataWriter()
+        writer.dump_file_path = "/old/dump.json"
+        writer.stack_file_path = "/old/stack.json"
+        writer.construct_file_path = None
+        writer.dump_tensor_data_dir = 123
+        writer.debug_file_path = "/old/debug.json"
+        writer.dump_error_info_path = "/old/error.log"
+
+        writer.replace_proc_with_rank("/rank0")
+
+        self.assertEqual(writer.dump_file_path, os.path.join("/rank0", "dump.json"))
+        self.assertEqual(writer.stack_file_path, os.path.join("/rank0", "stack.json"))
+        self.assertIsNone(writer.construct_file_path)
+        self.assertEqual(writer.dump_tensor_data_dir, 123)
+        self.assertEqual(writer.debug_file_path, os.path.join("/rank0", "debug.json"))
+        self.assertEqual(writer.dump_error_info_path, os.path.join("/rank0", "error.log"))

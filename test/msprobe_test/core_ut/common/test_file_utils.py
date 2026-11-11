@@ -21,6 +21,33 @@ from zipfile import ZipFile, ZipInfo
 
 import pytest
 from msprobe.core.common.file_utils import *
+import json
+import os
+import tempfile
+import unittest
+import zipfile
+from unittest.mock import MagicMock, patch
+
+import numpy as np
+import pandas as pd
+
+from msprobe.core.common.const import CompareConst, Const, FileCheckConst
+from msprobe.core.common.exceptions import FileCheckException
+from msprobe.core.common.file_utils import (
+    DeserializationScanner,
+    check_file_type,
+    check_if_valid_dir_pattern_path,
+    check_value_is_valid,
+    check_zip_file,
+    find_existing_path,
+    find_proc_dir,
+    load_construct_json,
+    move_directory,
+    remove_path,
+    save_excel,
+    save_npy_to_txt,
+    write_csv,
+)
 
 
 class TestFileChecks:
@@ -848,3 +875,345 @@ class TestReadXlsx:
             mock_check_zip.assert_called_once_with(test_file)
             mock_read_excel.assert_called_once_with(test_file, keep_default_na=False)
             assert result is mock_df
+
+class TestPathHelpers(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_find_existing_path_existing(self):
+        path = os.path.join(self.base, "a.txt")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("x")
+        self.assertEqual(find_existing_path(path), os.path.abspath(path))
+
+    def test_find_existing_path_returns_existing_parent(self):
+        parent = os.path.join(self.base, "sub")
+        os.makedirs(parent)
+        result = find_existing_path(os.path.join(parent, "missing", "file.txt"))
+        self.assertEqual(result, os.path.abspath(parent))
+
+    def test_find_existing_path_depth_exceeded(self):
+        with self.assertRaises(RecursionError):
+            find_existing_path(os.path.join(self.base, "missing", "file.txt"), depth=0)
+
+    def test_check_file_type(self):
+        file_path = os.path.join(self.base, "file.txt")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write("x")
+        self.assertEqual(check_file_type(file_path), FileCheckConst.FILE)
+        self.assertEqual(check_file_type(self.base), FileCheckConst.DIR)
+        with self.assertRaises(FileCheckException):
+            check_file_type(os.path.join(self.base, "not_exist"))
+
+    def test_check_if_valid_dir_pattern_path(self):
+        check_if_valid_dir_pattern_path(self.base)
+        file_path = os.path.join(self.base, "file.txt")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write("x")
+        with self.assertRaises(FileCheckException):
+            check_if_valid_dir_pattern_path(file_path)
+
+    def test_check_value_is_valid(self):
+        self.assertTrue(check_value_is_valid(1))
+        self.assertTrue(check_value_is_valid("abc"))
+        self.assertTrue(check_value_is_valid("-1.00"))
+        self.assertTrue(check_value_is_valid("+1.00"))
+        self.assertFalse(check_value_is_valid("=1+1"))
+        self.assertFalse(check_value_is_valid("@SUM(A1:A2);+1"))
+
+
+class TestLoadConstructJson(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self.tmp.name, "construct.json")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _write(self, data):
+        with open(self.path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+
+    def test_load_construct_json_plain(self):
+        self._write({"a": 1, "b": {"c": 2}})
+        construct, micro_step = load_construct_json(self.path)
+        self.assertEqual(construct, {"a": 1, "b": {"c": 2}})
+        self.assertEqual(micro_step, {})
+
+    def test_load_construct_json_with_micro_step(self):
+        self._write({Const.MEGATRON_MICRO_STEP_NUMBER: 3, "a": [1, 11], "b": 2})
+        construct, micro_step = load_construct_json(self.path)
+        self.assertEqual(construct, {"a": 1, "b": 2})
+        self.assertEqual(
+            micro_step,
+            {Const.MEGATRON_MICRO_STEP_NUMBER: 3, "a": 11, "b": 0},
+        )
+
+    def test_load_construct_json_invalid_list_length(self):
+        self._write({Const.MEGATRON_MICRO_STEP_NUMBER: 3, "a": [1]})
+        with self.assertRaises(RuntimeError):
+            load_construct_json(self.path)
+
+
+class TestSaveExcel(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = self.tmp.name
+        self.path = os.path.join(self.base, "result.xlsx")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_save_excel_single_dataframe(self):
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+        save_excel(self.path, df)
+        result = pd.read_excel(self.path)
+        self.assertEqual(list(result.columns), ["a", "b"])
+        self.assertEqual(result["a"].tolist(), [1, 2])
+
+    def test_save_excel_dataframe_list_with_sheet_names(self):
+        df1 = pd.DataFrame({"a": [1]})
+        df2 = pd.DataFrame({"b": [2]})
+        save_excel(self.path, [(df1, "first"), (df2, "second")])
+        result = pd.read_excel(self.path, sheet_name=None)
+        self.assertEqual(set(result.keys()), {"first", "second"})
+
+    def test_save_excel_invalid_data(self):
+        with self.assertRaises(ValueError):
+            save_excel(self.path, 123)
+
+    def test_save_excel_slice_large_dataframe(self):
+        df = pd.DataFrame({"a": list(range(5))})
+        with patch.object(CompareConst, "MAX_EXCEL_LENGTH", 2):
+            save_excel(self.path, df)
+        result = pd.read_excel(self.path, sheet_name=None)
+        self.assertEqual(set(result.keys()), {"part_0", "part_1", "part_2"})
+        values = pd.concat(result.values())["a"].tolist()
+        self.assertEqual(sorted(values), list(range(5)))
+
+    def test_save_excel_malicious_value_raises(self):
+        df = pd.DataFrame({"a": ["=cmd|' /C calc'!A0"]})
+        with self.assertRaises(RuntimeError):
+            save_excel(self.path, df)
+
+
+class TestMoveAndRemove(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_move_directory_replaces_existing_destination(self):
+        src = os.path.join(self.base, "src")
+        dst = os.path.join(self.base, "dst")
+        os.makedirs(src)
+        os.makedirs(dst)
+        with open(os.path.join(src, "new.txt"), "w", encoding="utf-8") as f:
+            f.write("new")
+        with open(os.path.join(dst, "old.txt"), "w", encoding="utf-8") as f:
+            f.write("old")
+        move_directory(src, dst)
+        self.assertFalse(os.path.exists(src))
+        self.assertTrue(os.path.exists(os.path.join(dst, "new.txt")))
+        self.assertFalse(os.path.exists(os.path.join(dst, "old.txt")))
+
+    def test_move_directory_error(self):
+        src = os.path.join(self.base, "src")
+        os.makedirs(src)
+        dst = os.path.join(self.base, "dst")
+        with patch("msprobe.core.common.file_utils.shutil.move", side_effect=OSError("boom")):
+            with self.assertRaises(RuntimeError):
+                move_directory(src, dst)
+
+    def test_remove_path_not_exists(self):
+        remove_path(os.path.join(self.base, "missing"))
+
+    def test_remove_path_file_and_directory(self):
+        file_path = os.path.join(self.base, "file.txt")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write("x")
+        remove_path(file_path)
+        self.assertFalse(os.path.exists(file_path))
+
+        dir_path = os.path.join(self.base, "dir")
+        os.makedirs(dir_path)
+        remove_path(dir_path)
+        self.assertFalse(os.path.exists(dir_path))
+
+    def test_remove_path_permission_error(self):
+        file_path = os.path.join(self.base, "file.txt")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write("x")
+        with patch("msprobe.core.common.file_utils.os.remove", side_effect=PermissionError):
+            with self.assertRaises(FileCheckException):
+                remove_path(file_path)
+
+    def test_remove_path_generic_error(self):
+        dir_path = os.path.join(self.base, "dir")
+        os.makedirs(dir_path)
+        with patch("msprobe.core.common.file_utils.shutil.rmtree", side_effect=OSError("boom")):
+            with self.assertRaises(RuntimeError):
+                remove_path(dir_path)
+
+
+class TestSaveNpyToTxt(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self.tmp.name, "result.txt")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_existing_destination_is_kept(self):
+        with open(self.path, "w", encoding="utf-8") as f:
+            f.write("keep")
+        save_npy_to_txt(np.array([1.0]), self.path)
+        with open(self.path, "r", encoding="utf-8") as f:
+            self.assertEqual(f.read(), "keep")
+
+    def test_zero_dim_array(self):
+        save_npy_to_txt(np.array(5), self.path)
+        with open(self.path, "r", encoding="utf-8") as f:
+            self.assertEqual(f.read().strip(), "5")
+
+    def test_align_pads_data(self):
+        save_npy_to_txt(np.array([1.0, 2.0, 3.0]), self.path, align=2)
+        with open(self.path, "r", encoding="utf-8") as f:
+            lines = [line.split() for line in f if line.strip()]
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(len(lines[0]), 2)
+        self.assertEqual(len(lines[1]), 2)
+
+    def test_savetxt_error_is_logged(self):
+        with patch("msprobe.core.common.file_utils.np.savetxt", side_effect=OSError("boom")):
+            save_npy_to_txt(np.array([1.0, 2.0]), self.path)
+
+
+class TestWriteCsv(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self.tmp.name, "result.csv")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_write_csv(self):
+        write_csv([["a", "b"], [1, 2]], self.path)
+        with open(self.path, "r", encoding="utf-8-sig") as f:
+            self.assertEqual(f.read().splitlines(), ["a,b", "1,2"])
+
+    def test_write_csv_allows_numeric_strings(self):
+        write_csv([["-1.00", "+1.00", 3]], self.path, malicious_check=True)
+        self.assertTrue(os.path.exists(self.path))
+
+    def test_write_csv_rejects_malicious_value(self):
+        with self.assertRaises(RuntimeError):
+            write_csv([["=1+1"]], self.path, malicious_check=True)
+
+    def test_write_csv_write_error(self):
+        with patch("msprobe.core.common.file_utils.FileOpen", side_effect=OSError("boom")):
+            with self.assertRaises(RuntimeError):
+                write_csv([["a"]], self.path)
+
+
+class TestCheckZipFileExtra(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _run(self, members, extract_dir=None):
+        with patch("msprobe.core.common.file_utils.zipfile.ZipFile") as zip_file:
+            zip_file.return_value.__enter__.return_value.infolist.return_value = members
+            check_zip_file(os.path.join(self.base, "test.zip"), extract_dir)
+
+    def test_too_many_files(self):
+        members = [MagicMock(filename="a.txt", file_size=1), MagicMock(filename="b.txt", file_size=1)]
+        with patch.object(FileCheckConst, "MAX_FILE_IN_ZIP_SIZE", 1):
+            with self.assertRaises(ValueError):
+                self._run(members)
+
+    def test_path_traversal(self):
+        members = [MagicMock(filename="../evil.txt", file_size=1)]
+        with self.assertRaises(ValueError):
+            self._run(members, extract_dir=self.base)
+
+    def test_absolute_path(self):
+        members = [MagicMock(filename="/etc/passwd", file_size=1)]
+        with self.assertRaises(ValueError):
+            self._run(members)
+
+    def test_member_too_large(self):
+        members = [MagicMock(filename="a.txt", file_size=2)]
+        with patch.object(FileCheckConst, "MAX_FILE_SIZE", 1):
+            with self.assertRaises(ValueError):
+                self._run(members)
+
+    def test_total_size_too_large(self):
+        members = [MagicMock(filename="a.txt", file_size=1), MagicMock(filename="b.txt", file_size=1)]
+        with patch.object(FileCheckConst, "MAX_ZIP_SIZE", 1):
+            with self.assertRaises(ValueError):
+                self._run(members)
+
+    def test_success(self):
+        members = [MagicMock(filename="a.txt", file_size=1)]
+        self._run(members)
+        self._run(members, extract_dir=self.base)
+
+
+class TestFindProcDir(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.base = self.tmp.name
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_single_proc_dir(self):
+        proc_dir = os.path.join(self.base, f"{Const.PROC}1234")
+        os.makedirs(proc_dir)
+        self.assertEqual(find_proc_dir(self.base), proc_dir)
+
+    def test_no_proc_dir(self):
+        with self.assertRaises(ValueError):
+            find_proc_dir(self.base)
+
+    def test_multiple_proc_dirs(self):
+        os.makedirs(os.path.join(self.base, f"{Const.PROC}1"))
+        os.makedirs(os.path.join(self.base, f"{Const.PROC}2"))
+        with self.assertRaises(ValueError):
+            find_proc_dir(self.base)
+
+
+class TestScanPickleContent(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self.tmp.name, "data.pkl")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _scan(self, content):
+        with open(self.path, "wb") as f:
+            f.write(content)
+        return DeserializationScanner.scan_pickle_content(self.path)
+
+    def test_safe_content(self):
+        self.assertTrue(self._scan(b"hello world"))
+
+    def test_dangerous_method(self):
+        self.assertFalse(self._scan(b"eval"))
+
+    def test_dangerous_module_import(self):
+        self.assertFalse(self._scan(b"import os\nprint(1)"))
+
+    def test_dangerous_module_call(self):
+        self.assertFalse(self._scan(b"os.system('id')"))
