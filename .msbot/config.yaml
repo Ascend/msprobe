@@ -8,4 +8,5 @@ audits:
     # authors:
     #   - alice
     # 实例配置中存在该连接时再启用：
+    # 实例 feishu.engineering 已授权本仓库。
     notification: engineering
