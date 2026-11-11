@@ -919,6 +919,42 @@ Tagged entries contain an extra `alias` field in dump.json:
 - To tag a function as a whole (for example, a loss function or a training step function), place `with tag(...)` at the beginning of the function body. The modules/APIs directly called in the function body are then tagged.
 - When the same module is called in multiple different tag scopes within one step, its forward/backward entries carry the corresponding tag by call index, and its parameter gradient (`parameters_grad`) entries carry the tag registered last.
 
+#### Working with Tag Comparison
+
+Tags can be used together with precision comparison to compare data whose entry names differ between the two sides. When the dump data contains tags, the comparison command is the same as in normal comparison, and the tag pairing is enabled automatically. When tag comparison is used, the dump configuration and labeling must meet the following requirements:
+
+- `task` can be set to `statistics` or `tensor`.
+- `level` set to `mix` and `risk_level` set to `ALL` are recommended. The default FOCUS level filters out view operators such as reshape/transpose, causing tagged entries to go missing.
+- One tag name must wrap the same number of calls on both sides (a tag may also wrap multiple calls inside a loop; they are paired iteration by iteration).
+
+When comparing differently named implementations on the two sides, wrap the corresponding calls in the scripts on both sides with the same tag name:
+
+**Module scenario** (module names differ between the two sides):
+
+```python
+# NPU-side script
+with tag("attn"):
+    out = self.fused_attn(q, k)
+
+# Bench-side script
+with tag("attn"):
+    out = self.attention(q, k)
+```
+
+**API scenario** (custom operator names differ between the two sides; the custom operators must be registered before dump):
+
+```python
+# NPU-side script
+with tag("gqa"):
+    out = fused_gqa_attention(q, k, v)
+
+# Bench-side script
+with tag("gqa"):
+    out = handwritten_gqa_attention(q, k, v)
+```
+
+For the complete usage of tag comparison, see [Custom Tag Comparison Scenario](../accuracy_compare/pytorch_accuracy_compare_instruct.md#custom-tag-comparison-scenario) in [Precision Comparison in PyTorch](../accuracy_compare/pytorch_accuracy_compare_instruct.md).
+
 ## API Description
 
 ### PrecisionDebugger

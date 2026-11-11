@@ -321,6 +321,45 @@ def calculate_excel_result_df(result_df, mode, backend, consistent_check=False, 
             result_df.iloc[i:end_idx, df_col_idx] = col_data
 
 
+def calculate_tag_result_df(result_df, mode, backend):
+    """Run the standard indicator checkers on a tag-compare result frame.
+
+    The tag result frame carries the native column layout, but its
+    execution-ordered rows are not api-contiguous, while the write-back of
+    calculate_excel_result_df assumes divide_result_df's stable api grouping
+    equals the row order. So: stable-sort into api-grouped order, run the
+    checkers, then map Result/Err_message back by row id.
+    """
+    std_header = CompareConst.HEAD_OF_COMPARE_MODE.get(mode)
+    if not std_header:
+        logger.error(f'Unable to obtain header based on compare mode: {mode}')
+        raise RuntimeError()
+
+    work = result_df.copy()
+    work['_tag_row_id'] = range(len(work))
+    first_seen = {}
+    api_ranks = []
+    for api_name in work[Const.API_ORIGIN_NAME]:
+        if api_name not in first_seen:
+            first_seen[api_name] = len(first_seen)
+        api_ranks.append(first_seen[api_name])
+    work['_tag_api_rank'] = api_ranks
+    work = work.sort_values('_tag_api_rank', kind='stable')
+
+    # keep the standard columns first (the checkers index them positionally), then the
+    # grouping columns divide_result_df needs; trailing extras are invisible to the checkers
+    group_cols = [c for c in (Const.STATE, Const.API_ORIGIN_NAME) if c in work.columns]
+    std = work[list(std_header) + group_cols]
+    calculate_excel_result_df(std, mode, backend)
+
+    # std shares the (sorted) index of work, so the checker results align by row
+    work[CompareConst.RESULT] = std[CompareConst.RESULT].values
+    work[CompareConst.ERROR_MESSAGE] = std[CompareConst.ERROR_MESSAGE].values
+    restored = work.sort_values('_tag_row_id', kind='stable')
+    result_df[CompareConst.RESULT] = restored[CompareConst.RESULT].values
+    result_df[CompareConst.ERROR_MESSAGE] = restored[CompareConst.ERROR_MESSAGE].values
+
+
 def calculate_result(result, mode, parallel_merge=False):
     """
     得到一个api或模块的指标和异常信息

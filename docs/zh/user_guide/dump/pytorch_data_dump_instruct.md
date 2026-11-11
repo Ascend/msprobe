@@ -917,6 +917,42 @@ L1级别不挂钩模块调用、无法感知模块边界，因此作用域内执
 - 如需为函数（如损失函数、训练step函数）整体打标，将`with tag(...)`写在函数体开头即可，函数体内直接调用的模块/API均会被标注。
 - 同一模块在同一步的多个不同标签作用域内被调用时，前向/反向条目按各自调用序号携带对应标签，其参数梯度（parameters_grad）条目携带最后一次登记的标签。
 
+#### 配合标签比对
+
+标签可与精度比对配合，比对两侧条目名不同的数据。dump数据中存在标签时，比对命令与普通比对相同，自动按标签配对。使用标签比对时，dump配置与打标需满足以下要求：
+
+- `task`支持`statistics`或`tensor`。
+- `level`推荐`mix`、`risk_level`推荐`ALL`：默认的FOCUS级别会过滤reshape/transpose等view类算子，被过滤的打标条目会缺失。
+- 同一标签名在两侧圈住的调用次数须一致（标签圈住循环中的多次调用也可以，按迭代一一配对）。
+
+比对两侧不同命名的实现时，两侧脚本用同一标签名分别圈住对应调用：
+
+**module场景**（两侧模块名不同）：
+
+```python
+# npu侧脚本
+with tag("attn"):
+    out = self.fused_attn(q, k)
+
+# bench侧脚本
+with tag("attn"):
+    out = self.attention(q, k)
+```
+
+**api场景**（两侧自定义算子名不同，需先注册才能dump）：
+
+```python
+# npu侧脚本
+with tag("gqa"):
+    out = fused_gqa_attention(q, k, v)
+
+# bench侧脚本
+with tag("gqa"):
+    out = handwritten_gqa_attention(q, k, v)
+```
+
+标签比对的完整用法请参见《[PyTorch场景精度比对](../accuracy_compare/pytorch_accuracy_compare_instruct.md)》的[自定义标签比对场景](../accuracy_compare/pytorch_accuracy_compare_instruct.md#自定义标签比对场景)章节。
+
 ## 接口介绍
 
 ### PrecisionDebugger

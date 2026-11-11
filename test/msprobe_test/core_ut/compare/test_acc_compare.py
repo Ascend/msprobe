@@ -484,12 +484,13 @@ class TestParseData(unittest.TestCase):
             [
                 ['Functional.linear.0.forward.input.0', 'torch.float32', [2, 2], [2, 0, 1, 1], ['File'], 'input',
                  'Functional.linear.0.forward', 'False',
-                 'forward', '0.forward', 'Functional.linear', 0, 0, '.input.0',]
+                 'forward', '0.forward', 'Functional.linear', 0, 0, '.input.0', None]
             ],
             columns=[
                 'op_name', 'dtype', 'shape', 'summary', 'stack_info', 'state',
                 'api_origin_name', 'requires_grad',
-                'direction', 'call_direction', 'op_no_number', 'forward_call_order', 'backward_call_order', 'suffix'
+                'direction', 'call_direction', 'op_no_number', 'forward_call_order', 'backward_call_order', 'suffix',
+                'alias'
             ]
         )
         self.assertTrue(npu_df.equals(target_df))
@@ -510,12 +511,13 @@ class TestParseData(unittest.TestCase):
             [
                 ['Functional.linear.0.forward.input.0', 'torch.float32', [2, 2], [2, 0, 1, 1], ['File'], 'input',
                  'Functional.linear.0.forward', 'False',
-                 'forward', '0.forward', 'Functional.linear', 0, 0, '.input.0',]
+                 'forward', '0.forward', 'Functional.linear', 0, 0, '.input.0', None]
             ],
             columns=[
                 'op_name', 'dtype', 'shape', 'summary', 'stack_info', 'state',
                 'api_origin_name', 'requires_grad',
-                'direction', 'call_direction', 'op_no_number', 'forward_call_order', 'backward_call_order', 'suffix'
+                'direction', 'call_direction', 'op_no_number', 'forward_call_order', 'backward_call_order', 'suffix',
+                'alias'
             ]
         )
         self.assertTrue(npu_df.equals(target_df))
@@ -535,13 +537,14 @@ class TestParseData(unittest.TestCase):
             [
                 ['Functional.linear.0.forward.input.0', 'torch.float32', [2, 2], [2, 0, 1, 1], ['File'], 'input',
                  'Functional.linear.0.forward', 'False',
-                 'forward', '0.forward', 'Functional.linear', 0, 0, '.input.0',
+                 'forward', '0.forward', 'Functional.linear', 0, 0, '.input.0', None,
                  'Functional.linear.0.forward.input.0.pt', -1]
             ],
             columns=[
                 'op_name', 'dtype', 'shape', 'summary', 'stack_info', 'state',
                 'api_origin_name', 'requires_grad',
                 'direction', 'call_direction', 'op_no_number', 'forward_call_order', 'backward_call_order', 'suffix',
+                'alias',
                 'data_name', 'dirty_valid_len'
             ]
         )
@@ -562,13 +565,14 @@ class TestParseData(unittest.TestCase):
             [
                 ['Functional.linear.0.forward.input.0', 'torch.float32', [2, 2], [2, 0, 1, 1], ['File'], 'input',
                  'Functional.linear.0.forward', 'False',
-                 'forward', '0.forward', 'Functional.linear', 0, 0, '.input.0',
+                 'forward', '0.forward', 'Functional.linear', 0, 0, '.input.0', None,
                  123456]
             ],
             columns=[
                 'op_name', 'dtype', 'shape', 'summary', 'stack_info', 'state',
                 'api_origin_name', 'requires_grad',
                 'direction', 'call_direction', 'op_no_number', 'forward_call_order', 'backward_call_order', 'suffix',
+                'alias',
                 'md5'
             ]
         )
@@ -1397,6 +1401,34 @@ class TestMatch(unittest.TestCase):
         , columns=match.fuzzy_result_columns, dtype=object)
 
         self.assertTrue(match_result.equals(expected))
+
+    def test_match_api_infos_fuzzy_with_alias_column(self):
+        """回归测试：解析出的alias列在进入模糊匹配前被丢弃，保证结果不错位。"""
+        mode_config = ModeConfig()
+        mapping_config = MappingConfig()
+        mode_config.fuzzy_match = True
+        match = Match(mode_config, mapping_config, cross_frame=False)
+
+        columns = ['op_name', 'dtype', 'shape', 'summary', 'stack_info',
+                   'state', 'api_origin_name', 'requires_grad', 'alias', 'data_name',
+                   'compare_key', 'compare_shape']
+        npu_df = pd.DataFrame([
+            ['Functional.conv2d.0.forward.input.0', 'float32', [1, 2], 'summary', 'stack_info',
+             'input', 'Functional.conv2d.0.forward', 'True', 'conv_in',
+             'Functional.conv2d.0.forward.input.0.pt', 'Functional.conv2d.0.forward.input.0', [1, 2]],
+        ], columns=columns, dtype=object)
+        bench_df = pd.DataFrame([
+            ['Functional.conv2d.0.forward.input.0', 'float32', [1, 2], 'summary', 'stack_info',
+             'input', 'Functional.conv2d.0.forward', 'True', 'conv_in',
+             'Functional.conv2d.0.forward.input.0.pt', 'Functional.conv2d.0.forward.input.0', [1, 2]],
+        ], columns=columns, dtype=object)
+
+        match_result = match.match_api_infos(npu_df, bench_df)
+        self.assertEqual(len(match_result), 1)
+        self.assertEqual(match_result.loc[0, 'op_name_y'], 'Functional.conv2d.0.forward.input.0')
+        self.assertEqual(match_result.loc[0, 'dtype_y'], 'float32')
+        self.assertEqual(match_result.loc[0, 'data_name_y'], 'Functional.conv2d.0.forward.input.0.pt')
+        self.assertNotEqual(match_result.loc[0, 'data_name_x'], 'conv_in')
 
     def test_match_op_both_last_element(self):
         config_dict = {

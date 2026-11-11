@@ -330,6 +330,44 @@ Configuration method:
 
       Algorithm comparison result: supports the `int`, `float`, and `str` types. When the algorithm comparison result does not satisfy the constraints or the algorithm execution is abnormal, the algorithm comparison result is set to `unsupported`
 
+#### Custom Tag Comparison Scenario
+
+During dump, wrap the modules or operators on the NPU side and the bench side with the same tag name (their names and implementations may differ). The entries in the tag scope are paired with each other according to the newly defined [tag pairing rules](#pairing-rules).
+
+By default (recursive=False), only the modules/operators directly called within the tag scope are tagged, and their internal sub-modules/sub-operators are not tagged (exception: at L1, all APIs executed within the scope are tagged); when recursive=True, all nested levels are tagged. The backward and parameter gradient entries of a tagged call automatically carry the same tag. For the tagging scope, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+
+**Module scenario**
+
+Compares module implementations whose entry names or implementations differ between the two sides. For example, one side uses the fused module `FusedAttention` and the other uses the hand-written module `Attention`.
+
+1. Wrap the modules to be compared on both sides with the same tag name, and dump the precision data on both sides. For the labeling method, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) and [Working with Tag Comparison](../dump/pytorch_data_dump_instruct.md#working-with-tag-comparison) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+
+2. Run the command:
+
+   ```shell
+   msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output
+   ```
+
+3. Check the comparison result. See [Output Description](#output-description) and [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
+
+**API scenario**
+
+Compares custom operators whose function names or implementations differ between the two sides. For example, one side uses the fused operator `fused_gqa_attention` and the other uses the hand-written operator `handwritten_gqa_attention`. A custom API must be registered before it can be dumped. For the registration method, see [Batch Registration of User-Defined APIs](../dump/pytorch_data_dump_instruct.md#batch-registration-of-user-defined-apis) or [register_custom_api](../dump/pytorch_data_dump_instruct.md#register_custom_api) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+
+1. Wrap the custom operators to be compared on both sides with the same tag name (the number of wrapped calls must be the same on both sides), and dump the precision data on both sides. For the labeling method, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) and [Working with Tag Comparison](../dump/pytorch_data_dump_instruct.md#working-with-tag-comparison) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+
+2. Run the command: same as in the module scenario.
+
+3. Check the comparison result. See [Output Description](#output-description) and [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
+
+##### Pairing Rules
+
+Entries wrapped by the same tag pair as a group when both sides wrap the same number of calls: by entry name first, then by call ordinal within the group (loop iterations pair one by one). Rows within a paired entry are matched slot by slot (input, output, and so on); tensor rows pair only when both dtype and shape match; parameter gradient rows match by module base name and parameter name (rows of differently named modules do not pair). All unpaired rows remain visible; when the call counts differ or the tag appears on one side only, that tag falls back to normal comparison with a warning.
+
+**Constraints**:
+
+- The tag comparison is enabled when the dump data contains tags and none of `-fm`, `-cm`, `-am`, `-dm`, `-da`, `--consistent_check`, or `first_diff_analyze` is configured. When any of them is configured, the tag comparison is not enabled (a warning is printed) and the configured mode is used instead.
+
 ### Output Description
 
 After the comparison is complete, the message `msprobe compare ends successfully.` is displayed.
@@ -347,6 +385,10 @@ After the comparison is complete, the message `msprobe compare ends successfully
 - Single-point data comparison in dynamic graphs:
   
    A `.csv` file is generated in the configured output path. The file name is automatically generated based on the timestamp in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.csv`. If `--xlsx` is specified, a `.xlsx` file is generated in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.xlsx`.
+
+- Custom tag comparison scenario:
+
+   The output files follow the same naming rules and table structure as the native CSV files. Rows paired by tag carry the tag prefix in the "NPU Name" and "Bench Name" columns (for example, `(attn)Module.xxx.forward.0.input.0`); untagged rows have no prefix, and the rows follow the dump order (the execution order).
 
 ### Output File Description
 

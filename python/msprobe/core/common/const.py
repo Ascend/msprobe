@@ -916,6 +916,13 @@ class CompareConst:
     # error message
     NO_BENCH = "No bench data matched."
 
+    # tag compare (compare by user-defined dump tags)
+    TAG = "Tag"
+    ROLE = "Role"
+    TAG_EXTRACTION = "Extraction"
+    TAG_MODE = "Mode"
+    TAG_MODE_STRICT = "strict"
+
     # compare const
     FLOAT_TYPE = [np.half, np.single, float, np.double, np.float64, np.longdouble]
 

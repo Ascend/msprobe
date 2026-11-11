@@ -66,7 +66,7 @@ from msprobe.core.compare.utils import (
 from msprobe.core.compare.config import ModeConfig, MappingConfig, MappingDict
 from msprobe.core.compare.multiprocessing_compute import CompareRealData
 from msprobe.core.compare.diff_analyze.first_diff_analyze import FirstDiffAnalyze
-from msprobe.core.compare.indicator_analysis.calculator import calculate_excel_result_df
+from msprobe.core.compare.indicator_analysis.calculator import calculate_excel_result_df, calculate_tag_result_df
 from msprobe.core.compare.stats_diff_calc import ValType, ALL_TYPES
 from msprobe.core.compare.verl.mapping import FSDP_MODULE_MAP, MEGATRON_MODULE_MAP
 from msprobe.core.common.output_postprocess.processor import should_postprocess_output_for_compare, extract_valid_len
@@ -98,6 +98,7 @@ class Comparator:
         self.mapping_config = mapping_config
         self.cross_frame = is_cross_framework
         self.mapping_dict = MappingDict(mapping_config)
+        self.used_tag_compare = False
 
     @staticmethod
     def restore_dump_order(match_result):
@@ -217,9 +218,12 @@ class Comparator:
 
         # calculate Indicators
         logger.info("Calculating comparison indicators in progress...")
-        calculate_excel_result_df(
-            result_df, self.mode_config.dump_mode, self.mode_config.backend, self.mode_config.consistent_check
-        )
+        if self.used_tag_compare:
+            calculate_tag_result_df(result_df, self.mode_config.dump_mode, self.mode_config.backend)
+        else:
+            calculate_excel_result_df(
+                result_df, self.mode_config.dump_mode, self.mode_config.backend, self.mode_config.consistent_check
+            )
         result_df.drop(columns=['state', 'api_origin_name'], inplace=True)  # 删除中间数据，两列不落盘
         logger.info("Comparison indicators calculation done.")
 
@@ -241,6 +245,61 @@ class Comparator:
         npu_df[CompareConst.NPU_PARSE_ORDER] = range(len(npu_df))
         bench_df[CompareConst.BENCH_PARSE_ORDER] = range(len(bench_df))
 
+        if self._should_use_tag_compare(npu_df, bench_df):
+            self.used_tag_compare = True
+            return self.compare_tag_statistics(npu_df, bench_df)
+        return self.compare_plain_statistics(npu_df, bench_df)
+
+    def _should_use_tag_compare(self, npu_df, bench_df):
+        """Enable the tag comparison automatically whenever the dumps carry
+        custom tags (dump-side 'alias' fields).
+
+        The decision is purely data-driven: debug-level (debug.json) dumps
+        never carry 'alias' fields, so no file-type constraint is needed.
+        The tag comparison builds its own tag-group matching, so the other
+        matching modes win over it: when one of them is configured (or the
+        dump mode cannot support the tag path, e.g. MD5 summaries), the
+        tags are ignored with a warning and everything is matched normally.
+        """
+        has_tags = any(Const.ALIAS in df.columns and df[Const.ALIAS].notna().any() for df in (npu_df, bench_df))
+        if not has_tags:
+            return False
+        conflicts = []
+        if self.mode_config.fuzzy_match:
+            conflicts.append('-fm/--fuzzy_match')
+        if self.mapping_config.cell_mapping:
+            conflicts.append('-cm/--cell_mapping')
+        if self.mapping_config.api_mapping:
+            conflicts.append('-am/--api_mapping')
+        if self.mapping_config.data_mapping:
+            conflicts.append('-dm/--data_mapping')
+        if self.mode_config.consistent_check:
+            conflicts.append('--consistent_check')
+        if self.mode_config.first_diff_analyze:
+            conflicts.append('-da/--diff_analyze')
+        if conflicts:
+            logger.warning(
+                "[tag compare] custom tags were found in the dump data, but the tag comparison is "
+                f"not enabled because {', '.join(conflicts)} is configured; the entries are "
+                "compared through the configured mode instead."
+            )
+            return False
+        if self.mode_config.dump_mode == Const.MD5:
+            logger.warning(
+                "[tag compare] custom tags were found in the dump data, but MD5 dumps are not "
+                "supported by the tag comparison; the entries are compared normally."
+            )
+            return False
+        return True
+
+    def compare_plain_statistics(self, npu_df, bench_df):
+        match_result = self.match_plain_data(npu_df, bench_df)
+        # organize compare result table by renaming columns
+        if self.mode_config.dump_mode == Const.ALL and self.mode_config.first_diff_analyze:
+            self.mode_config.dump_mode = Const.SUMMARY
+        return self.finalize_result_df(match_result)
+
+    def match_plain_data(self, npu_df, bench_df):
         # create new columns for compare op_name and shape
         # process npu_df's COMPARE_KEY whether same or different framework
         process_df = ProcessDf(self.mode_config, self.mapping_config, self.mapping_dict)
@@ -275,19 +334,91 @@ class Comparator:
             for col in new_bench_columns:
                 match_result[col] = match_result[col].astype(object)
             match_result.loc[~match.gen_dtype_condition(match_result), new_bench_columns] = CompareConst.N_A
+        return match_result
 
-        # organize compare result table by renaming columns
-        if self.mode_config.dump_mode == Const.ALL and self.mode_config.first_diff_analyze:
-            self.mode_config.dump_mode = Const.SUMMARY
+    def finalize_result_df(self, match_result):
         match_result.drop(
             columns=[CompareConst.NPU_PARSE_ORDER, CompareConst.BENCH_PARSE_ORDER], inplace=True, errors='ignore'
         )
         create_table = CreateTable(self.mode_config)
         result_df, header = create_table.make_result_df(match_result)
-
         # calculate statistics diff
         calc_stats_diff = CalcStatsDiff(self.mode_config)
         return calc_stats_diff.calc_accuracy(result_df, header)
+
+    def compare_tag_statistics(self, npu_df, bench_df):
+        """Compare the tagged entries through their tags and every remaining
+        entry through the normal name-based matching; all parts land in one
+        result file with the native column layout.
+
+        A tag marking the same non-zero number of forward calls on both
+        sides is a strict unit: its entries are paired by name first, then
+        by group ordinal, and every row of each pair - forward/backward
+        inputs, outputs and scalar configuration rows alike - goes to the
+        result table. Every other tag (differing call counts or present on
+        one side only) falls back to normal matching with a warning;
+        everything else is matched normally. The tag of each strict row is
+        folded into the name columns as a '(tag)name' prefix by
+        ``CreateTable.make_result_df``.
+
+        The rows land in the npu-side dump order, which is the execution
+        order of the run: tagged and untagged rows interleave where they
+        executed, and the '(tag)name' prefix stays the only grouping marker.
+        """
+        from msprobe.core.compare.tag_compare_strict import TagCompareStrict
+
+        strict = TagCompareStrict(self.mode_config)
+        # full frames: the strict port extraction only reads tagged entries
+        strict_match = strict.match_tag_dfs(npu_df, bench_df)
+
+        parts = []
+        if not strict_match.empty:
+            parts.append(strict_match)
+
+        if not parts and strict.has_tags():
+            logger.warning(
+                "[tag compare] no tagged scope or strict unit was matched; "
+                "the result contains only normal comparison rows."
+            )
+
+        plain_npu = strict.split_plain_rows(npu_df)
+        plain_bench = strict.split_plain_rows(bench_df)
+        if not plain_npu.empty:
+            if plain_bench.empty:
+                # same schema, no rows: every plain npu entry simply stays unpaired
+                plain_bench = plain_npu.iloc[0:0].copy()
+            plain_match = self.match_plain_data(plain_npu, plain_bench)
+            if not plain_match.empty:
+                for col in (CompareConst.TAG, CompareConst.ROLE, CompareConst.TAG_EXTRACTION, CompareConst.TAG_MODE):
+                    plain_match[col] = ''
+                parts.append(plain_match)
+
+        if not parts:
+            return pd.DataFrame()
+        match_result = parts[0] if len(parts) == 1 else pd.concat(parts, ignore_index=True)
+        match_result = self.sort_by_execution_order(match_result)
+        return self.finalize_result_df(match_result)
+
+    @staticmethod
+    def sort_by_execution_order(match_result):
+        """Interleave the strict and the plain rows into the npu-side dump
+        order, which is the execution order of the run.
+
+        Rows anchored on the npu side (tag pairs, npu-only unpaired rows and
+        every plain row) sort by their npu dump row number; bench-only rows
+        have no npu counterpart and fall back to the bench dump row number,
+        which lands them next to where they executed because both dumps run
+        the same script.
+        """
+        if match_result.empty or CompareConst.NPU_PARSE_ORDER not in match_result.columns:
+            return match_result
+        key = pd.to_numeric(match_result[CompareConst.NPU_PARSE_ORDER], errors='coerce')
+        if CompareConst.BENCH_PARSE_ORDER in match_result.columns:
+            key = key.fillna(pd.to_numeric(match_result[CompareConst.BENCH_PARSE_ORDER], errors='coerce'))
+        match_result[CompareConst.NPU_PARSE_ORDER] = key
+        return match_result.sort_values(by=CompareConst.NPU_PARSE_ORDER, na_position='last', kind='stable').reset_index(
+            drop=True
+        )
 
 
 class ParseData:
@@ -361,6 +492,7 @@ class ParseData:
             Const.FORWARD_CALL_ORDER: [],  # 计算op前向调用顺序，初始化为0
             Const.BACKWARD_CALL_ORDER: [],  # 计算op反向调用顺序，初始化为0
             Const.SUFFIX: [],
+            Const.ALIAS: [],
         }
         if self.mode_config.dump_mode == Const.ALL:
             result[Const.DATA_NAME] = []
@@ -448,6 +580,9 @@ class ParseData:
                 result[Const.FORWARD_CALL_ORDER].append(forward_call_order)
                 result[Const.BACKWARD_CALL_ORDER].append(backward_call_order)
                 result[Const.SUFFIX].append(suffix)
+
+                # dump data may carry the custom-tag alias
+                result[Const.ALIAS].append(op_data.get(Const.ALIAS))
 
                 # dump_mode differ key
                 if self.mode_config.dump_mode == Const.MD5:
@@ -596,6 +731,11 @@ class ProcessDf:
     @staticmethod
     def update_backward_call(cmp_df):
         if cmp_df.empty:
+            return cmp_df
+        # 无反向行时序号重算是空操作，直接返回；这也挡住 call_direction 不含
+        # 点号的子表（如标签流程里只剩 parameters_grad 行的普通匹配子表）——
+        # rsplit 只产生一列，赋两个列名会触发 ValueError 中断整次比对。
+        if not (cmp_df[Const.DIRECTION] == Const.BACKWARD).any():
             return cmp_df
         # ===============================
         # Step 1: 拆 call_direction 的两部分
@@ -1034,6 +1174,7 @@ class Match:
                 Const.FORWARD_CALL_ORDER,
                 Const.BACKWARD_CALL_ORDER,
                 Const.SUFFIX,
+                Const.ALIAS,
             ]
             npu_drop_list = (
                 common_drop_list
@@ -1365,6 +1506,26 @@ class CreateTable:
     def make_result_df(self, result):
         # get header
         header = CompareConst.HEAD_OF_COMPARE_MODE[self.mode_config.dump_mode][:]
+        if CompareConst.TAG in result.columns:
+            # The tag metadata (Tag/Role/Extraction/Mode) lives on the
+            # intermediate match frames only (unit tests, debugging). The
+            # final table keeps the native column layout: the tag of each
+            # strict row is folded into the name columns as a '(tag)name'
+            # prefix, so tagged rows stay recognizable without an extra
+            # leading column.
+            result.drop(
+                columns=[CompareConst.ROLE, CompareConst.TAG_EXTRACTION, CompareConst.TAG_MODE],
+                inplace=True,
+                errors='ignore',
+            )
+            tag = result[CompareConst.TAG].fillna('')
+            tagged = tag != ''
+            for col in ('op_name_x', 'op_name_y'):
+                names = result[col]
+                mask = tagged & names.notna() & (names != CompareConst.N_A)
+                if mask.any():
+                    result.loc[mask, col] = '(' + tag[mask] + ')' + result.loc[mask, col].astype(str)
+            result.drop(columns=[CompareConst.TAG], inplace=True, errors='ignore')
         if self.mode_config.stack_mode:
             header.append(CompareConst.STACK)
         if self.mode_config.dump_mode == Const.ALL:
