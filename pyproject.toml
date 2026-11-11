@@ -40,6 +40,9 @@ dependencies = [
 [project.scripts]
 msprobe = "msprobe.msprobe:main"
 
+[project.entry-points."vllm.general_plugins"]
+msprobe_kv_collect = "msprobe.kv_monitor.hooks.plugin:register"
+
 [project.urls]
 Homepage = "https://gitcode.com/Ascend/MindStudio-Probe"
 
