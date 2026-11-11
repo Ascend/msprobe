@@ -45,6 +45,10 @@ Use an auxiliary tool (see [Parallelism Visualization of a Megatron Model](../us
 
 ### Step 2: Find the First NaN/Inf Node
 
+#### Dumping API-Level Data
+
+Use the msProbe dump tool to collect API-level data. During data collection, set the `level` field in the configuration file `config.json` to `L1`. For details about the general configuration parameters, see [Configuration File Introduction](../user_guide/dump/config_json_introduct.md#general-configuration-parameters).
+
 #### Removing Interference Items
 
 When searching, filter out empty tensors and communication operator placeholder nodes, which are not included in the NaN/Inf troubleshooting scope.
@@ -152,7 +156,9 @@ FA backward amplification phenomenon:
 
 ### Step 4: Root Cause Localization
 
-Check the forward operator corresponding to the FA backward API to see whether the input parameters are compliant.
+In general, the backward output of an operator is related not only to the backward input and backward implementation, but also to the computation rules, parameters, and input/output of the corresponding forward operator.
+
+Therefore, check the forward operator corresponding to the FA backward API to see whether the input parameters are compliant.
 
 ![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/root_cause_sparsemode_1.png)
 

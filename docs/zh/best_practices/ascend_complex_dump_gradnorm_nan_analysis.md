@@ -45,6 +45,10 @@
 
 ### 步骤2——找到首个NaN/Inf节点
 
+#### 采集API级数据
+
+使用 msProbe dump 工具采集API级数据，采集时需将配置文件 `config.json` 中的 `level` 字段设置为 `L1`，通用配置参数的详细说明可参见[配置文件介绍](../user_guide/dump/config_json_introduct.md#通用配置参数说明)。
+
 #### 去除干扰项
 
 搜索时过滤掉 empty 张量和通信算子占位节点，不纳入 NaN/Inf 排查范围。
@@ -152,7 +156,9 @@ FA反向放大现象：
 
 ### 步骤4——根因锁定
 
-检查FA反向api对应的前向算子，看入参是否合规。
+一般情况下，算子的反向输出不仅与反向输入和反向实现有关，还与对应前向算子的计算规则、参数以及输入输出有关。
+
+因此，检查FA反向API对应的前向算子，看入参是否合规。
 
 ![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/root_cause_sparsemode_1.png)
 
