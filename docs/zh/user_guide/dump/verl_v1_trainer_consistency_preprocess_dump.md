@@ -2,9 +2,9 @@
 
 ## 简介
 
-本文以verl v0.9.0.dev为例，介绍V1 Trainer和当前Fully Async架构下训推一致性比对数据的采集适配方法，适用于FSDP或Megatron训练后端。
+本文以verl v0.9.1为例，介绍V1 Trainer和当前Fully Async架构下训推一致性比对数据的采集适配方法，适用于FSDP或Megatron训练后端。
 
-verl v0.8.0的主入口采用Hybrid AgentLoop，rollout生成的数据由trainer组织并进入训练流程。verl v0.9.0.dev引入V1 Trainer，将AgentLoop生成的数据通过TransferQueue传递给训练侧，并使用jagged TensorDict组织训练batch。数据通路的变化使V1能够通过同一套trainer入口支持同步训练，以及不同资源部署方式下的异步训练。训推一致性采集也需要相应调整request ID的传递位置和prompt-only输入的裁剪方式。
+verl v0.8.0的主入口采用Hybrid AgentLoop，rollout生成的数据由trainer组织并进入训练流程。verl v0.9.1引入V1 Trainer，将AgentLoop生成的数据通过TransferQueue传递给训练侧，并使用jagged TensorDict组织训练batch。数据通路的变化使V1能够通过同一套trainer入口支持同步训练，以及不同资源部署方式下的异步训练。训推一致性采集也需要相应调整request ID的传递位置和prompt-only输入的裁剪方式。
 
 V1 Trainer通过 `trainer.use_v1=True` 启用，并通过 `trainer.v1.trainer_mode` 选择以下三种模式：
 
@@ -18,7 +18,7 @@ verl还在 `verl.experimental.fully_async_policy` 中提供独立的Fully Async�
 该实现不属于上述三种V1 Trainer模式，仍通过MessageQueue连接Rollouter和Trainer。
 其核心采集方案与verl v0.8.0一致，但request ID处理位置和partial rollout处理方式发生变化。
 
-本文以《[异步架构verl训推一致性比对数据采集](./verl_async_consistency_preprocess_dump.md)》为基线，只介绍verl v0.9.0.dev新增或不同的改动。未在本文展开的公共改动均沿用基线文档。
+本文以《[异步架构verl训推一致性比对数据采集](./verl_async_consistency_preprocess_dump.md)》为基线，只介绍verl v0.9.1新增或不同的改动。未在本文展开的公共改动均沿用基线文档。
 
 ## 前置操作
 
