@@ -25,7 +25,7 @@ L0 初步采集到的现象如下：
 
 ![](../figures/cases/ascend_mova_model_nan_analysis/l0_dump_result.png)
 
-* 在 **step 1** 时，module 的前向和反向均未出现 `NaN`，但权重梯度优先出现nan
+* 在 **step 1** 时，module 的前向和反向均未出现 `NaN`，但权重梯度先出现 `NaN`
 * 到了 **step 2** 时，module 前向使用到的权重也变为 `NaN`
 
 因此，最初的关注点集中在：

@@ -50,7 +50,7 @@ rope 转化为 float32 计算：
 
 ![](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/moe_gating_nan_output.png)
 
-`torch.ops._C_ascend.moe_gating_top_k_hash` 算子在正常输入下仍有明显的 NaN 输出问题。暂时将 topk\_weight 改用小算子替换后，NaN 消失、异常 token 消失，重新拉起精度评测。
+`torch.ops._C_ascend.moe_gating_top_k_hash` 算子在正常输入下仍有明显的 NaN 输出问题。暂时将 topk\_weight 替换为小算子后，NaN 消失、异常 token 消失，重新拉起精度评测。
 
 ![](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/topk_small_ops_fixed.png)
 

@@ -2,7 +2,7 @@
 
 ## 简介
 
-torch图模式（torchair）推理场景的精度数据采集是对torchair图编译模型推理过程中中间算子的输入、输出数据进行采集，通过设置编译配置(CompilerConfig)来实现。
+torch图模式（torchair）推理场景的精度数据采集是对torchair图编译模型推理过程中的中间算子的输入、输出数据进行采集，通过设置编译配置(CompilerConfig)来实现。
 
 ## 基本概念
 
@@ -229,7 +229,7 @@ dump数据保存路径为 `{dump_path}/msprobe_fx_dump`。其中 `{dump_path}` �
 
 在[GE融合模式dump数据](#ge融合模式dump数据)的基础上，通过 `set_ge_dump_config` 接口的 `fusion_switch_file` 参数传入设置关闭算子融合的配置文件。工具使用示例如下：
 
-- 创建设置关闭算子融合的配置文件 `fusion_switch.json`。算子融合规则的详解介绍可参见《PyTorch图模式使用(torchair)》中的“[算子融合规则配置功能](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/ascend_ir/features/advanced/fusion_switch_file.md)”章节。
+- 创建设置关闭算子融合的配置文件 `fusion_switch.json`。算子融合规则的详细介绍可参见《PyTorch图模式使用(torchair)》中的“[算子融合规则配置功能](https://gitcode.com/Ascend/torchair/blob/master/docs/zh/ascend_ir/features/advanced/fusion_switch_file.md)”章节。
 
   ```json
   {

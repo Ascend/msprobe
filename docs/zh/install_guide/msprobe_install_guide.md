@@ -4,7 +4,7 @@
 
 ## 1. 安装说明
 
-使用本工具前需要安装CANN，具体操作请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包），并配置环境变量。
+使用本工具前需要安装CANN，具体操作请参见《[CANN 快速安装](https://www.hiascend.com/zh/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包），并配置环境变量。
 
 如需单独升级本工具或使用最新版本，您可通过以下三种方式进行安装：[在线安装](#21-在线安装)、[离线安装](#22-离线安装)、[源码安装](#23-源码安装)。
 
@@ -132,7 +132,7 @@ python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-c
 >   python3 -c "import torch, torch_npu; print('torch:', torch.__version__, 'torch_npu:', torch_npu.__version__)"
 >   ```
 >
-> - torch_npu版本须与编译镜像中的CANN版本配套，配套关系请参见[Ascend for PyTorch](https://gitcode.com/Ascend/pytorch)。
+> - torch_npu版本须与编译镜像中的CANN版本配套，配套关系请参见[TorchNPU](https://gitcode.com/Ascend/pytorch)。
 
 ##### 2.3.2.2 编译命令示例
 

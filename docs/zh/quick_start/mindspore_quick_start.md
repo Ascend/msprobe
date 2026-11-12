@@ -36,7 +36,7 @@
 
 1. 准备一台基于昇腾NPU的训练服务器（如Atlas A2 系列产品），并安装NPU驱动和固件。
 
-2. 安装昇腾NPU驱动和配套版本的CANN软件（包含Toolkit和ops包）并配置环境变量，具体请参见《[CANN 快速安装](https://www.hiascend.com/cann/download)》。
+2. 安装昇腾NPU驱动和配套版本的CANN软件（包含Toolkit和ops包）并配置环境变量，具体请参见《[CANN 快速安装](https://www.hiascend.com/zh/cann/download)》。
 
 3. 安装框架。
 

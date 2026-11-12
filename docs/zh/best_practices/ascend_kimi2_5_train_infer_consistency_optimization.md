@@ -44,7 +44,7 @@ Kimi2.5 模型出现 log_prob 指标首 step 差异较大的现象。对于强�
 
 ## 问题根因
 
-1. 首先，第一个不一致模块 MLA 输出
+1. 第一个不一致模块为 MLA 输出
 
     ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/mla_output_diff.png)
 

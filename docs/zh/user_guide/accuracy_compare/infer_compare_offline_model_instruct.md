@@ -105,7 +105,7 @@ msprobe compare ends successfully.
 ├-- input
 │   └-- input_0.bin                          # 随机输入数据，若指定了输入数据，则该文件不存在
 ├-- model
-│   ├-- {om_model_name}.json                    # 离线模型OM模型(.om)通过atc工具转换后的json文件
+│   ├-- {om_model_name}.json                    # 离线模型(.om)通过atc工具转换后的json文件
 │   └-- new_{onnx_model_name}.onnx              # 把每个算子作为输出节点后新生成的ONNX模型
 └-- result_{timestamp}.csv                   # 比对结果文件
 ```

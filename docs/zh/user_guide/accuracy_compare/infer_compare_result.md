@@ -43,7 +43,7 @@
 
 - **比对结果** 在文件 `result_{timestamp}.csv` 中，比对结果的含义与基础精度比对工具完全相同，其中每个字段的含义可参考 《精度调试工具用户指南》中的“附录 > [完整比对结果参数说明](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/devaids/ModelAccuracyAnalyzer/atlasaccuracy_16_0064.html)”章节。
 
-* 下面简要介绍说明结果信息：
+* 下面简要介绍结果信息：
 
   |                  OpType |  NPUDump | DataType | Address | GroundTruth | DataType | TensorIndex|Shape|Overflow|CosineSimilarity|...|MeanRelativeError|CompareFailReason|IsNpuOps|IsOutputNode|IsPrecisionError|
   |------------------------:|---------:|---------:|--------:|------------:|---------:|-----------:|----:|-------:|---------------:|--:|----------------:|----------------:|-------:|-------:|-------:|

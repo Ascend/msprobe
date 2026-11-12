@@ -188,7 +188,7 @@ target_path和golden_path格式需要满足[分级可视化构图所需dump文�
 msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path -lm
 ```
 
-调试侧和标杆侧有节点名称不相同，则需要配置自定义映射文件，-lm参数传入自定义映射文件路径，映射文件如何配置详见参数说明。
+调试侧和标杆侧节点名称不相同，则需要配置自定义映射文件，-lm参数传入自定义映射文件路径，映射文件如何配置详见参数说明。
 
 ```bash
 msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output_path -lm ./mapping.yaml
@@ -578,7 +578,7 @@ dump_path格式：必须只包含step{数字}格式的文件夹，且每个step�
 1. 默认匹配
 
    - 所有节点dump名称一致
-   - 节点的层级一致（父节点们一致）
+   - 节点的层级一致（所有父节点一致）
 
 2. 模糊匹配
 

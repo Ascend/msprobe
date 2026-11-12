@@ -47,7 +47,7 @@ tensorboard --logdir out_path --bind_all --port [可选，端口号]
 
 ![](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/card0_anomaly_node_info.png)
 
-因为多卡配置是 TP=8，没有使用 DP 进行数据切分，且该层为非行切、列切层，从 shape 处可以看到为未进行 TP 切分的原始结构，多卡间的统计值应该完全相同。如图红色框图可以发现，这里卡 0 的数据明显与其他卡不同。
+因为多卡配置是 TP=8，没有使用 DP 进行数据切分，且该层为非行切、列切层，从 shape 处可以看到为未进行 TP 切分的原始结构，多卡间的统计值应该完全相同。如图中红色框可以发现，这里卡 0 的数据明显与其他卡不同。
 
 ### 步骤3：代码回溯
 
@@ -69,4 +69,4 @@ tensorboard --logdir out_path --bind_all --port [可选，端口号]
 
 **根因总结**：
 
-使用 TP8 时，未控制统一 TP 组内的不同卡输入一致，单纯依赖初始随机种子来控制。实际上卡 0 由于作为通信主卡 random 的次数与其他 TP 卡的次数并不一致，导致花图。
+使用 TP8 时，未控制同一 TP 组内的不同卡输入一致，单纯依赖初始随机种子来控制。实际上卡 0 由于作为通信主卡 random 的次数与其他 TP 卡的次数并不一致，导致花图。

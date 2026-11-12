@@ -6,7 +6,7 @@
 
 ## 模块命名说明
 
-由于有些节点的名称比较长，例如Module.module.module.language_model.embedding.Embedding.forward.0，在图节点上由于字符串过长无法完整显示，forward或backward信息被省略，**因此节点中显示的名称字符串去掉了Module前缀，并将forward或backward信息提取到名称字符串的第二位展示**。
+由于有些节点的名称比较长，例如Module.module.module.language_model.embedding.Embedding.forward.0，在图节点上字符串过长无法完整显示，forward或backward信息被省略，**因此节点中显示的名称字符串去掉了Module前缀，并将forward或backward信息提取到名称字符串的第二位展示**。
 
 ![module_name.png](../figures/visualization/module_name.png)
 
@@ -72,7 +72,7 @@ TopLayer:
 
 配置module下的子模块，虽然两边的class_name不同（NPU侧为GPTModel，GPU侧为GPT2Model），**但是仅需取NPU侧也就是左边图的class_name进行配置，无需关心右边图的class_name叫什么**。
 
-**这里涉及到跨层级的配置，NPU多了一层language_model层**，将language_model作为embedding层、rotary_pos_emb层和encoder层的前缀，进行如下配置：
+**这里涉及到跨层级的配置，NPU多了language_model层**，将language_model作为embedding层、rotary_pos_emb层和encoder层的前缀，进行如下配置：
 
 ![GPTModel.png](../figures/visualization/GPTModel.png)
 
@@ -105,7 +105,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output -lm ./ma
 
 ![no_mapping1.png](../figures/visualization/no_mapping1.png)
 
-按前一节过程进行分析配置，分析可知，节点匹配关系如下：
+按前一节过程进行配置，分析可知，节点匹配关系如下：
 
 | NPU节点名称           | GPU节点名称                                                          | 差异                                          |
 |-------------------|------------------------------------------------------------------|---------------------------------------------|

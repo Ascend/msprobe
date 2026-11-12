@@ -22,7 +22,7 @@
 
 ### 训练场景推荐 single-pass
 
-single-pass 为默认模式。该模式不复制模型，也不单独执行 eager 全网链路，而是直接接入已有的训练流程：在被 compile 的子模块 forward hook 中，使用相同输入重新执行未编译的 `_orig_mod`，并将 eager 子模块输出与 compile 输出进行对比。
+single-pass 为默认模式。该模式不复制模型，也不单独执行 eager 整网链路，而是直接接入已有的训练流程：在被 compile 的子模块 forward hook 中，使用相同输入重新执行未编译的 `_orig_mod`，并将 eager 子模块输出与 compile 输出进行对比。
 
 single-pass 适用于训练场景的原因如下：
 

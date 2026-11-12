@@ -36,7 +36,7 @@ msprobe config_check -sc <NPU_log> <bench_log> [-o <compare_result>]
 对于--slime-compare参数的两个路径：
 
 - NPU_log和bench_log分别为NPU和标杆服务器上训练slime时保存的训练日志。
-- NPU_log和bench_log按顺序配置，自动选择以后面一个日志作为标杆日志进行对比。
+- NPU_log和bench_log按顺序配置，自动选择后面一个日志作为标杆日志进行对比。
 - 待比对的NPU_log和bench_log训练日志文件格式只支持“.log”或“.txt”（如：slime_NPU.log 或 slime_NPU.txt），否则执行比对时会报错。
 - 训练日志中要包含完整的slime配置信息，否则会解析失败。
 

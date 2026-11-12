@@ -23,7 +23,7 @@ pip install mindstudio-probe
 
 运行环境与镜像：
 
-**Dockerfile构建镜像**：可基于 [Slime_ascend Dockerfile](https://gitcode.com/Ascend/slime-ascend/tree/main/docker/npu_docker) 构建镜像和环境。
+**Dockerfile构建镜像**：可基于 [Slime_ascend Dockerfile](https://gitcode.com/Ascend/slime-ascend/tree/v0.2.2/docker/npu_docker/v0.2.2) 构建镜像和环境。
 
 ## 3. 训推一致性预处理
 

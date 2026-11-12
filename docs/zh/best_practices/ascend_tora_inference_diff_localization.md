@@ -4,7 +4,7 @@
 
 **模型结构：** tora模型+vllm（vllm-ascend）推理框架
 
-**问题表现：** 统一数据集推理，下游评分NPU（54.4分）明显差于GPU（80.6分）
+**问题表现：** 同一数据集推理，下游评分NPU（54.4分）明显差于GPU（80.6分）
 ![](../figures/cases/ascend_tora_inference_diff_localization/npugpu_score_comparison.png)
 **BadCase详情**：
 
@@ -59,7 +59,7 @@ NPU推理结果为1260（错误答案）：
 
 对齐差异点1、2的pad和empty操作后，可进入真正的数据比对
 
-比对时发现rotary+attention的输出存在差异，输入采集局部缺失，但该模块前上一模块输出一致，因此深入该模块进行排查
+比对时发现rotary+attention的输出存在差异，输入采集局部缺失，但该模块的上一模块输出一致，因此深入该模块进行排查
 014 Attention：
 
 ```python
