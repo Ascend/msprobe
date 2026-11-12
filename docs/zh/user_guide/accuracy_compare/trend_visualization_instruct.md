@@ -53,7 +53,7 @@
 **命令格式**
 
 ```shell
-msprobe data2db --db <db_path> --data <data_path> [--format <format>] [--mapping <mapping_json>] [--micro_step <use_micro_step>] [--process_num <process_num>]
+msprobe data2db --db <db_path> --data <data_path> [--compare_data <compare_path>] [--concat_dim <concat_dim>] [--format <format>] [--mapping <mapping_json>] [--micro_step <use_micro_step>] [--process_num <process_num>]
 ```
 
 **参数说明**
@@ -62,7 +62,9 @@ msprobe data2db --db <db_path> --data <data_path> [--format <format>] [--mapping
 | ---------------- | --------- | ------------------------------------------------------------ |
 | --db             | 必选      | 解析结果文件存盘目录，str类型。在该目录下生成后缀为`.trend.db`的SQLite文件。 |
 | --data           | 必选      | 输入数据路径，str类型。支持dump数据目录或monitor数据目录。dump数据需配置到step文件夹的上一层目录，monitor数据配置到rank文件夹的上一层目录。   |
-| --format         | 可选      | 数据格式，str类型。可选值：`auto`（自动检测）、`dump`、`monitor`，默认为`auto`。 |
+| --compare_data   | 可选      | 比对数据路径，str类型。用于比对两组不同实验的精度数据，配置方式与`--data`相同，两份数据须为同一数据类型。不配置时仅解析单份数据。 |
+| --concat_dim     | 可选      | 拼接维度，str类型。可选值：`step`（默认）、`rank`。仅在配置`--compare_data`时生效。`step`表示两份数据在迭代步数维度上首尾相接，`rank`表示两份数据在节点rank维度上首尾相接。 |
+| --format         | 可选      | 选择解析的数据类型，str类型。可选值：`dump`（只解析dump数据）、`monitor`（只解析monitor数据）、`auto`（自动检测数据目录中的数据类型），默认为`auto`。配置`--compare_data`时该参数必选，须显式指定`dump`或`monitor`。 |
 | --mapping        | 可选      | 指定json映射文件路径（须配置到json文件名，例如./mapping.json），str类型。程序会在解析精度数据时，将其中模型层的名称或算子名称根据映射文件做转换，以达到精简名称或step间模型或算子名称对齐的效果。映射文件详细配置请参见[mapping配置文件说明](#mapping配置文件说明)。 |
 | --micro_step     | 可选      | 是否启用微步计数，bool类型。默认值为`true`，启用微步计数可将一个迭代（step）拆分为多个微迭代进行分析。 |
 | --process_num    | 可选      | 并行处理进程数，int类型。默认值为1，仅用于monitor数据的并行处理加速，dump数据处理暂不支持多进程。 |
@@ -75,11 +77,37 @@ msprobe data2db --db <db_path> --data <data_path> [--format <format>] [--mapping
 msprobe data2db --data /data/dump_path --db /data/db_path
 ```
 
+比对两组dump数据`/data/dump_path1`与`/data/dump_path2`，按迭代步数维度拼接，即将第一份数据的迭代步数排在前面、第二份数据顺延其后。
+
+```shell
+msprobe data2db --data /data/dump_path1 --format dump --compare_data /data/dump_path2 --concat_dim step --db /data/db_path
+```
+
+比对两组monitor数据`/data/monitor_path1`与`/data/monitor_path2`，按节点rank维度拼接，即将第一份数据的节点rank排在前面、第二份数据顺延其后。
+
+```shell
+msprobe data2db --data /data/monitor_path1 --format monitor --compare_data /data/monitor_path2 --concat_dim rank --db /data/db_path
+```
+
+> [!NOTE]
+>
+> - 配置`--compare_data`后，两份数据的迭代步号会按各自的出现顺序重新编号（被测数据从0开始，比对数据顺延），库内的step不等同于原始数据中的step编号；不配置`--compare_data`时沿用原始step编号。
+>   - 按迭代步数拼接时，第k个迭代步取值为第一份数据，第k+N个（N为第一份数据的迭代步数）取值为第二份数据。
+>   - 按节点rank拼接时，同一迭代步下第一份数据占据rank[0, R1-1]，第二份数据从rank R1开始（R1为第一份数据的rank轴跨度，即最大rank编号加一）。
+> - 两份数据若格式不同（一份为dump数据、一份为monitor数据），工具会给出提示并只解析第一份数据。
+
 **输出说明**
 
 dump数据解析命令执行成功后，在`/data/db_path`下生成`dump_data.trend.db`文件。
 
 monitor数据解析命令执行成功后，在`/data/db_path`下生成`monitor_data.trend.db`文件。
+
+配置`--compare_data`时，两份数据解析到同一份数据库文件中，解析日志中会输出拼接信息，指明两份数据在拼接维度上的分界点。
+
+```text
+[Concat] dim=step, dataset1: step[0, 9], dataset2: step[10, 19], boundary=10
+[Concat] dim=rank, dataset1: rank[0, 7], dataset2: rank[8, 15], boundary=8
+```
 
 ## 趋势分析
 
@@ -352,11 +380,25 @@ plot_model_parallelism(config: ParallelConfig) -> None
 
 ## FAQ
 
-1. 如何使用趋势可视化工具对比两组不同实验的精度数据文件？
+1. 如何使用趋势可视化工具比对两组不同实验的精度数据文件？
 
-   答：趋势可视化工具并不区分标杆实验和对比实验，仅根据输入的精度数据文件路径进行对比。如需对比两组不同实验的精度数据文件，用户需手动将两组文件子目录移至同一目录，然后使用趋势可视化工具查看和对比。
+   答：趋势可视化工具并不区分标杆实验和比对实验，两份数据在解析结果中地位对等。推荐使用`--compare_data`参数与`--concat_dim`参数，由工具自动完成两份数据的拼接，无需改动原始数据目录。
 
-   例如存在如下两组dump数据文件，dump_path1和dump_path2：
+   按迭代步数拼接：第一份数据的迭代步数排在前面，第二份数据顺延其后。
+
+   ```shell
+   msprobe data2db --data dump_path1 --format dump --compare_data dump_path2 --concat_dim step --db ./output
+   ```
+
+   按节点rank拼接：第一份数据的节点rank排在前面，第二份数据顺延其后。
+
+   ```shell
+   msprobe data2db --data dump_path1 --format dump --compare_data dump_path2 --concat_dim rank --db ./output
+   ```
+
+   解析完成后，在趋势可视化前端即可对照查看两份实验的数据。
+
+   若不便使用上述参数，也可手动将两组文件子目录移至同一目录，然后使用趋势可视化工具查看和比对。例如存在如下两组dump数据文件，dump_path1和dump_path2：
 
    ```shell
    ├── dump_path1
@@ -384,7 +426,7 @@ plot_model_parallelism(config: ParallelConfig) -> None
    │   ├── step3 # 原dump_path2的step1
    ```
 
-   执行命令，获得共4个step的精度数据数据库，此时对比step0和step2的精度数据趋势等同于对比原dump_path1和dump_path2的step0的精度数据趋势：
+   执行命令，获得共4个step的精度数据数据库，此时比对step0和step2的精度数据趋势等同于比对原dump_path1和dump_path2的step0的精度数据趋势：
 
    ```shell
    msprobe data2db --data dump_path_compare --db ./output --format dump
@@ -406,4 +448,4 @@ plot_model_parallelism(config: ParallelConfig) -> None
    │   |   ├── rank3 # 原dump_path2的step1/rank1
    ```
 
-   执行命令，获得共4个rank的精度数据可视化结果，此时对比step0的rank0和rank2的精度数据趋势等同于对比原dump_path1和dump_path2的step0的rank0的精度数据趋势。
+   执行命令，获得共4个rank的精度数据可视化结果，此时比对step0的rank0和rank2的精度数据趋势等同于比对原dump_path1和dump_path2的step0的rank0的精度数据趋势。

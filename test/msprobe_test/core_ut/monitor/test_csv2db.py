@@ -28,6 +28,26 @@ from msprobe.core.monitor.csv2db import (
     process_single_rank,
     import_data
 )
+from msprobe.core.common.const import Data2DBConst
+from msprobe.core.common.data_concat import ConcatPlan, StepMapper
+
+
+def build_test_concat_plan() -> ConcatPlan:
+    """构造一份与测试数据匹配的拼接计划: 迭代步 10/20 对应微步前缀 0/1"""
+    mapper = StepMapper(prefix={10: 0, 20: 1}, step_index={10: 0, 20: 1}, offset=0, use_micro_step=True)
+    return ConcatPlan(
+        concat_dim=Data2DBConst.CONCAT_DIM_NONE,
+        step_mapper_a=mapper,
+        step_mapper_b=mapper,
+        rank_offset_b=0,
+        min_step=0,
+        max_step=1,
+        max_rank=0,
+        boundary=0,
+        span_a=2,
+        span_b=0,
+        step_axis_len=2,
+    )
 
 
 class TestPreScanFunctions(unittest.TestCase):
@@ -75,8 +95,7 @@ class TestPreScanFunctions(unittest.TestCase):
         files = [self.test_csv_path_actv]
         result = _pre_scan_single_rank(rank, files, {}, False)
         self.assertEqual(result["rank"], rank)
-        self.assertEqual(result["min_step"], 10)
-        self.assertEqual(result["max_step"], 20)
+        self.assertEqual(result["step_keys"], [10, 20])
         self.assertEqual(result["metric_stats"], {"actv": {"min", "max"}})
         self.assertEqual(len(result["targets"]["actv"]), 2)
 
@@ -90,7 +109,7 @@ class TestPreScanFunctions(unittest.TestCase):
         config = CSV2DBConfig(target_output_dirs=data_dirs, micro_step=False)
         result = _pre_scan(config, mock_db)
 
-        self.assertEqual(sorted([rank for rank, _ in result[0]]), [0, 2])
+        self.assertEqual(sorted([rank for _, rank, _ in result[0]]), [0, 2])
 
         mock_db.init_schema.assert_called_once()
         mock_db.insert_dimensions.assert_called_once()
@@ -133,13 +152,17 @@ class TestProcessSingleRank(unittest.TestCase):
         mock_read_csv.return_value = mock_result
 
         # 测试数据
-        task = (0, ["actv_10-20.csv"])
+        task = (0, 0, ["actv_10-20.csv"])
         metric_id_dict = {"actv": (1, ["norm", "max"])}
         target_dict = {("layer1", 0, 0): 1, ("layer2", 0, 0): 2}
         db_path = "dummy.db"
-        config = CSV2DBConfig(target_output_dirs={}, db_file=db_path, micro_step=True)
-        result = process_single_rank(
-            task, metric_id_dict, target_dict, {10:0, 20:1}, config)
+        config = CSV2DBConfig(
+            target_output_dirs={},
+            db_file=db_path,
+            micro_step=True,
+            concat_plan=build_test_concat_plan(),
+        )
+        result = process_single_rank(task, metric_id_dict, target_dict, config)
 
         self.assertEqual(result, 2)
         mock_db.insert_rows.assert_called_with(
@@ -153,11 +176,16 @@ class TestImportData(unittest.TestCase):
     def test_import_data_success(self, mock_monitordb, mock_pre_scan):
         """测试数据导入成功场景"""
         # 模拟预扫描结果
-        rank_files = [[0, ["actv_10-20.csv"]], [1, ["actv_10-20.csv"]]]
+        rank_files = [[0, 0, ["actv_10-20.csv"]], [1, 1, ["actv_10-20.csv"]]]
         metric_mapping = {"actv": (1, ["min", "max"])}
         target_mapping = {("layer1", 0, 0): 1}
-        micro_step_prefix = {10: 0, 20: 1}
-        mock_pre_scan.return_value = rank_files, metric_mapping, target_mapping, micro_step_prefix
+
+        def fake_pre_scan(config, _mock_db):
+            """预扫描会顺带把拼接计划写入 config"""
+            config.concat_plan = build_test_concat_plan()
+            return rank_files, metric_mapping, target_mapping
+
+        mock_pre_scan.side_effect = fake_pre_scan
 
         # 模拟数据库
         mock_db = MagicMock()

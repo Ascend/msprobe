@@ -601,6 +601,11 @@ class Data2DBConst:
     ]
     DB_DUMP = "dump_data.trend.db"
     DB_MONITOR = "monitor_data.trend.db"
+    # 两份数据的拼接维度
+    CONCAT_DIM_STEP = "step"
+    CONCAT_DIM_RANK = "rank"
+    CONCAT_DIM_NONE = "none"
+    CONCAT_DIM_CHOICES = (CONCAT_DIM_STEP, CONCAT_DIM_RANK)
     # csv2db
     DEFAULT_INT_VALUE = 0
     MAX_PROCESS_NUM = 128

@@ -456,7 +456,7 @@ class TestTrendSql(unittest.TestCase):
         """测试获取所有表定义"""
         result = TrendSql.get_table_definition()
         self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 4)
+        self.assertEqual(len(result), 5)
         self.assertTrue(all("CREATE TABLE" in sql for sql in result))
 
     def test_get_table_definition_single_table(self):

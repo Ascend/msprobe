@@ -53,7 +53,7 @@ Parse dump or monitor data, identifies module names at each model layer, determi
 **Syntax**
 
 ```shell
-msprobe data2db --db <db_path> --data <data_path> [--format <format>] [--mapping <mapping_json>] [--micro_step <use_micro_step>] [--process_num <process_num>]
+msprobe data2db --db <db_path> --data <data_path> [--compare_data <compare_path>] [--concat_dim <concat_dim>] [--format <format>] [--mapping <mapping_json>] [--micro_step <use_micro_step>] [--process_num <process_num>]
 ```
 
 **Parameters**
@@ -62,7 +62,9 @@ msprobe data2db --db <db_path> --data <data_path> [--format <format>] [--mapping
 | ---------------- | --------- | ------------------------------------------------------------ |
 | `--db`            | Yes     | Directory for storing the parsing result file. The value is of the string type. An SQLite file with the `.trend.db` extension is generated in this directory.|
 | `--data`          | Yes     | Input data path. The value is of the string type. The dump data directory or monitor data directory is supported. Dump data should be configured to the parent directory of the `step` folder, and monitor data should be configured to the parent directory of the `rank` folder.  |
-| `--format`        | No     | Data format. The value is of the string type. The options are `auto` (automatic detection), `dump`, and `monitor`. The default value is `auto`.|
+| `--compare_data`  | No     | Comparison data path. The value is of the string type. It is used to compare the precision data of two different experiments. It is configured in the same way as `--data`, and the two data sources must be of the same data type. Only one data source is parsed when this parameter is not specified.|
+| `--concat_dim`    | No     | Dimension along which the two data sources are concatenated. The value is of the string type. The options are `step` (default) and `rank`. It takes effect only when `--compare_data` is specified. `step` means that the two data sources are concatenated along the iteration step dimension, and `rank` means that they are concatenated along the node rank dimension.|
+| `--format`        | No     | Type of data to parse. The value is of the string type. The options are `dump` (parse dump data only), `monitor` (parse monitor data only), and `auto` (automatically detect the data type in the directory). The default value is `auto`. When `--compare_data` is specified, this parameter is mandatory and must be set to `dump` or `monitor`.|
 | `--mapping`       | No     | Path of the JSON mapping file (the JSON file name must be specified, for example, `./mapping.json`). The value is of the string type. When parsing precision data, the program uses a mapping file to convert model layer names or operator names, simplifying them or aligning names across steps. For details about how to configure a mapping file, see [Mapping File Configuration](#mapping-file-configuration).|
 | `--micro_step`    | No     | Whether to enable micro-step counting. The value is of the Boolean type. The default value is `true`. If micro-step counting is enabled, a step can be split into multiple micro steps for analysis.|
 | `--process_num`   | No     | Number of parallel processes, which is of the int type. The default value is `1`. This parameter is used only to accelerate the parallel processing of monitor data.|
@@ -75,11 +77,37 @@ Parse data files in the `/data/dump_path` directory, automatically identify moni
 msprobe data2db --data /data/dump_path --db /data/db_path
 ```
 
+Compare two groups of dump data in `/data/dump_path1` and `/data/dump_path2`, concatenated along the iteration step dimension. The iteration steps of the first data source come first, and the second data source follows them.
+
+```shell
+msprobe data2db --data /data/dump_path1 --format dump --compare_data /data/dump_path2 --concat_dim step --db /data/db_path
+```
+
+Compare two groups of monitor data in `/data/monitor_path1` and `/data/monitor_path2`, concatenated along the node rank dimension. The node ranks of the first data source come first, and the second data source follows them.
+
+```shell
+msprobe data2db --data /data/monitor_path1 --format monitor --compare_data /data/monitor_path2 --concat_dim rank --db /data/db_path
+```
+
+> [!NOTE]
+>
+> - When `--compare_data` is specified, the iteration step numbers of the two data sources are renumbered by their order of appearance (the target data starts from 0 and the compare data follows it), so the step in the database is no longer the step number of the original data. Without `--compare_data`, the original step numbers are kept.
+>   - When concatenated along the iteration step dimension, the k-th iteration step holds the values of the first data source, and the (k+N)-th holds the values of the second one, where N is the number of iteration steps of the first data source.
+>   - When concatenated along the node rank dimension, the first data source occupies rank[0, R1-1] at the same iteration step, and the second data source starts from rank R1, where R1 is the rank axis span of the first data source (its maximum rank number plus one).
+> - If the two data sources are of different formats (one is dump data and the other is monitor data), the tool reports it and parses the first data source only.
+
 **Output Description**
 
 After the dump data parsing command is executed successfully, the `dump_data.trend.db` file is generated in the `/data/db_path` directory.
 
 After the monitor data parsing command is executed successfully, the `monitor_data.trend.db` file is generated in the `/data/db_path` directory.
+
+When `--compare_data` is specified, both data sources are parsed into the same database file. The parsing log prints the concatenation information, which indicates the boundary between the two data sources on the concatenation dimension.
+
+```text
+[Concat] dim=step, dataset1: step[0, 9], dataset2: step[10, 19], boundary=10
+[Concat] dim=rank, dataset1: rank[0, 7], dataset2: rank[8, 15], boundary=8
+```
 
 ## Trend Analysis
 
@@ -354,7 +382,23 @@ None
 
 1. How to use the trend visualization tool to compare the precision data files of two different experiments?
    
-   The trend visualization tool does not distinguish between benchmark experiments and comparison experiments. It only compares the precision data files based on their input paths. To compare the precision data files of two different experiments, you need to manually move the subdirectories of the two groups of files to the same directory and then use the trend visualization tool to view and compare the files.
+   The trend visualization tool does not distinguish between benchmark experiments and comparison experiments. The two data sources are equal in the parsing result. It is recommended to use the `--compare_data` parameter together with the `--concat_dim` parameter. The tool concatenates the two data sources automatically, and the original data directories do not need to be modified.
+
+   Concatenated along the iteration step dimension: the iteration steps of the first data source come first, and the second data source follows them.
+
+   ```shell
+   msprobe data2db --data dump_path1 --format dump --compare_data dump_path2 --concat_dim step --db ./output
+   ```
+
+   Concatenated along the node rank dimension: the node ranks of the first data source come first, and the second data source follows them.
+
+   ```shell
+   msprobe data2db --data dump_path1 --format dump --compare_data dump_path2 --concat_dim rank --db ./output
+   ```
+
+   After the parsing is completed, the two experiments can be compared in the trend visualization front end.
+
+   If the preceding parameters are inconvenient, you can also move the subdirectories of the two groups of files to the same directory and then use the trend visualization tool to view and compare the files.
 
    Assume there are two dump data files: `dump_path1` and `dump_path2`.
 

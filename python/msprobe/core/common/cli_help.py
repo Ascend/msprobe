@@ -205,6 +205,7 @@ HELP_SPECS: Dict[str, HelpSpec] = {
         (
             "Dump data input: <DIR>/dump_data.trend.db",
             "Monitor data input: <DIR>/monitor_data.trend.db",
+            "Two data sources: --format dump|monitor --compare_data <DIR> [--concat_dim step|rank]",
         ),
     ),
     "msprobe parse": HelpSpec(

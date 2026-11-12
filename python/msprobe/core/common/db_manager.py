@@ -404,6 +404,20 @@ class TrendSql:
         ) WITHOUT ROWID"""
         return create_sql
 
+    @staticmethod
+    def create_concat_info_table():
+        """两份数据拼接信息表"""
+        return """
+        CREATE TABLE IF NOT EXISTS concat_info (
+            concat_dim TEXT NOT NULL,
+            dataset_count INTEGER NOT NULL,
+            boundary INTEGER NOT NULL,
+            dataset1_span INTEGER NOT NULL,
+            dataset2_span INTEGER NOT NULL,
+            data_path TEXT,
+            compare_data_path TEXT
+        )"""
+
     @classmethod
     def get_table_definition(cls, table_name=""):
         """
@@ -417,6 +431,7 @@ class TrendSql:
             "monitoring_metrics": cls.create_monitoring_metrics_table,
             "monitoring_tags": cls.create_tags_table,
             "tag_target_mapping": cls.create_tag_mapping_table,
+            "concat_info": cls.create_concat_info_table,
         }
         if not table_name:
             return [table_creators.get(table, lambda x: "")() for table in table_creators]

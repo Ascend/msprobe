@@ -17,11 +17,12 @@
 import os
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from tqdm import tqdm
 
 from msprobe.core.common.const import Const, Data2DBConst
+from msprobe.core.common.data_concat import ConcatPlan
 from msprobe.core.common.file_utils import (
     check_file_or_directory_path,
     load_json,
@@ -217,6 +218,130 @@ def scan_files(data_dir):
 
 
 @dataclass
+class DumpStepEntry:
+    """dump 数据中单个 (迭代步, rank) 条目。"""
+
+    rank: int
+    dump_json: str
+    construct_json: str
+    step_dir: str  # 条目所属的 step 目录, 两份数据拼接后可能来自不同的数据根目录
+
+
+@dataclass
+class DumpStepGroup:
+    """dump 数据中一个迭代步的分组。
+
+    db_step 为库内 step, 仅在微步计数关闭时生效; 微步计数开启时库内 step 由全局
+    微步累加器决定, 此时该字段仅用于记录分组顺序。
+    dataset_id 标识该分组来自哪一份数据, 0 为被测数据, 1 为对比数据。
+    """
+
+    db_step: int
+    entries: List[DumpStepEntry]
+    dataset_id: int = 0
+
+
+def build_dump_step_groups(
+    valid_ranks: Dict[int, List],
+    data_dir: str,
+    dataset_id: int = 0,
+) -> List[DumpStepGroup]:
+    """把扫描结果转换为迭代步分组。
+
+    :param valid_ranks: scan_files 的返回值, 形如 {step: [(rank, dump.json, construct.json)]}
+    :param data_dir: 该份数据的数据根目录
+    :param dataset_id: 数据来源标识, 0 为被测数据, 1 为对比数据
+    :return: 按迭代步升序排列的分组列表
+    """
+    groups = []
+    for step in sorted(valid_ranks.keys()):
+        step_dir = os.path.join(data_dir, f"step{step}")
+        entries = [
+            DumpStepEntry(
+                rank=rank,
+                dump_json=json_path,
+                construct_json=construct_path,
+                step_dir=step_dir,
+            )
+            for rank, json_path, construct_path in valid_ranks[step]
+        ]
+        groups.append(DumpStepGroup(db_step=step, entries=entries, dataset_id=dataset_id))
+    return groups
+
+
+def merge_dump_step_groups(
+    groups_a: List[DumpStepGroup],
+    groups_b: List[DumpStepGroup],
+    plan: ConcatPlan,
+) -> List[DumpStepGroup]:
+    """按拼接计划合并两份数据的迭代步分组。
+
+    step 维度拼接时, 两份数据的分组首尾相接, 被测数据在前; rank 维度拼接时, 两份
+    数据按归一化后的迭代步序号配对, 同一分组内对比数据的 rank 整体后移。
+
+    :param groups_a: 被测数据的分组
+    :param groups_b: 对比数据的分组
+    :param plan: 拼接计划
+    :return: 合并后的分组列表
+    """
+    if plan.concat_dim == Data2DBConst.CONCAT_DIM_RANK:
+        return _merge_dump_groups_by_rank(groups_a, groups_b, plan)
+    return _merge_dump_groups_by_step(groups_a, groups_b, plan)
+
+
+def _merge_dump_groups_by_step(
+    groups_a: List[DumpStepGroup],
+    groups_b: List[DumpStepGroup],
+    plan: ConcatPlan,
+) -> List[DumpStepGroup]:
+    """step 维度拼接: 两份数据的分组首尾相接。"""
+    merged = []
+    for dataset_id, groups in ((0, groups_a), (1, groups_b)):
+        mapper = plan.mapper_for(dataset_id)
+        for group in groups:
+            db_step = group.db_step if mapper.use_micro_step else mapper.map(group.db_step)
+            merged.append(DumpStepGroup(db_step=db_step, entries=list(group.entries), dataset_id=dataset_id))
+    return merged
+
+
+def _merge_dump_groups_by_rank(
+    groups_a: List[DumpStepGroup],
+    groups_b: List[DumpStepGroup],
+    plan: ConcatPlan,
+) -> List[DumpStepGroup]:
+    """rank 维度拼接: 两份数据按迭代步序号配对, 对比数据的 rank 整体后移。"""
+    buckets: Dict[int, Dict[int, List[DumpStepGroup]]] = {}
+    for dataset_id, groups in ((0, groups_a), (1, groups_b)):
+        for group in groups:
+            norm_step = plan.group_norm_step(dataset_id, group.db_step)
+            buckets.setdefault(norm_step, {0: [], 1: []})[dataset_id].append(group)
+
+    merged = []
+    for norm_step in sorted(buckets):
+        groups_a_of_step = buckets[norm_step][0]
+        groups_b_of_step = buckets[norm_step][1]
+        entries = []
+        for group in groups_a_of_step:
+            entries.extend(group.entries)
+        for group in groups_b_of_step:
+            entries.extend(
+                DumpStepEntry(
+                    rank=entry.rank + plan.rank_offset_b,
+                    dump_json=entry.dump_json,
+                    construct_json=entry.construct_json,
+                    step_dir=entry.step_dir,
+                )
+                for entry in group.entries
+            )
+        primary = groups_a_of_step[0] if groups_a_of_step else groups_b_of_step[0]
+        dataset_id = 0 if groups_a_of_step else 1
+        mapper = plan.mapper_for(dataset_id)
+        db_step = primary.db_step if mapper.use_micro_step else mapper.map(primary.db_step)
+        merged.append(DumpStepGroup(db_step=db_step, entries=entries, dataset_id=dataset_id))
+    return merged
+
+
+@dataclass
 class TensorProcessingParams:
     """Tensor处理函数的参数载体"""
 
@@ -272,42 +397,73 @@ class DumpRecordBuilder:
                 return f".output.{tensor_idx}"
         return ""
 
-    def import_data(self, valid_ranks):
-        """导入数据"""
+    def import_data(self, valid_ranks, plan=None):
+        """导入数据
+
+        :param valid_ranks: 待导入的数据, 支持两种形态
+            - Dict[int, List[Tuple[int, str, str]]]: scan_files 的返回值
+            - List[DumpStepGroup]: 按拼接计划合并后的迭代步分组
+        :param plan: 拼接计划, 传入时按计划写全局统计信息
+        """
+        groups = self._to_step_groups(valid_ranks)
         current_start_step = 0
         max_rank = 0
-        for step in tqdm(sorted(valid_ranks.keys()), desc="Processing steps"):
-            step_dir = f"step{step}"
-            step_path = os.path.join(self.data_dir, step_dir)
-
-            check_file_or_directory_path(step_path, isdir=True)
-
+        checked_dirs = set()
+        dataset_end_step: Dict[int, int] = {}
+        for group in tqdm(groups, desc="Processing steps"):
             # 为当前step的所有有效rank创建进度条
-            if not valid_ranks[step]:
+            if not group.entries:
                 continue
+            for entry in group.entries:
+                if entry.step_dir not in checked_dirs:
+                    check_file_or_directory_path(entry.step_dir, isdir=True)
+                    checked_dirs.add(entry.step_dir)
             # 设置起始步,如果用step则为当前step，否则为micro_step累计
             if not self.micro_step:
-                current_start_step = step
+                current_start_step = group.db_step
             total_micro_step = []
-            for rank, json_path, construct_path in tqdm(valid_ranks[step], desc=f"Step {step} ranks", leave=False):
-                max_rank = max(max_rank, rank)
-                total_micro_step.append(self._process_dump_file(json_path, construct_path, current_start_step, rank))
+            for entry in tqdm(group.entries, desc=f"Step {group.db_step} ranks", leave=False):
+                max_rank = max(max_rank, entry.rank)
+                total_micro_step.append(
+                    self._process_dump_file(entry.dump_json, entry.construct_json, current_start_step, entry.rank)
+                )
             if self.micro_step:
-                logger.info(f"Step {step} processing completed. Total micro steps identified: {total_micro_step}")
-                total_micro_step = max(total_micro_step)
+                logger.info(
+                    f"Step {group.db_step} processing completed. Total micro steps identified: {total_micro_step}"
+                )
+                total_micro_step = max((step for step in total_micro_step if step is not None), default=0)
                 current_start_step += total_micro_step
+            dataset_end_step[group.dataset_id] = current_start_step
 
         # 更新全局统计信息
+        if self.micro_step:
+            min_step = 0
+            # micro_step下实际步数为下一个micro_step起始步数-1
+            max_step = current_start_step - 1
+        elif plan is not None:
+            min_step = plan.min_step
+            max_step = plan.max_step
+        else:
+            min_step = min((group.db_step for group in groups), default=0)
+            max_step = current_start_step
+        if plan is not None:
+            max_rank = max(max_rank, plan.max_rank)
         global_stats = {
             "max_rank": max_rank,
-            "min_step": 0 if self.micro_step else min(valid_ranks.keys()),
-            # micro_step下实际步数为下一个micro_step起始步数-1
-            "max_step": current_start_step - 1 if self.micro_step else current_start_step,
+            "min_step": min_step,
+            "max_step": max_step,
         }
         for metric_name in Data2DBConst.METRICS:
             global_stats[metric_name] = Data2DBConst.ORDERED_STAT
         self.db.init_global_stats_data(global_stats)
         self.db.extract_tags_from_processed_targets()
+        return dataset_end_step
+
+    def _to_step_groups(self, valid_ranks) -> List[DumpStepGroup]:
+        """把扫描结果转换为迭代步分组, 已是分组列表时原样返回。"""
+        if isinstance(valid_ranks, list):
+            return valid_ranks
+        return build_dump_step_groups(valid_ranks, self.data_dir)
 
     def _determine_metric_type(self, full_key, tensor_data):
         for key, value in self.mapping.items():

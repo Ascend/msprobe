@@ -449,6 +449,8 @@ class TestData2dbCommand(unittest.TestCase):
         args.mapping = None
         args.micro_step = "true"
         args.process_num = 1
+        args.compare_data = None
+        args.concat_dim = "step"
 
         with patch("msprobe.core.compare.data2db.DBImporter") as mock_importer_class:
             mock_importer = MagicMock()
@@ -463,5 +465,7 @@ class TestData2dbCommand(unittest.TestCase):
                 mapping_path=None,
                 micro_step="true",
                 process_num=1,
+                compare_data_path=None,
+                concat_dim="step",
             )
             mock_importer.import_data.assert_called_once()
