@@ -1,0 +1,5 @@
+version: 1
+audits:
+  bug_issue_close:
+    enabled: true
+    template: .msbot/template/bug-close.yml
