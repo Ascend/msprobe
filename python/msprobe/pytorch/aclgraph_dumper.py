@@ -54,12 +54,13 @@ except Exception:
 
 
 FORWARD_START_MARKER = "__msprobe_fwd_start__"
+NAN_FLAG_PREFIX = "__msprobe_nan__."
 NAN_STATS_PREFIX = "__msprobe_nan_stats__."
 
 
 def _iter_tensors(value, prefix=""):
     if isinstance(value, torch.Tensor):
-        yield prefix, value
+        yield prefix or "0", value
         return
     if isinstance(value, dict):
         for key, sub in value.items():
@@ -661,6 +662,7 @@ class AclGraphDumper:
             hit = torch.logical_or(hit, flag)
         save_switch = torch.logical_and(hit, switch)
         scope = self._module_scope(module_name)
+        api_name = self._safe_file_stem(scope)
         for index, (io_name, suffix, tensor) in enumerate(tensors):
             tensor = tensor.to(hit.device)
             tail = f".{suffix}" if suffix else ""
@@ -669,20 +671,20 @@ class AclGraphDumper:
                 flag = flags[index - len(inputs)] if io_name == "output" else self._nan_flag(tensor)
                 # An empty view carries dtype/shape without transferring tensor data.
                 metadata = tensor.unsqueeze(-1)[..., :0]
-                acl_stat(flag if flag is not None else metadata, f"{scope}.{io_name}{start}{tail}", switch)
-                acl_stat(metadata, f"{NAN_STATS_PREFIX}{scope}.{io_name}{start}{tail}", switch)
-            name = self._safe_file_stem(f"{scope}.{io_name}{tail}")
-            acl_tensor_save(tensor, self._tensor_save_path(name), f"__msprobe_nan__.{scope}", index == 0, save_switch)
+                tag = f"{scope}.{io_name}{start}{tail}"
+                acl_stat(flag if flag is not None else metadata, f"{NAN_FLAG_PREFIX}{tag}", switch)
+                acl_stat(metadata, f"{NAN_STATS_PREFIX}{tag}", switch)
+            path = self._tensor_save_path(f"{scope}.{io_name}{tail}")
+            acl_tensor_save(tensor, path, api_name, index == 0, save_switch)
         return True
 
     def _convert_nan_stats(self, stats):
         result = {}
-        saved_counts = {}
-        saved_indices = {}
+        saved_calls = {}
         nan_calls = {
-            key.rsplit(".forward.", 1)[0]
+            key[len(NAN_FLAG_PREFIX) :].rsplit(".forward.", 1)[0]
             for key, record in stats.items()
-            if not key.startswith(NAN_STATS_PREFIX)
+            if key.startswith(NAN_FLAG_PREFIX)
             and key.rsplit(".forward.", 1)[-1].split(".", 1)[0] == "output"
             and record.get("max")
         }
@@ -694,20 +696,19 @@ class AclGraphDumper:
             torch_dtype = getattr(torch, dtype.lower(), None)
             if isinstance(torch_dtype, torch.dtype):
                 dtype = str(torch_dtype)
-            flag = stats.get(key, {}).get("max")
+            flag = stats.get(f"{NAN_FLAG_PREFIX}{key}", {}).get("max")
             record = {
                 "dtype": dtype,
                 "shape": info["shape"][:-1],
                 Const.IS_NAN: int(flag) if flag is not None else None,
             }
             call, io_path = key.rsplit(".forward.", 1)
-            scope = call.rsplit(".", 1)[0]
             if call in nan_calls:
-                if call not in saved_indices:
-                    saved_indices[call] = saved_counts.get(scope, 0)
-                    saved_counts[scope] = saved_indices[call] + 1
-                name = self._safe_file_stem(f"{scope}.{io_path}")
-                record["data_name"] = f"{name}.{saved_indices[call]}{Const.PT_SUFFIX}"
+                scope = call.rsplit(".", 1)[0]
+                calls = saved_calls.setdefault(scope, {})
+                index = calls.setdefault(call, len(calls))
+                name = self._safe_file_stem(f"{scope}.{index}.{io_path}")
+                record["data_name"] = f"{name}{Const.PT_SUFFIX}"
             result[key] = record
         return result
 

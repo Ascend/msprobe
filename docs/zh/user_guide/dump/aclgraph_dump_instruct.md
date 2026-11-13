@@ -204,8 +204,10 @@ NaN检测会检查完整Tensor，`slice`配置不生效。检测和保留原始�
 每次 ACLGraph replay 后调用 `dumper.step()`，工具会将本次 replay 生成的 `.pt` 文件归档到对应的 `step` 目录。同一 API 调用的输入、关键字参数和输出共享调用序号，文件名格式如下：
 
 ```text
-{api_name}.{call_index}.{input|input_kwargs|output}[.{index}].pt
+{api_name}.{call_index}.{input|input_kwargs|output}.{index}.pt
 ```
+
+单 Tensor 输出使用 `output.0.pt`；tuple/list 输出按位置使用 `output.0.pt`、`output.1.pt` 等，嵌套容器继续追加位置或字典键。
 
 其中 `{api_name}` 为采集对象名称：module/API 采集使用采集点名称（如 `linear`）；自定义 API 采集使用 `custom_api` 中配置的完整导入路径，详见[自定义 API 采集](#自定义-api-采集)。
 
@@ -249,7 +251,7 @@ NaN检测会检查完整Tensor，`slice`配置不生效。检测和保留原始�
 ```text
 my_package.ops.reshape_and_cache.0.input.0.pt
 my_package.ops.reshape_and_cache.0.input_kwargs.value_cache.pt
-my_package.ops.reshape_and_cache.0.output.pt
+my_package.ops.reshape_and_cache.0.output.0.pt
 ```
 
 完整导入路径前缀可区分不同模块或不同类下的同名方法，避免同名方法的数据混入同一组文件名、按文件名取数时数据错位；调用序号按完整导入路径独立计数。
@@ -369,9 +371,9 @@ nan_dump
     └── rank0
         ├── dump.json
         └── dump_tensor_data
-            ├── Aten.add.input.0.0.pt
-            ├── Aten.add.input.1.0.pt
-            └── Aten.add.output.0.pt
+            ├── Aten.add.0.input.0.pt
+            ├── Aten.add.0.input.1.pt
+            └── Aten.add.0.output.0.pt
 ```
 
 对应的 `dump.json` 内容示例（`dump_data_dir` 为实际保存路径）：
@@ -390,14 +392,14 @@ nan_dump
           "dtype": "torch.float32",
           "shape": [2],
           "is_nan": 0,
-          "data_name": "Aten.add.input.0.0.pt"
+          "data_name": "Aten.add.0.input.0.pt"
         },
         {
           "type": "torch.Tensor",
           "dtype": "torch.float32",
           "shape": [2],
           "is_nan": 1,
-          "data_name": "Aten.add.input.1.0.pt"
+          "data_name": "Aten.add.0.input.1.pt"
         }
       ],
       "output": [
@@ -406,7 +408,7 @@ nan_dump
           "dtype": "torch.float32",
           "shape": [2],
           "is_nan": 1,
-          "data_name": "Aten.add.output.0.pt"
+          "data_name": "Aten.add.0.output.0.pt"
         }
       ]
     }

@@ -228,6 +228,8 @@ class TestAclGraphDumper(unittest.TestCase):
             ["a", "b.0", "b.1.0", "c.0"],
         )
         self.assertEqual([tensor for _, tensor in result], [tensor_a, tensor_b, tensor_c, tensor_d])
+        self.assertEqual([prefix for prefix, _ in self.module._iter_tensors(tensor_a)], ["0"])
+        self.assertEqual([prefix for prefix, _ in self.module._iter_tensors((tensor_a, tensor_b))], ["0", "1"])
         self.assertEqual(list(self.module._iter_tensors("abc")), [])
 
     def test_nan_check_config_defaults_and_detail_mode(self):
@@ -282,12 +284,12 @@ class TestAclGraphDumper(unittest.TestCase):
                     save.assert_not_called()
                     self.assertEqual(dumper.step_id, 0)
                     self.assertEqual(os.listdir(dumper._tensor_data_dir_path), [])
-                filename = "Module.__root__.OnlyRootModel.output.0.pt"
+                filename = "Module.__root__.OnlyRootModel.0.output.0.pt"
                 with open(os.path.join(dumper._tensor_data_dir_path, filename), "wb") as handle:
                     handle.write(b"nan")
                 self.aclgraph_dump_stub.get_acl_stat_dict.return_value = {
-                    "Module.__root__.OnlyRootModel.0.forward.output": {"max": 1},
-                    f"{self.module.NAN_STATS_PREFIX}Module.__root__.OnlyRootModel.0.forward.output": {
+                    f"{self.module.NAN_FLAG_PREFIX}Module.__root__.OnlyRootModel.0.forward.output.0": {"max": 1},
+                    f"{self.module.NAN_STATS_PREFIX}Module.__root__.OnlyRootModel.0.forward.output.0": {
                         "dtype": "Float", "shape": [2, 0],
                     },
                 } if detail else {}
@@ -360,6 +362,8 @@ class TestAclGraphDumper(unittest.TestCase):
                 self.assertEqual(save.args[0].data_ptr(), x.data_ptr())
                 self.assertEqual(save.args[0].shape, x.shape)
                 self.assertTrue(save.args[1].startswith("nan_tensors"))
+                self.assertEqual(save.args[2], "scope")
+                self.assertTrue(call.args[1].startswith(self.module.NAN_FLAG_PREFIX))
                 self.assertEqual(bool(save.args[4]), bool(expected))
 
     def test_nan_check_unknown_flags_preserve_output_gate_and_original_tensors(self):
@@ -524,9 +528,9 @@ class TestAclGraphDumper(unittest.TestCase):
         for index, flags in enumerate(cases):
             for io_path, flag in zip(paths, flags):
                 key = f"Aten.add.{index}.forward.{io_path}"
-                stats[key] = {"max": flag}
+                stats[f"{self.module.NAN_FLAG_PREFIX}{key}"] = {"max": flag}
                 stats[f"{self.module.NAN_STATS_PREFIX}{key}"] = {"dtype": "Float", "shape": [2, 0]}
-        stats["Aten.sum.0.forward.output"] = {"max": None}
+        stats[f"{self.module.NAN_FLAG_PREFIX}Aten.sum.0.forward.output"] = {"max": None}
         stats[f"{self.module.NAN_STATS_PREFIX}Aten.sum.0.forward.output"] = {"dtype": "Float", "shape": [0]}
         dumper = self.make_dumper(task="nan_check", detail=True)
         data = dumper._convert_stats_to_dump_data(dumper._convert_nan_stats(stats))
@@ -542,13 +546,39 @@ class TestAclGraphDumper(unittest.TestCase):
                 self.assertEqual(set(item), {"type", "dtype", "shape", "is_nan"} | ({"data_name"} if hit else set()))
             if hit:
                 self.assertEqual([item["data_name"] for item in records], [
-                    f"Aten.add.{io_path}.{index - 1}.pt"
+                    f"Aten.add.{index - 1}.{io_path}.pt"
                     for io_path in paths
                 ])
         scalar = data["Aten.sum.0.forward"]["output"][0]
         self.assertEqual(scalar["shape"], [])
         self.assertIsNone(scalar["is_nan"])
         self.assertNotIn("data_name", scalar)
+
+    def test_nan_check_saved_indices_are_per_scope_and_shared_by_call_tensors(self):
+        cases = (
+            ("Aten.add", 0, False, None),
+            ("Module.layers.0.Block", 0, True, 0),
+            ("Aten.add", 1, True, 0),
+            ("Module.layers.0.Block", 1, False, None),
+            ("Aten.add", 2, True, 1),
+            ("Module.layers.0.Block", 2, True, 1),
+        )
+        paths = ("input.0", "input_kwargs.bias", "output.0", "output.1.aux")
+        stats = {}
+        for scope, call, hit, _ in cases:
+            for path in paths:
+                key = f"{scope}.{call}.forward.{path}"
+                stats[f"{self.module.NAN_FLAG_PREFIX}{key}"] = {"max": int(hit and path == "output.1.aux")}
+                stats[f"{self.module.NAN_STATS_PREFIX}{key}"] = {"dtype": "Float", "shape": [2, 0]}
+        dumper = self.make_dumper(task="nan_check", detail=True)
+        result = dumper._convert_nan_stats(stats)
+        for scope, call, hit, index in cases:
+            for path in paths:
+                with self.subTest(scope=scope, call=call, path=path):
+                    record = result[f"{scope}.{call}.forward.{path}"]
+                    self.assertEqual("data_name" in record, hit)
+                    if hit:
+                        self.assertEqual(record["data_name"], f"{scope}.{index}.{path}.pt")
 
     def test_nan_check_records_inputs_without_tensor_outputs_without_saving(self):
         dumper = self.make_dumper(task="nan_check", detail=True)
@@ -1064,9 +1094,9 @@ class TestAclGraphDumper(unittest.TestCase):
         self.assertEqual([call.args[3] for call in calls], [True, False, True, False])
         paths = [call.args[1] for call in calls]
         self.assertIn(f"./tensor_data/{name_a}.input.1.pt", paths)
-        self.assertIn(f"./tensor_data/{name_a}.output.pt", paths)
+        self.assertIn(f"./tensor_data/{name_a}.output.0.pt", paths)
         self.assertIn(f"./tensor_data/{name_b}.input.1.pt", paths)
-        self.assertIn(f"./tensor_data/{name_b}.output.pt", paths)
+        self.assertIn(f"./tensor_data/{name_b}.output.0.pt", paths)
 
     def test_start_initializes_switch_device_before_patching_model(self):
         dumper = self.make_dumper(task="tensor", keywords=["layers.0"])
