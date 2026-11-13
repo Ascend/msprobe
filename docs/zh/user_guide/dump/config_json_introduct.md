@@ -166,9 +166,11 @@
 
 ### task配置为nan_check
 
-`PrecisionDebugger`检测NaN或溢出，仅支持PyTorch昇腾NPU场景，要求CANN 8.5.0及以上，`level`须为`"L1"`。不同检测方式的适用范围和构建要求见[check_mode参数配置说明](#check_mode参数配置说明)。`AclGraphDumper`的配置和输出说明见[aclgraph_dump使用指南：NaN自动检测](./aclgraph_dump_instruct.md#nan-自动检测)。
+`PrecisionDebugger`在eager场景中检测NaN或溢出，支持PyTorch昇腾NPU，要求CANN 8.5.0及以上，`level`须为`"L1"`。检测方式见[check_mode参数配置说明](#check_mode参数配置说明)。AclGraph图模式使用`AclGraphDumper`，配置和输出见[NaN自动检测](./aclgraph_dump_instruct.md#nan-自动检测)。
 
 **配置示例**
+
+以下配置适用于eager场景的`isnan`模式：
 
 ```json
 {
@@ -181,7 +183,7 @@
         "scope": [],
         "list": [],
         "check_mode": "isnan",
-        "tensor_list": [],
+        "detail": true,
         "data_mode": ["all"]
     }
 }
@@ -189,28 +191,24 @@
 
 **参数说明**
 
-默认检测所有API，可通过`scope`或`list`缩小范围。
+以下参数适用于`PrecisionDebugger`的eager场景，默认检测所有API，可通过`scope`或`list`缩小范围。
 
 | 参数 | 可选/必选 | 解释 |
 | ---- | --------- | ---- |
 | scope | 可选 | 检测范围，`list[str]`类型，见[scope参数配置说明](#scope参数配置说明)。 |
 | list | 可选 | 待检测API列表，`list[str]`类型，见[list参数配置说明](#list参数配置说明)。 |
 | check_mode | 可选 | 检测方式，`str`类型，默认`"isnan"`，见[check_mode参数配置说明](#check_mode参数配置说明)。 |
-| detail | 可选 | `bool`类型，默认为`true`，仅`check_mode: "isnan"`（含默认模式）支持。`true`记录输入、输出的检测结果到`dump.json`；`false`仅在输出含NaN时保存该调用的输入、输出Tensor，不生成`dump.json`及调用栈、结构JSON。`slot`模式显式配置此字段会报错。 |
-| tensor_list | 可选 | 仅用于`slot`模式，指定需要详细采集的API关键字，`list[str]`类型，见[tensor_list参数配置说明](#tensor_list参数配置说明)。 |
+| detail | 可选 | `bool`类型，默认为`true`，适用于`check_mode: "isnan"`。`true`记录检测JSON；`false`的输出文件仅包含输出含NaN的调用的`.pt`文件。落盘内容见[使用示例：落盘结果](./pytorch_nan_check_quickstart.md#3-落盘结果)。 |
+| tensor_list | 可选 | 仅`check_mode: "slot"`支持，指定需要详细采集的API关键字，`list[str]`类型，见[tensor_list参数配置说明](#tensor_list参数配置说明)。 |
 | data_mode | 可选 | 数据过滤，`list[str]`类型，默认`["all"]`。指定`"input"`时须同时配置`"output"`，见[data_mode参数配置说明](#data_mode参数配置说明)。 |
 
 **使用示例**
 
-完整使用示例见[nan_check使用示例](./pytorch_nan_check_quickstart.md)。
+eager场景的运行步骤见[nan_check使用示例](./pytorch_nan_check_quickstart.md)；AclGraph图模式的运行步骤见[aclgraph_dump使用指南](./aclgraph_dump_instruct.md#nan-自动检测)。
 
 **结果说明**
 
-- `isnan`在`detail: true`时在`dump.json`中为每个输入、输出tensor记录`is_nan`：`1`表示含NaN，`0`表示不含NaN，`null`表示无法检测。
-- `isnan`对空、整数和布尔tensor记录`0`，对FakeTensor和meta tensor记录`null`，不计算`Max`、`Min`、`Mean`或`Norm`。
-- `slot`按API记录检测结果。输出tensor正常时仍可能检测到过程溢出；int64运算的检测结果不保证准确。
-
-非空FP8/FP4 Tensor跳过不支持的NaN归约，`detail: true`时保留dtype和shape，`is_nan`记录为`null`。未知结果不触发保存；同次调用的其他输出含NaN时，仍尝试保存全部原始输入和输出Tensor。整数、bool和空Tensor记录`0`。
+`isnan`模式的落盘文件和字段含义见[使用示例：落盘结果](./pytorch_nan_check_quickstart.md#3-落盘结果)；`slot`模式的结果说明见[使用示例：slot模式](./pytorch_nan_check_quickstart.md#5-slot模式)。图模式的目录和`data_name`示例见[nan_check任务输出](./aclgraph_dump_instruct.md#nan_check-任务)。
 
 ### task配置为structure
 
@@ -321,18 +319,26 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 
 ### check_mode参数配置说明
 
-以下说明适用于`PrecisionDebugger`的PyTorch `nan_check`任务，`str`类型，可选：
+`nan_check.check_mode`为`str`类型，可选值如下：
 
-- `"isnan"`（默认）：检测输入、输出tensor中的NaN，不检测Inf或过程溢出。前向输出含NaN时，将该API的输入、输出自动保存为`dump_tensor_data`目录下的`.pt`文件；反向计算得到的梯度含NaN时，保存该次反向调用的全部输入、输出梯度。无需配置`tensor_list`，采集时不主动触发异常。编译msProbe时须包含`--include-mod=aclgraph_dump`模块。
-- `"slot"`：读取NPU寄存器状态，检测API中的NaN、Inf或过程溢出。编译msProbe时须包含`--include-mod=nan_check`模块，并在运行前设置`INF_NAN_MODE_FORCE_DISABLE=1`。详细采集范围由`tensor_list`指定。
+- `"isnan"`（默认）：检测Tensor中的NaN。eager场景使用`PrecisionDebugger`，`level`为`"L1"`，构建、运行及输出说明见[nan_check使用示例](./pytorch_nan_check_quickstart.md)。AclGraph图模式使用`AclGraphDumper`，`level`支持`L0`、`L1`、`mix`，配置与输出说明见[NaN自动检测](./aclgraph_dump_instruct.md#nan-自动检测)。
+- `"slot"`：eager场景通过`PrecisionDebugger`读取NPU寄存器状态，检测NaN、Inf或过程溢出，`level`为`"L1"`。详细采集范围由`tensor_list`指定；构建、环境变量和结果说明见[使用示例：slot模式](./pytorch_nan_check_quickstart.md#5-slot模式)。
 
-例如，在上方配置示例中将`nan_check`部分改为以下内容，启用寄存器检测并详细采集`sqrt`：
+以下完整配置启用`slot`模式，并详细采集`sqrt`：
 
 ```json
 {
+    "task": "nan_check",
+    "dump_path": "/home/data_dump",
+    "rank": [],
+    "step": [],
+    "level": "L1",
     "nan_check": {
+        "scope": [],
+        "list": [],
         "check_mode": "slot",
-        "tensor_list": ["sqrt"]
+        "tensor_list": ["sqrt"],
+        "data_mode": ["all"]
     }
 }
 ```
@@ -345,7 +351,7 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 
   - 配置示例："tensor_list": ["relu"]。
 
-- [nan_check](#task配置为nan_check)任务仅在`slot`模式使用此参数：按API名称子串匹配需要详细采集的API，溢出时触发异常并将详细数据保存至`extra-info`，供[Tensor解析工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/msaicerr/Dump_files_parsing.md)解析。
+- [nan_check](#task配置为nan_check)任务仅在`check_mode: "slot"`时支持此参数：按API名称子串匹配需要详细采集的API，溢出时触发异常并将详细数据保存至`extra-info`，供[Tensor解析工具](https://gitcode.com/cann/oam-tools/blob/master/docs/zh/user_guide/msaicerr/Dump_files_parsing.md)解析。
 
 ### data_mode参数配置说明
 
@@ -385,6 +391,8 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 **说明**：PyTorch、MSAdapter以及MindSpore动态图场景，"summary_mode"配置为"md5"时，所使用的校验算法为CRC-32算法；MindSpore静态图场景，"summary_mode"配置为"md5"时，所使用的校验算法为MD5算法。
 
 ### slice参数配置说明
+
+切片功能的适用任务为`statistics`和`tensor`，具体场景见下文。
 
 - PyTorch
 

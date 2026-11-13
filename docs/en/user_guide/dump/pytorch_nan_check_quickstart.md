@@ -3,7 +3,7 @@
 This example collects one forward and backward computation.
 
 - Taking a square root of a negative value makes the loss NaN. Use the saved files to identify the API and its input.
-- Run on a single PyTorch NPU with the default `isnan` mode.
+- Run eagerly on a single PyTorch NPU with the default `isnan` mode through `PrecisionDebugger`. For AclGraph graph mode, see [Automatic NaN Detection](./aclgraph_dump_instruct.md#automatic-nan-detection).
 
 Configure collection in `config.json`, then call `PrecisionDebugger.start()` before the code you want to check and `stop()` afterward. After the run, check `dump.json` for the NaN detection results, read the `.pt` files for the input and output data, and check `stack.json` for the call locations.
 
@@ -13,7 +13,7 @@ This example requires the `aclgraph_dump` module. Add `-e include-mod=aclgraph_d
 
 ## 2. Data Collection
 
-Create `config.json` and the `repro_nan.py` below in the locally cloned `msprobe` directory, and run there. The default is already `isnan`; no additional detection-mode or `tensor_list` configuration is needed:
+Create `config.json` and the `repro_nan.py` below in the locally cloned `msprobe` directory, and run there. This example uses the default `isnan` mode:
 
 ```json
 {
@@ -25,7 +25,7 @@ Create `config.json` and the `repro_nan.py` below in the locally cloned `msprobe
 
 To select ranks, steps, or an API range, see `rank`, `step`, `scope`, `list`, `data_mode`, and other fields in the [complete configuration example and parameter descriptions](./config_json_introduct.md#task--nan_check). This example uses their default settings.
 
-`nan_check.detail` defaults to `true`, recording JSON results and saving tensors from matching calls. To save tensor files only, set `"nan_check": {"detail": false}`; `dump.json`, `stack.json`, and `construct.json` are then omitted. `detail` is supported only by the default `isnan` mode and cannot be configured with `slot`.
+`nan_check.detail` defaults to `true`. To save tensor files only, set `"nan_check": {"detail": false}`. See [Saved Files](#3-saved-files) for the output of each setting.
 
 Create `repro_nan.py`. Green `+` lines are tool additions; remove the leading `+` before saving:
 
@@ -81,26 +81,75 @@ nan_check_dump/
             └── ...
 ```
 
-Here are some of the detection results for `sqrt` and `add` in `dump.json`:
+Below are the complete forward API records for `sqrt` and `add` in the `data` field of `dump.json`. The file header and other APIs are omitted. The second positional argument of `add` is the Python scalar `1.0`, recorded through `type` and `value` fields:
 
 ```json
 {
     "data": {
         "Torch.sqrt.0.forward": {
-            "input_args": [{"shape": [2], "is_nan": 0}],
-            "output": [{"shape": [2], "is_nan": 1}]
+            "input_args": [
+                {
+                    "type": "torch.Tensor",
+                    "dtype": "torch.float32",
+                    "shape": [2],
+                    "requires_grad": true,
+                    "is_nan": 0
+                }
+            ],
+            "input_kwargs": {},
+            "output": [
+                {
+                    "type": "torch.Tensor",
+                    "dtype": "torch.float32",
+                    "shape": [2],
+                    "requires_grad": true,
+                    "is_nan": 1
+                }
+            ]
         },
         "Torch.add.0.forward": {
-            "input_args": [{"shape": [2], "is_nan": 1}],
-            "output": [{"shape": [2], "is_nan": 1}]
+            "input_args": [
+                {
+                    "type": "torch.Tensor",
+                    "dtype": "torch.float32",
+                    "shape": [2],
+                    "requires_grad": true,
+                    "is_nan": 1
+                },
+                {
+                    "type": "float",
+                    "value": 1.0
+                }
+            ],
+            "input_kwargs": {},
+            "output": [
+                {
+                    "type": "torch.Tensor",
+                    "dtype": "torch.float32",
+                    "shape": [2],
+                    "requires_grad": true,
+                    "is_nan": 1
+                }
+            ]
         }
     }
 }
 ```
 
-`is_nan` belongs to each tensor: `0` means no NaN, `1` means NaN, and `null` means detection is unavailable. When a forward output contains NaN, its inputs and outputs are automatically saved as `.pt` files. `stack.json` stores groups of API-name lists and call-stack lists.
+### is_nan Field
 
-Non-empty FP8/FP4 tensors have a detection result of `null`; integer, bool, and empty tensors record `0`. Unknown flags do not trigger saving. If another output in the same call contains NaN, all original input and output tensors are still submitted for saving.
+With `detail: true`, `isnan` records each input/output tensor's `is_nan`: `1` for NaN, `0` for a passed NaN check, or `null` for an unknown detection result. Integer, bool, and empty tensors record `0`; FP8/FP4 tensors with at least one element, FakeTensors, and meta tensors record `null`. Python scalar integers, floats, and bools are recorded through `type` and `value` fields.
+
+### Tensors and Additional Files
+
+When a forward output contains NaN, all input/output tensors of that API call within the collection range are saved. When gradients computed by a backward call contain NaN, that call's input/output gradients are saved. Saving is triggered by an output tensor with `is_nan: 1`; other tensors with `null` flags in the same call are also submitted for saving with all original input/output tensors. Files are saved separately for each API call; API-call and save indices depend on the actual output.
+
+| detail | Saved files |
+| --- | --- |
+| `true` (default) | `dump.json` records detection results, and calls with NaN outputs also save `.pt` files. `stack.json` and `construct.json` are generated by default; setting the root parameter `extra_info: false` makes the output consist of `dump.json` and the applicable `.pt` files. |
+| `false` | The output consists only of `.pt` files for the calls described above. |
+
+`stack.json` stores groups of API-name lists and call-stack lists for locating calls in the next section.
 
 ## 4. File Reading and Cause Location
 
@@ -137,8 +186,21 @@ File .../repro_nan.py, line 10, in <module>,
  y = torch.sqrt(x)
 ```
 
-Conclusion: `sqrt` receives inputs without NaN and first produces NaN. The saved input contains `-1.0`, and the call stack points to `torch.sqrt(x)`. Inspect the source of the negative value and the operation's input domain at that line. Both the input and output of `add` contain NaN, showing upstream propagation.
+Conclusion: the `sqrt` input passes the NaN check, and its output first produces NaN. The saved input contains `-1.0`, and the call stack points to `torch.sqrt(x)`. Inspect the source of the negative value and the operation's input domain at that line. Both the input and output of `add` contain NaN, showing upstream propagation.
 
 The figure below combines the values and detection flags above, contrasting the first NaN from `sqrt` with its propagation through `add` in this example.
 
 ![Numeric values and detection flags in this example: sqrt produces the first NaN and add propagates it](../../figures/pytorch_nan_check_quickstart/nan_propagation.png)
+
+## 5. slot Mode
+
+Eager execution also supports `slot` mode, which reads NPU register status for NaN, Inf, or intermediate overflow in APIs. Follow the [Installation Guide](../../install_guide/msprobe_install_guide.md) to build with `-e include-mod=nan_check`, and replace `config.json` with the complete `slot` configuration in [check_mode Configuration](./config_json_introduct.md#check_mode-configuration). `detail` applies to `isnan`; explicitly setting it in `slot` mode raises an error.
+
+Set the environment variable before running the script from section 2:
+
+```bash
+export INF_NAN_MODE_FORCE_DISABLE=1
+python3 repro_nan.py
+```
+
+`dump.json` records `is_nan` at API granularity. Intermediate overflow may be detected even when the output tensor is normal. Results for int64 operations carry a risk of inaccuracy and require checking against the actual values. Overflow in an API selected by `tensor_list` raises an exception and saves detailed data under `extra-info` for the [Tensor Parsing Tool](https://www.hiascend.com/document/detail/en/CANNCommunityEdition/latest/maintenref/troubleshooting/troubleshooting_0532.html).
