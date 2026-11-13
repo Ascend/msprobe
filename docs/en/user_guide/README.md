@@ -31,7 +31,7 @@ MindStudio Probe (msProbe) provides full-scenario precision debugging capabiliti
 | Sub-scenario | Function Item | Function Description | Reference Document |
 |---|---|---|---|
 | Eager/Graph Mode | Data Collection | Complete the msProbe precision data collection operation. | [Data Collection](dump/vllm_dump_instruct.md) |
-| Eager/Graph Mode (MRV2) | KV Boundary Tracing | Record KV boundaries across scheduling, execution plans, and native results. | [KV Boundary Tracing](kv_trace.md) |
+| Eager/Graph Mode (Model Runner V2) | KV Cache Recording and Validation | Record cache blocks, read/write slots, and check results for requests. | [KV Cache Recording and Validation](kv_trace_instruct.md) |
 | | Data Comparison | Perform precision comparison on the precision data dumped by the msProbe tool, and then localize precision problems.<br/>Please refer to *Hierarchical Visualization Graph Comparison or Precision Comparison* | [Hierarchical Visualization Graph Comparison](accuracy_compare/pytorch_visualization_instruct.md)<br>[Precision Comparison](accuracy_compare/pytorch_accuracy_compare_instruct.md) |
 | torchair | Data Collection | Complete the precision data collection operation through the `set_ge_dump_config` interface. | [Data Collection](dump/torchair_dump_instruct.md) |
 | | Precision Comparison | Perform precision comparison on the precision data dumped by the msProbe tool, and then localize precision problems. | [Precision Comparison](accuracy_compare/torchair_compare_instruct.md) |
