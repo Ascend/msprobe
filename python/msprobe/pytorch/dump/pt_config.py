@@ -111,9 +111,8 @@ class NanCheckConfig(BaseConfig):
         if not isinstance(self.detail, bool):
             raise MsprobeException(MsprobeException.INVALID_PARAM_ERROR, "nan_check.detail must be a boolean.")
         if "detail" in json_config and self.check_mode != Const.NAN_CHECK_MODE_ISNAN:
-            raise MsprobeException(
-                MsprobeException.INVALID_PARAM_ERROR, "nan_check.detail is only supported with check_mode=isnan."
-            )
+            logger.warning("nan_check.detail is only supported with check_mode=isnan and will be ignored in slot mode.")
+            self.detail = True
 
 
 TaskDict = {

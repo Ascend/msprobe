@@ -194,7 +194,7 @@ File .../repro_nan.py, line 10, in <module>,
 
 ## 5. slot模式
 
-eager场景还可使用`slot`模式，通过NPU寄存器状态检测API中的NaN、Inf或过程溢出。按[安装指南](../../install_guide/msprobe_install_guide.md)使用`-e include-mod=nan_check`构建安装，并将`config.json`替换为[check_mode参数配置说明](./config_json_introduct.md#check_mode参数配置说明)中的完整`slot`配置。`detail`的适用模式为`isnan`；在`slot`模式中显式配置该字段会报错。
+eager场景还可使用`slot`模式，通过NPU寄存器状态检测API中的NaN、Inf或过程溢出。按[安装指南](../../install_guide/msprobe_install_guide.md)使用`-e include-mod=nan_check`构建安装，并将`config.json`替换为[check_mode参数配置说明](./config_json_introduct.md#check_mode参数配置说明)中的完整`slot`配置。`detail`的适用模式为`isnan`；在`slot`模式中显式配置该字段会输出warning并忽略该配置。
 
 运行前设置环境变量，再执行第2节的脚本：
 

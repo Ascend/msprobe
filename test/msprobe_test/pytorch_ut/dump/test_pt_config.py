@@ -85,7 +85,7 @@ class TestNanCheckConfig(unittest.TestCase):
                 self.assertEqual(config.check_mode, mode or Const.NAN_CHECK_MODE_ISNAN)
                 self.assertTrue(config.detail)
 
-    def test_detail_is_boolean_and_only_supported_in_isnan_mode(self):
+    def test_detail_is_boolean(self):
         for mode in (None, Const.NAN_CHECK_MODE_ISNAN):
             for detail in (False, True):
                 with self.subTest(mode=mode, detail=detail):
@@ -93,12 +93,25 @@ class TestNanCheckConfig(unittest.TestCase):
                     if mode is not None:
                         config["check_mode"] = mode
                     self.assertIs(NanCheckConfig(config).detail, detail)
-        for detail in (False, True, None, 0, "false"):
-            with self.subTest(detail=detail), self.assertRaisesRegex(MsprobeException, "nan_check.detail"):
-                NanCheckConfig({"check_mode": Const.NAN_CHECK_MODE_SLOT, "detail": detail})
-        for detail in (None, 0, "false"):
-            with self.subTest(detail=detail), self.assertRaisesRegex(MsprobeException, "must be a boolean"):
-                NanCheckConfig({"detail": detail})
+        for mode in (Const.NAN_CHECK_MODE_ISNAN, Const.NAN_CHECK_MODE_SLOT):
+            for detail in (None, 0, "false"):
+                with self.subTest(mode=mode, detail=detail), \
+                        self.assertRaisesRegex(MsprobeException, "must be a boolean"):
+                    NanCheckConfig({"check_mode": mode, "detail": detail})
+
+    @patch("msprobe.pytorch.dump.pt_config.logger.warning")
+    def test_slot_detail_is_ignored_with_warning(self, warning):
+        for detail in (False, True):
+            with self.subTest(detail=detail):
+                warning.reset_mock()
+                config = NanCheckConfig({"check_mode": Const.NAN_CHECK_MODE_SLOT, "detail": detail})
+                self.assertTrue(config.detail)
+                warning.assert_called_once_with(
+                    "nan_check.detail is only supported with check_mode=isnan and will be ignored in slot mode."
+                )
+        warning.reset_mock()
+        NanCheckConfig({"check_mode": Const.NAN_CHECK_MODE_SLOT})
+        warning.assert_not_called()
 
     def test_check_mode_rejects_invalid_value(self):
         with self.assertRaises(MsprobeException) as context:

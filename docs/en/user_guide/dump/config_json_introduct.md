@@ -198,7 +198,7 @@ The following parameters apply to eager execution with `PrecisionDebugger`. All 
 | scope | Optional | Detection scope, of type `list[str]`. See [scope Configuration](#scope-configuration). |
 | list | Optional | APIs to check, of type `list[str]`. See [list Configuration](#list-configuration). |
 | check_mode | Optional | Detection mode, of type `str`, default `"isnan"`. See [check_mode Configuration](#check_mode-configuration). |
-| detail | Optional | A `bool`, default `true`, applicable to `check_mode: "isnan"`. `true` records detection JSON; with `false`, output consists only of `.pt` files for calls with NaN outputs. See [Saved Files in the Usage Example](./pytorch_nan_check_quickstart.md#3-saved-files). |
+| detail | Optional | A `bool`, default `true`, applicable to `check_mode: "isnan"`. `true` records detection JSON; with `false`, output consists only of `.pt` files for calls with NaN outputs. Explicitly setting this field in `slot` mode logs a warning and the setting is ignored. See [Saved Files in the Usage Example](./pytorch_nan_check_quickstart.md#3-saved-files). |
 | tensor_list | Optional | Supported with `check_mode: "slot"` to select API keywords for detailed collection, of type `list[str]`. See [tensor_list Configuration](#tensor_list-configuration). |
 | data_mode | Optional | Data filter, of type `list[str]`, default `["all"]`. If `"input"` is specified, include `"output"` too. See [data_mode Configuration](#data_mode-configuration). |
 

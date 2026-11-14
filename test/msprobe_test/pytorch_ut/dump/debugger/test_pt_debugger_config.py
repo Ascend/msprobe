@@ -72,6 +72,19 @@ class TestDebuggerConfig(unittest.TestCase):
         self.assertFalse(config.nan_check_detail)
         self.assertFalse(config.extra_info)
 
+    def test_slot_detail_preserves_json_and_extra_info(self):
+        self.common_config.task = Const.NAN_CHECK
+        with patch(
+            "msprobe.pytorch.dump.debugger.debugger_config._is_torch_npu_importable", return_value=True
+        ):
+            for detail in (False, True):
+                with self.subTest(detail=detail):
+                    task_config = NanCheckConfig({"check_mode": Const.NAN_CHECK_MODE_SLOT, "detail": detail})
+                    config = DebuggerConfig(self.common_config, task_config, None, None, None)
+                    self.assertEqual(config.nan_check_mode, Const.NAN_CHECK_MODE_SLOT)
+                    self.assertTrue(config.nan_check_detail)
+                    self.assertTrue(config.extra_info)
+
     def test_nan_check_backward_data_modes_require_output(self):
         self.common_config.task = Const.NAN_CHECK
         cases = (

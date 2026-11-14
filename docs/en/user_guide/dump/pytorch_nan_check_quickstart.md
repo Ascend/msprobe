@@ -194,7 +194,7 @@ The figure below combines the values and detection flags above, contrasting the 
 
 ## 5. slot Mode
 
-Eager execution also supports `slot` mode, which reads NPU register status for NaN, Inf, or intermediate overflow in APIs. Follow the [Installation Guide](../../install_guide/msprobe_install_guide.md) to build with `-e include-mod=nan_check`, and replace `config.json` with the complete `slot` configuration in [check_mode Configuration](./config_json_introduct.md#check_mode-configuration). `detail` applies to `isnan`; explicitly setting it in `slot` mode raises an error.
+Eager execution also supports `slot` mode, which reads NPU register status for NaN, Inf, or intermediate overflow in APIs. Follow the [Installation Guide](../../install_guide/msprobe_install_guide.md) to build with `-e include-mod=nan_check`, and replace `config.json` with the complete `slot` configuration in [check_mode Configuration](./config_json_introduct.md#check_mode-configuration). `detail` applies to `isnan`; explicitly setting it in `slot` mode logs a warning and the setting is ignored.
 
 Set the environment variable before running the script from section 2:
 
