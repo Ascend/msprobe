@@ -31,7 +31,7 @@ MindStudio Probe（msProbe）针对昇腾 AI 处理器提供全场景精度调�
 | 细分场景 | 功能项 | 功能说明 | 参考文档 |
 |---|---|---|---|
 | Eager/图模式 | 数据采集 | 完成 msProbe 精度数据采集操作 | [数据采集](dump/vllm_dump_instruct.md) |
-| Eager/图模式 | KV数据统计值采集 | 完成 KV 数据统计值的采集操作 | [数据采集](kv_collect.md) |
+| Eager/图模式 | KV Cache 统计值采集 | 完成 KV Cache 统计值的采集操作 | [KV Cache 统计值采集](kv_collect_instruct.md) |
 | Eager/图模式（Model Runner V2） | KV Cache 记录与校验 | 记录请求使用的缓存块、读写槽位及校验结果 | [KV Cache 记录与校验](kv_trace_instruct.md) |
 | | 数据比对 | 将 msProbe 工具 dump 的精度数据进行精度比对，进而定位精度问题<br/>请参考分级可视化构图比对或精度比对 | [分级可视化构图比对](accuracy_compare/pytorch_visualization_instruct.md)<br>[精度比对](accuracy_compare/pytorch_accuracy_compare_instruct.md) |
 | torchair | 数据采集 | 通过 `set_ge_dump_config` 接口完成精度数据采集操作 | [数据采集](dump/torchair_dump_instruct.md) |
@@ -113,3 +113,5 @@ MindStudio Probe（msProbe）针对昇腾 AI 处理器提供全场景精度调�
 🔹 [MindSpore 场景的精度数据采集基线报告](../baseline/mindspore_data_dump_perf_baseline.md)
 
 🔹 [训练状态监测工具标准性能基线报告](../baseline/monitor_perf_baseline.md)
+
+🔹 [vLLM KV Cache 统计值采集性能基线报告](../baseline/kv_collect_perf_baseline.md)
