@@ -372,7 +372,7 @@ The directory structure is as follows:
   * When the Tensor data format is NZ, the `max`, `min`, `mean`, and `L2norm` (L2 norm, square root) statistics in `dump.json` are all `null`, and the `mean` and `L2norm` statistics are calculated only when the Tensor data type is one of `torch.float32`, `torch.float16`, or `torch.bfloat16`; for other data types, only the `max` and `min` statistics are calculated.
   * When `summary_mode` is set to `xor`, `dump.json` outputs only the XOR checksum value, without outputting `max`, `min`, `mean`, or `L2norm` statistics. If the acceleration operator is unavailable, the tool automatically falls back to the generic implementation.
   * When `task` is set to `nan_check`, the default `isnan` mode records `is_nan` for each input and output tensor (`1` indicates that the tensor contains NaN, `0` indicates that it does not, and `null` indicates that detection is not possible). The `slot` mode records register detection results for each API. Neither mode calculates statistics. For details, see [nan_check Configuration](./config_json_introduct.md#task--nan_check) and [Nan Check Quick Start](./pytorch_nan_check_quickstart.md).
-  * When the `tag` API is used during dump, the tagged entries in the `dump.json` file also contain an `alias` field. For details about the configuration, see [Custom Tag](#custom-tag).
+  * When the `tag` API is used during dump, the tagged entries in the `dump.json` file also contain an `alias` field. For details about the usage, see [Custom Tag](#custom-tag).
 
 * `dump_error_info.log`: Generated only when the dump tool encounters an error; used to record dump error logs.
 * `stack.json`: call stack information of APIs or modules.
@@ -396,8 +396,6 @@ The table below describes the mapping between the prefix of the .pt file and PyT
 | Triton   | triton       |
 
 ### dump.json Description
-
-If the [tag](#tag) API is used, tagged entries also contain an `alias` field. For details, see [Custom Tag](#custom-tag).
 
 #### L0 Level
 
@@ -859,16 +857,37 @@ __main__:
 
 Adds a user-defined custom tag to dump data entries using the tag API.
 
-After you wrap a code block with `with tag("tag_name")`, an `alias` field is injected into the dump data within the scope. This field marks the data of the same logical group with a unified name, facilitating subsequent data comparison and locating based on tags.
+After you wrap a code block with `with tag("label")`, an `alias` field is injected into the dump data within the scope. This field marks the data of the same logical group with a unified name, facilitating subsequent data comparison and locating based on tags.
+
+Custom tag collection supports statistics mode, real data mode, and MD5 mode. That is, tags can be collected when `task` is configured as `statistics` or `tensor`.
 
 **Example**
 
-`with` context usage:
+The `tag` API must be used together with the data collection process of `PrecisionDebugger`. A complete usage example is as follows:
 
 ```diff
+  import torch
   import torch.nn as nn
-+ from msprobe.pytorch import PrecisionDebugger, tag
+  import torch.nn.functional as F
 
++# Import the data collection API of the tool.
++from msprobe.pytorch import PrecisionDebugger, tag
++
++# Instantiate PrecisionDebugger before model training.
++debugger = PrecisionDebugger(config_path="./config.json")
+
+  # Define a submodule.
+  class AttnCore(nn.Module):
+      def __init__(self):
+          super().__init__()
+          self.k_proj = nn.Linear(64, 64)
+          self.v_proj = nn.Linear(64, 64)
+
+      def forward(self, q, mask):
+          score = q @ self.k_proj(q).transpose(-2, -1) + mask
+          return F.softmax(score, dim=-1) @ self.v_proj(q)
+
+  # Define a network.
   class DemoModel(nn.Module):
       def __init__(self):
           super().__init__()
@@ -878,25 +897,62 @@ After you wrap a code block with `with tag("tag_name")`, an `alias` field is inj
 
       def forward(self, x, mask):
           q = self.q_proj(x)
-+         # Annotate the attention computation segment
++         # Tag the attention computation segment.
 +         with tag("attn_seg"):
 +             attn = self.attn_core(q, mask)
           return self.o_proj(attn)
+
+  if __name__ == "__main__":
+      model = DemoModel()
+
++     debugger.start(model=model)  # Enable data dump.
+
+      x = torch.randn(10, 64)
+      mask = torch.zeros(10, 10)
+      out = model(x, mask)
+      loss = out.sum()
+      loss.backward()
+
++     debugger.stop()  # Disable data dump. You can enable data dump again. The collected data is recorded in the same step.
++     debugger.step()  # End data dump. If data dump is enabled again, the collected data is recorded in the next step.
 ```
 
-In the preceding example, the forward, backward, and parameter gradient entries of `attn_core` carry `alias="attn_seg"`; in mix mode, the submodules and APIs executed inside `attn_core` are not tagged; `q_proj` and `o_proj` are not affected.
+**Example (Custom Tag Comparison Scenario)**
+
+If the custom tag dump data is used for comparison, the dump configuration and tag scope must meet the following requirements:
+
+- The tag comparison supports only statistics mode and real data mode. MD5-mode data does not trigger the tag comparison; a warning is printed and the data is compared normally.
+- One tag name must wrap the same number of calls on both sides (a tag may also wrap multiple calls inside a loop; they are paired iteration by iteration).
+
+The custom tag comparison involves the following two scenarios and labeling methods:
+
+- Module scenario:
+
+  For example, one side uses the fused module FusedAttention and the other uses the hand-written module Attention. The labeling method is as follows.
+
+  ```python
+  with tag("attn"):
+      out = self.fused_attn(q, k)
+  ```
+
+- API scenario:
+
+  For example, one side uses the fused operator fused_gqa_attention and the other uses the hand-written operator handwritten_gqa_attention. The labeling method is as follows. A custom API must be registered before it can be dumped. For the registration method, see [Batch Registration of User-Defined APIs](#batch-registration-of-user-defined-apis).
+
+  ```python
+  with tag("gqa"):
+      out = fused_gqa_attention(q, k, v)
+  ```
+
+The data dumped in this scenario is used for [custom tag comparison](../accuracy_compare/pytorch_accuracy_compare_instruct.md#custom-tag-comparison-scenario).
 
 **Tag Scope**
-
-Only the first-level entries directly called within the scope are tagged (modules called directly, plus free API operators at the same level as those modules; calls in plain Python function chains also count as direct calls). The submodules and internal APIs inside a called module are not tagged. Recursive tagging is not supported: a tag is a call anchor rather than a dye, and it always marks only the modules/operators called directly at the outermost level of the scope.
 
 | Level | Tagging Scope |
 | --- | --- |
 | L0 | All modules directly called within the scope are tagged (multiple sibling calls all take effect, and calls in plain Python function chains also count as direct calls). Internal submodules are not tagged. |
 | L1 | All APIs executed within the scope are tagged. |
 | mix | All modules directly called within the scope, plus the API calls at the same level as those modules (API operators not nested inside a called module; calls in plain Python function chains also count as direct calls), are tagged. Submodules and APIs inside a called module are not tagged. |
-
-In L1 mode, module calls are not hooked, so module boundaries cannot be perceived; all APIs executed within the scope (including those executed inside modules) are tagged. In L0/mix mode, a module call forms a nesting boundary, so the submodules and APIs inside a called module are not tagged.
 
 **Output Description**
 
@@ -913,47 +969,7 @@ Tagged entries contain an extra `alias` field in dump.json:
 
 **Notes**
 
-- The tag name must be a string of 1 to 128 characters, containing only letters, digits, underscores (_), and hyphens (-). Otherwise, an exception is thrown.
-- Backward entries and parameter gradient entries automatically carry the tag of the corresponding forward entries. No extra operation is required.
 - Tag scopes support nesting. When nested, the inner tag takes precedence. The tag is a single value and is not merged.
-- To tag a function as a whole (for example, a loss function or a training step function), place `with tag(...)` at the beginning of the function body. The modules/APIs directly called in the function body are then tagged.
-- When the same module is called in multiple different tag scopes within one step, its forward/backward entries carry the corresponding tag by call index, and its parameter gradient (`parameters_grad`) entries carry the tag registered last.
-
-#### Working with Tag Comparison
-
-Tags can be used together with precision comparison to compare data whose entry names differ between the two sides. When the dump data contains tags, the comparison command is the same as in normal comparison, and the tag pairing is enabled automatically. When tag comparison is used, the dump configuration and labeling must meet the following requirements:
-
-- `task` can be set to `statistics` or `tensor`.
-- `level` set to `mix` and `risk_level` set to `ALL` are recommended. The default FOCUS level filters out view operators such as reshape/transpose, causing tagged entries to go missing.
-- One tag name must wrap the same number of calls on both sides (a tag may also wrap multiple calls inside a loop; they are paired iteration by iteration).
-
-When comparing differently named implementations on the two sides, wrap the corresponding calls in the scripts on both sides with the same tag name:
-
-**Module scenario** (module names differ between the two sides):
-
-```python
-# NPU-side script
-with tag("attn"):
-    out = self.fused_attn(q, k)
-
-# Bench-side script
-with tag("attn"):
-    out = self.attention(q, k)
-```
-
-**API scenario** (custom operator names differ between the two sides; the custom operators must be registered before dump):
-
-```python
-# NPU-side script
-with tag("gqa"):
-    out = fused_gqa_attention(q, k, v)
-
-# Bench-side script
-with tag("gqa"):
-    out = handwritten_gqa_attention(q, k, v)
-```
-
-For the complete usage of tag comparison, see [Custom Tag Comparison Scenario](../accuracy_compare/pytorch_accuracy_compare_instruct.md#custom-tag-comparison-scenario) in [Precision Comparison in PyTorch](../accuracy_compare/pytorch_accuracy_compare_instruct.md).
 
 ## API Description
 

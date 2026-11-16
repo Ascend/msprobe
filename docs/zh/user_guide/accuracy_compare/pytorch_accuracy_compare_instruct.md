@@ -332,41 +332,37 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 #### 自定义标签比对场景
 
-在dump时用同名标签包裹npu侧与bench侧的模块或算子（可不同命名/实现），作用域内的条目可按新定的[标签配对规则](#配对规则)互相配对。
+在dump时用同名标签包裹NPU与标杆环境的模块或算子（可不同命名、不同实现逻辑），标签作用域内的条目按**标签配对规则**比对。
 
-默认（recursive=False）仅标注作用域内直接调用的模块/算子，其内部子模块/子算子不标注（L1级别例外：作用域内执行的API均标注）；recursive=True时标注全部嵌套层级。被标注调用的反向与参数梯度条目自动携带同标签，标注范围详见《[PyTorch场景精度数据采集](../dump/pytorch_data_dump_instruct.md)》的[自定义标签](../dump/pytorch_data_dump_instruct.md#自定义标签)章节。
+**标签配对规则**：
 
-**module场景**
+1. 同标签两侧圈住的调用次数一致时成组配对。
+2. 条目先按名字匹配，配不上则按序号结对（循环逐次对应）。
+3. 条目内行按槽位（input,output等）一一对照，张量行 dtype+shape 都相同才可匹配，参数梯度行按模块基名与参数名对应（模块名不同则不配对），匹配不上的行均保留可见。
+4. 调用次数不一致或仅单侧出现时，该标签退回普通比对并告警。
 
-比对两侧条目名/实现不同的模块实现。例如一侧使用融合模块`FusedAttention`，另一侧使用手写模块`Attention`。
+操作步骤如下：
 
-1. 用同名标签分别圈住两侧待比对的模块，并完成两侧的精度数据dump。打标方法请参见《[PyTorch场景精度数据采集](../dump/pytorch_data_dump_instruct.md)》的[自定义标签](../dump/pytorch_data_dump_instruct.md#自定义标签)与[配合标签比对](../dump/pytorch_data_dump_instruct.md#配合标签比对)章节。
+1. 用同名标签分别包裹NPU与标杆环境的待比对模块或算子，并完成两侧的精度数据dump。
 
-2. 运行命令：
+   打标签方法请参见《[PyTorch场景精度数据采集](../dump/pytorch_data_dump_instruct.md)》的[自定义标签](../dump/pytorch_data_dump_instruct.md#自定义标签)章节。
+
+2. 执行比对。
+
+   > [!NOTE] 标签比对自动触发说明
+   >
+   > compare会自动触发标签比对，条件如下：
+   >
+   > - dump数据中存在自定义标签。
+   > - 比对时不配置`-fm`、`-cm`、`-am`、`-dm`、`-da`、`--consistent_check`、`first_diff_analyze`参数。
+   > - 若配置了上述参数，不触发标签比对，并告警提示，按所配置的模式比对。
+   > - 标签比对仅支持统计数据模式与真实数据模式；MD5模式的数据不触发标签比对，会告警提示并按普通比对进行。
 
    ```shell
    msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output
    ```
 
-3. 查看比对结果，请参见 [输出说明](#输出说明)、[精度比对结果分析](#精度比对结果分析)。
-
-**api场景**
-
-比对两侧函数名/实现不同的自定义算子。例如一侧使用融合算子`fused_gqa_attention`，另一侧使用手写算子`handwritten_gqa_attention`。自定义API需先注册才能dump，注册方式请参见《[PyTorch场景精度数据采集](../dump/pytorch_data_dump_instruct.md)》的[批量注册用户自定义的API](../dump/pytorch_data_dump_instruct.md#批量注册用户自定义的api)或[register_custom_api](../dump/pytorch_data_dump_instruct.md#register_custom_api)章节。
-
-1. 用同名标签分别圈住两侧待对比的自定义算子（需保证两侧圈住的调用次数一致），并完成两侧的精度数据dump。打标方法请参见《[PyTorch场景精度数据采集](../dump/pytorch_data_dump_instruct.md)》的[自定义标签](../dump/pytorch_data_dump_instruct.md#自定义标签)与[配合标签比对](../dump/pytorch_data_dump_instruct.md#配合标签比对)章节。
-
-2. 运行命令：同module场景的运行命令。
-
-3. 查看比对结果，请参见 [输出说明](#输出说明)、[精度比对结果分析](#精度比对结果分析)。
-
-##### 配对规则
-
-同标签两侧圈住的调用次数一致时成组配对：条目先按名字匹配，配不上则按序号结对（循环逐次对应）；条目内行按槽位（input,output等）一一对照，张量行 dtype+shape 都相同才配上，参数梯度行按模块基名与参数名对应（模块名不同则不配对）。配不上的行均保留可见；调用次数不一致或仅单侧出现时，该标签退回普通比对并告警。
-
-**约束与限制**：
-
-- dump数据中存在标签、且未配置`-fm`、`-cm`、`-am`、`-dm`、`-da`、`--consistent_check`、`first_diff_analyze`时启用标签比对；同时配置了上述参数时不启用标签比对（告警提示），按所配置的模式比对。
+3. 查看比对结果，请参见 [自定义标签比对结果分析](#自定义标签比对结果分析)。
 
 ### 输出说明
 
@@ -388,7 +384,7 @@ verl训推一致性比对场景：verl强化学习prefill阶段训练和推理�
 
 - 自定义标签比对场景：
 
-   产物文件与原生csv文件具有相同的命名规则和表结构。标签配对行的"NPU Name"与"Bench Name"列均带标签前缀（如`(attn)Module.xxx.forward.0.input.0`），未打标的行无标签前缀，行按照dump序（执行顺序）排列。
+  与上述各场景具有相同的结果文件。
 
 ### 输出结果文件说明
 
@@ -517,6 +513,19 @@ warning标记情况：
    当 dump 数据中存在 0 或 nan 时，比对结果中最大相对误差则出现 inf 或 nan 的情况，属于正常现象。
 
 5. One Thousandth Err Ratio（相对误差小于千分之一的元素比例）、Five Thousandth Err Ratio（相对误差小于千分之五的元素比例）精度指标：是指 NPU 的 Tensor 中的元素逐个与对应的标杆数据对比，相对误差小于千分之一、千分之五的比例占总元素个数的比例。该数据仅作为精度下降趋势的参考，并不参与计算精度是否通过的判定。
+
+#### 自定义标签比对结果分析
+
+自定义标签比对结果文件内，标签配对行的"NPU Name"与"Bench Name"列均带标签前缀（如`(attn)Module.xxx.forward.0.input.0`），未打标签的行无标签前缀，行按照dump序（执行顺序）排列。结果文件表头与其他场景相同，各列含义请参见[指标说明](#指标说明)。
+
+关键字段说明如下：
+![alt text](img_v3_0217b_9aac82de-f5db-4279-935c-0a03527e16bg.jpg)
+
+| 字段 | 说明 |
+| --- | --- |
+| NPU Name / Bench Name | 条目名。标签配对行带`(标签名)`前缀，可通过前缀识别标签配对行；仅单侧出现的条目保留可见，另一侧名称及数据列为N/A。 |
+| Result | 比对结果，判定标准与普通比对一致，请参见[比对结果（Result）](#比对结果result)。 |
+| Err_message | 错误信息提示。常见提示包括：单侧条目未匹配到对端数据（如`No bench data matched.`）、两侧数据dtype或shape不一致无法比对等；标签退回普通比对等标签相关告警输出在比对日志中。 |
 
 ## 多卡数据汇总功能介绍
 

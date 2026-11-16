@@ -372,7 +372,7 @@ dump.json is at ./dump_path/step*
   * 当Tensor的数据格式为NZ格式时，dump.json中max、min、mean、L2norm（L2范数，平方根）统计信息均为`null`，且仅当Tensor的数据类型为torch.float32、torch.float16、torch.bfloat16中的一种时，才会计算mean、L2norm统计信息，其它数据类型仅计算max、min统计信息。
   * 当`summary_mode`配置为`xor`时，dump.json仅输出XOR校验值，不输出max、min、mean、L2norm统计信息。加速算子不可用时自动回退到通用实现。
   * 当task为`"nan_check"`时，默认`isnan`模式为每个输入、输出tensor记录`is_nan`（`1`表示含NaN，`0`表示不含NaN，`null`表示无法检测）；`slot`模式按API记录寄存器检测结果。两种模式均不计算统计值，详见[nan_check配置](./config_json_introduct.md#task配置为nan_check)和[完整使用示例](./pytorch_nan_check_quickstart.md)。
-  * 当dump时使用了`tag`接口，`dump.json`文件中被标注的条目还会包含`alias`字段，详细配置请参见[自定义标签](#自定义标签)。
+  * 当dump时使用了`tag`接口，`dump.json`文件中被标注的条目还会包含`alias`字段，详细用法请参见[自定义标签](#自定义标签)。
 
 * `dump_error_info.log`：仅在dump工具报错时生成此记录日志，用于记录dump错误日志。
 * `stack.json`：API/Module的调用栈信息。
@@ -857,16 +857,37 @@ __main__:
 
 通过[tag](#tag)接口为dump数据条目添加用户自定义标签。
 
-使用 with tag("标签名") 包裹代码块后，系统会在作用域内的dump数据中注入alias字段。该字段将同一逻辑分组的数据标记为统一名称，便于后续基于标签进行数据比对与定位。
+使用 with tag("label") 包裹代码块后，系统会在作用域内的dump数据中注入alias字段。该字段将同一逻辑分组的数据标记为统一名称，便于后续基于标签进行数据比对与定位。
+
+标签采集支持统计数据模式、真实数据模式与MD5模式，即`task`配置为`statistics`或`tensor`时均可采集标签。
 
 **使用示例**
 
-with上下文用法：
+`tag`需配合`PrecisionDebugger`的数据采集流程使用，完整使用示例如下：
 
 ```diff
+  import torch
   import torch.nn as nn
-+ from msprobe.pytorch import PrecisionDebugger, tag
+  import torch.nn.functional as F
 
++# 导入工具的数据采集接口
++from msprobe.pytorch import PrecisionDebugger, tag
++
++# 在模型训练开始前实例化PrecisionDebugger
++debugger = PrecisionDebugger(config_path="./config.json")
+
+  # 定义子模块
+  class AttnCore(nn.Module):
+      def __init__(self):
+          super().__init__()
+          self.k_proj = nn.Linear(64, 64)
+          self.v_proj = nn.Linear(64, 64)
+
+      def forward(self, q, mask):
+          score = q @ self.k_proj(q).transpose(-2, -1) + mask
+          return F.softmax(score, dim=-1) @ self.v_proj(q)
+
+  # 定义网络
   class DemoModel(nn.Module):
       def __init__(self):
           super().__init__()
@@ -880,21 +901,58 @@ with上下文用法：
 +         with tag("attn_seg"):
 +             attn = self.attn_core(q, mask)
           return self.o_proj(attn)
+
+  if __name__ == "__main__":
+      model = DemoModel()
+
++     debugger.start(model=model)  # 开启数据dump
+
+      x = torch.randn(10, 64)
+      mask = torch.zeros(10, 10)
+      out = model(x, mask)
+      loss = out.sum()
+      loss.backward()
+
++     debugger.stop()  # 关闭数据dump，可继续开启数据dump，采集数据会记录在同一个step中
++     debugger.step()  # 结束数据dump，若继续开启数据dump，采集数据将记录在下一个step中
 ```
 
-上述示例中，`attn_core`的前向（forward）、反向（backward）和参数梯度（parameters_grad）条目均带`alias="attn_seg"`；mix级别下`attn_core`内部执行的子模块与API不标注；`q_proj`、`o_proj`不受影响。
+**使用示例（自定义标签比对场景）**
+
+若自定义标签dump数据用于比对场景，dump配置与标签范围需满足以下要求：
+
+- 标签比对仅支持统计数据模式与真实数据模式；MD5模式的数据不触发标签比对，会告警提示并按普通比对进行。
+- 同一标签名在两侧圈住的调用次数须一致（标签圈住循环中的多次调用也可以，按迭代一一配对）。
+
+自定义标签比对包含如下两种场景和打标签方式：
+
+- module场景：
+
+  例如一侧使用融合模块FusedAttention，另一侧使用手写模块Attention，打标签方式如下。
+
+  ```python
+  with tag("attn"):
+      out = self.fused_attn(q, k)
+  ```
+
+- API场景：
+
+  例如一侧使用融合算子fused_gqa_attention，另一侧使用手写算子handwritten_gqa_attention，打标签方式如下。自定义API需先注册才能dump，注册方式请参见[批量注册用户自定义的API](#批量注册用户自定义的api)章节。
+
+  ```python
+  with tag("gqa"):
+      out = fused_gqa_attention(q, k, v)
+  ```
+
+该场景dump的数据用于[自定义标签比对](../accuracy_compare/pytorch_accuracy_compare_instruct.md#自定义标签比对场景)。
 
 **标签生效范围**
-
-标签仅标注作用域内直接调用的一级条目（直接调用的模块，以及与这些模块同层级的游离API算子，纯Python函数链中的调用同属直接调用层），不标注被调用模块内部的子模块与API。标签不支持递归标注：标签是调用锚点而非染料，始终只锚定作用域内最外层直接调用的模块/算子。
 
 | level | 标注范围 |
 |-------|---------|
 | L0    | 标注作用域内直接调用的所有模块（多个并排调用的模块均生效，纯Python函数链中的调用同属直接调用层），内部子模块不标注 |
 | L1    | 标注作用域内执行的所有API |
 | mix   | 标注作用域内直接调用的所有模块，以及与这些模块同层级的游离API（未嵌套在被调用模块内部的API调用，纯Python函数链中的调用同属直接调用层）；被调用模块内部的子模块与API不标注 |
-
-L1级别不挂钩模块调用、无法感知模块边界，因此作用域内执行的API（包括模块内部执行的API）均标注；L0/mix级别模块调用会形成嵌套边界，被调用模块内部的子模块与API不标注。
 
 **输出说明**
 
@@ -911,47 +969,7 @@ L1级别不挂钩模块调用、无法感知模块边界，因此作用域内执
 
 **注意事项**
 
-- 标签名必须是1~128个字符的字符串，仅支持字母、数字、下划线（_）和连字符（-），否则抛出异常。
-- 反向（backward）条目和参数梯度（parameters_grad）条目自动携带对应前向条目的标签，无需额外处理。
 - 标签作用域支持嵌套，嵌套时内层标签优先生效，标签为单值、不叠加。
-- 如需为函数（如损失函数、训练step函数）整体打标，将`with tag(...)`写在函数体开头即可，函数体内直接调用的模块/API均会被标注。
-- 同一模块在同一步的多个不同标签作用域内被调用时，前向/反向条目按各自调用序号携带对应标签，其参数梯度（parameters_grad）条目携带最后一次登记的标签。
-
-#### 配合标签比对
-
-标签可与精度比对配合，比对两侧条目名不同的数据。dump数据中存在标签时，比对命令与普通比对相同，自动按标签配对。使用标签比对时，dump配置与打标需满足以下要求：
-
-- `task`支持`statistics`或`tensor`。
-- `level`推荐`mix`、`risk_level`推荐`ALL`：默认的FOCUS级别会过滤reshape/transpose等view类算子，被过滤的打标条目会缺失。
-- 同一标签名在两侧圈住的调用次数须一致（标签圈住循环中的多次调用也可以，按迭代一一配对）。
-
-比对两侧不同命名的实现时，两侧脚本用同一标签名分别圈住对应调用：
-
-**module场景**（两侧模块名不同）：
-
-```python
-# npu侧脚本
-with tag("attn"):
-    out = self.fused_attn(q, k)
-
-# bench侧脚本
-with tag("attn"):
-    out = self.attention(q, k)
-```
-
-**api场景**（两侧自定义算子名不同，需先注册才能dump）：
-
-```python
-# npu侧脚本
-with tag("gqa"):
-    out = fused_gqa_attention(q, k, v)
-
-# bench侧脚本
-with tag("gqa"):
-    out = handwritten_gqa_attention(q, k, v)
-```
-
-标签比对的完整用法请参见《[PyTorch场景精度比对](../accuracy_compare/pytorch_accuracy_compare_instruct.md)》的[自定义标签比对场景](../accuracy_compare/pytorch_accuracy_compare_instruct.md#自定义标签比对场景)章节。
 
 ## 接口介绍
 
