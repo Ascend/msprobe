@@ -582,7 +582,11 @@ class ParseData:
                 result[Const.SUFFIX].append(suffix)
 
                 # dump data may carry the custom-tag alias
-                result[Const.ALIAS].append(op_data.get(Const.ALIAS))
+                # op_data may be a null entry (e.g. a debug.json backward
+                # placeholder never backfilled); op_item_parse already tolerates
+                # it with a default row - keep the same None-tolerance here
+                # instead of a bare .get() that aborts the whole compare.
+                result[Const.ALIAS].append(op_data.get(Const.ALIAS) if op_data else None)
 
                 # dump_mode differ key
                 if self.mode_config.dump_mode == Const.MD5:
