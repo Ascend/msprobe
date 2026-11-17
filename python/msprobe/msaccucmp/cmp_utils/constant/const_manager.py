@@ -155,6 +155,7 @@ class ConstManager:
     # algorithm
     FLOAT_EPSILON = np.finfo(float).eps
     NAN = 'NaN'
+    N_A = 'N/A'
 
     # progress const
     MAX_PROGRESS_LINE_COUNT = 100000
@@ -197,7 +198,6 @@ class ConstManager:
         "MeanRelativeError",
     ]
     ALGORITHM_FILE_NAME_PATTERN = r"^alg_([A-Za-z0-9_]+)\.py[c]?$"
-    BOOL_ALGORITHM = ('CosineSimilarity', 'RelativeEuclideanDistance')
     FILE_CMP_SUPPORTED_ALGORITHM = [
         "CosineSimilarity",
         "MaxAbsoluteError",

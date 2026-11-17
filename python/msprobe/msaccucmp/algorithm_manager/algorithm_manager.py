@@ -167,7 +167,14 @@ class AlgorithmManager:
         result = []
         error_msg = []
 
-        is_bool_data = my_output_dump_data.dtype == np.bool_ and ground_truth_dump_data.dtype == np.bool_
+        if my_output_dump_data.dtype == np.bool_ and ground_truth_dump_data.dtype == np.bool_:
+            # Numeric precision metrics do not apply to boolean dumps. Report N/A for every metric,
+            # consistent with how msprobe presents unsupported metrics, instead of degrading to NaN.
+            for select_algorithm in self.support_algorithm_map:
+                result.append(ConstManager.N_A)
+                error_msg += ["Algorithm %s does not support Boolean types." % select_algorithm]
+            return result, error_msg
+
         if max_cmp_size:
             my_output_dump_data_to_cmp = my_output_dump_data[:max_cmp_size]
             ground_truth_dump_data_to_cmp = ground_truth_dump_data[:max_cmp_size]
@@ -175,16 +182,10 @@ class AlgorithmManager:
             my_output_dump_data_to_cmp = my_output_dump_data
             ground_truth_dump_data_to_cmp = ground_truth_dump_data
 
-        if not is_bool_data:
-            my_output_dump_data_to_cmp = np.array(my_output_dump_data_to_cmp).astype("float32")
-            ground_truth_dump_data_to_cmp = np.array(ground_truth_dump_data_to_cmp).astype("float32")
+        my_output_dump_data_to_cmp = np.array(my_output_dump_data_to_cmp).astype("float32")
+        ground_truth_dump_data_to_cmp = np.array(ground_truth_dump_data_to_cmp).astype("float32")
 
         for select_algorithm, compare_func in self.support_algorithm_map.items():
-            if is_bool_data and select_algorithm not in ConstManager.BOOL_ALGORITHM:
-                result.append(ConstManager.NAN)
-                error_msg += ["Algorithm %s does not support Boolean types." % select_algorithm]
-                continue
-
             alg_args = self._make_algorithm_param(select_algorithm, args)
 
             # call compare function

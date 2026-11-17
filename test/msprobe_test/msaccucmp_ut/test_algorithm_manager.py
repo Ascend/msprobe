@@ -24,6 +24,8 @@ import pytest
 import numpy as np
 
 from algorithm_manager.algorithm_manager import AlgorithmManager, AlgorithmManagerMain
+from cmp_utils import utils
+from cmp_utils.constant.const_manager import ConstManager
 from cmp_utils.constant.compare_error import CompareError
 
 
@@ -204,10 +206,16 @@ def test_algorithm_manager_main_given_zeros_when_valid_then_pass(fake_arguments)
 
 def test_algorithm_manager_compare_given_bool_when_valid_then_pass():
     a_m = AlgorithmManager('', 'all', '')
-    my_output_dump_data = namedtuple('aa', ['dtype', 'test'])(np.bool_, 'test')
-    ground_truth_dump_data = namedtuple('aa', ['dtype', 'test'])(np.bool_, 'test')
-    with mock.patch('algorithm_manager.algorithm_manager.AlgorithmManager._make_algorithm_param', return_value={}):
-        a_m.compare(my_output_dump_data, ground_truth_dump_data, {})
+    my_output_dump_data = np.array([True, False, True, True])
+    ground_truth_dump_data = np.array([True, False, False, True])
+    args = {"shape_type": utils.get_shape_type(my_output_dump_data.shape)}
+
+    result, error_msg = a_m.compare(my_output_dump_data, ground_truth_dump_data, args)
+
+    # Numeric precision metrics do not apply to boolean dumps.
+    assert result == [ConstManager.N_A] * len(a_m.get_result_title())
+    assert len(error_msg) == len(result)
+    assert all("does not support Boolean types" in msg for msg in error_msg)
 
 
 def test_algorithm_manager_compare_given_none_dtype_when_valid_then_pass():
