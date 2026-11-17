@@ -354,7 +354,7 @@ Compare module implementations whose entry names or implementations differ betwe
 
 Compare custom operators whose function names or implementations differ between the two sides. For example, one side uses the fused operator `fused_gqa_attention` and the other uses the hand-written operator `handwritten_gqa_attention`. A custom API must be registered before it can be dumped. For the registration method, see [Batch Registration of User-Defined APIs](../dump/pytorch_data_dump_instruct.md#batch-registration-of-user-defined-apis) or [register_custom_api](../dump/pytorch_data_dump_instruct.md#register_custom_api) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
 
-1. Wrap the custom operators to be compared on both sides with the same tag name (the number of wrapped calls must be the same on both sides), and dump the precision data on both sides. For the labeling method, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+1. Wrap the custom operators to be compared on both sides with the same tag name (the number of wrapped calls must be the same and non-zero on both sides), and dump the precision data on both sides. For the labeling method, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
 
 2. Run the command, which is the same as in the module scenario.
 
@@ -362,7 +362,7 @@ Compare custom operators whose function names or implementations differ between 
 
 ##### Pairing Rules
 
-Entries wrapped by the same tag pair as a group when both sides wrap the same number of calls: by entry name first, then by call ordinal within the group (loop iterations pair one by one). Rows within a paired entry are matched slot by slot (input, output, and so on), tensor rows pair are matched only when both dtype and shape match, and parameter gradient rows match by module base name and parameter name (rows of differently named modules do not pair). All unpaired rows remain visible. When the call counts differ or the tag appears on one side only, that tag falls back to normal comparison with a warning.
+Entries wrapped by the same tag pair as a group when both sides wrap the same non-zero number of calls: by entry name first, then by call ordinal within the group (loop iterations pair one by one). Rows within a paired entry are matched slot by slot (input, output, and so on), and parameter gradient rows match by module base name and parameter name. Unpaired rows remain visible on the NPU side, while on the Bench side they do not enter the result table and are warned in the comparison logs. A tag that does not form a group falls back to normal comparison with a warning.
 
 **Constraints**:
 

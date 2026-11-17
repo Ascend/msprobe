@@ -32,14 +32,19 @@ alike - to the result table: nothing inside a tag scope is compressed away.
 No tensor identity inference and no dataflow reconstruction is involved.
 
 Cross-side pairing key: (tag, entry pair, slot of the row inside the entry).
-Each tensor pair is verified by dtype/shape equality - corresponding
-boundary tensors carry the same logical data, so a mismatch means the
-tagged statements differ between the two dumps and the slot stays unpaired
-(visible) instead of being paired wrongly.
+Tensor ports pair by their slot regardless of dtype/shape - a mismatching
+dtype or shape never breaks the pair, exactly like the name-based matching
+of the plain path never gates on them. The native compare rules take over
+downstream: a dtype mismatch N/As the bench columns of the pair and the
+standard indicator checkers put the native error messages in the result
+row (e.g. 'The dtype/shape of NPU and Bench are inconsistent.').
 
 Failure modes therefore only have two values: a correct pair (Extraction
 ``slot`` / ``name``; disagreeing scalar/config rows join as Extraction
-``config``) or a visible unpaired row with a logged reason.
+``config``) or a visible npu-anchored unpaired row with a logged reason.
+Bench-side surplus rows are not shown: the native display is npu-anchored
+and drops them, so the tag path logs their reason instead - nothing tagged
+disappears silently, the table just never grows a bench-anchored row.
 
 The strict rows carry the tag on the intermediate match frame (columns
 Tag/Role/Extraction/Mode). The final table keeps the native column layout:
@@ -298,17 +303,30 @@ class TagCompareStrict:
             # direction (e.g. one side's loss consumed no tagged output)
             logger.warning(
                 f"[tag compare] strict unit '{unit}' tag '{alias}' ({direction}): tagged entry "
-                f"counts differ ({len(npu_entries)} vs {len(bench_entries)}); the surplus entries "
-                f"stay unpaired. Check that both dumps tagged the same statements (loop counts "
+                f"counts differ ({len(npu_entries)} vs {len(bench_entries)}); the npu-side surplus "
+                f"entries stay visible unpaired, the bench-side surplus entries are not shown (the "
+                f"compare table is npu-anchored, exactly like the native display). "
+                f"Check that both dumps tagged the same statements (loop counts "
                 f"may diverge with accuracy)."
             )
-        pairs, npu_left, bench_left = self._match_entries(npu_entries, bench_entries)
+        pairs, npu_left, _ = self._match_entries(npu_entries, bench_entries)
+        surplus_slots = []  # (bench entry name, slot) of bench-only slots, aggregated below
         for npu_entry, bench_entry in pairs:
-            self._pair_entry_all_rows(records, unit, alias, direction, npu_entry, bench_entry)
+            self._pair_entry_all_rows(records, unit, alias, direction, npu_entry, bench_entry, surplus_slots)
         for entry in npu_left:
-            self._emit_one_side(records, unit, alias, direction, self._npu_side, entry)
-        for entry in bench_left:
-            self._emit_one_side(records, unit, alias, direction, self._bench_side, entry)
+            self._emit_npu_side(records, unit, alias, direction, entry)
+        if surplus_slots:
+            # one aggregated warning per group direction, not one per slot: a
+            # tagged loop with a per-iteration bench surplus must not flood
+            # the log channel and drown the entry-count warnings that matter.
+            first_entry, first_slot = surplus_slots[0]
+            logger.warning(
+                f"[tag compare] strict unit '{unit}' tag '{alias}' ({direction}): {len(surplus_slots)} "
+                f"bench-side slot(s) have no npu counterpart and are not shown (the compare table is "
+                f"npu-anchored, exactly like the native display; first example: slot {first_slot} of the "
+                f"bench entry '{first_entry}'). Check that both dumps tagged structurally identical "
+                f"statements."
+            )
 
     @staticmethod
     def _match_entries(npu_entries, bench_entries):
@@ -332,13 +350,17 @@ class TagCompareStrict:
         pairs.extend(zip(unmatched_npu, unmatched_bench))
         return pairs, unmatched_npu[len(unmatched_bench) :], unmatched_bench[len(unmatched_npu) :]
 
-    def _pair_entry_all_rows(self, records, unit, alias, direction, npu_entry, bench_entry):
+    def _pair_entry_all_rows(self, records, unit, alias, direction, npu_entry, bench_entry, surplus_slots):
         """Pair every row (all states, all slots) of two matched entries.
 
-        Tensor rows go through the dtype/shape gate (a mismatch means the
-        tagged statements differ between the two dumps and both rows stay
-        unpaired-visible). Scalar/config rows pair regardless of value; a
-        disagreeing value additionally logs the configuration warning.
+        Tensor rows pair regardless of dtype/shape - and even when the
+        other side of the slot is a scalar/config row: a mismatch never
+        breaks the pair, exactly like the name-based matching of the plain
+        path; the native compare rules take over downstream and report
+        the row (bench columns N/A'd on a dtype mismatch, native error
+        messages in the result table). Scalar/config rows pair regardless
+        of value; a disagreeing value additionally logs the configuration
+        warning.
         """
         for state in self._ordered_states((npu_entry, bench_entry)):
             npu_rows = npu_entry.rows.get(state, [])
@@ -349,24 +371,18 @@ class TagCompareStrict:
                 npu_ok = self._npu_side.is_tensor_row(npu_idx)
                 bench_ok = self._bench_side.is_tensor_row(bench_idx)
                 if npu_ok and bench_ok:
-                    if self._slot_matches(npu_idx, bench_idx):
-                        records.append(self._make_record(unit, alias, direction, EXTRACT_SLOT, npu_idx, bench_idx))
-                    else:
-                        logger.warning(
-                            f"[tag compare] strict unit '{unit}' tag '{alias}': slot {slot} of entries "
-                            f"'{npu_entry.name}' / '{bench_entry.name}' mismatch (npu dtype/shape "
-                            f"{self._npu_side.dtypes[npu_idx]} {self._npu_side.shapes[npu_idx]} vs bench "
-                            f"{self._bench_side.dtypes[bench_idx]} {self._bench_side.shapes[bench_idx]}); "
-                            f"both stay unpaired. Check that the tagged statements are identical on both sides."
-                        )
-                        records.append(self._make_record(unit, alias, direction, EXTRACT_UNPAIRED, npu_idx, None))
-                        records.append(self._make_record(unit, alias, direction, EXTRACT_UNPAIRED, None, bench_idx))
+                    records.append(self._make_record(unit, alias, direction, EXTRACT_SLOT, npu_idx, bench_idx))
                 elif npu_idx is None or bench_idx is None:
-                    # one side has no row in this slot: keep the other side visible
+                    # one side has no row in this slot: the npu row stays
+                    # visible (native shows npu-anchored rows with the bench
+                    # columns N/A'd); a bench-only surplus row is not shown -
+                    # the native display drops it - and is reported once per
+                    # group direction (see _emit_group_full_rows) instead,
+                    # so nothing tagged disappears silently.
                     if npu_idx is not None:
                         records.append(self._make_record(unit, alias, direction, EXTRACT_UNPAIRED, npu_idx, None))
                     if bench_idx is not None:
-                        records.append(self._make_record(unit, alias, direction, EXTRACT_UNPAIRED, None, bench_idx))
+                        surplus_slots.append((bench_entry.name, slot))
                 elif not npu_ok and not bench_ok:
                     # non-tensor rows on both sides (scalars, None, torch.Size, ...):
                     # configuration rows - always shown; a disagreeing value
@@ -384,10 +400,12 @@ class TagCompareStrict:
                         extraction = EXTRACT_CONFIG
                     records.append(self._make_record(unit, alias, direction, extraction, npu_idx, bench_idx))
                 else:
-                    # tensor on one side, scalar/container on the other: never a pair,
-                    # both rows stay visible on their own side
-                    records.append(self._make_record(unit, alias, direction, EXTRACT_UNPAIRED, npu_idx, None))
-                    records.append(self._make_record(unit, alias, direction, EXTRACT_UNPAIRED, None, bench_idx))
+                    # tensor on one side, scalar/container on the other: still a
+                    # pair - the native compare never gates a name match on the
+                    # content type, and its dtype condition (a tensor dtype never
+                    # equals a scalar type) N/As the bench columns downstream, so
+                    # the row reads exactly like the native display.
+                    records.append(self._make_record(unit, alias, direction, EXTRACT_SLOT, npu_idx, bench_idx))
 
     @staticmethod
     def _ordered_states(entries):
@@ -398,11 +416,6 @@ class TagCompareStrict:
                 if state not in first or idxs[0] < first[state]:
                     first[state] = idxs[0]
         return sorted(first, key=first.get)
-
-    def _slot_matches(self, npu_idx, bench_idx):
-        return str(self._npu_side.dtypes[npu_idx]) == str(self._bench_side.dtypes[bench_idx]) and str(
-            self._npu_side.shapes[npu_idx]
-        ) == str(self._bench_side.shapes[bench_idx])
 
     @staticmethod
     def _row_key(side, idx):
@@ -419,13 +432,15 @@ class TagCompareStrict:
             return '<missing row>'
         return f"{side.dtypes[idx]} {side.summaries[idx]}"
 
-    def _emit_one_side(self, records, unit, alias, direction, side, entry):
-        """Every row of an unpaired entry stays visible on its own side."""
+    def _emit_npu_side(self, records, unit, alias, direction, entry):
+        """Every row of an npu-side unpaired entry stays visible - the
+        native display shows npu-anchored rows with the bench columns N/A'd.
+        Bench-side surplus entries never reach this path: the native display
+        drops them, so they are reported with a logged reason instead.
+        """
         for state in self._ordered_states((entry,)):
             for idx in entry.rows.get(state, []):
-                npu_idx = idx if side is self._npu_side else None
-                bench_idx = idx if side is self._bench_side else None
-                records.append(self._make_record(unit, alias, direction, EXTRACT_UNPAIRED, npu_idx, bench_idx))
+                records.append(self._make_record(unit, alias, direction, EXTRACT_UNPAIRED, idx, None))
 
     def _emit_param_grads(self, records, unit):
         npu_entries = self._npu_side.group(unit, Const.PARAMS_GRAD)
@@ -434,17 +449,27 @@ class TagCompareStrict:
             return
         npu_keyed = self._param_grad_rows(self._npu_side, npu_entries)
         bench_keyed = self._param_grad_rows(self._bench_side, bench_entries)
+        dropped_bench_keys = []
         for key, npu_idxs in npu_keyed.items():
             bench_idxs = bench_keyed.pop(key, [])
             for npu_idx, bench_idx in zip(npu_idxs, bench_idxs):
                 records.append(self._make_record(unit, unit, ROLE_PARAMETER_GRAD, EXTRACT_NAME, npu_idx, bench_idx))
             for npu_idx in npu_idxs[len(bench_idxs) :]:
                 records.append(self._make_record(unit, unit, ROLE_PARAMETER_GRAD, EXTRACT_UNPAIRED, npu_idx, None))
-            for bench_idx in bench_idxs[len(npu_idxs) :]:
-                records.append(self._make_record(unit, unit, ROLE_PARAMETER_GRAD, EXTRACT_UNPAIRED, None, bench_idx))
-        for bench_idxs in bench_keyed.values():
-            for bench_idx in bench_idxs:
-                records.append(self._make_record(unit, unit, ROLE_PARAMETER_GRAD, EXTRACT_UNPAIRED, None, bench_idx))
+            if len(bench_idxs) > len(npu_idxs):
+                dropped_bench_keys.append(key)
+        for key, bench_idxs in bench_keyed.items():
+            if bench_idxs:
+                dropped_bench_keys.append(key)
+        if dropped_bench_keys:
+            # bench-side surplus parameter gradients are not shown: the native
+            # display is npu-anchored and drops them - log the reason instead.
+            logger.warning(
+                f"[tag compare] strict unit '{unit}': bench-side parameter gradients with no npu "
+                f"counterpart are not shown (the compare table is npu-anchored, exactly like the "
+                f"native display): {', '.join(f'{base}.{param}' for base, param in dropped_bench_keys)}. "
+                f"Check that both dumps tagged the same parameters."
+            )
 
     @staticmethod
     def _param_grad_rows(side, entries):
@@ -466,9 +491,11 @@ class TagCompareStrict:
             record[col + '_x'] = npu_series[col] if npu_series is not None else CompareConst.N_A
             record[col + '_y'] = bench_series[col] if bench_series is not None else CompareConst.N_A
         # dump row numbers of both sides: the caller sorts the merged result
-        # back into the execution order with them (a bench-only row has no
-        # npu row number and falls back to the bench one)
-        record[CompareConst.NPU_PARSE_ORDER] = npu_idx if npu_idx is not None else float('nan')
+        # back into the execution order with them. Every record is
+        # npu-anchored (the native display never grows a bench-only row),
+        # so the npu row number drives the sort; the bench number stays
+        # for debugging/inspection.
+        record[CompareConst.NPU_PARSE_ORDER] = npu_idx
         record[CompareConst.BENCH_PARSE_ORDER] = bench_idx if bench_idx is not None else float('nan')
         record[CompareConst.TAG] = alias
         record[CompareConst.ROLE] = direction

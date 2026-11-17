@@ -365,7 +365,7 @@ class Comparator:
         order of the run: tagged and untagged rows interleave where they
         executed, and the '(tag)name' prefix stays the only grouping marker.
         """
-        from msprobe.core.compare.tag_compare_strict import TagCompareStrict
+        from msprobe.core.compare.tag_compare_strict import EXTRACT_UNPAIRED, TagCompareStrict
 
         strict = TagCompareStrict(self.mode_config)
         # full frames: the strict port extraction only reads tagged entries
@@ -373,6 +373,29 @@ class Comparator:
 
         parts = []
         if not strict_match.empty:
+            # Native-rule treatment of the strict pairs: the plain path N/As
+            # the bench columns of every row whose npu/bench dtypes disagree
+            # (see match_plain_data), so a dtype/shape mismatch inside a tag
+            # reads exactly like a name-matched plain pair - the standard
+            # indicator checkers put the native error messages in the row.
+            # One-sided unpaired npu rows keep their visible values; the
+            # bench-side surplus rows never reach here (they are dropped
+            # npu-anchored, exactly like the native display).
+            match = Match(self.mode_config, self.mapping_config, self.cross_frame)
+            dtype_ok = match.gen_dtype_condition(strict_match)
+            paired = strict_match[CompareConst.TAG_EXTRACTION] != EXTRACT_UNPAIRED
+            bench_cols = [col for col in strict_match.columns if col.endswith('_y')]
+            for col in bench_cols:
+                strict_match[col] = strict_match[col].astype(object)
+            strict_match.loc[paired & ~dtype_ok, bench_cols] = CompareConst.N_A
+            # The plain path fillna's missing values (e.g. a dump without the
+            # requires_grad field) to N/A before the ReqGrad consistency
+            # check (see match_plain_data), so the strict records join that
+            # convention: the columns read N/A / True exactly like the native
+            # display instead of empty / False.
+            req_grad_cols = [col for col in strict_match.columns if col.startswith(Const.REQ_GRAD)]
+            if req_grad_cols:
+                strict_match[req_grad_cols] = strict_match[req_grad_cols].fillna(CompareConst.N_A)
             parts.append(strict_match)
 
         if not parts and strict.has_tags():
@@ -404,18 +427,15 @@ class Comparator:
         """Interleave the strict and the plain rows into the npu-side dump
         order, which is the execution order of the run.
 
-        Rows anchored on the npu side (tag pairs, npu-only unpaired rows and
-        every plain row) sort by their npu dump row number; bench-only rows
-        have no npu counterpart and fall back to the bench dump row number,
-        which lands them next to where they executed because both dumps run
-        the same script.
+        Every row is npu-anchored - tag pairs, npu-only unpaired rows and
+        every plain row: the native display never grows a bench-only row -
+        so the npu dump row number alone orders the table.
         """
         if match_result.empty or CompareConst.NPU_PARSE_ORDER not in match_result.columns:
             return match_result
-        key = pd.to_numeric(match_result[CompareConst.NPU_PARSE_ORDER], errors='coerce')
-        if CompareConst.BENCH_PARSE_ORDER in match_result.columns:
-            key = key.fillna(pd.to_numeric(match_result[CompareConst.BENCH_PARSE_ORDER], errors='coerce'))
-        match_result[CompareConst.NPU_PARSE_ORDER] = key
+        match_result[CompareConst.NPU_PARSE_ORDER] = pd.to_numeric(
+            match_result[CompareConst.NPU_PARSE_ORDER], errors='coerce'
+        )
         return match_result.sort_values(by=CompareConst.NPU_PARSE_ORDER, na_position='last', kind='stable').reset_index(
             drop=True
         )

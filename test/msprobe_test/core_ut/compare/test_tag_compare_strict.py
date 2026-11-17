@@ -15,11 +15,13 @@
 
 # coding=utf-8
 import unittest
+from unittest import mock
 
 from msprobe.core.common.const import CompareConst, Const
 from msprobe.core.compare.acc_compare import (
     Comparator, ModeConfig, MappingConfig, ParseData, CreateTable, CalcStatsDiff,
 )
+from msprobe.core.compare.indicator_analysis.calculator import calculate_tag_result_df
 from msprobe.core.compare.tag_compare_strict import TagCompareStrict
 
 
@@ -99,8 +101,8 @@ SOLO_ROWS = (
 )
 
 
-def parse_df(dump_json, device):
-    mode_config = ModeConfig(dump_mode=Const.SUMMARY)
+def parse_df(dump_json, device, dump_mode=Const.SUMMARY):
+    mode_config = ModeConfig(dump_mode=dump_mode)
     parse_data = ParseData(mode_config, '', {})
     df = parse_data.gen_data_df(dump_json, None, device)
     df[[Const.DTYPE, Const.SHAPE]] = df[[Const.DTYPE, Const.SHAPE]].astype(str)
@@ -134,11 +136,11 @@ class TestTagCompareStrict(unittest.TestCase):
         bench_df = parse_df(bench_json, CompareConst.DEVICE_BENCH)
         return TagCompareStrict(mode_config).match_tag_dfs(npu_df, bench_df)
 
-    def run_comparator(self, npu_json, bench_json):
-        mode_config = ModeConfig(dump_mode=Const.SUMMARY)
+    def run_comparator(self, npu_json, bench_json, dump_mode=Const.SUMMARY):
+        mode_config = ModeConfig(dump_mode=dump_mode)
         comparator = Comparator(None, mode_config, MappingConfig())
-        npu_df = parse_df(npu_json, CompareConst.DEVICE_NPU)
-        bench_df = parse_df(bench_json, CompareConst.DEVICE_BENCH)
+        npu_df = parse_df(npu_json, CompareConst.DEVICE_NPU, dump_mode)
+        bench_df = parse_df(bench_json, CompareConst.DEVICE_BENCH, dump_mode)
         return comparator.compare_statistics(npu_df, bench_df)
 
     def assert_full_rows(self, result, alias, names, msg=None):
@@ -279,46 +281,297 @@ class TestTagCompareStrict(unittest.TestCase):
             self.assertEqual(rows.iloc[0]['op_name_y'], bench_name)
 
     def test_slot_shape_mismatch(self):
-        """A slot with different dtype/shape never pairs: both sides stay
-        visible as unpaired rows; the other slots of the same entry pair."""
+        """A slot with a different dtype/shape still pairs - the mismatch
+        never breaks the pair (the native compare rules report it
+        downstream), and the other slots of the same entry pair as usual."""
         bench = build_scope_dump('solo')
         bench['data']['Module.blk_solo.Linear.forward.0']['output'] = [t_tensor([2, 3], 62.0)]  # same stats, other shape
         result = self.run_strict(build_scope_dump('solo'), bench)
         sub = tag_rows(result, 'solo')
-        # the tagged call's input row pairs, its output row does not
-        fwd_in = sub[sub['op_name_x'] == 'Module.blk_solo.Linear.forward.0.input.0']
-        self.assertEqual(len(fwd_in), 1)
-        self.assertEqual(fwd_in.iloc[0]['op_name_y'], 'Module.blk_solo.Linear.forward.0.input.0')
-        npu_side = sub[(sub['op_name_x'] == 'Module.blk_solo.Linear.forward.0.output.0')
-                       & (sub['op_name_y'] == CompareConst.N_A)]
-        bench_side = sub[(sub['op_name_x'] == CompareConst.N_A)
-                         & (sub['op_name_y'] == 'Module.blk_solo.Linear.forward.0.output.0')]
-        self.assertEqual(len(npu_side), 1)
-        self.assertEqual(len(bench_side), 1)
-        # the parameter rows of the same entry keep pairing
-        param_row = sub[sub['op_name_x'] == 'Module.blk_solo.Linear.forward.0.parameters.weight']
-        self.assertEqual(len(param_row), 1)
-        self.assertEqual(param_row.iloc[0]['op_name_y'], 'Module.blk_solo.Linear.forward.0.parameters.weight')
-        # the backward entry keeps pairing (grad shapes still agree)
-        bwd_in = sub[sub['op_name_x'] == 'Module.blk_solo.Linear.backward.0.input.0']
-        self.assertEqual(len(bwd_in), 1)
-        self.assertEqual(bwd_in.iloc[0]['op_name_y'], 'Module.blk_solo.Linear.backward.0.input.0')
-        self.assertEqual(int((sub['Extraction'] == 'unpaired').sum()), 2)
+        # every tagged row pairs, including the shape-mismatching output
+        self.assertEqual(paired_count(sub), len(sub))
+        fwd_out = sub[sub['op_name_x'] == 'Module.blk_solo.Linear.forward.0.output.0']
+        self.assertEqual(len(fwd_out), 1)
+        self.assertEqual(fwd_out.iloc[0]['op_name_y'], 'Module.blk_solo.Linear.forward.0.output.0')
+        # no row of the unit stays unpaired
+        self.assertEqual(int((sub['Extraction'] == 'unpaired').sum()), 0)
 
-    def test_missing_backward_group_visible(self):
-        """A backward direction present on the bench side only: every bench
-        backward row stays visible as an unpaired bench-only row, the rest of
-        the unit pairs as usual (a missing backward never refuses the unit)."""
+    def test_dtype_shape_mismatch_pair_reports_native_style(self):
+        """A dtype/shape mismatch inside a tag never breaks the pair: the
+        pair stays and the standard indicator checkers report it with the
+        native error messages, exactly like a name-matched plain pair."""
+        npu = build_scope_dump('solo')
+        bench = build_scope_dump('solo')
+        # dtype mismatch on the forward output slot (float32 vs float16)
+        out = t_tensor([2, 2], 62.0)
+        out['dtype'] = 'torch.float16'
+        bench['data']['Module.blk_solo.Linear.forward.0']['output'] = [out]
+        # shape mismatch on the backward input slot (same dtype, other shape)
+        bench['data']['Module.blk_solo.Linear.backward.0']['input'] = [t_tensor([2, 3], 66.0)]
+        result = self.run_comparator(npu, bench)
+        # the checker stage of the real flow (see calc_compare_result)
+        calculate_tag_result_df(result, Const.SUMMARY, '')
+        solo = result[result['NPU Name'].str.startswith('(solo)')]
+        # every tagged row stays paired - the mismatches never break a pair
+        self.assertEqual(paired_count_final(solo), len(SOLO_ROWS))
+        out_row = solo[solo['NPU Name'].str.contains('forward.0.output', regex=False)]
+        self.assertEqual(len(out_row), 1)
+        self.assertIn('The dtype of NPU and Bench are inconsistent', str(out_row.iloc[0]['Err_message']))
+        bwd_row = solo[solo['NPU Name'].str.contains('backward.0.input', regex=False)]
+        self.assertEqual(len(bwd_row), 1)
+        self.assertIn('The shape of NPU and Bench are inconsistent', str(bwd_row.iloc[0]['Err_message']))
+        self.assertEqual(bwd_row.iloc[0]['Result'], 'error')
+
+    def test_cross_name_pair_with_mismatch_reports_native_style(self):
+        """Cross-name entries inside one tag (a fused implementation vs a
+        hand-written one) pair by group ordinal, and a dtype/shape mismatch
+        never breaks that pair either - the native error messages still land
+        in the row, pairing and reporting stay independent."""
+        npu = {'data': {
+            'Fused.Attn.forward.0': {
+                'alias': 'x',
+                'input_args': [t_tensor([2, 2], 60.0)],
+                'output': [t_tensor([2, 2], 61.0)],
+            },
+        }}
+        out = t_tensor([2, 2], 61.0)
+        out['dtype'] = 'torch.float16'
+        bench = {'data': {
+            'Manual.Attn.forward.0': {
+                'alias': 'x',
+                'input_args': [t_tensor([2, 2], 60.0)],
+                'output': [out],
+            },
+        }}
+        result = self.run_comparator(npu, bench)
+        # the checker stage of the real flow (see calc_compare_result)
+        calculate_tag_result_df(result, Const.SUMMARY, '')
+        sub = result[result['NPU Name'].str.startswith('(x)')]
+        # the differently-named entries pair by ordinal: both rows stay paired
+        self.assertEqual(len(sub), 2)
+        self.assertEqual(paired_count_final(sub), 2)
+        self.assertTrue(sub['NPU Name'].str.contains('Fused.Attn.forward.0', regex=False).all())
+        self.assertTrue(sub['Bench Name'].str.contains('Manual.Attn.forward.0', regex=False).all())
+        # the dtype-mismatching output row keeps the pair and reports natively
+        out_row = sub[sub['NPU Name'].str.contains('output', regex=False)]
+        self.assertEqual(len(out_row), 1)
+        self.assertIn('The dtype of NPU and Bench are inconsistent', str(out_row.iloc[0]['Err_message']))
+        self.assertEqual(out_row.iloc[0]['Result'], 'error')
+
+    def test_tensor_vs_scalar_slot_pairs_like_native(self):
+        """A slot that is a tensor on one side and a scalar on the other
+        pairs like a name-matched plain row: native never gates a name
+        match on the content type - the dtype condition (a tensor dtype
+        never matches a scalar type) N/As the bench columns, so the row
+        reads exactly like the native display instead of two visible
+        unpaired rows."""
+        npu = {'data': {
+            'Op.Clash.forward.0': {
+                'alias': 'clash',
+                'input_args': [t_tensor([2, 2], 60.0)],
+                'output': [t_tensor([2, 2], 61.0)],
+            },
+        }}
+        bench = {'data': {
+            'Op.Clash.forward.0': {
+                'alias': 'clash',
+                'input_args': [{'type': 'int', 'value': 7}],
+                'output': [t_tensor([2, 2], 61.0)],
+            },
+        }}
+        result = self.run_strict(npu, bench)
+        sub = tag_rows(result, 'clash')
+        # the type-clashing input slot pairs: one npu-anchored row per slot,
+        # no extra bench-anchored row
+        self.assertEqual(len(sub), 2)
+        self.assertEqual(paired_count(sub), 2)
+        clash = sub[sub['op_name_x'].str.contains('input', regex=False)]
+        self.assertEqual(len(clash), 1)
+        self.assertEqual(clash.iloc[0]['op_name_y'], 'Op.Clash.forward.0.input.0')
+        # native display: the dtype condition N/As the bench columns of the pair
+        final = self.run_comparator(npu, bench)
+        calculate_tag_result_df(final, Const.SUMMARY, '')
+        row = final[final['NPU Name'].str.contains('Clash.forward.0.input', regex=False)]
+        self.assertEqual(len(row), 1)
+        self.assertEqual(row.iloc[0]['Bench Name'], CompareConst.N_A)
+        self.assertEqual(row.iloc[0]['Bench Dtype'], CompareConst.N_A)
+        self.assertEqual(row.iloc[0]['Result'], 'pass')
+        self.assertEqual(row.iloc[0]['Err_message'], '[]')
+
+    def test_cross_group_tensor_pair_nas_bench_columns_like_native(self):
+        """A tensor-tensor pair whose dtypes cross the dtype match groups
+        (float32 vs int64) keeps the pair; the native dtype condition N/As
+        the bench columns of the pair - the same branch a tensor-vs-scalar
+        slot takes - and no alarm is raised, so the row reads exactly like
+        the native display."""
+        npu = {'data': {
+            'Op.DtypeGroup.forward.0': {
+                'alias': 'dgroup',
+                'input_args': [t_tensor([2, 2], 60.0)],
+                'output': [t_tensor([2, 2], 61.0)],
+            },
+        }}
+        tin = t_tensor([2, 2], 60.0)
+        tin['dtype'] = 'torch.int64'
+        bench = {'data': {
+            'Op.DtypeGroup.forward.0': {
+                'alias': 'dgroup',
+                'input_args': [tin],
+                'output': [t_tensor([2, 2], 61.0)],
+            },
+        }}
+        result = self.run_comparator(npu, bench)
+        # the checker stage of the real flow (see calc_compare_result)
+        calculate_tag_result_df(result, Const.SUMMARY, '')
+        # the cross-group input keeps the pair with the bench columns N/A'd
+        in_row = result[result['NPU Name'].str.contains('DtypeGroup.forward.0.input', regex=False)]
+        self.assertEqual(len(in_row), 1)
+        self.assertIn('(dgroup)', in_row.iloc[0]['NPU Name'])
+        self.assertEqual(in_row.iloc[0]['Bench Name'], CompareConst.N_A)
+        self.assertEqual(in_row.iloc[0]['Bench Dtype'], CompareConst.N_A)
+        self.assertEqual(in_row.iloc[0]['Result'], 'pass')
+        self.assertEqual(in_row.iloc[0]['Err_message'], '[]')
+        # the same-dtype output slot of the same entry pairs and computes
+        out_row = result[result['NPU Name'].str.contains('DtypeGroup.forward.0.output', regex=False)]
+        self.assertEqual(len(out_row), 1)
+        self.assertNotEqual(out_row.iloc[0]['Bench Name'], CompareConst.N_A)
+
+    def test_missing_backward_group_dropped_like_native(self):
+        """A backward direction present on the bench side only: the native
+        display never grows a bench-only row, so the bench backward rows are
+        dropped with a logged reason while the rest of the unit pairs as
+        usual (a missing backward never refuses the unit); the npu-anchored
+        rows keep the native unpaired display (bench columns N/A)."""
         npu = build_scope_dump('solo')
         del npu['data']['Module.blk_solo.Linear.backward.0']
-        result = self.run_strict(npu, build_scope_dump('solo', y_norm=62.5))
+        with mock.patch('msprobe.core.compare.tag_compare_strict.logger') as tag_logger:
+            result = self.run_strict(npu, build_scope_dump('solo', y_norm=62.5))
         sub = tag_rows(result, 'solo')
-        bwd_rows = sub[sub['op_name_x'] == CompareConst.N_A]
-        self.assertEqual(len(bwd_rows), 2)  # backward input + output
-        self.assertTrue((bwd_rows['op_name_y'] != CompareConst.N_A).all())
+        # no bench-anchored row exists: every record is npu-anchored
+        self.assertTrue((sub['op_name_x'] != CompareConst.N_A).all())
+        self.assertNotIn('backward', ''.join(sub['op_name_x']))
+        warn_texts = [str(c) for c in tag_logger.warning.call_args_list]
+        self.assertTrue(any("bench-side surplus entries are not shown" in t for t in warn_texts), warn_texts)
         # the forward and parameter-gradient rows are untouched
-        fwd_rows = sub[sub['op_name_x'] != CompareConst.N_A]
-        self.assertEqual(paired_count(fwd_rows), 6)  # forward 4 + parameter gradients 2
+        self.assertEqual(paired_count(sub), 6)  # forward 4 + parameter gradients 2
+
+    def test_bench_surplus_slot_and_entry_dropped_like_native(self):
+        """Bench-side surplus rows (an extra input slot, an extra backward
+        entry) never enter the table: the native display drops bench-only
+        rows, so the tag path drops them too and logs the reason; the npu
+        rows of the same entries keep the native unpaired display."""
+        npu = {'data': {
+            'Op.Clash.forward.0': {
+                'alias': 'x',
+                'input_args': [t_tensor([2, 2], 60.0)],
+                'output': [t_tensor([2, 2], 61.0)],
+            },
+        }}
+        bench = {'data': {
+            'Op.Clash.forward.0': {
+                'alias': 'x',
+                'input_args': [t_tensor([2, 2], 60.0), t_tensor([2, 2], 62.0)],
+                'output': [t_tensor([2, 2], 61.0)],
+            },
+            'Op.Clash.backward.0': {
+                'alias': 'x', 'input': [t_tensor([2, 2], 63.0)], 'output': [t_tensor([2, 2], 64.0)],
+            },
+        }}
+        with mock.patch('msprobe.core.compare.tag_compare_strict.logger') as tag_logger:
+            result = self.run_strict(npu, bench)
+        sub = tag_rows(result, 'x')
+        # no bench-anchored row exists; the npu rows pair as usual
+        self.assertTrue((sub['op_name_x'] != CompareConst.N_A).all())
+        self.assertEqual(paired_count(sub), 2)
+        # both drop reasons are logged: the surplus slot and the surplus entry
+        warn_texts = [str(c) for c in tag_logger.warning.call_args_list]
+        self.assertTrue(any("slot 1 of the bench entry" in t for t in warn_texts), warn_texts)
+        self.assertTrue(any("bench-side surplus entries are not shown" in t for t in warn_texts), warn_texts)
+
+    def test_bench_surplus_slots_aggregate_into_one_warning(self):
+        """Bench-only surplus slots log one aggregated warning per group
+        direction (total count + first example), not one per slot: a
+        tagged loop whose bench side carries a per-iteration surplus slot
+        must not flood the log channel with iteration-many identical
+        warnings that drown the entry-count warnings."""
+        npu = {'data': {}}
+        bench = {'data': {}}
+        for i in range(3):
+            name = f'Op.Loop.forward.{i}'
+            npu['data'][name] = {
+                'alias': 'loop',
+                'input_args': [t_tensor([2, 2], 60.0)],
+                'output': [t_tensor([2, 2], 61.0)],
+            }
+            bench['data'][name] = {
+                'alias': 'loop',
+                'input_args': [t_tensor([2, 2], 60.0), t_tensor([2, 2], 62.0)],
+                'output': [t_tensor([2, 2], 61.0)],
+            }
+        with mock.patch('msprobe.core.compare.tag_compare_strict.logger') as tag_logger:
+            result = self.run_strict(npu, bench)
+        sub = tag_rows(result, 'loop')
+        # three iterations x (input.0 + output.0) pair; the surplus input
+        # slots never grow bench-anchored rows
+        self.assertEqual(len(sub), 6)
+        self.assertEqual(paired_count(sub), 6)
+        self.assertTrue((sub['op_name_x'] != CompareConst.N_A).all())
+        # the three surplus slots land in ONE aggregated warning
+        slot_warns = [str(c) for c in tag_logger.warning.call_args_list if 'bench-side slot' in str(c)]
+        self.assertEqual(len(slot_warns), 1, slot_warns)
+        self.assertIn('3 bench-side slot(s)', slot_warns[0])
+        self.assertIn("slot 1 of the bench entry 'Op.Loop.forward.0'", slot_warns[0])
+
+    def test_missing_requires_grad_field_shows_native_display(self):
+        """Leaves without a requires_grad field: the plain path fillna's the
+        missing values to N/A before the ReqGrad consistency check, so the
+        strict records do the same - the columns read N/A / True exactly
+        like the native display instead of empty / False."""
+        def no_grad_leaf(norm):
+            return {'type': 'torch.Tensor', 'dtype': 'torch.float32', 'shape': [2, 2],
+                    'Max': norm, 'Min': -norm / 2.0, 'Mean': norm / 10.0, 'Norm': norm}
+        npu = {'data': {'Op.NoGrad.forward.0': {'alias': 'g',
+                'input_args': [no_grad_leaf(60.0)], 'output': [no_grad_leaf(61.0)]}}}
+        bench = {'data': {'Op.NoGrad.forward.0': {'alias': 'g',
+                'input_args': [no_grad_leaf(60.0)], 'output': [no_grad_leaf(61.0)]}}}
+        result = self.run_comparator(npu, bench)
+        self.assertFalse(result.empty)
+        self.assertTrue((result['NPU Requires_grad'] == CompareConst.N_A).all())
+        self.assertTrue((result['Bench Requires_grad'] == CompareConst.N_A).all())
+        self.assertTrue((result[CompareConst.REQ_GRAD_CONSIST] == True).all())  # noqa: E712
+
+    def test_all_mode_keeps_native_na_and_fillna_conventions(self):
+        """Real-data mode (Const.ALL): the strict pairs follow the native
+        dtype N/A-ification and the requires_grad fillna exactly like in
+        summary mode - both live in compare_tag_statistics, before the
+        real-data stage runs, so the conventions must not depend on the
+        dump mode."""
+        def leaf(norm, dtype=None):
+            row = {'type': 'torch.Tensor', 'dtype': 'torch.float32', 'shape': [2, 2],
+                  'Max': norm, 'Min': -norm / 2.0, 'Mean': norm / 10.0, 'Norm': norm}
+            if dtype is not None:
+                row['dtype'] = dtype
+            return row
+
+        npu = {'data': {'Op.AllMode.forward.0': {
+            'alias': 'amode', 'input_args': [leaf(60.0)], 'output': [leaf(61.0)],
+        }}}
+        bench = {'data': {'Op.AllMode.forward.0': {
+            'alias': 'amode', 'input_args': [leaf(60.0, dtype='torch.int64')], 'output': [leaf(61.0)],
+        }}}
+        result = self.run_comparator(npu, bench, dump_mode=Const.ALL)
+        self.assertFalse(result.empty)
+        # cross-group dtype pair: the bench columns are N/A'd like the native display
+        in_row = result[result['NPU Name'].str.contains('AllMode.forward.0.input', regex=False)]
+        self.assertEqual(len(in_row), 1)
+        self.assertEqual(in_row.iloc[0]['Bench Name'], CompareConst.N_A)
+        self.assertEqual(in_row.iloc[0]['Bench Dtype'], CompareConst.N_A)
+        self.assertEqual(in_row.iloc[0]['NPU Dtype'], 'torch.float32')
+        # missing requires_grad fields: filled to N/A / N/A with a True
+        # consistency, exactly like the native fillna convention
+        self.assertTrue((result['NPU Requires_grad'] == CompareConst.N_A).all())
+        self.assertTrue((result['Bench Requires_grad'] == CompareConst.N_A).all())
+        self.assertTrue((result[CompareConst.REQ_GRAD_CONSIST] == True).all())  # noqa: E712
 
     def test_scalar_config_mismatch_visible(self):
         """A scalar argument that differs between the two sides pairs like

@@ -922,7 +922,7 @@ The `tag` API must be used together with the data collection process of `Precisi
 If the custom tag dump data is used for comparison, the dump configuration and tag scope must meet the following requirements:
 
 - The tag comparison supports only statistics mode and real data mode. MD5-mode data does not trigger the tag comparison; a warning is printed and the data is compared normally.
-- One tag name must wrap the same number of calls on both sides (a tag may also wrap multiple calls inside a loop; they are paired iteration by iteration).
+- One tag name must wrap the same non-zero number of calls on both sides (a tag may also wrap multiple calls inside a loop; they are paired iteration by iteration).
 
 The custom tag comparison involves the following two scenarios and labeling methods:
 
