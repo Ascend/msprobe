@@ -11,7 +11,9 @@ class TestConfig(TestCase):
     def test_config_options(self):
         cases = [(None, None), ({}, {"enabled": True, "action": "log"}), ({"enabled": False}, None),
                  ({"action": "raise"}, {"enabled": True, "action": "raise"}),
-                 ({"enabled": True, "action": "log"}, {"enabled": True, "action": "log"})]
+                 ({"enabled": True, "action": "log"}, {"enabled": True, "action": "log"}),
+                 ({"enabled": True, "action": "log", "kv_stats_enable": True},
+                  {"enabled": True, "action": "log"})]
         for options, expected in cases:
             with self.subTest(options=options):
                 original = deepcopy(options)
@@ -21,7 +23,7 @@ class TestConfig(TestCase):
 
     def test_invalid_config(self):
         cases = [(False, TypeError), ([], TypeError), ("log", TypeError), ({"enabled": 1}, ValueError),
-                 ({"unknown": True}, ValueError), ({"action": "stop"}, ValueError), ({"action": None}, ValueError)]
+                 ({"action": "stop"}, ValueError), ({"action": None}, ValueError)]
         for options, error in cases:
             with self.subTest(options=options):
                 with self.assertRaises(error):

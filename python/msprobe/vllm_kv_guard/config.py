@@ -22,12 +22,13 @@ def parse_options(options):
         return None
     if not isinstance(options, dict):
         raise TypeError("additional_config.kv_trace must be a dict")
-    if set(options) - {"enabled", "action"} or not isinstance(options.get("enabled", True), bool):
-        raise ValueError("kv_trace supports enabled (boolean) and action (log or raise)")
+    enabled = options.get("enabled", True)
+    if not isinstance(enabled, bool):
+        raise ValueError("kv_trace.enabled must be a boolean")
     action = options.get("action", "log")
     if action not in ("log", "raise"):
         raise ValueError("kv_trace.action must be log or raise")
-    return {"enabled": True, "action": action} if options.get("enabled", True) else None
+    return {"enabled": True, "action": action} if enabled else None
 
 
 def get_options(vllm_config):
