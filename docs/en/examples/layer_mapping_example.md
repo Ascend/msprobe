@@ -6,7 +6,7 @@ In cross-suite comparison within the same framework (e.g., PyTorch DeepSpeed vs.
 
 ## Module Naming Rules
 
-Some node names are excessively long—for example, `Module.module.module.language_model.embedding.Embedding.forward.0`—making them difficult to display fully on graph nodes. As a result, forward or backward information may be omitted. To address this, the prefix `Module` is removed from the displayed node name, and the forward or backward information is moved to the second position in the name string.
+Some node names are excessively long, for example, `Module.module.module.language_model.embedding.Embedding.forward.0`, making them difficult to display fully on graph nodes. As a result, forward or backward information may be omitted. To address this, the prefix `Module` is removed from the displayed node name, and the forward or backward information is moved to the second position in the name string.
 
 ![module_name.png](../figures/visualization/module_name.png)
 
@@ -105,7 +105,7 @@ If unmatched nodes appear during node expansion, continue by configuring the `ma
 
 ![no_mapping1.png](../figures/visualization/no_mapping1.png)
 
-According to the preceding analysis, the node mapping is as follows:
+According to the analysis of preceding configurations, the node mapping is as follows:
 
 | NPU Node Name          | GPU Node Name                                                         | Difference                                         |
 |-------------------|------------------------------------------------------------------|---------------------------------------------|

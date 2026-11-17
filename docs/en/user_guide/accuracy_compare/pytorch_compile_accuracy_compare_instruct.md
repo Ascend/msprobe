@@ -22,7 +22,7 @@ The tool provides two comparison modes: single-pass and two-pass. Selecting the 
 
 ### Training Scenarios: single-pass Recommended
 
-single-pass is the default mode. This mode does not copy the model, nor does it execute a separate eager full-graph run. Instead, it directly hooks into the existing training pipeline: inside the forward hook of a compiled submodule, it re-executes the uncompiled `_orig_mod` with the same inputs and compares the eager output against the compile output.
+`single-pass` is the default mode. This mode does not copy the model, nor does it separately execute the eager full-network path. Instead, it directly hooks into the existing training pipeline: inside the forward hook of a compiled submodule, it re-executes the uncompiled `_orig_mod` with the same inputs and compares the eager output against the compile output.
 
 single-pass is suitable for training scenarios for the following reasons:
 

@@ -4,7 +4,7 @@
 
 **Symptom**
 
-During model training, the `seed_all` interface is used to fix randomness and enable deterministic computation simultaneously. This ensures that the loss and gnorm results obtained after the model is executed twice are the same. However, the following causes may lead to the loss or gnorm deviation.
+During model training, the `seed_all` interface is used to fix randomness and enable deterministic computation simultaneously. This ensures that the loss and gnorm results obtained after the model is executed twice are the same. However, the following causes may lead to the loss or gnorm deviation after the tool is enabled.
 
 **Cause Analysis**
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
 Run the preceding script again to obtain weight gradients of each model layer. Comment out `model.net2.register_full_backward_hook(my_backward_hook)` and run the script again, and it can be seen that the weight gradient of the BN layer has changed.
 
-If the gnorm changes at the L0 or mix level, try to change the collection level to L1. If the gnorm does not change at the L1 level, there is a high probability that the gradient calculation result changes due to the hook mechanism.
+If the gnorm changes at the L0- or mix-level collection, try to change the collection level to L1. If the gnorm does not change at the L1 level, there is a high probability that the gradient calculation result changes due to the hook mechanism.
 
 ## Data Collection
 

@@ -36,7 +36,7 @@ msprobe config_check -sc <NPU_log> <bench_log> [-o <compare_result>]
 For the two paths of the `--slime-compare` parameter:
 
 - `NPU_log` and `bench_log` are respectively the training logs saved when slime is trained on the NPU and the benchmark server.
-- `NPU_log` and `bench_log` are configured in order; by default, the latter log is automatically selected as the benchmark log for comparison.
+- `NPU_log` and `bench_log` are configured in order. By default, the latter log is automatically selected as the benchmark log for comparison.
 - The format of the `NPU_log` and `bench_log` training log files to be compared only supports ".log" or ".txt" (such as `slime_NPU.log` or `slime_NPU.txt`); otherwise an error will be reported when executing the comparison.
 - The training log must contain the complete slime configuration information; otherwise parsing will fail.
 

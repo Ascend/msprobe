@@ -102,7 +102,7 @@ Both single-rank and multi-rank scenarios are supported. The dump data of multip
    ```shell
    msprobe compare -tp /target_dump/step0 -gp /golden_dump/step0 -o ./output
    ```
-   
+
 3. View the comparison results by referring to [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
 
 #### APIs and Modules Cannot Be Automatically Matched
@@ -205,7 +205,7 @@ In this scenario, the training and inference data in the prefill phase of verl i
    ```
 
    Considering the randomness of data splitting during training and inference in the multi-rank verl scenario, the training and inference dump data may be unevenly distributed across different ranks. In this case, single-rank comparison must be used. If the training and inference dump data on each rank is in one-to-one correspondence, you can directly specify the rank parent directory (step level) for multi-rank comparison.
-   
+
 3. View the comparison results by referring to [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
 
 #### Single-Point Data Comparison in Dynamic Graphs
@@ -332,37 +332,41 @@ Configuration method:
 
 #### Custom Tag Comparison Scenario
 
-During dump, wrap the modules or operators on the NPU and bench sides with the same tag name (their names and implementation logic may differ). The entries in the tag scope are compared according to the **tag pairing rules**.
+During dump, wrap the modules or operators on the NPU side and the bench side with the same tag name (their names and implementations may differ). The entries in the tag scope are paired with each other according to the newly defined [tag pairing rules](#pairing-rules).
 
-**Tag pairing rules**:
+By default (`recursive=False`), only the modules/operators directly called within the tag scope are tagged, and their internal sub-modules/sub-operators are not tagged (exception: at L1, all APIs executed within the scope are tagged). When `recursive=True`, all nested levels are tagged. The backward and parameter gradient entries of a tagged call automatically carry the same tag. For the tagging scope, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
 
-1. When the same tag wraps the same number of calls on both sides, the entries are paired as a group.
-2. Entries are matched by name first; unmatched entries are then paired by ordinal (loop iterations pair one by one).
-3. Rows within an entry are matched slot by slot (input, output, and so on). Tensor rows match only when both dtype and shape are the same; parameter gradient rows match by module base name and parameter name (rows of differently named modules do not pair). Rows that cannot be matched remain visible.
-4. When the call counts differ or the tag appears on only one side, the tag falls back to normal comparison with a warning.
+**Module scenario**
 
-The procedure is as follows:
+Compare module implementations whose entry names or implementations differ between the two sides. For example, one side uses the fused module `FusedAttention` and the other uses the hand-written module `Attention`.
 
-1. Wrap the modules or operators to be compared on the NPU and bench sides with the same tag name, and dump the precision data on both sides.
+1. Wrap the modules to be compared on both sides with the same tag name, and dump the precision data on both sides. For the labeling method, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
 
-   For the labeling method, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
-
-2. Run the comparison.
-
-   > [!NOTE] Automatic trigger of the tag comparison
-   >
-   > compare automatically triggers the tag comparison when the following conditions are met:
-   >
-   > - Custom tags exist in the dump data.
-   > - None of `-fm`, `-cm`, `-am`, `-dm`, `-da`, `--consistent_check`, or `first_diff_analyze` is configured during the comparison.
-   > - If any of these parameters is configured, the tag comparison is not triggered. A warning is printed, and the configured mode is used instead.
-   > - The tag comparison supports only statistics mode and real data mode. MD5-mode data does not trigger the tag comparison; a warning is printed and the data is compared normally.
+2. Run the command:
 
    ```shell
    msprobe compare -tp /target_dump/dump.json -gp /golden_dump/dump.json -o ./output
    ```
 
-3. Check the comparison result. See [Custom Tag Comparison Result Analysis](#custom-tag-comparison-result-analysis).
+3. Check the comparison result. See [Output Description](#output-description) and [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
+
+**API scenario**
+
+Compare custom operators whose function names or implementations differ between the two sides. For example, one side uses the fused operator `fused_gqa_attention` and the other uses the hand-written operator `handwritten_gqa_attention`. A custom API must be registered before it can be dumped. For the registration method, see [Batch Registration of User-Defined APIs](../dump/pytorch_data_dump_instruct.md#batch-registration-of-user-defined-apis) or [register_custom_api](../dump/pytorch_data_dump_instruct.md#register_custom_api) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+
+1. Wrap the custom operators to be compared on both sides with the same tag name (the number of wrapped calls must be the same on both sides), and dump the precision data on both sides. For the labeling method, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+
+2. Run the command, which is the same as in the module scenario.
+
+3. Check the comparison result. See [Output Description](#output-description) and [Precision Comparison Result Analysis](#precision-comparison-result-analysis).
+
+##### Pairing Rules
+
+Entries wrapped by the same tag pair as a group when both sides wrap the same number of calls: by entry name first, then by call ordinal within the group (loop iterations pair one by one). Rows within a paired entry are matched slot by slot (input, output, and so on), tensor rows pair are matched only when both dtype and shape match, and parameter gradient rows match by module base name and parameter name (rows of differently named modules do not pair). All unpaired rows remain visible. When the call counts differ or the tag appears on one side only, that tag falls back to normal comparison with a warning.
+
+**Constraints**:
+
+- The tag comparison is enabled when the dump data contains tags and none of `-fm`, `-cm`, `-am`, `-dm`, `-da`, `--consistent_check`, or `first_diff_analyze` is configured. When any of them is configured, the tag comparison is not enabled (a warning is printed) and the configured mode is used instead.
 
 ### Output Description
 
@@ -379,12 +383,12 @@ After the comparison is complete, the message `msprobe compare ends successfully
   Multiple `.json` files are generated in the configured output path. The file names are automatically generated based on the timestamp in the format of `compare_result_rank{rank_id}_{timestamp}.json` and `diff_analyze_{timestamp}.json`.
 
 - Single-point data comparison in dynamic graphs:
-  
+
    A `.csv` file is generated in the configured output path. The file name is automatically generated based on the timestamp in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.csv`. If `--xlsx` is specified, a `.xlsx` file is generated in the format of `debug_compare_result_(rank_id/proc_id)_{timestamp}.xlsx`.
 
 - Custom tag comparison scenario:
 
-  The result files are the same as those of the preceding scenarios.
+   The output files follow the same naming rules and table structure as the native `.csv` files. Rows paired by tag carry the tag prefix in the "NPU Name" and "Bench Name" columns (for example, `(attn)Module.xxx.forward.0.input.0`). Untagged rows have no prefix, and the rows follow the dump order (the execution order).
 
 ### Output File Description
 
@@ -513,19 +517,6 @@ Special scenarios:
    If the dump data contains 0 or NaN, it is normal that the maximum relative error in the comparison result is inf or NaN.
 
 5. `One Thousandth Err Ratio` (proportion of elements with a relative error less than 0.1%) and `Five Thousandth Err Ratio` (proportion of elements with a relative error less than 0.5%): percentage of elements in the NPU's tensor for which the relative error, when compared element-wise against the corresponding benchmark data, is less than 0.1% and less than 0.5%, respectively. These two metrics are used only as a reference for the precision degradation trend and are not used to determine whether the precision meets the requirements.
-
-#### Custom Tag Comparison Result Analysis
-
-In the custom tag comparison result file, rows paired by tag carry the tag prefix in the "NPU Name" and "Bench Name" columns (for example, `(attn)Module.xxx.forward.0.input.0`); untagged rows have no prefix, and the rows follow the dump order (the execution order). The result file has the same table headers as the other scenarios. For the meaning of each column, see [Metric Description](#metric-description).
-![alt text](img_v3_0217b_9aac82de-f5db-4279-935c-0a03527e16bg.jpg)
-
-The key fields are described as follows:
-
-| Field | Description |
-| --- | --- |
-| NPU Name / Bench Name | Entry name. Rows paired by tag carry the `(tag)` prefix, so the tag-paired rows can be identified by the prefix. Entries that appear on only one side remain visible, with N/A in the name and data columns of the other side. |
-| Result | Comparison result. The evaluation criteria are the same as those of normal comparison. See [Comparison Result](#comparison-result). |
-| Err_message | Error message. Common messages include: no matching data is found for a one-side entry (for example, `No bench data matched.`), and the dtype or shape of the data on the two sides is inconsistent so the rows cannot be compared. Warnings related to tags (for example, a tag falling back to normal comparison) are printed in the comparison logs. |
 
 ## Multi-Rank Data Aggregation
 

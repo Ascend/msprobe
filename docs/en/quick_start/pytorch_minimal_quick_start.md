@@ -1,16 +1,16 @@
-# msProbe PyTorch Minimal Quick Start
+# msProbe Minimal Quick Start for PyTorch
 
 <br>
 
 ## 1. Overview
 
-Run one training step of a two-layer fully connected network on Linux CPU to install, instrument, dump, compare, and inspect results. No CANN, `torch_npu`, GPU, model weights, or dataset downloads are required. For cross-device debugging, see [msProbe PyTorch Quick Start](pytorch_quick_start.md).
+Run one training step of a two-layer fully connected network on Linux CPU to install, instrument, dump, compare, and inspect results. CANN, `torch_npu`, GPU, model weights, or dataset downloads are not required. For cross-device debugging, see [msProbe PyTorch Quick Start](pytorch_quick_start.md).
 
 ## 2. Procedure
 
 ### 2.1 Environment Preparation
 
-This example pins `mindstudio-probe==26.2.0` and PyTorch `2.7.1`. Use an isolated Python 3.11/3.12 environment. Run the following commands in Linux Bash:
+This example pins `mindstudio-probe==26.2.0` and PyTorch `2.7.1`. An isolated Python 3.11/3.12 environment is recommended. Run the following commands in Linux Bash:
 
 ```bash
 python3 -m venv .venv
@@ -27,7 +27,7 @@ If you already have a checkout, go to `examples/quick_start/minimal`. The packag
 
 ### 2.2 Configuration and Instrumentation
 
-[config.json](../../../examples/quick_start/minimal/config.json) uses `task=tensor` to save complete Tensors, `level=L1` to collect APIs, `step=[0]` to collect only the first iteration, and `async_dump=false` for synchronous writes. The small network allows you to try comparison of actual Tensor values directly.
+In [config.json](../../../examples/quick_start/minimal/config.json), `task=tensor` is used to save complete Tensors, `level=L1` to collect APIs, `step=[0]` to collect only the first iteration, and `async_dump=false` for synchronous writes. The small network allows you to try comparison of actual Tensor values directly.
 
 The key instrumentation in [train.py](../../../examples/quick_start/minimal/train.py) is:
 
@@ -41,7 +41,7 @@ debugger.step()  # Call once at the end of each training iteration.
 
 `train.py` loads the configuration next to the script. The `--dump-path` argument overrides the output directory in the configuration. Both runs use the same random seed, model initialization, and inputs. Before collection starts, `--perturb` adds `0.1` to the second Linear layer's weights to introduce a difference deliberately.
 
-### 2.3 Run and Inspect Dump Data
+### 2.3 Running and Inspecting Dump Data
 
 Use a new directory each time to keep the results separate from previous dumps:
 
@@ -55,9 +55,9 @@ test -n "$GOLDEN_JSON" && test -n "$TARGET_JSON"
 find "$RUN_DIR" -name dump.json -o -name stack.json -o -name '*.pt'
 ```
 
-Single-process output is stored in `step0/proc{pid}/`: `dump.json` records API and Tensor metadata, `stack.json` records call stacks, and `dump_tensor_data/` contains `.pt` files. The two processes can have different PIDs; do not hardcode `proc{pid}`. Multi-device runs typically use `rank{id}` directories.
+Single-process output is stored in `step0/proc{pid}/`. `dump.json` records API and Tensor metadata, `stack.json` records call stacks, and `dump_tensor_data/` contains `.pt` files. The two processes can have different PIDs, and do not hardcode `proc{pid}`. The `rank{id}` directory is generally used in multi-rank scenarios.
 
-### 2.4 Compare Precision
+### 2.4 Comparing Precision
 
 Continue in the same terminal:
 
@@ -66,9 +66,9 @@ msprobe compare -tp "$TARGET_JSON" -gp "$GOLDEN_JSON" -o "$RUN_DIR/compare"
 find "$RUN_DIR/compare" -name '*.csv'
 ```
 
-`-tp` specifies the data to check, and `-gp` specifies the reference data. The default output is `compare_result_{timestamp}.csv`. Keep both complete `step0/proc{pid}` directories: comparison of actual Tensor values also requires their `dump_tensor_data` files.
+`-tp` specifies the data to check, and `-gp` specifies the benchmark data. The default output is `compare_result_{timestamp}.csv`. Keep both complete `step0/proc{pid}` directories. Comparison of actual Tensor values also requires their `dump_tensor_data` files.
 
-### 2.5 Analyze Comparison Results
+### 2.5 Analyzing Comparison Results
 
 1. Check `Err_message` first for unmatched APIs, inconsistent shapes or data types, and missing Tensor files.
 2. Inspect `Result`, `Cosine`, and `MaxAbsErr`. In this example, the second Linear layer's activation inputs should match. Its weight parameters and forward output start to differ, affecting the loss and backward data that follow.
@@ -78,4 +78,4 @@ In this example, `MaxAbsErr` is `0` for `Functional.linear.1.forward.input.0`, a
 
 You can run the target again without `--perturb` and compare using a new output directory to check identical models and inputs. The difference here is injected deliberately and does not establish a CPU/NPU/GPU operator defect. Matching statistical summaries also does not establish elementwise Tensor equality.
 
-For indicator definitions and thresholds, see [PyTorch Precision Comparison](../user_guide/accuracy_compare/pytorch_accuracy_compare_instruct.md). For other single-device, multi-device, and dump scenarios, see [msProbe Examples](../../../examples/README_EN.md).
+For indicator definitions and thresholds, see [PyTorch Precision Comparison](../user_guide/accuracy_compare/pytorch_accuracy_compare_instruct.md). For other single-rank, multi-rank, and dump scenarios, see [msProbe Examples](../../../examples/README_EN.md).

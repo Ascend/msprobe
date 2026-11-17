@@ -210,10 +210,10 @@ N/A.
 
 ## 4.3 Detailed Implementation (Module-Level or Process-Level Message Sequence Diagram from the User Entry Point)
 
-- Support automatic accuracy comparison for Inductor (Triton backend), with configurable accuracy thresholds
+- Support automatic precision comparison for Inductor (Triton backend), with configurable accuracy thresholds
   - Requirement Background: It is necessary to compare the accuracy of the entire network between eager mode and after automatic operator generation, in order to identify nodes that fail to meet the accuracy criteria
-  - Requirement Objective: Support automatic accuracy comparison for Inductor (Triton backend), with configurable accuracy thresholds
-- The accuracy comparison tool supports mlir, akg, dvm, and automatic accuracy comparison across multiple compilation stages (eager → AOT eager)
+  - Requirement Objective: Support automatic precision comparison for Inductor (Triton backend), with configurable accuracy thresholds
+- The precision comparison tool supports automatic precision compariso for mlir, akg, dvm, and multiple compilation stages (eager → AOT eager)
   - Requirement background: Insufficient graph mode support
   - Requirement objective: Provide precision tool support for graph mode backends including MLIR, AKG, DVM, and multi-stage compilation (eager → AOT eager)
 - Support full-network data collection in aclgraph scenarios

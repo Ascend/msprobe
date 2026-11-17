@@ -77,7 +77,7 @@ Parse data files in the `/data/dump_path` directory, automatically identify moni
 msprobe data2db --data /data/dump_path --db /data/db_path
 ```
 
-Compare two groups of dump data in `/data/dump_path1` and `/data/dump_path2`, concatenated along the iteration step dimension. The iteration steps of the first data source come first, and the second data source follows them.
+Compare two groups of dump data in `/data/dump_path1` and `/data/dump_path2`, concatenated along the step dimension. The steps of the first data source come first, and the second data source follows them.
 
 ```shell
 msprobe data2db --data /data/dump_path1 --format dump --compare_data /data/dump_path2 --concat_dim step --db /data/db_path
@@ -91,9 +91,9 @@ msprobe data2db --data /data/monitor_path1 --format monitor --compare_data /data
 
 > [!NOTE]
 >
-> - When `--compare_data` is specified, the iteration step numbers of the two data sources are renumbered by their order of appearance (the target data starts from 0 and the compare data follows it), so the step in the database is no longer the step number of the original data. Without `--compare_data`, the original step numbers are kept.
->   - When concatenated along the iteration step dimension, the k-th iteration step holds the values of the first data source, and the (k+N)-th holds the values of the second one, where N is the number of iteration steps of the first data source.
->   - When concatenated along the node rank dimension, the first data source occupies rank[0, R1-1] at the same iteration step, and the second data source starts from rank R1, where R1 is the rank axis span of the first data source (its maximum rank number plus one).
+> - When `--compare_data` is specified, the step numbers of the two data sources are renumbered by their order of appearance (the target data starts from 0 and the compare data follows it), so the step in the database is no longer the step number of the original data. Without `--compare_data`, the original step numbers are kept.
+>   - When concatenated along the step dimension, the *k*-th step holds the values of the first data source, and the *(k+N)*-th holds the values of the second one, where *N* is the number of steps of the first data source.
+>   - When concatenated along the node rank dimension, the first data source occupies rank[0, R1-1] at the same step, and the second data source starts from rank R1, where R1 is the rank-axis span of the first data source (its maximum rank number plus one).
 > - If the two data sources are of different formats (one is dump data and the other is monitor data), the tool reports it and parses the first data source only.
 
 **Output Description**
@@ -384,7 +384,7 @@ None
    
    The trend visualization tool does not distinguish between benchmark experiments and comparison experiments. The two data sources are equal in the parsing result. It is recommended to use the `--compare_data` parameter together with the `--concat_dim` parameter. The tool concatenates the two data sources automatically, and the original data directories do not need to be modified.
 
-   Concatenated along the iteration step dimension: the iteration steps of the first data source come first, and the second data source follows them.
+   Concatenated along the step dimension: the steps of the first data source come first, and the second data source follows them.
 
    ```shell
    msprobe data2db --data dump_path1 --format dump --compare_data dump_path2 --concat_dim step --db ./output
@@ -398,9 +398,7 @@ None
 
    After the parsing is completed, the two experiments can be compared in the trend visualization front end.
 
-   If the preceding parameters are inconvenient, you can also move the subdirectories of the two groups of files to the same directory and then use the trend visualization tool to view and compare the files.
-
-   Assume there are two dump data files: `dump_path1` and `dump_path2`.
+   If the preceding parameters are not used, move the subdirectories of the two groups of files to the same directory and then use the trend visualization tool to view and compare the files. Assume there are two dump data files: `dump_path1` and `dump_path2`.
 
    ```shell
    ├── dump_path1
@@ -428,7 +426,7 @@ None
    │   ├── step3 # Step 1 of the original dump_path2
    ```
 
-   After the command is executed, the precision data of four steps can be obtained. In this case, comparing the precision data trends of step 0 and step 2 is equivalent to comparing the precision data trends of step 0 in the original `dump_path1` and `dump_path2`.
+   After the command is executed, the precision data of four steps are obtained. In this case, comparing the precision data trends of step 0 and step 2 is equivalent to comparing the precision data trends of step 0 in the original `dump_path1` and `dump_path2`.
 
    ```shell
    msprobe data2db --data dump_path_compare --db ./output --format dump
@@ -439,15 +437,15 @@ None
    ```shell
    ├── dump_path_compare
    │   ├── step0
-   │   |   ├── rank0  # step 0/rank 0 of original dump_path1
-   │   |   ├── rank1  # step 0/rank 1 of original dump_path1
-   │   |   ├── rank2  # step 0/rank 0 of original dump_path2
-   │   |   ├── rank3  # step 0/rank 1 of original dump_path2
+   │   |   ├── rank0  # Step 0/Rank 0 of original dump_path1
+   │   |   ├── rank1  # Step 0/Rank 1 of original dump_path1
+   │   |   ├── rank2  # Step 0/Rank 0 of original dump_path2
+   │   |   ├── rank3  # Step 0/Rank 1 of original dump_path2
    │   ├── step1
-   │   |   ├── rank0 # step 1/rank 0 of original dump_path1
-   │   |   ├── rank1 # step 1/rank 1 of original dump_path1
-   │   |   ├── rank2 # step 1/rank 0 of original dump_path2
-   │   |   ├── rank3 # step 1/rank 1 of original dump_path2
+   │   |   ├── rank0 # Step 1/Rank 0 of original dump_path1
+   │   |   ├── rank1 # Step 1/Rank 1 of original dump_path1
+   │   |   ├── rank2 # Step 1/Rank 0 of original dump_path2
+   │   |   ├── rank3 # Step 1/Rank 1 of original dump_path2
    ```
 
    After the command is executed, the precision data visualization results of four ranks are obtained. In this case, comparing the precision data trends of rank 0 and rank 2 in step 0 is equivalent to comparing the precision data trends of rank 0 in step 0 of the original `dump_path1` and `dump_path2`.

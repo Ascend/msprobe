@@ -132,7 +132,7 @@ python3 build.py [local] [-v <version>] [-e include-mod=<include_mode>] [-e no-c
 >   python3 -c "import torch, torch_npu; print('torch:', torch.__version__, 'torch_npu:', torch_npu.__version__)"
 >   ```
 >
-> - The `torch_npu` version must be compatible with the CANN version in the build image. For version compatibility, see [Ascend for PyTorch](https://gitcode.com/Ascend/pytorch).
+> - The `torch_npu` version must be compatible with the CANN version in the build image. For version compatibility, see [TorchNPU](https://gitcode.com/Ascend/pytorch).
 
 ##### 2.3.2.2 Build Command Examples
 

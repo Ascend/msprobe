@@ -246,4 +246,6 @@ The documentation under the docs directory of the msProbe tool is licensed under
 
 Thank you for contributing to msProbe. Your efforts make this project more powerful and user-friendly. We look forward to your participation!
 
+---
+
 If you have any questions or need assistance, please feel free to ask in [Issues](https://gitcode.com/Ascend/msprobe/issues) or contact us through other community channels.

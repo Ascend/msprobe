@@ -183,7 +183,11 @@ Incorrect output: For example, the model consistently answers "Shanghai" instead
 
 #### 5.1.1 Locating Accuracy Issues in vLLM Scenarios
 
-vLLM is a high-performance model inference framework developed by the team at UC Berkeley. It uses innovative memory management and scheduling policies to address the problems of low memory utilization, insufficient throughput, and low concurrent processing efficiency in traditional inference frameworks when deploying foundation models. The core advantages of vLLM lie in its unique memory management mechanism (PagedAttention) and Continuous Batching technology. These two innovations enable memory utilization to reach nearly 100% and the throughput to be 24 times that of traditional frameworks, making vLLM particularly suitable for real-time inference scenarios with high concurrency and low latency. The inference process of vLLM is divided into two main phases: prefill and decode. The prefill phase processes input prompts and generates the initial KV Cache, while the decode phase generates output tokens one by one and continuously updates the KV Cache. Throughout the process, vLLM uses its PagedAttention and Continuous Batching features to efficiently utilize memory resources and fully schedule computing resources.
+vLLM is a high-performance model inference framework developed by the team at UC Berkeley. It uses innovative memory management and scheduling policies to address the problems of low memory utilization, insufficient throughput, and low concurrent processing efficiency in traditional inference frameworks when deploying foundation models. 
+
+The core advantages of vLLM lie in its unique memory management mechanism (PagedAttention) and Continuous Batching technology. These two innovations enable memory utilization to reach nearly 100% and the throughput to be 24 times that of traditional frameworks, making vLLM particularly suitable for real-time inference scenarios with high concurrency and low latency.
+
+The inference process of vLLM is divided into two main phases: prefill and decode. The prefill phase processes input prompts and generates the initial KV Cache, while the decode phase generates output tokens one by one and continuously updates the KV Cache. Throughout the process, vLLM uses its PagedAttention and Continuous Batching features to efficiently utilize memory resources and fully schedule computing resources.
 
 ##### 5.1.1.1 Tool Usage
 

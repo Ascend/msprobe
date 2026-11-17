@@ -75,7 +75,7 @@ When performing precision alignment in **PyTorch ACLGraph** mode, the overall st
       ).npu()
     + # Set the default device to ensure the collection switch is created on the NPU before graph compilation.
     + torch.set_default_device("npu:0")
-    + # Initialized the configuration.
+    + # Initialize the configuration.
     + dumper = AclGraphDumper('./config.json')
     + # Configure the collection task before graph compilation.
     + dumper.start(model)
@@ -152,19 +152,14 @@ If collection has not been started, it returns directly.
 
 ### Automatic NaN Detection
 
-Graph mode uses `AclGraphDumper` and supports only `check_mode: "isnan"`. The detection scope is NaN in tensors. Call `start(model)` before graph capture and `step()` after each replay to save the results.
-
-Complete configuration example:
+Set `task` to `nan_check` in the configuration file to check NaN in model's intermediate results. Call `start(model)` to start collection and `step()` after each replay to save the results:
 
 ```json
 {
   "task": "nan_check",
   "dump_path": "./nan_dump",
-  "rank": [],
-  "dump_enable": true,
   "level": "L1",
   "nan_check": {
-    "check_mode": "isnan",
     "list": [],
     "detail": true
   }
@@ -173,22 +168,21 @@ Complete configuration example:
 
 **Parameters**
 
-The supported configuration for graph-mode `nan_check` consists of the following eight parameters:
-
 | Parameter | Required/Optional | Description |
 | ---- | --------- | ---- |
-| task | Required | Set to `"nan_check"`. |
-| dump_path | Required | Result directory, of type `str`. |
-| rank | Optional | Ranks to collect, of type `list[int \| str]`, default `[]` (all ranks). Strings support `"start-end"` ranges. Before distributed initialization, data is collected from the current process. |
-| dump_enable | Optional | A `bool`, default `true`. Controls result saving and supports [dynamic enable/disable](#dynamic-enabledisable). |
-| level | Optional | A `str`, default `"L0"`. `L0` checks modules, `L1` checks APIs, and `mix` checks both. |
-| check_mode | Optional | A `str`, default `"isnan"`. This is the only value supported in graph mode. |
-| list | Optional | Module/API name keywords, of type `list[str]`, default `[]` (all data covered by the current `level`). |
-| detail | Optional | A `bool`, default `true`. Controls whether `dump.json` is generated; see [nan_check Task Output](#nan_check-task). |
+| list | Optional | Module/API name keywords, of type `list[str]`. Defaults to `[]`, which does not restrict the range. |
+| check_mode | Optional | Detection method, of type `str`. Defaults to `"isnan"`, which is currently the only supported value. Only NaN is detected; Inf and overflow during computation are not detected. |
+| detail | Optional | Whether to generate `dump.json`, of type `bool`. Defaults to `true`. Set it to `false` if you only need tensor files. See [nan_check Task Output](#nan_check-task) for file formats. |
 
-If any output tensor contains NaN, all input/output tensors of the current module/API call are saved. Inplace and `out=` operations are supported, preserving inputs before mutation and results afterward. API collection filters out entries with `empty` in their names.
+Choose the collection scope with `level`: `L0` checks modules, `L1` checks APIs, and `mix` checks both. Use `list` to select names and `rank` to select devices.
 
-For tensor `is_nan` values and special data types, see [is_nan Field in the Usage Example](./pytorch_nan_check_quickstart.md#is_nan-field). Graph-mode collection filters out FakeTensors and meta tensors. For saved files, see [nan_check Task Output](#nan_check-task).
+If any output of a call contains NaN, all inputs and outputs of that call are saved. If only an input contains NaN and the outputs are normal, no tensor files are saved. Inplace and `out=` operations are also supported. Saved data includes the inputs before modification and the results afterward. APIs whose names contain `empty` are skipped.
+
+After each replay, call `step()` and check `dump_path/step{step_id}/{rank-or-pid}/`. The `dump_tensor_data/` directory contains the input and output `.pt` files. With `detail` enabled, `dump.json` also shows whether each tensor contains NaN. An empty `dump.json` is not generated when no collection data is available.
+
+NaN detection is not yet supported for non-empty FP8/FP4 tensors. Their dtype and shape are kept in `dump.json`, with `is_nan` set to `null`. They do not trigger saving. If another output contains NaN, the tool still attempts to save all inputs and outputs of the call, including FP8/FP4 tensors. Integer, bool, and empty tensors have `is_nan: 0`.
+
+NaN detection checks the full tensor; the `slice` setting does not apply. Detection and keeping the original inputs add computation and memory overhead. Disabling `dump_enable` at runtime stops saving results but does not remove detection and data-copy overhead.
 
 ### Tensor Network-wide Collection
 
@@ -213,7 +207,9 @@ After each ACLGraph replay, call `dumper.step()`, and the tool archives the `.pt
 {api_name}.{call_index}.{input|input_kwargs|output}.{index}.pt
 ```
 
-A single Tensor output uses `output.0.pt`. Tuple/list outputs use `output.0.pt`, `output.1.pt`, and so on. Nested containers append their positions or dictionary keys.
+For a single Tensor output, use `output.0.pt`; for tuple/list outputs, use `output.0.pt`, `output.1.pt`, etc., by position. For nested containers, continue appending positions or dictionary keys.
+
+In the preceding format, `{api_name}` is the name of the collection target. Module/API collection uses the collection point name (for example, `linear`), and custom API collection uses the full import path configured in `custom_api`. For details, see [Custom API Collection](#custom-api-collection).
 
 The process identifier in the directory is distinguished by running scenario: in the multi-rank scenario, `rank{rank_id}` is used; in the single-rank scenario, `rank0` is used; if the distributed environment is not initialized in the single-rank scenario, `pid{pid}` is used.
 
@@ -250,9 +246,19 @@ For Python APIs that cannot be automatically identified through module hooks or 
 - `custom_api` takes effect at `start()`; modifying this configuration at runtime does not re-wrap the API.
 - The input, keyword arguments, and output of a custom API share the same replay call index.
 
+The file names written to disk by custom API collection are prefixed with the configured full import path. For example, when `my_package.ops.reshape_and_cache` is configured, the files written to disk are as follows:
+
+```text
+my_package.ops.reshape_and_cache.0.input.0.pt
+my_package.ops.reshape_and_cache.0.input_kwargs.value_cache.pt
+my_package.ops.reshape_and_cache.0.output.0.pt
+```
+
+The full import path prefix distinguishes same-named methods under different modules or classes, preventing the data of same-named methods from being mixed into the same group of file names and misaligned when data is fetched by file name. The call index is counted independently by full import path.
+
 ### Dynamic Enable/Disable
 
-Setting `dump_enable` at the root level of the configuration file controls whether the `statistics`, `tensor`, and `nan_check` tasks save collection results:
+Setting `dump_enable` at the root level of the configuration file controls whether the `statistics` and `tensor` tasks perform collection:
 
 ```json
 {
@@ -271,8 +277,6 @@ Even if the initial value is `false`, `AclGraphDumper.start()` must be called be
 - `dumper.step()` detects configuration file changes and refreshes the switch.
 - The new switch value takes effect from the subsequent ACLGraph replay.
 - Dynamic refresh updates only `dump_enable`; modifying `task`, `level`, `list`, `custom_api`, or `slice` at runtime does not change the captured graph.
-
-`nan_check` also refreshes the switch in `dumper.step()`, taking effect on subsequent replays. `dump_enable: true` enables tensor and detection JSON saving. Captured NaN checks and original-input copies execute during replay, with their computation and memory overhead remaining in both switch states.
 
 The `statistics` and `tensor` tasks share the Host dynamic switch. Adjacent collection points with no interspersed model tasks are merged into one Host callback; during replay, each group reads the switch once, and if it is disabled, returns directly without copying tensors, computing statistical values, or saving data.
 
@@ -352,16 +356,14 @@ The `tensor` task does not generate `dump.json`.
 
 #### nan_check Task
 
-Results are stored under `dump_path/step{step_id}/{process_dir}/`. After distributed initialization, `{process_dir}` is `rank{rank_id}` (`rank0` for a single rank); before initialization, it is `pid{pid}`.
+Results are stored under `dump_path/step{step_id}/{process_dir}/`. Distributed runs use `rank{rank_id}`; runs without an initialized distributed environment use `pid{pid}`.
 
-The example below uses `detail: true`. With `detail: false`, only `.pt` files for calls with NaN outputs remain. Graph-mode output file types are `dump.json` and `.pt`.
-
-- `detail: true` (default): `dump.json` records each input and output tensor's `dtype`, `shape`, and `is_nan`. The tensor's `is_nan` value is `1` for NaN, `0` for a passed NaN check, or `null` for an unknown detection result.
+- `detail: true` (default): `dump.json` records each input and output tensor's `dtype`, `shape`, and `is_nan`. A value of `1` means NaN is present, `0` means no NaN, and `null` means detection is unavailable.
 - Positional inputs are under `input_args`, keyword inputs under `input_kwargs`, and outputs under `output`.
-- If any output tensor of the current module/API call contains NaN, all input/output tensors of that call are saved under `dump_tensor_data/`. `dump.json` links to the saved tensor files through `data_name`. `data_name` is generated only for calls with NaN outputs.
-- `detail: false`: the output consists only of `.pt` files for calls with NaN outputs.
+- If any output tensor contains NaN, all inputs and outputs are saved under `dump_tensor_data/`, and JSON records link to the files through `data_name`. Calls without a NaN output do not have `data_name` fields.
+- `detail: false`: only saves the matching calls' `.pt` files, without generating `dump.json`.
 
-In this `detail: true` example, `input_args[1].is_nan` and `output[0].is_nan` of `Aten.add` are both `1`. The second positional tensor input and the first tensor output contain NaN, so both input tensors and the output tensor of this call are saved. Filenames use the format `{api_name}.{call_index}.{input|input_kwargs|output}.{index}.pt`; use `data_name` below to locate each file:
+In this example, the second input and output of `Aten.add` contain NaN, so both inputs and the output are saved:
 
 ```text
 nan_dump
@@ -374,7 +376,7 @@ nan_dump
             └── Aten.add.0.output.0.pt
 ```
 
-Example `dump.json` content (`dump_data_dir` is the actual save path):
+Example content of `dump.json` (`dump_data_dir` is the actual save path):
 
 ```json
 {
@@ -471,7 +473,7 @@ acl_save(x: torch.Tensor, path: str) -> torch.Tensor
 | Name | Optional/Mandatory | Description |
 | --- | --- | --- |
 | `x` | Mandatory | The tensor to be saved, of type `torch.Tensor`. |
-| `path` | Mandatory | The save path (relative or absolute paths are supported), of type string. The actual file name written to disk will append a sequence number to the file name in this path, in the format `{base}_{seq}.pt`. For example, if `./dump/act.pt` is passed, the actual files written to disk will be `./dump/act_0.pt`, `./dump/act_1.pt`, and so on. |
+| `path` | Mandatory | The save path (relative or absolute paths are supported), of type string. The actual file name written to disk will append a sequence number to the file name in this path, in the format `{base}_{seq}.pt`. For example, if `./dump/act.pt` is passed, the actual files written to disk are `./dump/act_0.pt` and `./dump/act_1.pt`. |
 
 **Return Value**
 

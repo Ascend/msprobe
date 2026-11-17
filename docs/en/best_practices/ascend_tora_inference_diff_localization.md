@@ -4,7 +4,7 @@
 
 **Model structure:** Tora model + vLLM (vllm-ascend) inference framework
 
-**Symptoms:** unified dataset inference; the downstream score of NPU (54.4 points) is noticeably worse than that of GPU (80.6 points).
+**Symptoms:** For inference under the same dataset, the downstream score of NPU (54.4 points) is noticeably worse than that of GPU (80.6 points).
 ![](../figures/cases/ascend_tora_inference_diff_localization/npugpu_score_comparison.png)
 **Bad case details**:
 

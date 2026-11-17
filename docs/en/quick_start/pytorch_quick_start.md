@@ -6,7 +6,7 @@
 
 MindStudio Probe (msProbe) is an AI model precision debugging tool. This document uses ResNet-50 model training as an example to demonstrate the complete workflow of NPU/GPU data collection, precision comparison, and graph comparison in hierarchical visualization, helping you master the troubleshooting methods and analysis approaches for typical precision issues such as numerical overflow, loss anomalies, and model non-convergence.
 
-To try the workflow without an NPU/GPU, model download, or dataset, see the [minimal PyTorch example](pytorch_minimal_quick_start.md).
+To try the workflow without an NPU/GPU, model download, or dataset, see the [msProbe Minimal Quick Start for PyTorch](pytorch_minimal_quick_start.md).
 
 **Experience Map (Core Operations Take Approximately 10 Minutes)**
 
@@ -16,7 +16,7 @@ To try the workflow without an NPU/GPU, model download, or dataset, see the [min
 | 2 | NPU data collection | PrecisionDebugger | 1 min | 10 min |
 | 3 | GPU benchmark data collection | PrecisionDebugger | 0.5 min | 5 min |
 | 4 | Precision comparison | msProbe compare | 1 min | 10 min |
-| 5 | Visualized graph comparison | graph_visualize / TensorBoard | 2 min | 10 min |
+| 5 | Visualized graph comparison | graph_visualize/TensorBoard | 2 min | 10 min |
 
 > 👉 This tutorial is based on the PyTorch framework. If you need to use it in the MindSpore scenario, please refer to *[Quick Start of msProbe in the MindSpore Scenario](mindspore_quick_start.md)*.
 

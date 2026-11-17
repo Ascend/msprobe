@@ -230,6 +230,10 @@ Furthermore, the `.to()` operation was located in the call stack, and stream syn
 
 Therefore, it can finally be basically confirmed that this problem is related to the following factors:
 
+> **Problem Solved**
+
+Therefore, it can ultimately be basically confirmed that the issue is related to the following factors:
+
 * `accelerate` enables `offload`.
 * **Data movement exists between the NPU and the CPU** during FSDP training.
 * In some scenarios, the **stream synchronization is not completed correctly**.

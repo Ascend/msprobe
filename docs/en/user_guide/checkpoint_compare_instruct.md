@@ -92,7 +92,7 @@ The checkpoint comparison result is exported to a JSON file. The following is an
 }
 ```
 
-|Statistics| Description|
+| Statistics| Description|
 |----------|------------|
 | l2 | Euclidean distance, $\|\|a-b\|\|_2$.|
 | cos | Cosine similarity, $\frac{<a,b>}{\|\|a\|\|_2\|\|b\|\|_2}$.|

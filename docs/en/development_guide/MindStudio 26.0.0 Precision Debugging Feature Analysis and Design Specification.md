@@ -76,7 +76,7 @@ Internal capability description of the tool:
 
 ## 1.2 Feature Requirement List
 
-Feature Requirement List
+Feature requirement list
 
 <table>
     <tr>
@@ -139,12 +139,13 @@ Not applicable.
 1. MD5 Real-Time Difference Analysis Dump
 
 Requirement Background:
-During model training on NPUs, deterministic computation issues are a common challenge. The existing msProbe tool supports the MD5 dump function for entire-network output consistency checking, but it lacks real-time automated analysis capabilities. As a result, for data with unstable reproducibility, it is impossible to perform data collection at the first occurrence. This requirement aims to quickly capture the actual data of MD5 inconsistencies by inheriting real-time monitoring and difference analysis.
-However, it lacks real-time automated analysis capabilities, so for data with unstable reproducibility, it is impossible to perform data collection at the first occurrence. This requirement aims to quickly capture the actual MD5-inconsistent data by inheriting real-time monitoring and difference
+During model training on NPUs, deterministic computation issues are a common challenge. The existing msProbe tool supports the MD5 dump function for entire-network output consistency checking. 
+However, it lacks real-time automated analysis capabilities, so for data with unstable reproducibility, it is impossible to perform data collection at the first occurrence. This requirement aims to quickly capture the actual MD5-inconsistent data by integrating real-time monitoring and difference
 analysis.
 
 Requirement description and implementation plan:
-A set of MD5 data for a model is pre-configured in advance. When the tool collects model data again, it can use the pre-configured MD5 data to determine the difference between each tensor in the current task and the pre-configured MD5 data. Once a divergent node is identified, the actual data is dumped.
+A set of MD5 data for a model is pre-configured in advance. When the tool collects model data again, it can use the pre-configured MD5 data to determine the difference between each tensor in the current task and the pre-configured MD5 data.
+Once a divergent node is identified, the actual data is dumped.
 
 ## 4.4 DFX Attribute Design
 

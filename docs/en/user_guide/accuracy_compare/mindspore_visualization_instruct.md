@@ -578,7 +578,7 @@ Model code example:
 1. Default matching
 
    - The dump names of all nodes are the same.
-   - The node levels are the same (the parent nodes are the same).
+   - The node levels are the same (all parent nodes are the same).
 
 2. Fuzzy matching
 
