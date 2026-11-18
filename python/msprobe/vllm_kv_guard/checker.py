@@ -24,17 +24,36 @@ class KVGuardError(RuntimeError):
 
 
 class Guard:
-    def __init__(self, action, rank=None):
+    def __init__(self, action, rank=None, slot=False):
         self.action, self.rank, self.failure = action, rank, None
+        self.slot = slot
 
     def fail(self, reason, **fields):
         if self.failure is None:
             self.failure = reason
+        if self.slot:
+            fields["audit"] = "slot"
         emit("kv.violation", reason=reason, rank=self.rank, evidence="boundary_plan", **fields)
 
     def check(self):
         if self.action == "raise" and self.failure is not None:
             raise KVGuardError(f"KV guard: {self.failure}")
+
+    def validate_layout(self, layout):
+        if not self.slot:
+            return True
+        if layout.get("allow_null_block"):
+            self.fail("unsupported_slot_null_redirect")
+            return False
+        if layout["num_blocks"] <= 0 or not layout["groups"]:
+            self.fail("unsupported_slot_layout")
+            return False
+        for group, spec in enumerate(layout["groups"]):
+            size, kernel = spec["block_size"], spec["kernel_block_size"]
+            if size <= 0 or kernel <= 0 or size % kernel or not spec.get("slot_mapping_enabled", True):
+                self.fail("unsupported_slot_layout", group_id=group)
+                return False
+        return True
 
     def spec(self, values, rows=None):
         """Validate native counts; older PP results have no current-step budget."""
@@ -71,6 +90,8 @@ class Guard:
         def fail(reason, **fields):
             self.fail(reason, trace_id=values.get("trace_id"), **fields)
 
+        if not self.validate_layout(layout):
+            return
         if layout.get("pcp_size", 1) != 1:
             return  # PCP local rows can repeat; parallel() audits the native global context.
         requests = {req: (computed, count, groups) for req, computed, count, groups in plan}
@@ -97,6 +118,21 @@ class Guard:
         if len(values["groups"]) != len(layout["groups"]):
             fail("cache_group_count_mismatch")
             return
+        if self.slot:
+            padded = values.get("padded_slot_mappings")
+            bucket = values.get("num_tokens_after_padding")
+            if (
+                bucket is None
+                or bucket < tokens
+                or padded is None
+                or len(padded) != len(layout["groups"])
+                or any(len(slots) != bucket - tokens for slots in padded)
+            ):
+                fail("slot_padding_metadata_missing")
+                return
+            for group, slots in enumerate(padded):
+                if any(slot != -1 for slot in slots):
+                    fail("padded_write_target", group_id=group, slot_mapping_scope="graph_padding")
         cp_size, rank = layout.get("cp_size", 1), layout.get("cp_rank", 0)
         interleave = layout.get("cp_interleave", 1)
         local_lengths = values.get("dcp_local_seq_lens")
@@ -127,6 +163,8 @@ class Guard:
             if len(tables) != len(ids) or len(slots) != tokens:
                 fail("cache_plan_shape_mismatch", group_id=group)
                 continue
+            writes = {"scheduler": {}, "execution": {}} if self.slot else None
+            capacity = layout["num_blocks"] * size if self.slot else 0
             if any(slot >= 0 for slot in slots[starts[-1] :]):
                 fail("padded_write_target", group_id=group)
             for row, req in enumerate(ids):
@@ -141,7 +179,7 @@ class Guard:
                     fail("read_block_mapping_mismatch", request_id=req, group_id=group)
                 begin, end = starts[row : row + 2]
                 for token in range(begin, end):
-                    position = positions[token]
+                    position = requests[req][0] + token - begin if self.slot else positions[token]
                     virtual, offset = divmod(position, size * cp_size)
                     local = offset // interleave % cp_size == rank
                     offset = offset // (interleave * cp_size) * interleave + offset % interleave
@@ -169,19 +207,45 @@ class Guard:
                         expected = blocks[virtual] * size + offset
                         column = (virtual * size + offset) // kernel
                         kernel_block = blocks[virtual] * factor + offset // kernel
-                        if column >= len(table) or table[column] != kernel_block:
+                        block_matches = column < len(table) and table[column] == kernel_block
+                        if not block_matches:
                             fail("write_block_mapping_mismatch", request_id=req, group_id=group)
+                        if not block_matches and not self.slot:
                             break
-                    if slots[token] != expected:
+                    actual = slots[token]
+                    if self.slot and (actual < -1 or actual >= capacity):
+                        fail(
+                            "slot_out_of_capacity",
+                            request_id=req,
+                            group_id=group,
+                            token_position=position,
+                            actual_slot=actual,
+                            capacity=capacity,
+                        )
+                    for source, slot in (("scheduler", expected), ("execution", actual)) if self.slot else ():
+                        if not 0 <= slot < capacity:
+                            continue
+                        other, prior = writes[source].setdefault(slot, (req, position))
+                        if (other, prior) != (req, position):
+                            fail(
+                                "slot_collision" if other != req else "duplicate_slot_write",
+                                group_id=group,
+                                request_id=req,
+                                token_position=position,
+                                slot=slot,
+                                source=source,
+                            )
+                    if actual != expected:
                         fail(
                             "write_target_mismatch",
                             request_id=req,
                             group_id=group,
                             token_index=token,
                             expected_slot=expected,
-                            actual_slot=slots[token],
+                            actual_slot=actual,
                         )
-                        break
+                        if not self.slot:
+                            break
 
     def parallel(self, values, plan, layout):
         """Check native PCP index maps and gathered write frames, without repartitioning."""
@@ -201,6 +265,12 @@ class Guard:
             trace_id=values.get("trace_id"),
             groups=[dict(block_table=table, slot_mapping=slot[:tokens]) for table, slot in zip(tables, slots)],
         )
+        if self.slot:
+            bucket = values["global_num_tokens_after_padding"]
+            global_values.update(
+                num_tokens_after_padding=bucket,
+                padded_slot_mappings=[slot[tokens:bucket] for slot in slots],
+            )
         self.audit(global_values, plan, {**layout, "pcp_size": 1})
         if (
             len(starts) != len(ids) + 1  # pylint: disable=too-many-boolean-expressions

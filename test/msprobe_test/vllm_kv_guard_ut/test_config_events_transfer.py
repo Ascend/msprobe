@@ -8,6 +8,61 @@ from msprobe.vllm_kv_guard import config, events, transfer
 
 
 class TestConfig(TestCase):
+    def test_slot_configuration_and_disabled_compatibility(self):
+        self.assertEqual(config.parse_options({"slot": True}),
+                         {"enabled": True, "action": "log", "slot": True})
+        self.assertEqual(config.parse_options({"slot": False}), {"enabled": True, "action": "log"})
+        for options in ({"slot": 1}, {"slot": "true"}, {"slot": None}, {"slot_audit": True},
+                        {"slot": True, "enabled": False}):
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                config.parse_options(options)
+
+    def test_slot_rejects_unadapted_paths_for_both_actions(self):
+        for action in ("log", "raise"):
+            for field, change, message in (
+                ("parallel_config", {"enable_dbo": True}, "DBO"),
+                ("model_config", {"is_encoder_decoder": True}, "encoder-decoder"),
+                ("speculative_config", object(), "speculative decoding"),
+                ("kv_transfer_config", object(), "KV transfer"),
+                ("additional_config", {"sparse_kv_offload_config": {"enabled": True}}, "KV transfer"),
+                ("additional_config", {"sparse_kv_offload_config": True}, "KV transfer"),
+                ("additional_config", {"sparse_kv_offload_config": []}, "KV transfer"),
+            ):
+                with self.subTest(action=action, field=field, change=change):
+                    options = {"slot": True, "action": action}
+                    supplied = SimpleNamespace(additional_config={"kv_trace": options},
+                                               parallel_config=SimpleNamespace(), model_config=SimpleNamespace(),
+                                               speculative_config=None, kv_transfer_config=None)
+                    if field == "additional_config":
+                        supplied.additional_config.update(change)
+                    else:
+                        setattr(supplied, field, SimpleNamespace(**change) if isinstance(change, dict) else change)
+                    with self.assertRaisesRegex(ValueError, message):
+                        config.get_options(supplied)
+                    options["slot"] = False
+                    self.assertEqual(config.get_options(supplied), {"enabled": True, "action": action})
+
+    def test_slot_supported_config_is_retained(self):
+        supplied = SimpleNamespace(additional_config={"kv_trace": {"slot": True}},
+                                   parallel_config=SimpleNamespace(), model_config=SimpleNamespace(),
+                                   speculative_config=None, kv_transfer_config=None)
+        self.assertTrue(config.get_options(supplied)["slot"])
+        for offload in (None, {"enabled": False}):
+            with self.subTest(offload=offload):
+                supplied.additional_config["sparse_kv_offload_config"] = offload
+                self.assertTrue(config.get_options(supplied)["slot"])
+
+    def test_slot_retains_pcp_and_dcp_configurations(self):
+        for action in ("log", "raise"):
+            for pcp, dcp in ((2, 1), (1, 2), (2, 2)):
+                with self.subTest(action=action, pcp=pcp, dcp=dcp):
+                    supplied = SimpleNamespace(
+                        additional_config={"kv_trace": {"slot": True, "action": action}},
+                        parallel_config=SimpleNamespace(prefill_context_parallel_size=pcp,
+                                                        decode_context_parallel_size=dcp),
+                        model_config=SimpleNamespace(), speculative_config=None, kv_transfer_config=None)
+                    self.assertEqual(config.get_options(supplied), {"enabled": True, "action": action, "slot": True})
+
     def test_config_options(self):
         cases = [(None, None), ({}, {"enabled": True, "action": "log"}), ({"enabled": False}, None),
                  ({"action": "raise"}, {"enabled": True, "action": "raise"}),

@@ -4,7 +4,7 @@
 
 KV Cache stores the Key/Value data for tokens during model generation. vLLM manages this data in cache blocks, each containing storage slots for multiple tokens. The Scheduler assigns cache blocks to each request. Model execution uses `block_table` to specify the blocks to read and `slot_mapping` to specify each token's write slot.
 
-KV Trace records request identifiers, cache block IDs, token positions, and read/write locations. It checks whether the locations specified in model inputs agree with the blocks assigned by the Scheduler. For example, when a token should use slot 80 but the model input specifies slot 96, the log identifies the request, rank, token index, and differing slots to help locate the issue.
+KV Trace records request identifiers, cache block IDs, token positions, and read/write locations. It checks whether the locations specified in model inputs agree with the blocks assigned by the Scheduler. For example, when a token should use slot 80 and the model input specifies slot 96, the log identifies the request, rank, token index, and differing slots to help locate the issue.
 
 ## Preparations
 
@@ -15,7 +15,11 @@ Follow the [msProbe Installation Guide](../install_guide/msprobe_install_guide.m
 **Constraints**
 
 - The feature supports vLLM Ascend in eager and graph modes.
-- Use Model Runner V2 (MRV2), enabled with `VLLM_USE_V2_MODEL_RUNNER=1`. Model Runner V2 is a public vLLM component that prepares model inputs and executes inference. For details, see the official vLLM [Model Runner V2 Design Document](https://docs.vllm.ai/en/latest/design/model_runner_v2/).
+- Use Model Runner V2 (MRV2) for inference. Set `VLLM_USE_V2_MODEL_RUNNER=1` before starting the service.
+
+Slot checks apply to PCP, DCP, ordinary batching (DBO disabled), standard decoding, decoder-only models, and local KV Cache. PCP checks combine global slots, local indices, gather indices, and write masks. DCP checks follow slot ownership on the current rank. Use `slot=false` to inspect KV Trace records for speculative decoding and KV transfer.
+
+The startup message `parameter=enable_dbo, action: resetting to False` means Ascend has selected ordinary batching. Interpret slot results for that ordinary-batch configuration.
 
 ## Function
 
@@ -31,14 +35,22 @@ vllm serve <model_path> --enforce-eager --additional-config '<additional_config>
 
 **Parameter Description**
 
-Configure `enabled` and `action` in the `kv_trace` object passed through `--additional-config`.
+| Parameter Name | Optional/Mandatory | Parameter Description |
+| --- | --- | --- |
+| `<model_path>` | Mandatory | Model path |
+| `--additional-config` | Mandatory | JSON configuration containing the `kv_trace` object. Example: `--additional-config '{"kv_trace":{"enabled":true,"action":"log","slot":true}}'`. See [kv_trace Object Parameters](#kv_trace_parameters) for the fields |
+
+**kv_trace Object Parameters**<a name="kv_trace_parameters"></a>
 
 | Parameter Name | Optional/Mandatory | Parameter Description |
 | --- | --- | --- |
-| `model_path` | Mandatory | Model path |
-| `--additional-config` | Mandatory | JSON configuration containing the `kv_trace` object to enable this feature |
-| `kv_trace.enabled` | Optional | Boolean: `true` enables recording and `false` disables it. KV Trace is disabled by default; when a `kv_trace` configuration is supplied, this field defaults to `true` |
-| `kv_trace.action` | Optional | `log` (default): report check failures and continue inference; `raise`: report check failures and raise `KVGuardError`, causing the inference engine to fail |
+| `enabled` | Optional | Boolean: `true` enables KV Trace and `false` disables it. The service starts with KV Trace disabled; supplying a `kv_trace` configuration gives this field a default value of `true` |
+| `action` | Optional | `log` (default): record check failures and continue inference; `raise`: record check failures and raise `KVGuardError`, ending the inference engine |
+| `slot` | Optional | Boolean, default `false`. `true` enables slot address-plan checks together with `enabled=true` |
+
+> [!NOTE]
+>
+> Slot address-plan checks compare each token's authorized cache slot with the write location specified in the model input.
 
 **Usage Example**
 
@@ -50,15 +62,17 @@ export VLLM_PLUGINS=msprobe_kv_guard
 
 Separate plugin names with commas when enabling multiple plugins.
 
-The following example enables KV Trace in eager mode and saves the service log as `server.log`:
+The following example enables KV Trace and slot checks in eager mode and saves the service log as `server.log`:
 
 ```shell
 export VLLM_USE_V2_MODEL_RUNNER=1
 vllm serve /path/to/model \
   --enforce-eager \
-  --additional-config '{"kv_trace":{"enabled":true,"action":"log"}}' \
+  --additional-config '{"kv_trace":{"enabled":true,"action":"log","slot":true}}' \
   > server.log 2>&1
 ```
+
+Enable `slot=true` when investigating shifted token write locations, tail-block bounds, or write-slot conflicts between requests.
 
 Replace `/path/to/model` with the model path. For graph mode, remove `--enforce-eager` from the command above and use the service's existing compilation configuration.
 
@@ -66,7 +80,7 @@ Use `log` to collect context during investigation. Use `raise` to stop inference
 
 **Output Description**
 
-KV Trace writes to process stdout. The launch command above redirects the logs to `server.log`. For container deployments, search the container logs for `[KV_GUARD]`. For log formats and field meanings, see [Log Output Description](#log-output-description).
+KV Trace writes to process stdout. The launch command above redirects the logs to `server.log`. For container deployments, search the container logs for `[KV_GUARD]`. With slot checks enabled, `kv.enabled` includes `slot=true` and `evidence_scope=model_runner_plan`. Slot check failures use `kv.violation` with `audit=slot`. For log formats and field meanings, see [Log Output Description](#log-output-description).
 
 ## Log Output Description
 
@@ -77,10 +91,10 @@ Each record contains a log prefix, `[KV_GUARD]`, an event name, and JSON fields.
 The following illustrative example selects fields needed for analysis and omits prefixes such as timestamps and process IDs. Request `req-1` processes two tokens in this step using cache block 5:
 
 ```text
-[KV_GUARD] kv.enabled {"rank":0,"action":"log","boundary":"worker.init_device.return"}
+[KV_GUARD] kv.enabled {"rank":0,"action":"log","boundary":"worker.init_device.return","slot":true,"evidence_scope":"model_runner_plan"}
 [KV_GUARD] kv.bind {"trace_id":"0123456789abcdef0123456789abcdef","evidence":"scheduler_plan","num_scheduled_tokens":{"req-1":2},"total_num_scheduled_tokens":2,"scheduled_new_reqs":[{"req_id":"req-1","block_ids":[[5]],"num_computed_tokens":0,"replay_start":0}]}
-[KV_GUARD] kv.write {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"req_ids":["req-1"],"evidence":"model_runner_plan","group_id":0,"block_size":16,"kernel_block_size":16,"num_tokens":2,"query_start_loc":[0,2],"positions":[0,1],"slot_mapping_scope":"local_tokens","slot_mapping":[80,81]}
-[KV_GUARD] kv.read {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"req_ids":["req-1"],"evidence":"model_runner_plan","group_id":0,"block_size":16,"kernel_block_size":16,"seq_lens":[2],"block_table":[[5]]}
+[KV_GUARD] kv.write {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"req_ids":["req-1"],"evidence":"model_runner_plan","execution_mode":"NONE","group_id":0,"block_size":16,"kernel_block_size":16,"num_tokens":2,"query_start_loc":[0,2],"positions":[0,1],"slot_mapping_scope":"local_tokens","slot_mapping":[80,81]}
+[KV_GUARD] kv.read {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"req_ids":["req-1"],"evidence":"model_runner_plan","execution_mode":"NONE","group_id":0,"block_size":16,"kernel_block_size":16,"seq_lens":[2],"block_table":[[5]]}
 [KV_GUARD] boundary {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"boundary":"worker.output","phase":"observed","evidence":"native_result","req_ids":["req-1"],"req_id_to_index":{"req-1":0},"num_output_tokens":{"req-1":1}}
 ```
 
@@ -115,6 +129,13 @@ The following illustrative example selects fields needed for analysis and omits 
 | `evidence` / `phase` | Record context, such as scheduling records (`scheduler_plan`), model execution inputs (`model_runner_plan`), dummy inputs (`dummy_plan`), or result observation (`observed`) |
 | `coverage` | Field completeness for KV transfer records. `selected_public_fields` means available public fields were recorded; `not_expanded` provides only the metadata type and available request identifiers |
 
+| `execution_mode` | Mode used for this step's model input: `NONE` for eager and `FULL` for full-graph execution. Prefill in a FULL service can also use `NONE` |
+| `slot` / `evidence_scope` | In `kv.enabled`, identify the slot-check setting and checked data. `slot=true` and `evidence_scope=model_runner_plan` describe write locations specified in model inputs |
+| `audit` | Check category in `kv.violation`; `slot` identifies a slot check failure |
+| `expected_slot` / `actual_slot` | Authorized slot and model-input slot. Use `request_id` and `token_index` to locate the difference |
+| `slot` / `capacity` | Slot involved in a conflict or bounds error, and total cache capacity. For `capacity=1024`, valid slots are 0 through 1023 |
+| `source` | Location source: `scheduler` identifies the scheduled target and `execution` identifies the model-input target |
+
 ## Result Analysis
 
 ### 1. Confirm enablement and find failures
@@ -146,7 +167,7 @@ Logs from multiple processes can interleave; organize records by their correlati
 
 Read records for the same step as `kv.bind → kv.write / kv.read → boundary`:
 
-1. In `kv.bind`, identify the request, token budget, and `block_ids` for its KV Cache group. For continuing requests, append `scheduled_cached_reqs.new_block_ids` increments to the previous block list. For requests in `resumed_req_ids`, replace the previous list with the current step's block list.
+1. In `kv.bind`, identify the request, token budget, and `block_ids` for its KV Cache group. For continuing requests, combine the previous block list with `scheduled_cached_reqs.new_block_ids` to obtain the current list. For requests in `resumed_req_ids`, use the current step's block list.
 2. In `kv.write`, use `req_ids` and `query_start_loc` to locate the request's token range, then compare `positions` and `slot_mapping`.
 3. In `kv.read`, inspect `block_table` and `seq_lens` for the same request, rank, and group. When `block_size` equals `kernel_block_size`, compare block IDs directly; when they differ, first convert using the respective block sizes.
 4. In result `boundary` records, inspect requests and output token counts. `phase=observed` at `worker.output` means the Worker has observed a result; assess the final service status together with check logs and exception stacks.
@@ -162,7 +183,7 @@ With a sliding window, which retains only recent context, `block_table` can use 
 If `slot_mapping` in the model input changes the first token's write slot from 80 to 96, the check can produce:
 
 ```text
-[KV_GUARD] kv.violation {"reason":"write_target_mismatch","rank":0,"evidence":"boundary_plan","trace_id":"0123456789abcdef0123456789abcdef","request_id":"req-1","group_id":0,"token_index":0,"expected_slot":80,"actual_slot":96}
+[KV_GUARD] kv.violation {"reason":"write_target_mismatch","rank":0,"evidence":"boundary_plan","trace_id":"0123456789abcdef0123456789abcdef","request_id":"req-1","group_id":0,"token_index":0,"expected_slot":80,"actual_slot":96,"audit":"slot"}
 ```
 
 This identifies rank 0, group 0, and batch token index 0 belonging to `req-1`: the token should use slot 80, while the model input specifies slot 96. Compare the cache block IDs in `kv.bind` with the token positions and write slots in `kv.write` to locate the difference for this request.
@@ -175,7 +196,32 @@ This identifies rank 0, group 0, and batch token index 0 belonging to `req-1`: t
 | `execution_range_mismatch` / `read_length_mismatch` | Token budgets, `query_start_loc`, `positions`, and `seq_lens` |
 | `padded_write_target` / `dummy_write_target` | Write slots in padding or dummy records |
 
-### 5. Inspect scenario-specific records
+### 5. Analyze slot check results
+
+Confirm `slot=true` in `kv.enabled`, then filter slot check failures:
+
+```shell
+grep -F '"audit":"slot"' server.log
+```
+
+Collect the step's records using `trace_id`, request identifiers, `rank`, and `group_id`. Use the table below to interpret the location and select the next action.
+
+| `reason` | Meaning | Inspection and action |
+| --- | --- | --- |
+| `write_target_mismatch` | The model-input write slot differs from the authorized slot | Compare `expected_slot`, `actual_slot`, and `token_index`, then inspect the cache blocks in `kv.bind` and locations in `kv.write` |
+| `slot_collision` | Two requests use one write slot in the same step | Collect `kv.bind` and `kv.write` records by `trace_id`, then use `slot` and `source` to locate the requests and write positions |
+| `duplicate_slot_write` | Multiple tokens in one request use the same write slot | Find the request's `kv.write` by `trace_id`, then match repeated entries in `slot_mapping` to token positions in `positions` |
+| `slot_out_of_capacity` | The write slot exceeds cache bounds | Valid slots range from 0 through `capacity-1`; use `actual_slot` and `token_position` to locate the bounds error |
+| `padded_write_target` | A padding region contains a valid write slot | Inspect `slot_mapping_scope` and `execution_mode`; collect the step's logs and startup configuration for the `graph_padding` or business-token region |
+| `slot_observation_missing` / `slot_metadata_missing` / `slot_padding_metadata_missing` / `slot_metadata_invalid` | Input-completeness validation reports an error | The configured `action` records or raises the error. Confirm `VLLM_USE_V2_MODEL_RUNNER=1` and save the full startup arguments, service versions, and error logs |
+| `unsupported_slot_layout` | The cache layout triggers the slot applicability check | Review the cache-group information in the error logs. Set `slot=false` to inspect KV Trace records for the current scenario |
+| `unsupported_slot_null_redirect` | Warmup uses a reserved null block as the write location | Set `slot=false` and inspect warmup requests and read/write locations through KV Trace |
+
+Use `log` to record slot and input-validation errors and continue inference. Use `raise` to latch the first check failure and raise `KVGuardError` at the result check. Review the corresponding logs to confirm the runtime configuration.
+
+### 6. Inspect scenario-specific records
+
+Use the following KV Trace records to analyze requests and cache usage. Set `slot=false` for CP, speculative decoding, KV transfer, and warmup with null-block redirection.
 
 Data Parallel (DP) deployment uses multiple instances to process separate request batches. Dummy execution lets an instance participate in parallel computation with placeholder inputs. For these concepts, see the official vLLM [Data Parallel Deployment](https://docs.vllm.ai/en/latest/serving/data_parallel_deployment/) guide.
 
@@ -191,6 +237,6 @@ Context parallelism distributes long-sequence computation or cache storage acros
 
 ## Interpreting Results
 
-KV Trace checks the scheduling records, cache blocks and slots specified in model inputs, and inference results visible in the logs. Use it to locate consistency issues between these records. Physical cache block allocation and release, device memory access completion, and KV numerical correctness require additional runtime evidence or numerical comparisons.
+KV Trace checks the scheduling records, cache blocks and slots specified in model inputs, and inference results visible in the logs. Use it to locate consistency issues between these records. Use device-side traces to analyze physical cache usage, and tensor collection with numerical comparison to verify KV values.
 
 `finished_req_ids` describes request completion information; copy, zero, and transfer fields describe scheduling arrangements. Combine scheduling records with execution results and service status to build the context for an investigation.

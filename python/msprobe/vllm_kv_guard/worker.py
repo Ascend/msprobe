@@ -29,9 +29,16 @@ def _observe(worker, options):
 
     if not worker.use_v2_model_runner:
         raise ValueError("kv_trace requires Model Runner V2")
-    guard = Guard(options["action"], worker.rank)
+    slot = options.get("slot", False)
+    guard = Guard(options["action"], worker.rank, slot=slot)
     recorder = install_runner(worker.model_runner, worker.rank, guard)
-    emit("kv.enabled", rank=worker.rank, action=options["action"], boundary="worker.init_device.return")
+    emit(
+        "kv.enabled",
+        rank=worker.rank,
+        action=options["action"],
+        boundary="worker.init_device.return",
+        **({"slot": True, "evidence_scope": "model_runner_plan"} if slot else {}),
+    )
 
     def error(boundary, trace_id, exception):
         emit(
@@ -46,9 +53,13 @@ def _observe(worker, options):
     def observe_output(output, trace_id, pending):
         if output is None:
             return None
+        captured = recorder.capture_observed if slot else False
+        scheduled = bool(recorder.plan)
 
         def record(result):
             pending()
+            if slot and scheduled and not captured:
+                guard.fail("slot_observation_missing", trace_id=trace_id)
             emit(
                 "boundary",
                 trace_id=trace_id,
@@ -82,7 +93,20 @@ def _observe(worker, options):
 
     @wraps(native_execute)
     def execute_model(scheduler_output, *args, **kwargs):
+        if slot:
+            recorder.pending()
+            guard.check()
+            recorder.capture_observed = False
+            if scheduler_output.kv_connector_metadata is not None or any(
+                getattr(scheduler_output, name, None) for name in ("blocks_to_swap_in", "blocks_to_swap_out")
+            ):
+                guard.fail("unsupported_slot_transfer", boundary="worker.execute_model.input")
         trace_id = scheduler_output._msprobe_kv_trace_id
+        if slot:
+            plan = scheduler_output._msprobe_kv_plan
+            scheduled = {req: count for req, _computed, count, _groups in plan}
+            if len(scheduled) != len(plan) or scheduled != scheduler_output.num_scheduled_tokens:
+                guard.fail("slot_scheduler_plan_mismatch", trace_id=trace_id)
         recorder.trace_id = trace_id
         recorder.plan = scheduler_output._msprobe_kv_plan
         emit(

@@ -4,7 +4,7 @@
 
 KV Cache 用于保存模型生成过程中各 token 的 Key/Value 数据。vLLM 按缓存块（block）管理这些数据，一个缓存块包含多个 token 的存储槽位（slot）。调度器为每个请求安排使用的缓存块，模型执行时通过 `block_table` 指定读取的缓存块，通过 `slot_mapping` 指定各 token 的写入槽位。
 
-KV Trace 记录请求标识、缓存块编号、token 位置和读写槽位，并检查调度器分配的缓存块与模型输入中指定的读写位置是否一致。例如，某个 token 应写入 slot 80，模型输入却指定 slot 96 时，日志会给出请求、rank、token 索引及两者的差异，辅助定位问题。
+KV Trace 记录请求标识、缓存块编号、token 位置和读写槽位，并检查调度器分配的缓存块与模型输入中指定的读写位置是否一致。例如，某个 token 应写入 slot 80，模型输入指定 slot 96 时，日志会给出请求、rank、token 索引及两者的差异，辅助定位问题。
 
 ## 使用前准备
 
@@ -15,7 +15,11 @@ KV Trace 记录请求标识、缓存块编号、token 位置和读写槽位，�
 **约束**
 
 - 本功能适用于 vLLM Ascend，支持 Eager 和图模式。
-- 模型执行组件使用 Model Runner V2（MRV2），通过 `VLLM_USE_V2_MODEL_RUNNER=1` 启用。Model Runner V2 负责准备模型输入并执行推理，属于 vLLM 的公开组件，详情请参见 vLLM 官方《[Model Runner V2 Design Document](https://docs.vllm.ai/en/latest/design/model_runner_v2/)》。
+- 模型推理采用 Model Runner V2（MRV2），在启动前配置 `VLLM_USE_V2_MODEL_RUNNER=1`。
+
+slot 检查适用于 PCP、DCP、普通批次（DBO 关闭）、常规解码、仅解码器模型和本地 KV Cache。PCP 场景结合全局槽位、本地索引、gather 和写入掩码检查，DCP 场景按当前 rank 的槽位归属检查。投机解码、KV 传输场景使用 `slot=false` 查看 KV Trace 记录。
+
+启动日志出现 `parameter=enable_dbo, action: resetting to False` 时，Ascend 已将服务配置为普通批次；此时按普通批次解读 slot 检查结果。
 
 ## 功能介绍
 
@@ -31,14 +35,22 @@ vllm serve <model_path> --enforce-eager --additional-config '<additional_config>
 
 **参数说明**
 
-`enabled` 和 `action` 配置在 `--additional-config` 的 `kv_trace` 对象中。
+| 参数名 | 可选/必选 | 参数说明 |
+| --- | --- | --- |
+| `<model_path>` | 必选 | 模型路径 |
+| `--additional-config` | 必选 | 启用本功能的 JSON 配置，包含 `kv_trace` 对象。配置示例：`--additional-config '{"kv_trace":{"enabled":true,"action":"log","slot":true}}'`。各字段含义见 [kv_trace 对象参数](#kv_trace_parameters) |
+
+**kv_trace 对象参数**<a name="kv_trace_parameters"></a>
 
 | 参数名 | 可选/必选 | 参数说明 |
 | --- | --- | --- |
-| `model_path` | 必选 | 模型路径 |
-| `--additional-config` | 必选 | 启用本功能的 JSON 配置，包含 `kv_trace` 对象 |
-| `kv_trace.enabled` | 可选 | 布尔值，`true` 开启，`false` 关闭。服务默认关闭 KV Trace；提供 `kv_trace` 配置后，此字段默认值为 `true` |
-| `kv_trace.action` | 可选 | `log`（默认）：输出校验异常并继续推理；`raise`：输出校验异常并抛出 `KVGuardError`，使推理引擎失败退出 |
+| `enabled` | 可选 | 布尔值，`true` 开启 KV Trace，`false` 关闭。服务默认关闭 KV Trace；提供 `kv_trace` 配置后，此字段默认值为 `true` |
+| `action` | 可选 | `log`（默认）：记录校验异常并继续推理；`raise`：记录校验异常并抛出 `KVGuardError`，推理引擎结束运行 |
+| `slot` | 可选 | 布尔值，默认 `false`。`true` 开启 slot 地址计划检查，配合 `enabled=true` 使用 |
+
+> [!NOTE]
+>
+> slot 地址计划检查用于核对每个 token 获准使用的缓存槽位与模型输入指定写入位置的一致性。
 
 **使用示例**
 
@@ -50,15 +62,17 @@ export VLLM_PLUGINS=msprobe_kv_guard
 
 同时启用其他插件时，各插件名称用英文逗号分隔。
 
-以下示例使用 Eager 模式开启 KV Trace，并将服务日志保存到 `server.log`：
+以下示例使用 Eager 模式开启 KV Trace 和 slot 检查，并将服务日志保存到 `server.log`：
 
 ```shell
 export VLLM_USE_V2_MODEL_RUNNER=1
 vllm serve /path/to/model \
   --enforce-eager \
-  --additional-config '{"kv_trace":{"enabled":true,"action":"log"}}' \
+  --additional-config '{"kv_trace":{"enabled":true,"action":"log","slot":true}}' \
   > server.log 2>&1
 ```
+
+排查 token 写入槽位偏移、尾块越界或请求间槽位冲突时，使用 `slot=true` 开启检查。
 
 将 `/path/to/model` 替换为模型路径。使用图模式时，删除上述命令中的 `--enforce-eager` 参数，并沿用服务现有的编译配置。
 
@@ -66,7 +80,7 @@ vllm serve /path/to/model \
 
 **输出说明**
 
-KV Trace 日志输出到进程标准输出，上述启动命令通过重定向将日志保存为 `server.log`。容器部署时，也可从容器日志中检索 `[KV_GUARD]`。日志格式和字段含义请参见[日志输出结果说明](#日志输出结果说明)。
+KV Trace 日志输出到进程标准输出，上述启动命令通过重定向将日志保存为 `server.log`。容器部署时，也可从容器日志中检索 `[KV_GUARD]`。开启 slot 检查后，`kv.enabled` 记录 `slot=true` 和 `evidence_scope=model_runner_plan`；slot 校验异常通过带有 `audit=slot` 的 `kv.violation` 记录输出。日志格式和字段含义请参见[日志输出结果说明](#日志输出结果说明)。
 
 ## 日志输出结果说明
 
@@ -77,10 +91,10 @@ KV Trace 日志输出到进程标准输出，上述启动命令通过重定向�
 以下为格式说明示例，展示分析所需的部分字段，省略时间、进程号等日志前缀。示例请求 `req-1` 在本轮处理两个 token，使用缓存块 5：
 
 ```text
-[KV_GUARD] kv.enabled {"rank":0,"action":"log","boundary":"worker.init_device.return"}
+[KV_GUARD] kv.enabled {"rank":0,"action":"log","boundary":"worker.init_device.return","slot":true,"evidence_scope":"model_runner_plan"}
 [KV_GUARD] kv.bind {"trace_id":"0123456789abcdef0123456789abcdef","evidence":"scheduler_plan","num_scheduled_tokens":{"req-1":2},"total_num_scheduled_tokens":2,"scheduled_new_reqs":[{"req_id":"req-1","block_ids":[[5]],"num_computed_tokens":0,"replay_start":0}]}
-[KV_GUARD] kv.write {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"req_ids":["req-1"],"evidence":"model_runner_plan","group_id":0,"block_size":16,"kernel_block_size":16,"num_tokens":2,"query_start_loc":[0,2],"positions":[0,1],"slot_mapping_scope":"local_tokens","slot_mapping":[80,81]}
-[KV_GUARD] kv.read {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"req_ids":["req-1"],"evidence":"model_runner_plan","group_id":0,"block_size":16,"kernel_block_size":16,"seq_lens":[2],"block_table":[[5]]}
+[KV_GUARD] kv.write {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"req_ids":["req-1"],"evidence":"model_runner_plan","execution_mode":"NONE","group_id":0,"block_size":16,"kernel_block_size":16,"num_tokens":2,"query_start_loc":[0,2],"positions":[0,1],"slot_mapping_scope":"local_tokens","slot_mapping":[80,81]}
+[KV_GUARD] kv.read {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"req_ids":["req-1"],"evidence":"model_runner_plan","execution_mode":"NONE","group_id":0,"block_size":16,"kernel_block_size":16,"seq_lens":[2],"block_table":[[5]]}
 [KV_GUARD] boundary {"trace_id":"0123456789abcdef0123456789abcdef","rank":0,"boundary":"worker.output","phase":"observed","evidence":"native_result","req_ids":["req-1"],"req_id_to_index":{"req-1":0},"num_output_tokens":{"req-1":1}}
 ```
 
@@ -115,6 +129,13 @@ KV Trace 日志输出到进程标准输出，上述启动命令通过重定向�
 | `evidence` / `phase` | 记录的上下文，例如调度记录 `scheduler_plan`、模型执行输入 `model_runner_plan`、陪跑输入 `dummy_plan`、结果观测 `observed` |
 | `coverage` | KV 传输记录的字段完整性。`selected_public_fields` 表示已记录可用的公开字段；`not_expanded` 表示仅提供元数据类型及可用的请求标识 |
 
+| `execution_mode` | 本轮模型输入采用的执行模式：`NONE` 表示 Eager，`FULL` 表示完整图模式。FULL 服务的预填充阶段也可采用 `NONE` |
+| `slot` / `evidence_scope` | 在 `kv.enabled` 中查看 slot 检查开关及检查对象；`slot=true`、`evidence_scope=model_runner_plan` 表示检查模型输入指定的写入位置 |
+| `audit` | `kv.violation` 中的检查类别；`slot` 表示 slot 校验异常 |
+| `expected_slot` / `actual_slot` | 请求获准使用的槽位与模型输入指定的槽位，结合 `request_id` 和 `token_index` 定位差异 |
+| `slot` / `capacity` | 在异常记录中查看冲突或越界槽位及缓存总容量。例如 `capacity=1024` 时，有效槽位为 0～1023 |
+| `source` | 异常位置的来源：`scheduler` 为调度记录给出的目标位置，`execution` 为模型输入指定的位置 |
+
 ## 结果分析
 
 ### 1. 确认启用并查找异常
@@ -146,7 +167,7 @@ grep -F '"req-1"' server.log
 
 按 `kv.bind → kv.write / kv.read → boundary` 阅读同轮记录：
 
-1. 从 `kv.bind` 确认请求、token 预算和所属 KV Cache 组的 `block_ids`。持续调度的请求将 `scheduled_cached_reqs.new_block_ids` 增量追加到前序块列表；`resumed_req_ids` 中的恢复请求使用本轮块列表替换前序记录。
+1. 从 `kv.bind` 确认请求、token 预算和所属 KV Cache 组的 `block_ids`。查看持续调度的请求时，将前序块列表与 `scheduled_cached_reqs.new_block_ids` 合并，得到当前块列表；查看 `resumed_req_ids` 中的恢复请求时，使用本轮块列表。
 2. 从 `kv.write` 的 `req_ids` 和 `query_start_loc` 找到请求对应的 token 区间，对照 `positions` 与 `slot_mapping`。
 3. 从 `kv.read` 查看同一请求、rank、组号的 `block_table` 和 `seq_lens`。`block_size` 与 `kernel_block_size` 相同时，可直接对照缓存块编号；两者有差异时，先按各自块大小换算。
 4. 从结果 `boundary` 查看请求和输出 token 数。`worker.output` 的 `phase=observed` 表示 Worker 已观察到结果，服务最终状态结合校验日志与异常堆栈判断。
@@ -162,10 +183,10 @@ grep -F '"req-1"' server.log
 假设上述示例中，模型输入的 `slot_mapping` 将首个 token 的写入槽位从 80 改为 96，则可能出现以下校验日志：
 
 ```text
-[KV_GUARD] kv.violation {"reason":"write_target_mismatch","rank":0,"evidence":"boundary_plan","trace_id":"0123456789abcdef0123456789abcdef","request_id":"req-1","group_id":0,"token_index":0,"expected_slot":80,"actual_slot":96}
+[KV_GUARD] kv.violation {"reason":"write_target_mismatch","rank":0,"evidence":"boundary_plan","trace_id":"0123456789abcdef0123456789abcdef","request_id":"req-1","group_id":0,"token_index":0,"expected_slot":80,"actual_slot":96,"audit":"slot"}
 ```
 
-这条日志表明 rank 0、组 0 中，`req-1` 对应的批次 token 索引 0 应写入 slot 80，模型输入却指定 slot 96。结合 `kv.bind` 中的缓存块编号和 `kv.write` 中的 token 位置、写入槽位，即可定位该请求的差异。
+这条日志表明 rank 0、组 0 中，`req-1` 对应的批次 token 索引 0 应写入 slot 80，模型输入指定 slot 96。结合 `kv.bind` 中的缓存块编号和 `kv.write` 中的 token 位置、写入槽位，即可定位该请求的差异。
 
 | `reason` 示例 | 重点查看 |
 | --- | --- |
@@ -175,7 +196,32 @@ grep -F '"req-1"' server.log
 | `execution_range_mismatch` / `read_length_mismatch` | token 预算、`query_start_loc`、`positions` 和 `seq_lens` |
 | `padded_write_target` / `dummy_write_target` | padding 或陪跑记录的写入槽位 |
 
-### 5. 按场景补充查看
+### 5. 分析 slot 检查结果
+
+先确认 `kv.enabled` 中的 `slot=true`，再筛选 slot 异常记录：
+
+```shell
+grep -F '"audit":"slot"' server.log
+```
+
+按异常中的 `trace_id`、请求标识、`rank` 和 `group_id` 汇总同轮日志，结合下表查看异常位置及处理步骤。
+
+| `reason` | 结果含义 | 查看与处理 |
+| --- | --- | --- |
+| `write_target_mismatch` | 模型输入指定的写入槽位与请求获准使用的槽位存在差异 | 对照 `expected_slot`、`actual_slot` 和 `token_index`，再查看同轮 `kv.bind` 的缓存块与 `kv.write` 的位置记录 |
+| `slot_collision` | 两个请求在同一轮使用同一写入槽位 | 按 `trace_id` 汇总 `kv.bind` 和 `kv.write`，结合 `slot`、`source` 查找涉及的请求及写入位置 |
+| `duplicate_slot_write` | 同一请求的多个 token 使用同一写入槽位 | 按 `trace_id` 找到该请求的 `kv.write`，对照 `slot_mapping` 和 `positions` 中重复槽位对应的 token 位置 |
+| `slot_out_of_capacity` | 写入槽位超出缓存容量范围 | 有效范围为 0～`capacity-1`，结合 `actual_slot` 和 `token_position` 定位越界位置 |
+| `padded_write_target` | 填充区域出现有效写入槽位 | 查看 `slot_mapping_scope` 和 `execution_mode`，按 `graph_padding` 或业务 token 区域汇总该轮日志及启动配置 |
+| `slot_observation_missing` / `slot_metadata_missing` / `slot_padding_metadata_missing` / `slot_metadata_invalid` | 校验输入完整性检查触发异常 | 按 `action` 配置记录或抛出异常；确认 `VLLM_USE_V2_MODEL_RUNNER=1`，保存完整启动参数、服务版本和异常日志 |
+| `unsupported_slot_layout` | 当前缓存布局触发 slot 适用条件检查 | 查看异常日志中的缓存组信息；查看当前场景的 KV Trace 记录时，将 `slot` 设为 `false` |
+| `unsupported_slot_null_redirect` | 预热过程使用保留空块作为写入位置 | 将 `slot` 设为 `false`，通过 KV Trace 查看预热场景的请求与读写位置 |
+
+`log` 记录槽位及校验输入异常并继续推理。`raise` 锁存首次校验异常，在结果检查时抛出 `KVGuardError`；排查时结合对应日志确认运行配置。
+
+### 6. 按场景补充查看
+
+以下场景通过 KV Trace 日志分析请求及缓存使用情况。其中，CP、投机解码、KV 传输和空块重定向预热场景使用 `slot=false`。
 
 数据并行（Data Parallel，DP）由多个实例分别处理不同请求批次；陪跑是实例以占位输入参与并行计算的过程。相关概念请参见 vLLM 官方《[Data Parallel Deployment](https://docs.vllm.ai/en/latest/serving/data_parallel_deployment/)》。
 
@@ -191,6 +237,6 @@ grep -F '"req-1"' server.log
 
 ## 结果解读
 
-KV Trace 的校验依据是日志中的调度记录、模型输入的缓存块与槽位，以及推理结果，适合定位这些信息之间的一致性问题。缓存块的物理分配与释放、设备实际访存完成情况及 KV 数值正确性，需要结合运行时证据或数值比对进一步确认。
+KV Trace 的校验依据是日志中的调度记录、模型输入的缓存块与槽位，以及推理结果，适合定位这些信息之间的一致性问题。缓存块的物理使用情况可结合设备侧追踪记录分析；KV 数值正确性可通过张量采集和精度比对确认。
 
 `finished_req_ids` 表示请求结束信息，复制、清零和传输字段表示相应的调度安排。排查时将调度记录与执行结果、服务状态结合，形成完整的问题上下文。

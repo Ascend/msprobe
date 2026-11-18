@@ -35,10 +35,29 @@ class PlanRecorder:
         self.buffers = []
         self.event = torch.npu.Event()
         self.pending = lambda: None
+        self.capture_observed = False
 
     def capture(self, batch, block_tables, slot_mappings, layout, execution_mode):
+        if self.guard.slot and (block_tables is None or slot_mappings is None):
+            self.pending()
+            self.guard.fail("slot_metadata_missing", trace_id=self.trace_id)
+            return
         parallel = {key: value for key, value in layout.items() if key not in ("groups", "dynamic")}
         rows, tokens = batch.num_reqs, batch.num_tokens
+        audit_slots = self.guard.slot and parallel["pcp_size"] == 1
+        if audit_slots:
+            bucket = batch.num_tokens_after_padding
+            valid_bucket = isinstance(bucket, int) and not isinstance(bucket, bool)
+            if (
+                not valid_bucket
+                or not isinstance(slot_mappings, torch.Tensor)
+                or slot_mappings.ndim != 2
+                or slot_mappings.shape[0] != len(layout["groups"])
+                or not tokens <= bucket <= slot_mappings.shape[1]
+            ):
+                self.pending()
+                self.guard.fail("slot_padding_metadata_missing", trace_id=self.trace_id)
+                return
         payload = {
             "execution_mode": execution_mode,
             "req_ids": list(batch.req_ids[:rows]),
@@ -58,12 +77,21 @@ class PlanRecorder:
                 for group, table in enumerate(block_tables)
             ],
         }
+        if audit_slots:
+            payload["num_tokens_after_padding"] = bucket
+            payload["padded_slot_mappings"] = slot_mappings[:, tokens:bucket]
 
         plan = self.plan
 
         def record(trace_id, values):
             values["trace_id"] = trace_id
-            self.guard.audit(values, plan, values["layout"])
+            try:
+                self.guard.audit(values, plan, values["layout"])
+            except (KeyError, IndexError, TypeError, ValueError) as error:
+                if self.guard.slot:
+                    self.guard.fail("slot_metadata_invalid", trace_id=trace_id, error_type=type(error).__name__)
+                    return
+                raise
             common = {
                 "trace_id": trace_id,
                 "rank": self.rank,
@@ -97,6 +125,8 @@ class PlanRecorder:
                 )
 
         self.snapshot(payload, record)
+        if not self.guard.slot or audit_slots:
+            self.capture_observed = True
 
     def capture_dummy(self, slot_mappings, persistent_slots, layout, execution_mode):
         def record(trace_id, values):
@@ -184,7 +214,13 @@ class PlanRecorder:
 
         def record(trace_id, values):
             values["trace_id"] = trace_id
-            self.guard.parallel(values, plan, values["layout"])
+            try:
+                self.guard.parallel(values, plan, values["layout"])
+            except (KeyError, IndexError, TypeError, ValueError) as error:
+                if self.guard.slot:
+                    self.guard.fail("slot_metadata_invalid", trace_id=trace_id, error_type=type(error).__name__)
+                    return
+                raise
             values.pop("layout")
             values.pop("local")
             emit(
@@ -198,6 +234,7 @@ class PlanRecorder:
             )
 
         self.snapshot(payload, record)
+        self.capture_observed = True
 
     def snapshot(self, payload, record):
         self.pending()
@@ -344,6 +381,8 @@ def install(runner, rank, guard):
             "num_blocks": runner.kv_cache_config.num_blocks,
             "dp_rank": runner.vllm_config.parallel_config.data_parallel_rank,
         }
+        if guard.slot:
+            guard.validate_layout(layout)
         if pcp is not None and pcp.pcp_world_size > 1:
             native_context = pcp.build_attention_context
 
@@ -381,7 +420,9 @@ def install(runner, rank, guard):
             **kwargs,
         ):
             current_layout = {**layout, "allow_null_block": native_tables.redirect_writes_to_null_block}
-            if input_batch.is_dummy and not getattr(input_batch, "is_cpp_profile", False):
+            if guard.slot and not guard.validate_layout(current_layout):
+                recorder.pending()
+            elif input_batch.is_dummy and not getattr(input_batch, "is_cpp_profile", False):
                 persistent = pcp._gathered_kv_slot_mappings if pcp is not None else native_tables.slot_mappings
                 recorder.capture_dummy(slot_mappings, persistent, current_layout, cudagraph_mode.name)
             elif recorder.trace_id is not None and not (for_capture or getattr(input_batch, "is_cpp_profile", False)):

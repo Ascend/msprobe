@@ -31,7 +31,7 @@ from .transfer import record_plan
 def _observe(scheduler, options):
     native_schedule = scheduler.schedule
     native_update = scheduler.update_from_output
-    guard, bindings = Guard(options["action"]), {}
+    guard, bindings = Guard(options["action"], slot=options.get("slot", False)), {}
     emit("kv.enabled", boundary="scheduler", action=options["action"])
 
     @wraps(native_schedule)

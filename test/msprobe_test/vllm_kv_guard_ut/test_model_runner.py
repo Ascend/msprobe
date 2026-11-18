@@ -8,6 +8,8 @@ from unittest.mock import Mock, patch
 
 import torch
 
+from msprobe.vllm_kv_guard.checker import Guard, KVGuardError
+
 
 def _load_model_runner_module():
     module_names = ("msprobe", "msprobe.vllm_kv_guard", "msprobe.vllm_kv_guard.events")
@@ -25,7 +27,9 @@ model_runner = _load_model_runner_module()
 
 
 def guard():
-    return Mock(spec=["audit", "spec", "parallel", "fail", "check"])
+    result = Mock(spec=["audit", "spec", "parallel", "fail", "check", "slot", "validate_layout"])
+    result.slot = False
+    return result
 
 
 def layout():
@@ -131,6 +135,117 @@ class TestModelRunner(TestCase):
         )
         emit_patcher.start()
         self.addCleanup(emit_patcher.stop)
+
+    def test_slot_capture_freezes_the_entire_replay_bucket(self):
+        current = recorder()
+        current.guard.slot = True
+        slots = torch.tensor([[2, 3, -1, 9]])
+        current.capture(batch(num_tokens_after_padding=4), [torch.tensor([[1]])], slots, layout(), "FULL")
+        slots.fill_(-1)
+        current.pending()
+        values = current.guard.audit.call_args.args[0]
+        self.assertTrue(current.capture_observed)
+        self.assertEqual(values["num_tokens_after_padding"], 4)
+        self.assertEqual(values["padded_slot_mappings"], [[-1, 9]])
+
+    def test_slot_runtime_eager_full_and_reused_metadata_use_the_real_guard(self):
+        for mode in ("NONE", "FULL"):
+            with self.subTest(mode=mode):
+                native = runner()
+                checked = Guard("raise", slot=True)
+                current = model_runner.install(native, 0, checked)
+                native.initialize_kv_cache()
+                for trace, block in (("first", 1), ("second", 2)):
+                    current.trace_id = trace
+                    current.plan = (("a", 0, 2, ((block,),)),)
+                    slots = torch.tensor([[block * 2, block * 2 + 1, -1, -1]])
+                    tables = [torch.tensor([[block]])]
+                    native.model_state.prepare_attn(batch(num_tokens_after_padding=4), NS(name=mode),
+                                                    tables, slots, None, None)
+                    slots.fill_(99)
+                    tables[0].fill_(99)
+                    current.pending()
+                    checked.check()
+                    self.assertTrue(current.capture_observed)
+                current.plan = (("a", 0, 2, ((2,),)),)
+                native.model_state.prepare_attn(batch(num_tokens_after_padding=4), NS(name=mode),
+                                                [torch.tensor([[2]])], torch.tensor([[4, 5, -1, 1]]), None, None)
+                current.pending()
+                with self.assertRaisesRegex(KVGuardError, "padded_write_target"):
+                    checked.check()
+
+    def test_slot_runtime_metadata_and_layout_failures_follow_action(self):
+        for action in ("log", "raise"):
+            for kind in ("missing", "capacity", "disabled"):
+                with self.subTest(action=action, kind=kind):
+                    native = runner()
+                    checked = Guard(action, slot=True)
+                    current = model_runner.install(native, 0, checked)
+                    current.trace_id, current.plan = "step", (("a", 0, 2, ((1,),)),)
+                    if kind == "disabled":
+                        native.block_tables.slot_mapping_enabled = [False]
+                    native.initialize_kv_cache()
+                    slots = None if kind == "missing" else torch.tensor([[2, 3]])
+                    self.assertEqual(native.model_state.prepare_attn(
+                        batch(num_tokens_after_padding=4), NS(name="FULL"),
+                        [torch.tensor([[1]])], slots, None, None), "attention")
+                    current.pending()
+                    self.assertIsNotNone(checked.failure)
+                    if action == "raise":
+                        with self.assertRaisesRegex(KVGuardError, checked.failure):
+                            checked.check()
+                    else:
+                        checked.check()
+
+    def test_slot_runtime_reports_malformed_frozen_metadata(self):
+        current = recorder()
+        current.guard.slot = True
+        current.guard.audit.side_effect = KeyError("positions")
+        current.capture(batch(), [torch.tensor([[1]])], torch.tensor([[2, 3]]), layout(), "NONE")
+        current.pending()
+        current.guard.fail.assert_called_once_with("slot_metadata_invalid", trace_id="step", error_type="KeyError")
+        current.guard.check.assert_not_called()
+        self.assertEqual(self.records, [])
+
+    def test_slot_capture_reports_invalid_padding_and_flushes_previous_plan(self):
+        for action in ("log", "raise"):
+            for bucket in (None, "4", 4.0, True):
+                with self.subTest(action=action, bucket=bucket):
+                    checked = Guard(action, slot=True)
+                    current = model_runner.PlanRecorder(0, checked)
+                    previous = Mock()
+                    current.snapshot(torch.tensor([1]), previous)
+                    current.capture(batch(num_tokens_after_padding=bucket), [torch.tensor([[1]])],
+                                    torch.tensor([[2, 3, -1, -1]]), layout(), "FULL")
+                    current.pending()
+                    previous.assert_called_once()
+                    self.assertFalse(current.capture_observed)
+                    self.assertEqual(checked.failure, "slot_padding_metadata_missing")
+                    if action == "raise":
+                        with self.assertRaisesRegex(KVGuardError, checked.failure):
+                            checked.check()
+                    else:
+                        checked.check()
+
+    def test_slot_runtime_null_block_redirection_follows_action(self):
+        for action in ("log", "raise"):
+            for dummy in (False, True):
+                with self.subTest(action=action, dummy=dummy):
+                    native = runner()
+                    checked = Guard(action, slot=True)
+                    current = model_runner.install(native, 0, checked)
+                    native.initialize_kv_cache()
+                    native.block_tables.redirect_writes_to_null_block = True
+                    self.assertEqual(native.model_state.prepare_attn(
+                        batch(is_dummy=dummy), NS(name="FULL"),
+                        [torch.tensor([[0]])], torch.tensor([[0, 1]]), None, None), "attention")
+                    current.pending()
+                    self.assertEqual(checked.failure, "unsupported_slot_null_redirect")
+                    if action == "raise":
+                        with self.assertRaisesRegex(KVGuardError, checked.failure):
+                            checked.check()
+                    else:
+                        checked.check()
 
     def test_snapshot_freezes_values_flushes_previous_and_finishes_once(self):
         current, output = (recorder(), [])
@@ -274,6 +389,29 @@ class TestModelRunner(TestCase):
         current.pending()
         self.assertEqual(len(audits), 2)
         self.assertIsNone(audits[1][0]["local"])
+
+    def test_slot_pcp_context_and_local_capture_use_the_existing_parallel_checker(self):
+        context, local_batch, tables, slots = parallel_inputs()
+        pcp = NS(pcp_world_size=2, pcp_rank=0, build_attention_context=Mock(return_value=context),
+                 _gathered_kv_slot_mappings=torch.tensor([[-1, -1]]))
+        native = runner(pcp)
+        native.block_tables.cp_size = 2
+        checked = Guard("log", slot=True)
+        current = model_runner.install(native, 0, checked)
+        native.initialize_kv_cache()
+        current.trace_id, current.plan = "step", (("a", 0, 2, ((1,),)),)
+        native.model_state.prepare_attn(local_batch, NS(name="FULL"), tables, slots, None, None)
+        current.pending()
+        self.assertFalse(current.capture_observed)
+        pcp.build_attention_context(local_batch, tables, slots)
+        self.assertTrue(current.capture_observed)
+        native.model_state.prepare_attn(local_batch, NS(name="FULL"), tables, slots, None, None)
+        current.pending()
+        self.assertIsNone(checked.failure)
+        context.global_slot_mappings[0, 0] = 16
+        pcp.build_attention_context(local_batch, tables, slots)
+        current.pending()
+        self.assertEqual(checked.failure, "slot_out_of_capacity")
 
     def test_install_forwards_initialization_and_prepare_arguments(self):
         native = runner()

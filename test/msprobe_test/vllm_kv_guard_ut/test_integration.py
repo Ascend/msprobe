@@ -6,6 +6,8 @@ from types import ModuleType, SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
+from msprobe.vllm_kv_guard.checker import Guard, KVGuardError
+
 
 def _load_wiring_modules():
     source = Path(__file__).resolve().parents[3] / "python/msprobe/vllm_kv_guard"
@@ -72,16 +74,110 @@ class TestKVGuardWiring(TestCase):
             self.addCleanup(attribute_patcher.stop)
         return module
 
-    def _observed_worker(self, action="log", execute=None, sample=None):
-        recorder = SimpleNamespace(trace_id=None, plan=(), pending=Mock())
+    def _observed_worker(self, action="log", execute=None, sample=None, slot=False):
+        recorder = SimpleNamespace(trace_id=None, plan=(), pending=Mock(), capture_observed=False)
         self.wiring.model_runner.install.return_value = recorder
         native = SimpleNamespace(rank=2, use_v2_model_runner=True, model_runner=object(),
                                  execute_model=Mock(return_value=execute), sample_tokens=Mock(return_value=sample))
-        self.wiring.worker._observe(native, {"action": action})
+        self.wiring.worker._observe(native, {"action": action, "slot": slot})
         self.wiring.model_runner.install.assert_called_once_with(native.model_runner, 2, self.wiring.guard)
         plan = _scheduled()
         plan._msprobe_kv_trace_id, plan._msprobe_kv_plan = "trace", object()
+        if slot:
+            plan._msprobe_kv_plan = (("a", 0, 1, ((2,),)),)
         return native, recorder, plan
+
+    def test_slot_worker_reports_missing_observation_with_log_action(self):
+        native, recorder, plan = self._observed_worker(execute=_output(), slot=True)
+        plan.kv_connector_metadata = None
+        native.execute_model(plan)
+        self.wiring.guard.fail.assert_called_once_with("slot_observation_missing", trace_id="trace")
+        native.execute_model.__wrapped__.assert_called_once_with(plan)
+        self.assertEqual(recorder.pending.call_count, 2)
+
+    def test_slot_worker_captures_coverage_with_each_async_result(self):
+        lazy = SimpleNamespace(get_output=Mock(return_value=_output()))
+        native, recorder, plan = self._observed_worker(execute=lazy, slot=True)
+        plan.kv_connector_metadata = None
+
+        def execute(*args, **kwargs):
+            recorder.capture_observed = True
+            return lazy
+
+        native.execute_model.__wrapped__.side_effect = execute
+        self.assertIs(native.execute_model(plan), lazy)
+        lazy.get_output.__wrapped__.assert_not_called()
+        recorder.capture_observed = False  # A later execution must not change this result's captured coverage.
+        lazy.get_output()
+        self.wiring.guard.fail.assert_not_called()
+
+    def test_slot_worker_reports_runtime_transfer_and_checks_sticky_failure_before_native_execution(self):
+        native, recorder, plan = self._observed_worker(execute=_output(), slot=True)
+        native.execute_model(plan)
+        self.assertEqual(self.wiring.guard.fail.call_args_list[0],
+                         call("unsupported_slot_transfer", boundary="worker.execute_model.input"))
+        native.execute_model.__wrapped__.assert_called_once_with(plan)
+        native.execute_model.__wrapped__.reset_mock()
+        plan.kv_connector_metadata = None
+        self.wiring.guard.check.side_effect = RuntimeError("latched")
+        with self.assertRaisesRegex(RuntimeError, "latched"):
+            native.execute_model(plan)
+        native.execute_model.__wrapped__.assert_not_called()
+
+    def test_slot_worker_does_not_require_capture_for_empty_schedule(self):
+        native, recorder, plan = self._observed_worker(execute=_output(), slot=True)
+        plan.kv_connector_metadata, plan._msprobe_kv_plan = None, ()
+        plan.num_scheduled_tokens, plan.total_num_scheduled_tokens = {}, 0
+        native.execute_model(plan)
+        self.wiring.guard.fail.assert_not_called()
+
+    def test_slot_worker_reports_missing_or_duplicate_scheduler_plan(self):
+        for frozen in ((), (("a", 0, 1, ((2,),)), ("a", 0, 1, ((2,),)))):
+            with self.subTest(plan=frozen):
+                self.wiring = _load_wiring_modules()
+                native, recorder, plan = self._observed_worker(execute=_output(), slot=True)
+                plan.kv_connector_metadata, plan._msprobe_kv_plan = None, frozen
+                native.execute_model(plan)
+                self.assertEqual(self.wiring.guard.fail.call_args_list[0],
+                                 call("slot_scheduler_plan_mismatch", trace_id="trace"))
+                native.execute_model.__wrapped__.assert_called_once_with(plan)
+
+    def test_slot_runtime_failures_use_configured_action_at_direct_async_and_sample_results(self):
+        for action in ("log", "raise"):
+            for boundary in ("direct", "async", "sample"):
+                for reason in ("slot_observation_missing", "unsupported_slot_transfer", "slot_scheduler_plan_mismatch"):
+                    with self.subTest(action=action, boundary=boundary, reason=reason):
+                        self.wiring = _load_wiring_modules()
+                        checked = Guard(action, slot=True)
+                        self.wiring.checker.Guard.return_value = self.wiring.guard = checked
+                        result = _output()
+                        output = SimpleNamespace(get_output=Mock(return_value=result)) if boundary == "async" else result
+                        native, recorder, plan = self._observed_worker(
+                            action=action, execute=None if boundary == "sample" else output, sample=result, slot=True)
+                        plan.kv_connector_metadata = object() if reason == "unsupported_slot_transfer" else None
+                        if reason == "slot_scheduler_plan_mismatch":
+                            plan._msprobe_kv_plan = ()
+
+                        def execute(*args, **kwargs):
+                            recorder.capture_observed = reason != "slot_observation_missing"
+                            return None if boundary == "sample" else output
+
+                        native.execute_model.__wrapped__.side_effect = execute
+                        if boundary == "direct":
+                            finish = lambda: native.execute_model(plan)
+                        else:
+                            native.execute_model(plan)
+                            finish = output.get_output if boundary == "async" else native.sample_tokens
+                        if action == "raise":
+                            with self.assertRaisesRegex(KVGuardError, reason):
+                                finish()
+                            with self.assertRaisesRegex(KVGuardError, reason):
+                                native.execute_model(plan)
+                            self.assertEqual(native.execute_model.__wrapped__.call_count, 1)
+                        else:
+                            self.assertIs(finish(), output if boundary == "direct" else result)
+                            self.assertIs(finish(), output if boundary == "direct" else result)
+                        self.assertEqual(checked.failure, reason)
 
     def test_scheduler_preserves_schedule_and_result_boundaries(self):
         for speculative in (True, False):
