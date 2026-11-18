@@ -4,6 +4,10 @@
 
 This function parses the precision data dumped by msProbe, restores the model graph structure, and compares the precision data at each model layer, helping you understand the model structure and analyze precision issues.
 
+> [!NOTE]
+> 
+> This feature can be executed on both Linux and Windows environments, and the operations on Windows are identical to those on Linux, executed through the command line. Only statistics data is supported on Windows, including single-graph building, dual-graph comparison, and structure-only comparison.
+
 **Concepts**
 
 - msProbe: short for MindStudio Probe, is a precision debugging toolkit that can locate precision issues during model training or inference.
@@ -404,7 +408,7 @@ If the link is inaccessible (for example, the server cannot be directly connecte
 
    Hold `CTRL` and click the link.
 
-3. Transfer the graph construction result file from the server to the local computer to view the result.
+3. Transfer the graph construction result file from the server to the local computer to view the result. For the environment preparation required to view results on a local Windows computer (TensorBoard and the visualization plugin), see [Windows Environment Installation](../../install_guide/msprobe_install_guide.md#3-windows-environment-installation) in the msProbe Installation Guide.
 
    Enter the following command on the PC:
 

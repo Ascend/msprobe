@@ -409,7 +409,7 @@ def get_file_type(file_path):
     if not isinstance(file_path, str):
         logger.error("get_file_type failed, check the type of file_path.")
         raise CompareException(CompareException.INVALID_PATH_ERROR)
-    file_type = file_suffix_to_file_type.get(file_path.split(Const.SCOPE_SEPARATOR)[-1])
+    file_type = file_suffix_to_file_type.get(os.path.basename(file_path))
     if file_type is None:
         logger.error("get_file_type failed, file_path is neither dump.json nor debug.json.")
         raise CompareException(CompareException.INVALID_PATH_ERROR)

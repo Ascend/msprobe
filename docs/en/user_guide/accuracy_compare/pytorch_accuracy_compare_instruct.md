@@ -10,6 +10,10 @@
 
 - The tool's comparison speed depends on data volume. For small volumes (single file under 10 GB), the speed is 0.1 GB/s; for larger volumes, it reaches 0.3 GB/s. An exclusive environment with 192 CPU cores and SSDs (I/O speed > 500 MB/s; HDDs provide only 60–170 MB/s) is recommended. If the user's environment performs below the recommended standard or is not exclusive, the comparison speed may be slower than expected. Comparison speed is calculated as the total size of the two files divided by the comparison time.
 
+> [!NOTE]
+> 
+> This feature can be executed on both Linux and Windows environments, and the operations on Windows are identical to those on Linux, executed through the command line. Only statistics comparison is supported on Windows.
+
 Application Scenarios
 
 - The precision of a model decreases when it is ported from a CPU or GPU to an NPU. Faults can be located by comparing API computation values in an NPU with those in a CPU or GPU.
@@ -40,6 +44,7 @@ Install msProbe by referring to [msProbe Installation Guide](../../install_guide
 **Constraints**
 
 Only the PyTorch scenario is supported.
+
 
 ## Model Precision Comparison
 

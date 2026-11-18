@@ -4,6 +4,10 @@
 
 The trend visualization function parses precision data collected by msProbe, identifies the module names at the model layer, and displays its location across iteration steps, ranks, and network model, helping you observe the precision data and analyze precision problems based on the overall data distribution.
 
+> [!NOTE]
+> 
+> This feature can be executed on both Linux and Windows environments, and the operations on Windows are identical to those on Linux, executed through the command line. Only statistics data is supported on Windows, including trend analysis.
+
 **Concepts**
 
 - msProbe: short for MindStudio Probe, is a precision debugging toolkit that can locate precision issues during model training or inference.

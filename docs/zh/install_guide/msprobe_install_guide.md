@@ -4,11 +4,16 @@
 
 ## 1. 安装说明
 
-使用本工具前需要安装CANN，具体操作请参见《[CANN 快速安装](https://www.hiascend.com/zh/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包），并配置环境变量。
+使用数据采集（dump）、训练状态监测等训练侧功能前需要安装CANN，具体操作请参见《[CANN 快速安装](https://www.hiascend.com/zh/cann/download)》安装昇腾NPU驱动和CANN软件（包含Toolkit和ops包），并配置环境变量。
 
-如需单独升级本工具或使用最新版本，您可通过以下三种方式进行安装：[在线安装](#21-在线安装)、[离线安装](#22-离线安装)、[源码安装](#23-源码安装)。
+使用离线分析功能（精度比对compare、分级可视化构图比对graph_visualize、趋势可视化data2db及TensorBoard结果查看）无需安装CANN，支持在Linux或Windows环境使用。
 
-## 2. 安装方式
+如需单独升级本工具或使用最新版本，您可通过以下方式进行安装：
+
+- Linux：[在线安装](#21-在线安装)、[离线安装](#22-离线安装)、[源码安装](#23-源码安装)。
+- Windows：[Windows环境安装](#3-windows环境安装)。
+
+## 2. Linux环境安装
 
 ### 2.1 在线安装
 
@@ -223,7 +228,78 @@ pip install mindstudio_probe*.whl
 Successfully installed mindstudio-probe-{version}
 ```
 
-## 3. 验证安装
+## 3. Windows环境安装
+
+在Windows上可使用msProbe的离线分析能力，包括精度比对（`compare`）、分级可视化构图比对（`graph_visualize`）、趋势可视化（`data2db`）以及TensorBoard结果查看。
+
+### 3.1 支持范围
+
+| 功能 | Windows支持情况 |
+| ---- | ---- |
+| 精度比对（compare，statistics数据）：整网精度比对 | 支持 |
+| 分级可视化（graph_visualize，statistics数据）：单图构建、双图比对、仅模型结构比对，及TensorBoard查看 | 支持 |
+| 趋势可视化（data2db，statistics数据）：趋势分析及TensorBoard查看 | 支持 |
+| 真实数据（task=tensor）、MD5等其他数据模式 | 不支持 |
+| 数据采集（dump）、api_accuracy_checker等训练侧功能 | 不支持（需NPU环境的Linux） |
+| MindSpore框架数据的比对与可视化 | 不支持（依赖mindspore） |
+
+### 3.2 环境要求
+
+- Windows 10/11 x64
+- Python 3.9~3.14（从python.org安装）
+- 需要安装CPU版torch（compare功能加载PyTorch比对模块时依赖）
+- 无需安装CANN
+- 需要在本机通过TensorBoard查看结果时，需安装Node.js（用于构建可视化插件前端，一次性操作）
+
+### 3.3 安装步骤
+
+1. 获取源码并安装msProbe：
+
+   ```bat
+   git clone https://gitcode.com/Ascend/msprobe.git
+   cd msprobe
+   pip install .
+   ```
+
+2. 安装CPU版torch：
+
+   ```bat
+   pip install torch --index-url https://download.pytorch.org/whl/cpu
+   ```
+
+3. 构建可视化插件前端并安装插件。此步骤需要Node.js，仅需执行一次：
+
+   ```bat
+   cd plugins\tb_graph_ascend\hierarchy_plugin\front
+   call npm ci
+   call npx tsc -b
+   call npx vite build
+   copy dist\index.html ..\server\static\
+   cd ..\..\monvis_plugin\front
+   call npm ci
+   call npx cross-env NODE_ENV=production webpack
+   copy dist\index.html ..\server\static\
+   cd ..\..\..\..
+   pip install -e .\plugins\tb_graph_ascend
+   ```
+
+4. 启动TensorBoard查看结果：
+
+   ```bat
+   tensorboard --logdir <结果目录> --port 6006
+   ```
+
+   浏览器访问`http://127.0.0.1:6006`，在**GRAPH_ASCEND**页签查看分级可视化结果，在**TREND ANALYZER**页签查看趋势可视化结果。
+
+### 3.4 使用注意事项
+
+- 所有输入、输出路径**不能包含空格或中文字符**（含用户目录，如`C:\Users\张三`下存放数据会导致路径校验失败）。
+- 建议设置环境变量`PYTHONUTF8=1`，避免中文控制台下日志乱码。
+- 命令启动时打印的`Please verify that the CANN environment is properly configured.`日志为已知信息，可忽略。
+- 浏览器通过代理访问TensorBoard时，需将`localhost`、`127.0.0.1`加入代理例外，否则页面可能无法访问。
+- 趋势可视化查看时，TensorBoard的`--logdir`须指向`.trend.db`文件所在目录（趋势可视化插件仅扫描logdir下一层）。
+
+## 4. 验证安装
 
 安装完成后，执行以下命令验证工具是否安装成功：
 
@@ -235,7 +311,7 @@ pip show mindstudio-probe
 
 若 `pip show mindstudio-probe` 提示命令不存在，请确认当前终端使用的是安装 `msProbe` 的 Python 环境。
 
-## 4. 卸载
+## 5. 卸载
 
 执行如下命令卸载msProbe工具。
 
@@ -249,15 +325,15 @@ pip uninstall mindstudio-probe
 Successfully uninstalled mindstudio-probe-{version}
 ```
 
-## 5. 升级
+## 6. 升级
 
-msProbe工具不支持直接升级，需要先完成[卸载](#4-卸载)后再重新[安装](#2-安装方式)。
+msProbe工具不支持直接升级，需要先完成[卸载](#5-卸载)后再重新[安装](#1-安装说明)。
 
 可通过`pip show mindstudio-probe`命令查看当前环境的版本信息，再选择需要升级的版本。升级版本时需要关注版本配套关系，请参见《[版本说明](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/master/release_notes.md)》。
 
-## 6. 附录
+## 7. 附录
 
-### 6.1 工具限制与注意事项
+### 7.1 工具限制与注意事项
 
 - 工具读写的所有路径，如`config_path`、`dump_path`等，只允许包含大小写字母、数字、下划线、斜杠、点和短横线。
 
@@ -269,7 +345,7 @@ msProbe工具不支持直接升级，需要先完成[卸载](#4-卸载)后再重
 
 - msProbe建议执行用户与安装用户保持一致，如果使用root执行，请自行关注root高权限触及的安全风险。
 
-### 6.2 查看msProbe工具信息
+### 7.2 查看msProbe工具信息
 
 ```bash
 pip show mindstudio-probe
@@ -290,12 +366,12 @@ Requires: einops, matplotlib, numpy, openpyxl, pandas, psutil, pytz, pyyaml, skl
 Required-by:
 ```
 
-### 6.3 Ascend生态链接
+### 7.3 Ascend生态链接
 
-#### 6.3.1 安装TorchNPU
+#### 7.3.1 安装TorchNPU
 
 请参见[Ascend for PyTorch](https://gitcode.com/Ascend/pytorch)。
 
-#### 6.3.2 安装MindSpeed LLM
+#### 7.3.2 安装MindSpeed LLM
 
 请参见[MindSpeed LLM](https://gitcode.com/Ascend/MindSpeed-LLM)。

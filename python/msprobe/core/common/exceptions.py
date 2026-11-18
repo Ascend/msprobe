@@ -19,7 +19,7 @@ class CodedException(Exception):
     err_strs = {}
 
     def __init__(self, code, error_info=""):
-        super().__init__()
+        super().__init__(code, error_info)
         self.code = code
         self.error_info = self.err_strs.get(code) + error_info
 

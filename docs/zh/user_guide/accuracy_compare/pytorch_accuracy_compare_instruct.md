@@ -47,6 +47,10 @@
 
 使用命令行工具对精度数据进行比对，输出比对结果。
 
+> [!NOTE]
+> 
+> 本功能支持在Linux和Windows环境下执行，且Windows环境与Linux环境操作完全一致，通过命令行方式执行。Windows仅支持statistics比对，不支持多卡数据汇总。
+
 ### 命令格式
 
 ```shell

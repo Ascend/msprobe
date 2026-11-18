@@ -15,7 +15,6 @@
 # -------------------------------------------------------------------------
 
 import csv
-import fcntl
 import json
 import multiprocessing
 import os
@@ -24,6 +23,35 @@ import shutil
 import stat
 import sys
 import zipfile
+
+try:
+    import fcntl
+except ImportError:  # Windows: implement flock semantics via msvcrt byte-range locks
+    import msvcrt
+
+    _WIN_LOCK_OFFSET = 1 << 40  # 1 TiB: far beyond any real file, fixed by convention
+
+    class _FcntlCompat:
+        """Windows equivalent of the fcntl module (flock + LOCK_* constants)."""
+
+        LOCK_SH = 1
+        LOCK_EX = 2
+        LOCK_UN = 8
+
+        @staticmethod
+        def flock(file_obj, operation):
+            """Windows equivalent of fcntl.flock (advisory cross-process lock)."""
+            pos = file_obj.tell()
+            file_obj.seek(_WIN_LOCK_OFFSET)
+            try:
+                if operation == _FcntlCompat.LOCK_UN:
+                    msvcrt.locking(file_obj.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    msvcrt.locking(file_obj.fileno(), msvcrt.LK_LOCK, 1)
+            finally:
+                file_obj.seek(pos)
+
+    fcntl = _FcntlCompat()
 
 import numpy as np
 import pandas as pd

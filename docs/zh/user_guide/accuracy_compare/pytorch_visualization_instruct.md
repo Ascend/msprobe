@@ -4,6 +4,10 @@
 
 PyTorch场景的分级可视化构图比对：将msProbe工具dump的精度数据进行解析，还原模型图结构，实现模型各个层级的精度数据比对，方便用户理解模型结构、分析精度问题。
 
+> [!NOTE]
+> 
+> 本功能支持在Linux和Windows环境下执行，且Windows环境与Linux环境操作完全一致，通过命令行方式执行。Windows环境下仅支持statistics数据，支持单图构建、双图比对、仅模型结构比对功能。
+
 **基本概念**
 
 - msProbe：全称MindStudio Probe，是精度调试工具包，可以定位模型训练或推理中的精度问题。
@@ -404,7 +408,7 @@ tensorboard --logdir out_path --bind_all
 
    按住CTRL单击链接即可。
 
-3. 或者将构图结果文件从服务器传输至本地电脑，在本地电脑中查看构图结果。
+3. 或者将构图结果文件从服务器传输至本地电脑，在本地电脑中查看构图结果。本地电脑查看所需的环境准备（TensorBoard及可视化插件），参见《msProbe安装指南》的[Windows环境安装](../../install_guide/msprobe_install_guide.md#3-windows环境安装)。
 
    PC终端输入：
 

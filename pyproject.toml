@@ -9,6 +9,8 @@ authors = [
 ]
 keywords = ["pytorch", "msprobe", "ascend"]
 classifiers = [
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
     "Intended Audience :: Developers",
     "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
@@ -78,8 +80,3 @@ artifacts = [
 
 [tool.hatch.build.hooks.custom]
 path = "hatch_build.py"
-
-[tool.uv]
-environments = [
-    "sys_platform == 'linux'",
-]

@@ -4,11 +4,16 @@
 
 ## 1. Installation Description
 
-Before using this tool, you need to install CANN. For details, see [CANN Quick Installation](https://www.hiascend.com/en/cann/download) to install the Ascend NPU driver and CANN software (including the Toolkit and ops), and configure environment variables.
+Before using training-side features such as data dumping (dump) and training status monitoring, you need to install CANN. For details, see [CANN Quick Installation](https://www.hiascend.com/en/cann/download) to install the Ascend NPU driver and CANN software (including the Toolkit and ops), and configure environment variables.
 
-If you need to upgrade this tool separately or use the latest version, you can install it in any of the following ways: [Online Installation](#21-online-installation), [Offline Installation](#22-offline-installation), and [Installation from Source](#23-installation-from-source).
+The offline analysis features (accuracy comparison `compare`, hierarchical visualization `graph_visualize`, trend visualization `data2db`, and TensorBoard result viewing) do not require CANN and are supported on both Linux and Windows.
 
-## 2. Installation Methods
+If you need to upgrade this tool separately or use the latest version, you can install it in the following ways:
+
+- Linux: [Online Installation](#21-online-installation), [Offline Installation](#22-offline-installation), and [Installation from Source](#23-installation-from-source).
+- Windows: [Windows Environment Installation](#3-windows-environment-installation).
+
+## 2. Linux Environment Installation
 
 ### 2.1 Online Installation
 
@@ -223,7 +228,78 @@ If the following information is displayed, msProbe is successfully installed:
 Successfully installed mindstudio-probe-{version}
 ```
 
-## 3. Installation Verification
+## 3. Windows Environment Installation
+
+On Windows, you can use msProbe's offline analysis capabilities, including accuracy comparison (`compare`), hierarchical visualization (`graph_visualize`), trend visualization (`data2db`), and TensorBoard result viewing.
+
+### 3.1 Supported Scope
+
+| Feature | Windows Support |
+| ------- | --------------- |
+| Accuracy comparison (`compare`, statistics data): network-wide accuracy comparison | Supported |
+| Hierarchical visualization (`graph_visualize`, statistics data): single-graph building, dual-graph comparison, structure-only comparison, and TensorBoard viewing | Supported |
+| Trend visualization (`data2db`, statistics data): trend analysis and TensorBoard viewing | Supported |
+| Other data modes such as real data (task=tensor) and MD5 | Not supported |
+| Training-side features such as data dumping (dump) and api_accuracy_checker | Not supported (requires Linux with NPU) |
+| Comparison and visualization of MindSpore framework data | Not supported (requires mindspore) |
+
+### 3.2 Environment Requirements
+
+- Windows 10/11 x64
+- Python 3.9–3.14 (installed from python.org)
+- CPU-only torch is required (the compare feature loads the PyTorch comparison module)
+- No CANN installation required
+- Node.js is required to view results locally in TensorBoard (used to build the visualization plugin frontend, one-time operation)
+
+### 3.3 Installation Steps
+
+1. Obtain the source code and install msProbe:
+
+   ```bat
+   git clone https://gitcode.com/Ascend/msprobe.git
+   cd msprobe
+   pip install .
+   ```
+
+2. Install CPU-only torch:
+
+   ```bat
+   pip install torch --index-url https://download.pytorch.org/whl/cpu
+   ```
+
+3. Build the visualization plugin frontend and install the plugin. This step requires Node.js and needs to be performed only once:
+
+   ```bat
+   cd plugins\tb_graph_ascend\hierarchy_plugin\front
+   call npm ci
+   call npx tsc -b
+   call npx vite build
+   copy dist\index.html ..\server\static\
+   cd ..\..\monvis_plugin\front
+   call npm ci
+   call npx cross-env NODE_ENV=production webpack
+   copy dist\index.html ..\server\static\
+   cd ..\..\..\..
+   pip install -e .\plugins\tb_graph_ascend
+   ```
+
+4. Start TensorBoard to view results:
+
+   ```bat
+   tensorboard --logdir <result_directory> --port 6006
+   ```
+
+   Visit `http://127.0.0.1:6006` in a browser. View hierarchical visualization results in the **GRAPH_ASCEND** tab and trend visualization results in the **TREND ANALYZER** tab.
+
+### 3.4 Usage Notes
+
+- Input and output paths **must not contain spaces or Chinese characters** (including the user directory; for example, storing data under `C:\Users\张三` fails path validation).
+- Set the environment variable `PYTHONUTF8=1` to avoid garbled log output on Chinese consoles.
+- The `Please verify that the CANN environment is properly configured.` log printed at command startup is a known message and can be ignored.
+- When accessing TensorBoard through a proxy browser, add `localhost` and `127.0.0.1` to the proxy exception list; otherwise the page may be inaccessible.
+- For trend visualization, the TensorBoard `--logdir` must point to the directory containing the `.trend.db` file (the trend visualization plugin scans only one level below the logdir).
+
+## 4. Installation Verification
 
 After the installation, check whether the tool has been successfully installed:
 
@@ -235,7 +311,7 @@ If no error is output and the tool information is displayed, the tool has been s
 
 If `pip show mindstudio-probe` prompts that it does not exist, check whether the Python environment with `msProbe` installed is used.
 
-## 4. Uninstallation
+## 5. Uninstallation
 
 Run the following command to uninstall msProbe:
 
@@ -249,15 +325,15 @@ If the following information is displayed, msProbe is successfully uninstalled:
 Successfully uninstalled mindstudio-probe-{version}
 ```
 
-## 5. Upgrade
+## 6. Upgrade
 
-msProbe cannot be directly upgraded. You need to [uninstall](#4-uninstallation) msProbe and then [install](#2-installation-methods) it again.
+msProbe cannot be directly upgraded. You need to [uninstall](#5-uninstallation) msProbe and then [install](#1-installation-description) it again.
 
 You can use the `pip show mindstudio-probe` command to view the version information of the current environment, and then select the version to upgrade to. When upgrading the version, you need to pay attention to the version compatibility relationship. Please refer to the [Release Notes](https://gitcode.com/Ascend/release-management/blob/master/MindStudio/master/release_notes_en.md).
 
-## 6. Appendix
+## 7. Appendix
 
-### 6.1 Constraints and Precautions
+### 7.1 Constraints and Precautions
 
 - All paths read and written by the tool, such as `config_path` and `dump_path`, can contain only letters, digits, underscores (_), slashes (/), periods (.), and hyphens (-).
 
@@ -269,7 +345,7 @@ You can use the `pip show mindstudio-probe` command to view the version informat
 
 - It is recommended that the msProbe execution user be the same as the installation user. If `root` is used for execution, pay attention to the security risks caused by the high permissions of `root`.
 
-### 6.2 Viewing msProbe Information
+### 7.2 Viewing msProbe Information
 
 ```bash
 pip show mindstudio-probe
@@ -290,12 +366,12 @@ Requires: einops, matplotlib, numpy, openpyxl, pandas, psutil, pytz, pyyaml, skl
 Required-by:
 ```
 
-### 6.3 Ascend Ecosystem
+### 7.3 Ascend Ecosystem
 
-#### 6.3.1 Installing TorchNPU
+#### 7.3.1 Installing TorchNPU
 
 For details, see [Ascend for PyTorch](https://gitcode.com/Ascend/pytorch).
 
-#### 6.3.2 Installing MindSpeed LLM
+#### 7.3.2 Installing MindSpeed LLM
 
 For details, see [MindSpeed LLM](https://gitcode.com/Ascend/MindSpeed-LLM).
