@@ -113,3 +113,5 @@ MindStudio Probe (msProbe) provides full-scenario precision debugging capabiliti
 🔹 [Precision Data Collection Baseline Report for the MindSpore Scenario](../baseline/mindspore_data_dump_perf_baseline.md)
 
 🔹 [Standard Performance Baseline Report of the Training Status Monitoring Tool](../baseline/monitor_perf_baseline.md)
+
+🔹 [Performance Baseline Report of the Response Anomaly Detection Tool](../baseline/response_anomaly_baseline.md)

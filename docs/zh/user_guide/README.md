@@ -115,3 +115,5 @@ MindStudio Probe（msProbe）针对昇腾 AI 处理器提供全场景精度调�
 🔹 [训练状态监测工具标准性能基线报告](../baseline/monitor_perf_baseline.md)
 
 🔹 [vLLM KV Cache 统计值采集性能基线报告](../baseline/kv_collect_perf_baseline.md)
+
+🔹 [推理异常检测工具性能基线报告](../baseline/response_anomaly_baseline.md)
