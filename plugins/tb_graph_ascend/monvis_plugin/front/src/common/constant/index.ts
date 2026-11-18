@@ -33,6 +33,12 @@ export const HEATMAP_TYPE = [
   { value: PIECEWISE, label: '分段模式' },
 ];
 
+export const LINE_MODE_OPTIONS = [
+  { value: 'all', label: '叠加模式' },
+  { value: 'original', label: '原始模式' },
+  { value: 'diff', label: '差值模式' },
+];
+
 export const DIMENSIONS_AXIS_MAP = {
   [STEP_DIMENSION]: {
     x: 'Rank',
@@ -49,3 +55,6 @@ export const DIMENSIONS_AXIS_MAP = {
 };
 
 export const CLEAR_ICON = 'path://M10 10 H90 V90 H10 Z M25 25 L75 75 M75 25 L25 75';
+
+/** diff 差值曲线图例图标：三段短横线模拟虚线，与原始曲线(色块)区分 */
+export const DIFF_LEGEND_ICON = 'path://M16 44 H34 V56 H16 Z M42 44 H60 V56 H42 Z M68 44 H86 V56 H68 Z';

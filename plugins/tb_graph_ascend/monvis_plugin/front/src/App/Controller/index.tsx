@@ -61,6 +61,8 @@ const Controller: React.FC = (props: ControllerProps) => {
   const setDimensionValue = useGlobalStore((state) => state.setDimensionValue);
   const setHeatMapData = useGlobalStore((state) => state.setHeatMapData);
   const setTrendData = useGlobalStore((state) => state.setTrendData);
+  const setDiffPairs = useGlobalStore((state) => state.setDiffPairs);
+  const setHiddenLegendNames = useGlobalStore((state) => state.setHiddenLegendNames);
   const setLoadingHeatMap = useGlobalStore((state) => state.setLoadingHeatMap);
   const setHeatMapType = useGlobalStore((state) => state.setHeatMapType);
 
@@ -182,6 +184,8 @@ const Controller: React.FC = (props: ControllerProps) => {
       }
       setHeatMapData(result?.data);
       setTrendData([]);
+      setDiffPairs([]);
+      setHiddenLegendNames([]);
       setDimX(' ');
       setDimY(' ');
     };

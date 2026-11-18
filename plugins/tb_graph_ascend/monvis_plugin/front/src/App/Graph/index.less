@@ -39,3 +39,64 @@
 .ant-spin-nested-loading {
     height: 100% !important;
 }
+
+/* 折线图面板：顶部工具栏 + 图表主体 */
+.line-panel {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+}
+
+.line-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    flex-shrink: 0;
+    overflow-x: auto;
+
+    .toolbar-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+
+        .toolbar-label {
+            font-size: 13px;
+            color: #444;
+            white-space: nowrap;
+        }
+
+        .diff-minus {
+            font-size: 14px;
+            color: #999;
+            font-weight: bold;
+        }
+    }
+
+    .mode-item {
+        margin-right: 4px;
+    }
+
+    .clear-item {
+        margin-left: auto;
+
+        .clear-btn {
+            color: #666;
+
+            &:hover {
+                color: #1660e0;
+            }
+        }
+    }
+}
+
+.line-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}

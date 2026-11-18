@@ -26,3 +26,9 @@ interface TreadDataType {
   dimX: string; // 或 number，根据你的 dimX 类型
   dimY: string; // 同上
 }
+
+interface DiffPairType {
+  id: string;
+  curveA: string; // "dimX_dimY"
+  curveB: string; // "dimX_dimY"
+}

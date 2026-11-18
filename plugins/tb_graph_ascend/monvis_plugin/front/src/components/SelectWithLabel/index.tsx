@@ -21,7 +21,7 @@ import { QuestionCircleOutlined } from '@ant-design/icons';
 import './index.less';
 const SelectWithLabel = ({ label, className, text, ...args }: any) => {
   return (
-    <div className="selector">
+    <div className={`selector ${className || ''}`.trim()}>
       <Tooltip placement="top" title={text}>
         <div className="label">
           {label}
