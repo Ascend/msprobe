@@ -10,7 +10,13 @@ KV Trace 记录请求标识、缓存块编号、token 位置和读写槽位，�
 
 **环境准备**
 
-按照《[msProbe 工具安装指南](../install_guide/msprobe_install_guide.md)》在启动 vLLM 的 Python 环境中安装 msprobe。
+在启动 vLLM 的 Python 环境中执行以下命令，从源码安装 msprobe：
+
+```shell
+git clone https://gitcode.com/Ascend/msprobe.git
+cd msprobe
+pip install --no-deps .
+```
 
 **约束**
 

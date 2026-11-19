@@ -10,7 +10,13 @@ KV Trace records request identifiers, cache block IDs, token positions, and read
 
 **Environment Preparation**
 
-Follow the [msProbe Installation Guide](../install_guide/msprobe_install_guide.md) to install msprobe in the Python environment used to start vLLM.
+Run the following commands to install msprobe from source in the Python environment used to start vLLM:
+
+```shell
+git clone https://gitcode.com/Ascend/msprobe.git
+cd msprobe
+pip install --no-deps .
+```
 
 **Constraints**
 

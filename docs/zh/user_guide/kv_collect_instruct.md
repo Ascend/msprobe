@@ -10,7 +10,13 @@ KV Collect 按步采集每个 token 的 KV Cache 统计值（均值和方差）�
 
 **环境准备**
 
-按照《[msProbe 工具安装指南](../install_guide/msprobe_install_guide.md)》在启动 vLLM 的 Python 环境中安装 msprobe。
+在启动 vLLM 的 Python 环境中执行以下命令，从源码安装 msprobe：
+
+```shell
+git clone https://gitcode.com/Ascend/msprobe.git
+cd msprobe
+pip install --no-deps .
+```
 
 **约束**
 

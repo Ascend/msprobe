@@ -4,7 +4,15 @@ KV Collect is loaded through vLLM's general plugin entry point. This feature is 
 
 ## Enable collection
 
-Install msProbe in the Python environment that starts vLLM so that the entry point can be discovered. Setting `PYTHONPATH` alone does not register the entry point.
+Run the following commands to install msprobe from source in the Python environment used to start vLLM:
+
+```shell
+git clone https://gitcode.com/Ascend/msprobe.git
+cd msprobe
+pip install --no-deps .
+```
+
+Setting `PYTHONPATH` alone does not register the entry point.
 
 ```shell
 export VLLM_USE_V1=1
