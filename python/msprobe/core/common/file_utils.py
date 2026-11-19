@@ -26,13 +26,47 @@ import zipfile
 
 try:
     import fcntl
-except ImportError:  # Windows: implement flock semantics via msvcrt byte-range locks
+except ImportError:  # Windows: use a byte-range lock to coordinate flock callers
+    import ctypes
     import msvcrt
+    from ctypes import wintypes
 
-    _WIN_LOCK_OFFSET = 1 << 40  # 1 TiB: far beyond any real file, fixed by convention
+    _WIN_LOCK_OFFSET = 1 << 40  # Keep the lock range outside the file's contents.
+    _LOCKFILE_EXCLUSIVE_LOCK = 0x00000002
+
+    class _Overlapped(ctypes.Structure):
+        _fields_ = [
+            ("Internal", ctypes.c_size_t),
+            ("InternalHigh", ctypes.c_size_t),
+            ("Offset", wintypes.DWORD),
+            ("OffsetHigh", wintypes.DWORD),
+            ("hEvent", wintypes.HANDLE),
+        ]
+
+    _kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    _lock_file = _kernel32.LockFileEx
+    _lock_file.argtypes = (
+        wintypes.HANDLE,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        ctypes.POINTER(_Overlapped),
+    )
+    _lock_file.restype = wintypes.BOOL
+
+    _unlock_file = _kernel32.UnlockFileEx
+    _unlock_file.argtypes = (
+        wintypes.HANDLE,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        ctypes.POINTER(_Overlapped),
+    )
+    _unlock_file.restype = wintypes.BOOL
 
     class _FcntlCompat:
-        """Windows equivalent of the fcntl module (flock + LOCK_* constants)."""
+        """Blocking shared and exclusive locks for synchronous file handles."""
 
         LOCK_SH = 1
         LOCK_EX = 2
@@ -40,16 +74,22 @@ except ImportError:  # Windows: implement flock semantics via msvcrt byte-range 
 
         @staticmethod
         def flock(file_obj, operation):
-            """Windows equivalent of fcntl.flock (advisory cross-process lock)."""
-            pos = file_obj.tell()
-            file_obj.seek(_WIN_LOCK_OFFSET)
-            try:
-                if operation == _FcntlCompat.LOCK_UN:
-                    msvcrt.locking(file_obj.fileno(), msvcrt.LK_UNLCK, 1)
-                else:
-                    msvcrt.locking(file_obj.fileno(), msvcrt.LK_LOCK, 1)
-            finally:
-                file_obj.seek(pos)
+            handle = msvcrt.get_osfhandle(file_obj.fileno())
+            overlapped = _Overlapped(
+                Offset=_WIN_LOCK_OFFSET & 0xFFFFFFFF,
+                OffsetHigh=_WIN_LOCK_OFFSET >> 32,
+            )
+            if operation == _FcntlCompat.LOCK_UN:
+                # Publish buffered writes before another handle can acquire the lock.
+                file_obj.flush()
+                success = _unlock_file(handle, 0, 1, 0, ctypes.byref(overlapped))
+            elif operation in (_FcntlCompat.LOCK_SH, _FcntlCompat.LOCK_EX):
+                flags = _LOCKFILE_EXCLUSIVE_LOCK if operation == _FcntlCompat.LOCK_EX else 0
+                success = _lock_file(handle, flags, 0, 1, 0, ctypes.byref(overlapped))
+            else:
+                raise ValueError(f"Unsupported flock operation: {operation}")
+            if not success:
+                raise ctypes.WinError(ctypes.get_last_error())
 
     fcntl = _FcntlCompat()
 

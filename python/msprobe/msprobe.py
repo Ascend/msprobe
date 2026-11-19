@@ -52,6 +52,28 @@ def main():
     subparsers = parser.add_subparsers(parser_class=MindStudioArgumentParser)
 
     compare_parser = subparsers.add_parser('compare')
+    if sys.platform == "win32":
+        _compare_parser(compare_parser, modes=("auto",))
+        graph_parser = subparsers.add_parser('graph_visualize')
+        _graph_service_parser(graph_parser)
+
+        data2db_parser = subparsers.add_parser('data2db')
+        _data2db_service_parser(data2db_parser)
+
+        argv = sys.argv[1:]
+        if not argv:
+            parser.print_help()
+            return
+
+        args = parser.parse_args(argv)
+        if argv[0] == "compare":
+            compare_cli(args, argv)
+        elif argv[0] == "graph_visualize":
+            _graph_service_command(args)
+        elif argv[0] == "data2db":
+            _data2db_command(args)
+        return
+
     _compare_parser(compare_parser)
     subparsers.add_parser('acc_check')
     subparsers.add_parser('multi_acc_check')

@@ -701,13 +701,13 @@ def get_paired_dirs(npu_path, bench_path):
     return list(npu_dirs & bench_dirs)
 
 
-def _compare_parser(parser):
+def _compare_parser(parser, *, modes=("auto", "offline_data", "torchair", "offline_model", "atb")):
     parser.add_argument(
         "-m",
         "--mode",
         dest="mode",
         type=str,
-        choices=["auto", "offline_data", "torchair", "offline_model", "atb"],
+        choices=modes,
         default="auto",
         help="<optional> Comparison mode.",
         required=False,
