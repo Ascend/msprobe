@@ -33,7 +33,6 @@ dependencies = [
     "openpyxl>=3.0.6",
     "matplotlib",
     "tensorboard>=2.11.2",
-    "skl2onnx>=1.14.1",
     "packaging",
     "pytz",
     "psutil",
@@ -53,6 +52,7 @@ Homepage = "https://gitcode.com/Ascend/MindStudio-Probe"
 test = [
     "h5py",
     "mindspore",
+    "onnx",
     "onnxruntime",
     "protobuf",
     "pytest-cov",
