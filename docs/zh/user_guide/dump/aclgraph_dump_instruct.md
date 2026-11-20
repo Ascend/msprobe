@@ -190,7 +190,7 @@ AclGraphDumper.step(dump: bool = True) -> None
 
 一次调用的任意输出Tensor含NaN时，保存当前module/API调用的全部输入、输出Tensor。支持inplace和`out=`操作，保存修改前的输入和修改后的结果；API采集前按名称过滤`empty`条目。
 
-Tensor的`is_nan`含义和特殊数据类型说明见[使用示例：is_nan字段](./pytorch_nan_check_quickstart.md#is_nan字段)。图模式采集时会过滤FakeTensor和meta Tensor；落盘格式见[nan_check任务输出](#nan_check-任务)。
+Tensor的`is_nan`含义和特殊数据类型说明见[使用示例：is_nan字段](./pytorch_nan_check_quickstart.md#131-is_nan字段)。图模式采集时会过滤FakeTensor和meta Tensor；落盘格式见[nan_check任务输出](#nan_check-任务)。
 
 ### Tensor 整网采集
 

@@ -1,5 +1,7 @@
 # nan_check Usage Example
 
+## 1. isnan Mode
+
 This example collects one forward and backward computation.
 
 - Taking a square root of a negative value makes the loss NaN. Use the saved files to identify the API and its input.
@@ -7,11 +9,11 @@ This example collects one forward and backward computation.
 
 Configure collection in `config.json`, then call `PrecisionDebugger.start()` before the code you want to check and `stop()` afterward. After the run, check `dump.json` for the NaN detection results, read the `.pt` files for the input and output data, and check `stack.json` for the call locations.
 
-## 1. Build
+### 1.1 Build
 
 This example requires the `aclgraph_dump` module. Add `-e include-mod=aclgraph_dump` when building. For environment setup, build, and installation steps, see the [Installation Guide](../../install_guide/msprobe_install_guide.md).
 
-## 2. Data Collection
+### 1.2 Data Collection
 
 Create `config.json` and the `repro_nan.py` below in the locally cloned `msprobe` directory, and run there. This example uses the default `isnan` mode:
 
@@ -25,7 +27,7 @@ Create `config.json` and the `repro_nan.py` below in the locally cloned `msprobe
 
 To select ranks, steps, or an API range, see `rank`, `step`, `scope`, `list`, `data_mode`, and other fields in the [complete configuration example and parameter descriptions](./config_json_introduct.md#task--nan_check). This example uses their default settings.
 
-`nan_check.detail` defaults to `true`. To save tensor files only, set `"nan_check": {"detail": false}`. See [Saved Files](#3-saved-files) for the output of each setting.
+`nan_check.detail` defaults to `true`. To save tensor files only, set `"nan_check": {"detail": false}`. See [Saved Files](#13-saved-files) for the output of each setting.
 
 Create `repro_nan.py`. Green `+` lines are tool additions; remove the leading `+` before saving:
 
@@ -62,7 +64,7 @@ loss: nan
 x.grad: [0.25, nan]
 ```
 
-## 3. Saved Files
+### 1.3 Saved Files
 
 The saved-file format and values below are illustrative and expected; process IDs, API indices, and collection indices depend on the actual run. The tree omits `sum` and backward API files. `proc<pid>` identifies the process, and distributed execution uses `rank<ID>`.
 
@@ -136,11 +138,11 @@ Below are the complete forward API records for `sqrt` and `add` in the `data` fi
 }
 ```
 
-### is_nan Field
+#### 1.3.1 is_nan Field
 
 With `detail: true`, `isnan` records each input/output tensor's `is_nan`: `1` for NaN, `0` for a passed NaN check, or `null` for an unknown detection result. Integer, bool, and empty tensors record `0`; FP8/FP4 tensors with at least one element, FakeTensors, and meta tensors record `null`. Python scalar integers, floats, and bools are recorded through `type` and `value` fields.
 
-### Tensors and Additional Files
+#### 1.3.2 Tensors and Additional Files
 
 When a forward output contains NaN, all input/output tensors of that API call within the collection range are saved. When gradients computed by a backward call contain NaN, that call's input/output gradients are saved. Saving is triggered by an output tensor with `is_nan: 1`; other tensors with `null` flags in the same call are also submitted for saving with all original input/output tensors. Files are saved separately for each API call; API-call and save indices depend on the actual output.
 
@@ -151,7 +153,7 @@ When a forward output contains NaN, all input/output tensors of that API call wi
 
 `stack.json` stores groups of API-name lists and call-stack lists for locating calls in the next section.
 
-## 4. File Reading and Cause Location
+### 1.4 File Reading and Cause Location
 
 This command reads the latest collection and prints the `sqrt` flags, saved inputs and outputs, and matching call stack:
 
@@ -192,11 +194,30 @@ The figure below combines the values and detection flags above, contrasting the 
 
 ![Numeric values and detection flags in this example: sqrt produces the first NaN and add propagates it](../../figures/pytorch_nan_check_quickstart/nan_propagation.png)
 
-## 5. slot Mode
+## 2. slot Mode
 
-Eager execution also supports `slot` mode, which reads NPU register status for NaN, Inf, or intermediate overflow in APIs. Follow the [Installation Guide](../../install_guide/msprobe_install_guide.md) to build with `-e include-mod=nan_check`, and replace `config.json` with the complete `slot` configuration in [check_mode Configuration](./config_json_introduct.md#check_mode-configuration). `detail` applies to `isnan`; explicitly setting it in `slot` mode logs a warning and the setting is ignored.
+Eager execution also supports `slot` mode, which reads NPU register status for NaN, Inf, or intermediate overflow in APIs. Follow the [Installation Guide](../../install_guide/msprobe_install_guide.md) to build with `-e include-mod=nan_check`.
 
-Set the environment variable before running the script from section 2:
+Replace `config.json` with the following configuration to enable `slot` mode and collect `sqrt` in detail:
+
+```json
+{
+    "task": "nan_check",
+    "dump_path": "./nan_check_dump",
+    "rank": [],
+    "step": [],
+    "level": "L1",
+    "nan_check": {
+        "scope": [],
+        "list": [],
+        "check_mode": "slot",
+        "tensor_list": ["sqrt"],
+        "data_mode": ["all"]
+    }
+}
+```
+
+Set the environment variable before running `repro_nan.py` from [Data Collection](#12-data-collection):
 
 ```bash
 export INF_NAN_MODE_FORCE_DISABLE=1

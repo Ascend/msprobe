@@ -200,7 +200,7 @@
 | scope | 可选 | 检测范围，`list[str]`类型，见[scope参数配置说明](#scope参数配置说明)。 |
 | list | 可选 | 待检测API列表，`list[str]`类型，见[list参数配置说明](#list参数配置说明)。 |
 | check_mode | 可选 | 检测方式，`str`类型，默认`"isnan"`，见[check_mode参数配置说明](#check_mode参数配置说明)。 |
-| detail | 可选 | `bool`类型，默认为`true`，适用于`check_mode: "isnan"`。`true`记录检测JSON；`false`的输出文件仅包含输出含NaN的调用的`.pt`文件。在`slot`模式中显式配置该字段会输出warning并忽略该配置。落盘内容见[使用示例：落盘结果](./pytorch_nan_check_quickstart.md#3-落盘结果)。 |
+| detail | 可选 | `bool`类型，默认为`true`，适用于`check_mode: "isnan"`。`true`记录检测JSON；`false`的输出文件仅包含输出含NaN的调用的`.pt`文件。在`slot`模式中显式配置该字段会输出warning并忽略该配置。落盘内容见[使用示例：落盘结果](./pytorch_nan_check_quickstart.md#13-落盘结果)。 |
 | tensor_list | 可选 | 仅`check_mode: "slot"`支持，指定需要详细采集的API关键字，`list[str]`类型，见[tensor_list参数配置说明](#tensor_list参数配置说明)。 |
 | data_mode | 可选 | 数据过滤，`list[str]`类型，默认`["all"]`。指定`"input"`时须同时配置`"output"`，见[data_mode参数配置说明](#data_mode参数配置说明)。 |
 
@@ -210,7 +210,7 @@ eager场景的运行步骤见[nan_check使用示例](./pytorch_nan_check_quickst
 
 **结果说明**
 
-`isnan`模式的落盘文件和字段含义见[使用示例：落盘结果](./pytorch_nan_check_quickstart.md#3-落盘结果)；`slot`模式的结果说明见[使用示例：slot模式](./pytorch_nan_check_quickstart.md#5-slot模式)。图模式的目录和`data_name`示例见[nan_check任务输出](./aclgraph_dump_instruct.md#nan_check-任务)。
+`isnan`模式的落盘文件和字段含义见[使用示例：落盘结果](./pytorch_nan_check_quickstart.md#13-落盘结果)；`slot`模式的结果说明见[使用示例：slot模式](./pytorch_nan_check_quickstart.md#2-slot模式)。图模式的目录和`data_name`示例见[nan_check任务输出](./aclgraph_dump_instruct.md#nan_check-任务)。
 
 ### task配置为structure
 
@@ -323,27 +323,8 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 
 `nan_check.check_mode`为`str`类型，可选值如下：
 
-- `"isnan"`（默认）：检测Tensor中的NaN。eager场景使用`PrecisionDebugger`，`level`为`"L1"`，构建、运行及输出说明见[nan_check使用示例](./pytorch_nan_check_quickstart.md)。AclGraph图模式使用`AclGraphDumper`，`level`支持`L0`、`L1`、`mix`，配置与输出说明见[NaN自动检测](./aclgraph_dump_instruct.md#nan-自动检测)。
-- `"slot"`：eager场景通过`PrecisionDebugger`读取NPU寄存器状态，检测NaN、Inf或过程溢出，`level`为`"L1"`。详细采集范围由`tensor_list`指定；构建、环境变量和结果说明见[使用示例：slot模式](./pytorch_nan_check_quickstart.md#5-slot模式)。
-
-以下完整配置启用`slot`模式，并详细采集`sqrt`：
-
-```json
-{
-    "task": "nan_check",
-    "dump_path": "/home/data_dump",
-    "rank": [],
-    "step": [],
-    "level": "L1",
-    "nan_check": {
-        "scope": [],
-        "list": [],
-        "check_mode": "slot",
-        "tensor_list": ["sqrt"],
-        "data_mode": ["all"]
-    }
-}
-```
+- `"isnan"`（默认）：检测Tensor中的NaN。eager场景使用`PrecisionDebugger`，`level`为`"L1"`，构建、运行及输出说明见[使用示例：isnan模式](./pytorch_nan_check_quickstart.md#1-isnan模式)。AclGraph图模式使用`AclGraphDumper`，`level`支持`L0`、`L1`、`mix`，配置与输出说明见[NaN自动检测](./aclgraph_dump_instruct.md#nan-自动检测)。
+- `"slot"`：eager场景通过`PrecisionDebugger`读取NPU寄存器状态，检测NaN、Inf或过程溢出，`level`为`"L1"`。详细采集范围由`tensor_list`指定；构建、环境变量和结果说明见[使用示例：slot模式](./pytorch_nan_check_quickstart.md#2-slot模式)。
 
 ### tensor_list参数配置说明
 
