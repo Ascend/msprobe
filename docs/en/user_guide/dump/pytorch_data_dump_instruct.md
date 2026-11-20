@@ -866,9 +866,9 @@ Custom tag collection supports statistics mode, real data mode, and MD5 mode. Th
 The `tag` API must be used together with the data collection process of `PrecisionDebugger`. A complete usage example is as follows:
 
 ```diff
-  import torch
-  import torch.nn as nn
-  import torch.nn.functional as F
+ import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
 
 +# Import the data collection API of the tool.
 +from msprobe.pytorch import PrecisionDebugger, tag
@@ -876,45 +876,45 @@ The `tag` API must be used together with the data collection process of `Precisi
 +# Instantiate PrecisionDebugger before model training.
 +debugger = PrecisionDebugger(config_path="./config.json")
 
-  # Define a submodule.
-  class AttnCore(nn.Module):
-      def __init__(self):
-          super().__init__()
-          self.k_proj = nn.Linear(64, 64)
-          self.v_proj = nn.Linear(64, 64)
+ # Define a submodule.
+ class AttnCore(nn.Module):
+     def __init__(self):
+         super().__init__()
+         self.k_proj = nn.Linear(64, 64)
+         self.v_proj = nn.Linear(64, 64)
 
-      def forward(self, q, mask):
-          score = q @ self.k_proj(q).transpose(-2, -1) + mask
-          return F.softmax(score, dim=-1) @ self.v_proj(q)
+     def forward(self, q, mask):
+         score = q @ self.k_proj(q).transpose(-2, -1) + mask
+         return F.softmax(score, dim=-1) @ self.v_proj(q)
 
-  # Define a network.
-  class DemoModel(nn.Module):
-      def __init__(self):
-          super().__init__()
-          self.q_proj = nn.Linear(64, 64)
-          self.attn_core = AttnCore()
-          self.o_proj = nn.Linear(64, 64)
+ # Define a network.
+ class DemoModel(nn.Module):
+     def __init__(self):
+         super().__init__()
+         self.q_proj = nn.Linear(64, 64)
+         self.attn_core = AttnCore()
+         self.o_proj = nn.Linear(64, 64)
 
-      def forward(self, x, mask):
-          q = self.q_proj(x)
-+         # Tag the attention computation segment.
-+         with tag("attn_seg"):
-+             attn = self.attn_core(q, mask)
-          return self.o_proj(attn)
+     def forward(self, x, mask):
+         q = self.q_proj(x)
++        # Tag the attention computation segment.
++        with tag("attn_seg"):
++            attn = self.attn_core(q, mask)
+         return self.o_proj(attn)
 
-  if __name__ == "__main__":
-      model = DemoModel()
+ if __name__ == "__main__":
+     model = DemoModel()
 
-+     debugger.start(model=model)  # Enable data dump.
++    debugger.start(model=model)  # Enable data dump.
 
-      x = torch.randn(10, 64)
-      mask = torch.zeros(10, 10)
-      out = model(x, mask)
-      loss = out.sum()
-      loss.backward()
+     x = torch.randn(10, 64)
+     mask = torch.zeros(10, 10)
+     out = model(x, mask)
+     loss = out.sum()
+     loss.backward()
 
-+     debugger.stop()  # Disable data dump. You can enable data dump again. The collected data is recorded in the same step.
-+     debugger.step()  # End data dump. If data dump is enabled again, the collected data is recorded in the next step.
++    debugger.stop()  # Disable data dump. You can enable data dump again. The collected data is recorded in the same step.
++    debugger.step()  # End data dump. If data dump is enabled again, the collected data is recorded in the next step.
 ```
 
 **Example (Custom Tag Comparison Scenario)**
