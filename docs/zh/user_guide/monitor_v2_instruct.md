@@ -1,13 +1,15 @@
 # 训练状态轻量化监测工具
 
+本文档介绍msProbe的Monitor V2训练状态轻量化监测工具，说明如何配置监测项、在训练代码中初始化并按step调用，以CSV落盘采集模块输入输出、权重梯度、优化器动量与通信算子统计，适用于需要评估训练稳定性并定位训练异常的PyTorch/MindSpore用户。
+
 ## 简介
 
 `Monitor V2` 是 msProbe 的训练状态轻量化监测工具。用户可以在训练过程中按需采集关键中间量（如模块输入/输出、权重梯度、优化器动量、通信算子统计等），并以 CSV 形式落盘，用于训练稳定性评估与异常定位。
 
 **工具使用流程**
 
-1) 配置需要采集的监测项；
-2) 在训练代码中初始化并按 step 调用一次 `mon.step()`；
+1) 配置需要采集的监测项。
+2) 在训练代码中初始化并按 step 调用一次 `mon.step()`。
 3) 在输出目录查看对应 CSV 结果。
 
 **工具适用场景**
@@ -30,7 +32,7 @@
 **约束**
 
 - PyTorch 场景：`torch >= 2.1`
-- MindSpore 场景：`mindspore >= 2.4.10`（通常要求动态图环境；若项目中使用了 MSAdapter/mindtorch，请以工程实际为准）
+- MindSpore 场景：`mindspore >= 2.4.10`（通常要求动态图环境；若项目中使用了 MSAdapter/MindTorch，请以工程实际为准）
 - `monitor_v2` 当前仅支持 `format=csv`
 
 **版本范围与限制**
@@ -169,7 +171,7 @@ mon.stop()
 
 **使用示例**
 
-以下字段配置仅展示 `monitors.weight_grad`；需合并到完整配置，见[快速入门 > 准备配置文件](#quickstart-config)；微步展开配置如下。
+以下字段配置仅展示 `monitors.weight_grad`；需合并到完整配置，见[快速入门 > 准备配置文件](#quickstart-config)；微步展开配置如下：
 
 ```json
 {
@@ -360,32 +362,32 @@ mon.stop()
 
 - `scope`：`forward` / `backward`
 - `module_name`：形如 `<module_name>.<io_kind>.<idx>`，其中 `io_kind` 可能为 `input/output/grad_input/grad_output`
-- 使用解读：优先关注异常 step 的同一模块在 `forward` 与 `backward` 是否同时异常，以判断异常是“前向激活异常传导”还是“梯度链路异常”。
+- 使用解读：优先关注异常 step 的同一模块在 `forward` 与 `backward` 是否同时异常，以判断异常是“前向激活异常传导”还是“梯度链路异常”
 
 #### weight_grad.csv<a id="output-weight-grad-csv"></a>
 
 - `scope`：`unreduced` / `reduced`
 - `module_name`：参数名（不带 scope 后缀）；`micro_step` 字段用于区分微步
 - `micro_step`：开启微步监测时记录当前微步序号；未开启时记录梯度累积总微步数（来自 `micro_batch_number/grad_acc_steps`）
-- 使用解读：若 `unreduced` 正常而 `reduced` 异常，通常更偏向“梯度在 step 前形态发生变化/被修改”；若 `unreduced` 已异常则更偏向“反向链路内产生异常”。
+- 使用解读：若 `unreduced` 正常而 `reduced` 异常，通常更偏向“梯度在 step 前形态发生变化/被修改”；若 `unreduced` 已异常则更偏向“反向链路内产生异常”
 
 #### optimizer.csv<a id="output-optimizer-csv"></a>
 
 - `scope`：`exp_avg` / `exp_avg_sq`（与 `module_name` 的后缀一致）
 - `module_name`：形如 `<name>.exp_avg` / `<name>.exp_avg_sq`
-- 使用解读：当训练震荡/不收敛时，优先对比异常前后的 `exp_avg/exp_avg_sq` 指标变化，判断是否为优化器状态突变导致。
+- 使用解读：当训练震荡/不收敛时，优先对比异常前后的 `exp_avg/exp_avg_sq` 指标变化，判断是否为优化器状态突变导致
 
 #### param.csv<a id="output-param-csv"></a>
 
 - `scope`：`param_origin` / `param_updated`
 - `module_name`：参数名
-- 使用解读：对比 step 前后参数分布变化，定位更新异常或数值突变。
+- 使用解读：对比 step 前后参数分布变化，定位更新异常或数值突变
 
 #### cc.csv<a id="output-cc-csv"></a>
 
 - `scope`：`comm`
 - `module_name`：由通信监测生成的通信 tag（通常包含通信算子/序号/代码位置信息）
-- 使用解读：先用 `cc_log_only=true` 获取通信日志，再设置 `cc_codeline` 过滤掉与训练无关的通信，最后开启统计采集定位异常通信的输入输出分布。
+- 使用解读：先用 `cc_log_only=true` 获取通信日志，再设置 `cc_codeline` 过滤掉与训练无关的通信，最后开启统计采集定位异常通信的输入输出分布
 
 ## 公开接口
 
@@ -457,18 +459,18 @@ mon.stop()
 
 | 字段 | 可选/必选 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| `framework` | 可选 | string | 框架类型：`pytorch` / `mindspore`（也支持 `pt/torch/ms` 别名）。 |
-| `output_dir` | 可选 | string | 输出目录，默认为 `./`。 |
-| `format` | 可选 | string | 输出格式，当前仅支持 `csv`。 |
-| `async_write` | 可选 | bool | 暂不生效（当前 CSV 写入为同步）。 |
-| `rank` | 可选 | int / list[int] | 指定需要监测的 rank；为空/不配置表示所有 rank 均监测。 |
-| `start_step` | 可选 | int | 开始写出 step（包含），默认 0。 |
-| `stop_step` | 可选 | int | 结束写出 step（不包含）；未配置时由 `collect_times` 推导。 |
-| `step_interval` | 可选 | int | 写出频率：每隔 N 个 step 写一次（默认 1）。 |
-| `step_count_per_record` | 可选 | int | 每多少个 step 合并到一个 CSV 文件（默认 1）。 |
-| `patch_optimizer_step` | 可选 | bool | 是否自动包装 `optimizer.step()` 触发采集；未显式配置且传入 optimizer 时默认开启。 |
-| `collect_times` | 可选 | int | 最大写出次数；达到后停止写出（默认值很大，表示几乎一直采集）。 |
-| `monitors` | 可选 | dict | 监测模块配置集合，key 为模块名（见下表）。 |
+| framework | 可选 | string | 框架类型：`pytorch` / `mindspore`（也支持 `pt/torch/ms` 别名）。 |
+| output_dir | 可选 | string | 输出目录，默认为 `./`。 |
+| format | 可选 | string | 输出格式，当前仅支持 `csv`。 |
+| async_write | 可选 | bool | 暂不生效（当前 CSV 写入为同步）。 |
+| rank | 可选 | int / list[int] | 指定需要监测的 rank；为空/不配置表示所有 rank 均监测。 |
+| start_step | 可选 | int | 开始写出 step（包含），默认 0。 |
+| stop_step | 可选 | int | 结束写出 step（不包含）；未配置时由 `collect_times` 推导。 |
+| step_interval | 可选 | int | 写出频率：每隔 N 个 step 写一次（默认 1）。 |
+| step_count_per_record | 可选 | int | 每多少个 step 合并到一个 CSV 文件（默认 1）。 |
+| patch_optimizer_step | 可选 | bool | 是否自动包装 `optimizer.step()` 触发采集；未显式配置且传入 optimizer 时默认开启。 |
+| collect_times | 可选 | int | 最大写出次数；达到后停止写出（默认值很大，表示几乎一直采集）。 |
+| monitors | 可选 | dict | 监测模块配置集合，key 为模块名（见下表）。 |
 
 ### monitors配置总览
 
@@ -485,24 +487,24 @@ mon.stop()
 
 | 字段 | 可选/必选 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| `enabled` | 可选 | bool | 是否启用该模块；未配置时 `module` 默认启用，其余默认关闭。 |
-| `ops` | 可选 | list[string] | 统计指标，支持：`min/max/mean/norm/nans`；若无有效项则使用默认值。 |
-| `eps` | 可选 | number | 数值稳定项，默认 `1e-8`。 |
+| enabled | 可选 | bool | 是否启用该模块；未配置时 `module` 默认启用，其余默认关闭。 |
+| ops | 可选 | list[string] | 统计指标，支持：`min/max/mean/norm/nans`；若无有效项则使用默认值。 |
+| eps | 可选 | number | 数值稳定项，默认 `1e-8`。 |
 
 ### module（模块输入/输出/反向梯度）<a id="config-module"></a>
 
 | 字段 | 可选/必选 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| `targets` | 可选 | list[string] | 目标模块筛选：为空表示全量；否则按「模块名包含关键字」命中。 |
+| targets | 可选 | list[string] | 目标模块筛选：为空表示全量；否则按「模块名包含关键字」命中。 |
 | `ops` / `eps` | 可选 | - | 同公共字段。 |
 
 ### weight_grad（权重梯度）<a id="config-weight-grad"></a>
 
 | 字段 | 可选/必选 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| `monitor_mbs_grad` | 可选 | bool | 是否记录微步梯度（micro-batch），默认`false`。<br>PyTorch FSDP场景：`weight_grad` 会自动检测并在reduce前采集（`scope=unreduced`），无需单独的 `fsdp_grad`模块。 |
-| `micro_batch_number` | 可选 | int | 微步数（优先级高于`grad_acc_steps`）。 |
-| `grad_acc_steps` | 可选 | int | 梯度累积步数，可通过`TrainerMonitorV2.start(..., grad_acc_steps=...)`传入。 |
+| monitor_mbs_grad | 可选 | bool | 是否记录微步梯度（micro-batch），默认`false`。<br>PyTorch FSDP场景：`weight_grad` 会自动检测并在reduce前采集（`scope=unreduced`），无需单独的 `fsdp_grad`模块。 |
+| micro_batch_number | 可选 | int | 微步数（优先级高于`grad_acc_steps`）。 |
+| grad_acc_steps | 可选 | int | 梯度累积步数，可通过`TrainerMonitorV2.start(..., grad_acc_steps=...)`传入。 |
 | `ops` / `eps` | 可选 | - | 同公共字段。 |
 
 **说明**：`weight_grad` 会在反向阶段记录 `unreduced`，并在调用 `optimizer.step()` 前抓取并记录 `reduced`。
@@ -511,14 +513,14 @@ mon.stop()
 
 | 字段 | 可选/必选 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| `mv_distribution` | 可选 | bool | 是否采集动量（m/v，典型为 Adam 的 `exp_avg/exp_avg_sq`），默认`true`。 |
+| mv_distribution | 可选 | bool | 是否采集动量（m/v，典型为 Adam 的 `exp_avg/exp_avg_sq`），默认`true`。 |
 | `ops` / `eps` | 可选 | - | 同公共字段。 |
 
 ### param（参数分布）<a id="config-param"></a>
 
 | 字段                 | 可选/必选 | 类型 | 说明                           |
 | -------------------- | --------- | ---- | ------------------------------ |
-| `param_distribution` | 可选      | bool | 是否采集参数分布，默认`true`。 |
+| param_distribution | 可选      | bool | 是否采集参数分布，默认`true`。 |
 | `ops` / `eps`        | 可选      | -    | 同公共字段。                   |
 
 **说明**：`param` 会在 `optimizer.step()` 前后采集参数分布，输出 `scope=param_origin/param_updated`。
@@ -529,10 +531,10 @@ mon.stop()
 
 | 字段 | 可选/必选 | 类型 | 说明 |
 | --- | --- | --- | --- |
-| `cc_codeline` | 可选 | list[string] | 仅监测指定代码行（形如`train.py[23]`）；为空表示不过滤。 |
-| `cc_log_only` | 可选 | bool | 是否仅打印日志不采集（部分实现会在打印后中断训练，请谨慎使用）。 |
-| `cc_pre_hook` | 可选 | bool | 是否监测通信输入（前置采集）。 |
-| `module_ranks` | 可选 | list[int] | 仅在指定ranks上生效（未配置时默认空列表）。 |
+| cc_codeline | 可选 | list[string] | 仅监测指定代码行（形如`train.py[23]`）；为空表示不过滤。 |
+| cc_log_only | 可选 | bool | 是否仅打印日志不采集（部分实现会在打印后中断训练，请谨慎使用）。 |
+| cc_pre_hook | 可选 | bool | 是否监测通信输入（前置采集）。 |
+| module_ranks | 可选 | list[int] | 仅在指定ranks上生效（未配置时默认空列表）。 |
 | `ops` / `eps` | 可选 | - | 同公共字段。 |
 
 **说明**：`monitors.cc` 同时兼容两种写法：直接配置上述字段或将字段嵌套在 `cc_distribution` 内（旧结构兼容）。

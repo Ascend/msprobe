@@ -37,7 +37,7 @@ msprobe config_check -vc <NPU_log> <bench_log> [-o <compare_result>]
 
 对于--verl-compare参数的两个路径：
 
-- NPU_log和bench_log分别为NPU和标杆服务器上训练verl时保存的训练日志，verl训练默认控制台打印，可以将日志重定向，如：python -m verl.trainer.main_ppo ... 2>&1 | tee -a /your/custom/path/training.log，则日志路径为/your/custom/path/training.log
+- NPU_log和bench_log分别为NPU和标杆服务器上训练verl时保存的训练日志，verl训练默认控制台打印，可以将日志重定向，如：python -m verl.trainer.main_ppo ... 2>&1 | tee -a /your/custom/path/training.log，则日志路径为/your/custom/path/training.log。
 - NPU_log和bench_log按顺序配置，自动选择以后面一个日志作为标杆日志进行对比。
 - 待比对的NPU_log和bench_log训练日志文件格式只支持“.log”或“.txt”（如：verl_NPU.log 或 verl_NPU.txt），否则执行比对时会报错。
 - 训练日志中要包含完整的verl配置信息，即包含以“{'actor_rollout_ref'”开始，到与之对应的“}”结束，否则会解析失败。如果训练日志中包含了多个config配置文件，只会提取最后一次的config配置信息到config的json文件中，如果最后一次的config配置信息不完整，则直接解析失败。
@@ -60,7 +60,7 @@ msprobe config_check -vc NPU_log/training.log bench_log/training.log -o ./compar
 
 - bench_config.json：标杆日志中提取的config配置信息。
 - NPU_config.json：NPU日志中提取的config配置信息。
-- hyper_params_compare.csv：比对结果，由于超参中profiler、ray相关的配置信息与训练本身无关，此csv文件中不包含超参与profiler、ray相关的配置比对。里面会有1个sheet页，sheet中会包含超参名称、NPU生效值、bench生效值、是否一致。
+- hyper_params_compare.csv：比对结果，由于超参中profiler、ray相关的配置信息与训练本身无关，此csv文件中不包含超参与profiler、ray相关的配置比对，里面会有1个sheet页，sheet中会包含超参名称、NPU生效值、bench生效值、是否一致。
 
 verl超参比对结果文件hyper_params_compare.csv，内容如下示例：
 
@@ -106,7 +106,7 @@ msprobe config_check -vv [<bench_config>] <tgt_log> [-o <compare_result>]
 - bench_config为关键超参配置文件，默认使用verl_hyper_params_verify.yaml，也可根据该yaml格式手动构造配置文件并传入。
 - tgt_log为训练verl时保存的训练日志，verl训练默认控制台打印，可以将日志重定向，如：python -m verl.trainer.main_ppo ... 2>&1 | tee -a /your/custom/path/training.log，则日志路径为/your/custom/path/training.log。
 - bench_config和tgt_log按顺序配置，bench_config为可选参数，tgt_log为必选参数。
-- tgt_log训练日志文件格式只支持“.log”或“.txt”（如：verl_NPU.log 或 verl_NPU.txt），否则执行校验时会报错。
+- tgt_log训练日志文件格式只支持“.log”或“.txt”（如：verl_NPU.log或verl_NPU.txt），否则执行校验时会报错。
 - 训练日志中要包含完整的verl配置信息，即包含以“{'actor_rollout_ref'”开始，到与之对应的“}”结束，否则会解析失败。如果训练日志中包含了多个config配置文件，只会提取最后一次的config配置信息到config的json文件中，如果最后一次的config配置信息不完整，则直接解析失败。
 
 **使用示例**

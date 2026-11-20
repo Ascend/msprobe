@@ -8,9 +8,9 @@
 
 由于有些节点的名称比较长，例如Module.module.module.language_model.embedding.Embedding.forward.0，在图节点上字符串过长无法完整显示，forward或backward信息被省略，**因此节点中显示的名称字符串去掉了Module前缀，并将forward或backward信息提取到名称字符串的第二位展示**。
 
-![module_name.png](../figures/visualization/module_name.png)
+![去掉Module前缀并把forward信息移到第二位的节点名称显示对比](../figures/visualization/module_name.png)
 
-![module_name1.png](../figures/visualization/module_name1.png)
+![层级加深后module_name逐渐变长、embedding层拼接上层模块名的节点名称示例](../figures/visualization/module_name1.png)
 
 ### 命名格式
 
@@ -31,13 +31,13 @@
 
 如图所示，左边为NPU模型，右边为GPU模型，由于代码实现上的差异，导致模型层级和层级命名有所不同，节点无法匹配，**图上节点显示为灰色，表示节点未匹配**。
 
-![no_mapping.png](../figures/visualization/no_mapping.png)
+![左侧NPU模型与右侧GPU模型的节点比对视图，层级与命名差异导致未匹配节点显示为灰色](../figures/visualization/no_mapping.png)
 
 ### 看图分析
 
 同一模型使用了不同套件或者框架，虽然两个模型的层级关系和层级命名可能有所不同，但也可以从图上的**节点名称**看出一些匹配关系，例如同是embedding层，代码里也是会命名为xxx_embedding，不会命名为xxx_norm，体现在节点名称上也是带有embedding的信息，并且层级关系也是大致相同的。
 
-![no_mapping_analyze.png](../figures/visualization/no_mapping_analyze.png)
+![依据节点名称分析NPU与GPU节点匹配关系，embedding层名称与层级关系大致对应](../figures/visualization/no_mapping_analyze.png)
 
 分析可知，节点匹配关系如下：
 
@@ -61,7 +61,7 @@
 
 NPU和GPU侧的模块Module.module.Float16Module.forward.0和Module.model.FloatModule.forward.0处于图的顶层，需要进行如下配置：
 
-![top_layer.png](../figures/visualization/top_layer.png)
+![顶层模块映射视图：NPU侧Module.module.Float16Module与GPU侧Module.model.FloatModule的顶层节点](../figures/visualization/top_layer.png)
 
 ```yaml
 TopLayer:
@@ -74,7 +74,7 @@ TopLayer:
 
 **这里涉及到跨层级的配置，NPU多了language_model层**，将language_model作为embedding层、rotary_pos_emb层和encoder层的前缀，进行如下配置：
 
-![GPTModel.png](../figures/visualization/GPTModel.png)
+![GPTModel子模块映射视图：NPU侧多出的language_model作为embedding、rotary_pos_emb和encoder层前缀](../figures/visualization/GPTModel.png)
 
 ```yaml
 GPTModel:
@@ -97,13 +97,13 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output -lm ./ma
 
 可以看到，除了language_model层（NPU多的一层，GPU没有层与其匹配），其余在mapping.yaml文件配置的层均匹配上了。
 
-![mapping.png](../figures/visualization/mapping.png)
+![加载mapping.yaml后的节点比对效果，已配置的层成功匹配，仅language_model层无对应节点](../figures/visualization/mapping.png)
 
 ### 继续配置
 
 展开节点过程中，如果发现还有未匹配节点，则继续配置mapping.yaml。
 
-![no_mapping1.png](../figures/visualization/no_mapping1.png)
+![展开节点后仍有未匹配节点的比对视图，灰色节点提示需继续配置mapping.yaml](../figures/visualization/no_mapping1.png)
 
 按前一节过程进行配置，分析可知，节点匹配关系如下：
 
@@ -112,7 +112,7 @@ msprobe graph_visualize -tp ./target_path -gp ./golden_path -o ./output -lm ./ma
 | Module.module.module.language_model.encoder.layers.0.mlp.dense_h_to_4h.ColumnParallelLinear.forward.0 | Module.module.module.decoder.layers.0.mlp.linear_fc1.TELayerNormColumnParallelLinear.forward.0      | NPU为dense_h_to_4h，GPU为linear_fc1            |
 | Module.module.module.language_model.encoder.layers.0.mlp.dense_4h_to_h.RowParallelLinear.forward.0 | Module.module.module.decoder.layers.0.mlp.linear_fc2.TERowParallelLinear.forward.0  | NPU为dense_4h_to_h，GPU为linear_fc2 |
 
-![ParallelMLP.png](../figures/visualization/ParallelMLP.png)
+![mlp子模块节点比对：NPU侧dense_h_to_4h与dense_4h_to_h分别对应GPU侧linear_fc1与linear_fc2](../figures/visualization/ParallelMLP.png)
 
 追加mapping.yaml配置：
 
@@ -132,4 +132,4 @@ ParallelMLP:
 
 执行命令，查看效果，可以看到节点已成功匹配上。
 
-![mapping1.png](../figures/visualization/mapping1.png)
+![追加ParallelMLP映射配置后重新比对的视图，mlp层节点已全部匹配成功](../figures/visualization/mapping1.png)

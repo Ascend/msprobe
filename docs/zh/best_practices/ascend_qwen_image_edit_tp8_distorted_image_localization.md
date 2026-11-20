@@ -21,7 +21,7 @@
 
 msprobe 工具主要通过在训练推理脚本内添加 dump 接口，具体使用函数 PrecisionDebugger 进行数据采集。训练结束后，工具将 dump 的数据保存在 dump_path 指定的目录下，目录结构如下：
 
-![](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/dump_directory_structure.png)
+![msprobe 数据采集后 dump_path 下的目录结构截图，按 rank 划分各卡精度数据文件](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/dump_directory_structure.png)
 
 ### 步骤2：分级可视化切分合并比对
 
@@ -37,23 +37,23 @@ msprobe graph_visualize -tp tp8_data -gp tp1_data -o output_path
 tensorboard --logdir out_path --bind_all --port [可选，端口号]
 ```
 
-![](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/tensorboard_graph_visualization.png)
+![TensorBoard 分级可视化对比界面，Flux_T2V.forward 模块与 API 以方框、椭圆分级展示](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/tensorboard_graph_visualization.png)
 
 在上图可以看到，Module.0.module.module.Flux_T2V.forward 内包含整个 nn 部分的所有 module（长方形边框），其采用分级结构进行展示，一级 module 中存在多个二级 module，同时多个二级 module 之间的 API 也以椭圆形边框进行展示。可以看到第一个 nn.Module（Linear）就出现了精度不一致的问题，故开始查看 Linear 的对比详情。
 
-![](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/linear_module_diff_detail.png)
+![Linear 模块对比详情界面，TP1 与 TP8 的输入统计值并列显示且存在差异](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/linear_module_diff_detail.png)
 
 经过对比发现，Linear 的输入数据中，多个统计值都不同，说明数据在进入第一个 module 前就是不同的。因为两个数据文件涉及单卡和多卡对比，所以需要进一步查看节点信息来分析具体是哪张卡出现了异常。
 
-![](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/card0_anomaly_node_info.png)
+![卡 0 节点信息界面，红框标出卡 0 统计值与其余 TP 卡明显不同](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/card0_anomaly_node_info.png)
 
-因为多卡配置是 TP=8，没有使用 DP 进行数据切分，且该层为非行切、列切层，从 shape 处可以看到为未进行 TP 切分的原始结构，多卡间的统计值应该完全相同。如图中红色框可以发现，这里卡 0 的数据明显与其他卡不同。
+因为多卡配置是 TP=8，没有使用数据并行（DP）进行数据切分，且该层为非行切、列切层，从 shape 处可以看到为未进行 TP 切分的原始结构，多卡间的统计值应该完全相同。如图中红色框可以发现，这里卡 0 的数据明显与其他卡不同。
 
 ### 步骤3：代码回溯
 
 下一步需要回到代码，分析送给第一个 module 的数据传输轨迹。
 
-![](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/code_backtrace_data_flow.png)
+![代码回溯数据流截图，定位模型初始阶段 random.randint 生成随机数的调用位置](../figures/cases/ascend_qwen_image_edit_tp8_distorted_image_localization/code_backtrace_data_flow.png)
 
 该场景为基于 Diffusion 的图像生成模型，在模型初始阶段需要生成随机数。经过分析后定位到这里的 random.randint 在卡 0 上的表现与其他卡不同。预期在同一个 step 内所有卡的随机种子相同，而实际卡 0 与卡 1~7 不同，导致后续模型输出不同，最后拼接为完整图片后，出现了花图问题。
 

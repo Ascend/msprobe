@@ -1,5 +1,7 @@
 # MindSpore场景分级可视化构图比对
 
+本文档介绍MindSpore场景分级可视化构图比对，将msProbe工具dump的精度数据解析后还原模型图结构，实现模型各层级的结构与精度数据比对，适用于需要理解模型结构、分析精度问题的用户。
+
 ## 简介
 
 MindSpore场景分级可视化构图比对：将msProbe工具dump的精度数据进行解析，还原模型图结构，实现模型各个层级的精度数据比对，方便用户理解模型结构、分析精度问题。
@@ -109,8 +111,8 @@ msprobe graph_visualize -tp ./target_path -o ./output_path -oc
 
 在输出结果中会对每个图节点进行溢出检测指标的标记，溢出检测指标如下：
 
-- medium：输入异常，输出正常场景；
-- high：输入异常，输出异常；输出norm值相较于输入存在异常增大情况；
+- medium：输入异常，输出正常场景。
+- high：输入异常，输出异常；输出norm值相较于输入存在异常增大情况。
 - critical：输入正常，输出异常场景。
 
 **输出说明**
@@ -232,15 +234,15 @@ dump配置请参考[dump配置示例](../dump/config_json_introduct.md#task配�
 
 **命令格式**
 
-请参考[双图比对](#双图比对)的命令格式
+请参考[双图比对](#双图比对)的命令格式。
 
 **参数说明**
 
-请参考[双图比对](#双图比对)的参数说明
+请参考[双图比对](#双图比对)的参数说明。
 
 **使用示例**
 
-请参考[双图比对](#双图比对)使用示例中的示例1、示例2和示例3
+请参考[双图比对](#双图比对)使用示例中的示例1、示例2和示例3。
 
 **输出说明**
 
@@ -255,8 +257,8 @@ dump配置请参考[dump配置示例](../dump/config_json_introduct.md#task配�
 **注意事项**
 
 - 当前支持的模型并行切分策略：Tensor Parallelism（TP）、Pipeline Parallelism（PP）、Virtual Pipeline Parallelism（VPP），暂不支持Context Parallelism（CP）和Expert Parallelism（EP）。
-- 当前支持基于Megatron、MindSpeed-LLM套件的模型进行图合并，其他套件的模型图合并效果有待验证；
-- 当前仅支持msProbe工具dump的statistics数据，level需指定L0或者mix；
+- 当前支持基于Megatron、MindSpeed-LLM套件的模型进行图合并，其他套件的模型图合并效果有待验证。
+- 当前仅支持msProbe工具dump的statistics数据，level需指定L0或者mix。
 - 图合并比对时要确保Data Parallelism（DP）切分一致，例如rank=8 tp=1 pp=8的配置，dp=1，图合并将得到一张图，rank=8 tp=1 pp=4的配置，dp=2，图合并将得到两张图，暂不支持数量不一致的图进行比对。
 
 **命令格式**
@@ -362,7 +364,7 @@ tensorboard --logdir out_path --bind_all
 
 启动后会打印日志：
 
-![tensorboard_1](../../figures/visualization/tensorboard_1.png)
+![服务器执行tensorboard启动命令后终端打印的访问地址日志，含机器地址ubuntu与端口号6008](../../figures/visualization/tensorboard_1.png)
 
 ubuntu是机器地址，6008是端口号。
 
@@ -372,9 +374,9 @@ ubuntu是机器地址，6008是端口号。
 
 **如果链接打不开（服务器无法直连需要挂vpn才能连接等场景），可以尝试以下方法，选择其一即可：**
 
-1. 本地电脑网络手动设置代理，例如Windows10系统，在【手动设置代理】中添加服务器地址（例如10.123.12.12）
+1. 本地电脑网络手动设置代理，例如Windows10系统，在【手动设置代理】中添加服务器地址（例如10.123.12.12）。
 
-   ![proxy](../../figures/visualization/proxy.png)
+   ![Windows10系统本地网络【手动设置代理】界面，填写服务器地址与端口的操作入口](../../figures/visualization/proxy.png)
 
    然后，在服务器中输入：
 
@@ -382,7 +384,7 @@ ubuntu是机器地址，6008是端口号。
    tensorboard --logdir out_path --bind_all
    ```
 
-   最后，在浏览器窗口输入`http://10.123.12.12:6008`
+   最后，在浏览器窗口输入`http://10.123.12.12:6008`。
 
    **如果当前服务器开启了防火墙，则此方法无效，需要关闭防火墙，或者尝试后续方法。**
 
@@ -392,7 +394,7 @@ ubuntu是机器地址，6008是端口号。
    tensorboard --logdir out_path
    ```
 
-   ![tensorboard_2](../../figures/visualization/tensorboard_2.png)
+   ![vscode终端执行tensorboard命令后的回显日志，含可按住CTRL点击打开的访问链接](../../figures/visualization/tensorboard_2.png)
 
    按住CTRL点击链接即可。
 
@@ -412,11 +414,11 @@ ubuntu是机器地址，6008是端口号。
 
 推荐使用谷歌浏览器，在浏览器中输入机器地址+端口号回车，出现TensorBoard页面，其中/#graph_ascend会自动拼接。
 
-![vis_browser_1](../../figures/visualization/vis_browser_1.png)
+![浏览器输入机器地址加端口号后打开的TensorBoard页面，地址已自动拼接/#graph_ascend](../../figures/visualization/vis_browser_1.png)
 
 如果您切换了TensorBoard的其他功能，此时想回到模型分级可视化页面，可以点击左上方的**GRAPH_ASCEND**。
 
-![vis_browser_2](../../figures/visualization/vis_browser_2.png)
+![TensorBoard页面左上方的GRAPH_ASCEND入口，点击可返回模型分级可视化页面](../../figures/visualization/vis_browser_2.png)
 
 ### 查看图
 
@@ -577,14 +579,14 @@ dump_path格式：必须只包含step{数字}格式的文件夹，且每个step�
 
 1. 默认匹配
 
-   - 所有节点dump名称一致
-   - 节点的层级一致（所有父节点一致）
+   - 所有节点dump名称一致。
+   - 节点的层级一致（所有父节点一致）。
 
 2. 模糊匹配
 
-   - 模块节点dump名称一致，两个匹配上的模块节点，忽略各自节点下所有api的dump调用次数，按照名称一致+模块节点内的调用顺序进行匹配。
+   - 模块节点dump名称一致，两个匹配上的模块节点，忽略各自节点下所有API的dump调用次数，按照名称一致+模块节点内的调用顺序进行匹配。
 
-     ![fuzzy_match_pt.png](../../figures/visualization/fuzzy_match_pt.png)
+     ![开启模糊匹配后两个模块节点的对应关系视图，忽略节点下api调用次数按名称与顺序匹配](../../figures/visualization/fuzzy_match_pt.png)
 
 **dump名称 = 名称 + 调用次数**，例如Torch.matmul.2.forward，matmul是名称，2是调用次数。
 

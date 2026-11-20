@@ -232,11 +232,11 @@ output目录下生成graph和pynative两个文件夹，每个文件夹下生成�
 
 #### 动态图单点数据比对场景
 
-单点数据比对场景：CPU、NPU 环境的网络中单点保存的数据比对。
+单点数据比对场景：CPU、NPU环境的网络中单点保存的数据比对。
 
 单点数据比对支持单卡比对和多卡比对。多机场景需要每个设备单独执行比对操作。
 
-1. 参见《[单点保存工具](../dump/debugger_save_instruct.md)》完成 CPU、NPU 的动态图场景单点数据采集。
+1. 参见《[单点保存工具](../dump/debugger_save_instruct.md)》完成CPU、NPU的动态图场景单点数据采集。
 
 2. 运行命令示例：
 
@@ -333,14 +333,14 @@ msprobe merge_result -i ./input_dir -o ./output_dir -config ./config.yaml
 
 多卡数据汇总结果如下所示：
 
-![merge_result](../../figures/merge_result.png)
+![多卡数据汇总结果表格截图：NPU Name列与各rank数据列，各比对指标分sheet页呈现](../../figures/merge_result.png)
 
 1. NPU Name列表示API或module名称。
 2. rank*列为多卡数据。
 3. 不同比对指标的数据通过不同sheet页呈现。
 4. 如果一个API或module在某张卡上找不到数据，汇总结果中将空白呈现。
-5. 如果比对指标值为N/A，unsupported，Nan，表示无法计算该比对指标值，汇总结果将以`NPU:‘NPU max值’  Bench:‘Bench max值’`呈现。
-6. 针对图示案例，此处NPU:N/A  Bench:N/A表示output为None。
+5. 如果比对指标值为N/A、unsupported、Nan，表示无法计算该比对指标值，汇总结果将以`NPU:‘NPU max值’  Bench:‘Bench max值’`呈现。
+6. 针对图示案例，此处NPU:N/A Bench:N/A表示output为None。
 
 <br>
 如何基于group信息查看分组数据：
@@ -519,11 +519,11 @@ Cell.relu.ReLU.parameters_grad.weight: Module.module.language_model.embedding.wo
 
 - MindSpore dump
 
-  ![ms_dump](../../figures/ms_dump.png)
+  ![MindSpore dump数据中dump.json的data_name字段示例，红框标出用于命名的字段值](../../figures/ms_dump.png)
 
 - PyTorch dump
 
-  ![pt_dump](../../figures/pt_dump.png)
+  ![PyTorch dump数据中dump.json的data_name字段示例，红框标出用于命名的字段值](../../figures/pt_dump.png)
 
 当dump.json文件中不存在“data_name”字段时，名称的拼写规则如下：
 
@@ -708,4 +708,4 @@ yaml文件中只需配置MindSpore与PyTorch模型代码中功能一致但名称
 
 模型代码示例：
 
-![ms_dump](../../figures/ms_layer.png)
+![MindSpore与PyTorch模型代码中嵌套Layer层名称对照示例，用于确认需映射的Layer层](../../figures/ms_layer.png)

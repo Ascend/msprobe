@@ -63,7 +63,7 @@
 | --dym_shape_range    | 可选      | 模型输入为动态shape时使用。动态shape的阈值范围。如果设置该参数，那么将根据参数中所有的shape列表进行依次推理和精度比对。如果模型转换时指定了某个维度值为-1，比对时需要指定特定范围，该维度在比对时不能设置为-1。<br/>配置格式为："input_name1:1,3,200\~224,224-230;input_name2:1,300"。<br/>其中，input_name必须是转换前的网络模型中的节点名称；"\~"表示范围，a\~b\~c含义为[a: b :c]；"-"表示某一位的取值。<br/> |
 | --rank               | 可选      | 指定运行设备[0,255]，可选参数，默认0。                       |
 | --output_size        | 可选      | 指定模型的输出size，有几个输出，就设几个值，每个值默认为**90000000**，如果模型输出超出大小，请指定此参数以修正。动态shape场景下，获取模型的输出size可能为0，用户需根据输入的shape预估一个较合适的值去申请内存。多个输出size用英文逗号隔开，例如"10000,10000,10000"。 |
-| --onnx_fusion_switch | 可选      | onnxruntime算子融合开关，默认开启算子融合，如存在onnx dump数据中因算子融合导致缺失的，建议关闭此开关。使用方式：--onnx_fusion_switch False。 |
+| --onnx_fusion_switch | 可选      | onnxruntime算子融合开关，默认开启算子融合，如存在ONNX dump数据中因算子融合导致缺失的，建议关闭此开关。使用方式：--onnx_fusion_switch False。 |
 
 ### 输出说明
 
@@ -112,4 +112,4 @@ msprobe compare ends successfully.
 
 ### 查看比对结果
 
-请前往[对比结果说明](infer_compare_result.md)
+请前往[比对结果说明](infer_compare_result.md)

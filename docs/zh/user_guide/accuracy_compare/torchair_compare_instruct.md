@@ -1,5 +1,7 @@
 # 基于torch图模式（torchair）整网算子精度比对
 
+本文档介绍基于torch图模式（torchair）的整网算子精度比对，说明GE数据与FX数据、GE开/关融合数据的比对命令与结果判定标准，适用于需要校验模型在不同算子下精度一致性的用户。
+
 ## 简介
 
 torchair图模式整网算子精度比对通过采集torchair图模式下模型中间算子的输入、输出数据，对比两次推理结果是否一致，从而判断模型在不同算子上的精度是否一致。torch图模式（torchair）整网算子精度比对主要支持GE数据与FX数据的比对以及GE开/关融合数据的比对。
@@ -23,7 +25,7 @@ dump数据采集方式、接口参数、示例以及结果目录结构参见《[
 
 ### compare精度比对
 
-执行 `msprobe compare --target_path <GE_dump_data_path> --golden_path <FX_dump_data_path> [--output_path <output_path>] --mode torchair`，在指定的 `output_path` 路径下输出比对结果csv文件，若不使用 `--output_path` 参数，则默认保存在当前目录下。
+执行 `msprobe compare --target_path <GE_dump_data_path> --golden_path <FX_dump_data_path> [--output_path <output_path>] --mode torchair`，在指定的 `output_path` 路径下输出比对结果CSV文件，若不使用 `--output_path` 参数，则默认保存在当前目录下。
 
 ```sh
 # 使用TorchNPU 7.1.0及以上版本
@@ -51,7 +53,7 @@ GE融合与关闭融合的dump采集方法、示例及目录结构参见[GE融�
 执行 `msprobe compare --target_path <GE_dump_data_path> --golden_path <fusion_off_GE_dump_data_path> [--output_path <output_path>] --mode torchair`，在指定的 `output_path` 路径下输出比对结果csv文件，若不使用 `--output_path` 参数，则默认保存在当前目录下。
 
 ```sh
-msprobe compare --target_path ${dump_path in GE dump}/msprobe_ge_dump --golden_path ${dump_path in fusion off GE dump}/msprobe_ge_dump --mode torchair
+msprobe compare --target_path ${GE_dump_path}/msprobe_ge_dump --golden_path ${fusion_off_GE_dump_path}/msprobe_ge_dump --mode torchair
 ```
 
 ## 结果查看
@@ -138,7 +140,7 @@ torchair场景下的精度比对结果以CSV文件格式输出，包含以下主
 
 - **API Name**: 算子或API名称。
 - **Stack Info**: 堆栈信息，用于定位代码位置。
-- **Data Name**: 数据名称，格式为 [NPU真实数据名，Bench真实数据名]。
+- **Data Name**: 数据名称，格式为 [NPU真实数据名、Bench真实数据名]。
 
 #### 真实数据模式指标
 

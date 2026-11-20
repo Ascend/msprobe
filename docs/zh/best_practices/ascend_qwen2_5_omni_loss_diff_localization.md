@@ -1,16 +1,18 @@
 # 基于昇腾的Qwen2.5-omni框架迁移Loss差异定位
 
+本文档介绍基于昇腾的Qwen2.5-omni框架迁移Loss差异定位，记录从GPU迁移到昇腾平台后训练Loss对不齐问题的系统排查过程，说明通过逐步排除layerNorm、gelu、学习率等因素确认根因为网络对细微累积误差敏感而非昇腾软件栈问题，适用于需要进行框架跳平台迁移精度对齐排查的用户。
+
 ## 背景概述
 
-将基于 LLaMA-Factory 框架的 Qwen2.5-omni 训练服务从 GPU 迁移到昇腾平台时，会遇到相同框架下 Loss 对不齐、训练结果存在误差的问题。此类跨平台精度差异直接影响模型迁移后的效果评估。本文记录了该问题的系统排查过程：通过逐步排除 layernorm、gelu、学习率等因素，最终确认是网络对细微累积误差敏感所致，而非昇腾软件栈问题，为同类框架迁移的精度对齐排查提供参考。
+将基于 LLaMA-Factory 框架的 Qwen2.5-omni 训练服务从 GPU 迁移到昇腾平台时，会遇到相同框架下 Loss 对不齐、训练结果存在误差的问题。此类跨平台精度差异直接影响模型迁移后的效果评估。本文记录了该问题的系统排查过程：通过逐步排除 layerNorm、gelu、学习率等因素，最终确认是网络对细微累积误差敏感所致，而非昇腾软件栈问题，为同类框架迁移的精度对齐排查提供参考。
 
 ## 问题现象
 
 同一 LLaMA-Factory 框架从 GPU 迁移到 NPU 训练，训练一定步数后相对误差明显。
 
-![](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/loss_diff_curve_1.png)
+![GPU与NPU训练Loss曲线对比图，随训练步数增加相对误差逐渐扩大并稳定偏高](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/loss_diff_curve_1.png)
 
-![](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/loss_diff_curve_2.png)
+![GPU与NPU训练Loss误差曲线对比，起始步差异在千分位而整体相对误差偏大、绝对误差未收敛](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/loss_diff_curve_2.png)
 
 ## 定位过程
 
@@ -24,13 +26,13 @@
 
 **尝试2**：关闭学习率，判断前向还是反向问题更大 → 前向问题偏大；相同权重下对数据较敏感。
 
-![](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/forward_vs_backward_diff.png)
+![关闭学习率后前向与反向Loss差异对比图，前向误差明显大于反向误差](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/forward_vs_backward_diff.png)
 
 **尝试3**：查看下游任务 → 训练的是基模，暂无下游任务。
 
 **尝试4**：长跑更多步数，观察绝对误差是否有收敛趋势 → 与之前基本持平。
 
-![](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/absolute_error_long_run.png)
+![长跑更多步数后的绝对误差变化曲线，绝对误差未收敛、与之前基本持平](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/absolute_error_long_run.png)
 
 **尝试5**：把 gelu 和 norm 转移到 CPU 后 dump，继续查看除 linear 之外的其他差异 → 基本保持一致。
 
@@ -38,7 +40,7 @@
 
 其中尝试 5 中观测到一个现象：GPU 的 layerNorm 转 CPU 后差异同样超出阈值。
 
-![](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/gpu_layernorm_to_cpu_diff.png)
+![GPU侧layerNorm转CPU前后的Loss差异对比，转换后差异依然超出阈值](../figures/cases/ascend_qwen2_5_omni_loss_diff_localization/gpu_layernorm_to_cpu_diff.png)
 
 ## 问题根因及总结
 

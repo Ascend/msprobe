@@ -1,5 +1,7 @@
 # 基于昇腾的GLM5适配与训推一致性优化
 
+本文档介绍在昇腾平台上使用VeRL框架适配GLM-5模型并开展训推一致性对齐的完整实践，涵盖整网打通、精度差异点定位与修复、长跑稳定性优化，适用于进行大模型强化学习适配的开发者。
+
 ## 案例简介
 
 在大模型强化学习（RL）场景中，训练引擎与推理引擎的精度一致性是决定模型收敛效果的核心难点，训推任何一方的微小数值差异都会随层数累积放大。本文记录了在昇腾平台上使用 VeRL 框架适配 GLM-5 模型、并借助 msProbe 工具开展训推一致性对齐的完整过程，包括整网打通、精度差异点定位与修复、长跑稳定性优化等，为类似大模型强化学习的适配实践提供参考。
@@ -12,7 +14,7 @@
 
 ### 阶段性规划
 
-1. vllm-ascend 单推理模型跑通，精度满足要求，单推理评测分数复现论文，明确 vllm 以及 vllm-ascend 版本。
+1. vllm-ascend 单推理模型跑通，精度满足要求，单推理评测分数复现论文，明确 vLLM 以及 vllm-ascend 版本。
 2. mindspeed-RL、megatron-bridge 适配，明确各版本及 transformer 使用的 tokenizer 版本。
 3. VeRL 框架上训练和推理接入，减层端到端跑通，明确 VeRL 版本。
 4. 验证权重保存和断点续训功能是否正常可用。
@@ -117,9 +119,9 @@
 
 ### 关键模块——MLA+DSA
 
-![image](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/mla_dsa_structure.png)
+![GLM5注意力层前向计算图：左侧MLA低秩主分支与右侧DSA的Indexer+Top-k稀疏分支共享输入](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/mla_dsa_structure.png)
 
-#### 整体结构：MLA + DSA 双分支联动
+#### 整体结构：MLA 与 DSA 双分支联动
 
 这张图展示了 GLM5 注意力层的完整前向计算流，分为两大块：
 
@@ -128,7 +130,7 @@
 
 #### MLA 计算流
 
-MLA 的核心是低秩压缩 + 隐式 KV 缓存，全程围绕"压缩 → 上采样 → 注意力计算"展开。
+MLA 的核心是低秩压缩 + 隐式 KV 缓存，全程围绕“压缩 → 上采样 → 注意力计算”展开。
 
 **1) 输入与压缩阶段**
 
@@ -192,7 +194,7 @@ matmul(out_absorb) & view → O
 - 把 `q_nope` 和 `k_nope` 分别和位置相关的特征拼接，通过 `matmul(q_absorb)` 完成隐式注意力计算。
 - 这一步的 `matmul` 和 `view` 操作，是训练侧 Megatron 和推理侧 vLLM 实现差异的关键之一，直接影响输出精度。
 
-#### DSA（Indexer + Top-k）计算流
+#### DSA（Indexer 与 Top-k）计算流
 
 DSA 的核心是 Indexer 打分 + Top-k 筛选，决定了长序列中哪些 Token 会参与注意力计算。
 
@@ -239,17 +241,17 @@ topk_indices → Select → 从MLA的KV中只保留Top-k Token
 
 - 筛选出的 `topk_indices` 会回传给 MLA 的 `Select` 模块，让 MLA 只对关键 Token 做注意力计算，过滤冗余 Token，实现稀疏优化。
 
-## 定位过程-整网功能适配
+## 定位过程：整网功能适配
 
 在 VeRL 框架上完成训练引擎和推理引擎的单独适配验证后，配置训练和推理的相关参数，拉起整网的训练任务时遇到一些适配问题。
 
 ### 报错：TO serve at least one request with the models's max seq len（202752）
 
-![image](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/error_max_seq_len_202752.png)
+![vLLM启动报错截图：提示需至少一个请求按202752的max seq len服务，与训练侧配置不一致](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/error_max_seq_len_202752.png)
 
 正常来说，max_seq_len 是通过 prompt_len 和 response_len 得到。在框架侧代码中搜索 202752，发现 max_position_embeddings=202752。
 
-![image](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/max_position_embeddings_202752.png)
+![框架代码检索截图：max_position_embeddings配置值为202752，即报错中序列长度的来源](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/max_position_embeddings_202752.png)
 
 和预期不一致。查看源码中 max_seq_len 的定义，发现不同版本的定义逻辑不同：verl 0.7.1 版本在该参数未设置时会默认为 max_position_embeddings，而之前的 verl 版本默认设置为 prompt_len+response_len。最后修改 VeRL 训练启动脚本，添加 rollout.max_model_len=$prompt_length+$response_length 解决。
 
@@ -257,7 +259,7 @@ topk_indices → Select → 从MLA的KV中只保留Top-k Token
 
 ### AttributeError: 'NPUModelRunner' object has no attribute 'cudagraph_batch_sizes'
 
-![image](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/error_cudagraph_batch_sizes.png)
+![vLLM报错截图：NPUModelRunner对象无cudagraph_batch_sizes属性，提示图模式配置参数缺失](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/error_cudagraph_batch_sizes.png)
 
 查看 VeRL 启动脚本，没有配置 cudagraph_batch_sizes，参考之前项目中图模式走 FULL_DECODE_ONLY 的配置：
 
@@ -268,7 +270,7 @@ topk_indices → Select → 从MLA的KV中只保留Top-k Token
 
 尝试添加后发现会 OOM。
 
-![image](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/cudagraph_oom.png)
+![报错截图：为大batch预编译cudagraph图时显存不足，训练任务触发OOM](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/cudagraph_oom.png)
 
 考虑到模型大小差异，batch_size 大的图预编译会需要更大的显存，尝试把 cudagraph_batch_sizes 改为 [1,2,4]，发现仍会报 OOM。查询资料，考虑可能是模型本身切分太大导致静态显存已经占用较满。
 
@@ -282,11 +284,11 @@ EP: 64 -> 64
 
 发现在新的切分策略下，"cudagraph_batch_sizes": [8,16,32,64,128,192,256,384] 也可以正常放下。
 
-### vllm 中 input_processor 类型报错：TypeError: '>' not supported between instance of 'str' and 'int'
+### vLLM 中 input_processor 类型报错：TypeError: '>' not supported between instance of 'str' and 'int'
 
-![image](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/error_input_processor_type.png)
+![vLLM报错截图：input_processor中str与int比较抛出TypeError，prompt_input结构不兼容](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/error_input_processor_type.png)
 
-打印传入 vllm 侧的 request 的 prompt_input 结构：
+打印传入 vLLM 侧的 request 的 prompt_input 结构：
 
 ```plain
 prompt:{
@@ -302,14 +304,14 @@ prompt:{
 
 ![image.png](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/prompt_input_structure_compare.png)
 
-- vllm 0.17.0 + VeRL 0.7.1：结构是符合的，不会报错。
-- vllm 0.17.0 + VeRL commit 0c06358：结构变化了，不兼容。
+- vLLM 0.17.0 + VeRL 0.7.1：结构是符合的，不会报错。
+- vLLM 0.17.0 + VeRL commit 0c06358：结构变化了，不兼容。
 
 该问题报错出现在两处：vllm/v1/engine/input_processor.py、vllm/v1/engine/detokenizer.py。
 
 后面对比不同 transformers 版本，发现这个问题是 transformers 版本更迭导致的，但 VeRL 在最新版本 0.7.1 中兼容掉了这个问题。因此在未兼容的 prompt_input 结构下，手动取 'input_ids' 和 'attention_mask'。
 
-## 定位过程-精度对齐-训推一致性排查
+## 定位过程：精度对齐与训推一致性排查
 
 大模型强化学习的精度问题定位链路复杂、影响因素繁多，基于 msProbe 精度工具，开展精度对齐落地实践与问题定位排查。
 
@@ -359,9 +361,9 @@ actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
 
 训练侧：verl/workers/actor/megatron_actor.py
 
-![image](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/megatron_actor_train_side_1.png)
+![megatron_actor.py训练侧代码修改截图1：将训练输入改为单prompt以对齐推理侧输入](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/megatron_actor_train_side_1.png)
 
-![image](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/megatron_actor_train_side_2.png)
+![megatron_actor.py训练侧代码修改截图2：单prompt输入的构造与数据对齐相关代码段](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/megatron_actor_train_side_2.png)
 
 ### 训推差异点排查
 
@@ -420,7 +422,7 @@ actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1 \
 
 ![image.png](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/indexer_k_norm_diff_drop.png)
 
-#### 差异点三：rope 模式 - half/interleave
+#### 差异点三：rope模式（half/interleave）
 
 Lightning Index 推理侧 RoPE 采用 Half 精度融合实现，训练侧基于 Interleave 小算子原生实现，二者模式不一致。因 GLM5 适配开发阶段暂无法获取公网 Triton-Ascend 实现，适配时手动配置 HAS_TRITON=False；且 GLM5 与 DeepSeekV32 复用 sfa_v1.py 文件，导致 Indexer 的 RoPE 逻辑默认走 half 精度分支，与技术报告指定的 Interleave 实现规范不符。多方确认后，将推理侧 q、k 替换为 torch_npu.npu_interleave_rope(x, cos, sin) 实现，经过验算输出与 Megatron 小算子结果完全一致。修改后重新跑训练实验，观察指标 training/rollout_probs_diff_mean 进一步下降。
 
@@ -436,7 +438,7 @@ GLM-5 配置文件中采用 interleave 模式：
 
 ![image.png](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/glm5_config_interleave.png)
 
-#### 差异点四：torch_npu.npu_add_rms_norm 与 add + torch_npu.npu_rms_norm 推理融合算子往训练小算子对齐
+#### 差异点四：torch_npu.npu_add_rms_norm 与 add 与 torch_npu.npu_rms_norm 推理融合算子往训练小算子对齐
 
 推理侧使用 torch_npu.npu_add_rms_norm，训练侧使用 torch_npu.npu_rms_norm，两个算子输出数据比对验证不一致。
 
@@ -458,7 +460,7 @@ Agent 分析结论：
 
 人工定位结论：
 
-act_fn 的实现训练和推理不一致，vllm 侧走的是 vllm_ascend 的 swiglu 融合算子，megatron 走的是 megatron 的 gelu，这块 verl 配置了走 swiglu，但在 megatron_bridge 上参数没设置正确导致没有生效。
+act_fn 的实现训练和推理不一致，vLLM 侧走的是 vllm_ascend 的 swiglu 融合算子，megatron 走的是 megatron 的 gelu，这块 verl 配置了走 swiglu，但在 megatron_bridge 上参数没设置正确导致没有生效。
 
 总结：通过 L0 级别的数据，人工定位和 Agent 定位界定的范围差不多。但由于 L0 级别的限制，以及 Agent 无法得到实际的框架实现代码，最终根因能确定的准确度是不一致的。现场允许的情况下，可以尝试将 Agent 连接 workspace 获取实际框架实现代码，同时读取 dump 下来的 tensor 数据进行自动化的比对。
 
@@ -478,9 +480,9 @@ act_fn 的实现训练和推理不一致，vllm 侧走的是 vllm_ascend 的 swi
 
 ![image.png](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/disable_think_ablation.png)
 
-关闭 think 模式后，发现还存在重复吐字现象：rollout 生成结果中输出了 eos_token 并未停止回答。猜测可能是 eos_token 未生效。检查模型权重中的 config.json，发现 eos_token_id 集合值与原始模型不一致，定位发现是 VeRL 会覆写 config.json，导致 eos_token_id 被覆盖只剩一个 token_id，因此导致 rollout 生成结果中输出了 eos_token 并未停止回答的问题。
+关闭 think 模式后，发现还存在重复吐字现象：rollout 生成结果中输出了 eos_token 并未停止回答。猜测可能是 eos_token 未生效。检查模型权重中的 config.json，发现 eos_token_id 集合值与原始模型不一致，定位发现是 VeRL 会覆写 config.json，导致 eos_token_id 被覆盖只剩一个 token_id，导致 rollout 生成结果中输出了 eos_token 并未停止回答的问题。
 
-![image](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/eos_token_overwrite_1.png)
+![config.json截图：eos_token_id集合值被VeRL覆写后只剩一个token_id，与原始模型不一致](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/eos_token_overwrite_1.png)
 
 ![image.png](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/eos_token_overwrite_2.png)
 
@@ -490,7 +492,7 @@ act_fn 的实现训练和推理不一致，vllm 侧走的是 vllm_ascend 的 swi
 
 ## 经验总结
 
-在强化学习业务场景中，训推一致性是核心重难点，而训推数据差异比对是打通该问题的核心手段。msProbe 工具凭借采集范围全、采集效率高的优势，为排查训推差异筑牢基础，同时依托自动化精度比对能力，大幅提升问题定位与整改效率。
+在强化学习业务场景中，训推一致性是核心重难点，而训推数据差异比对是解决该问题的核心手段。msProbe 工具凭借采集范围全、采集效率高的优势，为排查训推差异筑牢基础，同时依托自动化精度比对能力，大幅提升问题定位与整改效率。
 
 结合项目实际落地使用场景，提出三点工具优化建议：
 

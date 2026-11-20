@@ -1,5 +1,7 @@
 # 大模型训练精度定位指南
 
+本文档介绍大模型训练精度问题的定位方法，涵盖CheckList排查、问题复现前置操作、分场景定位流程、定界到API后的处理方案与msprobe工具使用步骤，适用于需要排查大模型训练精度问题的用户。
+
 ## 1. 概述
 
 ### 1.1 定义
@@ -90,8 +92,8 @@
 复现需要固定存在随机性的步骤，保证实验可重复性。存在随机性的步骤包括模型参数初始化，`Dropout`层，数据`batch`加载顺序等。
 涉及到的操作如下几项：
 
-- 固定随机种子，如`np.random.seed`、`torch.manual_seed`、`torch_npu.npu.manual_seed`等；
-- 关闭`Dropout`层；
+- 固定随机种子，如`np.random.seed`、`torch.manual_seed`、`torch_npu.npu.manual_seed`等。
+- 关闭`Dropout`层。
 - 数据加载关闭`shuffle`，将其设置为`shuffle=False`。
 
 此处涉及操作较多，建议结合[工具固定（seed_all）](#223-工具固定)进行自动设定。
@@ -346,13 +348,13 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
     除此之外，也可以通过以下命令逐步禁用相关通信链路，排查通信相关的硬件问题。
 
-- 禁用ROCE：
+- 禁用RoCE：
 
     ```bash
     export HCCL_INTRA_ROCE_ENABLE=0
     ```
 
-- 禁用PCIE：
+- 禁用PCIe：
 
     ```bash
     export HCCL_INTRA_PCIE_ENABLE=0
@@ -629,7 +631,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
 
 综上所述，要保证训推可比，前提条件为：
 
-1. 保证训练`batch`未被拆分
+1. 保证训练`batch`未被拆分。
 
     - 需保证每轮训练中用于梯度更新的`mini batch`个数`mini_batch_num`= `1`，计算公式为：
 
@@ -671,7 +673,7 @@ seed_all(seed=1234, mode=True, rm_dropout=True)
     data.max_response_length=1
     ```
 
-5. 训练与推理不带`response`差异
+5. 训练与推理不带`response`差异。
     有如下两种实现对齐的方案：
 
     - **方案1：将训练变单`prompt`。**
@@ -914,13 +916,13 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 #### 3.1.1 配置项不一致
 
-**案例**：某语音识别模型，从GPU迁移到NPU训练后，下游指标WER差异较大
+**案例**：某语音识别模型，从GPU迁移到NPU训练后，下游指标WER差异较大。
 
 **定位方法：**
 
 根据启动脚本或训练日志对比NPU和标杆的训练配置。
 
-比对发现NPU用的fsdp配置，GPU用的ddp配置，训练Loss差异不大但下游指标差异大。
+比对发现NPU用的fsdp配置，GPU用的DDP配置，训练Loss差异不大但下游指标差异大。
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/5b506a50-f3c3-406e-9c8e-a1e878709b64/image.png 'image.png')
 
@@ -950,7 +952,7 @@ msprobe compare -tp /train_dump/step0 -gp /infer_dump/step0 --consistent_check -
 
 #### 3.1.3 模型结构不一致
 
-**案例**：某MOE模型，从GPU迁移到NPU后，Loss对不齐。
+**案例**：某MoE模型，从GPU迁移到NPU后，Loss对不齐。
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/9cd35663-a6f7-4056-88a3-29051af73e60/image.png 'image.png')
 
@@ -1126,7 +1128,7 @@ GPU上运行结果：
 **定位方法**：
 
 1. 缩小规模：
-    该模型现网为128卡训练，做实验成本大，需首先缩小规模，减少层数后可在单机2卡稳定复现
+    该模型现网为128卡训练，做实验成本大，需首先缩小规模，减少层数后可在单机2卡稳定复现。
 2. 使用精度采集工具采集Step1（最开始出现NaN的步数）的mix级别数据并分析：
     加入工具后，发现NaN问题消失。
     去除工具并打开流同步进一步验证：
@@ -1138,7 +1140,7 @@ GPU上运行结果：
     开启流同步后问题也消失。
     基于以上2个现象怀疑该fsdp模型训练存在内存踩踏问题。
 3. 缩小排查范围：
-    该模型由四个部分组成：vae，dit，denoiser和conditioner。
+    该模型由四个部分组成：vae、dit、denoiser和conditioner。
     从训练完整模型改为只训练dit.transformer.layers，Loss仍然有NaN，确认是transformer.layers问题。
 4. 通过手动挂局部hook的方式打印梯度：
     发现第1步Loss NaN不是第一现场，先出现NaN的是第0步post_attention_layernorm反向梯度。
@@ -1176,7 +1178,7 @@ GPU上运行结果：
 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/62c1f075-9756-4022-a450-c275882e551a/image.png 'image.png')
 
-    从日志发现两个连续layernorm中，存在cast算子输出对concat算子输入的踩踏（两者地址一致）
+    从日志发现两个连续layernorm中，存在cast算子输出对concat算子输入的踩踏（两者地址一致）。
     踩踏现场确认如下：
 
     ![image.png](https://raw.gitcode.com/user-images/assets/7898473/1c25de8b-129f-4762-951d-0248f8402591/image.png 'image.png')
@@ -1189,7 +1191,7 @@ GPU上运行结果：
 
 ##### 3.2.2.2 算子确定性问题案例
 
-**案例**：某视觉模型存在确定性计算问题，重复训练Loss不一致
+**案例**：某视觉模型存在确定性计算问题，重复训练Loss不一致。
 
 **定位方法**：
 
@@ -1291,17 +1293,17 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
   - 分级可视化工具，对dump保存的文件进行解析，还原模型图结构，实现模型各个层级的精度数据比对或溢出分析。
   - 精度比对工具，比对dump保存的文件并计算各种误差指标。
   - 趋势可视化工具，针对dump或monitor保存的数据进行全局分卡、分层、分步数的趋势分析。
-  - 精度预检工具，通过dump保存的文件中算子API的 shape、值域等信息构造一致的输入数据并在NPU、标杆上与CPU进行三方比对。
+  - 精度预检工具，通过dump保存的文件中算子API的shape、值域等信息构造一致的输入数据并在NPU、标杆上与CPU进行三方比对。
 
 ### 4.3 精度采集工具
 
-对于一些问题第一现场明确的问题，可以优先采用精度采集工具进行训练数据采集。msprobe工具可在训练脚本内添加 dump 接口挂hook，并在启动训练时采集API或模块级的前反向输入输出数据的统计值或具体tensor值。
+对于一些问题第一现场明确的问题，可以优先采用精度采集工具进行训练数据采集。msprobe工具可在训练脚本内添加dump接口挂hook，并在启动训练时采集API或模块级的前反向输入输出数据的统计值或具体tensor值。
 
 **使用说明**
 
 1. 使用精度采集工具需要先配置config.json文件
     对于采集统计值来说，最常用的两种配置如下：
-    - 采集指定步的统计量
+    - 采集指定步的统计量。
 
       ```json
       {
@@ -1319,7 +1321,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
       }
       ```
 
-    - 采集指定步的tensor值
+    - 采集指定步的tensor值。
 
       ```json
       {
@@ -1429,7 +1431,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
       构图完成会生成.vis.db后缀的文件，文件名称基于时间戳自动生成，格式为：build_{timestamp}.vis.db。
 
 2. 可视化：
-    用如下所示进行可视化展示
+    用如下所示进行可视化展示。
     - 可直连服务器
 
       ```bash
@@ -1482,7 +1484,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
     ![image.png](../figures/visualization/vis_overflow_check.png 'image.png')
 
     溢出等级说明如下：
-    - medium： 输入异常，输出正常，这类问题优先级低，用户需最后关注。
+    - medium：输入异常，输出正常，这类问题优先级低，用户需最后关注。
     - high：输入异常，输出异常，或者是输入输出的指标突增，数值scale超过阈值倍数，这类问题需要用户手动确认是否存在问题。
     - critical：输入正常，输出异常，这类问题需要用户首先关注。
 
@@ -1548,7 +1550,7 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 
     除以上最常用的配置之外，还可支持如下几种常见修改：
     - 采集类别：还支持激活值梯度"xy_distribution"、优化器状态"mv_distribution"和通信信息"cc_distribution"等信息采集。
-    - 开始采集步数：加入"start_step"指定开始采集步数
+    - 开始采集步数：加入"start_step"指定开始采集步数。
     - 采集次数：加入"collect_times"指定采集步数，默认为100000000，目的是一直采集。
     - 打印模型结构：改"print_struct"为True，将在第1步打印结构后自动退出。
     - 筛选采集模块：在"targets"中配置指定模块，具体格式可结合"print_struct"结果进行填写。
@@ -1646,8 +1648,8 @@ msprobe工具包内的工具分为数据采集和数据比对两大类，整体�
 
       其中bench_zip_path为标杆侧采集到的数据，cmp_zip_path为待对比侧采集到的数据，参数-o为可选的比对结果输出路径，默认为"./config_check_result"。
       结果内含2个目录和1个文件：
-      - bench：bench_zip_path里打包的数据
-      - cmp：cmp_zip_path里打包的数据
+      - bench：bench_zip_path里打包的数据。
+      - cmp：cmp_zip_path里打包的数据。
       - result.xlsx：比对结果。里面会有多个sheet页，其中summary总览通过情况，其余页是具体检查项的详情。
 
       精度比对具体执行的检查包含：环境变量、三方库版本、训练超参、权重、数据集。
@@ -1702,7 +1704,7 @@ for name, module in model.named_modules():
 
 - 内存踩踏：一般常见于计算流和通信流并行时，两者同时踩到同一块内存，从而导致数据异常。
 - 数据传输格式不一致：在聚合类算子如allgather，如果在聚合过程中出现了数据格式不一样的情况，也会导致精度问题。
-- 通信链路：例如pcie switch出现问题，导致的精度异常。此类问题很少见，一般和硬件相关，很难排查。
+- 通信链路：例如PCIe switch出现问题，导致的精度异常。此类问题很少见，一般和硬件相关，很难排查。
 - 通信缺乏收发保护机制：此类场景比较常见，一般是因为通信时没有做保护，导致通信没有结束，就有后续操作读取或者修改了特定内存。
 
 #### 5.1.3 业务代码
@@ -1725,7 +1727,7 @@ for name, module in model.named_modules():
 
 ![image.png](https://raw.gitcode.com/user-images/assets/7898473/e4b647f4-0f5d-4864-9ed7-c15645579147/image.png 'image.png')
 
-如上图所示，模型的超参通常可调整的主要有学习率，batch_size、并行切分策略、模型参数、融合算子配置等，用户在进行NPU精度和GPU精度比对前，需要保证两边的配置一致。
+如上图所示，模型的超参通常可调整的主要有学习率、batch_size、并行切分策略、模型参数、融合算子配置等，用户在进行NPU精度和GPU精度比对前，需要保证两边的配置一致。
 
 1. 学习率和warm-up：不同的学习率调度器（决定什么阶段用多大的学习率）有不同的学习率调度相关超参，例如线性调度可以选择从一个初始学习率lr-warmup-init开始预热。可以选择多少比例的训练迭代步使用预热阶段的学习率。不同的训练框架有不同的参数命名，请结合代码实现设置对应的参数，如Modellink对应的学习率参数为：
     - lr
@@ -1739,7 +1741,7 @@ for name, module in model.named_modules():
     - DP（data parallel）：数据并行（data parallelism）是大规模深度学习训练中常用的并行模式，它会在每个进程（设备）或模型并行组中维护完整的模型和参数，并在每个进程上或模型并行组中处理不同的数据。因此，数据并行非常适合大数据量的训练任务。
     - TP（tensor parallel）：张量并行也叫层内并行，通过将网络中的权重切分到不同的设备，从而降低单个设备的显存消耗，使得超大规模模型训练成为可能。张量并行不会增加设备等待时间，除了通信代价外，没有额外代价。
     - PP（pipeline parallel）：流水线并行将模型的不同层放置到不同的计算设备，降低单个计算设备的显存消耗，从而实现超大规模模型训练。流水线并行也叫层间并行，层输入输出的依赖性使得设备需要等待前一步的输出，通过batch进一步切分成微batch，网络层在多个设备上的特殊安排和巧妙的前向后向计算调度，可以最大程度减小设备等待（计算空泡），从而提高训练效率。
-    - EP（expert parallel）：专家并行在混合专家模型(MOE)中对不同的专家放置到不同的计算设备，使每个专家网络可以独立地学习和处理输入数据的不同方面。增加整个混合专家模型的扩展性，提高计算效率和泛化能力，在大规模MOE模型中备受关注。
+    - EP（expert parallel）：专家并行在混合专家模型(MoE)中对不同的专家放置到不同的计算设备，使每个专家网络可以独立地学习和处理输入数据的不同方面。增加整个混合专家模型的扩展性，提高计算效率和泛化能力，在大规模MoE模型中备受关注。
     - CP（context parallel）：上下文并行将序列维度切分数据，实现支持序列并行的attention层，对计算设备实现负载均衡。在长序列数据训练任务中，上下文并行切分策略可以有效降低等待时间，提升吞吐率，是处理大规模数据集和复杂模型场景下的有效手段。
 4. 模型结构，配置模型结构的超参主要有：
     - num-layer

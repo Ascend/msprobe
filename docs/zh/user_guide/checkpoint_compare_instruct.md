@@ -1,5 +1,7 @@
 # Checkpoint比对
 
+本文档介绍Checkpoint比对功能，比较两个不同的checkpoint并评估模型相似度，支持Megatron-LM与MindSpeed的ckpt比较；适用于需要核对模型训练状态的用户。
+
 ## 简介
 
 在模型训练过程中或结束后，可能保存一些检查点文件（checkpoint，简称ckpt）记录当前模型、优化器等训练状态。

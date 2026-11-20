@@ -4,7 +4,7 @@
 
 ## 模型介绍
 
-![](../figures/cases/ascend_mova_model_nan_analysis/model_bridge_module.png)
+![双向桥接模块结构示意：video分支与audio分支先后计算，最后经桥接模块通信交互](../figures/cases/ascend_mova_model_nan_analysis/model_bridge_module.png)
 
 MOVA 使用的是**双向桥接模块**。从代码执行流程来看，整体是**先计算 video 分支，再计算 audio 分支，最后通过桥接模块进行通信与交互**。
 
@@ -23,9 +23,9 @@ MOVA 使用的是**双向桥接模块**。从代码执行流程来看，整体�
 
 L0 初步采集到的现象如下：
 
-![](../figures/cases/ascend_mova_model_nan_analysis/l0_dump_result.png)
+![L0 dump结果：step 1前向反向未出现NaN而权重梯度先异常，step 2前向权重变为NaN](../figures/cases/ascend_mova_model_nan_analysis/l0_dump_result.png)
 
-* 在 **step 1** 时，module 的前向和反向均未出现 `NaN`，但权重梯度先出现 `NaN`
+* 在 **step 1** 时，module的前向和反向均未出现 `NaN`，但权重梯度先出现 `NaN`
 * 到了 **step 2** 时，module 前向使用到的权重也变为 `NaN`
 
 因此，最初的关注点集中在：
@@ -52,7 +52,7 @@ L0 初步采集到的现象如下：
 * 在 **DDP 域 1** 上会偶现少量梯度异常
 * 异常随后会逐步传播到其他域
 
-但这也导致了对结果一直存疑，无法断定（这块时期打印较多，没有截图与日志保存）。
+但这也导致了我们对结果一直存疑，无法断定（这块时期打印较多，没有截图与日志保存）。
 
 此时我们仍然只能得到一个初步猜测，尚无法完全确认异常链路，因此继续进行 **mix 采集**。
 
@@ -73,14 +73,14 @@ L0 初步采集到的现象如下：
 
 * 老版本工具会把这类算子采集出来
 * 在 `all_gather` 和 `reduce_scatter` 调用前，会先通过 `empty` 创建一个初始值为 `NaN` 的 tensor
-* 该 tensor 再传入通信算子中
+* 该张量再传入通信算子中
 * 这类 `empty` 相关算子会干扰判断
 
 目前新工具已去掉这类无效干扰项，因此这部分可以先排除。
 
 ### 实际第1个 NaN
 
-![](../figures/cases/ascend_mova_model_nan_analysis/mix_dump_first_nan.png)
+![mix dump结果中首个NaN所在算子__mul__.5643.forward，输入与输出均为NaN](../figures/cases/ascend_mova_model_nan_analysis/mix_dump_first_nan.png)
 
 首个 `NaN` 出现在：
 
@@ -107,7 +107,7 @@ __mul__.5643.forward
 
 ### 第一处
 
-![](../figures/cases/ascend_mova_model_nan_analysis/call_stack_gate_residual.png)
+![第一处调用栈截图：位于重计算路径的x + gate * residual乘法位置，输入应为tensor乘tensor](../figures/cases/ascend_mova_model_nan_analysis/call_stack_gate_residual.png)
 
 ```python
 return x + gate * residual
@@ -130,7 +130,7 @@ return x + gate * residual
 
 ### 第二处
 
-![](../figures/cases/ascend_mova_model_nan_analysis/call_stack_clip_grad_norm.png)
+![第二处调用栈截图：clip_grad_norm中reciprocal与other的乘法调用位置，涉及梯度裁剪系数计算](../figures/cases/ascend_mova_model_nan_analysis/call_stack_clip_grad_norm.png)
 
 ```python
 reciprocal() * other
@@ -148,8 +148,7 @@ reciprocal() * other
 
 > 一个 **2.7 的标量 × 1**
 
-这与第一处 `gate * residual` 的预期输入形式并不一致。
-因为如果是 `gate * residual`，通常应是 **tensor × tensor**，而不是标量乘法。
+这与第一处 `gate * residual` 的预期输入形式并不一致，因为如果是 `gate * residual`，通常应是 **tensor × tensor**，而不是标量乘法。
 
 因此，我们最终判断：
 
@@ -159,7 +158,7 @@ reciprocal() * other
 
 对应代码位置即 `loss.backward()` 之后：
 
-![](../figures/cases/ascend_mova_model_nan_analysis/code_loss_backward.png)
+![关闭重计算后重新dump仍复现问题的代码位置截图，即loss.backward之后的执行点](../figures/cases/ascend_mova_model_nan_analysis/code_loss_backward.png)
 
 ---
 
@@ -184,9 +183,9 @@ reciprocal() * other
 
 同时其数值也变为了 `NaN`。
 
-![](../figures/cases/ascend_mova_model_nan_analysis/monitor_modulation_result.png)
+![monitor监控结果：video_dit.block.0.modulation聚合后shape由1变为0且数值变为NaN](../figures/cases/ascend_mova_model_nan_analysis/monitor_modulation_result.png)
 
-![](../figures/cases/ascend_mova_model_nan_analysis/monitor_modulation_detail.png)
+![monitor监控明细：除0卡与8卡外其他卡聚合后modulation数值为NaN的字段记录](../figures/cases/ascend_mova_model_nan_analysis/monitor_modulation_detail.png)
 
 为了进一步确认，我们再次采用**手动打印**方式进行验证，得到的结论基本一致。
 
@@ -216,7 +215,7 @@ reciprocal() * other
 
 ### 现象二：profiling 观察到通信与搬运时序异常
 
-![](../figures/cases/ascend_mova_model_nan_analysis/profiling_timeline.png)
+![profiling时序视图：不同卡all_reduce结束时间不一致，.to数据搬运时机也存在差异](../figures/cases/ascend_mova_model_nan_analysis/profiling_timeline.png)
 
 随后我们使用 **profiling** 工具观察算子执行时序，发现：
 
@@ -225,9 +224,9 @@ reciprocal() * other
 
 虽然当时还不能完全排除 profiling 工具本身观测误差的可能性，但至少说明这一阶段存在明显的时序不确定性。
 
-### 现象三：在 `.to()` 之前增加流同步后问题消失
+### 现象三：在 .to() 之前增加流同步后问题消失
 
-![](../figures/cases/ascend_mova_model_nan_analysis/after_stream_sync.png)
+![在.to操作前加入流同步后的执行结果，问题不再复现、NaN消失](../figures/cases/ascend_mova_model_nan_analysis/after_stream_sync.png)
 
 进一步地，我们在调用栈中定位到 `.to()` 操作，并在其之前加入流同步。结果表明：
 
@@ -269,5 +268,5 @@ reciprocal() * other
 
 ## 后续建议
 
-1. 重点检查 accelerate + FSDP +offload场景下的同步机制。
-2. 若条件允许，可进一步对accelerate 封装链路进行源码级分析，确认offload场景下同步异常落点。
+1. 重点检查 accelerate + FSDP + offload场景下的同步机制。
+2. 若条件允许，可进一步对accelerate封装链路进行源码级分析，确认offload场景下同步异常落点。

@@ -1,8 +1,8 @@
-# nan_check 使用示例
+# nan_check使用示例
 
 本例采集一次前向、反向计算：
 
-- 负数开平方使 loss 变为 NaN，再从落盘文件找到产生 NaN 的 API 和输入值。
+- 负数开平方使loss变为NaN，再从落盘文件找到产生NaN的API和输入值。
 - 使用单卡PyTorch NPU、eager执行场景和默认`isnan`模式，入口为`PrecisionDebugger`。AclGraph图模式请参见[NaN自动检测](./aclgraph_dump_instruct.md#nan-自动检测)。
 
 先在`config.json`中配置采集范围，再用`PrecisionDebugger.start()`和`stop()`包住要检查的代码。运行后，查看`dump.json`中的NaN检测结果；需要看具体的输入、输出数据时，读取`.pt`文件；需要找调用位置时，查看`stack.json`。
@@ -64,7 +64,7 @@ x.grad: [0.25, nan]
 
 ## 3. 落盘结果
 
-以下展示本例的落盘格式与预期内容，进程 ID、API 和采集序号以实际运行为准。目录树省略了`sum`和反向API文件；`proc<pid>`是进程目录，有分布式rank时使用`rank<ID>`。
+以下展示本例的落盘格式与预期内容，进程ID、API和采集序号以实际运行为准。目录树省略了`sum`和反向API文件；`proc<pid>`是进程目录，有分布式rank时使用`rank<ID>`。
 
 ```text
 nan_check_dump/
@@ -186,7 +186,7 @@ File .../repro_nan.py, line 10, in <module>,
  y = torch.sqrt(x)
 ```
 
-结论：`sqrt`输入的NaN检测通过，输出首次出现NaN；保存的输入中有 `-1.0`，对应调用栈指向 `torch.sqrt(x)`。回到这行代码检查负数的来源和计算定义域。`add` 的输入、输出都含 NaN，是在传播上游结果。
+结论：`sqrt`输入的NaN检测通过，输出首次出现NaN；保存的输入中有 `-1.0`，对应调用栈指向 `torch.sqrt(x)`。回到这行代码检查负数的来源和计算定义域。`add` 的输入、输出都含NaN，是在传播上游结果。
 
 下图将上述输入、输出值与检测标志放在一起，对照本例中`sqrt`首次产生NaN和`add`传播NaN的区别。
 

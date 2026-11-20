@@ -1,8 +1,10 @@
 # 异步架构verl训推一致性比对数据采集
 
+本文档介绍异步架构下verl训推一致性比对的数据采集，说明Hybrid AgentLoop与Fully Async两种异步rollout模式的配置与代码改动，适用于需开展训推一致性比对的用户。
+
 ## 简介
 
-《[fsdp训练后端verl训推一致性比对数据采集](./verl_fsdp_consistency_preprocess_dump.md)》和 《[megatron训练后端verl训推一致性比对数据采集](./verl_megatron_consistency_preprocess_dump.md)》最初针对 verl v0.7.0 以下版本的 SPMD (Single Program Multiple Data) rollout 架构设计。自 v0.7 起，verl 主仓移除了 SPMD 模式，全面转向异步调度架构，采集方案需要随之变动。当前 verl 有两种异步 rollout 模式：
+《[fsdp训练后端verl训推一致性比对数据采集](./verl_fsdp_consistency_preprocess_dump.md)》和《[megatron训练后端verl训推一致性比对数据采集](./verl_megatron_consistency_preprocess_dump.md)》最初针对 verl v0.7.0 以下版本的 SPMD (Single Program Multiple Data) rollout 架构设计。自 v0.7 起，verl 主仓移除了 SPMD 模式，全面转向异步调度架构，采集方案需要随之变动。当前 verl 有两种异步 rollout 模式：
 
 | 模式                         | 资源分配                                       | 架构                                                                                   |
 | ---------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -17,11 +19,11 @@ verl v0.9.0.dev引入V1 Trainer，相关适配方法请参见《[verl V1 Trainer
 
 ### 基础配置
 
-前置操作首先参照 《[fsdp训练后端verl训推一致性比对数据采集](./verl_fsdp_consistency_preprocess_dump.md#前置操作)》 或 《[megatron训练后端verl训推一致性比对数据采集](./verl_megatron_consistency_preprocess_dump.md#前置操作)》，根据实际训练后端做选择。
+前置操作首先参照《[fsdp训练后端verl训推一致性比对数据采集](./verl_fsdp_consistency_preprocess_dump.md#前置操作)》或《[megatron训练后端verl训推一致性比对数据采集](./verl_megatron_consistency_preprocess_dump.md#前置操作)》，根据实际训练后端做选择。
 
 此外，当前场景下还需做以下调整：
 
-- 在当前异步rollout模式下，要使能vLLM的dump功能，需要在vllm的`additional_config`中添加`dump_config_path`参数，指向msprobe的推理侧配置文件。**注意**：`/home/config_generate.json` 为示例路径，实际部署时需根据实际配置文件路径修改。
+- 在当前异步rollout模式下，要使能vLLM的dump功能，需要在vLLM的`additional_config`中添加`dump_config_path`参数，指向msprobe的推理侧配置文件。**注意**：`/home/config_generate.json` 为示例路径，实际部署时需根据实际配置文件路径修改。
 - 训练侧需关闭 `val_before_train`，避免训练前验证调用`generate_sequence`接口，对 dump 结果造成干扰。
 
 ```diff
@@ -67,7 +69,7 @@ python3 -m verl.experimental.fully_async_policy.fully_async_main \
 - **推理侧**：通过 `additional_config` 中的 `dump_config_path` 传递给 vLLM worker。
 - **训练侧**：在 `transformer_impl.py` 的 `_ensure_debugger()` 中硬编码 `config_path`。
 
-### 推理侧配置 (`config_generate.json`)
+### 推理侧配置 (config_generate.json)
 
 ```json
 {
@@ -87,7 +89,7 @@ python3 -m verl.experimental.fully_async_policy.fully_async_main \
 }
 ```
 
-### 训练侧配置 (`config_actor.json`)
+### 训练侧配置 (config_actor.json)
 
 ```json
 {
@@ -248,7 +250,7 @@ class DispatchLogger:
 {"source":"dispatch_logger","timestamp":"2026-05-13T10:00:00","pid":3680237,"rank":0,"step":0,"phase":"prefill","total_num_scheduled_tokens":95,"requests":[{"request_id":"f1f254c04e0c443b85ea1e7359e842dc","type":"new","tokens":95}]}
 ```
 
-**注意**: vllm ≥ v0.14.0的版本会给外部传入的 request_id 追加 8 字符随机后缀，生成格式 {original_request_id}-{8hex}，例如 `f1f254c04e0c443b85ea1e7359e842dc-12345678`，选取时需要去掉后缀，用`f1f254c04e0c443b85ea1e7359e842dc` 才能与训练侧 `request_id` 匹配。
+**注意**： vllm ≥ v0.14.0的版本会给外部传入的 request_id 追加 8 字符随机后缀，生成格式 {original_request_id}-{8hex}，例如 `f1f254c04e0c443b85ea1e7359e842dc-12345678`，选取时需要去掉后缀，用`f1f254c04e0c443b85ea1e7359e842dc` 才能与训练侧 `request_id` 匹配。
 
 ### 训练侧：模型执行采集
 
@@ -483,7 +485,7 @@ Megatron 的 `forward_backward_batch` 没有显式的 micro_batch 循环——�
 
 **方法**：`RayPPOTrainer.fit()`
 
-**插入位置**：搜索 `bypass_recomputing_logprobs`，在其之前插入
+**插入位置**：搜索 `bypass_recomputing_logprobs`，在其之前插入：
 
 ```diff
 class RayPPOTrainer:
@@ -664,11 +666,11 @@ vLLM Server (request_id)
 
 ## 数据关联方法
 
-通过 [Request ID 贯穿链路](#request-id-贯穿链路) 中注入的 `request_id`，将 [推理侧：vLLM 模型执行采集](#推理侧vllm-模型执行采集)（`dispatch_log.jsonl` + `step_N/dump.json`）与 [训练侧：模型执行采集](#训练侧模型执行采集)（`update_actor_log.jsonl` + `step_N/dump.json`）进行关联，从而支持训推一致性的比对工作(参见《[PyTorch场景精度比对](../accuracy_compare/pytorch_accuracy_compare_instruct.md#verl训推一致性比对场景)》)。具体步骤如下：
+通过 [Request ID 贯穿链路](#request-id-贯穿链路) 中注入的 `request_id`，将 [推理侧：vLLM 模型执行采集](#推理侧vllm-模型执行采集)（`dispatch_log.jsonl` + `step_N/dump.json`）与 [训练侧：模型执行采集](#训练侧模型执行采集)（`update_actor_log.jsonl` + `step_N/dump.json`）进行关联，从而支持训推一致性的比对工作（参见《[PyTorch场景精度比对](../accuracy_compare/pytorch_accuracy_compare_instruct.md#verl训推一致性比对场景）》)。具体步骤如下：
 
 ### 关联步骤
 
-1. **选取推理 step**：在 `dispatch_log.jsonl` 中找到合适的 `step`和`request_id`( `phase`为 `prefill`，且`requests`数量为1的)，注意，vllm ≥ v0.14.0的版本会给外部传入的 request_id 追加 8
+1. **选取推理 step**：在 `dispatch_log.jsonl` 中找到合适的 `step`和`request_id`（`phase`为 `prefill`，且`requests`数量为1的），注意，vllm ≥ v0.14.0的版本会给外部传入的 request_id 追加 8
     字符随机后缀，生成格式 {original_request_id}-{8hex}，选取时需要去掉后缀，才能与训练侧 `request_id` 匹配。
 2. **定位训练 step**：在 `update_actor_log.jsonl` 中搜索同一 `request_id`，找到 `step` 和 `rank`
 3. **读取 dump 数据**：根据 step 序号和`rank`序号读取对应的 `dump.json`
@@ -680,21 +682,21 @@ vLLM Server (request_id)
 
 | 字段        | 类型   | 说明                                   |
 | ----------- | ------ | -------------------------------------- |
-| `source`    | string | `"dispatch_logger"` / `"update_actor"` |
-| `timestamp` | string | ISO 8601 时间戳                        |
-| `pid`       | int    | 进程 ID                                |
+| source    | string | `"dispatch_logger"` / `"update_actor"` |
+| timestamp | string | ISO 8601 时间戳                        |
+| pid       | int    | 进程 ID                                |
 
 `dispatch_log.jsonl` 特有：
 
 | 字段                         | 说明                       |
 | ---------------------------- | -------------------------- |
-| `step`                       | execute_model 的 step 序号 |
-| `rank`                       | 分布式 rank                |
-| `phase`                      | `"prefill"` / `"decode"`   |
-| `total_num_scheduled_tokens` | 该 step 调度的 token 总数  |
-| `requests[].request_id`      | vLLM 内部 request_id       |
-| `requests[].type`            | `"new"` / `"cached"`       |
-| `requests[].tokens`          | 分配的 token 数            |
+| step                       | execute_model 的 step 序号 |
+| rank                       | 分布式 rank                |
+| phase                      | `"prefill"` / `"decode"`   |
+| total_num_scheduled_tokens | 该 step 调度的 token 总数  |
+| requests[].request_id      | vLLM 内部 request_id       |
+| requests[].type            | `"new"` / `"cached"`       |
+| requests[].tokens          | 分配的 token 数            |
 
 `update_actor_log.jsonl` 特有：
 
@@ -702,5 +704,5 @@ vLLM Server (request_id)
 | --------------- | --------------------------------------------- |
 | `step`          | micro_batch step 序号                         |
 | `rank`          | 分布式 rank                                   |
-| `request_ids[]` | 该 micro_batch 包含的 request_id              |
-| `num_requests`  | request 数量 （micro_batch中数据数量，应为1） |
+| request_ids[] | 该 micro_batch 包含的 request_id              |
+| num_requests  | request 数量（micro_batch中数据数量，应为1） |

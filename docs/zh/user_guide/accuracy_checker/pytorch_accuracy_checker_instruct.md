@@ -1,5 +1,7 @@
 # PyTorch场景离线精度预检
 
+本文档介绍PyTorch场景离线精度预检，通过扫描昇腾NPU上训练模型中的PyTorch API，采集前向和反向信息构造单元测试并与标杆（CPU高精度）比对，再用api_precision_compare定位NPU中存在精度问题的API，适用于需要在NPU上定位PyTorch模型精度问题的用户。
+
 ## 简介
 
 **PyTorch离线精度预检**：通过扫描昇腾 NPU 上用户训练模型中的PyTorch API，输出模型精度的诊断和分析结果。具体而言，该工具通过采集模型中所有 API 的前向和反向信息，构造相应的单元测试，将 NPU 输出与标杆（CPU 高精度）比对，从而计算对应的精度指标，该过程通过子命令 acc_check 执行；将 NPU 环境下采集的预检数据拷贝至 GPU 环境，同样执行 acc_check；最后通过**新精度标准比对法**将 NPU 和 GPU 的预检结果进行比对，从而找出 NPU 中存在精度问题的 API。同时，本工具支持**随机生成模式和真实数据模式**。
@@ -88,7 +90,7 @@ msprobe acc_check -api_info ./dump_path/step{step_number}/rank{rank_number}/dump
 
    - config.yaml 文件通常位于类似 /home/xxx/miniconda3/envs/xxx/lib/python3.8/site-packages/msprobe/pytorch/api_accuracy_checker/config.yaml 的路径中。
 
-   - 进入 config.yaml 文件
+   - 进入 config.yaml 文件。
 
       ```bash
       vim /home/xxx/miniconda3/envs/xxx/lib/python3.8/site-packages/msprobe/pytorch/api_accuracy_checker/config.yaml
@@ -317,7 +319,7 @@ msprobe acc_check -api_info ./dump.json
 
 `accuracy_checking_result_{timestamp}.csv`
 
-![accuracy_checking_result](../../figures/accuracy_checking_result.png)
+![API级预检结果表格示例：含API name、前向和反向测试状态与提示信息列，状态取值为pass、warning或error](../../figures/accuracy_checking_result.png)
 
 | 字段                  | 含义     |
 | --------------------- | ------------------------- |
@@ -334,7 +336,7 @@ Forward Test Success 和 Backward Test Success 是否通过测试是由 `accurac
 
 `accuracy_checking_details_{timestamp}.csv`
 
-![accuracy_checking_details](../../figures/accuracy_checking_details.png)
+![API详细预检指标表格示例：逐行列出各API输出及其余弦相似度、最大绝对误差、双百双千双万指标](../../figures/accuracy_checking_details.png)
 
 | 字段                | 含义                                                         |
 | ------------------- | ------------------------------------------------------------ |
@@ -368,8 +370,8 @@ Forward Test Success 和 Backward Test Success 是否通过测试是由 `accurac
 
    API 预检通过测试，则在`accuracy_checking_details_{timestamp}.csv`文件中的 Status 列标记为 pass，否则标记为 error 或 warning，详细规则如下：
 
-   - 余弦相似度 > 0.99：≤ 0.99 为不达标，标记为 error，> 0.99 达标，进行下一步；
-   - 最大绝对误差 ＜ 0.001：＜ 0.001 达标，标记为 pass，≥ 0.001 为不达标，进行下一步；
+   - 余弦相似度 > 0.99：≤ 0.99 为不达标，标记为 error，> 0.99 达标，进行下一步。
+   - 最大绝对误差 < 0.001：< 0.001 达标，标记为 pass，≥ 0.001 为不达标，进行下一步；
    - 双百、双千、双万精度指标：
      + 对于 float16 和 bfloat16 数据：双百指标不通过，标记为 error；双百指标通过，双千指标不通过，标记为 warning；双百、双千指标均通过，标记为 pass。
      + 对于 float32 和 float64 数据：双千指标不通过，标记为 error；双千指标通过，双万指标不通过，标记为 warning；双千、双万指标均通过，标记为 pass。
@@ -425,7 +427,7 @@ msprobe api_precision_compare -npu /home/xxx/npu/accuracy_checking_details_{time
 
 `api_precision_compare_result_{timestamp}.csv`
 
-![api_precision_compare_result](../../figures/api_precision_compare_result.png)
+![NPU与GPU预检比对结果表格示例：含API name、前向和反向测试通过状态与提示信息列](../../figures/api_precision_compare_result.png)
 
 | 字段                  | 含义                                                         |
 | --------------------- | ------------------------------------------------------------ |
@@ -438,7 +440,7 @@ Forward Test Success 和 Backward Test Success 是否通过测试是由 `api_pre
 
 `api_precision_compare_details_{timestamp}.csv`
 
-![api_precision_compare_details](../../figures/api_precision_compare_details.png)
+![NPU与GPU预检比对明细表格示例：逐项列出小值域错误比值、均方根误差比值等指标及判定结果](../../figures/api_precision_compare_details.png)
 
 | 字段                     | 含义                                                                                                                                                                                                                                                                                                                                                                                     |
 | ------------------------ |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

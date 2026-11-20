@@ -1,5 +1,7 @@
 # 基于torch图模式（torchair）推理场景
 
+本文档介绍torch图模式（torchair）推理场景的精度数据采集，通过设置编译配置（CompilerConfig）采集推理过程中间算子的输入、输出数据，适用于需要分析torchair图编译模型推理数据的人员。
+
 ## 简介
 
 torch图模式（torchair）推理场景的精度数据采集是对torchair图编译模型推理过程中的中间算子的输入、输出数据进行采集，通过设置编译配置(CompilerConfig)来实现。
@@ -11,7 +13,7 @@ torch图模式（torchair）推理场景的精度数据采集是对torchair图�
     - 图优化：对神经网络计算图进行优化，提高执行效率。
     - 图编译管理：将不同框架的模型转换为统一的内部表示，为图优化和执行提供基础。
     - 图执行控制：负责优化后图的高效执行。
-- FX: PyTorch FX（或称为 TorchFX，PyTorch Functional eXecution）是PyTorch的函数式执行和图转换框架，主要功能包括：
+- FX: PyTorch FX（或称为TorchFX，PyTorch Functional eXecution）是PyTorch的函数式执行和图转换框架，主要功能包括：
     - 将PyTorch代码转换为可优化的中间表示 (IR) 图，用于图优化和分析。
     - 提供程序捕获和转换功能，支持模型重构和优化。
 - 融合：图融合是指将神经网络中的多个算子合并为一个算子，以减少计算量和内存占用，一般按照规则进行融合。
@@ -92,7 +94,7 @@ set_ge_dump_config(
 
 dump数据保存路径为 `{dump_path}/msprobe_ge_dump`。其中 `{dump_path}` 为用户通过 `set_ge_dump_config` 接口的'dump_path' 参数传入的路径，`msprobe_ge_dump`为msProbe工具自动创建的目录。
 
-使用TorchNPU 7.1.0及以上版本时，结果文件目录结构为
+使用TorchNPU 7.1.0及以上版本时，结果文件目录结构为：
 
 ```ColdFusion
 ├── ${dump_path}

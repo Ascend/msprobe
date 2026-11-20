@@ -1,8 +1,10 @@
 # slime框架训推一致性预处理与数据采集
 
+本文档介绍slime框架训推一致性预处理与数据采集，说明如何通过预处理统一训练侧与推理侧prefill阶段的输入token，并采集训练侧old_log_prob与推理侧prefill的msProbe统计数据用于逐rank精度比对，适用于需要进行训推一致性精度定位的slime框架用户。
+
 ## 1. 简介
 
-slime 框架采用"训练侧 Megatron + 推理侧 SGLang"的训推分离架构。
+slime 框架采用「训练侧 Megatron + 推理侧 SGLang」的训推分离架构。
 
 在定位精度差异时，由于训练侧 `old_log_prob` 默认输入为 prompt + response，而推理侧 prefill 输入仅为 prompt，导致两侧输入 token 不一致，无法直接比对 dump 出的统计量。
 
@@ -33,8 +35,8 @@ pip install mindstudio-probe
 
 | 目标侧 | 目标效果 | 对应小节 |
 |----|----------|----------|
-| **推理侧** | SGLang 第一次 EXTEND（prefill）输入为 prompt token；关闭图模式，并满足 DP / chunked prefill、并行切分、序列长度对齐等约束，保证采集到正式 prefill 前向 | [3.2](#32-序列长度与-padding-约束)、[3.3](#33-sglang-dp-与-chunked-prefill-约束)、[3.4](#34-训推并行切分一致)、[3.7](#37-关闭-cuda-graph-图模式) |
-| **训练侧** | Megatron `old_log_prob` 输入截断为 **prompt-only**（去掉 response），与推理 prefill 对齐；同时满足 padding、单条 prompt、禁用数据均衡等约束 | [3.1](#31-prompt-only-输入对齐)、[3.2](#32-序列长度与-padding-约束)、[3.5](#35-单条-prompt-输入与-dp-配置)、[3.6](#36-禁用数据均衡与动态-batch) |
+| **推理侧** | SGLang 第一次 EXTEND（prefill）输入为 prompt token。关闭图模式，并满足 DP / chunked prefill、并行切分、序列长度对齐等约束，保证采集到正式 prefill 前向 | [3.2](#32-序列长度与-padding-约束)、[3.3](#33-sglang-dp-与-chunked-prefill-约束)、[3.4](#34-训推并行切分一致)、[3.7](#37-关闭-cuda-graph-图模式) |
+| **训练侧** | Megatron `old_log_prob` 输入截断为 **prompt-only**（去掉 response），与推理 prefill 对齐。同时满足 padding、单条 prompt、禁用数据均衡等约束 | [3.1](#31-prompt-only-输入对齐)、[3.2](#32-序列长度与-padding-约束)、[3.5](#35-单条-prompt-输入与-dp-配置)、[3.6](#36-禁用数据均衡与动态-batch) |
 
 ### 3.1 prompt-only 输入对齐
 
@@ -127,8 +129,8 @@ DP = 4 / 1 / 1 / 1 = 4
 
 | 参数 | 要求 | 原因 |
 |------|------|------|
-| `--balance-data` | **禁用**（不传） | 自动均衡会重排 batch，破坏 rank 与样本的一一对应 |
-| `--use-dynamic-batch-size` | **禁用**（不传） | 动态 batch 会改变 micro-batch 切分，影响 dump 可比对性 |
+| --balance-data | **禁用**（不传） | 自动均衡会重排 batch，破坏 rank 与样本的一一对应 |
+| --use-dynamic-batch-size | **禁用**（不传） | 动态 batch 会改变 micro-batch 切分，影响 dump 可比对性 |
 
 dump 模式下同时建议关闭 `--rollout-shuffle`、`--over-sampling-batch-size` 等会引入随机采样的参数，保证每轮输入确定可复现。
 
@@ -318,11 +320,11 @@ slime 启动 SGLang 时须指定：
 
 ### 4.3 推理阶段数据采集
 
-slime 框架推理侧使用 SGLang engine执行 rollout 生成。
+slime 框架推理侧使用 SGLang engine 执行 rollout 生成。
 
 SGLang 从 0.5.11 版本起原生内置 msProbe 能力：
 
-- 低于 0.5.11 版本：须侵入式插入 `PrecisionDebugger`。
+- 低于 0.5.11 版本：须侵入式插桩 `PrecisionDebugger`。
 - 不低于 0.5.11 版本：虽内置了 dump 能力，但每次 forward（含 prefill 与 decode）均会触发内置的 `start/stop/step` 流程，不会跳过 slime 启动阶段的 dummy forward，导致 dummy forward 占掉靠前的 step（`step0`、`step1` 等）。
 
 因此两种版本都须对 `ModelRunner.forward()` 做少量修改以跳过 dummy forward。
@@ -331,7 +333,7 @@ SGLang 从 0.5.11 版本起原生内置 msProbe 能力：
 
 | SGLang 版本 | 操作方法 |
 |-------------|------|
-| **< 0.5.11** | 侵入式插入 `PrecisionDebugger` 并跳过 dummy forward，见下文 [SGLang 低于 0.5.11](#sglang-低于-0511侵入式插桩)。 |
+| **< 0.5.11** | 侵入式插桩 `PrecisionDebugger` 并跳过 dummy forward，见下文 [SGLang 低于 0.5.11](#sglang-低于-0511侵入式插桩)。 |
 | **≥ 0.5.11** | 已原生内置 msProbe，在 `SGLANG_ARGS` 中指定 `--sglang-msprobe-dump-config`；但仍须修改 `forward()` 跳过 dummy forward，见下文 [SGLang 0.5.11 及以上](#sglang-0511-及以上内置-msprobe-并跳过-dummy-forward)。 |
 
 #### SGLang 低于 0.5.11（侵入式插桩）
@@ -385,8 +387,8 @@ SGLang 从 0.5.11 版本起原生内置 msProbe 能力：
 
 以 SGLang 0.5.13 版本为例，SGLang 内置 msProbe 的实现位于 `sglang/srt/model_executor/model_runner.py`：
 
-- `ModelRunner.__init__`（约 443~445 行）：`server_args.msprobe_dump_config` 非空时调用 `init_msprobe()`，实例化 `self.msprobe_debugger`；
-- `init_msprobe()`（约 603~618 行）：`seed_all(mode=True)` 后创建 `PrecisionDebugger(config_path=self.server_args.msprobe_dump_config)`；
+- `ModelRunner.__init__`（约 443~445 行）：`server_args.msprobe_dump_config` 非空时调用 `init_msprobe()`，实例化 `self.msprobe_debugger`。
+- `init_msprobe()`（约 603~618 行）：`seed_all(mode=True)` 后创建 `PrecisionDebugger(config_path=self.server_args.msprobe_dump_config)`。
 - `ModelRunner.forward()`（约 3407 行起）：每次前向**无条件**执行 `self.msprobe_debugger.start(...)` → 前向 → `self.msprobe_debugger.stop()` + `self.msprobe_debugger.step()`。
 
 内置实现每次 forward 都会推进 msProbe 步数。slime 启动 SGLang 时，探活调用 `/health_generate`（`input_ids=[0]`、`max_new_tokens=1`），会产生**两次** dummy forward：一次 1 个 token 的 EXTEND prefill 和一次 1 个 token 的 DECODE，二者分别占掉 `step0` 与 `step1`（故 `step0`、`step1` 的 shape 长度均为 1），正式 prefill 被推到 `step2` 及以后。解决办法与 < 0.5.11 相同：仅对 token 数 ≥ `MSPROBE_MIN_DUMP_TOKENS` 的 EXTEND 前向执行 `start/stop/step`，跳过 dummy forward。
@@ -435,7 +437,7 @@ SGLang 从 0.5.11 版本起原生内置 msProbe 能力：
 
 ### 5.1 环境变量配置
 
-slime 基于 Ray 启动训练 Worker 与推理engine，环境变量须通过 `ray job submit` 的 `runtime-env-json` 的 `env_vars` 下发，才能保证 Ray 子进程同样生效。
+slime 基于 Ray 启动训练 Worker 与推理 engine，环境变量须通过 `ray job submit` 的 `runtime-env-json` 的 `env_vars` 下发，才能保证 Ray 子进程同样生效。
 
 **训练侧**：
 
@@ -519,6 +521,7 @@ SGLang **≥ 0.5.11**（内置 msProbe）仅须下发 `MSPROBE_MIN_DUMP_TOKENS` 
 
 # SGLang（训推 TP/DP 与 §3.4 对齐；图模式见 §3.7）
 --sglang-disable-cuda-graph
+--sglang-msprobe-dump-config
 --sglang-chunked-prefill-size 16384   # 须满足 chunked_prefill_size/dp_size > prompt 长度
 ```
 
@@ -565,7 +568,7 @@ dump 模式建议关闭 eval、不保存 checkpoint，并将日志写入实验�
 - **stack.json**：API/Module 的调用栈信息。
 - **construct.json**：分层分级结构信息。
 
-**rank 对齐说明**：训推分离架构下，训练与推理运行在不同卡上，两侧 rank ID 通常无法一一对应（例如 4 卡场景：前 2 张卡跑推理、后 2 张卡跑训练，训练侧 rank 目录可能从 `rank2` 起，与 generate 侧 `rank0` 不对齐）。因此可视化比对**只能按单卡逐 rank 进行**，须将路径指定到具体的 `rank` 目录，不能使用多卡批量比对。
+**rank对齐说明**：训推分离架构下，训练与推理运行在不同卡上，两侧 rank ID 通常无法一一对应（例如 4 卡场景：前 2 张卡跑推理、后 2 张卡跑训练，训练侧 rank 目录可能从 `rank2` 起，与 generate 侧 `rank0` 不对齐）。因此可视化比对**只能按单卡逐 rank 进行**，须将路径指定到具体的 `rank` 目录，不能使用多卡批量比对。
 
 ## 7. msProbe 可视化比对
 

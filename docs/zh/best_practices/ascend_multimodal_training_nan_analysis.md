@@ -6,9 +6,9 @@
 
 ## 问题现象
 
-模型是多模态理解模型，FSDP 全参微调，出现 loss NaN。打印 grad 信息，首个 NaN 出现在 wte 层：
+模型是多模态理解模型，FSDP 全参微调，出现 Loss NaN。打印 grad 信息，首个 NaN 出现在 wte 层：
 
-![](../figures/cases/ascend_multimodal_training_nan_analysis/first_nan_in_wte_grad.png)
+![打印各层梯度信息的终端回显，wte层梯度数值中出现首个NaN](../figures/cases/ascend_multimodal_training_nan_analysis/first_nan_in_wte_grad.png)
 
 有如下实验尝试：
 
@@ -21,7 +21,7 @@
 
 发现 embed grad 出现 NaN 时，其中一个 rank 上的输入为空，shape: [0]，相应的反向输入 shape 为 [0, 4096]，输出疑似未初始化的数据。模型训练开启的 dsp（distributed sequence parallel）特性会对输入做切分，可能使某张卡上没有 token 输入。随机数据有几率复现：
 
-![](../figures/cases/ascend_multimodal_training_nan_analysis/embed_grad_empty_input.png)
+![embedding反向梯度调试回显，某rank输入shape为[0]时反向输出为未初始化数值](../figures/cases/ascend_multimodal_training_nan_analysis/embed_grad_empty_input.png)
 
 aclnnEmbeddingDenseBackward 输入为空时，返回值会是默认内存中的值，因为空 tensor 不做任何处理。
 

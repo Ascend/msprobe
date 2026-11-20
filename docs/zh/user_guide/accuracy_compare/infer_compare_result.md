@@ -1,5 +1,7 @@
 # 比对结果说明
 
+本文档介绍比对结果说明，涵盖比对输出结果的目录结构与结果文件各字段含义，以及比对结果的分析步骤，适用于需要定位昇腾AI处理器精度问题的用户。
+
 ## 简介
 
 本节以非量化昇腾AI处理器运行生成的dump数据与非量化ONNX模型npy数据比对为例，介绍比对结果分析步骤，下文中参数说明均以该示例介绍，请根据您的实际情况进行替换。
@@ -41,7 +43,7 @@
 
 ## 比对结果文件各字段含义说明
 
-- **比对结果** 在文件 `result_{timestamp}.csv` 中，比对结果的含义与基础精度比对工具完全相同，其中每个字段的含义可参考 《精度调试工具用户指南》中的“附录 > [完整比对结果参数说明](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/devaids/ModelAccuracyAnalyzer/atlasaccuracy_16_0064.html)”章节。
+- **比对结果** 在文件 `result_{timestamp}.csv` 中，比对结果的含义与基础精度比对工具完全相同，其中每个字段的含义可参考《精度调试工具用户指南》中的“附录 > [完整比对结果参数说明](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/devaids/ModelAccuracyAnalyzer/atlasaccuracy_16_0064.html)”章节。
 
 * 下面简要介绍结果信息：
 

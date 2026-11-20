@@ -16,9 +16,9 @@ DeepSeek-V4 Pro 在 Atlas 800I A3 环境下的 GPQA 数据集评分明显偏低�
 
 badcase 表现为回答重复及语义异常。
 
-![](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/badcase_repeated_answer_1.png)
+![badcase复现场景下模型回答反复重复的对话截图，呈现明显复读与语义异常](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/badcase_repeated_answer_1.png)
 
-![](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/badcase_repeated_answer_2.png)
+![同一badcase中复读回答的另一段输出截图，重复内容与错误语义持续出现](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/badcase_repeated_answer_2.png)
 
 `gmmswigluquant` 算子的 `swiglu_scale_out` 输出存在 NaN。
 
@@ -26,11 +26,11 @@ badcase 表现为回答重复及语义异常。
 
 切换为小算子后，回答恢复正常。
 
-![](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/swiglu_small_ops_fixed.png)
+![切换为小算子后同一问题的模型回答截图，输出恢复正常、不再复读](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/swiglu_small_ops_fixed.png)
 
 ### 2. 代码走读
 
-rope 转化为 float32 计算：
+RoPE 转化为 float32 计算：
 
 <https://github.com/vllm-project/vllm-ascend/pull/9739/files#diff-30705d51cf198a898415980a6e0e8b91f991bad22d9f399b1a7f36a7934a7af2>
 
@@ -44,15 +44,15 @@ rope 转化为 float32 计算：
 
 计划与 GPU 进行 dump 比对。NPU 输出存在 NaN。
 
-![](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/npu_nan_output_1.png)
+![NPU侧dump与GPU比对的结果截图，算子输出张量中出现大量NaN值](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/npu_nan_output_1.png)
 
-![](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/npu_nan_output_2.png)
+![同一NPU dump结果的另一段输出截图，进一步呈现NaN异常出现的位置](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/npu_nan_output_2.png)
 
-![](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/moe_gating_nan_output.png)
+![moe_gating_top_k_hash算子输出截图，正常输入下仍出现明显NaN](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/moe_gating_nan_output.png)
 
 `torch.ops._C_ascend.moe_gating_top_k_hash` 算子在正常输入下仍有明显的 NaN 输出问题。暂时将 topk\_weight 替换为小算子后，NaN 消失、异常 token 消失，重新拉起精度评测。
 
-![](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/topk_small_ops_fixed.png)
+![将topk_weight替换为小算子后，NaN与异常token消失的评测输出截图](../figures/cases/ascend_deepseek_v4_gpqa_accuracy_optimization/topk_small_ops_fixed.png)
 
 ## 问题根因
 

@@ -5,15 +5,15 @@
 **模型结构：** tora模型+vllm（vllm-ascend）推理框架
 
 **问题表现：** 同一数据集推理，下游评分NPU（54.4分）明显差于GPU（80.6分）
-![](../figures/cases/ascend_tora_inference_diff_localization/npugpu_score_comparison.png)
+![同一数据集下NPU与GPU下游评分的对比结果，NPU得分明显低于GPU](../figures/cases/ascend_tora_inference_diff_localization/npugpu_score_comparison.png)
 **BadCase详情**：
 
 prompt：
-![](../figures/cases/ascend_tora_inference_diff_localization/badcase_prompt.png)
+![BadCase中触发错误回答的prompt输入文本截图](../figures/cases/ascend_tora_inference_diff_localization/badcase_prompt.png)
 GPU推理结果为540（正确答案）：
-![](../figures/cases/ascend_tora_inference_diff_localization/gpu_inference_result.png)
+![GPU推理结果回显，模型输出正确答案的界面截图](../figures/cases/ascend_tora_inference_diff_localization/gpu_inference_result.png)
 NPU推理结果为1260（错误答案）：
-![](../figures/cases/ascend_tora_inference_diff_localization/npu_inference_result.png)
+![NPU推理结果回显，模型输出错误答案，与GPU结果不一致](../figures/cases/ascend_tora_inference_diff_localization/npu_inference_result.png)
 
 ## 定位过程
 
@@ -27,9 +27,9 @@ NPU推理结果为1260（错误答案）：
 由于GPU版本较老，优先升级0.8.1版本且使用enforce_eager=True开启单算子模式，即与NPU对齐。
 
 发现GPU改为0.9.1版本+单算子模式下也存在badcase的回答错误：
-![](../figures/cases/ascend_tora_inference_diff_localization/gpu_091_eager_badcase.png)
+![GPU端开启单算子模式后的BadCase回显，回答仍然错误](../figures/cases/ascend_tora_inference_diff_localization/gpu_091_eager_badcase.png)
 单case评测（0.1.4版本评分100，0.9.1版本评分0）：
-![](../figures/cases/ascend_tora_inference_diff_localization/single_case_eval_comparison.png)
+![单case评测结果对比，旧版本评分满分而新版本评分降为0](../figures/cases/ascend_tora_inference_diff_localization/single_case_eval_comparison.png)
 
 因此，GPU与NPU的差异此刻被缩小范围为VLLM版本的差异
 
@@ -40,14 +40,14 @@ NPU推理结果为1260（错误答案）：
 #### 差异点1
 
 采集数据后首先两个版本输入shape不一致，014会对input_token做pad，pad成8的整数倍（不止是prefill，后续每次decode也会pad成8）
-![](../figures/cases/ascend_tora_inference_diff_localization/input_shape_pad_diff.png)
+![两个版本输入shape打印对比，旧版本将input_token补齐至8的整数倍](../figures/cases/ascend_tora_inference_diff_localization/input_shape_pad_diff.png)
 
 #### 差异点2
 
 014 load embedding weight（32064,8192）时，在（32000：，：）之后填充的是随机值（可能有极大值和nan），而091填充的是0
-![](../figures/cases/ascend_tora_inference_diff_localization/embedding_weight_fill_diff.png)
+![embedding权重填充值对比，旧版本尾部填随机值而新版本填0](../figures/cases/ascend_tora_inference_diff_localization/embedding_weight_fill_diff.png)
 014的未知权重初始化：
-![](../figures/cases/ascend_tora_inference_diff_localization/v014_unknown_weight_init.png)
+![旧版本未知权重初始化的填充结果，尾部为随机值](../figures/cases/ascend_tora_inference_diff_localization/v014_unknown_weight_init.png)
 
 以上两个问题会导致DUMP数据比对统计值时受到shape以及随机值的影响，无法直接进行比对
 
@@ -136,20 +136,20 @@ output, _ = self.o_proj(attn_output)
 ```
 
 * 091进入Attention的torch.ops._C.rotary_embedding
-* 014进入PagedAttentionWithRoPE内的 pos_encoding_ops.rotary_embedding_neox
+* 014进入PagedAttentionWithRoPE内的pos_encoding_ops.rotary_embedding_neox
 
 左014，右091：
-![](../figures/cases/ascend_tora_inference_diff_localization/attention_left_v014.png)
-![](../figures/cases/ascend_tora_inference_diff_localization/attention_right_v091.png)
+![左侧旧版本Attention的qkv投影与PagedAttentionWithRoPE调用链代码](../figures/cases/ascend_tora_inference_diff_localization/attention_left_v014.png)
+![右侧新版本Attention的reshape_and_cache与flash_attn_varlen_func调用链代码](../figures/cases/ascend_tora_inference_diff_localization/attention_right_v091.png)
 
 **输入进行手动打印：**
 
 qk一致
-![](../figures/cases/ascend_tora_inference_diff_localization/qk_consistent.png)
+![输入q、k张量的手动打印对比，两个版本数值一致](../figures/cases/ascend_tora_inference_diff_localization/qk_consistent.png)
 cos_sin_cache不一致
-![](../figures/cases/ascend_tora_inference_diff_localization/cos_sin_cache_diff.png)
+![cos_sin_cache手动打印对比，两个版本数值不一致](../figures/cases/ascend_tora_inference_diff_localization/cos_sin_cache_diff.png)
 输出不一致：
-![](../figures/cases/ascend_tora_inference_diff_localization/rotary_output_diff.png)
+![rotary_embedding输出手动打印对比，两个版本数值不一致](../figures/cases/ascend_tora_inference_diff_localization/rotary_output_diff.png)
 
 查看cos_sin_cache生成时，有个max_position_embeddings参数指定长度，014是默认的8192，091外层传入了16384
 
@@ -185,17 +185,17 @@ cache = torch.cat((cos, sin), dim=-1)
 
 * hf config.json中max_position_embeddings的值16384改为8192
 * hf config.json中rope_theta的值1000000改为100000
-  ![](../figures/cases/ascend_tora_inference_diff_localization/config_json_fix.png)
+  ![hf config.json中max_position_embeddings与rope_theta修改后的配置截图](../figures/cases/ascend_tora_inference_diff_localization/config_json_fix.png)
 
 **结果验证：**
 
 改动配置后，GPU 091版本的评测精度达标：
-![](../figures/cases/ascend_tora_inference_diff_localization/gpu_eval_pass.png)
+![改动配置后GPU端评测精度达标的结果回显](../figures/cases/ascend_tora_inference_diff_localization/gpu_eval_pass.png)
 NPU做badcase验证，精度达标：
-![](../figures/cases/ascend_tora_inference_diff_localization/npu_badcase_pass.png)
+![NPU端BadCase验证精度达标的结果回显](../figures/cases/ascend_tora_inference_diff_localization/npu_badcase_pass.png)
 
 全量数据集评分达标
-![](../figures/cases/ascend_tora_inference_diff_localization/full_dataset_score_pass.png)
+![全量数据集评分达标的评测结果统计截图](../figures/cases/ascend_tora_inference_diff_localization/full_dataset_score_pass.png)
 
 **根因总结：**
 

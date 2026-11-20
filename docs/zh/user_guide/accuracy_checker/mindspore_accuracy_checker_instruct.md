@@ -1,5 +1,7 @@
 # MindSpore动态图场景离线精度预检
 
+本文档介绍MindSpore动态图场景离线精度预检，通过扫描昇腾NPU环境上MindSpore模型中的Mint API及MSAdapter迁移的API，将NPU输出与CPU高精度标杆比对，输出精度诊断和分析，适用于需要在NPU环境下进行API精度预检的用户。
+
 ## 简介
 
 **MindSpore动态图精度预检**：通过扫描昇腾NPU环境上，用户训练MindSpore模型中的所有Mint API以及MSAdapter场景下迁移的MindSpore API，输出精度情况的诊断和分析。工具以模型中所有API前反向的dump结果为输入，构造相应的API单元测试，将NPU输出与标杆（CPU高精度）比对，计算对应的精度指标，从而找出NPU中存在精度问题的API。本工具支持**随机生成模式和真实数据模式**。
@@ -232,7 +234,7 @@ msprobe acc_check -api_info ./dump.json -csv_path xxx/accuracy_checking_result_{
 | Status              | API预检通过状态，pass表示通过测试，error表示未通过。 |
 | Message             | 提示信息。            |
 
-注意：PyTorch无法对dtype为整数类型的tensor进行反向求导，而MindSpore支持。反向过程的预检仅比较dtype为浮点型的输出。
+注意：PyTorch无法对dtype为整数类型的Tensor进行反向求导，而MindSpore支持。反向过程的预检仅比较dtype为浮点型的输出。
 
 `accuracy_checking_result_{timestamp}.csv`
 

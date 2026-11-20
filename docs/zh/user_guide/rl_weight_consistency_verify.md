@@ -1,5 +1,7 @@
 # 训推权重一致性验证定位指南
 
+本文档介绍训推权重一致性验证（UWC），将RL训推一体场景下训练侧到推理侧的权重同步链路拆解为Bridge格式转换、Transport传输完整性、Loading推理侧加载三个验证阶段，并给出各阶段的采集开关、比对工具与容差判定方法，适用于在Ascend NPU上使用veRL+Megatron-core训练、vLLM推理的RL训推一体场景开发与运维人员。
+
 ## 1. 概述
 
 ### 1.1 定义
@@ -21,11 +23,11 @@ UWC 将完整的权重同步链路解耦为三个相互独立、可单独开关�
 该阶段包含两层防御机制：
 
 1. 执行 Bridge，动作是先进行一次 load_weights（将 HF 格式的模型权重转换为 mcore 格式），再进行一次 export_weights（将 mcore 格式的模型权重转换回 HF 格式）。load_weights 前 HF 格式的模型原始权重为 P0，export_weights 后得到转换后的 HF 格式模型权重 P2。
-   - 验证点：P0 vs P2
+   - 验证点：P0 vs P2。
    - 含义：对比原始权重 P0 和转换后的权重 P2 是否一致。
    - 目的：通过验证Bridge前后的模型权重是否一致来判断格式转换代码的正确性。
 2. transformer 加载初始 HF 格式的模型权重，对同一输入执行一次前向传播，输出的 logits 为 G0；veRL 加载由 load_weights 转换而来的 mcore 格式模型权重，对同一输入执行一次前向传播（或 Rollout 阶段的前向计算），输出的 logits 为 G1。
-   - 验证点：G0 vs G1
+   - 验证点：G0 vs G1。
    - 含义：对比 G0 和 G1 是否一致。
    - 目的：验证 load_weights 阶段的正确性。如果 load_weights 转换正确，且 HF 模型与 mcore 模型架构完全一致，那么 G0 ≈ G1（允许微小的浮点数精度差异，如 10⁻⁵ 级别）；如果 G0 和 G1 差异巨大，说明 load_weights 转换出错，或者模型架构、配置不匹配。
 
@@ -34,7 +36,7 @@ UWC 将完整的权重同步链路解耦为三个相互独立、可单独开关�
 共享内存或 IPC 在某些极端并发或内存对齐情况下可能导致数据截断或错位，此阶段验证传输的完整性。
 
 - 动作：通过共享内存或 IPC（进程间通信）将权重从训练进程传输到推理进程。
-- 验证点：P2_sender（同步时刻 sender 实际发送的 HF 权重）vs P5（Receiver 收到的 HF 权重）
+- 验证点：P2_sender（同步时刻 sender 实际发送的 HF 权重）vs P5（Receiver 收到的 HF 权重）。
 - 含义：对比 P2_sender 和 P5 是否一致。
 - 目的：确保跨进程、跨节点传输后，权重数值完全一致。确保传输通道没有损坏数据。
 
@@ -45,11 +47,11 @@ UWC 将完整的权重同步链路解耦为三个相互独立、可单独开关�
 该阶段包含两层防御机制：
 
 1. dummy vs safetensors 差分测试：分别用 `load_format=dummy` 和 `load_format=safetensors` 加载模型并运行 RL 的首步推理，保存输出为 `dummy_rl_first_step_output.json` 和 `safetensors_rl_first_step_output.json`。
-   - 验证点：`dummy_rl_first_step_output.json` vs `safetensors_rl_first_step_output.json`
+   - 验证点：`dummy_rl_first_step_output.json` vs `safetensors_rl_first_step_output.json`。
    - 含义：对比使用 dummy 加载逻辑生成的输出和使用真实 safetensors 权重加载生成的输出。
    - 目的：通过对比 dummy 输出和 safetensors 输出是否不同，来判断是否正确加载模型；黑盒行为校验，判断是否发生漏同步。
-2. data_ptr 指针偏移验证：启动 vLLM 服务，记录每个参数加载前的 data_ptr （ptr_before），触发 load_weights 记录每个参数加载后的 data_ptr （ptr_after）。
-   - 验证点：ptr_before vs ptr_after
+2. data_ptr 指针偏移验证：启动 vLLM 服务，记录每个参数加载前的 data_ptr（ptr_before），触发 load_weights 记录每个参数加载后的 data_ptr（ptr_after）。
+   - 验证点：ptr_before vs ptr_after。
    - 含义：对比 load_weights 前后参数加载的权重是否相同。如果相同（但该层实际应该被更新），则判定该层漏同步，因此需要保证这些层的 ptr_before 和 ptr_after 均不同。
    - 目的：验证 vLLM 加载 safetensors 文件并构建内部 KV Cache 结构时，内存指针映射正确；精确定位漏同步的层。
 
@@ -603,7 +605,7 @@ $UWC_DUMP_DIR/
 ### 7.2 使用约束
 
 - **阶段2 必须用同步时刻的 P2_sender**，不能用 init 时刻的 P2——训练后权重已变化，init 时刻 P2 会合法误报
-- **阶段1 前向校验约束**（`forward_verify.py`）：fp32 跑前向、固定 input_ids、TP=1 PP=1、关闭 sequence_parallel、两侧都 eval 模式关闭 dropout、attention 实现 / RoPE / norm eps / 激活函数两侧对齐（建议从同一份 config.json 派生）
+- **阶段1 前向校验约束**（`forward_verify.py`）：fp32 跑前向、固定 input_ids、TP=1 PP=1、关闭序列并行（SP）、两侧都 eval 模式关闭 dropout、attention 实现 / RoPE / norm eps / 激活函数两侧对齐（建议从同一份 config.json 派生）
 - **P0/P2/P2_sender/P5 每 rank 内容相同**，比对只用 rank 0，采集也只落盘 rank 0
 - **阶段3 推理侧只做指针偏移验证**：data_ptr 判定"该层参数是否被 load_weights 覆盖"（ptr_after==ptr_before → 漏同步），配合 dummy vs safetensors 差分做行为校验；**不做**分片反向还原的验证与实现
 
@@ -617,7 +619,7 @@ $UWC_DUMP_DIR/
 
 ## 8. 验证结果与结论
 
-以下结果在 **Qwen2.5-0.5B-Instruct，Ascend NPU，GRPO** 环境下实测得到：
+以下结果在 **Qwen2.5-0.5B-Instruct、Ascend NPU、GRPO** 环境下实测得到：
 
 | 比对 | 结果 |
 |------|------|

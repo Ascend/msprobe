@@ -2,30 +2,30 @@
 
 ## 问题背景
 
-在计算机视觉检测模型的训练中，换用新数据集后出现数值异常（NaN）是常见的排查难题。mmdetection 模型在昇腾 NPU 上换用新数据集训练后出现 NaN，且无标杆可供对照。本文记录了通过确定性控制、通信排查与数据流分析逐步定位根因的过程，为类似训练异常排查提供参考。
+在计算机视觉检测模型的训练中，换用新数据集后出现数值异常（NaN）是常见的排查难题。mmdetection模型在昇腾 NPU 上换用新数据集训练后出现 NaN，且无标杆可供对照。本文记录了通过确定性控制、通信排查与数据流分析逐步定位根因的过程，为类似训练异常排查提供参考。
 
 ## 问题现象
 
-8 卡训练 mmdetection 模型，旧数据集上精度对齐，换用新数据集后出现 NaN，而新数据集上没有标杆可供对照。
+8卡训练 mmdetection 模型，旧数据集上精度对齐，换用新数据集后出现 NaN，而新数据集上没有标杆可供对照。
 
 先做初步评估：
 
 1. 检查数据集与数据预处理代码——业务方认为数据集没有问题，放到其它模型可以正常训练。
 2. 调整无标杆条件下的预期与定位思路。
 
-NaN 复现步数不定，但一定会在一定 epoch 数内报错。
+NaN 复现步数不定，但一定会在一定 epoch数内报错。
 
 ## 定位过程
 
 ### 尝试固定随机性与确定性
 
-固定数据集随机性（数据集中存在随机 resize，先尝试固定 resize 大小）+ seed_all + 开流同步，完整训练后无 NaN。
+固定数据集随机性（数据集中存在随机resize，先尝试固定 resize 大小）+ seed_all + 开流同步，完整训练后无 NaN。
 
 恢复随机 resize + seed_all + 开流同步，NaN 在后续 epoch 复现。查看 dump 数据发现 `grid_sample` 反向存在差异。
 
-![](../figures/cases/ascend_mmdetection_training_nan_localization/grid_sample_backward_diff.png)
+![dump数据中grid_sample反向计算与基准的差异对比，可见反向结果存在偏差](../figures/cases/ascend_mmdetection_training_nan_localization/grid_sample_backward_diff.png)
 
-`grid_sample` 转 CPU 后，前几步确定性已固定。
+`grid_sample` 转CPU后，前几步确定性已固定。
 
 转 CPU 操作代码示例如下：
 
@@ -52,11 +52,11 @@ sampling_value_l_ = F.grid_sample(
 sampling_value_list.append(sampling_value_l_)
 ```
 
-### 开始长跑等待 NaN
+### 开始长跑等待NaN
 
 长跑数小时后出现通信 + 显存溢出现象。
 
-![](../figures/cases/ascend_mmdetection_training_nan_localization/comm_timeout_oom.png)
+![长跑数小时后的训练日志回显，同时出现HCCL通信超时与显存溢出报错](../figures/cases/ascend_mmdetection_training_nan_localization/comm_timeout_oom.png)
 
 先尝试用环境变量把超时时间调大后重跑：
 
@@ -79,21 +79,21 @@ export HCCL_EXEC_TIMEOUT=3600
 
 ![](../figures/cases/ascend_mmdetection_training_nan_localization/monitor_nan_warning.png)
 
-根据预警找到对应的落盘数据（某步的 rank6 中 unreduce），首次出现 nan，后续 post grad 均为 nan。
+根据预警找到对应的落盘数据（某步的 rank6中unreduce），首次出现 nan，后续 post grad 均为 nan。
 
-![](../figures/cases/ascend_mmdetection_training_nan_localization/dump_rank6_unreduce_nan.png)
+![落盘dump数据中某步rank6的unreduce阶段张量数值明细，首次出现nan](../figures/cases/ascend_mmdetection_training_nan_localization/dump_rank6_unreduce_nan.png)
 
-![](../figures/cases/ascend_mmdetection_training_nan_localization/post_grad_nan.png)
+![同一轮dump数据中post grad阶段的梯度数值明细，内容已全部为nan](../figures/cases/ascend_mmdetection_training_nan_localization/post_grad_nan.png)
 
 从 shape 上看，出现 NaN 对应的是 embedding。
 
-![](../figures/cases/ascend_mmdetection_training_nan_localization/embedding_shape_nan.png)
+![出现nan的张量shape信息截图，显示异常张量对应embedding输入](../figures/cases/ascend_mmdetection_training_nan_localization/embedding_shape_nan.png)
 
-![](../figures/cases/ascend_mmdetection_training_nan_localization/embedding_nan_detail.png)
+![embedding输入张量的nan数值明细截图，显示该输入张量为空](../figures/cases/ascend_mmdetection_training_nan_localization/embedding_nan_detail.png)
 
 ### 分析
 
-从 NaN 情况来看，可能是 label_embedding 的输入为空导致的，对应代码第 334 行和第 335 行。
+从 NaN 情况来看，可能是 label_embedding 的输入为空导致的，对应代码第334行和第335行。
 
 当随机生成的 p 的每个数值都大于 `self.label_noise_scale * 0.5` 时，会得到空的 chosen_indices，从而导致 embedding 前向输入为空。
 
@@ -103,13 +103,13 @@ export HCCL_EXEC_TIMEOUT=3600
 
 但情况有反转：以上截图代码中 scatter 接口生成的 noisy_labels_expand 不会改变 shape，因此只能是 gt_labels 原本就为空 shape。查看数据集生成代码可能找到原因。
 
-![](../figures/cases/ascend_mmdetection_training_nan_localization/dataset_generation_code.png)
+![数据集生成代码截图，展示分类标注范围判断与gt_labels的生成过程](../figures/cases/ascend_mmdetection_training_nan_localization/dataset_generation_code.png)
 
-![](../figures/cases/ascend_mmdetection_training_nan_localization/dataset_code_detail.png)
+![数据集标注处理代码片段截图，显示标注越界时instances被置为空列表](../figures/cases/ascend_mmdetection_training_nan_localization/dataset_code_detail.png)
 
 当数据集中的分类标注不在规定范围内时，`data_info['instances'] = []`，而后续在 `pipeline -> pack_inputs -> DetDataSample.gt_instances.labels` 时，`gt_labels` 即为空。
 
-> DetDataSample 类定义：在 `mmdet/structures/det_data_sample.py` 中定义了 `gt_instances` 属性（通过 setter getter 实现）。无论实例是否为空，只要你给它传了 `InstanceData()`，它就存在，`gt_instances.labels` 可以安全访问（可能是空 tensor）。
+> DetDataSample类定义：在 `mmdet/structures/det_data_sample.py` 中定义了 `gt_instances` 属性（通过 setter getter 实现）。无论实例是否为空，只要你给它传了 `InstanceData()`，它就存在，`gt_instances.labels` 可以安全访问（可能是空 tensor）。
 
 数据打印进一步证实了这一判断：
 
@@ -128,5 +128,5 @@ gt_labels_expand > torch.tensor([], device="npu:4", dtype=torch.int64)
 
 ## 解决方案
 
-- 升级到新版 CANN（8.0.0 及以上）：早期 CANN 版本在 embedding 输入 shape 为 0 时会造成反向 NaN，新版 CANN 已修复该问题。
+- 升级到新版 CANN（8.0.0 及以上）：早期CANN版本在 embedding 输入 shape 为 0 时会造成反向 NaN，新版 CANN 已修复该问题。
 - 修复数据集标注质量：数据集中分类标注不在规定范围内会导致 `gt_labels` 为空，需修正数据集标注使其落在规定范围内。

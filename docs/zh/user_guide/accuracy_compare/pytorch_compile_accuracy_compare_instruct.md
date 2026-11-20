@@ -1,5 +1,7 @@
 # PyTorch场景编译精度比对
 
+本文档介绍PyTorch场景编译精度比对工具PrecisionChecker，可逐模块对比eager模式与compile模式下模块的前向输出与输入梯度，定位差异模块、差异类型与误差量级，适用于在启用torch.compile后排查loss抖动、收敛变差或推理输出不一致问题的用户。
+
 ## 简介
 
 `PrecisionChecker` 是一个用于 PyTorch 模型 **eager 模式与 compile 模式逐模块精度对比** 的工具。在为模型启用 `torch.compile` 后，若出现 loss 抖动、收敛变差或推理输出不一致等问题，可借助本工具逐模块定位差异来源。
@@ -294,7 +296,7 @@ two-pass 模式会比较 `loss_eager` 与 `loss_compiled`，可用于判断整�
 
 ### autocast 精度检查
 
-设置 `cast_dtype` 后，工具会对被 wrap 的模块增加 `_CastWrapper`，并在 forward 中使用 `torch.autocast`。用于验证自动混合精度场景下被 wrap 的模块是否存在精度差异。
+设置 `cast_dtype` 后，工具会对被 wrap 的模块增加 `_CastWrapper`，并在 forward 中使用 `torch.autocast`，用于验证自动混合精度场景下被 wrap 的模块是否存在精度差异。
 
 ```python
 checker = PrecisionChecker(

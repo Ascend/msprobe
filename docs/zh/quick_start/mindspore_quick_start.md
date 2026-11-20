@@ -1,5 +1,7 @@
 # MindSpore场景精度调试工具快速入门
 
+本文档介绍MindSpore场景精度调试工具快速入门，围绕精度数据采集和精度比对，指导在昇腾NPU环境训练的开发者定位模型精度异常问题。
+
 ## 概述
 
 本文介绍MindSpore场景精度调试工具快速入门，主要针对训练开发流程中的模型精度调试环节使用的开发工具进行介绍。
@@ -114,7 +116,7 @@
 
    日志打印出现如下示例信息表示数据采集成功，完成采集后即可查看数据。
 
-   ```txt
+   ```text
    The api statistics hook function is successfully mounted to the model.
    msprobe: debugger.start() is set successfully
    Dump switch is turned on at step 0.
@@ -126,7 +128,7 @@
 dump_path参数指定的路径下会出现如下目录结构，可以根据需求选择合适的数据进行分析。
 
 ```ColdFusion
-/home/dump/
+/home/dump/dump_data/
 ├── step0
     └── proc1280778                  # 单卡训练中，训练进程没有rank信息，此时数据保存在proc{pid}，多卡场景下为rank{id}
         ├── construct.json           # 保存Module的层级关系信息，当前场景为空
@@ -167,7 +169,7 @@ dump_path参数指定的路径下会出现如下目录结构，可以根据需�
 
    出现如下打印说明比对成功：
 
-   ```txt
+   ```text
    ...
    The result file path is: /xxx/compare_result/accuracy_compare/compare_result_{timestamp}.csv
    ...
@@ -232,7 +234,7 @@ dump_path参数指定的路径下会出现如下目录结构，可以根据需�
 
    **图1** 分级可视化构图比对
 
-   ![img](../figures/vis_result.png)
+   ![TensorBoard页面的分级可视化构图比对结果，展示两份dump数据构建的网络图节点信息](../figures/vis_result.png)
 
 ## 代码样例
 

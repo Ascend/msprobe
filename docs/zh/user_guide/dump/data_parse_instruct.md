@@ -1,8 +1,10 @@
 # 数据转换功能
 
+本文档介绍数据转换功能，提供将ATB场景的dump数据或adump数据转换为numpy（.npy）或PyTorch tensor（.pt）格式文件的能力，适用于需要进行dump数据分析和处理的用户。
+
 ## 简介
 
-本功能提供了将dump数据转换为numpy（.npy）或PyTorch tensor（.pt）格式文件的能力。支持将ATB场景的dump数据（.bin文件）或adump数据进行转换，便于后续的数据分析和处理。
+本功能提供了将dump数据转换为numpy（.npy）或PyTorch Tensor（.pt）格式文件的能力，支持将ATB场景的dump数据（.bin文件）或adump数据进行转换，便于后续的数据分析和处理。
 
 ## 使用前准备
 

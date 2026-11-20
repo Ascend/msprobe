@@ -75,7 +75,7 @@ dump "statistics"模式的性能膨胀大小与"tensor"模式采集的数据量�
 
    说明：
 
-   * SGLang的msProbe操作指南官方文档链接为：`https://docs.sglang.io/docs/developer_guide/msprobe_debugging_guide`
+   * SGLang的msProbe操作指南官方文档链接为：`https://docs.sglang.io/docs/developer_guide/msprobe_debugging_guide`。
    * 该方式适用于已集成msProbe能力的`SGLang`，无需再手工修改`ModelRunner`实现。
    * 启动服务后，发送请求，自动开始dump。
 
@@ -178,7 +178,7 @@ dump "statistics"模式的性能膨胀大小与"tensor"模式采集的数据量�
           --msprobe-dump-config your_path/config_decode.json
       ```
       
-    - 启动路由
+    - 启动Router
     
       示例如下：
 

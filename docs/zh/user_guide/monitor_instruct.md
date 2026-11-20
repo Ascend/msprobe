@@ -1,5 +1,7 @@
 # Monitor训练状态轻量化监测工具
 
+本文档介绍Monitor训练状态轻量化监测工具，可在较低性能损耗下收集和记录模型训练过程中的激活值、权重梯度、优化器状态和通信算子中间值，并实时呈现训练状态，适用于基于PyTorch或MindSpore框架开展模型训练的开发者。
+
 ## 简介
 
 Monitor训练状态轻量化监测工具，能够在较低性能损耗下收集和记录模型训练过程中的激活值、权重梯度、优化器状态和通信算子的中间值，实时呈现训练状态。
@@ -117,7 +119,7 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
 | [权重梯度监测](#权重梯度监测)                                | 开启权重梯度监测                                             | PyTorch、MindSpore |
 | [激活值监测](#激活值监测)                                    | 开启激活值监测                                               | PyTorch、MindSpore |
 | [优化器状态监测](#优化器状态监测)                            | 开启优化器状态监测                                           | PyTorch、MindSpore |
-| [采集module堆栈信息](#采集module堆栈信息)                               | 采集监测的第一个 step 的 module 对应的堆栈信息辅助问题定位                              | PyTorch、MindSpore |
+| [采集module堆栈信息](#采集module堆栈信息)                               | 采集监测的第一个step的module对应的堆栈信息辅助问题定位                              | PyTorch、MindSpore |
 | [指定监测对象](#指定监测对象)                                | 指定监测的nn.Module(nn.Cell)及对应的输入输出                 | PyTorch、MindSpore |
 | [打印模型结构](#打印模型结构)                                | 打印模型结构                                                 | PyTorch           |
 | [l2可解释特征监测](#l2可解释特征监测)                         | 开启模型状态的高阶监测                                        | PyTorch、MindSpore |
@@ -178,7 +180,7 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
 }
 ```
 
-`all_xy`为true表示监测全量module激活值，若需要对指定模块设置监测对象，在`targets`中进行配置，配置方式参考[指定监测对象](#指定监测对象) 。
+`all_xy`为true表示监测全量module激活值，若需要对指定模块设置监测对象，在`targets`中进行配置，配置方式参考[指定监测对象](#指定监测对象)。
 
 设置`xy_distribution`为true表示开启激活值监测功能，默认值为false。
 
@@ -216,7 +218,7 @@ model, optimizer, opt_param_scheduler = setup_model_and_optimizer(model_provider
 }
 ```
 
-开启 `stack_info` 后会采集监测的第一个 step 的所有 module 的堆栈信息，输出格式仅支持 csv。
+开启 `stack_info` 后会采集监测的第一个step的所有module的堆栈信息，输出格式仅支持 csv。
 
 ### 指定监测对象
 
@@ -226,7 +228,7 @@ module_name可以通过nn.Module的接口named_modules()获取。
 
 #### 打印模型结构
 
-工具提供可选项`print_struct`打印模型结构，帮助配置targets。工具会在第一个step后打印结构并停止训练进程，每张卡上的模型结构默认保存在`$MONITOR_OUTPUT_DIR/module_struct/rank{rank}/module_struct.json`, 其中{rank}为对应的卡号。
+工具提供可选项`print_struct`打印模型结构，帮助配置targets。工具会在第一个step后打印结构并停止训练进程，每张卡上的模型结构默认保存在`$MONITOR_OUTPUT_DIR/module_struct/rank{rank}/module_struct.json`，其中{rank}为对应的卡号。
 
 ```json
 {
@@ -323,7 +325,7 @@ param_name可以通过nn.Module的接口`named_parameters()`获取。
 |--------|--------|------|------|
 | **l2_targets** | 必选 | Dict[str, List[str]] | 指定需要监测的模型层配置<br>**支持的hook类型**：<br> • `attention_hook`：监测注意力层<br>&nbsp;&nbsp;▪️ 采集指标：`entropy` `softmax_max`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `linear_hook`：监测线性层<br>&nbsp;&nbsp;▪️ 采集指标：`sr`, `kernel_norm`<br>&nbsp;&nbsp;▪️ 必须通过[打印模型结构](#打印模型结构)获取准确层名，不配置表示不采集<br>&nbsp;&nbsp;▪️ 配置空列表会自动识别符合条件的层（包含`weight`或`wg`2D参数属性的层）<br>• `moe_router_weight_hook`：监测MoE路由权重层<br>&nbsp;&nbsp;▪️ 采集指标：`router_weight_similarity`<br>&nbsp;&nbsp;▪️ 配置为MoE路由线性层（如`router.gate`），需通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集<br>• `moe_router_logit_hook`：监测MoE路由输出logits<br>&nbsp;&nbsp;▪️ 采集指标：`per_token_expert_entropy`<br>&nbsp;&nbsp;▪️ 配置为MoE路由线性层（如`router.gate`），需通过[打印模型结构](#打印模型结构)获取准确层名<br>&nbsp;&nbsp;▪️ 不配置或配置空列表均表示不采集 |
 | **recording_l2_features** | 可选 | bool | 是否开启L2层特征数据采集，默认为false表示不采集 |
-| **sa_order** | 可选 | str | 计算`attention_hook`内指标时，指定Attention输入(Q,K)的张量维度排列顺序，支持"s,b,h,d"和"b,s,h,d", 默认为"s,b,h,d"表示输入维度顺序为**s**equence_len​->**b**atch_size​->num_**h**eads​->head_**d**im  |
+| **sa_order** | 可选 | str | 计算`attention_hook`内指标时，指定Attention输入(Q,K)的张量维度排列顺序，支持"s,b,h,d"和"b,s,h,d"，默认为"s,b,h,d"表示输入维度顺序为**s**equence_len​->**b**atch_size​->num_**h**eads​->head_**d**im  |
 
 #### L2可解释特征监测指标说明
 
@@ -458,7 +460,7 @@ csv2tensorboard_by_step(
 )
 ```
 
-参数详细介绍请参见[公开接口](#公开接口)的“csv输出件转tensorboard输出件”
+参数详细介绍请参见[公开接口](#公开接口)的“csv输出件转tensorboard输出件”。
 
 ### 动态启停
 
@@ -529,7 +531,7 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
   监测结果写入csv文件中，可以通过`ndigits`字段设置小数位数。
   表头为 vpp_stage | name | step | micro_step(optional) | *ops |。
   仅在激活值监测的输出文件中包含micro_step。
-  激活值监测的name为`<module_name>.<input or output>`, 其他任务的name为`<param_name>`。
+  激活值监测的name为`<module_name>.<input or output>`，其他任务的name为`<param_name>`。
 
 如需将csv转为tensorboard格式进行可视化，可使用[csv格式数据转tensorboard可视化显示](#csv格式数据转tensorboard可视化显示)功能。
 
@@ -539,7 +541,7 @@ export MONITOR_OUTPUT_DIR=/xxx/output_dir
 
   如下图所示为梯度监测结果示例，配置`step_count_per_record`为5，连续监测10个step，每个csv文件记录了5个step的梯度数据。其中`grad_reduced_0-4.csv`为step0至step4共计5个step的聚合后梯度数据，`grad_unreduced_0-4.csv`为step0至step4共计5个step的聚合前梯度数据。
 
-  ![step_count_per_record](../figures/monitor/step_count_per_record.png)
+  ![配置step_count_per_record为5时的梯度监测csv输出件命名示例](../figures/monitor/step_count_per_record.png)
 
 ## 公开接口
 
@@ -703,7 +705,7 @@ TrainerMon.monitor_gnorm_with_ad(model, grad_acc_steps, optimizer, dp_group, tp_
 | "monitor_mbs_grad" | 可选     | 若为true则会监测mbs粒度梯度统计量，默认为false。                                                                                                                                                                                                                                                                                                                                                  |
 | "param_distribution"    | 可选     | 若为true则会监测指定模块的参数，默认为false。                                                                                                                                                                                                                                                                                                                                                    |
 | "alert"                 | 可选     | "rules": 指定自动报警的异常检测机制及其相应的阈值。目前实现的异常检测是AnomalyTurbulence，如果统计标量超出历史均值的指定浮动范围（threshold 0.5意味着上浮或者下浮50%）则在控制台打印报警信息。当"dump"字段配置为true表示异常事件写入文件，默认为false。**仅PyTorch场景支持此参数**。                                                                                                                                                                                                   |
-| "cc_distribution"       | 可选     | 其中"enable"字段控制通信监测模块的开关，仅支持在多卡训练时开启；需要监测通信算子时，务必尽量早地实例化`TrainerMon`, 因为监测通过劫持原始func后挂hook实现，部分加速库初始化时会保存原始function，避免监测失效。"cc_codeline"字段指定监测的代码行，如：`train.py\\[23\\]`，默认为空列表，不特别指定；"cc_pre_hook"字段控制是否监测通信输入；模块会在第二个optimize.step之前打印通信日志，包括通信api的调用栈、输入dtype、通信group。 "cc_log_only"为true时，仅打印日志，不监测通信的输入输出，并在打印后中断训练。可以根据通信日志设置"cc_codeline"，规避与训练过程不相关的通信，比如一些时间、metrics的同步。 |
+| "cc_distribution"       | 可选     | 其中"enable"字段控制通信监测模块的开关，仅支持在多卡训练时开启；需要监测通信算子时，务必尽量早地实例化`TrainerMon`，因为监测通过劫持原始func后挂hook实现，部分加速库初始化时会保存原始function，避免监测失效。"cc_codeline"字段指定监测的代码行，如：`train.py\\[23\\]`，默认为空列表，不特别指定；"cc_pre_hook"字段控制是否监测通信输入；模块会在第二个optimize.step之前打印通信日志，包括通信api的调用栈、输入dtype、通信group。"cc_log_only"为true时，仅打印日志，不监测通信的输入输出，并在打印后中断训练。可以根据通信日志设置"cc_codeline"，规避与训练过程不相关的通信，比如一些时间、metrics的同步。 |
 | "mg_direction"         | 可选 | 若为true则会计算权重梯度和动量方向一致的比例，默认为false。                                                                                                                                                                                                                                                                                                                                              |
 | "format"                | 可选     | 数据落盘格式，仅支持"csv"（默认值）。                                                                                                                                                                                                                                                                    |
 | "ops"                   | 可选     | 类型为list，与ur_distribution、xy_distribution、mv_distribution、wg_distribution、mg_direction、cc_distribution配合，监测所选张量的统计指标，目前支持"min"、"max"、"norm"、"mean"、"zeros"、"nans"。其中，zeros代表监测所选张量的元素小于eps的比例，nans代表张量中nan的数量。当ops中无有效指标时，默认监测norm指标。                                                                                                                                            |

@@ -1,5 +1,7 @@
 # PyTorch场景kernel级精度数据采集
 
+本文档介绍PyTorch场景下kernel级精度数据的配置示例与采集结果，适用于使用msProbe工具采集kernel级算子数据的用户。
+
 ## 简介
 
 本文主要介绍kernel级精度数据采集的配置示例和采集结果，msProbe数据采集功能的详细介绍请参见《[PyTorch场景精度数据采集](./pytorch_data_dump_instruct.md)》。

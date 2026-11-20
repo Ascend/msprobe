@@ -10,7 +10,7 @@
 
 工具引入同步导致计算结果变化：
 
-工具采集统计量数据时，会涉及到将device上的tensor计算后的统计量信息通过item传到CPU侧，再落盘到json文件中，item操作是一个同步的操作，可能会导致模型的计算结果出现变化。**一般的现象是模型计算出现NaN，且在未使用工具时问题会复现，使用工具后问题不再出现。**
+工具采集统计量数据时，会涉及到将device上的tensor计算后的统计量信息通过item传到CPU侧，再落盘到json文件中，item操作是一个同步的操作，可能会导致模型的计算结果出现变化。**一般的现象是模型计算出现NaN，且在使用工具时问题会复现，未使用工具时问题不再出现。**
 
 ASCEND_LAUNCH_BLOCKING是一个环境变量，用于控制在PyTorch训练或在线推理场景中算子的执行模式。当设置为“1”时，算子将采用同步模式运行。因此如果出现加工具后计算结果变化，可以设置ASCEND_LAUNCH_BLOCKING为1，如果结果仍然发生变化，则说明是由于同步引起的结果改变。这个时候需要复现问题现象完成问题定位，推荐使用msProbe工具的异步dump功能，具体使用方式可查看[config配置](../user_guide/dump/config_json_introduct.md)中的async_dump字段。
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
 3. 如果某个API在dump支持列表support_wrap_ops.yaml中，但没有dump该API的数据，原因是什么？
    - 首先确认API调用是否在采集范围内，即需要在start和stop接口涵盖的范围内。
-   - 其次，由于工具只在被调用时才对API进行patch，从而使得数据可以被dump下来。因此当API是被直接import进行调用时，由于该API的地址已经确定，
+   - 其次，由于工具只在被调用时才对API进行patch，从而使得数据可以被dump下来。因此当API是被直接import进行调用时，由于该API的地址已经确定
    工具无法再对其进行patch，故而该API数据无法被dump下来。如下示例，relu将无法被dump：
 
    ```python
@@ -118,8 +118,7 @@ if __name__ == "__main__":
    在上述场景中，若希望采集relu数据，只需要将`relu(x)`修改为`torch.relu(x)`即可。
 
 4. 在使用L0 dump时，发现有些module的数据没有采集下来，原因是什么？
-   - 确认日志打印中是否存在`The {module_name} has registered deprecated register_backward_hook`信息，
-     该信息说明module挂载了被PyTorch框架废弃的register_backward_hook，这与工具使用的register_full_backward_hook接口会产生冲突，故工具会跳过该module的反向数据采集。
+   - 确认日志打印中是否存在`The {module_name} has registered deprecated register_backward_hook`信息，该信息说明module挂载了被PyTorch框架废弃的register_backward_hook，这与工具使用的register_full_backward_hook接口会产生冲突，故工具会跳过该module的反向数据采集。
    - 如果您希望所有module数据都能采集下来，可以将模型中使用的register_backward_hook接口改为PyTorch框架推荐的register_full_backward_pre_hook或register_full_backward_hook接口。
 
 5. 在vLLM场景下进行数据dump时，发现报错：`RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cpu and npu:0!`
@@ -155,7 +154,7 @@ if __name__ == "__main__":
 
 2. 预检工具对于type_as这类涉及数据类型转换操作的API，是否具有参考性？
 
-   由于这类API在CPU侧存在精度先提升后下降的操作，因此这类API的有效性参考价值有限。
+   答：由于这类API在CPU侧存在精度先提升后下降的操作，因此这类API的有效性参考价值有限。
 
 3. acc_check过程中出现报错：ERROR: Got unsupported ScalarType BFloat16。
 

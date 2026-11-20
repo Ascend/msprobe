@@ -2,7 +2,7 @@
 
 ## 案例简介
 
-在大模型推理服务中，CANN 版本升级后可能出现回复乱码等精度异常，影响在线服务的可用性。本文介绍了一种基于 msProbe 工具的系统性定位方法，通过"Dump → 比对 → 单算子复现"的流程，将整网精度问题逐步收敛为单个算子的数值偏差问题。该方法适用于 vLLM Ascend 推理场景，为 CANN 升级后的精度问题排查提供了可复用参考。
+在大模型推理服务中，CANN 版本升级后可能出现回复乱码等精度异常，影响在线服务的可用性。本文介绍了一种基于 msProbe 工具的系统性定位方法，通过“Dump → 比对 → 单算子复现”的流程，将整网精度问题逐步收敛为单个算子的数值偏差问题。该方法适用于 vLLM Ascend 推理场景，为 CANN 升级后的精度问题排查提供了可复用参考。
 
 ## 问题现象
 
@@ -20,7 +20,7 @@
 - NPU 型号：Ascend 950 PR
 - CANN 版本：9.1.0、9.0.0
 
-该问题属于典型的 CANN 版本升级后出现的精度异常。因升级前后模型结构、API 调用逻辑等均未改变，可以将问题收敛到新版本 CANN 中数值行为发生变化的算子。正常情况下，可使用 msProbe 精度工具，通过"Dump → 比对 → 单算子复现"的定位流程明确问题算子。
+该问题属于典型的 CANN 版本升级后出现的精度异常。因升级前后模型结构、API 调用逻辑等均未改变，可以将问题收敛到新版本 CANN 中数值行为发生变化的算子。正常情况下，可使用 msProbe 精度工具，通过“Dump → 比对 → 单算子复现”的定位流程明确问题算子。
 
 ### 工具安装
 
@@ -54,7 +54,7 @@ Dump 步骤见《[vLLM推理数据采集](../user_guide/dump/vllm_dump_instruct.
 
 最后，拉起 vLLM 服务并发送请求。回复结束后，查看 Dump 目录，确认是否 Dump 成功，目录结构及 dump.json 内容如下图所示。
 
-![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/dump_result_directory.png) ![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/content_of_dump_dot_json.png)
+![Dump 成功后的目录结构截图，dump_data 下按 rank 分目录存放各卡精度数据文件](../figures/cases/problem_of_garbled_response_after_cann_upgrade/dump_result_directory.png) ![dump.json 内容截图，记录本次采集的任务类型、dump 路径及 step、level 等配置信息](../figures/cases/problem_of_garbled_response_after_cann_upgrade/content_of_dump_dot_json.png)
 
 重复以上步骤，分别 Dump 使用新版本、旧版本 CANN 时的首 token 整网精度数据。而后执行以下比对命令，进行精度数据比对。
 
@@ -64,11 +64,11 @@ msprobe compare -tp [new_cann_dump_data]/step0 -gp  [old_cann_dump_data]/step0 -
 
 比对结果将以 csv 文件形式保存在 output 目录下。
 
-![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/comparison_result_directory.png)
+![比对完成后 output 目录下的结果文件结构，各 rank 的比对结果以 csv 文件形式保存](../figures/cases/problem_of_garbled_response_after_cann_upgrade/comparison_result_directory.png)
 
 打开 rank0 比对结果表，可以很快发现首个差异点为 all_reduce API 的输出，同时因其输出的差异，导致 Embedding 层的总输出也存在相同差异。
 
-![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/first_comparison_result.png)
+![rank0 比对结果表截图，all_reduce API 与 Embedding 层输出存在明显差异](../figures/cases/problem_of_garbled_response_after_cann_upgrade/first_comparison_result.png)
 
 rank0 all_reduce API 输出不一致的可能原因有：
 
@@ -110,11 +110,11 @@ Dump Embedding 层内所有 API 的输入输出真实数据。
 
 配置文件修改后的 Dump、比对步骤与一次 Dump 完全相同。最终得到的 Dump 数据如下，相比第一次 Dump，额外创建了 dump_tensor_data 文件夹用于存放输入输出 Tensor 数据。
 
-![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/input_output_tensors_of_all_reduce.png)
+![二次 Dump 后的数据目录，新增 dump_tensor_data 文件夹用于存放 all_reduce 输入输出 Tensor](../figures/cases/problem_of_garbled_response_after_cann_upgrade/input_output_tensors_of_all_reduce.png)
 
 比对结果如下：
 
-![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/second_comparison_result.png)
+![二次比对结果表截图，仍显示 all_reduce API 的输出首先存在数值差异](../figures/cases/problem_of_garbled_response_after_cann_upgrade/second_comparison_result.png)
 
 可以看到，依旧是 all_reduce API 的输出首先存在差异，因此有充足理由怀疑 all_reduce 算子存在数值偏差。
 
@@ -144,7 +144,7 @@ print(f'{dist_input_sum.max()=}, {dist_input_sum.min()=}, {dist_input_sum.mean()
 
 计算结果如下：
 
-![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/cpu_result.png)
+![计算脚本输出的 all_reduce 预期计算结果，打印 shape、dtype 及 max、min、mean、norm 统计值](../figures/cases/problem_of_garbled_response_after_cann_upgrade/cpu_result.png)
 
 计算结果与旧版 CANN 下采集到的整网中的 all_reduce 算子输出一致，与新版的输出差异较大，说明整网中，新版 CANN 的 all_reduce 输出存在偏差。
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
 执行结果如下：
 
-![](../figures/cases/problem_of_garbled_response_after_cann_upgrade/execution_results_of_cases.png)
+![8 卡 NPU 单算子脚本执行后的输出回显，打印各 rank 的 max、min、mean、norm 统计值](../figures/cases/problem_of_garbled_response_after_cann_upgrade/execution_results_of_cases.png)
 
 至此，将整网精度问题成功转换为单算子数值偏差问题。
 

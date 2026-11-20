@@ -1,5 +1,7 @@
 # msProbe PyTorch 场景最小示例
 
+本文档介绍msProbe在PyTorch场景下的最小示例，涵盖在Linux CPU上运行两层全连接网络一次训练迭代的安装、埋点、dump、精度比对与结果解读，适用于首次使用msProbe进行精度比对的用户。
+
 <br>
 
 ## 1. 概述

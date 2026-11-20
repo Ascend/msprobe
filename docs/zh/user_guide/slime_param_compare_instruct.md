@@ -1,5 +1,7 @@
 # slime超参比对与关键超参校验
 
+本文档介绍slime超参比对与关键超参校验，可比较两个服务器上训练日志中的真实超参配置并输出比对结果，适用于需要加速定位因配置差异引发训练或推理精度问题的用户。
+
 ## 简介
 
 slime在NPU和标杆服务器上训练时，采集到训练日志，训练日志中包含真实超参的配置信息，如：训练优化器学习率、KL散度等。
@@ -37,7 +39,7 @@ msprobe config_check -sc <NPU_log> <bench_log> [-o <compare_result>]
 
 - NPU_log和bench_log分别为NPU和标杆服务器上训练slime时保存的训练日志。
 - NPU_log和bench_log按顺序配置，自动选择后面一个日志作为标杆日志进行对比。
-- 待比对的NPU_log和bench_log训练日志文件格式只支持“.log”或“.txt”（如：slime_NPU.log 或 slime_NPU.txt），否则执行比对时会报错。
+- 待比对的NPU_log和bench_log训练日志文件格式只支持“.log”或“.txt”（如：slime_NPU.log或slime_NPU.txt），否则执行比对时会报错。
 - 训练日志中要包含完整的slime配置信息，否则会解析失败。
 
 **使用示例**
@@ -58,7 +60,7 @@ msprobe config_check -sc NPU_log/training.log bench_log/training.log -o ./compar
 
 - bench_config.json：标杆日志中提取的config配置信息。
 - NPU_config.json：NPU日志中提取的config配置信息。
-- hyper_params_compare.csv：比对结果。里面会有1个sheet页，sheet中会包含超参名称，NPU生效值，bench生效值，是否一致。
+- hyper_params_compare.csv：比对结果，里面会有1个sheet，sheet中会包含超参名称、NPU生效值、bench生效值、是否一致。
 
 slime超参比对结果文件hyper_params_compare.csv，内容如下示例：
 

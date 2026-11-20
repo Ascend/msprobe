@@ -1,5 +1,7 @@
 # 基于昇腾的Kimi2.5训推一致性优化
 
+本文档介绍基于昇腾的Kimi2.5训推一致性优化，通过训练与推理阶段分别dump采集数据并逐层比对，定位log_prob指标差异的根因并完成训推对齐，适用于需要排查强化学习训推不一致问题的用户。
+
 ## 问题背景
 
 在强化学习训练中，训练阶段与推理阶段的对齐程度直接决定训练精度与稳定性。Kimi2.5 模型在昇腾上训练时出现 log_prob 指标差异过大的现象，超出预期范围，本文记录了通过训推 dump 逐层比对定位根因并完成对齐的过程，为类似训推不一致场景提供参考。
@@ -22,21 +24,21 @@ Kimi2.5 模型出现 log_prob 指标首 step 差异较大的现象。对于强�
 
 1. 在 `vllm_ascend/worker/model_runner_v1.py` 文件的 `NPUModelRunner.__init__` 方法中，增加工具初始化代码，同时增加确定性开关。
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_init_dump_code.png)
+    ![vllm_ascend的NPUModelRunner.__init__方法中新增dump工具初始化与确定性开关的代码截图](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_init_dump_code.png)
 
 2. `execute_model` 方法开始执行时进行 debugger start（开始 dump）。
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_start_dump_code.png)
+    ![vllm_ascend的execute_model方法起始处插入debugger start开启dump的代码截图](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_start_dump_code.png)
 
 3. `execute_model` 方法中 `_generate_process_reqs_hidden_states` 执行完后进行 stop（结束 dump）。
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_stop_dump_code.png)
+    ![execute_model中_generate_process_reqs_hidden_states执行后调用stop结束dump的代码截图](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/vllm_stop_dump_code.png)
 
 ### 训练阶段 dump
 
 1. 在 `verl/workers/actor/megatron_actor.py` 文件的 `MegatronPPOActor.compute_log_prob` 方法中，调用 `forward_backward_batch` 前后增加工具初始化及 dump 开关。
 
-![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/megatron_train_dump_code.png)
+![verl的MegatronPPOActor.compute_log_prob在forward_backward_batch前后增加dump开关的代码截图](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/megatron_train_dump_code.png)
 
 ### 训推比对
 
@@ -46,29 +48,29 @@ Kimi2.5 模型出现 log_prob 指标首 step 差异较大的现象。对于强�
 
 1. 第一个不一致模块为 MLA 输出
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/mla_output_diff.png)
+    ![训推dump逐层比对结果截图，首个出现数值差异的模块为MLA输出层](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/mla_output_diff.png)
 
 2. 向前追溯
 
     推理侧：
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/infer_mla_impl_code.png)
+    ![推理侧MLA实现代码截图，展示位置编码cos与sin的计算及入参传递](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/infer_mla_impl_code.png)
 
     训练侧：
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_mla_impl_code_1.png)
+    ![训练侧MLA实现代码截图，展示位置编码入参的构造与向下传递过程](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_mla_impl_code_1.png)
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_mla_impl_code_2.png)
+    ![训练侧MLA实现代码截图，展示cos与sin计算调用处的入参来源](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_mla_impl_code_2.png)
 
     训练代码实现：
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_composed_ops_code.png)
+    ![训练侧composed融合算子实现代码截图，展示MLA计算的算子组合方式](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/train_composed_ops_code.png)
 
 3. cos 和 sin 的计算均来自于 freqs，向上追溯 freqs 来源
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/freqs_source_code_1.png)
+    ![freqs来源代码截图，展示cos与sin计算所依赖的freqs生成逻辑](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/freqs_source_code_1.png)
 
-    ![](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/freqs_source_code_2.png)
+    ![freqs来源代码截图，展示freqs生成时读取的位置编码长度配置项](../figures/cases/ascend_kimi2_5_train_infer_consistency_optimization/freqs_source_code_2.png)
 
 4. 打印 `YarnRotaryEmbedding` 入参，与推理做对比，发现 `original_max_position_embeddings=1024`，而实际外层配置为 4096。
 

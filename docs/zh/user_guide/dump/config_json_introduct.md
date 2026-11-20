@@ -1,5 +1,7 @@
 # 配置文件介绍
 
+本文档介绍msProbe的config.json配置文件，说明通用配置参数与各task任务类型的配置示例和参数含义，适用于调用PrecisionDebugger执行dump、需要按需配置config.json的用户。
+
 - 当调用**PrecisionDebugger**接口执行dump或其他操作时，需要使用[config.json](../../../../python/msprobe/config.json)文件；当未指定config.json时，将使用默认配置。
 - msProbe成功安装后，可根据msProbe的安装路径确认config.json文件的所在路径，可通过如下命令确认msProbe的安装路径：
 
@@ -81,7 +83,7 @@
 | data_mode    | 可选      | dump数据过滤，list[str]类型。详细配置方法请参见[data_mode参数配置说明](#data_mode参数配置说明)。                                                                                                       |
 | summary_mode | 可选      | 控制dump文件输出的模式，支持PyTorch、MSAdapter、MindSpore动态图以及MindSpore静态图L0级别jit_level=O0/O1场景。详细配置方法请参见[summary_mode参数配置说明](#summary_mode参数配置说明)。                                    |
 | slice        | 可选      | 对tensor进行切片，list[dict]类型。详细配置方法请参见[slice参数配置说明](#slice参数配置说明)。                                                                                                           |
-| request_id   | 可选      | 指定request_id对tensor的第0维进行切片， str类型，默认未配置。详细配置方法请参见[request_id参数配置说明](#request_id参数配置说明)。                                                                                 |
+| request_id   | 可选      | 指定request_id对tensor的第0维进行切片，str类型，默认未配置。详细配置方法请参见[request_id参数配置说明](#request_id参数配置说明)。                                                                                 |
 
 ### task配置为tensor
 
@@ -157,7 +159,7 @@
 | 参数        | 可选/必选 | 解释                   |
 | --------------- | ------------ | ------------------------ |
 | white_list      | 可选     | API dump白名单，仅对指定的API进行dump。默认未配置白名单，即dump全量API数据。<br/>配置示例："white_list": ["conv1d", "conv2d"]。 |
-| black_list      | 可选     | API dump黑名单，被指定的API不进行 dump。默认未配置黑名单，即dump全量API数据。<br/>配置示例："black_list": ["conv1d", "conv2d"]。 |
+| black_list      | 可选     | API dump黑名单，被指定的API不进行dump。默认未配置黑名单，即dump全量API数据。<br/>配置示例："black_list": ["conv1d", "conv2d"]。 |
 | error_data_path | 可选     | 配置保存精度未达标的API输入输出数据路径，默认为当前路径。<br/>配置示例："error_data_path": "./"。 |
 
 > [!NOTE]
@@ -287,7 +289,7 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 
 支持场景：
 
- - PyTorch场景
+ - PyTorch场景。
 
 ### list参数配置说明
 
@@ -359,7 +361,7 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 
   配置示例："data_mode": ["backward"]（仅保存反向数据）或"data_mode": ["forward", "input"]（仅保存前向的输入数据）。
 
-- MindSpore静态图O0/O1场景：L0级别dump仅支持"all"、"forward"和"backward"参数；L2级别dump仅支持"all"、"input"和"output"参数。且各参数只能单独配置，不支持自由组合。
+- MindSpore静态图O0/O1场景：L0级别dump仅支持"all"、"forward"和"backward"参数；L2级别dump仅支持"all"、"input"和"output"参数，且各参数只能单独配置，不支持自由组合。
 
   配置示例："data_mode": ["all"]。
 
@@ -409,9 +411,9 @@ MindSpore动态图场景下，"level"须为"L2"；MindSpore静态图场景下，
 
  | 配置字段 | 配置示例 | 说明                              |
 |---------|---------|---------------------------------|
-| `begin` | `"slice": [{"begin": 10}]` | 移除第0维的前10个数据                    |
+| begin | `"slice": [{"begin": 10}]` | 移除第0维的前10个数据                    |
 | `begin`（负值） | `"slice": [{"begin": -10}]` | 保留第0维的后10个数据                    |
-| `end` | `"slice": [{"end": 10}]` | 保留第0维的前10个数据                    |
+| end | `"slice": [{"end": 10}]` | 保留第0维的前10个数据                    |
 | `end`（负值） | `"slice": [{"end": -10}]` | 移除第0维的后10个数据                    |
 | `begin` + `end` | `"slice": [{"begin": 10, "end": 20}]` | 针对第0维，保留索引区间[10, 20)的数据（共10个）   |
 | `dim` + `begin` + `end` | `"slice": [{"dim": 1, "begin": 10, "end": 20}]` | 针对第1维，保留索引区间[10, 20)的数据（共10个）   |

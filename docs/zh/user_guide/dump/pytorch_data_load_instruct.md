@@ -2,7 +2,7 @@
 
 ## 简介
 
-msProbe工具支持加载先前采集的模块级（L0）输入tensor数据，在模型前向执行时覆盖目标模块的实际输入。该功能用于隔离前序模块累计误差，精准定位本模块及下游的精度问题。
+msProbe工具支持加载先前采集的模块级（L0）输入tensor数据，在模型前向执行时覆盖目标模块的实际输入。该功能用于隔离前序模块累积误差，精准定位本模块及下游的精度问题。
 
 **功能特点**
 
@@ -211,7 +211,7 @@ load侧加载的tensor文件路径与dump侧产出的文件命名严格一致，
 
 例如模型某模块的forward参数为一个dict，其中`pixel_values`键对应`{"exterior": tensor}`，则该tensor的dump文件名为`Module.xxx.forward.0.input.0.pixel_values.exterior.pt`，load时按相同路径从源dump加载。
 
-dump侧的目录结构、文件命名规则请参见[PyTorch场景精度数据采集](./pytorch_data_dump_instruct.md#dump结果文件介绍)中的[dump结果文件介绍](./pytorch_data_dump_instruct.md#dump结果文件介绍)。
+dump侧的目录结构、文件命名规则请参见《PyTorch场景精度数据采集》中的[dump结果文件介绍](./pytorch_data_dump_instruct.md#dump结果文件介绍)。
 
 #### shape/dtype不匹配处理
 
@@ -275,7 +275,7 @@ load功能与dump的`level`配置解耦：
 
 #### modules参数配置说明
 
-`load.modules`中的每个条目取dump产出的`.pt`文件名中`.input.{i}.pt`或`.kwargs.{key}.pt`之前的部分，不支持.backward.{N}，不允许重复。格式为：
+`load.modules`中的每个条目取dump产出的`.pt`文件名中`.input.{i}.pt`或`.kwargs.{key}.pt`之前的部分，不支持`.backward.{N}`，不允许重复。格式为：
 
 ```text
 Module.{dotted_path}.{ClassName}.forward.{N}
@@ -283,7 +283,7 @@ Module.{dotted_path}.{ClassName}.forward.{N}
 
 其中`forward.{N}`的`N`是模块前向调用的序号（从0开始），**不可省略**——在梯度累积等场景下同一模块会被多次调用，`forward.0`、`forward.1`对应不同的调用，必须明确指定。
 
-条目名从源dump的dump_tensor_data/目录下查看.pt文件名获取。例如：
+条目名可通过查看源dump的dump_tensor_data/目录下的.pt文件名获取。例如：
 
 ```text
 文件名: Module.blocks.0.attn.MultiHeadSelfAttention.forward.0.input.0.pt
@@ -317,7 +317,7 @@ Module.{dotted_path}.{ClassName}.forward.{N}
 `load.step`和`load.rank`为list类型，格式与dump的`step`/`rank`参数一致，支持整数、单个数字字符串和范围字符串。用于控制哪些step/rank进行load，加载时始终从源dump的对应step/rank自动对齐。
 
 - 空列表`[]`（默认）：每个step/rank都进行load，从源dump的对应step/rank加载。
-- 非空列表如`[0]`：仅step/rank 0进行load，其余step/rank不进行load（工具无影响）。
+- 非空列表如`[0]`：仅step/rank 0进行load，其余step/rank不进行load（对工具无影响）。
 - 范围字符串如`["0-2"]`：仅step/rank 0、1、2进行load，各自从源dump的对应step/rank加载。
 
 ### 使用示例

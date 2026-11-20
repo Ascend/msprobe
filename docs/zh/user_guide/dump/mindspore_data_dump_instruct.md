@@ -1,6 +1,8 @@
 
 # MindSpore场景精度数据采集
 
+本文档介绍msProbe工具在MindSpore静态图与动态图场景下采集训练过程精度数据（dump）的方法，涵盖环境准备、不同level等级的采集示例以及dump结果文件说明，适用于需要在MindSpore框架下定位精度问题的用户。
+
 ## 简介
 
 msProbe工具通过在训练脚本中添加`PrecisionDebugger`接口并启动训练的方式，采集模型在运行过程中的精度数据（dump）。该工具支持对MindSpore的静态图和动态图场景进行不同level等级的精度数据采集。
@@ -41,7 +43,7 @@ dump "statistics"模式的性能膨胀大小与"tensor"模式采集的数据量�
 
 ### 功能说明
 
-在使用ms_backend（jit_level=O0/O1）的静态图场景下，msProbe支持**L0 level**和**L2 level**的数据采集。不支持ge_backend（jit_level=O2）。
+在使用ms_backend（jit_level=O0/O1）的静态图场景下，msProbe支持**L0 level**和**L2 level**的数据采集，不支持ge_backend（jit_level=O2）。
 
 - **L0 level（Cell级）**：采集`Cell`对象的数据，适用于需要分析特定网络模块的情况。仅支持2.7.0及以上版本的MindSpore框架。
 
@@ -327,7 +329,7 @@ dump.json is at ./dump_path/step*
 
 ### 动态图场景
 
-dump 结果目录结构示例如下：
+dump结果目录结构示例如下：
 
 ```ColdFusion
 ├── dump_path
@@ -368,7 +370,7 @@ dump 结果目录结构示例如下：
   * ①在非分布式场景下，如单进程训练或单卡训练中，训练进程没有`rank`信息，此时数据保存在`proc{pid}`，比对和分级可视化功能支持该目录下的数据解析。
   * ②在大模型训练过程中，可能既存在`rank`目录又存在`proc`目录，原因是一些进程可能仅在CPU上完成一些数据预处理操作，没有`rank`信息，此时目录名称为`proc{pid}`，这部分数据一般不存在精度问题，比对和分级可视化等功能将不会支持该目录下的数据解析。
 * `dump_tensor_data`：保存采集到的张量数据。
-* `dump.json`：保存API或Cell前反向数据的统计量信息。包含dump数据的API名称或Cell名称，各数据的dtype、shape、max、min、mean、L2norm（L2范数，平方根）统计信息以及当配置summary_mode="md5"时的CRC-32数据。具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
+* `dump.json`：保存API或Cell前反向数据的统计量信息，包含dump数据的API名称或Cell名称，各数据的dtype、shape、max、min、mean、L2norm（L2范数，平方根）统计信息以及当配置summary_mode="md5"时的CRC-32数据。具体介绍可参考[dump.json文件说明](#dumpjson文件说明)。
 * `dump_error_info.log`：仅在dump工具报错时拥有此记录日志，用于记录dump错误日志。
 * `stack.json`：API/Cell的调用栈信息。
 * `construct.json`：根据model层级展示分层分级结构，level为L1时，construct.json内容为空。
@@ -703,7 +705,7 @@ seed_all(seed=1234, mode=False, rm_dropout=False)
 
   注意：确定性计算会导致API执行性能降低，建议在发现模型多次执行结果不同的情况下开启。
 
-- **rm_dropout** (bool)：可选参数，控制dropout失效的开关。可配置True或False，默认值：False。参数示例：rm_dropout=True。该参数设置为True后，将会使mindspore.ops.Dropout，mindspore.ops.Dropout2D，mindspore.ops.Dropout3D，mindspore.mint.nn.Dropout和mindspore.mint.nn.functional.dropout失效，以避免因随机dropout造成的网络随机性。建议在采集mindspore数据前开启。
+- **rm_dropout** (bool)：可选参数，控制dropout失效的开关。可配置True或False，默认值：False。参数示例：rm_dropout=True。该参数设置为True后，将会使mindspore.ops.Dropout、mindspore.ops.Dropout2D、mindspore.ops.Dropout3D、mindspore.mint.nn.Dropout和mindspore.mint.nn.functional.dropout失效，以避免因随机dropout造成的网络随机性。建议在采集MindSpore数据前开启。
 
   注意：通过rm_dropout控制dropout失效或生效需要在初始化Dropout实例前调用才能生效。
 
@@ -767,9 +769,9 @@ start(model=None, token_range=None, rank_id=None)
 - **rank_id**：可选参数，指定自定义的rank ID，支持传入大于等于0的整数。默认未配置，则工具基于mindspore.communication.get_rank接口获取rank ID；配置此参数后，dump的结果中，rank文件夹名称中的{ID}将使用该参数所配置的值。
 
   注意：通常情况下，用户无需手动配置rank_id参数，工具默认通过mindspore.communication.get_rank接口（下面简称get_rank接口）可自动获取多卡多进程的唯一rank ID；
-  然而，在某些特殊场景下，get_rank接口可能无法正确获取唯一的rank ID。例如，在推理框架sglang的DP推理场景中，各DP worker之间是独立的分布式集群，导致get_rank接口返回重复的rank ID，进而引发dump结果中rank文件夹同名覆盖的问题，造成dump数据丢失。
+  然而，在某些特殊场景下，get_rank接口可能无法正确获取唯一的rank ID。例如，在推理框架SGLang的DP推理场景中，各DP worker之间是独立的分布式集群，导致get_rank接口返回重复的rank ID，进而引发dump结果中rank文件夹同名覆盖的问题，造成dump数据丢失。
 
-  针对此类特殊场景，可通过配置rank_id参数为rank文件夹命名，但需要保证rank_id在各个进程中唯一。该值通常可在模型脚本或训练推理框架中获取，例如推理框架sglang中的self.gpu_id，其在每个进程中均保持唯一性。
+  针对此类特殊场景，可通过配置rank_id参数为rank文件夹命名，但需要保证rank_id在各个进程中唯一。该值通常可在模型脚本或训练推理框架中获取，例如推理框架SGLang中的self.gpu_id，其在每个进程中均保持唯一性。
 
   配置示例：`debugger.start(rank_id=self.gpu_id)`
 

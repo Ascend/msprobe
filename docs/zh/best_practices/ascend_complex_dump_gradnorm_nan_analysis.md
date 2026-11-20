@@ -1,5 +1,7 @@
 # 基于昇腾的复杂dump数据分析GradNorm NaN定位实践
 
+本文档介绍基于昇腾的复杂dump数据分析GradNorm NaN定位实践，以256卡Qwen3-235B长序列SFT训练为例，记录通过dump数据定位首个NaN节点、分析反向数值放大趋势并锁定FA掩码参数异常的完整过程，适用于需要在大规模模型训练中定位GradNorm NaN问题的用户。
+
 ## 问题背景
 
 在大规模模型训练中，GradNorm 出现 NaN/Inf 是常见且棘手的故障，尤其在大卡数、长序列、复杂并行切分（TP/PP/EP/CP/VPP）场景下，dump 数据规模庞大，定位难度高。本文以 256 卡 Qwen3-235B 长序列 SFT 训练为例，记录了基于 dump 数据分析定位首个 NaN 节点、分析反向数值放大趋势并锁定 FA 掩码参数异常的完整过程，为复杂 dump 数据分析提供实践参考。
@@ -11,7 +13,7 @@
 - MindSpeed-LLM：2.1.0
 - MindSpeed 和 Megatron：0.8.0
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/env_versions.png)
+![训练环境版本信息查询结果截图，显示CANN、TorchNPU、MindSpeed-LLM与Megatron的版本组合](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/env_versions.png)
 
 已排查的实验：
 
@@ -24,24 +26,24 @@
 
 切分配置：TP4、PP4、EP16、CP16、VPP8、DP1
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/parallel_config.png)
+![256卡切分参数配置截图，展示TP、PP、EP、CP、VPP与DP各并行维度的取值](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/parallel_config.png)
 
 实际 VPP 为 3，即 96 层 / PP4 / num_layers8 = 3：
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/vpp_layer_calc.png)
+![VPP层数换算示意，展示总层数按PP与num_layers计算后得到的实际VPP值](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/vpp_layer_calc.png)
 
 使用[Megatron模型并行可视化](../user_guide/accuracy_compare/trend_visualization_instruct.md#megatron模型并行可视化)辅助工具画出切分图（该工具目前不支持 EP、CP 并行：EP 无需处理，CP 可先归并到 DP 中再查看）：
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/parallel_split_viz.png)
+![Megatron模型并行可视化工具绘制的切分图，显示各卡层范围与VPP流水划分关系](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/parallel_split_viz.png)
 
 **确认gac**：gac=4
 
 **确认TP4+PP4+VPP3的切分逻辑：**
 
-- 000卡：01\~08，33\~40，65\~72，一共24层，**20次**irecv和isend（fw: VPP*2*gac4+bw:VPP*3*gac4），**384次rmsnorm**（24layer*4(input\q\k\pre)*gac4），**96次FA**（24layer*gac4）。
-- 064卡：09\~16，41\~48，73\~80，一共24层，**24次**irecv和isend（fw: VPP*3*gac4+bw:VPP*3*gac4）。
-- 128卡：17\~24，49\~56，81\~88，一共24层，24次irecv和isend。
-- 192卡：25\~32，57\~64，89\~96，一共24层（末尾2层填充实为22层），20次irecv和isend。
+- 000卡：01\~08、33\~40、65\~72，一共24层，**20次**irecv和isend（fw: VPP*2*gac4+bw:VPP*3*gac4），**384次rmsnorm**（24layer*4(input\q\k\pre)*gac4），**96次FA**（24layer*gac4）。
+- 064卡：09\~16、41\~48、73\~80，一共24层，**24次**irecv和isend（fw: VPP*3*gac4+bw:VPP*3*gac4）。
+- 128卡：17\~24、49\~56、81\~88，一共24层，24次irecv和isend。
+- 192卡：25\~32、57\~64、89\~96，一共24层（末尾2层填充实为22层），20次irecv和isend。
 
 ### 步骤2——找到首个NaN/Inf节点
 
@@ -61,8 +63,8 @@
 - 若 rank0 中存在 NaN 和 Inf，则
   - 异常来自 rank0 本身，看本卡。
   - 异常来自通信算子传导，查看通信 group 内的其他卡（dump 数据里存在 ProcessGroup 信息）。
-  - reduce_scatter 和 gather 在 tp 组内通信。
-  - irecv、isend 用于 pp/vpp 传输。
+  - reduce_scatter 和 gather 在 TP 组内通信。
+  - irecv、isend 用于 PP/VPP 传输。
 
 **实操**
 
@@ -71,45 +73,45 @@
 - 128卡，Distributed._reduce_scatter_base.111.forward（line533633）的输出，但输入就已经 1e36 量级，之后的 Distributed.isend.12.forward（line533809）发送给了64卡。
 - 192卡，Distributed.irecv.12.forward（line604199）的输出，来源0卡。
 
-查看调用栈，该通信算子为tp linear反向计算时的通信。
+查看调用栈，该通信算子为TP linear反向计算时的通信。
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/call_stack_tp_linear.png)
+![dump数据中该通信算子的调用栈截图，显示通信发生在TP linear的反向计算路径上](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/call_stack_tp_linear.png)
 
 ### 步骤3——反向数据放大趋势分析
 
 对照代码栈和代码仔细查看128卡的反向顺序：
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/rank128_backward_order.png)
+![rank128卡反向执行顺序列表截图，按反向从后往前排列算子名与对应代码行号](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/rank128_backward_order.png)
 
 #### 重点关注层：Attention、Layernorm、4层linear
 
 - **Attention（FA）**
 
-  ![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/attention_fa_trend.png)
+  ![FA反向梯度随层号变化的趋势图，绿色线为gac分割线，曲线呈逐层放大趋势](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/attention_fa_trend.png)
 
   顺序是192卡的FA.64衔接到128卡的FA.71，绿色线是gac分割线，呈逐层放大趋势。按照反向的从后往前的顺序深入分析，优先看最后一组VPP的32层（layer96\~65）：
 
-  1. 上图显示gac是分块并行而非完全串行的，如 gac1(71\~64)，gac2(79\~72)，gac3(97\~80)，gac4(95\~88)。
+  1. 上图显示gac是分块并行而非完全串行的，如 gac1(71\~64)、gac2(79\~72)、gac3(97\~80)、gac4(95\~88)。
   2. 卡层数分析：
-     - 右边 rank192，gac1(69\~64)，gac2(75\~70)，gac3(81\~76)，gac4(87\~82)，最后一组VPP每个gac有6层（有2层是填充的）其他为8层，一共是 gac4*6*最后一个VPP+gac4*8*前2个VPP=88。
+     - 右边 rank192，gac1(69\~64)、gac2(75\~70)、gac3(81\~76)、gac4(87\~82)，最后一组VPP每个gac有6层（有2层是填充的）其他为8层，一共是 gac4*6*最后一个VPP+gac4*8*前2个VPP=88。
      - 左边 rank128，gac1(71\~64)，gac2(79\~72)，gac3(97\~80)，gac4(95\~88)，每组VPP每个gac有8层，一共是 gac4*8*VPP3=96。
 - **Layernorm**：再看一下（Rmsnorm），跟FA的不同是1层有4个Rmsnorm（input、q、k、pre）。
 
-  ![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/layernorm_rmsnorm_trend.png)
+  ![Rmsnorm反向梯度随层号变化的趋势图，每层含input、q、k、pre四个norm的放大趋势](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/layernorm_rmsnorm_trend.png)
 
   Rmsnorm280是final_layernorm，此外每层layer有4个layernorm。
   FA和Rmsnorm都看到放大现象，FA的可能性比较大，但还是建议选择其中一层进行逐行分析。
 
 #### 选一层放大趋势明显的层看（rank128的rmsnorm287和286之间）
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/rmsnorm287_286_trend_1.png)![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/rmsnorm287_286_trend_2.png)
+![rank128卡rmsnorm287与rmsnorm286之间梯度放大趋势的局部放大图](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/rmsnorm287_286_trend_1.png)![rank128卡rmsnorm287与rmsnorm286反向输入输出梯度的数值对比局部图](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/rmsnorm287_286_trend_2.png)
 
 前向执行代码，反向分析 NPU.npu_rms_norm.287\~286（√代表输入能找到来源）：
 
 - Tensor.__add__.152.backward：对应93行。
 - 这里从 Functional.linear.96.forward \~ MindSpeed.npu_moe_token_unpermute.193.forward 为 mlp 的重计算，48行\~88行。
 - MindSpeed.npu_moe_token_unpermute.193\~192.backward（√）、all_to_all_single.578.forward（√）：对应88行。
-- MindSpeed.npu_groupmatmul_add_fp32.0.forward(√)：对应86行，input.0是mm2_inputs，input.1是 MindSpeed.npu_moe_token_unpermute.192.backward 返回的梯度。
+- MindSpeed.npu_groupmatmul_add_fp32.0.forward（√）：对应86行，input.0是mm2_inputs，input.1是 MindSpeed.npu_moe_token_unpermute.192.backward 返回的梯度。
 - Tensor.transpose.288.forward、Torch.empty.557.forward：transpose的weight，反向代码里171行和170行。
 - NPU.npu_swiglu.96.backward（×）：对应85行，反向代码里的201行，这里调用了原始前向的反向，且漏了2个gmm反向采集，经过了 gmm2+actv+gmm1+78行以前。
 - Tensor.permute.97.forward：反向代码里224行。
@@ -148,11 +150,11 @@
 
 FA反向放大现象：
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/fa_backward_amplify_1.png)
+![FA反向放大现象：FA backward输出梯度量级随反向顺序持续增大的整体分布](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/fa_backward_amplify_1.png)
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/fa_backward_amplify_2.png)
+![FA反向放大现象：FA backward的q、k、v梯度放大倍数在层间逐层递增的对比](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/fa_backward_amplify_2.png)
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/fa_backward_amplify_3.png)
+![FA反向放大现象：相邻反向步骤间梯度量级明显跃升的局部细节](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/fa_backward_amplify_3.png)
 
 ### 步骤4——根因锁定
 
@@ -160,11 +162,11 @@ FA反向放大现象：
 
 因此，检查FA反向API对应的前向算子，看入参是否合规。
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/root_cause_sparsemode_1.png)
+![FA前向算子入参检查截图，含sparsemode与pre_tockens参数取值](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/root_cause_sparsemode_1.png)
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/root_cause_sparsemode_2.png)
+![FA前向算子入参中pre_tockens默认值与实际序列长度的对比，说明mask由三角退化为band](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/root_cause_sparsemode_2.png)
 
-![](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/root_cause_sparsemode_3.png)
+![FA前向算子输入输出shape与mask类型检查截图，用于判断入参是否合规](../figures/cases/ascend_complex_dump_gradnorm_nan_analysis/root_cause_sparsemode_3.png)
 
 ## 问题根因
 

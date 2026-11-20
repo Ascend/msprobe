@@ -1,5 +1,7 @@
 # fsdp训练后端verl训推一致性比对数据采集
 
+本文档介绍fsdp训练后端verl训推一致性比对数据采集，说明训练与推理输入shape不一致的原因，通过修改verl训练脚本与代码、添加msProbe的PrecisionDebugger接口采集训推一致性比对所需的dump数据，适用于需要进行verl训推一致性比对的用户。
+
 ## 简介
 
 [verl训推一致性比对场景](../accuracy_compare/pytorch_accuracy_compare_instruct.md#verl训推一致性比对场景)在比对前，需要保证训练和推理时的输入 shape 一致，才能确保比对时训练和推理dump的精度数据匹配。
@@ -33,7 +35,7 @@
 
    2. 需保证梯度累积步骤数 gas (Gradient Accumulation Steps) = 1
 
-      计算公式为：gac = train_ppo_mini_batch_size * n_resp_per_prompt / train_ppo_micro_batch_size_per_gpu / DP
+      计算公式为：gas = train_ppo_mini_batch_size * n_resp_per_prompt / train_ppo_micro_batch_size_per_gpu / DP
       - train_ppo_mini_batch_size: 每个 mini batch 的样本数量。
       - n_resp_per_prompt: 每个提示（prompt）下的响应数。
       - train_ppo_micro_batch_size_per_gpu: 每个GPU上处理的 micro batch 大小。

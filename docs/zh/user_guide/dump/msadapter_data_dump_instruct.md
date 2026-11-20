@@ -1,5 +1,7 @@
 # MSAdapter场景精度数据采集
 
+本文档介绍MSAdapter场景下的精度数据采集，通过在模型训练脚本中添加PrecisionDebugger接口并启动训练，采集模型运行过程中的精度数据，适用于需要在MSAdapter场景下采集精度数据的用户。
+
 ## 简介
 
 msProbe工具通过在MSAdapter模型训练脚本中添加`PrecisionDebugger`接口并启动训练的方式，采集模型运行过程中的精度数据。该工具支持MSAdapter场景不同level等级的精度数据采集。
@@ -295,7 +297,7 @@ MSAdapter场景下，dump输出文件的目录结构示例如下：
 
 * `dump_tensor_data`：保存采集到的张量数据。
 
-* `dump.json`： 保存API或Module输入输出数据的统计量信息，包含dump数据的API名称或Module名称，各数据的dtype、shape、max、min、mean、L2norm（L2范数，平方根）统计信息以及当配置 summary_mode="md5" 时的CRC-32 数据。
+* `dump.json`：保存API或Module输入输出数据的统计量信息，包含dump数据的API名称或Module名称，各数据的dtype、shape、max、min、mean、L2norm（L2范数，平方根）统计信息以及当配置summary_mode="md5"时的CRC-32数据。
 
 * `dump_error_info.log`：仅在dump工具报错时拥有此记录日志，用于记录dump错误日志。
 
@@ -303,9 +305,9 @@ MSAdapter场景下，dump输出文件的目录结构示例如下：
 
 * `construct.json`：分层分级结构，level为L1时，construct.json内容为空。
 
-当 dump配置文件中的“task”参数为“tensor”时，dump过程中，npy文件在对应算子或者模块被执行后就会落盘，而json文件则需要在正常执行PrecisionDebugger.stop()后才会写入完整数据。因此如果程序异常终止，终止前被执行算子的相关npy文件得以保存，但json文件中的数据可能丢失。
+当dump配置文件中的“task”参数为“tensor”时，dump过程中，npy文件在对应算子或者模块被执行后就会落盘，而json文件则需要在正常执行PrecisionDebugger.stop()后才会写入完整数据。因此如果程序异常终止，终止前被执行算子的相关npy文件得以保存，但json文件中的数据可能丢失。
 
-npy 文件名的前缀含义如下：
+npy文件名的前缀含义如下：
 
 | 前缀        | 含义                          |
 | ----------- | ---------------------------- |
@@ -314,7 +316,7 @@ npy 文件名的前缀含义如下：
 | Functional  | torch.nn.functional API数据。   |
 | NPU         | NPU亲和API数据。                |
 | Distributed | torch.distributed API数据。     |
-| Module      | torch.nn.Module 类（模块）数据。 |
+| Module      | torch.nn.Module类（模块）数据。 |
 | Jit         | 被 "jit" 装饰的模块或函数数据。   |
 | Primitive   | mindspore.ops.Primitive API数据。|
 
@@ -322,7 +324,7 @@ npy 文件名的前缀含义如下：
 
 #### L0级别
 
-L0级别的dump.json文件中包含了模块的输入输出、参数以及参数梯度数据。以 Conv2d 模块为例，网络中模块调用代码为：
+L0级别的dump.json文件中包含了模块的输入输出、参数以及参数梯度数据。以Conv2d模块为例，网络中模块调用代码为：
 `output = self.conv2(input) # self.conv2 = torch.nn.Conv2d(16, 32, 5, padding=2, bias=True)`
 
 dump.json文件中包含以下数据名称：

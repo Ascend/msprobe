@@ -1,5 +1,7 @@
 # 基于昇腾的VL模型迁移vLLM精度问题
 
+本文档介绍基于昇腾的VL模型迁移vLLM精度问题，记录通过逐层对比定位到Attention模块迁移缺失问题的过程，适用于进行类似VL模型迁移的用户。
+
 ## 问题背景
 
 在视觉语言（VL）模型迁移到昇腾 vLLM 推理平台时，推理结果与参照平台的精度对齐是决定迁移是否成功的关键。某 VL 模型从 transformers 推理框架迁移到昇腾 vLLM 后，发现从第 7 个 token 起推理结果与参照输出对不上，且后续出现乱码。本文记录了通过逐层对比定位到 Attention 模块迁移缺失问题的过程，为类似模型迁移提供参考。
@@ -14,7 +16,7 @@ VL 模型从 H20 + transformers 推理框架迁移到昇腾 + vLLM 推理框架�
 
 | 确认项                          | 确认结果                                                                                                                      |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| transformers 版本排查            | NPU 的 transformers 版本与 GPU 的版本不同；NPU 上的 vLLM 版本要求 transformers 必须大于指定版本，无法降低 NPU 侧版本     。                 |
+| transformers 版本排查            | NPU 的 transformers 版本与 GPU 的版本不同；NPU 上的 vLLM 版本要求 transformers 必须大于指定版本，无法降低 NPU 侧版本。                 |
 | 旋转位置编码误差                | 经过旋转位置编码后余弦相似度接近 1，优先级低。                                                          |
 | sliding_window 确认             | 确认没有使用该特性。                                                                                                            |
 | decode_layer 对比（Att 和 MLP）   | 各层余弦相似度均接近 1，msprobe 的统计信息找不到差异，需要再采集 Tensor。 |
@@ -28,19 +30,19 @@ VL 模型从 H20 + transformers 推理框架迁移到昇腾 + vLLM 推理框架�
 
 GPU 的输出：
 
-![](../figures/cases/ascend_vl_migration_vllm_precision/gpu_decoder_layer_output.png)
+![GPU侧第29层DecoderLayer输出张量数值分布，作为与NPU同类层输出对比的基准](../figures/cases/ascend_vl_migration_vllm_precision/gpu_decoder_layer_output.png)
 
 NPU 的输出：
 
-![](../figures/cases/ascend_vl_migration_vllm_precision/npu_decoder_layer_output.png)
+![NPU侧同一层DecoderLayer输出张量数值分布，与GPU侧结果差异明显](../figures/cases/ascend_vl_migration_vllm_precision/npu_decoder_layer_output.png)
 
 往前找，进一步分析 NPU 的 `Module.language_model.transformer.h.29.attn.attn.Attention.forward.0` 中 k 和 v 的值非常小：由于 GPU 侧没有 Attention 模块，NPU 侧看 28 层也是同样的问题，而 27 层及以前是正常的。
 
-![](../figures/cases/ascend_vl_migration_vllm_precision/attn_kv_abnormal_small.png)
+![NPU侧第29层Attention模块中k、v张量数值异常偏小的统计结果](../figures/cases/ascend_vl_migration_vllm_precision/attn_kv_abnormal_small.png)
 
 对应看模型配置文件，其中有以下配置，该配置主要在 `KVMirrorManagerHook` 和 `KVMirrorManager` 中使用，而这两个模块没有移植到 vLLM 的模型上，导致上面的差异。这两个函数的作用是在 `kv_mirror_imitated_layers` 保存 key_states 和 value_states，而在 `kv_mirror_layers` 则取对应的 key_states 和 value_states。由于在 `kv_mirror_layers` 对应的 layer 上 K 和 V 的 parameter 值非常小，如果不做这个处理，key_states 和 value_states 的值也会非常小，最终导致给到 attention 计算的 key_states 和 value_states 是异常小的值。
 
-![](../figures/cases/ascend_vl_migration_vllm_precision/model_config_kv_mirror.png)
+![模型配置文件中kv_mirror_imitated_layers与kv_mirror_layers相关配置项截图](../figures/cases/ascend_vl_migration_vllm_precision/model_config_kv_mirror.png)
 
 ## 问题根因
 

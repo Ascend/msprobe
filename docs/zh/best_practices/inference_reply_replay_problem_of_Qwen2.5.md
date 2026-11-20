@@ -8,7 +8,7 @@
 
 在昇腾环境上，基于 vLLM 推理框架部署 Qwen2.5-7B-Instruct 模型后，某个推理用例偶现持续输出"\n"，回复不终止的问题。问题回复如下图所示。
 
-![](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/bad_response.png)
+![推理服务回复持续输出换行符、回复不终止的异常回复截图](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/bad_response.png)
 
 最早发生问题时的模型部署配置如下：
 
@@ -92,7 +92,7 @@ vllm_ascend: 0.13.0rc1
 
 因为结构化输出的核心操作与硬件环境无关，实现代码在 vllm/v1/structured_output/utils.py 中，计算过程发生在 CPU 上，所以推测 GPU 平台上也会发生相同问题，与昇腾的硬件、软件无关。
 
-![](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/format_code.png)
+![GPU 环境 SGLang 复现相同回复不终止问题的实验记录，佐证问题与硬件环境无关](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/format_code.png)
 
 在 GPU 环境（SGLang+GPU）上进行相同实验，发现回复不终止问题同样发生，证明了该问题的发生与硬件环境无关。
 
@@ -109,7 +109,7 @@ vllm_ascend: 0.13.0rc1
 
 采集"万人研究"后两个 token 的原始 logits 与结构化处理后的 logits。
 
-![](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/save_logits.png)
+![万人研究后两个 token 的原始 logits 与结构化处理后 logits 的数值差异对比截图](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/save_logits.png)
 
 采集到的 logits 数据显示：输出第 1 个 token 时，无论原始 logits 还是结构化处理后的 logits，正常回复与异常回复之间都无明显差异；但输出第 2 个 token 时，原始 logits 差异较小，结构化处理后的 logits 差异巨大。
 
@@ -119,7 +119,7 @@ vllm_ascend: 0.13.0rc1
 
 apply_grammar_bitmask 函数源码如下：
 
-![](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/apply_grammar_bitmask.png)
+![apply_grammar_bitmask 函数源码截图，展示用 grammar_bitmask 数组对原始 logits 做掩码操作](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/apply_grammar_bitmask.png)
 
 采集 grammar_bitmask 数据的关键代码如下：
 
@@ -168,7 +168,7 @@ class NPUModelRunner(GPUModelRunner):
 
 在回复中搜索"\""，发现"万人研究\""中的"\""确实是 processed_content 这个字符串变量内容里的第一个"\""，按照 JSON 格式标准，应被视为字符串变量的闭合标志。
 
-![](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/json_format_analysis.png)
+![回复中双引号被解码后端判为 JSON 字符串闭合标志的 grammar_bitmask 取值变化分析截图](../figures/cases/inference_reply_replay_problem_of_Qwen2.5/json_format_analysis.png)
 
 这一发现恰能解释以下两个现象：
 
