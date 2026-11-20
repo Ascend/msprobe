@@ -866,9 +866,9 @@ __main__:
 `tag`需配合`PrecisionDebugger`的数据采集流程使用，完整使用示例如下：
 
 ```diff
-  import torch
-  import torch.nn as nn
-  import torch.nn.functional as F
+ import torch
+ import torch.nn as nn
+ import torch.nn.functional as F
 
 +# 导入工具的数据采集接口
 +from msprobe.pytorch import PrecisionDebugger, tag
@@ -876,45 +876,45 @@ __main__:
 +# 在模型训练开始前实例化PrecisionDebugger
 +debugger = PrecisionDebugger(config_path="./config.json")
 
-  # 定义子模块
-  class AttnCore(nn.Module):
-      def __init__(self):
-          super().__init__()
-          self.k_proj = nn.Linear(64, 64)
-          self.v_proj = nn.Linear(64, 64)
+ # 定义子模块
+ class AttnCore(nn.Module):
+     def __init__(self):
+         super().__init__()
+         self.k_proj = nn.Linear(64, 64)
+         self.v_proj = nn.Linear(64, 64)
 
-      def forward(self, q, mask):
-          score = q @ self.k_proj(q).transpose(-2, -1) + mask
-          return F.softmax(score, dim=-1) @ self.v_proj(q)
+     def forward(self, q, mask):
+         score = q @ self.k_proj(q).transpose(-2, -1) + mask
+         return F.softmax(score, dim=-1) @ self.v_proj(q)
 
-  # 定义网络
-  class DemoModel(nn.Module):
-      def __init__(self):
-          super().__init__()
-          self.q_proj = nn.Linear(64, 64)
-          self.attn_core = AttnCore()
-          self.o_proj = nn.Linear(64, 64)
+ # 定义网络
+ class DemoModel(nn.Module):
+     def __init__(self):
+         super().__init__()
+         self.q_proj = nn.Linear(64, 64)
+         self.attn_core = AttnCore()
+         self.o_proj = nn.Linear(64, 64)
 
-      def forward(self, x, mask):
-          q = self.q_proj(x)
-+         # 标注注意力计算段
-+         with tag("attn_seg"):
-+             attn = self.attn_core(q, mask)
-          return self.o_proj(attn)
+     def forward(self, x, mask):
+         q = self.q_proj(x)
++        # 标注注意力计算段
++        with tag("attn_seg"):
++            attn = self.attn_core(q, mask)
+         return self.o_proj(attn)
 
-  if __name__ == "__main__":
-      model = DemoModel()
+ if __name__ == "__main__":
+     model = DemoModel()
 
-+     debugger.start(model=model)  # 开启数据dump
++    debugger.start(model=model)  # 开启数据dump
 
-      x = torch.randn(10, 64)
-      mask = torch.zeros(10, 10)
-      out = model(x, mask)
-      loss = out.sum()
-      loss.backward()
+     x = torch.randn(10, 64)
+     mask = torch.zeros(10, 10)
+     out = model(x, mask)
+     loss = out.sum()
+     loss.backward()
 
-+     debugger.stop()  # 关闭数据dump，可继续开启数据dump，采集数据会记录在同一个step中
-+     debugger.step()  # 结束数据dump，若继续开启数据dump，采集数据将记录在下一个step中
++    debugger.stop()  # 关闭数据dump，可继续开启数据dump，采集数据会记录在同一个step中
++    debugger.step()  # 结束数据dump，若继续开启数据dump，采集数据将记录在下一个step中
 ```
 
 **使用示例（自定义标签比对场景）**
