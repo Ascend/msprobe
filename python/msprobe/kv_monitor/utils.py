@@ -38,7 +38,7 @@ def distributed_rank() -> int:
 
 
 def step_is_prefill(computed_tokens, prompt_tokens) -> bool:
-    return bool(computed_tokens < prompt_tokens)
+    return bool(computed_tokens <= prompt_tokens)
 
 
 def get_field(obj, name, default=None):

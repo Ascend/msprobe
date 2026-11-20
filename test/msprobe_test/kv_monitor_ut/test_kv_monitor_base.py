@@ -232,3 +232,161 @@ def test_rank_slot_local_tokens_is_the_single_production_entry():
     assert plain.local_tokens(8, None) is None
     assert plain.local_tokens(0, [10, 11]) is None
     assert RankSlotMapping(0).local_tokens(8, [10, 11]) is None
+
+
+def test_v2_engine_state_is_supported():
+    """v2 ExecuteModelState（NamedTuple）走独立分支：计数/进度/位置/槽位都取自 input_batch 与 block_tables。"""
+    from types import SimpleNamespace
+
+    import numpy as np
+    import torch
+
+    from msprobe.kv_monitor.engine.adapter import VllmEngineAdapter
+
+    class _Staged:
+        def __init__(self, gpu):
+            self.gpu = gpu
+
+    batch = SimpleNamespace(
+        req_ids=["r1"],
+        num_reqs=1,
+        num_scheduled_tokens=np.array([3], dtype=np.int64),
+        num_tokens=3,
+        num_computed_tokens_np=np.array([5], dtype=np.int64),
+        prefill_len_np=np.array([2], dtype=np.int64),
+        positions=torch.arange(3),
+        seq_lens=torch.tensor([8]),
+        idx_mapping_np=np.array([0], dtype=np.int64),
+    )
+    state = SimpleNamespace(
+        input_batch=batch,
+        attn_metadata={"layer0": object()},
+        slot_mappings_by_layer={"layer0": torch.tensor([1, 2, 3])},
+        finished_req_ids={"r2"},
+    )
+    engine = SimpleNamespace(
+        execute_model_state=state,
+        input_batch=batch,
+        block_tables=SimpleNamespace(block_tables=[_Staged(torch.tensor([[7, 8]]))]),
+        vllm_config=SimpleNamespace(kv_transfer_config=SimpleNamespace(is_kv_producer=True, is_kv_consumer=False)),
+    )
+    adapter = VllmEngineAdapter(engine)
+
+    context = adapter.observe_step()
+    assert context is not None
+    assert context.attn_metadata is state
+    assert context.finished_req_ids == frozenset({"r2"})
+    assert adapter.role() == "P"
+
+    observation = adapter.observe_batch(None)
+    assert observation.num_scheduled == {"r1": 3}
+    assert observation.total_scheduled == 3
+
+    progress = adapter.request_progress(None)
+    assert list(progress.computed_tokens) == [5]
+    assert list(progress.prompt_tokens) == [2]
+    assert adapter.positions(3).tolist() == [0, 1, 2]
+    assert adapter.slot_mapping(state, "layer0").tolist() == [1, 2, 3]
+
+    seq_lens, rows = adapter.resolve_kv_meta(state)
+    assert seq_lens == [8]
+    assert rows.tolist() == [[7, 8]]
+
+
+def test_ledger_labels_decode_first_step_as_prefill():
+    """decode 首个 step 做末位重算（写 prompt 末位），账本按 prefill 记账。"""
+    from types import SimpleNamespace
+
+    import numpy as np
+    import torch
+
+    from msprobe.kv_monitor.engine.adapter import BatchObservation, VllmEngineAdapter
+    from msprobe.kv_monitor.hooks.runner import _slot_segments
+
+    batch = SimpleNamespace(
+        req_ids=["r1"],
+        num_reqs=1,
+        num_scheduled_tokens=np.array([1], dtype=np.int64),
+        num_tokens=1,
+        num_computed_tokens_np=np.array([19], dtype=np.int64),
+        prefill_len_np=np.array([19], dtype=np.int64),
+    )
+    engine = SimpleNamespace(
+        input_batch=batch,
+        execute_model_state=SimpleNamespace(input_batch=batch, slot_mappings_by_layer={"l0": torch.tensor([5])}),
+        block_tables=SimpleNamespace(slot_mappings=torch.tensor([[5]])),
+    )
+    engine._kv_monitor_adapter = VllmEngineAdapter(engine)
+
+    segments = list(_slot_segments(engine, BatchObservation(num_scheduled={"r1": 1}, total_scheduled=1), 1, None))
+
+    assert segments == [("r1", [5], True)]
+
+
+def test_step_is_prefill_includes_recompute_step():
+    """computed == prompt 的首个 decode step 属末位重算，按 prefill 处理。"""
+    from msprobe.kv_monitor.utils import step_is_prefill
+
+    assert step_is_prefill(0, 14) is True      # 首个 prefill 步
+    assert step_is_prefill(14, 14) is True     # 末位重算
+    assert step_is_prefill(15, 14) is False    # 后续 decode
+
+
+def test_v2_slot_values_survive_cleared_execute_state():
+    """v2 的 _dummy_run 会清空 execute_model_state：槽位仍应从 block_tables 读到，不能抛 AttributeError。"""
+    from types import SimpleNamespace
+
+    import torch
+
+    from msprobe.kv_monitor.engine.adapter import VllmEngineAdapter
+
+    engine = SimpleNamespace(
+        execute_model_state=None,
+        block_tables=SimpleNamespace(slot_mappings=torch.tensor([[128, 129, 130]])),
+    )
+
+    assert VllmEngineAdapter(engine).slot_values(3) == [128, 129, 130]
+
+
+def test_v1_boundary_step_is_prefill():
+    """v1 边界步：首个 decode 步 computed == prompt，按 prefill 记账。"""
+    from types import SimpleNamespace
+
+    import numpy as np
+
+    from msprobe.kv_monitor.engine.adapter import VllmEngineAdapter
+    from msprobe.kv_monitor.utils import step_is_prefill
+
+    batch = SimpleNamespace(
+        req_ids=["r1"],
+        num_reqs=1,
+        num_prompt_tokens=np.array([14]),
+        num_computed_tokens_cpu=np.array([14]),
+    )
+    engine = SimpleNamespace(input_batch=batch, execute_model_state=None)
+    adapter = VllmEngineAdapter(engine)
+
+    progress = adapter.request_progress(None)
+
+    assert step_is_prefill(progress.computed_tokens[0], progress.prompt_tokens[0]) is True
+
+
+def test_v2_cp_geometry_dcp_only():
+    """v2 的 BlockTables.cp_size 只含 DCP：DCP=1 且开了 PCP 时回落到非 CP（PCP 分片待按 v2 布局单独实现）。"""
+    from types import SimpleNamespace
+
+    from msprobe.kv_monitor.engine.adapter import VllmEngineAdapter
+
+    tables = SimpleNamespace(
+        cp_size=1,
+        cp_rank=0,
+        cp_interleave=1,
+        block_sizes=[128],
+        blocks_per_kv_block=[1],
+    )
+    engine = SimpleNamespace(
+        block_tables=tables,
+        vllm_config=SimpleNamespace(parallel_config=SimpleNamespace(prefill_context_parallel_size=2)),
+    )
+
+    assert VllmEngineAdapter(engine).cp_geometry() is None

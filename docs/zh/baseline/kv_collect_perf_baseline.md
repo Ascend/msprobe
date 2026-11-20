@@ -22,7 +22,6 @@ NPU：Atlas A2 训练服务器系列产品（单卡 32 GB，本次使用 2 张�
 
 ```shell
 export ASCEND_RT_VISIBLE_DEVICES=0,1
-export VLLM_USE_V1=1
 vllm serve /data/weights/DeepSeek-V2-Lite \
   --host 0.0.0.0 --port 8000 \
   --tensor-parallel-size 2 --seed 1024 \

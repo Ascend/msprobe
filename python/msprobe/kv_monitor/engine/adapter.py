@@ -19,6 +19,18 @@ from msprobe.kv_monitor.const import (
 _ADAPTER_ATTR = "_kv_monitor_adapter"
 
 # pre_sample_state 元组布局
+_V2_STATE_ATTRS = ("input_batch", "slot_mappings_by_layer")
+
+
+def _is_v2_state(state: Any) -> bool:
+    """v2 ExecuteModelState 是 NamedTuple：input_batch / attn_metadata / slot_mappings_by_layer ..."""
+    return state is not None and all(hasattr(state, attr) for attr in _V2_STATE_ATTRS)
+
+
+def _is_v2_batch(batch: Any) -> bool:
+    return batch is not None and hasattr(batch, "num_computed_tokens_np") and hasattr(batch, "num_scheduled_tokens")
+
+
 _SCHEDULER_OUTPUT_INDEX = 0
 _ATTN_METADATA_INDEX = 7
 
@@ -230,8 +242,29 @@ class EngineAdapter(ABC):
 class VllmEngineAdapter(EngineAdapter):
     engine: Any
 
+    def _v2_batch(self) -> Any | None:
+        """v2 的 InputBatch（含 num_computed_tokens_np 等字段），非 v2 返回 None。"""
+        batch = self._current_batch()
+        return batch if _is_v2_batch(batch) else None
+
+    def _current_batch(self) -> Any:
+        """v1 的 batch 在 runner.input_batch；v2 在 execute_model_state.input_batch。"""
+        batch = getattr(self.engine, "input_batch", None)
+        if batch is not None:
+            return batch
+        state = getattr(self.engine, "execute_model_state", None)
+        return getattr(state, "input_batch", None) if state is not None else None
+
     def observe_batch(self, scheduler_output: Any) -> BatchObservation | None:
-        if scheduler_output is None or self.engine.input_batch is None:
+        v2_batch = self._v2_batch()
+        if v2_batch is not None:
+            num_reqs = int(v2_batch.num_reqs)
+            counts = np.asarray(v2_batch.num_scheduled_tokens[:num_reqs], dtype=np.int64)
+            return BatchObservation(
+                num_scheduled=dict(zip(v2_batch.req_ids[:num_reqs], counts.tolist())),
+                total_scheduled=int(v2_batch.num_tokens),
+            )
+        if scheduler_output is None or self._current_batch() is None:
             return None
         return BatchObservation(
             num_scheduled=scheduler_output.num_scheduled_tokens,
@@ -240,6 +273,15 @@ class VllmEngineAdapter(EngineAdapter):
 
     def observe_step(self) -> StepContext | None:
         state = self.engine.execute_model_state
+        if _is_v2_state(state):
+            if not state.slot_mappings_by_layer and not state.attn_metadata:
+                return None
+            return StepContext(
+                pre_sample_state=state,
+                scheduler_output=None,
+                attn_metadata=state,
+                finished_req_ids=frozenset(getattr(state, "finished_req_ids", None) or ()),
+            )
         if state is None or len(state) <= _ATTN_METADATA_INDEX:
             return None
         scheduler_output = state[_SCHEDULER_OUTPUT_INDEX]
@@ -258,6 +300,14 @@ class VllmEngineAdapter(EngineAdapter):
         )
 
     def request_progress(self, scheduler_output: Any = None) -> RequestProgress:
+        v2_batch = self._v2_batch()
+        if v2_batch is not None:
+            num_reqs = int(v2_batch.num_reqs)
+            computed = np.asarray(v2_batch.num_computed_tokens_np[:num_reqs], dtype=np.int64)
+            return RequestProgress(
+                prompt_tokens=np.asarray(v2_batch.prefill_len_np[:num_reqs], dtype=np.int64),
+                computed_tokens=computed,
+            )
         if scheduler_output is None:
             return RequestProgress(
                 prompt_tokens=self.engine.input_batch.num_prompt_tokens,
@@ -270,6 +320,18 @@ class VllmEngineAdapter(EngineAdapter):
         )
 
     def slot_values(self, count: int) -> list | None:
+        tables = getattr(self.engine, "block_tables", None)
+        if tables is not None:
+            state = getattr(self.engine, "execute_model_state", None)
+            mappings = getattr(state, "slot_mappings_by_layer", None) if state is not None else None
+            if mappings:
+                first = next(iter(mappings.values()))
+                if first is not None:
+                    return first.reshape(-1)[:count].cpu().tolist()
+            slot_mappings = getattr(tables, "slot_mappings", None)
+            if slot_mappings is None:
+                return None
+            return slot_mappings.reshape(-1)[:count].cpu().tolist()
         slot_mapping = self._slot_mapping_from_block_table(self.engine.input_batch.block_table)
         if slot_mapping is None:
             return None
@@ -299,7 +361,23 @@ class VllmEngineAdapter(EngineAdapter):
         return np.concatenate(chunks)[:total]
 
     def cp_geometry(self) -> CpGeometry | None:
-        """读取 PCP/DCP 几何；未开启 CP 或信息不全时返回 None（回落到非 CP 公式）。"""
+        """读取 CP 几何；未开启 CP 或信息不全时返回 None（回落到非 CP 公式）。"""
+        v2_tables = getattr(self.engine, "block_tables", None)
+        if v2_tables is not None and hasattr(v2_tables, "cp_size"):
+            if int(getattr(v2_tables, "cp_size", 1) or 1) <= 1:
+                return None
+            physical = int((getattr(v2_tables, "block_sizes", None) or [0])[0] or 0)
+            if physical <= 0:
+                logger.warning("[kv-monitor] cp enabled but block_sizes unavailable, fall back to non-cp mapping")
+                return None
+            per_block = getattr(v2_tables, "blocks_per_kv_block", None) or [1]
+            return CpGeometry(
+                int(v2_tables.cp_size),
+                int(getattr(v2_tables, "cp_rank", 0) or 0),
+                int(getattr(v2_tables, "cp_interleave", 1) or 1),
+                physical,
+                max(int(per_block[0] or 1), 1),
+            )
         try:
             from vllm.distributed import get_dcp_group, get_pcp_group
 
@@ -309,8 +387,7 @@ class VllmEngineAdapter(EngineAdapter):
             dcp_rank = int(dcp.rank_in_group) if dcp_size > 1 else 0
         except Exception:
             return None
-        total_cp = pcp_size * dcp_size
-        if total_cp <= 1:
+        if pcp_size * dcp_size <= 1:
             return None
         parallel = getattr(self.engine.vllm_config, "parallel_config", None)
         interleave = int(getattr(parallel, "cp_kv_cache_interleave_size", 1) or 1)
@@ -320,16 +397,34 @@ class VllmEngineAdapter(EngineAdapter):
             if inner:
                 table = inner[0]
         physical = int(getattr(table, "physical_block_size", 0) or 0)
-        blocks_per_phys = int(getattr(table, "blocks_per_phys_block", 1) or 1)
         if physical <= 0:
             logger.warning("[kv-monitor] cp enabled but physical_block_size unavailable, fall back to non-cp mapping")
             return None
         return CpGeometry(
-            total_cp, dcp_size * pcp_rank + dcp_rank, max(interleave, 1), physical, max(blocks_per_phys, 1)
+            pcp_size * dcp_size,
+            dcp_size * pcp_rank + dcp_rank,
+            max(interleave, 1),
+            physical,
+            max(int(getattr(table, "blocks_per_phys_block", 1) or 1), 1),
         )
 
     def resolve_kv_meta(self, attn_metadata: Any) -> tuple[list[int] | None, Any]:
+        if _is_v2_state(attn_metadata):
+            batch = attn_metadata.input_batch
+            if batch is None:
+                return None, None
+            num_reqs = int(batch.num_reqs)
+            seq_lens = np.asarray(batch.seq_lens[:num_reqs].cpu(), dtype=np.int64).tolist()
+            tables = getattr(self.engine, "block_tables", None)
+            groups = getattr(tables, "block_tables", None)
+            if not groups:
+                return None, None
+            idx = np.asarray(batch.idx_mapping_np[:num_reqs], dtype=np.int64)
+            rows = groups[0].gpu[idx].cpu()
+            return seq_lens, rows
         layer_meta = next(iter(attn_metadata.values()))
+        if layer_meta is None:
+            return None, None
         seq_lens = None
         for candidate in _seq_lens_candidates(layer_meta):
             resolved = _as_int_list(candidate)
@@ -355,13 +450,18 @@ class VllmEngineAdapter(EngineAdapter):
     # —— 引擎级 ——
 
     def req_ids(self) -> list:
-        batch = self.engine.input_batch
+        batch = self._current_batch()
         return list(batch.req_ids[: batch.num_reqs])
 
     def arange(self, count: int) -> Any:
+        if self._v2_batch() is not None:
+            return np.arange(count, dtype=np.int64)
         return self.engine.arange_np[:count]
 
     def positions(self, count: int) -> Any:
+        v2_batch = self._v2_batch()
+        if v2_batch is not None:
+            return v2_batch.positions[:count].cpu().numpy()
         return self.engine._positions_np_buf[:count]
 
     def layers(self) -> Any:
@@ -372,8 +472,13 @@ class VllmEngineAdapter(EngineAdapter):
         return {name: module for name, module in context.items() if not isinstance(module, mamba_types)}
 
     def role(self) -> str:
-        is_producer = getattr(self.engine, "is_kv_producer", False)
-        is_consumer = getattr(self.engine, "is_kv_consumer", False)
+        source = self.engine
+        if not hasattr(source, "is_kv_producer"):
+            source = getattr(self.engine.vllm_config, "kv_transfer_config", None)
+            if source is None:
+                return ROLE_MIXED
+        is_producer = bool(getattr(source, "is_kv_producer", False))
+        is_consumer = bool(getattr(source, "is_kv_consumer", False))
         if is_producer and not is_consumer:
             return ROLE_PRODUCER
         if is_consumer and not is_producer:
@@ -407,6 +512,9 @@ class VllmEngineAdapter(EngineAdapter):
         return tuple(kv_cache[:_KV_COMPONENTS])
 
     def slot_mapping(self, attn_metadata: Any, layer_name: str) -> torch.Tensor | None:
+        if _is_v2_state(attn_metadata):
+            mappings = attn_metadata.slot_mappings_by_layer or {}
+            return mappings.get(layer_name)
         layer_metas = tuple(attn_metadata) if isinstance(attn_metadata, list) else (attn_metadata,)
         slots: list[torch.Tensor] = []
         for metadata_dict in layer_metas:

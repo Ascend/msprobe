@@ -21,7 +21,6 @@ pip install --no-deps .
 **约束**
 
 - 本功能适用于 vLLM Ascend，支持 Eager 和图模式。
-- 模型执行组件只支持 Model Runner V1（MRV1），通过 `VLLM_USE_V1=1` 启用。
 
 ## 功能介绍
 
@@ -34,7 +33,6 @@ pip install --no-deps .
 通过 `--additional-config` 的 `kv_trace` 对象开启采集。以下示例使用 Eager 模式，仅采集前 2 层：
 
 ```shell
-export VLLM_USE_V1=1
 vllm serve /path/to/model \
   --enforce-eager \
   --additional-config '{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats","kv_stats_max_layers":2}}'

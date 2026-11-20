@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Iterator
 
+from msprobe.core.common.log import logger
 from msprobe.kv_monitor.dump.ledger import record_rows
 from msprobe.kv_monitor.engine.adapter import adapt_to
 from msprobe.kv_monitor.utils import (
@@ -20,11 +21,14 @@ def apply_patch(cls, method_name: str = "execute_model") -> None:
 def _make_wrapper(original_execute_model):
     def _wrapped_execute_model(self, scheduler_output, *args, **kwargs):
         result = original_execute_model(self, scheduler_output, *args, **kwargs)
+        if kwargs.get("dummy_run"):
+            return result
         # 槽位必须等 block table 更新后才能读，所以放在执行之后；
         # 「本步是否 prefill」则用执行前的 computed 值判定（见 _slot_segments）。
         try:
             rows = _build_rows(self, scheduler_output)
-        except Exception:
+        except Exception as exc:
+            logger.warning(f"[kv-monitor] build ledger rows failed: {exc}")
             rows = None
         if rows:
             record_rows(self, rows)
@@ -50,10 +54,7 @@ def _slot_segments(runner, observation, total: int, scheduler_output=None) -> It
             continue
         slots = slot_values[offset : offset + count] if slot_values is not None else []
         offset += count
-        # request_progress 在执行后读取时 computed 已累加本步 token 数：
-        # 回退得到「执行前」的值，否则把 prompt 一次算完的首个 prefill 步会误判成 decode。
-        computed_before = int(computed_tokens_per_req[index]) - int(count)
-        is_prefill = step_is_prefill(computed_before, int(prompt_tokens_per_req[index]))
+        is_prefill = step_is_prefill(computed_tokens_per_req[index], prompt_tokens_per_req[index])
         yield request_id, slots, is_prefill
 
 
