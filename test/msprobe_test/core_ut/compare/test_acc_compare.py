@@ -2034,5 +2034,67 @@ class TestConsistentMatch(unittest.TestCase):
                 _make_match_df("bench.api", "bench.api"),
             )
 
+
+class TestCompareCoreCsvEncoding(unittest.TestCase):
+
+    def test_compare_core_when_csv_mode_then_write_df_to_csv_uses_utf8_sig(self):
+        mode_config = ModeConfig(dump_mode=Const.SUMMARY, xlsx=False)
+        comparator = Comparator(MagicMock(), mode_config, MappingConfig())
+
+        result_df = pd.DataFrame({
+            CompareConst.NPU_NAME: ['op_a'],
+            CompareConst.BENCH_NAME: ['op_a'],
+            'state': ['ok'],
+            'api_origin_name': ['op_a'],
+        })
+        parse_result = (pd.DataFrame([{'op': 'a'}]), pd.DataFrame([{'op': 'a'}]))
+        input_param = {'npu_path': 'npu.json', 'bench_path': 'bench.json', 'stack_path': None}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            file_path = os.path.join(tmp, 'result.csv')
+            with patch.object(Comparator, 'process_output_file', return_value=file_path), \
+                 patch('msprobe.core.compare.acc_compare.ParseData') as mock_parse_data, \
+                 patch.object(Comparator, 'compare_statistics', return_value=result_df), \
+                 patch('msprobe.core.compare.acc_compare.calculate_excel_result_df'), \
+                 patch('msprobe.core.compare.acc_compare.print_compare_ends_info'), \
+                 patch('msprobe.core.compare.acc_compare.write_df_to_csv') as mock_write_csv:
+                mock_parse_data.return_value.parse.return_value = parse_result
+                comparator.compare_core(input_param, os.path.join(tmp, 'output'))
+
+        mock_write_csv.assert_called_once()
+        # csv compare results must be written with utf-8-sig so excel opens them correctly
+        self.assertEqual(mock_write_csv.call_args.kwargs.get('encoding'), 'utf-8-sig')
+
+    def test_compare_core_when_xlsx_mode_then_write_df_to_csv_not_called(self):
+        mode_config = ModeConfig(dump_mode=Const.SUMMARY, xlsx=True)
+        comparator = Comparator(MagicMock(), mode_config, MappingConfig())
+
+        result_df = pd.DataFrame({
+            CompareConst.NPU_NAME: ['op_a'],
+            CompareConst.BENCH_NAME: ['op_a'],
+            'state': ['ok'],
+            'api_origin_name': ['op_a'],
+        })
+        parse_result = (pd.DataFrame([{'op': 'a'}]), pd.DataFrame([{'op': 'a'}]))
+        input_param = {'npu_path': 'npu.json', 'bench_path': 'bench.json', 'stack_path': None}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            file_path = os.path.join(tmp, 'result.xlsx')
+            with patch.object(Comparator, 'process_output_file', return_value=file_path), \
+                 patch('msprobe.core.compare.acc_compare.ParseData') as mock_parse_data, \
+                 patch.object(Comparator, 'compare_statistics', return_value=result_df), \
+                 patch('msprobe.core.compare.acc_compare.calculate_excel_result_df'), \
+                 patch('msprobe.core.compare.acc_compare.print_compare_ends_info'), \
+                 patch('msprobe.core.compare.acc_compare.write_df_to_csv') as mock_write_csv, \
+                 patch('msprobe.core.compare.acc_compare.save_excel') as mock_save_excel:
+                mock_parse_data.return_value.parse.return_value = parse_result
+                comparator.compare_core(input_param, os.path.join(tmp, 'output'))
+
+        mock_write_csv.assert_not_called()
+        mock_save_excel.assert_called_once()
+        self.assertEqual(mock_save_excel.call_args[0][0], file_path)
+        self.assertIs(mock_save_excel.call_args[0][1], result_df)
+
+
 if __name__ == '__main__':
     unittest.main()

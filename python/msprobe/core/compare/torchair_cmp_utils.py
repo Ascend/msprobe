@@ -30,12 +30,11 @@ from msprobe.core.common.const import FileCheckConst
 from msprobe.core.common.file_utils import FileChecker, create_directory, write_df_to_csv
 from msprobe.core.common.log import logger
 from msprobe.infer.utils.check.rule import Rule
-from msprobe.infer.utils.constants import TENSOR_MAX_SIZE
 from msprobe.infer.utils.util import safe_torch_load
 
 GLOBAL_HISTORY_AIT_DUMP_PATH_LIST = ["msit_dump", "ait_dump"]
 
-TOKEN_ID = "token_id"
+TOKEN_ID = "token_id"  # nosec B105
 DATA_ID = "data_id"
 GOLDEN_DATA_PATH = "golden_data_path"
 GOLDEN_DTYPE = "golden_dtype"
@@ -247,7 +246,7 @@ def save_compare_result_to_csv(gathered_row_data, output_path=".", columns=None,
     data_frame = pd.DataFrame(gathered_row_data, columns=columns)
     data_frame.fillna(value="", inplace=True)
     data_frame.dropna(axis=0, how="all", inplace=True)
-    write_df_to_csv(data_frame, csv_save_path)
+    write_df_to_csv(data_frame, csv_save_path, encoding='utf-8-sig')
     logger.info(f"Saved comparing results: {csv_save_path}")
     return csv_save_path
 

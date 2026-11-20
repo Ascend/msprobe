@@ -334,7 +334,7 @@ class GraphMSComparator:
             else:
                 # float类型的inf转成空格+inf的字符串，解决excel打开csv，inf不被识别显示#NAME?的问题
                 compare_result_df = compare_result_df.replace({np.inf: " inf", -np.inf: " -inf"})
-                write_df_to_csv(compare_result_df, compare_result_path)
+                write_df_to_csv(compare_result_df, compare_result_path, encoding='utf-8-sig')
             logger.info(f"Compare rank: {rank_id} step: {step_id} finish. Compare result: {compare_result_path}.")
 
     def compare_process(self, rank_id, step_id):

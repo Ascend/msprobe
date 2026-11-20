@@ -235,7 +235,7 @@ class Comparator:
         else:
             # float类型的inf转成空格+inf的字符串，解决excel打开csv，inf不被识别显示#NAME?的问题
             result_df = result_df.replace({np.inf: " inf", -np.inf: " -inf"})
-            write_df_to_csv(result_df, file_path)
+            write_df_to_csv(result_df, file_path, encoding='utf-8-sig')
 
         print_compare_ends_info()
 
