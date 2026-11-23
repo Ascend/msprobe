@@ -101,7 +101,7 @@ def process_directory_pair(item: Tuple[Path, Tuple[Path, Path]], name_map_dict: 
     check_path_before_create(output_path)
     # 保存结果
     result_path = os.path.join(output_path, 'result.csv')
-    write_df_to_csv(result_df, result_path, encoding='utf-8-sig')
+    write_df_to_csv(result_df, result_path)
     logger.info(f"Results saved to {result_path}")
     return None
 

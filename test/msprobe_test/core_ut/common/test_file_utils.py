@@ -369,7 +369,7 @@ class TestCSVOperations:
                 mode='w',
                 header=True,
                 index=False,
-                encoding='utf-8'
+                encoding='utf-8-sig'
             )
 
         # Test invalid data type

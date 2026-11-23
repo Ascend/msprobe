@@ -246,7 +246,7 @@ def save_compare_result_to_csv(gathered_row_data, output_path=".", columns=None,
     data_frame = pd.DataFrame(gathered_row_data, columns=columns)
     data_frame.fillna(value="", inplace=True)
     data_frame.dropna(axis=0, how="all", inplace=True)
-    write_df_to_csv(data_frame, csv_save_path, encoding='utf-8-sig')
+    write_df_to_csv(data_frame, csv_save_path)
     logger.info(f"Saved comparing results: {csv_save_path}")
     return csv_save_path
 

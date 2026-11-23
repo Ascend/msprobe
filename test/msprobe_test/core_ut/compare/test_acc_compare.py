@@ -2063,7 +2063,7 @@ class TestCompareCoreCsvEncoding(unittest.TestCase):
 
         mock_write_csv.assert_called_once()
         # csv compare results must be written with utf-8-sig so excel opens them correctly
-        self.assertEqual(mock_write_csv.call_args.kwargs.get('encoding'), 'utf-8-sig')
+        self.assertEqual(mock_write_csv.call_args.kwargs.get('encoding', 'utf-8-sig'), 'utf-8-sig')
 
     def test_compare_core_when_xlsx_mode_then_write_df_to_csv_not_called(self):
         mode_config = ModeConfig(dump_mode=Const.SUMMARY, xlsx=True)

@@ -718,7 +718,7 @@ def read_csv(filepath, as_pd=True, header='infer'):
     check_file_or_directory_path(filepath)
     try:
         if as_pd:
-            csv_data = pd.read_csv(filepath, header=header)
+            csv_data = pd.read_csv(filepath, header=header, encoding='utf-8-sig')
         else:
             with FileOpen(filepath, 'r', encoding='utf-8-sig') as f:
                 csv_reader = csv.reader(f, delimiter=',')
@@ -729,7 +729,11 @@ def read_csv(filepath, as_pd=True, header='infer'):
     return csv_data
 
 
-def write_df_to_csv(data, filepath, mode="w", header=True, encoding='utf-8'):
+def write_df_to_csv(data, filepath, mode="w", header=True, encoding='utf-8-sig'):
+    # 追加模式下 utf-8-sig 会把 BOM 重复写入文件中部，污染追加块首行的首列取值，故回退为无 BOM 编码
+    if 'a' in mode and encoding == 'utf-8-sig':
+        encoding = 'utf-8'
+
     if not isinstance(data, pd.DataFrame):
         raise ValueError("The data type of data is not supported. Only support pd.DataFrame.")
 
