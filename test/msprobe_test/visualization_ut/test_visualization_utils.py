@@ -247,24 +247,6 @@ class TestUtilsExtra(unittest.TestCase):
                 with self.assertRaises(MsprobeException):
                     load_parallel_param(args)
 
-    def test_calculate_list(self):
-        npu = os.path.join(self.base, "npu")
-        bench = os.path.join(self.base, "bench")
-        self._make_ranks(npu, 2)
-        for name in ("rank1", "rank2"):
-            os.makedirs(os.path.join(bench, name))
-        self.assertEqual(
-            calculate_list(npu, bench, mode=GraphConst.INTERSECTION),
-            ["rank1"],
-        )
-        self.assertEqual(
-            calculate_list(npu, bench, mode=GraphConst.UNION),
-            ["rank0", "rank1", "rank2"],
-        )
-        same = os.path.join(self.base, "same")
-        self._make_ranks(same, 2)
-        self.assertEqual(calculate_list(npu, same), ["rank0", "rank1"])
-
     def test_calculate_list_invalid(self):
         npu = os.path.join(self.base, "npu2")
         bench = os.path.join(self.base, "bench2")

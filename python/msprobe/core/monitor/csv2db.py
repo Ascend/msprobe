@@ -19,15 +19,9 @@ import re
 from collections import OrderedDict, defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Tuple, Any
 
 from msprobe.core.common.const import MonitorConst, Data2DBConst
-from msprobe.core.common.data_concat import (
-    ConcatPlan,
-    DatasetAxis,
-    build_concat_plan,
-    build_single_plan,
-)
 from msprobe.core.common.file_utils import read_csv
 from msprobe.core.common.log import logger
 from msprobe.core.monitor.db_utils import MonitorDB, update_ordered_dict, get_ordered_list
@@ -44,9 +38,6 @@ class CSV2DBConfig:
     db_file: str = None
     micro_step: bool = True
     mapping: Dict = None
-    compare_output_dirs: Optional[Dict[int, str]] = None
-    concat_dim: str = Data2DBConst.CONCAT_DIM_STEP
-    concat_plan: Optional[ConcatPlan] = None
 
 
 def get_metric_name_from_filename(file_name: str) -> Tuple[str, str, str]:
@@ -69,10 +60,11 @@ def get_metric_name_from_filename(file_name: str) -> Tuple[str, str, str]:
 
 def _pre_scan_single_rank(rank: int, files: List[str], mapping: Dict[str, str], use_micro_step: bool) -> Dict[str, Any]:
     """Pre-scan files for a single rank to collect metadata"""
+    min_step = None
+    max_step = 0
     micro_step_dict = defaultdict(int)  # 记录step下的micro_step数量, micro_step最大值
     metric_stats = defaultdict(set)
     targets = defaultdict(dict)  # 记录targets
-    step_keys = set()  # 实际出现过的迭代步号
 
     for file_path in files:
         file_name = os.path.basename(file_path)
@@ -93,7 +85,6 @@ def _pre_scan_single_rank(rank: int, files: List[str], mapping: Dict[str, str], 
             except (ValueError, KeyError, TypeError) as e:
                 logger.warning(f"Skip invalid row in {file_path}: {e}")
                 continue
-            step_keys.add(step)
             # 使用 mapping
             if mapping:
                 for key, value in mapping.items():
@@ -104,6 +95,10 @@ def _pre_scan_single_rank(rank: int, files: List[str], mapping: Dict[str, str], 
                     # count of micro step
                     micro_step_dict[step] = micro_step + 1
                 micro_step = Data2DBConst.DEFAULT_INT_VALUE
+            else:
+                # 整体的step范围
+                min_step = step if min_step is None else min(min_step, step)
+                max_step = max(max_step, step)
 
             # 记录target
             target = (name, vpp_stage, micro_step)
@@ -111,29 +106,55 @@ def _pre_scan_single_rank(rank: int, files: List[str], mapping: Dict[str, str], 
 
     return {
         'rank': rank,
+        'min_step': min_step,
+        'max_step': max_step,
         'micro_step_dict': dict(micro_step_dict),
         'metric_stats': metric_stats,
         'targets': {m: list(t.keys()) for m, t in targets.items()},
-        'step_keys': sorted(step_keys),
     }
 
 
-def _scan_dataset(
-    target_output_dirs: Dict[int, str],
-    mapping: Dict[str, str],
-    use_micro_step: bool,
-    process_num: int,
-) -> Tuple[List[Tuple[int, List[str]]], List[Dict[str, Any]]]:
-    """扫描一份数据, 收集每个 rank 下的 csv 文件并预扫描其内容。
+def _build_global_micro_step_mapping(results: List[Dict], use_micro_step: bool) -> Tuple[int, int, Dict[int, int]]:
+    """Build global step range and micro_step prefix sum mapping"""
+    if not use_micro_step:
+        # 如果不开mciro_step 则直接统计step最大最小值
+        all_min_steps = [r['min_step'] for r in results if r['min_step'] is not None]
+        all_max_steps = [r['max_step'] for r in results]
+        min_step = min(all_min_steps) if all_min_steps else 0
+        max_step = max(all_max_steps) if all_max_steps else 0
+        return min_step, max_step, {}
 
-    :param target_output_dirs: rank -> 目录
-    :param mapping: 名称映射
-    :param use_micro_step: 是否启用微步计数
-    :param process_num: 并行进程数
-    :return: (批次任务列表, 预扫描结果列表)
-    """
+    # 开启micro-step
+    # 合并step中micro_step最大数量
+    merged = defaultdict(int)
+    for res in results:
+        for step, micro_val in res.get('micro_step_dict', {}).items():
+            if micro_val > merged[step]:
+                merged[step] = micro_val
+
+    if not merged:
+        return 0, 0, {}
+
+    # 按step排序 计算prefix sum
+    sorted_steps = sorted(merged.items())
+    prefix_sum = {}
+    cumsum = 0
+    for step, micro_val in sorted_steps:
+        prefix_sum[step] = cumsum
+        cumsum += micro_val
+
+    min_step = 0
+    max_step = cumsum - 1  # steps are 0-indexed
+    return min_step, max_step, prefix_sum
+
+
+def _pre_scan(config: CSV2DBConfig, monitor_db: MonitorDB):
+    """Pre-scan all targets, metrics, and statistics"""
+    logger.info("Scanning dimensions...")
     rank_files = defaultdict(list)
-    for rank, dir_path in target_output_dirs.items():
+
+    # 收集每个rank下csv文件
+    for rank, dir_path in config.target_output_dirs.items():
         if not os.path.isdir(dir_path):
             continue
         for file in os.listdir(dir_path):
@@ -141,7 +162,8 @@ def _scan_dataset(
                 rank_files[rank].append(os.path.join(dir_path, file))
 
     if not rank_files:
-        return [], []
+        logger.warning("No valid CSV files found")
+        return {}, {}, {}, {}
 
     batch_size = Data2DBConst.FILE_BATCH_SIZE  # 默认每批次100个文件
     tasks = []  # 每个元素: (rank, batch_files)
@@ -156,16 +178,16 @@ def _scan_dataset(
             tasks.append((rank, batch_files))
 
     total_batches = len(tasks)
-    total_files = sum(len(files) for _, files in tasks)
+    total_files = sum(len(f) for _, f in tasks)
     logger.info(
         f"Split {len(rank_files)} ranks into {total_batches} batches "
         f"(batch_size={batch_size}, total_files={total_files})"
     )
 
     # Parallel
-    with ProcessPoolExecutor(max_workers=process_num) as executor:
+    with ProcessPoolExecutor(max_workers=config.process_num) as executor:
         futures = {
-            executor.submit(_pre_scan_single_rank, rank, files, mapping or {}, use_micro_step): rank
+            executor.submit(_pre_scan_single_rank, rank, files, config.mapping or {}, config.micro_step): rank
             for rank, files in tasks
         }
 
@@ -179,102 +201,44 @@ def _scan_dataset(
                     logger.error(f"Batch failed for rank {rank}: {e}")
                 pbar.update(1)
 
-    return tasks, results
-
-
-def _collect_axis(results: List[Dict[str, Any]], use_micro_step: bool) -> DatasetAxis:
-    """从预扫描结果中归纳出一份数据的 step 轴与 rank 轴信息。"""
-    step_keys = set()
-    micro_counts: Dict[int, int] = defaultdict(int)
-    rank_ids = []
-    max_rank = 0
-
-    for res in results:
-        rank = int(res["rank"])
-        rank_ids.append(rank)
-        max_rank = max(max_rank, rank)
-        step_keys.update(res.get("step_keys", []))
-        if use_micro_step:
-            for step, micro_val in res.get("micro_step_dict", {}).items():
-                micro_counts[step] = max(micro_counts[step], micro_val)
-
-    return DatasetAxis(
-        step_keys=sorted(step_keys),
-        # 关闭微步计数时微步信息不参与拼接, 明确记为未知而不是空字典
-        micro_counts=dict(micro_counts) if use_micro_step else None,
-        rank_ids=sorted(set(rank_ids)),
-        max_rank=max_rank,
-    )
-
-
-def _pre_scan(config: CSV2DBConfig, monitor_db: MonitorDB):
-    """Pre-scan all targets, metrics, and statistics"""
-    logger.info("Scanning dimensions...")
-    datasets = [(0, config.target_output_dirs)]
-    if config.compare_output_dirs:
-        datasets.append((1, config.compare_output_dirs))
-
-    all_tasks = []
-    all_results = []
-    axes = []
-    for dataset_id, output_dirs in datasets:
-        tasks, results = _scan_dataset(output_dirs, config.mapping or {}, config.micro_step, config.process_num)
-        all_tasks.extend((dataset_id, rank, files) for rank, files in tasks)
-        all_results.append(results)
-        axes.append(_collect_axis(results, config.micro_step))
-
-    if not axes[0].step_keys:
-        # 被测数据没有可用 CSV 时必须报错退出, 不能只导入对比数据
-        logger.error(
-            "No valid CSV data found in the data path. "
-            "Check that the data path contains monitor CSV files with the expected columns."
-        )
-        return [], {}, {}
-
-    if len(axes) == 2 and not axes[1].step_keys:
-        # 对比目录存在但没有可用 CSV 时降级为单数据源, 避免生成跨度为 0 的拼接计划
-        logger.warning(
-            "No valid CSV data found in the compare data path. "
-            "Two data sources must be of the same format. Fall back to the single data source."
-        )
-        all_tasks = [task for task in all_tasks if task[0] == 0]
-        all_results = all_results[:1]
-        axes = axes[:1]
-        config.compare_output_dirs = None
-
-    if not all_tasks:
-        logger.warning("No valid CSV files found")
-        return [], {}, {}
+    if not results:
+        return {}, {}, {}, {}
 
     # Aggregate targets and stats
     targets = defaultdict(OrderedDict)
     all_stats = set()
     metric_stats_agg = defaultdict(set)
 
-    for results in all_results:
-        for res in results:
-            for metric, t_list in res['targets'].items():
-                targets[metric] = update_ordered_dict(targets[metric], t_list)
-            for metric, stats in res['metric_stats'].items():
-                metric_stats_agg[metric].update(stats)
-                all_stats.update(stats)
+    for res in results:
+        for metric, t_list in res['targets'].items():
+            targets[metric] = update_ordered_dict(targets[metric], t_list)
+        for metric, stats in res['metric_stats'].items():
+            metric_stats_agg[metric].update(stats)
+            all_stats.update(stats)
 
-    # 计算拼接计划
-    if len(axes) == 2:
-        concat_plan = build_concat_plan(axes[0], axes[1], config.concat_dim, config.micro_step)
+    # 无可用 CSV 时必须报错退出，不能只导入空库并返回成功
+    # _pre_scan_single_rank 对无效行仅 warning 后 continue，可能返回 targets 全空的结果；
+    # 此时 metric_stats_agg 可能非空（只读到了列名），必须显式判定是否存在有效数据行
+    has_valid_rows = bool(targets)
+    if config.micro_step:
+        # micro_step 模式下 targets 为空即无有效行（无 min_step 可核对）
+        has_valid_rows = has_valid_rows or any(res.get('micro_step_dict') for res in results)
     else:
-        concat_plan = build_single_plan(axes[0], config.micro_step)
-    config.concat_plan = concat_plan
-    for warning in concat_plan.warnings:
-        logger.warning(warning)
+        has_valid_rows = has_valid_rows or any(res.get('min_step') is not None for res in results)
+    if not has_valid_rows:
+        logger.error(
+            "No valid CSV data found in the data path. "
+            "Check that the data path contains monitor CSV files with the expected columns."
+        )
+        return {}, {}, {}, {}
+
+    # 提取全局最大最小步数
+    min_step, max_step, micro_step_prefix = _build_global_micro_step_mapping(results, config.micro_step)
+
+    max_rank = max(int(r['rank']) for r in results)
 
     # 插入数据库
-    global_stats = {
-        "min_step": concat_plan.min_step,
-        "max_step": concat_plan.max_step,
-        "max_rank": concat_plan.max_rank,
-        **metric_stats_agg,
-    }
+    global_stats = {"min_step": min_step, "max_step": max_step, "max_rank": max_rank, **metric_stats_agg}
     monitor_db.init_schema()
     monitor_db.insert_dimensions(targets)
     monitor_db.init_global_stats_data(global_stats)
@@ -284,27 +248,18 @@ def _pre_scan(config: CSV2DBConfig, monitor_db: MonitorDB):
     target_dict = monitor_db.get_target_mapping()
     monitor_db.extract_tags_from_processed_targets(targets, metric_id_dict, target_dict)
 
-    return all_tasks, metric_id_dict, target_dict
+    return tasks, metric_id_dict, target_dict, micro_step_prefix
 
 
 def process_single_rank(
-    task: Tuple[int, int, List[str]],
+    task: Tuple[int, List[str]],
     metric_id_dict: Dict[str, Tuple[int, List[str]]],
     target_dict: Dict[Tuple[str, int, int], int],
+    micro_step_prefix: Dict[int, int],
     config: CSV2DBConfig,
 ) -> int:
-    """Process data import for a single rank
-
-    :param task: (dataset_id, rank, files), dataset_id 为 0 表示被测数据, 1 表示对比数据
-    :param metric_id_dict: metric 名称到 ID 及统计量的映射
-    :param target_dict: target 三元组到 ID 的映射
-    :param config: 导入配置, 其中 concat_plan 提供迭代步映射与 rank 偏移
-    """
-    dataset_id, rank, files = task
-    # rank 来源于目录名中的正则捕获, 是字符串, 统一转为整数以便叠加 rank 偏移
-    rank = int(rank)
-    mapper = config.concat_plan.mapper_for(dataset_id)
-    rank_offset = config.concat_plan.rank_offset_for(dataset_id)
+    """Process data import for a single rank"""
+    rank, files = task
     db = MonitorDB(config.db_file)
     total_inserted = 0
     batch_data = []
@@ -336,16 +291,21 @@ def process_single_rank(
                 for k, v in config.mapping.items():
                     name = name.replace(k, v)
 
-            # 开启微步计数时按全局微步计数器映射, 否则按迭代步序号映射
-            global_step = mapper.map(original_step, micro_step_val)
-            micro_step_for_target = Data2DBConst.DEFAULT_INT_VALUE if config.micro_step else micro_step_val
+            if config.micro_step:
+                # 计算 global step index: prefix[step] + micro_step
+                base_offset = micro_step_prefix.get(original_step, 0)
+                global_step = base_offset + micro_step_val
+                micro_step_for_target = Data2DBConst.DEFAULT_INT_VALUE
+            else:
+                global_step = original_step
+                micro_step_for_target = micro_step_val
 
             target_id = target_dict.get((name, vpp_stage, micro_step_for_target))
             if target_id is None:
                 continue
 
             # row data
-            row_data = [rank + rank_offset, global_step, target_id, metric_id]
+            row_data = [rank, global_step, target_id, metric_id]
             row_data.extend(process_tensor_value(row[stat]) if stat in row else None for stat in all_stats)
             batch_data.append(tuple(row_data))
 
@@ -366,18 +326,21 @@ def import_data(config: CSV2DBConfig) -> bool:
     """Main method to import data into database"""
     monitor_db = MonitorDB(config.db_file)
 
-    tasks, metric_id_dict, target_dict = _pre_scan(config, monitor_db)
+    tasks, metric_id_dict, target_dict, micro_step_prefix = _pre_scan(config, monitor_db)
     if not tasks:
         logger.error("No valid data files found during pre-scan")
         return False
 
-    total_files = sum(len(files) for _, _, files in tasks)
+    total_files = sum(len(files) for _, files in tasks)
     logger.info(f"Starting data import for {len(tasks)} batches, {total_files} files...")
 
     all_succeeded = True
     with ProcessPoolExecutor(max_workers=config.process_num) as executor:
         futures = {
-            executor.submit(process_single_rank, task, metric_id_dict, target_dict, config): task[1] for task in tasks
+            executor.submit(
+                process_single_rank, (rank, files), metric_id_dict, target_dict, micro_step_prefix, config
+            ): rank
+            for rank, files in tasks
         }
 
         with tqdm(as_completed(futures), total=len(futures), desc="Import progress") as pbar:
