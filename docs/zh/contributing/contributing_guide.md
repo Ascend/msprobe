@@ -238,7 +238,7 @@ Closes #123
 
 ## 许可证
 
-通过向本项目贡献代码，您同意您的贡献将按照项目的许可证进行授权，详见[LICENSE](../legal/LICENSE)文件。
+通过向本项目贡献代码，您同意您的贡献将按照项目的许可证进行授权，详见[LICENSE](../../../LICENSE)文件。
 
 msProbe工具docs目录下的文档适用CC-BY 4.0许可证，详见[docs/LICENSE](../../LICENSE)。
 

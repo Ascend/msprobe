@@ -454,7 +454,7 @@ Agent analysis:
 
 In the training and inference data, the `gate_up` and `linear_fc1` outputs of the MLP of the corresponding module are still aligned, but afterward rollout goes through `mlp.act_fn.AscendSiluAndMul.forward.0` computation while training does not, causing the module inputs and outputs of subsequent training and rollout to be misaligned.
 
-![img_v3_0210o_4abbb304-f75c-4369-bad2-78e13e22e30g.jpg](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/msagent_mlp_act_fn_analysis.png)
+![img_v3_0210o_4abbb304-f75c-4369-bad2-78e13e22e30g](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/msagent_mlp_act_fn_analysis.png)
 
 Manual localization:
 

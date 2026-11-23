@@ -48,7 +48,7 @@
 使用命令行工具对精度数据进行比对，输出比对结果。
 
 > [!NOTE]
-> 
+>
 > 本功能支持在Linux和Windows环境下执行，且Windows环境与Linux环境操作完全一致，通过命令行方式执行。Windows仅支持statistics比对，不支持多卡数据汇总。
 
 ### 命令格式
@@ -523,7 +523,7 @@ warning标记情况：
 自定义标签比对结果文件内，标签配对行的"NPU Name"与"Bench Name"列均带标签前缀（如`(attn)Module.xxx.forward.0.input.0`），未打标签的行无标签前缀，行按照dump序（执行顺序）排列。结果文件表头与其他场景相同，各列含义请参见[指标说明](#指标说明)。
 
 关键字段说明如下：
-![alt text](img_v3_0217b_9aac82de-f5db-4279-935c-0a03527e16bg.jpg)
+![alt text](../../figures/custom_tag_comparison.png)
 
 | 字段 | 说明 |
 | --- | --- |

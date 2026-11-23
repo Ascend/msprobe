@@ -456,7 +456,7 @@ Agent 分析结论：
 
 训练和推理数据中对应模块的 MLP 的 gate_up 和 linear_fc1 输出还是对齐的，但后面 rollout 比 train 多经过了 mlp.act_fn.AscendSiluAndMul.forward.0 计算，导致后续 train 和 rollout 的模块输入、输出都不对齐。
 
-![img_v3_0210o_4abbb304-f75c-4369-bad2-78e13e22e30g.jpg](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/msagent_mlp_act_fn_analysis.png)
+![img_v3_0210o_4abbb304-f75c-4369-bad2-78e13e22e30g](../figures/cases/ascend_glm5_adaptation_training_Inference_consistency_optimization/msagent_mlp_act_fn_analysis.png)
 
 人工定位结论：
 

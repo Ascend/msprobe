@@ -238,7 +238,7 @@ We are committed to providing a friendly, safe, and inclusive environment for al
 
 ## License
 
-By contributing code to this project, you agree that your contributions will be licensed under the project's license. For details, see the [LICENSE](../legal/LICENSE) file.
+By contributing code to this project, you agree that your contributions will be licensed under the project's license. For details, see the [LICENSE](../../../LICENSE) file.
 
 The documentation under the docs directory of the msProbe tool is licensed under the CC-BY 4.0 license. For details, see [docs/LICENSE](../../LICENSE).
 
