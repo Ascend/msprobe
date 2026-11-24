@@ -275,7 +275,7 @@ class Comparator:
             conflicts.append('-dm/--data_mapping')
         if self.mode_config.consistent_check:
             conflicts.append('--consistent_check')
-        if self.mode_config.first_diff_analyze:
+        if self.mode_config.diff_analyze:
             conflicts.append('-da/--diff_analyze')
         if conflicts:
             logger.warning(
