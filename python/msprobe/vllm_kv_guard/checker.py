@@ -27,15 +27,19 @@ class Guard:
     def __init__(self, action, rank=None, slot=False):
         self.action, self.rank, self.failure = action, rank, None
         self.slot = slot
+        self.plans = {}
 
     def fail(self, reason, **fields):
         if self.failure is None:
             self.failure = reason
         if self.slot:
             fields["audit"] = "slot"
-        emit("kv.violation", reason=reason, rank=self.rank, evidence="boundary_plan", **fields)
+        fields.setdefault("evidence", "boundary_plan")
+        emit("kv.violation", reason=reason, rank=self.rank, **fields)
 
-    def check(self):
+    def check(self, condition=True, reason=None, **fields):
+        if not condition:
+            self.fail(reason, **fields)
         if self.action == "raise" and self.failure is not None:
             raise KVGuardError(f"KV guard: {self.failure}")
 

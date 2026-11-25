@@ -32,6 +32,7 @@ class TestSlotAuditRuntime(TestCase):
             new_block_ids_to_zero=[], kv_cache_block_copies=None, kv_connector_metadata=None,
         )
         core = NS(vllm_config=config, schedule=Mock(return_value=scheduled), update_from_output=Mock())
+        core.kv_cache_manager = NS(free=Mock())
         native = runner()
         result = NS(req_ids=["a", "b"], req_id_to_index={"a": 0, "b": 1}, sampled_token_ids=[[1], [2]],
                     kv_connector_output=None)

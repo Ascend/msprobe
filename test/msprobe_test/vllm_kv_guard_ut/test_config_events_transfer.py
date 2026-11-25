@@ -1,10 +1,15 @@
-from copy import deepcopy
 import json
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
 from msprobe.vllm_kv_guard import config, events, transfer
+
+
+def parallel(**fields):
+    return SimpleNamespace(**({"tensor_parallel_size": 1, "pipeline_parallel_size": 1,
+                              "prefill_context_parallel_size": 1, "decode_context_parallel_size": 1} | fields))
 
 
 class TestConfig(TestCase):
@@ -24,14 +29,14 @@ class TestConfig(TestCase):
                 ("model_config", {"is_encoder_decoder": True}, "encoder-decoder"),
                 ("speculative_config", object(), "speculative decoding"),
                 ("kv_transfer_config", object(), "KV transfer"),
-                ("additional_config", {"sparse_kv_offload_config": {"enabled": True}}, "KV transfer"),
-                ("additional_config", {"sparse_kv_offload_config": True}, "KV transfer"),
-                ("additional_config", {"sparse_kv_offload_config": []}, "KV transfer"),
+                ("additional_config", {"sparse_kv_offload_config": {"enabled": True}}, "sparse_kv_offload_config"),
+                ("additional_config", {"sparse_kv_offload_config": True}, "sparse_kv_offload_config"),
+                ("additional_config", {"sparse_kv_offload_config": []}, "sparse_kv_offload_config"),
             ):
                 with self.subTest(action=action, field=field, change=change):
                     options = {"slot": True, "action": action}
                     supplied = SimpleNamespace(additional_config={"kv_trace": options},
-                                               parallel_config=SimpleNamespace(), model_config=SimpleNamespace(),
+                                               parallel_config=parallel(), model_config=SimpleNamespace(),
                                                speculative_config=None, kv_transfer_config=None)
                     if field == "additional_config":
                         supplied.additional_config.update(change)
@@ -44,7 +49,7 @@ class TestConfig(TestCase):
 
     def test_slot_supported_config_is_retained(self):
         supplied = SimpleNamespace(additional_config={"kv_trace": {"slot": True}},
-                                   parallel_config=SimpleNamespace(), model_config=SimpleNamespace(),
+                                   parallel_config=parallel(), model_config=SimpleNamespace(),
                                    speculative_config=None, kv_transfer_config=None)
         self.assertTrue(config.get_options(supplied)["slot"])
         for offload in (None, {"enabled": False}):
@@ -52,13 +57,24 @@ class TestConfig(TestCase):
                 supplied.additional_config["sparse_kv_offload_config"] = offload
                 self.assertTrue(config.get_options(supplied)["slot"])
 
+    def test_slot_allows_only_the_supported_mooncake_transfer_configuration(self):
+        supplied = SimpleNamespace(
+            additional_config={"kv_trace": {"slot": True}}, parallel_config=parallel(),
+            model_config=SimpleNamespace(), speculative_config=None,
+            kv_transfer_config=SimpleNamespace(kv_connector="MooncakeConnectorV1", kv_role="kv_consumer"),
+        )
+        self.assertTrue(config.get_options(supplied)["pd_slot"])
+        supplied.parallel_config.tensor_parallel_size = 2
+        with self.assertRaisesRegex(ValueError, "KV transfer"):
+            config.get_options(supplied)
+
     def test_slot_retains_pcp_and_dcp_configurations(self):
         for action in ("log", "raise"):
             for pcp, dcp in ((2, 1), (1, 2), (2, 2)):
                 with self.subTest(action=action, pcp=pcp, dcp=dcp):
                     supplied = SimpleNamespace(
                         additional_config={"kv_trace": {"slot": True, "action": action}},
-                        parallel_config=SimpleNamespace(prefill_context_parallel_size=pcp,
+                        parallel_config=parallel(prefill_context_parallel_size=pcp,
                                                         decode_context_parallel_size=dcp),
                         model_config=SimpleNamespace(), speculative_config=None, kv_transfer_config=None)
                     self.assertEqual(config.get_options(supplied), {"enabled": True, "action": action, "slot": True})

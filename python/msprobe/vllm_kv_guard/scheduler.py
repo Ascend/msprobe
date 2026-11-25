@@ -20,18 +20,22 @@ Bindings are native deltas; processing a result does not prove device KV writes.
 """
 
 from functools import wraps
+from msprobe.kv_monitor.utils import get_field
 from uuid import uuid4
 
 from .checker import Guard, bind
 from .config import get_options
 from .events import emit, result_fields
-from .transfer import record_plan
+from .transfer import record_plan, lifecycle
 
 
 def _observe(scheduler, options):
     native_schedule = scheduler.schedule
     native_update = scheduler.update_from_output
     guard, bindings = Guard(options["action"], slot=options.get("slot", False)), {}
+    pending = set()
+    if options.get("slot"):
+        lifecycle(scheduler, guard, options, pending)
     emit("kv.enabled", boundary="scheduler", action=options["action"])
 
     @wraps(native_schedule)
@@ -45,6 +49,17 @@ def _observe(scheduler, options):
 
         output._msprobe_kv_trace_id = trace_id
         bind(output, bindings, guard)
+        if options.get("pd_slot"):
+            manager = scheduler.kv_cache_manager
+            metadata = output.kv_connector_metadata
+            pending.update(getattr(metadata, "requests", {}))
+            pending.update(getattr(metadata, "requests_to_send", {}))
+            for req, meta in getattr(metadata, "requests", {}).items():
+                owned, selected = manager.get_block_ids(req), get_field(meta, 'local_block_ids', ())
+                valid = len(owned) == len(selected) and all(
+                    not b or tuple(a[-len(b) :]) == tuple(b) for a, b in zip(owned, selected)
+                )
+                guard.check(valid, "pd_slot_ownership_mismatch", request_id=req)
         plan = dict(boundary="scheduler.schedule", trace_id=trace_id, evidence="scheduler_plan")
         cached = output.scheduled_cached_reqs
         if scheduler.vllm_config.speculative_config is not None:
@@ -87,6 +102,10 @@ def _observe(scheduler, options):
 
     @wraps(native_update)
     def update_from_output(scheduler_output, model_runner_output, *args, **kwargs):
+        if options.get("pd_slot"):
+            kv = model_runner_output.kv_connector_output
+            if kv is not None:
+                pending.difference_update(kv.finished_sending or (), kv.finished_recving or (), kv.failed_recving or ())
         ids = list(model_runner_output.req_ids)
         common = dict(trace_id=scheduler_output._msprobe_kv_trace_id, boundary="scheduler.update_from_output")
         if len(ids) != len(set(ids)) or model_runner_output.req_id_to_index != dict(zip(ids, range(len(ids)))):

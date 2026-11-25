@@ -45,15 +45,28 @@ def get_options(vllm_config):
     if options is not None and options.get("slot", False):
         parallel = vllm_config.parallel_config
         model = vllm_config.model_config
+        transfer = vllm_config.kv_transfer_config
         offload = (vllm_config.additional_config or {}).get("sparse_kv_offload_config")
         unsupported = {
             "DBO": getattr(parallel, "enable_dbo", False),
             "speculative decoding": vllm_config.speculative_config is not None,
             "encoder-decoder": getattr(model, "is_encoder_decoder", False),
-            "KV transfer/swap/offload": vllm_config.kv_transfer_config is not None
-            or (offload is not None and (not isinstance(offload, dict) or offload.get("enabled", False))),
+            "sparse_kv_offload_config": offload is not None
+            and (not isinstance(offload, dict) or offload.get("enabled", False)),
         }
         for path, active in unsupported.items():
             if active:
                 raise ValueError(f"kv_trace.slot does not support {path}")
+        if transfer is not None:
+            roles = {"MooncakeConnectorV1": ("kv_producer", "kv_consumer"), "PreemptOffloadConnector": ("kv_consumer",)}
+            name = getattr(transfer, "kv_connector", None)
+            shards = parallel.tensor_parallel_size * parallel.pipeline_parallel_size
+            shards *= parallel.prefill_context_parallel_size * parallel.decode_context_parallel_size
+            if (
+                getattr(transfer, "kv_role", None) not in roles.get(name, ())
+                or getattr(transfer, "kv_connector_module_path", None) is not None
+                or shards != 1
+            ):
+                raise ValueError("kv_trace.slot does not support this KV transfer configuration")
+            options["pd_slot" if name == "MooncakeConnectorV1" else "swap_slot"] = True
     return options

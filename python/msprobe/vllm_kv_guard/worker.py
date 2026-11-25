@@ -21,7 +21,7 @@ from functools import wraps
 from .config import get_options
 from .events import emit, result_fields
 from .checker import Guard
-from .transfer import record_plan
+from .transfer import record_plan, install as install_transfer, prepare
 
 
 def _observe(worker, options):
@@ -31,6 +31,9 @@ def _observe(worker, options):
         raise ValueError("kv_trace requires Model Runner V2")
     slot = options.get("slot", False)
     guard = Guard(options["action"], worker.rank, slot=slot)
+    transfer = options.get("pd_slot") or options.get("swap_slot")
+    if transfer:
+        install_transfer(guard, options.get("pd_slot", False))
     recorder = install_runner(worker.model_runner, worker.rank, guard)
     emit(
         "kv.enabled",
@@ -58,6 +61,8 @@ def _observe(worker, options):
 
         def record(result):
             pending()
+            if options.get("swap_slot"):
+                guard.check(not guard.plans, "swap_slot_observation_missing")
             if slot and scheduled and not captured:
                 guard.fail("slot_observation_missing", trace_id=trace_id)
             emit(
@@ -97,7 +102,7 @@ def _observe(worker, options):
             recorder.pending()
             guard.check()
             recorder.capture_observed = False
-            if scheduler_output.kv_connector_metadata is not None or any(
+            if (scheduler_output.kv_connector_metadata is not None and not transfer) or any(
                 getattr(scheduler_output, name, None) for name in ("blocks_to_swap_in", "blocks_to_swap_out")
             ):
                 guard.fail("unsupported_slot_transfer", boundary="worker.execute_model.input")
@@ -119,6 +124,8 @@ def _observe(worker, options):
             total_num_scheduled_tokens=scheduler_output.total_num_scheduled_tokens,
         )
         record_plan(scheduler_output.kv_connector_metadata, trace_id, "worker.execute_model.input", worker.rank)
+        if transfer:
+            prepare(guard, scheduler_output, options.get("pd_slot", False))
         try:
             output = native_execute(scheduler_output, *args, **kwargs)
         except Exception as exception:

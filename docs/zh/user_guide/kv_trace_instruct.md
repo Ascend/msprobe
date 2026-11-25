@@ -23,10 +23,6 @@ pip install --no-deps .
 - 本功能适用于 vLLM Ascend，支持 Eager 和图模式。
 - 模型推理采用 Model Runner V2（MRV2），在启动前配置 `VLLM_USE_V2_MODEL_RUNNER=1`。
 
-slot 检查适用于 PCP、DCP、普通批次（DBO 关闭）、常规解码、仅解码器模型和本地 KV Cache。PCP 场景结合全局槽位、本地索引、gather 和写入掩码检查，DCP 场景按当前 rank 的槽位归属检查。投机解码、KV 传输场景使用 `slot=false` 查看 KV Trace 记录。
-
-启动日志出现 `parameter=enable_dbo, action: resetting to False` 时，Ascend 已将服务配置为普通批次；此时按普通批次解读 slot 检查结果。
-
 ## 功能介绍
 
 **功能说明**
@@ -52,11 +48,19 @@ vllm serve <model_path> --enforce-eager --additional-config '<additional_config>
 | --- | --- | --- |
 | `enabled` | 可选 | 布尔值，`true` 开启 KV Trace，`false` 关闭。服务默认关闭 KV Trace；提供 `kv_trace` 配置后，此字段默认值为 `true` |
 | `action` | 可选 | `log`（默认）：记录校验异常并继续推理；`raise`：记录校验异常并抛出 `KVGuardError`，推理引擎结束运行 |
-| `slot` | 可选 | 布尔值，默认 `false`。`true` 开启 slot 地址计划检查，配合 `enabled=true` 使用 |
+| `slot` | 可选 | 布尔值，默认 `false`。`true` 开启 slot 地址计划检查，配合 `enabled=true` 使用。适用场景见 [slot 参数说明](#slot_parameter) |
 
-> [!NOTE]
->
-> slot 地址计划检查用于核对每个 token 获准使用的缓存槽位与模型输入指定写入位置的一致性。
+**slot 参数说明**<a name="slot_parameter"></a>
+
+开启 `slot` 后，KV Trace 核对调度器给每个 token 分配的缓存槽位与模型输入指定的写入位置。slot 检查适用于采用普通批次（DBO 关闭）的仅解码器模型常规解码。
+
+| 场景 | 配置与检查内容 |
+| --- | --- |
+| 本地 KV Cache | 支持预填充上下文并行（PCP）和解码上下文并行（DCP）。PCP 核对各进程的 token 索引、写入掩码与全局槽位，DCP 按当前 rank 的缓存分片核对写入槽位 |
+| 预填充与解码分离（PD） | 使用单个全注意力缓存组，TP、PP、PCP、DCP 均设为 1。P 端将 `MooncakeConnectorV1` 配置为 `kv_producer`，D 端配置为 `kv_consumer`。P 端核对导出块与请求绑定，D 端在读取返回后核对整次传输的源地址、目标地址和覆盖范围 |
+| 抢占换出与恢复换入 | 使用 `PreemptOffloadConnector` 的 `kv_consumer` 角色，采用单个全注意力缓存组，TP、PP、PCP、DCP 均设为 1。检查每批传输的源块、目标块、缓存容量及完成事件 |
+
+启动日志出现 `parameter=enable_dbo, action: resetting to False` 时，服务按普通批次运行，slot 检查结果也按普通批次解读。
 
 **使用示例**
 
@@ -222,12 +226,14 @@ grep -F '"audit":"slot"' server.log
 | `slot_observation_missing` / `slot_metadata_missing` / `slot_padding_metadata_missing` / `slot_metadata_invalid` | 校验输入完整性检查触发异常 | 按 `action` 配置记录或抛出异常；确认 `VLLM_USE_V2_MODEL_RUNNER=1`，保存完整启动参数、服务版本和异常日志 |
 | `unsupported_slot_layout` | 当前缓存布局触发 slot 适用条件检查 | 查看异常日志中的缓存组信息；查看当前场景的 KV Trace 记录时，将 `slot` 设为 `false` |
 | `unsupported_slot_null_redirect` | 预热过程使用保留空块作为写入位置 | 将 `slot` 设为 `false`，通过 KV Trace 查看预热场景的请求与读写位置 |
+| `slot_release_binding_stale` | 请求释放后保留缓存绑定 | 按 `request_id` 对照前后 `kv.bind` 与服务日志中的释放记录 |
+| `slot_release_inflight` | 请求的 KV 传输仍在进行时触发释放 | 对照 `kv_connector_output` 的发送、接收完成信息；`raise` 在释放前抛出异常，`log` 记录后继续 |
 
 `log` 记录槽位及校验输入异常并继续推理。`raise` 锁存首次校验异常，在结果检查时抛出 `KVGuardError`；排查时结合对应日志确认运行配置。
 
 ### 6. 按场景补充查看
 
-以下场景通过 KV Trace 日志分析请求及缓存使用情况。其中，CP、投机解码、KV 传输和空块重定向预热场景使用 `slot=false`。
+以下场景通过 KV Trace 日志分析请求及缓存使用情况。投机解码和空块重定向预热场景使用 `slot=false`。
 
 数据并行（Data Parallel，DP）由多个实例分别处理不同请求批次；陪跑是实例以占位输入参与并行计算的过程。相关概念请参见 vLLM 官方《[Data Parallel Deployment](https://docs.vllm.ai/en/latest/serving/data_parallel_deployment/)》。
 
@@ -240,6 +246,32 @@ grep -F '"audit":"slot"' server.log
 | 推测解码（候选 token 生成与验证） | 对照 `kv.bind` 的 `speculative` 预算与 `evidence=sample_postprocess` 的 `num_sampled`（采样数）、`num_rejected`（拒绝数）、`query_start_loc`；`association=current_step` 表示当前轮结果，`observed_call_only` 表示仅记录本次调用，此时 `trace_id=null` |
 | PCP / DCP | 结合各执行进程的 PCP/DCP 字段分析。`slot_mapping_scope=pcp_frame` 表示整组 PCP 的写入槽位列表，结合 `evidence=parallel_context` 的全局请求、token 对应关系和写入标记（mask）对照；DCP 结合 `dcp_local_seq_lens` 查看该进程的读取长度 |
 | KV 传输 | 从 `evidence=connector_plan` 查看请求及本地、远端缓存块列表；从结果的 `kv_connector_output` 先检查 `failed_recving`（接收失败请求）和 `invalid_block_ids`（异常缓存块编号），再对照 `finished_sending`（发送完成请求）、`finished_recving`（接收完成请求）核验状态 |
+
+在 Mooncake PD 分离场景开启 `slot=true` 后，按 `request_id` 关联 `evidence=connector_plan` 与 slot 异常。P 端在导出时核对块绑定。D 端在读取返回后核对整次传输的源地址、目标地址和覆盖范围，识别错位、遗漏及重复读取。`raise` 锁存检查异常并中止后续处理，`log` 记录后继续。发送、接收完成状态通过 `kv_connector_output` 查看。启动服务前设置 `VLLM_LOGGING_LEVEL=DEBUG`，即可在 Mooncake 传输日志中查看地址明细。
+
+| `reason` | 查看与处理 |
+| --- | --- |
+| `pd_slot_transfer_mismatch` | 请求的源/目标地址区间或覆盖次数出现差异；对照请求传输计划与原生传输地址记录 |
+| `pd_slot_source_plan_mismatch` / `pd_slot_ownership_mismatch` | 对照请求的导出、接收块计划与当前缓存归属 |
+| `pd_slot_stale_transfer` | 请求结束、抢占或重新绑定后，旧传输仍然返回；按请求关联前后调度记录 |
+
+抢占换出/换入可使用以下完整 Eager 命令：
+
+```shell
+export VLLM_USE_V2_MODEL_RUNNER=1
+vllm serve /path/to/model --enforce-eager \
+  --kv-transfer-config '{"kv_connector":"PreemptOffloadConnector","kv_role":"kv_consumer","kv_connector_extra_config":{"cpu_bytes_to_use_per_rank":268435456,"enable_offload_prefix_caching":false}}' \
+  --additional-config '{"scheduler_config":{"recompute_scheduler_enable":true},"kv_trace":{"enabled":true,"action":"log","slot":true}}' \
+  > server.log 2>&1
+```
+
+在 `server.log` 中按 `swap_slot` 筛选异常，结合 `direction` 与 `event_id` 查看整批提交。`D2H` 表示换出，`H2D` 表示换入；恢复后的 GPU 槽位通过 `kv.write` 与前后 `kv.bind` 核对。
+
+| `reason` | 查看与处理 |
+| --- | --- |
+| `swap_slot_plan_mismatch` | 源/目标块列表、容量或同步方式出现差异；结合事件编号与换入/换出方向定位 |
+| `swap_slot_observation_missing` | 当前批次的换入/换出计划保留待执行项；对照调度与原生传输日志 |
+| `swap_slot_completion_missing` | 原生完成事件与本次提交出现差异；对照事件编号及服务异常堆栈 |
 
 ## 结果解读
 

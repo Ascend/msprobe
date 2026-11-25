@@ -1,5 +1,6 @@
 import importlib.util
 import sys
+from contextlib import nullcontext
 from collections import namedtuple
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -7,6 +8,7 @@ from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
 from msprobe.vllm_kv_guard.checker import Guard, KVGuardError
+from msprobe.vllm_kv_guard import transfer as slot_transfer
 
 
 def _load_wiring_modules():
@@ -17,7 +19,7 @@ def _load_wiring_modules():
         "config": {"get_options": Mock(return_value=None), "parse_options": Mock()},
         "checker": {"Guard": Mock(return_value=Mock()), "bind": Mock()},
         "events": {"emit": Mock(), "result_fields": Mock(return_value={"result_marker": "native"})},
-        "transfer": {"record_plan": Mock()},
+        "transfer": {"record_plan": Mock(), "install": Mock(), "prepare": slot_transfer.prepare, "lifecycle": Mock()},
         "model_runner": {"install": Mock()},
     }.items():
         helper = ModuleType(f"{name}.{module}")
@@ -74,18 +76,90 @@ class TestKVGuardWiring(TestCase):
             self.addCleanup(attribute_patcher.stop)
         return module
 
-    def _observed_worker(self, action="log", execute=None, sample=None, slot=False):
+    def _observed_worker(self, action="log", execute=None, sample=None, slot=False, pd=False):
         recorder = SimpleNamespace(trace_id=None, plan=(), pending=Mock(), capture_observed=False)
         self.wiring.model_runner.install.return_value = recorder
         native = SimpleNamespace(rank=2, use_v2_model_runner=True, model_runner=object(),
                                  execute_model=Mock(return_value=execute), sample_tokens=Mock(return_value=sample))
-        self.wiring.worker._observe(native, {"action": action, "slot": slot})
+        if pd:
+            self.connector = SimpleNamespace(
+                kv_group2layeridx={0: ({}, [0])}, _get_kernel_block_scale=Mock(return_value=1),
+                _expand_block_ids=Mock(side_effect=lambda blocks, scale: list(blocks)),
+                _get_kernel_block_ids=Mock(side_effect=lambda layers, meta, group, spec:
+                                           (meta.local_block_ids[0], meta.remote_block_ids[0])))
+            self._expose("vllm.distributed.kv_transfer",
+                         get_kv_transfer_group=Mock(return_value=SimpleNamespace(connector_worker=self.connector)))
+        self.wiring.worker._observe(native, {"action": action, "slot": slot, "pd_slot": pd})
         self.wiring.model_runner.install.assert_called_once_with(native.model_runner, 2, self.wiring.guard)
         plan = _scheduled()
         plan._msprobe_kv_trace_id, plan._msprobe_kv_plan = "trace", object()
         if slot:
             plan._msprobe_kv_plan = (("a", 0, 1, ((2,),)),)
         return native, recorder, plan
+
+    def test_pd_request_snapshot_is_published_after_both_binding_and_plan_are_ready(self):
+        checked = Guard("log", slot=True)
+        self.wiring.checker.Guard.return_value = self.wiring.guard = checked
+        previous = ((2,), (8,))
+        checked.plans["a"] = previous
+        native, recorder, plan = self._observed_worker(execute=_output(), slot=True, pd=True)
+        plan.kv_connector_metadata = SimpleNamespace(requests={
+            "a": SimpleNamespace(local_block_ids=([3],), remote_block_ids=([9],))})
+
+        def freeze(*args):
+            self.assertIs(checked.plans["a"], previous)
+
+        def execute(*args):
+            recorder.capture_observed = True
+            self.assertEqual(checked.plans["a"], ((3,), (9,)))
+            return _output()
+
+        self.wiring.transfer.record_plan.side_effect = freeze
+        native.execute_model.__wrapped__.side_effect = execute
+        native.execute_model(plan)
+        self.assertIsNone(checked.failure)
+        self.connector._get_kernel_block_ids.assert_called_once_with(
+            [0], plan.kv_connector_metadata.requests["a"], 0, {})
+
+        self.wiring.transfer.record_plan.side_effect = None
+        plan.kv_connector_metadata.requests.clear()
+        for finished, preempted, retained in (({"a"}, set(), False), (set(), {"a"}, False), (set(), set(), True)):
+            checked.plans["a"] = previous
+            plan.finished_req_ids, plan.preempted_req_ids = finished, preempted
+            native.execute_model.__wrapped__.side_effect = lambda *args: setattr(recorder, "capture_observed", True)
+            native.execute_model(plan)
+            self.assertEqual("a" in checked.plans, retained)
+
+    def test_native_kernel_conversion_is_used_for_frozen_pd_blocks(self):
+        checked = Guard("log", slot=True)
+        self.wiring.checker.Guard.return_value = self.wiring.guard = checked
+        native, recorder, plan = self._observed_worker(execute=_output(), slot=True, pd=True)
+        plan.kv_connector_metadata = SimpleNamespace(requests={
+            "a": SimpleNamespace(local_block_ids=([3],), remote_block_ids=([9],))})
+        self.connector._get_kernel_block_ids.side_effect = None
+        self.connector._get_kernel_block_ids.return_value = ([6, 7], [18, 19])
+        native.execute_model.__wrapped__.side_effect = lambda *args: setattr(recorder, "capture_observed", True)
+        native.execute_model(plan)
+        self.assertEqual(checked.plans["a"], ((6, 7), (18, 19)))
+
+    def test_missing_swap_submission_follows_action_on_receive_only_steps(self):
+        for action in ("log", "raise"):
+            self.wiring = _load_wiring_modules()
+            checked = Guard(action, slot=True)
+            self.wiring.checker.Guard.return_value = self.wiring.guard = checked
+            recorder = SimpleNamespace(trace_id=None, plan=(), pending=Mock(), capture_observed=False)
+            self.wiring.model_runner.install.return_value = recorder
+            native = SimpleNamespace(rank=0, use_v2_model_runner=True, model_runner=object(),
+                                     execute_model=Mock(return_value=_output(ids=())), sample_tokens=Mock())
+            self.wiring.worker._observe(native, {"action": action, "slot": True, "swap_slot": True})
+            plan = _scheduled()
+            plan._msprobe_kv_trace_id, plan._msprobe_kv_plan = "trace", ()
+            plan.num_scheduled_tokens, plan.total_num_scheduled_tokens = {}, 0
+            plan.kv_connector_metadata = SimpleNamespace(preempt_store_event=1,
+                preempt_store_gpu_blocks=[1], preempt_store_cpu_blocks=[2])
+            with self.assertRaisesRegex(KVGuardError, "swap_slot_observation_missing") if action == "raise" else nullcontext():
+                native.execute_model(plan)
+            self.assertEqual(checked.failure, "swap_slot_observation_missing")
 
     def test_slot_worker_reports_missing_observation_with_log_action(self):
         native, recorder, plan = self._observed_worker(execute=_output(), slot=True)

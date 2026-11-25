@@ -23,10 +23,6 @@ pip install --no-deps .
 - The feature supports vLLM Ascend in eager and graph modes.
 - Use Model Runner V2 (MRV2) for inference. Set `VLLM_USE_V2_MODEL_RUNNER=1` before starting the service.
 
-Slot checks apply to PCP, DCP, ordinary batching (DBO disabled), standard decoding, decoder-only models, and local KV Cache. PCP checks combine global slots, local indices, gather indices, and write masks. DCP checks follow slot ownership on the current rank. Use `slot=false` to inspect KV Trace records for speculative decoding and KV transfer.
-
-The startup message `parameter=enable_dbo, action: resetting to False` means Ascend has selected ordinary batching. Interpret slot results for that ordinary-batch configuration.
-
 ## Function
 
 **Function Description**
@@ -52,11 +48,19 @@ vllm serve <model_path> --enforce-eager --additional-config '<additional_config>
 | --- | --- | --- |
 | `enabled` | Optional | Boolean: `true` enables KV Trace and `false` disables it. The service starts with KV Trace disabled; supplying a `kv_trace` configuration gives this field a default value of `true` |
 | `action` | Optional | `log` (default): record check failures and continue inference; `raise`: record check failures and raise `KVGuardError`, ending the inference engine |
-| `slot` | Optional | Boolean, default `false`. `true` enables slot address-plan checks together with `enabled=true` |
+| `slot` | Optional | Boolean, default `false`. Set `true` together with `enabled=true` to check slot addresses. See [Slot Parameter](#slot_parameter) for supported scenarios |
 
-> [!NOTE]
->
-> Slot address-plan checks compare each token's authorized cache slot with the write location specified in the model input.
+**Slot Parameter**<a name="slot_parameter"></a>
+
+With `slot` enabled, KV Trace compares the cache slot assigned to each token by the scheduler with the write location specified in the model input. Slot checks apply to standard decoding with decoder-only models and ordinary batching (DBO disabled).
+
+| Scenario | Configuration and checks |
+| --- | --- |
+| Local KV Cache | Supports prefill context parallelism (PCP) and decode context parallelism (DCP). PCP checks each process's token indices and write masks against the global slots. DCP checks write slots against the current rank's cache shard |
+| Disaggregated prefill and decode (PD) | Use one full-attention cache group and set TP, PP, PCP, and DCP to 1. Configure `MooncakeConnectorV1` as `kv_producer` on prefill and `kv_consumer` on decode. Prefill checks exported blocks against request bindings. After the read returns, decode checks source addresses, destination addresses, and coverage across the transfer |
+| Preemption offload and restore | Use the `kv_consumer` role of `PreemptOffloadConnector`, one full-attention cache group, and TP, PP, PCP, and DCP set to 1. Checks cover the source and destination blocks, cache capacity, and completion event for each transfer batch |
+
+The startup message `parameter=enable_dbo, action: resetting to False` indicates that the service runs with ordinary batching. Interpret slot check results using that configuration.
 
 **Usage Example**
 
@@ -222,12 +226,14 @@ Collect the step's records using `trace_id`, request identifiers, `rank`, and `g
 | `slot_observation_missing` / `slot_metadata_missing` / `slot_padding_metadata_missing` / `slot_metadata_invalid` | Input-completeness validation reports an error | The configured `action` records or raises the error. Confirm `VLLM_USE_V2_MODEL_RUNNER=1` and save the full startup arguments, service versions, and error logs |
 | `unsupported_slot_layout` | The cache layout triggers the slot applicability check | Review the cache-group information in the error logs. Set `slot=false` to inspect KV Trace records for the current scenario |
 | `unsupported_slot_null_redirect` | Warmup uses a reserved null block as the write location | Set `slot=false` and inspect warmup requests and read/write locations through KV Trace |
+| `slot_release_binding_stale` | Cache bindings remain after request release | Use `request_id` to compare surrounding `kv.bind` and release records in the service log |
+| `slot_release_inflight` | A release occurs while KV transfer is active | Compare send/receive completion in `kv_connector_output`. `raise` reports the failure before release; `log` records it and continues |
 
 Use `log` to record slot and input-validation errors and continue inference. Use `raise` to latch the first check failure and raise `KVGuardError` at the result check. Review the corresponding logs to confirm the runtime configuration.
 
 ### 6. Inspect scenario-specific records
 
-Use the following KV Trace records to analyze requests and cache usage. Set `slot=false` for CP, speculative decoding, KV transfer, and warmup with null-block redirection.
+Use the following KV Trace records to analyze requests and cache usage. Set `slot=false` for speculative decoding and warmup with null-block redirection.
 
 Data Parallel (DP) deployment uses multiple instances to process separate request batches. Dummy execution lets an instance participate in parallel computation with placeholder inputs. For these concepts, see the official vLLM [Data Parallel Deployment](https://docs.vllm.ai/en/latest/serving/data_parallel_deployment/) guide.
 
@@ -240,6 +246,32 @@ Context parallelism distributes long-sequence computation or cache storage acros
 | Speculative decoding (candidate token generation and verification) | Compare `speculative` budgets in `kv.bind` with `num_sampled` (sampled count), `num_rejected` (rejected count), and `query_start_loc` in `evidence=sample_postprocess` records. `association=current_step` identifies current-step results; `observed_call_only` records just this call, with `trace_id=null` |
 | PCP / DCP | Inspect the PCP/DCP fields across execution processes. `slot_mapping_scope=pcp_frame` describes the write slot list for the PCP group; compare it using global requests, token associations, and write flags (masks) in `evidence=parallel_context` records. For DCP, use `dcp_local_seq_lens` to inspect this process's read lengths |
 | KV transfer | Inspect requests and local/remote cache block lists in `evidence=connector_plan` records. Under the result's `kv_connector_output`, first check `failed_recving` (requests with failed receives) and `invalid_block_ids` (invalid cache block IDs), then assess `finished_sending` (requests with completed sends) and `finished_recving` (requests with completed receives) |
+
+When using Mooncake for disaggregated prefill and decode with `slot=true`, correlate `evidence=connector_plan` and slot failures by `request_id`. Prefill checks exported block bindings. After the read returns, decode checks source addresses, destination addresses, and coverage across the transfer to detect shifts, omissions, and duplicate reads. `raise` latches the failure and stops subsequent processing. `log` records it and continues. Inspect send and receive completion through `kv_connector_output`. Set `VLLM_LOGGING_LEVEL=DEBUG` before service startup to see address details in the Mooncake transfer logs.
+
+| `reason` | Analysis and action |
+| --- | --- |
+| `pd_slot_transfer_mismatch` | Source/destination ranges or coverage counts differ; compare the request plan with native transfer address records |
+| `pd_slot_source_plan_mismatch` / `pd_slot_ownership_mismatch` | Compare exported and receive block plans with current request ownership |
+| `pd_slot_stale_transfer` | An old transfer returns after completion, preemption, or rebinding; correlate surrounding scheduling records |
+
+For preemption offload and restore, use this complete Eager command:
+
+```shell
+export VLLM_USE_V2_MODEL_RUNNER=1
+vllm serve /path/to/model --enforce-eager \
+  --kv-transfer-config '{"kv_connector":"PreemptOffloadConnector","kv_role":"kv_consumer","kv_connector_extra_config":{"cpu_bytes_to_use_per_rank":268435456,"enable_offload_prefix_caching":false}}' \
+  --additional-config '{"scheduler_config":{"recompute_scheduler_enable":true},"kv_trace":{"enabled":true,"action":"log","slot":true}}' \
+  > server.log 2>&1
+```
+
+Filter `server.log` for `swap_slot` failures and use `direction` and `event_id` to identify the submitted batch. `D2H` identifies offload and `H2D` identifies restore. Compare restored GPU slots through `kv.write` and surrounding `kv.bind` records.
+
+| `reason` | Analysis and action |
+| --- | --- |
+| `swap_slot_plan_mismatch` | Source/destination blocks, capacity, or synchronization differs; inspect the event ID and transfer direction |
+| `swap_slot_observation_missing` | The current batch retains pending offload/restore plans; compare scheduling and native transfer logs |
+| `swap_slot_completion_missing` | Native completion differs from the submission; inspect the event ID and service exception stack |
 
 ## Interpreting Results
 
