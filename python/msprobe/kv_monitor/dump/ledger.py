@@ -27,7 +27,7 @@ class WriteLedger:
             config = kv_config.DEFAULT_CONFIG.load(vllm_config)
             if config is None:
                 return
-            base_dir = config.require_stats_dir().rstrip("/")
+            base_dir = config.stats_dir().rstrip("/")
             built = [self._build_row(row) for row in rows]
             with self._lock:
                 self._write_rows(base_dir, built)
@@ -40,7 +40,7 @@ class WriteLedger:
             config = kv_config.DEFAULT_CONFIG.load(vllm_config)
             if config is None:
                 return
-            base_dir = config.require_stats_dir().rstrip("/")
+            base_dir = config.stats_dir().rstrip("/")
             row = self._build_row({"write": "msprobe_error", "error": str(error)})
             with self._lock:
                 self._write_rows(base_dir, [row])
