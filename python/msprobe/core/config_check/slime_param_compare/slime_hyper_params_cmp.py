@@ -13,6 +13,8 @@
 # MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 # See the Mulan PSL v2 for more details.
 # -------------------------------------------------------------------------
+# slime 与 verl 的超参比对逻辑刻意保持一致结构，屏蔽重复码告警
+# pylint: disable=duplicate-code
 import os
 import pandas as pd
 
@@ -68,6 +70,6 @@ def slime_compare_hyper_params(npu_config: str, bench_config: str, output_dirpat
 
     output_file = os.path.join(real_output_dirpath, "hyper_params_compare.csv")
     df = pd.DataFrame(rows, columns=CompareConst.SLIME_HYPER_PARAM_COMPARE_COLUM)
-    write_df_to_csv(df, output_file, encoding='utf-8-sig')
+    write_df_to_csv(df, output_file)
 
     logger.info(f"Saving slime compare file to disk: {output_file}")
