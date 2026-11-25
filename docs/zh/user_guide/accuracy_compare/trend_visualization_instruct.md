@@ -66,8 +66,8 @@ msprobe data2db --db <db_path> --data <data_path> [--compare_data <compare_path>
 | ---------------- | --------- | ------------------------------------------------------------ |
 | --db             | 必选      | 解析结果文件存盘目录，str类型。在该目录下生成后缀为`.trend.db`的SQLite文件。 |
 | --data           | 必选      | 输入数据路径，str类型。支持dump数据目录或monitor数据目录。dump数据需配置到step文件夹的上一层目录，monitor数据配置到rank文件夹的上一层目录。   |
-| --compare_data   | 可选      | 比对数据路径，str类型。用于比对两组不同实验的精度数据，配置方式与`--data`相同，两份数据须为同一数据类型。不配置时仅解析单份数据。 |
-| --concat_dim     | 可选      | 拼接维度，str类型。可选值：`step`（默认）、`rank`。仅在配置`--compare_data`时生效。`step`表示两份数据在迭代步数维度上首尾相接，`rank`表示两份数据在节点rank维度上首尾相接。 |
+| --compare_data(beta)   | 可选      | 比对数据路径，str类型。用于比对两组不同实验的精度数据，配置方式与`--data`相同，两份数据须为同一数据类型。不配置时仅解析单份数据。 |
+| --concat_dim(beta)     | 可选      | 拼接维度，str类型。可选值：`step`（默认）、`rank`。仅在配置`--compare_data`时生效。`step`表示两份数据在迭代步数维度上首尾相接，`rank`表示两份数据在节点rank维度上首尾相接。 |
 | --format         | 可选      | 选择解析的数据类型，str类型。可选值：`dump`（只解析dump数据）、`monitor`（只解析monitor数据）、`auto`（自动检测数据目录中的数据类型），默认为`auto`。配置`--compare_data`时该参数必选，须显式指定`dump`或`monitor`。 |
 | --mapping        | 可选      | 指定json映射文件路径（须配置到json文件名，例如./mapping.json），str类型。程序会在解析精度数据时，将其中模型层的名称或算子名称根据映射文件做转换，以达到精简名称或step间模型或算子名称对齐的效果。映射文件详细配置请参见[mapping配置文件说明](#mapping配置文件说明)。 |
 | --micro_step     | 可选      | 是否启用微步计数，bool类型。默认值为`true`，启用微步计数可将一个迭代（step）拆分为多个微迭代进行分析。 |
