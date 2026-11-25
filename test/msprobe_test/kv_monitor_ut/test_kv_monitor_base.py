@@ -40,29 +40,50 @@ def test_cp_slot_mapping_follows_engine_rule():
     assert plain.slots.tolist() == [40, 41, 42, 43, 44, 45, 46, 47]
 
 
-def test_require_stats_dir_fails_fast():
-    assert kv_config.Config({"kv_stats_dir": "/tmp/kv"}).require_stats_dir() == "/tmp/kv"
+def test_stats_dir_fails_fast(tmp_path):
+    assert kv_config.Config({"kv_stats_dir": str(tmp_path / "kv")}).stats_dir() == str(tmp_path / "kv")
     for bad in (
         {"kv_stats_enable": True},
         {"kv_stats_dir": "   "},
         {"kv_stats_dir": 7},
-        {"kv_stats_dir": "rel/out"},
-        {"kv_stats_dir": "./kv"},
-        {"kv_stats_dir": "~"},
     ):
         with pytest.raises(kv_config.WatchConfigError):
-            kv_config.Config(bad).require_stats_dir()
+            kv_config.Config(bad).stats_dir()
+
+
+def test_stats_dir_allows_relative_path_without_creating(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    config = kv_config.Config({"kv_stats_dir": "not_created"})
+    assert config.stats_dir() == str(tmp_path / "not_created")
+    assert not (tmp_path / "not_created").exists()
+
+
+def test_stats_dir_allows_relative_path(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    config = kv_config.Config({"kv_stats_dir": "kv_relative_out"})
+    assert config.stats_dir() == str(tmp_path / "kv_relative_out")
 
 
 def test_monitor_switch_and_limit_normalization():
-    assert kv_config.Config({"kv_stats_enable": True}).enabled()
-    assert not kv_config.Config({"kv_stats_enable": "true"}).enabled()
-    assert kv_config.Config({"kv_stats_max_layers": -5}).max_layers() == 0
-    assert kv_config.Config({"kv_stats_max_layers": "3"}).max_layers() is None
-    assert kv_config.Config({"kv_stats_max_layers": True}).max_layers() is None
+    assert kv_config.Config({"kv_stats_enable": True, "kv_stats_dir": "/tmp/kv"}).enabled() is True
+    assert kv_config.Config({"kv_stats_enable": False}).enabled() is False
+    assert kv_config.Config({}).enabled() is False
+    assert kv_config.Config({"kv_stats_max_layers": 3}).max_layers() == 3
     assert kv_config.Config({}).max_layers() is None
     with pytest.raises(kv_config.WatchConfigError):
-        kv_config.Config().enabled()
+        kv_config.Config().check()
+
+
+def test_monitor_switch_rejects_non_bool():
+    for bad in (1, 0, 1.55, 0.0, "true", "false", [True], {"value": True}):
+        with pytest.raises(kv_config.WatchConfigError):
+            kv_config.Config({"kv_stats_enable": bad}).check()
+
+
+def test_monitor_max_layers_rejects_invalid_type():
+    for bad in (-5, 1.55, "3", True):
+        with pytest.raises(kv_config.WatchConfigError):
+            kv_config.Config({"kv_stats_max_layers": bad}).check()
 
 
 def test_config_freezes_first_success():
@@ -71,11 +92,11 @@ def test_config_freezes_first_success():
     assert config.load(None) is None
     values = {"kv_stats_enable": True, "kv_stats_dir": "/tmp/kv"}
     assert config.load(SimpleNamespace(additional_config={"kv_trace": values})) is config
-    assert config.require_stats_dir() == "/tmp/kv"
-    assert config.enabled()
+    assert config.stats_dir() == "/tmp/kv"
+    assert config.enabled() is True
     other = SimpleNamespace(additional_config={"kv_trace": {"kv_stats_enable": False}})
     assert config.load(other) is config
-    assert config.enabled()
+    assert config.enabled() is True
 
 def test_external_request_id_single_strip():
     assert get_external_request_id("req-abc-1a2b3c4d") == "req-abc"
@@ -390,3 +411,79 @@ def test_v2_cp_geometry_dcp_only():
     )
 
     assert VllmEngineAdapter(engine).cp_geometry() is None
+
+
+def test_probe_gate_rejects_invalid_max_layers():
+    values = {"kv_stats_enable": True, "kv_stats_dir": "/tmp/kv", "kv_stats_max_layers": 1.55}
+    with pytest.raises(kv_config.WatchConfigError):
+        kv_config.Config(dict(values)).probe_gate()
+
+    ok = {"kv_stats_enable": True, "kv_stats_dir": "/tmp/kv", "kv_stats_max_layers": 2}
+    assert kv_config.Config(dict(ok)).probe_gate() is True
+
+
+def test_failed_load_rolls_back_and_gate_reports_again():
+    config = kv_config.Config()
+    bad = SimpleNamespace(additional_config={"kv_trace": {"kv_stats_enable": "true"}})
+    with pytest.raises(kv_config.WatchConfigError):
+        config.load(bad)
+    with pytest.raises(kv_config.WatchConfigError):
+        config.probe_gate(bad)
+
+    stats_dir = os.path.abspath("kv_stats")
+    good = SimpleNamespace(additional_config={"kv_trace": {"kv_stats_enable": True, "kv_stats_dir": stats_dir}})
+    assert config.load(good) is config
+    assert config.enabled() is True
+    assert config.stats_dir() == stats_dir
+
+
+
+def test_stats_dir_rejects_existing_file(tmp_path):
+    file_path = tmp_path / "not_a_dir"
+    file_path.write_text("x", encoding="utf-8")
+    with pytest.raises(kv_config.WatchConfigError):
+        kv_config.Config({"kv_stats_dir": str(file_path)})
+
+
+def test_stats_dir_rejects_too_long_path():
+    from msprobe.core.common.exceptions import FileCheckException
+
+    with pytest.raises(FileCheckException):
+        kv_config.Config({"kv_stats_enable": True, "kv_stats_dir": "a" * 5000})
+
+
+def test_stats_dir_rejects_special_character():
+    from msprobe.core.common.exceptions import FileCheckException
+
+    with pytest.raises(FileCheckException):
+        kv_config.Config({"kv_stats_enable": True, "kv_stats_dir": "/tmp/kv_bad$a"})
+
+
+def test_stats_dir_normalizes_tilde():
+    import os
+
+    expected = os.path.realpath(os.path.expanduser("~/kv_tilde_demo"))
+    assert kv_config.Config({"kv_stats_dir": "~/kv_tilde_demo"}).stats_dir() == expected
+
+
+def test_stats_dir_null_requires_value_when_enabled():
+    with pytest.raises(kv_config.WatchConfigError):
+        kv_config.Config({"kv_stats_enable": True, "kv_stats_dir": None})
+    assert kv_config.Config({"kv_stats_enable": False, "kv_stats_dir": None}).enabled() is False
+
+
+def test_non_dict_kv_trace_is_treated_as_disabled():
+    values = SimpleNamespace(additional_config={"kv_trace": ["not", "a", "dict"]})
+    config = kv_config.Config()
+    assert config.load(values) is None
+
+
+def test_probe_gate_raises_when_dir_missing():
+    values = {"kv_stats_enable": True}
+    with pytest.raises(kv_config.WatchConfigError):
+        kv_config.Config(dict(values)).probe_gate()
+    assert kv_config.Config({"kv_stats_enable": False}).probe_gate() is False
+
+
+def test_max_layers_zero_is_allowed():
+    assert kv_config.Config({"kv_stats_max_layers": 0}).max_layers() == 0

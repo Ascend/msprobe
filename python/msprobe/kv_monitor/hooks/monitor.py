@@ -43,7 +43,7 @@ class KVMonitor:
         return config.max_layers()
 
     def _stats_dir(self) -> str:
-        return self._config().require_stats_dir()
+        return self._config().stats_dir()
 
     def _enabled(self) -> bool:
         return self._max_layers() != 0
