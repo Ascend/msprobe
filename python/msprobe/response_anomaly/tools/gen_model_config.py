@@ -72,6 +72,7 @@ SCRIPT_LABELS = {
 
 PUNCT_CHARS = set("'`\".;:!?-–—()[]{}<>/\\@#*$%&+|~^=_")
 WHITESPACE_CHARS = set(" \t\n\r\f\v▁ĠĊ█")
+SPIECE_UNDERLINE = "▁"  # sentencepiece 系词表的空白标记
 
 
 @lru_cache(maxsize=4096)
@@ -194,6 +195,32 @@ def invert_vocab(vocab):
     return tokens
 
 
+def decode_token_with_fallback(tokenizer, token_id, token_raw):
+    decoded = ""
+    if token_raw:
+        try:
+            decoded = tokenizer.decode([token_id], skip_special_tokens=False, clean_up_tokenization_spaces=False)
+        except Exception:
+            try:
+                decoded = tokenizer.decode([token_id])
+            except Exception:
+                decoded = token_raw if isinstance(token_raw, str) else ""
+        if isinstance(decoded, bytes):
+            decoded = decoded.decode("utf-8", errors="replace")
+        # sentencepiece 系词表的 decode 会做 replace(▁, " ")+strip，导致空白信息丢失。
+        # 仅当解码结果留下可证明的"丢失痕迹"时才修复，对 byte-level 词表（无字面▁、解码非空）恒不触发
+        if not decoded and all(c in WHITESPACE_CHARS for c in token_raw):
+            decoded = token_raw
+        elif (
+            token_raw.startswith(SPIECE_UNDERLINE)
+            and decoded
+            and SPIECE_UNDERLINE not in decoded
+            and decoded == token_raw.replace(SPIECE_UNDERLINE, "")
+        ):
+            decoded = " " + decoded
+    return decoded
+
+
 def _normalize_name(name):
     return "-".join(re.split(r"\.|-|_", name.lower()))
 
@@ -250,11 +277,10 @@ def main():
     tokens = invert_vocab(vocab)
     category_counts = Counter()
 
-    decode = tokenizer.backend_tokenizer.decoder.decode
     tokens_info = []
-    for idx, token in enumerate(tokens):
-        decoded = decode([token])
-        info = categorize_token(idx, token, decoded)
+    for token_id, token in enumerate(tokens):
+        decoded = decode_token_with_fallback(tokenizer, token_id, token)
+        info = categorize_token(token_id, token, decoded)
         tokens_info.append(info)
         category_counts[info.category] += 1
 
