@@ -31,7 +31,7 @@ MindStudio Probe (msProbe) provides full-scenario precision debugging capabiliti
 | Sub-scenario | Function Item | Function Description | Reference Document |
 |---|---|---|---|
 | Eager/Graph Mode | Data Collection | Complete the msProbe precision data collection operation. | [Data Collection](dump/vllm_dump_instruct.md) |
-| Eager/Graph Mode | KV Statistics Collection | Complete the collection of KV statistics. | [KV Statistics Collection](kv_collect_instruct.md) |
+| Eager/Graph Mode | KV Cache Statistics Collection | Complete the KV Cache statistics collection operation. | [KV Cache Statistics Collection](kv_collect_instruct.md) |
 | Eager/Graph Mode (MRV2) | KV Boundary Tracing | Record KV boundaries across scheduling, execution plans, and native results. | [KV Tracing](kv_trace_instruct.md) |
 | | Data Comparison | Perform precision comparison on the precision data dumped by the msProbe tool, and then localize precision problems.<br/>Please refer to *Hierarchical Visualization Graph Comparison or Precision Comparison* | [Hierarchical Visualization Graph Comparison](accuracy_compare/pytorch_visualization_instruct.md)<br>[Precision Comparison](accuracy_compare/pytorch_accuracy_compare_instruct.md) |
 | torchair | Data Collection | Complete the precision data collection operation through the `set_ge_dump_config` interface. | [Data Collection](dump/torchair_dump_instruct.md) |
@@ -115,3 +115,5 @@ MindStudio Probe (msProbe) provides full-scenario precision debugging capabiliti
 🔹 [Standard Performance Baseline Report of the Training Status Monitoring Tool](../baseline/monitor_perf_baseline.md)
 
 🔹 [Performance Baseline Report of the Response Anomaly Detection Tool](../baseline/response_anomaly_baseline.md)
+
+🔹 [KV Cache Statistics Collection Performance Baseline](../baseline/kv_collect_perf_baseline.md)
