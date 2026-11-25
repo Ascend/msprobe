@@ -339,7 +339,7 @@ Configuration method:
 
 During dump, wrap the modules or operators on the NPU side and the bench side with the same tag name (their names and implementations may differ). The entries in the tag scope are paired with each other according to the newly defined [tag pairing rules](#pairing-rules).
 
-By default (`recursive=False`), only the modules/operators directly called within the tag scope are tagged, and their internal sub-modules/sub-operators are not tagged (exception: at L1, all APIs executed within the scope are tagged). When `recursive=True`, all nested levels are tagged. The backward and parameter gradient entries of a tagged call automatically carry the same tag. For the tagging scope, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+Only the modules/operators directly called within the tag scope are tagged; how far the scope reaches depends on the dump level (see the tag scope table in [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md)). The backward and parameter gradient entries of a tagged call automatically carry the same tag.
 
 **Module scenario**
 
@@ -359,7 +359,7 @@ Compare module implementations whose entry names or implementations differ betwe
 
 Compare custom operators whose function names or implementations differ between the two sides. For example, one side uses the fused operator `fused_gqa_attention` and the other uses the hand-written operator `handwritten_gqa_attention`. A custom API must be registered before it can be dumped. For the registration method, see [Batch Registration of User-Defined APIs](../dump/pytorch_data_dump_instruct.md#batch-registration-of-user-defined-apis) or [register_custom_api](../dump/pytorch_data_dump_instruct.md#register_custom_api) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
 
-1. Wrap the custom operators to be compared on both sides with the same tag name (the number of wrapped calls must be the same and non-zero on both sides), and dump the precision data on both sides. For the labeling method, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
+1. Wrap the custom operators to be compared on both sides with the same tag name (the number of wrapped forward calls must be the same and non-zero on both sides), and dump the precision data on both sides. For the labeling method, see [Custom Tag](../dump/pytorch_data_dump_instruct.md#custom-tag) in [Precision Data Collection in PyTorch](../dump/pytorch_data_dump_instruct.md).
 
 2. Run the command, which is the same as in the module scenario.
 
@@ -367,11 +367,11 @@ Compare custom operators whose function names or implementations differ between 
 
 ##### Pairing Rules
 
-Entries wrapped by the same tag pair as a group when both sides wrap the same non-zero number of calls: by entry name first, then by call ordinal within the group (loop iterations pair one by one). Rows within a paired entry are matched slot by slot (input, output, and so on), and parameter gradient rows match by module base name and parameter name. Unpaired rows remain visible on the NPU side, while on the Bench side they do not enter the result table and are warned in the comparison logs. A tag that does not form a group falls back to normal comparison with a warning.
+Entries wrapped by the same tag pair as a group when both sides wrap the same non-zero number of forward calls: by entry name first, then by call ordinal within the group (loop iterations pair one by one). Rows within a paired entry are matched slot by slot (input, output, and so on), and parameter gradient rows match by module base name and parameter name. Unpaired rows remain visible on the NPU side, while on the Bench side they do not enter the result table and are warned in the comparison logs. A tag that does not form a group falls back to normal comparison with a warning.
 
 **Constraints**:
 
-- The tag comparison is enabled when the dump data contains tags and none of `-fm`, `-cm`, `-am`, `-dm`, `-da`, `--consistent_check`, or `first_diff_analyze` is configured. When any of them is configured, the tag comparison is not enabled (a warning is printed) and the configured mode is used instead.
+- The tag comparison is enabled when the dump data contains tags and none of `-fm`, `-cm`, `-am`, `-dm`, `-da`, or `--consistent_check` is configured. When any of them is configured, the tag comparison is not enabled (a warning is printed) and the configured mode is used instead.
 
 ### Output Description
 
