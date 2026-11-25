@@ -15,7 +15,7 @@
  * -------------------------------------------------------------------------
  */
 
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import { Button, message, Select, Spin, Splitter } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useGlobalStore } from '../../store/useGlobalStore';
@@ -79,12 +79,21 @@ const Graph = () => {
     setCurveBSelection(undefined);
   };
 
-  // 清空：清掉所有曲线与 diff（图标保持 toolbox 样式，与模式/差值选择框同一水平线）
+  // 清空：清掉所有曲线与 diff（图标保持 toolbox 样式，与模式/差值选择框同一水平线）；
+  // A/B 选择框由下方 useEffect 随曲线列表失效自动复位，无需在此重复重置
   const handleClear = () => {
     setTrendData([]);
     setDiffPairs([]);
     setHiddenLegendNames([]);
   };
+
+  // 选中值随曲线列表失效自动重置：清空、数据重载（切换指标/统计量/维度）、曲线被
+  // 双击删除等场景下，若 A/B 已选曲线不在当前列表中，则复位选择框，避免残留失效值
+  useEffect(() => {
+    const validKeys = new Set(curveOptions.map((o) => o.value));
+    if (curveASelection && !validKeys.has(curveASelection)) setCurveASelection(undefined);
+    if (curveBSelection && !validKeys.has(curveBSelection)) setCurveBSelection(undefined);
+  }, [curveOptions, curveASelection, curveBSelection]);
 
   return (
     <div className="graph-container">

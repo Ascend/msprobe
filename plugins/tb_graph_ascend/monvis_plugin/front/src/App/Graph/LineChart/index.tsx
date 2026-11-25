@@ -320,7 +320,7 @@ const LineChart = () => {
           />
         ) : (
           <Empty
-            description={viewMode === 'diff' ? '请选择两条曲线做差值对比' : '点击 heatmap 添加曲线'}
+            description={viewMode === 'diff' ? '请选择两条曲线做差值对比' : '点击热力图添加曲线'}
             style={{ paddingTop: 40 }}
           />
         )}
