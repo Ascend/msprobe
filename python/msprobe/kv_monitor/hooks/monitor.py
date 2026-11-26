@@ -82,9 +82,6 @@ class KVMonitor:
 
     def _request_meta(self, scheduler_output, observation) -> dict | None:
         adapter = self._adapter
-        if scheduler_output is None:
-            logger.warning("[kv-cache-watch] build request meta failed: scheduler_output unavailable")
-            return None
         try:
             req_ids = adapter.req_ids()
             progress = adapter.request_progress(scheduler_output)

@@ -21,7 +21,6 @@ pip install --no-deps .
 **约束**
 
 - 本功能适用于 vLLM Ascend，支持 Eager 和图模式。
-- 模型执行组件只支持 Model Runner V1（MRV1），通过 `VLLM_USE_V1=1` 启用。
 - 当前仅支持单一注意力机制模型，会排除mamba层。
 
 ## 功能介绍
@@ -46,12 +45,13 @@ vllm serve <model_path> --enforce-eager --additional-config '<additional_config>
 | 参数名 | 可选/必选 | 参数说明 |
 | --- | --- | --- |
 | `<model_path>` | 必选 | 模型路径 |
-| `--additional-config` | 必选 | 启用本功能的 JSON 配置，包含 `kv_trace` 对象。配置示例：`--additional-config '{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/path/to/kv_stats","kv_stats_max_layers":2}}'`。各字段含义见 [kv_trace 对象参数](#kv_trace_parameters) |
+| `--additional-config` | 必选 | 启用本功能的 JSON 配置，包含 `kv_trace` 对象。配置示例：`--additional-config '{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/path/to/kv_stats","kv_stats_max_layers":2}}'`。各字段含义见 [kv_trace 对象参数](#kv_trace_parameters) |
 
 **kv_trace 对象参数**<a name="kv_trace_parameters"></a>
 
 | 参数名 | 可选/必选 | 参数说明                                                    |
 | --- | --- |---------------------------------------------------------|
+| `enabled` | 可选 | 布尔值，`true` 开启 KV Trace（详细介绍请参见[KV Trace](./kv_trace_instruct.md)），`false` 关闭。服务默认关闭 KV Trace；提供 `kv_trace` 配置后，此字段默认值为 `true`。当使用 Model Runner V1 时，需要配置为 `false`           |
 | `kv_stats_enable` | 可选 | 布尔值，是否开启采集，`true` 开启采集，`false`关闭采集，默认是`false`           |
 | `kv_stats_dir` | 可选 | 采集落盘的路径；`kv_stats_enable` 为 `true` 时必填，否则服务启动失败 |
 | `kv_stats_max_layers` | 可选 | 非负整数，采集包含 KV Cache 的最大层数，设为 `0` 不采集任何层，默认采集所有层          |
@@ -61,16 +61,15 @@ vllm serve <model_path> --enforce-eager --additional-config '<additional_config>
 以下示例使用 Eager 模式开启采集，仅采集前 2 层：
 
 ```shell
-export VLLM_USE_V1=1
 vllm serve /path/to/model \
   --enforce-eager \
-  --additional-config '{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/path/to/kv_stats","kv_stats_max_layers":2}}' \
+  --additional-config '{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/path/to/kv_stats","kv_stats_max_layers":2}}' \
   > server.log 2>&1
 ```
 
 将 `/path/to/model` 替换为模型路径，`/path/to/kv_stats` 替换为实际落盘目录。使用图模式时，删除上述命令中的 `--enforce-eager` 参数，并沿用服务现有的编译配置。
 
-需要采集所有层时，删除 `kv_stats_max_layers`，仅保留 `kv_stats_enable` 和 `kv_stats_dir`。采集会带来端到端时延开销，建议先用少量层验证配置和输出，再按需扩大采集范围。
+需要采集所有层时，删除 `kv_stats_max_layers`，仅保留 `enabled`（设为 `false`）、`kv_stats_enable` 和 `kv_stats_dir`。采集会带来端到端时延开销，建议先用少量层验证配置和输出，再按需扩大采集范围。
 
 **输出说明**
 

@@ -20,13 +20,12 @@ NPU：Atlas A2 训练服务器系列产品（单卡 32 GB，本次使用 2 张�
 
 ```shell
 export ASCEND_RT_VISIBLE_DEVICES=0,1
-export VLLM_USE_V1=1
 vllm serve /data/weights/DeepSeek-V2-Lite \
   --host 0.0.0.0 --port 8000 --served-model-name dsv2 \
   --tensor-parallel-size 2 --seed 1024 \
   --max-model-len 512 --max-num-batched-tokens 512 \
   --trust-remote-code --gpu-memory-utilization 0.9 --enforce-eager \
-  --additional-config '{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats"}}'
+  --additional-config '{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats"}}'
 ```
 
 **测试场景**
@@ -37,7 +36,7 @@ vllm serve /data/weights/DeepSeek-V2-Lite \
 | 请求方式 | 20 次串行请求，前 3 次预热，取后 17 次的平均数 |
 | 输入长度 | prompt 184 token |
 | 输出长度 | `max_tokens=32`，`temperature=0` |
-| 采集配置 | 关闭采集：`{"kv_trace":{"kv_stats_enable":false}}`<br>  全层采集：`{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats"}}`<br> 限 2 层采集：`{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats","kv_stats_max_layers":2}}` |
+| 采集配置 | 关闭采集：`{"kv_trace":{"enabled":false,"kv_stats_enable":false}}`<br>  全层采集：`{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats"}}`<br> 限 2 层采集：`{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats","kv_stats_max_layers":2}}` |
 
 **请求方式**
 

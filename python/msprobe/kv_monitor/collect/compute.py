@@ -41,7 +41,9 @@ def extract_request_windows(
 ) -> dict[str, tuple[list[int], int]]:
     result: dict[str, tuple[list[int], int]] = {}
     try:
-        if block_size <= 0 or not isinstance(attn_metadata, dict) or not attn_metadata:
+        if block_size <= 0 or attn_metadata is None:
+            return result
+        if isinstance(attn_metadata, dict) and not attn_metadata:
             return result
         seq_lens, block_table = adapter.resolve_kv_meta(attn_metadata)
         if seq_lens is None or block_table is None:

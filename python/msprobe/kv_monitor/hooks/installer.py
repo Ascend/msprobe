@@ -29,6 +29,7 @@ _RUNNER = "runner"
 _DUMMY = "dummy"
 _TRANSFER_KV_CACHE = "transfer_kv_cache"
 _MODEL_RUNNER_V1 = "vllm_ascend.worker.model_runner_v1"
+_MODEL_RUNNER_V2 = "vllm_ascend.worker.v2.model_runner"
 _NPU_MODEL_RUNNER = "NPUModelRunner"
 
 # 内置补丁目标表
@@ -36,6 +37,9 @@ _BUILTIN_PATCH_TARGETS = (
     PatchTarget(_MONITOR, _MODEL_RUNNER_V1, _NPU_MODEL_RUNNER, "sample_tokens"),
     PatchTarget(_RUNNER, _MODEL_RUNNER_V1, _NPU_MODEL_RUNNER, "execute_model"),
     PatchTarget(_DUMMY, _MODEL_RUNNER_V1, _NPU_MODEL_RUNNER, "_dummy_run"),
+    PatchTarget(_MONITOR, _MODEL_RUNNER_V2, _NPU_MODEL_RUNNER, "sample_tokens"),
+    PatchTarget(_RUNNER, _MODEL_RUNNER_V2, _NPU_MODEL_RUNNER, "execute_model"),
+    PatchTarget(_DUMMY, _MODEL_RUNNER_V2, _NPU_MODEL_RUNNER, "_dummy_run"),
     PatchTarget(
         _TRANSFER_KV_CACHE,
         "vllm_ascend.distributed.kv_transfer.kv_p2p.mooncake_connector",
@@ -52,7 +56,7 @@ class Installer:
 
     def __init__(self) -> None:
         self._actions_cache: dict[str, Callable] | None = None
-        self._effective: dict[str, PatchTarget] | None = None
+        self._effective: list[PatchTarget] | None = None
         self._deferred: set[str] = set()
         self._probe_gate_checked: bool = False
         self._installed: bool = False
@@ -72,9 +76,9 @@ class Installer:
             }
         return self._actions_cache
 
-    def _effective_targets(self) -> dict[str, PatchTarget]:
+    def _effective_targets(self) -> list[PatchTarget]:
         if self._effective is None:
-            self._effective = {target.hook: target for target in _BUILTIN_PATCH_TARGETS}
+            self._effective = list(_BUILTIN_PATCH_TARGETS)
         return self._effective
 
     def _action_for(self, target: PatchTarget) -> Callable:
@@ -107,9 +111,10 @@ class Installer:
         self._install_now(target)
 
     def _defer(self, target: PatchTarget) -> None:
-        if target.hook in self._deferred:
+        key = f"{target.hook}:{target.module}"
+        if key in self._deferred:
             return
-        self._deferred.add(target.hook)
+        self._deferred.add(key)
         logger.info(f"[kv-monitor] patch target {target.hook} waits for module {target.module}")
         self._register_post_import(target.module, partial(self._install_now, target))
 
@@ -124,7 +129,7 @@ class Installer:
             self._install_all_targets()
 
     def _install_all_targets(self) -> None:
-        for target in self._effective_targets().values():
+        for target in self._effective_targets():
             self._apply_or_defer(target)
 
     def _unhook_init_ascend_config(self) -> None:
@@ -192,7 +197,10 @@ class Installer:
         callbacks = self._post_import_callbacks.pop(module_name, [])
         self._detach_finder(module_name)
         for callback in callbacks:
-            callback()
+            try:
+                callback()
+            except Exception as exc:
+                logger.warning(f"[kv-monitor] post-import patch failed for {module_name}: {exc}")
 
     def install(self) -> None:
         if self._installed:

@@ -78,3 +78,23 @@ def test_consumers_attempt_load_in_their_own_process(tmp_path, monkeypatch):
     assert (tmp_path / "rank0" / "ledger.jsonl").exists()
 
     assert kv_config.DEFAULT_CONFIG.max_layers() == 2
+
+
+def test_post_import_callback_failure_is_isolated():
+    """单个补丁回调抛异常不能打断 import：只告警，后续回调照常执行。"""
+    from msprobe.kv_monitor.hooks.installer import INSTALLER
+
+    module_name = "kv_monitor_ut_failing_module"
+    calls = []
+
+    def _boom():
+        raise RuntimeError("patch boom")
+
+    INSTALLER._post_import_callbacks[module_name] = [_boom, lambda: calls.append("after")]
+    try:
+        INSTALLER._run_post_import(module_name)
+    finally:
+        INSTALLER._post_import_callbacks.pop(module_name, None)
+
+    assert calls == ["after"]
+    assert module_name not in INSTALLER._post_import_callbacks
