@@ -25,7 +25,7 @@ vllm serve /data/weights/DeepSeek-V2-Lite \
   --tensor-parallel-size 2 --seed 1024 \
   --max-model-len 512 --max-num-batched-tokens 512 \
   --trust-remote-code --gpu-memory-utilization 0.9 --enforce-eager \
-  --additional-config '{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats"}}'
+  --additional-config '{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats"}}'
 ```
 
 **Test Scenario**
@@ -36,7 +36,7 @@ vllm serve /data/weights/DeepSeek-V2-Lite \
 | Request pattern | 20 serial requests; the first 3 are warm-up, and the average of the last 17 is taken |
 | Input length | 184-token prompt |
 | Output length | `max_tokens=32`, `temperature=0` |
-| Collection configuration | Collection disabled: `{"kv_trace":{"kv_stats_enable":false}}`<br>All layers collected: `{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats"}}`<br>Two layers collected: `{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats","kv_stats_max_layers":2}}` |
+| Collection configuration | Collection disabled: `{"kv_trace":{"enabled":false,"kv_stats_enable":false}}`<br>All layers collected: `{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats"}}`<br>Two layers collected: `{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/data/kv_stats","kv_stats_max_layers":2}}` |
 
 **Request Method**
 

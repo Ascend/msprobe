@@ -45,12 +45,13 @@ vllm serve <model_path> --enforce-eager --additional-config '<additional_config>
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
 | `<model_path>` | Required | Model path |
-| `--additional-config` | Required | JSON configuration that enables this feature, including the `kv_trace` object. Example: `--additional-config '{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/path/to/kv_stats","kv_stats_max_layers":2}}'`. For the meaning of each field, see [kv_trace Object Parameters](#kv_trace_parameters) |
+| `--additional-config` | Required | JSON configuration that enables this feature, including the `kv_trace` object. Example: `--additional-config '{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/path/to/kv_stats","kv_stats_max_layers":2}}'`. For the meaning of each field, see [kv_trace Object Parameters](#kv_trace_parameters) |
 
 **kv_trace Object Parameters**<a name="kv_trace_parameters"></a>
 
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
+| `enabled` | Optional | Boolean. `true` enables KV Trace (for details, see [KV Trace](./kv_trace_instruct.md)) and `false` disables it. KV Trace is disabled by default; once the `kv_trace` configuration is provided, this field defaults to `true`. It must be set to `false` when Model Runner V1 is used. |
 | `kv_stats_enable` | Optional | Boolean. Specifies whether to enable collection. `true` enables collection and `false` disables it. The default is `false`. |
 | `kv_stats_dir` | Optional | Path for the collected data. It is mandatory when `kv_stats_enable` is `true`; otherwise, the service fails to start. |
 | `kv_stats_max_layers` | Optional | Non-negative integer. Maximum number of layers that contain the KV Cache to collect. If set to `0`, no layer is collected. By default, all layers are collected. |
@@ -62,13 +63,13 @@ The following example uses eager mode to enable collection and collects only the
 ```shell
 vllm serve /path/to/model \
   --enforce-eager \
-  --additional-config '{"kv_trace":{"kv_stats_enable":true,"kv_stats_dir":"/path/to/kv_stats","kv_stats_max_layers":2}}' \
+  --additional-config '{"kv_trace":{"enabled":false,"kv_stats_enable":true,"kv_stats_dir":"/path/to/kv_stats","kv_stats_max_layers":2}}' \
   > server.log 2>&1
 ```
 
 Replace `/path/to/model` with the model path and `/path/to/kv_stats` with the actual output directory. When using graph mode, remove `--enforce-eager` from the command above and keep the existing compilation configuration of the service.
 
-To collect all layers, remove `kv_stats_max_layers` and keep only `kv_stats_enable` and `kv_stats_dir`. Collection adds end-to-end latency. Therefore, verify the configuration and output with a small number of layers first, and then expand the collection scope as required.
+To collect all layers, remove `kv_stats_max_layers` and keep only `enabled` (set to `false`), `kv_stats_enable`, and `kv_stats_dir`. Collection adds end-to-end latency. Therefore, verify the configuration and output with a small number of layers first, and then expand the collection scope as required.
 
 **Output**
 
