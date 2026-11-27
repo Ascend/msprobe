@@ -27,6 +27,7 @@ from msprobe.core.common.runtime import Runtime
 from msprobe.core.common.utils import Const, print_tools_ends_info, DumpPathAggregation
 from msprobe.core.dump.api_dump.api_registry import ApiRegistry
 from msprobe.core.dump.data_dump.data_collector import build_data_collector
+from msprobe.core.dump.data_dump.json_writer import is_json_enabled
 from msprobe.core.dump.kernel_dump.kernel_config import create_kernel_config_json
 
 
@@ -459,9 +460,7 @@ class BaseService(ABC):
 
     def _create_default_dirs(self, cur_rank):
         subdir = f"{Const.RANK}{cur_rank}" if cur_rank is not None else f"{Const.PROC}{self.current_pid}"
-
         dump_dir = os.path.join(self.dump_iter_dir, subdir)
-        create_directory(dump_dir)
 
         bench_dump_dir = None
         if self.bench_dump_iter_dir:
@@ -474,7 +473,9 @@ class BaseService(ABC):
         dump_data_dir = None
         if self._need_tensor_data:
             dump_data_dir = os.path.join(dump_dir, "dump_tensor_data")
-            create_directory(dump_data_dir)
+
+        if is_json_enabled(self.config):
+            create_directory(dump_data_dir or dump_dir)
 
         self._configure_dump_paths(dump_dir, dump_data_dir, bench_dump_dir)
 

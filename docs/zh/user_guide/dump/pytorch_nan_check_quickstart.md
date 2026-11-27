@@ -16,7 +16,7 @@ myst:
 
 ### 1.1 构建
 
-本例需要`aclgraph_dump`模块，编译时添加`-e include-mod=aclgraph_dump`。环境准备、编译和安装步骤请参见[安装指南](../../install_guide/msprobe_install_guide.md)。
+`isnan`模式通过PyTorch检测NaN，并使用`torch.save`保存Tensor。按[安装指南](../../install_guide/msprobe_install_guide.md)安装基础包即可运行本例。`slot`模式的编译要求见[slot模式](#2-slot模式)。
 
 ### 1.2 运行采集
 
@@ -81,10 +81,10 @@ nan_check_dump/
         ├── stack.json
         ├── construct.json
         └── dump_tensor_data/
-            ├── Torch.sqrt.0.forward.0.input.0.pt
-            ├── Torch.sqrt.0.forward.0.output.0.pt
-            ├── Torch.add.0.forward.0.input.0.pt
-            ├── Torch.add.0.forward.0.output.0.pt
+            ├── Torch.sqrt.0.forward.input.0.pt
+            ├── Torch.sqrt.0.forward.output.0.pt
+            ├── Torch.add.0.forward.input.0.pt
+            ├── Torch.add.0.forward.output.0.pt
             └── ...
 ```
 
@@ -149,7 +149,9 @@ nan_check_dump/
 
 #### 1.3.2 Tensor与附加文件
 
-前向输出含NaN时，保存当前API调用在采集范围内的全部输入、输出Tensor；反向计算得到的梯度含NaN时，保存该次反向调用的输入、输出梯度。保存以输出Tensor的`is_nan: 1`为触发条件；同次调用的其他Tensor标记为`null`时，也会尝试保存该调用的全部原始输入、输出Tensor。每次API调用的文件分别保存，文件名中的API调用序号和保存序号以实际输出为准。
+前向输出含NaN时，保存当前API调用在采集范围内的全部输入、输出Tensor；反向计算得到的梯度含NaN时，保存该次反向调用的输入、输出梯度。保存以输出Tensor的`is_nan: 1`为触发条件；同次调用的其他Tensor标记为`null`时，也会尝试保存该调用的全部原始输入、输出Tensor。文件名包含API调用序号和Tensor在输入、输出中的位置。
+
+NaN判定和Tensor保存同步完成。`detail: false`仅在命中NaN并保存Tensor的step中创建`step/rank`（或`proc`）及`dump_tensor_data`目录，`dump_path`根目录仍可存在。
 
 | detail | 落盘结果 |
 | --- | --- |
@@ -187,8 +189,8 @@ PY
 
 ```text
 Torch.sqrt.0.forward input= 0 output= 1
-Torch.sqrt.0.forward.0.input.0.pt [4.0, -1.0]
-Torch.sqrt.0.forward.0.output.0.pt [2.0, nan]
+Torch.sqrt.0.forward.input.0.pt [4.0, -1.0]
+Torch.sqrt.0.forward.output.0.pt [2.0, nan]
 File .../repro_nan.py, line 10, in <module>,
  y = torch.sqrt(x)
 ```

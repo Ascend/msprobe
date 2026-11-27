@@ -16,6 +16,7 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
+import json
 import os
 import tempfile
 
@@ -24,6 +25,7 @@ from msprobe.core.common.utils import Const
 from msprobe.core.common.runtime import Runtime
 from msprobe.core.dump.api_dump.api_registry import ApiRegistry
 from msprobe.core.dump.hook_manager import BaseHookManager
+from msprobe.core.dump.data_dump.json_writer import DataWriter
 
 
 class ConcreteBaseService(BaseService):
@@ -320,6 +322,82 @@ class TestBaseService(unittest.TestCase):
         self.assertTrue(os.path.isdir(paths.dump_tensor_data_dir))
         self.service.config.nan_check_mode = Const.NAN_CHECK_MODE_SLOT
         self.assertFalse(self.service._need_tensor_data)
+
+    def test_isnan_without_detail_defers_step_and_rank_directories(self):
+        self.service.config.task = Const.NAN_CHECK
+        self.service.config.nan_check_mode = Const.NAN_CHECK_MODE_ISNAN
+        self.service.config.nan_check_detail = False
+        self.service.data_collector.tasks_need_tensor_data = []
+        Runtime.run_mode = Const.PYNATIVE_MODE
+        for step in (0, 1):
+            for rank in (0, 1, None):
+                with self.subTest(step=step, rank=rank):
+                    self.service.current_iter = step
+                    self.service.current_rank = rank
+                    self.service.create_dirs()
+                    paths = self.service.data_collector.update_dump_paths.call_args.args[0]
+                    subdir = f"rank{rank}" if rank is not None else f"proc{os.getpid()}"
+                    expected_dir = os.path.join(self.temp_dir.name, f"step{step}", subdir, "dump_tensor_data")
+                    self.assertEqual(paths.dump_tensor_data_dir, expected_dir)
+                    self.assertEqual(os.listdir(self.temp_dir.name), [])
+
+    def test_normal_tasks_initialize_json_and_tensor_directories(self):
+        cases = [
+            (Const.TENSOR, Const.LEVEL_L1, [], None, True),
+            (Const.STATISTICS, Const.LEVEL_L1, [], None, False),
+            (Const.STATISTICS, Const.LEVEL_L1, ["Torch.add"], None, True),
+            (Const.DIFF_CHECK, Const.LEVEL_L1, [], None, True),
+            (Const.TENSOR, Const.LEVEL_DEBUG, [], None, True),
+            (Const.STRUCTURE, Const.LEVEL_L0, [], None, False),
+            (Const.NAN_CHECK, Const.LEVEL_L1, [], Const.NAN_CHECK_MODE_SLOT, False),
+            (Const.NAN_CHECK, Const.LEVEL_L1, [], Const.NAN_CHECK_MODE_ISNAN, True),
+        ]
+        original_run_mode = Runtime.run_mode
+        self.addCleanup(setattr, Runtime, "run_mode", original_run_mode)
+        self.service.data_collector.tasks_need_tensor_data = [Const.TENSOR, Const.DIFF_CHECK]
+        for index, (task, level, tensor_list, mode, needs_tensor_dir) in enumerate(cases):
+            for run_mode in (Const.PYNATIVE_MODE, Const.PYNATIVE_GRAPH_MODE):
+                for rank in (0, None):
+                    with self.subTest(task=task, level=level, run_mode=run_mode, rank=rank):
+                        config = self.service.config
+                        config.task, config.level, config.tensor_list = task, level, tensor_list
+                        config.nan_check_mode = mode
+                        config.extra_info = True
+                        if task == Const.NAN_CHECK:
+                            config.nan_check_detail = True
+                        elif hasattr(config, "nan_check_detail"):
+                            del config.nan_check_detail
+                        config.dump_path = os.path.join(self.temp_dir.name, f"case{index}_{run_mode}_{rank}")
+                        config.bench_path = None
+                        subdir = f"rank{rank}" if rank is not None else f"proc{os.getpid()}"
+                        if task == Const.DIFF_CHECK:
+                            config.bench_path = os.path.join(config.dump_path, "bench")
+                            os.makedirs(os.path.join(config.bench_path, "step0", subdir))
+                        Runtime.run_mode = run_mode
+                        self.service.current_iter, self.service.current_rank = 0, rank
+                        writer = DataWriter()
+                        writer.config = config
+                        self.service.data_collector.update_dump_paths.side_effect = writer.update_dump_paths
+                        self.service.data_collector.initialize_json_file.side_effect = lambda _: writer.initialize_json_file(
+                            task=config.task, level=config.level, framework=Const.PT_FRAMEWORK
+                        )
+                        self.service.create_dirs()
+                        parts = [config.dump_path]
+                        if run_mode == Const.PYNATIVE_GRAPH_MODE:
+                            parts.append(Const.PYNATIVE_MODE)
+                        dump_dir = os.path.join(*parts, "step0", subdir)
+                        expected_tensor_dir = os.path.join(dump_dir, "dump_tensor_data") if needs_tensor_dir else None
+                        self.assertEqual(writer.dump_tensor_data_dir, expected_tensor_dir)
+                        if needs_tensor_dir:
+                            self.assertTrue(os.path.isdir(expected_tensor_dir))
+                        else:
+                            self.assertFalse(os.path.exists(os.path.join(dump_dir, "dump_tensor_data")))
+                        json_path = writer.debug_file_path if level == Const.LEVEL_DEBUG else writer.dump_file_path
+                        with open(json_path, encoding="utf-8") as output:
+                            self.assertEqual(json.load(output)["dump_data_dir"], expected_tensor_dir)
+                        if task == Const.DIFF_CHECK:
+                            self.assertEqual(writer.bench_dump_file_path,
+                                             os.path.join(config.bench_path, "step0", subdir, "dump.json"))
     
     def test_need_stop_service_conditions(self):
         self.service.current_iter = 4

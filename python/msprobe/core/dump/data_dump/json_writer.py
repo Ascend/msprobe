@@ -29,8 +29,13 @@ from msprobe.core.common.log import logger
 lock = threading.Lock()
 
 
+def is_json_enabled(config):
+    return getattr(config, "nan_check_detail", True)
+
+
 class DataWriter:
     def __init__(self) -> None:
+        self.config = None
         self.bench_dump_file_path = None
         self.dump_file_path = None
         self.stack_file_path = None
@@ -54,9 +59,6 @@ class DataWriter:
 
     def _is_extra_info_enabled(self):
         return getattr(getattr(self, "config", None), "extra_info", True)
-
-    def _is_json_enabled(self):
-        return getattr(getattr(self, "config", None), "nan_check_detail", True) is not False
 
     @recursion_depth_decorator("JsonWriter: DataWriter._replace_crc32_placeholders")
     def _replace_crc32_placeholders(self, data, crc32_results):
@@ -181,7 +183,7 @@ class DataWriter:
         return results
 
     def initialize_json_file(self, **kwargs):
-        if not self._is_json_enabled():
+        if not is_json_enabled(self.config):
             return
         if kwargs["level"] == Const.LEVEL_DEBUG and not self.cache_debug:
             # debug level case only create debug.json
@@ -278,7 +280,7 @@ class DataWriter:
             logger.warning(f"[FallbackError] Failed to write error log: {e}")
 
     def update_data(self, new_data):
-        if not self._is_json_enabled():
+        if not is_json_enabled(self.config):
             return
         with lock:
             if not isinstance(new_data, dict) or len(new_data.keys()) != 1:
@@ -394,7 +396,7 @@ class DataWriter:
         return result
 
     def write_json(self):
-        if not self._is_json_enabled():
+        if not is_json_enabled(self.config):
             return
         with lock:
             for cb in self._pre_flush_callbacks:

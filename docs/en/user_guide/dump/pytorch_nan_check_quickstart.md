@@ -11,7 +11,7 @@ Configure collection in `config.json`, then call `PrecisionDebugger.start()` bef
 
 ### 1.1 Build
 
-This example requires the `aclgraph_dump` module. Add `-e include-mod=aclgraph_dump` when building. For environment setup, build, and installation steps, see the [Installation Guide](../../install_guide/msprobe_install_guide.md).
+The `isnan` mode detects NaN with PyTorch and saves tensors with `torch.save`. Install the base package by following the [Installation Guide](../../install_guide/msprobe_install_guide.md) to run this example. For the build requirements of `slot` mode, see [slot Mode](#2-slot-mode).
 
 ### 1.2 Data Collection
 
@@ -66,7 +66,7 @@ x.grad: [0.25, nan]
 
 ### 1.3 Saved Files
 
-The saved-file format and values below are illustrative and expected; process IDs, API indices, and collection indices depend on the actual run. The tree omits `sum` and backward API files. `proc<pid>` identifies the process, and distributed execution uses `rank<ID>`.
+The saved-file format and values below are illustrative and expected; process IDs, API indices, and tensor positions depend on the actual run. The tree omits `sum` and backward API files. `proc<pid>` identifies the process, and distributed execution uses `rank<ID>`.
 
 ```text
 nan_check_dump/
@@ -76,10 +76,10 @@ nan_check_dump/
         ├── stack.json
         ├── construct.json
         └── dump_tensor_data/
-            ├── Torch.sqrt.0.forward.0.input.0.pt
-            ├── Torch.sqrt.0.forward.0.output.0.pt
-            ├── Torch.add.0.forward.0.input.0.pt
-            ├── Torch.add.0.forward.0.output.0.pt
+            ├── Torch.sqrt.0.forward.input.0.pt
+            ├── Torch.sqrt.0.forward.output.0.pt
+            ├── Torch.add.0.forward.input.0.pt
+            ├── Torch.add.0.forward.output.0.pt
             └── ...
 ```
 
@@ -144,7 +144,9 @@ With `detail: true`, `isnan` records each input/output tensor's `is_nan`: `1` fo
 
 #### 1.3.2 Tensors and Additional Files
 
-When a forward output contains NaN, all input/output tensors of that API call within the collection range are saved. When gradients computed by a backward call contain NaN, that call's input/output gradients are saved. Saving is triggered by an output tensor with `is_nan: 1`; other tensors with `null` flags in the same call are also submitted for saving with all original input/output tensors. Files are saved separately for each API call; API-call and save indices depend on the actual output.
+When a forward output contains NaN, all input/output tensors of that API call within the collection range are saved. When gradients computed by a backward call contain NaN, that call's input/output gradients are saved. Saving is triggered by an output tensor with `is_nan: 1`; other tensors with `null` flags in the same call are also submitted for saving with all original input/output tensors. File names contain the API-call index and the tensor position in the inputs or outputs.
+
+NaN detection and tensor saving complete synchronously. With `detail: false`, the `step/rank` (or `proc`) and `dump_tensor_data` directories are created only for steps that detect NaN and save tensors. The `dump_path` root directory may still exist.
 
 | detail | Saved files |
 | --- | --- |
@@ -182,8 +184,8 @@ An excerpt of the processing output is as follows. Actual paths and line numbers
 
 ```text
 Torch.sqrt.0.forward input= 0 output= 1
-Torch.sqrt.0.forward.0.input.0.pt [4.0, -1.0]
-Torch.sqrt.0.forward.0.output.0.pt [2.0, nan]
+Torch.sqrt.0.forward.input.0.pt [4.0, -1.0]
+Torch.sqrt.0.forward.output.0.pt [2.0, nan]
 File .../repro_nan.py, line 10, in <module>,
  y = torch.sqrt(x)
 ```

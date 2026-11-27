@@ -30,7 +30,7 @@ from torch.distributed.distributed_c10d import _get_default_group
 from msprobe.core.common.const import Const
 from msprobe.core.common.decorator import recursion_depth_decorator
 from msprobe.core.common.exceptions import MsprobeException
-from msprobe.core.common.file_utils import load_json, load_yaml, save_npy
+from msprobe.core.common.file_utils import create_directory, load_json, load_yaml, save_npy
 from msprobe.core.common.log import logger
 from msprobe.core.common.utils import convert_tuple, is_int, slice_by_config
 from msprobe.core.dump.data_dump.data_processor.base import (
@@ -1028,11 +1028,12 @@ class KernelDumpDataProcessor(PytorchDataProcessor):
 class NanCheckDataProcessor(PytorchDataProcessor):
     @staticmethod
     def _nan_check_ops_available(check_mode):
+        if check_mode == Const.NAN_CHECK_MODE_ISNAN:
+            return True
         if is_gpu:
             return False
         try:
-            module = "aclgraph_dump" if check_mode == Const.NAN_CHECK_MODE_ISNAN else "nan_check"
-            importlib.import_module(f"msprobe.pytorch.{module}")
+            importlib.import_module("msprobe.pytorch.nan_check")
             return True
         except Exception:
             return False
@@ -1041,11 +1042,10 @@ class NanCheckDataProcessor(PytorchDataProcessor):
         super().__init__(config, data_writer)
         self._nan_check_mode = getattr(config, "nan_check_mode", Const.NAN_CHECK_MODE_ISNAN)
         if not self._nan_check_ops_available(self._nan_check_mode):
-            module = "aclgraph_dump" if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN else "nan_check"
             raise MsprobeException(
                 MsprobeException.INTERFACE_USAGE_ERROR,
-                f"Nan check requires {module} support for {self._nan_check_mode} mode. "
-                f"Please compile with --include-mod={module}.",
+                f"Nan check requires nan_check support for {self._nan_check_mode} mode. "
+                "Please compile with --include-mod=nan_check.",
             )
         if self._nan_check_mode == Const.NAN_CHECK_MODE_ISNAN:
             self._nan_check_detail = getattr(config, "nan_check_detail", True)
@@ -1168,12 +1168,13 @@ class NanCheckDataProcessor(PytorchDataProcessor):
             switch = flags[0]
             for flag in flags[1:]:
                 switch = torch.logical_or(switch, flag)
-            switch = switch.to(dtype=torch.int64).reshape(1)
+            if not switch.item():
+                return
             api_name = re.sub(r"[^A-Za-z0-9_.-]", "_", self.current_api_or_module_name)
-            call_started = False
+            directory_created = False
 
             def save_tensor(value, suffix_stack):
-                nonlocal call_started
+                nonlocal directory_created
                 if not isinstance(value, torch.Tensor):
                     return
                 tensor = self._normalize_nan_tensor(value)
@@ -1181,13 +1182,27 @@ class NanCheckDataProcessor(PytorchDataProcessor):
                     return
                 suffix = re.sub(r"[^A-Za-z0-9_.-]", "_", Const.SEP.join(map(str, suffix_stack)))
                 path = os.path.join(self.data_path, f"{api_name}.{suffix}{Const.PT_SUFFIX}")
-                if tensor.is_floating_point() and tensor.element_size() <= 1:
-                    # Python serialization supports low-precision storages missing from C++ archives.
-                    if switch.item():
-                        save_pt(tensor.detach().to("cpu"), path)
-                    return
-                torch.ops.my_ns.acl_tensor_save(tensor.contiguous(), path, api_name, not call_started, switch)
-                call_started = True
+                try:
+                    cpu_tensor = tensor.detach().to("cpu")
+                    # CPU views can retain storage far larger than the tensor itself.
+                    if cpu_tensor.untyped_storage().nbytes() > cpu_tensor.numel() * cpu_tensor.element_size():
+                        if is_float4_tensor(cpu_tensor):
+                            # Copy packed FP4 bytes without relying on a native FP4 copy kernel.
+                            cpu_tensor = (
+                                cpu_tensor.view(torch.uint8)
+                                .clone(memory_format=torch.contiguous_format)
+                                .view(cpu_tensor.dtype)
+                            )
+                        else:
+                            cpu_tensor = cpu_tensor.clone(memory_format=torch.contiguous_format)
+                    if not directory_created:
+                        create_directory(self.data_path)
+                        directory_created = True
+                    save_pt(cpu_tensor, path)
+                except Exception as e:
+                    if not self._isnan_save_warned:
+                        logger.warning(f"Nan check could not save tensor to {path}: {e}.")
+                        self._isnan_save_warned = True
 
             self.recursive_apply_transform(tensors, save_tensor)
         except Exception as e:
